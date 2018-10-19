@@ -23,10 +23,15 @@ OBJ := obj
 SOURCES := $(wildcard $(SOURCE_DIR)/*.c)
 OBJECTS := $(patsubst $(SOURCE_DIR)/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
 
-all: $(OBJECTS)
+LIB := $(BUILD_DIR)/library.a
+
+all: $(OBJECTS) $(LIB)
 
 ## Build all o's into an executable. 
 # $(CC) $^ -o $@
+
+$(LIB): $(OBJECTS)
+	$(AR) -rcs $@ $<
 
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
 	$(CC) -I$(SOURCE_DIR) -c $< -o $@
