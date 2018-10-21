@@ -7,7 +7,8 @@
 mpc_parser_t* Atom;
 mpc_parser_t* SExp;
 mpc_parser_t* Program;
-mpc_parser_t* Value;
+mpc_parser_t* Integer;
+mpc_parser_t* Float;
 mpc_parser_t* Name;
 
 void init_parser(void) {
@@ -15,21 +16,23 @@ void init_parser(void) {
   Atom = mpc_new("atom");
   SExp = mpc_new("sexp");
   Program = mpc_new("program");
-  Value = mpc_new("value");
+  Integer = mpc_new("integer");
+  Float   = mpc_new("float");
   Name = mpc_new("name");
-
+  
   mpca_lang(MPCA_LANG_DEFAULT,
-	    "atom      : <value> | <name> ;"
-	    "sexp      : <atom>  | '(' <sexp>+ ')' ;"
+	    "atom      : <float> | <integer> | <name> ;"
+	    "sexp      : <atom>  | '(' <sexp>+ ')' | '(' <sexp> '.' <sexp> ')' ;"
 	    "program   : <sexp>+ ;"
-	    "value     : /[0-9]+/;"
-	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/;",
-	    Atom, SExp, Program, Value, Name);  
+	    "integer   : /[0-9]+/ ;"
+	    "float     : /-?[0-9]+\\.?[0-9]+/;"
+	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/ \0;",
+	    Atom, SExp, Program, Integer, Float , Name);  
 }
 
 void destroy_parser(void) {
   
-  mpc_cleanup(5, Atom, SExp, Program, Value, Name);
+  mpc_cleanup(6, Atom, SExp, Program, Integer, Float, Name);
 } 
 
 
