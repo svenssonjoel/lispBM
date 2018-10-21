@@ -26,11 +26,11 @@ void init_parser(void) {
 	    "program   : <sexp>+ ;"
 	    "integer   : /[0-9]+/ ;"
 	    "float     : /-?[0-9]+\\.?[0-9]+/;"
-	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/ \0;",
+	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/;",
 	    Atom, SExp, Program, Integer, Float , Name);  
 }
 
-void destroy_parser(void) {
+void del_parser(void) {
   
   mpc_cleanup(6, Atom, SExp, Program, Integer, Float, Name);
 } 
