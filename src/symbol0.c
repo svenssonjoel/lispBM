@@ -16,7 +16,7 @@
 static uint32_t next_symbol;
 static symtab_t symtab; 
 
-int init_symtab() {
+int symtab_init() {
 
   next_symbol = 0; 
   
@@ -28,10 +28,10 @@ int init_symtab() {
   return 1; 
 } 
 
-static void free_symtab(symtab_t *s) {
+static void symtab_free(symtab_t *s) {
 
   if (s->next) {
-    free_symtab(s->next);
+    symtab_free(s->next);
     free(s->next); 
   }
   for (int i = 0; i < INITIAL_SYMBOL_TABLE_SIZE; i ++) {
@@ -40,15 +40,14 @@ static void free_symtab(symtab_t *s) {
   free(s->symbols);
 }
 
-void del_symtab() {
-  free_symtab(&symtab); 
+void symtab_del() {
+  symtab_free(&symtab); 
 }
 
 static int new_symbol(char *sym, symtab_t *s, uint32_t index){
 
   if (index >= INITIAL_SYMBOL_TABLE_SIZE) {
     if (!s->next) {
-      printf("Allocating new symtab\n"); 
       s->next = (symtab_t*)malloc(sizeof(symtab_t));
       s->next->symbols = (char**)malloc(INITIAL_SYMBOL_TABLE_SIZE * sizeof(char*));
       if (!s->next || !s->next->symbols) {
@@ -69,7 +68,7 @@ static int new_symbol(char *sym, symtab_t *s, uint32_t index){
   return 1; 
 }
 
-void print_symtab() {
+void symtab_print() {
   int i = 0;
   int index = 0; 
   
@@ -90,18 +89,16 @@ void print_symtab() {
 
 
 
-uint32_t add_symbol(char *sym) {
+int symtab_addsym(char *sym, uint32_t *symid) {
 
   uint32_t sym_index = next_symbol;
   next_symbol++;
-
-  printf("Creating symbol: %d\n", sym_index); 
+  *symid = sym_index;
+		  
   if (!new_symbol(sym, &symtab, sym_index)) {
-    /* Figure out what to do with errors here */
-    printf("Error allocating additional symtab space\n");
-    exit(0); 
+    return 0; 
   }
-  return sym_index;
+  return 1;
 }
 
 

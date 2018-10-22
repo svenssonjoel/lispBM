@@ -11,7 +11,7 @@ mpc_parser_t* Integer;
 mpc_parser_t* Float;
 mpc_parser_t* Name;
 
-void init_parser(void) {
+int parser_init(void) {
   
   Atom = mpc_new("atom");
   SExp = mpc_new("sexp");
@@ -27,16 +27,19 @@ void init_parser(void) {
 	    "integer   : /[0-9]+/ ;"
 	    "float     : /-?[0-9]+\\.?[0-9]+/;"
 	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/;",
-	    Atom, SExp, Program, Integer, Float , Name);  
+	    Atom, SExp, Program, Integer, Float , Name);
+  
+  /* TODO: return error when something fails! */ 
+  return 1; 
 }
 
-void del_parser(void) {
+void parser_del(void) {
   
   mpc_cleanup(6, Atom, SExp, Program, Integer, Float, Name);
 } 
 
 
-mpc_ast_t* parse_string(char *input) {
+mpc_ast_t* parser_parse_string(char *input) {
 
   mpc_result_t r;
   

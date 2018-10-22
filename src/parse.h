@@ -4,9 +4,9 @@
 
 #include "mpc.h"
 
-extern void init_parser(void);
-extern void del_parser(void);
-extern mpc_ast_t* parse_string(char *input); 
+extern int parser_init(void);
+extern void parser_del(void);
+extern mpc_ast_t* parser_parse_string(char *input); 
 
 
 #endif

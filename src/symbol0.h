@@ -15,10 +15,10 @@ typedef struct s_symtab {
 } symtab_t;
 
 
-extern int init_symtab();
-extern void del_symtab(); 
-extern uint32_t add_symbol(char *);
-extern void print_symtab(); 
+extern int symtab_init();
+extern void symtab_del(); 
+extern int symtab_addsym(char *, uint32_t *);
+extern void symtab_print();  
 
 
 #endif 
