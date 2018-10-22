@@ -9,8 +9,8 @@
 #define SYMBOL  3 
 #define CONS    4 
 
-struct cons_s;
-union  car_s;
+struct s_cons;
+union  s_car;
 
 /* The (main) target platform in mind has 32bit pointers. 
    So in that particular case, all members of this union 

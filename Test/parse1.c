@@ -28,6 +28,13 @@ int main(int argc, char **argv) {
     sprintf(str,"a%d",i);
     add_symbol(str); 
   }
+
+  for (int i = 0; i < 2048; i ++) {
+    char str[256];
+    sprintf(str,"b%d",i);
+    add_symbol(str); 
+  }
+ 
   
   print_symtab();
   
