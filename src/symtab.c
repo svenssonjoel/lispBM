@@ -1,5 +1,5 @@
 
-#include "htab.h"
+#include "symtab.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,7 +17,10 @@
    In the worst case it has the same linked list traversal. 
    
    Replace with something more thought through (or looked up) later. 
- */ 
+ */
+
+#define SYMTAB_SIZE 65521  
+#define SMALL_PRIMES 11
 
 uint32_t hash_string(char *str); 
 
@@ -29,18 +32,18 @@ typedef struct s_name_mapping {
   
 name_mapping_t **name_table = NULL;
 
-int htab_init(void) {
-  name_table = (name_mapping_t**)malloc(HTAB_SIZE * sizeof(name_mapping_t*));
+int symtab_init(void) {
+  name_table = (name_mapping_t**)malloc(SYMTAB_SIZE * sizeof(name_mapping_t*));
   if (!name_table) return 0; 
-  memset(name_table, 0, HTAB_SIZE * sizeof(name_mapping_t*));
+  memset(name_table, 0, SYMTAB_SIZE * sizeof(name_mapping_t*));
   return 1;
 }
 
-int htab_addname(char *name, uint32_t* id) {
+int symtab_addname(char *name, uint32_t* id) {
   size_t   n = 0; 
   uint32_t hash = hash_string(name);
   
-  if (hash >= HTAB_SIZE) /* impossible */ return 0;
+  if (hash >= SYMTAB_SIZE) /* impossible */ return 0;
 
   if (name_table[hash] == NULL){
     name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
@@ -52,7 +55,7 @@ int htab_addname(char *name, uint32_t* id) {
     name_table[hash]->next = NULL; 
   } else {
     uint32_t t_id; 
-    if (htab_lookup(name, &t_id)) {
+    if (symtab_lookup(name, &t_id)) {
       /* name already in table */
 
       *id = t_id; 
@@ -76,7 +79,7 @@ int htab_addname(char *name, uint32_t* id) {
   return 1; 
 }
 
-int htab_lookup(char *name, uint32_t* id) {
+int symtab_lookup(char *name, uint32_t* id) {
 
   int r = 0; 
   uint32_t hash = hash_string(name);
@@ -95,7 +98,7 @@ int htab_lookup(char *name, uint32_t* id) {
   return r; 
 }
 
-char *htab_lookup_name(uint32_t id) {
+char *symtab_lookup_name(uint32_t id) {
   uint32_t hash = id & (uint32_t)0x0000FFFF; /*extract index*/
   if (name_table[hash]) {
     name_mapping_t *head = name_table[hash];
@@ -110,10 +113,10 @@ char *htab_lookup_name(uint32_t id) {
   return NULL; 
 }
 
-void htab_print(void) {
+void symtab_print(void) {
   int i;
 
-  for (i = 0; i < HTAB_SIZE; i ++) {
+  for (i = 0; i < SYMTAB_SIZE; i ++) {
     if (name_table[i] != NULL) {
       name_mapping_t *head = name_table[i]; 
       while (head) {
@@ -124,12 +127,12 @@ void htab_print(void) {
   }
 }
 
-void htab_del(void) {
+void symtab_del(void) {
   int i;
 
   if(!name_table) return; 
   
-  for (i = 0; i < HTAB_SIZE; i ++) {
+  for (i = 0; i < SYMTAB_SIZE; i ++) {
     if (name_table[i]) {
       name_mapping_t *head = name_table[i];
       name_mapping_t *next; 
@@ -154,7 +157,7 @@ uint32_t hash_string(char *str) {
   
   for (int i = 0; i < n; i ++) {
     uint32_t sp = small_primes[i % SMALL_PRIMES]; 
-    r = (r * (sp + str[i])) % HTAB_SIZE; 
+    r = (r * (sp + str[i])) % SYMTAB_SIZE; 
   }
 
   return r; 

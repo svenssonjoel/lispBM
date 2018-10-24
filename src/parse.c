@@ -22,7 +22,7 @@ int parser_init(void) {
   
   mpca_lang(MPCA_LANG_DEFAULT,
 	    "atom      : <float> | <integer> | <name> ;"
-	    "sexp      : <atom>  | '(' <sexp>+ ')' | '(' <sexp> '.' <sexp> ')' ;"
+	    "sexp      : <atom>  | '(' <sexp>* ')' | '(' <sexp> '.' <sexp> ')' ;"
 	    "program   : <sexp>+ ;"
 	    "integer   : /[0-9]+/ ;"
 	    "float     : /-?[0-9]+\\.?[0-9]+/;"

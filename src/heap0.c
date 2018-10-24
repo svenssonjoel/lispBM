@@ -7,6 +7,8 @@ cons_t *heap = NULL;
 cons_t *free_list = NULL;
 cons_t *free_list_last = NULL; 
 
+size_t heap_bytes; 
+
 int generate_free_list(size_t num_cells) {
   size_t i = 0; 
   
@@ -37,6 +39,8 @@ int heap_init(size_t num_cells) {
 
   if (!heap) return 0;
 
+  heap_bytes = num_cells * sizeof(cons_t); 
+  
   return (generate_free_list(num_cells)); 
 }
 
@@ -84,3 +88,8 @@ cons_t *heap_allocate_cell(void) {
   
   return res;
 }
+
+size_t heap_size_bytes(void) {
+  return heap_bytes;
+}
+  

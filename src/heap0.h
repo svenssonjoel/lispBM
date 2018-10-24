@@ -5,18 +5,18 @@
 #include <stdlib.h>
 #include <stdint.h> 
 
-#define INTEGER 1 
-#define FLOAT   2
-#define SYMBOL  3 
-#define POINTER 4
+#define INTEGER          1 
+#define FLOAT            2
+#define SYMBOL           3 
+#define POINTER          4
 #define OFF_HEAP_POINTER 5 
-#define NIL     6
+#define NIL              6
 
 /* bitpositions in the TYPE field */
 #define CAR_TYPE_POS 0
 #define CDR_TYPE_POS 8
 #define AUX_BITS_POS 9
-#define MARK_POS 31    /* last bit reserved for garbage collector */  
+#define MARK_POS     31    /* last bit reserved for garbage collector */  
 
 #define GET_CAR_TYPE(X)    ((X) & 0xFF)
 #define GET_CDR_TYPE(X)    (((X) >> CDR_TYPE_POS) & 0xFF)
@@ -53,9 +53,7 @@ typedef struct s_cons {
 
 extern int heap_init(size_t num_cells);
 extern void heap_del(void);
-
 extern size_t heap_num_free(void);
-
 extern cons_t* heap_allocate_cell(void); 
-
+extern size_t heap_size_bytes(void); 
 #endif
