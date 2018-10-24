@@ -1,6 +1,6 @@
 
-#ifndef HEAP0_H_
-#define HEAP0_H_
+#ifndef HEAP_H_
+#define HEAP_H_
 
 #include <stdlib.h>
 #include <stdint.h> 
@@ -9,12 +9,23 @@
 #define FLOAT   2
 #define SYMBOL  3 
 #define POINTER 4
-#define NIL     5 
+#define OFF_HEAP_POINTER 5 
+#define NIL     6
 
-#define CAR_TYPE(X) ((X) & 0xFF)
-#define CDR_TYPE(X) (((X) >> 8) & 0xFF)
+/* bitpositions in the TYPE field */
+#define CAR_TYPE_POS 0
+#define CDR_TYPE_POS 8
+#define AUX_BITS_POS 9
+#define MARK_POS 31    /* last bit reserved for garbage collector */  
 
+#define GET_CAR_TYPE(X)    ((X) & 0xFF)
+#define GET_CDR_TYPE(X)    (((X) >> CDR_TYPE_POS) & 0xFF)
 
+#define SET_CAR_TYPE(X,T)  (((X) & ~0xFF) | ((T) & 0xFF))
+#define SET_CDR_TYPE(X,T)  (((X) & ~(0xFF << CDR_TYPE_POS)) | (((T) & 0xFF) << CDR_TYPE_POS))
+
+#define GET_AUX_BIT(X,N)   ((X) >> (AUX_BITS_POS + (N)) & 1) 
+#define SET_AUX_BIT(X,B,N) (((X) & ~(1 << AUX_BITS_POS + (N))) | ((B) << (AUX_BITS_POS + (N))))
 
 struct s_cons;
 union  s_car;
@@ -34,7 +45,7 @@ typedef union s_car {
 } car_t, cdr_t; 
 
 typedef struct s_cons {
-  int32_t type;
+  uint32_t type;
   
   car_t car; 
   cdr_t cdr;
@@ -45,6 +56,6 @@ extern void heap_del(void);
 
 extern size_t heap_num_free(void);
 
-extern cons_t* heap_allocate_cell(); 
+extern cons_t* heap_allocate_cell(void); 
 
 #endif

@@ -62,7 +62,7 @@ size_t heap_num_free(void) {
   return count; 
 }
 
-cons_t *heap_allocate_cell() {
+cons_t *heap_allocate_cell(void) {
 
   cons_t *res;
 
