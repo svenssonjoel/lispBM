@@ -11,6 +11,7 @@
 #define POINTER          4
 #define OFF_HEAP_POINTER 5 
 #define NIL              6
+#define NOTHING          7 /* a Nothing is not a Nil (does Nothing need to exist?) */
 
 /* bitpositions in the TYPE field */
 #define CAR_TYPE_POS 0

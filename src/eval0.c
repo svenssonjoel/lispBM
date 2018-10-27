@@ -8,7 +8,11 @@
 /* TODO: Experiment with evaluation */
 
 
-cons_t * eval(cons_t *cell) {
+cons_t *eval(cons_t *cell) {
+
+  /* The result of evaluation will be a reduced expressiong 
+     represented by heap allocated cells */ 
+  cons_t *result = heap_allocate_cell(); 
   
   switch (GET_CAR_TYPE(cell->type))
     {

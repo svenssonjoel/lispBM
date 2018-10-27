@@ -157,7 +157,7 @@ uint32_t hash_string(char *str) {
   
   for (int i = 0; i < n; i ++) {
     uint32_t sp = small_primes[i % SMALL_PRIMES]; 
-    r = (r * (sp + str[i])) % SYMTAB_SIZE; 
+    r = (r + (sp * str[i])) % SYMTAB_SIZE; 
   }
 
   return r; 
