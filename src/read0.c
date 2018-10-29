@@ -34,7 +34,7 @@ cons_t* concat(cons_t *h, cons_t *t) {
   return h; 
 }
 
-
+/* TODO: Fix bugs here */ 
 cons_t* read_ast(mpc_ast_t *t) {
 
   cons_t* cell = NULL; 
@@ -83,15 +83,16 @@ cons_t* read_ast(mpc_ast_t *t) {
     return root; 
   }
   else if (strstr(t->tag, "sexp")) {
+    /* This case is wrong. It flattens important structure */ 
     int n = t->children_num;
 
     cons_t *sexp = NULL; 
     
     for (int i = 0; i < n; i ++) {
-      /* Some conditions here */ 
       if (strcmp(t->children[i]->contents, "(") == 0) { continue; }
       if (strcmp(t->children[i]->contents, ")") == 0) { continue; }
       if (strcmp(t->children[i]->tag,  "regex") == 0) { continue; }
+      
       sexp = concat(sexp, read_ast(t->children[i])); 
     }
     /* TODO: more checking has to be done */ 

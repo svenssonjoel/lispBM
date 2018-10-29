@@ -75,7 +75,18 @@ int main(int argc, char **argv) {
     }
 
     printf("EVAL> "); 
-    eval(t);
+    t = eval(t);
+
+    printf( "Eval finished \n"); 
+    if (GET_CAR_TYPE(t->car.cons->type) == INTEGER) {
+      printf("%d\n\r",t->car.cons->car.i);
+    } else {
+      printf("EVAL: something wrong %d\n\r", t->car.cons->car.i);
+    }
+      
+     
+
+    
     printf("\n"); 
     //mpc_ast_print(ast);
     //mpc_ast_delete(ast);

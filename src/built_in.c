@@ -1,7 +1,8 @@
 
 
 #include "symtab.h"
-#include "heap0.h" 
+#include "heap0.h"
+#include <stdio.h>
 
 #define NUM_BUILT_IN 5
 
@@ -33,15 +34,23 @@ cons_t *bi_add(cons_t *args) {
   
   
   while(head) { /* Do this more rigorously */ 
-    if (GET_CAR_TYPE(head->type) == INTEGER &&
-	GET_CDR_TYPE(head->type) == POINTER) {
+    if (GET_CAR_TYPE(head->type) == INTEGER ) {
+
+      printf("adding %d\n", head->car.i); 
       
       acc += head->car.i; 
-
-      head = head->cdr.cons;
-    } else {
-      return NULL;
+    }else {
+      printf ("WHAT!!");
     }
+    if (GET_CDR_TYPE(head->type) == NIL) {
+      printf("NIL(%d)",head->car.i); 
+      head = NULL;
+    } else if (GET_CDR_TYPE(head->type) == POINTER)  {
+      printf("P"); 
+      head = head->cdr.cons;
+    }
+    
+    
   }
   res->type = (NIL << 8 | INTEGER);
   res->car.i = acc;

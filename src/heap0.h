@@ -5,6 +5,51 @@
 #include <stdlib.h>
 #include <stdint.h> 
 
+/* 
+Rethinking heap structure. 
+
+0000 0000  Size    Free bits
+003F FFFF  4MB      10 
+007F FFFF  8MB       9
+00FF FFFF  16MB      8
+01FF FFFF  32MB      7 
+03FF FFFF  64MB      6         * Kind of heap size I am looking for 
+07FF FFFF  128MB     5
+0FFF FFFF  256MB     4 
+1FFF FFFF  512MB     3    
+
+it is also the case that not all addresses will be used if all "cells" are 
+of the same size, 4 bytes... 
+
+value 0: 0000 0000 
+value 1: 0000 0004
+value 3: 0000 0008 
+value 4: 0000 000C
+
+Means bit 0 and bit one will always be empty in a valid address.
+
+Cons cells also need to be have room for 2 pointers. So each allocated cell from
+memory should be 8bytes. 
+ 
+Things that needs to be represented within these bits:
+ 
+ - GC MARK one per cell  
+ - TYPE: type of CAR and type of cons
+
+Types I would want: 
+ - Full 32bit integer. 
+ - Float values. 
+ 
+
+ (1 2 3) :: [1 | POINTER] -> [2 | POINTER] ->  [3 | NIL] 
+
+ (1 . 2) :: [1 | 2]  or 
+            [1 | X] <- [POINTER | POINTER] -> [2 | X] 
+ 
+
+ */ 
+
+
 #define INTEGER          1 
 #define FLOAT            2
 #define SYMBOL           3 
@@ -16,7 +61,7 @@
 /* bitpositions in the TYPE field */
 #define CAR_TYPE_POS 0
 #define CDR_TYPE_POS 8
-#define AUX_BITS_POS 9
+#define AUX_BITS_POS 16
 #define MARK_POS     31    /* last bit reserved for garbage collector */  
 
 #define GET_CAR_TYPE(X)    ((X) & 0xFF)
