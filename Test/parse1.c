@@ -88,8 +88,8 @@ int main(int argc, char **argv) {
 
     
     printf("\n"); 
-    //mpc_ast_print(ast);
-    //mpc_ast_delete(ast);
+    mpc_ast_print(ast);
+    mpc_ast_delete(ast);
     printf("HEAP has %ld free cons cells\n", heap_num_free());
     symtab_print();
   }
