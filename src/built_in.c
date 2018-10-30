@@ -35,19 +35,16 @@ cons_t *bi_add(cons_t *args) {
   
   while(head) { /* Do this more rigorously */ 
     if (GET_CAR_TYPE(head->type) == INTEGER ) {
-
-      printf("adding %d\n", head->car.i); 
       
       acc += head->car.i; 
     }else {
+
+      printf ("bi_add: Only integers currently\n");
       
-      printf ("WHAT!!");
     }
     if (GET_CDR_TYPE(head->type) == NIL) {
-      printf("NIL(%d)",head->car.i); 
       head = NULL;
     } else if (GET_CDR_TYPE(head->type) == POINTER)  {
-      printf("P"); 
       head = head->cdr.cons;
     }
     

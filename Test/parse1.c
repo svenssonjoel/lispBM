@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
       break;
     }
 
-    mpc_ast_print(ast);
+    //mpc_ast_print(ast);
 
     cons_t *t = NULL; 
     if (!(t = read_ast(ast))) {
@@ -77,16 +77,8 @@ int main(int argc, char **argv) {
       return 0; 
     }
 
-    printf("BEFORE EVAL\n"); 
     t = eval(t);
-    printf("AFTER EVAL\n"); 
     
-    //if (GET_CAR_TYPE(t->type) == INTEGER) {
-    //  printf("%d\n\r",t->car.i);
-    //} else {
-    //  printf("EVAL: Result is not an integer %d\n\r", t->car.cons->car.i);
-    //}
-
     simple_print(t); 
      
     printf("\n"); 
