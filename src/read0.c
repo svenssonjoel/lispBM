@@ -25,8 +25,6 @@ typedef struct s_read_result {
 
 
 read_result_t read_internal(mpc_ast_t* t) {
-
-  printf("Entering read_internal\n"); 
   read_result_t res;
   
   if (strstr(t->tag, "name")) {
@@ -69,7 +67,10 @@ read_result_t read_internal(mpc_ast_t* t) {
 
     for (int i = 0; i < t->children_num; i ++) {
 
+      if (strcmp(t->children[i]->tag,  "regex") == 0) { continue; }
+       
       tmp = read_internal(t->children[i]);
+      
 
       switch(tmp.r_type) {
       case R_ERROR:
@@ -77,7 +78,7 @@ read_result_t read_internal(mpc_ast_t* t) {
 	return res;
 	break;
 	
-      case R_SYMBOL: /* This would be a program with a "naked" symbol (not in an sexpr) */ 
+      case R_SYMBOL: /* This would be a program with a "naked" symbol (not in an sexpr) */
 	res.r_type = R_ERROR; 
 	return res;
 	break;
@@ -94,9 +95,9 @@ read_result_t read_internal(mpc_ast_t* t) {
 	
       case R_CONS: /* First "real" program case */ 
 
-	if (root == NULL) { /* create the head of list */
-	  printf("allocating head cell for program\n"); 
+	if (root == NULL) { /* create the head of list (The root program list)*/
 	  root = heap_allocate_cell();
+	  
 	  curr = root;
 	  prev = NULL;
 	}
@@ -107,9 +108,10 @@ read_result_t read_internal(mpc_ast_t* t) {
 	  prev->cdr.cons = curr; 
 	}
 	uint32_t type = 0;
+	type = SET_CONS_TYPE(type, 1); /* curr is a node in a list */ 
 	type = SET_CAR_TYPE(type, POINTER);
 	type = SET_CDR_TYPE(type, NIL); 
-	curr->car.cons = tmp.r_cons_cell;
+	curr->car.cons = tmp.r_cons_cell; /* point to contained list */ 
 	curr->cdr.i = 0; /*hack*/ 
 	curr->type = type;
 	
@@ -150,7 +152,6 @@ read_result_t read_internal(mpc_ast_t* t) {
 
 
       if (root == NULL) { /* create the head of list */
-	printf("allocating head node for sexp\n"); 
 	root = heap_allocate_cell();
 	curr = root;
 	prev = NULL;
@@ -169,7 +170,8 @@ read_result_t read_internal(mpc_ast_t* t) {
 	break;
 	
       case R_SYMBOL:
-	type = 0; 
+	type = 0;
+	type = SET_CONS_TYPE(type, 1); /* symbol in list */ 
 	type = SET_CAR_TYPE(type, SYMBOL);
 	type = SET_CDR_TYPE(type, NIL); 
 	curr->car.s = tmp.r_symbol;
@@ -179,6 +181,7 @@ read_result_t read_internal(mpc_ast_t* t) {
 	
       case INTEGER:
 	type = 0;
+	type = SET_CONS_TYPE(type, 1); /* integer in list */ 
 	type = SET_CAR_TYPE(type, INTEGER);
 	type = SET_CDR_TYPE(type, NIL); 
 	curr->car.i = tmp.r_integer;
@@ -188,6 +191,7 @@ read_result_t read_internal(mpc_ast_t* t) {
 	
       case R_FLOAT:
 	type = 0;
+	type = SET_CONS_TYPE(type, 1); /* float in list */
 	type = SET_CAR_TYPE(type, FLOAT);
 	type = SET_CDR_TYPE(type, NIL); 
 	curr->car.f = tmp.r_float;
@@ -198,6 +202,7 @@ read_result_t read_internal(mpc_ast_t* t) {
       case R_CONS: /* First "real" program case */ 
 
 	type = 0;
+	type = SET_CONS_TYPE(type,1); /* pointer to list, within a list */ 
 	type = SET_CAR_TYPE(type, POINTER);
 	type = SET_CDR_TYPE(type, NIL); 
 	curr->car.cons = tmp.r_cons_cell;
@@ -225,106 +230,6 @@ cons_t* read_ast(mpc_ast_t *t) {
 
   if (res.r_type == R_CONS)
     return res.r_cons_cell;
-  else
-    printf ("Error reading ast\n"); 
+  
   return NULL;
 }
-
-
-
-
-int read_integer(mpc_ast_t* t) {
-  return atoi(t->contents);
-}
-
-cons_t* concat(cons_t *h, cons_t *t) {
-  
-  if (h == NULL) return t;
-  if (t == NULL) return h;
-
-  cons_t *curr = h; 
-  
-  while (GET_CDR_TYPE(curr->type) == POINTER) {
-    curr = curr->cdr.cons;
-  }
-  
-  if (GET_CDR_TYPE(curr->type) != NIL) {
-    printf("ERROR: DEAL WITH THIS BETTER LATER!\n");
-    return NULL;
-  }
-
-  curr->type = SET_CDR_TYPE(curr->type,POINTER); 
-  curr->cdr.cons = t;
-  
-  return h; 
-}
-
-/*
-cons_t* read_ast(mpc_ast_t *t) {
-
-  cons_t* cell = NULL; 
-  uint32_t type = 0; 
-
-  if (strstr(t->tag, "name")) {
-    cell = heap_allocate_cell();
-    uint32_t symbol_id; 
-    type = SET_CDR_TYPE(type, NIL);
-    type = SET_CAR_TYPE(type, SYMBOL);
-    cell->type = type;
-
-    if (symtab_lookup(t->contents, &symbol_id)) {
-      cell->car.s = symbol_id;
-    }
-    else if (symtab_addname(t->contents,&symbol_id)) {
-      cell->car.s = symbol_id; 
-    } else {
-      return NULL;
-    }  
-  }
-  else if (strstr(t->tag, "integer")) {
-    cell = heap_allocate_cell();
-    type = SET_CDR_TYPE(type, NIL);
-    type = SET_CAR_TYPE(type, INTEGER);
-    cell->type = type;
-    cell->car.i = read_integer(t); 
-    cell->cdr.i = 0; 
-  }
-  else if (strcmp(t->tag, ">") == 0) {
-    int n = t->children_num;
-
-    cons_t *root = NULL; 
-
-    for (int i = 0; i < t->children_num; i ++) {
-      cons_t *curr_tramp = heap_allocate_cell();
-      cons_t *curr = read_ast(t->children[i]);
-      type = SET_CAR_TYPE(type,POINTER);
-      type = SET_CDR_TYPE(type,NIL);
-      curr_tramp->type = type;
-      curr_tramp->car.cons = curr;
-      curr_tramp->cdr.i = 0; 
-      root = concat(root,curr_tramp); 
-    }
-    return root; 
-  }
-  else if (strstr(t->tag, "sexp")) {
-    int n = t->children_num;
-
-    cons_t *sexp = NULL; 
-    
-    for (int i = 0; i < n; i ++) {
-      if (strcmp(t->children[i]->contents, "(") == 0) { continue; }
-      if (strcmp(t->children[i]->contents, ")") == 0) { continue; }
-      if (strcmp(t->children[i]->tag,  "regex") == 0) { continue; }
-      
-      sexp = concat(sexp, read_ast(t->children[i])); 
-    }
-    return sexp;
-  }
-  else {
-    printf("CATCH ALL BRANCH!\n");
-    printf("%s\n", t->tag); 
-  }
-  
-  return cell;  
-}
- */

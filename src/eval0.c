@@ -83,15 +83,47 @@ cons_t *eval_(cons_t *cell, int head_position) {
 	 WIll probably take the form of some cases. 
 	 - is the result of evaluation a list or some "primitive"
 
+	 So it must be possible to tell the difference between: 
+	 the value x and the list (x) = [x|Nil]
+
       */
         
     case POINTER:
-      type = SET_CAR_TYPE(type, POINTER); 
+      //
       printf(" CARPOINTER "); 
-      if (cell->car.cons == NULL) return NULL; 
+      if (cell->car.cons == NULL) return NULL; /* this would be bad */ 
       ptr = eval_(cell->car.cons, 1);
-      result->type = type;
-      result->car.cons = ptr;
+
+      if (GET_CONS_TYPE(ptr->type) == 1) { /* the result of evaluation is a list */
+	printf("Eval of pointer resulted in list\n"); 
+	type = SET_CAR_TYPE(type, POINTER);
+	result->type = type;
+	result->car.cons = ptr;
+      } else {
+	printf("Eval of pointer resulted in value\n"); 
+	/* Here result should not contain a ptr in car position. 
+	   But rather a copy what the eval result is. */
+	type = GET_CAR_TYPE(ptr->type);
+	result->type = SET_CAR_TYPE(result->type, type);
+	switch(GET_CAR_TYPE(ptr->type)) {
+	case INTEGER:
+	  result->car.i = ptr->car.i;
+	  break;
+	case FLOAT:
+	  result->car.f = ptr->car.f;
+	  break;
+	case SYMBOL:
+	  result->car.s = ptr->car.s; 
+	  break;
+	case NIL:
+	  result->car.i = 0; /* hack */ 
+	  break; 
+	}
+	
+
+      }
+      
+      
       
       break; 
     }
@@ -124,7 +156,7 @@ cons_t *eval_(cons_t *cell, int head_position) {
       printf("%d ", result->cdr.s); 
       break;
       
-    case POINTER:
+    case POINTER: /* move evaluation to next cell in a list */ 
       type = SET_CDR_TYPE(type,POINTER); 
       printf(" CDR POINTER ");
       if (cell->cdr.cons == NULL) { printf( "NULL CASE!\n");  return NULL; } 

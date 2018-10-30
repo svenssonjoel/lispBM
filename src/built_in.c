@@ -40,6 +40,7 @@ cons_t *bi_add(cons_t *args) {
       
       acc += head->car.i; 
     }else {
+      
       printf ("WHAT!!");
     }
     if (GET_CDR_TYPE(head->type) == NIL) {
@@ -52,7 +53,9 @@ cons_t *bi_add(cons_t *args) {
     
     
   }
-  res->type = (NIL << 8 | INTEGER);
+  res->type = SET_CONS_TYPE(res->type, 0); /* its not part of a list */ 
+  res->type = SET_CDR_TYPE(res->type, NIL);
+  res->type = SET_CAR_TYPE(res->type, INTEGER);
   res->car.i = acc;
   res->cdr.i = 0; /* hack */
 

@@ -21,13 +21,13 @@ int parser_init(void) {
   Name = mpc_new("name");
   
   mpca_lang(MPCA_LANG_DEFAULT,
+	    "program   : /^/ <sexp>+ /$/ ;"
 	    "atom      : <float> | <integer> | <name> ;"
-	    "sexp      : <atom>  | '(' <sexp>* ')' | '(' <sexp> '.' <sexp> ')' ;"
-	    "program   : <sexp>+ ;"
+	    "sexp      : <atom> | '(' <sexp>* ')' | '(' <sexp> '.' <sexp> ')' ;"
 	    "integer   : /[0-9]+/ ;"
 	    "float     : /-?[0-9]+\\.?[0-9]+/;"
 	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/;",
-	    Atom, SExp, Program, Integer, Float , Name);
+	    Program, Atom, SExp, Integer, Float , Name, NULL) ;
   
   /* TODO: return error when something fails! */ 
   return 1; 

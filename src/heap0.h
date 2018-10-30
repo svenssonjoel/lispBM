@@ -37,15 +37,20 @@ Things that needs to be represented within these bits:
  - TYPE: type of CAR and type of cons
 
 Types I would want: 
- - Full 32bit integer. 
- - Float values. 
+ - Full 32bit integer. Does not leave room for identification of type  
+ - Float values.  Same problem
  
 
- (1 2 3) :: [1 | POINTER] -> [2 | POINTER] ->  [3 | NIL] 
+Free bits in pointers 64MB heap: 
+31 30 29 28 27 26                               1 0
+0  0  0  0  0  0  XX XXXX XXXX XXXX XXXX XXXX XX0 0 
 
- (1 . 2) :: [1 | 2]  or 
-            [1 | X] <- [POINTER | POINTER] -> [2 | X] 
- 
+ 64 
+-48
+=16
+
+
+
 
  */ 
 
@@ -58,18 +63,28 @@ Types I would want:
 #define NIL              6
 #define NOTHING          7 /* a Nothing is not a Nil (does Nothing need to exist?) */
 
-/* bitpositions in the TYPE field */
-#define CAR_TYPE_POS 0
-#define CDR_TYPE_POS 8
-#define AUX_BITS_POS 16
-#define MARK_POS     31    /* last bit reserved for garbage collector */  
 
+/* bitpositions in the TYPE field */
+#define CAR_TYPE_POS  0
+#define CDR_TYPE_POS  8
+#define CELL_TYPE_POS 16
+#define AUX_BITS_POS  17
+#define MARK_POS      31  /* last bit reserved for garbage collector */  
+
+
+// I guess, equivalent would be if CDR is NOTHING... 
+// Used to differentiate between a cons cell and a primitive value cell.
+#define GET_CONS_TYPE(X)   (((X) >> CELL_TYPE_POS) & 0x1)
+#define SET_CONS_TYPE(X,T) (((X) & ~(1 << CELL_TYPE_POS)) | (((T) & 0x1) << CELL_TYPE_POS))
+
+// Get/Set CAR and CDR type.
 #define GET_CAR_TYPE(X)    ((X) & 0xFF)
 #define GET_CDR_TYPE(X)    (((X) >> CDR_TYPE_POS) & 0xFF)
 
 #define SET_CAR_TYPE(X,T)  (((X) & ~0xFF) | ((T) & 0xFF))
 #define SET_CDR_TYPE(X,T)  (((X) & ~(0xFF << CDR_TYPE_POS)) | (((T) & 0xFF) << CDR_TYPE_POS))
 
+// toggle Auxiliary bits in type field. 
 #define GET_AUX_BIT(X,N)   ((X) >> (AUX_BITS_POS + (N)) & 1) 
 #define SET_AUX_BIT(X,B,N) (((X) & ~(1 << AUX_BITS_POS + (N))) | ((B) << (AUX_BITS_POS + (N))))
 

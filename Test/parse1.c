@@ -11,6 +11,7 @@
 #include "symtab.h"
 #include "built_in.h"
 #include "eval0.h"
+#include "print.h"
 
 void test_stuff(void);
 
@@ -67,31 +68,34 @@ int main(int argc, char **argv) {
       printf("ERROR!\n");
       break;
     }
-    cons_t *t = NULL; 
-    if ((t = read_ast(ast))) {
-      printf("read_ast ok\n");
-    } else {
-      printf("NULL\n");
-    }
 
-    printf("EVAL> "); 
-    t = eval(t);
-
-    printf( "Eval finished \n"); 
-    if (GET_CAR_TYPE(t->car.cons->type) == INTEGER) {
-      printf("%d\n\r",t->car.cons->car.i);
-    } else {
-      printf("EVAL: something wrong %d\n\r", t->car.cons->car.i);
-    }
-      
-     
-
-    
-    printf("\n"); 
     mpc_ast_print(ast);
+
+    cons_t *t = NULL; 
+    if (!(t = read_ast(ast))) {
+      printf("read_ast failed!\n");
+      return 0; 
+    }
+
+    printf("BEFORE EVAL\n"); 
+    t = eval(t);
+    printf("AFTER EVAL\n"); 
+    
+    //if (GET_CAR_TYPE(t->type) == INTEGER) {
+    //  printf("%d\n\r",t->car.i);
+    //} else {
+    //  printf("EVAL: Result is not an integer %d\n\r", t->car.cons->car.i);
+    //}
+
+    simple_print(t); 
+     
+    printf("\n"); 
+   
     mpc_ast_delete(ast);
+    printf("############################################################\n"); 
     printf("HEAP has %ld free cons cells\n", heap_num_free());
     symtab_print();
+    printf("############################################################\n"); 
   }
   
   parser_del();
