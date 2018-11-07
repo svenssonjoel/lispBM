@@ -45,6 +45,7 @@ int main(int argc, char **argv) {
     printf("Error initializing symtab!\n");
     return 0;
   }
+  symtab_addname("nil", NULL);
 
   res = built_in_init();
   if (res)

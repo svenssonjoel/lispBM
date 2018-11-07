@@ -6,6 +6,8 @@
 #include "built_in.h"
 
 #include <stdio.h>
+#include <stdint.h> 
+
 /* TODO: Experiment with evaluation */
 cons_t *eval_(cons_t *, int); 
 
@@ -13,27 +15,25 @@ cons_t *eval(cons_t *cell) {
   return eval_(cell, 1); 
 }
 
-/* TODO: Think more about how various things are represented on the 
-   heap. It must always be possible to tell a difference between 
-   lists (a (b (c (d ()), dotted pair (a . b) etc. 
-   Head position of a list has a special meaning as it is potentially 
-   a function name. 
-   
-   Is it possible to tell the difference between (1 . (2 3 4)) and (1 2 3 4)?
-   ~ This may be a non-problem~  
-   
-   [1 | POINTER] 
-          - [2 | POINTER] 
-	            - [3 | POINTER] 
-		             - [ 4 | NIL ]
 
-			     
-			     
-  Currently cannot tell apart (+ 1 + 2 3) and (+ 1 (+ 2 3))... 
-  What should the representation of these be?
+/* Experiment with evaluation in relation to an abstract machine */ 
+// TODO: Want to do the heap changes before tackling this part. 
+typedef struct {
+  uint32_t A;   // Maybe have some registers for values 
+  uint32_t B; 
+  uint32_t res; // result register: pointer to list on heap or a value (for example)
+  uint32_t env; // Pointer to environment assoc-list on heap (could also be a tree) (Maybe wont need this)
 
+  uint32_t flags; // NZCVQ etc
 
-*/ 
+  uint32_t sp;  // thoughts. 
+  uint32_t fp;
+
+} AbstractMachine; 
+
+// Future potential type of eval 
+// int eval_AM(AbstractMachine *m, cons_t *program);
+
 
 cons_t *eval_(cons_t *cell, int head_position) {
 

@@ -6,7 +6,7 @@
 #include <stdint.h> 
 
 /* 
-Rethinking heap structure. 
+Planning for a more space efficient heap representation. 
 
 0000 0000  Size    Free bits
 003F FFFF  4MB      10 
@@ -19,14 +19,14 @@ Rethinking heap structure.
 1FFF FFFF  512MB     3    
 
 it is also the case that not all addresses will be used if all "cells" are 
-of the same size, 4 bytes... 
+of the same size, 8 bytes... 
 
 value 0: 0000 0000 
-value 1: 0000 0004
-value 3: 0000 0008 
-value 4: 0000 000C
+value 1: 0000 0008
+value 3: 0000 0010 
+value 4: 0000 0018
 
-Means bit 0 and bit one will always be empty in a valid address.
+Means bits 0,1,2 will always be empty in a valid address.
 
 Cons cells also need to be have room for 2 pointers. So each allocated cell from
 memory should be 8bytes. 
@@ -42,14 +42,70 @@ Types I would want:
  
 
 Free bits in pointers 64MB heap: 
-31 30 29 28 27 26                               1 0
-0  0  0  0  0  0  XX XXXX XXXX XXXX XXXX XXXX XX0 0 
-
- 64 
--48
-=16
+31 30 29 28 27 26                               2 1 0
+0  0  0  0  0  0  XX XXXX XXXX XXXX XXXX XXXX X 0 0 0 
 
 
+Information needed for each cell: 
+ Meaning  |   bits total | bits per car | bits per cdr 
+ GC mark  |    2         |   1          |   1          - only one of them will be used (the other is wasted)   
+ Type     |    2x        |   x          |   x 
+ Ptr/!ptr |    2         |   1          |   1 
+
+
+Types (unboxed): 
+ - Symbols 
+ - 28bit integer   ( will need signed shift right functionality )
+ - 28bit unsigned integer 
+ - 28bit float -- is this possible given float representation? 
+
+If four types is all that should be possible (unboxed). then 2 bits are needed to differentiate.  
+2 + 1 + 1 = 4 => 28bits for data. 
+
+Maybe the GC bit in the car field can be used to indicate that this is a 
+"car only cons cell". 
+
+An unboxed value can occupy a car or cdr field in a cons cell. 
+
+types (boxed) extra information in pointer to cell can contain information
+ - 32 bit integer 
+ - 32 bit unsigned integer 
+ - 32 bit float 
+
+boxed representation: 
+  [ptr| cdr] 
+    |
+  [Value | Aux + GC_MARK] 
+
+Kinds of pointers:
+ - Pointer to cons cell. 
+ - Pointer to unboxed value 
+   - integer
+   - unsigned integer 
+   - symbol
+   - float
+ - Pointer to boxed value.  
+   - 32 bit integer
+   - 32 bit unsigned integer 
+   - 32 bit float 
+ - (Maybe something else ? Vectors/strings malloced in memory not occupied by heap?)
+   - vector of int 
+   - vector of uint 
+   - vector of float
+   - vector of double 
+   - String
+
+13 pointer"types" -> needs 5 bits
+for 64MB heap there are 6 free bits. So with this scheme going to 128MB heap 
+is also possible 
+
+ a pointer to some off heap vector/string could be represented by 
+ 
+ [ptr | cdr] 
+   | 
+ [full pointer | Aux + GC_MARK] 
+   | 
+ [VECTOR] 
 
 
  */ 

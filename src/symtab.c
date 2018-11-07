@@ -48,7 +48,7 @@ int symtab_addname(char *name, uint32_t* id) {
   if (name_table[hash] == NULL){
     name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[hash]->key = hash;
-    *id = hash; 
+    if (id != NULL) *id = hash; 
     n = strlen(name) + 1;
     name_table[hash]->name = (char*)malloc(n);
     strncpy(name_table[hash]->name, name, n);
@@ -58,7 +58,7 @@ int symtab_addname(char *name, uint32_t* id) {
     if (symtab_lookup(name, &t_id)) {
       /* name already in table */
 
-      *id = t_id; 
+      if (id != NULL) *id = t_id; 
       
       return 0; /* set id, but return failure */ 
     }
@@ -70,7 +70,7 @@ int symtab_addname(char *name, uint32_t* id) {
     /* problem if hkey_id = 0xFFFF0000 */ 
     name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[hash]->key = hash + (hkey_id + (1 << 16));
-    *id = hash + (hkey_id + 1);
+    if (id != NULL) *id = hash + (hkey_id + (1 << 16));
     n = strlen(name) + 1;
     name_table[hash]->name = (char*)malloc(n);
     strncpy(name_table[hash]->name, name, n);
