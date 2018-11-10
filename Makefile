@@ -2,7 +2,7 @@
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
   SOURCE_DIR = src
-  CCFLAGS = 
+  CCFLAGS = -m32
 endif
 
 ifeq ($(PLATFORM), zynq)

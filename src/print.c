@@ -1,8 +1,44 @@
 
-#include "print.h"
-#include "heap0.h"
-#include "symtab.h"
+#include <stdio.h>
 
+#include "print.h"
+#include "heap.h"
+#include "symrepr.h"
+
+
+int simple_print(uint32_t t){
+
+  char *str_ptr;
+  
+  if ((t & PTR_MASK) == IS_PTR) { // pointer to something
+    printf("POINTER\n");
+    return 1; 
+  } else { // Value, symbol 
+
+    switch (t & VAL_TYPE_MASK) {
+    case VAL_TYPE_SYMBOL:
+      str_ptr = symrepr_lookup_name(DEC_SYM(t));
+      printf("%s", str_ptr);
+      break;
+    case VAL_TYPE_I28:
+      printf("%d", DEC_I28(t)); 
+      break;
+    case VAL_TYPE_U28:
+      printf("%u", DEC_U28(t));
+      break;
+    case VAL_TYPE_CHAR: // dont yet have syntax for Char and String
+      printf("%c", DEC_CHAR(t));
+      break;
+    default:
+      printf("simple_print: Error\n");
+      return 0; 
+    }
+  }
+  return 1;
+}
+
+
+/*
 int simple_print(cons_t *t) {
 
   cons_t *curr = t; 
@@ -53,3 +89,4 @@ int simple_print(cons_t *t) {
 
   return 1; // TODO: ERROR CHECKING 
 }
+*/
