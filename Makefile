@@ -30,10 +30,17 @@ OBJECTS = $(patsubst $(SOURCE_DIR)/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
 
 LIB = $(BUILD_DIR)/library.a
 
-all: $(OBJECTS) $(LIB)
+#all: $(OBJECTS) $(LIB)
 
+lib: $(LIB)
 ## Build all o's into an executable. 
 # $(CC) $^ -o $@
+
+test: $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap0.c
+	gcc -m32 -c $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap0.c 
+
+test-lib: mpc.o parse.o heap0.o
+	ar -rcs library.a mpc.o parse.o heap0.o
 
 $(LIB): $(OBJECTS)
 	$(AR) -rcs $@ $(OBJECTS)

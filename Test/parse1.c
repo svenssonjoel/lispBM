@@ -6,14 +6,14 @@
 #include "parse.h"
 
 #include "heap0.h" 
-#include "read0.h"
-#include "rbtree.h"
-#include "symtab.h"
-#include "built_in.h"
-#include "eval0.h"
-#include "print.h"
+//#include "read0.h"
+//#include "rbtree.h"
+//#include "symtab.h"
+//#include "built_in.h"
+//#include "eval0.h"
+//#include "print.h"
 
-void test_stuff(void);
+//void test_stuff(void);
 
 int main(int argc, char **argv) {
   char *str = malloc(1024);;
@@ -30,14 +30,34 @@ int main(int argc, char **argv) {
     return 0;
   }
   
-  res = heap_init(873200);
+  res = heap_init(8 * 1024 * 1024);
   if (res)
-    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %ld\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
+    //printf("Heap initialized\n"); 
+    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
   else {
     printf("Error initializing heap!\n");
     return 0;
   }
 
+  //uint32_t c1 = heap_allocate_cell();
+  //uint32_t c2 = heap_allocate_cell(); 
+
+  //  printf("cell1:  %x\n", c1);
+  // printf("cell2:  %x\n", c2); 
+  //printf("HEAP has %d free cons cells\n", heap_num_free()); 
+
+  
+  //uint32_t num_free = heap_num_free();
+   
+  //for (uint32_t i = 0; i < 9000000; i ++) {
+  //uint32_t c = heap_allocate_cell();
+    //printf("%u : c%u : %x\n",heap_num_free(), i, c);
+  //}
+    
+
+  //printf("HEAP has %d free cons cells\n", heap_num_free()); 
+  
+  /*
   res = symtab_init();
   if (res) 
     printf("Symtab initialized.\n");
@@ -54,12 +74,12 @@ int main(int argc, char **argv) {
     printf("Error initializing built-in functions!\n");
     return 0;
   }
-
+  */
   //printf("\n\nRUNNING TESTS\n\n");
   //test_stuff();
   
 
-  
+  /*
   while (1) {
     
     getline(&str,&len,stdin);
@@ -90,14 +110,14 @@ int main(int argc, char **argv) {
     symtab_print();
     printf("############################################################\n"); 
   }
-  
+  */
   parser_del();
-  symtab_del(); 
+  //  symtab_del(); 
   return 0;
   
 }
 
-
+/*
 void test_stuff(void) {
   uint32_t id;
    
@@ -212,3 +232,4 @@ void test_stuff(void) {
     printf("Error: The tree is not considered empty\n");
   }
 }
+*/

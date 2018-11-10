@@ -7,6 +7,9 @@
 
 /* 
 Planning for a more space efficient heap representation. 
+TODO: Need to find a good reference to read up on this. 
+      - List based heap 
+      - Easy to implement and somewhat efficient 
 
 0000 0000  Size    Free bits
 003F FFFF  4MB      10 
@@ -57,13 +60,20 @@ Types (unboxed):
  - Symbols 
  - 28bit integer   ( will need signed shift right functionality )
  - 28bit unsigned integer 
- - 28bit float -- is this possible given float representation? 
+ - Character
 
 If four types is all that should be possible (unboxed). then 2 bits are needed to differentiate.  
 2 + 1 + 1 = 4 => 28bits for data. 
 
+bit 0: ptr/!ptr
+bit 1: gc
+bit 2-3: type (if not ptr)  
+bit 3 - 24 ptr (if ptr)
+bit 4 - 31 value (if value) 
+
 Maybe the GC bit in the car field can be used to indicate that this is a 
 "car only cons cell". 
+
 
 An unboxed value can occupy a car or cdr field in a cons cell. 
 
@@ -79,7 +89,7 @@ boxed representation:
 
 Kinds of pointers:
  - Pointer to cons cell. 
- - Pointer to unboxed value 
+ - Pointer to unboxed value  (fixnums not in a list, I hope this is so rare that it can be removed )  
    - integer
    - unsigned integer 
    - symbol
@@ -88,7 +98,7 @@ Kinds of pointers:
    - 32 bit integer
    - 32 bit unsigned integer 
    - 32 bit float 
- - (Maybe something else ? Vectors/strings malloced in memory not occupied by heap?)
+ - (Maybe something else ? Vectors/strings allocated in memory not occupied by heap?)
    - vector of int 
    - vector of uint 
    - vector of float
@@ -108,8 +118,27 @@ is also possible
  [VECTOR] 
 
 
- */ 
+ */
 
+#define CONS_CELL_SIZE   8
+#define ADDRESS_SHIFT    3
+
+#define PTR_MASK         0x1
+#define IS_PTR           0x1
+#define PTR_VAL_MASK     0x03FFFFF8
+
+#define GC_MASK          0x2
+#define GC_MARKED        0x2 
+
+#define VAL_MASK         0xFFFFFFF0
+#define VAL_TYPE_MASK    0xC
+
+#define VAL_TYPE_SYMBOL  0x0
+#define VAL_TYPE_I28     0x4
+#define VAL_TYPE_U28     0x8
+#define VAL_TYPE_CHAR    0xC 
+
+#define SYMBOL_NIL       0xDEADBEE0
 
 #define INTEGER          1 
 #define FLOAT            2
@@ -144,8 +173,8 @@ is also possible
 #define GET_AUX_BIT(X,N)   ((X) >> (AUX_BITS_POS + (N)) & 1) 
 #define SET_AUX_BIT(X,B,N) (((X) & ~(1 << AUX_BITS_POS + (N))) | ((B) << (AUX_BITS_POS + (N))))
 
-struct s_cons;
-union  s_car;
+//struct s_cons;
+//union  s_car;
 
 /* The (main) target platform in mind has 32bit pointers. 
    So in that particular case, all members of this union 
@@ -153,7 +182,8 @@ union  s_car;
    
    TODO: Think of using some flags here to "up" the int32_t and float
          to int64_t and double, in case of building for regular X86-64.
-*/ 
+*/
+/*  
 typedef union s_car {
   int32_t i;
   float   f;
@@ -167,10 +197,16 @@ typedef struct s_cons {
   car_t car; 
   cdr_t cdr;
 } cons_t;
+*/ 
+
+typedef struct s_cons {
+  uint32_t car;
+  uint32_t cdr; 
+} cons_t; 
 
 extern int heap_init(size_t num_cells);
 extern void heap_del(void);
 extern size_t heap_num_free(void);
-extern cons_t* heap_allocate_cell(void); 
-extern size_t heap_size_bytes(void); 
+extern uint32_t heap_allocate_cell(void); 
+extern uint32_t heap_size_bytes(void); 
 #endif
