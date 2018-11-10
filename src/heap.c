@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "heap0.h"
+#include "heap.h"
 #include "symrepr.h"
 
 cons_t *heap = NULL; 

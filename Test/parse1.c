@@ -5,7 +5,7 @@
 #include "mpc.h"
 #include "parse.h"
 
-#include "heap0.h" 
+#include "heap.h" 
 //#include "read0.h"
 #include "symrepr.h"
 //#include "built_in.h"
