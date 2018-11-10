@@ -1,7 +1,9 @@
-#include "heap0.h"
 
 #include <stdio.h>
 #include <stdint.h>
+
+#include "heap0.h"
+#include "symrepr.h"
 
 cons_t *heap = NULL; 
 
@@ -11,7 +13,7 @@ uint32_t heap_base;
 uint32_t free_list = 0; 
 uint32_t free_list_last = 0;
 
-uint32_t SYMBOL_NIL;
+static uint32_t SYMBOL_NIL;
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that IS_PTR was set 
@@ -69,9 +71,11 @@ void print_bit(uint32_t v) {
   printf("\n"); 
 }
 
-int heap_init(size_t num_cells, uint32_t nil_sym) {
+int heap_init(size_t num_cells) {
 
-  SYMBOL_NIL = nil_sym << VAL_SHIFT;
+  symrepr_lookup("nil", &SYMBOL_NIL); 
+  SYMBOL_NIL = SYMBOL_NIL << VAL_SHIFT;
+
   
   heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
 

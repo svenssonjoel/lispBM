@@ -1,9 +1,10 @@
 
-#include "symtab.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include "symrepr.h"
 
 /* 
    Name -> 28bit integer mapping that is (I hope) somewhat 
@@ -21,15 +22,11 @@
      - There is a 16 bit hash table (65521 buckets) 
      - and 12 additional bits (bucket depth 4096)
 
-   TODO: This module should be renamed to something indicating it is 
-         about symbol encoding and decoding (from/to string to/from number). 
-	 Would free up the name Symtab to be used elsewhere.
  */
 
-#define SYMTAB_SIZE 65521  
+#define HASHTAB_SIZE 65521  
 #define SMALL_PRIMES 11
 #define BUCKET_DEPTH 4096
-
 
 uint32_t hash_string(char *str); 
 
@@ -41,18 +38,27 @@ typedef struct s_name_mapping {
   
 name_mapping_t **name_table = NULL;
 
-int symtab_init(void) {
-  name_table = (name_mapping_t**)malloc(SYMTAB_SIZE * sizeof(name_mapping_t*));
-  if (!name_table) return 0; 
-  memset(name_table, 0, SYMTAB_SIZE * sizeof(name_mapping_t*));
-  return 1;
+int add_default_symbols(void) {
+  int res = 1;
+  
+  res &= symrepr_addsym("nil", NULL);
+  res &= symrepr_addsym("quote", NULL); 
+
+  return res;
 }
 
-int symtab_addname(char *name, uint32_t* id) {
+int symrepr_init(void) {
+  name_table = (name_mapping_t**)malloc(HASHTAB_SIZE * sizeof(name_mapping_t*));
+  if (!name_table) return 0; 
+  memset(name_table, 0, HASHTAB_SIZE * sizeof(name_mapping_t*));
+  return add_default_symbols();
+}
+
+int symrepr_addsym(char *name, uint32_t* id) {
   size_t   n = 0; 
   uint32_t hash = hash_string(name);
   
-  if (hash >= SYMTAB_SIZE) /* impossible */ return 0;
+  if (hash >= HASHTAB_SIZE) /* impossible */ return 0;
 
   if (name_table[hash] == NULL){
     name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
@@ -64,7 +70,7 @@ int symtab_addname(char *name, uint32_t* id) {
     name_table[hash]->next = NULL; 
   } else {
     uint32_t t_id; 
-    if (symtab_lookup(name, &t_id)) {
+    if (symrepr_lookup(name, &t_id)) {
       /* name already in table */
 
       if (id != NULL) *id = t_id; 
@@ -93,7 +99,7 @@ int symtab_addname(char *name, uint32_t* id) {
   return 1; 
 }
 
-int symtab_lookup(char *name, uint32_t* id) {
+int symrepr_lookup(char *name, uint32_t* id) {
 
   int r = 0; 
   uint32_t hash = hash_string(name);
@@ -112,7 +118,7 @@ int symtab_lookup(char *name, uint32_t* id) {
   return r; 
 }
 
-char *symtab_lookup_name(uint32_t id) {
+char *symrepr_lookup_name(uint32_t id) {
   uint32_t hash = id & (uint32_t)0x0000FFFF; /*extract index*/
   if (name_table[hash]) {
     name_mapping_t *head = name_table[hash];
@@ -127,10 +133,10 @@ char *symtab_lookup_name(uint32_t id) {
   return NULL; 
 }
 
-void symtab_print(void) {
+void symrepr_print(void) {
   int i;
 
-  for (i = 0; i < SYMTAB_SIZE; i ++) {
+  for (i = 0; i < HASHTAB_SIZE; i ++) {
     if (name_table[i] != NULL) {
       name_mapping_t *head = name_table[i]; 
       while (head) {
@@ -141,12 +147,12 @@ void symtab_print(void) {
   }
 }
 
-void symtab_del(void) {
+void symrepr_del(void) {
   int i;
 
   if(!name_table) return; 
   
-  for (i = 0; i < SYMTAB_SIZE; i ++) {
+  for (i = 0; i < HASHTAB_SIZE; i ++) {
     if (name_table[i]) {
       name_mapping_t *head = name_table[i];
       name_mapping_t *next; 
@@ -171,7 +177,7 @@ uint32_t hash_string(char *str) {
   
   for (int i = 0; i < n; i ++) {
     uint32_t sp = small_primes[i % SMALL_PRIMES]; 
-    r = (r + (sp * str[i])) % SYMTAB_SIZE; 
+    r = (r + (sp * str[i])) % HASHTAB_SIZE; 
   }
 
   return r; 

@@ -7,8 +7,7 @@
 
 #include "heap0.h" 
 //#include "read0.h"
-//#include "rbtree.h"
-#include "symtab.h"
+#include "symrepr.h"
 //#include "built_in.h"
 //#include "eval0.h"
 //#include "print.h"
@@ -30,18 +29,15 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = symtab_init();
+  res = symrepr_init();
   if (res) 
-    printf("Symtab initialized.\n");
+    printf("Symrepr initialized.\n");
   else {
-    printf("Error initializing symtab!\n");
+    printf("Error initializing symrepr!\n");
     return 0;
   }
-
-  uint32_t nil_sym; 
-  symtab_addname("nil", &nil_sym);
   
-  res = heap_init(8 * 1024 * 1024, nil_sym);
+  res = heap_init(8 * 1024 * 1024);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
   else {
@@ -49,9 +45,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-
-
-  symtab_print();
+  symrepr_print();
   
   int n = 0;
   printf("DEC/ENC %d: %s \n", n++, (DEC_I28(ENC_I28(0)) == 0) ? "ok" : "NOK!");

@@ -153,7 +153,7 @@ typedef struct s_cons {
   uint32_t cdr; 
 } cons_t; 
 
-extern int heap_init(size_t num_cells, uint32_t nil_sym);
+extern int heap_init(size_t num_cells);
 extern void heap_del(void);
 extern uint32_t heap_num_free(void);
 extern uint32_t heap_allocate_cell(void); 
