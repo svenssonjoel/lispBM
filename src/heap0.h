@@ -117,7 +117,6 @@ is also possible
    | 
  [VECTOR] 
 
-
  */
 
 #define CONS_CELL_SIZE   8
@@ -132,81 +131,38 @@ is also possible
 
 #define VAL_MASK         0xFFFFFFF0
 #define VAL_TYPE_MASK    0xC
+#define VAL_SHIFT        4 
 
 #define VAL_TYPE_SYMBOL  0x0
 #define VAL_TYPE_I28     0x4
 #define VAL_TYPE_U28     0x8
 #define VAL_TYPE_CHAR    0xC 
 
-#define SYMBOL_NIL       0xDEADBEE0
+#define ENC_I28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_I28)
+#define ENC_U28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_U28)
+#define ENC_CHAR(X) ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_CHAR)
+#define ENC_SYM(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_SYMBOL)
 
-#define INTEGER          1 
-#define FLOAT            2
-#define SYMBOL           3 
-#define POINTER          4
-#define OFF_HEAP_POINTER 5 
-#define NIL              6
-#define NOTHING          7 /* a Nothing is not a Nil (does Nothing need to exist?) */
-
-
-/* bitpositions in the TYPE field */
-#define CAR_TYPE_POS  0
-#define CDR_TYPE_POS  8
-#define CELL_TYPE_POS 16
-#define AUX_BITS_POS  17
-#define MARK_POS      31  /* last bit reserved for garbage collector */  
-
-
-// I guess, equivalent would be if CDR is NOTHING... 
-// Used to differentiate between a cons cell and a primitive value cell.
-#define GET_CONS_TYPE(X)   (((X) >> CELL_TYPE_POS) & 0x1)
-#define SET_CONS_TYPE(X,T) (((X) & ~(1 << CELL_TYPE_POS)) | (((T) & 0x1) << CELL_TYPE_POS))
-
-// Get/Set CAR and CDR type.
-#define GET_CAR_TYPE(X)    ((X) & 0xFF)
-#define GET_CDR_TYPE(X)    (((X) >> CDR_TYPE_POS) & 0xFF)
-
-#define SET_CAR_TYPE(X,T)  (((X) & ~0xFF) | ((T) & 0xFF))
-#define SET_CDR_TYPE(X,T)  (((X) & ~(0xFF << CDR_TYPE_POS)) | (((T) & 0xFF) << CDR_TYPE_POS))
-
-// toggle Auxiliary bits in type field. 
-#define GET_AUX_BIT(X,N)   ((X) >> (AUX_BITS_POS + (N)) & 1) 
-#define SET_AUX_BIT(X,B,N) (((X) & ~(1 << AUX_BITS_POS + (N))) | ((B) << (AUX_BITS_POS + (N))))
-
-//struct s_cons;
-//union  s_car;
-
-/* The (main) target platform in mind has 32bit pointers. 
-   So in that particular case, all members of this union 
-   are of the same size. 
-   
-   TODO: Think of using some flags here to "up" the int32_t and float
-         to int64_t and double, in case of building for regular X86-64.
-*/
-/*  
-typedef union s_car {
-  int32_t i;
-  float   f;
-  int32_t s;
-  struct s_cons *cons; 
-} car_t, cdr_t; 
-
-typedef struct s_cons {
-  uint32_t type;
-  
-  car_t car; 
-  cdr_t cdr;
-} cons_t;
-*/ 
+#define DEC_I28(X)  ((int32_t)((int32_t)(X) >> VAL_SHIFT))
+#define DEC_U28(X)  ((uint32_t)((uint32_t)(X) >> VAL_SHIFT))
+#define DEC_CHAR(X) ((char)((int32_t)(X) >> VAL_SHIFT))
+#define DEC_SYM(X)  ((uint32_t)((uint32_t)(X) >> VAL_SHIFT))
 
 typedef struct s_cons {
   uint32_t car;
   uint32_t cdr; 
 } cons_t; 
 
-extern int heap_init(size_t num_cells);
+extern int heap_init(size_t num_cells, uint32_t nil_sym);
 extern void heap_del(void);
-extern size_t heap_num_free(void);
+extern uint32_t heap_num_free(void);
 extern uint32_t heap_allocate_cell(void); 
-extern uint32_t heap_size_bytes(void); 
+extern uint32_t heap_size_bytes(void);
+
+// accessor helpers
+extern cons_t* ref_cell(uint32_t addr);
+extern uint32_t read_car(cons_t*);
+extern uint32_t read_cdr(cons_t*);
+extern void set_car(cons_t*, uint32_t);
+extern void set_cdr(cons_t*, uint32_t); 
 #endif

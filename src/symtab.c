@@ -6,21 +6,30 @@
 #include <stdlib.h>
 
 /* 
-   Name -> 32bit integer mapping that is (I hope) somewhat 
+   Name -> 28bit integer mapping that is (I hope) somewhat 
    efficient in both directions. (it's a shot from the hip... ) 
 
-   In the best case, looking up the 32bit id has cost relative to 
+   In the best case, looking up the 28bit id has cost relative to 
    length of name. In the worst, it has that cost + cost of a walk 
-   over linked list (that can at most be 65535 links long). 
+   over linked list (that can at most be 4095 links long). 
 
-   In the best case, looking up a name given a 32bit id has constant cost.
+   In the best case, looking up a name given a 28bit id has constant cost.
    In the worst case it has the same linked list traversal. 
    
    Replace with something more thought through (or looked up) later. 
+
+     - There is a 16 bit hash table (65521 buckets) 
+     - and 12 additional bits (bucket depth 4096)
+
+   TODO: This module should be renamed to something indicating it is 
+         about symbol encoding and decoding (from/to string to/from number). 
+	 Would free up the name Symtab to be used elsewhere.
  */
 
 #define SYMTAB_SIZE 65521  
 #define SMALL_PRIMES 11
+#define BUCKET_DEPTH 4096
+
 
 uint32_t hash_string(char *str); 
 
@@ -67,6 +76,11 @@ int symtab_addname(char *name, uint32_t* id) {
     name_mapping_t *head = name_table[hash];
     uint32_t hkey_id = head->key & 0xFFFF0000 ;
 
+    // If new ID would be too big return failure 
+    if ((hkey_id >> 16) >= (BUCKET_DEPTH - 1)) {
+      return 0;
+    }
+    
     /* problem if hkey_id = 0xFFFF0000 */ 
     name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[hash]->key = hash + (hkey_id + (1 << 16));

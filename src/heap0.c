@@ -11,8 +11,7 @@ uint32_t heap_base;
 uint32_t free_list = 0; 
 uint32_t free_list_last = 0;
 
-#define REF_CELL(ADDR) ((cons_t*)(heap_base + (ADDR)))
-
+uint32_t SYMBOL_NIL;
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that IS_PTR was set 
@@ -70,21 +69,16 @@ void print_bit(uint32_t v) {
   printf("\n"); 
 }
 
-int heap_init(size_t num_cells) {
+int heap_init(size_t num_cells, uint32_t nil_sym) {
 
+  SYMBOL_NIL = nil_sym << VAL_SHIFT;
+  
   heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
 
   if (!heap) return 0;
 
   heap_base = (uint32_t)heap;
   heap_bytes = (uint32_t)(num_cells * sizeof(cons_t)); 
-
-  printf("heap addr: %x \n",(uint32_t) heap);
-  print_bit((uint32_t)heap);
-
-  for (int i = 0; i < 10; i ++) {
-    print_bit((uint32_t)&heap[i]); 
-  }
   
   return (generate_free_list(num_cells)); 
 }
@@ -106,7 +100,6 @@ uint32_t heap_num_free(void) {
 
   if (((curr & VAL_TYPE_MASK) != VAL_TYPE_SYMBOL) ||
       ((curr & VAL_MASK) != SYMBOL_NIL)) {
-    printf("FREE LIST ERROR\n");
     return 0; 
   } 
   return count; 

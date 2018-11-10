@@ -36,11 +36,11 @@ lib: $(LIB)
 ## Build all o's into an executable. 
 # $(CC) $^ -o $@
 
-test: $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap0.c
-	gcc -m32 -c $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap0.c 
+test: $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap0.c $(SOURCE_DIR)/symtab.c
+	gcc -m32 -c $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap0.c $(SOURCE_DIR)/symtab.c 
 
-test-lib: mpc.o parse.o heap0.o
-	ar -rcs library.a mpc.o parse.o heap0.o
+test-lib: mpc.o parse.o heap0.o symtab.o
+	ar -rcs library.a mpc.o parse.o heap0.o symtab.o
 
 $(LIB): $(OBJECTS)
 	$(AR) -rcs $@ $(OBJECTS)

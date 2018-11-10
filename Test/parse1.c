@@ -8,7 +8,7 @@
 #include "heap0.h" 
 //#include "read0.h"
 //#include "rbtree.h"
-//#include "symtab.h"
+#include "symtab.h"
 //#include "built_in.h"
 //#include "eval0.h"
 //#include "print.h"
@@ -29,16 +29,55 @@ int main(int argc, char **argv) {
     printf("Error initializing parser!\n");
     return 0;
   }
+
+  res = symtab_init();
+  if (res) 
+    printf("Symtab initialized.\n");
+  else {
+    printf("Error initializing symtab!\n");
+    return 0;
+  }
+
+  uint32_t nil_sym; 
+  symtab_addname("nil", &nil_sym);
   
-  res = heap_init(8 * 1024 * 1024);
+  res = heap_init(8 * 1024 * 1024, nil_sym);
   if (res)
-    //printf("Heap initialized\n"); 
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
   else {
     printf("Error initializing heap!\n");
     return 0;
   }
 
+
+
+  symtab_print();
+  
+  int n = 0;
+  printf("DEC/ENC %d: %s \n", n++, (DEC_I28(ENC_I28(0)) == 0) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_I28(ENC_I28(-1)) == -1) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_I28(ENC_I28(1)) == 1) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_I28(ENC_I28(134217727)) == 134217727) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_I28(ENC_I28(-134217728)) == -134217728) ? "ok" : "NOK!");
+
+  printf("DEC/ENC %d: %s \n", n++, (DEC_U28(ENC_U28(0)) == 0) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_U28(ENC_U28(1)) == 1) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_U28(ENC_U28(268435455)) == 268435455) ? "ok" : "NOK!");
+
+  printf("DEC/ENC %d: %s \n", n++, (DEC_CHAR(ENC_CHAR(0)) == 0) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_CHAR(ENC_CHAR(-1)) == -1) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_CHAR(ENC_CHAR(1)) == 1) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_CHAR(ENC_CHAR(127)) == 127) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_CHAR(ENC_CHAR(-128)) == -128) ? "ok" : "NOK!");
+
+  printf("DEC/ENC %d: %s \n", n++, (DEC_SYM(ENC_SYM(0)) == 0) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_SYM(ENC_SYM(1)) == 1) ? "ok" : "NOK!");
+  printf("DEC/ENC %d: %s \n", n++, (DEC_SYM(ENC_SYM(268435455)) == 268435455) ? "ok" : "NOK!");
+
+
+
+  
+  
   //uint32_t c1 = heap_allocate_cell();
   //uint32_t c2 = heap_allocate_cell(); 
 
@@ -54,18 +93,11 @@ int main(int argc, char **argv) {
     //printf("%u : c%u : %x\n",heap_num_free(), i, c);
   //}
     
-
   //printf("HEAP has %d free cons cells\n", heap_num_free()); 
   
   /*
-  res = symtab_init();
-  if (res) 
-    printf("Symtab initialized.\n");
-  else {
-    printf("Error initializing symtab!\n");
-    return 0;
-  }
-  symtab_addname("nil", NULL);
+ 
+
 
   res = built_in_init();
   if (res)
