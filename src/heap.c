@@ -36,7 +36,17 @@ void set_car(cons_t *cell, uint32_t v) {
 void set_cdr(cons_t *cell, uint32_t v) {
   cell->cdr = v;
 }
-	     
+
+void set_gc_mark(cons_t *cell) {
+  uint32_t cdr = read_cdr(cell);
+  set_cdr(cell, cdr | GC_MARKED); 
+}
+
+void clr_gc_mark(cons_t *cell) {
+  uint32_t cdr = read_cdr(cell);
+  set_cdr(cell, cdr & ~GC_MASK);
+}
+
 int generate_free_list(size_t num_cells) {
   size_t i = 0; 
   
@@ -46,9 +56,10 @@ int generate_free_list(size_t num_cells) {
 
   // Add all cells to free list
   for (i = 1; i < num_cells; i ++) {
-    cons_t *t = ref_cell((i-1)<< ADDRESS_SHIFT); 
+    cons_t *t = ref_cell((i-1)<< ADDRESS_SHIFT);
     set_car(t, 0);
-    set_cdr(t, (i * CONS_CELL_SIZE) | IS_PTR); 
+    set_cdr(t, (i * CONS_CELL_SIZE) | IS_PTR);
+    set_gc_mark(t);
   }
 
   free_list_last = (num_cells-1)<<ADDRESS_SHIFT;
@@ -129,6 +140,9 @@ uint32_t heap_allocate_cell(void) {
     res = free_list; 
     free_list = (read_cdr(ref_cell(free_list & PTR_VAL_MASK)));
   }
+
+  // clear GC bit on allocated cell
+  clr_gc_mark(ref_cell(res & PTR_VAL_MASK));
   return res;
 }
 

@@ -71,10 +71,6 @@ bit 2-3: type (if not ptr)
 bit 3 - 24 ptr (if ptr)
 bit 4 - 31 value (if value) 
 
-Maybe the GC bit in the car field can be used to indicate that this is a 
-"car only cons cell". 
-
-
 An unboxed value can occupy a car or cdr field in a cons cell. 
 
 types (boxed) extra information in pointer to cell can contain information
@@ -105,8 +101,8 @@ Kinds of pointers:
    - vector of double 
    - String
 
-13 pointer"types" -> needs 5 bits
-for 64MB heap there are 6 free bits. So with this scheme going to 128MB heap 
+13 pointer"types" -> needs 4 bits
+for 64MB heap there are 6 free bits. So with this scheme going to 128MB or 256MB heap 
 is also possible 
 
  a pointer to some off heap vector/string could be represented by 
@@ -117,26 +113,41 @@ is also possible
    | 
  [VECTOR] 
 
+Aux bits could be used for storting vector size. Up to 30bits should be available there
+
+0000 00XX XXXX XXXX XXXX XXXX XXXX X000   : 0x03FF FFF8
+1111 AA00 0000 0000 0000 0000 0000 0000   : 0xFC00 0000 (AA bits left unused for now, future heap growth?)
  */
 
-#define CONS_CELL_SIZE   8
-#define ADDRESS_SHIFT    3
+#define CONS_CELL_SIZE       8 
+#define ADDRESS_SHIFT        3
+#define VAL_SHIFT            4 
 
-#define PTR_MASK         0x1
-#define IS_PTR           0x1
-#define PTR_VAL_MASK     0x03FFFFF8
+#define PTR_MASK             0x00000001
+#define IS_PTR               0x00000001
+#define PTR_VAL_MASK         0x03FFFFF8
+#define PTR_TYPE_MASK        0xFC000000
 
-#define GC_MASK          0x2
-#define GC_MARKED        0x2 
+#define PTR_TYPE_CONS        0x00000000
+#define PTR_TYPE_I32         0x10000000
+#define PTR_TYPE_U32         0x20000000
+#define PTR_TYPE_F32         0x30000000
+#define PTR_TYPE_VEC_I32     0x40000000
+#define PTR_TYPE_VEC_U32     0x50000000
+#define PTR_TYPE_VEC_F32     0x60000000
+/*...*/                                 
+#define PTR_TYPE_STRING      0xF0000000
 
-#define VAL_MASK         0xFFFFFFF0
-#define VAL_TYPE_MASK    0xC
-#define VAL_SHIFT        4 
+#define GC_MASK              0x00000002
+#define GC_MARKED            0x00000002 
 
-#define VAL_TYPE_SYMBOL  0x0
-#define VAL_TYPE_I28     0x4
-#define VAL_TYPE_U28     0x8
-#define VAL_TYPE_CHAR    0xC 
+#define VAL_MASK             0xFFFFFFF0
+#define VAL_TYPE_MASK        0x0000000C
+
+#define VAL_TYPE_SYMBOL      0x00000000
+#define VAL_TYPE_I28         0x00000004
+#define VAL_TYPE_U28         0x00000008
+#define VAL_TYPE_CHAR        0x0000000C 
 
 #define ENC_I28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_I28)
 #define ENC_U28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_U28)
@@ -164,5 +175,7 @@ extern cons_t* ref_cell(uint32_t addr);
 extern uint32_t read_car(cons_t*);
 extern uint32_t read_cdr(cons_t*);
 extern void set_car(cons_t*, uint32_t);
-extern void set_cdr(cons_t*, uint32_t); 
+extern void set_cdr(cons_t*, uint32_t);
+extern void set_gc_mark(cons_t*);
+extern void clr_gc_mark(cons_t*); 
 #endif
