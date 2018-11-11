@@ -1,8 +1,8 @@
 
 #include "eval0.h"
 
-#include "symtab.h"
-#include "heap0.h"
+#include "symrepr.h"
+#include "heap.h"
 #include "built_in.h"
 
 #include <stdio.h>
