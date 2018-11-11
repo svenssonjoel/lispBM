@@ -11,6 +11,13 @@ int simple_print(uint32_t t){
   char *str_ptr;
   
   if ((t & PTR_MASK) == IS_PTR) { // pointer to something
+    // TODO: Switch on the type of object pointed to.
+    if ((t & PTR_TYPE_MASK) == PTR_TYPE_CONS) {
+      printf("(");
+      // simple_print_cons(ref_cell(t));
+      printf(")");			
+    }
+    
     printf("POINTER\n");
     return 1; 
   } else { // Value, symbol 
@@ -27,7 +34,7 @@ int simple_print(uint32_t t){
       printf("%u", DEC_U28(t));
       break;
     case VAL_TYPE_CHAR: // dont yet have syntax for Char and String
-      printf("%c", DEC_CHAR(t));
+      printf("#\\%c", DEC_CHAR(t));
       break;
     default:
       printf("simple_print: Error\n");

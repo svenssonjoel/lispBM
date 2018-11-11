@@ -10,7 +10,7 @@
 #include "symrepr.h"
 //#include "built_in.h"
 //#include "eval0.h"
-//#include "print.h"
+#include "print.h"
 
 //void test_stuff(void);
 
@@ -99,6 +99,9 @@ int main(int argc, char **argv) {
   printf("num_free: %d\n", heap_num_free());
 
 
+  simple_print(SYMBOL_NIL | VAL_TYPE_SYMBOL);
+  printf("\n"); 
+  
   /*
   for (int i = 0; i < 100; i ++ ) {
 
