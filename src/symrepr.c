@@ -42,7 +42,10 @@ int add_default_symbols(void) {
   int res = 1;
   
   res &= symrepr_addsym("nil", NULL);
-  res &= symrepr_addsym("quote", NULL); 
+  res &= symrepr_addsym("quote", NULL);
+  res &= symrepr_addsym("car", NULL);
+  res &= symrepr_addsym("cdr", NULL);
+  res &= symrepr_addsym("cons", NULL); 
 
   return res;
 }
@@ -55,7 +58,10 @@ int symrepr_init(void) {
 }
 
 int symrepr_addsym(char *name, uint32_t* id) {
-  size_t   n = 0; 
+  size_t   n = 0;
+
+  if(strlen(name) == 0) return 0; //return failure if empty symbol
+  
   uint32_t hash = hash_string(name);
   
   if (hash >= HASHTAB_SIZE) /* impossible */ return 0;

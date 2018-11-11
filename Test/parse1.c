@@ -21,6 +21,11 @@ int main(int argc, char **argv) {
   mpc_ast_t* ast = NULL; 
   int res = 0; 
 
+  heap_stats_t heap_stats;
+
+  uint32_t SYMBOL_NIL;
+
+  
   res = parser_init();
   if (res) 
     printf("Parser initialized.\n");
@@ -38,6 +43,7 @@ int main(int argc, char **argv) {
   }
   
   res = heap_init(8 * 1024 * 1024);
+  //res = heap_init(8 * 1024);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
   else {
@@ -45,7 +51,10 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  
   symrepr_print();
+  symrepr_lookup("nil",&SYMBOL_NIL);
+  SYMBOL_NIL = SYMBOL_NIL << VAL_SHIFT;
   
   int n = 0;
   printf("DEC/ENC %d: %s \n", n++, (DEC_I28(ENC_I28(0)) == 0) ? "ok" : "NOK!");
@@ -69,9 +78,44 @@ int main(int argc, char **argv) {
   printf("DEC/ENC %d: %s \n", n++, (DEC_SYM(ENC_SYM(268435455)) == 268435455) ? "ok" : "NOK!");
 
 
+  uint32_t c0 = heap_allocate_cell();
+  if ((c0 & GC_MASK) == GC_MARKED) {
+    printf("ERROR: allocated cell is marked!\n");
+  } else {
+    printf("OK: allocated cell is NOT marked!\n");
+  }
 
+  heap_allocate_cell();
+
+  printf("c0: %x\n", c0);
   
-  
+  uint32_t env = c0;// SYMBOL_NIL | VAL_TYPE_SYMBOL;
+  heap_perform_gc(env);
+
+  heap_get_stats(&heap_stats);
+  printf("gc_num: %d\n", heap_stats.gc_num);
+  printf("recovered: %d\n", heap_stats.gc_recovered);
+  printf("marked: %d\n", heap_stats.gc_marked);
+  printf("num_free: %d\n", heap_num_free());
+
+
+  /*
+  for (int i = 0; i < 100; i ++ ) {
+
+    for (int j = 0; j < 100000; j ++) {
+      heap_allocate_cell();
+    }
+
+    heap_perform_gc(SYMBOL_NIL | VAL_TYPE_SYMBOL);
+
+    heap_get_stats(&heap_stats);
+    printf("gc_num: %d\n", heap_stats.gc_num);
+    printf("recovered: %d\n", heap_stats.gc_recovered);
+    printf("marked: %d\n", heap_stats.gc_marked);
+    printf("num_free: %d\n", heap_num_free());
+  }
+  */
+
   //uint32_t c1 = heap_allocate_cell();
   //uint32_t c2 = heap_allocate_cell(); 
 

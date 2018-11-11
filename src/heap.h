@@ -159,10 +159,21 @@ Aux bits could be used for storting vector size. Up to 30bits should be availabl
 #define DEC_CHAR(X) ((char)((int32_t)(X) >> VAL_SHIFT))
 #define DEC_SYM(X)  ((uint32_t)((uint32_t)(X) >> VAL_SHIFT))
 
-typedef struct s_cons {
+typedef struct {
   uint32_t car;
   uint32_t cdr; 
-} cons_t; 
+} cons_t;
+
+typedef struct {
+  uint32_t heap_size;       // In number of cells
+  uint32_t heap_bytes;      // Size in bytes
+  
+  uint32_t num_alloc;       // Number of cells allocated
+
+  uint32_t gc_num;          // Number of times gc has been performed
+  uint32_t gc_marked;       // Number of cells marked by mark phase
+  uint32_t gc_recovered;    // Number of cells recovered by sweep phase 
+} heap_stats_t;
 
 extern int heap_init(size_t num_cells);
 extern void heap_del(void);
@@ -170,12 +181,19 @@ extern uint32_t heap_num_free(void);
 extern uint32_t heap_allocate_cell(void); 
 extern uint32_t heap_size_bytes(void);
 
-// accessor helpers
+// accessor helpers (not sure if these should really be extern) 
 extern cons_t* ref_cell(uint32_t addr);
 extern uint32_t read_car(cons_t*);
 extern uint32_t read_cdr(cons_t*);
 extern void set_car(cons_t*, uint32_t);
 extern void set_cdr(cons_t*, uint32_t);
 extern void set_gc_mark(cons_t*);
-extern void clr_gc_mark(cons_t*); 
+extern void clr_gc_mark(cons_t*);
+
+// Statistics
+extern void heap_get_stats(heap_stats_t *);
+extern uint32_t heap_get_freelist(void);
+
+// Garbage collection
+extern int heap_perform_gc(uint32_t env); 
 #endif

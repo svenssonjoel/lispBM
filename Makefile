@@ -39,7 +39,7 @@ lib: $(LIB)
 test: $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap.c $(SOURCE_DIR)/symrepr.c
 	gcc -m32 -c $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap.c $(SOURCE_DIR)/symrepr.c 
 
-test-lib: mpc.o parse.o heap0.o symtab.o
+test-lib: mpc.o parse.o heap.o symrepr.o
 	ar -rcs library.a mpc.o parse.o heap.o symrepr.o
 
 $(LIB): $(OBJECTS)
