@@ -124,7 +124,7 @@ Aux bits could be used for storting vector size. Up to 30bits should be availabl
 #define VAL_SHIFT            4 
 
 #define PTR_MASK             0x00000001
-#define IS_PTR               0x00000001
+#define PTR                  0x00000001
 #define PTR_VAL_MASK         0x03FFFFF8
 #define PTR_TYPE_MASK        0xFC000000
 
@@ -149,6 +149,12 @@ Aux bits could be used for storting vector size. Up to 30bits should be availabl
 #define VAL_TYPE_U28         0x00000008
 #define VAL_TYPE_CHAR        0x0000000C 
 
+#define VAL_TYPE(X) ((X) & VAL_TYPE_MASK)
+
+#define IS_PTR(X)   (((X) & PTR_MASK) == PTR)
+
+#define ENC_CONS_PTR(X) ((uint32_t)(((X) << ADDRESS_SHIFT) | PTR))
+
 #define ENC_I28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_I28)
 #define ENC_U28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_U28)
 #define ENC_CHAR(X) ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_CHAR)
@@ -165,15 +171,18 @@ typedef struct {
 } cons_t;
 
 typedef struct {
-  uint32_t heap_size;       // In number of cells
-  uint32_t heap_bytes;      // Size in bytes
+  uint32_t freelist;        // list of free cons cells.
+  uint32_t freelist_last;   // points at the last element in the free list
   
-  uint32_t num_alloc;       // Number of cells allocated
+  uint32_t heap_size;       // In number of cells.
+  uint32_t heap_bytes;      // Size in bytes.
+  
+  uint32_t num_alloc;       // Number of cells allocated.
 
-  uint32_t gc_num;          // Number of times gc has been performed
-  uint32_t gc_marked;       // Number of cells marked by mark phase
-  uint32_t gc_recovered;    // Number of cells recovered by sweep phase 
-} heap_stats_t;
+  uint32_t gc_num;          // Number of times gc has been performed.
+  uint32_t gc_marked;       // Number of cells marked by mark phase.
+  uint32_t gc_recovered;    // Number of cells recovered by sweep phase. 
+} heap_state_t;
 
 extern int heap_init(size_t num_cells);
 extern void heap_del(void);
@@ -189,10 +198,10 @@ extern void set_car(cons_t*, uint32_t);
 extern void set_cdr(cons_t*, uint32_t);
 extern void set_gc_mark(cons_t*);
 extern void clr_gc_mark(cons_t*);
+extern uint32_t get_gc_mark(cons_t*);
 
 // Statistics
-extern void heap_get_stats(heap_stats_t *);
-extern uint32_t heap_get_freelist(void);
+extern void heap_get_state(heap_state_t *);
 
 // Garbage collection
 extern int heap_perform_gc(uint32_t env); 

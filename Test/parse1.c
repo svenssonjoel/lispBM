@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
   mpc_ast_t* ast = NULL; 
   int res = 0; 
 
-  heap_stats_t heap_stats;
+  heap_state_t heap_state;
 
   uint32_t SYMBOL_NIL;
 
@@ -92,13 +92,23 @@ int main(int argc, char **argv) {
   uint32_t env = c0;// SYMBOL_NIL | VAL_TYPE_SYMBOL;
   heap_perform_gc(env);
 
-  heap_get_stats(&heap_stats);
-  printf("gc_num: %d\n", heap_stats.gc_num);
-  printf("recovered: %d\n", heap_stats.gc_recovered);
-  printf("marked: %d\n", heap_stats.gc_marked);
+  heap_get_state(&heap_state);
+  printf("gc_num: %d\n", heap_state.gc_num);
+  printf("recovered: %d\n", heap_state.gc_recovered);
+  printf("marked: %d\n", heap_state.gc_marked);
+  printf("num_free: %d\n", heap_num_free());
+
+  heap_perform_gc(SYMBOL_NIL | VAL_TYPE_SYMBOL);
+
+  heap_get_state(&heap_state);
+  printf("gc_num: %d\n", heap_state.gc_num);
+  printf("recovered: %d\n", heap_state.gc_recovered);
+  printf("marked: %d\n", heap_state.gc_marked);
   printf("num_free: %d\n", heap_num_free());
 
 
+
+  
   simple_print(SYMBOL_NIL | VAL_TYPE_SYMBOL);
   printf("\n"); 
   
