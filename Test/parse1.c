@@ -53,8 +53,7 @@ int main(int argc, char **argv) {
 
   
   symrepr_print();
-  symrepr_lookup("nil",&SYMBOL_NIL);
-  SYMBOL_NIL = SYMBOL_NIL << VAL_SHIFT;
+  SYMBOL_NIL = symrepr_nil(); 
   
   int n = 0;
   printf("DEC/ENC %d: %s \n", n++, (DEC_I28(ENC_I28(0)) == 0) ? "ok" : "NOK!");
@@ -89,7 +88,7 @@ int main(int argc, char **argv) {
 
   printf("c0: %x\n", c0);
   
-  uint32_t env = c0;// SYMBOL_NIL | VAL_TYPE_SYMBOL;
+  uint32_t env = c0;
   heap_perform_gc(env);
 
   heap_get_state(&heap_state);
@@ -98,36 +97,35 @@ int main(int argc, char **argv) {
   printf("marked: %d\n", heap_state.gc_marked);
   printf("num_free: %d\n", heap_num_free());
 
-  heap_perform_gc(SYMBOL_NIL | VAL_TYPE_SYMBOL);
+  heap_perform_gc(ENC_SYM(SYMBOL_NIL));
 
   heap_get_state(&heap_state);
   printf("gc_num: %d\n", heap_state.gc_num);
   printf("recovered: %d\n", heap_state.gc_recovered);
   printf("marked: %d\n", heap_state.gc_marked);
   printf("num_free: %d\n", heap_num_free());
-
-
-
   
-  simple_print(SYMBOL_NIL | VAL_TYPE_SYMBOL);
+  simple_print(ENC_SYM(SYMBOL_NIL));
   printf("\n"); 
   
+
   /*
-  for (int i = 0; i < 100; i ++ ) {
+  for (int i = 0; i < 10; i ++ ) {
 
     for (int j = 0; j < 100000; j ++) {
       heap_allocate_cell();
     }
 
-    heap_perform_gc(SYMBOL_NIL | VAL_TYPE_SYMBOL);
+    heap_perform_gc(ENC_SYM(SYMBOL_NIL));
 
-    heap_get_stats(&heap_stats);
-    printf("gc_num: %d\n", heap_stats.gc_num);
-    printf("recovered: %d\n", heap_stats.gc_recovered);
-    printf("marked: %d\n", heap_stats.gc_marked);
+    heap_get_state(&heap_state);
+    printf("gc_num: %d\n", heap_state.gc_num);
+    printf("recovered: %d\n", heap_state.gc_recovered);
+    printf("marked: %d\n", heap_state.gc_marked);
     printf("num_free: %d\n", heap_num_free());
   }
   */
+  
 
   //uint32_t c1 = heap_allocate_cell();
   //uint32_t c2 = heap_allocate_cell(); 

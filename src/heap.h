@@ -200,7 +200,7 @@ extern void set_gc_mark(cons_t*);
 extern void clr_gc_mark(cons_t*);
 extern uint32_t get_gc_mark(cons_t*);
 
-// Statistics
+// State and statistics
 extern void heap_get_state(heap_state_t *);
 
 // Garbage collection

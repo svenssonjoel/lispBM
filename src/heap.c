@@ -5,16 +5,11 @@
 #include "heap.h"
 #include "symrepr.h"
 
-static cons_t *heap = NULL; 
-
-static uint32_t heap_base; 
-//static uint32_t free_list = 0; 
-//static uint32_t free_list_last = 0;
-
-
+static cons_t*      heap = NULL; 
+static uint32_t     heap_base; 
 static heap_state_t heap_state;
 
-static uint32_t SYMBOL_NIL; // pre shifted
+static uint32_t     SYMBOL_NIL; 
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that IS_PTR was set 
@@ -59,19 +54,19 @@ int generate_freelist(size_t num_cells) {
   
   if (!heap) return 0;
   
-  heap_state.freelist = ENC_CONS_PTR(0); //0 | IS_PTR;  
+  heap_state.freelist = ENC_CONS_PTR(0); 
 
   // Add all cells to free list
   for (i = 1; i < num_cells; i ++) {
-    cons_t *t = ref_cell( ENC_CONS_PTR(i-1)); //  << ADDRESS_SHIFT);
+    cons_t *t = ref_cell( ENC_CONS_PTR(i-1)); 
     set_car(t, ENC_SYM(SYMBOL_NIL));    // all cars in free list are nil 
-    set_cdr(t, ENC_CONS_PTR(i)); // (i << ADDRESS_SHIFT) | PTR);
+    set_cdr(t, ENC_CONS_PTR(i)); 
     set_gc_mark(t); 
   }
   
   heap_state.freelist_last = ENC_CONS_PTR(num_cells-1);
   set_cdr(ref_cell(heap_state.freelist_last), ENC_SYM(SYMBOL_NIL));
-  
+
   if (read_cdr(ref_cell(heap_state.freelist_last)) == ENC_SYM(SYMBOL_NIL)) {
     return 1;
   }
@@ -81,7 +76,7 @@ int generate_freelist(size_t num_cells) {
 int heap_init(size_t num_cells) {
 
   // retrieve nil symbol value f
-  symrepr_lookup("nil", &SYMBOL_NIL); 
+  SYMBOL_NIL = symrepr_nil(); 
 
   // Allocate heap 
   heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
@@ -214,7 +209,7 @@ int gc_mark_freelist(uint32_t fl) {
   uint32_t curr;
   cons_t *t;
 
-  if (!IS_PTR(fl)) {  // ((fl & PTR_MASK) == IS_PTR)) {
+  if (!IS_PTR(fl)) { 
     if ((VAL_TYPE(fl) == VAL_TYPE_SYMBOL) &&
 	(DEC_SYM(fl) == SYMBOL_NIL)){
       return 1; // Nothing to mark here 
@@ -228,8 +223,9 @@ int gc_mark_freelist(uint32_t fl) {
   while (IS_PTR(curr)){
      t = ref_cell(curr);
      set_gc_mark(t);
+     curr = read_cdr(t);
+
      heap_state.gc_marked ++;
-     curr = read_cdr(t); 
   }
   return 1;
 }
@@ -253,7 +249,7 @@ int gc_sweep_phase(void) {
       set_car(&heap[i], ENC_SYM(SYMBOL_NIL));
       set_gc_mark(&heap[i]); 
 
-      // create pointer to free cell to put at end of free_list
+      // create pointer to free cell to put at end of freelist
       uint32_t addr = ENC_CONS_PTR(i); 
 
       set_cdr(fl_last, addr);
@@ -261,13 +257,15 @@ int gc_sweep_phase(void) {
       heap_state.freelist_last = addr;
 
       heap_state.gc_recovered ++;
+    } else {
+      clr_gc_mark(&heap[i]);
     }
-    clr_gc_mark(&heap[i]);
   }
   return 1; 
 }
 
-
+// TODO: Consider the possiblity of circular objects on
+//       the heap. 
 int heap_perform_gc(uint32_t env) {
   heap_state.gc_num ++;
   heap_state.gc_recovered = 0; 

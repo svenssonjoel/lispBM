@@ -24,11 +24,21 @@
 
  */
 
-#define HASHTAB_SIZE 65521  
-#define SMALL_PRIMES 11
+#define HASHTAB_SIZE 65521    
 #define BUCKET_DEPTH 4096
+#define SMALL_PRIMES 11
 
-uint32_t hash_string(char *str); 
+#define DEF_REPR_NIL       0
+#define DEF_REPR_QUOTE     1
+#define DEF_REPR_CAR       2
+#define DEF_REPR_CDR       3
+#define DEF_REPR_CONS      4
+#define DEF_REPR_LAMBDA    5
+#define DEF_REPR_CLOSURE   6
+
+static uint32_t hash_string(char *str); 
+
+static uint32_t def_repr[7]; 
 
 typedef struct s_name_mapping {
   uint32_t key; // hash including collision id //
@@ -41,13 +51,43 @@ name_mapping_t **name_table = NULL;
 int add_default_symbols(void) {
   int res = 1;
   
-  res &= symrepr_addsym("nil", NULL);
-  res &= symrepr_addsym("quote", NULL);
-  res &= symrepr_addsym("car", NULL);
-  res &= symrepr_addsym("cdr", NULL);
-  res &= symrepr_addsym("cons", NULL); 
+  res &= symrepr_addsym("nil", &def_repr[DEF_REPR_NIL]);
+  res &= symrepr_addsym("quote", &def_repr[DEF_REPR_QUOTE]);
+  res &= symrepr_addsym("car", &def_repr[DEF_REPR_CAR]);
+  res &= symrepr_addsym("cdr", &def_repr[DEF_REPR_CDR]);
+  res &= symrepr_addsym("cons", &def_repr[DEF_REPR_CONS]);
+  res &= symrepr_addsym("lambda", &def_repr[DEF_REPR_LAMBDA]);
+  res &= symrepr_addsym("closure", &def_repr[DEF_REPR_CLOSURE]); 
 
   return res;
+}
+
+uint32_t symrepr_nil(){
+  return def_repr[DEF_REPR_NIL];
+}
+
+uint32_t symrepr_quote(){
+  return def_repr[DEF_REPR_QUOTE];
+}
+
+uint32_t symrepr_car(){
+  return def_repr[DEF_REPR_CAR];
+}
+
+uint32_t symrepr_cdr(){
+  return def_repr[DEF_REPR_CDR];
+}
+
+uint32_t symrepr_cons(){
+  return def_repr[DEF_REPR_CONS];
+}
+
+uint32_t symrepr_lambda(){
+  return def_repr[DEF_REPR_LAMBDA];
+}
+
+uint32_t symrepr_closure(){
+  return def_repr[DEF_REPR_CLOSURE];
 }
 
 int symrepr_init(void) {
