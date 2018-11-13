@@ -6,8 +6,33 @@
 
 #include "heap0.h"
 #include "parse.h"
-#include "symtab.h"
+#include "symrepr.h"
 
+uint32_t read_ast(mpc_ast_t *t){
+
+  uint32_t rerror = symrepr_rerror();
+  
+
+  // //////////////////////////////////////////////////
+  // Base case: Read a symbol
+  // //////////////////////////////////////////////////
+  if (strstr(t->tag, "name")) {
+    uint32_t symbol_id;
+    
+    if (symrepr_lookup(t->contents, &symbol_id)) {
+      return ENC_SYM(symbol_id);  
+    }
+    else if (symtab_addname(t->contents,&symbol_id)) {
+      return ENC_SYM(symbol_id);  
+    } else {
+      return ENC_SYM(rerror); 
+    }
+  }
+
+  
+}
+
+/*
 enum result_type { R_CONS, R_INTEGER, R_FLOAT, R_SYMBOL , R_ERROR };
 
 typedef struct s_read_result { 
@@ -58,8 +83,8 @@ read_result_t read_internal(mpc_ast_t* t) {
   if (strcmp(t->tag, ">") == 0) {
     int n = t->children_num;
 
-    /* A program is a sequence of sexprs. 
-       So represent it as a list .. ? */
+    // A program is a sequence of sexprs 
+    // so represent it as a list.
     read_result_t tmp; 
     cons_t *root = NULL; 
     cons_t *curr = NULL; 
@@ -78,24 +103,24 @@ read_result_t read_internal(mpc_ast_t* t) {
 	return res;
 	break;
 	
-      case R_SYMBOL: /* This would be a program with a "naked" symbol (not in an sexpr) */
+      case R_SYMBOL: // This would be a program with a "naked" symbol (not in an sexpr). 
 	res.r_type = R_ERROR; 
 	return res;
 	break;
 	
-      case R_INTEGER: /* Naked integer in program */ 
+      case R_INTEGER: // Naked integer in program.
 	res.r_type = R_ERROR; 
 	return res;
 	break;
 	
-      case R_FLOAT: /* Naked float */ 
+      case R_FLOAT: // Naked float. 
 	res.r_type = R_ERROR; 
 	return res;
 	break;
 	
-      case R_CONS: /* First "real" program case */ 
+      case R_CONS: // First "real" program case. 
 
-	if (root == NULL) { /* create the head of list (The root program list)*/
+	if (root == NULL) { // create the head of list (The root program list).
 	  root = heap_allocate_cell();
 	  
 	  curr = root;
@@ -108,11 +133,11 @@ read_result_t read_internal(mpc_ast_t* t) {
 	  prev->cdr.cons = curr; 
 	}
 	uint32_t type = 0;
-	type = SET_CONS_TYPE(type, 1); /* curr is a node in a list */ 
+	type = SET_CONS_TYPE(type, 1); // curr is a node in a list
 	type = SET_CAR_TYPE(type, POINTER);
 	type = SET_CDR_TYPE(type, NIL); 
-	curr->car.cons = tmp.r_cons_cell; /* point to contained list */ 
-	curr->cdr.i = 0; /*hack*/ 
+	curr->car.cons = tmp.r_cons_cell; // point to contained list  
+	curr->cdr.i = 0; //hack
 	curr->type = type;
 	
 	prev = curr;
@@ -133,8 +158,7 @@ read_result_t read_internal(mpc_ast_t* t) {
   if (strstr(t->tag, "sexp")) {
     int n = t->children_num;
 
-    /* A program is a sequence of sexprs. 
-       So represent it as a list .. ? */
+    // Sexpr reading
     read_result_t tmp; 
     cons_t *root = NULL; 
     cons_t *curr = NULL;
@@ -151,7 +175,7 @@ read_result_t read_internal(mpc_ast_t* t) {
       tmp = read_internal(t->children[i]);
 
 
-      if (root == NULL) { /* create the head of list */
+      if (root == NULL) { // create the head of list
 	root = heap_allocate_cell();
 	curr = root;
 	prev = NULL;
@@ -171,42 +195,42 @@ read_result_t read_internal(mpc_ast_t* t) {
 	
       case R_SYMBOL:
 	type = 0;
-	type = SET_CONS_TYPE(type, 1); /* symbol in list */ 
+	type = SET_CONS_TYPE(type, 1); // symbol in list  
 	type = SET_CAR_TYPE(type, SYMBOL);
 	type = SET_CDR_TYPE(type, NIL); 
 	curr->car.s = tmp.r_symbol;
-	curr->cdr.i = 0; /* hack */
+	curr->cdr.i = 0; // hack 
 	curr->type = type; 
 	break;
 	
       case INTEGER:
 	type = 0;
-	type = SET_CONS_TYPE(type, 1); /* integer in list */ 
+	type = SET_CONS_TYPE(type, 1); // integer in list  
 	type = SET_CAR_TYPE(type, INTEGER);
 	type = SET_CDR_TYPE(type, NIL); 
 	curr->car.i = tmp.r_integer;
-	curr->cdr.i = 0; /* hack */
+	curr->cdr.i = 0; // hack 
 	curr->type = type; 
 	break;
 	
       case R_FLOAT:
 	type = 0;
-	type = SET_CONS_TYPE(type, 1); /* float in list */
+	type = SET_CONS_TYPE(type, 1); // float in list 
 	type = SET_CAR_TYPE(type, FLOAT);
 	type = SET_CDR_TYPE(type, NIL); 
 	curr->car.f = tmp.r_float;
-	curr->cdr.i = 0; /* hack */
+	curr->cdr.i = 0; // hack
 	curr->type = type; 
 	break;
 	
-      case R_CONS: /* First "real" program case */ 
+      case R_CONS: 
 
 	type = 0;
-	type = SET_CONS_TYPE(type,1); /* pointer to list, within a list */ 
+	type = SET_CONS_TYPE(type,1); // pointer to list, within a list
 	type = SET_CAR_TYPE(type, POINTER);
 	type = SET_CDR_TYPE(type, NIL); 
 	curr->car.cons = tmp.r_cons_cell;
-	curr->cdr.i = 0; /*hack*/ 
+	curr->cdr.i = 0; // hack 
 	curr->type = type;
 	break;
 	
@@ -233,3 +257,4 @@ cons_t* read_ast(mpc_ast_t *t) {
   
   return NULL;
 }
+*/

@@ -5,6 +5,7 @@
 #include "mpc.h"
 #include "heap0.h"
 
-cons_t* read_ast(mpc_ast_t *t);
+uint32_t read_ast(mpc_ast_t *t); 
+
 
 #endif 

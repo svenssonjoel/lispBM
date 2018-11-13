@@ -19,4 +19,5 @@ extern uint32_t symrepr_cons();
 extern uint32_t symrepr_lambda();
 extern uint32_t symrepr_closure(); 
 
+extern uint32_t symrepr_rerror();
 #endif 

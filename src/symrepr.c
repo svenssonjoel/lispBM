@@ -35,10 +35,11 @@
 #define DEF_REPR_CONS      4
 #define DEF_REPR_LAMBDA    5
 #define DEF_REPR_CLOSURE   6
+#define DEF_REPR_RERROR    7  // READ ERROR
 
 static uint32_t hash_string(char *str); 
 
-static uint32_t def_repr[7]; 
+static uint32_t def_repr[8]; 
 
 typedef struct s_name_mapping {
   uint32_t key; // hash including collision id //
@@ -57,7 +58,8 @@ int add_default_symbols(void) {
   res &= symrepr_addsym("cdr", &def_repr[DEF_REPR_CDR]);
   res &= symrepr_addsym("cons", &def_repr[DEF_REPR_CONS]);
   res &= symrepr_addsym("lambda", &def_repr[DEF_REPR_LAMBDA]);
-  res &= symrepr_addsym("closure", &def_repr[DEF_REPR_CLOSURE]); 
+  res &= symrepr_addsym("closure", &def_repr[DEF_REPR_CLOSURE]);
+  res &= symrepr_addsym("rerror", &def_repr[DEF_REPR_RERROR]); 
 
   return res;
 }
@@ -89,6 +91,12 @@ uint32_t symrepr_lambda(){
 uint32_t symrepr_closure(){
   return def_repr[DEF_REPR_CLOSURE];
 }
+
+uint32_t symrepr_rerror(){
+  return def_repr[DEF_REPR_RERROR];
+}
+
+
 
 int symrepr_init(void) {
   name_table = (name_mapping_t**)malloc(HASHTAB_SIZE * sizeof(name_mapping_t*));
