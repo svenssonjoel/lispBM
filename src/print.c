@@ -14,11 +14,11 @@ int simple_print(uint32_t t){
     // TODO: Switch on the type of object pointed to.
     if ((t & PTR_TYPE_MASK) == PTR_TYPE_CONS) {
       printf("(");
-      // simple_print_cons(ref_cell(t));
+      simple_print(read_car(ref_cell(t)));
+      printf(" "); 
+      simple_print(read_cdr(ref_cell(t)));
       printf(")");			
     }
-    
-    printf("POINTER\n");
     return 1; 
   } else { // Value, symbol 
 

@@ -107,6 +107,37 @@ int main(int argc, char **argv) {
   
   simple_print(ENC_SYM(SYMBOL_NIL));
   printf("\n"); 
+
+
+  while (1) {
+    
+    size_t n =  getline(&str,&len,stdin);
+    
+    ast = parser_parse_string(str); 
+    if (!ast) {
+      printf("ERROR!\n");
+      break;
+    }
+    
+    //mpc_ast_print(ast);
+
+    uint32_t t;
+    t = read_ast(ast);
+    
+    //t = eval(t);
+    
+    simple_print(t); 
+    
+    printf("\n"); 
+    
+    mpc_ast_delete(ast);
+    printf("############################################################\n");
+    printf("Character read: %d\n" , n);
+    printf("HEAP has %d free cons cells\n", heap_num_free());
+    symrepr_print();
+    printf("############################################################\n"); 
+  }
+
   
 
   /*
