@@ -2,7 +2,7 @@
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
   SOURCE_DIR = src
-  CCFLAGS = -m32
+  CCFLAGS = -m32 -O2
 endif
 
 ifeq ($(PLATFORM), zynq)
@@ -30,17 +30,17 @@ OBJECTS = $(patsubst $(SOURCE_DIR)/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
 
 LIB = $(BUILD_DIR)/library.a
 
-#all: $(OBJECTS) $(LIB)
+all: $(OBJECTS) $(LIB)
 
 lib: $(LIB)
 ## Build all o's into an executable. 
 # $(CC) $^ -o $@
 
-test: $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap.c $(SOURCE_DIR)/symrepr.c $(SOURCE_DIR)/print.c $(SOURCE_DIR)/read.c $(SOURCE_DIR)/eval.c
-	gcc -m32 -O2 -c $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap.c $(SOURCE_DIR)/symrepr.c $(SOURCE_DIR)/print.c $(SOURCE_DIR)/read.c $(SOURCE_DIR)/eval.c
+#test: $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap.c $(SOURCE_DIR)/symrepr.c $(SOURCE_DIR)/print.c $(SOURCE_DIR)/read.c $(SOURCE_DIR)/eval.c
+#	gcc -m32 -O2 -c $(SOURCE_DIR)/mpc.c $(SOURCE_DIR)/parse.c $(SOURCE_DIR)/heap.c $(SOURCE_DIR)/symrepr.c $(SOURCE_DIR)/print.c $(SOURCE_DIR)/read.c $(SOURCE_DIR)/eval.c
 
-test-lib: mpc.o parse.o heap.o symrepr.o print.o read.o eval.o
-	ar -rcs library.a mpc.o parse.o heap.o symrepr.o print.o read.o eval.o
+#test-lib: mpc.o parse.o heap.o symrepr.o print.o read.o eval.o
+#	ar -rcs library.a mpc.o parse.o heap.o symrepr.o print.o read.o eval.o
 
 $(LIB): $(OBJECTS)
 	$(AR) -rcs $@ $(OBJECTS)
