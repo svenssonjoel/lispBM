@@ -41,8 +41,8 @@ int main(int argc, char **argv) {
     printf("Error initializing symrepr!\n");
     return 0;
   }
-  
-  res = heap_init(8 * 1024 * 1024);
+  int heap_size = 8 * 1024 * 1024;
+  res = heap_init(heap_size);
   //res = heap_init(8 * 1024);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
   printf("DEC/ENC %d: %s \n", n++, (DEC_SYM(ENC_SYM(268435455)) == 268435455) ? "ok" : "NOK!");
 
 
+  /*
   uint32_t c0 = heap_allocate_cell();
   if ((c0 & GC_MASK) == GC_MARKED) {
     printf("ERROR: allocated cell is marked!\n");
@@ -104,7 +105,8 @@ int main(int argc, char **argv) {
   printf("recovered: %d\n", heap_state.gc_recovered);
   printf("marked: %d\n", heap_state.gc_marked);
   printf("num_free: %d\n", heap_num_free());
-  
+  */
+
   simple_print(ENC_SYM(SYMBOL_NIL));
   printf("\n"); 
 
@@ -132,10 +134,17 @@ int main(int argc, char **argv) {
     
     mpc_ast_delete(ast);
     printf("############################################################\n");
-    printf("Character read: %d\n" , n);
-    printf("HEAP has %d free cons cells\n", heap_num_free());
+    printf("HEAP used cons cells: %d \n", heap_size - heap_num_free());
     symrepr_print();
-    printf("############################################################\n"); 
+    heap_perform_gc(ENC_SYM(SYMBOL_NIL));
+    heap_get_state(&heap_state);
+    printf("gc_num: %d\n", heap_state.gc_num);
+    printf("recovered: %d\n", heap_state.gc_recovered);
+    printf("marked: %d\n", heap_state.gc_marked);
+    printf("num_free: %d\n", heap_num_free());
+    printf("############################################################\n");
+    
+  
   }
 
   
