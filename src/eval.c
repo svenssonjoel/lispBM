@@ -19,7 +19,7 @@ uint32_t eval(uint32_t lisp) {
 
 
 // takes a ptr to cons and returns a ptr to cons.. 
-uint32_t evlis(uint32_r ptcons) {
+uint32_t evlis(uint32_t ptcons) {
 
 
 
@@ -171,7 +171,7 @@ cons_t *eval_(cons_t *cell, int head_position) {
    
   if (head_is_symbol) {
     // potential function application  
-    // hack */ 
+    // hack  
     if ( result->car.s == 15438 ) {
       
       cons_t *fun_res;
