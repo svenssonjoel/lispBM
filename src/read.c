@@ -15,7 +15,7 @@ uint32_t read_ast(mpc_ast_t *t){
   
 
   // //////////////////////////////////////////////////
-  // Base case: Read a symbol
+  // Base cases
   // //////////////////////////////////////////////////
   if (strstr(t->tag, "name")) {
     uint32_t symbol_id;
@@ -29,6 +29,14 @@ uint32_t read_ast(mpc_ast_t *t){
       return ENC_SYM(rerror); 
     }
   }
+
+  // need to tell difference between signed and unsigned. Maybe use a suffix?
+  // For now only read as signed integer. 
+  if (strstr(t->tag, "integer")) {
+    int32_t v = (int32_t)atoi(t->contents);
+    return ENC_I28(v); 
+  }
+
 
   
 }
