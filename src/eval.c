@@ -9,17 +9,37 @@
 #include <stdint.h> 
 
 
-uint32_t eval(uint32_t lisp) {
+uint32_t eval(uint32_t lisp, uint32_t env) {
   uint32_t nil = symrepr_nil(); 
 
+  if (! IS_PTR(lisp)) {
 
+    switch (VAL_TYPE(lisp)){
+
+    case VAL_TYPE_SYMBOL:
+      // lookup
+      break;
+    default:
+      return lisp; // cant be evaluated further.
+    }
+  }
+  
+  switch (PTR_TYPE(lisp)) {
+  case PTR_TYPE_CONS:
+    // I guess... function application comes in here ?? 
+    break;
+  default:
+    return ENC_SYM(nil);
+    break; 
+
+  }
   
   return ENC_SYM(nil);
 } 
 
 
 // takes a ptr to cons and returns a ptr to cons.. 
-uint32_t evlis(uint32_t ptcons) {
+uint32_t evlis(uint32_t ptcons, uint32_t env) {
 
 
 

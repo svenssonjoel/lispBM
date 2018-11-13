@@ -150,6 +150,7 @@ Aux bits could be used for storting vector size. Up to 30bits should be availabl
 #define VAL_TYPE_CHAR        0x0000000C 
 
 #define VAL_TYPE(X) ((X) & VAL_TYPE_MASK)
+#define PTR_TYPE(X) ((X) & PTR_TYPE_MASK)
 
 #define IS_PTR(X)   (((X) & PTR_MASK) == PTR)
 
