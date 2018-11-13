@@ -96,8 +96,6 @@ uint32_t symrepr_rerror(){
   return def_repr[DEF_REPR_RERROR];
 }
 
-
-
 int symrepr_init(void) {
   name_table = (name_mapping_t**)malloc(HASHTAB_SIZE * sizeof(name_mapping_t*));
   if (!name_table) return 0; 

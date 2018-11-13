@@ -10,7 +10,7 @@ int simple_print(uint32_t t){
 
   char *str_ptr;
   
-  if (IS_PTR(t)) { // (t & PTR_MASK) == IS_PTR) { // pointer to something
+  if (IS_PTR(t)) {
     // TODO: Switch on the type of object pointed to.
     if ((t & PTR_TYPE_MASK) == PTR_TYPE_CONS) {
       printf("(");
