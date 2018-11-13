@@ -4,7 +4,8 @@
 
 #include "mpc.h"
 
-#include "heap0.h"
+#include "read.h"
+#include "heap.h"
 #include "parse.h"
 #include "symrepr.h"
 
@@ -22,7 +23,7 @@ uint32_t read_ast(mpc_ast_t *t){
     if (symrepr_lookup(t->contents, &symbol_id)) {
       return ENC_SYM(symbol_id);  
     }
-    else if (symtab_addname(t->contents,&symbol_id)) {
+    else if (symrepr_addsym(t->contents,&symbol_id)) {
       return ENC_SYM(symbol_id);  
     } else {
       return ENC_SYM(rerror); 

@@ -6,7 +6,7 @@
 #include "parse.h"
 
 #include "heap.h" 
-//#include "read0.h"
+#include "read.h"
 #include "symrepr.h"
 //#include "built_in.h"
 //#include "eval0.h"
