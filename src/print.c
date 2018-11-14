@@ -14,9 +14,9 @@ int simple_print(uint32_t t){
     // TODO: Switch on the type of object pointed to.
     if ((t & PTR_TYPE_MASK) == PTR_TYPE_CONS) {
       printf("(");
-      simple_print(read_car(ref_cell(t)));
+      simple_print(car(t));
       printf(" "); 
-      simple_print(read_cdr(ref_cell(t)));
+      simple_print(cdr(t));
       printf(")");			
     }
     return 1; 
@@ -25,7 +25,11 @@ int simple_print(uint32_t t){
     switch (t & VAL_TYPE_MASK) {
     case VAL_TYPE_SYMBOL:
       str_ptr = symrepr_lookup_name(DEC_SYM(t));
-      printf("%s", str_ptr);
+      if (str_ptr == NULL) {
+	printf("Error: Symbol not in table %u\n", DEC_SYM(t));
+      } else {  
+	printf("%s", str_ptr);
+      }
       break;
     case VAL_TYPE_I28:
       printf("%d", DEC_I28(t)); 

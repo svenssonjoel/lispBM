@@ -9,7 +9,7 @@
 #include "read.h"
 #include "symrepr.h"
 //#include "built_in.h"
-//#include "eval0.h"
+#include "eval.h"
 #include "print.h"
 
 //void test_stuff(void);
@@ -77,6 +77,11 @@ int main(int argc, char **argv) {
   printf("DEC/ENC %d: %s \n", n++, (DEC_SYM(ENC_SYM(268435455)) == 268435455) ? "ok" : "NOK!");
 
 
+  printf("DEC/ENC %d: %s \n", n++, (DEC_SYM(ENC_SYM(symrepr_quote())) == symrepr_quote()) ? "ok" : "NOK!");
+
+
+  
+
   /*
   uint32_t c0 = heap_allocate_cell();
   if ((c0 & GC_MASK) == GC_MARKED) {
@@ -125,17 +130,19 @@ int main(int argc, char **argv) {
 
     uint32_t t;
     t = read_ast(ast);
+
+    // simple_print(car(t)); printf("\n");
     
-    //t = eval(t);
+    t = eval_program(t, ENC_SYM(SYMBOL_NIL)); 
     
-    simple_print(t); 
+    printf("> "); simple_print(t); 
     
     printf("\n"); 
     
     mpc_ast_delete(ast);
     printf("############################################################\n");
     printf("HEAP used cons cells: %d \n", heap_size - heap_num_free());
-    symrepr_print();
+    //symrepr_print();
     heap_perform_gc(ENC_SYM(SYMBOL_NIL));
     heap_get_state(&heap_state);
     printf("gc_num: %d\n", heap_state.gc_num);

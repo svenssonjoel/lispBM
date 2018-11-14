@@ -13,41 +13,40 @@ static uint32_t     SYMBOL_NIL;
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that IS_PTR was set 
-cons_t* ref_cell(uint32_t addr) {
+static cons_t* ref_cell(uint32_t addr) {
   return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 
-uint32_t read_car(cons_t *cell) {
+static uint32_t read_car(cons_t *cell) {
   return cell->car;
 }
 
-uint32_t read_cdr(cons_t *cell) {
+static uint32_t read_cdr(cons_t *cell) {
   return cell->cdr;
 }
 
-void set_car(cons_t *cell, uint32_t v) {
+static void set_car(cons_t *cell, uint32_t v) {
   cell->car = v;
 }
 
-void set_cdr(cons_t *cell, uint32_t v) {
+static void set_cdr(cons_t *cell, uint32_t v) {
   cell->cdr = v;
 }
 
-void set_gc_mark(cons_t *cell) {
+static void set_gc_mark(cons_t *cell) {
   uint32_t cdr = read_cdr(cell);
   set_cdr(cell, cdr | GC_MARKED); 
 }
 
-void clr_gc_mark(cons_t *cell) {
+static void clr_gc_mark(cons_t *cell) {
   uint32_t cdr = read_cdr(cell);
   set_cdr(cell, cdr & ~GC_MASK);
 }
 
-uint32_t get_gc_mark(cons_t* cell) {
+static uint32_t get_gc_mark(cons_t* cell) {
   uint32_t cdr = read_cdr(cell);
   return cdr & GC_MASK;
 }
-
 
 int generate_freelist(size_t num_cells) {
   size_t i = 0; 
@@ -272,4 +271,39 @@ int heap_perform_gc(uint32_t env) {
   gc_mark_freelist();
   gc_mark_phase(env); 
   return gc_sweep_phase();
+}
+
+
+
+// construct and break apart
+uint32_t cons(uint32_t car, uint32_t cdr) {
+  uint32_t addr = heap_allocate_cell();
+  if ( IS_PTR(addr)) {
+    set_car(ref_cell(addr), car);
+    set_cdr(ref_cell(addr), cdr);
+    return addr;
+  }
+  else return ENC_SYM(symrepr_nil());
+}
+
+uint32_t car(uint32_t c){
+  if (c == ENC_SYM(symrepr_nil())) {
+    return ENC_SYM(symrepr_nil());
+  }
+  if ( IS_PTR(c) && PTR_TYPE(c) == PTR_TYPE_CONS) {
+    cons_t *cell = ref_cell(c);
+    return read_car(cell);
+  } 
+  return ENC_SYM(symrepr_terror()); 
+}
+
+uint32_t cdr(uint32_t c){
+  if (c == ENC_SYM(symrepr_nil())) {
+    return ENC_SYM(symrepr_nil());
+  }
+  if (IS_PTR(c) && PTR_TYPE(c) == PTR_TYPE_CONS) {
+    cons_t *cell = ref_cell(c);
+    return read_cdr(cell);
+  }
+  return ENC_SYM(symrepr_terror()); 
 }

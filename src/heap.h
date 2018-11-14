@@ -192,14 +192,18 @@ extern uint32_t heap_allocate_cell(void);
 extern uint32_t heap_size_bytes(void);
 
 // accessor helpers (not sure if these should really be extern) 
-extern cons_t* ref_cell(uint32_t addr);
-extern uint32_t read_car(cons_t*);
-extern uint32_t read_cdr(cons_t*);
-extern void set_car(cons_t*, uint32_t);
-extern void set_cdr(cons_t*, uint32_t);
-extern void set_gc_mark(cons_t*);
-extern void clr_gc_mark(cons_t*);
-extern uint32_t get_gc_mark(cons_t*);
+/* extern cons_t* ref_cell(uint32_t addr); */
+/* extern uint32_t read_car(cons_t*); */
+/* extern uint32_t read_cdr(cons_t*); */
+/* extern void set_car(cons_t*, uint32_t); */
+/* extern void set_cdr(cons_t*, uint32_t); */
+/* extern void set_gc_mark(cons_t*); */
+/* extern void clr_gc_mark(cons_t*); */
+/* extern uint32_t get_gc_mark(cons_t*); */
+
+extern uint32_t cons(uint32_t car, uint32_t cdr);
+extern uint32_t car(uint32_t cons);
+extern uint32_t cdr(uint32_t cons); 
 
 // State and statistics
 extern void heap_get_state(heap_state_t *);

@@ -9,199 +9,93 @@
 #include <stdint.h> 
 
 
+uint32_t evlis(uint32_t ptcons, uint32_t env);
+uint32_t apply(uint32_t closure, uint32_t args); 
+uint32_t apply_builtin(uint32_t sym, uint32_t args); 
+
+uint32_t eval_program(uint32_t lisp, uint32_t env) {
+  // Program is a list of expressions that should be evaluated individually 
+  if ( IS_PTR(lisp) &&
+       PTR_TYPE(lisp) == PTR_TYPE_CONS) {
+    // environment should be updated... 
+    return cons(eval(car(lisp), env), eval_program(cdr(lisp),env)); 
+  }
+  
+  return eval(lisp,env);
+} 
+
 uint32_t eval(uint32_t lisp, uint32_t env) {
-  uint32_t nil = symrepr_nil(); 
+  uint32_t nil = symrepr_nil();
 
   if (! IS_PTR(lisp)) {
-
     switch (VAL_TYPE(lisp)){
 
     case VAL_TYPE_SYMBOL:
       // lookup
+      return lisp;
       break;
     default:
-      return lisp; // cant be evaluated further.
+      return lisp; // cannot be evaluated further.
     }
   }
-  
+
+  uint32_t car_val;
   switch (PTR_TYPE(lisp)) {
   case PTR_TYPE_CONS:
-    // I guess... function application comes in here ?? 
+    car_val = car(lisp); 
+    // Check for special forms. quote, lambda, cond
+    if (car_val == ENC_SYM(symrepr_quote())) {
+      return (car (cdr (lisp)));
+    } else if (car_val == ENC_SYM(symrepr_lambda())) {
+      // deal with lambda
+      return ENC_SYM(symrepr_nil()); 
+    } else if (car_val == ENC_SYM(symrepr_closure())) {
+      return apply(eval(car(lisp),env),
+		   evlis(cdr(lisp), env)); 
+    } else {
+      return apply_builtin(eval(car(lisp),env),
+			   evlis(cdr(lisp),env)); 
+    }
     break;
   default:
-    return ENC_SYM(nil);
+    // TODO:
+    return ENC_SYM(symrepr_eerror());
     break; 
 
   }
   
-  return ENC_SYM(nil);
+  // TODO: Bottoming out here should not happen
+  return ENC_SYM(symrepr_eerror());
 } 
 
-
 // takes a ptr to cons and returns a ptr to cons.. 
-uint32_t evlis(uint32_t ptcons, uint32_t env) {
-
-
-
-}
-
-
-
-
-// TODO: Experiment with evaluation 
-
-
-/*
-cons_t *eval_(cons_t *, int); 
-
-cons_t *eval(cons_t *cell) {
-  return eval_(cell, 1); 
-}
-*/
-
-
-/* 
-// TODO: Want to do the heap changes before tackling this part. 
-typedef struct {
-  uint32_t A;   // Maybe have some registers for values 
-  uint32_t B; 
-  uint32_t res; // result register: pointer to list on heap or a value (for example)
-  uint32_t env; // Pointer to environment assoc-list on heap (could also be a tree) (Maybe wont need this)
-
-  uint32_t flags; // NZCVQ etc
-
-  uint32_t sp;  // thoughts. 
-  uint32_t fp;
-
-} AbstractMachine; 
-
-// Future potential type of eval 
-// int eval_AM(AbstractMachine *m, cons_t *program);
-
-
-cons_t *eval_(cons_t *cell, int head_position) {
-
-  // The result of evaluation will be a reduced expression 
-  //   represented by heap allocated cells
-  cons_t *result = heap_allocate_cell(); 
-  uint32_t type = 0;
-  int head_is_symbol = 0; 
-  cons_t *ptr;
-
-  // if the cell we are evaluating is part of a list, 
-  // I think the result will be part of a list. 
-  // Unless the list represents a function application 
-  // in which case the result could be a single value 
-  // or even nothing at all ( I guess). 
-  if (GET_CONS_TYPE(cell->type) == 1) {
-    type = SET_CONS_TYPE(type,1); 
+uint32_t evlis(uint32_t pcons, uint32_t env) {
+  if ( IS_PTR(pcons) &&
+       PTR_TYPE(pcons) == PTR_TYPE_CONS) {
+    return cons(eval(car(pcons), env), evlis(cdr(pcons),env)); 
   }
+  return eval(pcons,env); 
+}
+
+uint32_t apply(uint32_t closure, uint32_t args) {
+  printf("apply\n");
+  return ENC_SYM(symrepr_nil()); 
+}
+
+uint32_t apply_builtin(uint32_t sym, uint32_t args) {
+  
+  if (sym == ENC_SYM(symrepr_plus())) {
+    uint32_t tmp = args; 
+    uint32_t sum = 0; 
+    while ( tmp != ENC_SYM(symrepr_nil())) {
+      uint32_t v = car(tmp);
+      sum += DEC_I28(v);
+
+      tmp = cdr(tmp);
+    }
+    return ENC_I28(sum); 
+  } else if (sym == ENC_SYM(symrepr_mult())) {
     
-  switch (GET_CAR_TYPE(cell->type))
-    {
-    case NIL:
-      type = SET_CAR_TYPE(type, NIL);
-      result->type = type;
-      break; 
-      
-    case INTEGER:
-      type = SET_CAR_TYPE(type,INTEGER);
-      result->type = type;
-      result->car.i = cell->car.i;
-      break;
-     
-    case FLOAT:
-      type = SET_CAR_TYPE(type,FLOAT);
-      result->type = type;
-      result->car.f = cell->car.f;
-      break; 
-
-    case SYMBOL:
-      if (head_position) head_is_symbol = 1;
-      
-      type = SET_CAR_TYPE(type, SYMBOL);
-      result->type = type;
-      result->car.s = cell->car.s;
-      break;
-        
-    case POINTER:
-      if (cell->car.cons == NULL) return NULL; // this would be bad 
-      ptr = eval_(cell->car.cons, 1);
-
-      if (GET_CONS_TYPE(ptr->type) == 1) { // the result of evaluation is a list 
-	type = SET_CAR_TYPE(type, POINTER);
-	result->type = type;
-	result->car.cons = ptr;
-      } else {
-	// Here result should not contain a ptr in car position. 
-	// But rather a copy what the eval result is. 
-	type = GET_CAR_TYPE(ptr->type);
-	result->type = SET_CAR_TYPE(result->type, type);
-	switch(GET_CAR_TYPE(ptr->type)) {
-	case INTEGER:
-	  result->car.i = ptr->car.i;
-	  break;
-	case FLOAT:
-	  result->car.f = ptr->car.f;
-	  break;
-	case SYMBOL:
-	  result->car.s = ptr->car.s; 
-	  break;
-	case NIL:
-	  result->car.i = 0; // hack 
-	  break; 
-	}
-      }
-      break; 
-    }
-
-  
-  switch(GET_CDR_TYPE(cell->type))
-    {
-    case NIL:
-      type = SET_CDR_TYPE(type, NIL);
-      result->type = type;
-      break;
-    case INTEGER:
-      type = SET_CDR_TYPE(type, INTEGER);
-      result->type = type;
-      result->cdr.i = cell->cdr.i;
-      break;
-
-    case FLOAT:
-      type = SET_CDR_TYPE(type,FLOAT);
-      result->type = type;
-      result->cdr.f = cell->cdr.f;
-      break; 
-
-    case SYMBOL: 
-      type = SET_CDR_TYPE(type, SYMBOL);
-      result->type = type;
-      result->cdr.s = cell->cdr.s;
-      break;
-      
-    case POINTER: // move evaluation to next cell in a list
-      type = SET_CDR_TYPE(type,POINTER); 
-      if (cell->cdr.cons == NULL) { printf( "NULL CASE!\n");  return NULL; } 
-      ptr = eval_(cell->cdr.cons, 0);
-      result->type = type; 
-      result->cdr.cons = ptr;
-      break; 
-    } 
-   
-  if (head_is_symbol) {
-    // potential function application  
-    // hack  
-    if ( result->car.s == 15438 ) {
-      
-      cons_t *fun_res;
-
-      fun_res = bi_add(result->cdr.cons); 
-      return fun_res;
-    }
   }
-
-  return result;
+  return ENC_SYM(symrepr_eerror()); 
 }
-  
-*/

@@ -9,18 +9,6 @@
 #include "parse.h"
 #include "symrepr.h"
 
-
-uint32_t cons(uint32_t car, uint32_t cdr) {
-  uint32_t addr = heap_allocate_cell();
-  if ( IS_PTR(addr)) {
-    set_car(ref_cell(addr), car);
-    set_cdr(ref_cell(addr), cdr);
-    return addr;
-  }
-  else return ENC_SYM(symrepr_nil());
-}
-
-
 uint32_t read_ast(mpc_ast_t *t){
 
   uint32_t rerror = symrepr_rerror();
