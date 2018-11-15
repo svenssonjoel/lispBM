@@ -22,7 +22,7 @@ builtin_function_t* function_list = NULL;
 uint32_t bi_fun_sum(uint32_t args) { // TODO: typechecking and potential conversion
   uint32_t tmp = args;
   int32_t sum = 0;
-  while ( tmp != ENC_SYM(symrepr_nil())) {
+  while ( DEC_SYM(tmp) != symrepr_nil()) {
     int32_t v = car(tmp);
     sum += DEC_I28(v);
     tmp = cdr(tmp); 

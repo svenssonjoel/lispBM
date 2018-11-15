@@ -12,6 +12,7 @@
 #include "eval.h"
 #include "print.h"
 
+uint32_t global_env;
 //void test_stuff(void);
 
 int main(int argc, char **argv) {
@@ -145,7 +146,7 @@ int main(int argc, char **argv) {
     uint32_t t;
     t = read_ast(ast);
 
-    //simple_print(t); printf("\n");
+    simple_print(t); printf("\n");
     
     t = eval_program(t); 
     
@@ -156,8 +157,9 @@ int main(int argc, char **argv) {
     mpc_ast_delete(ast);
     printf("############################################################\n");
     printf("Used cons cells: %d \n", heap_size - heap_num_free());
+    printf("ENV: "); simple_print(global_env); printf("\n"); 
     //symrepr_print();
-    heap_perform_gc(ENC_SYM(SYMBOL_NIL));
+    heap_perform_gc(global_env);
     heap_get_state(&heap_state);
     printf("GC counter: %d\n", heap_state.gc_num);
     printf("Recovered: %d\n", heap_state.gc_recovered);

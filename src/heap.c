@@ -5,6 +5,8 @@
 #include "heap.h"
 #include "symrepr.h"
 
+uint32_t global_env;
+
 static cons_t*      heap = NULL; 
 static uint32_t     heap_base; 
 static heap_state_t heap_state;
@@ -13,7 +15,7 @@ static uint32_t     SYMBOL_NIL;
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that IS_PTR was set 
-static cons_t* ref_cell(uint32_t addr) {
+cons_t* ref_cell(uint32_t addr) {
   return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 
@@ -25,11 +27,11 @@ static uint32_t read_cdr(cons_t *cell) {
   return cell->cdr;
 }
 
-static void set_car(cons_t *cell, uint32_t v) {
+void set_car(cons_t *cell, uint32_t v) {
   cell->car = v;
 }
 
-static void set_cdr(cons_t *cell, uint32_t v) {
+void set_cdr(cons_t *cell, uint32_t v) {
   cell->cdr = v;
 }
 
@@ -172,16 +174,16 @@ int gc_mark_phase(uint32_t env) {
   uint32_t car; 
   uint32_t cdr;
 
-  if (!IS_PTR(env)) {  
+  if (!IS_PTR(env)) {
     if ((VAL_TYPE(env) == VAL_TYPE_SYMBOL) &&
 	(DEC_SYM(env) == SYMBOL_NIL)){ 
       return 1; // Nothing to mark here 
     } else {
-      printf(" ERROR CASE! %x \n", env);
-      return 0;
+      //  I think these are irrelevent
+      //printf(" ERROR CASE! %x \n", env);
+      return 1;
     }
   }
-  
   // There is at least a pointer to one cell here. Mark it and recurse over  car and cdr 
   // TODO: Special cases here for differnt kinds of pointers.
 
@@ -269,7 +271,7 @@ int heap_perform_gc(uint32_t env) {
   heap_state.gc_marked = 0; 
 
   gc_mark_freelist();
-  gc_mark_phase(env); 
+  gc_mark_phase(env); // global_env); 
   return gc_sweep_phase();
 }
 

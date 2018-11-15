@@ -4,6 +4,7 @@
 #include "symrepr.h"
 #include "heap.h"
 #include "builtin.h"
+#include "print.h"
 
 #include <stdio.h>
 #include <stdint.h> 
@@ -13,16 +14,52 @@ static uint32_t apply(uint32_t closure, uint32_t args);
 static uint32_t apply_builtin(uint32_t sym, uint32_t args); 
 static uint32_t eval_in_env(uint32_t, uint32_t); 
 
-static uint32_t global_env; 
+extern uint32_t global_env; 
 
 uint32_t eval_bi(uint32_t lisp) {
   return eval_in_env(car(lisp),ENC_SYM(symrepr_nil()));
 }
 
+uint32_t define_bi(uint32_t lisp) {
+
+  uint32_t key = car(lisp);
+  uint32_t val = car(cdr(lisp));
+  
+  uint32_t keyval = heap_allocate_cell();
+  set_car(ref_cell(keyval), key);
+  set_cdr(ref_cell(keyval), val);
+  uint32_t entry  = heap_allocate_cell();
+  set_car(ref_cell(entry), keyval);
+  set_cdr(ref_cell(entry), global_env);
+  global_env = entry;
+
+  return ENC_SYM(symrepr_nil());
+}
+
+uint32_t lookup_global_env(uint32_t sym) {
+  uint32_t curr = global_env; 
+  
+  while (IS_PTR(curr)) {
+
+    if (car(car(curr)) == sym) {
+      return cdr(car(curr));
+    }
+    curr = cdr(curr);
+  }
+  if (VAL_TYPE(curr) == VAL_TYPE_SYMBOL &&
+      DEC_SYM(curr) == symrepr_nil()) {
+    return curr; 
+  }
+  
+  return ENC_SYM(symrepr_eerror()); 
+}
+
 int eval_init() {
   global_env = ENC_SYM(symrepr_nil());
-
-  return builtin_add_function("eval", eval_bi);
+  int res = 1;
+  res &= builtin_add_function("eval", eval_bi);
+  res &= builtin_add_function("define", define_bi);
+  return res;
 }
 
 
@@ -31,21 +68,30 @@ uint32_t eval_program(uint32_t lisp) {
   uint32_t local_env = ENC_SYM(symrepr_nil());
   if ( IS_PTR(lisp) &&
        PTR_TYPE(lisp) == PTR_TYPE_CONS) {
-    // environment should be updated... 
-    return cons(eval_in_env(car(lisp),local_env), eval_program(cdr(lisp))); 
+    // environment should be updated...
+    uint32_t car_val = eval_in_env(car(lisp),local_env);
+    uint32_t cdr_val = eval_program(cdr(lisp)); 
+    
+    return cons(car_val, cdr_val);  
   }
   return eval_in_env(lisp,local_env);
 } 
 
 uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   uint32_t nil = symrepr_nil();
+  uint32_t val = 0; 
 
   if (! IS_PTR(lisp)) {
     switch (VAL_TYPE(lisp)){
 
     case VAL_TYPE_SYMBOL:
-      // lookup
-      return lisp;
+      val = lookup_global_env(lisp);
+      if ( VAL_TYPE(val) == VAL_TYPE_SYMBOL &&
+	   DEC_SYM(val) == symrepr_nil()) {
+	return lisp; // ENC_SYM(symrepr_nil());
+      } else {
+	return val;
+      }
       break;
     default:
       return lisp; // cannot be evaluated further.
