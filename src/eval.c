@@ -14,7 +14,11 @@ static uint32_t apply(uint32_t closure, uint32_t args);
 static uint32_t apply_builtin(uint32_t sym, uint32_t args); 
 static uint32_t eval_in_env(uint32_t, uint32_t); 
 
-extern uint32_t global_env; 
+static uint32_t global_env;
+
+uint32_t eval_get_env(void) {
+  return global_env;
+}
 
 uint32_t eval_bi(uint32_t lisp) {
   return eval_in_env(car(lisp),ENC_SYM(symrepr_nil()));

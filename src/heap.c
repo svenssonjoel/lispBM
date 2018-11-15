@@ -271,7 +271,7 @@ int heap_perform_gc(uint32_t env) {
   heap_state.gc_marked = 0; 
 
   gc_mark_freelist();
-  gc_mark_phase(env); // global_env); 
+  gc_mark_phase(env);
   return gc_sweep_phase();
 }
 

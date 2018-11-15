@@ -12,9 +12,6 @@
 #include "eval.h"
 #include "print.h"
 
-uint32_t global_env;
-//void test_stuff(void);
-
 int main(int argc, char **argv) {
   char *str = malloc(1024);;
   size_t len;
@@ -93,40 +90,7 @@ int main(int argc, char **argv) {
 
 
   printf("DEC/ENC %d: %s \n", n++, (DEC_SYM(ENC_SYM(symrepr_quote())) == symrepr_quote()) ? "ok" : "NOK!");
-
-
   
-
-  /*
-  uint32_t c0 = heap_allocate_cell();
-  if ((c0 & GC_MASK) == GC_MARKED) {
-    printf("ERROR: allocated cell is marked!\n");
-  } else {
-    printf("OK: allocated cell is NOT marked!\n");
-  }
-
-  heap_allocate_cell();
-
-  printf("c0: %x\n", c0);
-  
-  uint32_t env = c0;
-  heap_perform_gc(env);
-
-  heap_get_state(&heap_state);
-  printf("gc_num: %d\n", heap_state.gc_num);
-  printf("recovered: %d\n", heap_state.gc_recovered);
-  printf("marked: %d\n", heap_state.gc_marked);
-  printf("num_free: %d\n", heap_num_free());
-
-  heap_perform_gc(ENC_SYM(SYMBOL_NIL));
-
-  heap_get_state(&heap_state);
-  printf("gc_num: %d\n", heap_state.gc_num);
-  printf("recovered: %d\n", heap_state.gc_recovered);
-  printf("marked: %d\n", heap_state.gc_marked);
-  printf("num_free: %d\n", heap_num_free());
-  */
-
   simple_print(ENC_SYM(SYMBOL_NIL));
   printf("\n"); 
 
@@ -157,223 +121,18 @@ int main(int argc, char **argv) {
     mpc_ast_delete(ast);
     printf("############################################################\n");
     printf("Used cons cells: %d \n", heap_size - heap_num_free());
-    printf("ENV: "); simple_print(global_env); printf("\n"); 
+    printf("ENV: "); simple_print(eval_get_env()); printf("\n"); 
     //symrepr_print();
-    heap_perform_gc(global_env);
+    heap_perform_gc(eval_get_env());
     heap_get_state(&heap_state);
     printf("GC counter: %d\n", heap_state.gc_num);
     printf("Recovered: %d\n", heap_state.gc_recovered);
     printf("Marked: %d\n", heap_state.gc_marked);
     printf("Free cons cells: %d\n", heap_num_free());
     printf("############################################################\n");
-    
-  
   }
-
   
-
-  /*
-  for (int i = 0; i < 10; i ++ ) {
-
-    for (int j = 0; j < 100000; j ++) {
-      heap_allocate_cell();
-    }
-
-    heap_perform_gc(ENC_SYM(SYMBOL_NIL));
-
-    heap_get_state(&heap_state);
-    printf("gc_num: %d\n", heap_state.gc_num);
-    printf("recovered: %d\n", heap_state.gc_recovered);
-    printf("marked: %d\n", heap_state.gc_marked);
-    printf("num_free: %d\n", heap_num_free());
-  }
-  */
-  
-
-  //uint32_t c1 = heap_allocate_cell();
-  //uint32_t c2 = heap_allocate_cell(); 
-
-  //  printf("cell1:  %x\n", c1);
-  // printf("cell2:  %x\n", c2); 
-  //printf("HEAP has %d free cons cells\n", heap_num_free()); 
-
-  
-  //uint32_t num_free = heap_num_free();
-   
-  //for (uint32_t i = 0; i < 9000000; i ++) {
-  //uint32_t c = heap_allocate_cell();
-    //printf("%u : c%u : %x\n",heap_num_free(), i, c);
-  //}
-    
-  //printf("HEAP has %d free cons cells\n", heap_num_free()); 
-  
-  /*
- 
-
-
-  res = built_in_init();
-  if (res)
-    printf("Built-in functions initialized.\n");
-  else {
-    printf("Error initializing built-in functions!\n");
-    return 0;
-  }
-  */
-  //printf("\n\nRUNNING TESTS\n\n");
-  //test_stuff();
-  
-
-  /*
-  while (1) {
-    
-    getline(&str,&len,stdin);
-
-    ast = parser_parse_string(str); 
-    if (!ast) {
-      printf("ERROR!\n");
-      break;
-    }
-
-    //mpc_ast_print(ast);
-
-    cons_t *t = NULL; 
-    if (!(t = read_ast(ast))) {
-      printf("read_ast failed!\n");
-      return 0; 
-    }
-
-    t = eval(t);
-    
-    simple_print(t); 
-     
-    printf("\n"); 
-   
-    mpc_ast_delete(ast);
-    printf("############################################################\n"); 
-    printf("HEAP has %ld free cons cells\n", heap_num_free());
-    symtab_print();
-    printf("############################################################\n"); 
-  }
-  */
   parser_del();
   //  symtab_del(); 
-  return 0;
-  
+  return 0;  
 }
-
-/*
-void test_stuff(void) {
-  uint32_t id;
-   
-  printf("Adding symbols to symtab:\n\n"); 
-  symtab_addname("apa",&id);
-  printf("symid: %d\n", id); 
-  symtab_addname("bepa",&id);
-  printf("symid: %d\n", id); 
-  symtab_addname("cepa",&id);
-  printf("symid: %d\n", id); 
-  symtab_addname("depa",&id);
-  printf("symid: %d\n", id);
-
-  symtab_addname("apa",&id);
-
-  printf("\n\nPrinting Symtab\n\n"); 
-  symtab_print();
-
-
-  printf("\n\nLooking up IDS\n\n"); 
-  
-  uint32_t apa_id, bepa_id, cepa_id, depa_id; 
-  
-  if (symtab_lookup("apa",&apa_id)) 
-    printf("Success: apa = %d\n", apa_id); 
-  else
-    printf("Failed: apa\n");
-
-  if (symtab_lookup("bepa",&bepa_id)) 
-    printf("Success: bepa = %d\n", bepa_id); 
-  else
-    printf("Failed: bepa\n");
-
-  if (symtab_lookup("cepa",&cepa_id)) 
-    printf("Success: cepa = %d\n", cepa_id); 
-  else
-    printf("Failed: cepa\n");
-
-  if (symtab_lookup("depa",&depa_id)) 
-    printf("Success: depa = %d\n", depa_id); 
-  else
-    printf("Failed: depa\n");
-
-  char*t; 
-
-  printf("\n\nLooking up names\n\n"); 
-  
-  if ((t = symtab_lookup_name(apa_id)) != NULL)
-    printf("lookup apa == %s\n",t);
-  else
-    printf("FAILED\n");
-  if ((t = symtab_lookup_name(bepa_id)) != NULL)
-    printf("lookup bepa == %s\n",t);
-  else
-    printf("FAILED\n");
-  if ((t = symtab_lookup_name(cepa_id)) != NULL)
-    printf("lookup cepa == %s\n",t);
-  else
-    printf("FAILED\n");
-  if ((t = symtab_lookup_name(depa_id)) != NULL)
-    printf("lookup depa == %s\n",t);
-  else
-    printf("FAILED\n");
-
-  printf("\n\nLooking up built-in functions\n\n"); 
-  
-  if (symtab_lookup("+",&id)) 
-    printf("Lookup +: %d\n", id);
-  else
-    printf("lookup +: FAILED!\n"); 
-
-  if (symtab_lookup("-",&id)) 
-    printf("Lookup -: %d\n", id);
-  else
-    printf("lookup -: FAILED!\n"); 
-
-  if (symtab_lookup("*",&id)) 
-    printf("Lookup *: %d\n", id);
-  else
-    printf("lookup *: FAILED!\n"); 
-
-
-  if (symtab_lookup("/",&id)) 
-    printf("Lookup /: %d\n", id);
-  else
-    printf("lookup /: FAILED!\n"); 
-
-  if (symtab_lookup("DEFINE",&id)) 
-    printf("Lookup DEFINE: %d\n", id);
-  else
-    printf("lookup DEFINE: FAILED!\n"); 
-
-
-  printf("\n\nHeap allocation \n\n"); 
-  
-  cons_t *c1 = heap_allocate_cell();
-  cons_t *c2 = heap_allocate_cell(); 
-  
-  printf("HEAP has %ld free cons cells\n", heap_num_free()); 
-
-
-  printf("\n\nRed black tree\n\n"); 
-  
-  cons_t *tree = rbtree_create();
-  
-  printf("HEAP has %ld free cons cells\n", heap_num_free());
-
-  
-  if (rbtree_is_empty(tree)) {
-    printf("Tree is empty! Empty tree represented by NIL type on car field\n");
-  } else {
-    printf("Error: The tree is not considered empty\n");
-  }
-}
-*/
