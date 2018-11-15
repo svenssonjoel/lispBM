@@ -3,7 +3,7 @@
 
 #include "symrepr.h"
 #include "heap.h"
-//#include "built_in.h"
+#include "builtin.h"
 
 #include <stdio.h>
 #include <stdint.h> 
@@ -83,7 +83,14 @@ uint32_t apply(uint32_t closure, uint32_t args) {
 }
 
 uint32_t apply_builtin(uint32_t sym, uint32_t args) {
-  
+
+  uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(sym));
+
+  if (f == NULL)
+    return ENC_SYM(symrepr_eerror());
+
+  return f(args); 
+  /*
   if (sym == ENC_SYM(symrepr_plus())) {
     uint32_t tmp = args; 
     uint32_t sum = 0; 
@@ -98,4 +105,5 @@ uint32_t apply_builtin(uint32_t sym, uint32_t args) {
     
   }
   return ENC_SYM(symrepr_eerror()); 
+  */
 }

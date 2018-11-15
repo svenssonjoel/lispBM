@@ -8,7 +8,7 @@
 #include "heap.h" 
 #include "read.h"
 #include "symrepr.h"
-//#include "built_in.h"
+#include "builtin.h"
 #include "eval.h"
 #include "print.h"
 
@@ -51,6 +51,13 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  res = builtin_init();
+  if (res)
+    printf("Built in functions initialized.\n");
+  else {
+    printf("Error initializing built in functions.\n");
+    return 0;
+  }
   
   symrepr_print();
   SYMBOL_NIL = symrepr_nil(); 
@@ -141,14 +148,14 @@ int main(int argc, char **argv) {
     
     mpc_ast_delete(ast);
     printf("############################################################\n");
-    printf("HEAP used cons cells: %d \n", heap_size - heap_num_free());
+    printf("Used cons cells: %d \n", heap_size - heap_num_free());
     //symrepr_print();
     heap_perform_gc(ENC_SYM(SYMBOL_NIL));
     heap_get_state(&heap_state);
-    printf("gc_num: %d\n", heap_state.gc_num);
-    printf("recovered: %d\n", heap_state.gc_recovered);
-    printf("marked: %d\n", heap_state.gc_marked);
-    printf("num_free: %d\n", heap_num_free());
+    printf("GC counter: %d\n", heap_state.gc_num);
+    printf("Recovered: %d\n", heap_state.gc_recovered);
+    printf("Marked: %d\n", heap_state.gc_marked);
+    printf("Free cons cells: %d\n", heap_num_free());
     printf("############################################################\n");
     
   

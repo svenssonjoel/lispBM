@@ -23,6 +23,4 @@ extern uint32_t symrepr_rerror();
 extern uint32_t symrepr_terror();
 extern uint32_t symrepr_eerror();
 
-extern uint32_t symrepr_plus();
-extern uint32_t symrepr_mult(); 
 #endif 
