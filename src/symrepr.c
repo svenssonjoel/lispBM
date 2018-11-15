@@ -68,16 +68,16 @@ int add_default_symbols(void) {
   return res;
 }
 
-uint32_t symrepr_nil()    { return def_repr[DEF_REPR_NIL]; }
-uint32_t symrepr_quote()  { return def_repr[DEF_REPR_QUOTE]; }
-uint32_t symrepr_car()    { return def_repr[DEF_REPR_CAR]; }
-uint32_t symrepr_cdr()    { return def_repr[DEF_REPR_CDR]; }
-uint32_t symrepr_cons()   { return def_repr[DEF_REPR_CONS]; }
-uint32_t symrepr_lambda() { return def_repr[DEF_REPR_LAMBDA]; }
-uint32_t symrepr_closure(){ return def_repr[DEF_REPR_CLOSURE]; }
-uint32_t symrepr_rerror() { return def_repr[DEF_REPR_RERROR]; }
-uint32_t symrepr_terror() { return def_repr[DEF_REPR_TERROR]; }
-uint32_t symrepr_eerror() { return def_repr[DEF_REPR_EERROR]; }  
+uint32_t symrepr_nil(void)     { return def_repr[DEF_REPR_NIL]; }
+uint32_t symrepr_quote(void)   { return def_repr[DEF_REPR_QUOTE]; }
+uint32_t symrepr_car(void)     { return def_repr[DEF_REPR_CAR]; }
+uint32_t symrepr_cdr(void)     { return def_repr[DEF_REPR_CDR]; }
+uint32_t symrepr_cons(void)    { return def_repr[DEF_REPR_CONS]; }
+uint32_t symrepr_lambda(void)  { return def_repr[DEF_REPR_LAMBDA]; }
+uint32_t symrepr_closure(void) { return def_repr[DEF_REPR_CLOSURE]; }
+uint32_t symrepr_rerror(void)  { return def_repr[DEF_REPR_RERROR]; }
+uint32_t symrepr_terror(void)  { return def_repr[DEF_REPR_TERROR]; }
+uint32_t symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }  
 
 int symrepr_init(void) {
   name_table = (name_mapping_t**)malloc(HASHTAB_SIZE * sizeof(name_mapping_t*));

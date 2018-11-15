@@ -9,9 +9,9 @@
 #include <stdint.h> 
 
 
-uint32_t evlis(uint32_t ptcons, uint32_t env);
-uint32_t apply(uint32_t closure, uint32_t args); 
-uint32_t apply_builtin(uint32_t sym, uint32_t args); 
+static uint32_t evlis(uint32_t ptcons, uint32_t env);
+static uint32_t apply(uint32_t closure, uint32_t args); 
+static uint32_t apply_builtin(uint32_t sym, uint32_t args); 
 
 uint32_t eval_program(uint32_t lisp, uint32_t env) {
   // Program is a list of expressions that should be evaluated individually 
@@ -57,8 +57,10 @@ uint32_t eval(uint32_t lisp, uint32_t env) {
 			   evlis(cdr(lisp),env)); 
     }
     break;
-  default:
-    // TODO:
+
+    // TODO: All other ptr cases. Float etc.
+    
+  default: 
     return ENC_SYM(symrepr_eerror());
     break; 
 
@@ -69,7 +71,7 @@ uint32_t eval(uint32_t lisp, uint32_t env) {
 } 
 
 // takes a ptr to cons and returns a ptr to cons.. 
-uint32_t evlis(uint32_t pcons, uint32_t env) {
+static uint32_t evlis(uint32_t pcons, uint32_t env) {
   if ( IS_PTR(pcons) &&
        PTR_TYPE(pcons) == PTR_TYPE_CONS) {
     return cons(eval(car(pcons), env), evlis(cdr(pcons),env)); 
@@ -77,12 +79,12 @@ uint32_t evlis(uint32_t pcons, uint32_t env) {
   return eval(pcons,env); 
 }
 
-uint32_t apply(uint32_t closure, uint32_t args) {
+static uint32_t apply(uint32_t closure, uint32_t args) {
   printf("apply\n");
   return ENC_SYM(symrepr_nil()); 
 }
 
-uint32_t apply_builtin(uint32_t sym, uint32_t args) {
+static uint32_t apply_builtin(uint32_t sym, uint32_t args) {
 
   uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(sym));
 
@@ -90,20 +92,4 @@ uint32_t apply_builtin(uint32_t sym, uint32_t args) {
     return ENC_SYM(symrepr_eerror());
 
   return f(args); 
-  /*
-  if (sym == ENC_SYM(symrepr_plus())) {
-    uint32_t tmp = args; 
-    uint32_t sum = 0; 
-    while ( tmp != ENC_SYM(symrepr_nil())) {
-      uint32_t v = car(tmp);
-      sum += DEC_I28(v);
-
-      tmp = cdr(tmp);
-    }
-    return ENC_I28(sum); 
-  } else if (sym == ENC_SYM(symrepr_mult())) {
-    
-  }
-  return ENC_SYM(symrepr_eerror()); 
-  */
 }
