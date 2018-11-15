@@ -58,6 +58,13 @@ int main(int argc, char **argv) {
     printf("Error initializing built in functions.\n");
     return 0;
   }
+
+  res = eval_init();
+  if (res)
+    printf("Evaluator initialized.\n");
+  else {
+    printf("Error initializing evaluator.\n");
+  }
   
   symrepr_print();
   SYMBOL_NIL = symrepr_nil(); 
@@ -138,9 +145,9 @@ int main(int argc, char **argv) {
     uint32_t t;
     t = read_ast(ast);
 
-    // simple_print(car(t)); printf("\n");
+    //simple_print(t); printf("\n");
     
-    t = eval_program(t, ENC_SYM(SYMBOL_NIL)); 
+    t = eval_program(t); 
     
     printf("> "); simple_print(t); 
     

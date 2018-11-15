@@ -36,9 +36,9 @@ bi_fptr builtin_lookup_function(uint32_t sym){
   builtin_function_t *t = function_list; 
   
   while (t != NULL) {
-    if ( t->sym == sym )
+    if ( t->sym == sym ) {
       return t->fun_ptr;
-
+    }
     t = t->next; 
   }
   return NULL; 

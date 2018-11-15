@@ -8,23 +8,36 @@
 #include <stdio.h>
 #include <stdint.h> 
 
-
 static uint32_t evlis(uint32_t ptcons, uint32_t env);
 static uint32_t apply(uint32_t closure, uint32_t args); 
 static uint32_t apply_builtin(uint32_t sym, uint32_t args); 
+static uint32_t eval_in_env(uint32_t, uint32_t); 
 
-uint32_t eval_program(uint32_t lisp, uint32_t env) {
-  // Program is a list of expressions that should be evaluated individually 
+static uint32_t global_env; 
+
+uint32_t eval_bi(uint32_t lisp) {
+  return eval_in_env(car(lisp),ENC_SYM(symrepr_nil()));
+}
+
+int eval_init() {
+  global_env = ENC_SYM(symrepr_nil());
+
+  return builtin_add_function("eval", eval_bi);
+}
+
+
+uint32_t eval_program(uint32_t lisp) {
+  // Program is a list of expressions that should be evaluated individually
+  uint32_t local_env = ENC_SYM(symrepr_nil());
   if ( IS_PTR(lisp) &&
        PTR_TYPE(lisp) == PTR_TYPE_CONS) {
     // environment should be updated... 
-    return cons(eval(car(lisp), env), eval_program(cdr(lisp),env)); 
+    return cons(eval_in_env(car(lisp),local_env), eval_program(cdr(lisp))); 
   }
-  
-  return eval(lisp,env);
+  return eval_in_env(lisp,local_env);
 } 
 
-uint32_t eval(uint32_t lisp, uint32_t env) {
+uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   uint32_t nil = symrepr_nil();
 
   if (! IS_PTR(lisp)) {
@@ -50,10 +63,10 @@ uint32_t eval(uint32_t lisp, uint32_t env) {
       // deal with lambda
       return ENC_SYM(symrepr_nil()); 
     } else if (car_val == ENC_SYM(symrepr_closure())) {
-      return apply(eval(car(lisp),env),
+      return apply(eval_in_env(car(lisp),env),
 		   evlis(cdr(lisp), env)); 
     } else {
-      return apply_builtin(eval(car(lisp),env),
+      return apply_builtin(eval_in_env(car(lisp),env),
 			   evlis(cdr(lisp),env)); 
     }
     break;
@@ -74,9 +87,14 @@ uint32_t eval(uint32_t lisp, uint32_t env) {
 static uint32_t evlis(uint32_t pcons, uint32_t env) {
   if ( IS_PTR(pcons) &&
        PTR_TYPE(pcons) == PTR_TYPE_CONS) {
-    return cons(eval(car(pcons), env), evlis(cdr(pcons),env)); 
+    return cons(eval_in_env(car(pcons), env), evlis(cdr(pcons),env)); 
   }
-  return eval(pcons,env); 
+  if (VAL_TYPE(pcons) == VAL_TYPE_SYMBOL &&
+      pcons == ENC_SYM(symrepr_nil())) {
+    return ENC_SYM(symrepr_nil());
+  }
+  printf("bad case\n");
+  return ENC_SYM(symrepr_eerror());
 }
 
 static uint32_t apply(uint32_t closure, uint32_t args) {
@@ -88,8 +106,10 @@ static uint32_t apply_builtin(uint32_t sym, uint32_t args) {
 
   uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(sym));
 
-  if (f == NULL)
+  if (f == NULL) {
+    printf("NULL %d\n", DEC_SYM(sym)); 
     return ENC_SYM(symrepr_eerror());
+  }
 
   return f(args); 
 }
