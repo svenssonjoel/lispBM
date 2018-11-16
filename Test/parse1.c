@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
     uint32_t t;
     t = read_ast(ast);
 
-    simple_print(t); printf("\n");
+    //simple_print(t); printf("\n");
     
     t = eval_program(t); 
     
