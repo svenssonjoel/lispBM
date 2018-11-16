@@ -115,12 +115,14 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   switch (PTR_TYPE(lisp)) {
   case PTR_TYPE_CONS:
     car_val = car(lisp); 
-    // Check for special forms. quote, lambda, cond
+
+    // Special form: QUOTE 
     if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
         DEC_SYM(car_val) == symrepr_quote()){ 
       return (car (cdr (lisp)));
     }
-    
+
+    // Special form: LAMBDA
     if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(car_val) == symrepr_lambda()) {
        
@@ -130,13 +132,15 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 			    ENC_SYM(symrepr_nil()))));
     }
 
+    
+    // Possibly a form of application 
     uint32_t e_car_val = eval_in_env(car_val, env); 
     
     if (VAL_TYPE(e_car_val) == VAL_TYPE_SYMBOL){ 
       return apply_builtin(e_car_val, evlis(cdr(lisp),env));
     }
     
-    // closure application case
+    // Possibly a closure application (or programmer error)
     return apply(e_car_val, evlis(cdr(lisp), env));
 
     break;
