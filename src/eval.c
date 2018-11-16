@@ -30,11 +30,11 @@ uint32_t define_bi(uint32_t lisp) {
   uint32_t val = car(cdr(lisp));
   
   uint32_t keyval = heap_allocate_cell();
-  set_car(ref_cell(keyval), key);
-  set_cdr(ref_cell(keyval), val);
+  set_car(keyval, key);
+  set_cdr(keyval, val);
   uint32_t entry  = heap_allocate_cell();
-  set_car(ref_cell(entry), keyval);
-  set_cdr(ref_cell(entry), global_env);
+  set_car(entry, keyval);
+  set_cdr(entry, global_env);
   global_env = entry;
 
   return ENC_SYM(symrepr_nil());
@@ -43,7 +43,7 @@ uint32_t define_bi(uint32_t lisp) {
 uint32_t lookup_global_env(uint32_t sym) {
   uint32_t curr = global_env; 
   
-  while (IS_PTR(curr)) {
+  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
 
     if (car(car(curr)) == sym) {
       return cdr(car(curr));
@@ -107,17 +107,19 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   case PTR_TYPE_CONS:
     car_val = car(lisp); 
     // Check for special forms. quote, lambda, cond
-    if (car_val == ENC_SYM(symrepr_quote())) {
-      return (car (cdr (lisp)));
-    } else if (car_val == ENC_SYM(symrepr_lambda())) {
-      // deal with lambda
-      return ENC_SYM(symrepr_nil()); 
-    } else if (car_val == ENC_SYM(symrepr_closure())) {
-      return apply(eval_in_env(car(lisp),env),
-		   evlis(cdr(lisp), env)); 
-    } else {
-      return apply_builtin(eval_in_env(car(lisp),env),
-			   evlis(cdr(lisp),env)); 
+    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL) {
+      if (DEC_SYM(car_val) == symrepr_quote()) {
+	return (car (cdr (lisp)));
+      } else if (DEC_SYM(car_val) == symrepr_lambda()) {
+	// deal with lambda
+	return ENC_SYM(symrepr_nil()); 
+      } else if (DEC_SYM(car_val) == symrepr_closure()) {
+	return apply(eval_in_env(car(lisp),env),
+		     evlis(cdr(lisp), env));
+      } else { 
+	return apply_builtin(eval_in_env(car(lisp),env),
+			     evlis(cdr(lisp),env));
+      }
     }
     break;
 
@@ -140,7 +142,7 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
     return cons(eval_in_env(car(pcons), env), evlis(cdr(pcons),env)); 
   }
   if (VAL_TYPE(pcons) == VAL_TYPE_SYMBOL &&
-      pcons == ENC_SYM(symrepr_nil())) {
+      DEC_SYM(pcons) == symrepr_nil()) {
     return ENC_SYM(symrepr_nil());
   }
   printf("bad case\n");

@@ -19,6 +19,20 @@ builtin_function_t* function_list = NULL;
 
 // Built in functions
 
+uint32_t bi_fun_car(uint32_t args) {
+  return car(car(args));
+}
+
+uint32_t bi_fun_cdr(uint32_t args) {
+  return cdr(car(args)); 
+}
+
+uint32_t bi_fun_cons(uint32_t args) {
+  uint32_t a = car(args);
+  uint32_t b = car(cdr(args));
+  return cons(a,b);
+}
+
 uint32_t bi_fun_sum(uint32_t args) { // TODO: typechecking and potential conversion
   uint32_t tmp = args;
   int32_t sum = 0;
@@ -68,7 +82,10 @@ int builtin_add_function(char *sym_str, bi_fptr fun_ptr){
 int builtin_init(void) {
   int res = 1;
 
-  res &= builtin_add_function("+", bi_fun_sum); 
-
+  res &= builtin_add_function("+", bi_fun_sum);
+  res &= builtin_add_function("car", bi_fun_car);
+  res &= builtin_add_function("cdr", bi_fun_cdr); 
+  res &= builtin_add_function("cons", bi_fun_cons); 
+  
   return res; 
 }

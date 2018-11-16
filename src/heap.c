@@ -27,22 +27,22 @@ static uint32_t read_cdr(cons_t *cell) {
   return cell->cdr;
 }
 
-void set_car(cons_t *cell, uint32_t v) {
+static void set_car_(cons_t *cell, uint32_t v) {
   cell->car = v;
 }
 
-void set_cdr(cons_t *cell, uint32_t v) {
+static void set_cdr_(cons_t *cell, uint32_t v) {
   cell->cdr = v;
 }
 
 static void set_gc_mark(cons_t *cell) {
   uint32_t cdr = read_cdr(cell);
-  set_cdr(cell, cdr | GC_MARKED); 
+  set_cdr_(cell, cdr | GC_MARKED); 
 }
 
 static void clr_gc_mark(cons_t *cell) {
   uint32_t cdr = read_cdr(cell);
-  set_cdr(cell, cdr & ~GC_MASK);
+  set_cdr_(cell, cdr & ~GC_MASK);
 }
 
 static uint32_t get_gc_mark(cons_t* cell) {
@@ -60,12 +60,12 @@ int generate_freelist(size_t num_cells) {
   // Add all cells to free list
   for (i = 1; i < num_cells; i ++) {
     cons_t *t = ref_cell( ENC_CONS_PTR(i-1)); 
-    set_car(t, ENC_SYM(SYMBOL_NIL));    // all cars in free list are nil 
-    set_cdr(t, ENC_CONS_PTR(i)); 
+    set_car_(t, ENC_SYM(SYMBOL_NIL));    // all cars in free list are nil 
+    set_cdr_(t, ENC_CONS_PTR(i)); 
   }
   
   heap_state.freelist_last = ENC_CONS_PTR(num_cells-1);
-  set_cdr(ref_cell(heap_state.freelist_last), ENC_SYM(SYMBOL_NIL));
+  set_cdr_(ref_cell(heap_state.freelist_last), ENC_SYM(SYMBOL_NIL));
 
   if (read_cdr(ref_cell(heap_state.freelist_last)) == ENC_SYM(SYMBOL_NIL)) {
     return 1;
@@ -144,8 +144,8 @@ uint32_t heap_allocate_cell(void) {
   heap_state.num_alloc++;
 
   // set some ok initial values (nil . nil)
-  set_car(ref_cell(res), ENC_SYM(SYMBOL_NIL));
-  set_cdr(ref_cell(res), ENC_SYM(SYMBOL_NIL)); 	  
+  set_car_(ref_cell(res), ENC_SYM(SYMBOL_NIL));
+  set_cdr_(ref_cell(res), ENC_SYM(SYMBOL_NIL)); 	  
   
   // clear GC bit on allocated cell
   clr_gc_mark(ref_cell(res));
@@ -245,15 +245,15 @@ int gc_sweep_phase(void) {
       fl_last = ref_cell(heap_state.freelist_last);
 
       // Clear the "freed" cell. 
-      set_cdr(&heap[i], 0); 
-      set_cdr(&heap[i], ENC_SYM(SYMBOL_NIL));
-      set_car(&heap[i], ENC_SYM(SYMBOL_NIL));
+      set_cdr_(&heap[i], 0); 
+      set_cdr_(&heap[i], ENC_SYM(SYMBOL_NIL));
+      set_car_(&heap[i], ENC_SYM(SYMBOL_NIL));
 
       // create pointer to free cell to put at end of freelist
       uint32_t addr = ENC_CONS_PTR(i); 
 
-      set_cdr(fl_last, addr);
-      set_gc_mark(fl_last); // the above set_cdr clears the gc mark on fl_last.
+      set_cdr_(fl_last, addr);
+      set_gc_mark(fl_last); // the above set_cdr_ clears the gc mark on fl_last.
       heap_state.freelist_last = addr;
 
       heap_state.gc_recovered ++;
@@ -277,12 +277,12 @@ int heap_perform_gc(uint32_t env) {
 
 
 
-// construct and break apart
+// construct, alter and break apart
 uint32_t cons(uint32_t car, uint32_t cdr) {
   uint32_t addr = heap_allocate_cell();
   if ( IS_PTR(addr)) {
-    set_car(ref_cell(addr), car);
-    set_cdr(ref_cell(addr), cdr);
+    set_car_(ref_cell(addr), car);
+    set_cdr_(ref_cell(addr), cdr);
     return addr;
   }
   else return ENC_SYM(symrepr_nil());
@@ -308,4 +308,29 @@ uint32_t cdr(uint32_t c){
     return read_cdr(cell);
   }
   return ENC_SYM(symrepr_terror()); 
+}
+
+void set_car(uint32_t c, uint32_t v) {
+  if (IS_PTR(c) && PTR_TYPE(c) == PTR_TYPE_CONS) {
+    cons_t *cell = ref_cell(c);
+    set_car_(cell,v);
+  }
+}
+
+void set_cdr(uint32_t c, uint32_t v) {
+  if (IS_PTR(c) && PTR_TYPE(c) == PTR_TYPE_CONS) {
+    cons_t *cell = ref_cell(c);
+    set_cdr_(cell,v); 
+  }
+}
+
+/* calculate length of a proper list */ 
+uint32_t length(uint32_t c) {
+  uint32_t len = 0;
+  
+  while (IS_PTR(c) && PTR_TYPE(c) == PTR_TYPE_CONS) {
+    len ++; 
+    c = cdr(c); 
+  }
+  return len; 
 }
