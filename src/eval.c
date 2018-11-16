@@ -28,6 +28,12 @@ uint32_t define_bi(uint32_t lisp) {
 
   uint32_t key = car(lisp);
   uint32_t val = car(cdr(lisp));
+
+  if (VAL_TYPE(key) != VAL_TYPE_SYMBOL)
+    return ENC_SYM(symrepr_nil());
+
+  if (DEC_SYM(key) == symrepr_nil())
+    return ENC_SYM(symrepr_nil());
   
   uint32_t keyval = heap_allocate_cell();
   set_car(keyval, key);
@@ -92,7 +98,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       val = lookup_global_env(lisp);
       if ( VAL_TYPE(val) == VAL_TYPE_SYMBOL &&
 	   DEC_SYM(val) == symrepr_nil()) {
-	return lisp; // ENC_SYM(symrepr_nil());
+	return ENC_SYM(symrepr_nil());
       } else {
 	return val;
       }
@@ -111,13 +117,18 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       if (DEC_SYM(car_val) == symrepr_quote()) {
 	return (car (cdr (lisp)));
       } else if (DEC_SYM(car_val) == symrepr_lambda()) {
-	// deal with lambda
-	return ENC_SYM(symrepr_nil()); 
+       
+	return cons(ENC_SYM(symrepr_closure()),
+		    cons(car(cdr(lisp)),
+			 cons(car(cdr(cdr(lisp))),
+			      ENC_SYM(symrepr_nil()))));
+	     
+  
       } else if (DEC_SYM(car_val) == symrepr_closure()) {
 	return apply(eval_in_env(car(lisp),env),
 		     evlis(cdr(lisp), env));
       } else { 
-	return apply_builtin(eval_in_env(car(lisp),env),
+	return apply_builtin(car(lisp),
 			     evlis(cdr(lisp),env));
       }
     }
@@ -159,7 +170,6 @@ static uint32_t apply_builtin(uint32_t sym, uint32_t args) {
   uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(sym));
 
   if (f == NULL) {
-    printf("NULL %d\n", DEC_SYM(sym)); 
     return ENC_SYM(symrepr_eerror());
   }
 
