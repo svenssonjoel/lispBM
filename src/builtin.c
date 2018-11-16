@@ -15,8 +15,6 @@ typedef struct s_builtin_function{
 
 builtin_function_t* function_list = NULL;
 
-// TODO: Implement a small cache for common lookups.
-
 // Built in functions
 
 uint32_t bi_fun_car(uint32_t args) {
@@ -88,4 +86,20 @@ int builtin_init(void) {
   res &= builtin_add_function("cons", bi_fun_cons); 
   
   return res; 
+}
+
+
+uint32_t built_in_gen_env(void) {
+
+  builtin_function_t* curr = function_list;
+
+  uint32_t env = ENC_SYM(symrepr_nil()); 
+  
+  while (curr) {
+    uint32_t sym = ENC_SYM(curr->sym);
+    env = cons(cons(sym,sym),env);
+    curr = curr->next;
+  }
+
+  return env;   
 }

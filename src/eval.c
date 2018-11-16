@@ -16,6 +16,9 @@ static uint32_t eval_in_env(uint32_t, uint32_t);
 
 static uint32_t global_env;
 
+void eval_set_env(uint32_t env) {
+  global_env = env;
+}
 uint32_t eval_get_env(void) {
   return global_env;
 }
@@ -113,25 +116,29 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   case PTR_TYPE_CONS:
     car_val = car(lisp); 
     // Check for special forms. quote, lambda, cond
-    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL) {
-      if (DEC_SYM(car_val) == symrepr_quote()) {
-	return (car (cdr (lisp)));
-      } else if (DEC_SYM(car_val) == symrepr_lambda()) {
-       
-	return cons(ENC_SYM(symrepr_closure()),
-		    cons(car(cdr(lisp)),
-			 cons(car(cdr(cdr(lisp))),
-			      ENC_SYM(symrepr_nil()))));
-	     
-  
-      } else if (DEC_SYM(car_val) == symrepr_closure()) {
-	return apply(eval_in_env(car(lisp),env),
-		     evlis(cdr(lisp), env));
-      } else { 
-	return apply_builtin(car(lisp),
-			     evlis(cdr(lisp),env));
-      }
+    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
+        DEC_SYM(car_val) == symrepr_quote()){ 
+      return (car (cdr (lisp)));
     }
+    
+    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
+	DEC_SYM(car_val) == symrepr_lambda()) {
+       
+      return cons(ENC_SYM(symrepr_closure()),
+		  cons(car(cdr(lisp)),
+		       cons(car(cdr(cdr(lisp))),
+			    ENC_SYM(symrepr_nil()))));
+    }
+
+    uint32_t e_car_val = eval_in_env(car_val, env); 
+    
+    if (VAL_TYPE(e_car_val) == VAL_TYPE_SYMBOL){ 
+      return apply_builtin(e_car_val, evlis(cdr(lisp),env));
+    }
+    
+    // closure application case
+    return apply(e_car_val, evlis(cdr(lisp), env));
+
     break;
 
     // TODO: All other ptr cases. Float etc.
@@ -161,7 +168,6 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
 }
 
 static uint32_t apply(uint32_t closure, uint32_t args) {
-  printf("apply\n");
   return ENC_SYM(symrepr_nil()); 
 }
 

@@ -95,6 +95,9 @@ int main(int argc, char **argv) {
   printf("\n"); 
 
 
+  // Setup the initial global env
+  eval_set_env(built_in_gen_env());
+  
   while (1) {
     
     size_t n =  getline(&str,&len,stdin);
