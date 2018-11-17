@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
     
       t = eval_program(t);
       
-      printf("> "); esimple_print(t); printf("\n");
+      printf("> "); simple_print(t); printf("\n");
         
       mpc_ast_delete(ast);
     }
