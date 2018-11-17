@@ -27,7 +27,7 @@ OBJ = obj
 
 SOURCES = $(wildcard $(SOURCE_DIR)/*.c)
 OBJECTS = $(patsubst $(SOURCE_DIR)/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
-
+ 
 LIB = $(BUILD_DIR)/library.a
 
 all: $(OBJECTS) $(LIB)
