@@ -80,6 +80,18 @@ uint32_t bi_fun_lt(uint32_t args) {
   return ENC_SYM(symrepr_nil());
 }
 
+uint32_t bi_fun_eq(uint32_t args) {
+  uint32_t a1 = car(args);
+  uint32_t a2 = car(cdr(args));
+
+  //TODO: error checking and type dispatch
+  if (DEC_I28(a1) == DEC_I28(a2)) {
+    return ENC_SYM(symrepr_true());
+  }
+  return ENC_SYM(symrepr_nil());
+}
+
+
 // Interface functions
 
 bi_fptr builtin_lookup_function(uint32_t sym){
@@ -122,8 +134,9 @@ int builtin_init(void) {
   res &= builtin_add_function("car", bi_fun_car);
   res &= builtin_add_function("cdr", bi_fun_cdr); 
   res &= builtin_add_function("cons", bi_fun_cons); 
-  res &= builtin_add_function(">" , bi_fun_gt);
-  res &= builtin_add_function("<" , bi_fun_lt); 
+  res &= builtin_add_function(">", bi_fun_gt);
+  res &= builtin_add_function("<", bi_fun_lt);
+  res &= builtin_add_function("=", bi_fun_eq); 
   
   return res; 
 }
