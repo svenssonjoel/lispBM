@@ -1,3 +1,19 @@
+/*
+    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "eval.h"
 
@@ -131,9 +147,11 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 		       cons(car(cdr(cdr(lisp))),
 			    ENC_SYM(symrepr_nil()))));
     }
+    // define and let could also be special forms.
+    // Currently define is implemented as a built in function..
 
     
-    // Possibly a form of application 
+    // Possibly an application form 
     uint32_t e_car_val = eval_in_env(car_val, env); 
     
     if (VAL_TYPE(e_car_val) == VAL_TYPE_SYMBOL){ 
@@ -172,6 +190,7 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
 }
 
 static uint32_t apply(uint32_t closure, uint32_t args) {
+  printf("apply\n"); 
   return ENC_SYM(symrepr_nil()); 
 }
 
