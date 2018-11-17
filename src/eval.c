@@ -65,8 +65,11 @@ uint32_t define_bi(uint32_t lisp) {
   return ENC_SYM(symrepr_nil());
 }
 
-uint32_t lookup_global_env(uint32_t sym) {
-  uint32_t curr = global_env; 
+uint32_t lookup_env(uint32_t sym, uint32_t env) {
+  uint32_t curr = env;
+  
+  if(DEC_SYM(sym) == symrepr_nil())
+    return sym;
   
   while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
 
@@ -75,11 +78,6 @@ uint32_t lookup_global_env(uint32_t sym) {
     }
     curr = cdr(curr);
   }
-  if (VAL_TYPE(curr) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(curr) == symrepr_nil()) {
-    return curr; 
-  }
-  
   return ENC_SYM(symrepr_eerror()); 
 }
 
@@ -114,13 +112,13 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     switch (VAL_TYPE(lisp)){
 
     case VAL_TYPE_SYMBOL:
-      val = lookup_global_env(lisp);
+      val = lookup_env(lisp,env);
       if ( VAL_TYPE(val) == VAL_TYPE_SYMBOL &&
-	   DEC_SYM(val) == symrepr_nil()) {
-	return ENC_SYM(symrepr_nil());
-      } else {
-	return val;
+	   DEC_SYM(val) == symrepr_eerror()) {
+	val = lookup_env(lisp,global_env);
       }
+      return val;
+      
       break;
     default:
       return lisp; // cannot be evaluated further.
@@ -153,8 +151,8 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     
     // Possibly an application form 
     uint32_t e_car_val = eval_in_env(car_val, env); 
-    
-    if (VAL_TYPE(e_car_val) == VAL_TYPE_SYMBOL){ 
+  
+    if (!IS_PTR(e_car_val) && VAL_TYPE(e_car_val) == VAL_TYPE_SYMBOL) {
       return apply_builtin(e_car_val, evlis(cdr(lisp),env));
     }
     
@@ -165,15 +163,47 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 
     // TODO: All other ptr cases. Float etc.
     
-  default: 
+  default:
+   
     return ENC_SYM(symrepr_eerror());
     break; 
 
   }
-  
   // TODO: Bottoming out here should not happen
   return ENC_SYM(symrepr_eerror());
 } 
+
+uint32_t build_env_params_args(uint32_t params, uint32_t args) {
+  uint32_t curr_param = params;
+  uint32_t curr_arg = args;
+
+  if (length(params) != length(args)) // programmer error
+    return ENC_SYM(symrepr_nil()); 
+
+  uint32_t env = ENC_SYM(symrepr_nil());
+  while (IS_PTR(curr_param)) {
+
+    uint32_t entry = cons(car(curr_param), car(curr_arg));
+    env = cons(entry,env);
+    
+    curr_param = cdr(curr_param);
+    curr_arg   = cdr(curr_arg); 
+  }
+  return env;
+}
+
+static uint32_t apply(uint32_t closure, uint32_t args) {
+
+  // TODO: error checking etc
+  uint32_t clo_sym = car(closure);      
+  uint32_t params  = car(cdr(closure)); // parameter list
+  uint32_t exp     = car(cdr(cdr(closure)));
+
+  uint32_t local_env = build_env_params_args(params, args); 
+  
+  return eval_in_env(exp,local_env);
+}
+
 
 // takes a ptr to cons and returns a ptr to cons.. 
 static uint32_t evlis(uint32_t pcons, uint32_t env) {
@@ -187,11 +217,6 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
   }
   printf("bad case\n");
   return ENC_SYM(symrepr_eerror());
-}
-
-static uint32_t apply(uint32_t closure, uint32_t args) {
-  printf("apply\n"); 
-  return ENC_SYM(symrepr_nil()); 
 }
 
 static uint32_t apply_builtin(uint32_t sym, uint32_t args) {
