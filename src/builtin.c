@@ -128,6 +128,16 @@ int builtin_init(void) {
   return res; 
 }
 
+void builtin_del(void) {
+  builtin_function_t *curr = function_list;
+  builtin_function_t *t; 
+  while (curr) {
+    t = curr;
+    curr = curr->next;
+    free(t);
+  }
+}
+
 
 uint32_t built_in_gen_env(void) {
 
