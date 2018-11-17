@@ -21,7 +21,7 @@
 #include "symrepr.h"
 #include "heap.h"
 #include "builtin.h"
-
+#include "print.h"
 
 typedef struct s_builtin_function{
   uint32_t sym;
@@ -80,15 +80,63 @@ uint32_t bi_fun_lt(uint32_t args) {
   return ENC_SYM(symrepr_nil());
 }
 
+int structural_equality(uint32_t a, uint32_t b) {
+  
+  if (!IS_PTR(a) && !IS_PTR(b)) {
+    if (VAL_TYPE(a) == VAL_TYPE(b)){
+      switch (VAL_TYPE(a)) {
+      case VAL_TYPE_SYMBOL:
+	if (DEC_SYM(a) == DEC_SYM(b)) return 1;
+        else return 0;
+	break;
+      case VAL_TYPE_I28:
+	if (DEC_I28(a) == DEC_I28(b)) return 1;
+	else return 0;
+	break;
+      case VAL_TYPE_U28:
+	if (DEC_U28(a) == DEC_U28(b)) return 1;
+	else return 0;
+	break;
+      case VAL_TYPE_CHAR:
+	if (DEC_CHAR(a) == DEC_CHAR(b)) return 1;
+	else return 0;
+	break;
+      default:
+	return 0;
+	break;
+      }
+    } else { 
+      return 0; 
+    }
+  }
+  
+  if (IS_PTR(a) && IS_PTR(b)) {
+    if (PTR_TYPE(a) == PTR_TYPE(b)) {
+      if ( PTR_TYPE(a) == PTR_TYPE_CONS ) {
+	int car_eq = structural_equality(car(a),car(b));
+	int cdr_eq = structural_equality(cdr(a),cdr(b));
+	if ( car_eq && cdr_eq ) return 1;
+	else return 0;
+      } else {
+	printf("TODO: Implement\n");
+	return 0; 
+      }
+    } else {
+      return 0;
+    }
+  }
+
+  return 0; 
+}
+
 uint32_t bi_fun_eq(uint32_t args) {
   uint32_t a1 = car(args);
   uint32_t a2 = car(cdr(args));
 
-  //TODO: error checking and type dispatch
-  if (DEC_I28(a1) == DEC_I28(a2)) {
-    return ENC_SYM(symrepr_true());
-  }
-  return ENC_SYM(symrepr_nil());
+  simple_print(a1); printf("\n"); 
+  simple_print(a2); printf("\n"); 
+  
+  return( structural_equality(a1, a2) ? ENC_SYM(symrepr_true()) : ENC_SYM(symrepr_nil()) );
 }
 
 
