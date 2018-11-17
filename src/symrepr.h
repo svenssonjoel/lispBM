@@ -30,9 +30,7 @@ extern void symrepr_del(void);
 
 extern uint32_t symrepr_nil(void);
 extern uint32_t symrepr_quote(void);
-extern uint32_t symrepr_car(void);
-extern uint32_t symrepr_cdr(void);
-extern uint32_t symrepr_cons(void);
+extern uint32_t symrepr_true(void);
 extern uint32_t symrepr_lambda(void);
 extern uint32_t symrepr_closure(void); 
 

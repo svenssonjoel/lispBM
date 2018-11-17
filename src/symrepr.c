@@ -46,7 +46,7 @@
 
 #define DEF_REPR_NIL       0
 #define DEF_REPR_QUOTE     1
-//#define DEF_REPR_CAR       2
+#define DEF_REPR_TRUE      2
 //#define DEF_REPR_CDR       3
 //#define DEF_REPR_CONS      4
 #define DEF_REPR_LAMBDA    5
@@ -54,6 +54,7 @@
 #define DEF_REPR_RERROR    7  // READ ERROR
 #define DEF_REPR_TERROR    8  // TYPE ERROR
 #define DEF_REPR_EERROR    9  // EVAL ERROR
+
 
 static uint32_t hash_string(char *str); 
 
@@ -72,7 +73,7 @@ int add_default_symbols(void) {
 
   res &= symrepr_addsym("nil"    , &def_repr[DEF_REPR_NIL]);
   res &= symrepr_addsym("quote"  , &def_repr[DEF_REPR_QUOTE]);
-  //res &= symrepr_addsym("car"    , &def_repr[DEF_REPR_CAR]);
+  res &= symrepr_addsym("t"    , &def_repr[DEF_REPR_TRUE]);
   //res &= symrepr_addsym("cdr"    , &def_repr[DEF_REPR_CDR]);
   //res &= symrepr_addsym("cons"   , &def_repr[DEF_REPR_CONS]);
   res &= symrepr_addsym("lambda" , &def_repr[DEF_REPR_LAMBDA]);
@@ -86,7 +87,7 @@ int add_default_symbols(void) {
 
 uint32_t symrepr_nil(void)     { return def_repr[DEF_REPR_NIL]; }
 uint32_t symrepr_quote(void)   { return def_repr[DEF_REPR_QUOTE]; }
-//uint32_t symrepr_car(void)     { return def_repr[DEF_REPR_CAR]; }
+uint32_t symrepr_true(void)    { return def_repr[DEF_REPR_TRUE]; }
 //uint32_t symrepr_cdr(void)     { return def_repr[DEF_REPR_CDR]; }
 //uint32_t symrepr_cons(void)    { return def_repr[DEF_REPR_CONS]; }
 uint32_t symrepr_lambda(void)  { return def_repr[DEF_REPR_LAMBDA]; }
