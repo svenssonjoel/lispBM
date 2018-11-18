@@ -1,0 +1,24 @@
+#!/bin/bash
+
+
+echo "PERFORMING TESTS:"
+
+success_count=0
+fail_count=0
+
+for exe in *.exe; do
+    ./$exe
+
+    if [ $? -eq 1 ]
+    then
+	success_count=$((success_count+1))
+	echo $exe SUCCESS
+    else
+	fail_count=$((fail_count+1))
+	echo $exe FAILED
+    fi
+done
+
+
+echo Tests passed: $success_count
+echo Tests failed: $fail_count
