@@ -145,6 +145,14 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 		       cons(car(cdr(cdr(lisp))),
 			    ENC_SYM(symrepr_nil()))));
     }
+
+    // Special form: COND
+    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
+	DEC_SYM(car_val) == symrepr_cond()) {
+      printf("NOT IMPLEMENTED\n");
+      return ENC_SYM(symrepr_nil()); 
+    }
+    
     // define and let could also be special forms.
     // Currently define is implemented as a built in function..
 
