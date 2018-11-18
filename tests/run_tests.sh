@@ -6,10 +6,15 @@ echo "PERFORMING TESTS:"
 success_count=0
 fail_count=0
 
+result=0
+
 for exe in *.exe; do
     ./$exe
 
-    if [ $? -eq 1 ]
+    result=$?
+    
+    echo "------------------------------------------------------------"
+    if [ $result -eq 1 ]
     then
 	success_count=$((success_count+1))
 	echo $exe SUCCESS
@@ -17,6 +22,7 @@ for exe in *.exe; do
 	fail_count=$((fail_count+1))
 	echo $exe FAILED
     fi
+    echo "------------------------------------------------------------"
 done
 
 
