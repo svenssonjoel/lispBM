@@ -140,7 +140,9 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     // Special form: LAMBDA
     if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(car_val) == symrepr_lambda()) {
-       
+
+      // TODO: Need to code in the relevant part of the env/local_env
+      //       into the closure 
       return cons(ENC_SYM(symrepr_closure()),
 		  cons(car(cdr(lisp)),
 		       cons(car(cdr(cdr(lisp))),
@@ -168,10 +170,11 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       return ENC_SYM(symrepr_nil()); 
     }
 
-    // Special form: LET
+    // Special form: LET (This is not a LETREC)
     if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(car_val) == symrepr_let()) {
       uint32_t new_env = eval_let_bindings(car(cdr(lisp)),env);
+      printf("eval in: "); simple_print(new_env); printf("\n");
       return eval_in_env(car(cdr(cdr(lisp))),new_env);
     }
     
@@ -187,6 +190,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     }
     
     // Possibly a closure application (or programmer error)
+    printf("Apply in: "); simple_print(env); printf("\n"); 
     return apply(e_car_val, evlis(cdr(lisp), env));
 
     break;
@@ -230,6 +234,7 @@ static uint32_t apply(uint32_t closure, uint32_t args) {
   uint32_t exp     = car(cdr(cdr(closure)));
 
   uint32_t local_env = build_env_params_args(params, args); 
+  printf("CLOSURE ENV: "); simple_print(local_env); printf("\n"); 
   
   return eval_in_env(exp,local_env);
 }
@@ -249,11 +254,53 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
   return ENC_SYM(symrepr_eerror());
 }
 
+static int modify_binding(uint32_t env, uint32_t key, uint32_t val) {
+
+  uint32_t curr = env;
+  while (IS_PTR(curr) &&
+	 PTR_TYPE(curr) == PTR_TYPE_CONS) {
+
+    if (car(car(curr)) == key) {
+      set_cdr(car(curr), val); 
+      return 1; 
+    }
+    curr = cdr(curr);
+    
+  }
+  return 0; 
+  
+}
+
 static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
 
   uint32_t new_env = env;
   uint32_t curr = bind_list; 
+  int res; 
   
+  //setup the bindings
+  while (IS_PTR(curr) &&
+	 PTR_TYPE(curr) == PTR_TYPE_CONS) {
+    uint32_t key = car(car(curr));
+    uint32_t val = ENC_SYM(symrepr_nil()); // a temporary
+    uint32_t binding = cons(key,val);
+    new_env = cons(binding, new_env); 
+    curr = cdr(curr); 
+  }
+
+  // evaluate the bodies
+  curr = bind_list; 
+  while (IS_PTR(curr) &&
+	 PTR_TYPE(curr) == PTR_TYPE_CONS) {
+    uint32_t key = car(car(curr));
+    uint32_t val = eval_in_env(car(cdr(car(curr))),new_env);
+
+    res = modify_binding(new_env, key, val);
+    if (!res) printf("error!!!"); 
+    curr = cdr(curr); 
+  }
+
+
+  /*
   while (IS_PTR(curr) &&
 	 PTR_TYPE(curr) == PTR_TYPE_CONS) {
     uint32_t key = car(car(curr));
@@ -262,6 +309,7 @@ static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
     new_env = cons(binding,new_env);
     curr = cdr(curr); 
   }
+  */
   return new_env;
 
 }
