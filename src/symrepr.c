@@ -35,7 +35,7 @@
    
    Replace with something more thought through (or looked up) later. 
 
-     - There is a 16 bit hash table (65521 buckets) 
+     - There is a 16 bit hash table (65521 buckets (65536 - 15)) 
      - and 12 additional bits (bucket depth 4096)
 
  */
@@ -51,14 +51,15 @@
 #define DEF_REPR_IF        4
 #define DEF_REPR_LAMBDA    5
 #define DEF_REPR_CLOSURE   6
-#define DEF_REPR_RERROR    7  // READ ERROR
-#define DEF_REPR_TERROR    8  // TYPE ERROR
-#define DEF_REPR_EERROR    9  // EVAL ERROR
+#define DEF_REPR_LET       7
+#define DEF_REPR_RERROR    8  // READ ERROR
+#define DEF_REPR_TERROR    9  // TYPE ERROR
+#define DEF_REPR_EERROR    10  // EVAL ERROR
 
 
 static uint32_t hash_string(char *str); 
 
-static uint32_t def_repr[10]; 
+static uint32_t def_repr[11]; 
 
 typedef struct s_name_mapping {
   uint32_t key; // hash including collision id //
@@ -78,6 +79,7 @@ int add_default_symbols(void) {
   res &= symrepr_addsym("if"     , &def_repr[DEF_REPR_IF]);
   res &= symrepr_addsym("lambda" , &def_repr[DEF_REPR_LAMBDA]);
   res &= symrepr_addsym("closure", &def_repr[DEF_REPR_CLOSURE]);
+  res &= symrepr_addsym("let"    , &def_repr[DEF_REPR_LET]); 
   res &= symrepr_addsym("rerror" , &def_repr[DEF_REPR_RERROR]);
   res &= symrepr_addsym("terror" , &def_repr[DEF_REPR_TERROR]);
   res &= symrepr_addsym("eerror" , &def_repr[DEF_REPR_EERROR]);
@@ -92,6 +94,7 @@ uint32_t symrepr_cond(void)    { return def_repr[DEF_REPR_COND]; }
 uint32_t symrepr_if(void)      { return def_repr[DEF_REPR_IF]; }
 uint32_t symrepr_lambda(void)  { return def_repr[DEF_REPR_LAMBDA]; }
 uint32_t symrepr_closure(void) { return def_repr[DEF_REPR_CLOSURE]; }
+uint32_t symrepr_let(void)     { return def_repr[DEF_REPR_LET]; }
 uint32_t symrepr_rerror(void)  { return def_repr[DEF_REPR_RERROR]; }
 uint32_t symrepr_terror(void)  { return def_repr[DEF_REPR_TERROR]; }
 uint32_t symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }  

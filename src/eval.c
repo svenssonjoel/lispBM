@@ -29,6 +29,7 @@ static uint32_t evlis(uint32_t ptcons, uint32_t env);
 static uint32_t apply(uint32_t closure, uint32_t args); 
 static uint32_t apply_builtin(uint32_t sym, uint32_t args); 
 static uint32_t eval_in_env(uint32_t, uint32_t); 
+static uint32_t eval_let_bindings(uint32_t, uint32_t); 
 
 static uint32_t global_env;
 
@@ -166,6 +167,13 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       printf("NOT IMPLEMENTED\n");
       return ENC_SYM(symrepr_nil()); 
     }
+
+    // Special form: LET
+    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
+	DEC_SYM(car_val) == symrepr_let()) {
+      uint32_t new_env = eval_let_bindings(car(cdr(lisp)),env);
+      return eval_in_env(car(cdr(cdr(lisp))),new_env);
+    }
     
     // define and let could also be special forms.
     // Currently define is implemented as a built in function..
@@ -240,6 +248,25 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
   printf("bad case\n");
   return ENC_SYM(symrepr_eerror());
 }
+
+static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
+
+  uint32_t new_env = env;
+  uint32_t curr = bind_list; 
+  
+  while (IS_PTR(curr) &&
+	 PTR_TYPE(curr) == PTR_TYPE_CONS) {
+    uint32_t key = car(car(curr));
+    uint32_t val = eval_in_env(car(cdr(car(curr))),env);
+    uint32_t binding = cons(key,val);
+    new_env = cons(binding,new_env);
+    curr = cdr(curr); 
+  }
+  return new_env;
+
+}
+
+
 
 static uint32_t apply_builtin(uint32_t sym, uint32_t args) {
 
