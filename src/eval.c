@@ -146,6 +146,20 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 			    ENC_SYM(symrepr_nil()))));
     }
 
+    // Special form: IF
+    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
+	DEC_SYM(car_val) == symrepr_if()) {
+      
+      uint32_t pred_res = eval_in_env(car(cdr(lisp)), env);
+      if (VAL_TYPE(pred_res) == VAL_TYPE_SYMBOL &&
+	  DEC_SYM(pred_res) == symrepr_true()) {
+	return eval_in_env(car(cdr(cdr(lisp))), env);
+      } else {
+	// TODO: CHECK THAT IS NOT A PROGRAMMER ERROR
+	return eval_in_env(car(cdr(cdr(cdr(lisp)))), env);
+      }
+    }
+    
     // Special form: COND
     if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(car_val) == symrepr_cond()) {

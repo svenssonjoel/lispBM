@@ -48,7 +48,7 @@
 #define DEF_REPR_QUOTE     1
 #define DEF_REPR_TRUE      2
 #define DEF_REPR_COND      3
-//#define DEF_REPR_CONS      4
+#define DEF_REPR_IF        4
 #define DEF_REPR_LAMBDA    5
 #define DEF_REPR_CLOSURE   6
 #define DEF_REPR_RERROR    7  // READ ERROR
@@ -74,8 +74,8 @@ int add_default_symbols(void) {
   res &= symrepr_addsym("nil"    , &def_repr[DEF_REPR_NIL]);
   res &= symrepr_addsym("quote"  , &def_repr[DEF_REPR_QUOTE]);
   res &= symrepr_addsym("t"      , &def_repr[DEF_REPR_TRUE]);
-  res &= symrepr_addsym("cond" , &def_repr[DEF_REPR_COND]);
-  //res &= symrepr_addsym("cons"   , &def_repr[DEF_REPR_CONS]);
+  res &= symrepr_addsym("cond"   , &def_repr[DEF_REPR_COND]);
+  res &= symrepr_addsym("if"     , &def_repr[DEF_REPR_IF]);
   res &= symrepr_addsym("lambda" , &def_repr[DEF_REPR_LAMBDA]);
   res &= symrepr_addsym("closure", &def_repr[DEF_REPR_CLOSURE]);
   res &= symrepr_addsym("rerror" , &def_repr[DEF_REPR_RERROR]);
@@ -89,7 +89,7 @@ uint32_t symrepr_nil(void)     { return def_repr[DEF_REPR_NIL]; }
 uint32_t symrepr_quote(void)   { return def_repr[DEF_REPR_QUOTE]; }
 uint32_t symrepr_true(void)    { return def_repr[DEF_REPR_TRUE]; }
 uint32_t symrepr_cond(void)    { return def_repr[DEF_REPR_COND]; }
-//uint32_t symrepr_cons(void)    { return def_repr[DEF_REPR_CONS]; }
+uint32_t symrepr_if(void)      { return def_repr[DEF_REPR_IF]; }
 uint32_t symrepr_lambda(void)  { return def_repr[DEF_REPR_LAMBDA]; }
 uint32_t symrepr_closure(void) { return def_repr[DEF_REPR_CLOSURE]; }
 uint32_t symrepr_rerror(void)  { return def_repr[DEF_REPR_RERROR]; }

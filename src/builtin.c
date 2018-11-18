@@ -132,9 +132,6 @@ int structural_equality(uint32_t a, uint32_t b) {
 uint32_t bi_fun_eq(uint32_t args) {
   uint32_t a1 = car(args);
   uint32_t a2 = car(cdr(args));
-
-  simple_print(a1); printf("\n"); 
-  simple_print(a2); printf("\n"); 
   
   return( structural_equality(a1, a2) ? ENC_SYM(symrepr_true()) : ENC_SYM(symrepr_nil()) );
 }
