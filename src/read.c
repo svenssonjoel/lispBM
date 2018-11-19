@@ -85,6 +85,16 @@ uint32_t read_ast(mpc_ast_t *t){
     int n = t->children_num;
     uint32_t res = ENC_SYM(nil);
     
+    if (t->children_num == 5 &&
+	strcmp(t->children[0]->contents, "(") == 0 &&
+	strcmp(t->children[2]->contents, ".") == 0 &&
+	strcmp(t->children[4]->contents, ")") == 0 ) {
+      uint32_t a = read_ast(t->children[1]);
+      uint32_t b = read_ast(t->children[3]);
+      return cons(a,b); 
+      
+    }
+      
     for (int i = n-1; i >= 0; i --) {
 
       if (strcmp(t->children[i]->contents, "(") == 0) { continue; }
