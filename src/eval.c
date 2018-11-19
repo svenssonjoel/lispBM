@@ -29,7 +29,9 @@ static uint32_t evlis(uint32_t ptcons, uint32_t env);
 static uint32_t apply(uint32_t closure, uint32_t args); 
 static uint32_t apply_builtin(uint32_t sym, uint32_t args); 
 static uint32_t eval_in_env(uint32_t, uint32_t); 
-static uint32_t eval_let_bindings(uint32_t, uint32_t); 
+static uint32_t eval_let_bindings(uint32_t, uint32_t);
+
+static uint32_t copy_bindings(uint32_t syms, uint32_t env); // copy those bindings that exist, skip others 
 
 static uint32_t global_env;
 
@@ -81,6 +83,27 @@ uint32_t lookup_env(uint32_t sym, uint32_t env) {
   }
   return ENC_SYM(symrepr_eerror()); 
 }
+
+static uint32_t copy_bindings(uint32_t syms, uint32_t env) {
+  uint32_t curr_sym = syms;
+
+  uint32_t res = ENC_SYM(symrepr_nil());
+  
+  while (IS_PTR(curr_sym) && PTR_TYPE(curr_sym) == PTR_TYPE_CONS) {
+    
+    uint32_t key = car(curr_sym);
+    uint32_t val = lookup_env(key, env);
+    uint32_t c   = cons(key, val);
+    if (!IS_PTR(val) && VAL_TYPE(val) == VAL_TYPE_SYMBOL &&
+	DEC_SYM(val) == symrepr_eerror()) {
+      curr_sym = car(curr_sym);
+      continue; // The key-value pair will be recovered by GC.
+    }
+    cons(c, res);
+  }
+  return res;
+}
+
 
 int eval_init() {
   global_env = ENC_SYM(symrepr_nil());
@@ -140,13 +163,14 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     // Special form: LAMBDA
     if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(car_val) == symrepr_lambda()) {
-
+      printf("lam\n"); 
       // TODO: Need to code in the relevant part of the env/local_env
-      //       into the closure 
+      //       into the closure
+      
       return cons(ENC_SYM(symrepr_closure()),
 		  cons(car(cdr(lisp)),
 		       cons(car(cdr(cdr(lisp))),
-			    ENC_SYM(symrepr_nil()))));
+			    cons(env, ENC_SYM(symrepr_nil())))));
     }
 
     // Special form: IF
@@ -174,7 +198,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(car_val) == symrepr_let()) {
       uint32_t new_env = eval_let_bindings(car(cdr(lisp)),env);
-      printf("eval in: "); simple_print(new_env); printf("\n");
+      //printf("eval in: "); simple_print(new_env); printf("\n");
       return eval_in_env(car(cdr(cdr(lisp))),new_env);
     }
     
@@ -190,7 +214,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     }
     
     // Possibly a closure application (or programmer error)
-    printf("Apply in: "); simple_print(env); printf("\n"); 
+    //printf("Apply in: "); simple_print(env); printf("\n"); 
     return apply(e_car_val, evlis(cdr(lisp), env));
 
     break;
@@ -207,14 +231,14 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   return ENC_SYM(symrepr_eerror());
 } 
 
-uint32_t build_env_params_args(uint32_t params, uint32_t args) {
+uint32_t build_env_params_args(uint32_t params, uint32_t args, uint32_t env0) {
   uint32_t curr_param = params;
   uint32_t curr_arg = args;
 
   if (length(params) != length(args)) // programmer error
-    return ENC_SYM(symrepr_nil()); 
+    return env0; 
 
-  uint32_t env = ENC_SYM(symrepr_nil());
+  uint32_t env = env0;
   while (IS_PTR(curr_param)) {
 
     uint32_t entry = cons(car(curr_param), car(curr_arg));
@@ -232,9 +256,10 @@ static uint32_t apply(uint32_t closure, uint32_t args) {
   uint32_t clo_sym = car(closure);      
   uint32_t params  = car(cdr(closure)); // parameter list
   uint32_t exp     = car(cdr(cdr(closure)));
+  uint32_t clo_env = car(cdr(cdr(cdr(closure))));
 
-  uint32_t local_env = build_env_params_args(params, args); 
-  printf("CLOSURE ENV: "); simple_print(local_env); printf("\n"); 
+  uint32_t local_env = build_env_params_args(params, args, clo_env); 
+  //printf("CLOSURE ENV: "); simple_print(local_env); printf("\n"); 
   
   return eval_in_env(exp,local_env);
 }

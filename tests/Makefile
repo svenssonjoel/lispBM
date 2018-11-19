@@ -10,6 +10,7 @@ SOURCES = $(wildcard *.c)
 EXECS = $(patsubst %.c, %.exe, $(SOURCES))
 
 all: $(EXECS)
+	mv test_lisp_code.exe test_lisp_code
 
 %.exe: %.c
 	$(CC) -I../src $(CCFLAGS) $< ../build/linux-x86/library.a -o $@ 
