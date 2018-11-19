@@ -14,3 +14,9 @@ all: $(EXECS)
 
 %.exe: %.c
 	$(CC) -I../src $(CCFLAGS) $< ../build/linux-x86/library.a -o $@ 
+
+
+
+clean:
+	rm *.exe
+	rm test_lisp_code 

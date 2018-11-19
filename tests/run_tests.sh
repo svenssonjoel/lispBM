@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo "BUILDING"
+
+make clean
+make 
 
 echo "PERFORMING TESTS:"
 

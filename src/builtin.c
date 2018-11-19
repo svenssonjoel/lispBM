@@ -60,7 +60,11 @@ uint32_t bi_fun_sum(uint32_t args) { // TODO: typechecking and potential convers
 
 uint32_t bi_fun_sub(uint32_t args) { // TODO: typechecking and potential conversion
   uint32_t tmp = cdr(args);
-  int32_t res = DEC_SYM(car(args));
+  int32_t res = DEC_I28(car(args));
+  if (length(args) == 1) {
+    return ENC_I28(-res);
+  }
+  
   while ( DEC_SYM(tmp) != symrepr_nil()) {
     int32_t v = car(tmp);
     res -= DEC_I28(v);

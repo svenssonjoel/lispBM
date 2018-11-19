@@ -44,8 +44,8 @@ int parser_init(void) {
 	    "          |  <sexp> | <qexp> ;"
 	    "sexp      : '(' <exp>* ')' | '(' <exp> '.' <exp> ')' ;"
 	    "qexp      : '\'' <exp> ;"
-	    "integer   : /[0-9]+/ ;"
-	    "float     : /-?[0-9]+\\.?[0-9]+/;"
+	    "integer   : /0x([0-9a-fA-F]+)|([0-9]+u?)/ ;"
+	    "float     : /[0-9]+\\.?[0-9]+/;"
 	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/;",
 	    Program, Exp, SExp, QExp, Integer, Float , Name, NULL) ;
   
