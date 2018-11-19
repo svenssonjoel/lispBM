@@ -120,8 +120,14 @@ int main(int argc, char **argv) {
   t = eval_program(t);
   
   printf("O: "); simple_print(t); printf("\n");
-        
-  if (car(t) == car(cdr(t))) {
+
+  uint32_t rest = t;
+  while (length(rest) > 2) {
+    rest = cdr(rest);
+  }
+  
+  
+  if (car(rest) == car(cdr(rest))) {
     res = 1;
   } else res = 0; 
       

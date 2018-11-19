@@ -1,11 +1,26 @@
 # lispBM
 
-learning about lisp by attempting to implement a small lisp-like language with the intention to run it on bare metal Zynq 7000 platform.
+A lisp-like language (work in progress) implemented in C using the MPC library for the parsing task.
 
-1. Long term goal: Implement an interpreter for a lisp-like language.
-2. Long term goal: Make (1) run bare metal on a small ARM based computer.
-3. ... if (1) and (2) then some fun next step should have presented itself. 
+## Purpose
+1. Have fun.
+2. Learn about lisp.
+3. ...
+
+## Features
+1. heap consisting of cons-cells with mark and sweep garbage collection.
+2. A few built-in functions (define, cons, car, cdr, eval, +, -, >, <, =)
+3. Lambdas, closures, lets (letrecs).
+4. ... 
 
 ## Short term TODOs
+1. Write more tests.
+2. insert relevant part of local environment into closures in a better way
+3. simple_print crashes because of current state of point 2. 
+3. Document code.
+4. ...
 
-1. ... 
+## Problems
+
+1. Stack overflows, due to nature of the evaluator. No deep recursion supported. 
+
