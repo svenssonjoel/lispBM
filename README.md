@@ -16,7 +16,7 @@ A lisp-like language (work in progress) implemented in C using the MPC library f
 ## Short term TODOs
 1. Write more tests.
 2. insert relevant part of local environment into closures in a better way
-3. simple_print crashes because of current state of point 2. 
+3. simple_print crashes because of current state of point 2. (If in a let: closure has a ref to local env, which has a ref to closure... repeat forever.) 
 3. Document code.
 4. ...
 
