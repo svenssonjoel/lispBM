@@ -129,7 +129,7 @@ is also possible
    | 
  [VECTOR] 
 
-Aux bits could be used for storting vector size. Up to 30bits should be available there
+Aux bits could be used for storing vector size. Up to 30bits should be available there
 
 0000 00XX XXXX XXXX XXXX XXXX XXXX X000   : 0x03FF FFF8
 1111 AA00 0000 0000 0000 0000 0000 0000   : 0xFC00 0000 (AA bits left unused for now, future heap growth?)

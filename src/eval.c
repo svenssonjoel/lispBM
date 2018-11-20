@@ -84,26 +84,20 @@ uint32_t lookup_env(uint32_t sym, uint32_t env) {
   return ENC_SYM(symrepr_eerror()); 
 }
 
-static uint32_t copy_bindings(uint32_t syms, uint32_t env) {
-  uint32_t curr_sym = syms;
+static uint32_t copy_env_shallow(uint32_t env) {
 
   uint32_t res = ENC_SYM(symrepr_nil());
+  uint32_t curr = env;
   
-  while (IS_PTR(curr_sym) && PTR_TYPE(curr_sym) == PTR_TYPE_CONS) {
-    
-    uint32_t key = car(curr_sym);
-    uint32_t val = lookup_env(key, env);
-    uint32_t c   = cons(key, val);
-    if (!IS_PTR(val) && VAL_TYPE(val) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(val) == symrepr_eerror()) {
-      curr_sym = car(curr_sym);
-      continue; // The key-value pair will be recovered by GC.
+  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+    uint32_t key = car(car(curr));
+    if (DEC_SYM(key) != symrepr_nil()) {
+      res = cons(car(curr), res);
     }
-    cons(c, res);
+    curr = cdr(curr);
   }
   return res;
 }
-
 
 int eval_init() {
   global_env = ENC_SYM(symrepr_nil());
@@ -166,11 +160,11 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       //printf("lam\n"); 
       // TODO: Need to code in the relevant part of the env/local_env
       //       into the closure
-      
+      uint32_t env_cpy = copy_env_shallow(env);
       return cons(ENC_SYM(symrepr_closure()),
 		  cons(car(cdr(lisp)),
 		       cons(car(cdr(cdr(lisp))),
-			    cons(env, ENC_SYM(symrepr_nil())))));
+			    cons(env_cpy, ENC_SYM(symrepr_nil())))));
     }
 
     // Special form: IF
@@ -204,7 +198,6 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     
     // define and let could also be special forms.
     // Currently define is implemented as a built in function..
-
     
     // Possibly an application form 
     uint32_t e_car_val = eval_in_env(car_val, env); 
@@ -263,7 +256,6 @@ static uint32_t apply(uint32_t closure, uint32_t args) {
   
   return eval_in_env(exp,local_env);
 }
-
 
 // takes a ptr to cons and returns a ptr to cons.. 
 static uint32_t evlis(uint32_t pcons, uint32_t env) {
@@ -324,19 +316,7 @@ static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
     curr = cdr(curr); 
   }
 
-
-  /*
-  while (IS_PTR(curr) &&
-	 PTR_TYPE(curr) == PTR_TYPE_CONS) {
-    uint32_t key = car(car(curr));
-    uint32_t val = eval_in_env(car(cdr(car(curr))),env);
-    uint32_t binding = cons(key,val);
-    new_env = cons(binding,new_env);
-    curr = cdr(curr); 
-  }
-  */
   return new_env;
-
 }
 
 
