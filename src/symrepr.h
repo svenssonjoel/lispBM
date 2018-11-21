@@ -26,7 +26,7 @@ extern void symrepr_print(void);
 extern int symrepr_lookup(char *, uint32_t*);
 extern char* symrepr_lookup_name(uint32_t); 
 extern void symrepr_del(void);
-
+extern int gensym(uint32_t *res);
 
 extern uint32_t symrepr_nil(void);
 extern uint32_t symrepr_quote(void);

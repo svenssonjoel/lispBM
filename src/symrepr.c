@@ -43,7 +43,7 @@
  */
 
 #define HASHTAB_MALLOC_SIZE 65536
-#define HASHTAB_SIZE 65521    
+#define HASHTAB_SIZE 49999 // 65521    
 #define BUCKET_DEPTH 4096
 #define SMALL_PRIMES 11
 
@@ -64,7 +64,7 @@
 #define GENSYM_SHIFT       16
 
 
-static uint32_t gensym_next = 0;  
+static uint32_t gensym_next = HASHTAB_SIZE;  
 
 static uint32_t hash_string(char *str); 
 
@@ -117,17 +117,16 @@ int symrepr_init(void) {
 
 int gensym(uint32_t *res) {
 
-  uint32_t v = HASHTAB_SIZE + gensym_next;
+  uint32_t v = gensym_next;
   int n; 
   char gensym_name[1024];
   memset(gensym_name,0,1024);
 
-  
-  if(name_table[v] == NULL) {
-    name_table[v] == (name_mapping_t*)malloc(sizeof(name_mapping_t));
+  if(name_table[v] == NULL && v < HASHTAB_MALLOC_SIZE) {
+    name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[v]->key = v;
     n = snprintf(gensym_name,1024,"gensym_%d", v);
-    name_table[v]->name = (char*)malloc(n);
+    name_table[v]->name = (char*)malloc(n+1);
     strncpy(name_table[v]->name, gensym_name, n);
     name_table[v]->next = NULL;
     *res = v;
@@ -152,6 +151,8 @@ int gensym(uint32_t *res) {
     *res = v_prim;
   }
 
+  gensym_next++;
+  if (gensym_next >= (HASHTAB_MALLOC_SIZE-1)) gensym_next = HASHTAB_SIZE;
   return 1; 
 }
 
@@ -240,7 +241,7 @@ char *symrepr_lookup_name(uint32_t id) {
 void symrepr_print(void) {
   int i;
 
-  for (i = 0; i < HASHTAB_SIZE; i ++) {
+  for (i = 0; i < HASHTAB_MALLOC_SIZE; i ++) {
     if (name_table[i] != NULL) {
       name_mapping_t *head = name_table[i]; 
       while (head) {
@@ -256,7 +257,7 @@ void symrepr_del(void) {
 
   if(!name_table) return; 
   
-  for (i = 0; i < HASHTAB_SIZE; i ++) {
+  for (i = 0; i < HASHTAB_MALLOC_SIZE; i ++) {
     if (name_table[i]) {
       name_mapping_t *head = name_table[i];
       name_mapping_t *next; 
