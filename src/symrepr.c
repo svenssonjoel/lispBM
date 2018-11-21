@@ -38,8 +38,11 @@
      - There is a 16 bit hash table (65521 buckets (65536 - 15)) 
      - and 12 additional bits (bucket depth 4096)
 
+   
+     
  */
 
+#define HASHTAB_MALLOC_SIZE 65536
 #define HASHTAB_SIZE 65521    
 #define BUCKET_DEPTH 4096
 #define SMALL_PRIMES 11
@@ -56,6 +59,12 @@
 #define DEF_REPR_TERROR    9  // TYPE ERROR
 #define DEF_REPR_EERROR    10  // EVAL ERROR
 
+#define GENSYM_FLAG        0xFFFF
+#define IS_GENSYM(X)       (((X) & 0xFFFF) == 0xFFFF)
+#define GENSYM_SHIFT       16
+
+
+static uint32_t gensym_next = 0;  
 
 static uint32_t hash_string(char *str); 
 
@@ -100,10 +109,50 @@ uint32_t symrepr_terror(void)  { return def_repr[DEF_REPR_TERROR]; }
 uint32_t symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }  
 
 int symrepr_init(void) {
-  name_table = (name_mapping_t**)malloc(HASHTAB_SIZE * sizeof(name_mapping_t*));
+  name_table = (name_mapping_t**)malloc(HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));
   if (!name_table) return 0; 
-  memset(name_table, 0, HASHTAB_SIZE * sizeof(name_mapping_t*));
+  memset(name_table, 0, HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));
   return add_default_symbols();
+}
+
+int gensym(uint32_t *res) {
+
+  uint32_t v = HASHTAB_SIZE + gensym_next;
+  int n; 
+  char gensym_name[1024];
+  memset(gensym_name,0,1024);
+
+  
+  if(name_table[v] == NULL) {
+    name_table[v] == (name_mapping_t*)malloc(sizeof(name_mapping_t));
+    name_table[v]->key = v;
+    n = snprintf(gensym_name,1024,"gensym_%d", v);
+    name_table[v]->name = (char*)malloc(n);
+    strncpy(name_table[v]->name, gensym_name, n);
+    name_table[v]->next = NULL;
+    *res = v;
+  } else {
+    //gensym already added to this bucket
+    name_mapping_t *head = name_table[v];
+    uint32_t hkey_id = head->key & 0xFFFF0000 ;
+
+    // If new ID would be too big return failure 
+    if ((hkey_id >> 16) >= (BUCKET_DEPTH - 1)) {
+      return 0;
+    }
+
+    /* problem if hkey_id = 0xFFFF0000 */ 
+    name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t)); //replace
+    name_table[v]->key = v + (hkey_id + (1 << 16));
+    uint32_t v_prim = v + (hkey_id + (1 << 16));
+    n = snprintf(gensym_name,1024,"gensym_%d", v_prim);
+    name_table[v]->name = (char*)malloc(n);
+    strncpy(name_table[v]->name, gensym_name, n);
+    name_table[v]->next = head;
+    *res = v_prim;
+  }
+
+  return 1; 
 }
 
 int symrepr_addsym(char *name, uint32_t* id) {
