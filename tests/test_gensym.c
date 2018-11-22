@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
   uint32_t last_id = 0;
   uint32_t symbol_id; 
   uint32_t gs;
-  printf("Gensyming %d symbols\n", TEST_SIZE);
+  printf("Gensyming %d symbols: ", TEST_SIZE);
   for (int i = 0; i < TEST_SIZE; i ++) { 
     res &= gensym(&gs);
     if (!res) printf("Error running gensym\n");
@@ -38,9 +38,13 @@ int main(int argc, char **argv) {
     res &= (symbol_id > last_id);
     if (!res) printf("Symbol id is not greater than previous symbol id\n"); 
     last_id = symbol_id;
+    if (res && i % 2000000 == 0){
+      printf(".");
+      fflush(stdout); 
+    }
   }
 
-  printf("Test gensym: OK!\n");
+  printf("OK!\n");
   
   int should_fail = gensym(&gs);
   if (should_fail == 0) {
@@ -49,7 +53,7 @@ int main(int argc, char **argv) {
     printf("should_fail test did not fail!\n"); 
   }
 
-  
+  printf("Deleting symbol representation table\n"); 
   symrepr_del();
   
   return res; 
