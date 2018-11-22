@@ -198,7 +198,6 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(car_val) == symrepr_let()) {
       uint32_t new_env = eval_let_bindings(car(cdr(lisp)),env);
-      //printf("eval in: "); simple_print(new_env); printf("\n");
       return eval_in_env(car(cdr(cdr(lisp))),new_env);
     }
     
