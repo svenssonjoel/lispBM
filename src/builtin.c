@@ -152,6 +152,18 @@ uint32_t bi_fun_eq(uint32_t args) {
   return( structural_equality(a1, a2) ? ENC_SYM(symrepr_true()) : ENC_SYM(symrepr_nil()) );
 }
 
+uint32_t bi_fun_gensym(uint32_t args) {
+
+  // Takes no arguments!
+  uint32_t gs;
+  int res = gensym(&gs);
+
+  if (res) {
+    return ENC_SYM(gs);
+  }
+  return ENC_SYM(symrepr_eerror()); 
+}
+
 
 // Interface functions
 
@@ -198,7 +210,8 @@ int builtin_init(void) {
   res &= builtin_add_function("cons", bi_fun_cons); 
   res &= builtin_add_function(">", bi_fun_gt);
   res &= builtin_add_function("<", bi_fun_lt);
-  res &= builtin_add_function("=", bi_fun_eq); 
+  res &= builtin_add_function("=", bi_fun_eq);
+  res &= builtin_add_function("gensym", bi_fun_gensym); 
   
   return res; 
 }
