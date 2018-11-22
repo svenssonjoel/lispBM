@@ -22,13 +22,68 @@
 #include "symrepr.h"
 
 
+int is_closure(uint32_t t) {
+
+  uint32_t head = car(t);
+  
+  if (!IS_PTR(head)  && VAL_TYPE(head) == VAL_TYPE_SYMBOL &&
+      DEC_SYM(car) == symrepr_closure()) {
+    return 1;
+  }
+  return 0; 
+}
+
+int simple_print_env(uint32_t env) {
+  uint32_t curr = env;
+
+  uint32_t a;
+  uint32_t b;
+  printf("(");
+  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+    uint32_t head = car(curr);
+    if (IS_PTR(head)) {
+      a = car(car(head));
+      b = cdr(car(head));
+      printf("(");
+      simple_print(a); printf(" . ");
+      if (is_closure(b)) 
+	printf("CLOSURE");
+      else simple_print(b);
+      printf(") ");
+    }
+    curr = cdr(curr);
+  }
+  printf(")");
+}
+
+
+int simple_print_lambda(uint32_t t) {
+
+  uint32_t lam = car(t);
+  uint32_t vars = car(cdr(t));
+  uint32_t exp = car(cdr(cdr(t)));
+  uint32_t env = car(cdr(cdr(cdr(t))));
+  
+  printf("(");
+  simple_print(lam); printf(" ");
+  simple_print(vars); printf(" ");
+  simple_print(exp); printf(" ");
+  simple_print_env(env); printf(" ");
+}
+
+
 int simple_print(uint32_t t){
 
   char *str_ptr;
   
   if (IS_PTR(t)) {
     // TODO: Switch on the type of object pointed to.
-    if ((t & PTR_TYPE_MASK) == PTR_TYPE_CONS) {
+
+    uint32_t car_val = car(t);
+
+    if (DEC_SYM(car_val) == symrepr_lambda()) {
+      simple_print_lambda(t);
+    } else if ((t & PTR_TYPE_MASK) == PTR_TYPE_CONS) {
       printf("(");
       simple_print(car(t));
       printf(" "); 

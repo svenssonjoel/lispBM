@@ -48,24 +48,31 @@ uint32_t eval_bi(uint32_t lisp) {
 
 uint32_t define_bi(uint32_t lisp) {
 
+  uint32_t curr = global_env;
   uint32_t key = car(lisp);
   uint32_t val = car(cdr(lisp));
 
+  // Check for bad cases (not symbol or trying define nil)
   if (VAL_TYPE(key) != VAL_TYPE_SYMBOL)
     return ENC_SYM(symrepr_nil());
 
   if (DEC_SYM(key) == symrepr_nil())
     return ENC_SYM(symrepr_nil());
-  
-  uint32_t keyval = heap_allocate_cell();
-  set_car(keyval, key);
-  set_cdr(keyval, val);
-  uint32_t entry  = heap_allocate_cell();
-  set_car(entry, keyval);
-  set_cdr(entry, global_env);
-  global_env = entry;
 
-  return ENC_SYM(symrepr_nil());
+  // Check if present in env then replace binding (in-place)
+  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+    if (car(car(curr)) == key) {
+      set_cdr(car(curr), val);
+      return ENC_SYM(symrepr_true());
+    }
+    curr = cdr(curr);
+  }
+
+  // Otherwise create a new binding
+  uint32_t keyval = cons(key,val);
+  global_env = cons(keyval,global_env);
+ 
+  return ENC_SYM(symrepr_true());
 }
 
 uint32_t lookup_env(uint32_t sym, uint32_t env) {
@@ -283,8 +290,7 @@ static int modify_binding(uint32_t env, uint32_t key, uint32_t val) {
     curr = cdr(curr);
     
   }
-  return 0; 
-  
+  return 0;   
 }
 
 static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
