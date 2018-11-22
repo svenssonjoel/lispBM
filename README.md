@@ -25,7 +25,7 @@ A lisp-like language (work in progress) implemented in C using the MPC library f
 8. Be much more stringent on checking of error conditions etc. 
 
 ## Long term TODOs
-1. rewrite evaluator.
+1. rewrite evaluator. 
 
 ## Problems
 1. Stack overflows, due to nature of the evaluator. No deep recursion supported. 
