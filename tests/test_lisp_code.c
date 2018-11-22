@@ -127,10 +127,13 @@ int main(int argc, char **argv) {
   }
   
   
-  if (car(rest) == car(cdr(rest))) {
+  if (structural_equality(car(rest),car(cdr(rest)))) {
+    printf("Test: OK!\n"); 
     res = 1;
-  } else res = 0; 
-      
+  } else {
+    printf("Test: Failed!\n"); 
+    res = 0; 
+  }  
   parser_del();
   symrepr_del();
   heap_del();

@@ -26,4 +26,5 @@ int builtin_init(void);
 void builtin_del(void); 
 uint32_t built_in_gen_env(void);
 
+int structural_equality(uint32_t a, uint32_t b);
 #endif 

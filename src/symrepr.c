@@ -106,7 +106,7 @@ uint32_t symrepr_closure(void) { return def_repr[DEF_REPR_CLOSURE]; }
 uint32_t symrepr_let(void)     { return def_repr[DEF_REPR_LET]; }
 uint32_t symrepr_rerror(void)  { return def_repr[DEF_REPR_RERROR]; }
 uint32_t symrepr_terror(void)  { return def_repr[DEF_REPR_TERROR]; }
-uint32_t symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }  
+uint32_t symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }
 
 int symrepr_init(void) {
   name_table = (name_mapping_t**)malloc(HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));
@@ -127,6 +127,7 @@ int gensym(uint32_t *res) {
     name_table[v]->key = v;
     n = snprintf(gensym_name,1024,"gensym_%d", v);
     name_table[v]->name = (char*)malloc(n+1);
+    memset(name_table[v]->name, 0, n+1);
     strncpy(name_table[v]->name, gensym_name, n);
     name_table[v]->next = NULL;
     *res = v;
@@ -146,6 +147,7 @@ int gensym(uint32_t *res) {
     uint32_t v_prim = v + (hkey_id + (1 << 16));
     n = snprintf(gensym_name,1024,"gensym_%d", v_prim);
     name_table[v]->name = (char*)malloc(n);
+    memset(name_table[v]->name, 0, n+1);
     strncpy(name_table[v]->name, gensym_name, n);
     name_table[v]->next = head;
     *res = v_prim;

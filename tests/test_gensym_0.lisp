@@ -1,3 +1,3 @@
-(let ((a (gensym)) (b (gensym))) (a b))
+(let ( (a (gensym)) (b (gensym)) ) (= a b))
 
-
+'nil

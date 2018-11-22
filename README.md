@@ -9,8 +9,8 @@ A lisp-like language (work in progress) implemented in C using the MPC library f
 
 ## Features
 1. heap consisting of cons-cells with mark and sweep garbage collection.
-2. A few built-in functions (define, cons, car, cdr, eval, +, -, >, <, =)
-3. Lambdas, closures, lets (letrecs).
+2. A few built-in functions: define, cons, car, cdr, eval, list, gensym, +, -, >, < and =
+3. Some special forms: Lambdas, closures, lets (letrecs) and quote.
 4. ... 
 
 ## Short term TODOs

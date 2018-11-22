@@ -157,7 +157,6 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     // Special form: LAMBDA
     if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(car_val) == symrepr_lambda()) {
-      //printf("lam\n"); 
       // TODO: Need to code in the relevant part of the env/local_env
       //       into the closure
       uint32_t env_cpy = copy_env_shallow(env);

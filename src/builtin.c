@@ -158,10 +158,26 @@ uint32_t bi_fun_gensym(uint32_t args) {
   uint32_t gs;
   int res = gensym(&gs);
 
-  if (res) {
-    return ENC_SYM(gs);
-  }
+  if (res) return ENC_SYM(gs);
   return ENC_SYM(symrepr_eerror()); 
+}
+
+uint32_t bi_fun_list(uint32_t args) {
+  uint32_t t = ENC_SYM(symrepr_nil());
+  uint32_t list = ENC_SYM(symrepr_nil());
+  uint32_t curr = args; 
+  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+    t = cons(car(curr),t);
+    
+    curr = cdr(curr); 
+  }
+  curr = t; 
+  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+    list = cons(car(curr),list);
+
+    curr = cdr(curr);
+  }
+  return list;
 }
 
 
@@ -211,7 +227,8 @@ int builtin_init(void) {
   res &= builtin_add_function(">", bi_fun_gt);
   res &= builtin_add_function("<", bi_fun_lt);
   res &= builtin_add_function("=", bi_fun_eq);
-  res &= builtin_add_function("gensym", bi_fun_gensym); 
+  res &= builtin_add_function("gensym", bi_fun_gensym);
+  res &= builtin_add_function("list", bi_fun_list);
   
   return res; 
 }

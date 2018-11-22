@@ -35,7 +35,7 @@ extern uint32_t symrepr_if(void);
 extern uint32_t symrepr_cond(void);
 extern uint32_t symrepr_lambda(void);
 extern uint32_t symrepr_closure(void); 
-extern uint32_t symrepr_let(void); 
+extern uint32_t symrepr_let(void);
 
 extern uint32_t symrepr_rerror(void);
 extern uint32_t symrepr_terror(void);
