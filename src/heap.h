@@ -144,13 +144,13 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define PTR_VAL_MASK         0x03FFFFF8
 #define PTR_TYPE_MASK        0xFC000000
 
-#define PTR_TYPE_CONS        0x00000000
-#define PTR_TYPE_I32         0x10000000
-#define PTR_TYPE_U32         0x20000000
-#define PTR_TYPE_F32         0x30000000
-#define PTR_TYPE_VEC_I32     0x40000000
-#define PTR_TYPE_VEC_U32     0x50000000
-#define PTR_TYPE_VEC_F32     0x60000000
+#define PTR_TYPE_CONS        0x10000000
+#define PTR_TYPE_I32         0x20000000
+#define PTR_TYPE_U32         0x30000000
+#define PTR_TYPE_F32         0x40000000
+#define PTR_TYPE_VEC_I32     0x50000000
+#define PTR_TYPE_VEC_U32     0x60000000
+#define PTR_TYPE_VEC_F32     0x70000000
 /*...*/                                 
 #define PTR_TYPE_STRING      0xF0000000
 
@@ -163,10 +163,12 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define VAL_TYPE_SYMBOL      0x00000000
 #define VAL_TYPE_I28         0x00000004
 #define VAL_TYPE_U28         0x00000008
-#define VAL_TYPE_CHAR        0x0000000C 
+#define VAL_TYPE_CHAR        0x0000000C
+
 
 #define VAL_TYPE(X) ((X) & VAL_TYPE_MASK)
 #define PTR_TYPE(X) ((X) & PTR_TYPE_MASK)
+#define TYPE_OF(X)  (IS_PTR((X)) ? PTR_TYPE((X)) : VAL_TYPE((X))) 
 
 #define IS_PTR(X)   (((X) & PTR_MASK) == PTR)
 
@@ -205,7 +207,7 @@ typedef struct {
 extern int heap_init(size_t num_cells);
 extern void heap_del(void);
 extern uint32_t heap_num_free(void);
-extern uint32_t heap_allocate_cell(void); 
+extern uint32_t heap_allocate_cell(uint32_t type); 
 extern uint32_t heap_size_bytes(void);
 
 extern uint32_t cons(uint32_t car, uint32_t cdr);

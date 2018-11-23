@@ -136,7 +136,7 @@ uint32_t heap_num_free(void) {
 }
 
 
-uint32_t heap_allocate_cell(void) {
+uint32_t heap_allocate_cell(uint32_t ptr_type) {
 
   uint32_t res;
   
@@ -152,7 +152,8 @@ uint32_t heap_allocate_cell(void) {
       return ENC_SYM(SYMBOL_NIL);
     }   
   } else { // it is a ptr replace freelist with cdr of freelist; 
-    res = heap_state.freelist; 
+    res = heap_state.freelist;
+    res = res | ptr_type;
     heap_state.freelist =
       read_cdr(ref_cell(heap_state.freelist));
   }
@@ -295,7 +296,7 @@ int heap_perform_gc(uint32_t env) {
 
 // construct, alter and break apart
 uint32_t cons(uint32_t car, uint32_t cdr) {
-  uint32_t addr = heap_allocate_cell();
+  uint32_t addr = heap_allocate_cell(PTR_TYPE_CONS);
   if ( IS_PTR(addr)) {
     set_car_(ref_cell(addr), car);
     set_cdr_(ref_cell(addr), cdr);

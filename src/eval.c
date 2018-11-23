@@ -93,7 +93,7 @@ uint32_t define_bi(uint32_t lisp) {
     return ENC_SYM(symrepr_nil());
 
   // Check if present in env then replace binding (in-place)
-  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == key) {
       set_cdr(car(curr), val);
       return ENC_SYM(symrepr_true());
@@ -113,7 +113,7 @@ static uint32_t copy_env_shallow(uint32_t env) {
   uint32_t res = ENC_SYM(symrepr_nil());
   uint32_t curr = env;
   
-  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
     uint32_t key = car(car(curr));
     if (DEC_SYM(key) != symrepr_nil()) {
       res = cons(car(curr), res);
@@ -129,7 +129,6 @@ int eval_init() {
   res &= builtin_add_function("eval", eval_bi);
   res &= builtin_add_function("define", define_bi);
  
-  
   global_env = built_in_gen_env();
 
   uint32_t nil_entry = cons(ENC_SYM(symrepr_nil()), ENC_SYM(symrepr_nil()));
@@ -145,9 +144,9 @@ uint32_t do_eval_program(uint32_t lisp) {
   // Program is a list of expressions that should be evaluated individually
   uint32_t res; 
   uint32_t local_env = ENC_SYM(symrepr_nil());
-  if ( IS_PTR(lisp) &&
-       PTR_TYPE(lisp) == PTR_TYPE_CONS) {
-    // environment should be updated...
+
+  if (TYPE_OF(lisp) == PTR_TYPE_CONS) {
+    
     uint32_t car_val = eval_in_env(car(lisp),local_env);
     uint32_t cdr_val = eval_program(cdr(lisp)); 
     
@@ -185,7 +184,7 @@ int lookup_env(uint32_t sym, uint32_t env, uint32_t *res) {
     return 1;
   }
     
-  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == sym) {
       *res = cdr(car(curr));
       return 1;
@@ -198,103 +197,98 @@ int lookup_env(uint32_t sym, uint32_t env, uint32_t *res) {
 
 uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 
-  uint32_t nil = symrepr_nil();
   uint32_t val = 0; 
   uint32_t tmp = 0;
   int ret;
+  uint32_t head;
   
-  if (! IS_PTR(lisp)) {
-    switch (VAL_TYPE(lisp)){
-
-    case VAL_TYPE_SYMBOL:
-      ret = lookup_env(lisp, env, &tmp);
-      if (!ret) {
-	ret = lookup_env(lisp, global_env, &tmp);
-      }
-      if (ret) return tmp;
-      ERROR("Eval: Variable lookup failed: %s ",symrepr_lookup_name(DEC_SYM(lisp)));
-      break;
-    default:
-      return lisp; // cannot be evaluated further.
+  switch(TYPE_OF(lisp)) {
+  case VAL_TYPE_SYMBOL:
+    ret = lookup_env(lisp, env, &tmp);
+    if (!ret) {
+      ret = lookup_env(lisp, global_env, &tmp);
     }
-  }
-
-  uint32_t car_val;
-  switch (PTR_TYPE(lisp)) {
+    if (ret) return tmp;
+    ERROR("Eval: Variable lookup failed: %s ",symrepr_lookup_name(DEC_SYM(lisp)));
+    break;
+  case VAL_TYPE_I28:
+  case VAL_TYPE_U28:
+  case VAL_TYPE_CHAR:
+    return lisp;    
+    break;
   case PTR_TYPE_CONS:
-    car_val = car(lisp); 
+    head = car(lisp);
 
-    // Special form: QUOTE 
-    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
-        DEC_SYM(car_val) == symrepr_quote()){ 
-      return (car (cdr (lisp)));
-    }
+    if (TYPE_OF(head) == VAL_TYPE_SYMBOL) {
 
-    // Special form: LAMBDA
-    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(car_val) == symrepr_lambda()) {
-      // TODO: Need to code in the relevant part of the env/local_env
-      //       into the closure
-      uint32_t env_cpy = copy_env_shallow(env);
-      return cons(ENC_SYM(symrepr_closure()),
-		  cons(car(cdr(lisp)),
-		       cons(car(cdr(cdr(lisp))),
-			    cons(env_cpy, ENC_SYM(symrepr_nil())))));
-    }
+      // Special form: QUOTE
+      if (DEC_SYM(head) == symrepr_quote()) {
 
-    // Special form: IF
-    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(car_val) == symrepr_if()) {
-      
-      uint32_t pred_res = eval_in_env(car(cdr(lisp)), env);
-      if (VAL_TYPE(pred_res) == VAL_TYPE_SYMBOL &&
-	  DEC_SYM(pred_res) == symrepr_true()) {
-	return eval_in_env(car(cdr(cdr(lisp))), env);
-      } else {
-	// TODO: CHECK THAT IS NOT A PROGRAMMER ERROR
-	return eval_in_env(car(cdr(cdr(cdr(lisp)))), env);
+	return (car (cdr (lisp)));
+
       }
-    }
-    
-    // Special form: COND
-    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(car_val) == symrepr_cond()) {
-      printf("NOT IMPLEMENTED\n");
-      return ENC_SYM(symrepr_nil()); 
-    }
 
-    // Special form: LET (This is not a LETREC)
-    if (VAL_TYPE(car_val) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(car_val) == symrepr_let()) {
-      uint32_t new_env = eval_let_bindings(car(cdr(lisp)),env);
-      return eval_in_env(car(cdr(cdr(lisp))),new_env);
-    }
+      // Special form: LAMBDA
+      if (DEC_SYM(head) == symrepr_lambda()) {
+
+	uint32_t env_cpy = copy_env_shallow(env);
+	return cons(ENC_SYM(symrepr_closure()),
+		    cons(car(cdr(lisp)),
+			 cons(car(cdr(cdr(lisp))),
+			      cons(env_cpy, ENC_SYM(symrepr_nil())))));
+
+      }
+
+      // Special form: IF
+      if (DEC_SYM(head) == symrepr_if()) {
+
+	uint32_t pred_res = eval_in_env(car(cdr(lisp)), env);
+	if (VAL_TYPE(pred_res) == VAL_TYPE_SYMBOL &&
+	    DEC_SYM(pred_res) == symrepr_true()) {
+	  return eval_in_env(car(cdr(cdr(lisp))), env);
+	} else {
+	  // TODO: CHECK THAT IS NOT A PROGRAMMER ERROR
+	  return eval_in_env(car(cdr(cdr(cdr(lisp)))), env);
+	}
+
+      }
+
+      // Special form: LET
+      if (DEC_SYM(head) == symrepr_let()) {
+
+	uint32_t new_env = eval_let_bindings(car(cdr(lisp)),env);
+	return eval_in_env(car(cdr(cdr(lisp))),new_env);
+
+      }
+
+    } // If head is symbol
     
-    // define and let could also be special forms.
-    // Currently define is implemented as a built in function..
-    
-    // Possibly an application form 
-    uint32_t e_car_val = eval_in_env(car_val, env); 
+    // Possibly an application form:
+
+    uint32_t head_val = eval_in_env(head, env); 
   
-    if (!IS_PTR(e_car_val) && VAL_TYPE(e_car_val) == VAL_TYPE_SYMBOL) {
-      return apply_builtin(e_car_val, evlis(cdr(lisp),env));
+    if (TYPE_OF(head_val) == VAL_TYPE_SYMBOL) {
+      return apply_builtin(head_val, evlis(cdr(lisp),env));
     }
     
     // Possibly a closure application (or programmer error)
-    //printf("Apply in: "); simple_print(env); printf("\n"); 
-    return apply(e_car_val, evlis(cdr(lisp), env));
-
-    break;
-
-    // TODO: All other ptr cases. Float etc.
+    return apply(head_val, evlis(cdr(lisp), env));
     
-  default:
-
-    ERROR("BUG! case not implemented.");
     break; 
-
+  case PTR_TYPE_I32:
+  case PTR_TYPE_U32:
+  case PTR_TYPE_F32:
+  case PTR_TYPE_VEC_I32:
+  case PTR_TYPE_VEC_U32:
+  case PTR_TYPE_VEC_F32:
+  case PTR_TYPE_STRING:
+    ERROR("Boxed types not implemented");
+    break;
+  default:
+    ERROR("BUG! Fell through all cases in eval.");
+    break;
   }
-  
+
   ERROR("BUG! This cannot happen!");
   return ENC_SYM(symrepr_eerror());
 } 
@@ -307,7 +301,7 @@ uint32_t build_env_params_args(uint32_t params, uint32_t args, uint32_t env0) {
     return env0; 
 
   uint32_t env = env0;
-  while (IS_PTR(curr_param)) {
+  while (TYPE_OF(curr_param) == PTR_TYPE_CONS) {
 
     uint32_t entry = cons(car(curr_param), car(curr_arg));
     env = cons(entry,env);
@@ -334,11 +328,13 @@ static uint32_t apply(uint32_t closure, uint32_t args) {
 
 // takes a ptr to cons and returns a ptr to cons.. 
 static uint32_t evlis(uint32_t pcons, uint32_t env) {
-  if ( IS_PTR(pcons) &&
-       PTR_TYPE(pcons) == PTR_TYPE_CONS) {
-    return cons(eval_in_env(car(pcons), env), evlis(cdr(pcons),env)); 
+
+  if (TYPE_OF(pcons) == PTR_TYPE_CONS) { 
+    return cons(eval_in_env(car(pcons), env),
+		evlis(cdr(pcons),env)); 
   }
-  if (VAL_TYPE(pcons) == VAL_TYPE_SYMBOL &&
+
+  if (TYPE_OF(pcons) == VAL_TYPE_SYMBOL &&
       DEC_SYM(pcons) == symrepr_nil()) {
     return ENC_SYM(symrepr_nil());
   }
@@ -350,9 +346,8 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
 static int modify_binding(uint32_t env, uint32_t key, uint32_t val) {
 
   uint32_t curr = env;
-  while (IS_PTR(curr) &&
-	 PTR_TYPE(curr) == PTR_TYPE_CONS) {
 
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) {   
     if (car(car(curr)) == key) {
       set_cdr(car(curr), val); 
       return 1; 
@@ -370,8 +365,7 @@ static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
   int res; 
   
   //setup the bindings
-  while (IS_PTR(curr) &&
-	 PTR_TYPE(curr) == PTR_TYPE_CONS) {
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) { 
     uint32_t key = car(car(curr));
     uint32_t val = ENC_SYM(symrepr_nil()); // a temporary
     uint32_t binding = cons(key,val);
@@ -381,8 +375,7 @@ static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
 
   // evaluate the bodies
   curr = bind_list; 
-  while (IS_PTR(curr) &&
-	 PTR_TYPE(curr) == PTR_TYPE_CONS) {
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
     uint32_t key = car(car(curr));
     uint32_t val = eval_in_env(car(cdr(car(curr))),new_env);
 
@@ -393,7 +386,6 @@ static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
 
   return new_env;
 }
-
 
 
 static uint32_t apply_builtin(uint32_t sym, uint32_t args) {
