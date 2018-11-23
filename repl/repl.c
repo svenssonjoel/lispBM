@@ -82,8 +82,6 @@ int main(int argc, char **argv) {
   
   SYMBOL_NIL = symrepr_nil(); 
   
-  // Setup the initial global env
-  eval_set_env(built_in_gen_env());
   
   while (1) {
     printf("# "); 
@@ -113,8 +111,12 @@ int main(int argc, char **argv) {
       t = read_ast(ast);
     
       t = eval_program(t);
-      
-      printf("> "); simple_print(t); printf("\n");
+
+      if (DEC_SYM(t) == symrepr_eerror()) {
+	printf("%s\n", eval_get_error());
+      } else {
+	printf("> "); simple_print(t); printf("\n");
+      }
         
       mpc_ast_delete(ast);
     }

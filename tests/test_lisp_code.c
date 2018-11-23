@@ -102,9 +102,6 @@ int main(int argc, char **argv) {
     printf("Error initializing evaluator.\n");
   }
   
-  // Setup the initial global env
-  eval_set_env(built_in_gen_env());
-  
   ast = parser_parse_string(code_buffer); 
   if (!ast) {
     printf("ERROR! parsing lisp\n");

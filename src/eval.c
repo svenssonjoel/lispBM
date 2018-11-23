@@ -23,7 +23,19 @@
 #include "print.h"
 
 #include <stdio.h>
-#include <stdint.h> 
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <setjmp.h>
+
+#define EVAL_ERROR_BUFFER_SIZE 2048
+#define ERROR(...) do {\
+  memset(eval_error_string, 0, EVAL_ERROR_BUFFER_SIZE);\
+  snprintf(eval_error_string,EVAL_ERROR_BUFFER_SIZE, __VA_ARGS__);	\
+  if (error_jmp_ptr){\
+    longjmp(*error_jmp_ptr,1);\
+  }\
+  } while(0)
 
 static uint32_t evlis(uint32_t ptcons, uint32_t env);
 static uint32_t apply(uint32_t closure, uint32_t args); 
@@ -31,19 +43,40 @@ static uint32_t apply_builtin(uint32_t sym, uint32_t args);
 static uint32_t eval_in_env(uint32_t, uint32_t); 
 static uint32_t eval_let_bindings(uint32_t, uint32_t);
 
-static uint32_t copy_bindings(uint32_t syms, uint32_t env); // copy those bindings that exist, skip others 
+static uint32_t copy_bindings(uint32_t syms, uint32_t env); 
 
 static uint32_t global_env;
+static char eval_error_string[EVAL_ERROR_BUFFER_SIZE]; 
 
-void eval_set_env(uint32_t env) {
-  global_env = env;
+static jmp_buf error_jmp_buffer;
+static jmp_buf *error_jmp_ptr = NULL; 
+
+
+char *eval_get_error() {
+  return eval_error_string;
 }
+
+//void eval_set_env(uint32_t env) {
+//  global_env = env;
+//}
+
 uint32_t eval_get_env(void) {
   return global_env;
 }
 
 uint32_t eval_bi(uint32_t lisp) {
-  return eval_in_env(car(lisp),ENC_SYM(symrepr_nil()));
+
+  if (!error_jmp_ptr) {
+    error_jmp_ptr = &error_jmp_buffer;
+
+    if (setjmp(*error_jmp_ptr)) {
+      error_jmp_ptr = 0;
+      return ENC_SYM(symrepr_eerror()); 
+    }
+  }
+  
+  uint32_t res = eval_in_env(car(lisp),ENC_SYM(symrepr_nil()));
+  
 }
 
 uint32_t define_bi(uint32_t lisp) {
@@ -75,22 +108,6 @@ uint32_t define_bi(uint32_t lisp) {
   return ENC_SYM(symrepr_true());
 }
 
-uint32_t lookup_env(uint32_t sym, uint32_t env) {
-  uint32_t curr = env;
-  
-  if(DEC_SYM(sym) == symrepr_nil())
-    return sym;
-  
-  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
-
-    if (car(car(curr)) == sym) {
-      return cdr(car(curr));
-    }
-    curr = cdr(curr);
-  }
-  return ENC_SYM(symrepr_eerror()); 
-}
-
 static uint32_t copy_env_shallow(uint32_t env) {
 
   uint32_t res = ENC_SYM(symrepr_nil());
@@ -107,16 +124,26 @@ static uint32_t copy_env_shallow(uint32_t env) {
 }
 
 int eval_init() {
-  global_env = ENC_SYM(symrepr_nil());
+
   int res = 1;
   res &= builtin_add_function("eval", eval_bi);
   res &= builtin_add_function("define", define_bi);
-  return res;
+ 
+  
+  global_env = built_in_gen_env();
+
+  uint32_t nil_entry = cons(ENC_SYM(symrepr_nil()), ENC_SYM(symrepr_nil()));
+  global_env = cons(nil_entry, global_env);
+
+  return res; 
+  
 }
 
 
-uint32_t eval_program(uint32_t lisp) {
+uint32_t do_eval_program(uint32_t lisp) {
+   
   // Program is a list of expressions that should be evaluated individually
+  uint32_t res; 
   uint32_t local_env = ENC_SYM(symrepr_nil());
   if ( IS_PTR(lisp) &&
        PTR_TYPE(lisp) == PTR_TYPE_CONS) {
@@ -124,26 +151,68 @@ uint32_t eval_program(uint32_t lisp) {
     uint32_t car_val = eval_in_env(car(lisp),local_env);
     uint32_t cdr_val = eval_program(cdr(lisp)); 
     
-    return cons(car_val, cdr_val);  
+    res = cons(car_val, cdr_val);  
+  } else {
+    res =  eval_in_env(lisp,local_env);
   }
-  return eval_in_env(lisp,local_env);
-} 
+
+  return res;   
+}
+
+uint32_t eval_program(uint32_t lisp) {
+
+  // Setup jmp buffer for breaking out of recursion on error.
+  if (!error_jmp_ptr) {
+    error_jmp_ptr = &error_jmp_buffer; 
+
+    if (setjmp(*error_jmp_ptr)) {
+      error_jmp_ptr = 0;
+      return ENC_SYM(symrepr_eerror());
+    }
+  }
+  
+  uint32_t res = do_eval_program(lisp);
+  
+  if (error_jmp_ptr) error_jmp_ptr = 0;
+  return res; 
+}
+
+int lookup_env(uint32_t sym, uint32_t env, uint32_t *res) {
+  uint32_t curr = env;
+  
+  if(DEC_SYM(sym) == symrepr_nil()) {
+    *res = ENC_SYM(symrepr_nil());
+    return 1;
+  }
+    
+  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+    if (car(car(curr)) == sym) {
+      *res = cdr(car(curr));
+      return 1;
+    }
+    curr = cdr(curr);
+  }
+  return 0;
+}
+
 
 uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
+
   uint32_t nil = symrepr_nil();
   uint32_t val = 0; 
-
+  uint32_t tmp = 0;
+  int ret;
+  
   if (! IS_PTR(lisp)) {
     switch (VAL_TYPE(lisp)){
 
     case VAL_TYPE_SYMBOL:
-      val = lookup_env(lisp,env);
-      if ( VAL_TYPE(val) == VAL_TYPE_SYMBOL &&
-	   DEC_SYM(val) == symrepr_eerror()) {
-	val = lookup_env(lisp,global_env);
+      ret = lookup_env(lisp, env, &tmp);
+      if (!ret) {
+	ret = lookup_env(lisp, global_env, &tmp);
       }
-      return val;
-      
+      if (ret) return tmp;
+      ERROR("Eval: Variable lookup failed: %s ",symrepr_lookup_name(DEC_SYM(lisp)));
       break;
     default:
       return lisp; // cannot be evaluated further.
@@ -220,12 +289,13 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     // TODO: All other ptr cases. Float etc.
     
   default:
-   
-    return ENC_SYM(symrepr_eerror());
+
+    ERROR("BUG! case not implemented.");
     break; 
 
   }
-  // TODO: Bottoming out here should not happen
+  
+  ERROR("BUG! This cannot happen!");
   return ENC_SYM(symrepr_eerror());
 } 
 
@@ -272,7 +342,8 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
       DEC_SYM(pcons) == symrepr_nil()) {
     return ENC_SYM(symrepr_nil());
   }
-  printf("bad case\n");
+
+  ERROR("Evlis argument is not a list"); 
   return ENC_SYM(symrepr_eerror());
 }
 
@@ -316,7 +387,7 @@ static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
     uint32_t val = eval_in_env(car(cdr(car(curr))),new_env);
 
     res = modify_binding(new_env, key, val);
-    if (!res) printf("error!!!"); 
+    if (!res) ERROR("Unable to modify letrec bindings");
     curr = cdr(curr); 
   }
 
@@ -330,7 +401,8 @@ static uint32_t apply_builtin(uint32_t sym, uint32_t args) {
   uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(sym));
 
   if (f == NULL) {
-    return ENC_SYM(symrepr_eerror());
+    ERROR("Built in function does not exist"); 
+    //return ENC_SYM(symrepr_eerror());
   }
 
   return f(args); 

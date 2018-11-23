@@ -47,6 +47,8 @@ uint32_t bi_fun_cons(uint32_t args) {
   return cons(a,b);
 }
 
+// TODO: Write a sum wrapper that checks type and dispatches.
+//       Potentially after doing some type promotion. 
 uint32_t bi_fun_sum(uint32_t args) { // TODO: typechecking and potential conversion
   uint32_t tmp = args;
   int32_t sum = 0;
