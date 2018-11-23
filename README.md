@@ -1,6 +1,6 @@
 # lispBM
 
-A lisp-like language (work in progress) implemented in C using the MPC library for the parsing task.
+A lisp-like language (work in progress) implemented in C using the MPC (https://github.com/orangeduck/mpc) library for the parsing task.
 
 ## Purpose
 1. Have fun.
@@ -28,5 +28,5 @@ A lisp-like language (work in progress) implemented in C using the MPC library f
 1. rewrite evaluator. 
 
 ## Problems
-1. Stack overflows, due to nature of the evaluator. No deep recursion supported. 
+1. Stack overflows, due to nature of the evaluator. No deep recursion supported.
 
