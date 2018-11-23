@@ -56,10 +56,6 @@ char *eval_get_error() {
   return eval_error_string;
 }
 
-//void eval_set_env(uint32_t env) {
-//  global_env = env;
-//}
-
 uint32_t eval_get_env(void) {
   return global_env;
 }
@@ -225,7 +221,6 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       if (DEC_SYM(head) == symrepr_quote()) {
 
 	return (car (cdr (lisp)));
-
       }
 
       // Special form: LAMBDA
@@ -236,7 +231,6 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 		    cons(car(cdr(lisp)),
 			 cons(car(cdr(cdr(lisp))),
 			      cons(env_cpy, ENC_SYM(symrepr_nil())))));
-
       }
 
       // Special form: IF
@@ -250,7 +244,6 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 	  // TODO: CHECK THAT IS NOT A PROGRAMMER ERROR
 	  return eval_in_env(car(cdr(cdr(cdr(lisp)))), env);
 	}
-
       }
 
       // Special form: LET
@@ -258,7 +251,6 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 
 	uint32_t new_env = eval_let_bindings(car(cdr(lisp)),env);
 	return eval_in_env(car(cdr(cdr(lisp))),new_env);
-
       }
 
     } // If head is symbol

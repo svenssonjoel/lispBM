@@ -292,8 +292,6 @@ int heap_perform_gc(uint32_t env) {
   return gc_sweep_phase();
 }
 
-
-
 // construct, alter and break apart
 uint32_t cons(uint32_t car, uint32_t cdr) {
   uint32_t addr = heap_allocate_cell(PTR_TYPE_CONS);
