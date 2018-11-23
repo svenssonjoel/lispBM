@@ -86,7 +86,7 @@ uint32_t define_bi(uint32_t lisp) {
   uint32_t val = car(cdr(lisp));
 
   // Check for bad cases (not symbol or trying define nil)
-  if (VAL_TYPE(key) != VAL_TYPE_SYMBOL)
+  if (TYPE_OF(key) != VAL_TYPE_SYMBOL)
     return ENC_SYM(symrepr_nil());
 
   if (DEC_SYM(key) == symrepr_nil())
