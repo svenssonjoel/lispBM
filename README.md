@@ -27,7 +27,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 1. fix problem 1 (below) in one of the many ways possible.
 
 ## Problems
-1. Stack overflows, due to nature of the evaluator. No deep recursion supported.
+1. Stack overflows when doing deep recursion, due to nature of the evaluator. No deep recursion supported.
 
 
 ## Compile for Zynq instructions
@@ -43,7 +43,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
    and add in INCLUDE DIRECTORIES the path to the include directory.
 
 5. Go to menu: Xilinx > Generate linker script
-   Set up for enough of heap and stack. 128MB heap and 16MB stack is an ok starting point.
+   and set up for enough of heap and stack. 128MB heap and 16MB stack is an ok starting point.
 
 6. Remove the helloworld.c file from the project and replace with repl-zynq/repl.c
 
