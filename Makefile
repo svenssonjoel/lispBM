@@ -18,6 +18,7 @@ ifeq ($(PLATFORM), pi)
 endif
 
 SOURCE_DIR = src
+INCLUDE_DIR = include
 
 $(shell mkdir -p ${BUILD_DIR})
 
@@ -38,7 +39,7 @@ $(LIB): $(OBJECTS)
 	$(AR) -rcs $@ $(OBJECTS)
 
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
-	$(CC) -I$(SOURCE_DIR) $(CCFLAGS) -c $< -o $@
+	$(CC) -I$(INCLUDE_DIR) $(CCFLAGS) -c $< -o $@
 
 
 clean:
