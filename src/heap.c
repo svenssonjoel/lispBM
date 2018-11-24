@@ -123,12 +123,12 @@ uint32_t heap_num_free(void) {
   uint32_t count = 0;
   uint32_t curr = heap_state.freelist; 
   
-  while (IS_PTR(curr)) {  // (curr & PTR_MASK) == IS_PTR) {
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
     curr = read_cdr(ref_cell(curr));
     count++; 
   }
   // Prudence.
-  if (!(VAL_TYPE(curr) == VAL_TYPE_SYMBOL) &&
+  if (!(TYPE_OF(curr) == VAL_TYPE_SYMBOL) &&
       (DEC_SYM(curr) == SYMBOL_NIL)){ 
     return 0; 
   } 
@@ -196,13 +196,12 @@ int gc_mark_phase(uint32_t env) {
 	(DEC_SYM(env) == SYMBOL_NIL)){ 
       return 1; // Nothing to mark here 
     } else {
-      //  I think these are irrelevent
-      //printf(" ERROR CASE! %x \n", env);
+      // Not sure this is an error case... 
       return 1;
     }
   }
   // There is at least a pointer to one cell here. Mark it and recurse over  car and cdr 
-  // TODO: Special cases here for differnt kinds of pointers.
+  // TODO: Special cases here for differnt kinds of pointers (if needed).
 
   heap_state.gc_marked ++;
 
@@ -304,10 +303,13 @@ uint32_t cons(uint32_t car, uint32_t cdr) {
 }
 
 uint32_t car(uint32_t c){
-  if (c == ENC_SYM(symrepr_nil())) {
-    return ENC_SYM(symrepr_nil());
+  
+  if (TYPE_OF(c) == VAL_TYPE_SYMBOL &&
+      DEC_SYM(c) == SYMBOL_NIL) {
+    return c; // if nil, return nil.
   }
-  if ( IS_PTR(c) && PTR_TYPE(c) == PTR_TYPE_CONS) {
+  
+  if (TYPE_OF(c) == PTR_TYPE_CONS) {
     cons_t *cell = ref_cell(c);
     return read_car(cell);
   } 
@@ -315,10 +317,13 @@ uint32_t car(uint32_t c){
 }
 
 uint32_t cdr(uint32_t c){
-  if (c == ENC_SYM(symrepr_nil())) {
-    return ENC_SYM(symrepr_nil());
+ 
+  if (TYPE_OF(c) == VAL_TYPE_SYMBOL &&
+      DEC_SYM(c) == SYMBOL_NIL) {
+    return c; // if nil, return nil.
   }
-  if (IS_PTR(c) && PTR_TYPE(c) == PTR_TYPE_CONS) {
+  
+  if (TYPE_OF(c) == PTR_TYPE_CONS) {
     cons_t *cell = ref_cell(c);
     return read_cdr(cell);
   }
@@ -333,7 +338,7 @@ void set_car(uint32_t c, uint32_t v) {
 }
 
 void set_cdr(uint32_t c, uint32_t v) {
-  if (IS_PTR(c) && PTR_TYPE(c) == PTR_TYPE_CONS) {
+  if (TYPE_OF(c) == PTR_TYPE_CONS){
     cons_t *cell = ref_cell(c);
     set_cdr_(cell,v); 
   }
@@ -343,7 +348,7 @@ void set_cdr(uint32_t c, uint32_t v) {
 uint32_t length(uint32_t c) {
   uint32_t len = 0;
   
-  while (IS_PTR(c) && PTR_TYPE(c) == PTR_TYPE_CONS) {
+  while (TYPE_OF(c) == PTR_TYPE_CONS){
     len ++; 
     c = cdr(c); 
   }
