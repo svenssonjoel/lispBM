@@ -1,7 +1,7 @@
 
+
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
-  SOURCE_DIR = src
   CCFLAGS = -m32 -O2
 endif
 
@@ -17,6 +17,8 @@ ifeq ($(PLATFORM), pi)
   CCFLAGS = 
 endif
 
+SOURCE_DIR = src
+
 $(shell mkdir -p ${BUILD_DIR})
 
 CC=${CROSS_COMPILE}gcc
@@ -31,10 +33,6 @@ OBJECTS = $(patsubst $(SOURCE_DIR)/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
 LIB = $(BUILD_DIR)/library.a
 
 all: $(OBJECTS) $(LIB)
-
-lib: $(LIB)
-## Build all o's into an executable. 
-	$(CC) $^ -o $@
 
 $(LIB): $(OBJECTS)
 	$(AR) -rcs $@ $(OBJECTS)
