@@ -12,7 +12,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 2. A few built-in functions: define, cons, car, cdr, eval, list, gensym, +, -, >, < and =
 3. Some special forms: Lambdas, closures, lets (letrecs) and quote.
 4. Compiles for, and runs on linux-x86 (builds 32bit library, runs on 32/64 bit).
-5. Compiles for, and runs on Zynq 7000 (ZynqBerry).  
+5. Compiles for, and runs on Zynq 7000.  
 
 ## Short term TODOs
 1. Write more tests.
@@ -24,7 +24,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 7. Fix the issue with define, that requires a quoted symbol as first argument.
 
 ## Long term TODOs
-1. fix problem 1 in one of the many ways possible.
+1. fix problem 1 (below) in one of the many ways possible.
 
 ## Problems
 1. Stack overflows, due to nature of the evaluator. No deep recursion supported.
