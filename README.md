@@ -32,8 +32,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 
 ## Compile for Zynq instructions
 
-1. Build library for ARM A9:
-   'PLATFORM=zynq make'
+1. Build library for ARM A9: `PLATFORM=zynq make`
 
 2. Create a standalone app in Vivado SDK (helloworld template is a good starting point) 
 
