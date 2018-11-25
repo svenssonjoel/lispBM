@@ -5,7 +5,8 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 ## Purpose
 1. Have fun.
 2. Learn about lisp.
-3. ...
+3. An interactive REPL for Zynq devboard.
+4. ...
 
 ## Features
 1. heap consisting of cons-cells with mark and sweep garbage collection.
@@ -16,10 +17,10 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 
 ## Short term TODOs
 1. Write more tests.
-2. Document code.
-3. Implement the boxed types (float, int32, uint32, Vector, String etc)
-4. Implement some looping structure (since recursion is very limited)
-5. Implement functions for dealing with references to valus (a reference type?)
+2. Test the Zynq build more. 
+3. Document code.
+4. Implement the boxed types (float, int32, uint32, Vector, String etc)
+5. Implement some looping structure (since recursion is very limited)
 6. Be much more stringent on checking of error conditions etc. 
 7. Fix the issue with define, that requires a quoted symbol as first argument.
 
@@ -29,9 +30,14 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 ## Problems
 1. Stack overflows when doing deep recursion, due to nature of the evaluator. No deep recursion supported.
 
+## Compile for linux
+1. Build the library: `make`
+
+2. Build the repl: `cd repl` and then `make`
+
+3. Run the repl: `./repl`
 
 ## Compile for Zynq instructions
-
 1. Build library for ARM A9: `PLATFORM=zynq make`
 
 2. Create a standalone app in Vivado SDK (helloworld template is a good starting point) 
