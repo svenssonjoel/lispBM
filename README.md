@@ -38,19 +38,21 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 3. Run the repl: `./repl`
 
 ## Compile for Zynq instructions
-1. Build library for ARM A9: `PLATFORM=zynq make`
+1. Source your vivado settings: `source <PATH_TO>/settings.sh`
 
-2. Create a standalone app in Vivado SDK (helloworld template is a good starting point) 
+2. Build library for ARM A9: `PLATFORM=zynq make`
 
-3. Go to menu: Project > Properties > Tool settings > ARM v7 gcc linker > Miscellaneous
+3. Create a standalone app in Vivado SDK (helloworld template is a good starting point) 
+
+4. Go to menu: Project > Properties > Tool settings > ARM v7 gcc linker > Miscellaneous
    and add in OTHER OBJECTS the path to library.a (build/zynq/library.a)
 
-4. Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Directories
+5. Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Directories
    and add in INCLUDE DIRECTORIES the path to the include directory.
 
-5. Go to menu: Xilinx > Generate linker script
+6. Go to menu: Xilinx > Generate linker script
    and set up for enough of heap and stack. 128MB heap and 16MB stack is an ok starting point.
 
-6. Remove the helloworld.c file from the project and replace with repl-zynq/repl.c
+7. Remove the helloworld.c file from the project and replace with repl-zynq/repl.c
 
-7. build and run. 
+8. build and run. 
