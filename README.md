@@ -37,7 +37,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 
 3. Run the repl: `./repl`
 
-## Compile for Zynq instructions
+## Compile for Zynq devboard (bare-metal)  
 1. Source your vivado settings: `source <PATH_TO>/settings.sh`
 
 2. Build library for ARM A9: `PLATFORM=zynq make`
