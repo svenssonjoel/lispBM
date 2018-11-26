@@ -75,35 +75,6 @@ uint32_t eval_bi(uint32_t lisp) {
   
 }
 
-uint32_t define_bi(uint32_t lisp) {
-
-  uint32_t curr = global_env;
-  uint32_t key = car(lisp);
-  uint32_t val = car(cdr(lisp));
-
-  // Check for bad cases (not symbol or trying define nil)
-  if (TYPE_OF(key) != VAL_TYPE_SYMBOL)
-    return ENC_SYM(symrepr_nil());
-
-  if (DEC_SYM(key) == symrepr_nil())
-    return ENC_SYM(symrepr_nil());
-
-  // Check if present in env then replace binding (in-place)
-  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
-    if (car(car(curr)) == key) {
-      set_cdr(car(curr), val);
-      return ENC_SYM(symrepr_true());
-    }
-    curr = cdr(curr);
-  }
-
-  // Otherwise create a new binding
-  uint32_t keyval = cons(key,val);
-  global_env = cons(keyval,global_env);
- 
-  return ENC_SYM(symrepr_true());
-}
-
 static uint32_t copy_env_shallow(uint32_t env) {
 
   uint32_t res = ENC_SYM(symrepr_nil());
@@ -123,7 +94,6 @@ int eval_init() {
 
   int res = 1;
   res &= builtin_add_function("eval", eval_bi);
-  res &= builtin_add_function("define", define_bi);
  
   global_env = built_in_gen_env();
 
@@ -244,6 +214,31 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 	  // TODO: CHECK THAT IS NOT A PROGRAMMER ERROR
 	  return eval_in_env(car(cdr(cdr(cdr(lisp)))), env);
 	}
+      }
+
+      // Special form: DEFINE
+      if (DEC_SYM(head) == symrepr_define()) {
+	printf("SPECIAL FORM DEFINE\n"); 
+	uint32_t key = car(cdr(lisp));
+	uint32_t val = eval_in_env(car(cdr(cdr(lisp))), env);
+	uint32_t curr = global_env; 
+
+	if (TYPE_OF(key) != VAL_TYPE_SYMBOL)
+	  ERROR("Define expects a symbol");
+
+	if (DEC_SYM(key) == symrepr_nil())
+	  ERROR("Cannot redefine nil");
+
+	while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+	  if (car(car(curr)) == key) {
+	    set_cdr(car(curr),val);
+	    return ENC_SYM(symrepr_true());
+	  }
+	  curr = cdr(curr);
+	}
+	uint32_t keyval = cons(key,val);
+	global_env = cons(keyval,global_env);
+	return ENC_SYM(symrepr_true()); 	
       }
 
       // Special form: LET

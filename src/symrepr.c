@@ -58,6 +58,7 @@
 #define DEF_REPR_RERROR    8  // READ ERROR
 #define DEF_REPR_TERROR    9  // TYPE ERROR
 #define DEF_REPR_EERROR    10  // EVAL ERROR
+#define DEF_REPR_DEFINE    11
 
 #define GENSYM_FLAG        0xFFFF
 #define IS_GENSYM(X)       (((X) & 0xFFFF) == 0xFFFF)
@@ -68,7 +69,7 @@ static uint32_t gensym_next = HASHTAB_SIZE;
 
 static uint32_t hash_string(char *str); 
 
-static uint32_t def_repr[11]; 
+static uint32_t def_repr[12]; 
 
 typedef struct s_name_mapping {
   uint32_t key; // hash including collision id //
@@ -92,7 +93,8 @@ int add_default_symbols(void) {
   res &= symrepr_addsym("rerror" , &def_repr[DEF_REPR_RERROR]);
   res &= symrepr_addsym("terror" , &def_repr[DEF_REPR_TERROR]);
   res &= symrepr_addsym("eerror" , &def_repr[DEF_REPR_EERROR]);
-
+  res &= symrepr_addsym("define" , &def_repr[DEF_REPR_DEFINE]); 
+  
   return res;
 }
 
@@ -107,6 +109,7 @@ uint32_t symrepr_let(void)     { return def_repr[DEF_REPR_LET]; }
 uint32_t symrepr_rerror(void)  { return def_repr[DEF_REPR_RERROR]; }
 uint32_t symrepr_terror(void)  { return def_repr[DEF_REPR_TERROR]; }
 uint32_t symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }
+uint32_t symrepr_define(void)  { return def_repr[DEF_REPR_DEFINE]; }
 
 int symrepr_init(void) {
   name_table = (name_mapping_t**)malloc(HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));

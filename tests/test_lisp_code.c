@@ -118,13 +118,17 @@ int main(int argc, char **argv) {
   
   printf("O: "); simple_print(t); printf("\n");
 
+  if ( DEC_SYM(t) == symrepr_eerror()) {
+    res = 0;
+  }
+  
   uint32_t rest = t;
   while (length(rest) > 2) {
     rest = cdr(rest);
   }
   
   
-  if (structural_equality(car(rest),car(cdr(rest)))) {
+  if (res && structural_equality(car(rest),car(cdr(rest)))) {
     printf("Test: OK!\n"); 
     res = 1;
   } else {

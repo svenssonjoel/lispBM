@@ -41,4 +41,5 @@ extern uint32_t symrepr_rerror(void);
 extern uint32_t symrepr_terror(void);
 extern uint32_t symrepr_eerror(void);
 
+extern uint32_t symrepr_define(void); 
 #endif 
