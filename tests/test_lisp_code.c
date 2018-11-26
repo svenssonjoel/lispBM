@@ -104,10 +104,10 @@ int main(int argc, char **argv) {
   
   ast = parser_parse_string(code_buffer); 
   if (!ast) {
-    printf("ERROR! parsing lisp\n");
+    printf("ERROR! parsing lisp:\n");
     return 0;
   }
-    
+  
   uint32_t t; 
   t = read_ast(ast);
   mpc_ast_delete(ast);

@@ -72,7 +72,8 @@ uint32_t read_ast(mpc_ast_t *t){
     uint32_t res = ENC_SYM(nil);
     
     for (int i = n - 1; i >= 0; i --) {
-      if (strcmp(t->children[i]->tag,  "regex") == 0) { continue; }
+      if (strcmp(t->children[i]->tag, "regex") == 0) { continue; }
+      if (strstr(t->children[i]->tag, "comment")) { continue; }
        
       uint32_t r = read_ast(t->children[i]);
       res = cons(r, res); 

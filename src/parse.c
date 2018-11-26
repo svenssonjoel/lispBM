@@ -19,7 +19,7 @@
 
 
 /* Grammar */
-
+mpc_parser_t* Comment;
 mpc_parser_t* Exp;
 mpc_parser_t* SExp;
 mpc_parser_t* QExp;
@@ -29,7 +29,8 @@ mpc_parser_t* Float;
 mpc_parser_t* Name;
 
 int parser_init(void) {
-  
+
+  Comment = mpc_new("comment"); 
   Exp  = mpc_new("exp");
   SExp = mpc_new("sexp");
   QExp = mpc_new("qexp");
@@ -39,7 +40,8 @@ int parser_init(void) {
   Name = mpc_new("name");
   
   mpca_lang(MPCA_LANG_DEFAULT,
-	    "program   : /^/ <exp>+ /$/ ;"
+	    "program   : /^/ (<exp>|<comment>)+ /$/ ;"
+	    "comment   : /[;]+.*/ ;"
 	    "exp       : <float> | <integer> | <name> "
 	    "          |  <sexp> | <qexp> ;"
 	    "sexp      : '(' <exp>* ')' | '(' <exp> '.' <exp> ')' ;"
@@ -47,14 +49,14 @@ int parser_init(void) {
 	    "integer   : /0x([0-9a-fA-F]+)|([0-9]+u?)/ ;"
 	    "float     : /[0-9]+\\.?[0-9]+/;"
 	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/;",
-	    Program, Exp, SExp, QExp, Integer, Float , Name, NULL) ;
+	    Program, Comment, Exp, SExp, QExp, Integer, Float , Name, NULL) ;
   
   return 1; 
 }
 
 void parser_del(void) {
   
-  mpc_cleanup(6, Exp, SExp, QExp, Program, Integer, Float, Name);
+  mpc_cleanup(7, Comment, Exp, SExp, QExp, Program, Integer, Float, Name);
 } 
 
 
