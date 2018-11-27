@@ -218,7 +218,6 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 
       // Special form: DEFINE
       if (DEC_SYM(head) == symrepr_define()) {
-	printf("SPECIAL FORM DEFINE\n"); 
 	uint32_t key = car(cdr(lisp));
 	uint32_t val = eval_in_env(car(cdr(cdr(lisp))), env);
 	uint32_t curr = global_env; 
