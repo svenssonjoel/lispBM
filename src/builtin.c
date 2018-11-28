@@ -47,17 +47,98 @@ uint32_t bi_fun_cons(uint32_t args) {
   return cons(a,b);
 }
 
-// TODO: Write a sum wrapper that checks type and dispatches.
-//       Potentially after doing some type promotion. 
-uint32_t bi_fun_sum(uint32_t args) { // TODO: typechecking and potential conversion
-  uint32_t tmp = args;
-  int32_t sum = 0;
-  while ( DEC_SYM(tmp) != symrepr_nil()) {
-    int32_t v = car(tmp);
-    sum += DEC_I28(v);
-    tmp = cdr(tmp); 
+uint32_t get_maximum_type(uint32_t args) {
+
+  uint32_t max_type = 0; 
+  uint32_t curr = args;
+
+  while ( TYPE_OF(curr) == PTR_TYPE_CONS ) {
+
+    if (TYPE_OF(car(curr)) > max_type) {
+      max_type = TYPE_OF(car(curr));
+    }
+    curr = cdr(curr);
   }
-  return ENC_I28(sum);
+  return max_type;
+}
+
+uint32_t bi_fun_sum(uint32_t args) { 
+  uint32_t curr = args;
+  int32_t  i_sum = 0;
+  uint32_t u_sum = 0;
+  float    f_sum = 0.0; 
+
+  uint32_t tmp;
+  uint32_t float_enc;
+  
+  uint32_t max_type = get_maximum_type(args);
+  switch (max_type) {
+  case VAL_TYPE_I28:
+    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+      uint32_t v = car(curr);
+      switch (TYPE_OF(v)) {
+      case VAL_TYPE_I28:
+	i_sum += DEC_I28(v);
+	break;
+      default:
+	return ENC_SYM(symrepr_eerror());
+	break;
+      }
+      curr = cdr(curr); 
+    }
+    break; 
+  case VAL_TYPE_U28:
+    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+      uint32_t v = car(curr);
+      switch (TYPE_OF(v)) {
+      case VAL_TYPE_I28:
+	u_sum += (uint32_t)DEC_I28(v);
+	break;
+      case VAL_TYPE_U28:
+	u_sum += DEC_U28(v);
+	break;
+      default:
+	return ENC_SYM(symrepr_eerror());
+      }
+      curr = cdr(curr); 
+    }
+    break;
+  case PTR_TYPE_F32:
+    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+      uint32_t v = car(curr);
+      switch (TYPE_OF(v)) {
+      case VAL_TYPE_I28:
+	f_sum += (float)DEC_I28(v);
+	break;
+      case VAL_TYPE_U28:
+	f_sum += (float)DEC_U28(v);
+	break;
+      case PTR_TYPE_F32:
+	tmp = car(v);
+	f_sum += *(float*)&tmp;
+	break;
+      default:
+	return ENC_SYM(symrepr_eerror());
+      }
+      curr = cdr(curr); 
+    }
+    break;
+  default:
+    return ENC_SYM(symrepr_eerror());
+  }
+
+  switch (max_type) {
+  case VAL_TYPE_I28:
+    return ENC_I28(i_sum);
+  case VAL_TYPE_U28:
+    return ENC_U28(u_sum);
+  case PTR_TYPE_F32:
+    tmp = *(uint32_t*)&f_sum;
+    float_enc = cons(tmp,ENC_SYM(symrepr_nil()));
+    float_enc = SET_PTR_TYPE(float_enc, PTR_TYPE_F32);
+    return float_enc;
+  }
+  return ENC_SYM(symrepr_eerror());
 }
 
 uint32_t bi_fun_sub(uint32_t args) { // TODO: typechecking and potential conversion
