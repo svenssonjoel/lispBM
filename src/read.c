@@ -66,6 +66,14 @@ uint32_t read_ast(mpc_ast_t *t){
     return ENC_I28(v); 
   }
 
+  if (strstr(t->tag, "float")) {
+    float v = (float)atof(t->contents);
+    uint32_t uv = *(uint32_t*)(&v);
+    uint32_t ptr_cons = cons(uv,ENC_SYM(nil)); // Boxed value.
+    uint32_t ptr_float_box = SET_PTR_TYPE(ptr_cons, PTR_TYPE_F32);
+    return ptr_float_box;
+  }
+
   // Program case
   if (strcmp(t->tag, ">") == 0) {
     int n = t->children_num;

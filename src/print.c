@@ -76,7 +76,7 @@ int simple_print(uint32_t t){
 
   char *str_ptr;
   
-  if (IS_PTR(t)) {
+  if (IS_PTR(t) & PTR_TYPE(t) == PTR_TYPE_CONS) {
     // TODO: Switch on the type of object pointed to.
 
     uint32_t car_val = car(t);
@@ -91,8 +91,16 @@ int simple_print(uint32_t t){
       printf(")");			
     }
     return 1; 
-  } else { // Value, symbol 
+  }
 
+  if (IS_PTR(t) & PTR_TYPE(t) == PTR_TYPE_F32) {
+    uint32_t uv = car(t);
+    float v = *(float*)(&uv);
+    printf("[*%f*]", v); 
+    return 1; 
+  }
+
+  if (!IS_PTR(t)) { // Value, symbol 
     switch (t & VAL_TYPE_MASK) {
     case VAL_TYPE_SYMBOL:
       str_ptr = symrepr_lookup_name(DEC_SYM(t));

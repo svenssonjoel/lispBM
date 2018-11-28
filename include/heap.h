@@ -172,8 +172,9 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 
 #define IS_PTR(X)   (((X) & PTR_MASK) == PTR)
 
-#define ENC_CONS_PTR(X) ((uint32_t)((((X) << ADDRESS_SHIFT)) | PTR_TYPE_CONS | PTR))
-#define DEC_PTR(X)      ((uint32_t)((PTR_VAL_MASK & (X)) >> ADDRESS_SHIFT))
+#define ENC_CONS_PTR(X)   ((uint32_t)((((X) << ADDRESS_SHIFT)) | PTR_TYPE_CONS | PTR))
+#define DEC_PTR(X)        ((uint32_t)((PTR_VAL_MASK & (X)) >> ADDRESS_SHIFT))
+#define SET_PTR_TYPE(X,T) ((uint32_t)((PTR_VAL_MASK & (X)) | (T) | PTR))
 
 #define ENC_I28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_I28)
 #define ENC_U28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_U28)
