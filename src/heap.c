@@ -187,10 +187,6 @@ void heap_get_state(heap_state_t *res) {
 // Recursive implementation can exhaust stack!
 int gc_mark_phase(uint32_t env) {
 
-  cons_t *t;
-  uint32_t car; 
-  uint32_t cdr;
-
   if (!IS_PTR(env)) {
     if ((VAL_TYPE(env) == VAL_TYPE_SYMBOL) &&
 	(DEC_SYM(env) == SYMBOL_NIL)){ 
@@ -200,22 +196,20 @@ int gc_mark_phase(uint32_t env) {
       return 1;
     }
   }
-  // There is at least a pointer to one cell here. Mark it and recurse over  car and cdr 
-  // TODO: Special cases here for differnt kinds of pointers (if needed).
 
+  // There is at least a pointer to one cell here. Mark it and recurse over  car and cdr 
   heap_state.gc_marked ++;
 
-  t = ref_cell(env);
 
-  set_gc_mark(t); 
-    
-  car = read_car(t);
-  cdr = read_cdr(t); 
+  set_gc_mark(ref_cell(env)); 
+
+  int res = 1;
+  if (TYPE_OF(car(env)) == PTR_TYPE_CONS ) 
+    res &= gc_mark_phase(car(env));
+  if (TYPE_OF(cdr(env)) == PTR_TYPE_CONS )
+    res &= gc_mark_phase(cdr(env)); 
   
-  gc_mark_phase(car);
-  gc_mark_phase(cdr); 
-  
-  return 1; 
+  return res; 
 }
 
 // The free list should be a "proper list"
