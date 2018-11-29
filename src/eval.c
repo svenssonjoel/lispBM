@@ -264,8 +264,10 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   case PTR_TYPE_F32:
     return lisp;
     break;
-  case PTR_TYPE_I32:
   case PTR_TYPE_U32:
+    return lisp;
+    break; 
+  case PTR_TYPE_I32:
   case PTR_TYPE_VEC_I32:
   case PTR_TYPE_VEC_U32:
   case PTR_TYPE_VEC_F32:

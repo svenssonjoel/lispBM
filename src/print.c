@@ -93,12 +93,20 @@ int simple_print(uint32_t t){
     return 1; 
   }
 
-  if (IS_PTR(t) & PTR_TYPE(t) == PTR_TYPE_F32) {
+  if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_F32) {
     uint32_t uv = car(t);
     float v = *(float*)(&uv);
     printf("%f", v); 
     return 1; 
   }
+
+  if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_U32) {
+    uint32_t v = car(t);
+    printf("%x", v); 
+    return 1; 
+  }
+
+  
 
   if (!IS_PTR(t)) { // Value, symbol 
     switch (t & VAL_TYPE_MASK) {

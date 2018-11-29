@@ -250,7 +250,7 @@ void symrepr_print(void) {
     if (name_table[i] != NULL) {
       name_mapping_t *head = name_table[i]; 
       while (head) {
-	printf("%d : %s\n", head->key,head->name); 
+	printf("%d : %x : %s\n", head->key, head->key, head->name); 
 	head = head->next; 
       }
     }

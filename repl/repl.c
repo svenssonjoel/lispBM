@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
     printf("Error initializing symrepr!\n");
     return 0;
   }
+
   int heap_size = 8 * 1024 * 1024;
   res = heap_init(heap_size);
   if (res)

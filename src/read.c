@@ -25,8 +25,8 @@
 #include "parse.h"
 #include "symrepr.h"
 
-uint32_t xtoi(char *str) {
-  return (uint32_t)strtol(str,NULL,0);
+uint32_t xtou(char *str) {
+  return (uint32_t)strtoul(str,NULL,0);
 }
 
 
@@ -55,8 +55,14 @@ uint32_t read_ast(mpc_ast_t *t){
     if (strlen(t->contents) > 2 &&
 	t->contents[0] == '0' &&
 	t->contents[1] == 'x' ) {
-      uint32_t v = (uint32_t)xtoi(t->contents);
-      return ENC_U28(v);
+      uint32_t v = (uint32_t)xtou(t->contents);
+      if (strlen(t->contents) == 10) { // Boxed 32 bit uint
+	uint32_t ptr_cons = cons(v,ENC_SYM(nil));
+	uint32_t ptr_uint_box = SET_PTR_TYPE(ptr_cons, PTR_TYPE_U32);
+	return ptr_uint_box;
+      } else {
+	return ENC_U28(v);
+      }
     }
     if (t->contents[strlen(t->contents)-1] == 'u') {
       uint32_t v = (uint32_t)atoi(t->contents);
