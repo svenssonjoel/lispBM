@@ -132,8 +132,6 @@ int get_as_float(uint32_t v, float *r) {
   return 1;
 }
 
-
-
 uint32_t bi_fun_sum(uint32_t args) { 
   uint32_t curr = args;
   int32_t  i_sum = 0;
@@ -302,23 +300,73 @@ uint32_t bi_fun_sub(uint32_t args) {
 uint32_t bi_fun_gt(uint32_t args) {
   uint32_t a1 = car(args);
   uint32_t a2 = car(cdr(args));
+  int32_t i1, i2;
+  uint32_t u1, u2;
+  float f1, f2;
   
-  //TODO: error checking and type promotion
-  if (DEC_I28(a1) > DEC_I28(a2)) {
-    return ENC_SYM(symrepr_true());
+  uint32_t max_type = (TYPE_OF(a1) >= TYPE_OF(a2)) ? TYPE_OF(a1) : TYPE_OF(a2);
+
+  switch (max_type) {
+
+  case VAL_TYPE_I28:
+    get_as_int(a1, &i1);
+    get_as_int(a2, &i2);
+    if (i1 > i2) return ENC_SYM(symrepr_true());
+    else return ENC_SYM(symrepr_nil());
+  case VAL_TYPE_U28:
+    get_as_uint(a1, &u1);
+    get_as_uint(a2, &u2);
+    if (u1 > u2) return ENC_SYM(symrepr_true());
+    else return ENC_SYM(symrepr_nil());
+  case PTR_TYPE_U32:
+    get_as_uint(a1, &u1);
+    get_as_uint(a2, &u2);
+    if (u1 > u2) return ENC_SYM(symrepr_true());
+    else return ENC_SYM(symrepr_nil());
+  case PTR_TYPE_F32:
+    get_as_float(a1, &f1);
+    get_as_float(a2, &f2);
+    if (f1 > f2) return ENC_SYM(symrepr_true());
+    else return ENC_SYM(symrepr_nil());
   }
-  return ENC_SYM(symrepr_nil());
+
+  return ENC_SYM(symrepr_eerror());
 }
 
 uint32_t bi_fun_lt(uint32_t args) {
   uint32_t a1 = car(args);
   uint32_t a2 = car(cdr(args));
+  int32_t i1, i2;
+  uint32_t u1, u2;
+  float f1, f2;
+  
+  uint32_t max_type = (TYPE_OF(a1) >= TYPE_OF(a2)) ? TYPE_OF(a1) : TYPE_OF(a2);
 
-  //TODO: error checking and type promotion
-  if (DEC_I28(a1) < DEC_I28(a2)) {
-    return ENC_SYM(symrepr_true());
+  switch (max_type) {
+
+  case VAL_TYPE_I28:
+    get_as_int(a1, &i1);
+    get_as_int(a2, &i2);
+    if (i1 < i2) return ENC_SYM(symrepr_true());
+    else return ENC_SYM(symrepr_nil());
+  case VAL_TYPE_U28:
+    get_as_uint(a1, &u1);
+    get_as_uint(a2, &u2);
+    if (u1 < u2) return ENC_SYM(symrepr_true());
+    else return ENC_SYM(symrepr_nil());
+  case PTR_TYPE_U32:
+    get_as_uint(a1, &u1);
+    get_as_uint(a2, &u2);
+    if (u1 < u2) return ENC_SYM(symrepr_true());
+    else return ENC_SYM(symrepr_nil());
+  case PTR_TYPE_F32:
+    get_as_float(a1, &f1);
+    get_as_float(a2, &f2);
+    if (f1 < f2) return ENC_SYM(symrepr_true());
+    else return ENC_SYM(symrepr_nil());
   }
-  return ENC_SYM(symrepr_nil());
+
+  return ENC_SYM(symrepr_eerror());
 }
 
 int structural_equality(uint32_t a, uint32_t b) {
@@ -479,7 +527,6 @@ void builtin_del(void) {
     free(t);
   }
 }
-
 
 uint32_t built_in_gen_env(void) {
 
