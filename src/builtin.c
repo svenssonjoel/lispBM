@@ -103,6 +103,28 @@ uint32_t bi_fun_sum(uint32_t args) {
       curr = cdr(curr); 
     }
     break;
+    
+  case PTR_TYPE_U32:
+    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+      uint32_t v = car(curr);
+      switch (TYPE_OF(v)) {
+      case VAL_TYPE_I28:
+	u_sum += (uint32_t)DEC_I28(v);
+	break;
+      case VAL_TYPE_U28:
+	u_sum += DEC_U28(v);
+	break;
+      case PTR_TYPE_U32:
+	tmp = car(v);
+	u_sum += tmp;
+	break;
+      default:
+	return ENC_SYM(symrepr_eerror());
+      }
+      curr= cdr(curr);
+    }
+    break;
+	 
   case PTR_TYPE_F32:
     while(TYPE_OF(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
@@ -132,6 +154,9 @@ uint32_t bi_fun_sum(uint32_t args) {
     return ENC_I28(i_sum);
   case VAL_TYPE_U28:
     return ENC_U28(u_sum);
+  case PTR_TYPE_U32:
+    tmp = cons(u_sum,symrepr_nil());
+    return SET_PTR_TYPE(tmp, PTR_TYPE_U32);
   case PTR_TYPE_F32:
     tmp = *(uint32_t*)&f_sum;
     float_enc = cons(tmp,ENC_SYM(symrepr_nil()));
