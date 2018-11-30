@@ -358,10 +358,22 @@ int structural_equality(uint32_t a, uint32_t b) {
 	int cdr_eq = structural_equality(cdr(a),cdr(b));
 	if ( car_eq && cdr_eq ) return 1;
 	else return 0;
-      } else {
-	printf("TODO: Implement\n");
-	return 0; 
       }
+
+      if (PTR_TYPE(a) == PTR_TYPE_U32){
+	uint32_t au = car(a);
+	uint32_t bu = car(b);
+	  if (au == bu) return 1;
+	  else return 0; 
+      }
+
+      if (PTR_TYPE(a) == PTR_TYPE_F32) {
+	float af = car(a);
+	float bf = car(b);
+	  if (af == bf) return 1;
+	  else return 0; 
+      }
+      printf("TODO: Structural equality for this ptr type not implemented\n");
     } else {
       return 0;
     }
