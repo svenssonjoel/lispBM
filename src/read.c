@@ -65,7 +65,6 @@ uint32_t read_ast(mpc_ast_t *t){
       }
     }
     if (strstr(t->contents, "uu")) {
-      printf("here\n");
       uint32_t v = (uint32_t)strtoul(t->contents,NULL,10);
       uint32_t ptr_cons = cons(v, ENC_SYM(nil));
       return SET_PTR_TYPE(ptr_cons, PTR_TYPE_U32);

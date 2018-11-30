@@ -62,6 +62,78 @@ uint32_t get_maximum_type(uint32_t args) {
   return max_type;
 }
 
+int get_as_int(uint32_t v, int32_t *r) {
+  uint32_t tmp;
+  float f_tmp;
+  switch (TYPE_OF(v)) {
+  case VAL_TYPE_I28:
+    *r =  DEC_I28(v);
+    break;
+  case VAL_TYPE_U28:
+    *r = (int32_t)DEC_U28(v);
+    break;
+  case PTR_TYPE_U32:
+    *r = (int32_t)car(v);
+    break;
+  case PTR_TYPE_F32:
+    tmp = car(v);
+    f_tmp = *(float*)&tmp;
+    *r = (int32_t)f_tmp;
+    break;
+  default:
+    return 0;
+  }
+  return 1;
+}
+
+int get_as_uint(uint32_t v, uint32_t *r) {
+  uint32_t tmp;
+  float    f_tmp;
+  switch (TYPE_OF(v)) {
+  case VAL_TYPE_I28:
+    *r =  (uint32_t)DEC_I28(v);
+    break;
+  case VAL_TYPE_U28:
+    *r = DEC_U28(v);
+    break;
+  case PTR_TYPE_U32:
+    *r = car(v);
+    break;
+  case PTR_TYPE_F32:
+    tmp = car(v);
+    f_tmp = *(float*)&tmp;
+    *r = (uint32_t)f_tmp;
+    break;
+  default:
+    return 0;
+  }
+  return 1;
+}
+
+int get_as_float(uint32_t v, float *r) {
+  uint32_t tmp;
+  switch (TYPE_OF(v)) {
+  case VAL_TYPE_I28:
+    *r =  (float)DEC_I28(v);
+    break;
+  case VAL_TYPE_U28:
+    *r = (float)DEC_U28(v);
+    break;
+  case PTR_TYPE_U32:
+    *r = (float)car(v);
+    break;
+  case PTR_TYPE_F32:
+    tmp = car(v);
+    *r = *(float*)&tmp;
+    break;
+  default:
+    return 0;
+  }
+  return 1;
+}
+
+
+
 uint32_t bi_fun_sum(uint32_t args) { 
   uint32_t curr = args;
   int32_t  i_sum = 0;
@@ -72,229 +144,157 @@ uint32_t bi_fun_sum(uint32_t args) {
   uint32_t float_enc;
   
   uint32_t max_type = get_maximum_type(args);
+
   switch (max_type) {
+
   case VAL_TYPE_I28:
     while(TYPE_OF(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
-      switch (TYPE_OF(v)) {
-      case VAL_TYPE_I28:
-	i_sum += DEC_I28(v);
-	break;
-      default:
-	return ENC_SYM(symrepr_eerror());
-	break;
-      }
-      curr = cdr(curr); 
+      int32_t r;
+      get_as_int(v,&r);
+      i_sum += r;
+      curr = cdr(curr);
     }
-    break; 
+    return ENC_I28(i_sum);
+
   case VAL_TYPE_U28:
     while(TYPE_OF(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
-      switch (TYPE_OF(v)) {
-      case VAL_TYPE_I28:
-	u_sum += (uint32_t)DEC_I28(v);
-	break;
-      case VAL_TYPE_U28:
-	u_sum += DEC_U28(v);
-	break;
-      default:
-	return ENC_SYM(symrepr_eerror());
-      }
+      uint32_t r; 
+      get_as_uint(v,&r);
+      u_sum += r;
       curr = cdr(curr); 
     }
-    break;
+    return ENC_U28(u_sum);
     
   case PTR_TYPE_U32:
     while(TYPE_OF(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
-      switch (TYPE_OF(v)) {
-      case VAL_TYPE_I28:
-	u_sum += (uint32_t)DEC_I28(v);
-	break;
-      case VAL_TYPE_U28:
-	u_sum += DEC_U28(v);
-	break;
-      case PTR_TYPE_U32:
-	tmp = car(v);
-	u_sum += tmp;
-	break;
-      default:
-	return ENC_SYM(symrepr_eerror());
-      }
+      uint32_t r;
+      get_as_uint(v,&r);
+      u_sum += r;
       curr= cdr(curr);
     }
-    break;
+    tmp = cons(u_sum,symrepr_nil());
+    return SET_PTR_TYPE(tmp, PTR_TYPE_U32);
 	 
   case PTR_TYPE_F32:
     while(TYPE_OF(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
-      switch (TYPE_OF(v)) {
-      case VAL_TYPE_I28:
-	f_sum += (float)DEC_I28(v);
-	break;
-      case VAL_TYPE_U28:
-	f_sum += (float)DEC_U28(v);
-	break;
-      case PTR_TYPE_F32:
-	tmp = car(v);
-	f_sum += *(float*)&tmp;
-	break;
-      default:
-	return ENC_SYM(symrepr_eerror());
-      }
+      float r; 
+      get_as_float(v,&r);
+      f_sum += r;
       curr = cdr(curr); 
     }
-    break;
-  default:
-    return ENC_SYM(symrepr_eerror());
-  }
-
-  switch (max_type) {
-  case VAL_TYPE_I28:
-    return ENC_I28(i_sum);
-  case VAL_TYPE_U28:
-    return ENC_U28(u_sum);
-  case PTR_TYPE_U32:
-    tmp = cons(u_sum,symrepr_nil());
-    return SET_PTR_TYPE(tmp, PTR_TYPE_U32);
-  case PTR_TYPE_F32:
     tmp = *(uint32_t*)&f_sum;
     float_enc = cons(tmp,ENC_SYM(symrepr_nil()));
     float_enc = SET_PTR_TYPE(float_enc, PTR_TYPE_F32);
     return float_enc;
   }
+
   return ENC_SYM(symrepr_eerror());
 }
 
 uint32_t bi_fun_sub(uint32_t args) { 
-  uint32_t curr = cdr(args);
 
   uint32_t tmp;
-  uint32_t float_enc;
+  uint32_t enc;
   float f_res;
   uint32_t u_res;
   int32_t i_res; 
   uint32_t max_type = get_maximum_type(args);
 
   uint32_t n = length(args);
+
+  if (n < 1) return ENC_SYM(symrepr_eerror());
   
+  // A negation
   if (n == 1) {
     switch (max_type) {
+
     case VAL_TYPE_I28:
       i_res = -DEC_I28(car(args));
-      break;
+      return ENC_I28(i_res);
+     
     case VAL_TYPE_U28:
       u_res = -DEC_U28(car(args));
+      return ENC_U28(u_res);
+      
+    case PTR_TYPE_U32:
+      u_res = -car(car(args));
+      enc = cons(u_res, ENC_SYM(symrepr_nil()));
+      enc = SET_PTR_TYPE(enc,PTR_TYPE_U32);
+      return enc;
+      
     case PTR_TYPE_F32:
-      float_enc = car(car(args));
-      f_res = -(*(float*)&float_enc);
+      enc = car(car(args));
+      f_res = -(*(float*)&enc);
+      tmp = *(uint32_t*)&f_res;
+      enc = cons(tmp,ENC_SYM(symrepr_nil()));
+      enc = SET_PTR_TYPE(enc, PTR_TYPE_F32);
+    return enc;
       break;
     }
-  } else {
-    switch (max_type) {
-    case VAL_TYPE_I28:
-      i_res = DEC_I28(car(args));
-      break;
-    case VAL_TYPE_U28:
-      switch (TYPE_OF(car(args))) {
-      case VAL_TYPE_I28:
-	u_res = (uint32_t)DEC_I28(car(args));
-	break;
-      case VAL_TYPE_U28:
-	u_res = DEC_U28(car(args));
-	break;
-      default:
-	return ENC_SYM(symrepr_eerror());
-      }
-      break;
-    case PTR_TYPE_F32:
-      switch (TYPE_OF(car(args))) {
-      case VAL_TYPE_I28:
-	f_res = (float)DEC_I28(car(args));
-	break;
-      case VAL_TYPE_U28:
-	f_res = (float) DEC_U28(car(args));
-	break;
-      case PTR_TYPE_F32: 
-	float_enc = car(car(args));
-	f_res = (*(float*)&float_enc);
-	break;
-      default:
-	return ENC_SYM(symrepr_eerror());
-      }
-      break;
-    default:
-      return ENC_SYM(symrepr_eerror());
-    }
-  }
-  // loop through args 
-  switch (max_type) {
-  case VAL_TYPE_I28:
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
-      uint32_t v = car(curr);
-      switch (TYPE_OF(v)) {
-      case VAL_TYPE_I28:
-	i_res -= DEC_I28(v);
-	break;
-      default:
-	return ENC_SYM(symrepr_eerror());
-	break;
-      }
-      curr = cdr(curr); 
-    }
-    break; 
-  case VAL_TYPE_U28:
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
-      uint32_t v = car(curr);
-      switch (TYPE_OF(v)) {
-      case VAL_TYPE_I28:
-	u_res -= (uint32_t)DEC_I28(v);
-	break;
-      case VAL_TYPE_U28:
-	u_res -= DEC_U28(v);
-	break;
-      default:
-	return ENC_SYM(symrepr_eerror());
-      }
-      curr = cdr(curr); 
-    }
-    break;
-  case PTR_TYPE_F32:
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
-      uint32_t v = car(curr);
-      switch (TYPE_OF(v)) {
-      case VAL_TYPE_I28:
-	f_res -= (float)DEC_I28(v);
-	break;
-      case VAL_TYPE_U28:
-	f_res -= (float)DEC_U28(v);
-	break;
-      case PTR_TYPE_F32:
-	tmp = car(v);
-	f_res -= *(float*)&tmp;
-	break;
-      default:
-	return ENC_SYM(symrepr_eerror());
-      }
-      curr = cdr(curr); 
-    }
-    break;
-  default:
-    return ENC_SYM(symrepr_eerror());
   }
 
-  // Return result
+  uint32_t v = car(args);
+  uint32_t curr = cdr(args);
+  
   switch (max_type) {
   case VAL_TYPE_I28:
+    get_as_int(v, &i_res);
+
+    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+      uint32_t v = car(curr);
+      int32_t r;
+      get_as_int(v,&r);
+      i_res -= r;
+      curr = cdr(curr); 
+    }
     return ENC_I28(i_res);
+    
   case VAL_TYPE_U28:
+    get_as_uint(v, &u_res);
+    
+    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+      uint32_t v = car(curr);
+      uint32_t r;
+      get_as_uint(v,&r);
+      u_res -= r;
+      curr = cdr(curr); 
+    }
     return ENC_U28(u_res);
+    
+  case PTR_TYPE_U32:
+    get_as_uint(v, &u_res);
+
+    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+      uint32_t v = car(curr);
+      uint32_t r;
+      get_as_uint(v, &r);
+      u_res -= r;
+      curr = cdr(curr);
+    }
+    enc = cons(u_res, ENC_SYM(symrepr_nil()));
+    enc = SET_PTR_TYPE(enc,PTR_TYPE_U32);
+    return enc;
+    
   case PTR_TYPE_F32:
+    get_as_float(v, &f_res);
+
+    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+      uint32_t v = car(curr);
+      float r;
+      get_as_float(v, &r);
+      f_res -= r;
+      curr = cdr(curr); 
+    }
     tmp = *(uint32_t*)&f_res;
-    float_enc = cons(tmp,ENC_SYM(symrepr_nil()));
-    float_enc = SET_PTR_TYPE(float_enc, PTR_TYPE_F32);
-    return float_enc;
+    enc = cons(tmp,ENC_SYM(symrepr_nil()));
+    enc = SET_PTR_TYPE(enc, PTR_TYPE_F32);
+    return enc;
   }
+
   return ENC_SYM(symrepr_eerror());
 }
 
