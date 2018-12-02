@@ -32,18 +32,8 @@ extern int lookup_env(uint32_t sym, uint32_t env, uint32_t *res);
 
 jmp_buf rewind_buf;
 
-typedef struct {
-  uint8_t *(*fptr)(uint8_t *, uint8_t *);
-  uint32_t args_bytes;
-  uint8_t *args;
-} cont;
-    
-
-
 static uint32_t curr_exp; 
 static uint32_t curr_env; 
-static cont     curr_cont;
-
 
 // The size of this stack should be limited in size by syntactic nesting
 // of the source program, not by for example recursion. (I hope) 
@@ -53,7 +43,7 @@ typedef struct {
   uint32_t  size; 
 } stack;
 
-stack *K; 
+stack *K; // Stack describes the current continuation.
 
 stack* init_cont_stack(int stack_size) {
 
@@ -338,7 +328,8 @@ int run_eval(uint32_t lisp, uint32_t env) {
     printf("Rewind!\n");
  
     // GC also needs info about things alive in the "continuation"
-    heap_perform_gc_aux(global_env, curr_env, K->data, K->sp);
+    printf("K->sp = %d\n",K->sp); 
+    heap_perform_gc_aux(global_env, curr_env, curr_exp, K->data, K->sp);
     
     r = eval_cps(&curr_exp, &curr_env);
    	
@@ -358,7 +349,7 @@ int run_eval(uint32_t lisp, uint32_t env) {
 
 int eval_cps_init() {
 
-  K = init_cont_stack(100);
+  K = init_cont_stack(1000);
   
   global_env = ENC_SYM(symrepr_nil());
 

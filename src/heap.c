@@ -200,13 +200,12 @@ int gc_mark_phase(uint32_t env) {
   // There is at least a pointer to one cell here. Mark it and recurse over  car and cdr 
   heap_state.gc_marked ++;
 
-
   set_gc_mark(ref_cell(env)); 
 
   int res = 1;
-  if (TYPE_OF(car(env)) == PTR_TYPE_CONS ) 
+  if (IS_PTR(car(env))) 
     res &= gc_mark_phase(car(env));
-  if (TYPE_OF(cdr(env)) == PTR_TYPE_CONS )
+  if (IS_PTR(cdr(env)))
     res &= gc_mark_phase(cdr(env)); 
   
   return res; 
@@ -244,12 +243,18 @@ int gc_mark_freelist() {
 int gc_mark_aux(uint32_t *aux_data, uint32_t aux_size) {
 
   cons_t *t;
+
+  uint32_t pre = heap_state.gc_marked;
   
   for (int i = 0; i < aux_size; i ++) {
     if (IS_PTR(aux_data[i])) {
       gc_mark_phase(aux_data[i]);
     }
   }
+  uint32_t post = heap_state.gc_marked;
+
+  printf( "MARKED DURING AUX PHASE: %d\n", post - pre); 
+  
   return 1; 
 }
 
@@ -298,12 +303,13 @@ int heap_perform_gc(uint32_t env) {
   return gc_sweep_phase();
 }
 
-int heap_perform_gc_aux(uint32_t env, uint32_t env2,  uint32_t *aux_data, uint32_t aux_size) {
+int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t *aux_data, uint32_t aux_size) {
   heap_state.gc_num ++;
   heap_state.gc_recovered = 0; 
   heap_state.gc_marked = 0; 
 
   gc_mark_freelist();
+  gc_mark_phase(exp);
   gc_mark_phase(env);
   gc_mark_phase(env2);
   gc_mark_aux(aux_data, aux_size); 
