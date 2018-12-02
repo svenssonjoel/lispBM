@@ -241,6 +241,19 @@ int gc_mark_freelist() {
   return 1;
 }
 
+int gc_mark_aux(uint32_t *aux_data, uint32_t aux_size) {
+
+  cons_t *t;
+  
+  for (int i = 0; i < aux_size; i ++) {
+    if (IS_PTR(aux_data[i])) {
+      gc_mark_phase(aux_data[i]);
+    }
+  }
+  return 1; 
+}
+
+
 // Sweep moves non-marked heap objects to the free list.
 int gc_sweep_phase(void) {
 
@@ -284,6 +297,20 @@ int heap_perform_gc(uint32_t env) {
   gc_mark_phase(env);
   return gc_sweep_phase();
 }
+
+int heap_perform_gc_aux(uint32_t env, uint32_t env2,  uint32_t *aux_data, uint32_t aux_size) {
+  heap_state.gc_num ++;
+  heap_state.gc_recovered = 0; 
+  heap_state.gc_marked = 0; 
+
+  gc_mark_freelist();
+  gc_mark_phase(env);
+  gc_mark_phase(env2);
+  gc_mark_aux(aux_data, aux_size); 
+  
+  return gc_sweep_phase();
+}
+
 
 // construct, alter and break apart
 uint32_t cons(uint32_t car, uint32_t cdr) {
@@ -349,4 +376,18 @@ uint32_t length(uint32_t c) {
     c = cdr(c); 
   }
   return len; 
+}
+
+/* reverse a proper list */ 
+uint32_t reverse(uint32_t list) {
+
+  uint32_t curr = list; 
+  
+  uint32_t new_list = ENC_SYM(symrepr_nil()); 
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
+
+    new_list = cons(car(curr), new_list);
+    curr = cdr(curr); 
+  }
+  return new_list; 
 }

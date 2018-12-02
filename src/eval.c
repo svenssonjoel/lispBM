@@ -45,7 +45,7 @@ static uint32_t eval_let_bindings(uint32_t, uint32_t);
 
 static uint32_t copy_bindings(uint32_t syms, uint32_t env); 
 
-static uint32_t global_env;
+
 static char eval_error_string[EVAL_ERROR_BUFFER_SIZE]; 
 
 static jmp_buf error_jmp_buffer;

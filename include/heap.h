@@ -206,6 +206,8 @@ typedef struct {
   uint32_t gc_recovered;    // Number of cells recovered by sweep phase. 
 } heap_state_t;
 
+extern uint32_t global_env;
+
 extern int heap_init(size_t num_cells);
 extern void heap_del(void);
 extern uint32_t heap_num_free(void);
@@ -218,10 +220,12 @@ extern uint32_t cdr(uint32_t cons);
 extern void set_car(uint32_t c, uint32_t v);
 extern void set_cdr(uint32_t c, uint32_t v);
 extern uint32_t length(uint32_t c); 
+extern uint32_t reverse(uint32_t list);
 
 // State and statistics
 extern void heap_get_state(heap_state_t *);
 
 // Garbage collection
 extern int heap_perform_gc(uint32_t env); 
+extern int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t *aux_data, uint32_t aux_size); 
 #endif
