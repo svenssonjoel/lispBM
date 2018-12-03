@@ -169,6 +169,13 @@ uint32_t heap_allocate_cell(uint32_t ptr_type) {
   return res;
 }
 
+uint32_t heap_num_allocated(void) {
+  return heap_state.num_alloc;
+}
+uint32_t heap_size() {
+  return heap_state.heap_size; 
+}
+
 uint32_t heap_size_bytes(void) {
   return heap_state.heap_bytes;
 }

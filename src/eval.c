@@ -21,6 +21,7 @@
 #include "heap.h"
 #include "builtin.h"
 #include "print.h"
+#include "env.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -44,7 +45,6 @@ static uint32_t eval_in_env(uint32_t, uint32_t);
 static uint32_t eval_let_bindings(uint32_t, uint32_t);
 
 static uint32_t copy_bindings(uint32_t syms, uint32_t env); 
-
 
 static char eval_error_string[EVAL_ERROR_BUFFER_SIZE]; 
 
@@ -75,20 +75,6 @@ uint32_t eval_bi(uint32_t lisp) {
   
 }
 
-static uint32_t copy_env_shallow(uint32_t env) {
-
-  uint32_t res = ENC_SYM(symrepr_nil());
-  uint32_t curr = env;
-  
-  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
-    uint32_t key = car(car(curr));
-    if (DEC_SYM(key) != symrepr_nil()) {
-      res = cons(car(curr), res);
-    }
-    curr = cdr(curr);
-  }
-  return res;
-}
 
 int eval_init() {
 
@@ -103,7 +89,6 @@ int eval_init() {
   return res; 
   
 }
-
 
 uint32_t do_eval_program(uint32_t lisp) {
    
@@ -142,25 +127,6 @@ uint32_t eval_program(uint32_t lisp) {
   return res; 
 }
 
-int lookup_env(uint32_t sym, uint32_t env, uint32_t *res) {
-  uint32_t curr = env;
-  
-  if(DEC_SYM(sym) == symrepr_nil()) {
-    *res = ENC_SYM(symrepr_nil());
-    return 1;
-  }
-    
-  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
-    if (car(car(curr)) == sym) {
-      *res = cdr(car(curr));
-      return 1;
-    }
-    curr = cdr(curr);
-  }
-  return 0;
-}
-
-
 uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 
   uint32_t val = 0; 
@@ -170,9 +136,9 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   
   switch(TYPE_OF(lisp)) {
   case VAL_TYPE_SYMBOL:
-    ret = lookup_env(lisp, env, &tmp);
+    ret = env_lookup(lisp, env, &tmp);
     if (!ret) {
-      ret = lookup_env(lisp, global_env, &tmp);
+      ret = env_lookup(lisp, global_env, &tmp);
     }
     if (ret) return tmp;
     ERROR("Eval: Variable lookup failed: %s ",symrepr_lookup_name(DEC_SYM(lisp)));
@@ -196,7 +162,9 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       // Special form: LAMBDA
       if (DEC_SYM(head) == symrepr_lambda()) {
 
-	uint32_t env_cpy = copy_env_shallow(env);
+	uint32_t env_cpy;
+	if (!env_copy_shallow(env, &env_cpy))
+	  ERROR("OUT OF MEMORY"); 
 	return cons(ENC_SYM(symrepr_closure()),
 		    cons(car(cdr(lisp)),
 			 cons(car(cdr(cdr(lisp))),
@@ -333,21 +301,6 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
   return ENC_SYM(symrepr_eerror());
 }
 
-static int modify_binding(uint32_t env, uint32_t key, uint32_t val) {
-
-  uint32_t curr = env;
-
-  while (TYPE_OF(curr) == PTR_TYPE_CONS) {   
-    if (car(car(curr)) == key) {
-      set_cdr(car(curr), val); 
-      return 1; 
-    }
-    curr = cdr(curr);
-    
-  }
-  return 0;   
-}
-
 static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
 
   uint32_t new_env = env;
@@ -369,7 +322,7 @@ static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
     uint32_t key = car(car(curr));
     uint32_t val = eval_in_env(car(cdr(car(curr))),new_env);
 
-    res = modify_binding(new_env, key, val);
+    res = env_modify_binding(new_env, key, val);
     if (!res) ERROR("Unable to modify letrec bindings");
     curr = cdr(curr); 
   }

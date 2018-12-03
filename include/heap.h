@@ -211,6 +211,8 @@ extern uint32_t global_env;
 extern int heap_init(size_t num_cells);
 extern void heap_del(void);
 extern uint32_t heap_num_free(void);
+extern uint32_t heap_num_allocated(void);
+extern uint32_t heap_size(); 
 extern uint32_t heap_allocate_cell(uint32_t type); 
 extern uint32_t heap_size_bytes(void);
 
