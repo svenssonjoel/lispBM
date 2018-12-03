@@ -3,14 +3,13 @@
 #include "heap.h"
 #include "builtin.h"
 #include "print.h"
+#include "env.h"
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
-
-extern int lookup_env(uint32_t sym, uint32_t env, uint32_t *res);
 
 /* 
    Attempt to implement an evaluator in continuation passing style: 
@@ -155,19 +154,48 @@ uint32_t function_app(uint32_t args) {
   pop_u32(K, &fun);
 
   args = reverse(args); 
-  
-  printf("fun:"); simple_print(fun); printf("\n");
-  printf("args:"); simple_print(args); printf("\n"); 
-
+ 
   uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(fun));
 
   if (f == NULL) {
     printf("Built in function does not exist"); 
     return ENC_SYM(symrepr_eerror());
   }
-
-  
+ 
   return apply_continuation(K,f(args)); 
+}
+
+
+uint32_t restore_env(uint32_t pass_through) {
+
+  uint32_t env;
+  pop_u32(K, &env);
+
+  curr_env = env;
+
+  return apply_continuation(K,pass_through); 
+}
+
+uint32_t closure_app(uint32_t args) {
+
+  uint32_t closure;
+  pop_u32(K, &closure);
+
+  args = reverse(args);
+
+  uint32_t params  = car(cdr(closure));
+  uint32_t exp     = car(cdr(cdr(closure)));
+  uint32_t clo_env = car(cdr(cdr(cdr(closure))));
+
+  uint32_t local_env;
+  env_build_params_args(params, args, clo_env, &local_env); 
+
+  push_u32(K, curr_env);
+  push_k(K, restore_env);
+  
+  curr_exp = exp;
+  curr_env = local_env; 
+  longjmp(rewind_buf, 1); 
 }
 
 uint32_t eval_rest(uint32_t head) {
@@ -192,22 +220,23 @@ uint32_t eval_rest(uint32_t head) {
   curr_exp = car(rest);
   //env unchanged
   longjmp(rewind_buf, 1); 
- 
 }
 
 // Closure or built-in function 
 uint32_t function_cont(uint32_t fun) {
  
   uint32_t fun_args;
-  pop_u32(K,&fun_args); 
-
-  printf("function:"); simple_print(fun); printf("\n");
-  printf("args:"); simple_print(fun_args); printf("\n");  
-
+  pop_u32(K,&fun_args);
+  
   uint32_t head = car(fun_args); 
 
-  push_u32(K,fun); 
-  push_k(K,function_app);
+  push_u32(K,fun);
+  if ( TYPE_OF(fun) == PTR_TYPE_CONS &&
+       DEC_SYM(car(fun)) == symrepr_closure()) {
+    push_k(K,closure_app); 
+  } else {
+    push_k(K,function_app);
+  }
   push_u32(K,ENC_SYM(symrepr_nil()));
   push_u32(K,cdr(fun_args)); 
   push_k(K, eval_rest); 
@@ -232,9 +261,9 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
   switch (TYPE_OF(lisp)) {
     
   case VAL_TYPE_SYMBOL:
-    ret = lookup_env(lisp, env, &tmp);
+    ret = env_lookup(lisp, env, &tmp);
     if (!ret) {
-      ret = lookup_env(lisp, global_env, &tmp);
+      ret = env_lookup(lisp, global_env, &tmp);
     }
     if (ret) {
       return apply_continuation(K, tmp);
@@ -279,8 +308,16 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 
       // Special form: LAMBDA 
       if (DEC_SYM(head) == symrepr_lambda()) {
-	printf("NOT IMPLEMENTED\n");
-	return ENC_SYM(symrepr_eerror()); 
+	uint32_t env_cpy;
+	if (! env_copy_shallow(env,&env_cpy))
+	  return ENC_SYM(symrepr_eerror());
+
+	uint32_t closure = cons(ENC_SYM(symrepr_closure()),
+				cons(car(cdr(lisp)),
+				     cons(car(cdr(cdr(lisp))),
+					  cons(env_cpy, ENC_SYM(symrepr_nil())))));
+
+	return apply_continuation(K, closure); 
       }
 
       // Special form: IF 
@@ -310,11 +347,10 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 }
       
 
-
-
 int run_eval(uint32_t lisp, uint32_t env) {
 
-
+  uint32_t half_heap = heap_size() / 2; 
+  
   push_k(K,done);
   
   curr_exp = lisp;
@@ -327,9 +363,11 @@ int run_eval(uint32_t lisp, uint32_t env) {
   if (setjmp(rewind_buf)) {
     printf("Rewind!\n");
  
-    // GC also needs info about things alive in the "continuation"
-    printf("K->sp = %d\n",K->sp); 
-    heap_perform_gc_aux(global_env, curr_env, curr_exp, K->data, K->sp);
+    
+    if (heap_size() - heap_num_allocated() < half_heap ){
+      // GC also needs info about things alive in the "continuation"
+      heap_perform_gc_aux(global_env, curr_env, curr_exp, K->data, K->sp);
+    }
     
     r = eval_cps(&curr_exp, &curr_env);
    	
