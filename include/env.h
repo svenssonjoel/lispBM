@@ -22,5 +22,10 @@
 extern int env_copy_shallow(uint32_t env, uint32_t *cpy);
 extern int env_lookup(uint32_t sym, uint32_t env, uint32_t *res); 
 extern int env_modify_binding(uint32_t env, uint32_t key, uint32_t val); 
+extern int env_build_params_args(uint32_t params,
+				 uint32_t args,
+				 uint32_t env0,
+				 uint32_t *res_env);
+  
 
 #endif 

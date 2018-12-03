@@ -251,25 +251,6 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   return ENC_SYM(symrepr_eerror());
 } 
 
-uint32_t build_env_params_args(uint32_t params, uint32_t args, uint32_t env0) {
-  uint32_t curr_param = params;
-  uint32_t curr_arg = args;
-
-  if (length(params) != length(args)) // programmer error
-    return env0; 
-
-  uint32_t env = env0;
-  while (TYPE_OF(curr_param) == PTR_TYPE_CONS) {
-
-    uint32_t entry = cons(car(curr_param), car(curr_arg));
-    env = cons(entry,env);
-    
-    curr_param = cdr(curr_param);
-    curr_arg   = cdr(curr_arg); 
-  }
-  return env;
-}
-
 static uint32_t apply(uint32_t closure, uint32_t args) {
 
   // TODO: error checking etc
@@ -278,7 +259,9 @@ static uint32_t apply(uint32_t closure, uint32_t args) {
   uint32_t exp     = car(cdr(cdr(closure)));
   uint32_t clo_env = car(cdr(cdr(cdr(closure))));
 
-  uint32_t local_env = build_env_params_args(params, args, clo_env); 
+  uint32_t local_env;
+  if (!env_build_params_args(params, args, clo_env, &local_env))
+    ERROR("Could not create local environment"); 
   //printf("CLOSURE ENV: "); simple_print(local_env); printf("\n"); 
   
   return eval_in_env(exp,local_env);

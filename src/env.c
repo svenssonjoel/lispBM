@@ -35,7 +35,7 @@ int env_copy_shallow(uint32_t env, uint32_t *cpy) {
 
       // Check for "out of memory"
       if (TYPE_OF(res) == VAL_TYPE_SYMBOL &&
-	  DEC_SYM(res) == symrepr_nil) {
+	  DEC_SYM(res) == symrepr_nil()) {
 	return 0;
       }			      
     }
@@ -79,3 +79,30 @@ int env_modify_binding(uint32_t env, uint32_t key, uint32_t val) {
   return 0;   
 }
 
+
+int env_build_params_args(uint32_t params,
+			       uint32_t args,
+			       uint32_t env0,
+			       uint32_t *res_env) {
+  uint32_t curr_param = params;
+  uint32_t curr_arg = args;
+
+  if (length(params) != length(args)) // programmer error
+    return 0; 
+
+  uint32_t env = env0;
+  while (TYPE_OF(curr_param) == PTR_TYPE_CONS) {
+
+    uint32_t entry = cons(car(curr_param), car(curr_arg));
+    env = cons(entry,env);
+
+    if (TYPE_OF(env) == VAL_TYPE_SYMBOL &&
+	DEC_SYM(env) == symrepr_nil())
+      return 0; 
+    
+    curr_param = cdr(curr_param);
+    curr_arg   = cdr(curr_arg); 
+  }
+  *res_env = env;
+  return 1;
+}
