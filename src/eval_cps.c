@@ -115,7 +115,7 @@ uint32_t done(uint32_t arg) {
 
 uint32_t apply_continuation(stack *K, uint32_t args){
 
-  printf("apply_continuation\n");
+  //printf("apply_continuation\n");
 
   uint32_t (*k)(uint32_t);
   pop_k(K,&k);
@@ -159,7 +159,7 @@ uint32_t function_app(uint32_t args) {
   uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(fun));
 
   if (f == NULL) {
-    printf("Built in function does not exist"); 
+    //printf("Built in function does not exist"); 
     return ENC_SYM(symrepr_eerror());
   }
   
@@ -169,7 +169,7 @@ uint32_t function_app(uint32_t args) {
 
 uint32_t restore_env(uint32_t pass_through) {
 
-  printf("**************** restoring env ****************\n"); 
+  //printf("**************** restoring env ****************\n"); 
   uint32_t env;
   pop_u32(K, &env);
 
@@ -191,7 +191,7 @@ uint32_t closure_app(uint32_t args) {
 
   uint32_t local_env;
   env_build_params_args(params, args, clo_env, &local_env); 
-  simple_print(local_env); printf("\n"); 
+  //simple_print(local_env); printf("\n"); 
   //push_u32(K, curr_env);
   //push_k(K, restore_env);
   
@@ -204,9 +204,11 @@ uint32_t eval_rest(uint32_t head) {
 
   uint32_t rest;
   uint32_t acc;
-  
+  uint32_t env;
+
   pop_u32(K, &rest);
   pop_u32(K, &acc); 
+  pop_u32(K, &env);
   
   if (TYPE_OF(rest) == VAL_TYPE_SYMBOL &&
       DEC_SYM(rest) == symrepr_nil()) {
@@ -215,12 +217,13 @@ uint32_t eval_rest(uint32_t head) {
     return apply_continuation(K, args);
   }
 
+  push_u32(K, env); 
   push_u32(K, cons(head, acc));
   push_u32(K, cdr(rest));
   push_k(K, eval_rest);
   
   curr_exp = car(rest);
-  //env unchanged
+  curr_env = env;
   longjmp(rewind_buf, 1); 
 }
 
@@ -241,6 +244,7 @@ uint32_t function_cont(uint32_t fun) {
   } else {
     push_k(K,function_app);
   }
+  push_u32(K,env); 
   push_u32(K,ENC_SYM(symrepr_nil()));
   push_u32(K,cdr(fun_args)); 
   push_k(K, eval_rest); 
@@ -261,7 +265,7 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
   int ret = 0;
   uint32_t head;
   
-  printf("eval_cps\n"); 
+  //printf("eval_cps\n"); 
   switch (TYPE_OF(lisp)) {
     
   case VAL_TYPE_SYMBOL:
@@ -361,14 +365,14 @@ int run_eval(uint32_t lisp, uint32_t env) {
 
   uint32_t r;
   
-  printf("run_eval\n"); 
+  //printf("run_eval\n"); 
   
   if (setjmp(rewind_buf)) {
-    printf("Rewind!\n");
+    //printf("Rewind!\n");
 
-    printf("Continuation size: %d\n", K->size);
-    printf("Continuation sp:   %d\n", K->sp); 
-    printf("USED HEAP:         %d\n", heap_size() - heap_num_allocated()); 
+    //printf("Continuation size: %d\n", K->size);
+    //printf("Continuation sp:   %d\n", K->sp); 
+    //printf("USED HEAP:         %d\n", heap_size() - heap_num_allocated()); 
     
     if (heap_size() - heap_num_allocated() < half_heap ){
       // GC also needs info about things alive in the "continuation"
