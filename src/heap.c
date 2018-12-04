@@ -291,6 +291,7 @@ int gc_sweep_phase(void) {
       set_gc_mark(fl_last); // the above set_cdr_ clears the gc mark on fl_last.
       heap_state.freelist_last = addr;
 
+      heap_state.num_alloc --;
       heap_state.gc_recovered ++;
     }
     clr_gc_mark(&heap[i]);

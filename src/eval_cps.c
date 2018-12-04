@@ -100,7 +100,8 @@ int pop_u32(stack *s, uint32_t *val) {
 
 int pop_k(stack *s, uint32_t (**k)(uint32_t)) {
   s->sp--;
-  *k = (uint32_t (*)(uint32_t))s->data[s->sp]; 
+  *k = (uint32_t (*)(uint32_t))s->data[s->sp];
+  return 1; 
 }
   
 uint32_t eval_cps_get_env(void) {
@@ -161,13 +162,14 @@ uint32_t function_app(uint32_t args) {
     printf("Built in function does not exist"); 
     return ENC_SYM(symrepr_eerror());
   }
- 
+  
   return apply_continuation(K,f(args)); 
 }
 
 
 uint32_t restore_env(uint32_t pass_through) {
 
+  printf("**************** restoring env ****************\n"); 
   uint32_t env;
   pop_u32(K, &env);
 
@@ -189,9 +191,9 @@ uint32_t closure_app(uint32_t args) {
 
   uint32_t local_env;
   env_build_params_args(params, args, clo_env, &local_env); 
-
-  push_u32(K, curr_env);
-  push_k(K, restore_env);
+  simple_print(local_env); printf("\n"); 
+  //push_u32(K, curr_env);
+  //push_k(K, restore_env);
   
   curr_exp = exp;
   curr_env = local_env; 
@@ -226,7 +228,9 @@ uint32_t eval_rest(uint32_t head) {
 uint32_t function_cont(uint32_t fun) {
  
   uint32_t fun_args;
+  uint32_t env;
   pop_u32(K,&fun_args);
+  pop_u32(K,&env); 
   
   uint32_t head = car(fun_args); 
 
@@ -242,7 +246,7 @@ uint32_t function_cont(uint32_t fun) {
   push_k(K, eval_rest); 
  
   curr_exp = head;
-  //env unchanged
+  curr_env = env;
   longjmp(rewind_buf, 1); 
 } 
 
@@ -332,10 +336,9 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 	return ENC_SYM(symrepr_eerror()); 
       }
     } // If head is symbol
-
+    
     // Possibly an application form:
-
-
+    push_u32(K, *env_in); // The environment each element should be evaluated in 
     push_u32(K, cdr(lisp)); // list of arguments that needs to be evaluated. 
     push_k(K, function_cont); 
     
@@ -362,7 +365,10 @@ int run_eval(uint32_t lisp, uint32_t env) {
   
   if (setjmp(rewind_buf)) {
     printf("Rewind!\n");
- 
+
+    printf("Continuation size: %d\n", K->size);
+    printf("Continuation sp:   %d\n", K->sp); 
+    printf("USED HEAP:         %d\n", heap_size() - heap_num_allocated()); 
     
     if (heap_size() - heap_num_allocated() < half_heap ){
       // GC also needs info about things alive in the "continuation"
