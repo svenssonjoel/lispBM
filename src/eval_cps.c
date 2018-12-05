@@ -1,3 +1,19 @@
+/*
+    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "symrepr.h"
 #include "heap.h"
@@ -16,18 +32,23 @@
    (In spite of C not being very suitable for the task.) 
    
    - No idea if this will work..
+     # Seems to be. In the right direction at least. 
 
    - I hope this is possible without C being able to generate functions
-     on the fly (and without going all the way to some jit setup). 
+     on the fly (and without going all the way to some jit setup).
+     # Looks like I was very incorrect in thinking anything like that 
+       would be needed. 
 
    - peeking a lot at: http://lisperator.net/pltut/cps-evaluator/stack-guard
      during the implementation of this.
+     # I still dont understand what goes on there. 
      
    - Want to rewind the stack using setjmp longjmp.
+     #Probably not essential. 
 
    - Memory management will be real tricky since cannot rely on data on the stack.
-
- */
+     # Instead created another stack to depend upon. 
+*/
 
 jmp_buf rewind_buf;
 
@@ -339,7 +360,6 @@ uint32_t if_cont(uint32_t cond) {
   }
 }
 		  
-
 uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
   
   uint32_t env = *env_in;
@@ -361,13 +381,23 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
       return apply_continuation(K, tmp);
     }
     return ENC_SYM(symrepr_eerror());
-    
+
+  case PTR_TYPE_F32:
+  case PTR_TYPE_U32:
   case VAL_TYPE_I28: 
   case VAL_TYPE_CHAR:
   case VAL_TYPE_U28: {
     return apply_continuation(K, lisp);
   }
 
+  case PTR_TYPE_I32:
+  case PTR_TYPE_VEC_I32:
+  case PTR_TYPE_VEC_U32:
+  case PTR_TYPE_VEC_F32:
+  case PTR_TYPE_STRING:
+    return ENC_SYM(symrepr_eerror());
+    break;
+ 
   case PTR_TYPE_CONS:
     head = car(lisp);
     
@@ -446,6 +476,10 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
     *env_in  = *env_in;
     longjmp(rewind_buf, 1); 
     
+  default:
+    // BUG No applicable case!
+    return ENC_SYM(symrepr_eerror());
+    break;
   }
 }
       

@@ -15,19 +15,18 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 4. Compiles for, and runs on linux-x86 (builds 32bit library, runs on 32/64 bit).
 5. Compiles for, and runs on Zynq 7000.  
 
+## In progress
+1. a new evaluator that allows tail-recursive programs to execute in constant space. 
+
 ## Short term TODOs
-1. Write more tests.
-2. Test the Zynq build more. 
-3. Document code.
-4. Implement the boxed types (float, int32, uint32, Vector, String etc)
-5. Implement some looping structure (since recursion is very limited)
-6. Be much more stringent on checking of error conditions etc. 
-
-## Long term TODOs
-1. Fix problem 1 (below) in one of the many ways possible.
-
-## Problems
-1. Stack overflows when doing deep recursion, due to nature of the evaluator. No deep recursion supported.
+1. Clean up a bit. 
+2. Write more tests.
+3. Test the Zynq build more. 
+4. Document code.
+5. Implement the boxed types (float, int32, uint32, Vector, String etc).
+6. Implement some looping structure (since recursion is very limited).
+   Maybe not so limited anymore. Built in loops could be added for speed though.. 
+7. Be much more stringent on checking of error conditions etc. 
 
 ## Compile for linux
 1. Build the library: `make`
