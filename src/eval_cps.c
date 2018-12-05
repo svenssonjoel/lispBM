@@ -317,6 +317,27 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
   curr_env = new_env;  // env annotated with temporaries
   longjmp(rewind_buf, 1); 
 }
+
+
+uint32_t if_cont(uint32_t cond) {
+
+  uint32_t then_branch;
+  uint32_t else_branch;
+
+  pop_u32(K, &then_branch);
+  pop_u32(K, &else_branch);
+  
+  if (TYPE_OF(cond) == VAL_TYPE_SYMBOL &&
+      DEC_SYM(cond) == symrepr_true()) {
+    curr_exp = then_branch;
+    //curr_env = curr_env;
+    longjmp(rewind_buf,1); 
+  } else {
+    curr_exp = else_branch;
+    //curr_env = curr_env;
+    longjmp(rewind_buf,1); 
+  }
+}
 		  
 
 uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
@@ -393,8 +414,15 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 
       // Special form: IF 
       if (DEC_SYM(head) == symrepr_if()) {
-	printf("NOT IMPLEMENTED\n");
-	return ENC_SYM(symrepr_eerror()); 
+
+	push_u32(K,car(cdr(cdr(cdr(lisp))))); // else branch
+	push_u32(K,car(cdr(cdr(lisp)))); // Then branch
+	push_k(K,if_cont);
+
+	*lisp_in = car(cdr(lisp)); // condition
+	*env_in  = *env_in;
+	longjmp(rewind_buf, 1); 
+	
       }
 
       // Special form: LET
