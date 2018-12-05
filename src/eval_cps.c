@@ -255,6 +255,69 @@ uint32_t function_cont(uint32_t fun) {
 } 
 
 
+uint32_t bind_to_key_rest(uint32_t val) {
+  uint32_t key;
+  uint32_t env;
+  uint32_t rest;
+
+  pop_u32(K, &key);
+  pop_u32(K, &env);
+  pop_u32(K, &rest); 
+  
+  env_modify_binding(env, key, val); 
+
+  if ( TYPE_OF(rest) == PTR_TYPE_CONS ){
+    uint32_t keyn = car(car(rest));
+    uint32_t valn_exp = car(cdr(car(rest)));
+			    
+			    
+    push_u32(K,cdr(rest));
+    push_u32(K,env);
+    push_u32(K,keyn);  
+    push_k(K, bind_to_key_rest); 
+
+    curr_exp = valn_exp;
+    curr_env = env;
+    longjmp(rewind_buf, 1);
+  }
+
+  // Otherwise evaluate the expression in the populated env
+  uint32_t exp;
+  pop_u32(K, &exp);
+  curr_exp = exp;
+  curr_env = env;
+  longjmp(rewind_buf, 1); 
+  
+}
+
+uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
+  uint32_t curr = binds;
+  uint32_t new_env = orig_env;
+
+  if (TYPE_OF(binds) != PTR_TYPE_CONS) return ENC_SYM(symrepr_eerror()); 
+  
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) { 
+    uint32_t key = car(car(curr));
+    uint32_t val = ENC_SYM(symrepr_nil()); // a temporary
+    uint32_t binding = cons(key,val);
+    new_env = cons(binding, new_env); 
+    curr = cdr(curr); 
+  }
+
+  uint32_t key0 = car(car(binds)); 
+  uint32_t val0_exp = car(cdr(car(binds)));
+
+  push_u32(K,exp); // exp to evaluate in new environment
+  push_u32(K,cdr(binds));
+  push_u32(K,new_env);
+  push_u32(K,key0);
+  push_k(K, bind_to_key_rest);
+
+  curr_exp = val0_exp;
+  curr_env = new_env;  // env annotated with temporaries
+  longjmp(rewind_buf, 1); 
+}
+		  
 
 uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
   
@@ -336,8 +399,13 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 
       // Special form: LET
       if (DEC_SYM(head) == symrepr_let()) {
-	printf("NOT IMPLEMENTED\n");
-	return ENC_SYM(symrepr_eerror()); 
+	uint32_t orig_env = *env_in;
+	uint32_t binds   = car(cdr(lisp)); // key value pairs.
+	uint32_t exp     = car(cdr(cdr(lisp))); // exp to evaluate in the new env.
+	// Setup the bindings
+
+	//
+	return process_let(binds, orig_env, exp);
       }
     } // If head is symbol
     
