@@ -21,6 +21,11 @@
 #include "print.h"
 #include "env.h"
 
+#ifdef VISUALIZE_HEAP
+#include "heap_vis.h" 
+#endif 
+
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -44,7 +49,7 @@
      # I still dont understand what goes on there. 
      
    - Want to rewind the stack using setjmp longjmp.
-     #Probably not essential. 
+     #Probably not essential. Or maybe it is..  
 
    - Memory management will be real tricky since cannot rely on data on the stack.
      # Instead created another stack to depend upon. 
@@ -211,10 +216,9 @@ uint32_t closure_app(uint32_t args) {
   uint32_t clo_env = car(cdr(cdr(cdr(closure))));
 
   uint32_t local_env;
-  env_build_params_args(params, args, clo_env, &local_env); 
-  //simple_print(local_env); printf("\n"); 
-  //push_u32(K, curr_env);
-  //push_k(K, restore_env);
+  env_build_params_args(params, args, clo_env, &local_env);
+
+  // First thought was to push a "restore env" continuation here
   
   curr_exp = exp;
   curr_env = local_env; 
@@ -503,6 +507,10 @@ int run_eval(uint32_t lisp, uint32_t env) {
     //printf("Continuation size: %d\n", K->size);
     //printf("Continuation sp:   %d\n", K->sp); 
     //printf("USED HEAP:         %d\n", heap_size() - heap_num_allocated()); 
+
+#ifdef VISUALIZE_HEAP
+    heap_vis_gen_image();
+#endif 
     
     if (heap_size() - heap_num_allocated() < half_heap ){
       // GC also needs info about things alive in the "continuation"

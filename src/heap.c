@@ -20,6 +20,10 @@
 
 #include "heap.h"
 #include "symrepr.h"
+#ifdef VISUALIZE_HEAP
+#include "heap_vis.h"
+#endif 
+
 
 uint32_t global_env;
 
@@ -102,12 +106,13 @@ int heap_init(size_t num_cells) {
   heap_base = (uint32_t)heap;
   
   // Initialize heap statistics
-  heap_state.heap_bytes = (uint32_t)(num_cells * sizeof(cons_t));
-  heap_state.heap_size = num_cells;
+  heap_state.heap_base    = heap_base;
+  heap_state.heap_bytes   = (uint32_t)(num_cells * sizeof(cons_t));
+  heap_state.heap_size    = num_cells;
   
-  heap_state.num_alloc = 0;
-  heap_state.gc_num = 0;
-  heap_state.gc_marked = 0;
+  heap_state.num_alloc    = 0;
+  heap_state.gc_num       = 0;
+  heap_state.gc_marked    = 0;
   heap_state.gc_recovered = 0; 
   
   return (generate_freelist(num_cells)); 
@@ -181,6 +186,7 @@ uint32_t heap_size_bytes(void) {
 }
   
 void heap_get_state(heap_state_t *res) {
+  res->heap_base     = heap_state.heap_base;
   res->freelist      = heap_state.freelist;
   res->freelist_last = heap_state.freelist_last;
   res->heap_size     = heap_state.heap_size;
@@ -312,10 +318,27 @@ int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t *aux
   heap_state.gc_marked = 0; 
 
   gc_mark_freelist();
+#ifdef VISUALIZE_HEAP
+  heap_vis_gen_image();
+#endif 
   gc_mark_phase(exp);
+#ifdef VISUALIZE_HEAP
+  heap_vis_gen_image();
+#endif 
   gc_mark_phase(env);
+#ifdef VISUALIZE_HEAP
+  heap_vis_gen_image();
+#endif 
+
   gc_mark_phase(env2);
+#ifdef VISUALIZE_HEAP
+  heap_vis_gen_image();
+#endif 
   gc_mark_aux(aux_data, aux_size); 
+#ifdef VISUALIZE_HEAP
+  heap_vis_gen_image();
+#endif 
+
   
   return gc_sweep_phase();
 }

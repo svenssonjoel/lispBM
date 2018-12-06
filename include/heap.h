@@ -193,6 +193,7 @@ typedef struct {
 } cons_t;
 
 typedef struct {
+  uint32_t heap_base;       // address of heap in memory
   uint32_t freelist;        // list of free cons cells.
   uint32_t freelist_last;   // points at the last element in the free list
   
