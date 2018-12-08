@@ -489,7 +489,7 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 }
       
 
-uint32_t __attribute__((noinline, noclone))run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
+uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
 
   uint32_t half_heap = heap_size() / 2; 
   
@@ -522,7 +522,7 @@ uint32_t __attribute__((noinline, noclone))run_eval(uint32_t orig_prg, uint32_t 
   return r;
 }
 
-uint32_t __attribute__((noinline, noclone))eval_cps_program(uint32_t lisp) {
+uint32_t eval_cps_program(uint32_t lisp) {
 
   uint32_t curr = lisp;
   uint32_t res = ENC_SYM(symrepr_nil());

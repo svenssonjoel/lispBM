@@ -8,4 +8,4 @@ do
 done
 
 
-ffmpeg -framerate 20 -pattern_type glob -i '*.png' -c:v libx264 -r 30 -pix_fmt yuv420p out.mp4
+ffmpeg -framerate 200 -pattern_type glob -i '*.png' -c:v libx264 -r 30 -pix_fmt yuv420p out.mp4
