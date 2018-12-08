@@ -230,5 +230,5 @@ extern void heap_get_state(heap_state_t *);
 
 // Garbage collection
 extern int heap_perform_gc(uint32_t env); 
-extern int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t *aux_data, uint32_t aux_size); 
+extern int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t exp2, uint32_t *aux_data, uint32_t aux_size); 
 #endif

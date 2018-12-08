@@ -201,15 +201,13 @@ void heap_get_state(heap_state_t *res) {
 int gc_mark_phase(uint32_t env) {
 
   if (!IS_PTR(env)) {
-    if ((VAL_TYPE(env) == VAL_TYPE_SYMBOL) &&
-	(DEC_SYM(env) == SYMBOL_NIL)){ 
       return 1; // Nothing to mark here 
-    } else {
-      // Not sure this is an error case... 
-      return 1;
-    }
   }
 
+  if (get_gc_mark(ref_cell(env))) {
+    return 1; // Circular object on heap, or visited (aux)..
+  }
+    
   // There is at least a pointer to one cell here. Mark it and recurse over  car and cdr 
   heap_state.gc_marked ++;
 
@@ -250,16 +248,35 @@ int gc_mark_freelist() {
 
      heap_state.gc_marked ++;
   }
+
+  if ( t != ref_cell(heap_state.freelist_last)) {
+    printf( "CORRUPT FREELIST!\n");
+  }
   return 1;
 }
 
 int gc_mark_aux(uint32_t *aux_data, uint32_t aux_size) {
 
   cons_t *t;
-  
+ 
   for (int i = 0; i < aux_size; i ++) {
     if (IS_PTR(aux_data[i])) {
-      gc_mark_phase(aux_data[i]);
+
+      uint32_t pt_t = PTR_TYPE(aux_data[i]);
+      uint32_t pt_v = DEC_PTR(aux_data[i]);
+
+      if ( pt_t == PTR_TYPE_CONS ||
+	   pt_t == PTR_TYPE_I32 ||
+	   pt_t == PTR_TYPE_U32 ||
+	   pt_t == PTR_TYPE_F32 ||
+	   pt_t == PTR_TYPE_VEC_I32 ||
+	   pt_t == PTR_TYPE_VEC_U32 ||
+	   pt_t == PTR_TYPE_VEC_F32 ||
+	   pt_t == PTR_TYPE_STRING  &&
+	   pt_v < heap_state.heap_size) {
+ 
+	gc_mark_phase(aux_data[i]);
+      }
     }
   }
   
@@ -280,6 +297,10 @@ int gc_sweep_phase(void) {
     if ( !get_gc_mark(&heap[i])){
       fl_last = ref_cell(heap_state.freelist_last);
 
+      if ( DEC_SYM(read_cdr(fl_last)) != SYMBOL_NIL) {
+	printf( "ERROR: cdr of fl_last not nil\n");
+      }
+      
       // Clear the "freed" cell. 
       set_cdr_(&heap[i], 0); 
       set_cdr_(&heap[i], ENC_SYM(SYMBOL_NIL));
@@ -300,8 +321,6 @@ int gc_sweep_phase(void) {
   return 1; 
 }
 
-// TODO: Consider the possiblity of circular objects on
-//       the heap. 
 int heap_perform_gc(uint32_t env) {
   heap_state.gc_num ++;
   heap_state.gc_recovered = 0; 
@@ -312,7 +331,7 @@ int heap_perform_gc(uint32_t env) {
   return gc_sweep_phase();
 }
 
-int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t *aux_data, uint32_t aux_size) {
+int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t exp2, uint32_t *aux_data, uint32_t aux_size) {
   heap_state.gc_num ++;
   heap_state.gc_recovered = 0; 
   heap_state.gc_marked = 0; 
@@ -320,21 +339,24 @@ int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t *aux
   gc_mark_freelist();
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
-#endif 
+#endif
   gc_mark_phase(exp);
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
-#endif 
+#endif
+  gc_mark_phase(exp2);
+#ifdef VISUALIZE_HEAP
+  heap_vis_gen_image();
+#endif  
   gc_mark_phase(env);
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
 #endif 
-
   gc_mark_phase(env2);
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
-#endif 
-  gc_mark_aux(aux_data, aux_size); 
+#endif
+  gc_mark_aux(aux_data, aux_size);   
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
 #endif 

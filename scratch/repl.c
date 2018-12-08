@@ -108,20 +108,20 @@ int main(int argc, char **argv) {
 	printf("ERROR!\n");
 	break;
       }
-    
+      
       uint32_t t;
       t = read_ast(ast);
-    
-      run_eval(car(t), ENC_SYM(symrepr_nil()));
-
-      /*
+      
+      t = eval_cps_program(t);
+      
       if (DEC_SYM(t) == symrepr_eerror()) {
-	printf("%s\n", eval_get_error());
+	printf("error\n"); 
+	//printf("%s\n", eval_get_error());
       } else {
 	printf("> "); simple_print(t); printf("\n");
       }
-      */
-        
+      
+      
       mpc_ast_delete(ast);
     }
   }

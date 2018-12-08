@@ -55,6 +55,8 @@
      # Instead created another stack to depend upon. 
 */
 
+static uint32_t __attribute__((noinline, noclone))run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env);
+
 jmp_buf rewind_buf;
 
 static uint32_t curr_exp; 
@@ -420,8 +422,7 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 	
 	if (TYPE_OF(key) != VAL_TYPE_SYMBOL ||
 	    DEC_SYM(key) == symrepr_nil()) {
-	  uint32_t val = ENC_SYM(symrepr_eerror()); 
-	  return val;
+	  return ENC_SYM(symrepr_eerror()); 
 	}
 
 	push_u32(K, key);
@@ -488,7 +489,7 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 }
       
 
-int run_eval(uint32_t lisp, uint32_t env) {
+uint32_t __attribute__((noinline, noclone))run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
 
   uint32_t half_heap = heap_size() / 2; 
   
@@ -499,22 +500,15 @@ int run_eval(uint32_t lisp, uint32_t env) {
 
   uint32_t r;
   
-  //printf("run_eval\n"); 
-  
   if (setjmp(rewind_buf)) {
-    //printf("Rewind!\n");
-
-    //printf("Continuation size: %d\n", K->size);
-    //printf("Continuation sp:   %d\n", K->sp); 
-    //printf("USED HEAP:         %d\n", heap_size() - heap_num_allocated()); 
-
+  
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
 #endif 
     
     if (heap_size() - heap_num_allocated() < half_heap ){
       // GC also needs info about things alive in the "continuation"
-      heap_perform_gc_aux(global_env, curr_env, curr_exp, K->data, K->sp);
+      heap_perform_gc_aux(global_env, curr_env, curr_exp, orig_prg, K->data, K->sp);
     }
     
     r = eval_cps(&curr_exp, &curr_env);
@@ -523,15 +517,26 @@ int run_eval(uint32_t lisp, uint32_t env) {
 
     // kickstarts evaluation with the done_cont;
     r = eval_cps(&curr_exp, &curr_env);
-  
   }
 
-  // DONE!
-  uint32_t r_val = r;  
-  simple_print(r_val); printf("\n");
-
-  return 1; 
+  return r;
 }
+
+uint32_t __attribute__((noinline, noclone))eval_cps_program(uint32_t lisp) {
+
+  uint32_t curr = lisp;
+  uint32_t res = ENC_SYM(symrepr_nil());
+  
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
+    uint32_t val = run_eval(lisp, car(curr),ENC_SYM(symrepr_nil()));
+    res = cons(val,res);
+    curr = cdr(curr); 
+  }
+
+  return res;
+}
+
+
 
 int eval_cps_init() {
 
