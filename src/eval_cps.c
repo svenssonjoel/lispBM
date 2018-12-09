@@ -55,7 +55,7 @@
      # Instead created another stack to depend upon. 
 */
 
-static uint32_t __attribute__((noinline, noclone))run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env);
+static uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env);
 
 jmp_buf rewind_buf;
 
@@ -134,6 +134,14 @@ int pop_k(stack *s, uint32_t (**k)(uint32_t)) {
   
 uint32_t eval_cps_get_env(void) {
   return global_env;
+}
+
+
+uint32_t eval_cps_bi(uint32_t lisp) {
+ 
+  curr_exp = car(lisp);
+  curr_env = curr_env;
+  longjmp(rewind_buf,1); 
 }
 
 
@@ -533,7 +541,7 @@ uint32_t eval_cps_program(uint32_t lisp) {
     curr = cdr(curr); 
   }
 
-  return res;
+  return reverse(res);
 }
 
 
@@ -541,6 +549,8 @@ uint32_t eval_cps_program(uint32_t lisp) {
 int eval_cps_init() {
 
   K = init_cont_stack(1000);
+
+  int res = builtin_add_function("eval",eval_cps_bi); 
   
   global_env = ENC_SYM(symrepr_nil());
 
@@ -550,5 +560,5 @@ int eval_cps_init() {
   global_env = cons(nil_entry, global_env);
 
   
-  return 1;
+  return res;
 }
