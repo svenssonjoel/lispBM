@@ -337,30 +337,15 @@ int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t exp2
   heap_state.gc_marked = 0; 
 
   gc_mark_freelist();
-#ifdef VISUALIZE_HEAP
-  heap_vis_gen_image();
-#endif
   gc_mark_phase(exp);
-#ifdef VISUALIZE_HEAP
-  heap_vis_gen_image();
-#endif
   gc_mark_phase(exp2);
-#ifdef VISUALIZE_HEAP
-  heap_vis_gen_image();
-#endif  
   gc_mark_phase(env);
-#ifdef VISUALIZE_HEAP
-  heap_vis_gen_image();
-#endif 
   gc_mark_phase(env2);
-#ifdef VISUALIZE_HEAP
-  heap_vis_gen_image();
-#endif
   gc_mark_aux(aux_data, aux_size);   
+
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
 #endif 
-
   
   return gc_sweep_phase();
 }

@@ -398,13 +398,13 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 
   case PTR_TYPE_F32:
   case PTR_TYPE_U32:
-  case VAL_TYPE_I28: 
+  case VAL_TYPE_I28:
+  case PTR_TYPE_I32:
   case VAL_TYPE_CHAR:
   case VAL_TYPE_U28: {
     return apply_continuation(K, lisp);
   }
 
-  case PTR_TYPE_I32:
   case PTR_TYPE_VEC_I32:
   case PTR_TYPE_VEC_U32:
   case PTR_TYPE_VEC_F32:

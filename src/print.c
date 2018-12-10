@@ -106,6 +106,12 @@ int simple_print(uint32_t t){
     return 1; 
   }
 
+  if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_I32) {
+    int32_t v = (int32_t)car(t);
+    printf("{%d}", v); 
+    return 1; 
+  }
+
   
 
   if (!IS_PTR(t)) { // Value, symbol 

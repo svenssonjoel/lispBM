@@ -19,7 +19,8 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 ## Short term TODOs
 1. Implement some "reference to X type", for uint32, int32, float perhaps...  
 2. Write a small library of useful hofs. 
-3. Clean up a lot in eval and eval_cps.  
+3. Clean up a lot in eval and eval_cps.
+4. GC should be run when needed. 
 4. Test the Zynq build more. 
 5. Document code.
 6. Implement the boxed types ( int32, Vector, String etc).

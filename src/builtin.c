@@ -47,6 +47,11 @@ uint32_t bi_fun_cons(uint32_t args) {
   return cons(a,b);
 }
 
+uint32_t bi_fun_reverse(uint32_t args) {
+  uint32_t xs = car(args);
+  return reverse(xs); 
+}
+
 uint32_t get_maximum_type(uint32_t args) {
 
   uint32_t max_type = 0; 
@@ -72,6 +77,9 @@ int get_as_int(uint32_t v, int32_t *r) {
   case VAL_TYPE_U28:
     *r = (int32_t)DEC_U28(v);
     break;
+  case PTR_TYPE_I32:
+    *r = (int32_t)car(v);
+    break;
   case PTR_TYPE_U32:
     *r = (int32_t)car(v);
     break;
@@ -96,6 +104,8 @@ int get_as_uint(uint32_t v, uint32_t *r) {
   case VAL_TYPE_U28:
     *r = DEC_U28(v);
     break;
+  case PTR_TYPE_I32:
+    *r = (uint32_t)car(v); 
   case PTR_TYPE_U32:
     *r = car(v);
     break;
@@ -118,6 +128,9 @@ int get_as_float(uint32_t v, float *r) {
     break;
   case VAL_TYPE_U28:
     *r = (float)DEC_U28(v);
+    break;
+  case PTR_TYPE_I32:
+    *r = (float)((int32_t)car(v));
     break;
   case PTR_TYPE_U32:
     *r = (float)car(v);
@@ -164,6 +177,17 @@ uint32_t bi_fun_sum(uint32_t args) {
       curr = cdr(curr); 
     }
     return ENC_U28(u_sum);
+
+  case PTR_TYPE_I32:
+    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+      uint32_t v = car(curr);
+      uint32_t r;
+      get_as_int(v,&r);
+      i_sum += r;
+      curr= cdr(curr);
+    }
+    tmp = cons(i_sum,symrepr_nil());
+    return SET_PTR_TYPE(tmp, PTR_TYPE_I32);
     
   case PTR_TYPE_U32:
     while(TYPE_OF(curr) == PTR_TYPE_CONS) {
@@ -217,7 +241,13 @@ uint32_t bi_fun_sub(uint32_t args) {
     case VAL_TYPE_U28:
       u_res = -DEC_U28(car(args));
       return ENC_U28(u_res);
-      
+
+    case PTR_TYPE_I32:
+      i_res = -(int32_t)car(car(args));
+      enc = cons(i_res, ENC_SYM(symrepr_nil()));
+      enc = SET_PTR_TYPE(enc,PTR_TYPE_I32);
+      return enc;
+
     case PTR_TYPE_U32:
       u_res = -car(car(args));
       enc = cons(u_res, ENC_SYM(symrepr_nil()));
@@ -262,6 +292,20 @@ uint32_t bi_fun_sub(uint32_t args) {
       curr = cdr(curr); 
     }
     return ENC_U28(u_res);
+
+  case PTR_TYPE_I32:
+    get_as_int(v, &u_res);
+
+    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+      uint32_t v = car(curr);
+      uint32_t r;
+      get_as_int(v, &r);
+      i_res -= r;
+      curr = cdr(curr);
+    }
+    enc = cons(i_res, ENC_SYM(symrepr_nil()));
+    enc = SET_PTR_TYPE(enc,PTR_TYPE_I32);
+    return enc;
     
   case PTR_TYPE_U32:
     get_as_uint(v, &u_res);
@@ -318,6 +362,11 @@ uint32_t bi_fun_gt(uint32_t args) {
     get_as_uint(a2, &u2);
     if (u1 > u2) return ENC_SYM(symrepr_true());
     else return ENC_SYM(symrepr_nil());
+  case PTR_TYPE_I32:
+    get_as_int(a1, &i1);
+    get_as_int(a2, &i2);
+    if (i1 > i2) return ENC_SYM(symrepr_true());
+    else return ENC_SYM(symrepr_nil());
   case PTR_TYPE_U32:
     get_as_uint(a1, &u1);
     get_as_uint(a2, &u2);
@@ -353,6 +402,11 @@ uint32_t bi_fun_lt(uint32_t args) {
     get_as_uint(a1, &u1);
     get_as_uint(a2, &u2);
     if (u1 < u2) return ENC_SYM(symrepr_true());
+    else return ENC_SYM(symrepr_nil());
+  case PTR_TYPE_I32:
+    get_as_uint(a1, &i1);
+    get_as_uint(a2, &i2);
+    if (i1 < i2) return ENC_SYM(symrepr_true());
     else return ENC_SYM(symrepr_nil());
   case PTR_TYPE_U32:
     get_as_uint(a1, &u1);
@@ -408,6 +462,13 @@ int structural_equality(uint32_t a, uint32_t b) {
 	else return 0;
       }
 
+      if (PTR_TYPE(a) == PTR_TYPE_I32){
+	int32_t ai = (int32_t)car(a);
+	int32_t bi = (int32_t)car(b);
+	  if (ai == bi) return 1;
+	  else return 0; 
+      }
+      
       if (PTR_TYPE(a) == PTR_TYPE_U32){
 	uint32_t au = car(a);
 	uint32_t bu = car(b);
@@ -514,7 +575,7 @@ int builtin_init(void) {
   res &= builtin_add_function("=", bi_fun_eq);
   res &= builtin_add_function("gensym", bi_fun_gensym);
   res &= builtin_add_function("list", bi_fun_list);
-  
+  res &= builtin_add_function("reverse", bi_fun_reverse); 
   return res; 
 }
 

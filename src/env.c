@@ -81,9 +81,9 @@ int env_modify_binding(uint32_t env, uint32_t key, uint32_t val) {
 
 
 int env_build_params_args(uint32_t params,
-			       uint32_t args,
-			       uint32_t env0,
-			       uint32_t *res_env) {
+			  uint32_t args,
+			  uint32_t env0,
+			  uint32_t *res_env) {
   uint32_t curr_param = params;
   uint32_t curr_arg = args;
 

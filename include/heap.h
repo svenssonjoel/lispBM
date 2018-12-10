@@ -150,9 +150,12 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define PTR_TYPE_F32         0x40000000
 #define PTR_TYPE_VEC_I32     0x50000000
 #define PTR_TYPE_VEC_U32     0x60000000
-#define PTR_TYPE_VEC_F32     0x70000000
-/*...*/                                 
-#define PTR_TYPE_STRING      0xF0000000
+#define PTR_TYPE_VEC_F32     0x70000000                             
+#define PTR_TYPE_STRING      0x80000000
+/*...*/
+#define PTR_TYPE_REF_I32     0xD0000000
+#define PTR_TYPE_REF_U32     0xE0000000
+#define PTR_TYPE_REF_FLOAT   0xF0000000
 
 #define GC_MASK              0x00000002
 #define GC_MARKED            0x00000002 

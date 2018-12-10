@@ -64,15 +64,24 @@ uint32_t read_ast(mpc_ast_t *t){
 	return ENC_U28(v);
       }
     }
-    if (strstr(t->contents, "uu")) {
+
+    if (t->contents[strlen(t->contents)-1] == 'U') {
       uint32_t v = (uint32_t)strtoul(t->contents,NULL,10);
       uint32_t ptr_cons = cons(v, ENC_SYM(nil));
       return SET_PTR_TYPE(ptr_cons, PTR_TYPE_U32);
     }
+    
+    if (t->contents[strlen(t->contents)-1] == 'I') {
+      uint32_t v = (int32_t)atoi(t->contents);
+      uint32_t ptr_cons = cons(v, ENC_SYM(nil));
+      return SET_PTR_TYPE(ptr_cons, PTR_TYPE_I32);
+    }
+    
     if (t->contents[strlen(t->contents)-1] == 'u') {
       uint32_t v = (uint32_t)atoi(t->contents);
       return ENC_U28(v);
     }
+    
     int32_t v = (int32_t)atoi(t->contents);
     return ENC_I28(v); 
   }
