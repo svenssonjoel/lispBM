@@ -33,20 +33,34 @@ uint32_t xtou(char *str) {
 uint32_t read_ast(mpc_ast_t *t){
 
   uint32_t rerror = symrepr_rerror();
-  uint32_t nil    = symrepr_nil(); 
-  uint32_t quote  = symrepr_quote(); 
-  
+  uint32_t nil    = symrepr_nil();
+  uint32_t quote  = symrepr_quote();
+
   // Base cases
   if (strstr(t->tag, "name")) {
     uint32_t symbol_id;
-    
+
     if (symrepr_lookup(t->contents, &symbol_id)) {
-      return ENC_SYM(symbol_id);  
+      return ENC_SYM(symbol_id);
     }
     else if (symrepr_addsym(t->contents,&symbol_id)) {
-      return ENC_SYM(symbol_id);  
+      return ENC_SYM(symbol_id);
     } else {
-      return ENC_SYM(rerror); 
+      return ENC_SYM(rerror);
+    }
+  }
+
+  if (strstr(t->tag, "character")) {
+    int len = strlen(t->contents);
+    printf( "Reading character %c\n", t->contents[2]);
+    if (len == 3) {
+      uint32_t v = (uint32_t)(t->contents[2]);
+      return ENC_CHAR(v);
+    } else if (len > 3 && strstr(t->contents, "newline")) {
+      uint32_t v = (uint32_t)'\n';
+      return ENC_CHAR(v);
+    } else {
+      return ENC_SYM(rerror);
     }
   }
 
@@ -70,20 +84,20 @@ uint32_t read_ast(mpc_ast_t *t){
       uint32_t ptr_cons = cons(v, ENC_SYM(nil));
       return SET_PTR_TYPE(ptr_cons, PTR_TYPE_U32);
     }
-    
+
     if (t->contents[strlen(t->contents)-1] == 'I') {
       uint32_t v = (int32_t)atoi(t->contents);
       uint32_t ptr_cons = cons(v, ENC_SYM(nil));
       return SET_PTR_TYPE(ptr_cons, PTR_TYPE_I32);
     }
-    
+
     if (t->contents[strlen(t->contents)-1] == 'u') {
       uint32_t v = (uint32_t)atoi(t->contents);
       return ENC_U28(v);
     }
-    
+
     int32_t v = (int32_t)atoi(t->contents);
-    return ENC_I28(v); 
+    return ENC_I28(v);
   }
 
   if (strstr(t->tag, "float")) {
@@ -98,46 +112,46 @@ uint32_t read_ast(mpc_ast_t *t){
   if (strcmp(t->tag, ">") == 0) {
     int n = t->children_num;
     uint32_t res = ENC_SYM(nil);
-    
+
     for (int i = n - 1; i >= 0; i --) {
       if (strcmp(t->children[i]->tag, "regex") == 0) { continue; }
       if (strstr(t->children[i]->tag, "comment")) { continue; }
-       
+
       uint32_t r = read_ast(t->children[i]);
-      res = cons(r, res); 
+      res = cons(r, res);
     }
-    return res; 
+    return res;
   }
 
-  // Read SExpr 
+  // Read SExpr
   if (strstr(t->tag, "sexp")) {
     int n = t->children_num;
     uint32_t res = ENC_SYM(nil);
-    
+
     if (t->children_num == 5 &&
 	strcmp(t->children[0]->contents, "(") == 0 &&
 	strcmp(t->children[2]->contents, ".") == 0 &&
 	strcmp(t->children[4]->contents, ")") == 0 ) {
       uint32_t a = read_ast(t->children[1]);
       uint32_t b = read_ast(t->children[3]);
-      return cons(a,b); 
-      
+      return cons(a,b);
+
     }
-      
+
     for (int i = n-1; i >= 0; i --) {
 
       if (strcmp(t->children[i]->contents, "(") == 0) { continue; }
       if (strcmp(t->children[i]->contents, ")") == 0) { continue; }
       if (strcmp(t->children[i]->tag,  "regex") == 0) { continue; }
-      
-      
+
+
       uint32_t r = read_ast(t->children[i]);
-      res = cons(r, res); 
+      res = cons(r, res);
     }
     return res;
   }
-  
-  // Read QExpr 
+
+  // Read QExpr
   if (strstr(t->tag, "qexp")) {
     int n = t->children_num;
     uint32_t res = ENC_SYM(nil);
@@ -148,8 +162,8 @@ uint32_t read_ast(mpc_ast_t *t){
 
     uint32_t r = read_ast(t->children[1]);
     res = cons(ENC_SYM(quote), cons(r, res));
-    
+
     return res;
-  }  
+  }
   return ENC_SYM(nil);
 }
