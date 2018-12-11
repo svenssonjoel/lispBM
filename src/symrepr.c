@@ -35,8 +35,9 @@
    
    Replace with something more thought through (or looked up) later. 
 
-     - There is a 16 bit hash table (65521 buckets (65536 - 15)) 
+     - There is a 16 bit hash table (only 49999 buckets targeted by hash function) 
      - and 12 additional bits (bucket depth 4096)
+     - The buckets numbered 49999 - 65535 are used by gensyming new symbols.
 
    
      

@@ -238,6 +238,9 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   case PTR_TYPE_VEC_U32:
   case PTR_TYPE_VEC_F32:
   case PTR_TYPE_STRING:
+  case PTR_TYPE_REF_I32:
+  case PTR_TYPE_REF_U32:
+  case PTR_TYPE_REF_FLOAT:
     ERROR("Boxed types not implemented");
     break;
   default:
