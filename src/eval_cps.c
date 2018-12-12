@@ -374,11 +374,8 @@ uint32_t if_cont(uint32_t cond) {
   }
 }
 		  
-uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
-  
-  uint32_t env = *env_in;
-  uint32_t lisp = *lisp_in;
-  
+uint32_t eval_cps(uint32_t lisp, uint32_t env) {
+    
   uint32_t tmp = ENC_SYM(symrepr_eerror()); 
   int ret = 0;
   uint32_t head;
@@ -439,8 +436,8 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 	push_u32(K, key);
 	push_k(K,set_global_env); 
 		
-	*lisp_in = val_exp;
-	*env_in = env;
+	curr_exp = val_exp;
+	curr_env = env;
 	longjmp(rewind_buf,1); 
       }
 
@@ -465,15 +462,15 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
 	push_u32(K,car(cdr(cdr(lisp)))); // Then branch
 	push_k(K,if_cont);
 
-	*lisp_in = car(cdr(lisp)); // condition
-	*env_in  = *env_in;
+	curr_exp = car(cdr(lisp)); // condition
+	curr_env = curr_env;
 	longjmp(rewind_buf, 1); 
 	
       }
 
       // Special form: LET
       if (DEC_SYM(head) == symrepr_let()) {
-	uint32_t orig_env = *env_in;
+	uint32_t orig_env = env;
 	uint32_t binds   = car(cdr(lisp)); // key value pairs.
 	uint32_t exp     = car(cdr(cdr(lisp))); // exp to evaluate in the new env.
 	// Setup the bindings
@@ -484,12 +481,12 @@ uint32_t eval_cps(uint32_t *lisp_in, uint32_t *env_in) {
     } // If head is symbol
     
     // Possibly an application form:
-    push_u32(K, *env_in); // The environment each element should be evaluated in 
+    push_u32(K, curr_env); // The environment each element should be evaluated in 
     push_u32(K, cdr(lisp)); // list of arguments that needs to be evaluated. 
     push_k(K, function_cont); 
     
-    *lisp_in = head;
-    *env_in  = *env_in;
+    curr_exp = head;
+    curr_env = curr_env;
     longjmp(rewind_buf, 1); 
     
   default:
@@ -522,12 +519,12 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
       heap_perform_gc_aux(global_env, curr_env, curr_exp, orig_prg, K->data, K->sp);
     }
     
-    r = eval_cps(&curr_exp, &curr_env);
+    r = eval_cps(curr_exp, curr_env);
    	
   } else {
 
     // kickstarts evaluation with the done_cont;
-    r = eval_cps(&curr_exp, &curr_env);
+    r = eval_cps(curr_exp, curr_env);
   }
 
   return r;
