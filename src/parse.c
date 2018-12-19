@@ -27,6 +27,7 @@ mpc_parser_t* Program;
 mpc_parser_t* Integer;
 mpc_parser_t* Float;
 mpc_parser_t* Character;
+mpc_parser_t* String;
 mpc_parser_t* Name;
 
 int parser_init(void) {
@@ -39,6 +40,7 @@ int parser_init(void) {
   Integer = mpc_new("integer");
   Float   = mpc_new("float");
   Character = mpc_new("character");
+  String = mpc_new("stringlit"); 
   Name = mpc_new("name");
 
   mpca_lang(MPCA_LANG_DEFAULT,
@@ -51,15 +53,16 @@ int parser_init(void) {
 	    "integer   : /0x([0-9a-fA-F]+)|([0-9]+(U|I|u)?)/ ;"
 	    "float     : /[0-9]+\\.?[0-9]+/;"
 	    "character : /\\\\#newline|\\\\#./ ;"
+	    "stringlit :  /\"(\\\\.|[^\"])*\"/ ;"
 	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/;",
-	    Program, Comment, Exp, SExp, QExp, Integer, Float , Character, Name, NULL) ;
+	    Program, Comment, Exp, SExp, QExp, Integer, Float , Character, String, Name, NULL) ;
 
   return 1;
 }
 
 void parser_del(void) {
 
-  mpc_cleanup(8, Comment, Exp, SExp, QExp, Program, Integer, Float, Character, Name);
+  mpc_cleanup(9, Comment, Exp, SExp, QExp, Program, Integer, Float, Character, String, Name);
 }
 
 
