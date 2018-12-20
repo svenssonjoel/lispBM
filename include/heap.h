@@ -210,6 +210,18 @@ typedef struct {
   uint32_t gc_recovered;    // Number of cells recovered by sweep phase. 
 } heap_state_t;
 
+
+typedef struct {
+  uint32_t elt_type;
+  uint32_t size;
+  union {
+    float    *f;
+    uint32_t *u32;
+    int32_t  *i32;
+    char     *c;
+  } data; 
+} array_t; 
+
 extern uint32_t global_env;
 
 extern int heap_init(size_t num_cells);

@@ -29,7 +29,6 @@ uint32_t xtou(char *str) {
   return (uint32_t)strtoul(str,NULL,0);
 }
 
-
 uint32_t read_ast(mpc_ast_t *t){
 
   uint32_t rerror = symrepr_rerror();
