@@ -212,15 +212,28 @@ typedef struct {
 
 
 typedef struct {
-  uint32_t elt_type;
-  uint32_t size;
+  uint32_t aux;             // GC mark
+  uint32_t elt_type;        // Type of elements: VAL_TYPE_FLOAT, U32, I32 or CHAR
+  uint32_t size;            // Number of elements
   union {
     float    *f;
     uint32_t *u32;
     int32_t  *i32;
     char     *c;
-  } data; 
-} array_t; 
+  } data;                   // Array data storage 
+} array_t;                 
+
+typedef struct {
+  uint32_t aux;             // GC mark
+  uint32_t i_stream_state;  // Application dependent
+  uint32_t (*read)(uint32_t*);  // takes ptr to stream state
+} i_stream_t;
+
+typedef struct {
+  uint32_t aux;             // GC mark
+  uint32_t o_stream_state;  // Application dependent
+  uint32_t (*write)(uint32_t*, uint32_t);
+} o_stream_t;
 
 extern uint32_t global_env;
 
