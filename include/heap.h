@@ -260,5 +260,6 @@ extern int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32
 
 
 // Array functionality
+extern int heap_allocate_array(uint32_t *res, uint32_t size, uint32_t type); 
 
 #endif

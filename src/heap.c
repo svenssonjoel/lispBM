@@ -429,3 +429,52 @@ uint32_t reverse(uint32_t list) {
   }
   return new_list; 
 }
+
+
+
+
+////////////////////////////////////////////////////////////
+// ARRAY, REF and Stream functionality
+////////////////////////////////////////////////////////////
+
+// It is part of the heap module because its lifespan is managed
+// by the garbage collector. The data in the array is not stored
+// in the "heap of cons cells". 
+int heap_allocate_array(uint32_t *res, uint32_t size, uint32_t type){
+
+  array_t *array = malloc(sizeof(array_t));
+  // allocating a cell that will, to start with, be a cons cell.
+  uint32_t cell  = heap_allocate_cell(PTR_TYPE_CONS);
+
+  switch(type) {
+  case PTR_TYPE_I32: // array of I32
+    array->data.i32 = (int32_t*)malloc(size * (sizeof(int32_t)));
+    break;
+  case PTR_TYPE_U32: // array of U32
+    array->data.u32 = (uint32_t*)malloc(size * (sizeof(uint32_t)));
+    break;
+  case PTR_TYPE_F32: // array of Float
+    array->data.f = (float*)malloc(size * (sizeof(float)));
+    break;
+  case VAL_TYPE_CHAR: // Array of Char
+    array->data.c = (char*)malloc(size * (sizeof(char)));
+    break;
+  default:
+    return ENC_SYM(symrepr_nil());
+  }
+
+  // TODO error checking
+  
+  array->aux = 0;
+  array->elt_type = type;
+  array->size = size;
+  
+  set_car(cell, (uint32_t)array);
+  set_cdr(cell, ENC_SYM(symrepr_nil()));
+	   
+  cell = cell | PTR_TYPE_ARRAY;
+
+  
+  
+  return 1; 
+}
