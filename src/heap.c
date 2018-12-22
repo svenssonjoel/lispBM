@@ -449,21 +449,24 @@ int heap_allocate_array(uint32_t *res, uint32_t size, uint32_t type){
   switch(type) {
   case PTR_TYPE_I32: // array of I32
     array->data.i32 = (int32_t*)malloc(size * (sizeof(int32_t)));
+    if (array->data.i32 == NULL) return 0; 
     break;
   case PTR_TYPE_U32: // array of U32
     array->data.u32 = (uint32_t*)malloc(size * (sizeof(uint32_t)));
+    if (array->data.u32 == NULL) return 0; 
     break;
   case PTR_TYPE_F32: // array of Float
     array->data.f = (float*)malloc(size * (sizeof(float)));
+    if (array->data.f == NULL) return 0; 
     break;
   case VAL_TYPE_CHAR: // Array of Char
     array->data.c = (char*)malloc(size * (sizeof(char)));
+    if (array->data.c == NULL) return 0; 
     break;
   default:
-    return ENC_SYM(symrepr_nil());
+    *res = ENC_SYM(symrepr_nil());
+    return 0;
   }
-
-  // TODO error checking
   
   array->aux = 0;
   array->elt_type = type;
@@ -474,7 +477,7 @@ int heap_allocate_array(uint32_t *res, uint32_t size, uint32_t type){
 	   
   cell = cell | PTR_TYPE_ARRAY;
 
-  
+  *res = cell;
   
   return 1; 
 }
