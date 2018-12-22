@@ -402,13 +402,9 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
     return apply_continuation(K, lisp);
   }
 
-  case PTR_TYPE_VEC_I32:
-  case PTR_TYPE_VEC_U32:
-  case PTR_TYPE_VEC_F32:
-  case PTR_TYPE_STRING:
-  case PTR_TYPE_REF_I32:
-  case PTR_TYPE_REF_U32:
-  case PTR_TYPE_REF_FLOAT:
+  case PTR_TYPE_ARRAY:
+  case PTR_TYPE_REF:
+  case PTR_TYPE_STREAM:
     return ENC_SYM(symrepr_eerror());
     break;
  

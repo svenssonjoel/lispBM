@@ -148,14 +148,10 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define PTR_TYPE_I32         0x20000000
 #define PTR_TYPE_U32         0x30000000
 #define PTR_TYPE_F32         0x40000000
-#define PTR_TYPE_VEC_I32     0x50000000
-#define PTR_TYPE_VEC_U32     0x60000000
-#define PTR_TYPE_VEC_F32     0x70000000                             
-#define PTR_TYPE_STRING      0x80000000
 /*...*/
-#define PTR_TYPE_REF_I32     0xD0000000
-#define PTR_TYPE_REF_U32     0xE0000000
-#define PTR_TYPE_REF_FLOAT   0xF0000000
+#define PTR_TYPE_ARRAY       0xD0000000
+#define PTR_TYPE_REF         0xE0000000
+#define PTR_TYPE_STREAM      0xF0000000
 
 #define GC_MASK              0x00000002
 #define GC_MARKED            0x00000002 
@@ -225,14 +221,16 @@ typedef struct {
 
 typedef struct {
   uint32_t aux;             // GC mark
-  uint32_t i_stream_state;  // Application dependent
-  uint32_t (*read)(uint32_t*);  // takes ptr to stream state
+  uint32_t stream_state;    // Application dependent
+  uint32_t (*read)(uint32_t*);     // Takes ptr to stream state
+  void (*free_stream)(uint32_t*);  // Takes ptr to stream state
 } i_stream_t;
 
 typedef struct {
   uint32_t aux;             // GC mark
-  uint32_t o_stream_state;  // Application dependent
+  uint32_t stream_state;    // Application dependent
   uint32_t (*write)(uint32_t*, uint32_t);
+  void (*free_stream)(uint32_t*);
 } o_stream_t;
 
 extern uint32_t global_env;
@@ -258,5 +256,9 @@ extern void heap_get_state(heap_state_t *);
 
 // Garbage collection
 extern int heap_perform_gc(uint32_t env); 
-extern int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t exp2, uint32_t *aux_data, uint32_t aux_size); 
+extern int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t exp2, uint32_t *aux_data, uint32_t aux_size);
+
+
+// Array functionality
+
 #endif

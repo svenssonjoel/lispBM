@@ -269,10 +269,9 @@ int gc_mark_aux(uint32_t *aux_data, uint32_t aux_size) {
 	   pt_t == PTR_TYPE_I32 ||
 	   pt_t == PTR_TYPE_U32 ||
 	   pt_t == PTR_TYPE_F32 ||
-	   pt_t == PTR_TYPE_VEC_I32 ||
-	   pt_t == PTR_TYPE_VEC_U32 ||
-	   pt_t == PTR_TYPE_VEC_F32 ||
-	   pt_t == PTR_TYPE_STRING  &&
+	   pt_t == PTR_TYPE_ARRAY ||
+	   pt_t == PTR_TYPE_REF ||
+	   pt_t == PTR_TYPE_STREAM &&
 	   pt_v < heap_state.heap_size) {
  
 	gc_mark_phase(aux_data[i]);

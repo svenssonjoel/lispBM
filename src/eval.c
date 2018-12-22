@@ -234,14 +234,10 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   case PTR_TYPE_F32:
     return lisp;
     break;
-  case PTR_TYPE_VEC_I32:
-  case PTR_TYPE_VEC_U32:
-  case PTR_TYPE_VEC_F32:
-  case PTR_TYPE_STRING:
-  case PTR_TYPE_REF_I32:
-  case PTR_TYPE_REF_U32:
-  case PTR_TYPE_REF_FLOAT:
-    ERROR("Boxed types not implemented");
+  case PTR_TYPE_ARRAY:
+  case PTR_TYPE_REF:
+  case PTR_TYPE_STREAM:
+    ERROR("Arrays, refs and streams not implemented");
     break;
   default:
     ERROR("BUG! Fell through all cases in eval.");
