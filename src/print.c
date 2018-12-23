@@ -112,7 +112,17 @@ int simple_print(uint32_t t){
     return 1; 
   }
 
-  
+  if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_ARRAY) {
+    array_t *array = (array_t *)car(t);
+    switch (array->elt_type){
+    case VAL_TYPE_CHAR:
+      printf("\"%s\"", array->data.c);
+      break;
+    default:
+      printf("Array type not supported\n"); 
+      break; 
+    }
+  }
 
   if (!IS_PTR(t)) { // Value, symbol 
     switch (t & VAL_TYPE_MASK) {

@@ -50,15 +50,19 @@ uint32_t read_ast(mpc_ast_t *t){
   }
 
   if (strstr(t->tag, "string")) {
-    // TODO: needs error checking
-    size_t len = strlen(t->contents);
-    uint32_t res; 
-    heap_allocate_array(&res, len, VAL_TYPE_CHAR);
-    array_t* array_ptr = (array_t*)car(res);
-    memcpy(array_ptr->data.c, t->contents, len * sizeof(char));
-    printf("%s\n", t->contents);
-    printf("%s\n", array_ptr->data.c);
-    return res; 
+    // TODO: needs MOREerror checking
+    size_t len = strlen(t->contents) - 1;
+    printf("%d\n", len * sizeof(char)); 
+    if (len > 0) {
+      uint32_t res; 
+      heap_allocate_array(&res, len, VAL_TYPE_CHAR);
+      array_t* array_ptr = (array_t*)car(res);
+      memset(array_ptr->data.c, 0, len * sizeof(char)); 
+      memcpy(array_ptr->data.c, t->contents + 1, (len - 1) * sizeof(char));
+      printf("%s\n", array_ptr->data.c);
+      return res;
+    }
+    return ENC_SYM(rerror);
   }
     
 

@@ -235,6 +235,8 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     return lisp;
     break;
   case PTR_TYPE_ARRAY:
+    return lisp;
+    break;
   case PTR_TYPE_REF:
   case PTR_TYPE_STREAM:
     ERROR("Arrays, refs and streams not implemented");
