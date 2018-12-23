@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
       printf("Free cons cells: %d\n", heap_num_free());
       printf("############################################################\n");
     } else {
-    
+
       ast = parser_parse_string(str); 
       if (!ast) {
 	printf("ERROR!\n");

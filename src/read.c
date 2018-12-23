@@ -49,6 +49,19 @@ uint32_t read_ast(mpc_ast_t *t){
     }
   }
 
+  if (strstr(t->tag, "string")) {
+    // TODO: needs error checking
+    size_t len = strlen(t->contents);
+    uint32_t res; 
+    heap_allocate_array(&res, len, VAL_TYPE_CHAR);
+    array_t* array_ptr = (array_t*)car(res);
+    memcpy(array_ptr->data.c, t->contents, len * sizeof(char));
+    printf("%s\n", t->contents);
+    printf("%s\n", array_ptr->data.c);
+    return res; 
+  }
+    
+
   if (strstr(t->tag, "character")) {
     int len = strlen(t->contents);
     printf( "Reading character %c\n", t->contents[2]);

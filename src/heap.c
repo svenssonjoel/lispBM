@@ -437,7 +437,7 @@ uint32_t reverse(uint32_t list) {
 // ARRAY, REF and Stream functionality
 ////////////////////////////////////////////////////////////
 
-// It is part of the heap module because its lifespan is managed
+// Arrays are part of the heap module because their lifespan is managed
 // by the garbage collector. The data in the array is not stored
 // in the "heap of cons cells". 
 int heap_allocate_array(uint32_t *res, uint32_t size, uint32_t type){
@@ -462,6 +462,15 @@ int heap_allocate_array(uint32_t *res, uint32_t size, uint32_t type){
   case VAL_TYPE_CHAR: // Array of Char
     array->data.c = (char*)malloc(size * (sizeof(char)));
     if (array->data.c == NULL) return 0; 
+    break;
+  case VAL_TYPE_I28:
+    array->data.i32 = (int32_t*)malloc(size * (sizeof(int32_t)));
+    break;
+  case VAL_TYPE_U28:
+    array->data.u32 = (uint32_t*)malloc(size * (sizeof(uint32_t)));
+    break;
+  case VAL_TYPE_SYMBOL:
+    array->data.u32 = (uint32_t*)malloc(size * (sizeof(uint32_t)));
     break;
   default:
     *res = ENC_SYM(symrepr_nil());

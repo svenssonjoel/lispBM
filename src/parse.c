@@ -40,22 +40,28 @@ int parser_init(void) {
   Integer = mpc_new("integer");
   Float   = mpc_new("float");
   Character = mpc_new("character");
-  String = mpc_new("stringlit"); 
+  String = mpc_new("string");
   Name = mpc_new("name");
 
-  mpca_lang(MPCA_LANG_DEFAULT,
+  mpc_err_t *err = mpca_lang(MPCA_LANG_DEFAULT,
 	    "program   : /^/ (<exp>|<comment>)+ /$/ ;"
 	    "comment   : /[;]+.*/ ;"
-	    "exp       : <float> | <integer> | <name> | <character> "
-	    "          |  <sexp> | <qexp> ;"
+	    "exp       : <float> | <integer> | <name> | <character>"
+	    "          |  <sexp> | <qexp> | <string>;"
 	    "sexp      : '(' <exp>* ')' | '(' <exp> '.' <exp> ')' ;"
 	    "qexp      : '\'' <exp> ;"
 	    "integer   : /0x([0-9a-fA-F]+)|([0-9]+(U|I|u)?)/ ;"
-	    "float     : /[0-9]+\\.?[0-9]+/;"
+	    "float     : /[0-9]+\\.?[0-9]+/ ;"
 	    "character : /\\\\#newline|\\\\#./ ;"
-	    "stringlit :  /\"(\\\\.|[^\"])*\"/ ;"
-	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/;",
-	    Program, Comment, Exp, SExp, QExp, Integer, Float , Character, String, Name, NULL) ;
+	    "string    : /\"(\\\\.|[^\"])*\"/ ;"
+	    "name      : /[a-zA-Z+\\*\\-\\/?><=]+[a-zA-Z0-9+\\-\\*\\/?><=]*/; \n",
+	    Program, Comment, Exp, SExp, QExp, Integer, Float , Character, String, Name, NULL);
+
+  if (err != NULL) {
+    mpc_err_print(err);
+    mpc_err_delete(err);
+    return 0;
+  }
 
   return 1;
 }
