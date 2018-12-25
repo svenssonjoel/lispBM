@@ -50,7 +50,7 @@ uint32_t read_ast(mpc_ast_t *t){
   }
 
   if (strstr(t->tag, "string")) {
-    // TODO: needs MOREerror checking
+    // TODO: needs MORE error checking
     size_t len = strlen(t->contents) - 1;
     if (len > 0) {
       uint32_t res; 

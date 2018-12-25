@@ -22,9 +22,8 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 4. GC should be run when needed. 
 5. Test the Zynq build more. 
 6. Document code.
-7. Implement the Vector, String and Char types).
-8. Implement some looping structure for speed or just ease of use. 
-9. Be much more stringent on checking of error conditions etc.
+7. Implement some looping structure for speed or just ease of use. 
+8. Be much more stringent on checking of error conditions etc.
 
 ## Compile for linux
 1. Build the library: `make`
