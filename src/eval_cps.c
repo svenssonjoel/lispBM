@@ -398,11 +398,11 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
   case VAL_TYPE_I28:
   case PTR_TYPE_I32:
   case VAL_TYPE_CHAR:
-  case VAL_TYPE_U28: {
+  case VAL_TYPE_U28:
+  case PTR_TYPE_ARRAY:{
     return apply_continuation(K, lisp);
   }
 
-  case PTR_TYPE_ARRAY:
   case PTR_TYPE_REF:
   case PTR_TYPE_STREAM:
     return ENC_SYM(symrepr_eerror());
