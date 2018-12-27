@@ -200,10 +200,12 @@ typedef struct {
   uint32_t heap_bytes;      // Size in bytes.
   
   uint32_t num_alloc;       // Number of cells allocated.
+  uint32_t num_alloc_arrays;// Number of arrays allocated.
 
   uint32_t gc_num;          // Number of times gc has been performed.
   uint32_t gc_marked;       // Number of cells marked by mark phase.
-  uint32_t gc_recovered;    // Number of cells recovered by sweep phase. 
+  uint32_t gc_recovered;    // Number of cells recovered by sweep phase.
+  uint32_t gc_recovered_arrays;
 } heap_state_t;
 
 

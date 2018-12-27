@@ -110,10 +110,12 @@ int heap_init(size_t num_cells) {
   heap_state.heap_bytes   = (uint32_t)(num_cells * sizeof(cons_t));
   heap_state.heap_size    = num_cells;
   
-  heap_state.num_alloc    = 0;
-  heap_state.gc_num       = 0;
-  heap_state.gc_marked    = 0;
-  heap_state.gc_recovered = 0; 
+  heap_state.num_alloc           = 0;
+  heap_state.num_alloc_arrays    = 0; 
+  heap_state.gc_num              = 0;
+  heap_state.gc_marked           = 0;
+  heap_state.gc_recovered        = 0;
+  heap_state.gc_recovered_arrays = 0; 
   
   return (generate_freelist(num_cells)); 
 }
@@ -186,15 +188,17 @@ uint32_t heap_size_bytes(void) {
 }
   
 void heap_get_state(heap_state_t *res) {
-  res->heap_base     = heap_state.heap_base;
-  res->freelist      = heap_state.freelist;
-  res->freelist_last = heap_state.freelist_last;
-  res->heap_size     = heap_state.heap_size;
-  res->heap_bytes    = heap_state.heap_bytes;
-  res->num_alloc     = heap_state.num_alloc;
-  res->gc_num        = heap_state.gc_num;
-  res->gc_marked     = heap_state.gc_marked;
-  res->gc_recovered  = heap_state.gc_recovered;
+  res->heap_base           = heap_state.heap_base;
+  res->freelist            = heap_state.freelist;
+  res->freelist_last       = heap_state.freelist_last;
+  res->heap_size           = heap_state.heap_size;
+  res->heap_bytes          = heap_state.heap_bytes;
+  res->num_alloc           = heap_state.num_alloc;
+  res->num_alloc_arrays    = heap_state.num_alloc_arrays;
+  res->gc_num              = heap_state.gc_num;
+  res->gc_marked           = heap_state.gc_marked;
+  res->gc_recovered        = heap_state.gc_recovered;
+  res->gc_recovered_arrays = heap_state.gc_recovered_arrays;
 }
 
 // Recursive implementation can exhaust stack!
@@ -487,6 +491,8 @@ int heap_allocate_array(uint32_t *res, uint32_t size, uint32_t type){
   cell = cell | PTR_TYPE_ARRAY;
 
   *res = cell;
+
+  heap_state.num_alloc_arrays ++; 
   
   return 1; 
 }

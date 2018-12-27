@@ -91,13 +91,15 @@ int main(int argc, char **argv) {
 
     if (strncmp(str, "info", 4) == 0) {
       printf("############################################################\n");
-      printf("Used cons cells: %d \n", heap_size - heap_num_free());
+      printf("Used cons cells: %d\n", heap_size - heap_num_free());
       printf("ENV: "); simple_print(eval_cps_get_env()); printf("\n"); 
       //symrepr_print();
       heap_perform_gc(eval_cps_get_env());
       heap_get_state(&heap_state);
+      printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
       printf("GC counter: %d\n", heap_state.gc_num);
       printf("Recovered: %d\n", heap_state.gc_recovered);
+      printf("Recovered arrays: %u\n", heap_state.gc_recovered_arrays);
       printf("Marked: %d\n", heap_state.gc_marked);
       printf("Free cons cells: %d\n", heap_num_free());
       printf("############################################################\n");
