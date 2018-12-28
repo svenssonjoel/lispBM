@@ -130,6 +130,17 @@ is also possible
  [VECTOR] 
 
 Aux bits could be used for storing vector size. Up to 30bits should be available there
+>> This is problematic. Now the information that something is a vector is split up 
+>> between 2 cons cells. This means GC needs both of these intact to be able to make 
+>> proper decision. 
+>> Will try to resolve this by adding some special symbols. But these must be symbols 
+>> that cannot occur normally in programs. Then an array could be: 
+
+ [Full pointer | ARRAY_SYM + GC_MARK] 
+     | 
+ [VECTOR]
+
+
 
 0000 00XX XXXX XXXX XXXX XXXX XXXX X000   : 0x03FF FFF8
 1111 AA00 0000 0000 0000 0000 0000 0000   : 0xFC00 0000 (AA bits left unused for now, future heap growth?)
@@ -192,20 +203,20 @@ typedef struct {
 } cons_t;
 
 typedef struct {
-  uint32_t heap_base;       // address of heap in memory
-  uint32_t freelist;        // list of free cons cells.
-  uint32_t freelist_last;   // points at the last element in the free list
+  uint32_t heap_base;          // address of heap in memory
+  uint32_t freelist;           // list of free cons cells.
+  uint32_t freelist_last;      // points at the last element in the free list
   
-  uint32_t heap_size;       // In number of cells.
-  uint32_t heap_bytes;      // Size in bytes.
+  uint32_t heap_size;          // In number of cells.
+  uint32_t heap_bytes;         // Size in bytes.
   
-  uint32_t num_alloc;       // Number of cells allocated.
-  uint32_t num_alloc_arrays;// Number of arrays allocated.
+  uint32_t num_alloc;          // Number of cells allocated.
+  uint32_t num_alloc_arrays;   // Number of arrays allocated.
 
-  uint32_t gc_num;          // Number of times gc has been performed.
-  uint32_t gc_marked;       // Number of cells marked by mark phase.
-  uint32_t gc_recovered;    // Number of cells recovered by sweep phase.
-  uint32_t gc_recovered_arrays;
+  uint32_t gc_num;             // Number of times gc has been performed.
+  uint32_t gc_marked;          // Number of cells marked by mark phase.
+  uint32_t gc_recovered;       // Number of cells recovered by sweep phase.
+  uint32_t gc_recovered_arrays;// Number of arrays recovered by sweep.
 } heap_state_t;
 
 

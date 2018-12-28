@@ -477,7 +477,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
     } // If head is symbol
     
     // Possibly an application form:
-    push_u32(K, curr_env); // The environment each element should be evaluated in 
+    push_u32(K, curr_env);  // The environment each element should be evaluated in 
     push_u32(K, cdr(lisp)); // list of arguments that needs to be evaluated. 
     push_k(K, function_cont); 
     

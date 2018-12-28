@@ -6,7 +6,7 @@
 
                   
 		  
-#define TEST_SIZE 63635456
+#define TEST_SIZE ((65534 - 49999) * 4096)
 
 int main(int argc, char **argv) {
 

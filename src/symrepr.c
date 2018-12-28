@@ -37,13 +37,15 @@
 
      - There is a 16 bit hash table (only 49999 buckets targeted by hash function) 
      - and 12 additional bits (bucket depth 4096)
-     - The buckets numbered 49999 - 65535 are used by gensyming new symbols.
-
-   
+     - The buckets numbered 49999 - 65534 are used by gensyming new symbols.
+     - The last bucket 65535 is used for internal implementation needs. 
+       There are 4096 symbols that cannot collide with any user specified 
+       or gensymed symbol. 
+     
      
  */
 
-#define HASHTAB_MALLOC_SIZE 65536
+#define HASHTAB_MALLOC_SIZE 65535 // 65535
 #define HASHTAB_SIZE 49999 // 65521    
 #define BUCKET_DEPTH 4096
 #define SMALL_PRIMES 11
