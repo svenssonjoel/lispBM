@@ -59,7 +59,8 @@
 #define DEF_REPR_RERROR    8  // READ ERROR
 #define DEF_REPR_TERROR    9  // TYPE ERROR
 #define DEF_REPR_EERROR    10  // EVAL ERROR
-#define DEF_REPR_DEFINE    11
+#define DEF_REPR_MERROR    11
+#define DEF_REPR_DEFINE    12
 
 #define GENSYM_FLAG        0xFFFF
 #define IS_GENSYM(X)       (((X) & 0xFFFF) == 0xFFFF)
@@ -70,7 +71,7 @@ static uint32_t gensym_next = HASHTAB_SIZE;
 
 static uint32_t hash_string(char *str); 
 
-static uint32_t def_repr[12]; 
+static uint32_t def_repr[13]; 
 
 typedef struct s_name_mapping {
   uint32_t key; // hash including collision id //
@@ -91,9 +92,10 @@ int add_default_symbols(void) {
   res &= symrepr_addsym("lambda" , &def_repr[DEF_REPR_LAMBDA]);
   res &= symrepr_addsym("closure", &def_repr[DEF_REPR_CLOSURE]);
   res &= symrepr_addsym("let"    , &def_repr[DEF_REPR_LET]); 
-  res &= symrepr_addsym("rerror" , &def_repr[DEF_REPR_RERROR]);
-  res &= symrepr_addsym("terror" , &def_repr[DEF_REPR_TERROR]);
-  res &= symrepr_addsym("eerror" , &def_repr[DEF_REPR_EERROR]);
+  res &= symrepr_addsym("read_error" , &def_repr[DEF_REPR_RERROR]);
+  res &= symrepr_addsym("type_error" , &def_repr[DEF_REPR_TERROR]);
+  res &= symrepr_addsym("eval_error" , &def_repr[DEF_REPR_EERROR]);
+  res &= symrepr_addsym("out_of_memory_error" , &def_repr[DEF_REPR_MERROR]); 
   res &= symrepr_addsym("define" , &def_repr[DEF_REPR_DEFINE]); 
   
   return res;
@@ -110,6 +112,7 @@ uint32_t symrepr_let(void)     { return def_repr[DEF_REPR_LET]; }
 uint32_t symrepr_rerror(void)  { return def_repr[DEF_REPR_RERROR]; }
 uint32_t symrepr_terror(void)  { return def_repr[DEF_REPR_TERROR]; }
 uint32_t symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }
+uint32_t symrepr_merror(void)  { return def_repr[DEF_REPR_MERROR]; }
 uint32_t symrepr_define(void)  { return def_repr[DEF_REPR_DEFINE]; }
 
 int symrepr_init(void) {
