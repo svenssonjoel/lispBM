@@ -62,9 +62,6 @@
 #define DEF_REPR_MERROR    11
 #define DEF_REPR_DEFINE    12
 
-// Special symbol ids
-#define SPECIAL_SYM_ARRAY 0x0001FFFF
-
 static uint32_t gensym_next = HASHTAB_SIZE;
 
 static uint32_t hash_string(char *str);

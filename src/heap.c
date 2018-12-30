@@ -488,7 +488,7 @@ int heap_allocate_array(uint32_t *res, uint32_t size, uint32_t type){
   array->size = size;
 
   set_car(cell, (uint32_t)array);
-  set_cdr(cell, ENC_SYM(symrepr_nil()));
+  set_cdr(cell, ENC_SYM(SPECIAL_SYM_ARRAY));
 
   cell = cell | PTR_TYPE_ARRAY;
 

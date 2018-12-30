@@ -20,6 +20,10 @@
 
 #include <stdint.h> 
 
+// Special symbol ids
+#define SPECIAL_SYM_ARRAY 0x0001FFFF
+
+
 extern int symrepr_addsym(char *, uint32_t*); 
 extern int symrepr_init(void);
 extern void symrepr_print(void);
