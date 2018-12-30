@@ -304,6 +304,18 @@ int gc_sweep_phase(void) {
 	printf( "ERROR: cdr of fl_last not nil\n");
       }
 
+      // check for array
+      if (TYPE_OF(heap[i].cdr) == VAL_TYPE_SYMBOL &&
+	  DEC_SYM(heap[i].cdr) == SPECIAL_SYM_ARRAY) {
+	array_t *arr = (array_t*)heap[i].car; 
+	switch(arr->elt_type) {
+	case VAL_TYPE_CHAR: //TODO: test and complete
+	  if (arr->data.c) free(arr->data.c);
+	  free(arr);
+	  heap_state.gc_recovered_arrays++; 
+	  break;
+	}
+      }
 
 
       // Clear the "freed" cell.
