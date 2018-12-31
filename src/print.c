@@ -141,7 +141,7 @@ int simple_print(uint32_t t){
       printf("%u", DEC_U28(t));
       break;
     case VAL_TYPE_CHAR: // dont yet have syntax for Char and String
-      printf("#\\%c", DEC_CHAR(t));
+      printf("\\#%c", DEC_CHAR(t));
       break;
     default:
       printf("simple_print: Error\n");
