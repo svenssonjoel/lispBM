@@ -526,6 +526,38 @@ uint32_t bi_fun_list(uint32_t args) {
   return list;
 }
 
+// Built in array functions
+
+uint32_t bi_fun_array_read(uint32_t args) {
+  // Args are: array, index
+  uint32_t arr = car(args);
+  uint32_t index = car(cdr(args));
+
+  // for now assume that index is an U28
+  uint32_t ix = DEC_U28(index);
+  uint32_t res; 
+
+  if (TYPE_OF(arr) == PTR_TYPE_ARRAY) {
+    array_t *array = (array_t*)car(arr);
+    switch(array->elt_type) {
+    case VAL_TYPE_CHAR:
+      res = ENC_CHAR((uint32_t) array->data.c[ix]);
+      break;
+    default:
+      printf("unknown type!\n");
+      return ENC_SYM(symrepr_eerror);
+    }
+  }
+  return res; 
+}
+
+uint32_t bi_fun_array_write(uint32_t args) {
+  // Args are: array, index, value
+  uint32_t arr = car(args);
+  uint32_t index = car(cdr(args));
+  uint32_t val = car(cdr(cdr(args))); 
+}
+
 
 // Interface functions
 
@@ -575,7 +607,9 @@ int builtin_init(void) {
   res &= builtin_add_function("=", bi_fun_eq);
   res &= builtin_add_function("gensym", bi_fun_gensym);
   res &= builtin_add_function("list", bi_fun_list);
-  res &= builtin_add_function("reverse", bi_fun_reverse); 
+  res &= builtin_add_function("reverse", bi_fun_reverse);
+  res &= builtin_add_function("array-read", bi_fun_array_read);
+  res &= builtin_add_function("array-write", bi_fun_array_write); 
   return res; 
 }
 
