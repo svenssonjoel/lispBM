@@ -304,19 +304,33 @@ int gc_sweep_phase(void) {
 	printf( "ERROR: cdr of fl_last not nil\n");
       }
 
-      // check for array
+      // Check if this cell is a pointer to an array
+      // and free it. 
       if (TYPE_OF(heap[i].cdr) == VAL_TYPE_SYMBOL &&
 	  DEC_SYM(heap[i].cdr) == SPECIAL_SYM_ARRAY) {
 	array_t *arr = (array_t*)heap[i].car; 
 	switch(arr->elt_type) {
-	case VAL_TYPE_CHAR: //TODO: test and complete
+	case VAL_TYPE_CHAR: 
 	  if (arr->data.c) free(arr->data.c);
-	  free(arr);
-	  heap_state.gc_recovered_arrays++; 
 	  break;
+	case VAL_TYPE_I28: 
+	case PTR_TYPE_I32:
+	  if (arr->data.i32) free(arr->data.i32);
+	  break;
+	case VAL_TYPE_U28:
+	case PTR_TYPE_U32:
+	case VAL_TYPE_SYMBOL:
+	  if (arr->data.u32) free(arr->data.u32);
+	  break;
+	case PTR_TYPE_F32:
+	  if (arr->data.f) free(arr->data.f);
+	  break;
+	default:
+	  return 0; // Error case: unrecognized element type. 
 	}
+	free(arr);
+	heap_state.gc_recovered_arrays++; 
       }
-
 
       // Clear the "freed" cell.
       set_cdr_(&heap[i], 0);
