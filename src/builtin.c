@@ -562,6 +562,24 @@ uint32_t bi_fun_array_read(uint32_t args) {
     case VAL_TYPE_CHAR:
       res = ENC_CHAR((uint32_t) array->data.c[ix]);
       break;
+    case VAL_TYPE_U28:
+      res = ENC_U28(array->data.u32[ix]);
+      break;
+    case VAL_TYPE_I28:
+      res = ENC_I28(array->data.i32[ix]);
+      break;
+    case PTR_TYPE_U32:
+      res = cons(array->data.u32[ix], ENC_SYM(symrepr_nil()));
+      res = SET_PTR_TYPE(res, PTR_TYPE_U32);
+      break;
+    case PTR_TYPE_I32:
+      res = cons(array->data.i32[ix], ENC_SYM(symrepr_nil()));
+      res = SET_PTR_TYPE(res, PTR_TYPE_I32);
+      break;
+    case PTR_TYPE_F32:
+      res = cons(array->data.f[ix], ENC_SYM(symrepr_nil()));
+      res = SET_PTR_TYPE(res, PTR_TYPE_F32);
+      break;
     default:
       printf("unknown type!\n");
       return ENC_SYM(symrepr_eerror);
@@ -574,7 +592,10 @@ uint32_t bi_fun_array_write(uint32_t args) {
   // Args are: array, index, value
   uint32_t arr = car(args);
   uint32_t index = car(cdr(args));
-  uint32_t val = car(cdr(cdr(args))); 
+  uint32_t val = car(cdr(cdr(args)));
+
+  
+  
 }
 
 
