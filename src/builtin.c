@@ -533,12 +533,31 @@ uint32_t bi_fun_array_read(uint32_t args) {
   uint32_t arr = car(args);
   uint32_t index = car(cdr(args));
 
-  // for now assume that index is an U28
-  uint32_t ix = DEC_U28(index);
-  uint32_t res; 
+  // Get array index
+  int32_t ix;
+  uint32_t res;
+  switch (TYPE_OF(index)) {
+  case VAL_TYPE_U28:
+    ix = (int32_t)DEC_U28(index);
+    break;
+  case VAL_TYPE_I28:
+    ix = (int32_t)DEC_I28(index);
+    break;
+  case PTR_TYPE_U32:
+    ix = (int32_t)car(index);
+    break;
+  case PTR_TYPE_I32:
+    ix = (int32_t)car(index);
+    break;
+  default:
+    return ENC_SYM(symrepr_nil()); 
+  }
 
   if (TYPE_OF(arr) == PTR_TYPE_ARRAY) {
     array_t *array = (array_t*)car(arr);
+
+    if (ix < 0 || ix >= array->size) return ENC_SYM(symrepr_nil()); 
+    
     switch(array->elt_type) {
     case VAL_TYPE_CHAR:
       res = ENC_CHAR((uint32_t) array->data.c[ix]);
