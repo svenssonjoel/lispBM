@@ -593,9 +593,60 @@ uint32_t bi_fun_array_write(uint32_t args) {
   uint32_t arr = car(args);
   uint32_t index = car(cdr(args));
   uint32_t val = car(cdr(cdr(args)));
+  uint32_t uv;
+  float v; 
+  // Get array index
+  int32_t ix;
+  uint32_t res;
+  switch (TYPE_OF(index)) {
+  case VAL_TYPE_U28:
+    ix = (int32_t)DEC_U28(index);
+    break;
+  case VAL_TYPE_I28:
+    ix = (int32_t)DEC_I28(index);
+    break;
+  case PTR_TYPE_U32:
+    ix = (int32_t)car(index);
+    break;
+  case PTR_TYPE_I32:
+    ix = (int32_t)car(index);
+    break;
+  default:
+    return ENC_SYM(symrepr_nil()); 
+  }
 
-  
-  
+  if (TYPE_OF(arr) == PTR_TYPE_ARRAY) {
+    array_t *array = (array_t*)car(arr);
+    if (TYPE_OF(val) != array->elt_type) return ENC_SYM(symrepr_nil()); 
+    if (ix < 0 || ix >= array->size) return ENC_SYM(symrepr_nil());
+
+    switch(array->elt_type) {
+    case VAL_TYPE_CHAR:
+      array->data.c[ix] = DEC_CHAR(val); 
+      break;
+    case VAL_TYPE_U28:
+      array->data.u32[ix] = DEC_U28(val);
+      break;
+    case VAL_TYPE_I28:
+      array->data.i32[ix] = DEC_I28(val);
+      break;
+    case PTR_TYPE_U32:
+      array->data.u32[ix] = car(val);
+      break;
+    case PTR_TYPE_I32:
+      array->data.i32[ix] = (int32_t)car(val);
+      break;
+    case PTR_TYPE_F32:
+      uv = car(val);
+      v = *(float*)(&uv);
+      array->data.f[ix] = v; 
+      break;
+    default:
+      printf("unknown type!\n");
+      return ENC_SYM(symrepr_eerror);
+    }
+  }
+  return ENC_SYM(symrepr_true()); 
 }
 
 
