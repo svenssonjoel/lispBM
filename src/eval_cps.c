@@ -62,8 +62,7 @@ jmp_buf rewind_buf;
 static uint32_t curr_exp; 
 static uint32_t curr_env; 
 
-// The size of this stack should be limited in size by syntactic nesting
-// of the source program, not by for example recursion. (I hope) 
+// The hope is that for tail recursive function this stack will not "grow".
 typedef struct {
   uint32_t* data;
   int32_t   sp;

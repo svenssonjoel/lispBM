@@ -388,9 +388,10 @@ uint32_t cons(uint32_t car, uint32_t cdr) {
   if ( IS_PTR(addr)) {
     set_car_(ref_cell(addr), car);
     set_cdr_(ref_cell(addr), cdr);
-    return addr;
   }
-  else return ENC_SYM(symrepr_nil());
+
+  // heap_allocate_cell returns NIL if out of heap.
+  return addr;
 }
 
 uint32_t car(uint32_t c){
