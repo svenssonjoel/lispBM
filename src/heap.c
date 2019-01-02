@@ -401,8 +401,6 @@ uint32_t car(uint32_t c){
     return c; // if nil, return nil.
   }
 
-  //if (TYPE_OF(c) == PTR_TYPE_CONS ||
-  //    TYPE_OF(c) == PTR_TYPE_F32) {   //TODO: one test should be enough
   if (IS_PTR(c) ){
     cons_t *cell = ref_cell(c);
     return read_car(cell);
