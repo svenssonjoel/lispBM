@@ -160,6 +160,12 @@ uint32_t heap_allocate_cell(uint32_t ptr_type) {
     }
   } else { // it is a ptr replace freelist with cdr of freelist;
     res = heap_state.freelist;
+
+    if (res == heap_state.freelist_last) {
+      // we just got the last cell!
+      heap_state.freelist_last = ENC_SYM(SYMBOL_NIL); 
+    }
+    
     res = res | ptr_type;
     heap_state.freelist =
       read_cdr(ref_cell(heap_state.freelist));
@@ -298,22 +304,17 @@ int gc_sweep_phase(void) {
 
   for (i = 0; i < heap_state.heap_size; i ++) {
     if ( !get_gc_mark(&heap[i])){
-      fl_last = ref_cell(heap_state.freelist_last);
-
-      if ( DEC_SYM(read_cdr(fl_last)) != SYMBOL_NIL) {
-	printf( "ERROR: cdr of fl_last not nil\n");
-      }
 
       // Check if this cell is a pointer to an array
-      // and free it. 
+      // and free it.
       if (TYPE_OF(heap[i].cdr) == VAL_TYPE_SYMBOL &&
 	  DEC_SYM(heap[i].cdr) == SPECIAL_SYM_ARRAY) {
-	array_t *arr = (array_t*)heap[i].car; 
+	array_t *arr = (array_t*)heap[i].car;
 	switch(arr->elt_type) {
-	case VAL_TYPE_CHAR: 
+	case VAL_TYPE_CHAR:
 	  if (arr->data.c) free(arr->data.c);
 	  break;
-	case VAL_TYPE_I28: 
+	case VAL_TYPE_I28:
 	case PTR_TYPE_I32:
 	  if (arr->data.i32) free(arr->data.i32);
 	  break;
@@ -326,24 +327,39 @@ int gc_sweep_phase(void) {
 	  if (arr->data.f) free(arr->data.f);
 	  break;
 	default:
-	  return 0; // Error case: unrecognized element type. 
+	  return 0; // Error case: unrecognized element type.
 	}
 	free(arr);
-	heap_state.gc_recovered_arrays++; 
+	heap_state.gc_recovered_arrays++;
       }
 
       // Clear the "freed" cell.
       set_cdr_(&heap[i], 0);
-      set_cdr_(&heap[i], ENC_SYM(SYMBOL_NIL));
+      set_cdr_(&heap[i], ENC_SYM(SYMBOL_NIL) | GC_MARKED);
       set_car_(&heap[i], ENC_SYM(SYMBOL_NIL));
 
       // create pointer to free cell to put at end of freelist
       uint32_t addr = ENC_CONS_PTR(i);
 
-      set_cdr_(fl_last, addr);
-      set_gc_mark(fl_last); // the above set_cdr_ clears the gc mark on fl_last.
-      heap_state.freelist_last = addr;
+      if (TYPE_OF(heap_state.freelist_last) == VAL_TYPE_SYMBOL &&
+	  DEC_SYM(heap_state.freelist_last) == SYMBOL_NIL) {
+	// Free list is empty, newly freed cell should become head/tail of freelist
 
+	heap_state.freelist_last = addr;
+	heap_state.freelist = addr;
+      } else {
+
+	fl_last = ref_cell(heap_state.freelist_last);
+
+	if ( DEC_SYM(read_cdr(fl_last)) != SYMBOL_NIL) {
+	  printf( "ERROR: cdr of fl_last not nil\n");
+	}
+
+	set_cdr_(fl_last, addr);
+	set_gc_mark(fl_last); // the above set_cdr_ clears the gc mark on fl_last.
+	heap_state.freelist_last = addr;
+      }
+ 
       heap_state.num_alloc --;
       heap_state.gc_recovered ++;
     }

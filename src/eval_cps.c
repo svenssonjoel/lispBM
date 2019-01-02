@@ -55,6 +55,9 @@
      # Instead created another stack to depend upon. 
 */
 
+#define EVAL_CONTINUE 1
+#define PERFORM_GC    2
+
 static uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env);
 
 jmp_buf rewind_buf;
@@ -140,7 +143,7 @@ uint32_t eval_cps_bi(uint32_t lisp) {
  
   curr_exp = car(lisp);
   curr_env = curr_env;
-  longjmp(rewind_buf,1); 
+  longjmp(rewind_buf,EVAL_CONTINUE); 
 }
 
 
@@ -175,10 +178,16 @@ uint32_t set_global_env(uint32_t val){
     curr = cdr(curr);
   }
   uint32_t keyval = cons(key,val);
+
+  // check if cons was unsuccessful  
   if (TYPE_OF(keyval) == VAL_TYPE_SYMBOL) {
-    return ENC_SYM(symrepr_nil());
+    // Abort computation and perform GC.
+    longjmp(rewind_buf, PERFORM_GC); 
   }
   global_env = cons(keyval,global_env);
+  if (TYPE_OF(global_env) == VAL_TYPE_SYMBOL) {
+    longjmp(rewind_buf, PERFORM_GC);
+  }
 
   return ENC_SYM(symrepr_true());
 }
@@ -231,7 +240,7 @@ uint32_t closure_app(uint32_t args) {
   
   curr_exp = exp;
   curr_env = local_env; 
-  longjmp(rewind_buf, 1); 
+  longjmp(rewind_buf, EVAL_CONTINUE); 
 }
 
 uint32_t eval_rest(uint32_t head) {
@@ -247,18 +256,26 @@ uint32_t eval_rest(uint32_t head) {
   if (TYPE_OF(rest) == VAL_TYPE_SYMBOL &&
       DEC_SYM(rest) == symrepr_nil()) {
 
-    uint32_t args = cons(head, acc); 
+    uint32_t args = cons(head, acc);
+    if (TYPE_OF(args) == VAL_TYPE_SYMBOL) {
+      longjmp(rewind_buf, PERFORM_GC); 
+    }
     return apply_continuation(K, args);
   }
 
+  acc = cons(head, acc);
+  if (TYPE_OF(acc) == VAL_TYPE_SYMBOL) {
+    longjmp(rewind_buf, PERFORM_GC);
+  }
+  
   push_u32(K, env); 
-  push_u32(K, cons(head, acc));
+  push_u32(K, acc);
   push_u32(K, cdr(rest));
   push_k(K, eval_rest);
   
   curr_exp = car(rest);
   curr_env = env;
-  longjmp(rewind_buf, 1); 
+  longjmp(rewind_buf, EVAL_CONTINUE); 
 }
 
 // Closure or built-in function 
@@ -285,7 +302,7 @@ uint32_t function_cont(uint32_t fun) {
  
   curr_exp = head;
   curr_env = env;
-  longjmp(rewind_buf, 1); 
+  longjmp(rewind_buf, EVAL_CONTINUE); 
 } 
 
 
@@ -312,7 +329,7 @@ uint32_t bind_to_key_rest(uint32_t val) {
 
     curr_exp = valn_exp;
     curr_env = env;
-    longjmp(rewind_buf, 1);
+    longjmp(rewind_buf, EVAL_CONTINUE);
   }
 
   // Otherwise evaluate the expression in the populated env
@@ -320,7 +337,7 @@ uint32_t bind_to_key_rest(uint32_t val) {
   pop_u32(K, &exp);
   curr_exp = exp;
   curr_env = env;
-  longjmp(rewind_buf, 1); 
+  longjmp(rewind_buf, EVAL_CONTINUE); 
   
 }
 
@@ -334,7 +351,13 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
     uint32_t key = car(car(curr));
     uint32_t val = ENC_SYM(symrepr_nil()); // a temporary
     uint32_t binding = cons(key,val);
-    new_env = cons(binding, new_env); 
+    if (TYPE_OF(binding) == VAL_TYPE_SYMBOL) {
+      longjmp(rewind_buf, PERFORM_GC);
+    }
+    new_env = cons(binding, new_env);
+    if (TYPE_OF(new_env) == VAL_TYPE_SYMBOL) {
+      longjmp(rewind_buf, PERFORM_GC);
+    }
     curr = cdr(curr); 
   }
 
@@ -349,7 +372,7 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
 
   curr_exp = val0_exp;
   curr_env = new_env;  // env annotated with temporaries
-  longjmp(rewind_buf, 1); 
+  longjmp(rewind_buf, EVAL_CONTINUE); 
 }
 
 
@@ -365,11 +388,11 @@ uint32_t if_cont(uint32_t cond) {
       DEC_SYM(cond) == symrepr_true()) {
     curr_exp = then_branch;
     //curr_env = curr_env;
-    longjmp(rewind_buf,1); 
+    longjmp(rewind_buf,EVAL_CONTINUE); 
   } else {
     curr_exp = else_branch;
     //curr_env = curr_env;
-    longjmp(rewind_buf,1); 
+    longjmp(rewind_buf,EVAL_CONTINUE); 
   }
 }
 		  
@@ -433,7 +456,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 		
 	curr_exp = val_exp;
 	curr_env = env;
-	longjmp(rewind_buf,1); 
+	longjmp(rewind_buf,EVAL_CONTINUE); 
       }
 
       // Special form: LAMBDA 
@@ -446,6 +469,9 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 				cons(car(cdr(lisp)),
 				     cons(car(cdr(cdr(lisp))),
 					  cons(env_cpy, ENC_SYM(symrepr_nil())))));
+	if (TYPE_OF(closure) == VAL_TYPE_SYMBOL) {
+	  longjmp(rewind_buf, PERFORM_GC);
+	}
 
 	return apply_continuation(K, closure); 
       }
@@ -459,7 +485,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
 	curr_exp = car(cdr(lisp)); // condition
 	curr_env = curr_env;
-	longjmp(rewind_buf, 1); 
+	longjmp(rewind_buf, EVAL_CONTINUE); 
 	
       }
 
@@ -482,7 +508,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
     
     curr_exp = head;
     curr_env = curr_env;
-    longjmp(rewind_buf, 1); 
+    longjmp(rewind_buf, EVAL_CONTINUE); 
     
   default:
     // BUG No applicable case!
@@ -502,17 +528,22 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
   curr_env = env;
 
   uint32_t r;
+
+  int res = setjmp(rewind_buf);
   
-  if (setjmp(rewind_buf)) {
+  if (res) {
   
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
 #endif 
-    
-    if (heap_size() - heap_num_allocated() < half_heap ){
-      // GC also needs info about things alive in the "continuation"
+    if (res == PERFORM_GC) {
+      printf("PERFORMING GC\n"); 
       heap_perform_gc_aux(global_env, curr_env, curr_exp, orig_prg, K->data, K->sp);
     }
+    /* if (heap_size() - heap_num_allocated() < half_heap ){ */
+    /*   // GC also needs info about things alive in the "continuation" */
+    /*   heap_perform_gc_aux(global_env, curr_env, curr_exp, orig_prg, K->data, K->sp); */
+    /* } */
     
     r = eval_cps(curr_exp, curr_env);
    	
@@ -533,6 +564,9 @@ uint32_t eval_cps_program(uint32_t lisp) {
   while (TYPE_OF(curr) == PTR_TYPE_CONS) {
     uint32_t val = run_eval(lisp, car(curr),ENC_SYM(symrepr_nil()));
     res = cons(val,res);
+    if (TYPE_OF(res) == VAL_TYPE_SYMBOL) {
+      printf("ERROR: Memory full\n"); 
+    }
     curr = cdr(curr); 
   }
 
@@ -554,6 +588,8 @@ int eval_cps_init() {
   uint32_t nil_entry = cons(ENC_SYM(symrepr_nil()), ENC_SYM(symrepr_nil()));
   global_env = cons(nil_entry, global_env);
 
+  if (TYPE_OF(nil_entry) == VAL_TYPE_SYMBOL ||
+      TYPE_OF(global_env) == VAL_TYPE_SYMBOL) res = 0; 
   
   return res;
 }
