@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   for (int i = 0; i < heap_size; i ++) {
     cell = heap_allocate_cell(PTR_TYPE_CONS);
     if (!IS_PTR(cell)) {
-      printf("Error allocating cell\n"); 
+      printf("Error allocating cell %d\n", i); 
       return 0;
     }
   }

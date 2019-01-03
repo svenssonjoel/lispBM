@@ -36,7 +36,8 @@ static uint32_t     SYMBOL_NIL;
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that IS_PTR was set
 cons_t* ref_cell(uint32_t addr) {
-  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
+  return &heap[DEC_PTR(addr)]; 
+  //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 
 static uint32_t read_car(cons_t *cell) {
@@ -77,20 +78,20 @@ int generate_freelist(size_t num_cells) {
 
   heap_state.freelist = ENC_CONS_PTR(0);
 
+  cons_t *t;
+  
   // Add all cells to free list
   for (i = 1; i < num_cells; i ++) {
-    cons_t *t = ref_cell( ENC_CONS_PTR(i-1));
+    t = ref_cell(ENC_CONS_PTR(i-1));
     set_car_(t, ENC_SYM(SYMBOL_NIL));    // all cars in free list are nil
     set_cdr_(t, ENC_CONS_PTR(i));
   }
 
-  heap_state.freelist_last = ENC_CONS_PTR(num_cells-1);
-  set_cdr_(ref_cell(heap_state.freelist_last), ENC_SYM(SYMBOL_NIL));
-
-  if (read_cdr(ref_cell(heap_state.freelist_last)) == ENC_SYM(SYMBOL_NIL)) {
-    return 1;
-  }
-  return 0;
+  // Replace the incorrect pointer at the last cell. 
+  t = ref_cell(ENC_CONS_PTR(num_cells-1));
+  set_cdr_(t, ENC_SYM(SYMBOL_NIL)); 
+  
+  return 1;
 }
 
 int heap_init(size_t num_cells) {
@@ -117,7 +118,7 @@ int heap_init(size_t num_cells) {
   heap_state.gc_recovered        = 0;
   heap_state.gc_recovered_arrays = 0;
 
-  return (generate_freelist(num_cells));
+  return generate_freelist(num_cells);
 }
 
 void heap_del(void) {
@@ -147,29 +148,29 @@ uint32_t heap_allocate_cell(uint32_t ptr_type) {
 
   uint32_t res;
 
-  if (! IS_PTR(heap_state.freelist)) {
+  if (!IS_PTR(heap_state.freelist)) {
     // Free list not a ptr (should be Symbol NIL)
-    if ((VAL_TYPE(heap_state.freelist) == VAL_TYPE_SYMBOL) &&
+    if ((TYPE_OF(heap_state.freelist) == VAL_TYPE_SYMBOL) &&
 	(DEC_SYM(heap_state.freelist) == SYMBOL_NIL)) {
       // all is as it should be (but no free cells)
       return heap_state.freelist;
     } else {
+      printf("BROKEN HEAP %x\n", TYPE_OF(heap_state.freelist));
       // something is most likely very wrong
       //printf("heap_allocate_cell Error\n");
       return ENC_SYM(SYMBOL_NIL);
     }
-  } else { // it is a ptr replace freelist with cdr of freelist;
-    res = heap_state.freelist;
-
-    if (res == heap_state.freelist_last) {
-      // we just got the last cell!
-      heap_state.freelist_last = ENC_SYM(SYMBOL_NIL); 
-    }
-    
-    res = res | ptr_type;
-    heap_state.freelist =
-      read_cdr(ref_cell(heap_state.freelist));
   }
+
+  // it is a ptr replace freelist with cdr of freelist;
+  res = heap_state.freelist;
+  
+  if (TYPE_OF(res) != PTR_TYPE_CONS) {
+    printf("ERROR: freelist is corrupt\n"); 
+  }
+  
+  heap_state.freelist = cdr(heap_state.freelist); 
+  //    read_cdr(ref_cell(heap_state.freelist));
 
   heap_state.num_alloc++;
 
@@ -179,6 +180,8 @@ uint32_t heap_allocate_cell(uint32_t ptr_type) {
 
   // clear GC bit on allocated cell
   clr_gc_mark(ref_cell(res));
+
+  res = res | ptr_type;
   return res;
 }
 
@@ -196,7 +199,6 @@ uint32_t heap_size_bytes(void) {
 void heap_get_state(heap_state_t *res) {
   res->heap_base           = heap_state.heap_base;
   res->freelist            = heap_state.freelist;
-  res->freelist_last       = heap_state.freelist_last;
   res->heap_size           = heap_state.heap_size;
   res->heap_bytes          = heap_state.heap_bytes;
   res->num_alloc           = heap_state.num_alloc;
@@ -259,9 +261,9 @@ int gc_mark_freelist() {
      heap_state.gc_marked ++;
   }
 
-  if ( t != ref_cell(heap_state.freelist_last)) {
-    printf( "CORRUPT FREELIST!\n");
-  }
+  /* if ( t != ref_cell(heap_state.freelist_last)) { */
+  /*   printf( "CORRUPT FREELIST!\n"); */
+  /* } */
   return 1;
 }
 
@@ -298,7 +300,6 @@ int gc_sweep_phase(void) {
 
   uint32_t i = 0;
   cons_t *heap = (cons_t *)heap_base;
-  cons_t *fl_last;
 
   uint32_t cdr;
 
@@ -333,37 +334,18 @@ int gc_sweep_phase(void) {
 	heap_state.gc_recovered_arrays++;
       }
 
-      // Clear the "freed" cell.
-      set_cdr_(&heap[i], 0);
-      set_cdr_(&heap[i], ENC_SYM(SYMBOL_NIL) | GC_MARKED);
-      set_car_(&heap[i], ENC_SYM(SYMBOL_NIL));
-
-      // create pointer to free cell to put at end of freelist
+      // create pointer to use as new freelist
       uint32_t addr = ENC_CONS_PTR(i);
 
-      if (TYPE_OF(heap_state.freelist_last) == VAL_TYPE_SYMBOL &&
-	  DEC_SYM(heap_state.freelist_last) == SYMBOL_NIL) {
-	// Free list is empty, newly freed cell should become head/tail of freelist
+      // Clear the "freed" cell.
+      heap[i].car = ENC_SYM(SYMBOL_NIL);
+      heap[i].cdr = heap_state.freelist;
+      heap_state.freelist = addr; 
 
-	heap_state.freelist_last = addr;
-	heap_state.freelist = addr;
-      } else {
-
-	fl_last = ref_cell(heap_state.freelist_last);
-
-	if ( DEC_SYM(read_cdr(fl_last)) != SYMBOL_NIL) {
-	  printf( "ERROR: cdr of fl_last not nil\n");
-	}
-
-	set_cdr_(fl_last, addr);
-	set_gc_mark(fl_last); // the above set_cdr_ clears the gc mark on fl_last.
-	heap_state.freelist_last = addr;
-      }
- 
       heap_state.num_alloc --;
       heap_state.gc_recovered ++;
     }
-    clr_gc_mark(&heap[i]);
+    clr_gc_mark(&heap[i]); 
   }
   return 1;
 }
