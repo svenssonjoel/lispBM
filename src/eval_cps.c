@@ -22,8 +22,8 @@
 #include "env.h"
 
 #ifdef VISUALIZE_HEAP
-#include "heap_vis.h" 
-#endif 
+#include "heap_vis.h"
+#endif
 
 
 #include <stdio.h>
@@ -32,35 +32,35 @@
 #include <string.h>
 #include <setjmp.h>
 
-/* 
-   Attempt to implement an evaluator in continuation passing style: 
-   (In spite of C not being very suitable for the task.) 
-   
+/*
+   Attempt to implement an evaluator in continuation passing style:
+   (In spite of C not being very suitable for the task.)
+
    - No idea if this will work..
-     # Seems to be. In the right direction at least. 
+     # Seems to be. In the right direction at least.
 
    - I hope this is possible without C being able to generate functions
      on the fly (and without going all the way to some jit setup).
-     # Looks like I was very incorrect in thinking anything like that 
-       would be needed. 
+     # Looks like I was very incorrect in thinking anything like that
+       would be needed.
 
    - peeking a lot at: http://lisperator.net/pltut/cps-evaluator/stack-guard
      during the implementation of this.
-     # I still dont understand what goes on there. 
-     
+     # I still dont understand what goes on there.
+
    - Want to rewind the stack using setjmp longjmp.
-     #Probably not essential. Or maybe it is..  
+     #Probably not essential. Or maybe it is..
 
    - Memory management will be real tricky since cannot rely on data on the stack.
-     # Instead created another stack to depend upon. 
+     # Instead created another stack to depend upon.
 
-   - Bah, this is too complicated and messy. Will try something new. 
+   - Bah, this is too complicated and messy. Will try something new.
 
    - TODO: Something causes a list (nil nil) as arg to closure or func
            in a case where argument really should be just nil (at least this is my assumption). 
-           Should not be GC related as it occurs on fresh heap. 
-	   It is also an error I introduced at some point while messing with 
-	   "on-demand" GC. 
+           Should not be GC related as it occurs on fresh heap.
+	   It is also an error I introduced at some point while messing with
+	   "on-demand" GC.
 */
 
 #define EVAL_CONTINUE 1
@@ -70,23 +70,23 @@ static uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env);
 
 jmp_buf rewind_buf;
 
-static uint32_t curr_exp; 
-static uint32_t curr_env; 
+static uint32_t curr_exp;
+static uint32_t curr_env;
 
 // The hope is that for tail-recursive function this stack will not "grow".
 typedef struct {
   uint32_t* data;
   int32_t   sp;
-  uint32_t  size; 
+  uint32_t  size;
 } stack;
 
 stack *K; // Stack describes the current continuation.
-stack *K_save; // Stack save area for resume after gc. 
+stack *K_save; // Stack save area for resume after gc.
 
 stack* init_cont_stack(int stack_size) {
 
   stack *s = malloc(sizeof(stack));
- 
+
   s->data = malloc(sizeof(uint32_t) * stack_size);
   s->sp = 0;
   s->size = stack_size;
@@ -96,43 +96,43 @@ stack* init_cont_stack(int stack_size) {
 
 int clear_stack(stack *s) {
   s->sp = 0;
-  return 1; 
+  return 1;
 }
 
 int grow_stack(stack *s) {
- 
+
   uint32_t new_size = s->size * 2;
   uint32_t *data    = malloc(sizeof(uint32_t) * new_size);
-  
-  if (data == NULL) return 0; 
+
+  if (data == NULL) return 0;
 
   memcpy(data, s->data, s->size*sizeof(uint32_t));
-  free(s->data); 
+  free(s->data);
   s->data = data;
   s->size = new_size;
   return 1;
-  
+
 }
 
 int copy_stack(stack *dest, stack *src) {
   while (dest->size < src->sp) {
     grow_stack(dest);
   }
-  
+
   dest->sp = src->sp;
-  memcpy(dest->data, src->data, src->sp * sizeof(uint32_t)); 
-  
-  return 1; 
+  memcpy(dest->data, src->data, src->sp * sizeof(uint32_t));
+
+  return 1;
 }
 
 int push_u32(stack *s, uint32_t val) {
   int res = 1;
   s->data[s->sp] = val;
-  s->sp++; 
+  s->sp++;
   if ( s->sp >= s->size) {
     res = grow_stack(s);
   }
-  return res; 
+  return res;
 }
 
 int push_k(stack *s, uint32_t (*k)(uint32_t)) {
@@ -142,33 +142,33 @@ int push_k(stack *s, uint32_t (*k)(uint32_t)) {
   if ( s->sp >= s->size) {
     res = grow_stack(s);
   }
-  return res; 
+  return res;
 }
 
 int pop_u32(stack *s, uint32_t *val) {
-  
+
   s->sp--;
   *val = s->data[s->sp];
-  
-  return 1; 
+
+  return 1;
 }
 
 int pop_k(stack *s, uint32_t (**k)(uint32_t)) {
   s->sp--;
   *k = (uint32_t (*)(uint32_t))s->data[s->sp];
-  return 1; 
+  return 1;
 }
-  
+
 uint32_t eval_cps_get_env(void) {
   return global_env;
 }
 
 
 uint32_t eval_cps_bi(uint32_t lisp) {
- 
+
   curr_exp = car(lisp);
   curr_env = curr_env;
-  longjmp(rewind_buf,EVAL_CONTINUE); 
+  longjmp(rewind_buf,EVAL_CONTINUE);
 }
 
 
@@ -181,15 +181,15 @@ uint32_t apply_continuation(stack *K){
   //printf("apply_continuation\n");
 
   uint32_t (*k)(uint32_t);
-  uint32_t args; 
+  uint32_t args;
   pop_u32(K, &args);
   pop_k(K,&k);
-  
+
   return  (*k)(args);
 }
 
 uint32_t set_global_env(uint32_t val){
-  
+
   uint32_t curr = global_env;
 
   uint32_t key;
@@ -231,18 +231,18 @@ uint32_t function_app(uint32_t args) {
   //simple_print(args);
   //printf("\n");
 
-  
+
   if (TYPE_OF(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
     args_rev = reverse(args);
 
     if (TYPE_OF(args_rev) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(args_rev) == symrepr_merror()) {
-      longjmp(rewind_buf, PERFORM_GC); 
+      longjmp(rewind_buf, PERFORM_GC);
     }
   } else {
     args_rev = args;
   }
-  
+
   uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(fun));
 
   if (f == NULL) {
@@ -251,7 +251,7 @@ uint32_t function_app(uint32_t args) {
   }
   uint32_t f_res = f(args_rev);
   push_u32(K, f_res);
-  return apply_continuation(K); 
+  return apply_continuation(K);
 }
 
 uint32_t closure_app(uint32_t args) {
@@ -263,12 +263,12 @@ uint32_t closure_app(uint32_t args) {
   //printf("CLOSURE: ");
   //simple_print(args);
   //printf("\n");
-  
+
   if (TYPE_OF(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
     args_rev = reverse(args);
     if (TYPE_OF(args) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(args) == symrepr_merror()) {
-      longjmp(rewind_buf, PERFORM_GC); 
+      longjmp(rewind_buf, PERFORM_GC);
     }
   } else {
     args_rev = args;
@@ -283,10 +283,10 @@ uint32_t closure_app(uint32_t args) {
     printf("WELL THIS IS AWKWARD\n");
     longjmp(rewind_buf, PERFORM_GC);
   }
-  
+
   curr_exp = exp;
-  curr_env = local_env; 
-  longjmp(rewind_buf, EVAL_CONTINUE); 
+  curr_env = local_env;
+  longjmp(rewind_buf, EVAL_CONTINUE);
 }
 
 uint32_t eval_rest(uint32_t head) {
@@ -296,16 +296,16 @@ uint32_t eval_rest(uint32_t head) {
   uint32_t env;
 
   pop_u32(K, &rest);
-  pop_u32(K, &acc); 
+  pop_u32(K, &acc);
   pop_u32(K, &env);
-  
+
   if (TYPE_OF(rest) == VAL_TYPE_SYMBOL &&
       DEC_SYM(rest) == symrepr_nil()) {
 
     uint32_t args = cons(head, acc);
     if (TYPE_OF(args) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(args) == symrepr_merror()) {
-      longjmp(rewind_buf, PERFORM_GC); 
+      longjmp(rewind_buf, PERFORM_GC);
     }
     push_u32(K, args);
     return apply_continuation(K);
@@ -316,51 +316,51 @@ uint32_t eval_rest(uint32_t head) {
       DEC_SYM(acc) == symrepr_merror()) {
     longjmp(rewind_buf, PERFORM_GC);
   }
-  
-  push_u32(K, env); 
+
+  push_u32(K, env);
   push_u32(K, acc);
   push_u32(K, cdr(rest));
   push_k(K, eval_rest);
-  
+
   curr_exp = car(rest);
   curr_env = env;
-  longjmp(rewind_buf, EVAL_CONTINUE); 
+  longjmp(rewind_buf, EVAL_CONTINUE);
 }
 
-// Closure or built-in function 
+// Closure or built-in function
 uint32_t function_cont(uint32_t fun) {
- 
+
   uint32_t fun_args;
   uint32_t env;
   pop_u32(K,&fun_args);
-  pop_u32(K,&env); 
-  
-  uint32_t head = car(fun_args); 
+  pop_u32(K,&env);
+
+  uint32_t head = car(fun_args);
 
   push_u32(K,fun);
   if ( TYPE_OF(fun) == PTR_TYPE_CONS &&
        DEC_SYM(car(fun)) == symrepr_closure()) {
-    push_k(K,closure_app); 
+    push_k(K,closure_app);
   } else {
     push_k(K,function_app);
   }
   // If args are a list with at least one element, process the elements
   if (TYPE_OF(fun_args) == PTR_TYPE_CONS &&
       length(fun_args) >= 1) {
-    push_u32(K,env); 
+    push_u32(K,env);
     push_u32(K,ENC_SYM(symrepr_nil()));
-    push_u32(K,cdr(fun_args)); 
-    push_k(K, eval_rest); 
-    
+    push_u32(K,cdr(fun_args));
+    push_k(K, eval_rest);
+
     curr_exp = head;
     curr_env = env;
     longjmp(rewind_buf, EVAL_CONTINUE);
   }
   // otherwise the arguments are an empty list (or something bad happened)
   push_u32(K, ENC_SYM(symrepr_nil()));
-  apply_continuation(K); 
+  apply_continuation(K);
   // unreachable
-} 
+}
 
 
 uint32_t bind_to_key_rest(uint32_t val) {
@@ -370,19 +370,19 @@ uint32_t bind_to_key_rest(uint32_t val) {
 
   pop_u32(K, &key);
   pop_u32(K, &env);
-  pop_u32(K, &rest); 
-  
-  env_modify_binding(env, key, val); 
+  pop_u32(K, &rest);
+
+  env_modify_binding(env, key, val);
 
   if ( TYPE_OF(rest) == PTR_TYPE_CONS ){
     uint32_t keyn = car(car(rest));
     uint32_t valn_exp = car(cdr(car(rest)));
-			    
-			    
+
+
     push_u32(K,cdr(rest));
     push_u32(K,env);
-    push_u32(K,keyn);  
-    push_k(K, bind_to_key_rest); 
+    push_u32(K,keyn);
+    push_k(K, bind_to_key_rest);
 
     curr_exp = valn_exp;
     curr_env = env;
@@ -394,17 +394,17 @@ uint32_t bind_to_key_rest(uint32_t val) {
   pop_u32(K, &exp);
   curr_exp = exp;
   curr_env = env;
-  longjmp(rewind_buf, EVAL_CONTINUE); 
-  
+  longjmp(rewind_buf, EVAL_CONTINUE);
+
 }
 
 uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
   uint32_t curr = binds;
   uint32_t new_env = orig_env;
 
-  if (TYPE_OF(binds) != PTR_TYPE_CONS) return ENC_SYM(symrepr_eerror()); 
-  
-  while (TYPE_OF(curr) == PTR_TYPE_CONS) { 
+  if (TYPE_OF(binds) != PTR_TYPE_CONS) return ENC_SYM(symrepr_eerror());
+
+  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
     uint32_t key = car(car(curr));
     uint32_t val = ENC_SYM(symrepr_nil()); // a temporary
     uint32_t binding = cons(key,val);
@@ -417,10 +417,10 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
 	DEC_SYM(new_env) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
-    curr = cdr(curr); 
+    curr = cdr(curr);
   }
 
-  uint32_t key0 = car(car(binds)); 
+  uint32_t key0 = car(car(binds));
   uint32_t val0_exp = car(cdr(car(binds)));
 
   push_u32(K,exp); // exp to evaluate in new environment
@@ -431,7 +431,7 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
 
   curr_exp = val0_exp;
   curr_env = new_env;  // env annotated with temporaries
-  longjmp(rewind_buf, EVAL_CONTINUE); 
+  longjmp(rewind_buf, EVAL_CONTINUE);
 }
 
 
@@ -442,28 +442,28 @@ uint32_t if_cont(uint32_t cond) {
 
   pop_u32(K, &then_branch);
   pop_u32(K, &else_branch);
-  
+
   if (TYPE_OF(cond) == VAL_TYPE_SYMBOL &&
       DEC_SYM(cond) == symrepr_true()) {
     curr_exp = then_branch;
     //curr_env = curr_env;
-    longjmp(rewind_buf,EVAL_CONTINUE); 
+    longjmp(rewind_buf,EVAL_CONTINUE);
   } else {
     curr_exp = else_branch;
     //curr_env = curr_env;
-    longjmp(rewind_buf,EVAL_CONTINUE); 
+    longjmp(rewind_buf,EVAL_CONTINUE);
   }
 }
-		  
+
 uint32_t eval_cps(uint32_t lisp, uint32_t env) {
-    
-  uint32_t tmp = ENC_SYM(symrepr_eerror()); 
+
+  uint32_t tmp = ENC_SYM(symrepr_eerror());
   int ret = 0;
   uint32_t head;
-  
-  //printf("eval_cps\n"); 
+
+  //printf("eval_cps\n");
   switch (TYPE_OF(lisp)) {
-    
+
   case VAL_TYPE_SYMBOL:
     ret = env_lookup(lisp, env, &tmp);
     if (!ret) {
@@ -490,42 +490,42 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
   case PTR_TYPE_STREAM:
     return ENC_SYM(symrepr_eerror());
     break;
- 
+
   case PTR_TYPE_CONS:
     head = car(lisp);
-    
+
     if (TYPE_OF(head) == VAL_TYPE_SYMBOL) {
-      
+
       // Special form: QUOTE
       if (DEC_SYM(head) == symrepr_quote()) {
 	uint32_t val =  car(cdr(lisp));
 	push_u32(K, val);
 	return apply_continuation(K);
       }
-      
-      // Special form: DEFINE 
+
+      // Special form: DEFINE
       if (DEC_SYM(head) == symrepr_define()) {
 	uint32_t key = car(cdr(lisp));
 	uint32_t val_exp = car(cdr(cdr(lisp)));
-	
+
 	if (TYPE_OF(key) != VAL_TYPE_SYMBOL ||
 	    DEC_SYM(key) == symrepr_nil()) {
-	  return ENC_SYM(symrepr_eerror()); 
+	  return ENC_SYM(symrepr_eerror());
 	}
 
 	push_u32(K, key);
-	push_k(K,set_global_env); 
-		
+	push_k(K,set_global_env);
+
 	curr_exp = val_exp;
 	curr_env = env;
-	longjmp(rewind_buf,EVAL_CONTINUE); 
+	longjmp(rewind_buf,EVAL_CONTINUE);
       }
 
-      // Special form: LAMBDA 
+      // Special form: LAMBDA
       if (DEC_SYM(head) == symrepr_lambda()) {
 	uint32_t env_cpy;
 	if (!env_copy_shallow(env,&env_cpy))
-	  longjmp(rewind_buf, PERFORM_GC); 
+	  longjmp(rewind_buf, PERFORM_GC);
 
 	//printf("Making closure\n");
 
@@ -538,9 +538,9 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 	    TYPE_OF(body)    == VAL_TYPE_SYMBOL ||
 	    TYPE_OF(params)  == VAL_TYPE_SYMBOL ||
 	    TYPE_OF(clos)    == VAL_TYPE_SYMBOL) {
-	  longjmp(rewind_buf, PERFORM_GC); 
+	  longjmp(rewind_buf, PERFORM_GC);
 	}
-	uint32_t closure = clos; 
+	uint32_t closure = clos;
 	/* uint32_t closure = cons(ENC_SYM(symrepr_closure()), */
 	/* 			cons(car(cdr(lisp)), */
 	/* 			     cons(car(cdr(cdr(lisp))), */
@@ -551,10 +551,10 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 	//}
 
 	push_u32(K,closure);
-	return apply_continuation(K); 
+	return apply_continuation(K);
       }
 
-      // Special form: IF 
+      // Special form: IF
       if (DEC_SYM(head) == symrepr_if()) {
 
 	push_u32(K,car(cdr(cdr(cdr(lisp))))); // else branch
@@ -563,8 +563,8 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
 	curr_exp = car(cdr(lisp)); // condition
 	curr_env = curr_env;
-	longjmp(rewind_buf, EVAL_CONTINUE); 
-	
+	longjmp(rewind_buf, EVAL_CONTINUE);
+
       }
 
       // Special form: LET
@@ -578,69 +578,67 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 	return process_let(binds, orig_env, exp);
       }
     } // If head is symbol
-    
+
     // Possibly an application form:
     push_u32(K, curr_env);  // The environment each element should be evaluated in 
-    push_u32(K, cdr(lisp)); // list of arguments that needs to be evaluated. 
-    push_k(K, function_cont); 
-    
+    push_u32(K, cdr(lisp)); // list of arguments that needs to be evaluated.
+    push_k(K, function_cont);
+
     curr_exp = head;
     curr_env = curr_env;
-    longjmp(rewind_buf, EVAL_CONTINUE); 
-    
+    longjmp(rewind_buf, EVAL_CONTINUE);
+
   default:
     // BUG No applicable case!
     return ENC_SYM(symrepr_eerror());
     break;
   }
 }
-      
+
 
 uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
 
-  uint32_t half_heap = heap_size() / 2; 
-  
+  uint32_t half_heap = heap_size() / 2;
+
   push_k(K,done);
   push_k(K_save,done);
-  
+
   curr_exp = lisp;
   curr_env = env;
 
   uint32_t r;
 
   int res = setjmp(rewind_buf);
-  
+
   if (res) {
-  
+
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
-#endif 
+#endif
     if (res == PERFORM_GC) {
       // printf("***  PERFORMING GC ***\n");
       // restore stack
       clear_stack(K);
-      copy_stack(K, K_save); 
-      
+      copy_stack(K, K_save);
+
       heap_perform_gc_aux(global_env, curr_env, curr_exp, orig_prg, K->data, K->sp);
-      
+
       //printf("RESUMING EVAL: %x\n", curr_exp);
       //printf("STACK SP: %d\n", K->sp);
-
-
     }
-    //if (heap_size() - heap_num_allocated() < half_heap ){ 
-      // GC also needs info about things alive in the "continuation" 
-    //  heap_perform_gc_aux(global_env, curr_env, curr_exp, orig_prg, K->data, K->sp); 
+    //if (heap_size() - heap_num_allocated() < half_heap ){
+      // GC also needs info about things alive in the "continuation"
+    //  heap_perform_gc_aux(global_env, curr_env, curr_exp, orig_prg, K->data, K->sp);
     //}
 
     if(res == EVAL_CONTINUE) {
       //printf("CONTINUING EVAL: %x\n", curr_exp);
       //printf("STACK SP: %d\n", K->sp);
       clear_stack(K_save);
-      copy_stack(K_save, K); 
+      copy_stack(K_save, K);
     }
-    
-      
+
+
     r = eval_cps(curr_exp, curr_env);
 
   } else {
@@ -656,16 +654,16 @@ uint32_t eval_cps_program(uint32_t lisp) {
 
   uint32_t curr = lisp;
   uint32_t res = ENC_SYM(symrepr_nil());
-  
+
   while (TYPE_OF(curr) == PTR_TYPE_CONS) {
     uint32_t val = run_eval(lisp, car(curr),ENC_SYM(symrepr_nil()));
     res = cons(val,res);
     if (TYPE_OF(res) == VAL_TYPE_SYMBOL) {
       //simple_print(val); printf("\n");
       //simple_print(res); printf("\n");
-      printf("ERROR: Memory full\n"); 
+      printf("ERROR: Memory full\n");
     }
-    curr = cdr(curr); 
+    curr = cdr(curr);
   }
 
   return reverse(res);
@@ -678,17 +676,17 @@ int eval_cps_init() {
   K = init_cont_stack(1000);
   K_save = init_cont_stack(1000);
 
-  int res = builtin_add_function("eval",eval_cps_bi); 
-  
+  int res = builtin_add_function("eval",eval_cps_bi);
+
   global_env = ENC_SYM(symrepr_nil());
 
   global_env = built_in_gen_env();
-  
+
   uint32_t nil_entry = cons(ENC_SYM(symrepr_nil()), ENC_SYM(symrepr_nil()));
   global_env = cons(nil_entry, global_env);
 
   if (TYPE_OF(nil_entry) == VAL_TYPE_SYMBOL ||
-      TYPE_OF(global_env) == VAL_TYPE_SYMBOL) res = 0; 
-  
+      TYPE_OF(global_env) == VAL_TYPE_SYMBOL) res = 0;
+
   return res;
 }
