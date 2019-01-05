@@ -54,8 +54,13 @@
    - Memory management will be real tricky since cannot rely on data on the stack.
      # Instead created another stack to depend upon. 
 
-
    - Bah, this is too complicated and messy. Will try something new. 
+
+   - TODO: Something causes a list (nil nil) as arg to closure or func
+           in a case where argument really should be just nil (at least this is my assumption). 
+           Should not be GC related as it occurs on fresh heap. 
+	   It is also an error I introduced at some point while messing with 
+	   "on-demand" GC. 
 */
 
 #define EVAL_CONTINUE 1
@@ -204,15 +209,11 @@ uint32_t set_global_env(uint32_t val){
   if (TYPE_OF(keyval) == VAL_TYPE_SYMBOL &&
       DEC_SYM(keyval) == symrepr_merror()) {
     // Abort computation and perform GC.
-    push_u32(K, key);
-    push_k(K, set_global_env);
     longjmp(rewind_buf, PERFORM_GC);
   }
   global_env = cons(keyval,global_env);
   if (TYPE_OF(global_env) == VAL_TYPE_SYMBOL &&
       DEC_SYM(global_env) == symrepr_merror()) {
-    push_u32(K, key);
-    push_k(K, set_global_env);
     longjmp(rewind_buf, PERFORM_GC);
   }
 
@@ -225,14 +226,21 @@ uint32_t function_app(uint32_t args) {
   uint32_t args_rev;
   uint32_t fun;
   pop_u32(K, &fun);
-  
-  args_rev = reverse(args);
 
-  if (TYPE_OF(args_rev) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(args_rev) == symrepr_merror()) {
-    push_u32(K, fun);
-    push_k(K, function_app);
-    longjmp(rewind_buf, PERFORM_GC); 
+  //printf("FUNCTION: ");
+  //simple_print(args);
+  //printf("\n");
+
+  
+  if (TYPE_OF(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
+    args_rev = reverse(args);
+
+    if (TYPE_OF(args_rev) == VAL_TYPE_SYMBOL &&
+	DEC_SYM(args_rev) == symrepr_merror()) {
+      longjmp(rewind_buf, PERFORM_GC); 
+    }
+  } else {
+    args_rev = args;
   }
   
   uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(fun));
@@ -252,12 +260,18 @@ uint32_t closure_app(uint32_t args) {
   uint32_t closure;
   pop_u32(K, &closure);
 
-  args_rev = reverse(args);
-  if (TYPE_OF(args) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(args) == symrepr_merror()) {
-    push_u32(K, closure);
-    push_k(K, closure_app);
-    longjmp(rewind_buf, PERFORM_GC); 
+  //printf("CLOSURE: ");
+  //simple_print(args);
+  //printf("\n");
+  
+  if (TYPE_OF(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
+    args_rev = reverse(args);
+    if (TYPE_OF(args) == VAL_TYPE_SYMBOL &&
+	DEC_SYM(args) == symrepr_merror()) {
+      longjmp(rewind_buf, PERFORM_GC); 
+    }
+  } else {
+    args_rev = args;
   }
 
   uint32_t params  = car(cdr(closure));
@@ -266,8 +280,7 @@ uint32_t closure_app(uint32_t args) {
 
   uint32_t local_env;
   if (!env_build_params_args(params, args_rev, clo_env, &local_env)) {
-    push_u32(K, closure);
-    push_k(K, closure_app);
+    printf("WELL THIS IS AWKWARD\n");
     longjmp(rewind_buf, PERFORM_GC);
   }
   
@@ -292,11 +305,6 @@ uint32_t eval_rest(uint32_t head) {
     uint32_t args = cons(head, acc);
     if (TYPE_OF(args) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(args) == symrepr_merror()) {
-      push_u32(K, env);
-      push_u32(K, acc);
-      push_u32(K, rest);
-      push_k(K, eval_rest);
-      
       longjmp(rewind_buf, PERFORM_GC); 
     }
     push_u32(K, args);
@@ -306,11 +314,6 @@ uint32_t eval_rest(uint32_t head) {
   acc = cons(head, acc);
   if (TYPE_OF(acc) == VAL_TYPE_SYMBOL &&
       DEC_SYM(acc) == symrepr_merror()) {
-    push_u32(K, env); 
-    push_u32(K, acc);
-    push_u32(K, rest);
-    push_k(K, eval_rest);
-
     longjmp(rewind_buf, PERFORM_GC);
   }
   
@@ -341,14 +344,22 @@ uint32_t function_cont(uint32_t fun) {
   } else {
     push_k(K,function_app);
   }
-  push_u32(K,env); 
-  push_u32(K,ENC_SYM(symrepr_nil()));
-  push_u32(K,cdr(fun_args)); 
-  push_k(K, eval_rest); 
- 
-  curr_exp = head;
-  curr_env = env;
-  longjmp(rewind_buf, EVAL_CONTINUE); 
+  // If args are a list with at least one element, process the elements
+  if (TYPE_OF(fun_args) == PTR_TYPE_CONS &&
+      length(fun_args) >= 1) {
+    push_u32(K,env); 
+    push_u32(K,ENC_SYM(symrepr_nil()));
+    push_u32(K,cdr(fun_args)); 
+    push_k(K, eval_rest); 
+    
+    curr_exp = head;
+    curr_env = env;
+    longjmp(rewind_buf, EVAL_CONTINUE);
+  }
+  // otherwise the arguments are an empty list (or something bad happened)
+  push_u32(K, ENC_SYM(symrepr_nil()));
+  apply_continuation(K); 
+  // unreachable
 } 
 
 
@@ -605,7 +616,8 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
     heap_vis_gen_image();
 #endif 
     if (res == PERFORM_GC) {
-      //printf("***  PERFORMING GC ***\n");
+      printf("***  PERFORMING GC ***\n");
+      exit(0);
       // restore stack
       clear_stack(K);
       copy_stack(K, K_save); 

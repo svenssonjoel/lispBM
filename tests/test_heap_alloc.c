@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
       printf("Error allocation succeeded on empty heap\n"); 
       return 0;
     } else if (VAL_TYPE(cell) != VAL_TYPE_SYMBOL ||
-	       DEC_SYM(cell) != symrepr_nil()) {
+	       DEC_SYM(cell) != symrepr_merror()) {
       printf("Error Incorrect return value at cell allocation on full heap\n");
       return 0; 
     }
