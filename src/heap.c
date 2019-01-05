@@ -24,7 +24,6 @@
 #include "heap_vis.h"
 #endif
 
-
 uint32_t global_env;
 
 static cons_t*      heap = NULL;
@@ -153,12 +152,12 @@ uint32_t heap_allocate_cell(uint32_t ptr_type) {
     if ((TYPE_OF(heap_state.freelist) == VAL_TYPE_SYMBOL) &&
 	(DEC_SYM(heap_state.freelist) == SYMBOL_NIL)) {
       // all is as it should be (but no free cells)
-      return heap_state.freelist;
+      return ENC_SYM(symrepr_merror()); 
     } else {
       printf("BROKEN HEAP %x\n", TYPE_OF(heap_state.freelist));
       // something is most likely very wrong
       //printf("heap_allocate_cell Error\n");
-      return ENC_SYM(SYMBOL_NIL);
+      return ENC_SYM(symrepr_merror());
     }
   }
 
@@ -170,7 +169,6 @@ uint32_t heap_allocate_cell(uint32_t ptr_type) {
   }
   
   heap_state.freelist = cdr(heap_state.freelist); 
-  //    read_cdr(ref_cell(heap_state.freelist));
 
   heap_state.num_alloc++;
 
@@ -260,10 +258,7 @@ int gc_mark_freelist() {
 
      heap_state.gc_marked ++;
   }
-
-  /* if ( t != ref_cell(heap_state.freelist_last)) { */
-  /*   printf( "CORRUPT FREELIST!\n"); */
-  /* } */
+  
   return 1;
 }
 
@@ -447,13 +442,20 @@ uint32_t length(uint32_t c) {
 
 /* reverse a proper list */
 uint32_t reverse(uint32_t list) {
-
+  if (TYPE_OF(list) == VAL_TYPE_SYMBOL &&
+      DEC_SYM(list) == SYMBOL_NIL) {
+    return list;
+  }
+  
   uint32_t curr = list;
 
   uint32_t new_list = ENC_SYM(symrepr_nil());
   while (TYPE_OF(curr) == PTR_TYPE_CONS) {
 
     new_list = cons(car(curr), new_list);
+    if (TYPE_OF(new_list) == VAL_TYPE_SYMBOL) {
+      return ENC_SYM(symrepr_merror()); 
+    }
     curr = cdr(curr);
   }
   return new_list;

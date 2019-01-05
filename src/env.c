@@ -94,8 +94,12 @@ int env_build_params_args(uint32_t params,
   while (TYPE_OF(curr_param) == PTR_TYPE_CONS) {
 
     uint32_t entry = cons(car(curr_param), car(curr_arg));
-    env = cons(entry,env);
+    if (TYPE_OF(entry) == VAL_TYPE_SYMBOL &&
+	DEC_SYM(entry) == symrepr_nil())
+      return 0; 
 
+    env = cons(entry,env);
+    
     if (TYPE_OF(env) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(env) == symrepr_nil())
       return 0; 
