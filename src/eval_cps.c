@@ -616,8 +616,7 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
     heap_vis_gen_image();
 #endif 
     if (res == PERFORM_GC) {
-      printf("***  PERFORMING GC ***\n");
-      exit(0);
+      // printf("***  PERFORMING GC ***\n");
       // restore stack
       clear_stack(K);
       copy_stack(K, K_save); 
