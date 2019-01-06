@@ -245,8 +245,6 @@ typedef struct {
   void (*free_stream)(uint32_t*);
 } o_stream_t;
 
-extern uint32_t global_env;
-
 extern int heap_init(size_t num_cells);
 extern void heap_del(void);
 extern uint32_t heap_num_free(void);

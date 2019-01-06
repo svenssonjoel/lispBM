@@ -24,8 +24,6 @@
 #include "heap_vis.h"
 #endif
 
-uint32_t global_env;
-
 static cons_t*      heap = NULL;
 static uint32_t     heap_base;
 static heap_state_t heap_state;

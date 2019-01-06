@@ -73,11 +73,13 @@ jmp_buf rewind_buf;
 static uint32_t curr_exp;
 static uint32_t curr_env;
 
+static uint32_t eval_cps_global_env;
+
 stack *K; // Stack describes the current continuation.
 stack *K_save; // Stack save area for resume after gc.
 
 uint32_t eval_cps_get_env(void) {
-  return global_env;
+  return eval_cps_global_env;
 }
 
 
@@ -107,7 +109,7 @@ uint32_t apply_continuation(stack *K){
 
 uint32_t set_global_env(uint32_t val){
 
-  uint32_t curr = global_env;
+  uint32_t curr = eval_cps_global_env;
 
   uint32_t key;
   pop_u32(K,&key);
@@ -128,9 +130,9 @@ uint32_t set_global_env(uint32_t val){
     // Abort computation and perform GC.
     longjmp(rewind_buf, PERFORM_GC);
   }
-  global_env = cons(keyval,global_env);
-  if (TYPE_OF(global_env) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(global_env) == symrepr_merror()) {
+  eval_cps_global_env = cons(keyval,eval_cps_global_env);
+  if (TYPE_OF(eval_cps_global_env) == VAL_TYPE_SYMBOL &&
+      DEC_SYM(eval_cps_global_env) == symrepr_merror()) {
     longjmp(rewind_buf, PERFORM_GC);
   }
 
@@ -384,7 +386,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
   case VAL_TYPE_SYMBOL:
     ret = env_lookup(lisp, env, &tmp);
     if (!ret) {
-      ret = env_lookup(lisp, global_env, &tmp);
+      ret = env_lookup(lisp, eval_cps_global_env, &tmp);
     }
     if (ret) {
       push_u32(K, tmp);
@@ -538,16 +540,11 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
       clear_stack(K);
       copy_stack(K, K_save);
 
-      heap_perform_gc_aux(global_env, curr_env, curr_exp, orig_prg, K->data, K->sp);
+      heap_perform_gc_aux(eval_cps_global_env, curr_env, curr_exp, orig_prg, K->data, K->sp);
 
       //printf("RESUMING EVAL: %x\n", curr_exp);
       //printf("STACK SP: %d\n", K->sp);
     }
-    //if (heap_size() - heap_num_allocated() < half_heap ){
-      // GC also needs info about things alive in the "continuation"
-    //  heap_perform_gc_aux(global_env, curr_env, curr_exp, orig_prg, K->data, K->sp);
-    //}
-
     if(res == EVAL_CONTINUE) {
       //printf("CONTINUING EVAL: %x\n", curr_exp);
       //printf("STACK SP: %d\n", K->sp);
@@ -595,15 +592,15 @@ int eval_cps_init() {
 
   int res = builtin_add_function("eval",eval_cps_bi);
 
-  global_env = ENC_SYM(symrepr_nil());
+  eval_cps_global_env = ENC_SYM(symrepr_nil());
 
-  global_env = built_in_gen_env();
+  eval_cps_global_env = built_in_gen_env();
 
   uint32_t nil_entry = cons(ENC_SYM(symrepr_nil()), ENC_SYM(symrepr_nil()));
-  global_env = cons(nil_entry, global_env);
+  eval_cps_global_env = cons(nil_entry, eval_cps_global_env);
 
   if (TYPE_OF(nil_entry) == VAL_TYPE_SYMBOL ||
-      TYPE_OF(global_env) == VAL_TYPE_SYMBOL) res = 0;
+      TYPE_OF(eval_cps_global_env) == VAL_TYPE_SYMBOL) res = 0;
 
   return res;
 }

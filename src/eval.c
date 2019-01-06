@@ -51,13 +51,14 @@ static char eval_error_string[EVAL_ERROR_BUFFER_SIZE];
 static jmp_buf error_jmp_buffer;
 static jmp_buf *error_jmp_ptr = NULL; 
 
+static uint32_t eval_global_env;
 
 char *eval_get_error() {
   return eval_error_string;
 }
 
 uint32_t eval_get_env(void) {
-  return global_env;
+  return eval_global_env;
 }
 
 uint32_t eval_bi(uint32_t lisp) {
@@ -81,10 +82,10 @@ int eval_init() {
   int res = 1;
   res &= builtin_add_function("eval", eval_bi);
  
-  global_env = built_in_gen_env();
+  eval_global_env = built_in_gen_env();
 
   uint32_t nil_entry = cons(ENC_SYM(symrepr_nil()), ENC_SYM(symrepr_nil()));
-  global_env = cons(nil_entry, global_env);
+  eval_global_env = cons(nil_entry, eval_global_env);
 
   return res; 
   
@@ -138,7 +139,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   case VAL_TYPE_SYMBOL:
     ret = env_lookup(lisp, env, &tmp);
     if (!ret) {
-      ret = env_lookup(lisp, global_env, &tmp);
+      ret = env_lookup(lisp, eval_global_env, &tmp);
     }
     if (ret) return tmp;
     ERROR("Eval: Variable lookup failed: %s ",symrepr_lookup_name(DEC_SYM(lisp)));
@@ -188,7 +189,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       if (DEC_SYM(head) == symrepr_define()) {
 	uint32_t key = car(cdr(lisp));
 	uint32_t val = eval_in_env(car(cdr(cdr(lisp))), env);
-	uint32_t curr = global_env; 
+	uint32_t curr = eval_global_env; 
 
 	if (TYPE_OF(key) != VAL_TYPE_SYMBOL)
 	  ERROR("Define expects a symbol");
@@ -204,7 +205,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 	  curr = cdr(curr);
 	}
 	uint32_t keyval = cons(key,val);
-	global_env = cons(keyval,global_env);
+	eval_global_env = cons(keyval,eval_global_env);
 	return ENC_SYM(symrepr_true()); 	
       }
 
