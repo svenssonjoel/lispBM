@@ -19,13 +19,12 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 1. Implement some "reference to X type", for uint32, int32, float perhaps...  
 2. Write a small library of useful hofs. 
 3. Clean up a lot in eval and eval_cps.
-4. GC should be run when needed. 
-5. Test the Zynq build more. 
-6. Document code.
-7. Implement some looping structure for speed or just ease of use. 
-8. Be much more stringent on checking of error conditions etc.
+4. Test the Zynq build more. 
+5. Document code.
+6. Implement some looping structure for speed or just ease of use. 
+7. Be much more stringent on checking of error conditions etc.
 
-## Compile for linux
+## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
 
 2. Build the repl: `cd repl` and then `make`
