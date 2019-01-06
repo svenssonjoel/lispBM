@@ -20,11 +20,11 @@
 #include "builtin.h"
 #include "print.h"
 #include "env.h"
+#include "stack.h"
 
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
-
 
 #include <stdio.h>
 #include <stdint.h>
@@ -73,91 +73,8 @@ jmp_buf rewind_buf;
 static uint32_t curr_exp;
 static uint32_t curr_env;
 
-// The hope is that for tail-recursive function this stack will not "grow".
-typedef struct {
-  uint32_t* data;
-  int32_t   sp;
-  uint32_t  size;
-} stack;
-
 stack *K; // Stack describes the current continuation.
 stack *K_save; // Stack save area for resume after gc.
-
-stack* init_cont_stack(int stack_size) {
-
-  stack *s = malloc(sizeof(stack));
-
-  s->data = malloc(sizeof(uint32_t) * stack_size);
-  s->sp = 0;
-  s->size = stack_size;
-
-  return s;
-}
-
-int clear_stack(stack *s) {
-  s->sp = 0;
-  return 1;
-}
-
-int grow_stack(stack *s) {
-
-  uint32_t new_size = s->size * 2;
-  uint32_t *data    = malloc(sizeof(uint32_t) * new_size);
-
-  if (data == NULL) return 0;
-
-  memcpy(data, s->data, s->size*sizeof(uint32_t));
-  free(s->data);
-  s->data = data;
-  s->size = new_size;
-  return 1;
-
-}
-
-int copy_stack(stack *dest, stack *src) {
-  while (dest->size < src->sp) {
-    grow_stack(dest);
-  }
-
-  dest->sp = src->sp;
-  memcpy(dest->data, src->data, src->sp * sizeof(uint32_t));
-
-  return 1;
-}
-
-int push_u32(stack *s, uint32_t val) {
-  int res = 1;
-  s->data[s->sp] = val;
-  s->sp++;
-  if ( s->sp >= s->size) {
-    res = grow_stack(s);
-  }
-  return res;
-}
-
-int push_k(stack *s, uint32_t (*k)(uint32_t)) {
-  int res = 1;
-  s->data[s->sp] = (uint32_t)k;
-  s->sp++;
-  if ( s->sp >= s->size) {
-    res = grow_stack(s);
-  }
-  return res;
-}
-
-int pop_u32(stack *s, uint32_t *val) {
-
-  s->sp--;
-  *val = s->data[s->sp];
-
-  return 1;
-}
-
-int pop_k(stack *s, uint32_t (**k)(uint32_t)) {
-  s->sp--;
-  *k = (uint32_t (*)(uint32_t))s->data[s->sp];
-  return 1;
-}
 
 uint32_t eval_cps_get_env(void) {
   return global_env;
