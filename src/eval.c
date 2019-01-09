@@ -44,8 +44,6 @@ static uint32_t apply_builtin(uint32_t sym, uint32_t args);
 static uint32_t eval_in_env(uint32_t, uint32_t); 
 static uint32_t eval_let_bindings(uint32_t, uint32_t);
 
-static uint32_t copy_bindings(uint32_t syms, uint32_t env); 
-
 static char eval_error_string[EVAL_ERROR_BUFFER_SIZE]; 
 
 static jmp_buf error_jmp_buffer;
@@ -72,7 +70,7 @@ uint32_t eval_bi(uint32_t lisp) {
     }
   }
   
-  uint32_t res = eval_in_env(car(lisp),ENC_SYM(symrepr_nil()));
+  return eval_in_env(car(lisp),ENC_SYM(symrepr_nil()));
   
 }
 
@@ -130,7 +128,6 @@ uint32_t eval_program(uint32_t lisp) {
 
 uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 
-  uint32_t val = 0; 
   uint32_t tmp = 0;
   int ret;
   uint32_t head;
@@ -254,7 +251,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 static uint32_t apply(uint32_t closure, uint32_t args) {
 
   // TODO: error checking etc
-  uint32_t clo_sym = car(closure);      
+  //uint32_t clo_sym = car(closure);      
   uint32_t params  = car(cdr(closure)); // parameter list
   uint32_t exp     = car(cdr(cdr(closure)));
   uint32_t clo_env = car(cdr(cdr(cdr(closure))));

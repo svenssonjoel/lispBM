@@ -16,6 +16,7 @@
 */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "print.h"
 #include "heap.h"
@@ -54,6 +55,7 @@ int simple_print_env(uint32_t env) {
     curr = cdr(curr);
   }
   printf(")");
+  return 1;
 }
 
 
@@ -69,6 +71,7 @@ int simple_print_lambda(uint32_t t) {
   simple_print(vars); printf(" ");
   simple_print(exp); printf(" ");
   simple_print_env(env); printf(" ");
+  return 1;
 }
 
 
@@ -76,7 +79,7 @@ int simple_print(uint32_t t){
 
   char *str_ptr;
   
-  if (IS_PTR(t) & PTR_TYPE(t) == PTR_TYPE_CONS) {
+  if (IS_PTR(t) && (PTR_TYPE(t) == PTR_TYPE_CONS)) {
     // TODO: Switch on the type of object pointed to.
 
     uint32_t car_val = car(t);
@@ -95,7 +98,8 @@ int simple_print(uint32_t t){
 
   if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_F32) {
     uint32_t uv = car(t);
-    float v = *(float*)(&uv);
+    float v;
+    memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
     printf("{%f}", v); 
     return 1; 
   }

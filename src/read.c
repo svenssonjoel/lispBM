@@ -116,7 +116,8 @@ uint32_t read_ast(mpc_ast_t *t){
 
   if (strstr(t->tag, "float")) {
     float v = (float)atof(t->contents);
-    uint32_t uv = *(uint32_t*)(&v);
+    uint32_t uv;
+    memcpy(&uv, &v, sizeof(uint32_t)); // = *(uint32_t*)(&v);
     uint32_t ptr_cons = cons(uv,ENC_SYM(nil)); // Boxed value.
     uint32_t ptr_float_box = SET_PTR_TYPE(ptr_cons, PTR_TYPE_F32);
     return ptr_float_box;

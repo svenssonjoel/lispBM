@@ -278,7 +278,9 @@ uint32_t function_cont(uint32_t fun) {
   // otherwise the arguments are an empty list (or something bad happened)
   push_u32(K, ENC_SYM(symrepr_nil()));
   apply_continuation(K);
-  // unreachable
+
+  printf("ALERT: RETURNING!\n");
+  return 0; 
 }
 
 
@@ -516,8 +518,6 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
 
 uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
-
-  uint32_t half_heap = heap_size() / 2;
 
   push_k(K,done);
   push_k(K_save,done);

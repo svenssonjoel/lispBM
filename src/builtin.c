@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "symrepr.h"
 #include "heap.h"
@@ -181,7 +182,7 @@ uint32_t bi_fun_sum(uint32_t args) {
   case PTR_TYPE_I32:
     while(TYPE_OF(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
-      uint32_t r;
+      int32_t r;
       get_as_int(v,&r);
       i_sum += r;
       curr= cdr(curr);
@@ -294,11 +295,11 @@ uint32_t bi_fun_sub(uint32_t args) {
     return ENC_U28(u_res);
 
   case PTR_TYPE_I32:
-    get_as_int(v, &u_res);
+    get_as_int(v, &i_res);
 
     while(TYPE_OF(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
-      uint32_t r;
+      int32_t r;
       get_as_int(v, &r);
       i_res -= r;
       curr = cdr(curr);
@@ -404,8 +405,8 @@ uint32_t bi_fun_lt(uint32_t args) {
     if (u1 < u2) return ENC_SYM(symrepr_true());
     else return ENC_SYM(symrepr_nil());
   case PTR_TYPE_I32:
-    get_as_uint(a1, &i1);
-    get_as_uint(a2, &i2);
+    get_as_int(a1, &i1);
+    get_as_int(a2, &i2);
     if (i1 < i2) return ENC_SYM(symrepr_true());
     else return ENC_SYM(symrepr_nil());
   case PTR_TYPE_U32:
@@ -445,8 +446,8 @@ uint32_t bi_fun_num_eq(uint32_t args) {
     if (u1 == u2) return ENC_SYM(symrepr_true());
     else return ENC_SYM(symrepr_nil());
   case PTR_TYPE_I32:
-    get_as_uint(a1, &i1);
-    get_as_uint(a2, &i2);
+    get_as_int(a1, &i1);
+    get_as_int(a2, &i2);
     if (i1 == i2) return ENC_SYM(symrepr_true());
     else return ENC_SYM(symrepr_nil());
   case PTR_TYPE_U32:
@@ -576,7 +577,7 @@ uint32_t bi_fun_array_read(uint32_t args) {
 
   // Get array index
   int32_t ix;
-  uint32_t res;
+  uint32_t res = ENC_SYM(symrepr_eerror);
   switch (TYPE_OF(index)) {
   case VAL_TYPE_U28:
     ix = (int32_t)DEC_U28(index);
@@ -638,7 +639,6 @@ uint32_t bi_fun_array_write(uint32_t args) {
   float v;
   // Get array index
   int32_t ix;
-  uint32_t res;
   switch (TYPE_OF(index)) {
   case VAL_TYPE_U28:
     ix = (int32_t)DEC_U28(index);
@@ -679,7 +679,7 @@ uint32_t bi_fun_array_write(uint32_t args) {
       break;
     case PTR_TYPE_F32:
       uv = car(val);
-      v = *(float*)(&uv);
+      memcpy(&v, &uv, sizeof(float)); //  = *(float*)(&uv);
       array->data.f[ix] = v;
       break;
     default:

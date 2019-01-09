@@ -262,21 +262,19 @@ int gc_mark_freelist() {
 
 int gc_mark_aux(uint32_t *aux_data, uint32_t aux_size) {
 
-  cons_t *t;
-
   for (int i = 0; i < aux_size; i ++) {
     if (IS_PTR(aux_data[i])) {
 
       uint32_t pt_t = PTR_TYPE(aux_data[i]);
       uint32_t pt_v = DEC_PTR(aux_data[i]);
 
-      if ( pt_t == PTR_TYPE_CONS ||
-	   pt_t == PTR_TYPE_I32 ||
-	   pt_t == PTR_TYPE_U32 ||
-	   pt_t == PTR_TYPE_F32 ||
-	   pt_t == PTR_TYPE_ARRAY ||
-	   pt_t == PTR_TYPE_REF ||
-	   pt_t == PTR_TYPE_STREAM &&
+      if ( (pt_t == PTR_TYPE_CONS ||
+	    pt_t == PTR_TYPE_I32 ||
+	    pt_t == PTR_TYPE_U32 ||
+	    pt_t == PTR_TYPE_F32 ||
+	    pt_t == PTR_TYPE_ARRAY ||
+	    pt_t == PTR_TYPE_REF ||
+	    pt_t == PTR_TYPE_STREAM) &&
 	   pt_v < heap_state.heap_size) {
 
 	gc_mark_phase(aux_data[i]);
@@ -293,8 +291,6 @@ int gc_sweep_phase(void) {
 
   uint32_t i = 0;
   cons_t *heap = (cons_t *)heap_base;
-
-  uint32_t cdr;
 
   for (i = 0; i < heap_state.heap_size; i ++) {
     if ( !get_gc_mark(&heap[i])){
