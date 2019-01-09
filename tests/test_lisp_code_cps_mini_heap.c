@@ -29,7 +29,6 @@
 #include "print.h"
 
 int main(int argc, char **argv) {
-  char *str = malloc(1024);;
   size_t len;
 
   mpc_ast_t* ast = NULL; 
@@ -110,7 +109,6 @@ int main(int argc, char **argv) {
   
   uint32_t t; 
   t = read_ast(ast);
-  mpc_ast_delete(ast);
 
   printf("I: "); simple_print(t); printf("\n"); 
   
@@ -127,14 +125,15 @@ int main(int argc, char **argv) {
     rest = cdr(rest);
   }
   
-  
   if (res && structural_equality(car(rest),car(cdr(rest)))) {
     printf("Test: OK!\n"); 
     res = 1;
   } else {
     printf("Test: Failed!\n"); 
     res = 0; 
-  }  
+  }
+
+  mpc_ast_delete(ast);
   parser_del();
   symrepr_del();
   heap_del();

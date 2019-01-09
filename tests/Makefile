@@ -1,6 +1,6 @@
 
 
-CCFLAGS = -m32 -O2 
+CCFLAGS = -m32 -O2 -Wall -pedantic -std=c11
 CC=gcc
 
 SRC = src
@@ -21,4 +21,6 @@ all: $(EXECS)
 
 clean:
 	rm *.exe
-	rm test_lisp_code 
+	rm test_lisp_code
+	rm test_lisp_code_cps
+	rm test_lisp_code_cps_mini_heap
