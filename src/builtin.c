@@ -86,7 +86,8 @@ int get_as_int(uint32_t v, int32_t *r) {
     break;
   case PTR_TYPE_F32:
     tmp = car(v);
-    f_tmp = *(float*)&tmp;
+    // f_tmp = *(float*)&tmp;
+    memcpy(&f_tmp, &tmp, sizeof(float));
     *r = (int32_t)f_tmp;
     break;
   default:
@@ -112,7 +113,8 @@ int get_as_uint(uint32_t v, uint32_t *r) {
     break;
   case PTR_TYPE_F32:
     tmp = car(v);
-    f_tmp = *(float*)&tmp;
+    // f_tmp = *(float*)&tmp;
+    memcpy(&f_tmp, &tmp, sizeof(float));
     *r = (uint32_t)f_tmp;
     break;
   default:
@@ -138,7 +140,8 @@ int get_as_float(uint32_t v, float *r) {
     break;
   case PTR_TYPE_F32:
     tmp = car(v);
-    *r = *(float*)&tmp;
+    //*r = *(float*)&tmp;
+    memcpy(r, &tmp, sizeof(float));
     break;
   default:
     return 0;
@@ -209,7 +212,8 @@ uint32_t bi_fun_sum(uint32_t args) {
       f_sum += r;
       curr = cdr(curr);
     }
-    tmp = *(uint32_t*)&f_sum;
+    // tmp = *(uint32_t*)&f_sum;
+    memcpy(&tmp, &f_sum, sizeof(uint32_t));
     float_enc = cons(tmp,ENC_SYM(symrepr_nil()));
     float_enc = SET_PTR_TYPE(float_enc, PTR_TYPE_F32);
     return float_enc;
@@ -257,8 +261,11 @@ uint32_t bi_fun_sub(uint32_t args) {
 
     case PTR_TYPE_F32:
       enc = car(car(args));
-      f_res = -(*(float*)&enc);
-      tmp = *(uint32_t*)&f_res;
+      //f_res = -(*(float*)&enc);
+      memcpy(&f_res, &enc, sizeof(float));
+      f_res = - f_res; 
+      //tmp = *(uint32_t*)&f_res;
+      memcpy(&tmp, &f_res, sizeof(uint32_t));
       enc = cons(tmp,ENC_SYM(symrepr_nil()));
       enc = SET_PTR_TYPE(enc, PTR_TYPE_F32);
     return enc;
@@ -332,7 +339,8 @@ uint32_t bi_fun_sub(uint32_t args) {
       f_res -= r;
       curr = cdr(curr);
     }
-    tmp = *(uint32_t*)&f_res;
+    //tmp = *(uint32_t*)&f_res;
+    memcpy(&tmp, &f_res, sizeof(uint32_t));
     enc = cons(tmp,ENC_SYM(symrepr_nil()));
     enc = SET_PTR_TYPE(enc, PTR_TYPE_F32);
     return enc;
