@@ -29,15 +29,9 @@
 #include "print.h"
 
 int main(int argc, char **argv) {
-  char *str = malloc(1024);;
-  size_t len;
 
   mpc_ast_t* ast = NULL; 
   int res = 0; 
-
-  heap_state_t heap_state;
-
-  uint32_t SYMBOL_NIL;
 
   if (argc < 2) {
     printf("Incorrect arguments\n"); 
