@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -36,8 +37,6 @@ int main(int argc, char **argv) {
   int res = 0; 
 
   heap_state_t heap_state;
-
-  uint32_t SYMBOL_NIL;
 
   res = parser_init();
   if (res) 
@@ -80,15 +79,12 @@ int main(int argc, char **argv) {
   }
 
   printf("Lisp REPL started!\n"); 
-  
-  SYMBOL_NIL = symrepr_nil(); 
-  
-  
+ 
   while (1) {
     printf("# "); 
     size_t n =  getline(&str,&len,stdin);
 
-    if (strncmp(str, "info", 4) == 0) {
+    if (n >= 4 && strncmp(str, "info", 4) == 0) {
       printf("############################################################\n");
       printf("Used cons cells: %d \n", heap_size - heap_num_free());
       printf("ENV: "); simple_print(eval_get_env()); printf("\n"); 

@@ -16,10 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdio.h>
 
 #include "symrepr.h"
 #include "heap.h"
-
+#include "print.h"
 
 // Copies just the skeleton structure of an environment
 // The new "copy" will have pointers to the original key-val bindings.
@@ -87,9 +88,13 @@ int env_build_params_args(uint32_t params,
   uint32_t curr_param = params;
   uint32_t curr_arg = args;
 
-  if (length(params) != length(args)) // programmer error
+  if (length(params) != length(args)) { // programmer error
+    printf("Length mismatch params - args\n");
+    simple_print(params); printf("\n");
+    simple_print(args); printf("\n");
     return 0; 
-
+  }
+  
   uint32_t env = env0;
   while (TYPE_OF(curr_param) == PTR_TYPE_CONS) {
 
