@@ -100,13 +100,13 @@ int env_build_params_args(uint32_t params,
 
     uint32_t entry = cons(car(curr_param), car(curr_arg));
     if (TYPE_OF(entry) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(entry) == symrepr_nil())
+	DEC_SYM(entry) == symrepr_merror())
       return 0; 
 
     env = cons(entry,env);
     
     if (TYPE_OF(env) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(env) == symrepr_nil())
+	DEC_SYM(env) == symrepr_merror())
       return 0; 
     
     curr_param = cdr(curr_param);
