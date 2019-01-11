@@ -1,5 +1,5 @@
 
-CCFLAGS = -g -m32 -O2 -Wall -pedantic -std=c11
+CCFLAGS = -m32 -O2 -Wall -pedantic -std=c11
 
 ifdef HEAP_VIS
 	CCFLAGS += -DVISUALIZE_HEAP
