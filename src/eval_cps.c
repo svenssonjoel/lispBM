@@ -110,7 +110,7 @@ uint32_t apply_continuation(stack *K){
 uint32_t set_global_env(uint32_t val){
 
   uint32_t curr = eval_cps_global_env;
-  uint32_t tmp; 
+  uint32_t tmp;
   uint32_t key;
   pop_u32(K,&key);
 
@@ -135,7 +135,7 @@ uint32_t set_global_env(uint32_t val){
       DEC_SYM(tmp) == symrepr_merror()) {
     longjmp(rewind_buf, PERFORM_GC);
   }
-  
+
   eval_cps_global_env = tmp;
   return ENC_SYM(symrepr_true());
 }
@@ -322,8 +322,6 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
   uint32_t new_env = orig_env;
 
   if (TYPE_OF(binds) != PTR_TYPE_CONS) {
-    printf("process_let: binds not a list\n");
-    simple_print(binds); printf("\n"); 
     return ENC_SYM(symrepr_eerror());
   }
 
@@ -384,7 +382,6 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
   int ret = 0;
   uint32_t head;
 
-  //printf("eval_cps\n");
   switch (TYPE_OF(lisp)) {
 
   case VAL_TYPE_SYMBOL:
@@ -396,10 +393,6 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
       push_u32(K, tmp);
       return apply_continuation(K);
     }
-    printf("eval_cps: env lookup failed\n");
-    simple_print(env); printf(" - curr_env\n");
-    simple_print(eval_cps_global_env); printf(" - global_env\n");
-    simple_print(lisp); printf("\n");
     return ENC_SYM(symrepr_eerror());
 
   case PTR_TYPE_F32:
@@ -415,7 +408,6 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
   case PTR_TYPE_REF:
   case PTR_TYPE_STREAM:
-    printf("eval_cps: Streams not supported\n");
     return ENC_SYM(symrepr_eerror());
     break;
 
@@ -438,7 +430,6 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
 	if (TYPE_OF(key) != VAL_TYPE_SYMBOL ||
 	    DEC_SYM(key) == symrepr_nil()) {
-	  printf("eval_cps: key is nil\n"); 
 	  return ENC_SYM(symrepr_eerror());
 	}
 
@@ -455,8 +446,6 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 	uint32_t env_cpy;
 	if (!env_copy_shallow(env,&env_cpy))
 	  longjmp(rewind_buf, PERFORM_GC);
-
-	//printf("Making closure\n");
 
 	uint32_t env_end = cons(env_cpy,ENC_SYM(symrepr_nil()));
 	uint32_t body    = cons(car(cdr(cdr(lisp))), env_end);
@@ -519,7 +508,6 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
   default:
     // BUG No applicable case!
-    printf("FALLING THROUGH EVAL\n");
     return ENC_SYM(symrepr_eerror());
     break;
   }
@@ -528,10 +516,6 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
 uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
 
-  if (K->sp != 0) {
-    printf("WARNING: sp is %d\n", K->sp);
-  }
-  
   push_k(K,done);
   push_k(K_save,done);
 
@@ -548,21 +532,15 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
     heap_vis_gen_image();
 #endif
     if (res == PERFORM_GC) {
-      // printf("***  PERFORMING GC ***\n");
-      // restore stack
       clear_stack(K);
       copy_stack(K, K_save);
 
       heap_perform_gc_aux(eval_cps_global_env, curr_env, curr_exp, orig_prg, K->data, K->sp);
-
-      //printf("RESUMING EVAL: %x\n", curr_exp);
-      //printf("STACK SP: %d\n", K->sp);
     }
-    
+
     clear_stack(K_save);
     copy_stack(K_save, K);
-    printf("K_save->sp: %d\nK->sp: %d\n", K_save->sp, K->sp); 
-    
+
     r = eval_cps(curr_exp, curr_env);
 
   } else {
@@ -575,8 +553,6 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
       (DEC_SYM(r) == symrepr_eerror() ||
        DEC_SYM(r) == symrepr_merror() ||
        DEC_SYM(r) == symrepr_terror())) {
-    printf("Evaluation error: clearing stack\n");
-    simple_print(r); printf("\n"); 
     clear_stack(K);
     clear_stack(K_save);
   }
@@ -593,8 +569,6 @@ uint32_t eval_cps_program(uint32_t lisp) {
     uint32_t val = run_eval(lisp, car(curr),ENC_SYM(symrepr_nil()));
     res = cons(val,res);
     if (TYPE_OF(res) == VAL_TYPE_SYMBOL) {
-      //simple_print(val); printf("\n");
-      //simple_print(res); printf("\n");
       printf("ERROR: Memory full\n");
     }
     curr = cdr(curr);
