@@ -12,8 +12,10 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 1. heap consisting of cons-cells with mark and sweep garbage collection.
 2. A few built-in functions: cons, car, cdr, eval, list, gensym, +, -, >, < and =
 3. Some special forms: Lambdas, closures, lets (letrecs), define and quote.
-4. Compiles for, and runs on linux-x86 (builds 32bit library, runs on 32/64 bit).
-5. Compiles for, and runs on Zynq 7000.  
+4. 28-Bit signed/unsigned integers and (boxed) 32-Bit Float, Signed and Unsigned values.
+5. Arrays (in progress), string is an array. 
+6. Compiles for, and runs on linux-x86 (builds 32bit library, runs on 32/64 bit).
+7. Compiles for, and runs on Zynq 7000.  
 
 ## Short term TODOs
 1. Implement some "reference to X type", for uint32, int32, float perhaps...  
