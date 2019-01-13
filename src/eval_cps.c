@@ -66,7 +66,17 @@
 #define EVAL_CONTINUE 1
 #define PERFORM_GC    2
 
+#define DONE              1
+#define SET_GLOBAL_ENV    2
+#define FUNCTION_APP      3
+#define CLOSURE_APP       4
+#define EVAL_REST         5
+#define FUNCTION          6
+#define BIND_TO_KEY_REST  7
+#define IF                8
+
 static uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env);
+static uint32_t dispatch_continuation(uint32_t ix, uint32_t args);
 
 jmp_buf rewind_buf;
 
@@ -90,24 +100,24 @@ uint32_t eval_cps_bi(uint32_t lisp) {
   longjmp(rewind_buf,EVAL_CONTINUE);
 }
 
+// ////////////////////////////////////////////////////////
+// Continuation points and apply cont
+// ////////////////////////////////////////////////////////
 
-uint32_t done(uint32_t arg) {
+uint32_t apply_continuation(stack *K){
+  
+  uint32_t k;
+  uint32_t args;
+  pop_u32(K, &args);
+  pop_u32(K, &k);
+  return dispatch_continuation(k, args);
+}
+
+uint32_t cont_done(uint32_t arg) {
   return arg;
 }
 
-uint32_t apply_continuation(stack *K){
-
-  //printf("apply_continuation\n");
-
-  uint32_t (*k)(uint32_t);
-  uint32_t args;
-  pop_u32(K, &args);
-  pop_k(K,&k);
-
-  return  (*k)(args);
-}
-
-uint32_t set_global_env(uint32_t val){
+uint32_t cont_set_global_env(uint32_t val){
 
   uint32_t curr = eval_cps_global_env;
   uint32_t tmp;
@@ -141,7 +151,7 @@ uint32_t set_global_env(uint32_t val){
 }
 
 
-uint32_t function_app(uint32_t args) {
+uint32_t cont_function_app(uint32_t args) {
 
   uint32_t args_rev;
   uint32_t fun;
@@ -174,7 +184,7 @@ uint32_t function_app(uint32_t args) {
   return apply_continuation(K);
 }
 
-uint32_t closure_app(uint32_t args) {
+uint32_t cont_closure_app(uint32_t args) {
 
   uint32_t args_rev;
   uint32_t closure;
@@ -209,7 +219,7 @@ uint32_t closure_app(uint32_t args) {
   longjmp(rewind_buf, EVAL_CONTINUE);
 }
 
-uint32_t eval_rest(uint32_t head) {
+uint32_t cont_eval_rest(uint32_t head) {
 
   uint32_t rest;
   uint32_t acc;
@@ -240,7 +250,7 @@ uint32_t eval_rest(uint32_t head) {
   push_u32(K, env);
   push_u32(K, acc);
   push_u32(K, cdr(rest));
-  push_k(K, eval_rest);
+  push_u32(K, ENC_U28(EVAL_REST));
 
   curr_exp = car(rest);
   curr_env = env;
@@ -248,7 +258,7 @@ uint32_t eval_rest(uint32_t head) {
 }
 
 // Closure or built-in function
-uint32_t function_cont(uint32_t fun) {
+uint32_t cont_function(uint32_t fun) {
 
   uint32_t fun_args;
   uint32_t env;
@@ -260,9 +270,9 @@ uint32_t function_cont(uint32_t fun) {
   push_u32(K,fun);
   if ( TYPE_OF(fun) == PTR_TYPE_CONS &&
        DEC_SYM(car(fun)) == symrepr_closure()) {
-    push_k(K,closure_app);
+    push_u32(K, ENC_U28(CLOSURE_APP));
   } else {
-    push_k(K,function_app);
+    push_u32(K, ENC_U28(FUNCTION_APP));
   }
   // If args are a list with at least one element, process the elements
   if (TYPE_OF(fun_args) == PTR_TYPE_CONS &&
@@ -270,7 +280,7 @@ uint32_t function_cont(uint32_t fun) {
     push_u32(K,env);
     push_u32(K,ENC_SYM(symrepr_nil()));
     push_u32(K,cdr(fun_args));
-    push_k(K, eval_rest);
+    push_u32(K, ENC_U28(EVAL_REST));
 
     curr_exp = head;
     curr_env = env;
@@ -282,7 +292,7 @@ uint32_t function_cont(uint32_t fun) {
 }
 
 
-uint32_t bind_to_key_rest(uint32_t val) {
+uint32_t cont_bind_to_key_rest(uint32_t val) {
   uint32_t key;
   uint32_t env;
   uint32_t rest;
@@ -301,7 +311,7 @@ uint32_t bind_to_key_rest(uint32_t val) {
     push_u32(K,cdr(rest));
     push_u32(K,env);
     push_u32(K,keyn);
-    push_k(K, bind_to_key_rest);
+    push_u32(K, ENC_U28(BIND_TO_KEY_REST));
 
     curr_exp = valn_exp;
     curr_env = env;
@@ -316,6 +326,62 @@ uint32_t bind_to_key_rest(uint32_t val) {
   longjmp(rewind_buf, EVAL_CONTINUE);
 
 }
+
+uint32_t cont_if(uint32_t cond) {
+
+  uint32_t then_branch;
+  uint32_t else_branch;
+
+  pop_u32(K, &then_branch);
+  pop_u32(K, &else_branch);
+
+  if (TYPE_OF(cond) == VAL_TYPE_SYMBOL &&
+      DEC_SYM(cond) == symrepr_true()) {
+    curr_exp = then_branch;
+    //curr_env = curr_env;
+    longjmp(rewind_buf,EVAL_CONTINUE);
+  } else {
+    curr_exp = else_branch;
+    //curr_env = curr_env;
+    longjmp(rewind_buf,EVAL_CONTINUE);
+  }
+}
+
+uint32_t dispatch_continuation(uint32_t ix, uint32_t args) {
+
+  switch(DEC_U28(ix)) {
+  case DONE:
+    return cont_done(args);
+    break;
+  case SET_GLOBAL_ENV:
+    return cont_set_global_env(args);
+    break;
+  case FUNCTION_APP:
+    return cont_function_app(args);
+    break;
+  case CLOSURE_APP:
+    return cont_closure_app(args);
+    break;
+  case EVAL_REST:
+    return cont_eval_rest(args);
+    break;
+  case FUNCTION:
+    return cont_function(args);
+    break;
+  case BIND_TO_KEY_REST:
+    return cont_bind_to_key_rest(args);
+    break;
+  case IF:
+    return cont_if(args);
+    break;
+  }
+  printf("Critical error\n");
+  exit(0);
+}
+
+// ////////////////////////////////////////////////////////
+// 
+// ////////////////////////////////////////////////////////
 
 uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
   uint32_t curr = binds;
@@ -348,34 +414,16 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
   push_u32(K,cdr(binds));
   push_u32(K,new_env);
   push_u32(K,key0);
-  push_k(K, bind_to_key_rest);
+  push_u32(K, ENC_U28(BIND_TO_KEY_REST));
 
   curr_exp = val0_exp;
   curr_env = new_env;  // env annotated with temporaries
   longjmp(rewind_buf, EVAL_CONTINUE);
 }
 
-
-uint32_t if_cont(uint32_t cond) {
-
-  uint32_t then_branch;
-  uint32_t else_branch;
-
-  pop_u32(K, &then_branch);
-  pop_u32(K, &else_branch);
-
-  if (TYPE_OF(cond) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(cond) == symrepr_true()) {
-    curr_exp = then_branch;
-    //curr_env = curr_env;
-    longjmp(rewind_buf,EVAL_CONTINUE);
-  } else {
-    curr_exp = else_branch;
-    //curr_env = curr_env;
-    longjmp(rewind_buf,EVAL_CONTINUE);
-  }
-}
-
+// ////////////////////////////////////////////////////////
+// EVALUATION
+// ////////////////////////////////////////////////////////
 uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
   uint32_t tmp = ENC_SYM(symrepr_eerror());
@@ -434,7 +482,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 	}
 
 	push_u32(K, key);
-	push_k(K,set_global_env);
+	push_u32(K, ENC_U28(SET_GLOBAL_ENV));
 
 	curr_exp = val_exp;
 	curr_env = env;
@@ -477,7 +525,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
 	push_u32(K,car(cdr(cdr(cdr(lisp))))); // else branch
 	push_u32(K,car(cdr(cdr(lisp)))); // Then branch
-	push_k(K,if_cont);
+	push_u32(K, ENC_U28(IF));
 
 	curr_exp = car(cdr(lisp)); // condition
 	curr_env = curr_env;
@@ -500,7 +548,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
     // Possibly an application form:
     push_u32(K, curr_env);  // The environment each element should be evaluated in 
     push_u32(K, cdr(lisp)); // list of arguments that needs to be evaluated.
-    push_k(K, function_cont);
+    push_u32(K, ENC_U28(FUNCTION));
 
     curr_exp = head;
     curr_env = curr_env;
@@ -516,8 +564,8 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
 uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
 
-  push_k(K,done);
-  push_k(K_save,done);
+  push_u32(K, ENC_U28(DONE));
+  push_u32(K_save, ENC_U28(DONE));
 
   curr_exp = lisp;
   curr_env = env;
