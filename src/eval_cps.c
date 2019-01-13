@@ -157,11 +157,6 @@ uint32_t cont_function_app(uint32_t args) {
   uint32_t fun;
   pop_u32(K, &fun);
 
-  //printf("FUNCTION: ");
-  //simple_print(args);
-  //printf("\n");
-
-
   if (TYPE_OF(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
     args_rev = reverse(args);
 
@@ -189,10 +184,6 @@ uint32_t cont_closure_app(uint32_t args) {
   uint32_t args_rev;
   uint32_t closure;
   pop_u32(K, &closure);
-
-  //printf("CLOSURE: ");
-  //simple_print(args);
-  //printf("\n");
 
   if (TYPE_OF(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
     args_rev = reverse(args);
@@ -507,14 +498,6 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 	  longjmp(rewind_buf, PERFORM_GC);
 	}
 	uint32_t closure = clos;
-	/* uint32_t closure = cons(ENC_SYM(symrepr_closure()), */
-	/* 			cons(car(cdr(lisp)), */
-	/* 			     cons(car(cdr(cdr(lisp))), */
-	/* 				  cons(env_cpy, ENC_SYM(symrepr_nil()))))); */
-	//if (TYPE_OF(closure) == VAL_TYPE_SYMBOL &&
-	//    DEC_SYM(closure) == symrepr_merror()) {
-	//  longjmp(rewind_buf, PERFORM_GC);
-	//}
 
 	push_u32(K,closure);
 	return apply_continuation(K);
