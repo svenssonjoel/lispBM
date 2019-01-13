@@ -39,17 +39,17 @@
   moving on to something else...
 */
 
-//static uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env);
-
 typedef struct {
+  uint32_t done; // Nothing more to do
   stack *K;      // Stack that describes continuation.
   uint32_t exp;  // Currently being evaluated.
   uint32_t env;  // Current environment.
-  uint32_t rest; // list of expressions to evaluate (Program).
+  uint32_t rest; // List of expressions to evaluate (Program).
+  uint32_t res;  // Accumulating result
 } eval_state; 
 
 uint32_t eval_cps_es_global_env; // will think of how to remove or integrate this into state.
-eval_state *context; 
+eval_state *current_context; 
 
 uint32_t eval_cps_es_get_env(void) {
   return eval_cps_es_global_env;
@@ -58,8 +58,8 @@ uint32_t eval_cps_es_get_env(void) {
 int eval_cps_es_init() {
   int res = 0; 
   
-  context = (eval_state *)malloc(sizeof(eval_state));
-  context->K = init_cont_stack(1000); 
+  current_context = (eval_state *)malloc(sizeof(eval_state));
+  current_context->K = init_cont_stack(1000); 
   
   //res = builtin_add_function("eval",eval_cps_bi);
 
@@ -75,6 +75,54 @@ int eval_cps_es_init() {
 
   return res;
 }
+// ////////////////////////////////////////////////////////
+// Experimentation area
+// ////////////////////////////////////////////////////////
+uint32_t done(uint32_t args) {
+  
+  return 0; //placeholder
+}
+
+
+// ////////////////////////////////////////////////////////
+// EVALUATION
+// ////////////////////////////////////////////////////////
+uint32_t eval_cps_es(void) { 
+
+  int ret = 0;
+  uint32_t tmp = ENC_SYM(symrepr_eerror());
+  
+  while (1) {
+    uint32_t exp = current_context->exp;
+    uint32_t env = current_context->env;
+    
+    switch(TYPE_OF(exp)){
+
+    case VAL_TYPE_SYMBOL:
+      ret = env_lookup(exp,env, &tmp);
+      if (!ret) ret = env_lookup(exp, eval_cps_es_global_env, &tmp);
+
+      // TODO: come up with what to do here.
+
+    case PTR_TYPE_F32:
+    case PTR_TYPE_U32:
+    case VAL_TYPE_I28:
+    case PTR_TYPE_I32:
+    case VAL_TYPE_CHAR:
+    case VAL_TYPE_U28:
+    case PTR_TYPE_ARRAY:
+
+      // TODO: come up with what to do here.
+     
+      break;
+    default:
+      // BUG: No applicable case!
+      break;
+    }
+  }
+  return 0; // placeholder
+}
+
 
 #if(0)
 uint32_t eval_cps_bi(uint32_t lisp) {
