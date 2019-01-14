@@ -92,20 +92,19 @@ int eval_init() {
 uint32_t do_eval_program(uint32_t lisp) {
    
   // Program is a list of expressions that should be evaluated individually
-  uint32_t res; 
+  // The result of evaluating the last expression is the result of the program.
+  
+  uint32_t res = ENC_SYM(symrepr_nil()); 
   uint32_t local_env = ENC_SYM(symrepr_nil());
+  uint32_t curr = lisp;
+  
+  while ( TYPE_OF(curr) == PTR_TYPE_CONS) {
 
-  if (TYPE_OF(lisp) == PTR_TYPE_CONS) {
+    res = eval_in_env(car(curr), local_env);
     
-    uint32_t car_val = eval_in_env(car(lisp),local_env);
-    uint32_t cdr_val = eval_program(cdr(lisp)); 
-    
-    res = cons(car_val, cdr_val);  
-  } else {
-    res =  eval_in_env(lisp,local_env);
+    curr = cdr(curr);
   }
-
-  return res;   
+  return res;
 }
 
 uint32_t eval_program(uint32_t lisp) {

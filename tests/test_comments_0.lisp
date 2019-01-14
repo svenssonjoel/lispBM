@@ -1,4 +1,4 @@
 ; Test comment
-(+ 1 2)
+(define a (+ 1 2))
 ; Another test comment
-3
+(= a 3)

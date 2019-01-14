@@ -593,19 +593,15 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
 
 uint32_t eval_cps_program(uint32_t lisp) {
 
-  uint32_t curr = lisp;
   uint32_t res = ENC_SYM(symrepr_nil());
+  uint32_t local_env = ENC_SYM(symrepr_nil());
+  uint32_t curr = lisp;
 
   while (TYPE_OF(curr) == PTR_TYPE_CONS) {
-    uint32_t val = run_eval(lisp, car(curr),ENC_SYM(symrepr_nil()));
-    res = cons(val,res);
-    if (TYPE_OF(res) == VAL_TYPE_SYMBOL) {
-      printf("ERROR: Memory full\n");
-    }
+    res =  run_eval(lisp, car(curr),local_env);
     curr = cdr(curr);
   }
-
-  return reverse(res);
+  return res;
 }
 
 

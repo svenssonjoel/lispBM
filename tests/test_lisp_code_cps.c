@@ -116,13 +116,13 @@ int main(int argc, char **argv) {
     res = 0;
   }
   
-  uint32_t rest = t;
-  while (length(rest) > 2) {
-    rest = cdr(rest);
-  }
+  //uint32_t rest = t;
+  //while (length(rest) > 2) {
+  //  rest = cdr(rest);
+  //}
   
   
-  if (res && structural_equality(car(rest),car(cdr(rest)))) {
+  if (res && TYPE_OF(t) == VAL_TYPE_SYMBOL && DEC_SYM(t) == symrepr_true()){ // structural_equality(car(rest),car(cdr(rest)))) {
     printf("Test: OK!\n"); 
     res = 1;
   } else {

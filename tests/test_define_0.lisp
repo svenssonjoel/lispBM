@@ -5,6 +5,5 @@
 
 (define f (lambda () (+ a b)))
 
-(f)
+(= (f) 3)
 
-3
