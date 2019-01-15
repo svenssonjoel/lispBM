@@ -85,7 +85,7 @@ uint32_t read_ast(mpc_ast_t *t){
 	t->contents[1] == 'x' ) {
       uint32_t v = (uint32_t)xtou(t->contents);
       if (strlen(t->contents) == 10) { // Boxed 32 bit uint
-	uint32_t ptr_cons = cons(v,ENC_SYM(nil));
+	uint32_t ptr_cons = cons(v,ENC_SYM(SPECIAL_SYM_U32));
 	uint32_t ptr_uint_box = SET_PTR_TYPE(ptr_cons, PTR_TYPE_U32);
 	return ptr_uint_box;
       } else {
@@ -95,13 +95,13 @@ uint32_t read_ast(mpc_ast_t *t){
 
     if (t->contents[strlen(t->contents)-1] == 'U') {
       uint32_t v = (uint32_t)strtoul(t->contents,NULL,10);
-      uint32_t ptr_cons = cons(v, ENC_SYM(nil));
+      uint32_t ptr_cons = cons(v, ENC_SYM(SPECIAL_SYM_U32));
       return SET_PTR_TYPE(ptr_cons, PTR_TYPE_U32);
     }
 
     if (t->contents[strlen(t->contents)-1] == 'I') {
       uint32_t v = (int32_t)atoi(t->contents);
-      uint32_t ptr_cons = cons(v, ENC_SYM(nil));
+      uint32_t ptr_cons = cons(v, ENC_SYM(SPECIAL_SYM_I32));
       return SET_PTR_TYPE(ptr_cons, PTR_TYPE_I32);
     }
 
@@ -118,7 +118,7 @@ uint32_t read_ast(mpc_ast_t *t){
     float v = (float)atof(t->contents);
     uint32_t uv;
     memcpy(&uv, &v, sizeof(uint32_t)); // = *(uint32_t*)(&v);
-    uint32_t ptr_cons = cons(uv,ENC_SYM(nil)); // Boxed value.
+    uint32_t ptr_cons = cons(uv,ENC_SYM(SPECIAL_SYM_F)); // Boxed value.
     uint32_t ptr_float_box = SET_PTR_TYPE(ptr_cons, PTR_TYPE_F32);
     return ptr_float_box;
   }

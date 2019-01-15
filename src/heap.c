@@ -213,7 +213,7 @@ int gc_mark_phase(uint32_t env) {
   }
 
   if (get_gc_mark(ref_cell(env))) {
-    return 1; // Circular object on heap, or visited (aux)..
+    return 1; // Circular object on heap, or visited..
   }
 
   // There is at least a pointer to one cell here. Mark it and recurse over  car and cdr 
@@ -221,10 +221,31 @@ int gc_mark_phase(uint32_t env) {
 
   set_gc_mark(ref_cell(env));
 
-  int res = 1;
-  if (IS_PTR(car(env)))
+
+
+  uint32_t car_env = car(env);
+  uint32_t cdr_env = cdr(env);
+  uint32_t t_car = TYPE_OF(car_env); 
+  uint32_t t_cdr = TYPE_OF(cdr_env);
+  
+  if (t_car == PTR_TYPE_I32 ||
+      t_car == PTR_TYPE_U32 ||
+      t_car == PTR_TYPE_F32) {
+    set_gc_mark(ref_cell(car_env));
+    return 1;
+  }
+
+  if (t_cdr == PTR_TYPE_I32 ||
+      t_cdr == PTR_TYPE_U32 ||
+      t_cdr == PTR_TYPE_F32) {
+    set_gc_mark(ref_cell(cdr_env));
+    return 1;
+  }
+
+  int res = 1;  
+  if (IS_PTR(car(env)) && PTR_TYPE(car(env)) == PTR_TYPE_CONS)
     res &= gc_mark_phase(car(env));
-  if (IS_PTR(cdr(env)))
+  if (IS_PTR(cdr(env)) && PTR_TYPE(cdr(env)) == PTR_TYPE_CONS)
     res &= gc_mark_phase(cdr(env));
 
   return res;
@@ -297,6 +318,9 @@ int gc_sweep_phase(void) {
 
       // Check if this cell is a pointer to an array
       // and free it.
+
+      // TODO: Maybe also has to check for boxed values
+      //       
       if (TYPE_OF(heap[i].cdr) == VAL_TYPE_SYMBOL &&
 	  DEC_SYM(heap[i].cdr) == SPECIAL_SYM_ARRAY) {
 	array_t *arr = (array_t*)heap[i].car;

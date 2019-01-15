@@ -159,7 +159,7 @@ uint32_t cont_function_app(uint32_t args) {
 
   if (TYPE_OF(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
     args_rev = reverse(args);
-
+    
     if (TYPE_OF(args_rev) == VAL_TYPE_SYMBOL &&
 	DEC_SYM(args_rev) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
@@ -171,7 +171,6 @@ uint32_t cont_function_app(uint32_t args) {
   uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(fun));
 
   if (f == NULL) {
-    printf("Built in function does not exist");
     return ENC_SYM(symrepr_eerror());
   }
   uint32_t f_res = f(args_rev);
@@ -482,8 +481,9 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
       // Special form: LAMBDA
       if (DEC_SYM(head) == symrepr_lambda()) {
 	uint32_t env_cpy;
-	if (!env_copy_shallow(env,&env_cpy))
-	  longjmp(rewind_buf, PERFORM_GC);
+	if (!env_copy_shallow(env,&env_cpy)) {
+	    longjmp(rewind_buf, PERFORM_GC);
+	  }
 
 	uint32_t env_end = cons(env_cpy,ENC_SYM(symrepr_nil()));
 	uint32_t body    = cons(car(cdr(cdr(lisp))), env_end);
