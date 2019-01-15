@@ -201,7 +201,6 @@ uint32_t cont_closure_app(uint32_t args) {
 
   uint32_t local_env;
   if (!env_build_params_args(params, args_rev, clo_env, &local_env)) {
-    printf("WELL THIS IS AWKWARD\n");
     longjmp(rewind_buf, PERFORM_GC);
   }
 
