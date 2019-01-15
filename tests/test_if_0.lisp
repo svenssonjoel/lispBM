@@ -1,3 +1,2 @@
-(if (> 0 1) 'apa 'bepa)
+(= (if (> 0 1) 'apa 'bepa) 'bepa)
 
-'bepa

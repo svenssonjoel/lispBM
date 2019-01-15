@@ -1,4 +1,3 @@
 (let ((a "hello"))
-  (array-read a 3u))
+  (= (array-read a 3u) \#l))
 
-\#l

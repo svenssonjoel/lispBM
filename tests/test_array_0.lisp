@@ -1,3 +1,2 @@
-(array-read "hello" 3u)
+(= (array-read "hello" 3u) \#l)
 
-\#l
