@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  int heap_size = 32 * 32;// 8 *1024 * 1024;
+  int heap_size = 8 * 1024 * 1024;
   res = heap_init(heap_size);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
