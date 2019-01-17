@@ -26,7 +26,6 @@
 #include "read.h"
 #include "symrepr.h"
 #include "builtin.h"
-//#include "eval.h"
 #include "eval_cps.h"
 #include "print.h"
 
@@ -113,13 +112,12 @@ int main(int argc, char **argv) {
       t = eval_cps_program(t);
       
       if (DEC_SYM(t) == symrepr_eerror()) {
-	printf("error\n"); 
+	printf("Error\n"); 
 	//printf("%s\n", eval_get_error());
       } else {
 	printf("> "); simple_print(t); printf("\n");
       }
-      
-      
+         
       mpc_ast_delete(ast);
     }
   }

@@ -230,14 +230,16 @@ int gc_mark_phase(uint32_t env) {
   
   if (t_car == PTR_TYPE_I32 ||
       t_car == PTR_TYPE_U32 ||
-      t_car == PTR_TYPE_F32) {
+      t_car == PTR_TYPE_F32 ||
+      t_car == PTR_TYPE_ARRAY) {
     set_gc_mark(ref_cell(car_env));
     return 1;
   }
 
   if (t_cdr == PTR_TYPE_I32 ||
       t_cdr == PTR_TYPE_U32 ||
-      t_cdr == PTR_TYPE_F32) {
+      t_cdr == PTR_TYPE_F32 ||
+      t_cdr == PTR_TYPE_ARRAY) {
     set_gc_mark(ref_cell(cdr_env));
     return 1;
   }
