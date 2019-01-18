@@ -66,7 +66,6 @@ uint32_t read_ast(mpc_ast_t *t){
 
   if (strstr(t->tag, "character")) {
     int len = strlen(t->contents);
-    printf( "Reading character %c\n", t->contents[2]);
     if (len == 3) {
       uint32_t v = (uint32_t)(t->contents[2]);
       return ENC_CHAR(v);
