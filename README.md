@@ -18,10 +18,10 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 7. Compiles for, and runs on Zynq 7000.  
 
 ## Short term TODOs
-1. Implement some "reference to X type", for uint32, int32, float perhaps...  
-2. Write a small library of useful hofs. 
-3. Clean up a lot in eval and eval_cps.
-4. Test the Zynq build more. 
+1. Write some tests that stresses the Garbage collector.
+2. Try putting the K-stack on the heap
+3. Implement some "reference to X type", for uint32, int32, float perhaps...  
+4. Write a small library of useful hofs. 
 5. Document code.
 6. Implement some looping structure for speed or just ease of use. 
 7. Be much more stringent on checking of error conditions etc.
