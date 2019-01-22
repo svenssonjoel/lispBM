@@ -61,6 +61,8 @@
            Should not be GC related as it occurs on fresh heap.
 	   It is also an error I introduced at some point while messing with
 	   "on-demand" GC.
+
+   - look at lispkit
 */
 
 #define EVAL_CONTINUE 1
