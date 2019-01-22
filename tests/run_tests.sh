@@ -65,6 +65,33 @@ for lisp in *.lisp; do
 done    
 
 for lisp in *.lisp; do
+
+    if [ "$lisp" = "test_fib_0.lisp" ]; then
+	continue
+    fi
+
+    if [ "$lisp" = "test_fib_1.lisp" ]; then
+	continue
+    fi
+
+    ./test_lisp_code_mini_heap $lisp
+    
+    result=$?
+    
+    echo "------------------------------------------------------------"
+    if [ $result -eq 1 ]
+    then
+	success_count=$((success_count+1))
+	echo $lisp SUCCESS
+    else
+	fail_count=$((fail_count+1))
+	echo $lisp FAILED
+    fi
+    echo "------------------------------------------------------------"
+done    
+
+
+for lisp in *.lisp; do
     ./test_lisp_code_cps_mini_heap $lisp
 
     result=$?
