@@ -78,7 +78,7 @@ uint32_t get_max_num_type_or_error(uint32_t args) {
   uint32_t curr = args;
 
   while ( TYPE_OF(curr) == PTR_TYPE_CONS ) {
-    if (! is_number(car(curr)))
+    if (!is_number(car(curr)))
       return ENC_SYM(symrepr_terror());
     
     if (TYPE_OF(car(curr)) > max_type) {
@@ -180,8 +180,10 @@ uint32_t bi_fun_sum(uint32_t args) {
   uint32_t float_enc;
 
   uint32_t max_type = get_max_num_type_or_error(args);
-  if (TYPE_OF(max_type) == VAL_TYPE_SYMBOL)
+  if (TYPE_OF(max_type) == VAL_TYPE_SYMBOL &&
+      DEC_SYM(max_type) == symrepr_terror()) {
     return max_type;
+  }
 
   switch (max_type) {
 
@@ -253,7 +255,9 @@ uint32_t bi_fun_sub(uint32_t args) {
   uint32_t u_res;
   int32_t i_res;
   uint32_t max_type = get_max_num_type_or_error(args);
-  if (TYPE_OF(max_type) == VAL_TYPE_SYMBOL)
+
+  if (TYPE_OF(max_type) == VAL_TYPE_SYMBOL &&
+      DEC_SYM(max_type) == symrepr_terror())
     return max_type;
 
   
