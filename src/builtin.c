@@ -611,7 +611,7 @@ uint32_t bi_fun_array_read(uint32_t args) {
 
   // Get array index
   int32_t ix;
-  uint32_t res = ENC_SYM(symrepr_eerror);
+  uint32_t res = ENC_SYM(symrepr_eerror());
   switch (TYPE_OF(index)) {
   case VAL_TYPE_U28:
     ix = (int32_t)DEC_U28(index);
@@ -658,7 +658,7 @@ uint32_t bi_fun_array_read(uint32_t args) {
       break;
     default:
       printf("unknown type!\n");
-      return ENC_SYM(symrepr_eerror);
+      return ENC_SYM(symrepr_eerror());
     }
   }
   return res;
@@ -718,7 +718,7 @@ uint32_t bi_fun_array_write(uint32_t args) {
       break;
     default:
       printf("unknown type!\n");
-      return ENC_SYM(symrepr_eerror);
+      return ENC_SYM(symrepr_eerror());
     }
   }
   return ENC_SYM(symrepr_true());
