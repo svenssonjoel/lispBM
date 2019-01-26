@@ -32,6 +32,25 @@ typedef struct s_builtin_function{
 
 builtin_function_t* function_list = NULL;
 
+// Built in predicates (numberp, symbolp and such)
+int is_number(uint32_t arg) {
+  uint32_t t = TYPE_OF(arg);
+  return (t == VAL_TYPE_I28 ||
+	  t == VAL_TYPE_U28 ||
+	  t == PTR_TYPE_I32 ||
+	  t == PTR_TYPE_U32 ||
+	  t == PTR_TYPE_F32);
+}
+
+uint32_t bi_fun_numberp(uint32_t args) {
+  if (is_number(car(args)) && length(args) == 1) {
+    return ENC_SYM(symrepr_true());
+  }
+  return ENC_SYM(symrepr_nil());
+}
+
+
+
 // Built in functions
 
 uint32_t bi_fun_car(uint32_t args) {
@@ -751,6 +770,7 @@ int builtin_init(void) {
   res &= builtin_add_function("reverse", bi_fun_reverse);
   res &= builtin_add_function("array-read", bi_fun_array_read);
   res &= builtin_add_function("array-write", bi_fun_array_write);
+  res &= builtin_add_function("numberp", bi_fun_numberp);
   return res;
 }
 
