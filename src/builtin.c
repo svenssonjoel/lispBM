@@ -32,6 +32,7 @@ typedef struct s_builtin_function{
 
 builtin_function_t* function_list = NULL;
 
+////////////////////////////////////////////////////////////
 // Built in predicates (numberp, symbolp and such)
 int is_number(uint32_t arg) {
   uint32_t t = TYPE_OF(arg);
@@ -50,9 +51,8 @@ uint32_t bi_fun_numberp(uint32_t args) {
 }
 
 
-
+////////////////////////////////////////////////////////////
 // Built in functions
-
 uint32_t bi_fun_car(uint32_t args) {
   return car(car(args));
 }
@@ -72,21 +72,27 @@ uint32_t bi_fun_reverse(uint32_t args) {
   return reverse(xs);
 }
 
-uint32_t get_max_num_type_or_error(uint32_t args) {
+/*
+ * get_max_num_type
+ * Returns: success or failure (1 or 0).
+ * Result is stored in argument 2.
+ */
+int get_max_num_type(uint32_t args, uint32_t *type) {
 
   uint32_t max_type = 0;
   uint32_t curr = args;
 
   while ( TYPE_OF(curr) == PTR_TYPE_CONS ) {
     if (!is_number(car(curr)))
-      return ENC_SYM(symrepr_terror());
-    
+      return 0;
+
     if (TYPE_OF(car(curr)) > max_type) {
       max_type = TYPE_OF(car(curr));
     }
     curr = cdr(curr);
   }
-  return max_type;
+  *type = max_type;
+  return 1;
 }
 
 int get_as_int(uint32_t v, int32_t *r) {
@@ -178,12 +184,10 @@ uint32_t bi_fun_sum(uint32_t args) {
 
   uint32_t tmp;
   uint32_t float_enc;
+  uint32_t max_type;
 
-  uint32_t max_type = get_max_num_type_or_error(args);
-  if (TYPE_OF(max_type) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(max_type) == symrepr_terror()) {
-    return max_type;
-  }
+  if (! (get_max_num_type(args, &max_type)))
+    return ENC_SYM(symrepr_terror());
 
   switch (max_type) {
 
@@ -237,7 +241,6 @@ uint32_t bi_fun_sum(uint32_t args) {
       f_sum += r;
       curr = cdr(curr);
     }
-    // tmp = *(uint32_t*)&f_sum;
     memcpy(&tmp, &f_sum, sizeof(uint32_t));
     float_enc = cons(tmp,ENC_SYM(SPECIAL_SYM_F));
     float_enc = SET_PTR_TYPE(float_enc, PTR_TYPE_F32);
@@ -254,13 +257,11 @@ uint32_t bi_fun_sub(uint32_t args) {
   float f_res;
   uint32_t u_res;
   int32_t i_res;
-  uint32_t max_type = get_max_num_type_or_error(args);
+  uint32_t max_type;
 
-  if (TYPE_OF(max_type) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(max_type) == symrepr_terror())
-    return max_type;
+  if (!(get_max_num_type(args, &max_type)))
+    return ENC_SYM(symrepr_terror());
 
-  
   uint32_t n = length(args);
 
   if (n < 1) return ENC_SYM(symrepr_eerror());
@@ -291,10 +292,8 @@ uint32_t bi_fun_sub(uint32_t args) {
 
     case PTR_TYPE_F32:
       enc = car(car(args));
-      //f_res = -(*(float*)&enc);
       memcpy(&f_res, &enc, sizeof(float));
-      f_res = - f_res; 
-      //tmp = *(uint32_t*)&f_res;
+      f_res = - f_res;
       memcpy(&tmp, &f_res, sizeof(uint32_t));
       enc = cons(tmp,ENC_SYM(SPECIAL_SYM_F));
       enc = SET_PTR_TYPE(enc, PTR_TYPE_F32);
