@@ -231,6 +231,8 @@ uint32_t bi_fun_sum(uint32_t args) {
       curr= cdr(curr);
     }
     tmp = cons(u_sum,ENC_SYM(SPECIAL_SYM_U32));
+    if (TYPE_OF(tmp) == VAL_TYPE_SYMBOL) // an error
+      return tmp;
     return SET_PTR_TYPE(tmp, PTR_TYPE_U32);
 
   case PTR_TYPE_F32:
@@ -243,6 +245,8 @@ uint32_t bi_fun_sum(uint32_t args) {
     }
     memcpy(&tmp, &f_sum, sizeof(uint32_t));
     float_enc = cons(tmp,ENC_SYM(SPECIAL_SYM_F));
+    if (TYPE_OF(float_enc) == VAL_TYPE_SYMBOL) // an error
+      return float_enc;
     float_enc = SET_PTR_TYPE(float_enc, PTR_TYPE_F32);
     return float_enc;
   }
@@ -281,12 +285,16 @@ uint32_t bi_fun_sub(uint32_t args) {
     case PTR_TYPE_I32:
       i_res = -(int32_t)car(car(args));
       enc = cons(i_res, ENC_SYM(SPECIAL_SYM_I32));
+      if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+	return enc;
       enc = SET_PTR_TYPE(enc,PTR_TYPE_I32);
       return enc;
 
     case PTR_TYPE_U32:
       u_res = -car(car(args));
       enc = cons(u_res, ENC_SYM(SPECIAL_SYM_U32));
+      if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+	return enc;
       enc = SET_PTR_TYPE(enc,PTR_TYPE_U32);
       return enc;
 
@@ -296,6 +304,8 @@ uint32_t bi_fun_sub(uint32_t args) {
       f_res = - f_res;
       memcpy(&tmp, &f_res, sizeof(uint32_t));
       enc = cons(tmp,ENC_SYM(SPECIAL_SYM_F));
+      if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+	return enc;
       enc = SET_PTR_TYPE(enc, PTR_TYPE_F32);
     return enc;
       break;
@@ -341,6 +351,8 @@ uint32_t bi_fun_sub(uint32_t args) {
       curr = cdr(curr);
     }
     enc = cons(i_res, ENC_SYM(SPECIAL_SYM_I32));
+    if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+      return enc;
     enc = SET_PTR_TYPE(enc,PTR_TYPE_I32);
     return enc;
 
@@ -355,6 +367,8 @@ uint32_t bi_fun_sub(uint32_t args) {
       curr = cdr(curr);
     }
     enc = cons(u_res, ENC_SYM(SPECIAL_SYM_U32));
+    if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+      return enc;
     enc = SET_PTR_TYPE(enc,PTR_TYPE_U32);
     return enc;
 
@@ -371,6 +385,8 @@ uint32_t bi_fun_sub(uint32_t args) {
     //tmp = *(uint32_t*)&f_res;
     memcpy(&tmp, &f_res, sizeof(uint32_t));
     enc = cons(tmp,ENC_SYM(SPECIAL_SYM_F));
+    if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+      return enc;
     enc = SET_PTR_TYPE(enc, PTR_TYPE_F32);
     return enc;
   }
@@ -593,12 +609,16 @@ uint32_t bi_fun_list(uint32_t args) {
   uint32_t curr = args;
   while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
     t = cons(car(curr),t);
+    if (TYPE_OF(t) == VAL_TYPE_SYMBOL) // an error
+      return t;
 
     curr = cdr(curr);
   }
   curr = t;
   while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
     list = cons(car(curr),list);
+    if (TYPE_OF(list) == VAL_TYPE_SYMBOL) // an error
+      return list; 
 
     curr = cdr(curr);
   }
@@ -649,14 +669,20 @@ uint32_t bi_fun_array_read(uint32_t args) {
       break;
     case PTR_TYPE_U32:
       res = cons(array->data.u32[ix], ENC_SYM(SPECIAL_SYM_U32));
+      if (TYPE_OF(res) == VAL_TYPE_SYMBOL) // an error
+	return res;
       res = SET_PTR_TYPE(res, PTR_TYPE_U32);
       break;
     case PTR_TYPE_I32:
       res = cons(array->data.i32[ix], ENC_SYM(SPECIAL_SYM_I32));
+      if (TYPE_OF(res) == VAL_TYPE_SYMBOL) // an error
+	return res;
       res = SET_PTR_TYPE(res, PTR_TYPE_I32);
       break;
     case PTR_TYPE_F32:
       res = cons(array->data.f[ix], ENC_SYM(SPECIAL_SYM_F));
+      if (TYPE_OF(res) == VAL_TYPE_SYMBOL) // an error
+	return res;
       res = SET_PTR_TYPE(res, PTR_TYPE_F32);
       break;
     default:
@@ -803,6 +829,8 @@ uint32_t built_in_gen_env(void) {
   while (curr) {
     uint32_t sym = ENC_SYM(curr->sym);
     env = cons(cons(sym,sym),env);
+    if (TYPE_OF(env) == VAL_TYPE_SYMBOL) // an error
+      return env;
     curr = curr->next;
   }
 
