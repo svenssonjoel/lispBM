@@ -18,6 +18,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 7. Compiles for, and runs on Zynq 7000.  
 
 ## Short term TODOs
+0. Port to STM32f4 - 128K ram platform (will need big changes). 
 1. Write some tests that stresses the Garbage collector.
 2. Try putting the K-stack on the heap
 3. Implement some "reference to X type", for uint32, int32, float perhaps...  
