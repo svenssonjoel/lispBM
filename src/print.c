@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "print.h"
 #include "heap.h"
@@ -106,13 +107,13 @@ int simple_print(uint32_t t){
 
   if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_U32) {
     uint32_t v = car(t);
-    printf("{%u}", v); 
+    printf("{%"PRIu32"}", v); 
     return 1; 
   }
 
   if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_I32) {
     int32_t v = (int32_t)car(t);
-    printf("{%d}", v); 
+    printf("{%"PRId32"}", v); 
     return 1; 
   }
 
@@ -133,16 +134,16 @@ int simple_print(uint32_t t){
     case VAL_TYPE_SYMBOL:
       str_ptr = symrepr_lookup_name(DEC_SYM(t));
       if (str_ptr == NULL) {
-	printf("Error: Symbol not in table %u\n", DEC_SYM(t));
+	printf("Error: Symbol not in table %"PRIu32"\n", DEC_SYM(t));
       } else {  
 	printf("%s", str_ptr);
       }
       break;
     case VAL_TYPE_I28:
-      printf("%d", DEC_I28(t)); 
+      printf("%"PRId32"", DEC_I28(t)); 
       break;
     case VAL_TYPE_U28:
-      printf("%u", DEC_U28(t));
+      printf("%"PRIu32"", DEC_U28(t));
       break;
     case VAL_TYPE_CHAR: // dont yet have syntax for Char and String
       printf("\\#%c", DEC_CHAR(t));

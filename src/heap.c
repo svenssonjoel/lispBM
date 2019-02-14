@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #include "heap.h"
 #include "symrepr.h"
@@ -152,7 +153,7 @@ uint32_t heap_allocate_cell(uint32_t ptr_type) {
       // all is as it should be (but no free cells)
       return ENC_SYM(symrepr_merror()); 
     } else {
-      printf("BROKEN HEAP %x\n", TYPE_OF(heap_state.freelist));
+      printf("BROKEN HEAP %"PRIx32"\n", TYPE_OF(heap_state.freelist));
       // something is most likely very wrong
       //printf("heap_allocate_cell Error\n");
       return ENC_SYM(symrepr_merror());
@@ -266,7 +267,7 @@ int gc_mark_freelist() {
 	(DEC_SYM(fl) == SYMBOL_NIL)){
       return 1; // Nothing to mark here
     } else {
-      printf(" ERROR CASE! %x \n", fl);
+      printf(" ERROR CASE! %"PRIx32" \n", fl);
       return 0;
     }
   }
