@@ -44,8 +44,8 @@
        or gensymed symbol.
  */
 
-#define HASHTAB_MALLOC_SIZE 65535 // 65535
-#define HASHTAB_SIZE 49999 // 65521
+#define HASHTAB_MALLOC_SIZE 65535 /* 65535 */
+#define HASHTAB_SIZE 49999 /* 65521 */
 #define BUCKET_DEPTH 4096
 #define SMALL_PRIMES 11
 
@@ -57,9 +57,9 @@
 #define DEF_REPR_LAMBDA    5
 #define DEF_REPR_CLOSURE   6
 #define DEF_REPR_LET       7
-#define DEF_REPR_RERROR    8  // READ ERROR
-#define DEF_REPR_TERROR    9  // TYPE ERROR
-#define DEF_REPR_EERROR    10  // EVAL ERROR
+#define DEF_REPR_RERROR    8   /* READ ERROR */
+#define DEF_REPR_TERROR    9   /* TYPE ERROR */
+#define DEF_REPR_EERROR    10  /* EVAL ERROR */
 #define DEF_REPR_MERROR    11
 #define DEF_REPR_DEFINE    12
 
@@ -70,13 +70,48 @@ static uint32_t hash_string(char *str, uint32_t modulo);
 static uint32_t def_repr[13];
 
 typedef struct s_name_mapping {
-  uint32_t key; // hash including collision id 
+  uint32_t key; /* hash including collision id */
   char* name;
   struct s_name_mapping* next;
 } name_mapping_t;
 
 #ifdef TINY_SYMTAB
-name_mapping_t *name_list = NULL;
+typedef struct s_name_list {
+  uint32_t key; /* 16 bit hash part */
+  name_mapping_t* map;
+  struct s_name_list* next;
+}name_list_t;
+
+int name_list_is_empty(name_list_t *l) {
+  return (l == NULL);
+}
+
+name_mapping_t* name_list_get_mappings(name_list_t *l, uint32_t key) {
+
+  /* do not care about anothing but the low 16 bits */
+  uint32_t key_ = key & 0xFFFF;
+
+  name_list_t *curr = l;
+  
+  while (curr != NULL) {
+    if (curr->key == key_) {
+      return curr->map; 
+    }
+    curr = curr->next;
+  }
+  return NULL; 
+}
+
+int name_mapping_contains(name_mapping_t *map, uint32_t key) {
+
+  while (map != NULL) {
+    if (map->key == key) return 1; 
+    map = map->next;
+  }
+  return 0;
+}
+  
+name_list_t *name_list = NULL;
 #else
 name_mapping_t **name_table = NULL;
 #endif
@@ -117,7 +152,7 @@ uint32_t symrepr_define(void)  { return def_repr[DEF_REPR_DEFINE]; }
 
 int symrepr_init(void) {
 #ifdef TINY_SYMTAB
-  name_list = NULL; // empty list of symbol names 
+  name_list = NULL; /* empty list of symbol names */
 #else
   name_table = (name_mapping_t**)malloc(HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));
   if (!name_table) return 0;
@@ -145,17 +180,17 @@ int gensym(uint32_t *res) {
     name_table[v]->next = NULL;
     *res = v;
   } else {
-    // Gensym already added to this bucket
+    /* Gensym already added to this bucket */
     name_mapping_t *head = name_table[v];
     uint32_t hkey_id = head->key & 0xFFFF0000 ;
 
-    // If new ID would be too big return failure
+    /* If new ID would be too big return failure */
     if ((hkey_id >> 16) >= (BUCKET_DEPTH - 1)) {
       return 0;
     }
 
     /* problem if hkey_id = 0xFFFF0000 */
-    name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t)); //replace
+    name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t)); /* replace */
     name_table[v]->key = v + (hkey_id + (1 << 16));
     uint32_t v_prim = v + (hkey_id + (1 << 16));
     n = snprintf(gensym_name,1024,"gensym_%"PRIu32"", v_prim);
@@ -178,7 +213,7 @@ int symrepr_addsym(char *name, uint32_t* id) {
 #else
   size_t   n = 0;
 
-  if(strlen(name) == 0) return 0; //return failure if empty symbol
+  if(strlen(name) == 0) return 0; /* Return failure if empty symbol */
 
   uint32_t hash = hash_string(name, HASHTAB_SIZE);
 
@@ -206,7 +241,7 @@ int symrepr_addsym(char *name, uint32_t* id) {
     name_mapping_t *head = name_table[hash];
     uint32_t hkey_id = head->key & 0xFFFF0000 ;
 
-    // If new ID would be too big return failure
+    /* If new ID would be too big return failure */
     if ((hkey_id >> 16) >= (BUCKET_DEPTH - 1)) {
       return 0;
     }
@@ -226,50 +261,48 @@ int symrepr_addsym(char *name, uint32_t* id) {
 
 
 int symrepr_lookup(char *name, uint32_t* id) {
-  int r = 0;
-#ifdef TINY_SYMTAB
-
-  //TODO
   
-#else
+  name_mapping_t *head;
   uint32_t hash = hash_string(name, HASHTAB_SIZE);
-
-  if (name_table[hash] == NULL) return 0;
-
-  name_mapping_t *head = name_table[hash];
-
+#ifdef TINY_SYMTAB
+  head = name_list_get_mappings(name_list, hash);
+#else
+  head = name_table[hash];
+#endif
+  if (head == NULL) return 0;
+  
   while (head) {
     if (strcmp(head->name, name) == 0) {
-      r = 1;
       *id = head->key;
+      return 1;
     }
     head = head->next;
   }
   
-#endif
-  return r;
+  return 0;
 }
 
 
 char *symrepr_lookup_name(uint32_t id) {
 
-#ifdef TINY_SYMTAB
-
-#else
+  name_mapping_t *head = NULL;
   uint32_t hash = id & (uint32_t)0x0000FFFF; /*extract index*/
   if(hash == 65535) return "special_symbol";
-
-  if (name_table[hash]) {
-    name_mapping_t *head = name_table[hash];
-
-    while (head) {
-      if (head->key == id) {
-	return head->name;
-      }
-      head = head->next;
-    }
-  }
+  
+#ifdef TINY_SYMTAB
+  head = name_list_get_mappings(name_list, hash);
+#else
+  head = name_table[hash];
 #endif
+  
+  if (head == NULL) return NULL; 
+  
+  while (head) {
+    if (head->key == id) {
+      return head->name;
+    }
+    head = head->next;
+  }
   return NULL;
 }
 
