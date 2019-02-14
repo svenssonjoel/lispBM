@@ -70,16 +70,16 @@ static uint32_t hash_string(char *str, uint32_t modulo);
 static uint32_t def_repr[13];
 
 typedef struct s_name_mapping {
-  uint32_t key; // hash including collision id //
+  uint32_t key; // hash including collision id 
   char* name;
   struct s_name_mapping* next;
 } name_mapping_t;
 
-//#ifdef TINY_SYMTAB
-//name_mapping_t *name_list = NULL;
-//#else
+#ifdef TINY_SYMTAB
+name_mapping_t *name_list = NULL;
+#else
 name_mapping_t **name_table = NULL;
-//#endif
+#endif
 
 int add_default_symbols(void) {
   int res = 1;
@@ -116,14 +116,20 @@ uint32_t symrepr_merror(void)  { return def_repr[DEF_REPR_MERROR]; }
 uint32_t symrepr_define(void)  { return def_repr[DEF_REPR_DEFINE]; }
 
 int symrepr_init(void) {
+#ifdef TINY_SYMTAB
+  name_list = NULL; // empty list of symbol names 
+#else
   name_table = (name_mapping_t**)malloc(HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));
   if (!name_table) return 0;
   memset(name_table, 0, HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));
+#endif
   return add_default_symbols();
 }
 
 int gensym(uint32_t *res) {
-
+#ifdef TINY_SYMTAB
+  return 0;
+#else
   uint32_t v = gensym_next;
   int n;
   char gensym_name[1024];
@@ -139,7 +145,7 @@ int gensym(uint32_t *res) {
     name_table[v]->next = NULL;
     *res = v;
   } else {
-    //gensym already added to this bucket
+    // Gensym already added to this bucket
     name_mapping_t *head = name_table[v];
     uint32_t hkey_id = head->key & 0xFFFF0000 ;
 
@@ -163,9 +169,13 @@ int gensym(uint32_t *res) {
   gensym_next++;
   if (gensym_next >= (HASHTAB_MALLOC_SIZE-1)) gensym_next = HASHTAB_SIZE;
   return 1;
+#endif
 }
 
 int symrepr_addsym(char *name, uint32_t* id) {
+#ifdef TINY_SYMTAB
+  return 0;
+#else
   size_t   n = 0;
 
   if(strlen(name) == 0) return 0; //return failure if empty symbol
@@ -211,11 +221,17 @@ int symrepr_addsym(char *name, uint32_t* id) {
     name_table[hash]->next = head;
   }
   return 1;
+#endif
 }
 
-int symrepr_lookup(char *name, uint32_t* id) {
 
+int symrepr_lookup(char *name, uint32_t* id) {
   int r = 0;
+#ifdef TINY_SYMTAB
+
+  //TODO
+  
+#else
   uint32_t hash = hash_string(name, HASHTAB_SIZE);
 
   if (name_table[hash] == NULL) return 0;
@@ -229,12 +245,17 @@ int symrepr_lookup(char *name, uint32_t* id) {
     }
     head = head->next;
   }
+  
+#endif
   return r;
 }
 
+
 char *symrepr_lookup_name(uint32_t id) {
 
+#ifdef TINY_SYMTAB
 
+#else
   uint32_t hash = id & (uint32_t)0x0000FFFF; /*extract index*/
   if(hash == 65535) return "special_symbol";
 
@@ -248,10 +269,14 @@ char *symrepr_lookup_name(uint32_t id) {
       head = head->next;
     }
   }
+#endif
   return NULL;
 }
 
 void symrepr_print(void) {
+#ifdef TINY_SYMTAB
+
+#else
   int i;
 
   for (i = 0; i < HASHTAB_MALLOC_SIZE; i ++) {
@@ -263,9 +288,13 @@ void symrepr_print(void) {
       }
     }
   }
+#endif
 }
 
 void symrepr_del(void) {
+#ifdef TINY_SYMTAB
+
+#else
   int i;
 
   if(!name_table) return;
@@ -282,6 +311,7 @@ void symrepr_del(void) {
       }
     }
   }
+#endif
 }
 
 uint32_t small_primes[SMALL_PRIMES] =
