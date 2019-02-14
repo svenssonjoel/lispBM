@@ -65,7 +65,7 @@
 
 static uint32_t gensym_next = HASHTAB_SIZE;
 
-static uint32_t hash_string(char *str);
+static uint32_t hash_string(char *str, uint32_t modulo);
 
 static uint32_t def_repr[13];
 
@@ -170,7 +170,7 @@ int symrepr_addsym(char *name, uint32_t* id) {
 
   if(strlen(name) == 0) return 0; //return failure if empty symbol
 
-  uint32_t hash = hash_string(name);
+  uint32_t hash = hash_string(name, HASHTAB_SIZE);
 
   if (hash >= HASHTAB_SIZE) /* impossible */ return 0;
 
@@ -216,7 +216,7 @@ int symrepr_addsym(char *name, uint32_t* id) {
 int symrepr_lookup(char *name, uint32_t* id) {
 
   int r = 0;
-  uint32_t hash = hash_string(name);
+  uint32_t hash = hash_string(name, HASHTAB_SIZE);
 
   if (name_table[hash] == NULL) return 0;
 
@@ -288,14 +288,14 @@ uint32_t small_primes[SMALL_PRIMES] =
   /* {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31}; */
   /* {37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79}; */
   {359, 419, 463, 523, 593, 643, 701, 761, 827, 883, 953};
-uint32_t hash_string(char *str) {
+uint32_t hash_string(char *str, uint32_t modulo) {
 
   uint32_t r = 1;
   size_t n = strlen(str);
 
   for (int i = 0; i < n; i ++) {
     uint32_t sp = small_primes[i % SMALL_PRIMES];
-    r = (r + (sp * str[i])) % HASHTAB_SIZE;
+    r = (r + (sp * str[i])) % modulo; 
   }
 
   return r;
