@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include "symrepr.h"
 
@@ -74,7 +75,11 @@ typedef struct s_name_mapping {
   struct s_name_mapping* next;
 } name_mapping_t;
 
+//#ifdef TINY_SYMTAB
+//name_mapping_t *name_list = NULL;
+//#else
 name_mapping_t **name_table = NULL;
+//#endif
 
 int add_default_symbols(void) {
   int res = 1;
@@ -127,7 +132,7 @@ int gensym(uint32_t *res) {
   if(name_table[v] == NULL && v < HASHTAB_MALLOC_SIZE) {
     name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[v]->key = v;
-    n = snprintf(gensym_name,1024,"gensym_%d", v);
+    n = snprintf(gensym_name,1024,"gensym_%"PRIu32"", v);
     name_table[v]->name = (char*)malloc(n+1);
     memset(name_table[v]->name, 0, n+1);
     strncpy(name_table[v]->name, gensym_name, n);
@@ -147,7 +152,7 @@ int gensym(uint32_t *res) {
     name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t)); //replace
     name_table[v]->key = v + (hkey_id + (1 << 16));
     uint32_t v_prim = v + (hkey_id + (1 << 16));
-    n = snprintf(gensym_name,1024,"gensym_%d", v_prim);
+    n = snprintf(gensym_name,1024,"gensym_%"PRIu32"", v_prim);
     name_table[v]->name = (char*)malloc(n);
     memset(name_table[v]->name, 0, n+1);
     strncpy(name_table[v]->name, gensym_name, n);
@@ -253,7 +258,7 @@ void symrepr_print(void) {
     if (name_table[i] != NULL) {
       name_mapping_t *head = name_table[i];
       while (head) {
-	printf("%d : %x : %s\n", head->key, head->key, head->name);
+	printf("%"PRIu32" : %"PRIx32" : %s\n", head->key, head->key, head->name);
 	head = head->next;
       }
     }
