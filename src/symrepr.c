@@ -256,8 +256,32 @@ int symrepr_addsym(char *name, uint32_t* id) {
       name_list = new_entry;
 
       if (id != NULL) *id = hash;
-    } // TODO ELSE
+    } else {
+      /* There are entries for this hash */
+      /* TODO add new entry */
+      uint32_t max_12bit = 0;
 
+      while (tmp->next) {
+	if ((tmp->key >> 16) > max_12bit) max_12bit = tmp->key >> 16;
+	tmp = tmp->next;
+      }
+
+      /* ready to add a new entry if there is room in the 12 bits */
+      if (++max_12bit > 4095) return 0;
+
+      tmp->next = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+      if (tmp->next == NULL) return 0;
+
+      uint32_t new_key = hash | (max_12bit << 16); 
+      
+      tmp->next->next = NULL;
+      tmp->next->key  = new_key;
+      tmp->next->name = (char*)malloc(n);
+      if (tmp->next->name == NULL) return 0;
+      strncpy(tmp->next->name, name, n);
+
+      if (id != NULL) *id = new_key;
+    }
     
   }
 

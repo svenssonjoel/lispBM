@@ -2,6 +2,7 @@
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
   CCFLAGS = -m32 -O2 -Wall -pedantic -std=c11
+  CCFLAGS += -DTINY_SYMTAB
 endif
 
 ifeq ($(PLATFORM),linux-x86-64)
@@ -13,13 +14,13 @@ endif
 ifeq ($(PLATFORM), zynq)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/zynq
-  CCFLAGS = -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -O2
+  CCFLAGS = -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -O2 -Wall -pedantic
 endif
 
 ifeq ($(PLATFORM), stm32f4)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/stm32f4
-  CCFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O2 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP
+  CCFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O2 -Wall -pedantic -fmessage-length=0 -ffunction-sections -c -MMD -MP
   CCFLAGS += -DTINY_SYMTAB
 endif
 
