@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
     printf("Error initializing built in functions.\n");
     return 0;
   }
-
+  
   res = eval_init();
   if (res)
     printf("Evaluator initialized.\n");
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     printf("Error initializing evaluator.\n");
   }
 
-  printf("Lisp REPL started!\n"); 
+  printf("Lisp REPL started!\n");
  
   while (1) {
     printf("# "); 

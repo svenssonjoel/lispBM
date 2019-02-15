@@ -208,17 +208,63 @@ int gensym(uint32_t *res) {
 }
 
 int symrepr_addsym(char *name, uint32_t* id) {
-#ifdef TINY_SYMTAB
-  return 0;
-#else
   size_t   n = 0;
 
-  if(strlen(name) == 0) return 0; /* Return failure if empty symbol */
-
+  n = strlen(name) + 1;
+  if (n == 1) return 0; /* failure if empty symbol */
+  
   uint32_t hash = hash_string(name, HASHTAB_SIZE);
 
   if (hash >= HASHTAB_SIZE) /* impossible */ return 0;
+  
+#ifdef TINY_SYMTAB
 
+  /* If the symbol name_list is empty */ 
+  if (name_list == NULL) {
+    name_list = (name_list_t*)malloc(sizeof(name_list_t));
+    if (name_list == NULL) return 0;
+    name_list->key = hash;
+    name_list->map = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+    if (name_list->map == NULL) return 0;
+    name_list->map->key = hash;
+    name_list->map->next = NULL;
+    name_list->map->name = (char*)malloc(n);
+    if (name_list->map->name == NULL) return 0;
+    strncpy(name_list->map->name, name, n);
+
+    if (id != NULL) *id = hash;
+    
+  } else { /* there is at least one entry in the name list */ 
+
+    name_mapping_t* tmp = name_list_get_mappings(name_list, hash);
+
+    if (tmp == NULL) {
+      /* There is no entry for this hash, just append it to name_list */
+      name_list_t *new_entry = (name_list_t*)malloc(sizeof(name_list_t));
+      if (new_entry == NULL) return 0;
+      new_entry->key = hash;
+      new_entry->map = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+      if (new_entry->map == NULL) return 0;
+      new_entry->map->key = hash;
+      new_entry->map->next = NULL;
+      new_entry->map->name = (char*)malloc(n);
+      if (new_entry->map->name == NULL) return 0;
+      strncpy(new_entry->map->name, name, n);
+
+      /* Update global list */ 
+      new_entry->next = name_list;
+      name_list = new_entry;
+
+      if (id != NULL) *id = hash;
+    } // TODO ELSE
+
+    
+  }
+
+  
+  return 1;
+#else
+ 
   if (name_table[hash] == NULL){
     name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[hash]->key = hash;
@@ -308,10 +354,19 @@ char *symrepr_lookup_name(uint32_t id) {
 
 void symrepr_print(void) {
 #ifdef TINY_SYMTAB
-
+  name_list_t *curr = name_list;
+  
+  while (curr) {
+    name_mapping_t *head = curr->map;
+    printf("------\n");
+    while (head) {
+      printf("%"PRIu32" : %"PRIx32" : %s\n", head->key, head->key, head->name);
+      head = head->next;
+    }
+    curr = curr->next;
+  }
 #else
   int i;
-
   for (i = 0; i < HASHTAB_MALLOC_SIZE; i ++) {
     if (name_table[i] != NULL) {
       name_mapping_t *head = name_table[i];
@@ -326,7 +381,20 @@ void symrepr_print(void) {
 
 void symrepr_del(void) {
 #ifdef TINY_SYMTAB
+  name_list_t *curr = name_list;
 
+  while (curr) {
+    name_mapping_t* head = curr->map;
+    name_list_t* t0 = curr->next;
+    while (head) {
+      name_mapping_t* t1 = head->next;
+      free(head->name);
+      free(head);
+      head = t1;
+    }
+    free(curr);
+    curr = t0;
+  }  
 #else
   int i;
 
