@@ -382,7 +382,7 @@ void symrepr_print(void) {
   
   while (curr) {
     name_mapping_t *head = curr->map;
-    printf("------\n");
+    printf("--# Bucket: %"PRIu32"\n", head->key);
     while (head) {
       printf("%"PRIu32" : %"PRIx32" : %s\n", head->key, head->key, head->name);
       head = head->next;
