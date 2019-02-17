@@ -26,7 +26,10 @@ int main(int argc, char **argv) {
   printf("Gensyming %d symbols: ", TEST_SIZE);
   for (int i = 0; i < TEST_SIZE; i ++) { 
     res &= gensym(&gs);
-    if (!res) printf("Error running gensym\n");
+    if (!res) {
+      printf("Error running gensym\n");
+      return 0;
+    }
     //printf("generated sym: 0x%x\n", ENC_SYM(gs));
     name = symrepr_lookup_name(gs);
     //printf("SYMBOL: %s\n",name);
@@ -34,9 +37,9 @@ int main(int argc, char **argv) {
     //printf("SYMBOL ID: %d",symbol_id);
 
     res &= (symbol_id == gs);
-    if (!res) printf("Symbol name does not match gensym running number\n");
+    if (!res) printf("Symbol name does not match gensym (%s) running number %u != %u \n", name, symbol_id, gs);
     res &= (symbol_id > last_id);
-    if (!res) printf("Symbol id is not greater than previous symbol id\n"); 
+    if (!res) printf("Symbol id is not greater than previous symbol id %d %d \n", symbol_id, last_id); 
     last_id = symbol_id;
     if (res && i % 2000000 == 0){
       printf(".");

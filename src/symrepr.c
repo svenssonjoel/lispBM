@@ -162,14 +162,88 @@ int symrepr_init(void) {
 }
 
 int gensym(uint32_t *res) {
-#ifdef TINY_SYMTAB
-  return 0;
-#else
-  uint32_t v = gensym_next;
-  int n;
+
   char gensym_name[1024];
   memset(gensym_name,0,1024);
+  int n;
+  
+#ifdef TINY_SYMTAB
+  static uint32_t index_12bit = 0;
 
+  if (gensym_next == HASHTAB_MALLOC_SIZE-1) {
+    gensym_next = HASHTAB_SIZE;
+    if (index_12bit < 4096) index_12bit++;
+    else return 0;
+  }
+  uint32_t hash = gensym_next | (index_12bit << 16); /* "hash" */
+  n = snprintf(gensym_name,1024,"gensym_%"PRIu32"", hash);
+
+  gensym_next++;
+  
+  if (name_list == NULL) {
+    name_list = (name_list_t*)malloc(sizeof(name_list_t));
+    if (name_list == NULL) return 0;
+    name_list->key = hash & 0xFFFF;
+    name_list->map = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+    if (name_list->map == NULL) return 0;
+    name_list->map->key = hash;
+    name_list->map->next = NULL;
+    name_list->map->name = (char*)malloc(n+1);
+    if (name_list->map->name == NULL) return 0;
+    memset(name_list->map->name, 0, n+1);
+    strncpy(name_list->map->name, gensym_name, n);
+
+    if (res != NULL) *res = hash;
+
+  } else { /* there is at least one entry in the name list */ 
+
+    name_mapping_t* tmp = name_list_get_mappings(name_list, hash);
+
+    if (tmp == NULL) {
+      /* There is no entry for this hash, just append it to name_list */
+      name_list_t *new_entry = (name_list_t*)malloc(sizeof(name_list_t));
+      if (new_entry == NULL) return 0;
+      new_entry->key = hash;
+      new_entry->map = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+      if (new_entry->map == NULL) return 0;
+      new_entry->map->key = hash;
+      new_entry->map->next = NULL;
+      new_entry->map->name = (char*)malloc(n+1);
+      if (new_entry->map->name == NULL) return 0;
+      memset(new_entry->map->name, 0, n+1);
+      strncpy(new_entry->map->name, gensym_name, n);
+
+      /* Update global list */ 
+      new_entry->next = name_list;
+      name_list = new_entry;
+
+      if (res != NULL) *res = hash;
+
+    } else {
+      while (tmp->next) {
+	tmp = tmp->next;
+      }
+      
+      tmp->next = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+      if (tmp->next == NULL) return 0;
+      
+      uint32_t new_key = hash;
+      
+      tmp->next->next = NULL;
+      tmp->next->key  = new_key;
+      tmp->next->name = (char*)malloc(n+1);
+      if (tmp->next->name == NULL) return 0;
+      memset(tmp->next->name, 0, n+1);
+      strncpy(tmp->next->name, gensym_name, n);
+
+      if (res != NULL) *res = hash;
+    }
+  }
+  
+  return 1;
+#else
+  uint32_t v = gensym_next;
+ 
   if(name_table[v] == NULL && v < HASHTAB_MALLOC_SIZE) {
     name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[v]->key = v;
