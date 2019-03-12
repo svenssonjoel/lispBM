@@ -46,4 +46,12 @@
   * Higher order functions.
   * Lambdas, Closures. 
 * Homoiconicity
-* FUN! 
+* Garbage collection. Automatic memory management.
+* FUN!
+
+
+
+
+## About This Attempt at a LISP
+
+* TODO
