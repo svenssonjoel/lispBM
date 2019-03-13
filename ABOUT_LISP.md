@@ -1,32 +1,33 @@
 
+
 # About Lisp
 
 * Developed by John McCarthy in 1958.
 * Paper "Recursive Functions of Symbolic Expressions and Their Computation by Machine, Part I" in 1960.
-* Many dialects and variants since then (list from wikipedia):
-  * LISP 1, 1.5, and LISP 2
+* Many dialects and variants since then (list from wikipedia): 
+  * Lisp 1, 1.5 and 2.
   * MACLISP
   * InterLisp
   * Lisp Machine Lisp
   * Scheme
   * Nil
-  * Common Lisp
+  * Common Lisp							
   * Le Lisp
   * T
-  * Emacs Lisp
+  * Emacs Lisp		(An odd instance of Lisp)		
   * AutoLisp
   * OpenLisp
   * PicoLisp
   * EuLisp
   * ISLISP
   * newLISP
-  * Racket
+  * Racket		(A language implementation toolbox)
   * GNU Guile
   * Visual LISP
-  * Clojure
+  * Clojure		(running on JVM)		
   * Arc
   * LFE
-  * Hy (www.github.com/hylang/hy)
+  * Hy			(www.github.com/hylang/hy)
   * A huge amount of hobbyist variants.
 
 
@@ -40,18 +41,27 @@
 
 ## What I think of when hearing LISP
 
-* Lots of parenthesis.
+* Lots of parenthesis. 
 * Dynamically typed.
 * Functional.
   * Higher order functions.
   * Lambdas, Closures. 
 * Homoiconicity
 * Garbage collection. Automatic memory management.
+* cons, car, cdr! 
 * FUN!
-
-
 
 
 ## About This Attempt at a LISP
 
-* TODO
+* Motivations in order of importance!
+  1. FUN.
+  2. FUN.
+  3. Learning new stuff.
+  4. An interactive REPL for my zynq devboard.
+
+
+* My wish list
+  1. Cons cell based memory with garbage collection
+  2. Lambdas and closures
+  
