@@ -29,6 +29,7 @@
   * LFE
   * Hy			(www.github.com/hylang/hy)
   * A huge amount of hobbyist variants.
+* In the beginning, popular in the AI community. 
 
 
 ## Sources for further information about lisp
@@ -38,7 +39,6 @@
 * Build your own lisp (book online free by Daniel Holden, www.buildyourownlisp.com).
  
  
-
 ## What I think of when hearing LISP
 
 * Lots of parenthesis. 
@@ -52,16 +52,21 @@
 * FUN!
 
 
-## About This Attempt at a LISP
+## About this attempt at a LISP
 
 * Motivations in order of importance!
   1. FUN.
   2. FUN.
   3. Learning new stuff.
-  4. An interactive REPL for my zynq devboard.
+  4. An interactive REPL for the zynq devboard.
 
 
-* My wish list
-  1. Cons cell based memory with garbage collection
-  2. Lambdas and closures
+* My wish list (partially implemented)
+  1. Cons cell based memory with garbage collection.
+  2. Lambdas and closures.
+  3. Arrays.
+  4. Some low level features (direct access memory mapped registers).
+  5. Capable to run infinitely looping functions: (define f (lambda () (f)))
+  6. Capability to load code and data from SD card (If compiled for Zynq).
+  7. Compilation to a home-made byte code (JIT-ish, when using repl or eval for example. But also off line).
   
