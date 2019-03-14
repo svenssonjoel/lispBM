@@ -48,7 +48,8 @@
   * Lambdas, Closures. 
 * Homoiconicity
 * Garbage collection. Automatic memory management.
-* cons, car, cdr! 
+* cons, car, cdr!
+* Small when it comes to "syntax".
 * FUN!
 
 
