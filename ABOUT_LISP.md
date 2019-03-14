@@ -67,7 +67,7 @@
   2. Lambdas and closures.
   3. Arrays.
   4. Some low level features (direct access memory mapped registers).
-  5. Capable to run infinitely looping functions: (define f (lambda () (f)))
+  5. Capability to run infinitely looping functions: (define f (lambda () (f)))
   6. Capability to load code and data from SD card (If compiled for Zynq).
   7. Compilation to a home-made byte code (JIT-ish, when using repl or eval for example. But also off line).
   
