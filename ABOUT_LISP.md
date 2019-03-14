@@ -14,7 +14,7 @@
   * Common Lisp							
   * Le Lisp
   * T
-  * Emacs Lisp		(An odd instance of Lisp)		
+  * Emacs Lisp		(Configuration and customization language for Emacs)		
   * AutoLisp
   * OpenLisp
   * PicoLisp
