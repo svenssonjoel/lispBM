@@ -24,6 +24,13 @@ ifeq ($(PLATFORM), stm32f4)
   CCFLAGS += -DTINY_SYMTAB
 endif
 
+ifeq ($(PLATFORM), nrf52840_pca10056)
+  CROSS_COMPILE = arm-none-eabi-
+  BUILD_DIR = build/nrf52840_pca10056
+  CCFLAGS =  -DNRF52840_XXAA -D_FORTIFY_SOURCE=2  -nostdinc -g -Wall -Wformat -Wformat-security -Wno-format-zero-length  -ffreestanding -Wno-main -fno-common -mthumb -mcpu=cortex-m4 -fno-asynchronous-unwind-tables -fno-pie -fno-pic -fno-strict-overflow -Wno-pointer-sign -Wno-unused-but-set-variable -fno-reorder-functions -fno-defer-pop -Werror=implicit-int -Wpointer-arith -ffunction-sections -fdata-sections -mabi=aapcs -march=armv7e-m -std=c99
+  CCFLAGS += -DTINY_SYMTAB
+endif
+
 ifeq ($(PLATFORM), pi)
   $(error Platform support not implemented)
   CROSS_COMPILE = arm-none-eabi-
