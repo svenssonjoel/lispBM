@@ -59,7 +59,7 @@
   1. FUN.
   2. FUN.
   3. Learning new stuff.
-  4. An interactive REPL for the zynq devboard.
+  4. An interactive REPL for the ZYNQ devboard.
 
 
 * My wish list (partially implemented)

@@ -18,8 +18,9 @@
 #ifndef HEAP_H_
 #define HEAP_H_
 
-#include <stdlib.h>
-#include <stdint.h>
+//#include <stdlib.h>
+//#include <stdint.h>
+#include <standard_types.h>
 
 /*
 Planning for a more space efficient heap representation.
@@ -249,7 +250,7 @@ typedef struct {
   void (*free_stream)(uint32_t*);
 } o_stream_t;
 
-extern int heap_init(size_t num_cells);
+extern int heap_init(int num_cells);
 extern void heap_del(void);
 extern uint32_t heap_num_free(void);
 extern uint32_t heap_num_allocated(void);
