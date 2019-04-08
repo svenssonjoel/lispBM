@@ -29,7 +29,7 @@ int is_closure(uint32_t t) {
   uint32_t head = car(t);
   
   if (!IS_PTR(head)  && VAL_TYPE(head) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(car) == symrepr_closure()) {
+      DEC_SYM(head) == symrepr_closure()) {
     return 1;
   }
   return 0; 

@@ -18,7 +18,7 @@
 #ifndef HEAP_H_
 #define HEAP_H_
 
-#include <stdint.h>
+#include "typedefs.h"
 
 /*
 Planning for a more space efficient heap representation.
@@ -153,52 +153,131 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define ADDRESS_SHIFT        3
 #define VAL_SHIFT            4
 
-#define PTR_MASK             0x00000001
-#define PTR                  0x00000001
-#define PTR_VAL_MASK         0x03FFFFF8
-#define PTR_TYPE_MASK        0xFC000000
+#define PTR_MASK             0x00000001u
+#define PTR                  0x00000001u
+#define PTR_VAL_MASK         0x03FFFFF8u
+#define PTR_TYPE_MASK        0xFC000000u
 
-#define PTR_TYPE_CONS        0x10000000
-#define PTR_TYPE_I32         0x20000000
-#define PTR_TYPE_U32         0x30000000
-#define PTR_TYPE_F32         0x40000000
+#define PTR_TYPE_CONS        0x10000000u
+#define PTR_TYPE_I32         0x20000000u
+#define PTR_TYPE_U32         0x30000000u
+#define PTR_TYPE_F32         0x40000000u
 /*...*/
-#define PTR_TYPE_ARRAY       0xD0000000
-#define PTR_TYPE_REF         0xE0000000
-#define PTR_TYPE_STREAM      0xF0000000
+#define PTR_TYPE_ARRAY       0xD0000000u
+#define PTR_TYPE_REF         0xE0000000u
+#define PTR_TYPE_STREAM      0xF0000000u
 
-#define GC_MASK              0x00000002
-#define GC_MARKED            0x00000002
+#define GC_MASK              0x00000002u
+#define GC_MARKED            0x00000002u
 
-#define VAL_MASK             0xFFFFFFF0
-#define VAL_TYPE_MASK        0x0000000C
+#define VAL_MASK             0xFFFFFFF0u
+#define VAL_TYPE_MASK        0x0000000Cu
 
-#define VAL_TYPE_SYMBOL      0x00000000
-#define VAL_TYPE_CHAR        0x00000004
-#define VAL_TYPE_I28         0x00000008
-#define VAL_TYPE_U28         0x0000000C
+#define VAL_TYPE_SYMBOL      0x00000000u
+#define VAL_TYPE_CHAR        0x00000004u
+#define VAL_TYPE_I28         0x00000008u
+#define VAL_TYPE_U28         0x0000000Cu
 
 
+inline typ_t val_type(val_t x) {
+  return (x & VAL_TYPE_MASK);
+}
 
-#define VAL_TYPE(X) ((X) & VAL_TYPE_MASK)
-#define PTR_TYPE(X) ((X) & PTR_TYPE_MASK)
-#define TYPE_OF(X)  (IS_PTR((X)) ? PTR_TYPE((X)) : VAL_TYPE((X)))
+inline typ_t ptr_type(val_t p) {
+  return (p & PTR_TYPE_MASK);
+}
 
-#define IS_PTR(X)   (((X) & PTR_MASK) == PTR)
+inline typ_t type_of(val_t x) {
+  return (x & PTR_MASK) ? (x & PTR_TYPE_MASK) : (x & VAL_TYPE_MASK);
+}
 
-#define ENC_CONS_PTR(X)   ((uint32_t)((((X) << ADDRESS_SHIFT)) | PTR_TYPE_CONS | PTR))
-#define DEC_PTR(X)        ((uint32_t)((PTR_VAL_MASK & (X)) >> ADDRESS_SHIFT))
-#define SET_PTR_TYPE(X,T) ((uint32_t)((PTR_VAL_MASK & (X)) | (T) | PTR))
+inline bool is_ptr(val_t x) {
+  return (x & PTR_MASK);
+}
 
-#define ENC_I28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_I28)
-#define ENC_U28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_U28)
-#define ENC_CHAR(X) ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_CHAR)
-#define ENC_SYM(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_SYMBOL)
+inline uint32_t enc_cons_ptr(uint32_t x) {
+  return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR);
+}
 
-#define DEC_I28(X)  ((int32_t)((int32_t)(X) >> VAL_SHIFT))
-#define DEC_U28(X)  ((uint32_t)((uint32_t)(X) >> VAL_SHIFT))
-#define DEC_CHAR(X) ((char)((int32_t)(X) >> VAL_SHIFT))
-#define DEC_SYM(X)  ((uint32_t)((uint32_t)(X) >> VAL_SHIFT))
+inline uint32_t dec_ptr(uint32_t p) {
+  return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
+}
+
+inline uint32_t set_ptr_type(uint32_t p, uint32_t t) {
+  return (PTR_VAL_MASK & p) | t | PTR;
+}
+
+inline uint32_t enc_i28(int32_t x) {
+  return ((uint32_t)x << VAL_SHIFT) | VAL_TYPE_I28;
+}
+
+inline uint32_t enc_u28(uint32_t x) {
+  return (x << VAL_SHIFT) | VAL_TYPE_U28;
+}
+
+inline uint32_t enc_char(char x) {
+  return ((uint32_t)x << VAL_SHIFT) | VAL_TYPE_CHAR;
+}
+
+inline uint32_t enc_sym(uint32_t s) {
+  return (s << VAL_SHIFT) | VAL_TYPE_SYMBOL;
+}
+
+inline int32_t dec_i28(uint32_t x) {
+  return (int32_t)x >> VAL_SHIFT;
+}
+
+inline uint32_t dec_u28(uint32_t x) {
+  return x >> VAL_SHIFT;
+}
+
+inline char dec_char(uint32_t x) {
+  return (char)(x >> VAL_SHIFT);
+}
+
+inline uint32_t dec_sym(uint32_t x) {
+  return x >> VAL_SHIFT;
+}
+
+/* #define VAL_TYPE(X) ((X) & VAL_TYPE_MASK) */
+/* #define PTR_TYPE(X) ((X) & PTR_TYPE_MASK) */
+/* #define TYPE_OF(X)  (IS_PTR((X)) ? PTR_TYPE((X)) : VAL_TYPE((X))) */
+
+/* #define IS_PTR(X)   (((X) & PTR_MASK) == PTR) */
+
+/* #define ENC_CONS_PTR(X)   ((uint32_t)((((X) << ADDRESS_SHIFT)) | PTR_TYPE_CONS | PTR)) */
+/* #define DEC_PTR(X)        ((uint32_t)((PTR_VAL_MASK & (X)) >> ADDRESS_SHIFT)) */
+/* #define SET_PTR_TYPE(X,T) ((uint32_t)((PTR_VAL_MASK & (X)) | (T) | PTR)) */
+
+/* #define ENC_I28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_I28) */
+/* #define ENC_U28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_U28) */
+/* #define ENC_CHAR(X) ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_CHAR) */
+/* #define ENC_SYM(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_SYMBOL) */
+
+/* #define DEC_I28(X)  ((int32_t)((int32_t)(X) >> VAL_SHIFT)) */
+/* #define DEC_U28(X)  ((uint32_t)((uint32_t)(X) >> VAL_SHIFT)) */
+/* #define DEC_CHAR(X) ((char)((int32_t)(X) >> VAL_SHIFT)) */
+/* #define DEC_SYM(X)  ((uint32_t)((uint32_t)(X) >> VAL_SHIFT)) */
+
+#define VAL_TYPE(X) val_type(X)
+#define PTR_TYPE(X) ptr_type(X)
+#define TYPE_OF(X)  type_of(X)
+
+#define IS_PTR(X)   is_ptr(X)
+
+#define ENC_CONS_PTR(X)   enc_cons_ptr(X)
+#define DEC_PTR(X)        dec_ptr(X)
+#define SET_PTR_TYPE(X,T) set_ptr_type((X),(T))
+
+#define ENC_I28(X)  enc_i28(X)
+#define ENC_U28(X)  enc_u28(X)
+#define ENC_CHAR(X) enc_char(X)
+#define ENC_SYM(X)  enc_sym(X)
+
+#define DEC_I28(X)  dec_i28(X)
+#define DEC_U28(X)  dec_u28(X)
+#define DEC_CHAR(X) dec_char(X)
+#define DEC_SYM(X)  dec_sym(X)
 
 typedef struct {
   uint32_t car;
@@ -248,7 +327,7 @@ typedef struct {
   void (*free_stream)(uint32_t*);
 } o_stream_t;
 
-extern int heap_init(int num_cells);
+extern int heap_init(unsigned int num_cells);
 extern void heap_del(void);
 extern uint32_t heap_num_free(void);
 extern uint32_t heap_num_allocated(void);

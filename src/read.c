@@ -65,13 +65,12 @@ uint32_t read_ast(mpc_ast_t *t){
     
 
   if (strstr(t->tag, "character")) {
-    int len = strlen(t->contents);
+    unsigned int len = strlen(t->contents);
     if (len == 3) {
-      uint32_t v = (uint32_t)(t->contents[2]);
+      char v = (uint32_t)(t->contents[2]);
       return ENC_CHAR(v);
     } else if (len > 3 && strstr(t->contents, "newline")) {
-      uint32_t v = (uint32_t)'\n';
-      return ENC_CHAR(v);
+      return ENC_CHAR('\n');
     } else {
       return ENC_SYM(rerror);
     }
@@ -99,7 +98,7 @@ uint32_t read_ast(mpc_ast_t *t){
     }
 
     if (t->contents[strlen(t->contents)-1] == 'I') {
-      uint32_t v = (int32_t)atoi(t->contents);
+      uint32_t v = (uint32_t)atoi(t->contents);
       uint32_t ptr_cons = cons(v, ENC_SYM(SPECIAL_SYM_I32));
       return SET_PTR_TYPE(ptr_cons, PTR_TYPE_I32);
     }

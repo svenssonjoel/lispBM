@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  int heap_size = 8 * 1024 * 1024;
+  unsigned int heap_size = 8 * 1024 * 1024;
   res = heap_init(heap_size);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
   
   while (1) {
     printf("# "); 
-    size_t n = getline(&str,&len,stdin);
+    ssize_t n = getline(&str,&len,stdin);
 
     if (n >= 4 && strncmp(str, "info", 4) == 0) {
       printf("############################################################\n");

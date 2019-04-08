@@ -93,7 +93,7 @@ int generate_freelist(size_t num_cells) {
   return 1;
 }
 
-int heap_init(int num_cells) {
+int heap_init(unsigned int num_cells) {
 
   // retrieve nil symbol value f
   SYMBOL_NIL = symrepr_nil();

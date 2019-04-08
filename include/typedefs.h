@@ -1,5 +1,3 @@
-#ifndef STACK_H_
-#define STACK_H_
 /*
     Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
 
@@ -16,20 +14,14 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <stdlib.h>
+
+#ifndef TYPEDEFS_H_ 
+#define TYPEDEFS_H_ 
+
 #include <stdint.h>
+#include <stdbool.h>
 
-typedef struct {
-  uint32_t* data;
-  uint32_t  sp;
-  uint32_t  size;
-} stack;
+typedef uint32_t val_t;
+typedef uint32_t typ_t;
 
-stack* init_cont_stack(unsigned int stack_size);
-int clear_stack(stack *s);
-int copy_stack(stack *dest, stack *src);
-int push_u32(stack *s, uint32_t val);
-int push_k(stack *s, uint32_t (*k)(uint32_t));
-int pop_u32(stack *s, uint32_t *val);
-int pop_k(stack *s, uint32_t (**k)(uint32_t));
-#endif
+#endif 

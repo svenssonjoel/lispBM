@@ -165,7 +165,8 @@ int gensym(uint32_t *res) {
 
   char gensym_name[1024];
   memset(gensym_name,0,1024);
-  int n;
+  int n_res;
+  unsigned int n;
   
 #ifdef TINY_SYMTAB
   static uint32_t index_12bit = 0;
@@ -176,8 +177,10 @@ int gensym(uint32_t *res) {
     else return 0;
   }
   uint32_t hash = gensym_next | (index_12bit << 16); /* "hash" */
-  n = snprintf(gensym_name,1024,"gensym_%"PRIu32"", hash);
-
+  
+  n_res = snprintf(gensym_name,1024,"gensym_%"PRIu32"", hash);
+  if (n_res < 0) return 0;
+  n = (unsigned int) n_res;
   gensym_next++;
   
   if (name_list == NULL) {
@@ -247,7 +250,9 @@ int gensym(uint32_t *res) {
   if(name_table[v] == NULL && v < HASHTAB_MALLOC_SIZE) {
     name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[v]->key = v;
-    n = snprintf(gensym_name,1024,"gensym_%"PRIu32"", v);
+    n_res = snprintf(gensym_name,1024,"gensym_%"PRIu32"", v);
+    if (n_res < 0) return 0;
+    n = (unsigned int) n_res;
     name_table[v]->name = (char*)malloc(n+1);
     memset(name_table[v]->name, 0, n+1);
     strncpy(name_table[v]->name, gensym_name, n);
@@ -267,7 +272,9 @@ int gensym(uint32_t *res) {
     name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t)); /* replace */
     name_table[v]->key = v + (hkey_id + (1 << 16));
     uint32_t v_prim = v + (hkey_id + (1 << 16));
-    n = snprintf(gensym_name,1024,"gensym_%"PRIu32"", v_prim);
+    n_res = snprintf(gensym_name,1024,"gensym_%"PRIu32"", v_prim);
+    if (n_res < 0) return 0;
+    n = (unsigned int) n_res;
     name_table[v]->name = (char*)malloc(n);
     memset(name_table[v]->name, 0, n+1);
     strncpy(name_table[v]->name, gensym_name, n);
@@ -524,7 +531,8 @@ uint32_t hash_string(char *str, uint32_t modulo) {
 
   for (int i = 0; i < n; i ++) {
     uint32_t sp = small_primes[i % SMALL_PRIMES];
-    r = (r + (sp * str[i])) % modulo; 
+    unsigned int v = (unsigned int)str[i];
+    r = (r + (sp * v)) % modulo; 
   }
 
   return r;
