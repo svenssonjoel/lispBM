@@ -65,8 +65,8 @@
    - look at lispkit
 */
 
-#define EVAL_CONTINUE 1
-#define PERFORM_GC    2
+#define EVAL_CONTINUE     1
+#define PERFORM_GC        2
 
 #define DONE              1
 #define SET_GLOBAL_ENV    2
@@ -93,7 +93,6 @@ stack *K_save; // Stack save area for resume after gc.
 uint32_t eval_cps_get_env(void) {
   return eval_cps_global_env;
 }
-
 
 uint32_t eval_cps_bi(uint32_t lisp) {
 
@@ -417,33 +416,29 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
 // ////////////////////////////////////////////////////////
 uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
-  uint32_t tmp = ENC_SYM(symrepr_eerror());
-  int ret = 0;
   uint32_t head;
+  uint32_t value = ENC_SYM(symrepr_eerror());
 
   switch (TYPE_OF(lisp)) {
 
   case VAL_TYPE_SYMBOL:
-    ret = env_lookup(lisp, env, &tmp);
-    if (!ret) {
-      ret = env_lookup(lisp, eval_cps_global_env, &tmp);
+    if (!env_lookup(lisp, env, &value)) {
+      if (!env_lookup(lisp, eval_cps_global_env, &value)){
+	return ENC_SYM(symrepr_eerror());
+      }
     }
-    if (ret) {
-      push_u32(K, tmp);
-      return apply_continuation(K);
-    }
-    return ENC_SYM(symrepr_eerror());
-
+    push_u32(K, value);
+    return apply_continuation(K);
+    
   case PTR_TYPE_F32:
   case PTR_TYPE_U32:
   case VAL_TYPE_I28:
   case PTR_TYPE_I32:
   case VAL_TYPE_CHAR:
   case VAL_TYPE_U28:
-  case PTR_TYPE_ARRAY:{
+  case PTR_TYPE_ARRAY:
     push_u32(K, lisp);
     return apply_continuation(K);
-  }
 
   case PTR_TYPE_REF:
   case PTR_TYPE_STREAM:
@@ -457,8 +452,8 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
       // Special form: QUOTE
       if (DEC_SYM(head) == symrepr_quote()) {
-	uint32_t val =  car(cdr(lisp));
-	push_u32(K, val);
+	value =  car(cdr(lisp));
+	push_u32(K, value);
 	return apply_continuation(K);
       }
 
@@ -490,15 +485,14 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 	uint32_t env_end = cons(env_cpy,ENC_SYM(symrepr_nil()));
 	uint32_t body    = cons(car(cdr(cdr(lisp))), env_end);
 	uint32_t params  = cons(car(cdr(lisp)), body);
-	uint32_t clos    = cons(ENC_SYM(symrepr_closure()), params);
+	uint32_t closure = cons(ENC_SYM(symrepr_closure()), params);
 
 	if (TYPE_OF(env_end) == VAL_TYPE_SYMBOL ||
 	    TYPE_OF(body)    == VAL_TYPE_SYMBOL ||
 	    TYPE_OF(params)  == VAL_TYPE_SYMBOL ||
-	    TYPE_OF(clos)    == VAL_TYPE_SYMBOL) {
+	    TYPE_OF(closure) == VAL_TYPE_SYMBOL) {
 	  longjmp(rewind_buf, PERFORM_GC);
 	}
-	uint32_t closure = clos;
 
 	push_u32(K,closure);
 	return apply_continuation(K);
@@ -523,8 +517,6 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 	uint32_t binds   = car(cdr(lisp)); // key value pairs.
 	uint32_t exp     = car(cdr(cdr(lisp))); // exp to evaluate in the new env.
 	// Setup the bindings
-
-	//
 	return process_let(binds, orig_env, exp);
       }
     } // If head is symbol

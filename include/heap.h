@@ -18,9 +18,7 @@
 #ifndef HEAP_H_
 #define HEAP_H_
 
-//#include <stdlib.h>
-//#include <stdint.h>
-#include <standard_types.h>
+#include <stdint.h>
 
 /*
 Planning for a more space efficient heap representation.
