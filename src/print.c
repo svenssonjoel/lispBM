@@ -28,8 +28,8 @@ int is_closure(uint32_t t) {
 
   uint32_t head = car(t);
   
-  if (!IS_PTR(head)  && VAL_TYPE(head) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(head) == symrepr_closure()) {
+  if (!is_ptr(head)  && val_type(head) == VAL_TYPE_SYMBOL &&
+      dec_sym(head) == symrepr_closure()) {
     return 1;
   }
   return 0; 
@@ -41,9 +41,9 @@ int simple_print_env(uint32_t env) {
   uint32_t a;
   uint32_t b;
   printf("(");
-  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+  while (is_ptr(curr) && ptr_type(curr) == PTR_TYPE_CONS) {
     uint32_t head = car(curr);
-    if (IS_PTR(head)) {
+    if (is_ptr(head)) {
       a = car(car(head));
       b = cdr(car(head));
       printf("(");
@@ -80,12 +80,12 @@ int simple_print(uint32_t t){
 
   char *str_ptr;
   
-  if (IS_PTR(t) && (PTR_TYPE(t) == PTR_TYPE_CONS)) {
+  if (is_ptr(t) && (ptr_type(t) == PTR_TYPE_CONS)) {
     // TODO: Switch on the type of object pointed to.
 
     uint32_t car_val = car(t);
 
-    if (DEC_SYM(car_val) == symrepr_lambda()) {
+    if (dec_sym(car_val) == symrepr_lambda()) {
       simple_print_lambda(t);
     } else if ((t & PTR_TYPE_MASK) == PTR_TYPE_CONS) {
       printf("(");
@@ -97,7 +97,7 @@ int simple_print(uint32_t t){
     return 1; 
   }
 
-  if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_F32) {
+  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_F32) {
     uint32_t uv = car(t);
     float v;
     memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
@@ -105,19 +105,19 @@ int simple_print(uint32_t t){
     return 1; 
   }
 
-  if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_U32) {
+  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_U32) {
     uint32_t v = car(t);
     printf("{%"PRIu32"}", v); 
     return 1; 
   }
 
-  if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_I32) {
+  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_I32) {
     int32_t v = (int32_t)car(t);
     printf("{%"PRId32"}", v); 
     return 1; 
   }
 
-  if (IS_PTR(t) && PTR_TYPE(t) == PTR_TYPE_ARRAY) {
+  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
     array_t *array = (array_t *)car(t);
     switch (array->elt_type){
     case VAL_TYPE_CHAR:
@@ -129,24 +129,24 @@ int simple_print(uint32_t t){
     }
   }
 
-  if (!IS_PTR(t)) { // Value, symbol 
+  if (!is_ptr(t)) { // Value, symbol 
     switch (t & VAL_TYPE_MASK) {
     case VAL_TYPE_SYMBOL:
-      str_ptr = symrepr_lookup_name(DEC_SYM(t));
+      str_ptr = symrepr_lookup_name(dec_sym(t));
       if (str_ptr == NULL) {
-	printf("Error: Symbol not in table %"PRIu32"\n", DEC_SYM(t));
+	printf("Error: Symbol not in table %"PRIu32"\n", dec_sym(t));
       } else {  
 	printf("%s", str_ptr);
       }
       break;
     case VAL_TYPE_I28:
-      printf("%"PRId32"", DEC_I28(t)); 
+      printf("%"PRId32"", dec_i28(t)); 
       break;
     case VAL_TYPE_U28:
-      printf("%"PRIu32"", DEC_U28(t));
+      printf("%"PRIu32"", dec_u28(t));
       break;
     case VAL_TYPE_CHAR: // dont yet have syntax for Char and String
-      printf("\\#%c", DEC_CHAR(t));
+      printf("\\#%c", dec_char(t));
       break;
     default:
       printf("simple_print: Error\n");

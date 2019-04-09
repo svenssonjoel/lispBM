@@ -35,7 +35,7 @@ builtin_function_t* function_list = NULL;
 ////////////////////////////////////////////////////////////
 // Built in predicates (numberp, symbolp and such)
 int is_number(uint32_t arg) {
-  uint32_t t = TYPE_OF(arg);
+  uint32_t t = type_of(arg);
   return (t == VAL_TYPE_I28 ||
 	  t == VAL_TYPE_U28 ||
 	  t == PTR_TYPE_I32 ||
@@ -45,9 +45,9 @@ int is_number(uint32_t arg) {
 
 uint32_t bi_fun_numberp(uint32_t args) {
   if (is_number(car(args)) && length(args) == 1) {
-    return ENC_SYM(symrepr_true());
+    return enc_sym(symrepr_true());
   }
-  return ENC_SYM(symrepr_nil());
+  return enc_sym(symrepr_nil());
 }
 
 
@@ -82,12 +82,12 @@ int get_max_num_type(uint32_t args, uint32_t *type) {
   uint32_t max_type = 0;
   uint32_t curr = args;
 
-  while ( TYPE_OF(curr) == PTR_TYPE_CONS ) {
+  while ( type_of(curr) == PTR_TYPE_CONS ) {
     if (!is_number(car(curr)))
       return 0;
 
-    if (TYPE_OF(car(curr)) > max_type) {
-      max_type = TYPE_OF(car(curr));
+    if ( type_of(car(curr)) > max_type) {
+      max_type = type_of(car(curr));
     }
     curr = cdr(curr);
   }
@@ -98,12 +98,12 @@ int get_max_num_type(uint32_t args, uint32_t *type) {
 int get_as_int(uint32_t v, int32_t *r) {
   uint32_t tmp;
   float f_tmp;
-  switch (TYPE_OF(v)) {
+  switch (type_of(v)) {
   case VAL_TYPE_I28:
-    *r =  DEC_I28(v);
+    *r =  dec_i28(v);
     break;
   case VAL_TYPE_U28:
-    *r = (int32_t)DEC_U28(v);
+    *r = (int32_t)dec_u28(v);
     break;
   case PTR_TYPE_I32:
     *r = (int32_t)car(v);
@@ -126,12 +126,12 @@ int get_as_int(uint32_t v, int32_t *r) {
 int get_as_uint(uint32_t v, uint32_t *r) {
   uint32_t tmp;
   float    f_tmp;
-  switch (TYPE_OF(v)) {
+  switch (type_of(v)) {
   case VAL_TYPE_I28:
-    *r =  (uint32_t)DEC_I28(v);
+    *r =  (uint32_t)dec_i28(v);
     break;
   case VAL_TYPE_U28:
-    *r = DEC_U28(v);
+    *r = dec_u28(v);
     break;
   case PTR_TYPE_I32:
     *r = (uint32_t)car(v);
@@ -152,12 +152,12 @@ int get_as_uint(uint32_t v, uint32_t *r) {
 
 int get_as_float(uint32_t v, float *r) {
   uint32_t tmp;
-  switch (TYPE_OF(v)) {
+  switch (type_of(v)) {
   case VAL_TYPE_I28:
-    *r =  (float)DEC_I28(v);
+    *r =  (float)dec_i28(v);
     break;
   case VAL_TYPE_U28:
-    *r = (float)DEC_U28(v);
+    *r = (float)dec_u28(v);
     break;
   case PTR_TYPE_I32:
     *r = (float)((int32_t)car(v));
@@ -187,56 +187,56 @@ uint32_t bi_fun_sum(uint32_t args) {
   uint32_t max_type;
 
   if (! (get_max_num_type(args, &max_type)))
-    return ENC_SYM(symrepr_terror());
+    return enc_sym(symrepr_terror());
 
   switch (max_type) {
 
   case VAL_TYPE_I28:
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+    while(type_of(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
       int32_t r;
       get_as_int(v,&r);
       i_sum += r;
       curr = cdr(curr);
     }
-    return ENC_I28(i_sum);
+    return enc_i28(i_sum);
 
   case VAL_TYPE_U28:
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+    while(type_of(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
       uint32_t r;
       get_as_uint(v,&r);
       u_sum += r;
       curr = cdr(curr);
     }
-    return ENC_U28(u_sum);
+    return enc_u28(u_sum);
 
   case PTR_TYPE_I32:
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+    while(type_of(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
       int32_t r;
       get_as_int(v,&r);
       i_sum += r;
       curr= cdr(curr);
     }
-    tmp = cons(i_sum,ENC_SYM(SPECIAL_SYM_I32));
-    return SET_PTR_TYPE(tmp, PTR_TYPE_I32);
+    tmp = cons(i_sum,enc_sym(SPECIAL_SYM_I32));
+    return set_ptr_type(tmp, PTR_TYPE_I32);
 
   case PTR_TYPE_U32:
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+    while(type_of(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
       uint32_t r;
       get_as_uint(v,&r);
       u_sum += r;
       curr= cdr(curr);
     }
-    tmp = cons(u_sum,ENC_SYM(SPECIAL_SYM_U32));
-    if (TYPE_OF(tmp) == VAL_TYPE_SYMBOL) // an error
+    tmp = cons(u_sum,enc_sym(SPECIAL_SYM_U32));
+    if (type_of(tmp) == VAL_TYPE_SYMBOL) // an error
       return tmp;
-    return SET_PTR_TYPE(tmp, PTR_TYPE_U32);
+    return set_ptr_type(tmp, PTR_TYPE_U32);
 
   case PTR_TYPE_F32:
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+    while(type_of(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
       float r;
       get_as_float(v,&r);
@@ -244,14 +244,14 @@ uint32_t bi_fun_sum(uint32_t args) {
       curr = cdr(curr);
     }
     memcpy(&tmp, &f_sum, sizeof(uint32_t));
-    float_enc = cons(tmp,ENC_SYM(SPECIAL_SYM_F));
-    if (TYPE_OF(float_enc) == VAL_TYPE_SYMBOL) // an error
+    float_enc = cons(tmp,enc_sym(SPECIAL_SYM_F));
+    if (type_of(float_enc) == VAL_TYPE_SYMBOL) // an error
       return float_enc;
-    float_enc = SET_PTR_TYPE(float_enc, PTR_TYPE_F32);
+    float_enc = set_ptr_type(float_enc, PTR_TYPE_F32);
     return float_enc;
   }
 
-  return ENC_SYM(symrepr_eerror());
+  return enc_sym(symrepr_eerror());
 }
 
 uint32_t bi_fun_sub(uint32_t args) {
@@ -264,38 +264,38 @@ uint32_t bi_fun_sub(uint32_t args) {
   uint32_t max_type;
 
   if (!(get_max_num_type(args, &max_type)))
-    return ENC_SYM(symrepr_terror());
+    return enc_sym(symrepr_terror());
 
   uint32_t n = length(args);
 
-  if (n < 1) return ENC_SYM(symrepr_eerror());
+  if (n < 1) return enc_sym(symrepr_eerror());
 
   // A negation
   if (n == 1) {
     switch (max_type) {
 
     case VAL_TYPE_I28:
-      i_res = -DEC_I28(car(args));
-      return ENC_I28(i_res);
+      i_res = -dec_i28(car(args));
+      return enc_i28(i_res);
 
     case VAL_TYPE_U28:
-      u_res = -DEC_U28(car(args));
-      return ENC_U28(u_res);
+      u_res = -dec_u28(car(args));
+      return enc_u28(u_res);
 
     case PTR_TYPE_I32:
       i_res = -(int32_t)car(car(args));
-      enc = cons(i_res, ENC_SYM(SPECIAL_SYM_I32));
-      if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+      enc = cons(i_res, enc_sym(SPECIAL_SYM_I32));
+      if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
 	return enc;
-      enc = SET_PTR_TYPE(enc,PTR_TYPE_I32);
+      enc = set_ptr_type(enc,PTR_TYPE_I32);
       return enc;
 
     case PTR_TYPE_U32:
       u_res = -car(car(args));
-      enc = cons(u_res, ENC_SYM(SPECIAL_SYM_U32));
-      if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+      enc = cons(u_res, enc_sym(SPECIAL_SYM_U32));
+      if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
 	return enc;
-      enc = SET_PTR_TYPE(enc,PTR_TYPE_U32);
+      enc = set_ptr_type(enc,PTR_TYPE_U32);
       return enc;
 
     case PTR_TYPE_F32:
@@ -303,10 +303,10 @@ uint32_t bi_fun_sub(uint32_t args) {
       memcpy(&f_res, &enc, sizeof(float));
       f_res = - f_res;
       memcpy(&tmp, &f_res, sizeof(uint32_t));
-      enc = cons(tmp,ENC_SYM(SPECIAL_SYM_F));
-      if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+      enc = cons(tmp,enc_sym(SPECIAL_SYM_F));
+      if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
 	return enc;
-      enc = SET_PTR_TYPE(enc, PTR_TYPE_F32);
+      enc = set_ptr_type(enc, PTR_TYPE_F32);
     return enc;
       break;
     }
@@ -319,63 +319,63 @@ uint32_t bi_fun_sub(uint32_t args) {
   case VAL_TYPE_I28:
     get_as_int(v, &i_res);
 
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+    while(type_of(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
       int32_t r;
       get_as_int(v,&r);
       i_res -= r;
       curr = cdr(curr);
     }
-    return ENC_I28(i_res);
+    return enc_i28(i_res);
 
   case VAL_TYPE_U28:
     get_as_uint(v, &u_res);
 
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+    while(type_of(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
       uint32_t r;
       get_as_uint(v,&r);
       u_res -= r;
       curr = cdr(curr);
     }
-    return ENC_U28(u_res);
+    return enc_u28(u_res);
 
   case PTR_TYPE_I32:
     get_as_int(v, &i_res);
 
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+    while(type_of(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
       int32_t r;
       get_as_int(v, &r);
       i_res -= r;
       curr = cdr(curr);
     }
-    enc = cons(i_res, ENC_SYM(SPECIAL_SYM_I32));
-    if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+    enc = cons(i_res, enc_sym(SPECIAL_SYM_I32));
+    if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
       return enc;
-    enc = SET_PTR_TYPE(enc,PTR_TYPE_I32);
+    enc = set_ptr_type(enc,PTR_TYPE_I32);
     return enc;
 
   case PTR_TYPE_U32:
     get_as_uint(v, &u_res);
 
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+    while(type_of(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
       uint32_t r;
       get_as_uint(v, &r);
       u_res -= r;
       curr = cdr(curr);
     }
-    enc = cons(u_res, ENC_SYM(SPECIAL_SYM_U32));
-    if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+    enc = cons(u_res, enc_sym(SPECIAL_SYM_U32));
+    if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
       return enc;
-    enc = SET_PTR_TYPE(enc,PTR_TYPE_U32);
+    enc = set_ptr_type(enc,PTR_TYPE_U32);
     return enc;
 
   case PTR_TYPE_F32:
     get_as_float(v, &f_res);
 
-    while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+    while(type_of(curr) == PTR_TYPE_CONS) {
       uint32_t v = car(curr);
       float r;
       get_as_float(v, &r);
@@ -384,14 +384,14 @@ uint32_t bi_fun_sub(uint32_t args) {
     }
     //tmp = *(uint32_t*)&f_res;
     memcpy(&tmp, &f_res, sizeof(uint32_t));
-    enc = cons(tmp,ENC_SYM(SPECIAL_SYM_F));
-    if (TYPE_OF(enc) == VAL_TYPE_SYMBOL) // an error
+    enc = cons(tmp,enc_sym(SPECIAL_SYM_F));
+    if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
       return enc;
-    enc = SET_PTR_TYPE(enc, PTR_TYPE_F32);
+    enc = set_ptr_type(enc, PTR_TYPE_F32);
     return enc;
   }
 
-  return ENC_SYM(symrepr_eerror());
+  return enc_sym(symrepr_eerror());
 }
 
 
@@ -402,38 +402,38 @@ uint32_t bi_fun_gt(uint32_t args) {
   uint32_t u1, u2;
   float f1, f2;
 
-  uint32_t max_type = (TYPE_OF(a1) >= TYPE_OF(a2)) ? TYPE_OF(a1) : TYPE_OF(a2);
+  uint32_t max_type = (type_of(a1) >= type_of(a2)) ? type_of(a1) : type_of(a2);
 
   switch (max_type) {
 
   case VAL_TYPE_I28:
     get_as_int(a1, &i1);
     get_as_int(a2, &i2);
-    if (i1 > i2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (i1 > i2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case VAL_TYPE_U28:
     get_as_uint(a1, &u1);
     get_as_uint(a2, &u2);
-    if (u1 > u2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (u1 > u2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case PTR_TYPE_I32:
     get_as_int(a1, &i1);
     get_as_int(a2, &i2);
-    if (i1 > i2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (i1 > i2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case PTR_TYPE_U32:
     get_as_uint(a1, &u1);
     get_as_uint(a2, &u2);
-    if (u1 > u2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (u1 > u2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case PTR_TYPE_F32:
     get_as_float(a1, &f1);
     get_as_float(a2, &f2);
-    if (f1 > f2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (f1 > f2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   }
 
-  return ENC_SYM(symrepr_eerror());
+  return enc_sym(symrepr_eerror());
 }
 
 uint32_t bi_fun_lt(uint32_t args) {
@@ -443,38 +443,38 @@ uint32_t bi_fun_lt(uint32_t args) {
   uint32_t u1, u2;
   float f1, f2;
 
-  uint32_t max_type = (TYPE_OF(a1) >= TYPE_OF(a2)) ? TYPE_OF(a1) : TYPE_OF(a2);
+  uint32_t max_type = (type_of(a1) >= type_of(a2)) ? type_of(a1) : type_of(a2);
 
   switch (max_type) {
 
   case VAL_TYPE_I28:
     get_as_int(a1, &i1);
     get_as_int(a2, &i2);
-    if (i1 < i2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (i1 < i2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case VAL_TYPE_U28:
     get_as_uint(a1, &u1);
     get_as_uint(a2, &u2);
-    if (u1 < u2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (u1 < u2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case PTR_TYPE_I32:
     get_as_int(a1, &i1);
     get_as_int(a2, &i2);
-    if (i1 < i2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (i1 < i2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case PTR_TYPE_U32:
     get_as_uint(a1, &u1);
     get_as_uint(a2, &u2);
-    if (u1 < u2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (u1 < u2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case PTR_TYPE_F32:
     get_as_float(a1, &f1);
     get_as_float(a2, &f2);
-    if (f1 < f2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (f1 < f2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   }
 
-  return ENC_SYM(symrepr_eerror());
+  return enc_sym(symrepr_eerror());
 }
 
 uint32_t bi_fun_num_eq(uint32_t args) {
@@ -484,59 +484,59 @@ uint32_t bi_fun_num_eq(uint32_t args) {
   uint32_t u1, u2;
   float f1, f2;
 
-  uint32_t max_type = (TYPE_OF(a1) >= TYPE_OF(a2)) ? TYPE_OF(a1) : TYPE_OF(a2);
+  uint32_t max_type = (type_of(a1) >= type_of(a2)) ? type_of(a1) : type_of(a2);
 
   switch (max_type) {
 
   case VAL_TYPE_I28:
     get_as_int(a1, &i1);
     get_as_int(a2, &i2);
-    if (i1 == i2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (i1 == i2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case VAL_TYPE_U28:
     get_as_uint(a1, &u1);
     get_as_uint(a2, &u2);
-    if (u1 == u2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (u1 == u2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case PTR_TYPE_I32:
     get_as_int(a1, &i1);
     get_as_int(a2, &i2);
-    if (i1 == i2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (i1 == i2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case PTR_TYPE_U32:
     get_as_uint(a1, &u1);
     get_as_uint(a2, &u2);
-    if (u1 == u2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (u1 == u2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   case PTR_TYPE_F32:
     get_as_float(a1, &f1);
     get_as_float(a2, &f2);
-    if (f1 == f2) return ENC_SYM(symrepr_true());
-    else return ENC_SYM(symrepr_nil());
+    if (f1 == f2) return enc_sym(symrepr_true());
+    else return enc_sym(symrepr_nil());
   }
 
-  return ENC_SYM(symrepr_eerror());
+  return enc_sym(symrepr_eerror());
 }
 
 int structural_equality(uint32_t a, uint32_t b) {
 
-  if (!IS_PTR(a) && !IS_PTR(b)) {
-    if (VAL_TYPE(a) == VAL_TYPE(b)){
-      switch (VAL_TYPE(a)) {
+  if (!is_ptr(a) && !is_ptr(b)) {
+    if (val_type(a) == val_type(b)){
+      switch (val_type(a)) {
       case VAL_TYPE_SYMBOL:
-	if (DEC_SYM(a) == DEC_SYM(b)) return 1;
+	if (dec_sym(a) == dec_sym(b)) return 1;
         else return 0;
 	break;
       case VAL_TYPE_I28:
-	if (DEC_I28(a) == DEC_I28(b)) return 1;
+	if (dec_i28(a) == dec_i28(b)) return 1;
 	else return 0;
 	break;
       case VAL_TYPE_U28:
-	if (DEC_U28(a) == DEC_U28(b)) return 1;
+	if (dec_u28(a) == dec_u28(b)) return 1;
 	else return 0;
 	break;
       case VAL_TYPE_CHAR:
-	if (DEC_CHAR(a) == DEC_CHAR(b)) return 1;
+	if (dec_char(a) == dec_char(b)) return 1;
 	else return 0;
 	break;
       default:
@@ -548,30 +548,30 @@ int structural_equality(uint32_t a, uint32_t b) {
     }
   }
 
-  if (IS_PTR(a) && IS_PTR(b)) {
-    if (PTR_TYPE(a) == PTR_TYPE(b)) {
-      if ( PTR_TYPE(a) == PTR_TYPE_CONS ) {
+  if (is_ptr(a) && is_ptr(b)) {
+    if (ptr_type(a) == ptr_type(b)) {
+      if ( ptr_type(a) == PTR_TYPE_CONS ) {
 	int car_eq = structural_equality(car(a),car(b));
 	int cdr_eq = structural_equality(cdr(a),cdr(b));
 	if ( car_eq && cdr_eq ) return 1;
 	else return 0;
       }
 
-      if (PTR_TYPE(a) == PTR_TYPE_I32){
+      if (ptr_type(a) == PTR_TYPE_I32){
 	int32_t ai = (int32_t)car(a);
 	int32_t bi = (int32_t)car(b);
 	  if (ai == bi) return 1;
 	  else return 0;
       }
 
-      if (PTR_TYPE(a) == PTR_TYPE_U32){
+      if (ptr_type(a) == PTR_TYPE_U32){
 	uint32_t au = car(a);
 	uint32_t bu = car(b);
 	  if (au == bu) return 1;
 	  else return 0;
       }
 
-      if (PTR_TYPE(a) == PTR_TYPE_F32) {
+      if (ptr_type(a) == PTR_TYPE_F32) {
 	float af = car(a);
 	float bf = car(b);
 	  if (af == bf) return 1;
@@ -590,7 +590,7 @@ uint32_t bi_fun_eq(uint32_t args) {
   uint32_t a1 = car(args);
   uint32_t a2 = car(cdr(args));
 
-  return( structural_equality(a1, a2) ? ENC_SYM(symrepr_true()) : ENC_SYM(symrepr_nil()) );
+  return( structural_equality(a1, a2) ? enc_sym(symrepr_true()) : enc_sym(symrepr_nil()) );
 }
 
 uint32_t bi_fun_gensym(uint32_t args) {
@@ -599,25 +599,25 @@ uint32_t bi_fun_gensym(uint32_t args) {
   uint32_t gs;
   int res = gensym(&gs);
 
-  if (res) return ENC_SYM(gs);
-  return ENC_SYM(symrepr_eerror());
+  if (res) return enc_sym(gs);
+  return enc_sym(symrepr_eerror());
 }
 
 uint32_t bi_fun_list(uint32_t args) {
-  uint32_t t = ENC_SYM(symrepr_nil());
-  uint32_t list = ENC_SYM(symrepr_nil());
+  uint32_t t = enc_sym(symrepr_nil());
+  uint32_t list = enc_sym(symrepr_nil());
   uint32_t curr = args;
-  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+  while (is_ptr(curr) && ptr_type(curr) == PTR_TYPE_CONS) {
     t = cons(car(curr),t);
-    if (TYPE_OF(t) == VAL_TYPE_SYMBOL) // an error
+    if (type_of(t) == VAL_TYPE_SYMBOL) // an error
       return t;
 
     curr = cdr(curr);
   }
   curr = t;
-  while (IS_PTR(curr) && PTR_TYPE(curr) == PTR_TYPE_CONS) {
+  while (is_ptr(curr) && ptr_type(curr) == PTR_TYPE_CONS) {
     list = cons(car(curr),list);
-    if (TYPE_OF(list) == VAL_TYPE_SYMBOL) // an error
+    if (type_of(list) == VAL_TYPE_SYMBOL) // an error
       return list; 
 
     curr = cdr(curr);
@@ -634,13 +634,13 @@ uint32_t bi_fun_array_read(uint32_t args) {
 
   // Get array index
   int32_t ix;
-  uint32_t res = ENC_SYM(symrepr_eerror());
-  switch (TYPE_OF(index)) {
+  uint32_t res = enc_sym(symrepr_eerror());
+  switch (type_of(index)) {
   case VAL_TYPE_U28:
-    ix = (int32_t)DEC_U28(index);
+    ix = (int32_t)dec_u28(index);
     break;
   case VAL_TYPE_I28:
-    ix = (int32_t)DEC_I28(index);
+    ix = (int32_t)dec_i28(index);
     break;
   case PTR_TYPE_U32:
     ix = (int32_t)car(index);
@@ -649,45 +649,45 @@ uint32_t bi_fun_array_read(uint32_t args) {
     ix = (int32_t)car(index);
     break;
   default:
-    return ENC_SYM(symrepr_nil());
+    return enc_sym(symrepr_nil());
   }
 
-  if (TYPE_OF(arr) == PTR_TYPE_ARRAY) {
+  if (type_of(arr) == PTR_TYPE_ARRAY) {
     array_t *array = (array_t*)car(arr);
 
-    if (ix < 0 || ix >= array->size) return ENC_SYM(symrepr_nil());
+    if (ix < 0 || ix >= array->size) return enc_sym(symrepr_nil());
 
     switch(array->elt_type) {
     case VAL_TYPE_CHAR:
-      res = ENC_CHAR((uint32_t) array->data.c[ix]);
+      res = enc_char((uint32_t) array->data.c[ix]);
       break;
     case VAL_TYPE_U28:
-      res = ENC_U28(array->data.u32[ix]);
+      res = enc_u28(array->data.u32[ix]);
       break;
     case VAL_TYPE_I28:
-      res = ENC_I28(array->data.i32[ix]);
+      res = enc_i28(array->data.i32[ix]);
       break;
     case PTR_TYPE_U32:
-      res = cons(array->data.u32[ix], ENC_SYM(SPECIAL_SYM_U32));
-      if (TYPE_OF(res) == VAL_TYPE_SYMBOL) // an error
+      res = cons(array->data.u32[ix], enc_sym(SPECIAL_SYM_U32));
+      if (type_of(res) == VAL_TYPE_SYMBOL) // an error
 	return res;
-      res = SET_PTR_TYPE(res, PTR_TYPE_U32);
+      res = set_ptr_type(res, PTR_TYPE_U32);
       break;
     case PTR_TYPE_I32:
-      res = cons(array->data.i32[ix], ENC_SYM(SPECIAL_SYM_I32));
-      if (TYPE_OF(res) == VAL_TYPE_SYMBOL) // an error
+      res = cons(array->data.i32[ix], enc_sym(SPECIAL_SYM_I32));
+      if (type_of(res) == VAL_TYPE_SYMBOL) // an error
 	return res;
-      res = SET_PTR_TYPE(res, PTR_TYPE_I32);
+      res = set_ptr_type(res, PTR_TYPE_I32);
       break;
     case PTR_TYPE_F32:
-      res = cons(array->data.f[ix], ENC_SYM(SPECIAL_SYM_F));
-      if (TYPE_OF(res) == VAL_TYPE_SYMBOL) // an error
+      res = cons(array->data.f[ix], enc_sym(SPECIAL_SYM_F));
+      if (type_of(res) == VAL_TYPE_SYMBOL) // an error
 	return res;
-      res = SET_PTR_TYPE(res, PTR_TYPE_F32);
+      res = set_ptr_type(res, PTR_TYPE_F32);
       break;
     default:
       printf("unknown type!\n");
-      return ENC_SYM(symrepr_eerror());
+      return enc_sym(symrepr_eerror());
     }
   }
   return res;
@@ -702,12 +702,12 @@ uint32_t bi_fun_array_write(uint32_t args) {
   float v;
   // Get array index
   int32_t ix;
-  switch (TYPE_OF(index)) {
+  switch (type_of(index)) {
   case VAL_TYPE_U28:
-    ix = (int32_t)DEC_U28(index);
+    ix = (int32_t)dec_u28(index);
     break;
   case VAL_TYPE_I28:
-    ix = (int32_t)DEC_I28(index);
+    ix = (int32_t)dec_i28(index);
     break;
   case PTR_TYPE_U32:
     ix = (int32_t)car(index);
@@ -716,23 +716,23 @@ uint32_t bi_fun_array_write(uint32_t args) {
     ix = (int32_t)car(index);
     break;
   default:
-    return ENC_SYM(symrepr_nil());
+    return enc_sym(symrepr_nil());
   }
 
-  if (TYPE_OF(arr) == PTR_TYPE_ARRAY) {
+  if (type_of(arr) == PTR_TYPE_ARRAY) {
     array_t *array = (array_t*)car(arr);
-    if (TYPE_OF(val) != array->elt_type) return ENC_SYM(symrepr_nil());
-    if (ix < 0 || ix >= array->size) return ENC_SYM(symrepr_nil());
+    if (type_of(val) != array->elt_type) return enc_sym(symrepr_nil());
+    if (ix < 0 || ix >= array->size) return enc_sym(symrepr_nil());
 
     switch(array->elt_type) {
     case VAL_TYPE_CHAR:
-      array->data.c[ix] = DEC_CHAR(val);
+      array->data.c[ix] = dec_char(val);
       break;
     case VAL_TYPE_U28:
-      array->data.u32[ix] = DEC_U28(val);
+      array->data.u32[ix] = dec_u28(val);
       break;
     case VAL_TYPE_I28:
-      array->data.i32[ix] = DEC_I28(val);
+      array->data.i32[ix] = dec_i28(val);
       break;
     case PTR_TYPE_U32:
       array->data.u32[ix] = car(val);
@@ -747,10 +747,10 @@ uint32_t bi_fun_array_write(uint32_t args) {
       break;
     default:
       printf("unknown type!\n");
-      return ENC_SYM(symrepr_eerror());
+      return enc_sym(symrepr_eerror());
     }
   }
-  return ENC_SYM(symrepr_true());
+  return enc_sym(symrepr_true());
 }
 
 
@@ -824,12 +824,12 @@ uint32_t built_in_gen_env(void) {
 
   builtin_function_t* curr = function_list;
 
-  uint32_t env = ENC_SYM(symrepr_nil());
+  uint32_t env = enc_sym(symrepr_nil());
 
   while (curr) {
-    uint32_t sym = ENC_SYM(curr->sym);
+    uint32_t sym = enc_sym(curr->sym);
     env = cons(cons(sym,sym),env);
-    if (TYPE_OF(env) == VAL_TYPE_SYMBOL) // an error
+    if (type_of(env) == VAL_TYPE_SYMBOL) // an error
       return env;
     curr = curr->next;
   }

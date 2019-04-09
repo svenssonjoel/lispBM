@@ -26,17 +26,17 @@
 // The new "copy" will have pointers to the original key-val bindings.
 int env_copy_shallow(uint32_t env, uint32_t *cpy) {
 
-  uint32_t res = ENC_SYM(symrepr_nil());
+  uint32_t res = enc_sym(symrepr_nil());
   uint32_t curr = env;
   
-  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
+  while (type_of(curr) == PTR_TYPE_CONS) {
     uint32_t key = car(car(curr));
-    if (DEC_SYM(key) != symrepr_nil()) {
+    if (dec_sym(key) != symrepr_nil()) {
       res = cons(car(curr), res);
 
       // Check for "out of memory"
-      if (TYPE_OF(res) == VAL_TYPE_SYMBOL &&
-	  DEC_SYM(res) == symrepr_nil()) {
+      if (type_of(res) == VAL_TYPE_SYMBOL &&
+	  dec_sym(res) == symrepr_nil()) {
 	return 0;
       }			      
     }
@@ -49,12 +49,12 @@ int env_copy_shallow(uint32_t env, uint32_t *cpy) {
 int env_lookup(uint32_t sym, uint32_t env, uint32_t *res) {
   uint32_t curr = env;
   
-  if(DEC_SYM(sym) == symrepr_nil()) {
-    *res = ENC_SYM(symrepr_nil());
+  if(dec_sym(sym) == symrepr_nil()) {
+    *res = enc_sym(symrepr_nil());
     return 1;
   }
     
-  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
+  while (type_of(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == sym) {
       *res = cdr(car(curr));
       return 1;
@@ -69,7 +69,7 @@ int env_modify_binding(uint32_t env, uint32_t key, uint32_t val) {
 
   uint32_t curr = env;
 
-  while (TYPE_OF(curr) == PTR_TYPE_CONS) {   
+  while (type_of(curr) == PTR_TYPE_CONS) {   
     if (car(car(curr)) == key) {
       set_cdr(car(curr), val); 
       return 1; 
@@ -96,17 +96,17 @@ int env_build_params_args(uint32_t params,
   }
   
   uint32_t env = env0;
-  while (TYPE_OF(curr_param) == PTR_TYPE_CONS) {
+  while (type_of(curr_param) == PTR_TYPE_CONS) {
 
     uint32_t entry = cons(car(curr_param), car(curr_arg));
-    if (TYPE_OF(entry) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(entry) == symrepr_merror())
+    if (type_of(entry) == VAL_TYPE_SYMBOL &&
+	dec_sym(entry) == symrepr_merror())
       return 0; 
 
     env = cons(entry,env);
     
-    if (TYPE_OF(env) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(env) == symrepr_merror())
+    if (type_of(env) == VAL_TYPE_SYMBOL &&
+	dec_sym(env) == symrepr_merror())
       return 0; 
     
     curr_param = cdr(curr_param);

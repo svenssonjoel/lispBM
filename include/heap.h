@@ -259,26 +259,6 @@ inline uint32_t dec_sym(uint32_t x) {
 /* #define DEC_CHAR(X) ((char)((int32_t)(X) >> VAL_SHIFT)) */
 /* #define DEC_SYM(X)  ((uint32_t)((uint32_t)(X) >> VAL_SHIFT)) */
 
-#define VAL_TYPE(X) val_type(X)
-#define PTR_TYPE(X) ptr_type(X)
-#define TYPE_OF(X)  type_of(X)
-
-#define IS_PTR(X)   is_ptr(X)
-
-#define ENC_CONS_PTR(X)   enc_cons_ptr(X)
-#define DEC_PTR(X)        dec_ptr(X)
-#define SET_PTR_TYPE(X,T) set_ptr_type((X),(T))
-
-#define ENC_I28(X)  enc_i28(X)
-#define ENC_U28(X)  enc_u28(X)
-#define ENC_CHAR(X) enc_char(X)
-#define ENC_SYM(X)  enc_sym(X)
-
-#define DEC_I28(X)  dec_i28(X)
-#define DEC_U28(X)  dec_u28(X)
-#define DEC_CHAR(X) dec_char(X)
-#define DEC_SYM(X)  dec_sym(X)
-
 typedef struct {
   uint32_t car;
   uint32_t cdr;

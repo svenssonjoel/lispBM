@@ -136,7 +136,7 @@ int main()
 
 			t = eval_program(t);
 
-			if (DEC_SYM(t) == symrepr_eerror()) {
+			if (dec_sym(t) == symrepr_eerror()) {
 				printf("%s\n", eval_get_error());
 			} else {
 				printf("> "); simple_print(t); printf("\n");

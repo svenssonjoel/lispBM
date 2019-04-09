@@ -63,15 +63,15 @@ int eval_cps_es_init() {
   
   //res = builtin_add_function("eval",eval_cps_bi);
 
-  eval_cps_es_global_env = ENC_SYM(symrepr_nil());
+  eval_cps_es_global_env = enc_sym(symrepr_nil());
 
   eval_cps_es_global_env = built_in_gen_env();
 
-  uint32_t nil_entry = cons(ENC_SYM(symrepr_nil()), ENC_SYM(symrepr_nil()));
+  uint32_t nil_entry = cons(enc_sym(symrepr_nil()), enc_sym(symrepr_nil()));
   eval_cps_es_global_env = cons(nil_entry, eval_cps_es_global_env);
 
-  if (TYPE_OF(nil_entry) == VAL_TYPE_SYMBOL ||
-      TYPE_OF(eval_cps_es_global_env) == VAL_TYPE_SYMBOL) res = 0;
+  if (type_of(nil_entry) == VAL_TYPE_SYMBOL ||
+      type_of(eval_cps_es_global_env) == VAL_TYPE_SYMBOL) res = 0;
 
   return res;
 }
@@ -90,13 +90,13 @@ uint32_t done(uint32_t args) {
 uint32_t eval_cps_es(void) { 
 
   int ret = 0;
-  uint32_t tmp = ENC_SYM(symrepr_eerror());
+  uint32_t tmp = enc_sym(symrepr_eerror());
   
   while (1) {
     uint32_t exp = current_context->exp;
     uint32_t env = current_context->env;
     
-    switch(TYPE_OF(exp)){
+    switch(type_of(exp)){
 
     case VAL_TYPE_SYMBOL:
       ret = env_lookup(exp,env, &tmp);
@@ -156,29 +156,29 @@ uint32_t set_global_env(uint32_t val){
   uint32_t key;
   pop_u32(K,&key);
 
-  while(TYPE_OF(curr) == PTR_TYPE_CONS) {
+  while(type_of(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == key) {
       set_cdr(car(curr),val);
 
-      return  ENC_SYM(symrepr_true());
+      return  enc_sym(symrepr_true());
     }
     curr = cdr(curr);
   }
   uint32_t keyval = cons(key,val);
 
   // check if cons was unsuccessful
-  if (TYPE_OF(keyval) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(keyval) == symrepr_merror()) {
+  if (type_of(keyval) == VAL_TYPE_SYMBOL &&
+      dec_sym(keyval) == symrepr_merror()) {
     // Abort computation and perform GC.
     longjmp(rewind_buf, PERFORM_GC);
   }
   global_env = cons(keyval,global_env);
-  if (TYPE_OF(global_env) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(global_env) == symrepr_merror()) {
+  if (type_of(global_env) == VAL_TYPE_SYMBOL &&
+      dec_sym(global_env) == symrepr_merror()) {
     longjmp(rewind_buf, PERFORM_GC);
   }
 
-  return ENC_SYM(symrepr_true());
+  return enc_sym(symrepr_true());
 }
 
 
@@ -193,22 +193,22 @@ uint32_t function_app(uint32_t args) {
   //printf("\n");
 
 
-  if (TYPE_OF(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
+  if (type_of(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
     args_rev = reverse(args);
 
-    if (TYPE_OF(args_rev) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(args_rev) == symrepr_merror()) {
+    if (type_of(args_rev) == VAL_TYPE_SYMBOL &&
+	dec_sym(args_rev) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
   } else {
     args_rev = args;
   }
 
-  uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(fun));
+  uint32_t (*f)(uint32_t) = builtin_lookup_function(dec_sym(fun));
 
   if (f == NULL) {
     //printf("Built in function does not exist");
-    return ENC_SYM(symrepr_eerror());
+    return enc_sym(symrepr_eerror());
   }
   uint32_t f_res = f(args_rev);
   push_u32(K, f_res);
@@ -225,10 +225,10 @@ uint32_t closure_app(uint32_t args) {
   //simple_print(args);
   //printf("\n");
 
-  if (TYPE_OF(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
+  if (type_of(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
     args_rev = reverse(args);
-    if (TYPE_OF(args) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(args) == symrepr_merror()) {
+    if (type_of(args) == VAL_TYPE_SYMBOL &&
+	dec_sym(args) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
   } else {
@@ -260,12 +260,12 @@ uint32_t eval_rest(uint32_t head) {
   pop_u32(K, &acc);
   pop_u32(K, &env);
 
-  if (TYPE_OF(rest) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(rest) == symrepr_nil()) {
+  if (type_of(rest) == VAL_TYPE_SYMBOL &&
+      dec_sym(rest) == symrepr_nil()) {
 
     uint32_t args = cons(head, acc);
-    if (TYPE_OF(args) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(args) == symrepr_merror()) {
+    if (type_of(args) == VAL_TYPE_SYMBOL &&
+	dec_sym(args) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
     push_u32(K, args);
@@ -273,8 +273,8 @@ uint32_t eval_rest(uint32_t head) {
   }
 
   acc = cons(head, acc);
-  if (TYPE_OF(acc) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(acc) == symrepr_merror()) {
+  if (type_of(acc) == VAL_TYPE_SYMBOL &&
+      dec_sym(acc) == symrepr_merror()) {
     longjmp(rewind_buf, PERFORM_GC);
   }
 
@@ -299,17 +299,17 @@ uint32_t function_cont(uint32_t fun) {
   uint32_t head = car(fun_args);
 
   push_u32(K,fun);
-  if ( TYPE_OF(fun) == PTR_TYPE_CONS &&
-       DEC_SYM(car(fun)) == symrepr_closure()) {
+  if ( type_of(fun) == PTR_TYPE_CONS &&
+       dec_sym(car(fun)) == symrepr_closure()) {
     push_k(K,closure_app);
   } else {
     push_k(K,function_app);
   }
   // If args are a list with at least one element, process the elements
-  if (TYPE_OF(fun_args) == PTR_TYPE_CONS &&
+  if (type_of(fun_args) == PTR_TYPE_CONS &&
       length(fun_args) >= 1) {
     push_u32(K,env);
-    push_u32(K,ENC_SYM(symrepr_nil()));
+    push_u32(K,enc_sym(symrepr_nil()));
     push_u32(K,cdr(fun_args));
     push_k(K, eval_rest);
 
@@ -318,7 +318,7 @@ uint32_t function_cont(uint32_t fun) {
     longjmp(rewind_buf, EVAL_CONTINUE);
   }
   // otherwise the arguments are an empty list (or something bad happened)
-  push_u32(K, ENC_SYM(symrepr_nil()));
+  push_u32(K, enc_sym(symrepr_nil()));
   apply_continuation(K);
   // unreachable
 }
@@ -335,7 +335,7 @@ uint32_t bind_to_key_rest(uint32_t val) {
 
   env_modify_binding(env, key, val);
 
-  if ( TYPE_OF(rest) == PTR_TYPE_CONS ){
+  if ( type_of(rest) == PTR_TYPE_CONS ){
     uint32_t keyn = car(car(rest));
     uint32_t valn_exp = car(cdr(car(rest)));
 
@@ -363,19 +363,19 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
   uint32_t curr = binds;
   uint32_t new_env = orig_env;
 
-  if (TYPE_OF(binds) != PTR_TYPE_CONS) return ENC_SYM(symrepr_eerror());
+  if (type_of(binds) != PTR_TYPE_CONS) return enc_sym(symrepr_eerror());
 
-  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
+  while (type_of(curr) == PTR_TYPE_CONS) {
     uint32_t key = car(car(curr));
-    uint32_t val = ENC_SYM(symrepr_nil()); // a temporary
+    uint32_t val = enc_sym(symrepr_nil()); // a temporary
     uint32_t binding = cons(key,val);
-    if (TYPE_OF(binding) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(binding) == symrepr_merror()) {
+    if (type_of(binding) == VAL_TYPE_SYMBOL &&
+	dec_sym(binding) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
     new_env = cons(binding, new_env);
-    if (TYPE_OF(new_env) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(new_env) == symrepr_merror()) {
+    if (type_of(new_env) == VAL_TYPE_SYMBOL &&
+	dec_sym(new_env) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
     curr = cdr(curr);
@@ -404,8 +404,8 @@ uint32_t if_cont(uint32_t cond) {
   pop_u32(K, &then_branch);
   pop_u32(K, &else_branch);
 
-  if (TYPE_OF(cond) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(cond) == symrepr_true()) {
+  if (type_of(cond) == VAL_TYPE_SYMBOL &&
+      dec_sym(cond) == symrepr_true()) {
     curr_exp = then_branch;
     //curr_env = curr_env;
     longjmp(rewind_buf,EVAL_CONTINUE);
@@ -418,12 +418,12 @@ uint32_t if_cont(uint32_t cond) {
 
 uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
-  uint32_t tmp = ENC_SYM(symrepr_eerror());
+  uint32_t tmp = enc_sym(symrepr_eerror());
   int ret = 0;
   uint32_t head;
 
   //printf("eval_cps\n");
-  switch (TYPE_OF(lisp)) {
+  switch (type_of(lisp)) {
 
   case VAL_TYPE_SYMBOL:
     ret = env_lookup(lisp, env, &tmp);
@@ -434,7 +434,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
       push_u32(K, tmp);
       return apply_continuation(K);
     }
-    return ENC_SYM(symrepr_eerror());
+    return enc_sym(symrepr_eerror());
 
   case PTR_TYPE_F32:
   case PTR_TYPE_U32:
@@ -449,29 +449,29 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
   case PTR_TYPE_REF:
   case PTR_TYPE_STREAM:
-    return ENC_SYM(symrepr_eerror());
+    return enc_sym(symrepr_eerror());
     break;
 
   case PTR_TYPE_CONS:
     head = car(lisp);
 
-    if (TYPE_OF(head) == VAL_TYPE_SYMBOL) {
+    if (type_of(head) == VAL_TYPE_SYMBOL) {
 
       // Special form: QUOTE
-      if (DEC_SYM(head) == symrepr_quote()) {
+      if (dec_sym(head) == symrepr_quote()) {
 	uint32_t val =  car(cdr(lisp));
 	push_u32(K, val);
 	return apply_continuation(K);
       }
 
       // Special form: DEFINE
-      if (DEC_SYM(head) == symrepr_define()) {
+      if (dec_sym(head) == symrepr_define()) {
 	uint32_t key = car(cdr(lisp));
 	uint32_t val_exp = car(cdr(cdr(lisp)));
 
-	if (TYPE_OF(key) != VAL_TYPE_SYMBOL ||
-	    DEC_SYM(key) == symrepr_nil()) {
-	  return ENC_SYM(symrepr_eerror());
+	if (type_of(key) != VAL_TYPE_SYMBOL ||
+	    dec_sym(key) == symrepr_nil()) {
+	  return enc_sym(symrepr_eerror());
 	}
 
 	push_u32(K, key);
@@ -483,31 +483,31 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
       }
 
       // Special form: LAMBDA
-      if (DEC_SYM(head) == symrepr_lambda()) {
+      if (dec_sym(head) == symrepr_lambda()) {
 	uint32_t env_cpy;
 	if (!env_copy_shallow(env,&env_cpy))
 	  longjmp(rewind_buf, PERFORM_GC);
 
 	//printf("Making closure\n");
 
-	uint32_t env_end = cons(env_cpy,ENC_SYM(symrepr_nil()));
+	uint32_t env_end = cons(env_cpy,enc_sym(symrepr_nil()));
 	uint32_t body    = cons(car(cdr(cdr(lisp))), env_end);
 	uint32_t params  = cons(car(cdr(lisp)), body);
-	uint32_t clos    = cons(ENC_SYM(symrepr_closure()), params);
+	uint32_t clos    = cons(enc_sym(symrepr_closure()), params);
 
-	if (TYPE_OF(env_end) == VAL_TYPE_SYMBOL ||
-	    TYPE_OF(body)    == VAL_TYPE_SYMBOL ||
-	    TYPE_OF(params)  == VAL_TYPE_SYMBOL ||
-	    TYPE_OF(clos)    == VAL_TYPE_SYMBOL) {
+	if (type_of(env_end) == VAL_TYPE_SYMBOL ||
+	    type_of(body)    == VAL_TYPE_SYMBOL ||
+	    type_of(params)  == VAL_TYPE_SYMBOL ||
+	    type_of(clos)    == VAL_TYPE_SYMBOL) {
 	  longjmp(rewind_buf, PERFORM_GC);
 	}
 	uint32_t closure = clos;
-	/* uint32_t closure = cons(ENC_SYM(symrepr_closure()), */
+	/* uint32_t closure = cons(enc_sym(symrepr_closure()), */
 	/* 			cons(car(cdr(lisp)), */
 	/* 			     cons(car(cdr(cdr(lisp))), */
-	/* 				  cons(env_cpy, ENC_SYM(symrepr_nil()))))); */
-	//if (TYPE_OF(closure) == VAL_TYPE_SYMBOL &&
-	//    DEC_SYM(closure) == symrepr_merror()) {
+	/* 				  cons(env_cpy, enc_sym(symrepr_nil()))))); */
+	//if (type_of(closure) == VAL_TYPE_SYMBOL &&
+	//    dec_sym(closure) == symrepr_merror()) {
 	//  longjmp(rewind_buf, PERFORM_GC);
 	//}
 
@@ -516,7 +516,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
       }
 
       // Special form: IF
-      if (DEC_SYM(head) == symrepr_if()) {
+      if (dec_sym(head) == symrepr_if()) {
 
 	push_u32(K,car(cdr(cdr(cdr(lisp))))); // else branch
 	push_u32(K,car(cdr(cdr(lisp)))); // Then branch
@@ -529,7 +529,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
       }
 
       // Special form: LET
-      if (DEC_SYM(head) == symrepr_let()) {
+      if (dec_sym(head) == symrepr_let()) {
 	uint32_t orig_env = env;
 	uint32_t binds   = car(cdr(lisp)); // key value pairs.
 	uint32_t exp     = car(cdr(cdr(lisp))); // exp to evaluate in the new env.
@@ -551,7 +551,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
   default:
     // BUG No applicable case!
-    return ENC_SYM(symrepr_eerror());
+    return enc_sym(symrepr_eerror());
     break;
   }
 }
@@ -614,12 +614,12 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
 uint32_t eval_cps_program(uint32_t lisp) {
 
   uint32_t curr = lisp;
-  uint32_t res = ENC_SYM(symrepr_nil());
+  uint32_t res = enc_sym(symrepr_nil());
 
-  while (TYPE_OF(curr) == PTR_TYPE_CONS) {
-    uint32_t val = run_eval(lisp, car(curr),ENC_SYM(symrepr_nil()));
+  while (type_of(curr) == PTR_TYPE_CONS) {
+    uint32_t val = run_eval(lisp, car(curr),enc_sym(symrepr_nil()));
     res = cons(val,res);
-    if (TYPE_OF(res) == VAL_TYPE_SYMBOL) {
+    if (type_of(res) == VAL_TYPE_SYMBOL) {
       //simple_print(val); printf("\n");
       //simple_print(res); printf("\n");
       printf("ERROR: Memory full\n");

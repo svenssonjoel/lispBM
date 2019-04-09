@@ -40,12 +40,12 @@ uint32_t read_ast(mpc_ast_t *t){
     uint32_t symbol_id;
 
     if (symrepr_lookup(t->contents, &symbol_id)) {
-      return ENC_SYM(symbol_id);
+      return enc_sym(symbol_id);
     }
     else if (symrepr_addsym(t->contents,&symbol_id)) {
-      return ENC_SYM(symbol_id);
+      return enc_sym(symbol_id);
     } else {
-      return ENC_SYM(rerror);
+      return enc_sym(rerror);
     }
   }
 
@@ -60,7 +60,7 @@ uint32_t read_ast(mpc_ast_t *t){
       memcpy(array_ptr->data.c, t->contents + 1, (len - 1) * sizeof(char));
       return res;
     }
-    return ENC_SYM(rerror);
+    return enc_sym(rerror);
   }
     
 
@@ -68,11 +68,11 @@ uint32_t read_ast(mpc_ast_t *t){
     unsigned int len = strlen(t->contents);
     if (len == 3) {
       char v = (uint32_t)(t->contents[2]);
-      return ENC_CHAR(v);
+      return enc_char(v);
     } else if (len > 3 && strstr(t->contents, "newline")) {
-      return ENC_CHAR('\n');
+      return enc_char('\n');
     } else {
-      return ENC_SYM(rerror);
+      return enc_sym(rerror);
     }
   }
 
@@ -83,48 +83,48 @@ uint32_t read_ast(mpc_ast_t *t){
 	t->contents[1] == 'x' ) {
       uint32_t v = (uint32_t)xtou(t->contents);
       if (strlen(t->contents) == 10) { // Boxed 32 bit uint
-	uint32_t ptr_cons = cons(v,ENC_SYM(SPECIAL_SYM_U32));
-	uint32_t ptr_uint_box = SET_PTR_TYPE(ptr_cons, PTR_TYPE_U32);
+	uint32_t ptr_cons = cons(v,enc_sym(SPECIAL_SYM_U32));
+	uint32_t ptr_uint_box = set_ptr_type(ptr_cons, PTR_TYPE_U32);
 	return ptr_uint_box;
       } else {
-	return ENC_U28(v);
+	return enc_u28(v);
       }
     }
 
     if (t->contents[strlen(t->contents)-1] == 'U') {
       uint32_t v = (uint32_t)strtoul(t->contents,NULL,10);
-      uint32_t ptr_cons = cons(v, ENC_SYM(SPECIAL_SYM_U32));
-      return SET_PTR_TYPE(ptr_cons, PTR_TYPE_U32);
+      uint32_t ptr_cons = cons(v, enc_sym(SPECIAL_SYM_U32));
+      return set_ptr_type(ptr_cons, PTR_TYPE_U32);
     }
 
     if (t->contents[strlen(t->contents)-1] == 'I') {
       uint32_t v = (uint32_t)atoi(t->contents);
-      uint32_t ptr_cons = cons(v, ENC_SYM(SPECIAL_SYM_I32));
-      return SET_PTR_TYPE(ptr_cons, PTR_TYPE_I32);
+      uint32_t ptr_cons = cons(v, enc_sym(SPECIAL_SYM_I32));
+      return set_ptr_type(ptr_cons, PTR_TYPE_I32);
     }
 
     if (t->contents[strlen(t->contents)-1] == 'u') {
       uint32_t v = (uint32_t)atoi(t->contents);
-      return ENC_U28(v);
+      return enc_u28(v);
     }
 
     int32_t v = (int32_t)atoi(t->contents);
-    return ENC_I28(v);
+    return enc_i28(v);
   }
 
   if (strstr(t->tag, "float")) {
     float v = (float)atof(t->contents);
     uint32_t uv;
     memcpy(&uv, &v, sizeof(uint32_t)); // = *(uint32_t*)(&v);
-    uint32_t ptr_cons = cons(uv,ENC_SYM(SPECIAL_SYM_F)); // Boxed value.
-    uint32_t ptr_float_box = SET_PTR_TYPE(ptr_cons, PTR_TYPE_F32);
+    uint32_t ptr_cons = cons(uv,enc_sym(SPECIAL_SYM_F)); // Boxed value.
+    uint32_t ptr_float_box = set_ptr_type(ptr_cons, PTR_TYPE_F32);
     return ptr_float_box;
   }
 
   // Program case
   if (strcmp(t->tag, ">") == 0) {
     int n = t->children_num;
-    uint32_t res = ENC_SYM(nil);
+    uint32_t res = enc_sym(nil);
 
     for (int i = n - 1; i >= 0; i --) {
       if (strcmp(t->children[i]->tag, "regex") == 0) { continue; }
@@ -139,7 +139,7 @@ uint32_t read_ast(mpc_ast_t *t){
   // Read SExpr
   if (strstr(t->tag, "sexp")) {
     int n = t->children_num;
-    uint32_t res = ENC_SYM(nil);
+    uint32_t res = enc_sym(nil);
 
     if (t->children_num == 5 &&
 	strcmp(t->children[0]->contents, "(") == 0 &&
@@ -167,16 +167,16 @@ uint32_t read_ast(mpc_ast_t *t){
   // Read QExpr
   if (strstr(t->tag, "qexp")) {
     int n = t->children_num;
-    uint32_t res = ENC_SYM(nil);
+    uint32_t res = enc_sym(nil);
 
     if (n != 2) {
       return res;
     }
 
     uint32_t r = read_ast(t->children[1]);
-    res = cons(ENC_SYM(quote), cons(r, res));
+    res = cons(enc_sym(quote), cons(r, res));
 
     return res;
   }
-  return ENC_SYM(nil);
+  return enc_sym(nil);
 }

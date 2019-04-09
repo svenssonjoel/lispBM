@@ -129,7 +129,7 @@ uint32_t cont_set_global_env(uint32_t val){
     if (car(car(curr)) == key) {
       set_cdr(car(curr),val);
 
-      return ENC_SYM(symrepr_true());
+      return enc_sym(symrepr_true());
     }
     curr = cdr(curr);
   }
@@ -137,18 +137,18 @@ uint32_t cont_set_global_env(uint32_t val){
 
   // check if cons was unsuccessful
   if (type_of(keyval) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(keyval) == symrepr_merror()) {
+      dec_sym(keyval) == symrepr_merror()) {
     // Abort computation and perform GC.
     longjmp(rewind_buf, PERFORM_GC);
   }
   tmp = cons(keyval,eval_cps_global_env);
   if (type_of(tmp) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(tmp) == symrepr_merror()) {
+      dec_sym(tmp) == symrepr_merror()) {
     longjmp(rewind_buf, PERFORM_GC);
   }
 
   eval_cps_global_env = tmp;
-  return ENC_SYM(symrepr_true());
+  return enc_sym(symrepr_true());
 }
 
 
@@ -162,17 +162,17 @@ uint32_t cont_function_app(uint32_t args) {
     args_rev = reverse(args);
     
     if (type_of(args_rev) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(args_rev) == symrepr_merror()) {
+	dec_sym(args_rev) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
   } else {
     args_rev = args;
   }
 
-  uint32_t (*f)(uint32_t) = builtin_lookup_function(DEC_SYM(fun));
+  uint32_t (*f)(uint32_t) = builtin_lookup_function(dec_sym(fun));
 
   if (f == NULL) {
-    return ENC_SYM(symrepr_eerror());
+    return enc_sym(symrepr_eerror());
   }
   uint32_t f_res = f(args_rev);
   push_u32(K, f_res);
@@ -188,7 +188,7 @@ uint32_t cont_closure_app(uint32_t args) {
   if (type_of(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
     args_rev = reverse(args);
     if (type_of(args_rev) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(args_rev) == symrepr_merror()) {
+	dec_sym(args_rev) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
   } else {
@@ -220,11 +220,11 @@ uint32_t cont_eval_rest(uint32_t head) {
   pop_u32(K, &env);
 
   if (type_of(rest) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(rest) == symrepr_nil()) {
+      dec_sym(rest) == symrepr_nil()) {
 
     uint32_t args = cons(head, acc);
     if (type_of(args) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(args) == symrepr_merror()) {
+	dec_sym(args) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
     push_u32(K, args);
@@ -233,14 +233,14 @@ uint32_t cont_eval_rest(uint32_t head) {
 
   acc = cons(head, acc);
   if (type_of(acc) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(acc) == symrepr_merror()) {
+      dec_sym(acc) == symrepr_merror()) {
     longjmp(rewind_buf, PERFORM_GC);
   }
 
   push_u32(K, env);
   push_u32(K, acc);
   push_u32(K, cdr(rest));
-  push_u32(K, ENC_U28(EVAL_REST));
+  push_u32(K, enc_u28(EVAL_REST));
 
   curr_exp = car(rest);
   curr_env = env;
@@ -259,25 +259,25 @@ uint32_t cont_function(uint32_t fun) {
 
   push_u32(K,fun);
   if ( type_of(fun) == PTR_TYPE_CONS &&
-       DEC_SYM(car(fun)) == symrepr_closure()) {
-    push_u32(K, ENC_U28(CLOSURE_APP));
+       dec_sym(car(fun)) == symrepr_closure()) {
+    push_u32(K, enc_u28(CLOSURE_APP));
   } else {
-    push_u32(K, ENC_U28(FUNCTION_APP));
+    push_u32(K, enc_u28(FUNCTION_APP));
   }
   // If args are a list with at least one element, process the elements
   if (type_of(fun_args) == PTR_TYPE_CONS &&
       length(fun_args) >= 1) {
     push_u32(K,env);
-    push_u32(K,ENC_SYM(symrepr_nil()));
+    push_u32(K,enc_sym(symrepr_nil()));
     push_u32(K,cdr(fun_args));
-    push_u32(K, ENC_U28(EVAL_REST));
+    push_u32(K, enc_u28(EVAL_REST));
 
     curr_exp = head;
     curr_env = env;
     longjmp(rewind_buf, EVAL_CONTINUE);
   }
   // otherwise the arguments are an empty list (or something bad happened)
-  push_u32(K, ENC_SYM(symrepr_nil()));
+  push_u32(K, enc_sym(symrepr_nil()));
   return apply_continuation(K);
 }
 
@@ -301,7 +301,7 @@ uint32_t cont_bind_to_key_rest(uint32_t val) {
     push_u32(K,cdr(rest));
     push_u32(K,env);
     push_u32(K,keyn);
-    push_u32(K, ENC_U28(BIND_TO_KEY_REST));
+    push_u32(K, enc_u28(BIND_TO_KEY_REST));
 
     curr_exp = valn_exp;
     curr_env = env;
@@ -326,7 +326,7 @@ uint32_t cont_if(uint32_t cond) {
   pop_u32(K, &else_branch);
 
   if (type_of(cond) == VAL_TYPE_SYMBOL &&
-      DEC_SYM(cond) == symrepr_true()) {
+      dec_sym(cond) == symrepr_true()) {
     curr_exp = then_branch;
     //curr_env = curr_env;
     longjmp(rewind_buf,EVAL_CONTINUE);
@@ -339,7 +339,7 @@ uint32_t cont_if(uint32_t cond) {
 
 uint32_t dispatch_continuation(uint32_t ix, uint32_t args) {
 
-  switch(DEC_U28(ix)) {
+  switch(dec_u28(ix)) {
   case DONE:
     return cont_done(args);
     break;
@@ -378,20 +378,20 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
   uint32_t new_env = orig_env;
 
   if (type_of(binds) != PTR_TYPE_CONS) {
-    return ENC_SYM(symrepr_eerror());
+    return enc_sym(symrepr_eerror());
   }
 
   while (type_of(curr) == PTR_TYPE_CONS) {
     uint32_t key = car(car(curr));
-    uint32_t val = ENC_SYM(symrepr_nil()); // a temporary
+    uint32_t val = enc_sym(symrepr_nil()); // a temporary
     uint32_t binding = cons(key,val);
     if (type_of(binding) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(binding) == symrepr_merror()) {
+	dec_sym(binding) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
     new_env = cons(binding, new_env);
     if (type_of(new_env) == VAL_TYPE_SYMBOL &&
-	DEC_SYM(new_env) == symrepr_merror()) {
+	dec_sym(new_env) == symrepr_merror()) {
       longjmp(rewind_buf, PERFORM_GC);
     }
     curr = cdr(curr);
@@ -404,7 +404,7 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
   push_u32(K,cdr(binds));
   push_u32(K,new_env);
   push_u32(K,key0);
-  push_u32(K, ENC_U28(BIND_TO_KEY_REST));
+  push_u32(K, enc_u28(BIND_TO_KEY_REST));
 
   curr_exp = val0_exp;
   curr_env = new_env;  // env annotated with temporaries
@@ -417,14 +417,14 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
 uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
   uint32_t head;
-  uint32_t value = ENC_SYM(symrepr_eerror());
+  uint32_t value = enc_sym(symrepr_eerror());
 
   switch (type_of(lisp)) {
 
   case VAL_TYPE_SYMBOL:
     if (!env_lookup(lisp, env, &value)) {
       if (!env_lookup(lisp, eval_cps_global_env, &value)){
-	return ENC_SYM(symrepr_eerror());
+	return enc_sym(symrepr_eerror());
       }
     }
     push_u32(K, value);
@@ -442,7 +442,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
   case PTR_TYPE_REF:
   case PTR_TYPE_STREAM:
-    return ENC_SYM(symrepr_eerror());
+    return enc_sym(symrepr_eerror());
     break;
 
   case PTR_TYPE_CONS:
@@ -451,24 +451,24 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
     if (type_of(head) == VAL_TYPE_SYMBOL) {
 
       // Special form: QUOTE
-      if (DEC_SYM(head) == symrepr_quote()) {
+      if (dec_sym(head) == symrepr_quote()) {
 	value =  car(cdr(lisp));
 	push_u32(K, value);
 	return apply_continuation(K);
       }
 
       // Special form: DEFINE
-      if (DEC_SYM(head) == symrepr_define()) {
+      if (dec_sym(head) == symrepr_define()) {
 	uint32_t key = car(cdr(lisp));
 	uint32_t val_exp = car(cdr(cdr(lisp)));
 
 	if (type_of(key) != VAL_TYPE_SYMBOL ||
-	    DEC_SYM(key) == symrepr_nil()) {
-	  return ENC_SYM(symrepr_eerror());
+	    dec_sym(key) == symrepr_nil()) {
+	  return enc_sym(symrepr_eerror());
 	}
 
 	push_u32(K, key);
-	push_u32(K, ENC_U28(SET_GLOBAL_ENV));
+	push_u32(K, enc_u28(SET_GLOBAL_ENV));
 
 	curr_exp = val_exp;
 	curr_env = env;
@@ -476,16 +476,16 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
       }
 
       // Special form: LAMBDA
-      if (DEC_SYM(head) == symrepr_lambda()) {
+      if (dec_sym(head) == symrepr_lambda()) {
 	uint32_t env_cpy;
 	if (!env_copy_shallow(env,&env_cpy)) {
 	    longjmp(rewind_buf, PERFORM_GC);
 	  }
 
-	uint32_t env_end = cons(env_cpy,ENC_SYM(symrepr_nil()));
+	uint32_t env_end = cons(env_cpy,enc_sym(symrepr_nil()));
 	uint32_t body    = cons(car(cdr(cdr(lisp))), env_end);
 	uint32_t params  = cons(car(cdr(lisp)), body);
-	uint32_t closure = cons(ENC_SYM(symrepr_closure()), params);
+	uint32_t closure = cons(enc_sym(symrepr_closure()), params);
 
 	if (type_of(env_end) == VAL_TYPE_SYMBOL ||
 	    type_of(body)    == VAL_TYPE_SYMBOL ||
@@ -499,11 +499,11 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
       }
 
       // Special form: IF
-      if (DEC_SYM(head) == symrepr_if()) {
+      if (dec_sym(head) == symrepr_if()) {
 
 	push_u32(K,car(cdr(cdr(cdr(lisp))))); // else branch
 	push_u32(K,car(cdr(cdr(lisp)))); // Then branch
-	push_u32(K, ENC_U28(IF));
+	push_u32(K, enc_u28(IF));
 
 	curr_exp = car(cdr(lisp)); // condition
 	curr_env = curr_env;
@@ -512,7 +512,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
       }
 
       // Special form: LET
-      if (DEC_SYM(head) == symrepr_let()) {
+      if (dec_sym(head) == symrepr_let()) {
 	uint32_t orig_env = env;
 	uint32_t binds   = car(cdr(lisp)); // key value pairs.
 	uint32_t exp     = car(cdr(cdr(lisp))); // exp to evaluate in the new env.
@@ -524,7 +524,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
     // Possibly an application form:
     push_u32(K, curr_env);  // The environment each element should be evaluated in 
     push_u32(K, cdr(lisp)); // list of arguments that needs to be evaluated.
-    push_u32(K, ENC_U28(FUNCTION));
+    push_u32(K, enc_u28(FUNCTION));
 
     curr_exp = head;
     curr_env = curr_env;
@@ -532,7 +532,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
   default:
     // BUG No applicable case!
-    return ENC_SYM(symrepr_eerror());
+    return enc_sym(symrepr_eerror());
     break;
   }
 }
@@ -540,8 +540,8 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
 uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
 
-  push_u32(K, ENC_U28(DONE));
-  push_u32(K_save, ENC_U28(DONE));
+  push_u32(K, enc_u28(DONE));
+  push_u32(K_save, enc_u28(DONE));
 
   curr_exp = lisp;
   curr_env = env;
@@ -574,9 +574,9 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
   }
 
   if (type_of(r) == VAL_TYPE_SYMBOL &&
-      (DEC_SYM(r) == symrepr_eerror() ||
-       DEC_SYM(r) == symrepr_merror() ||
-       DEC_SYM(r) == symrepr_terror())) {
+      (dec_sym(r) == symrepr_eerror() ||
+       dec_sym(r) == symrepr_merror() ||
+       dec_sym(r) == symrepr_terror())) {
     clear_stack(K);
     clear_stack(K_save);
   }
@@ -586,8 +586,8 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
 
 uint32_t eval_cps_program(uint32_t lisp) {
 
-  uint32_t res = ENC_SYM(symrepr_nil());
-  uint32_t local_env = ENC_SYM(symrepr_nil());
+  uint32_t res = enc_sym(symrepr_nil());
+  uint32_t local_env = enc_sym(symrepr_nil());
   uint32_t curr = lisp;
 
   while (type_of(curr) == PTR_TYPE_CONS) {
@@ -606,11 +606,11 @@ int eval_cps_init() {
 
   int res = builtin_add_function("eval",eval_cps_bi);
 
-  eval_cps_global_env = ENC_SYM(symrepr_nil());
+  eval_cps_global_env = enc_sym(symrepr_nil());
 
   eval_cps_global_env = built_in_gen_env();
 
-  uint32_t nil_entry = cons(ENC_SYM(symrepr_nil()), ENC_SYM(symrepr_nil()));
+  uint32_t nil_entry = cons(enc_sym(symrepr_nil()), enc_sym(symrepr_nil()));
   eval_cps_global_env = cons(nil_entry, eval_cps_global_env);
 
   if (type_of(nil_entry) == VAL_TYPE_SYMBOL ||

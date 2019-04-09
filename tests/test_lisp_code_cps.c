@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
   
   printf("O: "); simple_print(t); printf("\n");
 
-  if ( DEC_SYM(t) == symrepr_eerror()) {
+  if ( dec_sym(t) == symrepr_eerror()) {
     res = 0;
   }
   
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
   //}
   
   
-  if (res && TYPE_OF(t) == VAL_TYPE_SYMBOL && DEC_SYM(t) == symrepr_true()){ // structural_equality(car(rest),car(cdr(rest)))) {
+  if (res && type_of(t) == VAL_TYPE_SYMBOL && dec_sym(t) == symrepr_true()){ // structural_equality(car(rest),car(cdr(rest)))) {
     printf("Test: OK!\n"); 
     res = 1;
   } else {
