@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     //printf("generated sym: 0x%x\n", ENC_SYM(gs));
     name = symrepr_lookup_name(gs);
     //printf("SYMBOL: %s\n",name);
-    symbol_id = atoi(&name[7]);
+    symbol_id = (uint32_t)atoi(&name[7]);
     //printf("SYMBOL ID: %d",symbol_id);
 
     res &= (symbol_id == gs);

@@ -24,4 +24,6 @@ clean:
 	rm *.exe
 	rm test_lisp_code
 	rm test_lisp_code_cps
+	rm test_lisp_code_mini_heap
 	rm test_lisp_code_cps_mini_heap
+

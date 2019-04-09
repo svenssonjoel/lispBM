@@ -46,10 +46,14 @@ int main(int argc, char **argv) {
   }
 
   fseek(fp, 0, SEEK_END); 
-  size_t size = ftell(fp); 
+  long size = ftell(fp);
+  if (size <= 0) {
+    printf("Error empty file %s\n", argv[1]);
+    return 0;
+  }
   fseek(fp, 0, SEEK_SET);
-  char *code_buffer = malloc(size * sizeof(char) + 1);
-  size_t r = fread (code_buffer, 1, size, fp);
+  char *code_buffer = malloc((unsigned long)size * sizeof(char) + 1);
+  size_t r = fread (code_buffer, 1, (unsigned int)size, fp);
 
   if (r == 0) {
     printf("Error empty file?\n");
@@ -72,7 +76,7 @@ int main(int argc, char **argv) {
     return 0;
   }
   
-  int heap_size = 1024;
+  unsigned int heap_size = 1024;
   res = heap_init(heap_size);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());

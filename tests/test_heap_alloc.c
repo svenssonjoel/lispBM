@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
 
   int res = 1;
 
-  int heap_size = 1024 * 1024; 
+  unsigned int heap_size = 1024 * 1024; 
   uint32_t cell;
 
   res = symrepr_init();
