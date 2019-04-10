@@ -19,13 +19,15 @@
 #define SYMTAB_H_
 
 #include <stdint.h> 
+#include <stdbool.h>
+
+#include "typedefs.h"
 
 // Special symbol ids
 #define SPECIAL_SYM_ARRAY 0x0001FFFF
 #define SPECIAL_SYM_I32   0x0002FFFF
 #define SPECIAL_SYM_U32   0x0003FFFF
 #define SPECIAL_SYM_F     0x0004FFFF
-
 
 extern int symrepr_addsym(char *, uint32_t*); 
 extern int symrepr_init(void);
@@ -50,4 +52,5 @@ extern uint32_t symrepr_eerror(void);
 extern uint32_t symrepr_merror(void);
 
 extern uint32_t symrepr_define(void); 
+
 #endif 

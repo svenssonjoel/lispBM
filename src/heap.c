@@ -287,7 +287,7 @@ int gc_mark_freelist() {
 
 int gc_mark_aux(uint32_t *aux_data, uint32_t aux_size) {
 
-  for (int i = 0; i < aux_size; i ++) {
+  for (uint32_t i = 0; i < aux_size; i ++) {
     if (is_ptr(aux_data[i])) {
 
       uint32_t pt_t = ptr_type(aux_data[i]);

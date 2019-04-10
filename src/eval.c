@@ -38,28 +38,30 @@
   }\
   } while(0)
 
-static uint32_t evlis(uint32_t ptcons, uint32_t env);
-static uint32_t apply(uint32_t closure, uint32_t args); 
-static uint32_t apply_builtin(uint32_t sym, uint32_t args); 
-static uint32_t eval_in_env(uint32_t, uint32_t); 
-static uint32_t eval_let_bindings(uint32_t, uint32_t);
+static val_t evlis(val_t ptcons, val_t env);
+static val_t apply(val_t closure, val_t args); 
+static val_t apply_builtin(val_t sym, val_t args); 
+static val_t eval_in_env(val_t lisp, val_t env); 
+static val_t eval_let_bindings(val_t bind_list, val_t env);
 
 static char eval_error_string[EVAL_ERROR_BUFFER_SIZE]; 
 
 static jmp_buf error_jmp_buffer;
 static jmp_buf *error_jmp_ptr = NULL; 
 
-static uint32_t eval_global_env;
+static val_t eval_global_env;
+
+static val_t NIL;
 
 char *eval_get_error() {
   return eval_error_string;
 }
 
-uint32_t eval_get_env(void) {
+val_t eval_get_env(void) {
   return eval_global_env;
 }
 
-uint32_t eval_bi(uint32_t lisp) {
+val_t eval_bi(val_t lisp) {
 
   if (!error_jmp_ptr) {
     error_jmp_ptr = &error_jmp_buffer;
@@ -70,33 +72,37 @@ uint32_t eval_bi(uint32_t lisp) {
     }
   }
   
-  return eval_in_env(car(lisp),enc_sym(symrepr_nil()));
+  return eval_in_env(car(lisp),NIL);
   
 }
 
 
 int eval_init() {
 
-  int res = 1;
-  res &= builtin_add_function("eval", eval_bi);
+  if (!builtin_add_function("eval", eval_bi)) return 0; 
  
   eval_global_env = built_in_gen_env();
+  if (type_of(eval_global_env) == VAL_TYPE_SYMBOL) return 0; 
 
-  uint32_t nil_entry = cons(enc_sym(symrepr_nil()), enc_sym(symrepr_nil()));
-  eval_global_env = cons(nil_entry, eval_global_env);
-
-  return res; 
+  NIL = enc_sym(symrepr_nil());
   
+  val_t nil_entry = cons(NIL,NIL);
+  if (type_of(nil_entry) == VAL_TYPE_SYMBOL) return 0;
+  
+  eval_global_env = cons(nil_entry, eval_global_env);
+  if (type_of(eval_global_env) == VAL_TYPE_SYMBOL) return 0;
+
+  return 1;  
 }
 
-uint32_t do_eval_program(uint32_t lisp) {
+val_t do_eval_program(val_t lisp) {
    
   // Program is a list of expressions that should be evaluated individually
   // The result of evaluating the last expression is the result of the program.
   
-  uint32_t res = enc_sym(symrepr_nil()); 
-  uint32_t local_env = enc_sym(symrepr_nil());
-  uint32_t curr = lisp;
+  val_t res = NIL; 
+  val_t local_env = NIL;
+  val_t curr = lisp;
   
   while ( type_of(curr) == PTR_TYPE_CONS) {
 
@@ -107,7 +113,7 @@ uint32_t do_eval_program(uint32_t lisp) {
   return res;
 }
 
-uint32_t eval_program(uint32_t lisp) {
+val_t eval_program(val_t lisp) {
 
   // Setup jmp buffer for breaking out of recursion on error.
   if (!error_jmp_ptr) {
@@ -165,7 +171,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 	return cons(enc_sym(symrepr_closure()),
 		    cons(car(cdr(lisp)),
 			 cons(car(cdr(cdr(lisp))),
-			      cons(env_cpy, enc_sym(symrepr_nil())))));
+			      cons(env_cpy, NIL))));
       }
 
       // Special form: IF
@@ -190,7 +196,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 	if (type_of(key) != VAL_TYPE_SYMBOL)
 	  ERROR("Define expects a symbol");
 
-	if (dec_sym(key) == symrepr_nil())
+	if (key == NIL)
 	  ERROR("Cannot redefine nil");
 
 	while(type_of(curr) == PTR_TYPE_CONS) {
@@ -272,8 +278,8 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
   }
 
   if (type_of(pcons) == VAL_TYPE_SYMBOL &&
-      dec_sym(pcons) == symrepr_nil()) {
-    return enc_sym(symrepr_nil());
+      pcons == NIL) {
+    return NIL;
   }
 
   ERROR("Evlis argument is not a list"); 
@@ -289,7 +295,7 @@ static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
   //setup the bindings
   while (type_of(curr) == PTR_TYPE_CONS) { 
     uint32_t key = car(car(curr));
-    uint32_t val = enc_sym(symrepr_nil()); // a temporary
+    uint32_t val = NIL; // a temporary
     uint32_t binding = cons(key,val);
     new_env = cons(binding, new_env); 
     curr = cdr(curr); 

@@ -135,6 +135,7 @@ int get_as_uint(uint32_t v, uint32_t *r) {
     break;
   case PTR_TYPE_I32:
     *r = (uint32_t)car(v);
+    break;
   case PTR_TYPE_U32:
     *r = car(v);
     break;
@@ -595,6 +596,8 @@ uint32_t bi_fun_eq(uint32_t args) {
 
 uint32_t bi_fun_gensym(uint32_t args) {
 
+  (void)args;
+  
   // Takes no arguments!
   uint32_t gs;
   int res = gensym(&gs);
@@ -633,20 +636,25 @@ uint32_t bi_fun_array_read(uint32_t args) {
   uint32_t index = car(cdr(args));
 
   // Get array index
-  int32_t ix;
+  uint32_t ix;
+  int32_t  tmp;
   uint32_t res = enc_sym(symrepr_eerror());
   switch (type_of(index)) {
   case VAL_TYPE_U28:
     ix = (int32_t)dec_u28(index);
     break;
   case VAL_TYPE_I28:
-    ix = (int32_t)dec_i28(index);
+    tmp = (int32_t)dec_i28(index);
+    if (tmp < 0) return enc_sym(symrepr_eerror());
+    ix = (uint32_t) tmp;
     break;
   case PTR_TYPE_U32:
     ix = (int32_t)car(index);
     break;
   case PTR_TYPE_I32:
-    ix = (int32_t)car(index);
+    tmp = (int32_t)car(index);
+    if (tmp < 0) return enc_sym(symrepr_eerror());
+    ix = (uint32_t) tmp;
     break;
   default:
     return enc_sym(symrepr_nil());
@@ -655,7 +663,7 @@ uint32_t bi_fun_array_read(uint32_t args) {
   if (type_of(arr) == PTR_TYPE_ARRAY) {
     array_t *array = (array_t*)car(arr);
 
-    if (ix < 0 || ix >= array->size) return enc_sym(symrepr_nil());
+    if (ix >= array->size) return enc_sym(symrepr_nil());
 
     switch(array->elt_type) {
     case VAL_TYPE_CHAR:
@@ -701,19 +709,24 @@ uint32_t bi_fun_array_write(uint32_t args) {
   uint32_t uv;
   float v;
   // Get array index
-  int32_t ix;
+  uint32_t ix;
+  int32_t tmp;
   switch (type_of(index)) {
   case VAL_TYPE_U28:
     ix = (int32_t)dec_u28(index);
     break;
   case VAL_TYPE_I28:
-    ix = (int32_t)dec_i28(index);
+    tmp = (int32_t)dec_i28(index);
+    if (tmp < 0) return enc_sym(symrepr_eerror());
+    ix = (uint32_t) tmp;
     break;
   case PTR_TYPE_U32:
     ix = (int32_t)car(index);
     break;
   case PTR_TYPE_I32:
-    ix = (int32_t)car(index);
+    tmp = (int32_t)car(index);
+    if (tmp < 0) return enc_sym(symrepr_eerror());
+    ix = (uint32_t) tmp;
     break;
   default:
     return enc_sym(symrepr_nil());
@@ -722,7 +735,7 @@ uint32_t bi_fun_array_write(uint32_t args) {
   if (type_of(arr) == PTR_TYPE_ARRAY) {
     array_t *array = (array_t*)car(arr);
     if (type_of(val) != array->elt_type) return enc_sym(symrepr_nil());
-    if (ix < 0 || ix >= array->size) return enc_sym(symrepr_nil());
+    if (ix >= array->size) return enc_sym(symrepr_nil());
 
     switch(array->elt_type) {
     case VAL_TYPE_CHAR:

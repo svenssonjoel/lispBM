@@ -79,7 +79,7 @@ int eval_cps_es_init() {
 // Experimentation area
 // ////////////////////////////////////////////////////////
 uint32_t done(uint32_t args) {
-  
+  (void)args;
   return 0; //placeholder
 }
 

@@ -195,47 +195,47 @@ inline bool is_ptr(val_t x) {
   return (x & PTR_MASK);
 }
 
-inline uint32_t enc_cons_ptr(uint32_t x) {
+inline val_t enc_cons_ptr(uint32_t x) {
   return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR);
 }
 
-inline uint32_t dec_ptr(uint32_t p) {
+inline uint32_t dec_ptr(val_t p) {
   return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
 }
 
-inline uint32_t set_ptr_type(uint32_t p, uint32_t t) {
+inline val_t set_ptr_type(val_t p, typ_t t) {
   return (PTR_VAL_MASK & p) | t | PTR;
 }
 
-inline uint32_t enc_i28(int32_t x) {
+inline val_t enc_i28(int32_t x) {
   return ((uint32_t)x << VAL_SHIFT) | VAL_TYPE_I28;
 }
 
-inline uint32_t enc_u28(uint32_t x) {
+inline val_t enc_u28(uint32_t x) {
   return (x << VAL_SHIFT) | VAL_TYPE_U28;
 }
 
-inline uint32_t enc_char(char x) {
+inline val_t enc_char(char x) {
   return ((uint32_t)x << VAL_SHIFT) | VAL_TYPE_CHAR;
 }
 
-inline uint32_t enc_sym(uint32_t s) {
+inline val_t enc_sym(uint32_t s) {
   return (s << VAL_SHIFT) | VAL_TYPE_SYMBOL;
 }
 
-inline int32_t dec_i28(uint32_t x) {
+inline int32_t dec_i28(val_t x) {
   return (int32_t)x >> VAL_SHIFT;
 }
 
-inline uint32_t dec_u28(uint32_t x) {
+inline uint32_t dec_u28(val_t x) {
   return x >> VAL_SHIFT;
 }
 
-inline char dec_char(uint32_t x) {
+inline char dec_char(val_t x) {
   return (char)(x >> VAL_SHIFT);
 }
 
-inline uint32_t dec_sym(uint32_t x) {
+inline uint32_t dec_sym(val_t x) {
   return x >> VAL_SHIFT;
 }
 

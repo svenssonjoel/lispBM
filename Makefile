@@ -1,7 +1,7 @@
 
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
-  CCFLAGS = -m32 -O2 -Wall -pedantic -std=c11
+  CCFLAGS = -m32 -O2 -Wall -Wextra -pedantic -std=c11
   #CCFLAGS += -DTINY_SYMTAB
 endif
 

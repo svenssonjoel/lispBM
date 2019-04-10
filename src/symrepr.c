@@ -529,9 +529,9 @@ uint32_t hash_string(char *str, uint32_t modulo) {
   uint32_t r = 1;
   size_t n = strlen(str);
 
-  for (int i = 0; i < n; i ++) {
+  for (uint32_t i = 0; i < n; i ++) {
     uint32_t sp = small_primes[i % SMALL_PRIMES];
-    unsigned int v = (unsigned int)str[i];
+    uint32_t v = (uint32_t)str[i];
     r = (r + (sp * v)) % modulo; 
   }
 

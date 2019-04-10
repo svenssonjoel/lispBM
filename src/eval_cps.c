@@ -32,39 +32,6 @@
 #include <string.h>
 #include <setjmp.h>
 
-/*
-   Attempt to implement an evaluator in continuation passing style:
-   (In spite of C not being very suitable for the task.)
-
-   - No idea if this will work..
-     # Seems to be. In the right direction at least.
-
-   - I hope this is possible without C being able to generate functions
-     on the fly (and without going all the way to some jit setup).
-     # Looks like I was very incorrect in thinking anything like that
-       would be needed.
-
-   - peeking a lot at: http://lisperator.net/pltut/cps-evaluator/stack-guard
-     during the implementation of this.
-     # I still dont understand what goes on there.
-
-   - Want to rewind the stack using setjmp longjmp.
-     #Probably not essential. Or maybe it is..
-
-   - Memory management will be real tricky since cannot rely on data on the stack.
-     # Instead created another stack to depend upon.
-
-   - Bah, this is too complicated and messy. Will try something new.
-
-   - TODO: Something causes a list (nil nil) as arg to closure or func
-           in a case where argument really should be just nil (at least this is my assumption). 
-           Should not be GC related as it occurs on fresh heap.
-	   It is also an error I introduced at some point while messing with
-	   "on-demand" GC.
-
-   - look at lispkit
-*/
-
 #define EVAL_CONTINUE     1
 #define PERFORM_GC        2
 
@@ -77,52 +44,54 @@
 #define BIND_TO_KEY_REST  7
 #define IF                8
 
-static uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env);
-static uint32_t dispatch_continuation(uint32_t ix, uint32_t args);
+#define CONTINUE_EVAL(EXP,ENV) (curr_exp = (EXP), curr_env = (ENV), longjmp(rewind_buf,EVAL_CONTINUE))
+#define GC_ON_ERROR(RES, ALLOCATION) ((RES) = (ALLOCATION), (type_of((RES)) == VAL_TYPE_SYMBOL && dec_sym((RES)) == symrepr_merror()) ? (longjmp(rewind_buf, PERFORM_GC), 0) : (RES))
+
+static val_t run_eval(val_t orig_prg, val_t lisp, val_t env);
+static val_t dispatch_continuation(val_t ix, val_t args);
 
 jmp_buf rewind_buf;
 
-static volatile uint32_t curr_exp;
-static volatile uint32_t curr_env;
+// Removed volatile qualifier on these. 
+static val_t curr_exp;
+static val_t curr_env;
+static val_t eval_cps_global_env;
 
-static volatile uint32_t eval_cps_global_env;
+static val_t NIL;
 
 stack *K; // Stack describes the current continuation.
 stack *K_save; // Stack save area for resume after gc.
 
-uint32_t eval_cps_get_env(void) {
+val_t eval_cps_get_env(void) {
   return eval_cps_global_env;
 }
 
-uint32_t eval_cps_bi(uint32_t lisp) {
-
-  curr_exp = car(lisp);
-  curr_env = curr_env;
-  longjmp(rewind_buf,EVAL_CONTINUE);
+val_t eval_cps_bi(val_t lisp) {
+  CONTINUE_EVAL(car(lisp),curr_env);
 }
 
 // ////////////////////////////////////////////////////////
 // Continuation points and apply cont
 // ////////////////////////////////////////////////////////
 
-uint32_t apply_continuation(stack *K){
+val_t apply_continuation(stack *K){
   
-  uint32_t k;
-  uint32_t args;
+  val_t k;
+  val_t args;
   pop_u32(K, &args);
   pop_u32(K, &k);
   return dispatch_continuation(k, args);
 }
 
-uint32_t cont_done(uint32_t arg) {
+val_t cont_done(val_t arg) {
   return arg;
 }
 
-uint32_t cont_set_global_env(uint32_t val){
+val_t cont_set_global_env(val_t val){
 
-  uint32_t curr = eval_cps_global_env;
-  uint32_t tmp;
-  uint32_t key;
+  val_t curr = eval_cps_global_env;
+  val_t tmp;
+  val_t key;
   pop_u32(K,&key);
 
   while(type_of(curr) == PTR_TYPE_CONS) {
@@ -133,129 +102,103 @@ uint32_t cont_set_global_env(uint32_t val){
     }
     curr = cdr(curr);
   }
-  uint32_t keyval = cons(key,val);
-
-  // check if cons was unsuccessful
-  if (type_of(keyval) == VAL_TYPE_SYMBOL &&
-      dec_sym(keyval) == symrepr_merror()) {
-    // Abort computation and perform GC.
-    longjmp(rewind_buf, PERFORM_GC);
-  }
-  tmp = cons(keyval,eval_cps_global_env);
-  if (type_of(tmp) == VAL_TYPE_SYMBOL &&
-      dec_sym(tmp) == symrepr_merror()) {
-    longjmp(rewind_buf, PERFORM_GC);
-  }
+  val_t keyval;
+  GC_ON_ERROR(keyval, cons(key,val));
+ 
+  GC_ON_ERROR(tmp, cons(keyval, eval_cps_global_env));
 
   eval_cps_global_env = tmp;
   return enc_sym(symrepr_true());
 }
 
 
-uint32_t cont_function_app(uint32_t args) {
+val_t cont_function_app(val_t args) {
 
-  uint32_t args_rev;
-  uint32_t fun;
+  val_t args_rev;
+  val_t fun;
   pop_u32(K, &fun);
 
   if (type_of(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
-    args_rev = reverse(args);
-    
-    if (type_of(args_rev) == VAL_TYPE_SYMBOL &&
-	dec_sym(args_rev) == symrepr_merror()) {
-      longjmp(rewind_buf, PERFORM_GC);
-    }
+    GC_ON_ERROR(args_rev, reverse(args));
   } else {
     args_rev = args;
   }
 
-  uint32_t (*f)(uint32_t) = builtin_lookup_function(dec_sym(fun));
+  val_t (*f)(val_t) = builtin_lookup_function(dec_sym(fun));
 
   if (f == NULL) {
     return enc_sym(symrepr_eerror());
   }
-  uint32_t f_res = f(args_rev);
+  val_t f_res = f(args_rev);
   push_u32(K, f_res);
   return apply_continuation(K);
 }
 
-uint32_t cont_closure_app(uint32_t args) {
+val_t cont_closure_app(val_t args) {
 
-  uint32_t args_rev;
-  uint32_t closure;
+  val_t args_rev;
+  val_t closure;
   pop_u32(K, &closure);
 
   if (type_of(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
-    args_rev = reverse(args);
-    if (type_of(args_rev) == VAL_TYPE_SYMBOL &&
-	dec_sym(args_rev) == symrepr_merror()) {
-      longjmp(rewind_buf, PERFORM_GC);
-    }
+    GC_ON_ERROR(args_rev, reverse(args));
   } else {
     args_rev = args;
   }
 
-  uint32_t params  = car(cdr(closure));
-  uint32_t exp     = car(cdr(cdr(closure)));
-  uint32_t clo_env = car(cdr(cdr(cdr(closure))));
+  val_t params  = car(cdr(closure));
+  val_t exp     = car(cdr(cdr(closure)));
+  val_t clo_env = car(cdr(cdr(cdr(closure))));
 
-  uint32_t local_env;
+  // TODO: env_build_params_args should follow the same interface as the rest.
+  //       Return symbol error on failure.
+  val_t local_env;
   if (!env_build_params_args(params, args_rev, clo_env, &local_env)) {
     longjmp(rewind_buf, PERFORM_GC);
   }
 
-  curr_exp = exp;
-  curr_env = local_env;
-  longjmp(rewind_buf, EVAL_CONTINUE);
+  CONTINUE_EVAL(exp,local_env);
 }
 
-uint32_t cont_eval_rest(uint32_t head) {
+val_t cont_eval_rest(val_t head) {
 
-  uint32_t rest;
-  uint32_t acc;
-  uint32_t env;
+  val_t rest;
+  val_t acc;
+  val_t env;
 
   pop_u32(K, &rest);
   pop_u32(K, &acc);
   pop_u32(K, &env);
 
   if (type_of(rest) == VAL_TYPE_SYMBOL &&
-      dec_sym(rest) == symrepr_nil()) {
+      rest == NIL) {
 
-    uint32_t args = cons(head, acc);
-    if (type_of(args) == VAL_TYPE_SYMBOL &&
-	dec_sym(args) == symrepr_merror()) {
-      longjmp(rewind_buf, PERFORM_GC);
-    }
+    val_t args;
+    GC_ON_ERROR(args, cons(head,acc));
+
     push_u32(K, args);
     return apply_continuation(K);
   }
 
-  acc = cons(head, acc);
-  if (type_of(acc) == VAL_TYPE_SYMBOL &&
-      dec_sym(acc) == symrepr_merror()) {
-    longjmp(rewind_buf, PERFORM_GC);
-  }
+  GC_ON_ERROR(acc, cons(head, acc));
 
   push_u32(K, env);
   push_u32(K, acc);
   push_u32(K, cdr(rest));
   push_u32(K, enc_u28(EVAL_REST));
 
-  curr_exp = car(rest);
-  curr_env = env;
-  longjmp(rewind_buf, EVAL_CONTINUE);
+  CONTINUE_EVAL(car(rest),env);
 }
 
 // Closure or built-in function
-uint32_t cont_function(uint32_t fun) {
+val_t cont_function(val_t fun) {
 
-  uint32_t fun_args;
-  uint32_t env;
+  val_t fun_args;
+  val_t env;
   pop_u32(K,&fun_args);
   pop_u32(K,&env);
 
-  uint32_t head = car(fun_args);
+  val_t head = car(fun_args);
 
   push_u32(K,fun);
   if ( type_of(fun) == PTR_TYPE_CONS &&
@@ -268,24 +211,22 @@ uint32_t cont_function(uint32_t fun) {
   if (type_of(fun_args) == PTR_TYPE_CONS &&
       length(fun_args) >= 1) {
     push_u32(K,env);
-    push_u32(K,enc_sym(symrepr_nil()));
+    push_u32(K,NIL);
     push_u32(K,cdr(fun_args));
     push_u32(K, enc_u28(EVAL_REST));
 
-    curr_exp = head;
-    curr_env = env;
-    longjmp(rewind_buf, EVAL_CONTINUE);
+    CONTINUE_EVAL(head,env);
   }
   // otherwise the arguments are an empty list (or something bad happened)
-  push_u32(K, enc_sym(symrepr_nil()));
+  push_u32(K, NIL);
   return apply_continuation(K);
 }
 
 
-uint32_t cont_bind_to_key_rest(uint32_t val) {
-  uint32_t key;
-  uint32_t env;
-  uint32_t rest;
+val_t cont_bind_to_key_rest(val_t val) {
+  val_t key;
+  val_t env;
+  val_t rest;
 
   pop_u32(K, &key);
   pop_u32(K, &env);
@@ -294,50 +235,41 @@ uint32_t cont_bind_to_key_rest(uint32_t val) {
   env_modify_binding(env, key, val);
 
   if ( type_of(rest) == PTR_TYPE_CONS ){
-    uint32_t keyn = car(car(rest));
-    uint32_t valn_exp = car(cdr(car(rest)));
-
+    val_t keyn = car(car(rest));
+    val_t valn_exp = car(cdr(car(rest)));
 
     push_u32(K,cdr(rest));
     push_u32(K,env);
     push_u32(K,keyn);
     push_u32(K, enc_u28(BIND_TO_KEY_REST));
 
-    curr_exp = valn_exp;
-    curr_env = env;
-    longjmp(rewind_buf, EVAL_CONTINUE);
+    CONTINUE_EVAL(valn_exp,env);
   }
 
   // Otherwise evaluate the expression in the populated env
-  uint32_t exp;
+  val_t exp;
   pop_u32(K, &exp);
-  curr_exp = exp;
-  curr_env = env;
-  longjmp(rewind_buf, EVAL_CONTINUE);
 
+  CONTINUE_EVAL(exp,env);
 }
 
-uint32_t cont_if(uint32_t cond) {
+val_t cont_if(val_t cond) {
 
-  uint32_t then_branch;
-  uint32_t else_branch;
+  val_t then_branch;
+  val_t else_branch;
 
   pop_u32(K, &then_branch);
   pop_u32(K, &else_branch);
 
   if (type_of(cond) == VAL_TYPE_SYMBOL &&
       dec_sym(cond) == symrepr_true()) {
-    curr_exp = then_branch;
-    //curr_env = curr_env;
-    longjmp(rewind_buf,EVAL_CONTINUE);
+    CONTINUE_EVAL(then_branch,curr_env);
   } else {
-    curr_exp = else_branch;
-    //curr_env = curr_env;
-    longjmp(rewind_buf,EVAL_CONTINUE);
+    CONTINUE_EVAL(else_branch,curr_env);
   }
 }
 
-uint32_t dispatch_continuation(uint32_t ix, uint32_t args) {
+val_t dispatch_continuation(val_t ix, val_t args) {
 
   switch(dec_u28(ix)) {
   case DONE:
@@ -365,40 +297,34 @@ uint32_t dispatch_continuation(uint32_t ix, uint32_t args) {
     return cont_if(args);
     break;
   }
-  printf("Critical error\n");
-  exit(0);
+  return enc_sym(symrepr_eerror());
 }
 
 // ////////////////////////////////////////////////////////
 // Broken out helpers 
 // ////////////////////////////////////////////////////////
 
-uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
-  uint32_t curr = binds;
-  uint32_t new_env = orig_env;
+val_t process_let(val_t binds, val_t orig_env, val_t exp) {
+  val_t curr = binds;
+  val_t new_env = orig_env;
 
   if (type_of(binds) != PTR_TYPE_CONS) {
     return enc_sym(symrepr_eerror());
   }
 
   while (type_of(curr) == PTR_TYPE_CONS) {
-    uint32_t key = car(car(curr));
-    uint32_t val = enc_sym(symrepr_nil()); // a temporary
-    uint32_t binding = cons(key,val);
-    if (type_of(binding) == VAL_TYPE_SYMBOL &&
-	dec_sym(binding) == symrepr_merror()) {
-      longjmp(rewind_buf, PERFORM_GC);
-    }
-    new_env = cons(binding, new_env);
-    if (type_of(new_env) == VAL_TYPE_SYMBOL &&
-	dec_sym(new_env) == symrepr_merror()) {
-      longjmp(rewind_buf, PERFORM_GC);
-    }
+    val_t key = car(car(curr));
+    val_t val = NIL; // a temporary
+    val_t binding; 
+    GC_ON_ERROR(binding, cons(key,val));
+
+    GC_ON_ERROR(new_env, cons(binding, new_env));
+
     curr = cdr(curr);
   }
 
-  uint32_t key0 = car(car(binds));
-  uint32_t val0_exp = car(cdr(car(binds)));
+  val_t key0 = car(car(binds));
+  val_t val0_exp = car(cdr(car(binds)));
 
   push_u32(K,exp); // exp to evaluate in new environment
   push_u32(K,cdr(binds));
@@ -406,18 +332,16 @@ uint32_t process_let(uint32_t binds, uint32_t orig_env, uint32_t exp) {
   push_u32(K,key0);
   push_u32(K, enc_u28(BIND_TO_KEY_REST));
 
-  curr_exp = val0_exp;
-  curr_env = new_env;  // env annotated with temporaries
-  longjmp(rewind_buf, EVAL_CONTINUE);
+  CONTINUE_EVAL(val0_exp,new_env);
 }
 
 // ////////////////////////////////////////////////////////
 // EVALUATION
 // ////////////////////////////////////////////////////////
-uint32_t eval_cps(uint32_t lisp, uint32_t env) {
+val_t eval_cps(val_t lisp, val_t env) {
 
-  uint32_t head;
-  uint32_t value = enc_sym(symrepr_eerror());
+  val_t head;
+  val_t value = enc_sym(symrepr_eerror());
 
   switch (type_of(lisp)) {
 
@@ -459,33 +383,31 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 
       // Special form: DEFINE
       if (dec_sym(head) == symrepr_define()) {
-	uint32_t key = car(cdr(lisp));
-	uint32_t val_exp = car(cdr(cdr(lisp)));
+	val_t key = car(cdr(lisp));
+	val_t val_exp = car(cdr(cdr(lisp)));
 
 	if (type_of(key) != VAL_TYPE_SYMBOL ||
-	    dec_sym(key) == symrepr_nil()) {
+	    key == NIL) {
 	  return enc_sym(symrepr_eerror());
 	}
 
 	push_u32(K, key);
 	push_u32(K, enc_u28(SET_GLOBAL_ENV));
 
-	curr_exp = val_exp;
-	curr_env = env;
-	longjmp(rewind_buf,EVAL_CONTINUE);
+	CONTINUE_EVAL(val_exp,env);
       }
 
       // Special form: LAMBDA
       if (dec_sym(head) == symrepr_lambda()) {
-	uint32_t env_cpy;
+	val_t env_cpy;
 	if (!env_copy_shallow(env,&env_cpy)) {
 	    longjmp(rewind_buf, PERFORM_GC);
 	  }
 
-	uint32_t env_end = cons(env_cpy,enc_sym(symrepr_nil()));
-	uint32_t body    = cons(car(cdr(cdr(lisp))), env_end);
-	uint32_t params  = cons(car(cdr(lisp)), body);
-	uint32_t closure = cons(enc_sym(symrepr_closure()), params);
+	val_t env_end = cons(env_cpy,NIL);
+	val_t body    = cons(car(cdr(cdr(lisp))), env_end);
+	val_t params  = cons(car(cdr(lisp)), body);
+	val_t closure = cons(enc_sym(symrepr_closure()), params);
 
 	if (type_of(env_end) == VAL_TYPE_SYMBOL ||
 	    type_of(body)    == VAL_TYPE_SYMBOL ||
@@ -505,30 +427,25 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 	push_u32(K,car(cdr(cdr(lisp)))); // Then branch
 	push_u32(K, enc_u28(IF));
 
-	curr_exp = car(cdr(lisp)); // condition
-	curr_env = curr_env;
-	longjmp(rewind_buf, EVAL_CONTINUE);
-
+	CONTINUE_EVAL(car(cdr(lisp)),curr_env);
       }
 
       // Special form: LET
       if (dec_sym(head) == symrepr_let()) {
-	uint32_t orig_env = env;
-	uint32_t binds   = car(cdr(lisp)); // key value pairs.
-	uint32_t exp     = car(cdr(cdr(lisp))); // exp to evaluate in the new env.
+	val_t orig_env = env;
+	val_t binds   = car(cdr(lisp)); // key value pairs.
+	val_t exp     = car(cdr(cdr(lisp))); // exp to evaluate in the new env.
 	// Setup the bindings
 	return process_let(binds, orig_env, exp);
       }
     } // If head is symbol
 
-    // Possibly an application form:
+    // Possibly a function application form:
     push_u32(K, curr_env);  // The environment each element should be evaluated in 
     push_u32(K, cdr(lisp)); // list of arguments that needs to be evaluated.
     push_u32(K, enc_u28(FUNCTION));
 
-    curr_exp = head;
-    curr_env = curr_env;
-    longjmp(rewind_buf, EVAL_CONTINUE);
+    CONTINUE_EVAL(head,curr_env);
 
   default:
     // BUG No applicable case!
@@ -538,7 +455,7 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
 }
 
 
-uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
+val_t run_eval(val_t orig_prg, val_t lisp, val_t env){
 
   push_u32(K, enc_u28(DONE));
   push_u32(K_save, enc_u28(DONE));
@@ -546,7 +463,7 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
   curr_exp = lisp;
   curr_env = env;
 
-  uint32_t r;
+  val_t r;
 
   int res = setjmp(rewind_buf);
 
@@ -584,11 +501,11 @@ uint32_t run_eval(uint32_t orig_prg, uint32_t lisp, uint32_t env){
   return r;
 }
 
-uint32_t eval_cps_program(uint32_t lisp) {
+val_t eval_cps_program(val_t lisp) {
 
-  uint32_t res = enc_sym(symrepr_nil());
-  uint32_t local_env = enc_sym(symrepr_nil());
-  uint32_t curr = lisp;
+  val_t res = NIL;
+  val_t local_env = NIL;
+  val_t curr = lisp;
 
   while (type_of(curr) == PTR_TYPE_CONS) {
     res =  run_eval(lisp, car(curr),local_env);
@@ -606,11 +523,13 @@ int eval_cps_init() {
 
   int res = builtin_add_function("eval",eval_cps_bi);
 
-  eval_cps_global_env = enc_sym(symrepr_nil());
+  NIL = enc_sym(symrepr_nil());
+  
+  eval_cps_global_env = NIL;
 
   eval_cps_global_env = built_in_gen_env();
 
-  uint32_t nil_entry = cons(enc_sym(symrepr_nil()), enc_sym(symrepr_nil()));
+  val_t nil_entry = cons(NIL, NIL);
   eval_cps_global_env = cons(nil_entry, eval_cps_global_env);
 
   if (type_of(nil_entry) == VAL_TYPE_SYMBOL ||
