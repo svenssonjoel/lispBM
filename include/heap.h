@@ -239,29 +239,9 @@ inline uint32_t dec_sym(val_t x) {
   return x >> VAL_SHIFT;
 }
 
-/* #define VAL_TYPE(X) ((X) & VAL_TYPE_MASK) */
-/* #define PTR_TYPE(X) ((X) & PTR_TYPE_MASK) */
-/* #define TYPE_OF(X)  (IS_PTR((X)) ? PTR_TYPE((X)) : VAL_TYPE((X))) */
-
-/* #define IS_PTR(X)   (((X) & PTR_MASK) == PTR) */
-
-/* #define ENC_CONS_PTR(X)   ((uint32_t)((((X) << ADDRESS_SHIFT)) | PTR_TYPE_CONS | PTR)) */
-/* #define DEC_PTR(X)        ((uint32_t)((PTR_VAL_MASK & (X)) >> ADDRESS_SHIFT)) */
-/* #define SET_PTR_TYPE(X,T) ((uint32_t)((PTR_VAL_MASK & (X)) | (T) | PTR)) */
-
-/* #define ENC_I28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_I28) */
-/* #define ENC_U28(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_U28) */
-/* #define ENC_CHAR(X) ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_CHAR) */
-/* #define ENC_SYM(X)  ((((uint32_t)(X)) << VAL_SHIFT) | VAL_TYPE_SYMBOL) */
-
-/* #define DEC_I28(X)  ((int32_t)((int32_t)(X) >> VAL_SHIFT)) */
-/* #define DEC_U28(X)  ((uint32_t)((uint32_t)(X) >> VAL_SHIFT)) */
-/* #define DEC_CHAR(X) ((char)((int32_t)(X) >> VAL_SHIFT)) */
-/* #define DEC_SYM(X)  ((uint32_t)((uint32_t)(X) >> VAL_SHIFT)) */
-
 typedef struct {
-  uint32_t car;
-  uint32_t cdr;
+  val_t car;
+  val_t cdr;
 } cons_t;
 
 typedef struct {
@@ -315,20 +295,20 @@ extern uint32_t heap_size();
 extern uint32_t heap_allocate_cell(uint32_t type);
 extern uint32_t heap_size_bytes(void);
 
-extern uint32_t cons(uint32_t car, uint32_t cdr);
-extern uint32_t car(uint32_t cons);
-extern uint32_t cdr(uint32_t cons);
-extern void set_car(uint32_t c, uint32_t v);
-extern void set_cdr(uint32_t c, uint32_t v);
-extern uint32_t length(uint32_t c);
-extern uint32_t reverse(uint32_t list);
+extern val_t cons(val_t car, val_t cdr);
+extern val_t car(val_t cons);
+extern val_t cdr(val_t cons);
+extern void set_car(val_t c, val_t v);
+extern void set_cdr(val_t c, val_t v);
+extern uint32_t length(val_t c);
+extern val_t reverse(val_t list);
 
 // State and statistics
 extern void heap_get_state(heap_state_t *);
 
 // Garbage collection
-extern int heap_perform_gc(uint32_t env);
-extern int heap_perform_gc_aux(uint32_t env, uint32_t env2, uint32_t exp, uint32_t exp2, uint32_t *aux_data, uint32_t aux_size);
+extern int heap_perform_gc(val_t env);
+extern int heap_perform_gc_aux(val_t env, val_t env2, val_t exp, val_t exp2, uint32_t *aux_data, uint32_t aux_size);
 
 
 // Array functionality

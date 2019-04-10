@@ -30,28 +30,28 @@ static cons_t*      heap = NULL;
 static uint32_t     heap_base;
 static heap_state_t heap_state;
 
-static uint32_t     SYMBOL_NIL;
+static val_t        NIL;
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
-cons_t* ref_cell(uint32_t addr) {
+cons_t* ref_cell(val_t addr) {
   return &heap[dec_ptr(addr)]; 
   //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 
-static uint32_t read_car(cons_t *cell) {
+static val_t read_car(cons_t *cell) {
   return cell->car;
 }
 
-static uint32_t read_cdr(cons_t *cell) {
+static val_t read_cdr(cons_t *cell) {
   return cell->cdr;
 }
 
-static void set_car_(cons_t *cell, uint32_t v) {
+static void set_car_(cons_t *cell, val_t v) {
   cell->car = v;
 }
 
-static void set_cdr_(cons_t *cell, uint32_t v) {
+static void set_cdr_(cons_t *cell, val_t v) {
   cell->cdr = v;
 }
 
@@ -65,7 +65,7 @@ static void clr_gc_mark(cons_t *cell) {
   set_cdr_(cell, cdr & ~GC_MASK);
 }
 
-static uint32_t get_gc_mark(cons_t* cell) {
+static bool get_gc_mark(cons_t* cell) {
   uint32_t cdr = read_cdr(cell);
   return cdr & GC_MASK;
 }
@@ -82,13 +82,13 @@ int generate_freelist(size_t num_cells) {
   // Add all cells to free list
   for (i = 1; i < num_cells; i ++) {
     t = ref_cell(enc_cons_ptr(i-1));
-    set_car_(t, enc_sym(SYMBOL_NIL));    // all cars in free list are nil
+    set_car_(t, NIL);    // all cars in free list are nil
     set_cdr_(t, enc_cons_ptr(i));
   }
 
   // Replace the incorrect pointer at the last cell. 
   t = ref_cell(enc_cons_ptr(num_cells-1));
-  set_cdr_(t, enc_sym(SYMBOL_NIL)); 
+  set_cdr_(t, NIL); 
   
   return 1;
 }
@@ -96,7 +96,7 @@ int generate_freelist(size_t num_cells) {
 int heap_init(unsigned int num_cells) {
 
   // retrieve nil symbol value f
-  SYMBOL_NIL = symrepr_nil();
+  NIL = enc_sym(symrepr_nil());
 
   // Allocate heap
   heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
@@ -136,7 +136,7 @@ uint32_t heap_num_free(void) {
   }
   // Prudence.
   if (!(type_of(curr) == VAL_TYPE_SYMBOL) &&
-      (dec_sym(curr) == SYMBOL_NIL)){
+      curr == NIL){
     return 0;
   }
   return count;
@@ -150,7 +150,7 @@ uint32_t heap_allocate_cell(uint32_t ptr_type) {
   if (!is_ptr(heap_state.freelist)) {
     // Free list not a ptr (should be Symbol NIL)
     if ((type_of(heap_state.freelist) == VAL_TYPE_SYMBOL) &&
-	(dec_sym(heap_state.freelist) == SYMBOL_NIL)) {
+	(heap_state.freelist == NIL)) {
       // all is as it should be (but no free cells)
       return enc_sym(symrepr_merror()); 
     } else {
@@ -173,8 +173,8 @@ uint32_t heap_allocate_cell(uint32_t ptr_type) {
   heap_state.num_alloc++;
 
   // set some ok initial values (nil . nil)
-  set_car_(ref_cell(res), enc_sym(SYMBOL_NIL));
-  set_cdr_(ref_cell(res), enc_sym(SYMBOL_NIL));
+  set_car_(ref_cell(res), NIL);
+  set_cdr_(ref_cell(res), NIL);
 
   // clear GC bit on allocated cell
   clr_gc_mark(ref_cell(res));
@@ -264,8 +264,8 @@ int gc_mark_freelist() {
   uint32_t fl = heap_state.freelist;
 
   if (!is_ptr(fl)) {
-    if ((val_type(fl) == VAL_TYPE_SYMBOL) &&
-	(dec_sym(fl) == SYMBOL_NIL)){
+    if (val_type(fl) == VAL_TYPE_SYMBOL &&
+	fl == NIL){
       return 1; // Nothing to mark here
     } else {
       printf(" ERROR CASE! %"PRIx32" \n", fl);
@@ -355,7 +355,7 @@ int gc_sweep_phase(void) {
       uint32_t addr = enc_cons_ptr(i);
 
       // Clear the "freed" cell.
-      heap[i].car = enc_sym(SYMBOL_NIL);
+      heap[i].car = NIL;
       heap[i].cdr = heap_state.freelist;
       heap_state.freelist = addr; 
 
@@ -412,7 +412,7 @@ uint32_t cons(uint32_t car, uint32_t cdr) {
 uint32_t car(uint32_t c){
 
   if (type_of(c) == VAL_TYPE_SYMBOL &&
-      dec_sym(c) == SYMBOL_NIL) {
+      c == NIL) {
     return c; // if nil, return nil.
   }
 
@@ -426,7 +426,7 @@ uint32_t car(uint32_t c){
 uint32_t cdr(uint32_t c){
 
   if (type_of(c) == VAL_TYPE_SYMBOL &&
-      dec_sym(c) == SYMBOL_NIL) {
+      c == NIL) {
     return c; // if nil, return nil.
   }
 
@@ -465,13 +465,13 @@ uint32_t length(uint32_t c) {
 /* reverse a proper list */
 uint32_t reverse(uint32_t list) {
   if (type_of(list) == VAL_TYPE_SYMBOL &&
-      dec_sym(list) == SYMBOL_NIL) {
+      list == NIL) {
     return list;
   }
   
   uint32_t curr = list;
 
-  uint32_t new_list = enc_sym(symrepr_nil());
+  uint32_t new_list = NIL;
   while (type_of(curr) == PTR_TYPE_CONS) {
 
     new_list = cons(car(curr), new_list);
@@ -526,7 +526,7 @@ int heap_allocate_array(uint32_t *res, uint32_t size, uint32_t type){
     array->data.u32 = (uint32_t*)malloc(size * (sizeof(uint32_t)));
     break;
   default:
-    *res = enc_sym(symrepr_nil());
+    *res = NIL;
     return 0;
   }
 
