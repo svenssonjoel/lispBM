@@ -18,14 +18,22 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 7. Compiles for, and runs on Zynq 7000.  
 
 ## Short term TODOs
-0. Port to STM32f4 - 128K ram platform (will need big changes). 
-1. Write some tests that stresses the Garbage collector.
-2. Try putting the K-stack on the heap
-3. Implement some "reference to X type", for uint32, int32, float perhaps...  
-4. Write a small library of useful hofs. 
-5. Document code.
-6. Implement some looping structure for speed or just ease of use. 
-7. Be much more stringent on checking of error conditions etc.
+0. Explicit stack in eval.c to help GC do its job. 
+1. Port to STM32f4 - 128K ram platform (will need big changes) (partially done).
+2. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
+3. Write some tests that stresses the Garbage collector.
+4. Try putting the K-stack on the heap
+5. Implement some "reference to X type", for uint32, int32, float perhaps...  
+6. Write a small library of useful hofs. 
+7. Document code.
+8. Implement some looping structure for speed or just ease of use. 
+9. Be much more stringent on checking of error conditions etc.
+10. Improve handling fo arguments in eval-cps. 
+11. Add format function.
+12. Add print function.
+13. Code improvements with simplicity, clarity  and readability in mind.
+14. Implement a small dedicated lisp reader/parser to replace MPC.
+
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`

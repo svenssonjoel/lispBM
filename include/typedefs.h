@@ -21,7 +21,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef uint32_t val_t;
-typedef uint32_t typ_t;
 
+typedef uint32_t val_t; // A Lisp value.
+typedef uint32_t typ_t; // Representation of type.
+
+
+// TODO: typedefs for non-lisp values (values relevant to the implementation)
 #endif 

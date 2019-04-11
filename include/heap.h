@@ -239,6 +239,18 @@ inline uint32_t dec_sym(val_t x) {
   return x >> VAL_SHIFT;
 }
 
+inline val_t val_set_gc_mark(val_t x) {
+  return x | GC_MARKED;
+}
+
+inline val_t val_clr_gc_mark(val_t x) {
+  return x & ~GC_MASK;
+}
+
+inline bool val_get_gc_mark(val_t x) {
+  return x & GC_MASK;
+}
+
 typedef struct {
   val_t car;
   val_t cdr;

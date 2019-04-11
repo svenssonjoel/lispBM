@@ -21,13 +21,14 @@
 #include "symrepr.h"
 #include "heap.h"
 #include "print.h"
+#include "typedefs.h"
 
 // Copies just the skeleton structure of an environment
 // The new "copy" will have pointers to the original key-val bindings.
-int env_copy_shallow(uint32_t env, uint32_t *cpy) {
+int env_copy_shallow(val_t env, val_t *cpy) {
 
-  uint32_t res = enc_sym(symrepr_nil());
-  uint32_t curr = env;
+  val_t res = enc_sym(symrepr_nil());
+  val_t curr = env;
   
   while (type_of(curr) == PTR_TYPE_CONS) {
     uint32_t key = car(car(curr));
@@ -46,8 +47,8 @@ int env_copy_shallow(uint32_t env, uint32_t *cpy) {
   return 1;
 }
 
-int env_lookup(uint32_t sym, uint32_t env, uint32_t *res) {
-  uint32_t curr = env;
+int env_lookup(val_t sym, val_t env, val_t *res) {
+  val_t curr = env;
   
   if(dec_sym(sym) == symrepr_nil()) {
     *res = enc_sym(symrepr_nil());
@@ -65,9 +66,9 @@ int env_lookup(uint32_t sym, uint32_t env, uint32_t *res) {
 }
 
 
-int env_modify_binding(uint32_t env, uint32_t key, uint32_t val) {
+int env_modify_binding(val_t env, val_t key, val_t val) {
 
-  uint32_t curr = env;
+  val_t curr = env;
 
   while (type_of(curr) == PTR_TYPE_CONS) {   
     if (car(car(curr)) == key) {
@@ -81,13 +82,15 @@ int env_modify_binding(uint32_t env, uint32_t key, uint32_t val) {
 }
 
 
-int env_build_params_args(uint32_t params,
-			  uint32_t args,
-			  uint32_t env0,
-			  uint32_t *res_env) {
+int env_build_params_args(val_t params,
+			  val_t args,
+			  val_t env0,
+			  val_t *res_env) {
   uint32_t curr_param = params;
   uint32_t curr_arg = args;
 
+  // TODO: This should be checked outside of this function.
+  // 
   if (length(params) != length(args)) { // programmer error
     printf("Length mismatch params - args\n");
     simple_print(params); printf("\n");

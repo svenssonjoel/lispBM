@@ -125,17 +125,17 @@ val_t eval_program(val_t lisp) {
     }
   }
   
-  uint32_t res = do_eval_program(lisp);
+  val_t res = do_eval_program(lisp);
   
   if (error_jmp_ptr) error_jmp_ptr = 0;
   return res; 
 }
 
-uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
+val_t eval_in_env(val_t lisp, val_t env) {
 
-  uint32_t tmp = 0;
+  val_t tmp = 0;
   int ret;
-  uint32_t head;
+  val_t head;
   
   switch(type_of(lisp)) {
   case VAL_TYPE_SYMBOL:
@@ -165,7 +165,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       // Special form: LAMBDA
       if (dec_sym(head) == symrepr_lambda()) {
 
-	uint32_t env_cpy;
+	val_t env_cpy;
 	if (!env_copy_shallow(env, &env_cpy))
 	  ERROR("OUT OF MEMORY"); 
 	return cons(enc_sym(symrepr_closure()),
@@ -177,7 +177,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       // Special form: IF
       if (dec_sym(head) == symrepr_if()) {
 
-	uint32_t pred_res = eval_in_env(car(cdr(lisp)), env);
+	val_t pred_res = eval_in_env(car(cdr(lisp)), env);
 	if (val_type(pred_res) == VAL_TYPE_SYMBOL &&
 	    dec_sym(pred_res) == symrepr_true()) {
 	  return eval_in_env(car(cdr(cdr(lisp))), env);
@@ -189,9 +189,9 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 
       // Special form: DEFINE
       if (dec_sym(head) == symrepr_define()) {
-	uint32_t key = car(cdr(lisp));
-	uint32_t val = eval_in_env(car(cdr(cdr(lisp))), env);
-	uint32_t curr = eval_global_env; 
+	val_t key = car(cdr(lisp));
+	val_t val = eval_in_env(car(cdr(cdr(lisp))), env);
+	val_t curr = eval_global_env; 
 
 	if (type_of(key) != VAL_TYPE_SYMBOL)
 	  ERROR("Define expects a symbol");
@@ -206,7 +206,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
 	  }
 	  curr = cdr(curr);
 	}
-	uint32_t keyval = cons(key,val);
+	val_t keyval = cons(key,val);
 	eval_global_env = cons(keyval,eval_global_env);
 	return enc_sym(symrepr_true()); 	
       }
@@ -214,7 +214,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
       // Special form: LET
       if (dec_sym(head) == symrepr_let()) {
 
-	uint32_t new_env = eval_let_bindings(car(cdr(lisp)),env);
+	val_t new_env = eval_let_bindings(car(cdr(lisp)),env);
 	return eval_in_env(car(cdr(cdr(lisp))),new_env);
       }
 
@@ -222,7 +222,7 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
     
     // Possibly an application form:
 
-    uint32_t head_val = eval_in_env(head, env); 
+    val_t head_val = eval_in_env(head, env); 
   
     if (type_of(head_val) == VAL_TYPE_SYMBOL) {
       return apply_builtin(head_val, evlis(cdr(lisp),env));
@@ -253,15 +253,15 @@ uint32_t eval_in_env(uint32_t lisp, uint32_t env) {
   return enc_sym(symrepr_eerror());
 } 
 
-static uint32_t apply(uint32_t closure, uint32_t args) {
+static val_t apply(val_t closure, val_t args) {
 
   // TODO: error checking etc
-  //uint32_t clo_sym = car(closure);      
-  uint32_t params  = car(cdr(closure)); // parameter list
-  uint32_t exp     = car(cdr(cdr(closure)));
-  uint32_t clo_env = car(cdr(cdr(cdr(closure))));
+  //val_t clo_sym = car(closure);      
+  val_t params  = car(cdr(closure)); // parameter list
+  val_t exp     = car(cdr(cdr(closure)));
+  val_t clo_env = car(cdr(cdr(cdr(closure))));
 
-  uint32_t local_env;
+  val_t local_env;
   if (!env_build_params_args(params, args, clo_env, &local_env))
     ERROR("Could not create local environment"); 
   //printf("CLOSURE ENV: "); simple_print(local_env); printf("\n"); 
@@ -270,7 +270,7 @@ static uint32_t apply(uint32_t closure, uint32_t args) {
 }
 
 // takes a ptr to cons and returns a ptr to cons.. 
-static uint32_t evlis(uint32_t pcons, uint32_t env) {
+static val_t evlis(val_t pcons, val_t env) {
 
   if (type_of(pcons) == PTR_TYPE_CONS) { 
     return cons(eval_in_env(car(pcons), env),
@@ -286,17 +286,17 @@ static uint32_t evlis(uint32_t pcons, uint32_t env) {
   return enc_sym(symrepr_eerror());
 }
 
-static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
+static val_t eval_let_bindings(val_t bind_list, val_t env) {
 
-  uint32_t new_env = env;
-  uint32_t curr = bind_list; 
+  val_t new_env = env;
+  val_t curr = bind_list; 
   int res; 
   
   //setup the bindings
   while (type_of(curr) == PTR_TYPE_CONS) { 
-    uint32_t key = car(car(curr));
-    uint32_t val = NIL; // a temporary
-    uint32_t binding = cons(key,val);
+    val_t key = car(car(curr));
+    val_t val = NIL; // a temporary
+    val_t binding = cons(key,val);
     new_env = cons(binding, new_env); 
     curr = cdr(curr); 
   }
@@ -304,8 +304,8 @@ static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
   // evaluate the bodies
   curr = bind_list; 
   while (type_of(curr) == PTR_TYPE_CONS) {
-    uint32_t key = car(car(curr));
-    uint32_t val = eval_in_env(car(cdr(car(curr))),new_env);
+    val_t key = car(car(curr));
+    val_t val = eval_in_env(car(cdr(car(curr))),new_env);
 
     res = env_modify_binding(new_env, key, val);
     if (!res) ERROR("Unable to modify letrec bindings");
@@ -316,9 +316,9 @@ static uint32_t eval_let_bindings(uint32_t bind_list, uint32_t env) {
 }
 
 
-static uint32_t apply_builtin(uint32_t sym, uint32_t args) {
+static val_t apply_builtin(val_t sym, val_t args) {
 
-  uint32_t (*f)(uint32_t) = builtin_lookup_function(dec_sym(sym));
+  val_t (*f)(val_t) = builtin_lookup_function(dec_sym(sym));
 
   if (f == NULL) {
     ERROR("Built in function does not exist"); 

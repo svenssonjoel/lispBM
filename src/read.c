@@ -24,16 +24,17 @@
 #include "heap.h"
 #include "parse.h"
 #include "symrepr.h"
+#include "typedefs.h"
 
 uint32_t xtou(char *str) {
   return (uint32_t)strtoul(str,NULL,0);
 }
 
-uint32_t read_ast(mpc_ast_t *t){
+val_t read_ast(mpc_ast_t *t){
 
-  uint32_t rerror = symrepr_rerror();
-  uint32_t nil    = symrepr_nil();
-  uint32_t quote  = symrepr_quote();
+  val_t rerror = enc_sym(symrepr_rerror());
+  val_t nil    = enc_sym(symrepr_nil());
+  val_t quote  = enc_sym(symrepr_quote());
 
   // Base cases
   if (strstr(t->tag, "name")) {
@@ -45,7 +46,7 @@ uint32_t read_ast(mpc_ast_t *t){
     else if (symrepr_addsym(t->contents,&symbol_id)) {
       return enc_sym(symbol_id);
     } else {
-      return enc_sym(rerror);
+      return rerror;
     }
   }
 
@@ -60,7 +61,7 @@ uint32_t read_ast(mpc_ast_t *t){
       memcpy(array_ptr->data.c, t->contents + 1, (len - 1) * sizeof(char));
       return res;
     }
-    return enc_sym(rerror);
+    return rerror;
   }
     
 
@@ -72,7 +73,7 @@ uint32_t read_ast(mpc_ast_t *t){
     } else if (len > 3 && strstr(t->contents, "newline")) {
       return enc_char('\n');
     } else {
-      return enc_sym(rerror);
+      return rerror;
     }
   }
 
@@ -124,7 +125,7 @@ uint32_t read_ast(mpc_ast_t *t){
   // Program case
   if (strcmp(t->tag, ">") == 0) {
     int n = t->children_num;
-    uint32_t res = enc_sym(nil);
+    val_t res = nil;
 
     for (int i = n - 1; i >= 0; i --) {
       if (strcmp(t->children[i]->tag, "regex") == 0) { continue; }
@@ -139,7 +140,7 @@ uint32_t read_ast(mpc_ast_t *t){
   // Read SExpr
   if (strstr(t->tag, "sexp")) {
     int n = t->children_num;
-    uint32_t res = enc_sym(nil);
+    val_t res = nil;
 
     if (t->children_num == 5 &&
 	strcmp(t->children[0]->contents, "(") == 0 &&
@@ -167,14 +168,14 @@ uint32_t read_ast(mpc_ast_t *t){
   // Read QExpr
   if (strstr(t->tag, "qexp")) {
     int n = t->children_num;
-    uint32_t res = enc_sym(nil);
+    val_t res = nil;
 
     if (n != 2) {
       return res;
     }
 
     uint32_t r = read_ast(t->children[1]);
-    res = cons(enc_sym(quote), cons(r, res));
+    res = cons(quote, cons(r, res));
 
     return res;
   }

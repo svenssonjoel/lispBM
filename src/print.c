@@ -22,11 +22,12 @@
 #include "print.h"
 #include "heap.h"
 #include "symrepr.h"
+#include "typedefs.h"
 
 
-int is_closure(uint32_t t) {
+int is_closure(val_t t) {
 
-  uint32_t head = car(t);
+  val_t head = car(t);
   
   if (!is_ptr(head)  && val_type(head) == VAL_TYPE_SYMBOL &&
       dec_sym(head) == symrepr_closure()) {
@@ -35,14 +36,14 @@ int is_closure(uint32_t t) {
   return 0; 
 }
 
-int simple_print_env(uint32_t env) {
-  uint32_t curr = env;
+int simple_print_env(val_t env) {
+  val_t curr = env;
 
-  uint32_t a;
-  uint32_t b;
+  val_t a;
+  val_t b;
   printf("(");
   while (is_ptr(curr) && ptr_type(curr) == PTR_TYPE_CONS) {
-    uint32_t head = car(curr);
+    val_t head = car(curr);
     if (is_ptr(head)) {
       a = car(car(head));
       b = cdr(car(head));
@@ -60,12 +61,12 @@ int simple_print_env(uint32_t env) {
 }
 
 
-int simple_print_lambda(uint32_t t) {
+int simple_print_lambda(val_t t) {
 
-  uint32_t lam = car(t);
-  uint32_t vars = car(cdr(t));
-  uint32_t exp = car(cdr(cdr(t)));
-  uint32_t env = car(cdr(cdr(cdr(t))));
+  val_t lam  = car(t);
+  val_t vars = car(cdr(t));
+  val_t exp  = car(cdr(cdr(t)));
+  val_t env  = car(cdr(cdr(cdr(t))));
   
   printf("(");
   simple_print(lam); printf(" ");
@@ -76,14 +77,14 @@ int simple_print_lambda(uint32_t t) {
 }
 
 
-int simple_print(uint32_t t){
+int simple_print(val_t t){
 
   char *str_ptr;
   
   if (is_ptr(t) && (ptr_type(t) == PTR_TYPE_CONS)) {
     // TODO: Switch on the type of object pointed to.
 
-    uint32_t car_val = car(t);
+    val_t car_val = car(t);
 
     if (dec_sym(car_val) == symrepr_lambda()) {
       simple_print_lambda(t);
@@ -98,7 +99,7 @@ int simple_print(uint32_t t){
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_F32) {
-    uint32_t uv = car(t);
+    val_t uv = car(t);
     float v;
     memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
     printf("{%f}", v); 
@@ -106,7 +107,7 @@ int simple_print(uint32_t t){
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_U32) {
-    uint32_t v = car(t);
+    val_t v = car(t);
     printf("{%"PRIu32"}", v); 
     return 1; 
   }

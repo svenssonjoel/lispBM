@@ -14,9 +14,9 @@ result=0
 
 for exe in *.exe; do
 
-    if [ "$exe" = "test_gensym.exe" ]; then
-	continue
-    fi
+    #if [ "$exe" = "test_gensym.exe" ]; then
+    #	continue
+    #fi
     
     ./$exe
 
