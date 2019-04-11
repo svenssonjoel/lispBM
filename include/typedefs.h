@@ -27,4 +27,5 @@ typedef uint32_t typ_t; // Representation of type.
 
 
 // TODO: typedefs for non-lisp values (values relevant to the implementation)
+
 #endif 
