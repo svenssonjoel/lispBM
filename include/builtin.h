@@ -22,11 +22,11 @@
 
 typedef uint32_t (*bi_fptr)(uint32_t);
 
-bi_fptr builtin_lookup_function(val_t sym);
+bi_fptr builtin_lookup_function(VALUE sym);
 int builtin_add_function(char *sym_str, bi_fptr fun_ptr);
 int builtin_init(void);
 void builtin_del(void); 
-val_t built_in_gen_env(void);
+VALUE built_in_gen_env(void);
 
-int structural_equality(val_t a, val_t b);
+int structural_equality(VALUE a, VALUE b);
 #endif 

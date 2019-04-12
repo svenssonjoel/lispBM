@@ -20,13 +20,13 @@
 
 #include "typedefs.h"
 
-extern int env_copy_shallow(val_t env, val_t *cpy);
-extern int env_lookup(val_t sym, val_t env, val_t *res); 
-extern int env_modify_binding(val_t env, val_t key, val_t val); 
-extern int env_build_params_args(val_t params,
-				 val_t args,
-				 val_t env0,
-				 val_t *res_env);
+extern int env_copy_shallow(VALUE env, VALUE *cpy);
+extern int env_lookup(VALUE sym, VALUE env, VALUE *res); 
+extern int env_modify_binding(VALUE env, VALUE key, VALUE val); 
+extern int env_build_params_args(VALUE params,
+				 VALUE args,
+				 VALUE env0,
+				 VALUE *res_env);
   
 
 #endif 

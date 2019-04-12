@@ -30,11 +30,11 @@ uint32_t xtou(char *str) {
   return (uint32_t)strtoul(str,NULL,0);
 }
 
-val_t read_ast(mpc_ast_t *t){
+VALUE read_ast(mpc_ast_t *t){
 
-  val_t rerror = enc_sym(symrepr_rerror());
-  val_t nil    = enc_sym(symrepr_nil());
-  val_t quote  = enc_sym(symrepr_quote());
+  VALUE rerror = enc_sym(symrepr_rerror());
+  VALUE nil    = enc_sym(symrepr_nil());
+  VALUE quote  = enc_sym(symrepr_quote());
 
   // Base cases
   if (strstr(t->tag, "name")) {
@@ -125,7 +125,7 @@ val_t read_ast(mpc_ast_t *t){
   // Program case
   if (strcmp(t->tag, ">") == 0) {
     int n = t->children_num;
-    val_t res = nil;
+    VALUE res = nil;
 
     for (int i = n - 1; i >= 0; i --) {
       if (strcmp(t->children[i]->tag, "regex") == 0) { continue; }
@@ -140,7 +140,7 @@ val_t read_ast(mpc_ast_t *t){
   // Read SExpr
   if (strstr(t->tag, "sexp")) {
     int n = t->children_num;
-    val_t res = nil;
+    VALUE res = nil;
 
     if (t->children_num == 5 &&
 	strcmp(t->children[0]->contents, "(") == 0 &&
@@ -168,7 +168,7 @@ val_t read_ast(mpc_ast_t *t){
   // Read QExpr
   if (strstr(t->tag, "qexp")) {
     int n = t->children_num;
-    val_t res = nil;
+    VALUE res = nil;
 
     if (n != 2) {
       return res;

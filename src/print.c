@@ -25,9 +25,9 @@
 #include "typedefs.h"
 
 
-int is_closure(val_t t) {
+int is_closure(VALUE t) {
 
-  val_t head = car(t);
+  VALUE head = car(t);
   
   if (!is_ptr(head)  && val_type(head) == VAL_TYPE_SYMBOL &&
       dec_sym(head) == symrepr_closure()) {
@@ -36,14 +36,14 @@ int is_closure(val_t t) {
   return 0; 
 }
 
-int simple_print_env(val_t env) {
-  val_t curr = env;
+int simple_print_env(VALUE env) {
+  VALUE curr = env;
 
-  val_t a;
-  val_t b;
+  VALUE a;
+  VALUE b;
   printf("(");
   while (is_ptr(curr) && ptr_type(curr) == PTR_TYPE_CONS) {
-    val_t head = car(curr);
+    VALUE head = car(curr);
     if (is_ptr(head)) {
       a = car(car(head));
       b = cdr(car(head));
@@ -61,12 +61,12 @@ int simple_print_env(val_t env) {
 }
 
 
-int simple_print_lambda(val_t t) {
+int simple_print_lambda(VALUE t) {
 
-  val_t lam  = car(t);
-  val_t vars = car(cdr(t));
-  val_t exp  = car(cdr(cdr(t)));
-  val_t env  = car(cdr(cdr(cdr(t))));
+  VALUE lam  = car(t);
+  VALUE vars = car(cdr(t));
+  VALUE exp  = car(cdr(cdr(t)));
+  VALUE env  = car(cdr(cdr(cdr(t))));
   
   printf("(");
   simple_print(lam); printf(" ");
@@ -77,14 +77,14 @@ int simple_print_lambda(val_t t) {
 }
 
 
-int simple_print(val_t t){
+int simple_print(VALUE t){
 
   char *str_ptr;
   
   if (is_ptr(t) && (ptr_type(t) == PTR_TYPE_CONS)) {
     // TODO: Switch on the type of object pointed to.
 
-    val_t car_val = car(t);
+    VALUE car_val = car(t);
 
     if (dec_sym(car_val) == symrepr_lambda()) {
       simple_print_lambda(t);
@@ -99,7 +99,7 @@ int simple_print(val_t t){
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_F32) {
-    val_t uv = car(t);
+    VALUE uv = car(t);
     float v;
     memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
     printf("{%f}", v); 
@@ -107,7 +107,7 @@ int simple_print(val_t t){
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_U32) {
-    val_t v = car(t);
+    VALUE v = car(t);
     printf("{%"PRIu32"}", v); 
     return 1; 
   }

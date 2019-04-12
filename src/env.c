@@ -25,10 +25,10 @@
 
 // Copies just the skeleton structure of an environment
 // The new "copy" will have pointers to the original key-val bindings.
-int env_copy_shallow(val_t env, val_t *cpy) {
+int env_copy_shallow(VALUE env, VALUE *cpy) {
 
-  val_t res = enc_sym(symrepr_nil());
-  val_t curr = env;
+  VALUE res = enc_sym(symrepr_nil());
+  VALUE curr = env;
   
   while (type_of(curr) == PTR_TYPE_CONS) {
     uint32_t key = car(car(curr));
@@ -47,8 +47,8 @@ int env_copy_shallow(val_t env, val_t *cpy) {
   return 1;
 }
 
-int env_lookup(val_t sym, val_t env, val_t *res) {
-  val_t curr = env;
+int env_lookup(VALUE sym, VALUE env, VALUE *res) {
+  VALUE curr = env;
   
   if(dec_sym(sym) == symrepr_nil()) {
     *res = enc_sym(symrepr_nil());
@@ -66,9 +66,9 @@ int env_lookup(val_t sym, val_t env, val_t *res) {
 }
 
 
-int env_modify_binding(val_t env, val_t key, val_t val) {
+int env_modify_binding(VALUE env, VALUE key, VALUE val) {
 
-  val_t curr = env;
+  VALUE curr = env;
 
   while (type_of(curr) == PTR_TYPE_CONS) {   
     if (car(car(curr)) == key) {
@@ -82,10 +82,10 @@ int env_modify_binding(val_t env, val_t key, val_t val) {
 }
 
 
-int env_build_params_args(val_t params,
-			  val_t args,
-			  val_t env0,
-			  val_t *res_env) {
+int env_build_params_args(VALUE params,
+			  VALUE args,
+			  VALUE env0,
+			  VALUE *res_env) {
   uint32_t curr_param = params;
   uint32_t curr_arg = args;
 

@@ -26,7 +26,7 @@
 #include "print.h"
 
 typedef struct s_builtin_function{
-  val_t sym;
+  VALUE sym;
   bi_fptr fun_ptr;
   struct s_builtin_function* next;
 } builtin_function_t;
@@ -35,8 +35,8 @@ builtin_function_t* function_list = NULL;
 
 ////////////////////////////////////////////////////////////
 // Built in predicates (numberp, symbolp and such)
-bool is_number(val_t arg) {
-  typ_t t = type_of(arg);
+bool is_number(VALUE arg) {
+  TYPE t = type_of(arg);
   return (t == VAL_TYPE_I28 ||
 	  t == VAL_TYPE_U28 ||
 	  t == PTR_TYPE_I32 ||
@@ -44,7 +44,7 @@ bool is_number(val_t arg) {
 	  t == PTR_TYPE_F32);
 }
 
-val_t bi_fun_numberp(val_t args) {
+VALUE bi_fun_numberp(VALUE args) {
   if (is_number(car(args)) && length(args) == 1) {
     return enc_sym(symrepr_true());
   }
@@ -54,22 +54,22 @@ val_t bi_fun_numberp(val_t args) {
 
 ////////////////////////////////////////////////////////////
 // Built in functions
-val_t bi_fun_car(val_t args) {
+VALUE bi_fun_car(VALUE args) {
   return car(car(args));
 }
 
-val_t bi_fun_cdr(val_t args) {
+VALUE bi_fun_cdr(VALUE args) {
   return cdr(car(args));
 }
 
-val_t bi_fun_cons(val_t args) {
-  val_t a = car(args);
-  val_t b = car(cdr(args));
+VALUE bi_fun_cons(VALUE args) {
+  VALUE a = car(args);
+  VALUE b = car(cdr(args));
   return cons(a,b);
 }
 
-val_t bi_fun_reverse(val_t args) {
-  val_t xs = car(args);
+VALUE bi_fun_reverse(VALUE args) {
+  VALUE xs = car(args);
   return reverse(xs);
 }
 
@@ -78,10 +78,10 @@ val_t bi_fun_reverse(val_t args) {
  * Returns: success or failure (1 or 0).
  * Result is stored in argument 2.
  */
-int get_max_num_type(val_t args, uint32_t *type) {
+int get_max_num_type(VALUE args, uint32_t *type) {
 
   uint32_t max_type = 0;
-  val_t curr = args;
+  VALUE curr = args;
 
   while ( type_of(curr) == PTR_TYPE_CONS ) {
     if (!is_number(car(curr)))
@@ -96,8 +96,8 @@ int get_max_num_type(val_t args, uint32_t *type) {
   return 1;
 }
 
-int get_as_int(val_t v, int32_t *r) {
-  val_t tmp;
+int get_as_int(VALUE v, int32_t *r) {
+  VALUE tmp;
   float f_tmp;
   switch (type_of(v)) {
   case VAL_TYPE_I28:
@@ -124,8 +124,8 @@ int get_as_int(val_t v, int32_t *r) {
   return 1;
 }
 
-int get_as_uint(val_t v, uint32_t *r) {
-  val_t tmp;
+int get_as_uint(VALUE v, uint32_t *r) {
+  VALUE tmp;
   float    f_tmp;
   switch (type_of(v)) {
   case VAL_TYPE_I28:
@@ -152,8 +152,8 @@ int get_as_uint(val_t v, uint32_t *r) {
   return 1;
 }
 
-int get_as_float(val_t v, float *r) {
-  val_t tmp;
+int get_as_float(VALUE v, float *r) {
+  VALUE tmp;
   switch (type_of(v)) {
   case VAL_TYPE_I28:
     *r =  (float)dec_i28(v);
@@ -178,8 +178,8 @@ int get_as_float(val_t v, float *r) {
   return 1;
 }
 
-val_t bi_fun_sum(val_t args) {
-  val_t curr = args;
+VALUE bi_fun_sum(VALUE args) {
+  VALUE curr = args;
   int32_t  i_sum = 0;
   uint32_t u_sum = 0;
   float    f_sum = 0.0;
@@ -195,7 +195,7 @@ val_t bi_fun_sum(val_t args) {
 
   case VAL_TYPE_I28:
     while(type_of(curr) == PTR_TYPE_CONS) {
-      val_t v = car(curr);
+      VALUE v = car(curr);
       int32_t r;
       get_as_int(v,&r);
       i_sum += r;
@@ -205,7 +205,7 @@ val_t bi_fun_sum(val_t args) {
 
   case VAL_TYPE_U28:
     while(type_of(curr) == PTR_TYPE_CONS) {
-      val_t v = car(curr);
+      VALUE v = car(curr);
       uint32_t r;
       get_as_uint(v,&r);
       u_sum += r;
@@ -215,7 +215,7 @@ val_t bi_fun_sum(val_t args) {
 
   case PTR_TYPE_I32:
     while(type_of(curr) == PTR_TYPE_CONS) {
-      val_t v = car(curr);
+      VALUE v = car(curr);
       int32_t r;
       get_as_int(v,&r);
       i_sum += r;
@@ -226,7 +226,7 @@ val_t bi_fun_sum(val_t args) {
 
   case PTR_TYPE_U32:
     while(type_of(curr) == PTR_TYPE_CONS) {
-      val_t v = car(curr);
+      VALUE v = car(curr);
       uint32_t r;
       get_as_uint(v,&r);
       u_sum += r;
@@ -239,7 +239,7 @@ val_t bi_fun_sum(val_t args) {
 
   case PTR_TYPE_F32:
     while(type_of(curr) == PTR_TYPE_CONS) {
-      val_t v = car(curr);
+      VALUE v = car(curr);
       float r;
       get_as_float(v,&r);
       f_sum += r;
@@ -256,7 +256,7 @@ val_t bi_fun_sum(val_t args) {
   return enc_sym(symrepr_eerror());
 }
 
-val_t bi_fun_sub(val_t args) {
+VALUE bi_fun_sub(VALUE args) {
 
   uint32_t tmp;
   uint32_t enc;

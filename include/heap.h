@@ -179,81 +179,81 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define VAL_TYPE_U28         0x0000000Cu
 
 
-inline typ_t val_type(val_t x) {
+inline TYPE val_type(VALUE x) {
   return (x & VAL_TYPE_MASK);
 }
 
-inline typ_t ptr_type(val_t p) {
+inline TYPE ptr_type(VALUE p) {
   return (p & PTR_TYPE_MASK);
 }
 
-inline typ_t type_of(val_t x) {
+inline TYPE type_of(VALUE x) {
   return (x & PTR_MASK) ? (x & PTR_TYPE_MASK) : (x & VAL_TYPE_MASK);
 }
 
-inline bool is_ptr(val_t x) {
+inline bool is_ptr(VALUE x) {
   return (x & PTR_MASK);
 }
 
-inline val_t enc_cons_ptr(uint32_t x) {
+inline VALUE enc_cons_ptr(uint32_t x) {
   return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR);
 }
 
-inline uint32_t dec_ptr(val_t p) {
+inline uint32_t dec_ptr(VALUE p) {
   return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
 }
 
-inline val_t set_ptr_type(val_t p, typ_t t) {
+inline VALUE set_ptr_type(VALUE p, TYPE t) {
   return (PTR_VAL_MASK & p) | t | PTR;
 }
 
-inline val_t enc_i28(int32_t x) {
+inline VALUE enc_i28(int32_t x) {
   return ((uint32_t)x << VAL_SHIFT) | VAL_TYPE_I28;
 }
 
-inline val_t enc_u28(uint32_t x) {
+inline VALUE enc_u28(uint32_t x) {
   return (x << VAL_SHIFT) | VAL_TYPE_U28;
 }
 
-inline val_t enc_char(char x) {
+inline VALUE enc_char(char x) {
   return ((uint32_t)x << VAL_SHIFT) | VAL_TYPE_CHAR;
 }
 
-inline val_t enc_sym(uint32_t s) {
+inline VALUE enc_sym(uint32_t s) {
   return (s << VAL_SHIFT) | VAL_TYPE_SYMBOL;
 }
 
-inline int32_t dec_i28(val_t x) {
+inline int32_t dec_i28(VALUE x) {
   return (int32_t)x >> VAL_SHIFT;
 }
 
-inline uint32_t dec_u28(val_t x) {
+inline uint32_t dec_u28(VALUE x) {
   return x >> VAL_SHIFT;
 }
 
-inline char dec_char(val_t x) {
+inline char dec_char(VALUE x) {
   return (char)(x >> VAL_SHIFT);
 }
 
-inline uint32_t dec_sym(val_t x) {
+inline uint32_t dec_sym(VALUE x) {
   return x >> VAL_SHIFT;
 }
 
-inline val_t val_set_gc_mark(val_t x) {
+inline VALUE val_set_gc_mark(VALUE x) {
   return x | GC_MARKED;
 }
 
-inline val_t val_clr_gc_mark(val_t x) {
+inline VALUE val_clr_gc_mark(VALUE x) {
   return x & ~GC_MASK;
 }
 
-inline bool val_get_gc_mark(val_t x) {
+inline bool val_get_gc_mark(VALUE x) {
   return x & GC_MASK;
 }
 
 typedef struct {
-  val_t car;
-  val_t cdr;
+  VALUE car;
+  VALUE cdr;
 } cons_t;
 
 typedef struct {
@@ -307,20 +307,20 @@ extern uint32_t heap_size();
 extern uint32_t heap_allocate_cell(uint32_t type);
 extern uint32_t heap_size_bytes(void);
 
-extern val_t cons(val_t car, val_t cdr);
-extern val_t car(val_t cons);
-extern val_t cdr(val_t cons);
-extern void set_car(val_t c, val_t v);
-extern void set_cdr(val_t c, val_t v);
-extern uint32_t length(val_t c);
-extern val_t reverse(val_t list);
+extern VALUE cons(VALUE car, VALUE cdr);
+extern VALUE car(VALUE cons);
+extern VALUE cdr(VALUE cons);
+extern void set_car(VALUE c, VALUE v);
+extern void set_cdr(VALUE c, VALUE v);
+extern uint32_t length(VALUE c);
+extern VALUE reverse(VALUE list);
 
 // State and statistics
 extern void heap_get_state(heap_state_t *);
 
 // Garbage collection
-extern int heap_perform_gc(val_t env);
-extern int heap_perform_gc_aux(val_t env, val_t env2, val_t exp, val_t exp2, uint32_t *aux_data, uint32_t aux_size);
+extern int heap_perform_gc(VALUE env);
+extern int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, uint32_t *aux_data, uint32_t aux_size);
 
 
 // Array functionality

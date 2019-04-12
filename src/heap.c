@@ -30,43 +30,43 @@ static cons_t*      heap = NULL;
 static uint32_t     heap_base;
 static heap_state_t heap_state;
 
-static val_t        NIL;
+static VALUE        NIL;
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
-cons_t* ref_cell(val_t addr) {
+cons_t* ref_cell(VALUE addr) {
   return &heap[dec_ptr(addr)]; 
   //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 
-static val_t read_car(cons_t *cell) {
+static VALUE read_car(cons_t *cell) {
   return cell->car;
 }
 
-static val_t read_cdr(cons_t *cell) {
+static VALUE read_cdr(cons_t *cell) {
   return cell->cdr;
 }
 
-static void set_car_(cons_t *cell, val_t v) {
+static void set_car_(cons_t *cell, VALUE v) {
   cell->car = v;
 }
 
-static void set_cdr_(cons_t *cell, val_t v) {
+static void set_cdr_(cons_t *cell, VALUE v) {
   cell->cdr = v;
 }
 
 static void set_gc_mark(cons_t *cell) {
-  val_t cdr = read_cdr(cell);
+  VALUE cdr = read_cdr(cell);
   set_cdr_(cell, val_set_gc_mark(cdr)); 
 }
 
 static void clr_gc_mark(cons_t *cell) {
-  val_t cdr = read_cdr(cell);
+  VALUE cdr = read_cdr(cell);
   set_cdr_(cell, val_clr_gc_mark(cdr));
 }
 
 static bool get_gc_mark(cons_t* cell) {
-  val_t cdr = read_cdr(cell);
+  VALUE cdr = read_cdr(cell);
   return val_get_gc_mark(cdr);
 }
 
@@ -128,7 +128,7 @@ void heap_del(void) {
 uint32_t heap_num_free(void) {
 
   uint32_t count = 0;
-  val_t curr = heap_state.freelist;
+  VALUE curr = heap_state.freelist;
 
   while (type_of(curr) == PTR_TYPE_CONS) {
     curr = read_cdr(ref_cell(curr));
@@ -143,9 +143,9 @@ uint32_t heap_num_free(void) {
 }
 
 
-val_t heap_allocate_cell(uint32_t ptr_type) {
+VALUE heap_allocate_cell(uint32_t ptr_type) {
 
-  val_t res;
+  VALUE res;
 
   if (!is_ptr(heap_state.freelist)) {
     // Free list not a ptr (should be Symbol NIL)
@@ -208,7 +208,7 @@ void heap_get_state(heap_state_t *res) {
 }
 
 // Recursive implementation can exhaust stack!
-int gc_mark_phase(val_t env) {
+int gc_mark_phase(VALUE env) {
 
   if (!is_ptr(env)) {
       return 1; // Nothing to mark here
@@ -225,10 +225,10 @@ int gc_mark_phase(val_t env) {
 
 
 
-  val_t car_env = car(env);
-  val_t cdr_env = cdr(env);
-  val_t t_car   = type_of(car_env); 
-  val_t t_cdr   = type_of(cdr_env);
+  VALUE car_env = car(env);
+  VALUE cdr_env = cdr(env);
+  VALUE t_car   = type_of(car_env); 
+  VALUE t_cdr   = type_of(cdr_env);
   
   if (t_car == PTR_TYPE_I32 ||
       t_car == PTR_TYPE_U32 ||
@@ -259,9 +259,9 @@ int gc_mark_phase(val_t env) {
 // Using a while loop to traverse over the cdrs
 int gc_mark_freelist() {
 
-  val_t curr;
+  VALUE curr;
   cons_t *t;
-  val_t fl = heap_state.freelist;
+  VALUE fl = heap_state.freelist;
 
   if (!is_ptr(fl)) {
     if (val_type(fl) == VAL_TYPE_SYMBOL &&
@@ -285,12 +285,12 @@ int gc_mark_freelist() {
   return 1;
 }
 
-int gc_mark_aux(val_t *aux_data, val_t aux_size) {
+int gc_mark_aux(VALUE *aux_data, VALUE aux_size) {
 
   for (uint32_t i = 0; i < aux_size; i ++) {
     if (is_ptr(aux_data[i])) {
 
-      typ_t pt_t = ptr_type(aux_data[i]);
+      TYPE pt_t = ptr_type(aux_data[i]);
       uint32_t pt_v = dec_ptr(aux_data[i]);
 
       if ( (pt_t == PTR_TYPE_CONS ||
@@ -367,7 +367,7 @@ int gc_sweep_phase(void) {
   return 1;
 }
 
-int heap_perform_gc(val_t env) {
+int heap_perform_gc(VALUE env) {
   heap_state.gc_num ++;
   heap_state.gc_recovered = 0;
   heap_state.gc_marked = 0;
@@ -377,7 +377,7 @@ int heap_perform_gc(val_t env) {
   return gc_sweep_phase();
 }
 
-int heap_perform_gc_aux(val_t env, val_t env2, val_t exp, val_t exp2, uint32_t *aux_data, uint32_t aux_size) {
+int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, uint32_t *aux_data, uint32_t aux_size) {
   heap_state.gc_num ++;
   heap_state.gc_recovered = 0;
   heap_state.gc_marked = 0;
@@ -398,7 +398,7 @@ int heap_perform_gc_aux(val_t env, val_t env2, val_t exp, val_t exp2, uint32_t *
 
 
 // construct, alter and break apart
-val_t cons(val_t car, val_t cdr) {
+VALUE cons(VALUE car, VALUE cdr) {
   uint32_t addr = heap_allocate_cell(PTR_TYPE_CONS);
   if ( is_ptr(addr)) {
     set_car_(ref_cell(addr), car);
@@ -409,7 +409,7 @@ val_t cons(val_t car, val_t cdr) {
   return addr;
 }
 
-val_t car(val_t c){
+VALUE car(VALUE c){
 
   if (type_of(c) == VAL_TYPE_SYMBOL &&
       c == NIL) {
@@ -423,7 +423,7 @@ val_t car(val_t c){
   return enc_sym(symrepr_terror());
 }
 
-val_t cdr(val_t c){
+VALUE cdr(VALUE c){
 
   if (type_of(c) == VAL_TYPE_SYMBOL &&
       c == NIL) {
@@ -437,14 +437,14 @@ val_t cdr(val_t c){
   return enc_sym(symrepr_terror());
 }
 
-void set_car(val_t c, val_t v) {
+void set_car(VALUE c, VALUE v) {
   if (is_ptr(c) && ptr_type(c) == PTR_TYPE_CONS) {
     cons_t *cell = ref_cell(c);
     set_car_(cell,v);
   }
 }
 
-void set_cdr(val_t c, val_t v) {
+void set_cdr(VALUE c, VALUE v) {
   if (type_of(c) == PTR_TYPE_CONS){
     cons_t *cell = ref_cell(c);
     set_cdr_(cell,v);
@@ -452,7 +452,7 @@ void set_cdr(val_t c, val_t v) {
 }
 
 /* calculate length of a proper list */
-uint32_t length(val_t c) {
+uint32_t length(VALUE c) {
   uint32_t len = 0;
 
   while (type_of(c) == PTR_TYPE_CONS){
@@ -463,7 +463,7 @@ uint32_t length(val_t c) {
 }
 
 /* reverse a proper list */
-val_t reverse(val_t list) {
+VALUE reverse(VALUE list) {
   if (type_of(list) == VAL_TYPE_SYMBOL &&
       list == NIL) {
     return list;
@@ -493,11 +493,11 @@ val_t reverse(val_t list) {
 // Arrays are part of the heap module because their lifespan is managed
 // by the garbage collector. The data in the array is not stored
 // in the "heap of cons cells".
-int heap_allocate_array(val_t *res, uint32_t size, typ_t type){
+int heap_allocate_array(VALUE *res, uint32_t size, TYPE type){
 
   array_t *array = malloc(sizeof(array_t));
   // allocating a cell that will, to start with, be a cons cell.
-  val_t cell  = heap_allocate_cell(PTR_TYPE_CONS);
+  VALUE cell  = heap_allocate_cell(PTR_TYPE_CONS);
 
   switch(type) {
   case PTR_TYPE_I32: // array of I32
