@@ -101,10 +101,10 @@ int get_as_int(VALUE v, int32_t *r) {
   float f_tmp;
   switch (type_of(v)) {
   case VAL_TYPE_I28:
-    *r =  dec_i28(v);
+    *r =  dec_i(v);
     break;
   case VAL_TYPE_U28:
-    *r = (int32_t)dec_u28(v);
+    *r = (int32_t)dec_u(v);
     break;
   case PTR_TYPE_I32:
     *r = (int32_t)car(v);
@@ -129,10 +129,10 @@ int get_as_uint(VALUE v, uint32_t *r) {
   float    f_tmp;
   switch (type_of(v)) {
   case VAL_TYPE_I28:
-    *r =  (uint32_t)dec_i28(v);
+    *r =  (uint32_t)dec_i(v);
     break;
   case VAL_TYPE_U28:
-    *r = dec_u28(v);
+    *r = dec_u(v);
     break;
   case PTR_TYPE_I32:
     *r = (uint32_t)car(v);
@@ -156,10 +156,10 @@ int get_as_float(VALUE v, float *r) {
   VALUE tmp;
   switch (type_of(v)) {
   case VAL_TYPE_I28:
-    *r =  (float)dec_i28(v);
+    *r =  (float)dec_i(v);
     break;
   case VAL_TYPE_U28:
-    *r = (float)dec_u28(v);
+    *r = (float)dec_u(v);
     break;
   case PTR_TYPE_I32:
     *r = (float)((int32_t)car(v));
@@ -201,7 +201,7 @@ VALUE bi_fun_sum(VALUE args) {
       i_sum += r;
       curr = cdr(curr);
     }
-    return enc_i28(i_sum);
+    return enc_i(i_sum);
 
   case VAL_TYPE_U28:
     while(type_of(curr) == PTR_TYPE_CONS) {
@@ -211,7 +211,7 @@ VALUE bi_fun_sum(VALUE args) {
       u_sum += r;
       curr = cdr(curr);
     }
-    return enc_u28(u_sum);
+    return enc_u(u_sum);
 
   case PTR_TYPE_I32:
     while(type_of(curr) == PTR_TYPE_CONS) {
@@ -277,12 +277,12 @@ VALUE bi_fun_sub(VALUE args) {
     switch (max_type) {
 
     case VAL_TYPE_I28:
-      i_res = -dec_i28(car(args));
-      return enc_i28(i_res);
+      i_res = -dec_i(car(args));
+      return enc_i(i_res);
 
     case VAL_TYPE_U28:
-      u_res = -dec_u28(car(args));
-      return enc_u28(u_res);
+      u_res = -dec_u(car(args));
+      return enc_u(u_res);
 
     case PTR_TYPE_I32:
       i_res = -(int32_t)car(car(args));
@@ -328,7 +328,7 @@ VALUE bi_fun_sub(VALUE args) {
       i_res -= r;
       curr = cdr(curr);
     }
-    return enc_i28(i_res);
+    return enc_i(i_res);
 
   case VAL_TYPE_U28:
     get_as_uint(v, &u_res);
@@ -340,7 +340,7 @@ VALUE bi_fun_sub(VALUE args) {
       u_res -= r;
       curr = cdr(curr);
     }
-    return enc_u28(u_res);
+    return enc_u(u_res);
 
   case PTR_TYPE_I32:
     get_as_int(v, &i_res);
@@ -530,11 +530,11 @@ int structural_equality(uint32_t a, uint32_t b) {
         else return 0;
 	break;
       case VAL_TYPE_I28:
-	if (dec_i28(a) == dec_i28(b)) return 1;
+	if (dec_i(a) == dec_i(b)) return 1;
 	else return 0;
 	break;
       case VAL_TYPE_U28:
-	if (dec_u28(a) == dec_u28(b)) return 1;
+	if (dec_u(a) == dec_u(b)) return 1;
 	else return 0;
 	break;
       case VAL_TYPE_CHAR:
@@ -642,10 +642,10 @@ uint32_t bi_fun_array_read(uint32_t args) {
   uint32_t res = enc_sym(symrepr_eerror());
   switch (type_of(index)) {
   case VAL_TYPE_U28:
-    ix = (int32_t)dec_u28(index);
+    ix = (int32_t)dec_u(index);
     break;
   case VAL_TYPE_I28:
-    tmp = (int32_t)dec_i28(index);
+    tmp = (int32_t)dec_i(index);
     if (tmp < 0) return enc_sym(symrepr_eerror());
     ix = (uint32_t) tmp;
     break;
@@ -671,10 +671,10 @@ uint32_t bi_fun_array_read(uint32_t args) {
       res = enc_char((uint32_t) array->data.c[ix]);
       break;
     case VAL_TYPE_U28:
-      res = enc_u28(array->data.u32[ix]);
+      res = enc_u(array->data.u32[ix]);
       break;
     case VAL_TYPE_I28:
-      res = enc_i28(array->data.i32[ix]);
+      res = enc_i(array->data.i32[ix]);
       break;
     case PTR_TYPE_U32:
       res = cons(array->data.u32[ix], enc_sym(SPECIAL_SYM_U32));
@@ -714,10 +714,10 @@ uint32_t bi_fun_array_write(uint32_t args) {
   int32_t tmp;
   switch (type_of(index)) {
   case VAL_TYPE_U28:
-    ix = (int32_t)dec_u28(index);
+    ix = (int32_t)dec_u(index);
     break;
   case VAL_TYPE_I28:
-    tmp = (int32_t)dec_i28(index);
+    tmp = (int32_t)dec_i(index);
     if (tmp < 0) return enc_sym(symrepr_eerror());
     ix = (uint32_t) tmp;
     break;
@@ -743,10 +743,10 @@ uint32_t bi_fun_array_write(uint32_t args) {
       array->data.c[ix] = dec_char(val);
       break;
     case VAL_TYPE_U28:
-      array->data.u32[ix] = dec_u28(val);
+      array->data.u32[ix] = dec_u(val);
       break;
     case VAL_TYPE_I28:
-      array->data.i32[ix] = dec_i28(val);
+      array->data.i32[ix] = dec_i(val);
       break;
     case PTR_TYPE_U32:
       array->data.u32[ix] = car(val);

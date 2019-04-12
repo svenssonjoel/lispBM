@@ -9,22 +9,22 @@ int main(int argc, char **argv) {
   int res = 1; 
   
   int n = 0;
-  res &= (dec_i28(enc_i28(0)) == 0);
+  res &= (dec_i(enc_i(0)) == 0);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
-  res &= (dec_i28(enc_i28(-1)) == -1);
+  res &= (dec_i(enc_i(-1)) == -1);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
-  res &= (dec_i28(enc_i28(1)) == 1);
+  res &= (dec_i(enc_i(1)) == 1);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
-  res &= (dec_i28(enc_i28(134217727)) == 134217727);
+  res &= (dec_i(enc_i(134217727)) == 134217727);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
-  res &= (dec_i28(enc_i28(-134217728)) == -134217728);
+  res &= (dec_i(enc_i(-134217728)) == -134217728);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
 
-  res &= (dec_u28(enc_u28(0)) == 0);
+  res &= (dec_u(enc_u(0)) == 0);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
-  res &= (dec_u28(enc_u28(1)) == 1);
+  res &= (dec_u(enc_u(1)) == 1);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
-  res &= (dec_u28(enc_u28(268435455)) == 268435455);
+  res &= (dec_u(enc_u(268435455)) == 268435455);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
 
   res &= (dec_char(enc_char(0)) == 0);

@@ -452,8 +452,8 @@ void set_cdr(VALUE c, VALUE v) {
 }
 
 /* calculate length of a proper list */
-uint32_t length(VALUE c) {
-  uint32_t len = 0;
+unsigned int length(VALUE c) {
+  unsigned int len = 0;
 
   while (type_of(c) == PTR_TYPE_CONS){
     len ++;
@@ -493,7 +493,7 @@ VALUE reverse(VALUE list) {
 // Arrays are part of the heap module because their lifespan is managed
 // by the garbage collector. The data in the array is not stored
 // in the "heap of cons cells".
-int heap_allocate_array(VALUE *res, uint32_t size, TYPE type){
+int heap_allocate_array(VALUE *res, unsigned int size, TYPE type){
 
   array_t *array = malloc(sizeof(array_t));
   // allocating a cell that will, to start with, be a cons cell.
@@ -501,40 +501,39 @@ int heap_allocate_array(VALUE *res, uint32_t size, TYPE type){
 
   switch(type) {
   case PTR_TYPE_I32: // array of I32
-    array->data.i32 = (int32_t*)malloc(size * (sizeof(int32_t)));
+    array->data.i32 = (INT*)malloc(size * sizeof(INT));
     if (array->data.i32 == NULL) return 0;
     break;
   case PTR_TYPE_U32: // array of U32
-    array->data.u32 = (uint32_t*)malloc(size * (sizeof(uint32_t)));
+    array->data.u32 = (UINT*)malloc(size * sizeof(UINT));
     if (array->data.u32 == NULL) return 0;
     break;
   case PTR_TYPE_F32: // array of Float
-    array->data.f = (float*)malloc(size * (sizeof(float)));
+    array->data.f = (float*)malloc(size * sizeof(float));
     if (array->data.f == NULL) return 0;
     break;
   case VAL_TYPE_CHAR: // Array of Char
-    array->data.c = (char*)malloc(size * (sizeof(char)));
+    array->data.c = (char*)malloc(size * sizeof(char));
     if (array->data.c == NULL) return 0;
     break;
   case VAL_TYPE_I28:
-    array->data.i32 = (int32_t*)malloc(size * (sizeof(int32_t)));
+    array->data.i32 = (INT*)malloc(size * sizeof(INT));
     break;
   case VAL_TYPE_U28:
-    array->data.u32 = (uint32_t*)malloc(size * (sizeof(uint32_t)));
+    array->data.u32 = (UINT*)malloc(size * sizeof(UINT));
     break;
   case VAL_TYPE_SYMBOL:
-    array->data.u32 = (uint32_t*)malloc(size * (sizeof(uint32_t)));
+    array->data.u32 = (UINT*)malloc(size * sizeof(UINT));
     break;
   default:
     *res = NIL;
     return 0;
   }
 
-  array->aux = 0;
   array->elt_type = type;
   array->size = size;
 
-  set_car(cell, (uint32_t)array);
+  set_car(cell, (UINT)array);
   set_cdr(cell, enc_sym(SPECIAL_SYM_ARRAY));
 
   cell = cell | PTR_TYPE_ARRAY;

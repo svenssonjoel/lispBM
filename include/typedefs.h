@@ -28,6 +28,8 @@ typedef uint32_t TYPE; // Representation of type.
 
 // TODO: typedefs for non-lisp values (values relevant to the implementation)
 
-typedef uint32_t uint_t; // an unsigned integer
+typedef uint32_t UINT; // same size as a pointer on target platform
+typedef int32_t  INT;
+
 
 #endif 

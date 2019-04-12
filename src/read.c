@@ -88,7 +88,7 @@ VALUE read_ast(mpc_ast_t *t){
 	uint32_t ptr_uint_box = set_ptr_type(ptr_cons, PTR_TYPE_U32);
 	return ptr_uint_box;
       } else {
-	return enc_u28(v);
+	return enc_u(v);
       }
     }
 
@@ -106,11 +106,11 @@ VALUE read_ast(mpc_ast_t *t){
 
     if (t->contents[strlen(t->contents)-1] == 'u') {
       uint32_t v = (uint32_t)atoi(t->contents);
-      return enc_u28(v);
+      return enc_u(v);
     }
 
     int32_t v = (int32_t)atoi(t->contents);
-    return enc_i28(v);
+    return enc_i(v);
   }
 
   if (strstr(t->tag, "float")) {

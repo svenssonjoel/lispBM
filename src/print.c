@@ -141,10 +141,10 @@ int simple_print(VALUE t){
       }
       break;
     case VAL_TYPE_I28:
-      printf("%"PRId32"", dec_i28(t)); 
+      printf("%"PRId32"", dec_i(t)); 
       break;
     case VAL_TYPE_U28:
-      printf("%"PRIu32"", dec_u28(t));
+      printf("%"PRIu32"", dec_u(t));
       break;
     case VAL_TYPE_CHAR: // dont yet have syntax for Char and String
       printf("\\#%c", dec_char(t));

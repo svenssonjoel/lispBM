@@ -185,7 +185,7 @@ VALUE cont_eval_rest(VALUE head) {
   push_u32(K, env);
   push_u32(K, acc);
   push_u32(K, cdr(rest));
-  push_u32(K, enc_u28(EVAL_REST));
+  push_u32(K, enc_u(EVAL_REST));
 
   CONTINUE_EVAL(car(rest),env);
 }
@@ -203,9 +203,9 @@ VALUE cont_function(VALUE fun) {
   push_u32(K,fun);
   if ( type_of(fun) == PTR_TYPE_CONS &&
        dec_sym(car(fun)) == symrepr_closure()) {
-    push_u32(K, enc_u28(CLOSURE_APP));
+    push_u32(K, enc_u(CLOSURE_APP));
   } else {
-    push_u32(K, enc_u28(FUNCTION_APP));
+    push_u32(K, enc_u(FUNCTION_APP));
   }
   // If args are a list with at least one element, process the elements
   if (type_of(fun_args) == PTR_TYPE_CONS &&
@@ -213,7 +213,7 @@ VALUE cont_function(VALUE fun) {
     push_u32(K,env);
     push_u32(K,NIL);
     push_u32(K,cdr(fun_args));
-    push_u32(K, enc_u28(EVAL_REST));
+    push_u32(K, enc_u(EVAL_REST));
 
     CONTINUE_EVAL(head,env);
   }
@@ -241,7 +241,7 @@ VALUE cont_bind_to_key_rest(VALUE val) {
     push_u32(K,cdr(rest));
     push_u32(K,env);
     push_u32(K,keyn);
-    push_u32(K, enc_u28(BIND_TO_KEY_REST));
+    push_u32(K, enc_u(BIND_TO_KEY_REST));
 
     CONTINUE_EVAL(valn_exp,env);
   }
@@ -271,7 +271,7 @@ VALUE cont_if(VALUE cond) {
 
 VALUE dispatch_continuation(VALUE ix, VALUE args) {
 
-  switch(dec_u28(ix)) {
+  switch(dec_u(ix)) {
   case DONE:
     return cont_done(args);
     break;
@@ -330,7 +330,7 @@ VALUE process_let(VALUE binds, VALUE orig_env, VALUE exp) {
   push_u32(K,cdr(binds));
   push_u32(K,new_env);
   push_u32(K,key0);
-  push_u32(K, enc_u28(BIND_TO_KEY_REST));
+  push_u32(K, enc_u(BIND_TO_KEY_REST));
 
   CONTINUE_EVAL(val0_exp,new_env);
 }
@@ -392,7 +392,7 @@ VALUE eval_cps(VALUE lisp, VALUE env) {
 	}
 
 	push_u32(K, key);
-	push_u32(K, enc_u28(SET_GLOBAL_ENV));
+	push_u32(K, enc_u(SET_GLOBAL_ENV));
 
 	CONTINUE_EVAL(val_exp,env);
       }
@@ -425,7 +425,7 @@ VALUE eval_cps(VALUE lisp, VALUE env) {
 
 	push_u32(K,car(cdr(cdr(cdr(lisp))))); // else branch
 	push_u32(K,car(cdr(cdr(lisp)))); // Then branch
-	push_u32(K, enc_u28(IF));
+	push_u32(K, enc_u(IF));
 
 	CONTINUE_EVAL(car(cdr(lisp)),curr_env);
       }
@@ -443,7 +443,7 @@ VALUE eval_cps(VALUE lisp, VALUE env) {
     // Possibly a function application form:
     push_u32(K, curr_env);  // The environment each element should be evaluated in 
     push_u32(K, cdr(lisp)); // list of arguments that needs to be evaluated.
-    push_u32(K, enc_u28(FUNCTION));
+    push_u32(K, enc_u(FUNCTION));
 
     CONTINUE_EVAL(head,curr_env);
 
@@ -457,8 +457,8 @@ VALUE eval_cps(VALUE lisp, VALUE env) {
 
 VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 
-  push_u32(K, enc_u28(DONE));
-  push_u32(K_save, enc_u28(DONE));
+  push_u32(K, enc_u(DONE));
+  push_u32(K_save, enc_u(DONE));
 
   curr_exp = lisp;
   curr_env = env;

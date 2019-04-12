@@ -195,7 +195,7 @@ inline bool is_ptr(VALUE x) {
   return (x & PTR_MASK);
 }
 
-inline VALUE enc_cons_ptr(uint32_t x) {
+inline VALUE enc_cons_ptr(UINT x) {
   return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR);
 }
 
@@ -207,27 +207,27 @@ inline VALUE set_ptr_type(VALUE p, TYPE t) {
   return (PTR_VAL_MASK & p) | t | PTR;
 }
 
-inline VALUE enc_i28(int32_t x) {
-  return ((uint32_t)x << VAL_SHIFT) | VAL_TYPE_I28;
+inline VALUE enc_i(INT x) {
+  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_I28;
 }
 
-inline VALUE enc_u28(uint32_t x) {
+inline VALUE enc_u(UINT x) {
   return (x << VAL_SHIFT) | VAL_TYPE_U28;
 }
 
 inline VALUE enc_char(char x) {
-  return ((uint32_t)x << VAL_SHIFT) | VAL_TYPE_CHAR;
+  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_CHAR;
 }
 
 inline VALUE enc_sym(uint32_t s) {
   return (s << VAL_SHIFT) | VAL_TYPE_SYMBOL;
 }
 
-inline int32_t dec_i28(VALUE x) {
-  return (int32_t)x >> VAL_SHIFT;
+inline int32_t dec_i(VALUE x) {
+  return (INT)x >> VAL_SHIFT;
 }
 
-inline uint32_t dec_u28(VALUE x) {
+inline uint32_t dec_u(VALUE x) {
   return x >> VAL_SHIFT;
 }
 
@@ -257,62 +257,47 @@ typedef struct {
 } cons_t;
 
 typedef struct {
-  uint32_t heap_base;          // address of heap in memory
-  uint32_t freelist;           // list of free cons cells.
+  UINT heap_base;          // address of heap in memory
+  UINT freelist;           // list of free cons cells.
 
-  uint32_t heap_size;          // In number of cells.
-  uint32_t heap_bytes;         // Size in bytes.
+  unsigned int heap_size;          // In number of cells.
+  unsigned int heap_bytes;         // Size in bytes.
 
-  uint32_t num_alloc;          // Number of cells allocated.
-  uint32_t num_alloc_arrays;   // Number of arrays allocated.
+  unsigned int num_alloc;          // Number of cells allocated.
+  unsigned int num_alloc_arrays;   // Number of arrays allocated.
 
-  uint32_t gc_num;             // Number of times gc has been performed.
-  uint32_t gc_marked;          // Number of cells marked by mark phase.
-  uint32_t gc_recovered;       // Number of cells recovered by sweep phase.
-  uint32_t gc_recovered_arrays;// Number of arrays recovered by sweep.
+  unsigned int gc_num;             // Number of times gc has been performed.
+  unsigned int gc_marked;          // Number of cells marked by mark phase.
+  unsigned int gc_recovered;       // Number of cells recovered by sweep phase.
+  unsigned int gc_recovered_arrays;// Number of arrays recovered by sweep.
 } heap_state_t;
 
 
 typedef struct {
-  uint32_t aux;             // GC mark
-  uint32_t elt_type;        // Type of elements: VAL_TYPE_FLOAT, U32, I32 or CHAR
-  uint32_t size;            // Number of elements
+  TYPE elt_type;            // Type of elements: VAL_TYPE_FLOAT, U32, I32 or CHAR
+  unsigned int size;        // Number of elements
   union {
     float    *f;
-    uint32_t *u32;
-    int32_t  *i32;
+    UINT     *u32;          // TODO: RENAME
+    INT      *i32;
     char     *c;
   } data;                   // Array data storage
 } array_t;
 
-typedef struct {
-  uint32_t aux;             // GC mark
-  uint32_t stream_state;    // Application dependent
-  uint32_t (*read)(uint32_t*);     // Takes ptr to stream state
-  void (*free_stream)(uint32_t*);  // Takes ptr to stream state
-} i_stream_t;
-
-typedef struct {
-  uint32_t aux;             // GC mark
-  uint32_t stream_state;    // Application dependent
-  uint32_t (*write)(uint32_t*, uint32_t);
-  void (*free_stream)(uint32_t*);
-} o_stream_t;
-
 extern int heap_init(unsigned int num_cells);
 extern void heap_del(void);
-extern uint32_t heap_num_free(void);
-extern uint32_t heap_num_allocated(void);
-extern uint32_t heap_size();
-extern uint32_t heap_allocate_cell(uint32_t type);
-extern uint32_t heap_size_bytes(void);
+extern unsigned int heap_num_free(void);
+extern unsigned int heap_num_allocated(void);
+extern unsigned int  heap_size();
+extern VALUE heap_allocate_cell(TYPE type);
+extern unsigned int heap_size_bytes(void);
 
 extern VALUE cons(VALUE car, VALUE cdr);
 extern VALUE car(VALUE cons);
 extern VALUE cdr(VALUE cons);
 extern void set_car(VALUE c, VALUE v);
 extern void set_cdr(VALUE c, VALUE v);
-extern uint32_t length(VALUE c);
+extern unsigned int length(VALUE c);
 extern VALUE reverse(VALUE list);
 
 // State and statistics
@@ -324,6 +309,6 @@ extern int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, uin
 
 
 // Array functionality
-extern int heap_allocate_array(uint32_t *res, uint32_t size, uint32_t type);
+extern int heap_allocate_array(VALUE *res, unsigned int size, TYPE type);
 
 #endif
