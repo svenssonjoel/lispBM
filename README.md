@@ -29,7 +29,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 8. Implement some looping structure for speed or just ease of use. 
 9. Be much more stringent on checking of error conditions etc.
 10. Improve handling of arguments in eval-cps. 
-11. Add format function.
+11. Add "to-string" function.
 12. Add print function.
 13. Code improvements with simplicity, clarity  and readability in mind.
 14. Implement a small dedicated lisp reader/parser to replace MPC.
