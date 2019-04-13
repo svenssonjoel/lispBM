@@ -26,8 +26,8 @@
 #include "symrepr.h"
 #include "typedefs.h"
 
-uint32_t xtou(char *str) {
-  return (uint32_t)strtoul(str,NULL,0);
+UINT xtou(char *str) {
+  return (UINT)strtoul(str,NULL,0);
 }
 
 VALUE read_ast(mpc_ast_t *t){
@@ -38,7 +38,7 @@ VALUE read_ast(mpc_ast_t *t){
 
   // Base cases
   if (strstr(t->tag, "name")) {
-    uint32_t symbol_id;
+    UINT symbol_id;
 
     if (symrepr_lookup(t->contents, &symbol_id)) {
       return enc_sym(symbol_id);
@@ -54,7 +54,7 @@ VALUE read_ast(mpc_ast_t *t){
     // TODO: needs MORE error checking
     size_t len = strlen(t->contents) - 1;
     if (len > 0) {
-      uint32_t res; 
+      VALUE res; 
       heap_allocate_array(&res, len, VAL_TYPE_CHAR);
       array_t* array_ptr = (array_t*)car(res);
       memset(array_ptr->data.c, 0, len * sizeof(char)); 
@@ -68,7 +68,7 @@ VALUE read_ast(mpc_ast_t *t){
   if (strstr(t->tag, "character")) {
     unsigned int len = strlen(t->contents);
     if (len == 3) {
-      char v = (uint32_t)(t->contents[2]);
+      char v = (char)(t->contents[2]);
       return enc_char(v);
     } else if (len > 3 && strstr(t->contents, "newline")) {
       return enc_char('\n');
@@ -82,10 +82,10 @@ VALUE read_ast(mpc_ast_t *t){
     if (strlen(t->contents) > 2 &&
 	t->contents[0] == '0' &&
 	t->contents[1] == 'x' ) {
-      uint32_t v = (uint32_t)xtou(t->contents);
-      if (strlen(t->contents) == 10) { // Boxed 32 bit uint
-	uint32_t ptr_cons = cons(v,enc_sym(SPECIAL_SYM_U32));
-	uint32_t ptr_uint_box = set_ptr_type(ptr_cons, PTR_TYPE_U32);
+      UINT v = (UINT)xtou(t->contents);
+      if (strlen(t->contents) >= 9) { // Boxed 32 bit uint
+	VALUE ptr_cons = cons(v,enc_sym(SPECIAL_SYM_U32));
+	VALUE ptr_uint_box = set_ptr_type(ptr_cons, PTR_TYPE_U32);
 	return ptr_uint_box;
       } else {
 	return enc_u(v);
@@ -93,32 +93,32 @@ VALUE read_ast(mpc_ast_t *t){
     }
 
     if (t->contents[strlen(t->contents)-1] == 'U') {
-      uint32_t v = (uint32_t)strtoul(t->contents,NULL,10);
-      uint32_t ptr_cons = cons(v, enc_sym(SPECIAL_SYM_U32));
+      UINT v = (UINT)strtoul(t->contents,NULL,10);
+      VALUE ptr_cons = cons(v, enc_sym(SPECIAL_SYM_U32));
       return set_ptr_type(ptr_cons, PTR_TYPE_U32);
     }
 
     if (t->contents[strlen(t->contents)-1] == 'I') {
-      uint32_t v = (uint32_t)atoi(t->contents);
-      uint32_t ptr_cons = cons(v, enc_sym(SPECIAL_SYM_I32));
+      UINT v = (UINT)atoi(t->contents);
+      VALUE ptr_cons = cons(v, enc_sym(SPECIAL_SYM_I32));
       return set_ptr_type(ptr_cons, PTR_TYPE_I32);
     }
 
     if (t->contents[strlen(t->contents)-1] == 'u') {
-      uint32_t v = (uint32_t)atoi(t->contents);
+      UINT v = (UINT)atoi(t->contents);
       return enc_u(v);
     }
 
-    int32_t v = (int32_t)atoi(t->contents);
+    INT v = (INT)atoi(t->contents);
     return enc_i(v);
   }
 
   if (strstr(t->tag, "float")) {
-    float v = (float)atof(t->contents);
-    uint32_t uv;
-    memcpy(&uv, &v, sizeof(uint32_t)); // = *(uint32_t*)(&v);
-    uint32_t ptr_cons = cons(uv,enc_sym(SPECIAL_SYM_F)); // Boxed value.
-    uint32_t ptr_float_box = set_ptr_type(ptr_cons, PTR_TYPE_F32);
+    FLOAT v = (FLOAT)atof(t->contents);
+    UINT uv;
+    memcpy(&uv, &v, sizeof(UINT)); 
+    VALUE ptr_cons = cons(uv,enc_sym(SPECIAL_SYM_F)); // Boxed value.
+    VALUE ptr_float_box = set_ptr_type(ptr_cons, PTR_TYPE_F32);
     return ptr_float_box;
   }
 
@@ -131,7 +131,7 @@ VALUE read_ast(mpc_ast_t *t){
       if (strcmp(t->children[i]->tag, "regex") == 0) { continue; }
       if (strstr(t->children[i]->tag, "comment")) { continue; }
 
-      uint32_t r = read_ast(t->children[i]);
+      VALUE r = read_ast(t->children[i]);
       res = cons(r, res);
     }
     return res;
@@ -146,8 +146,8 @@ VALUE read_ast(mpc_ast_t *t){
 	strcmp(t->children[0]->contents, "(") == 0 &&
 	strcmp(t->children[2]->contents, ".") == 0 &&
 	strcmp(t->children[4]->contents, ")") == 0 ) {
-      uint32_t a = read_ast(t->children[1]);
-      uint32_t b = read_ast(t->children[3]);
+      VALUE a = read_ast(t->children[1]);
+      VALUE b = read_ast(t->children[3]);
       return cons(a,b);
 
     }
@@ -159,7 +159,7 @@ VALUE read_ast(mpc_ast_t *t){
       if (strcmp(t->children[i]->tag,  "regex") == 0) { continue; }
 
 
-      uint32_t r = read_ast(t->children[i]);
+      VALUE r = read_ast(t->children[i]);
       res = cons(r, res);
     }
     return res;
@@ -174,7 +174,7 @@ VALUE read_ast(mpc_ast_t *t){
       return res;
     }
 
-    uint32_t r = read_ast(t->children[1]);
+    VALUE r = read_ast(t->children[1]);
     res = cons(quote, cons(r, res));
 
     return res;

@@ -20,8 +20,9 @@
 
 #include "mpc.h"
 #include "heap.h"
+#include "typedefs.h"
 
-uint32_t read_ast(mpc_ast_t *t); 
+VALUE read_ast(mpc_ast_t *t); 
 
 
 #endif 
