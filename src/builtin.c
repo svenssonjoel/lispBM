@@ -78,9 +78,9 @@ VALUE bi_fun_reverse(VALUE args) {
  * Returns: success or failure (1 or 0).
  * Result is stored in argument 2.
  */
-int get_max_num_type(VALUE args, uint32_t *type) {
+int get_max_num_type(VALUE args, TYPE *type) {
 
-  uint32_t max_type = 0;
+  TYPE max_type = 0;
   VALUE curr = args;
 
   while ( type_of(curr) == PTR_TYPE_CONS ) {
@@ -96,7 +96,7 @@ int get_max_num_type(VALUE args, uint32_t *type) {
   return 1;
 }
 
-int get_as_int(VALUE v, int32_t *r) {
+int get_as_int(VALUE v, INT *r) {
   VALUE tmp;
   float f_tmp;
   switch (type_of(v)) {
@@ -124,7 +124,7 @@ int get_as_int(VALUE v, int32_t *r) {
   return 1;
 }
 
-int get_as_uint(VALUE v, uint32_t *r) {
+int get_as_uint(VALUE v, UINT *r) {
   VALUE tmp;
   float    f_tmp;
   switch (type_of(v)) {
@@ -179,14 +179,14 @@ int get_as_float(VALUE v, float *r) {
 }
 
 VALUE bi_fun_sum(VALUE args) {
-  VALUE curr = args;
-  int32_t  i_sum = 0;
-  uint32_t u_sum = 0;
-  float    f_sum = 0.0;
+  VALUE   curr = args;
+  INT     i_sum = 0;
+  UINT    u_sum = 0;
+  float   f_sum = 0.0;
 
-  uint32_t tmp;
-  uint32_t float_enc;
-  uint32_t max_type;
+  UINT tmp;
+  UINT float_enc;
+  TYPE max_type;
 
   if (! (get_max_num_type(args, &max_type)))
     return enc_sym(symrepr_terror());
@@ -258,17 +258,17 @@ VALUE bi_fun_sum(VALUE args) {
 
 VALUE bi_fun_sub(VALUE args) {
 
-  uint32_t tmp;
-  uint32_t enc;
-  float f_res;
-  uint32_t u_res;
-  int32_t i_res;
-  uint32_t max_type;
+  UINT  tmp;
+  UINT  enc;
+  FLOAT f_res;
+  UINT  u_res;
+  INT   i_res;
+  TYPE  max_type;
 
   if (!(get_max_num_type(args, &max_type)))
     return enc_sym(symrepr_terror());
 
-  uint32_t n = length(args);
+  unsigned int n = length(args);
 
   if (n < 1) return enc_sym(symrepr_eerror());
 
@@ -784,7 +784,7 @@ bi_fptr builtin_lookup_function(uint32_t sym){
 
 int builtin_add_function(char *sym_str, bi_fptr fun_ptr){
 
-  uint32_t symbol;
+  VALUE symbol;
   int res = symrepr_addsym(sym_str, &symbol);
 
   if ( !res ) {

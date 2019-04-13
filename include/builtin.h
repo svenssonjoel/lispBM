@@ -20,7 +20,7 @@
 
 #include "typedefs.h"
 
-typedef uint32_t (*bi_fptr)(uint32_t);
+typedef VALUE (*bi_fptr)(VALUE);
 
 bi_fptr builtin_lookup_function(VALUE sym);
 int builtin_add_function(char *sym_str, bi_fptr fun_ptr);

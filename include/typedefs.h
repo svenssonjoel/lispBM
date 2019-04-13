@@ -21,7 +21,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#if !defined(_32_BIT_) && !defined(_64_BIT_)
+#error Exactly one of _32_BIT_ and _64_BIT_ must be defined
+#endif
 
+#if defined(_32_BIT_)
 typedef uint32_t VALUE; // A Lisp value.
 typedef uint32_t TYPE; // Representation of type.
 
@@ -30,6 +34,18 @@ typedef uint32_t TYPE; // Representation of type.
 
 typedef uint32_t UINT; // same size as a pointer on target platform
 typedef int32_t  INT;
+typedef float    FLOAT;
+#endif
+
+#if defined(_64_BIT_)
+typedef uint64_t VALUE;
+typedef uint64_t TYPE; 
+
+
+typedef uint64_t UINT; 
+typedef int64_t  INT;
+typedef double   FLOAT;
+#endif
 
 
 #endif 

@@ -2,33 +2,37 @@
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
   CCFLAGS = -m32 -O2 -Wall -Wextra -pedantic -std=c11
-  #CCFLAGS += -DTINY_SYMTAB
+  CCFLAGS += -D_32_BIT_
 endif
 
 ifeq ($(PLATFORM),linux-x86-64)
   $(error Platform support not implemented)
   BUILD_DIR = build/linux-x86-64
-  CCFLAGS = -O2 -DBUILD_X86_64
+  CCFLAGS = -O2 -Wall -Wextra -pedantic -std=c11
+  CCFLAGS += -D_64_BIT_	
 endif
 
 ifeq ($(PLATFORM), zynq)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/zynq
-  CCFLAGS = -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -O2 -Wall -pedantic
+  CCFLAGS = -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -O2 -Wall -Wextra -pedantic
+  CCFLAGS += -D_32_BIT_ 
 endif
 
 ifeq ($(PLATFORM), stm32f4)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/stm32f4
-  CCFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O2 -Wall -pedantic -fmessage-length=0 -ffunction-sections -c -MMD -MP
+  CCFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O2 -Wall -Wextra -pedantic -fmessage-length=0 -ffunction-sections -c -MMD -MP
   CCFLAGS += -DTINY_SYMTAB
+  CCFLAGS += -D_32_BIT_ 
 endif
 
 ifeq ($(PLATFORM), nrf52840_pca10056)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/nrf52840_pca10056
-  CCFLAGS =  -mcpu=cortex-m4  -mthumb -ffunction-sections -fdata-sections -mabi=aapcs -march=armv7e-m 
+  CCFLAGS =  -mcpu=cortex-m4  -mthumb -ffunction-sections -fdata-sections -mabi=aapcs -march=armv7e-m -O2 -Wall -Wextra -pedantic
   CCFLAGS += -DTINY_SYMTAB
+  CCFLAGS += -D_32_BIT_ 
 endif
 
 ifeq ($(PLATFORM), pi)
@@ -36,6 +40,7 @@ ifeq ($(PLATFORM), pi)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = /build/pi
   CCFLAGS = 
+  CCFLAGS += -D_64_BIT_ 
 endif
 
 SOURCE_DIR = src
