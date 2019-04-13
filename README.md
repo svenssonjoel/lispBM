@@ -34,6 +34,9 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 13. Code improvements with simplicity, clarity  and readability in mind.
 14. Implement a small dedicated lisp reader/parser to replace MPC.
 
+## Longer term TODOs
+0. Port to X86_64 linux. (going 64bit involves some big changes) 
+1. Port to Raspberry pi 64Bit Bare-metal.
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
