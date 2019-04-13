@@ -63,21 +63,21 @@
 #define DEF_REPR_MERROR    11
 #define DEF_REPR_DEFINE    12
 
-static uint32_t gensym_next = HASHTAB_SIZE;
+static UINT gensym_next = HASHTAB_SIZE;
 
-static uint32_t hash_string(char *str, uint32_t modulo);
+static UINT hash_string(char *str, UINT modulo);
 
-static uint32_t def_repr[13];
+static UINT def_repr[13];
 
 typedef struct s_name_mapping {
-  uint32_t key; /* hash including collision id */
+  UINT key; /* hash including collision id */
   char* name;
   struct s_name_mapping* next;
 } name_mapping_t;
 
 #ifdef TINY_SYMTAB
 typedef struct s_name_list {
-  uint32_t key; /* 16 bit hash part */
+  UINT key; /* 16 bit hash part */
   name_mapping_t* map;
   struct s_name_list* next;
 }name_list_t;
@@ -86,10 +86,10 @@ int name_list_is_empty(name_list_t *l) {
   return (l == NULL);
 }
 
-name_mapping_t* name_list_get_mappings(name_list_t *l, uint32_t key) {
+name_mapping_t* name_list_get_mappings(name_list_t *l, UINT key) {
 
   /* do not care about anothing but the low 16 bits */
-  uint32_t key_ = key & 0xFFFF;
+  UINT key_ = key & 0xFFFF;
 
   name_list_t *curr = l;
   
@@ -102,7 +102,7 @@ name_mapping_t* name_list_get_mappings(name_list_t *l, uint32_t key) {
   return NULL; 
 }
 
-int name_mapping_contains(name_mapping_t *map, uint32_t key) {
+int name_mapping_contains(name_mapping_t *map, UINT key) {
 
   while (map != NULL) {
     if (map->key == key) return 1; 
@@ -136,19 +136,19 @@ int add_default_symbols(void) {
   return res;
 }
 
-uint32_t symrepr_nil(void)     { return def_repr[DEF_REPR_NIL]; }
-uint32_t symrepr_quote(void)   { return def_repr[DEF_REPR_QUOTE]; }
-uint32_t symrepr_true(void)    { return def_repr[DEF_REPR_TRUE]; }
-uint32_t symrepr_cond(void)    { return def_repr[DEF_REPR_COND]; }
-uint32_t symrepr_if(void)      { return def_repr[DEF_REPR_IF]; }
-uint32_t symrepr_lambda(void)  { return def_repr[DEF_REPR_LAMBDA]; }
-uint32_t symrepr_closure(void) { return def_repr[DEF_REPR_CLOSURE]; }
-uint32_t symrepr_let(void)     { return def_repr[DEF_REPR_LET]; }
-uint32_t symrepr_rerror(void)  { return def_repr[DEF_REPR_RERROR]; }
-uint32_t symrepr_terror(void)  { return def_repr[DEF_REPR_TERROR]; }
-uint32_t symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }
-uint32_t symrepr_merror(void)  { return def_repr[DEF_REPR_MERROR]; }
-uint32_t symrepr_define(void)  { return def_repr[DEF_REPR_DEFINE]; }
+UINT symrepr_nil(void)     { return def_repr[DEF_REPR_NIL]; }
+UINT symrepr_quote(void)   { return def_repr[DEF_REPR_QUOTE]; }
+UINT symrepr_true(void)    { return def_repr[DEF_REPR_TRUE]; }
+UINT symrepr_cond(void)    { return def_repr[DEF_REPR_COND]; }
+UINT symrepr_if(void)      { return def_repr[DEF_REPR_IF]; }
+UINT symrepr_lambda(void)  { return def_repr[DEF_REPR_LAMBDA]; }
+UINT symrepr_closure(void) { return def_repr[DEF_REPR_CLOSURE]; }
+UINT symrepr_let(void)     { return def_repr[DEF_REPR_LET]; }
+UINT symrepr_rerror(void)  { return def_repr[DEF_REPR_RERROR]; }
+UINT symrepr_terror(void)  { return def_repr[DEF_REPR_TERROR]; }
+UINT symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }
+UINT symrepr_merror(void)  { return def_repr[DEF_REPR_MERROR]; }
+UINT symrepr_define(void)  { return def_repr[DEF_REPR_DEFINE]; }
 
 int symrepr_init(void) {
 #ifdef TINY_SYMTAB
@@ -161,7 +161,7 @@ int symrepr_init(void) {
   return add_default_symbols();
 }
 
-int gensym(uint32_t *res) {
+int gensym(UINT *res) {
 
   char gensym_name[1024];
   memset(gensym_name,0,1024);
@@ -169,14 +169,14 @@ int gensym(uint32_t *res) {
   unsigned int n;
   
 #ifdef TINY_SYMTAB
-  static uint32_t index_12bit = 0;
+  static UINT index_12bit = 0;
 
   if (gensym_next == HASHTAB_MALLOC_SIZE-1) {
     gensym_next = HASHTAB_SIZE;
     if (index_12bit < 4096) index_12bit++;
     else return 0;
   }
-  uint32_t hash = gensym_next | (index_12bit << 16); /* "hash" */
+  UINT hash = gensym_next | (index_12bit << 16); /* "hash" */
   
   n_res = snprintf(gensym_name,1024,"gensym_%"PRIu32"", hash);
   if (n_res < 0) return 0;
@@ -230,7 +230,7 @@ int gensym(uint32_t *res) {
       tmp->next = (name_mapping_t*)malloc(sizeof(name_mapping_t));
       if (tmp->next == NULL) return 0;
       
-      uint32_t new_key = hash;
+      UINT new_key = hash;
       
       tmp->next->next = NULL;
       tmp->next->key  = new_key;
@@ -245,7 +245,7 @@ int gensym(uint32_t *res) {
   
   return 1;
 #else
-  uint32_t v = gensym_next;
+  UINT v = gensym_next;
  
   if(name_table[v] == NULL && v < HASHTAB_MALLOC_SIZE) {
     name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
@@ -261,7 +261,7 @@ int gensym(uint32_t *res) {
   } else {
     /* Gensym already added to this bucket */
     name_mapping_t *head = name_table[v];
-    uint32_t hkey_id = head->key & 0xFFFF0000 ;
+    UINT hkey_id = head->key & 0xFFFF0000 ;
 
     /* If new ID would be too big return failure */
     if ((hkey_id >> 16) >= (BUCKET_DEPTH - 1)) {
@@ -271,7 +271,7 @@ int gensym(uint32_t *res) {
     /* problem if hkey_id = 0xFFFF0000 */
     name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t)); /* replace */
     name_table[v]->key = v + (hkey_id + (1 << 16));
-    uint32_t v_prim = v + (hkey_id + (1 << 16));
+    UINT v_prim = v + (hkey_id + (1 << 16));
     n_res = snprintf(gensym_name,1024,"gensym_%"PRIu32"", v_prim);
     if (n_res < 0) return 0;
     n = (unsigned int) n_res;
@@ -288,13 +288,13 @@ int gensym(uint32_t *res) {
 #endif
 }
 
-int symrepr_addsym(char *name, uint32_t* id) {
+int symrepr_addsym(char *name, UINT* id) {
   size_t   n = 0;
 
   n = strlen(name) + 1;
   if (n == 1) return 0; /* failure if empty symbol */
   
-  uint32_t hash = hash_string(name, HASHTAB_SIZE);
+  UINT hash = hash_string(name, HASHTAB_SIZE);
 
   if (hash >= HASHTAB_SIZE) /* impossible */ return 0;
   
@@ -340,7 +340,7 @@ int symrepr_addsym(char *name, uint32_t* id) {
     } else {
       /* There are entries for this hash */
       /* TODO add new entry */
-      uint32_t max_12bit = 0;
+      UINT max_12bit = 0;
 
       while (tmp->next) {
 	if ((tmp->key >> 16) > max_12bit) max_12bit = tmp->key >> 16;
@@ -353,7 +353,7 @@ int symrepr_addsym(char *name, uint32_t* id) {
       tmp->next = (name_mapping_t*)malloc(sizeof(name_mapping_t));
       if (tmp->next == NULL) return 0;
 
-      uint32_t new_key = hash | (max_12bit << 16); 
+      UINT new_key = hash | (max_12bit << 16); 
       
       tmp->next->next = NULL;
       tmp->next->key  = new_key;
@@ -379,7 +379,7 @@ int symrepr_addsym(char *name, uint32_t* id) {
     strncpy(name_table[hash]->name, name, n);
     name_table[hash]->next = NULL;
   } else {
-    uint32_t t_id;
+    UINT t_id;
     if (symrepr_lookup(name, &t_id)) {
       /* name already in table */
 
@@ -390,7 +390,7 @@ int symrepr_addsym(char *name, uint32_t* id) {
 
     /* collision */
     name_mapping_t *head = name_table[hash];
-    uint32_t hkey_id = head->key & 0xFFFF0000 ;
+    UINT hkey_id = head->key & 0xFFFF0000 ;
 
     /* If new ID would be too big return failure */
     if ((hkey_id >> 16) >= (BUCKET_DEPTH - 1)) {
@@ -411,10 +411,10 @@ int symrepr_addsym(char *name, uint32_t* id) {
 }
 
 
-int symrepr_lookup(char *name, uint32_t* id) {
+int symrepr_lookup(char *name, UINT* id) {
   
   name_mapping_t *head;
-  uint32_t hash = hash_string(name, HASHTAB_SIZE);
+  UINT hash = hash_string(name, HASHTAB_SIZE);
 #ifdef TINY_SYMTAB
   head = name_list_get_mappings(name_list, hash);
 #else
@@ -434,10 +434,10 @@ int symrepr_lookup(char *name, uint32_t* id) {
 }
 
 
-char *symrepr_lookup_name(uint32_t id) {
+char *symrepr_lookup_name(UINT id) {
 
   name_mapping_t *head = NULL;
-  uint32_t hash = id & (uint32_t)0x0000FFFF; /*extract index*/
+  UINT hash = id & (UINT)0x0000FFFF; /*extract index*/
   if(hash == 65535) return "special_symbol";
   
 #ifdef TINY_SYMTAB
@@ -520,18 +520,18 @@ void symrepr_del(void) {
 #endif
 }
 
-uint32_t small_primes[SMALL_PRIMES] =
+UINT small_primes[SMALL_PRIMES] =
   /* {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31}; */
   /* {37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79}; */
   {359, 419, 463, 523, 593, 643, 701, 761, 827, 883, 953};
-uint32_t hash_string(char *str, uint32_t modulo) {
+UINT hash_string(char *str, UINT modulo) {
 
-  uint32_t r = 1;
+  UINT r = 1;
   size_t n = strlen(str);
 
-  for (uint32_t i = 0; i < n; i ++) {
-    uint32_t sp = small_primes[i % SMALL_PRIMES];
-    uint32_t v = (uint32_t)str[i];
+  for (UINT i = 0; i < n; i ++) {
+    UINT sp = small_primes[i % SMALL_PRIMES];
+    UINT v = (UINT)str[i];
     r = (r + (sp * v)) % modulo; 
   }
 
