@@ -51,28 +51,8 @@ VALUE bi_fun_numberp(VALUE args) {
   return enc_sym(symrepr_nil());
 }
 
-
 ////////////////////////////////////////////////////////////
-// Built in functions
-VALUE bi_fun_car(VALUE args) {
-  return car(car(args));
-}
-
-VALUE bi_fun_cdr(VALUE args) {
-  return cdr(car(args));
-}
-
-VALUE bi_fun_cons(VALUE args) {
-  VALUE a = car(args);
-  VALUE b = car(cdr(args));
-  return cons(a,b);
-}
-
-VALUE bi_fun_reverse(VALUE args) {
-  VALUE xs = car(args);
-  return reverse(xs);
-}
-
+// Utility functions
 /*
  * get_max_num_type
  * Returns: success or failure (1 or 0).
@@ -176,6 +156,28 @@ int get_as_float(VALUE v, FLOAT *r) {
     return 0;
   }
   return 1;
+}
+
+
+////////////////////////////////////////////////////////////
+// Built in functions
+VALUE bi_fun_car(VALUE args) {
+  return car(car(args));
+}
+
+VALUE bi_fun_cdr(VALUE args) {
+  return cdr(car(args));
+}
+
+VALUE bi_fun_cons(VALUE args) {
+  VALUE a = car(args);
+  VALUE b = car(cdr(args));
+  return cons(a,b);
+}
+
+VALUE bi_fun_reverse(VALUE args) {
+  VALUE xs = car(args);
+  return reverse(xs);
 }
 
 VALUE bi_fun_sum(VALUE args) {
@@ -766,7 +768,72 @@ VALUE bi_fun_array_write(VALUE args) {
   return enc_sym(symrepr_true());
 }
 
+////////////////////////////////////////////////////////////
+// Built in String manipulation and printing
 
+VALUE bi_fun_to_string(VALUE args) {
+
+  char str[1024];
+      
+  if (type_of(args) != PTR_TYPE_CONS) {
+    // TODO: look at alternatives to this. 
+    return enc_sym(symrepr_eerror()); 
+  }
+
+  VALUE arg = car(args);
+
+  if (type_of(arg) == PTR_TYPE_ARRAY) {
+    array_t *array = (array_t *)car(args);
+    if (array->elt_type == VAL_TYPE_CHAR) {
+      return args;
+    } else {
+      // TODO: generate a string representation of array.
+    }
+  }
+
+  
+  INT   i;
+  UINT  u;
+  FLOAT f;
+  char  c;
+  
+  switch (type_of(arg)) {
+  case VAL_TYPE_I28:
+    i = dec_i(arg);
+    snprintf(str,1024,"%d",i);
+    break;
+  case VAL_TYPE_U28:
+    u = dec_u(arg);
+    snprintf(str,1024,"%u",u);
+    break;
+  case VAL_TYPE_CHAR:
+    c = dec_char(arg);
+    snprintf(str,1024,"%c",c);
+    break;
+  case PTR_TYPE_F32:
+    f = dec_f(arg);
+    snprintf(str,1024,"%f",f);
+    break;
+  default:
+    return enc_sym(symrepr_eerror());
+  }
+
+  unsigned int size = strlen(str); 
+  VALUE arr;
+
+  if (!heap_allocate_array(&arr, size+1, VAL_TYPE_CHAR)) {
+    return enc_sym(symrepr_merror());
+  }
+
+  array_t *array = (array_t*)car(arr);
+
+  memset(array->data.c, 0, (size+1) * sizeof(char));
+  memcpy(array->data.c, str, size * sizeof(char));
+  
+  return arr;
+}
+
+////////////////////////////////////////////////////////////
 // Interface functions
 
 bi_fptr builtin_lookup_function(UINT sym){
@@ -820,6 +887,7 @@ int builtin_init(void) {
   res &= builtin_add_function("array-read", bi_fun_array_read);
   res &= builtin_add_function("array-write", bi_fun_array_write);
   res &= builtin_add_function("numberp", bi_fun_numberp);
+  res &= builtin_add_function("to-string", bi_fun_to_string);
   return res;
 }
 

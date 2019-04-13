@@ -18,6 +18,7 @@
 #ifndef HEAP_H_
 #define HEAP_H_
 
+#include <string.h>
 #include "typedefs.h"
 
 /*
@@ -178,79 +179,6 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define VAL_TYPE_I28         0x00000008u
 #define VAL_TYPE_U28         0x0000000Cu
 
-
-inline TYPE val_type(VALUE x) {
-  return (x & VAL_TYPE_MASK);
-}
-
-inline TYPE ptr_type(VALUE p) {
-  return (p & PTR_TYPE_MASK);
-}
-
-inline TYPE type_of(VALUE x) {
-  return (x & PTR_MASK) ? (x & PTR_TYPE_MASK) : (x & VAL_TYPE_MASK);
-}
-
-inline bool is_ptr(VALUE x) {
-  return (x & PTR_MASK);
-}
-
-inline VALUE enc_cons_ptr(UINT x) {
-  return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR);
-}
-
-inline uint32_t dec_ptr(VALUE p) {
-  return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
-}
-
-inline VALUE set_ptr_type(VALUE p, TYPE t) {
-  return (PTR_VAL_MASK & p) | t | PTR;
-}
-
-inline VALUE enc_i(INT x) {
-  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_I28;
-}
-
-inline VALUE enc_u(UINT x) {
-  return (x << VAL_SHIFT) | VAL_TYPE_U28;
-}
-
-inline VALUE enc_char(char x) {
-  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_CHAR;
-}
-
-inline VALUE enc_sym(uint32_t s) {
-  return (s << VAL_SHIFT) | VAL_TYPE_SYMBOL;
-}
-
-inline int32_t dec_i(VALUE x) {
-  return (INT)x >> VAL_SHIFT;
-}
-
-inline uint32_t dec_u(VALUE x) {
-  return x >> VAL_SHIFT;
-}
-
-inline char dec_char(VALUE x) {
-  return (char)(x >> VAL_SHIFT);
-}
-
-inline uint32_t dec_sym(VALUE x) {
-  return x >> VAL_SHIFT;
-}
-
-inline VALUE val_set_gc_mark(VALUE x) {
-  return x | GC_MARKED;
-}
-
-inline VALUE val_clr_gc_mark(VALUE x) {
-  return x & ~GC_MASK;
-}
-
-inline bool val_get_gc_mark(VALUE x) {
-  return x & GC_MASK;
-}
-
 typedef struct {
   VALUE car;
   VALUE cdr;
@@ -310,5 +238,90 @@ extern int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, UIN
 
 // Array functionality
 extern int heap_allocate_array(VALUE *res, unsigned int size, TYPE type);
+
+
+
+////////////////////////////////////////////////////////////
+// INLINE FUNCTIONS
+
+inline TYPE val_type(VALUE x) {
+  return (x & VAL_TYPE_MASK);
+}
+
+inline TYPE ptr_type(VALUE p) {
+  return (p & PTR_TYPE_MASK);
+}
+
+inline TYPE type_of(VALUE x) {
+  return (x & PTR_MASK) ? (x & PTR_TYPE_MASK) : (x & VAL_TYPE_MASK);
+}
+
+inline bool is_ptr(VALUE x) {
+  return (x & PTR_MASK);
+}
+
+inline VALUE enc_cons_ptr(UINT x) {
+  return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR);
+}
+
+inline uint32_t dec_ptr(VALUE p) {
+  return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
+}
+
+inline VALUE set_ptr_type(VALUE p, TYPE t) {
+  return (PTR_VAL_MASK & p) | t | PTR;
+}
+
+inline VALUE enc_i(INT x) {
+  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_I28;
+}
+
+inline VALUE enc_u(UINT x) {
+  return (x << VAL_SHIFT) | VAL_TYPE_U28;
+}
+
+inline VALUE enc_char(char x) {
+  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_CHAR;
+}
+
+inline VALUE enc_sym(uint32_t s) {
+  return (s << VAL_SHIFT) | VAL_TYPE_SYMBOL;
+}
+
+inline INT dec_i(VALUE x) {
+  return (INT)x >> VAL_SHIFT;
+}
+
+inline UINT dec_u(VALUE x) {
+  return x >> VAL_SHIFT;
+}
+
+inline char dec_char(VALUE x) {
+  return (char)(x >> VAL_SHIFT);
+}
+
+inline UINT dec_sym(VALUE x) {
+  return x >> VAL_SHIFT;
+}
+
+inline FLOAT dec_f(VALUE x) { // Use only when knowing that x is a VAL_TYPE_F
+  FLOAT f_tmp;
+  UINT tmp = car(x);
+  memcpy(&f_tmp, &tmp, sizeof(FLOAT));
+  return f_tmp;
+}
+
+inline VALUE val_set_gc_mark(VALUE x) {
+  return x | GC_MARKED;
+}
+
+inline VALUE val_clr_gc_mark(VALUE x) {
+  return x & ~GC_MASK;
+}
+
+inline bool val_get_gc_mark(VALUE x) {
+  return x & GC_MASK;
+}
+
 
 #endif
