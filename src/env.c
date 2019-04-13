@@ -31,7 +31,7 @@ int env_copy_shallow(VALUE env, VALUE *cpy) {
   VALUE curr = env;
   
   while (type_of(curr) == PTR_TYPE_CONS) {
-    uint32_t key = car(car(curr));
+    VALUE key = car(car(curr));
     if (dec_sym(key) != symrepr_nil()) {
       res = cons(car(curr), res);
 
@@ -86,8 +86,8 @@ int env_build_params_args(VALUE params,
 			  VALUE args,
 			  VALUE env0,
 			  VALUE *res_env) {
-  uint32_t curr_param = params;
-  uint32_t curr_arg = args;
+  VALUE curr_param = params;
+  VALUE curr_arg = args;
 
   // TODO: This should be checked outside of this function.
   // 
@@ -98,10 +98,10 @@ int env_build_params_args(VALUE params,
     return 0; 
   }
   
-  uint32_t env = env0;
+  VALUE env = env0;
   while (type_of(curr_param) == PTR_TYPE_CONS) {
 
-    uint32_t entry = cons(car(curr_param), car(curr_arg));
+    VALUE entry = cons(car(curr_param), car(curr_arg));
     if (type_of(entry) == VAL_TYPE_SYMBOL &&
 	dec_sym(entry) == symrepr_merror())
       return 0; 
