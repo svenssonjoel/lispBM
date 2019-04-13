@@ -19,17 +19,19 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "typedefs.h"
+
 typedef struct {
-  uint32_t* data;
-  uint32_t  sp;
-  uint32_t  size;
+  UINT* data;
+  unsigned int sp;
+  unsigned int size;
 } stack;
 
 stack* init_cont_stack(unsigned int stack_size);
 int clear_stack(stack *s);
 int copy_stack(stack *dest, stack *src);
-int push_u32(stack *s, uint32_t val);
-int push_k(stack *s, uint32_t (*k)(uint32_t));
-int pop_u32(stack *s, uint32_t *val);
-int pop_k(stack *s, uint32_t (**k)(uint32_t));
+int push_u32(stack *s, UINT val);
+int push_k(stack *s, VALUE (*k)(VALUE));
+int pop_u32(stack *s, UINT *val);
+int pop_k(stack *s, VALUE (**k)(VALUE));
 #endif

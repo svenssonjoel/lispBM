@@ -98,25 +98,25 @@ int get_max_num_type(VALUE args, TYPE *type) {
 
 int get_as_int(VALUE v, INT *r) {
   VALUE tmp;
-  float f_tmp;
+  FLOAT f_tmp;
   switch (type_of(v)) {
   case VAL_TYPE_I28:
     *r =  dec_i(v);
     break;
   case VAL_TYPE_U28:
-    *r = (int32_t)dec_u(v);
+    *r = (INT)dec_u(v);
     break;
   case PTR_TYPE_I32:
-    *r = (int32_t)car(v);
+    *r = (INT)car(v);
     break;
   case PTR_TYPE_U32:
-    *r = (int32_t)car(v);
+    *r = (INT)car(v);
     break;
   case PTR_TYPE_F32:
     tmp = car(v);
-    // f_tmp = *(float*)&tmp;
-    memcpy(&f_tmp, &tmp, sizeof(float));
-    *r = (int32_t)f_tmp;
+    // f_tmp = *(FLOAT*)&tmp;
+    memcpy(&f_tmp, &tmp, sizeof(FLOAT));
+    *r = (INT)f_tmp;
     break;
   default:
     return 0;
@@ -126,25 +126,25 @@ int get_as_int(VALUE v, INT *r) {
 
 int get_as_uint(VALUE v, UINT *r) {
   VALUE tmp;
-  float    f_tmp;
+  FLOAT    f_tmp;
   switch (type_of(v)) {
   case VAL_TYPE_I28:
-    *r =  (uint32_t)dec_i(v);
+    *r =  (UINT)dec_i(v);
     break;
   case VAL_TYPE_U28:
     *r = dec_u(v);
     break;
   case PTR_TYPE_I32:
-    *r = (uint32_t)car(v);
+    *r = (UINT)car(v);
     break;
   case PTR_TYPE_U32:
     *r = car(v);
     break;
   case PTR_TYPE_F32:
     tmp = car(v);
-    // f_tmp = *(float*)&tmp;
-    memcpy(&f_tmp, &tmp, sizeof(float));
-    *r = (uint32_t)f_tmp;
+    // f_tmp = *(FLOAT*)&tmp;
+    memcpy(&f_tmp, &tmp, sizeof(FLOAT));
+    *r = (UINT)f_tmp;
     break;
   default:
     return 0;
@@ -152,25 +152,25 @@ int get_as_uint(VALUE v, UINT *r) {
   return 1;
 }
 
-int get_as_float(VALUE v, float *r) {
+int get_as_float(VALUE v, FLOAT *r) {
   VALUE tmp;
   switch (type_of(v)) {
   case VAL_TYPE_I28:
-    *r =  (float)dec_i(v);
+    *r =  (FLOAT)dec_i(v);
     break;
   case VAL_TYPE_U28:
-    *r = (float)dec_u(v);
+    *r = (FLOAT)dec_u(v);
     break;
   case PTR_TYPE_I32:
-    *r = (float)((int32_t)car(v));
+    *r = (FLOAT)((INT)car(v));
     break;
   case PTR_TYPE_U32:
-    *r = (float)car(v);
+    *r = (FLOAT)car(v);
     break;
   case PTR_TYPE_F32:
     tmp = car(v);
-    //*r = *(float*)&tmp;
-    memcpy(r, &tmp, sizeof(float));
+    //*r = *(FLOAT*)&tmp;
+    memcpy(r, &tmp, sizeof(FLOAT));
     break;
   default:
     return 0;
@@ -182,7 +182,7 @@ VALUE bi_fun_sum(VALUE args) {
   VALUE   curr = args;
   INT     i_sum = 0;
   UINT    u_sum = 0;
-  float   f_sum = 0.0;
+  FLOAT   f_sum = 0.0;
 
   UINT tmp;
   UINT float_enc;
@@ -196,7 +196,7 @@ VALUE bi_fun_sum(VALUE args) {
   case VAL_TYPE_I28:
     while(type_of(curr) == PTR_TYPE_CONS) {
       VALUE v = car(curr);
-      int32_t r;
+      INT   r;
       get_as_int(v,&r);
       i_sum += r;
       curr = cdr(curr);
@@ -206,7 +206,7 @@ VALUE bi_fun_sum(VALUE args) {
   case VAL_TYPE_U28:
     while(type_of(curr) == PTR_TYPE_CONS) {
       VALUE v = car(curr);
-      uint32_t r;
+      UINT r;
       get_as_uint(v,&r);
       u_sum += r;
       curr = cdr(curr);
@@ -216,7 +216,7 @@ VALUE bi_fun_sum(VALUE args) {
   case PTR_TYPE_I32:
     while(type_of(curr) == PTR_TYPE_CONS) {
       VALUE v = car(curr);
-      int32_t r;
+      INT r;
       get_as_int(v,&r);
       i_sum += r;
       curr= cdr(curr);
@@ -227,7 +227,7 @@ VALUE bi_fun_sum(VALUE args) {
   case PTR_TYPE_U32:
     while(type_of(curr) == PTR_TYPE_CONS) {
       VALUE v = car(curr);
-      uint32_t r;
+      UINT  r;
       get_as_uint(v,&r);
       u_sum += r;
       curr= cdr(curr);
@@ -240,12 +240,12 @@ VALUE bi_fun_sum(VALUE args) {
   case PTR_TYPE_F32:
     while(type_of(curr) == PTR_TYPE_CONS) {
       VALUE v = car(curr);
-      float r;
+      FLOAT r;
       get_as_float(v,&r);
       f_sum += r;
       curr = cdr(curr);
     }
-    memcpy(&tmp, &f_sum, sizeof(uint32_t));
+    memcpy(&tmp, &f_sum, sizeof(UINT));
     float_enc = cons(tmp,enc_sym(SPECIAL_SYM_F));
     if (type_of(float_enc) == VAL_TYPE_SYMBOL) // an error
       return float_enc;
@@ -285,7 +285,7 @@ VALUE bi_fun_sub(VALUE args) {
       return enc_u(u_res);
 
     case PTR_TYPE_I32:
-      i_res = -(int32_t)car(car(args));
+      i_res = -(INT)car(car(args));
       enc = cons(i_res, enc_sym(SPECIAL_SYM_I32));
       if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
 	return enc;
@@ -302,9 +302,9 @@ VALUE bi_fun_sub(VALUE args) {
 
     case PTR_TYPE_F32:
       enc = car(car(args));
-      memcpy(&f_res, &enc, sizeof(float));
+      memcpy(&f_res, &enc, sizeof(FLOAT));
       f_res = - f_res;
-      memcpy(&tmp, &f_res, sizeof(uint32_t));
+      memcpy(&tmp, &f_res, sizeof(UINT));
       enc = cons(tmp,enc_sym(SPECIAL_SYM_F));
       if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
 	return enc;
@@ -314,16 +314,16 @@ VALUE bi_fun_sub(VALUE args) {
     }
   }
 
-  uint32_t v = car(args);
-  uint32_t curr = cdr(args);
+  VALUE v = car(args);
+  VALUE curr = cdr(args);
 
   switch (max_type) {
   case VAL_TYPE_I28:
     get_as_int(v, &i_res);
 
     while(type_of(curr) == PTR_TYPE_CONS) {
-      uint32_t v = car(curr);
-      int32_t r;
+      UINT v = car(curr);
+      INT r;
       get_as_int(v,&r);
       i_res -= r;
       curr = cdr(curr);
@@ -334,8 +334,8 @@ VALUE bi_fun_sub(VALUE args) {
     get_as_uint(v, &u_res);
 
     while(type_of(curr) == PTR_TYPE_CONS) {
-      uint32_t v = car(curr);
-      uint32_t r;
+      UINT v = car(curr);
+      UINT r;
       get_as_uint(v,&r);
       u_res -= r;
       curr = cdr(curr);
@@ -346,8 +346,8 @@ VALUE bi_fun_sub(VALUE args) {
     get_as_int(v, &i_res);
 
     while(type_of(curr) == PTR_TYPE_CONS) {
-      uint32_t v = car(curr);
-      int32_t r;
+      UINT v = car(curr);
+      INT r;
       get_as_int(v, &r);
       i_res -= r;
       curr = cdr(curr);
@@ -362,8 +362,8 @@ VALUE bi_fun_sub(VALUE args) {
     get_as_uint(v, &u_res);
 
     while(type_of(curr) == PTR_TYPE_CONS) {
-      uint32_t v = car(curr);
-      uint32_t r;
+      UINT v = car(curr);
+      UINT r;
       get_as_uint(v, &r);
       u_res -= r;
       curr = cdr(curr);
@@ -378,14 +378,13 @@ VALUE bi_fun_sub(VALUE args) {
     get_as_float(v, &f_res);
 
     while(type_of(curr) == PTR_TYPE_CONS) {
-      uint32_t v = car(curr);
-      float r;
+      UINT v = car(curr);
+      FLOAT r;
       get_as_float(v, &r);
       f_res -= r;
       curr = cdr(curr);
     }
-    //tmp = *(uint32_t*)&f_res;
-    memcpy(&tmp, &f_res, sizeof(uint32_t));
+    memcpy(&tmp, &f_res, sizeof(UINT));
     enc = cons(tmp,enc_sym(SPECIAL_SYM_F));
     if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
       return enc;
@@ -397,14 +396,14 @@ VALUE bi_fun_sub(VALUE args) {
 }
 
 
-uint32_t bi_fun_gt(uint32_t args) {
-  uint32_t a1 = car(args);
-  uint32_t a2 = car(cdr(args));
-  int32_t i1, i2;
-  uint32_t u1, u2;
-  float f1, f2;
+VALUE bi_fun_gt(VALUE args) {
+  VALUE a1 = car(args);
+  VALUE a2 = car(cdr(args));
+  INT i1, i2;
+  UINT u1, u2;
+  FLOAT f1, f2;
 
-  uint32_t max_type = (type_of(a1) >= type_of(a2)) ? type_of(a1) : type_of(a2);
+  TYPE max_type = (type_of(a1) >= type_of(a2)) ? type_of(a1) : type_of(a2);
 
   switch (max_type) {
 
@@ -438,14 +437,14 @@ uint32_t bi_fun_gt(uint32_t args) {
   return enc_sym(symrepr_eerror());
 }
 
-uint32_t bi_fun_lt(uint32_t args) {
-  uint32_t a1 = car(args);
-  uint32_t a2 = car(cdr(args));
-  int32_t i1, i2;
-  uint32_t u1, u2;
-  float f1, f2;
+VALUE bi_fun_lt(VALUE args) {
+  VALUE a1 = car(args);
+  VALUE a2 = car(cdr(args));
+  INT i1, i2;
+  UINT u1, u2;
+  FLOAT f1, f2;
 
-  uint32_t max_type = (type_of(a1) >= type_of(a2)) ? type_of(a1) : type_of(a2);
+  TYPE max_type = (type_of(a1) >= type_of(a2)) ? type_of(a1) : type_of(a2);
 
   switch (max_type) {
 
@@ -479,14 +478,14 @@ uint32_t bi_fun_lt(uint32_t args) {
   return enc_sym(symrepr_eerror());
 }
 
-uint32_t bi_fun_num_eq(uint32_t args) {
-  uint32_t a1 = car(args);
-  uint32_t a2 = car(cdr(args));
-  int32_t i1, i2;
-  uint32_t u1, u2;
-  float f1, f2;
+VALUE bi_fun_num_eq(VALUE args) {
+  VALUE a1 = car(args);
+  VALUE a2 = car(cdr(args));
+  INT   i1, i2;
+  UINT  u1, u2;
+  FLOAT f1, f2;
 
-  uint32_t max_type = (type_of(a1) >= type_of(a2)) ? type_of(a1) : type_of(a2);
+  TYPE max_type = (type_of(a1) >= type_of(a2)) ? type_of(a1) : type_of(a2);
 
   switch (max_type) {
 
@@ -520,7 +519,7 @@ uint32_t bi_fun_num_eq(uint32_t args) {
   return enc_sym(symrepr_eerror());
 }
 
-int structural_equality(uint32_t a, uint32_t b) {
+int structural_equality(VALUE a, VALUE b) {
 
   if (!is_ptr(a) && !is_ptr(b)) {
     if (val_type(a) == val_type(b)){
@@ -560,22 +559,22 @@ int structural_equality(uint32_t a, uint32_t b) {
       }
 
       if (ptr_type(a) == PTR_TYPE_I32){
-	int32_t ai = (int32_t)car(a);
-	int32_t bi = (int32_t)car(b);
+	INT ai = (INT)car(a);
+	INT bi = (INT)car(b);
 	  if (ai == bi) return 1;
 	  else return 0;
       }
 
       if (ptr_type(a) == PTR_TYPE_U32){
-	uint32_t au = car(a);
-	uint32_t bu = car(b);
+	UINT au = car(a);
+	UINT bu = car(b);
 	  if (au == bu) return 1;
 	  else return 0;
       }
 
       if (ptr_type(a) == PTR_TYPE_F32) {
-	float af = car(a);
-	float bf = car(b);
+	FLOAT af = (FLOAT)car(a);
+	FLOAT bf = (FLOAT)car(b);
 	  if (af == bf) return 1;
 	  else return 0;
       }
@@ -588,29 +587,29 @@ int structural_equality(uint32_t a, uint32_t b) {
   return 0;
 }
 
-uint32_t bi_fun_eq(uint32_t args) {
-  uint32_t a1 = car(args);
-  uint32_t a2 = car(cdr(args));
+VALUE bi_fun_eq(VALUE args) {
+  VALUE a1 = car(args);
+  VALUE a2 = car(cdr(args));
 
   return( structural_equality(a1, a2) ? enc_sym(symrepr_true()) : enc_sym(symrepr_nil()) );
 }
 
-uint32_t bi_fun_gensym(uint32_t args) {
+VALUE bi_fun_gensym(VALUE args) {
 
-  (void)args;
+  (void)args; // ignores any arguments
   
   // Takes no arguments!
-  uint32_t gs;
+  UINT gs;
   int res = gensym(&gs);
 
   if (res) return enc_sym(gs);
   return enc_sym(symrepr_eerror());
 }
 
-uint32_t bi_fun_list(uint32_t args) {
-  uint32_t t = enc_sym(symrepr_nil());
-  uint32_t list = enc_sym(symrepr_nil());
-  uint32_t curr = args;
+VALUE bi_fun_list(VALUE args) {
+  VALUE t = enc_sym(symrepr_nil());
+  VALUE list = enc_sym(symrepr_nil());
+  VALUE curr = args;
   while (is_ptr(curr) && ptr_type(curr) == PTR_TYPE_CONS) {
     t = cons(car(curr),t);
     if (type_of(t) == VAL_TYPE_SYMBOL) // an error
@@ -631,31 +630,31 @@ uint32_t bi_fun_list(uint32_t args) {
 
 // Built in array functions
 
-uint32_t bi_fun_array_read(uint32_t args) {
+VALUE bi_fun_array_read(VALUE args) {
   // Args are: array, index
-  uint32_t arr = car(args);
-  uint32_t index = car(cdr(args));
+  VALUE arr = car(args);
+  VALUE index = car(cdr(args));
 
   // Get array index
-  uint32_t ix;
-  int32_t  tmp;
-  uint32_t res = enc_sym(symrepr_eerror());
+  UINT ix;
+  INT  tmp;
+  UINT res = enc_sym(symrepr_eerror());
   switch (type_of(index)) {
   case VAL_TYPE_U28:
-    ix = (int32_t)dec_u(index);
+    ix = dec_u(index);
     break;
   case VAL_TYPE_I28:
-    tmp = (int32_t)dec_i(index);
+    tmp = (INT)dec_i(index);
     if (tmp < 0) return enc_sym(symrepr_eerror());
-    ix = (uint32_t) tmp;
+    ix = (UINT)tmp;
     break;
   case PTR_TYPE_U32:
-    ix = (int32_t)car(index);
+    ix = car(index);
     break;
   case PTR_TYPE_I32:
-    tmp = (int32_t)car(index);
+    tmp = (INT)car(index);
     if (tmp < 0) return enc_sym(symrepr_eerror());
-    ix = (uint32_t) tmp;
+    ix = (UINT) tmp;
     break;
   default:
     return enc_sym(symrepr_nil());
@@ -668,7 +667,7 @@ uint32_t bi_fun_array_read(uint32_t args) {
 
     switch(array->elt_type) {
     case VAL_TYPE_CHAR:
-      res = enc_char((uint32_t) array->data.c[ix]);
+      res = enc_char((UINT) array->data.c[ix]);
       break;
     case VAL_TYPE_U28:
       res = enc_u(array->data.u32[ix]);
@@ -702,32 +701,32 @@ uint32_t bi_fun_array_read(uint32_t args) {
   return res;
 }
 
-uint32_t bi_fun_array_write(uint32_t args) {
+VALUE bi_fun_array_write(VALUE args) {
   // Args are: array, index, value
-  uint32_t arr = car(args);
-  uint32_t index = car(cdr(args));
-  uint32_t val = car(cdr(cdr(args)));
-  uint32_t uv;
-  float v;
+  VALUE arr = car(args);
+  VALUE index = car(cdr(args));
+  VALUE val = car(cdr(cdr(args)));
+  UINT uv;
+  FLOAT v;
   // Get array index
-  uint32_t ix;
-  int32_t tmp;
+  UINT ix;
+  INT tmp;
   switch (type_of(index)) {
   case VAL_TYPE_U28:
-    ix = (int32_t)dec_u(index);
+    ix = dec_u(index);
     break;
   case VAL_TYPE_I28:
-    tmp = (int32_t)dec_i(index);
+    tmp = (INT)dec_i(index);
     if (tmp < 0) return enc_sym(symrepr_eerror());
-    ix = (uint32_t) tmp;
+    ix = (UINT) tmp;
     break;
   case PTR_TYPE_U32:
-    ix = (int32_t)car(index);
+    ix = car(index);
     break;
   case PTR_TYPE_I32:
-    tmp = (int32_t)car(index);
+    tmp = (INT)car(index);
     if (tmp < 0) return enc_sym(symrepr_eerror());
-    ix = (uint32_t) tmp;
+    ix = (UINT) tmp;
     break;
   default:
     return enc_sym(symrepr_nil());
@@ -752,11 +751,11 @@ uint32_t bi_fun_array_write(uint32_t args) {
       array->data.u32[ix] = car(val);
       break;
     case PTR_TYPE_I32:
-      array->data.i32[ix] = (int32_t)car(val);
+      array->data.i32[ix] = (INT)car(val);
       break;
     case PTR_TYPE_F32:
       uv = car(val);
-      memcpy(&v, &uv, sizeof(float)); //  = *(float*)(&uv);
+      memcpy(&v, &uv, sizeof(FLOAT)); 
       array->data.f[ix] = v;
       break;
     default:
@@ -770,7 +769,7 @@ uint32_t bi_fun_array_write(uint32_t args) {
 
 // Interface functions
 
-bi_fptr builtin_lookup_function(uint32_t sym){
+bi_fptr builtin_lookup_function(UINT sym){
   builtin_function_t *t = function_list;
 
   while (t != NULL) {
@@ -834,14 +833,14 @@ void builtin_del(void) {
   }
 }
 
-uint32_t built_in_gen_env(void) {
+VALUE built_in_gen_env(void) {
 
   builtin_function_t* curr = function_list;
 
-  uint32_t env = enc_sym(symrepr_nil());
+  VALUE env = enc_sym(symrepr_nil());
 
   while (curr) {
-    uint32_t sym = enc_sym(curr->sym);
+    VALUE sym = enc_sym(curr->sym);
     env = cons(cons(sym,sym),env);
     if (type_of(env) == VAL_TYPE_SYMBOL) // an error
       return env;
