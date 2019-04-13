@@ -27,7 +27,7 @@
 #endif
 
 static cons_t*      heap = NULL;
-static uint32_t     heap_base;
+static UINT         heap_base;
 static heap_state_t heap_state;
 
 static VALUE        NIL;
@@ -103,11 +103,11 @@ int heap_init(unsigned int num_cells) {
 
   if (!heap) return 0;
 
-  heap_base = (uint32_t)heap;
+  heap_base = (UINT)heap;
 
   // Initialize heap statistics
   heap_state.heap_base    = heap_base;
-  heap_state.heap_bytes   = (uint32_t)(num_cells * sizeof(cons_t));
+  heap_state.heap_bytes   = (unsigned int)(num_cells * sizeof(cons_t));
   heap_state.heap_size    = num_cells;
 
   heap_state.num_alloc           = 0;
@@ -125,9 +125,9 @@ void heap_del(void) {
     free(heap);
 }
 
-uint32_t heap_num_free(void) {
+unsigned int heap_num_free(void) {
 
-  uint32_t count = 0;
+  unsigned int count = 0;
   VALUE curr = heap_state.freelist;
 
   while (type_of(curr) == PTR_TYPE_CONS) {
@@ -143,7 +143,7 @@ uint32_t heap_num_free(void) {
 }
 
 
-VALUE heap_allocate_cell(uint32_t ptr_type) {
+VALUE heap_allocate_cell(TYPE ptr_type) {
 
   VALUE res;
 
@@ -183,14 +183,14 @@ VALUE heap_allocate_cell(uint32_t ptr_type) {
   return res;
 }
 
-uint32_t heap_num_allocated(void) {
+unsigned int heap_num_allocated(void) {
   return heap_state.num_alloc;
 }
-uint32_t heap_size() {
+unsigned int heap_size() {
   return heap_state.heap_size;
 }
 
-uint32_t heap_size_bytes(void) {
+unsigned int heap_size_bytes(void) {
   return heap_state.heap_bytes;
 }
 
@@ -285,13 +285,13 @@ int gc_mark_freelist() {
   return 1;
 }
 
-int gc_mark_aux(VALUE *aux_data, VALUE aux_size) {
+int gc_mark_aux(UINT *aux_data, unsigned int aux_size) {
 
-  for (uint32_t i = 0; i < aux_size; i ++) {
+  for (unsigned int i = 0; i < aux_size; i ++) {
     if (is_ptr(aux_data[i])) {
 
       TYPE pt_t = ptr_type(aux_data[i]);
-      uint32_t pt_v = dec_ptr(aux_data[i]);
+      UINT pt_v = dec_ptr(aux_data[i]);
 
       if ( (pt_t == PTR_TYPE_CONS ||
 	    pt_t == PTR_TYPE_I32 ||
@@ -314,7 +314,7 @@ int gc_mark_aux(VALUE *aux_data, VALUE aux_size) {
 // Sweep moves non-marked heap objects to the free list.
 int gc_sweep_phase(void) {
 
-  uint32_t i = 0;
+  unsigned int i = 0;
   cons_t *heap = (cons_t *)heap_base;
 
   for (i = 0; i < heap_state.heap_size; i ++) {
@@ -352,7 +352,7 @@ int gc_sweep_phase(void) {
       }
 
       // create pointer to use as new freelist
-      uint32_t addr = enc_cons_ptr(i);
+      UINT addr = enc_cons_ptr(i);
 
       // Clear the "freed" cell.
       heap[i].car = NIL;
@@ -377,7 +377,7 @@ int heap_perform_gc(VALUE env) {
   return gc_sweep_phase();
 }
 
-int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, uint32_t *aux_data, uint32_t aux_size) {
+int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, UINT *aux_data, unsigned int aux_size) {
   heap_state.gc_num ++;
   heap_state.gc_recovered = 0;
   heap_state.gc_marked = 0;
@@ -399,7 +399,7 @@ int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, uint32_t *
 
 // construct, alter and break apart
 VALUE cons(VALUE car, VALUE cdr) {
-  uint32_t addr = heap_allocate_cell(PTR_TYPE_CONS);
+  VALUE addr = heap_allocate_cell(PTR_TYPE_CONS);
   if ( is_ptr(addr)) {
     set_car_(ref_cell(addr), car);
     set_cdr_(ref_cell(addr), cdr);
@@ -469,9 +469,9 @@ VALUE reverse(VALUE list) {
     return list;
   }
   
-  uint32_t curr = list;
+  VALUE curr = list;
 
-  uint32_t new_list = NIL;
+  VALUE new_list = NIL;
   while (type_of(curr) == PTR_TYPE_CONS) {
 
     new_list = cons(car(curr), new_list);
