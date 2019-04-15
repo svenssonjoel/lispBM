@@ -599,7 +599,7 @@ VALUE bi_fun_eq(VALUE args) {
 VALUE bi_fun_gensym(VALUE args) {
 
   (void)args; // ignores any arguments
-  
+
   // Takes no arguments!
   UINT gs;
   int res = gensym(&gs);
@@ -623,7 +623,7 @@ VALUE bi_fun_list(VALUE args) {
   while (is_ptr(curr) && ptr_type(curr) == PTR_TYPE_CONS) {
     list = cons(car(curr),list);
     if (type_of(list) == VAL_TYPE_SYMBOL) // an error
-      return list; 
+      return list;
 
     curr = cdr(curr);
   }
@@ -757,7 +757,7 @@ VALUE bi_fun_array_write(VALUE args) {
       break;
     case PTR_TYPE_F32:
       uv = car(val);
-      memcpy(&v, &uv, sizeof(FLOAT)); 
+      memcpy(&v, &uv, sizeof(FLOAT));
       array->data.f[ix] = v;
       break;
     default:
@@ -774,10 +774,10 @@ VALUE bi_fun_array_write(VALUE args) {
 VALUE bi_fun_to_string(VALUE args) {
 
   char str[1024];
-      
+
   if (type_of(args) != PTR_TYPE_CONS) {
-    // TODO: look at alternatives to this. 
-    return enc_sym(symrepr_eerror()); 
+    // TODO: look at alternatives to this.
+    return enc_sym(symrepr_eerror());
   }
 
   VALUE arg = car(args);
@@ -791,12 +791,12 @@ VALUE bi_fun_to_string(VALUE args) {
     }
   }
 
-  
+
   INT   i;
   UINT  u;
   FLOAT f;
   char  c;
-  
+
   switch (type_of(arg)) {
   case VAL_TYPE_I28:
     i = dec_i(arg);
@@ -818,7 +818,7 @@ VALUE bi_fun_to_string(VALUE args) {
     return enc_sym(symrepr_eerror());
   }
 
-  unsigned int size = strlen(str); 
+  unsigned int size = strlen(str);
   VALUE arr;
 
   if (!heap_allocate_array(&arr, size+1, VAL_TYPE_CHAR)) {
@@ -829,7 +829,7 @@ VALUE bi_fun_to_string(VALUE args) {
 
   memset(array->data.c, 0, (size+1) * sizeof(char));
   memcpy(array->data.c, str, size * sizeof(char));
-  
+
   return arr;
 }
 

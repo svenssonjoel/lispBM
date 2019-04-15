@@ -52,7 +52,7 @@ static VALUE dispatch_continuation(VALUE ix, VALUE args);
 
 jmp_buf rewind_buf;
 
-// Removed volatile qualifier on these. 
+// Removed volatile qualifier on these.
 static VALUE curr_exp;
 static VALUE curr_env;
 static VALUE eval_cps_global_env;
@@ -75,7 +75,7 @@ VALUE eval_cps_bi(VALUE lisp) {
 // ////////////////////////////////////////////////////////
 
 VALUE apply_continuation(stack *K){
-  
+
   VALUE k;
   VALUE args;
   pop_u32(K, &args);
@@ -104,7 +104,7 @@ VALUE cont_set_global_env(VALUE val){
   }
   VALUE keyval;
   GC_ON_ERROR(keyval, cons(key,val));
- 
+
   GC_ON_ERROR(tmp, cons(keyval, eval_cps_global_env));
 
   eval_cps_global_env = tmp;
@@ -301,7 +301,7 @@ VALUE dispatch_continuation(VALUE ix, VALUE args) {
 }
 
 // ////////////////////////////////////////////////////////
-// Broken out helpers 
+// Broken out helpers
 // ////////////////////////////////////////////////////////
 
 VALUE process_let(VALUE binds, VALUE orig_env, VALUE exp) {
@@ -315,7 +315,7 @@ VALUE process_let(VALUE binds, VALUE orig_env, VALUE exp) {
   while (type_of(curr) == PTR_TYPE_CONS) {
     VALUE key = car(car(curr));
     VALUE val = NIL; // a temporary
-    VALUE binding; 
+    VALUE binding;
     GC_ON_ERROR(binding, cons(key,val));
 
     GC_ON_ERROR(new_env, cons(binding, new_env));
@@ -353,7 +353,7 @@ VALUE eval_cps(VALUE lisp, VALUE env) {
     }
     push_u32(K, value);
     return apply_continuation(K);
-    
+
   case PTR_TYPE_F32:
   case PTR_TYPE_U32:
   case VAL_TYPE_I28:
@@ -524,7 +524,7 @@ int eval_cps_init() {
   int res = builtin_add_function("eval",eval_cps_bi);
 
   NIL = enc_sym(symrepr_nil());
-  
+
   eval_cps_global_env = NIL;
 
   eval_cps_global_env = built_in_gen_env();

@@ -22,7 +22,7 @@
 #include "heap.h"
 #include "typedefs.h"
 
-VALUE read_ast(mpc_ast_t *t); 
+VALUE read_ast(mpc_ast_t *t);
 
 
-#endif 
+#endif

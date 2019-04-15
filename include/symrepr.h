@@ -18,7 +18,7 @@
 #ifndef SYMTAB_H_
 #define SYMTAB_H_
 
-#include <stdint.h> 
+#include <stdint.h>
 #include <stdbool.h>
 
 #include "typedefs.h"
@@ -29,21 +29,21 @@
 #define SPECIAL_SYM_U32   0x0003FFFF
 #define SPECIAL_SYM_F     0x0004FFFF
 
-extern int symrepr_addsym(char *, uint32_t*); 
+extern int symrepr_addsym(char *, uint32_t*);
 extern int symrepr_init(void);
 extern void symrepr_print(void);
 extern int symrepr_lookup(char *, uint32_t*);
-extern char* symrepr_lookup_name(uint32_t); 
+extern char* symrepr_lookup_name(uint32_t);
 extern void symrepr_del(void);
 extern int gensym(uint32_t *res);
 
 extern uint32_t symrepr_nil(void);
 extern uint32_t symrepr_quote(void);
 extern uint32_t symrepr_true(void);
-extern uint32_t symrepr_if(void); 
+extern uint32_t symrepr_if(void);
 extern uint32_t symrepr_cond(void);
 extern uint32_t symrepr_lambda(void);
-extern uint32_t symrepr_closure(void); 
+extern uint32_t symrepr_closure(void);
 extern uint32_t symrepr_let(void);
 
 extern uint32_t symrepr_rerror(void);
@@ -51,6 +51,6 @@ extern uint32_t symrepr_terror(void);
 extern uint32_t symrepr_eerror(void);
 extern uint32_t symrepr_merror(void);
 
-extern uint32_t symrepr_define(void); 
+extern uint32_t symrepr_define(void);
 
-#endif 
+#endif

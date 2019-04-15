@@ -35,7 +35,7 @@ static VALUE        NIL;
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
 cons_t* ref_cell(VALUE addr) {
-  return &heap[dec_ptr(addr)]; 
+  return &heap[dec_ptr(addr)];
   //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 
@@ -57,7 +57,7 @@ static void set_cdr_(cons_t *cell, VALUE v) {
 
 static void set_gc_mark(cons_t *cell) {
   VALUE cdr = read_cdr(cell);
-  set_cdr_(cell, val_set_gc_mark(cdr)); 
+  set_cdr_(cell, val_set_gc_mark(cdr));
 }
 
 static void clr_gc_mark(cons_t *cell) {
@@ -78,7 +78,7 @@ int generate_freelist(size_t num_cells) {
   heap_state.freelist = enc_cons_ptr(0);
 
   cons_t *t;
-  
+
   // Add all cells to free list
   for (i = 1; i < num_cells; i ++) {
     t = ref_cell(enc_cons_ptr(i-1));
@@ -86,10 +86,10 @@ int generate_freelist(size_t num_cells) {
     set_cdr_(t, enc_cons_ptr(i));
   }
 
-  // Replace the incorrect pointer at the last cell. 
+  // Replace the incorrect pointer at the last cell.
   t = ref_cell(enc_cons_ptr(num_cells-1));
-  set_cdr_(t, NIL); 
-  
+  set_cdr_(t, NIL);
+
   return 1;
 }
 
@@ -152,7 +152,7 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
     if ((type_of(heap_state.freelist) == VAL_TYPE_SYMBOL) &&
 	(heap_state.freelist == NIL)) {
       // all is as it should be (but no free cells)
-      return enc_sym(symrepr_merror()); 
+      return enc_sym(symrepr_merror());
     } else {
       printf("BROKEN HEAP %"PRIx32"\n", type_of(heap_state.freelist));
       // something is most likely very wrong
@@ -163,12 +163,12 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
 
   // it is a ptr replace freelist with cdr of freelist;
   res = heap_state.freelist;
-  
+
   if (type_of(res) != PTR_TYPE_CONS) {
-    printf("ERROR: freelist is corrupt\n"); 
+    printf("ERROR: freelist is corrupt\n");
   }
-  
-  heap_state.freelist = cdr(heap_state.freelist); 
+
+  heap_state.freelist = cdr(heap_state.freelist);
 
   heap_state.num_alloc++;
 
@@ -227,9 +227,9 @@ int gc_mark_phase(VALUE env) {
 
   VALUE car_env = car(env);
   VALUE cdr_env = cdr(env);
-  VALUE t_car   = type_of(car_env); 
+  VALUE t_car   = type_of(car_env);
   VALUE t_cdr   = type_of(cdr_env);
-  
+
   if (t_car == PTR_TYPE_I32 ||
       t_car == PTR_TYPE_U32 ||
       t_car == PTR_TYPE_F32 ||
@@ -246,7 +246,7 @@ int gc_mark_phase(VALUE env) {
     return 1;
   }
 
-  int res = 1;  
+  int res = 1;
   if (is_ptr(car(env)) && ptr_type(car(env)) == PTR_TYPE_CONS)
     res &= gc_mark_phase(car(env));
   if (is_ptr(cdr(env)) && ptr_type(cdr(env)) == PTR_TYPE_CONS)
@@ -281,7 +281,7 @@ int gc_mark_freelist() {
 
      heap_state.gc_marked ++;
   }
-  
+
   return 1;
 }
 
@@ -324,7 +324,7 @@ int gc_sweep_phase(void) {
       // and free it.
 
       // TODO: Maybe also has to check for boxed values
-      //       
+      //
       if (type_of(heap[i].cdr) == VAL_TYPE_SYMBOL &&
 	  dec_sym(heap[i].cdr) == SPECIAL_SYM_ARRAY) {
 	array_t *arr = (array_t*)heap[i].car;
@@ -357,12 +357,12 @@ int gc_sweep_phase(void) {
       // Clear the "freed" cell.
       heap[i].car = NIL;
       heap[i].cdr = heap_state.freelist;
-      heap_state.freelist = addr; 
+      heap_state.freelist = addr;
 
       heap_state.num_alloc --;
       heap_state.gc_recovered ++;
     }
-    clr_gc_mark(&heap[i]); 
+    clr_gc_mark(&heap[i]);
   }
   return 1;
 }
@@ -468,7 +468,7 @@ VALUE reverse(VALUE list) {
       list == NIL) {
     return list;
   }
-  
+
   VALUE curr = list;
 
   VALUE new_list = NIL;
@@ -476,7 +476,7 @@ VALUE reverse(VALUE list) {
 
     new_list = cons(car(curr), new_list);
     if (type_of(new_list) == VAL_TYPE_SYMBOL) {
-      return enc_sym(symrepr_merror()); 
+      return enc_sym(symrepr_merror());
     }
     curr = cdr(curr);
   }

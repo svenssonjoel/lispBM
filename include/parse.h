@@ -22,7 +22,7 @@
 
 extern int parser_init(void);
 extern void parser_del(void);
-extern mpc_ast_t* parser_parse_string(char *input); 
+extern mpc_ast_t* parser_parse_string(char *input);
 
 
 #endif

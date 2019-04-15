@@ -92,25 +92,25 @@ name_mapping_t* name_list_get_mappings(name_list_t *l, UINT key) {
   UINT key_ = key & 0xFFFF;
 
   name_list_t *curr = l;
-  
+
   while (curr != NULL) {
     if (curr->key == key_) {
-      return curr->map; 
+      return curr->map;
     }
     curr = curr->next;
   }
-  return NULL; 
+  return NULL;
 }
 
 int name_mapping_contains(name_mapping_t *map, UINT key) {
 
   while (map != NULL) {
-    if (map->key == key) return 1; 
+    if (map->key == key) return 1;
     map = map->next;
   }
   return 0;
 }
-  
+
 name_list_t *name_list = NULL;
 #else
 name_mapping_t **name_table = NULL;
@@ -167,7 +167,7 @@ int gensym(UINT *res) {
   memset(gensym_name,0,1024);
   int n_res;
   unsigned int n;
-  
+
 #ifdef TINY_SYMTAB
   static UINT index_12bit = 0;
 
@@ -177,12 +177,12 @@ int gensym(UINT *res) {
     else return 0;
   }
   UINT hash = gensym_next | (index_12bit << 16); /* "hash" */
-  
+
   n_res = snprintf(gensym_name,1024,"gensym_%"PRIu32"", hash);
   if (n_res < 0) return 0;
   n = (unsigned int) n_res;
   gensym_next++;
-  
+
   if (name_list == NULL) {
     name_list = (name_list_t*)malloc(sizeof(name_list_t));
     if (name_list == NULL) return 0;
@@ -198,7 +198,7 @@ int gensym(UINT *res) {
 
     if (res != NULL) *res = hash;
 
-  } else { /* there is at least one entry in the name list */ 
+  } else { /* there is at least one entry in the name list */
 
     name_mapping_t* tmp = name_list_get_mappings(name_list, hash);
 
@@ -216,7 +216,7 @@ int gensym(UINT *res) {
       memset(new_entry->map->name, 0, n+1);
       strncpy(new_entry->map->name, gensym_name, n);
 
-      /* Update global list */ 
+      /* Update global list */
       new_entry->next = name_list;
       name_list = new_entry;
 
@@ -226,12 +226,12 @@ int gensym(UINT *res) {
       while (tmp->next) {
 	tmp = tmp->next;
       }
-      
+
       tmp->next = (name_mapping_t*)malloc(sizeof(name_mapping_t));
       if (tmp->next == NULL) return 0;
-      
+
       UINT new_key = hash;
-      
+
       tmp->next->next = NULL;
       tmp->next->key  = new_key;
       tmp->next->name = (char*)malloc(n+1);
@@ -242,11 +242,11 @@ int gensym(UINT *res) {
       if (res != NULL) *res = hash;
     }
   }
-  
+
   return 1;
 #else
   UINT v = gensym_next;
- 
+
   if(name_table[v] == NULL && v < HASHTAB_MALLOC_SIZE) {
     name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[v]->key = v;
@@ -293,14 +293,14 @@ int symrepr_addsym(char *name, UINT* id) {
 
   n = strlen(name) + 1;
   if (n == 1) return 0; /* failure if empty symbol */
-  
+
   UINT hash = hash_string(name, HASHTAB_SIZE);
 
   if (hash >= HASHTAB_SIZE) /* impossible */ return 0;
-  
+
 #ifdef TINY_SYMTAB
 
-  /* If the symbol name_list is empty */ 
+  /* If the symbol name_list is empty */
   if (name_list == NULL) {
     name_list = (name_list_t*)malloc(sizeof(name_list_t));
     if (name_list == NULL) return 0;
@@ -314,8 +314,8 @@ int symrepr_addsym(char *name, UINT* id) {
     strncpy(name_list->map->name, name, n);
 
     if (id != NULL) *id = hash;
-    
-  } else { /* there is at least one entry in the name list */ 
+
+  } else { /* there is at least one entry in the name list */
 
     name_mapping_t* tmp = name_list_get_mappings(name_list, hash);
 
@@ -332,7 +332,7 @@ int symrepr_addsym(char *name, UINT* id) {
       if (new_entry->map->name == NULL) return 0;
       strncpy(new_entry->map->name, name, n);
 
-      /* Update global list */ 
+      /* Update global list */
       new_entry->next = name_list;
       name_list = new_entry;
 
@@ -353,8 +353,8 @@ int symrepr_addsym(char *name, UINT* id) {
       tmp->next = (name_mapping_t*)malloc(sizeof(name_mapping_t));
       if (tmp->next == NULL) return 0;
 
-      UINT new_key = hash | (max_12bit << 16); 
-      
+      UINT new_key = hash | (max_12bit << 16);
+
       tmp->next->next = NULL;
       tmp->next->key  = new_key;
       tmp->next->name = (char*)malloc(n);
@@ -363,13 +363,13 @@ int symrepr_addsym(char *name, UINT* id) {
 
       if (id != NULL) *id = new_key;
     }
-    
+
   }
 
-  
+
   return 1;
 #else
- 
+
   if (name_table[hash] == NULL){
     name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[hash]->key = hash;
@@ -412,7 +412,7 @@ int symrepr_addsym(char *name, UINT* id) {
 
 
 int symrepr_lookup(char *name, UINT* id) {
-  
+
   name_mapping_t *head;
   UINT hash = hash_string(name, HASHTAB_SIZE);
 #ifdef TINY_SYMTAB
@@ -421,7 +421,7 @@ int symrepr_lookup(char *name, UINT* id) {
   head = name_table[hash];
 #endif
   if (head == NULL) return 0;
-  
+
   while (head) {
     if (strcmp(head->name, name) == 0) {
       *id = head->key;
@@ -429,7 +429,7 @@ int symrepr_lookup(char *name, UINT* id) {
     }
     head = head->next;
   }
-  
+
   return 0;
 }
 
@@ -439,15 +439,15 @@ char *symrepr_lookup_name(UINT id) {
   name_mapping_t *head = NULL;
   UINT hash = id & (UINT)0x0000FFFF; /*extract index*/
   if(hash == 65535) return "special_symbol";
-  
+
 #ifdef TINY_SYMTAB
   head = name_list_get_mappings(name_list, hash);
 #else
   head = name_table[hash];
 #endif
-  
-  if (head == NULL) return NULL; 
-  
+
+  if (head == NULL) return NULL;
+
   while (head) {
     if (head->key == id) {
       return head->name;
@@ -460,7 +460,7 @@ char *symrepr_lookup_name(UINT id) {
 void symrepr_print(void) {
 #ifdef TINY_SYMTAB
   name_list_t *curr = name_list;
-  
+
   while (curr) {
     name_mapping_t *head = curr->map;
     printf("--# Bucket: %"PRIu32"\n", head->key);
@@ -499,7 +499,7 @@ void symrepr_del(void) {
     }
     free(curr);
     curr = t0;
-  }  
+  }
 #else
   int i;
 
@@ -532,7 +532,7 @@ UINT hash_string(char *str, UINT modulo) {
   for (UINT i = 0; i < n; i ++) {
     UINT sp = small_primes[i % SMALL_PRIMES];
     UINT v = (UINT)str[i];
-    r = (r + (sp * v)) % modulo; 
+    r = (r + (sp * v)) % modulo;
   }
 
   return r;

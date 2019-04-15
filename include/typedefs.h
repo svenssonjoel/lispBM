@@ -15,8 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TYPEDEFS_H_ 
-#define TYPEDEFS_H_ 
+#ifndef TYPEDEFS_H_
+#define TYPEDEFS_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -39,13 +39,13 @@ typedef float    FLOAT;
 
 #if defined(_64_BIT_)
 typedef uint64_t VALUE;
-typedef uint64_t TYPE; 
+typedef uint64_t TYPE;
 
 
-typedef uint64_t UINT; 
+typedef uint64_t UINT;
 typedef int64_t  INT;
 typedef double   FLOAT;
 #endif
 
 
-#endif 
+#endif

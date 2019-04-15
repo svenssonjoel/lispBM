@@ -54,16 +54,16 @@ VALUE read_ast(mpc_ast_t *t){
     // TODO: needs MORE error checking
     size_t len = strlen(t->contents) - 1;
     if (len > 0) {
-      VALUE res; 
+      VALUE res;
       heap_allocate_array(&res, len, VAL_TYPE_CHAR);
       array_t* array_ptr = (array_t*)car(res);
-      memset(array_ptr->data.c, 0, len * sizeof(char)); 
+      memset(array_ptr->data.c, 0, len * sizeof(char));
       memcpy(array_ptr->data.c, t->contents + 1, (len - 1) * sizeof(char));
       return res;
     }
     return rerror;
   }
-    
+
 
   if (strstr(t->tag, "character")) {
     unsigned int len = strlen(t->contents);
@@ -116,7 +116,7 @@ VALUE read_ast(mpc_ast_t *t){
   if (strstr(t->tag, "float")) {
     FLOAT v = (FLOAT)atof(t->contents);
     UINT uv;
-    memcpy(&uv, &v, sizeof(UINT)); 
+    memcpy(&uv, &v, sizeof(UINT));
     VALUE ptr_cons = cons(uv,enc_sym(SPECIAL_SYM_F)); // Boxed value.
     VALUE ptr_float_box = set_ptr_type(ptr_cons, PTR_TYPE_F32);
     return ptr_float_box;

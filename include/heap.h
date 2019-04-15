@@ -140,8 +140,8 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
      |
  [VECTOR]
 
->> Boxed values same treatment as above. 
->> TODO: Could this be simpler? 
+>> Boxed values same treatment as above.
+>> TODO: Could this be simpler?
 
 [ VALUE | TYPE_SYM + GC_MARK]
 

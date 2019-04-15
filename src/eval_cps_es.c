@@ -35,7 +35,7 @@
 /*
   Jan 6 2019
   ----------
-  eval_cps_es.c: An attempt to clean up and restructure (and reimplement) the 
+  eval_cps_es.c: An attempt to clean up and restructure (and reimplement) the
   functionality from eval_cps.c. Hope is that it turns out cleaner, simpler and "better" before 
   moving on to something else...
 */
@@ -47,21 +47,21 @@ typedef struct {
   uint32_t env;  // Current environment.
   uint32_t rest; // List of expressions to evaluate (Program).
   uint32_t res;  // Accumulating result
-} eval_state; 
+} eval_state;
 
 uint32_t eval_cps_es_global_env; // will think of how to remove or integrate this into state.
-eval_state *current_context; 
+eval_state *current_context;
 
 uint32_t eval_cps_es_get_env(void) {
   return eval_cps_es_global_env;
 }
 
 int eval_cps_es_init() {
-  int res = 0; 
-  
+  int res = 0;
+
   current_context = (eval_state *)malloc(sizeof(eval_state));
-  current_context->K = init_cont_stack(1000); 
-  
+  current_context->K = init_cont_stack(1000);
+
   //res = builtin_add_function("eval",eval_cps_bi);
 
   eval_cps_es_global_env = enc_sym(symrepr_nil());
@@ -88,15 +88,15 @@ uint32_t done(uint32_t args) {
 // ////////////////////////////////////////////////////////
 // EVALUATION
 // ////////////////////////////////////////////////////////
-uint32_t eval_cps_es(void) { 
+uint32_t eval_cps_es(void) {
 
   int ret = 0;
   uint32_t tmp = enc_sym(symrepr_eerror());
-  
+
   while (1) {
     uint32_t exp = current_context->exp;
     uint32_t env = current_context->env;
-    
+
     switch(type_of(exp)){
 
     case VAL_TYPE_SYMBOL:
@@ -114,7 +114,7 @@ uint32_t eval_cps_es(void) {
     case PTR_TYPE_ARRAY:
 
       // TODO: come up with what to do here.
-     
+
       break;
     default:
       // BUG: No applicable case!

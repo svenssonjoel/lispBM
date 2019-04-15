@@ -29,7 +29,7 @@ int env_copy_shallow(VALUE env, VALUE *cpy) {
 
   VALUE res = enc_sym(symrepr_nil());
   VALUE curr = env;
-  
+
   while (type_of(curr) == PTR_TYPE_CONS) {
     VALUE key = car(car(curr));
     if (dec_sym(key) != symrepr_nil()) {
@@ -39,22 +39,22 @@ int env_copy_shallow(VALUE env, VALUE *cpy) {
       if (type_of(res) == VAL_TYPE_SYMBOL &&
 	  dec_sym(res) == symrepr_nil()) {
 	return 0;
-      }			      
+      }
     }
     curr = cdr(curr);
   }
-  *cpy = res; 
+  *cpy = res;
   return 1;
 }
 
 int env_lookup(VALUE sym, VALUE env, VALUE *res) {
   VALUE curr = env;
-  
+
   if(dec_sym(sym) == symrepr_nil()) {
     *res = enc_sym(symrepr_nil());
     return 1;
   }
-    
+
   while (type_of(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == sym) {
       *res = cdr(car(curr));
@@ -70,15 +70,15 @@ int env_modify_binding(VALUE env, VALUE key, VALUE val) {
 
   VALUE curr = env;
 
-  while (type_of(curr) == PTR_TYPE_CONS) {   
+  while (type_of(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == key) {
-      set_cdr(car(curr), val); 
-      return 1; 
+      set_cdr(car(curr), val);
+      return 1;
     }
     curr = cdr(curr);
-    
+
   }
-  return 0;   
+  return 0;
 }
 
 
@@ -90,30 +90,30 @@ int env_build_params_args(VALUE params,
   VALUE curr_arg = args;
 
   // TODO: This should be checked outside of this function.
-  // 
+  //
   if (length(params) != length(args)) { // programmer error
     printf("Length mismatch params - args\n");
     simple_print(params); printf("\n");
     simple_print(args); printf("\n");
-    return 0; 
+    return 0;
   }
-  
+
   VALUE env = env0;
   while (type_of(curr_param) == PTR_TYPE_CONS) {
 
     VALUE entry = cons(car(curr_param), car(curr_arg));
     if (type_of(entry) == VAL_TYPE_SYMBOL &&
 	dec_sym(entry) == symrepr_merror())
-      return 0; 
+      return 0;
 
     env = cons(entry,env);
-    
+
     if (type_of(env) == VAL_TYPE_SYMBOL &&
 	dec_sym(env) == symrepr_merror())
-      return 0; 
-    
+      return 0;
+
     curr_param = cdr(curr_param);
-    curr_arg   = cdr(curr_arg); 
+    curr_arg   = cdr(curr_arg);
   }
   *res_env = env;
   return 1;

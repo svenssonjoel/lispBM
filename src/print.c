@@ -28,12 +28,12 @@
 int is_closure(VALUE t) {
 
   VALUE head = car(t);
-  
+
   if (!is_ptr(head)  && val_type(head) == VAL_TYPE_SYMBOL &&
       dec_sym(head) == symrepr_closure()) {
     return 1;
   }
-  return 0; 
+  return 0;
 }
 
 int simple_print_env(VALUE env) {
@@ -49,7 +49,7 @@ int simple_print_env(VALUE env) {
       b = cdr(car(head));
       printf("(");
       simple_print(a); printf(" . ");
-      if (is_closure(b)) 
+      if (is_closure(b))
 	printf("CLOSURE");
       else simple_print(b);
       printf(") ");
@@ -67,7 +67,7 @@ int simple_print_lambda(VALUE t) {
   VALUE vars = car(cdr(t));
   VALUE exp  = car(cdr(cdr(t)));
   VALUE env  = car(cdr(cdr(cdr(t))));
-  
+
   printf("(");
   simple_print(lam); printf(" ");
   simple_print(vars); printf(" ");
@@ -80,7 +80,7 @@ int simple_print_lambda(VALUE t) {
 int simple_print(VALUE t){
 
   char *str_ptr;
-  
+
   if (is_ptr(t) && (ptr_type(t) == PTR_TYPE_CONS)) {
     // TODO: Switch on the type of object pointed to.
 
@@ -91,31 +91,31 @@ int simple_print(VALUE t){
     } else if ((t & PTR_TYPE_MASK) == PTR_TYPE_CONS) {
       printf("(");
       simple_print(car(t));
-      printf(" "); 
+      printf(" ");
       simple_print(cdr(t));
-      printf(")");			
+      printf(")");
     }
-    return 1; 
+    return 1;
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_F32) {
     VALUE uv = car(t);
     float v;
     memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
-    printf("{%f}", v); 
-    return 1; 
+    printf("{%f}", v);
+    return 1;
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_U32) {
     VALUE v = car(t);
-    printf("{%"PRIu32"}", v); 
-    return 1; 
+    printf("{%"PRIu32"}", v);
+    return 1;
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_I32) {
     int32_t v = (int32_t)car(t);
-    printf("{%"PRId32"}", v); 
-    return 1; 
+    printf("{%"PRId32"}", v);
+    return 1;
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
@@ -125,23 +125,23 @@ int simple_print(VALUE t){
       printf("\"%s\"", array->data.c);
       break;
     default:
-      printf("Array type not supported\n"); 
-      break; 
+      printf("Array type not supported\n");
+      break;
     }
   }
 
-  if (!is_ptr(t)) { // Value, symbol 
+  if (!is_ptr(t)) { // Value, symbol
     switch (t & VAL_TYPE_MASK) {
     case VAL_TYPE_SYMBOL:
       str_ptr = symrepr_lookup_name(dec_sym(t));
       if (str_ptr == NULL) {
 	printf("Error: Symbol not in table %"PRIu32"\n", dec_sym(t));
-      } else {  
+      } else {
 	printf("%s", str_ptr);
       }
       break;
     case VAL_TYPE_I28:
-      printf("%"PRId32"", dec_i(t)); 
+      printf("%"PRId32"", dec_i(t));
       break;
     case VAL_TYPE_U28:
       printf("%"PRIu32"", dec_u(t));
@@ -151,7 +151,7 @@ int simple_print(VALUE t){
       break;
     default:
       printf("simple_print: Error\n");
-      return 0; 
+      return 0;
     }
   }
   return 1;
@@ -161,25 +161,25 @@ int simple_print(VALUE t){
 /*
 int simple_print(cons_t *t) {
 
-  cons_t *curr = t; 
+  cons_t *curr = t;
 
-  printf("("); 
-  
+  printf("(");
+
   switch (GET_CAR_TYPE(curr->type)) {
   case NIL:
     printf (" () ");
     break;
   case INTEGER:
-    printf(" %d ", curr->car.i); 
+    printf(" %d ", curr->car.i);
     break;
   case FLOAT:
-    printf(" %f ", curr->car.f); 
+    printf(" %f ", curr->car.f);
     break;
-    
+
   case SYMBOL:
-    printf(" %d ", curr->car.s); 
+    printf(" %d ", curr->car.s);
       break;
-      
+
   case POINTER:
     simple_print(curr->car.cons);
       break;
@@ -190,23 +190,23 @@ int simple_print(cons_t *t) {
     printf("()");
     break;
   case INTEGER:
-    printf(" %d ", curr->cdr.i); 
+    printf(" %d ", curr->cdr.i);
     break;
   case FLOAT:
-    printf(" %f ", curr->cdr.f); 
+    printf(" %f ", curr->cdr.f);
     break;
-    
+
   case SYMBOL:
-    printf(" %d ", curr->cdr.s); 
+    printf(" %d ", curr->cdr.s);
       break;
-      
+
   case POINTER:
     simple_print(curr->cdr.cons);
       break;
   }
 
-  printf(")"); 
+  printf(")");
 
-  return 1; // TODO: ERROR CHECKING 
+  return 1; // TODO: ERROR CHECKING
 }
 */
