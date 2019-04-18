@@ -776,10 +776,11 @@ VALUE bi_fun_to_string(VALUE args) {
   char str[1024];
 
   if (type_of(args) != PTR_TYPE_CONS) {
-    // TODO: look at alternatives to this.
+    // Empty list of arguments.
     return enc_sym(symrepr_eerror());
   }
 
+  // extract first argument (ignore rest)
   VALUE arg = car(args);
 
   if (type_of(arg) == PTR_TYPE_ARRAY) {
