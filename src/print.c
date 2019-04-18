@@ -98,7 +98,7 @@ int simple_print(VALUE t){
     return 1;
   }
 
-  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_F32) {
+  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_BOXED_F) {
     VALUE uv = car(t);
     float v;
     memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
@@ -106,13 +106,13 @@ int simple_print(VALUE t){
     return 1;
   }
 
-  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_U32) {
+  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_BOXED_U) {
     VALUE v = car(t);
     printf("{%"PRIu32"}", v);
     return 1;
   }
 
-  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_I32) {
+  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_BOXED_I) {
     int32_t v = (int32_t)car(t);
     printf("{%"PRId32"}", v);
     return 1;
@@ -140,10 +140,10 @@ int simple_print(VALUE t){
 	printf("%s", str_ptr);
       }
       break;
-    case VAL_TYPE_I28:
+    case VAL_TYPE_I:
       printf("%"PRId32"", dec_i(t));
       break;
-    case VAL_TYPE_U28:
+    case VAL_TYPE_U:
       printf("%"PRIu32"", dec_u(t));
       break;
     case VAL_TYPE_CHAR: // dont yet have syntax for Char and String

@@ -230,17 +230,17 @@ int gc_mark_phase(VALUE env) {
   VALUE t_car   = type_of(car_env);
   VALUE t_cdr   = type_of(cdr_env);
 
-  if (t_car == PTR_TYPE_I32 ||
-      t_car == PTR_TYPE_U32 ||
-      t_car == PTR_TYPE_F32 ||
+  if (t_car == PTR_TYPE_BOXED_I ||
+      t_car == PTR_TYPE_BOXED_U ||
+      t_car == PTR_TYPE_BOXED_F ||
       t_car == PTR_TYPE_ARRAY) {
     set_gc_mark(ref_cell(car_env));
     return 1;
   }
 
-  if (t_cdr == PTR_TYPE_I32 ||
-      t_cdr == PTR_TYPE_U32 ||
-      t_cdr == PTR_TYPE_F32 ||
+  if (t_cdr == PTR_TYPE_BOXED_I ||
+      t_cdr == PTR_TYPE_BOXED_U ||
+      t_cdr == PTR_TYPE_BOXED_F ||
       t_cdr == PTR_TYPE_ARRAY) {
     set_gc_mark(ref_cell(cdr_env));
     return 1;
@@ -294,9 +294,9 @@ int gc_mark_aux(UINT *aux_data, unsigned int aux_size) {
       UINT pt_v = dec_ptr(aux_data[i]);
 
       if ( (pt_t == PTR_TYPE_CONS ||
-	    pt_t == PTR_TYPE_I32 ||
-	    pt_t == PTR_TYPE_U32 ||
-	    pt_t == PTR_TYPE_F32 ||
+	    pt_t == PTR_TYPE_BOXED_I ||
+	    pt_t == PTR_TYPE_BOXED_U ||
+	    pt_t == PTR_TYPE_BOXED_F ||
 	    pt_t == PTR_TYPE_ARRAY ||
 	    pt_t == PTR_TYPE_REF ||
 	    pt_t == PTR_TYPE_STREAM) &&
@@ -332,16 +332,16 @@ int gc_sweep_phase(void) {
 	case VAL_TYPE_CHAR:
 	  if (arr->data.c) free(arr->data.c);
 	  break;
-	case VAL_TYPE_I28:
-	case PTR_TYPE_I32:
-	  if (arr->data.i32) free(arr->data.i32);
+	case VAL_TYPE_I:
+	case PTR_TYPE_BOXED_I:
+	  if (arr->data.i) free(arr->data.i);
 	  break;
-	case VAL_TYPE_U28:
-	case PTR_TYPE_U32:
+	case VAL_TYPE_U:
+	case PTR_TYPE_BOXED_U:
 	case VAL_TYPE_SYMBOL:
-	  if (arr->data.u32) free(arr->data.u32);
+	  if (arr->data.u) free(arr->data.u);
 	  break;
-	case PTR_TYPE_F32:
+	case PTR_TYPE_BOXED_F:
 	  if (arr->data.f) free(arr->data.f);
 	  break;
 	default:
@@ -500,15 +500,15 @@ int heap_allocate_array(VALUE *res, unsigned int size, TYPE type){
   VALUE cell  = heap_allocate_cell(PTR_TYPE_CONS);
 
   switch(type) {
-  case PTR_TYPE_I32: // array of I32
-    array->data.i32 = (INT*)malloc(size * sizeof(INT));
-    if (array->data.i32 == NULL) return 0;
+  case PTR_TYPE_BOXED_I: // array of I
+    array->data.i = (INT*)malloc(size * sizeof(INT));
+    if (array->data.i == NULL) return 0;
     break;
-  case PTR_TYPE_U32: // array of U32
-    array->data.u32 = (UINT*)malloc(size * sizeof(UINT));
-    if (array->data.u32 == NULL) return 0;
+  case PTR_TYPE_BOXED_U: // array of U
+    array->data.u = (UINT*)malloc(size * sizeof(UINT));
+    if (array->data.u == NULL) return 0;
     break;
-  case PTR_TYPE_F32: // array of Float
+  case PTR_TYPE_BOXED_F: // array of Float
     array->data.f = (float*)malloc(size * sizeof(float));
     if (array->data.f == NULL) return 0;
     break;
@@ -516,14 +516,14 @@ int heap_allocate_array(VALUE *res, unsigned int size, TYPE type){
     array->data.c = (char*)malloc(size * sizeof(char));
     if (array->data.c == NULL) return 0;
     break;
-  case VAL_TYPE_I28:
-    array->data.i32 = (INT*)malloc(size * sizeof(INT));
+  case VAL_TYPE_I:
+    array->data.i = (INT*)malloc(size * sizeof(INT));
     break;
-  case VAL_TYPE_U28:
-    array->data.u32 = (UINT*)malloc(size * sizeof(UINT));
+  case VAL_TYPE_U:
+    array->data.u = (UINT*)malloc(size * sizeof(UINT));
     break;
   case VAL_TYPE_SYMBOL:
-    array->data.u32 = (UINT*)malloc(size * sizeof(UINT));
+    array->data.u = (UINT*)malloc(size * sizeof(UINT));
     break;
   default:
     *res = NIL;

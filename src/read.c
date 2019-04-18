@@ -84,8 +84,8 @@ VALUE read_ast(mpc_ast_t *t){
 	t->contents[1] == 'x' ) {
       UINT v = (UINT)xtou(t->contents);
       if (strlen(t->contents) >= 9) { // Boxed 32 bit uint
-	VALUE ptr_cons = cons(v,enc_sym(SPECIAL_SYM_U32));
-	VALUE ptr_uint_box = set_ptr_type(ptr_cons, PTR_TYPE_U32);
+	VALUE ptr_cons = cons(v,enc_sym(SPECIAL_SYM_BOXED_U));
+	VALUE ptr_uint_box = set_ptr_type(ptr_cons, PTR_TYPE_BOXED_U);
 	return ptr_uint_box;
       } else {
 	return enc_u(v);
@@ -94,14 +94,14 @@ VALUE read_ast(mpc_ast_t *t){
 
     if (t->contents[strlen(t->contents)-1] == 'U') {
       UINT v = (UINT)strtoul(t->contents,NULL,10);
-      VALUE ptr_cons = cons(v, enc_sym(SPECIAL_SYM_U32));
-      return set_ptr_type(ptr_cons, PTR_TYPE_U32);
+      VALUE ptr_cons = cons(v, enc_sym(SPECIAL_SYM_BOXED_U));
+      return set_ptr_type(ptr_cons, PTR_TYPE_BOXED_U);
     }
 
     if (t->contents[strlen(t->contents)-1] == 'I') {
       UINT v = (UINT)atoi(t->contents);
-      VALUE ptr_cons = cons(v, enc_sym(SPECIAL_SYM_I32));
-      return set_ptr_type(ptr_cons, PTR_TYPE_I32);
+      VALUE ptr_cons = cons(v, enc_sym(SPECIAL_SYM_BOXED_I));
+      return set_ptr_type(ptr_cons, PTR_TYPE_BOXED_I);
     }
 
     if (t->contents[strlen(t->contents)-1] == 'u') {
@@ -117,8 +117,8 @@ VALUE read_ast(mpc_ast_t *t){
     FLOAT v = (FLOAT)atof(t->contents);
     UINT uv;
     memcpy(&uv, &v, sizeof(UINT));
-    VALUE ptr_cons = cons(uv,enc_sym(SPECIAL_SYM_F)); // Boxed value.
-    VALUE ptr_float_box = set_ptr_type(ptr_cons, PTR_TYPE_F32);
+    VALUE ptr_cons = cons(uv,enc_sym(SPECIAL_SYM_BOXED_F)); // Boxed value.
+    VALUE ptr_float_box = set_ptr_type(ptr_cons, PTR_TYPE_BOXED_F);
     return ptr_float_box;
   }
 

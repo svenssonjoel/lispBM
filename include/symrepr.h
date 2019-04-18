@@ -24,10 +24,10 @@
 #include "typedefs.h"
 
 // Special symbol ids
-#define SPECIAL_SYM_ARRAY 0x0001FFFF
-#define SPECIAL_SYM_I32   0x0002FFFF
-#define SPECIAL_SYM_U32   0x0003FFFF
-#define SPECIAL_SYM_F     0x0004FFFF
+#define SPECIAL_SYM_ARRAY     0x0001FFFF
+#define SPECIAL_SYM_BOXED_I   0x0002FFFF
+#define SPECIAL_SYM_BOXED_U   0x0003FFFF
+#define SPECIAL_SYM_BOXED_F   0x0004FFFF
 
 extern int symrepr_addsym(char *, uint32_t*);
 extern int symrepr_init(void);

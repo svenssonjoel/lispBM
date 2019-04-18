@@ -105,12 +105,12 @@ uint32_t eval_cps_es(void) {
 
       // TODO: come up with what to do here.
 
-    case PTR_TYPE_F32:
-    case PTR_TYPE_U32:
-    case VAL_TYPE_I28:
-    case PTR_TYPE_I32:
+    case PTR_TYPE_BOXED_F:
+    case PTR_TYPE_BOXED_U:
+    case PTR_TYPE_BOXED_I:
+    case VAL_TYPE_I:
+    case VAL_TYPE_U:
     case VAL_TYPE_CHAR:
-    case VAL_TYPE_U28:
     case PTR_TYPE_ARRAY:
 
       // TODO: come up with what to do here.
@@ -437,12 +437,12 @@ uint32_t eval_cps(uint32_t lisp, uint32_t env) {
     }
     return enc_sym(symrepr_eerror());
 
-  case PTR_TYPE_F32:
-  case PTR_TYPE_U32:
-  case VAL_TYPE_I28:
-  case PTR_TYPE_I32:
+  case PTR_TYPE_BOXED_F:
+  case PTR_TYPE_BOXED_U:
+  case PTR_TYPE_BOXED_I:
+  case VAL_TYPE_I:
   case VAL_TYPE_CHAR:
-  case VAL_TYPE_U28:
+  case VAL_TYPE_U:
   case PTR_TYPE_ARRAY:{
     push_u32(K, lisp);
     return apply_continuation(K);

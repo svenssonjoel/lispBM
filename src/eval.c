@@ -146,8 +146,8 @@ VALUE eval_in_env(VALUE lisp, VALUE env) {
     if (ret) return tmp;
     ERROR("Eval: Variable lookup failed: %s ",symrepr_lookup_name(dec_sym(lisp)));
     break;
-  case VAL_TYPE_I28:
-  case VAL_TYPE_U28:
+  case VAL_TYPE_I:
+  case VAL_TYPE_U:
   case VAL_TYPE_CHAR:
     return lisp;
     break;
@@ -232,9 +232,9 @@ VALUE eval_in_env(VALUE lisp, VALUE env) {
     return apply(head_val, evlis(cdr(lisp), env));
 
     break;
-  case PTR_TYPE_I32:
-  case PTR_TYPE_U32:
-  case PTR_TYPE_F32:
+  case PTR_TYPE_BOXED_I:
+  case PTR_TYPE_BOXED_U:
+  case PTR_TYPE_BOXED_F:
     return lisp;
     break;
   case PTR_TYPE_ARRAY:

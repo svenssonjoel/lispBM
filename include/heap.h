@@ -160,9 +160,9 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define PTR_TYPE_MASK        0xFC000000u
 
 #define PTR_TYPE_CONS        0x10000000u
-#define PTR_TYPE_I32         0x20000000u
-#define PTR_TYPE_U32         0x30000000u
-#define PTR_TYPE_F32         0x40000000u
+#define PTR_TYPE_BOXED_I     0x20000000u
+#define PTR_TYPE_BOXED_U     0x30000000u
+#define PTR_TYPE_BOXED_F     0x40000000u
 /*...*/
 #define PTR_TYPE_ARRAY       0xD0000000u
 #define PTR_TYPE_REF         0xE0000000u
@@ -176,8 +176,8 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 
 #define VAL_TYPE_SYMBOL      0x00000000u
 #define VAL_TYPE_CHAR        0x00000004u
-#define VAL_TYPE_I28         0x00000008u
-#define VAL_TYPE_U28         0x0000000Cu
+#define VAL_TYPE_I           0x00000008u
+#define VAL_TYPE_U           0x0000000Cu
 
 typedef struct {
   VALUE car;
@@ -202,12 +202,12 @@ typedef struct {
 
 
 typedef struct {
-  TYPE elt_type;            // Type of elements: VAL_TYPE_FLOAT, U32, I32 or CHAR
+  TYPE elt_type;            // Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
   unsigned int size;        // Number of elements
   union {
     float    *f;
-    UINT     *u32;          // TODO: RENAME
-    INT      *i32;
+    UINT     *u; 
+    INT      *i;
     char     *c;
   } data;                   // Array data storage
 } array_t;
@@ -273,11 +273,11 @@ inline VALUE set_ptr_type(VALUE p, TYPE t) {
 }
 
 inline VALUE enc_i(INT x) {
-  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_I28;
+  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_I;
 }
 
 inline VALUE enc_u(UINT x) {
-  return (x << VAL_SHIFT) | VAL_TYPE_U28;
+  return (x << VAL_SHIFT) | VAL_TYPE_U;
 }
 
 inline VALUE enc_char(char x) {
@@ -309,6 +309,14 @@ inline FLOAT dec_f(VALUE x) { // Use only when knowing that x is a VAL_TYPE_F
   UINT tmp = car(x);
   memcpy(&f_tmp, &tmp, sizeof(FLOAT));
   return f_tmp;
+}
+
+inline UINT dec_U(VALUE x) {
+  return car(x);
+}
+
+inline INT dec_I(VALUE x) {
+  return (INT)car(x);
 }
 
 inline VALUE val_set_gc_mark(VALUE x) {
