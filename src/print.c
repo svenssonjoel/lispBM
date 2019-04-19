@@ -102,19 +102,19 @@ int simple_print(VALUE t){
     VALUE uv = car(t);
     float v;
     memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
-    printf("{%f}", v);
+    printf("{%"PRI_FLOAT"}", v);
     return 1;
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_BOXED_U) {
     VALUE v = car(t);
-    printf("{%"PRIu32"}", v);
+    printf("{%"PRI_UINT"}", v);
     return 1;
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_BOXED_I) {
     int32_t v = (int32_t)car(t);
-    printf("{%"PRId32"}", v);
+    printf("{%"PRI_INT"}", v);
     return 1;
   }
 
@@ -135,16 +135,16 @@ int simple_print(VALUE t){
     case VAL_TYPE_SYMBOL:
       str_ptr = symrepr_lookup_name(dec_sym(t));
       if (str_ptr == NULL) {
-	printf("Error: Symbol not in table %"PRIu32"\n", dec_sym(t));
+	printf("Error: Symbol not in table %"PRI_UINT"\n", dec_sym(t));
       } else {
 	printf("%s", str_ptr);
       }
       break;
     case VAL_TYPE_I:
-      printf("%"PRId32"", dec_i(t));
+      printf("%"PRI_INT"", dec_i(t));
       break;
     case VAL_TYPE_U:
-      printf("%"PRIu32"", dec_u(t));
+      printf("%"PRI_UINT"", dec_u(t));
       break;
     case VAL_TYPE_CHAR: // dont yet have syntax for Char and String
       printf("\\#%c", dec_char(t));

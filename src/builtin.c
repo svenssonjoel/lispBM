@@ -862,11 +862,11 @@ VALUE bi_fun_to_string(VALUE args) {
   switch (type_of(arg)) {
   case VAL_TYPE_I:
     i = dec_i(arg);
-    snprintf(str,1024,"%d",i);
+    snprintf(str,1024,"%"PRI_INT,i);
     break;
   case VAL_TYPE_U:
     u = dec_u(arg);
-    snprintf(str,1024,"%u",u);
+    snprintf(str,1024,"%"PRI_UINT,u);
     break;
   case VAL_TYPE_CHAR:
     c = dec_char(arg);
@@ -874,15 +874,15 @@ VALUE bi_fun_to_string(VALUE args) {
     break;
   case PTR_TYPE_BOXED_F:
     f = dec_f(arg);
-    snprintf(str,1024,"%f",f);
+    snprintf(str,1024,"%"PRI_FLOAT,f);
     break;
   case PTR_TYPE_BOXED_U:
     u = dec_U(arg);
-    snprintf(str,1024,"%u",u);
+    snprintf(str,1024,"%"PRI_UINT,u);
     break;
   case PTR_TYPE_BOXED_I:
     i = dec_I(arg);
-    snprintf(str,1024,"%d",i); 
+    snprintf(str,1024,"%"PRI_INT,i); 
     break;
   default:
     return enc_sym(symrepr_eerror());

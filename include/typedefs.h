@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <inttypes.h>
 
 #if !defined(_32_BIT_) && !defined(_64_BIT_)
 #error Exactly one of _32_BIT_ and _64_BIT_ must be defined
@@ -35,6 +36,12 @@ typedef uint32_t TYPE; // Representation of type.
 typedef uint32_t UINT; // same size as a pointer on target platform
 typedef int32_t  INT;
 typedef float    FLOAT;
+
+#define PRI_VALUE PRIu32
+#define PRI_TYPE  PRIu32
+#define PRI_UINT  PRIu32
+#define PRI_INT   PRId32
+#define PRI_FLOAT "f"
 #endif
 
 #if defined(_64_BIT_)
@@ -45,6 +52,12 @@ typedef uint64_t TYPE;
 typedef uint64_t UINT;
 typedef int64_t  INT;
 typedef double   FLOAT;
+
+#define PRIVALUE PRIu64
+#define PRITYPE  PRIu64
+#define PRIUINT  PRIu64
+#define PRIINT   PRId64
+#define PRIFLOAT "f"
 #endif
 
 
