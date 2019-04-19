@@ -768,6 +768,67 @@ VALUE bi_fun_array_write(VALUE args) {
   return enc_sym(symrepr_true());
 }
 
+
+VALUE bi_fun_array_concat(VALUE args) {
+
+  VALUE a0 = car(args); 
+  VALUE a1 = car(cdr(args)); 
+
+  if (type_of(a0) != PTR_TYPE_ARRAY ||
+      type_of(a1) != PTR_TYPE_ARRAY) {
+    return enc_sym(symrepr_terror());
+  }
+
+  array_t *arr0 = (array_t *)car(a0);
+  array_t *arr1 = (array_t *)car(a1);
+
+  if (arr0->elt_type != arr1->elt_type) {
+    return enc_sym(symrepr_terror());
+  }
+
+  int new_size =
+    ((arr0->elt_type == VAL_TYPE_CHAR) ?
+     (arr0->size -1) :
+     arr0->size)  + arr1->size;
+  VALUE res;
+  
+  if (!heap_allocate_array(&res, new_size, arr0->elt_type)) {
+    return enc_sym(symrepr_merror());
+  }
+
+  array_t *array = (array_t*)car(res);
+  switch (arr0->elt_type) {
+  case PTR_TYPE_BOXED_I:
+  case VAL_TYPE_I:
+    memcpy(array->data.i, arr0->data.i, arr0->size * sizeof(INT));
+    memcpy(array->data.i + arr0->size * sizeof(INT),
+	   arr1->data.i, arr1->size * sizeof(INT));
+    break; 
+  case VAL_TYPE_SYMBOL: 
+  case PTR_TYPE_BOXED_U:
+  case VAL_TYPE_U:
+    memcpy(array->data.u, arr0->data.u, arr0->size * sizeof(UINT));
+    memcpy(array->data.u + arr0->size * sizeof(UINT),
+	   arr1->data.u, arr1->size * sizeof(UINT));
+    break;
+  case VAL_TYPE_CHAR: // Only makes sense for strings
+                      // but maybe that will be the only allowed Char array?
+    memcpy(array->data.c, arr0->data.c, (arr0->size -1) * sizeof(char));
+    memcpy(array->data.c + (arr0->size -1) * sizeof(char),
+	   arr1->data.c, arr1->size * sizeof(char));
+    break;
+  case PTR_TYPE_BOXED_F:
+    memcpy(array->data.f, arr0->data.f, arr0->size * sizeof(FLOAT));
+    memcpy(array->data.f + arr0->size * sizeof(FLOAT),
+	   arr1->data.f, arr1->size * sizeof(FLOAT));
+    break;
+  default:
+    return enc_sym(symrepr_eerror());
+  }
+
+  return res;
+}
+
 ////////////////////////////////////////////////////////////
 // Built in String manipulation and printing
 
@@ -895,6 +956,7 @@ int builtin_init(void) {
   res &= builtin_add_function("reverse", bi_fun_reverse);
   res &= builtin_add_function("array-read", bi_fun_array_read);
   res &= builtin_add_function("array-write", bi_fun_array_write);
+  res &= builtin_add_function("array-concat", bi_fun_array_concat);
   res &= builtin_add_function("numberp", bi_fun_numberp);
   res &= builtin_add_function("to-string", bi_fun_to_string);
   return res;
