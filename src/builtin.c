@@ -860,6 +860,10 @@ VALUE bi_fun_to_string(VALUE args) {
   char  c;
 
   switch (type_of(arg)) {
+  case VAL_TYPE_SYMBOL:
+    u = dec_sym(arg);
+    snprintf(str,1024,"%s", symrepr_lookup_name(u));
+    break;
   case VAL_TYPE_I:
     i = dec_i(arg);
     snprintf(str,1024,"%"PRI_INT,i);
