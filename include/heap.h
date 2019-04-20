@@ -243,90 +243,90 @@ extern int heap_allocate_array(VALUE *res, unsigned int size, TYPE type);
 
 ////////////////////////////////////////////////////////////
 // INLINE FUNCTIONS
-inline TYPE val_type(VALUE x) {
+static inline TYPE val_type(VALUE x) {
   return (x & VAL_TYPE_MASK);
 }
 
-inline TYPE ptr_type(VALUE p) {
+static inline TYPE ptr_type(VALUE p) {
   return (p & PTR_TYPE_MASK);
 }
 
-inline TYPE type_of(VALUE x) {
+static inline TYPE type_of(VALUE x) {
   return (x & PTR_MASK) ? (x & PTR_TYPE_MASK) : (x & VAL_TYPE_MASK);
 }
 
-inline bool is_ptr(VALUE x) {
+static inline bool is_ptr(VALUE x) {
   return (x & PTR_MASK);
 }
 
-inline VALUE enc_cons_ptr(UINT x) {
+static inline VALUE enc_cons_ptr(UINT x) {
   return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR);
 }
 
-inline uint32_t dec_ptr(VALUE p) {
+static inline uint32_t dec_ptr(VALUE p) {
   return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
 }
 
-inline VALUE set_ptr_type(VALUE p, TYPE t) {
+static inline VALUE set_ptr_type(VALUE p, TYPE t) {
   return (PTR_VAL_MASK & p) | t | PTR;
 }
 
-inline VALUE enc_i(INT x) {
+static inline VALUE enc_i(INT x) {
   return ((UINT)x << VAL_SHIFT) | VAL_TYPE_I;
 }
 
-inline VALUE enc_u(UINT x) {
+static inline VALUE enc_u(UINT x) {
   return (x << VAL_SHIFT) | VAL_TYPE_U;
 }
 
-inline VALUE enc_char(char x) {
+static inline VALUE enc_char(char x) {
   return ((UINT)x << VAL_SHIFT) | VAL_TYPE_CHAR;
 }
 
-inline VALUE enc_sym(uint32_t s) {
+static inline VALUE enc_sym(uint32_t s) {
   return (s << VAL_SHIFT) | VAL_TYPE_SYMBOL;
 }
 
-inline INT dec_i(VALUE x) {
+static inline INT dec_i(VALUE x) {
   return (INT)x >> VAL_SHIFT;
 }
 
-inline UINT dec_u(VALUE x) {
+static inline UINT dec_u(VALUE x) {
   return x >> VAL_SHIFT;
 }
 
-inline char dec_char(VALUE x) {
+static inline char dec_char(VALUE x) {
   return (char)(x >> VAL_SHIFT);
 }
 
-inline UINT dec_sym(VALUE x) {
+static inline UINT dec_sym(VALUE x) {
   return x >> VAL_SHIFT;
 }
 
-inline FLOAT dec_f(VALUE x) { // Use only when knowing that x is a VAL_TYPE_F
+static inline FLOAT dec_f(VALUE x) { // Use only when knowing that x is a VAL_TYPE_F
   FLOAT f_tmp;
   UINT tmp = car(x);
   memcpy(&f_tmp, &tmp, sizeof(FLOAT));
   return f_tmp;
 }
 
-inline UINT dec_U(VALUE x) {
+static inline UINT dec_U(VALUE x) {
   return car(x);
 }
 
-inline INT dec_I(VALUE x) {
+static inline INT dec_I(VALUE x) {
   return (INT)car(x);
 }
 
-inline VALUE val_set_gc_mark(VALUE x) {
+static inline VALUE val_set_gc_mark(VALUE x) {
   return x | GC_MARKED;
 }
 
-inline VALUE val_clr_gc_mark(VALUE x) {
+static inline VALUE val_clr_gc_mark(VALUE x) {
   return x & ~GC_MASK;
 }
 
-inline bool val_get_gc_mark(VALUE x) {
+static inline bool val_get_gc_mark(VALUE x) {
   return x & GC_MASK;
 }
 

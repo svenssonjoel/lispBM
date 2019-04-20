@@ -82,7 +82,7 @@ int main()
 	int heap_size = 8 * 1024 * 1024;
 	res = heap_init(heap_size);
 	if (res)
-		printf("Heap initialized. Heap size: %f MiB. Free cons cells: %lu\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
+		printf("Heap initialized. Heap size: %f MiB. Free cons cells: %u\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
 	else {
 		printf("Error initializing heap!\n");
 		return 0;
@@ -113,15 +113,15 @@ int main()
 
 		if (strncmp(str, "info", 4) == 0) {
 			printf("############################################################\n");
-			printf("Used cons cells: %lu \n", heap_size - heap_num_free());
+			printf("Used cons cells: %u \n", heap_size - heap_num_free());
 			printf("ENV: "); simple_print(eval_get_env()); printf("\n");
 			//symrepr_print();
 			heap_perform_gc(eval_get_env());
 			heap_get_state(&heap_state);
-			printf("GC counter: %lu\n", heap_state.gc_num);
-			printf("Recovered: %lu\n", heap_state.gc_recovered);
-			printf("Marked: %lu\n", heap_state.gc_marked);
-			printf("Free cons cells: %lu\n", heap_num_free());
+			printf("GC counter: %u\n", heap_state.gc_num);
+			printf("Recovered: %u\n", heap_state.gc_recovered);
+			printf("Marked: %u\n", heap_state.gc_marked);
+			printf("Free cons cells: %u\n", heap_num_free());
 			printf("############################################################\n");
 		} else {
 

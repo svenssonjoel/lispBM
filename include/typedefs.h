@@ -24,16 +24,15 @@
 
 #if !defined(_32_BIT_) && !defined(_64_BIT_)
 #error Exactly one of _32_BIT_ and _64_BIT_ must be defined
+#define _32_BIT_
 #endif
 
 #if defined(_32_BIT_)
 typedef uint32_t VALUE; // A Lisp value.
-typedef uint32_t TYPE; // Representation of type.
+typedef uint32_t TYPE;  // Representation of type.
 
 
-// TODO: typedefs for non-lisp values (values relevant to the implementation)
-
-typedef uint32_t UINT; // same size as a pointer on target platform
+typedef uint32_t UINT; // Must be same size as a pointer on target platform.
 typedef int32_t  INT;
 typedef float    FLOAT;
 

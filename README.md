@@ -29,10 +29,9 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 8. Implement some looping structure for speed or just ease of use. 
 9. Be much more stringent on checking of error conditions etc.
 10. Improve handling of arguments in eval-cps. 
-11. Add "to-string" function.
-12. Add print function.
-13. Code improvements with simplicity, clarity  and readability in mind.
-14. Implement a small dedicated lisp reader/parser to replace MPC.
+11. Add print function.
+12. Code improvements with simplicity, clarity  and readability in mind.
+13. Implement a small dedicated lisp reader/parser to replace MPC.
 
 ## Longer term TODOs
 0. Port to X86_64 linux. (going 64bit involves some big changes) 
@@ -45,7 +44,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 
 3. Run the repl: `./repl`
 
-## Compile for Zynq devboard (bare-metal)  
+## Compile for Zynq devboard (bare-metal)
 1. Source your vivado settings: `source <PATH_TO>/settings.sh`
 
 2. Build library for ARM A9: `PLATFORM=zynq make`
@@ -57,6 +56,9 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 
 5. Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Directories
    and add in INCLUDE DIRECTORIES the path to the include directory.
+
+5.b Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Miscellaneous
+    and add `-D_32_BIT_` and `-std=c11` to "Other flags"
 
 6. Go to menu: Xilinx > Generate linker script
    and set up for enough of heap and stack. 128MB heap and 16MB stack is an ok starting point.
