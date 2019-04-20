@@ -907,6 +907,29 @@ VALUE bi_fun_to_string(VALUE args) {
   return arr;
 }
 
+VALUE bi_fun_print_str(VALUE args) {
+
+  VALUE curr = args;
+  
+  while (type_of(curr) == PTR_TYPE_CONS) { 
+    VALUE str = car(curr);
+    
+    if (type_of(str) != PTR_TYPE_ARRAY) {
+      return enc_sym(symrepr_terror());
+    }
+
+    array_t *arr = (array_t*)car(str);
+
+    if (arr->elt_type != VAL_TYPE_CHAR) {
+      return enc_sym(symrepr_terror());
+    }
+
+    printf("%s", arr->data.c);
+    curr = cdr(curr);
+  }  
+  return enc_sym(symrepr_nil()); 
+}
+
 ////////////////////////////////////////////////////////////
 // Interface functions
 
@@ -963,6 +986,7 @@ int builtin_init(void) {
   res &= builtin_add_function("array-concat", bi_fun_array_concat);
   res &= builtin_add_function("numberp", bi_fun_numberp);
   res &= builtin_add_function("to-string", bi_fun_to_string);
+  res &= builtin_add_function("print-string", bi_fun_print_str);
   return res;
 }
 

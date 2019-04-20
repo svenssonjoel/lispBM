@@ -10,7 +10,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 
 ## Features
 1. heap consisting of cons-cells with mark and sweep garbage collection.
-2. A few built-in functions: cons, car, cdr, eval, list, gensym, +, -, >, < and =
+2. Built-in functions: cons, car, cdr, eval, list, gensym, +, -, >, <, = and more.
 3. Some special forms: Lambdas, closures, lets (letrecs), define and quote.
 4. 28-Bit signed/unsigned integers and (boxed) 32-Bit Float, Signed and Unsigned values.
 5. Arrays (in progress), string is an array. 
@@ -29,9 +29,8 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 8. Implement some looping structure for speed or just ease of use. 
 9. Be much more stringent on checking of error conditions etc.
 10. Improve handling of arguments in eval-cps. 
-11. Add print function.
-12. Code improvements with simplicity, clarity  and readability in mind.
-13. Implement a small dedicated lisp reader/parser to replace MPC.
+11. Code improvements with simplicity, clarity  and readability in mind.
+12. Implement a small dedicated lisp reader/parser to replace MPC.
 
 ## Longer term TODOs
 0. Port to X86_64 linux. (going 64bit involves some big changes) 
