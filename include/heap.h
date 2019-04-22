@@ -227,12 +227,14 @@ extern void set_car(VALUE c, VALUE v);
 extern void set_cdr(VALUE c, VALUE v);
 extern unsigned int length(VALUE c);
 extern VALUE reverse(VALUE list);
+extern VALUE copy(VALUE list);
 
 // State and statistics
 extern void heap_get_state(heap_state_t *);
 
 // Garbage collection
 extern int heap_perform_gc(VALUE env);
+extern int heap_perform_gc_extra(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE list);
 extern int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, UINT *aux_data, unsigned int aux_size);
 
 

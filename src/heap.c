@@ -377,6 +377,25 @@ int heap_perform_gc(VALUE env) {
   return gc_sweep_phase();
 }
 
+int heap_perform_gc_extra(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE list) {
+  heap_state.gc_num ++;
+  heap_state.gc_recovered = 0;
+  heap_state.gc_marked = 0;
+
+  gc_mark_freelist();
+  gc_mark_phase(exp);
+  gc_mark_phase(exp2);
+  gc_mark_phase(env);
+  gc_mark_phase(env2);
+  gc_mark_phase(list);
+
+#ifdef VISUALIZE_HEAP
+  heap_vis_gen_image();
+#endif
+
+  return gc_sweep_phase();
+}
+
 int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, UINT *aux_data, unsigned int aux_size) {
   heap_state.gc_num ++;
   heap_state.gc_recovered = 0;
@@ -481,6 +500,24 @@ VALUE reverse(VALUE list) {
     curr = cdr(curr);
   }
   return new_list;
+}
+
+VALUE copy(VALUE list) {
+  // TODO: a more efficient approach
+  VALUE res = NIL;
+
+  VALUE curr = list;
+
+  while (type_of(curr) == PTR_TYPE_CONS) {
+    VALUE c = cons (car(curr), res);
+    if (type_of(c) == VAL_TYPE_SYMBOL) {
+      return enc_sym(symrepr_merror());
+    }
+    res = c;
+    curr = cdr(curr);
+  }
+
+  return reverse(res); 
 }
 
 
