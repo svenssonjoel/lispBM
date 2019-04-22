@@ -521,6 +521,38 @@ VALUE bi_fun_num_eq(VALUE args) {
   return enc_sym(symrepr_eerror());
 }
 
+
+int array_equality(VALUE a, VALUE b) {
+  if (type_of(a) == PTR_TYPE_ARRAY &&
+      type_of(a) == type_of(b)) {
+    array_t *a_ = (array_t*)car(a);
+    array_t *b_ = (array_t*)car(b);
+
+    if (a_->elt_type == b_->elt_type &&
+	a_->size == b_->size) {
+      switch(a_->elt_type) {
+      case VAL_TYPE_U:
+      case PTR_TYPE_BOXED_U:
+	if (memcmp(a_->data.u, b_->data.u, a_->size * sizeof(UINT)) == 0) return 1;
+	break;
+      case VAL_TYPE_I:
+      case PTR_TYPE_BOXED_I:
+	if (memcmp(a_->data.i, b_->data.i, a_->size * sizeof(INT)) == 0) return 1;
+	break;
+      case VAL_TYPE_CHAR:
+	if (memcmp(a_->data.c, b_->data.c, a_->size) == 0) return 1;
+	break;
+      case PTR_TYPE_BOXED_F:
+	if (memcmp(a_->data.f, b_->data.f, a_->size * sizeof(FLOAT)) == 0) return 1;
+	break;
+      default:
+	break; 
+      }
+    }
+  }
+  return 0; 
+}
+
 int structural_equality(VALUE a, VALUE b) {
 
   if (!is_ptr(a) && !is_ptr(b)) {
@@ -553,42 +585,31 @@ int structural_equality(VALUE a, VALUE b) {
 
   if (is_ptr(a) && is_ptr(b)) {
     if (ptr_type(a) == ptr_type(b)) {
-      if ( ptr_type(a) == PTR_TYPE_CONS ) {
-	int car_eq = structural_equality(car(a),car(b));
-	int cdr_eq = structural_equality(cdr(a),cdr(b));
-	if ( car_eq && cdr_eq ) return 1;
-	else return 0;
+      switch (ptr_type(a)) {
+      case PTR_TYPE_CONS:
+	if ( structural_equality(car(a),car(b)) &&
+	     structural_equality(cdr(a),cdr(b)) ) return 1;
+	return 0;
+      case PTR_TYPE_BOXED_I:
+	if ((INT)car(a) == (INT)car(b)) return 1;
+	return 0;
+      case PTR_TYPE_BOXED_U:
+	if (car(a) == car(b)) return 1;
+	return 0;
+      case PTR_TYPE_BOXED_F:
+	if ((FLOAT)car(a) == (FLOAT)car(b)) return 1;
+	return 0;
+      case PTR_TYPE_ARRAY:
+	return array_equality(a, b); 
+      default:
+	printf("TODO: Structural equality for this ptr type not implemented\n");
+	return 0;
       }
-
-      if (ptr_type(a) == PTR_TYPE_BOXED_I){
-	INT ai = (INT)car(a);
-	INT bi = (INT)car(b);
-	  if (ai == bi) return 1;
-	  else return 0;
-      }
-
-      if (ptr_type(a) == PTR_TYPE_BOXED_U){
-	UINT au = car(a);
-	UINT bu = car(b);
-	  if (au == bu) return 1;
-	  else return 0;
-      }
-
-      if (ptr_type(a) == PTR_TYPE_BOXED_F) {
-	FLOAT af = (FLOAT)car(a);
-	FLOAT bf = (FLOAT)car(b);
-	  if (af == bf) return 1;
-	  else return 0;
-      }
-      printf("TODO: Structural equality for this ptr type not implemented\n");
-    } else {
-      return 0;
     }
   }
-
   return 0;
 }
-
+  
 VALUE bi_fun_eq(VALUE args) {
   VALUE a1 = car(args);
   VALUE a2 = car(cdr(args));
