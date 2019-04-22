@@ -144,13 +144,12 @@ VALUE eval_in_env(VALUE lisp, VALUE env) {
       ret = env_lookup(lisp, eval_global_env, &tmp);
     }
     if (ret) return tmp;
-    ERROR("Eval: Variable lookup failed: %s ",symrepr_lookup_name(dec_sym(lisp)));
-    break;
+    return enc_sym(symrepr_eerror());
+    //ERROR("Eval: Variable lookup failed: %s ",symrepr_lookup_name(dec_sym(lisp)));
   case VAL_TYPE_I:
   case VAL_TYPE_U:
   case VAL_TYPE_CHAR:
     return lisp;
-    break;
   case PTR_TYPE_CONS:
     head = car(lisp);
 
