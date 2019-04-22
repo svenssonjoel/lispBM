@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     printf("# "); 
     size_t n =  getline(&str,&len,stdin);
 
-    if (n >= 4 && strncmp(str, "info", 4) == 0) {
+    if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("############################################################\n");
       printf("Used cons cells: %d \n", heap_size - heap_num_free());
       printf("ENV: "); simple_print(eval_get_env()); printf("\n"); 
@@ -96,25 +96,23 @@ int main(int argc, char **argv) {
       printf("Marked: %d\n", heap_state.gc_marked);
       printf("Free cons cells: %d\n", heap_num_free());
       printf("############################################################\n");
+    } else if (n>=5 && strncmp(str, ":quit", 5) == 0) {
+      break;
     } else {
-
+      
       ast = parser_parse_string(str); 
       if (!ast) {
-	printf("ERROR!\n");
-	break;
+	printf("Parse error!\n");
+	continue;
       }
     
       uint32_t t;
       t = read_ast(ast);
     
       t = eval_program(t);
-
-      if (dec_sym(t) == symrepr_eerror()) {
-	printf("%s\n", eval_get_error());
-      } else {
-	printf("> "); simple_print(t); printf("\n");
-      }
-        
+      
+      printf("> "); simple_print(t); printf("\n");
+      
       mpc_ast_delete(ast);
     }
   }

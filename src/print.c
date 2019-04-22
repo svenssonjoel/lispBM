@@ -131,7 +131,7 @@ int simple_print(VALUE t){
   }
 
   if (!is_ptr(t)) { // Value, symbol
-    switch (t & VAL_TYPE_MASK) {
+    switch (type_of(t)) {
     case VAL_TYPE_SYMBOL:
       str_ptr = symrepr_lookup_name(dec_sym(t));
       if (str_ptr == NULL) {
