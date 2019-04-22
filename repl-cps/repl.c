@@ -78,13 +78,15 @@ int main(int argc, char **argv) {
     printf("Error initializing evaluator.\n");
   }
 
-  printf("Lisp REPL started!\n"); 
+  printf("Lisp REPL started!\n");
+  printf("Type :quit to exit.\n");
+  printf("     :info for statistics.\n");
   
   while (1) {
     printf("# "); 
     ssize_t n = getline(&str,&len,stdin);
 
-    if (n >= 4 && strncmp(str, "info", 4) == 0) {
+    if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("############################################################\n");
       printf("Used cons cells: %d\n", heap_size - heap_num_free());
       printf("ENV: "); simple_print(eval_cps_get_env()); printf("\n"); 

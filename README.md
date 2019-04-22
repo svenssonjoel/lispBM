@@ -22,15 +22,14 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 1. Port to STM32f4 - 128K ram platform (will need big changes) (partially done).
 2. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
 3. Write some tests that stresses the Garbage collector.
-4. Try putting the K-stack on the heap
-5. Implement some "reference to X type", for uint32, int32, float perhaps...  
-6. Write a small library of useful hofs. 
-7. Document code.
-8. Implement some looping structure for speed or just ease of use. 
-9. Be much more stringent on checking of error conditions etc.
-10. Improve handling of arguments in eval-cps. 
-11. Code improvements with simplicity, clarity  and readability in mind.
-12. Implement a small dedicated lisp reader/parser to replace MPC.
+4. Implement some "reference to X type", for uint32, int32, float perhaps...  
+5. Write a small library of useful hofs. 
+6. Document code.
+7. Implement some looping structure for speed or just ease of use. 
+8. Be much more stringent on checking of error conditions etc.
+9. Improve handling of arguments in eval-cps. 
+10. Code improvements with simplicity, clarity  and readability in mind.
+11. Implement a small dedicated lisp reader/parser to replace MPC.
 
 ## Longer term TODOs
 0. Port to X86_64 linux. (going 64bit involves some big changes) 
@@ -56,12 +55,12 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 5. Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Directories
    and add in INCLUDE DIRECTORIES the path to the include directory.
 
-5.b Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Miscellaneous
+6. Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Miscellaneous
     and add `-D_32_BIT_` and `-std=c11` to "Other flags"
 
-6. Go to menu: Xilinx > Generate linker script
+7. Go to menu: Xilinx > Generate linker script
    and set up for enough of heap and stack. 128MB heap and 16MB stack is an ok starting point.
 
-7. Remove the helloworld.c file from the project and replace with repl-zynq/repl.c
+8. Remove the helloworld.c file from the project and replace with repl-zynq/repl.c
 
-8. build and run. 
+9. build and run. 
