@@ -19,17 +19,19 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 
 ## Short term TODOs
 0. Explicit stack in eval.c to help GC do its job. 
-1. Port to STM32f4 - 128K ram platform (will need big changes) (partially done).
+1. Write some tests that stresses the Garbage collector.
+2. Implement some "reference to X type", for uint32, int32, float perhaps...  
+3. Write a small library of useful hofs. 
+4. Document code.
+5. Implement some looping structure for speed or just ease of use. 
+6. Be much more stringent on checking of error conditions etc.
+7. Improve handling of arguments in eval-cps. 
+8. Code improvements with simplicity, clarity  and readability in mind.
+
+## Medium term TODOs
+0. Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
+1. Port to STM32f4 - 128K ram platform (will need big changes).
 2. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
-3. Write some tests that stresses the Garbage collector.
-4. Implement some "reference to X type", for uint32, int32, float perhaps...  
-5. Write a small library of useful hofs. 
-6. Document code.
-7. Implement some looping structure for speed or just ease of use. 
-8. Be much more stringent on checking of error conditions etc.
-9. Improve handling of arguments in eval-cps. 
-10. Code improvements with simplicity, clarity  and readability in mind.
-11. Implement a small dedicated lisp reader/parser to replace MPC.
 
 ## Longer term TODOs
 0. Port to X86_64 linux. (going 64bit involves some big changes) 
