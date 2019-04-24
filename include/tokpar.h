@@ -20,6 +20,7 @@
 
 #include "typedefs.h"
 
+VALUE tokpar_parse(char *str);
 VALUE tokpar_parse_string(char *str);
 
 #endif
