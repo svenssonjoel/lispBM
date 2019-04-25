@@ -21,16 +21,12 @@
 #include "xil_printf.h"
 
 
-#include "mpc.h"
-#include "parse.h"
-
 #include "heap.h"
-#include "read.h"
 #include "symrepr.h"
 #include "builtin.h"
 #include "eval_cps.h"
 #include "print.h"
-
+#include "tokpar.h"
 
 int inputline(char *buffer, int size) {
   int n = 0;
@@ -73,19 +69,9 @@ int main()
 
 	char *str = malloc(1024);;
 	size_t len = 1024;
-
-	mpc_ast_t* ast = NULL;
 	int res = 0;
 
 	heap_state_t heap_state;
-
-	res = parser_init();
-	if (res)
-		printf("Parser initialized.\n");
-	else {
-		printf("Error initializing parser!\n");
-		return 0;
-	}
 
 	res = symrepr_init();
 	if (res)
@@ -140,29 +126,19 @@ int main()
 			printf("############################################################\n");
 		} else {
 
-			ast = parser_parse_string(str);
-			if (!ast) {
-				printf("ERROR!\n");
-				continue; // Go back and try again
-			}
-
-			uint32_t t;
-			t = read_ast(ast);
+			VALUE t;
+			t = tokpar_parse(str);
 
 			t = eval_cps_program(t);
 
 			if (dec_sym(t) == symrepr_eerror()) {
 			  printf("Error\n");
-			  //printf("%s\n", eval_get_error());
 			} else {
 				printf("> "); simple_print(t); printf("\n");
 			}
-
-			mpc_ast_delete(ast);
 		}
 	}
 
-	parser_del();
 	symrepr_del();
 	heap_del();
 

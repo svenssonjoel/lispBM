@@ -36,7 +36,10 @@ int main(int argc, char **argv) {
   tokpar_parse_string("1\"fhirnfirninfrinfrifi\"");
 
   tokpar_parse_string("\\#c");
+  tokpar_parse_string(" \\#c");
+  tokpar_parse_string("() \\#c");
   tokpar_parse_string("\\#c123");
+  tokpar_parse_string("(= (array-read a 3u) \\#l)");
 
   tokpar_parse_string("3.14apa");
 
@@ -45,11 +48,27 @@ int main(int argc, char **argv) {
   tokpar_parse_string("1 ;fhiefheihfeifehfi\n;ijfiejfiejfiejeif\n  ;    fijfiejfiefiejifj\n 2");
 
   tokpar_parse_string("\"hello\"\"world\"");
-  
+
+  tokpar_parse_string("(= (+ 4I 7I) 11I)");
+
+  tokpar_parse_string("0xf");
+  tokpar_parse_string("0x1");
+  tokpar_parse_string("0Xf");
+  tokpar_parse_string("0X1");
+  tokpar_parse_string("0X11");
+
+  tokpar_parse_string(":");
+  tokpar_parse_string("(:)");
+  tokpar_parse_string("( : )");
+
+  tokpar_parse_string(",");
+  tokpar_parse_string("(,)");
+  tokpar_parse_string("( , )");
+
   int res = 0;
 
   res = symrepr_init();
-  if (res) 
+  if (res)
     printf("Symrepr initialized.\n");
   else {
     printf("Error initializing symrepr!\n");
@@ -66,7 +85,7 @@ int main(int argc, char **argv) {
   }
 
   VALUE v;
-  
+
   v = tokpar_parse("1");
 
   simple_print(v); printf("\n");
@@ -84,14 +103,56 @@ int main(int argc, char **argv) {
   simple_print(v); printf("\n");
 
   v = tokpar_parse("\"hello\"\"world\"");
-    
+
   simple_print(v); printf("\n");
 
   v = tokpar_parse("\"hello\";apa!\n\"world\"");
-    
+
   simple_print(v); printf("\n");
 
-  
-  
+  v = tokpar_parse("(= (+ 5u 60u) 65u)");
+
+  simple_print(v); printf("\n");
+
+  v = tokpar_parse("  (= (+ 5u 60u) 65u)");
+
+  simple_print(v); printf("\n");
+
+  v = tokpar_parse("(= (array-read a 3u) \\#l)");
+
+  simple_print(v); printf("\n");
+
+  v = tokpar_parse("(= (+ 4I 7I) 11I)");
+
+  simple_print(v); printf("\n");
+
+  v = tokpar_parse("  (= (+ 1 0xf) 16u)");
+
+  simple_print(v); printf("\n");
+
+  v = tokpar_parse(":");
+
+  simple_print(v); printf("\n");
+
+  v = tokpar_parse("(:)");
+
+  simple_print(v); printf("\n");
+
+  v = tokpar_parse("( : )");
+
+  simple_print(v); printf("\n");
+
+  v = tokpar_parse(",");
+
+  simple_print(v); printf("\n");
+
+  v = tokpar_parse("(,)");
+
+  simple_print(v); printf("\n");
+
+  v = tokpar_parse("( , )");
+
+  simple_print(v); printf("\n");
+
   return 0;
 }

@@ -104,6 +104,11 @@ VALUE do_eval_program(VALUE lisp) {
   VALUE local_env = NIL;
   VALUE curr = lisp;
 
+  if (dec_sym(lisp) == symrepr_eerror() ||
+      dec_sym(lisp) == symrepr_rerror() ||
+      dec_sym(lisp) == symrepr_merror() ||
+      dec_sym(lisp) == symrepr_terror())  return lisp;
+
   while ( type_of(curr) == PTR_TYPE_CONS) {
 
     res = eval_in_env(car(curr), local_env);

@@ -15,9 +15,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-// WORK IN PROGRESS
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -82,7 +79,7 @@ int tok_quote(char *str) {
 }
 
 bool symchar0(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+*-/";
+  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>";
 
   int i = 0;
   while (allowed[i] != 0) {
@@ -92,7 +89,7 @@ bool symchar0(char c) {
 }
 
 bool symchar(char c) {
-  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/";
+  const char *allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>";
 
   int i = 0;
   while (allowed[i] != 0) {
@@ -156,14 +153,25 @@ int tok_string(char *str, char **res) {
 
 int tok_char(char *str, char *res) {
 
-  // The simple char case
+  int count = 0;
   if (*str == '\\' &&
+      *(str+1) == '#' &&
+      *(str+2) == 'n' &&
+      *(str+3) == 'e' &&
+      *(str+4) == 'w' &&
+      *(str+5) == 'l' &&
+      *(str+6) == 'i' &&
+      *(str+7) == 'n' &&
+      *(str+8) == 'e') {
+    *res = '\n';
+    count = 9;
+  } else if (*str == '\\' &&
       *(str+1) == '#' &&
       isgraph(*(str+2))) {
     *res = *(str+2);
-    return 3;
+    count = 3;
   }
-  return 0;
+  return count;
 }
 
 int tok_i(char *str, INT *res) {
@@ -222,6 +230,29 @@ int tok_U(char *str, UINT *res) {
   UINT acc = 0;
   int n = 0;
 
+  // Check if hex notation is used
+  if (*str == '0' &&
+      (*(str+1) == 'x' || *(str+1) == 'X')) {
+    n+= 2;
+    while ( (*(str+n) >= '0' && *(str+n) <= '9') ||
+	    (*(str+n) >= 'a' && *(str+n) <= 'f') ||
+	    (*(str+n) >= 'A' && *(str+n) <= 'F')){
+      UINT val;
+      if (*(str+n) >= 'a' && *(str+n) <= 'f') {
+	val = 10 + (*(str+n) - 'a');
+      } else if (*(str+n) >= 'A' && *(str+n) <= 'F') {
+	val = 10 + (*(str+n) - 'A');
+      } else {
+	val = *(str+n) - '0';
+      }
+      acc = (acc * 0x10) + val;
+      n++;
+    }
+    *res = acc;
+    return n;
+  }
+
+  // check if nonhex
   while ( *(str+n) >= '0' && *(str+n) <= '9' ){
     acc = (acc*10) + (*(str+n) - '0');
     n++;
@@ -262,7 +293,7 @@ token next_token(tokenizer_state *ts) {
   FLOAT f_val;
   int n = 0;
 
-  // Eat whitespace and comments. 
+  // Eat whitespace and comments.
   bool clean_whitespace = true;
   while ( clean_whitespace ){
     if ( *curr == ';' ) {
@@ -277,14 +308,7 @@ token next_token(tokenizer_state *ts) {
       clean_whitespace = false;
     }
   }
-      
-  // eat whitespace
-  //while ( *curr && isspace(*curr) ) {
-  //  curr++;
-  //  n++;
-  //}
-  
- 
+
   ts->pos += n;
 
   // Check for end of string
@@ -341,17 +365,18 @@ token next_token(tokenizer_state *ts) {
     return t;
   }
 
-  if ((n = tok_u(curr, &u_val))) {
-    ts->pos += n;
-    t.data.u = u_val;
-    t.type = TOKUINT;
-    return t;
-  }
-
   if ((n = tok_U(curr, &u_val))) {
     ts->pos += n;
     t.data.u = u_val;
     t.type = TOKBOXEDUINT;
+    return t;
+  }
+
+
+  if ((n = tok_u(curr, &u_val))) {
+    ts->pos += n;
+    t.data.u = u_val;
+    t.type = TOKUINT;
     return t;
   }
 
@@ -382,8 +407,11 @@ VALUE parse_program(tokenizer_state *ts) {
   token tok = next_token(ts);
   VALUE head;
   VALUE tail;
-  
-  
+
+  if (tok.type == TOKENIZER_ERROR) {
+    return enc_sym(symrepr_rerror());
+  }
+
   if (tok.type == TOKENIZER_END) {
     return enc_sym(symrepr_nil());
   }
@@ -398,17 +426,18 @@ VALUE parse_sexp(token tok, tokenizer_state *ts) {
 
   VALUE v;
   token t;
-  
+
   switch (tok.type) {
   case TOKENIZER_END:
-    printf("Parse error:  end of token stream\n");
-    break;
+    return enc_sym(symrepr_rerror());
+  case TOKENIZER_ERROR:
+    return enc_sym(symrepr_rerror());
   case TOKOPENPAR:
     t = next_token(ts);
     return parse_sexp_list(t,ts);
   case TOKSYMBOL: {
     UINT symbol_id;
-    
+
     if (symrepr_lookup(tok.data.text, &symbol_id)) {
       v = enc_sym(symbol_id);
     }
@@ -428,16 +457,18 @@ VALUE parse_sexp(token tok, tokenizer_state *ts) {
     free(tok.data.text);
     return v;
   }
-  case TOKINT: 
+  case TOKINT:
     return enc_i(tok.data.i);
   case TOKUINT:
     return enc_u(tok.data.u);
-  case TOKBOXEDINT: 
-    return cons(tok.data.i, enc_sym(SPECIAL_SYM_BOXED_I));
+  case TOKCHAR:
+    return enc_char(tok.data.c);
+  case TOKBOXEDINT:
+    return set_ptr_type(cons(tok.data.i, enc_sym(SPECIAL_SYM_BOXED_I)), PTR_TYPE_BOXED_I);
   case TOKBOXEDUINT:
-    return cons(tok.data.u, enc_sym(SPECIAL_SYM_BOXED_U));
+    return set_ptr_type(cons(tok.data.u, enc_sym(SPECIAL_SYM_BOXED_U)), PTR_TYPE_BOXED_U);
   case TOKBOXEDFLOAT:
-    return cons(tok.data.f, enc_sym(SPECIAL_SYM_BOXED_F));
+    return set_ptr_type(cons(tok.data.f, enc_sym(SPECIAL_SYM_BOXED_F)), PTR_TYPE_BOXED_F);
   case TOKQUOTE: {
     t = next_token(ts);
     return cons(enc_sym(symrepr_quote()), cons (parse_sexp(t, ts), enc_sym(symrepr_nil()))); 
@@ -451,11 +482,12 @@ VALUE parse_sexp_list(token tok, tokenizer_state *ts) {
   token t;
   VALUE head;
   VALUE tail;
-  
+
   switch (tok.type) {
   case TOKENIZER_END:
-    printf("Parse error:  end of token stream\n");
-    break;
+    return enc_sym(symrepr_rerror());
+  case TOKENIZER_ERROR:
+    return enc_sym(symrepr_rerror());
   case TOKCLOSEPAR:
     return enc_sym(symrepr_nil());
   default:
@@ -464,7 +496,7 @@ VALUE parse_sexp_list(token tok, tokenizer_state *ts) {
     tail = parse_sexp_list(t, ts);
     return cons(head, tail);
   }
-  
+
   return enc_sym(symrepr_rerror());
 }
 

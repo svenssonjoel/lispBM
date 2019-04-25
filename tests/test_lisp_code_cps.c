@@ -18,34 +18,30 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "mpc.h"
-#include "parse.h"
-
-#include "heap.h" 
-#include "read.h"
+#include "heap.h"
 #include "symrepr.h"
 #include "builtin.h"
 #include "eval_cps.h"
 #include "print.h"
+#include "tokpar.h"
 
 int main(int argc, char **argv) {
 
-  mpc_ast_t* ast = NULL; 
-  int res = 0; 
+  int res = 0;
 
   if (argc < 2) {
-    printf("Incorrect arguments\n"); 
+    printf("Incorrect arguments\n");
     return 0;
   }
-  
+
   FILE* fp = fopen(argv[1], "r");
 
   if (fp == NULL) {
-    printf("Error opening file\n"); 
-    return 0; 
+    printf("Error opening file\n");
+    return 0;
   }
 
-  fseek(fp, 0, SEEK_END); 
+  fseek(fp, 0, SEEK_END);
   long size = ftell(fp);
   if (size <= 0) {
     printf("Error file empty %s\n", argv[1]);
@@ -59,23 +55,15 @@ int main(int argc, char **argv) {
     printf("Error empty file?\n");
     return 0;
   }
-  
-  res = parser_init();
-  if (res) 
-    printf("Parser initialized.\n");
-  else { 
-    printf("Error initializing parser!\n");
-    return 0;
-  }
 
   res = symrepr_init();
-  if (res) 
+  if (res)
     printf("Symrepr initialized.\n");
   else {
     printf("Error initializing symrepr!\n");
     return 0;
   }
-  
+
   unsigned int heap_size = 8 * 1024 * 1024;
   res = heap_init(heap_size);
   if (res)
@@ -99,43 +87,30 @@ int main(int argc, char **argv) {
   else {
     printf("Error initializing evaluator.\n");
   }
-  
-  ast = parser_parse_string(code_buffer); 
-  if (!ast) {
-    printf("ERROR! parsing lisp:\n");
-    return 0;
-  }
-  
-  uint32_t t; 
-  t = read_ast(ast);
-  mpc_ast_delete(ast);
 
-  printf("I: "); simple_print(t); printf("\n"); 
-  
+  VALUE t;
+  t = tokpar_parse(code_buffer);
+
+  printf("I: "); simple_print(t); printf("\n");
+
   t = eval_cps_program(t);
-  
+
   printf("O: "); simple_print(t); printf("\n");
 
   if ( dec_sym(t) == symrepr_eerror()) {
     res = 0;
   }
-  
-  //uint32_t rest = t;
-  //while (length(rest) > 2) {
-  //  rest = cdr(rest);
-  //}
-  
-  
+
+
   if (res && type_of(t) == VAL_TYPE_SYMBOL && dec_sym(t) == symrepr_true()){ // structural_equality(car(rest),car(cdr(rest)))) {
-    printf("Test: OK!\n"); 
+    printf("Test: OK!\n");
     res = 1;
   } else {
-    printf("Test: Failed!\n"); 
-    res = 0; 
-  }  
-  parser_del();
+    printf("Test: Failed!\n");
+    res = 0;
+  }
   symrepr_del();
   heap_del();
-  
-  return res;  
+
+  return res;
 }

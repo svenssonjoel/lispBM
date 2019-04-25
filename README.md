@@ -1,6 +1,6 @@
 # lispBM
 
-A lisp-like language (work in progress) implemented in C using the MPC (https://github.com/orangeduck/mpc) library for the parsing task.
+A lisp-like language (work in progress) implemented in C.
 
 ## Purpose
 1. Have fun.
@@ -29,7 +29,7 @@ A lisp-like language (work in progress) implemented in C using the MPC (https://
 8. Code improvements with simplicity, clarity  and readability in mind.
 
 ## Medium term TODOs
-0. Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
+0. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
 1. Port to STM32f4 - 128K ram platform (will need big changes).
 2. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
 

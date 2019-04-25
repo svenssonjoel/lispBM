@@ -6,8 +6,8 @@
 
 int main(int argc, char **argv) {
 
-  int res = 1; 
-  
+  int res = 1;
+
   int n = 0;
   res &= (dec_i(enc_i(0)) == 0);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
