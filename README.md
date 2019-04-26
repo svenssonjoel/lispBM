@@ -17,7 +17,7 @@ A lisp-like language (work in progress) implemented in C.
 6. Compiles for, and runs on linux-x86 (builds 32bit library, runs on 32/64 bit).
 7. Compiles for, and runs on Zynq 7000.  
 
-## Short term TODOs
+## TODOs
 0. Explicit stack in eval.c to help GC do its job. 
 1. Write some tests that stresses the Garbage collector.
 2. Implement some "reference to X type", for uint32, int32, float perhaps...  
@@ -27,15 +27,11 @@ A lisp-like language (work in progress) implemented in C.
 6. Be much more stringent on checking of error conditions etc.
 7. Improve handling of arguments in eval-cps. 
 8. Code improvements with simplicity, clarity  and readability in mind.
-
-## Medium term TODOs
-0. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
-1. Port to STM32f4 - 128K ram platform (will need big changes).
-2. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
-
-## Longer term TODOs
-0. Port to X86_64 linux. (going 64bit involves some big changes) 
-1. Port to Raspberry pi 64Bit Bare-metal.
+9. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
+10. Port to STM32f4 - 128K ram platform (will need big changes).
+11. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
+12. Port to X86_64 linux. (going 64bit involves some big changes) 
+13. Port to Raspberry pi 64Bit Bare-metal.
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
