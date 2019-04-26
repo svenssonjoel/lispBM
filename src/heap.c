@@ -31,6 +31,7 @@ static UINT         heap_base;
 static heap_state_t heap_state;
 
 static VALUE        NIL;
+static VALUE        RECOVERED;
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
@@ -82,7 +83,7 @@ int generate_freelist(size_t num_cells) {
   // Add all cells to free list
   for (i = 1; i < num_cells; i ++) {
     t = ref_cell(enc_cons_ptr(i-1));
-    set_car_(t, NIL);    // all cars in free list are nil
+    set_car_(t, RECOVERED);    // all cars in free list are "RECOVERED"
     set_cdr_(t, enc_cons_ptr(i));
   }
 
@@ -97,7 +98,8 @@ int heap_init(unsigned int num_cells) {
 
   // retrieve nil symbol value f
   NIL = enc_sym(symrepr_nil());
-
+  RECOVERED = enc_sym(SPECIAL_SYM_RECOVERED);
+  
   // Allocate heap
   heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
 
@@ -230,12 +232,15 @@ int gc_mark_phase(VALUE env) {
   VALUE t_car   = type_of(car_env);
   VALUE t_cdr   = type_of(cdr_env);
 
+  bool car_done = false;
+  bool cdr_done = false;
+  
   if (t_car == PTR_TYPE_BOXED_I ||
       t_car == PTR_TYPE_BOXED_U ||
       t_car == PTR_TYPE_BOXED_F ||
       t_car == PTR_TYPE_ARRAY) {
     set_gc_mark(ref_cell(car_env));
-    return 1;
+    car_done = true;;
   }
 
   if (t_cdr == PTR_TYPE_BOXED_I ||
@@ -243,13 +248,13 @@ int gc_mark_phase(VALUE env) {
       t_cdr == PTR_TYPE_BOXED_F ||
       t_cdr == PTR_TYPE_ARRAY) {
     set_gc_mark(ref_cell(cdr_env));
-    return 1;
+    cdr_done = true;
   }
 
   int res = 1;
-  if (is_ptr(car(env)) && ptr_type(car(env)) == PTR_TYPE_CONS)
+  if (!car_done && is_ptr(car(env)) && ptr_type(car(env)) == PTR_TYPE_CONS)
     res &= gc_mark_phase(car(env));
-  if (is_ptr(cdr(env)) && ptr_type(cdr(env)) == PTR_TYPE_CONS)
+  if (!cdr_done && is_ptr(cdr(env)) && ptr_type(cdr(env)) == PTR_TYPE_CONS)
     res &= gc_mark_phase(cdr(env));
 
   return res;
@@ -355,7 +360,7 @@ int gc_sweep_phase(void) {
       UINT addr = enc_cons_ptr(i);
 
       // Clear the "freed" cell.
-      heap[i].car = NIL;
+      heap[i].car = RECOVERED;
       heap[i].cdr = heap_state.freelist;
       heap_state.freelist = addr;
 

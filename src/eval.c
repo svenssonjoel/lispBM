@@ -110,9 +110,7 @@ VALUE do_eval_program(VALUE lisp) {
       dec_sym(lisp) == symrepr_terror())  return lisp;
 
   while ( type_of(curr) == PTR_TYPE_CONS) {
-
     res = eval_in_env(car(curr), local_env);
-
     curr = cdr(curr);
   }
   return res;

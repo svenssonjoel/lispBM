@@ -438,8 +438,14 @@ char *symrepr_lookup_name(UINT id) {
 
   name_mapping_t *head = NULL;
   UINT hash = id & (UINT)0x0000FFFF; /*extract index*/
-  if(hash == 65535) return "special_symbol";
-
+  if(hash == 65535) {
+    switch (id) {
+    case SPECIAL_SYM_RECOVERED:
+      return "RECOVERED";
+    default:
+      return "special_symbol";  
+    }
+  }
 #ifdef TINY_SYMTAB
   head = name_list_get_mappings(name_list, hash);
 #else

@@ -56,10 +56,10 @@
 ## About this attempt at a LISP
 
 * Motivations in order of importance!
-  1. FUN.
-  2. FUN.
-  3. Learning new stuff.
-  4. An interactive REPL for the ZYNQ devboard.
+  1. FUN!
+  2. Learning new stuff.
+  3. An interactive REPL for the ZYNQ devboard.
+  4. Never ending supply of fun programming excercises.
 
 
 * My wish list (partially implemented)

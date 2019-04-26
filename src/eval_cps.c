@@ -34,6 +34,7 @@
 
 #define EVAL_CONTINUE     1
 #define PERFORM_GC        2
+#define ABORT             3
 
 #define DONE              1
 #define SET_GLOBAL_ENV    2
@@ -47,13 +48,13 @@
 #define CONTINUE_EVAL(EXP,ENV) (curr_exp = (EXP), curr_env = (ENV), longjmp(rewind_buf,EVAL_CONTINUE))
 #define GC_ON_ERROR(RES, ALLOCATION) ((RES) = (ALLOCATION), (type_of((RES)) == VAL_TYPE_SYMBOL && dec_sym((RES)) == symrepr_merror()) ? (longjmp(rewind_buf, PERFORM_GC), 0) : (RES))
 #define GC_ON_FALSE(STMT) ( (!(STMT)) ? (longjmp(rewind_buf, PERFORM_GC),0) : 1)
+#define ABORT_EVAL() longjmp(rewind_buf, PERFORM_GC)
 
 static VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env);
 static VALUE dispatch_continuation(VALUE ix, VALUE args);
 
 jmp_buf rewind_buf;
 
-// Removed volatile qualifier on these.
 static VALUE curr_exp;
 static VALUE curr_env;
 static VALUE eval_cps_global_env;
@@ -80,11 +81,11 @@ VALUE eval_cps_bi(VALUE lisp) {
 
 
 int push(VALUE *K, VALUE val) {
-  
+
   VALUE cons_cell = cons(val, *K);
   if (type_of(cons_cell) == VAL_TYPE_SYMBOL &&
       dec_sym(cons_cell) == symrepr_merror()) {
-    return 0; 
+    return 0;
   }
   *K = cons_cell;
   return 1;
@@ -117,7 +118,7 @@ VALUE cont_set_global_env(VALUE val){
   VALUE tmp;
   VALUE key;
   key = pop(&K);
-  
+
   while(type_of(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == key) {
       set_cdr(car(curr),val);
@@ -140,8 +141,8 @@ VALUE cont_function_app(VALUE args) {
 
   VALUE args_rev;
   VALUE fun;
-  fun = pop(&K); 
-  
+  fun = pop(&K);
+
   if (type_of(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
     GC_ON_ERROR(args_rev, reverse(args));
   } else {
@@ -164,7 +165,7 @@ VALUE cont_closure_app(VALUE args) {
   VALUE args_rev;
   VALUE closure;
   closure = pop(&K);
-  
+
   if (type_of(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
     GC_ON_ERROR(args_rev, reverse(args));
   } else {
@@ -176,13 +177,20 @@ VALUE cont_closure_app(VALUE args) {
   VALUE clo_env = car(cdr(cdr(cdr(closure))));
 
   VALUE local_env;
+  if (length(params) != length(args)) { // programmer error
+    printf("Length mismatch params - args\n");
+    simple_print(params); printf("\n");
+    simple_print(args); printf("\n");
+    ABORT_EVAL();
+  }
+
   GC_ON_FALSE(env_build_params_args(params, args_rev, clo_env, &local_env));
-  
+
   CONTINUE_EVAL(exp,local_env);
 }
 
 VALUE cont_eval_rest(VALUE head) {
-  
+
   VALUE rest;
   VALUE acc;
   VALUE env;
@@ -196,7 +204,7 @@ VALUE cont_eval_rest(VALUE head) {
 
     VALUE args;
     GC_ON_ERROR(args, cons(head,acc));
-    
+
     GC_ON_FALSE(push(&K, args));
     return apply_continuation(&K);
   }
@@ -206,8 +214,8 @@ VALUE cont_eval_rest(VALUE head) {
   GC_ON_FALSE(push(&K, acc));
   GC_ON_FALSE(push(&K, cdr(rest)));
   GC_ON_FALSE(push(&K, enc_u(EVAL_REST)));
-    
-  
+
+
   CONTINUE_EVAL(car(rest),env);
 }
 
@@ -218,7 +226,7 @@ VALUE cont_function(VALUE fun) {
   VALUE env;
   fun_args = pop(&K);
   env = pop(&K);
-  
+
   VALUE head = car(fun_args);
 
   //push_u32(K,fun);
@@ -234,7 +242,7 @@ VALUE cont_function(VALUE fun) {
   // If args are a list with at least one element, process the elements
   if (type_of(fun_args) == PTR_TYPE_CONS &&
       length(fun_args) >= 1) {
-    // Check if this really makes sense. 
+    // Check if this really makes sense.
     //push_u32(K,env);
     //push_u32(K,NIL);
     //push_u32(K,cdr(fun_args));
@@ -260,8 +268,10 @@ VALUE cont_bind_to_key_rest(VALUE val) {
 
   key = pop(&K);
   env = pop(&K);
-  rest = pop(&K); 
+  rest = pop(&K);
 
+  // TODO: Look for bug in environment handling
+  //       that shows up in some cases when having lets in lambdas. 
   env_modify_binding(env, key, val);
 
   if ( type_of(rest) == PTR_TYPE_CONS ){
@@ -272,13 +282,13 @@ VALUE cont_bind_to_key_rest(VALUE val) {
     GC_ON_FALSE(push(&K, env));
     GC_ON_FALSE(push(&K, keyn));
     GC_ON_FALSE(push(&K, enc_u(BIND_TO_KEY_REST)));
-    
+
     CONTINUE_EVAL(valn_exp,env);
   }
 
   // Otherwise evaluate the expression in the populated env
   VALUE exp;
-  exp = pop(&K); 
+  exp = pop(&K);
 
   CONTINUE_EVAL(exp,env);
 }
@@ -289,7 +299,7 @@ VALUE cont_if(VALUE cond) {
   VALUE else_branch;
 
   then_branch = pop(&K);
-  else_branch = pop(&K); 
+  else_branch = pop(&K);
 
   if (type_of(cond) == VAL_TYPE_SYMBOL &&
       dec_sym(cond) == symrepr_true()) {
@@ -361,7 +371,7 @@ VALUE process_let(VALUE binds, VALUE orig_env, VALUE exp) {
   GC_ON_FALSE(push(&K, new_env));
   GC_ON_FALSE(push(&K, key0));
   GC_ON_FALSE(push(&K, enc_u(BIND_TO_KEY_REST)));
-  
+
   CONTINUE_EVAL(val0_exp,new_env);
 }
 
@@ -432,7 +442,7 @@ VALUE eval_cps(VALUE lisp, VALUE env) {
 	VALUE env_cpy;
 
 	GC_ON_FALSE(env_copy_shallow(env,&env_cpy));
-	
+
 	VALUE env_end = GC_ON_ERROR(env_end, cons(env_cpy,NIL));
 	VALUE body    = GC_ON_ERROR(body, cons(car(cdr(cdr(lisp))), env_end));
 	VALUE params  = GC_ON_ERROR(params, cons(car(cdr(lisp)), body));
@@ -444,11 +454,11 @@ VALUE eval_cps(VALUE lisp, VALUE env) {
 
       // Special form: IF
       if (dec_sym(head) == symrepr_if()) {
-	
+
 	GC_ON_FALSE(push(&K, car(cdr(cdr(cdr(lisp)))))); // else branch
 	GC_ON_FALSE(push(&K, car(cdr(cdr(lisp))))); // Then branch
 	GC_ON_FALSE(push(&K, enc_u(IF)));
-	
+
 	CONTINUE_EVAL(car(cdr(lisp)),curr_env);
       }
 
@@ -466,7 +476,7 @@ VALUE eval_cps(VALUE lisp, VALUE env) {
     GC_ON_FALSE(push(&K, curr_env));
     GC_ON_FALSE(push(&K, cdr(lisp)));
     GC_ON_FALSE(push(&K, enc_u(FUNCTION)));
-    
+
     CONTINUE_EVAL(head,curr_env);
 
   default:
@@ -481,7 +491,7 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 
   push(&K, enc_u(DONE)); // Check for error (Abort on error)
   K_save = copy(K);
-  
+
   curr_exp = lisp;
   curr_env = env;
 
@@ -491,20 +501,29 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 
   if (res) {
 
+    if (res == ABORT) {
+      return (enc_sym(symrepr_eerror()));
+    }
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
 #endif
+    //printf("--CURR_ENV--------------------------------------------\n");
+    //simple_print(curr_env); printf("\n");
+    //printf("--GLOB_ENV--------------------------------------------\n");
+    //simple_print(eval_cps_global_env); printf("\n");
     if (res == PERFORM_GC) {
-      K = K_save; 
+      //printf("<<< GC >>>\n");
+      K = K_save;
 
       heap_perform_gc_extra(eval_cps_global_env, curr_env, curr_exp, orig_prg, K);
     }
 
     // Copying the K stack on the heap here may result in the need for a GC...
-    // what to do? 
+    // what to do?
     K_save = copy(K);
     if (type_of(K_save) == VAL_TYPE_SYMBOL &&
 	dec_sym(K_save) == symrepr_merror()) {
+      //printf("<<< STACK COPY INDUCED GC >>>\n");
       heap_perform_gc_extra(eval_cps_global_env, curr_env, curr_exp, orig_prg, K);
       K_save = copy(K);
       if (type_of(K_save) == VAL_TYPE_SYMBOL &&
@@ -513,7 +532,7 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 	return 0;
       }
     }
-   
+
     r = eval_cps(curr_exp, curr_env);
 
   } else {
@@ -539,6 +558,11 @@ VALUE eval_cps_program(VALUE lisp) {
   VALUE local_env = NIL;
   VALUE curr = lisp;
 
+  if (dec_sym(lisp) == symrepr_eerror() ||
+      dec_sym(lisp) == symrepr_rerror() ||
+      dec_sym(lisp) == symrepr_merror() ||
+      dec_sym(lisp) == symrepr_terror())  return lisp;
+
   while (type_of(curr) == PTR_TYPE_CONS) {
     res =  run_eval(lisp, car(curr),local_env);
     curr = cdr(curr);
@@ -549,14 +573,14 @@ VALUE eval_cps_program(VALUE lisp) {
 
 
 int eval_cps_init() {
-  
+
   int res = builtin_add_function("eval",eval_cps_bi);
 
   NIL = enc_sym(symrepr_nil());
 
   K = NIL;
   K_save = NIL;
-  
+
   eval_cps_global_env = NIL;
 
   eval_cps_global_env = built_in_gen_env();

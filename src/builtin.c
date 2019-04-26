@@ -1030,8 +1030,10 @@ VALUE built_in_gen_env(void) {
   while (curr) {
     VALUE sym = enc_sym(curr->sym);
     env = cons(cons(sym,sym),env);
-    if (type_of(env) == VAL_TYPE_SYMBOL) // an error
+    if (type_of(env) == VAL_TYPE_SYMBOL) {
+      printf("SOMETHING BAD\n");
       return env;
+    }
     curr = curr->next;
   }
 

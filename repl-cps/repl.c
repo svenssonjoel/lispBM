@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  unsigned int heap_size = 8 * 1024 * 1024;
+  unsigned int heap_size = 2*1024;
   res = heap_init(heap_size);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
       printf("Used cons cells: %d\n", heap_size - heap_num_free());
       printf("ENV: "); simple_print(eval_cps_get_env()); printf("\n"); 
       //symrepr_print();
-      heap_perform_gc(eval_cps_get_env());
+      //heap_perform_gc(eval_cps_get_env());
       heap_get_state(&heap_state);
       printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
       printf("GC counter: %d\n", heap_state.gc_num);
