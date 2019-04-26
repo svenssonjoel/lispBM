@@ -1031,8 +1031,7 @@ VALUE built_in_gen_env(void) {
     VALUE sym = enc_sym(curr->sym);
     env = cons(cons(sym,sym),env);
     if (type_of(env) == VAL_TYPE_SYMBOL) {
-      printf("SOMETHING BAD\n");
-      return env;
+      return enc_sym(symrepr_merror());
     }
     curr = curr->next;
   }
