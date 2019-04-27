@@ -8,4 +8,6 @@ addons:
       - gcc-5
       - gcc-multilib
 
-script: make
+script:
+  - make
+  - cd tests; ./run_tests.sh
