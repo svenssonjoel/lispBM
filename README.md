@@ -15,7 +15,8 @@ A lisp-like language (work in progress) implemented in C.
 4. 28-Bit signed/unsigned integers and (boxed) 32-Bit Float, Signed and Unsigned values.
 5. Arrays (in progress), string is an array. 
 6. Compiles for, and runs on linux-x86 (builds 32bit library, runs on 32/64 bit).
-7. Compiles for, and runs on Zynq 7000.  
+7. Compiles for, and runs on Zynq 7000.
+8. Compiles for, and runs on STM32f4. 
 
 ## TODOs
 0. Explicit stack in eval.c to help GC do its job. 
@@ -28,7 +29,8 @@ A lisp-like language (work in progress) implemented in C.
 7. Improve handling of arguments in eval-cps. 
 8. Code improvements with simplicity, clarity  and readability in mind.
 9. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
-10. Port to STM32f4 - 128K ram platform (will need big changes).
+10. (DONE) Port to STM32f4 - 128K ram platform (will need big changes). (surely there will be some more bugs)
+11. Add STM32f4 example code (repl implementation)
 11. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
 12. Port to X86_64 linux. (going 64bit involves some big changes) 
 13. Port to Raspberry pi 64Bit Bare-metal.

@@ -88,7 +88,7 @@ int name_list_is_empty(name_list_t *l) {
 
 name_mapping_t* name_list_get_mappings(name_list_t *l, UINT key) {
 
-  /* do not care about anothing but the low 16 bits */
+  /* do not care about anything but the low 16 bits */
   UINT key_ = key & 0xFFFF;
 
   name_list_t *curr = l;
@@ -118,7 +118,6 @@ name_mapping_t **name_table = NULL;
 
 int add_default_symbols(void) {
   int res = 1;
-
   res &= symrepr_addsym("nil"    , &def_repr[DEF_REPR_NIL]);
   res &= symrepr_addsym("quote"  , &def_repr[DEF_REPR_QUOTE]);
   res &= symrepr_addsym("t"      , &def_repr[DEF_REPR_TRUE]);
@@ -299,11 +298,11 @@ int symrepr_addsym(char *name, UINT* id) {
   if (hash >= HASHTAB_SIZE) /* impossible */ return 0;
 
 #ifdef TINY_SYMTAB
-
   /* If the symbol name_list is empty */
   if (name_list == NULL) {
     name_list = (name_list_t*)malloc(sizeof(name_list_t));
     if (name_list == NULL) return 0;
+    name_list->next = NULL;
     name_list->key = hash;
     name_list->map = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     if (name_list->map == NULL) return 0;
@@ -316,13 +315,13 @@ int symrepr_addsym(char *name, UINT* id) {
     if (id != NULL) *id = hash;
 
   } else { /* there is at least one entry in the name list */
-
     name_mapping_t* tmp = name_list_get_mappings(name_list, hash);
 
     if (tmp == NULL) {
       /* There is no entry for this hash, just append it to name_list */
       name_list_t *new_entry = (name_list_t*)malloc(sizeof(name_list_t));
       if (new_entry == NULL) return 0;
+      new_entry->next = NULL;
       new_entry->key = hash;
       new_entry->map = (name_mapping_t*)malloc(sizeof(name_mapping_t));
       if (new_entry->map == NULL) return 0;
@@ -443,7 +442,7 @@ char *symrepr_lookup_name(UINT id) {
     case SPECIAL_SYM_RECOVERED:
       return "RECOVERED";
     default:
-      return "special_symbol";  
+      return "special_symbol";
     }
   }
 #ifdef TINY_SYMTAB
@@ -543,4 +542,3 @@ UINT hash_string(char *str, UINT modulo) {
 
   return r;
 }
-
