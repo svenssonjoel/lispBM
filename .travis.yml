@@ -1,5 +1,5 @@
 language: c
-script: make
+
 addons:
   apt:
     sources:
@@ -7,5 +7,5 @@ addons:
     packages:
       - gcc-5
       - gcc-multilib
-	    
-   
+
+script: make
