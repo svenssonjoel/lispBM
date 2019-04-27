@@ -1,4 +1,4 @@
-# lispBM
+# lispBM [![Build Status](https://travis-ci.org/svenssonjoel/lispBM.svg?branch=master)](https://travis-ci.org/svenssonjoel/lispBM)
 
 A lisp-like language (work in progress) implemented in C.
 
