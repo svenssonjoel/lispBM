@@ -56,7 +56,7 @@ void heap_vis_gen_image(void) {
 
   for (i = 0; i < num_pix*2; i +=2 ) {
 
-    uint32_t car = heap[i];
+    //uint32_t car = heap[i];
     uint32_t cdr = heap[i+1];
     rgb_t col = used_color; 
 
@@ -71,8 +71,8 @@ void heap_vis_gen_image(void) {
 
   uint32_t fl = hs.freelist; 
 
-  while (TYPE_OF(fl) == PTR_TYPE_CONS) {
-    uint32_t index = DEC_PTR(fl);
+  while (type_of(fl) == PTR_TYPE_CONS) {
+    uint32_t index = dec_ptr(fl);
     pix_data[index] = free_color; 
     fl = cdr(fl);
   }

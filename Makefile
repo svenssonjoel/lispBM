@@ -2,7 +2,7 @@
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
   CCFLAGS = -m32 -O2 -Wall -Wextra -pedantic -std=c11
-  CCFLAGS += -D_32_BIT_
+  CCFLAGS += -D_32_BIT_  
 endif
 
 ifeq ($(PLATFORM),linux-x86-64)
