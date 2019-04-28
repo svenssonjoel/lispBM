@@ -471,7 +471,10 @@ VALUE parse_sexp(token tok, tokenizer_state *ts) {
     return set_ptr_type(cons(tok.data.f, enc_sym(SPECIAL_SYM_BOXED_F)), PTR_TYPE_BOXED_F);
   case TOKQUOTE: {
     t = next_token(ts);
-    return cons(enc_sym(symrepr_quote()), cons (parse_sexp(t, ts), enc_sym(symrepr_nil()))); 
+    VALUE quoted = parse_sexp(t, ts);
+    if (type_of(quoted) == VAL_TYPE_SYMBOL &&
+	dec_sym(quoted) == symrepr_rerror()) return quoted;
+    return cons(enc_sym(symrepr_quote()), cons (quoted, enc_sym(symrepr_nil()))); 
   }
   }
   return enc_sym(symrepr_rerror());
@@ -494,6 +497,10 @@ VALUE parse_sexp_list(token tok, tokenizer_state *ts) {
     head = parse_sexp(tok, ts);
     t = next_token(ts);
     tail = parse_sexp_list(t, ts);
+    if ((type_of(head) == VAL_TYPE_SYMBOL &&
+	 dec_sym(head) == symrepr_rerror() ) ||
+	(type_of(tail) == VAL_TYPE_SYMBOL &&
+	 dec_sym(tail) == symrepr_rerror() )) return enc_sym(symrepr_rerror());
     return cons(head, tail);
   }
 
