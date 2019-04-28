@@ -104,7 +104,7 @@ int main()
 		printf("Error initializing evaluator.\n");
 	}
 
-	printf("Lisp REPL started!\n");
+	printf("Lisp REPL started (ZYNQ)!\n");
 
 	while (1) {
 		printf("# "); fflush(stdout);
@@ -112,12 +112,12 @@ int main()
 		inputline(str, len);
 		printf("\n");
 
-		if (strncmp(str, "info", 4) == 0) {
+		if (strncmp(str, ":info", 5) == 0) {
 			printf("############################################################\n");
 			printf("Used cons cells: %lu \n", heap_size - heap_num_free());
 			printf("ENV: "); simple_print(eval_cps_get_env()); printf("\n");
 			//symrepr_print();
-			heap_perform_gc(eval_cps_get_env());
+			//heap_perform_gc(eval_cps_get_env());
 			heap_get_state(&heap_state);
 			printf("GC counter: %lu\n", heap_state.gc_num);
 			printf("Recovered: %lu\n", heap_state.gc_recovered);
