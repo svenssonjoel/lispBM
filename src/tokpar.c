@@ -24,6 +24,7 @@
 #include "tokpar.h"
 #include "symrepr.h"
 #include "heap.h"
+#include "typedefs.h"
 
 #define TOKOPENPAR      0
 #define TOKCLOSEPAR     1
@@ -531,39 +532,39 @@ VALUE tokpar_parse_string(char *str) {
     switch(tok.type) {
 
     case TOKOPENPAR:
-      printf("TOKEN: %d\t(\n", tok.type);
+      printf("TOKEN: %u\t(\n", tok.type);
       break;
     case TOKCLOSEPAR:
-      printf("TOKEN: %d\t)\n", tok.type);
+      printf("TOKEN: %u\t)\n", tok.type);
       break;
     case TOKQUOTE:
-      printf("TOKEN: %d\t'\n", tok.type);
+      printf("TOKEN: %u\t'\n", tok.type);
       break;
     case TOKSYMBOL:
-      printf("TOKEN: %d\t%s\n", tok.type, tok.data.text);
+      printf("TOKEN: %u\t%s\n", tok.type, tok.data.text);
       free(tok.data.text);
       break;
     case TOKINT:
-      printf("TOKEN: %d\t%d\n", tok.type, tok.data.i);
+      printf("TOKEN: %u\t%"PRI_INT"\n", tok.type, tok.data.i);
       break;
     case TOKUINT:
-      printf("TOKEN: %d\t%u\n", tok.type, tok.data.u);
+      printf("TOKEN: %u\t%"PRI_UINT"\n", tok.type, tok.data.u);
       break;
     case TOKBOXEDINT:
-      printf("TOKEN: %d\t%d\n", tok.type, tok.data.i);
+      printf("TOKEN: %u\t%"PRI_INT"\n", tok.type, tok.data.i);
       break;
     case TOKBOXEDUINT:
-      printf("TOKEN: %d\t%u\n", tok.type, tok.data.u);
+      printf("TOKEN: %u\t%"PRI_UINT"\n", tok.type, tok.data.u);
       break;
     case TOKBOXEDFLOAT:
-      printf("TOKEN: %d\t%f\n", tok.type, tok.data.f);
+      printf("TOKEN: %u\t%"PRI_FLOAT"\n", tok.type, tok.data.f);
       break;
     case TOKSTRING:
-      printf("TOKEN: %d\t%s\n", tok.type, tok.data.text);
+      printf("TOKEN: %u\t%s\n", tok.type, tok.data.text);
       free(tok.data.text);
       break;
     case TOKCHAR:
-      printf("TOKEN: %d\t%c\n", tok.type, tok.data.c);
+      printf("TOKEN: %u\t%c\n", tok.type, tok.data.c);
       break;
     case TOKENIZER_ERROR:
       printf("Tokenizer error\n");

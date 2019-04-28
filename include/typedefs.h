@@ -52,11 +52,11 @@ typedef uint64_t UINT;
 typedef int64_t  INT;
 typedef double   FLOAT;
 
-#define PRIVALUE PRIu64
-#define PRITYPE  PRIu64
-#define PRIUINT  PRIu64
-#define PRIINT   PRId64
-#define PRIFLOAT "f"
+#define PRI_VALUE PRIu64
+#define PRI_TYPE  PRIu64
+#define PRI_UINT  PRIu64
+#define PRI_INT   PRId64
+#define PRI_FLOAT "f"
 #endif
 
 
