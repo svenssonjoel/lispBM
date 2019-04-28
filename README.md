@@ -56,7 +56,7 @@ A lisp-like language (work in progress) implemented in C.
    and add in INCLUDE DIRECTORIES the path to the include directory.
 
 6. Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Miscellaneous
-    and add `-D_32_BIT_` and `-std=c11` to "Other flags"
+    and add `-D_32_BIT_` to "Other flags"
 
 7. Go to menu: Xilinx > Generate linker script
    and set up for enough of heap and stack. 128MB heap and 16MB stack is an ok starting point.
