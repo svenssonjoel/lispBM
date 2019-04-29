@@ -185,8 +185,8 @@ typedef struct {
 } cons_t;
 
 typedef struct {
-  UINT heap_base;          // address of heap in memory
-  UINT freelist;           // list of free cons cells.
+  UINT  heap_base;          // address of heap in memory
+  VALUE freelist;           // list of free cons cells.
 
   unsigned int heap_size;          // In number of cells.
   unsigned int heap_bytes;         // Size in bytes.

@@ -1,8 +1,4 @@
 
-
-
-// This should not be build for zynq! 
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

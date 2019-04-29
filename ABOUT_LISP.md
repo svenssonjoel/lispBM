@@ -34,7 +34,7 @@
 
 ## Sources for further information about lisp
 
-* Structure and Interpretation of Computer Programs (book: get an old edition).
+* Structure and Interpretation of Computer Programs.
 * YouTube lectures by Hal Abelson and Gerald Jay Sussman (These are awesome).
 * Build your own lisp (book online free by Daniel Holden, www.buildyourownlisp.com).
  

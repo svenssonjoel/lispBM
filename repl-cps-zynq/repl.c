@@ -113,7 +113,7 @@ int main()
 		printf("\n");
 
 		if (strncmp(str, ":info", 5) == 0) {
-			printf("############################################################\n");
+			printf("##(ZYNQ)####################################################\n");
 			printf("Used cons cells: %lu \n", heap_size - heap_num_free());
 			printf("ENV: "); simple_print(eval_cps_get_env()); printf("\n");
 			//symrepr_print();
