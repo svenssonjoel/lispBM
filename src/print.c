@@ -98,6 +98,11 @@ int simple_print(VALUE t){
     return 1;
   }
 
+  if (is_ptr(t) && ptr_type(t) == PTR_TYPE_REF) {
+    printf("_ref_");
+    return 1; 
+  }
+
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_BOXED_F) {
     VALUE uv = car(t);
     float v;

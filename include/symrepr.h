@@ -28,7 +28,9 @@
 #define SPECIAL_SYM_BOXED_I     0x0002FFFF
 #define SPECIAL_SYM_BOXED_U     0x0003FFFF
 #define SPECIAL_SYM_BOXED_F     0x0004FFFF
-#define SPECIAL_SYM_RECOVERED   0x0005FFFF
+#define SPECIAL_SYM_REF         0x0005FFFF
+#define SPECIAL_SYM_RECOVERED   0x0006FFFF
+
 
 extern int symrepr_addsym(char *, uint32_t*);
 extern int symrepr_init(void);
