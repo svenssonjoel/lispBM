@@ -165,7 +165,7 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define PTR_TYPE_BOXED_F     0x40000000u
 /*...*/ 
 #define PTR_TYPE_ARRAY       0xD0000000u
-#define PTR_TYPE_REF         0xE0000000u
+#define PTR_TYPE_REF         0xE0000000u //untyped reference to memory location
 #define PTR_TYPE_STREAM      0xF0000000u
 
 #define GC_MASK              0x00000002u

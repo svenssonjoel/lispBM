@@ -952,6 +952,85 @@ VALUE bi_fun_print_str(VALUE args) {
 }
 
 ////////////////////////////////////////////////////////////
+// References (Low level direct memory manipulation)
+
+VALUE bi_fun_ref_address(VALUE args) {
+
+  VALUE arg = car(args); // expects only one argument
+  if (type_of(arg) != PTR_TYPE_BOXED_U) return enc_sym(symrepr_terror());
+
+  UINT ref = dec_U(arg); 
+  
+  VALUE res = cons(ref, enc_sym(SPECIAL_SYM_REF));
+  if (type_of(res) == VAL_TYPE_SYMBOL)
+    return res;
+  return set_ptr_type(res,PTR_TYPE_REF);
+}
+
+// TODO: Maybe pass an "interpret as this type" argument instead of
+//       code duplication.
+VALUE bi_fun_ref_read_I(VALUE args) {
+  VALUE ref = car(args);
+  if (type_of(ref) != PTR_TYPE_REF) return (enc_sym(symrepr_terror()));
+  VALUE addr = car(ref);
+
+  INT val = *(INT*)addr;
+
+  VALUE res = cons(val, enc_sym(SPECIAL_SYM_BOXED_I));
+  if (type_of(res) == VAL_TYPE_SYMBOL) 
+    return res; // propagate error
+  return set_ptr_type(res, PTR_TYPE_BOXED_I);  
+}
+
+VALUE bi_fun_ref_read_U(VALUE args) {
+  VALUE ref = car(args);
+  if (type_of(ref) != PTR_TYPE_REF) return (enc_sym(symrepr_terror()));
+  VALUE addr = car(ref);
+
+  UINT val = *(UINT*)addr;
+
+  VALUE res = cons(val, enc_sym(SPECIAL_SYM_BOXED_U));
+  if (type_of(res) == VAL_TYPE_SYMBOL) 
+    return res; // propagate error
+  return set_ptr_type(res, PTR_TYPE_BOXED_U);  
+}
+
+VALUE bi_fun_ref_write(VALUE args) {
+
+  VALUE ref = car(args);
+  VALUE val = car(cdr(args));
+  if (type_of(ref != PTR_TYPE_REF)) return (enc_sym(symrepr_terror()));
+
+  UINT addr = car(ref);
+  
+  union {
+    UINT val_u;
+    INT val_i;
+  } un;
+  
+  
+  switch (type_of(val)) {
+  case VAL_TYPE_I:
+    un.val_i = dec_i(val);
+    break;
+  case VAL_TYPE_U:
+    un.val_u = dec_u(val);
+    break;
+  case PTR_TYPE_BOXED_U:
+    un.val_u = dec_U(val);
+    break;
+  case PTR_TYPE_BOXED_I:
+    un.val_i = dec_I(val);
+    break;
+  default:
+    return enc_sym(symrepr_terror());
+  }
+  *(UINT*)addr = un.val_u;
+  return enc_sym(symrepr_nil());
+}
+
+
+////////////////////////////////////////////////////////////
 // Interface functions
 
 bi_fptr builtin_lookup_function(UINT sym){
@@ -1007,7 +1086,10 @@ int builtin_init(void) {
   res &= builtin_add_function("array-concat", bi_fun_array_concat);
   res &= builtin_add_function("numberp", bi_fun_numberp);
   res &= builtin_add_function("to-string", bi_fun_to_string);
-  res &= builtin_add_function("print-string", bi_fun_print_str);
+  res &= builtin_add_function("ref-address", bi_fun_ref_address);
+  res &= builtin_add_function("ref-read-I", bi_fun_ref_read_I);
+  res &= builtin_add_function("ref-read-U", bi_fun_ref_read_U);
+  res &= builtin_add_function("ref-write", bi_fun_ref_write);
   return res;
 }
 
