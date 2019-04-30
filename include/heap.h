@@ -185,11 +185,12 @@ typedef struct {
 } cons_t;
 
 typedef struct {
-  UINT  heap_base;          // address of heap in memory
+  cons_t  *heap;            
+  bool  malloced;           // allocated by heap_init
   VALUE freelist;           // list of free cons cells.
 
   unsigned int heap_size;          // In number of cells.
-  unsigned int heap_bytes;         // Size in bytes.
+  unsigned int heap_bytes;         // In bytes.
 
   unsigned int num_alloc;          // Number of cells allocated.
   unsigned int num_alloc_arrays;   // Number of arrays allocated.

@@ -26,8 +26,6 @@
 #include "heap_vis.h"
 #endif
 
-static cons_t*      heap = NULL;
-static UINT         heap_base;
 static heap_state_t heap_state;
 
 static VALUE        NIL;
@@ -36,7 +34,7 @@ static VALUE        RECOVERED;
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
 cons_t* ref_cell(VALUE addr) {
-  return &heap[dec_ptr(addr)];
+  return &heap_state.heap[dec_ptr(addr)];
   //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 
@@ -74,7 +72,7 @@ static bool get_gc_mark(cons_t* cell) {
 int generate_freelist(size_t num_cells) {
   size_t i = 0;
 
-  if (!heap) return 0;
+  if (!heap_state.heap) return 0;
 
   heap_state.freelist = enc_cons_ptr(0);
 
@@ -94,17 +92,11 @@ int generate_freelist(size_t num_cells) {
   return 1;
 }
 
-int heap_init_addr(cons_t *addr, unsigned int num_cells) {
-
-  NIL = enc_sym(symrepr_nil());
-  RECOVERED = enc_sym(SPECIAL_SYM_RECOVERED);
-
-  heap_base = (UINT)addr;
-
-  // Initialize heap statistics
-  heap_state.heap_base    = heap_base;
+static void heap_init_state(cons_t *addr, unsigned int num_cells, bool malloced) {
+  heap_state.heap         = addr;
   heap_state.heap_bytes   = (unsigned int)(num_cells * sizeof(cons_t));
   heap_state.heap_size    = num_cells;
+  heap_state.malloced = malloced;
 
   heap_state.num_alloc           = 0;
   heap_state.num_alloc_arrays    = 0;
@@ -112,22 +104,34 @@ int heap_init_addr(cons_t *addr, unsigned int num_cells) {
   heap_state.gc_marked           = 0;
   heap_state.gc_recovered        = 0;
   heap_state.gc_recovered_arrays = 0;
+}
 
+int heap_init_addr(cons_t *addr, unsigned int num_cells) {
+
+  NIL = enc_sym(symrepr_nil());
+  RECOVERED = enc_sym(SPECIAL_SYM_RECOVERED);
+
+  heap_init_state(addr, num_cells, false);
+  
   return generate_freelist(num_cells);  
 }
 
 int heap_init(unsigned int num_cells) {
 
-  heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
+  NIL = enc_sym(symrepr_nil());
+  RECOVERED = enc_sym(SPECIAL_SYM_RECOVERED);
+
+  cons_t *heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
 
   if (!heap) return 0;
+  heap_init_state(heap, num_cells, true);
 
-  return heap_init_addr(heap, num_cells);
+  return generate_freelist(num_cells); 
 }
   
 void heap_del(void) {
-  if (heap)
-    free(heap);
+  if (heap_state.heap && heap_state.malloced)
+    free(heap_state.heap);
 }
 
 unsigned int heap_num_free(void) {
@@ -200,7 +204,8 @@ unsigned int heap_size_bytes(void) {
 }
 
 void heap_get_state(heap_state_t *res) {
-  res->heap_base           = heap_state.heap_base;
+  res->heap                = heap_state.heap;
+  res->malloced            = heap_state.malloced;
   res->freelist            = heap_state.freelist;
   res->heap_size           = heap_state.heap_size;
   res->heap_bytes          = heap_state.heap_bytes;
@@ -323,7 +328,7 @@ int gc_mark_aux(UINT *aux_data, unsigned int aux_size) {
 int gc_sweep_phase(void) {
 
   unsigned int i = 0;
-  cons_t *heap = (cons_t *)heap_base;
+  cons_t *heap = (cons_t *)heap_state.heap;
 
   for (i = 0; i < heap_state.heap_size; i ++) {
     if ( !get_gc_mark(&heap[i])){
