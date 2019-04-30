@@ -19,7 +19,8 @@
 #define PRINT_H_
 
 #include <stdint.h>
+#include "typedefs.h"
 
-int simple_print(uint32_t t);
-
+int simple_print(VALUE v);
+int simple_snprint(char *buf, int n, VALUE v);
 #endif
