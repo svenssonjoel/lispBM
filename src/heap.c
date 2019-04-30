@@ -94,18 +94,12 @@ int generate_freelist(size_t num_cells) {
   return 1;
 }
 
-int heap_init(unsigned int num_cells) {
+int heap_init_addr(cons_t *addr, unsigned int num_cells) {
 
-  // retrieve nil symbol value f
   NIL = enc_sym(symrepr_nil());
   RECOVERED = enc_sym(SPECIAL_SYM_RECOVERED);
-  
-  // Allocate heap
-  heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
 
-  if (!heap) return 0;
-
-  heap_base = (UINT)heap;
+  heap_base = (UINT)addr;
 
   // Initialize heap statistics
   heap_state.heap_base    = heap_base;
@@ -119,9 +113,18 @@ int heap_init(unsigned int num_cells) {
   heap_state.gc_recovered        = 0;
   heap_state.gc_recovered_arrays = 0;
 
-  return generate_freelist(num_cells);
+  return generate_freelist(num_cells);  
 }
 
+int heap_init(unsigned int num_cells) {
+
+  heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
+
+  if (!heap) return 0;
+
+  return heap_init_addr(heap, num_cells);
+}
+  
 void heap_del(void) {
   if (heap)
     free(heap);

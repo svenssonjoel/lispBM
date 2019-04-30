@@ -212,6 +212,7 @@ typedef struct {
   } data;                   // Array data storage
 } array_t;
 
+extern int heap_init_addr(cons_t *addr, unsigned int num_cells);
 extern int heap_init(unsigned int num_cells);
 extern void heap_del(void);
 extern unsigned int heap_num_free(void);
@@ -241,10 +242,6 @@ extern int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, UIN
 // Array functionality
 extern int heap_allocate_array(VALUE *res, unsigned int size, TYPE type);
 
-
-
-////////////////////////////////////////////////////////////
-// INLINE FUNCTIONS
 static inline TYPE val_type(VALUE x) {
   return (x & VAL_TYPE_MASK);
 }
