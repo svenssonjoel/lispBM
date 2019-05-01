@@ -45,8 +45,8 @@ int simple_print_env(VALUE env) {
   while (is_ptr(curr) && ptr_type(curr) == PTR_TYPE_CONS) {
     VALUE head = car(curr);
     if (is_ptr(head)) {
-      a = car(car(head));
-      b = cdr(car(head));
+      a = car(head);
+      b = cdr(head);
       printf("(");
       simple_print(a); printf(" . ");
       if (is_closure(b))
@@ -163,40 +163,87 @@ int simple_print(VALUE t){
 }
 
 
+int simple_snprint_env(char *buf, int len, VALUE env) {
+  VALUE curr = env;
+
+  VALUE a;
+  VALUE b;
+  int acc = 0;
+  int n = 0;
+  
+  n = snprintf(buf, len, "(");
+  if (n == 0) return 0;
+  acc += n;
+  while (is_ptr(curr) && ptr_type(curr) == PTR_TYPE_CONS) {
+    VALUE head = car(curr);
+    if (is_ptr(head)) {
+      a = car(head);
+      b = cdr(head);
+      
+      n = snprintf(buf+acc, len-acc, "(");
+      if (n == 0) return acc;
+      acc += n;
+      
+      n = simple_snprint(buf+acc,len-acc, a);
+      if (n == 0) return acc;
+      acc += n; 
+
+      n = snprintf(buf+acc, len-acc, " . ");
+      if (n == 0) return acc;
+      acc += n;
+      
+      if (is_closure(b)) { 
+	n = snprintf(buf+acc, len-acc, "_clo_");
+	if (n == 0) return acc;
+	acc += n;
+      }
+      else {
+	n = simple_snprint(buf+acc, len-acc, b);
+	if (n == 0) return acc;
+	acc+=n;
+      }
+      n = snprintf(buf+acc,len-acc, ") ");
+      if (n == 0) return acc;
+      acc+=n;
+    }
+    curr = cdr(curr);
+  }
+  n = snprintf(buf+acc,len-acc,")");
+  acc += n; 
+  return acc;
+}
 
 
 
-int simple_snprint_lambda(char *buf, int len, VALUE t) {
+int simple_snprint_closure(char *buf, int len, VALUE t) {
 
-  VALUE lam  = car(t);
+  VALUE clo  = car(t);
   VALUE vars = car(cdr(t));
   VALUE exp  = car(cdr(cdr(t)));
   VALUE env  = car(cdr(cdr(cdr(t))));
 
-  int n = 0;
-  int acc = 0;
-  *buf++ = '('; len--; acc ++;
+  int n0, n1, n2, n3, n4, n5, n6, n7;
 
-  n = simple_snprint(buf,len,lam);
-  len -= n; buf += n; acc += n;
-  *buf++ = ' '; len --; acc ++;
+  n0 = snprintf(buf, len, "(");
+  if (n0 == 0) return 0;
+  n1 = simple_snprint(buf+=n0,len-=n0,clo);
+  if (n1 == 0) return n0;
+  n2 = snprintf(buf+=n1, len-=n1, " ");
+  if (n2 == 0) return n0+n1;
+  n3 = simple_snprint(buf+=n2, len-=n2, vars);
+  if (n3 == 0) return n0+n1+n2;
+  n4 = snprintf(buf+=n3,len-=n3, " ");
+  if (n4 == 0) return n0+n1+n2+n3;
+  n5 = simple_snprint(buf+=n4, len-=n4, exp);
+  if (n5 == 0) return n0+n1+n2+n3+n4;
+  n6 = snprintf(buf+=n5,len-=n5, " ");
+  if (n6 == 0) return n0+n1+n2+n3+n4+n5;
+  n7 = simple_snprint_env(buf+=n6, len-=n6, env);
+  if (n7 == 0) return n0+n1+n2+n3+n4+n5+n6;
 
-  n = simple_snprint(buf, len, vars);
-  len -= n; buf += n; acc += n;
-  *buf++ = ' '; len --; acc ++;
-
-  n = simple_snprint(buf, len, exp);
-  len -= n; buf += n; acc += n;
-  *buf++ = ' '; len --; acc ++;
-
-  n = simple_snprint(buf, len, env);
-  acc += n;
-
-  return acc;
+  return n0+n1+n2+n3+n4+n5+n6+n7;
 }
 
-// TODO: This does not really work, maximum length is not honored (well).
-//       Do over!
 int simple_snprint(char *buf, int len, VALUE t) {
   char *str_ptr;
   int n;
@@ -212,20 +259,20 @@ int simple_snprint(char *buf, int len, VALUE t) {
   case PTR_TYPE_CONS:{
     VALUE car_val = car(t);
 
-    if (dec_sym(car_val) == symrepr_lambda()) {
-      n = simple_snprint_lambda(p, len, t);
+    if (dec_sym(car_val) == symrepr_closure()) {
+      n = simple_snprint_closure(p, len, t);
       return n;
     } else {
       int n0, n1, n2, n3, n4;
       n0 = snprintf(p, len, "(");
       if (n0 == 0) return 0;
-      n1 = simple_snprint(p + n0, len-n0, car(t));
+      n1 = simple_snprint(p += n0, len-n0, car(t));
       if (n1 == 0) return n0; 
-      n2 = snprintf(p+n0+n1, len-n0-n1, " ");
+      n2 = snprintf(p+=n1, len-n0-n1, " ");
       if (n2 == 0) return n0+n1; 
-      n3 = simple_snprint(p+n0+n1+n2, len-n0-n1-n2, cdr(t));
+      n3 = simple_snprint(p+=n2, len-n0-n1-n2, cdr(t));
       if (n3 == 0) return n0+n1+n2;
-      n4 = snprintf(p+n0+n1+n2+n3, len-n0-n1-n2-n3, ")");
+      n4 = snprintf(p+=n3, len-n0-n1-n2-n3, ")");
       return n0+n1+n2+n3+n4;
     }
     break;
