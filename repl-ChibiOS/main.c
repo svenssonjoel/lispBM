@@ -158,7 +158,7 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
     if (strncmp(str, ":info", 5) == 0) {
       chprintf(chp,"##(ChibiOS)#################################################\n\r");
       chprintf(chp,"Used cons cells: %lu \n\r", heap_size - heap_num_free());
-      chprintf(chp,"ENV: "); simple_snprint(outbuf,1024, eval_cps_get_env()); chprintf(chp, "%s \n\r", outbuf);
+      chprintf(chp,"ENV: "); simple_snprint(outbuf,1023, eval_cps_get_env()); chprintf(chp, "%s \n\r", outbuf);
       //symrepr_print();
       //heap_perform_gc(eval_cps_get_env());
       heap_get_state(&heap_state);
@@ -180,7 +180,7 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
       if (dec_sym(t) == symrepr_eerror()) {
 	chprintf(chp,"Error\n");
       } else {
-	chprintf(chp,"> "); simple_snprint(outbuf, 1024, t); chprintf(chp,"%s \n\r", outbuf);
+	chprintf(chp,"> "); simple_snprint(outbuf, 1023, t); chprintf(chp,"%s \n\r", outbuf);
       }
     }
   }
