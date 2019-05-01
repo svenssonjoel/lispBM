@@ -100,7 +100,7 @@ int simple_print(VALUE t){
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_REF) {
     printf("_ref_");
-    return 1; 
+    return 1;
   }
 
   if (is_ptr(t) && ptr_type(t) == PTR_TYPE_BOXED_F) {
@@ -176,109 +176,106 @@ int simple_snprint_lambda(char *buf, int len, VALUE t) {
   int n = 0;
   int acc = 0;
   *buf++ = '('; len--; acc ++;
-  
+
   n = simple_snprint(buf,len,lam);
   len -= n; buf += n; acc += n;
   *buf++ = ' '; len --; acc ++;
 
-  n = simple_snprint(buf, len, vars); 
+  n = simple_snprint(buf, len, vars);
   len -= n; buf += n; acc += n;
   *buf++ = ' '; len --; acc ++;
 
-  n = simple_snprint(buf, len, exp); 
+  n = simple_snprint(buf, len, exp);
   len -= n; buf += n; acc += n;
   *buf++ = ' '; len --; acc ++;
 
-  n = simple_snprint(buf, len, env); 
+  n = simple_snprint(buf, len, env);
   acc += n;
 
   return acc;
 }
- 
 
+// TODO: This does not really work, maximum length is not honored (well).
+//       Do over!
 int simple_snprint(char *buf, int len, VALUE t) {
   char *str_ptr;
   int n;
   int m;
-  
-  if (is_ptr(t)) {
-    
-    switch(ptr_type(t)){
-      
-    case PTR_TYPE_CONS:{
-      VALUE car_val = car(t);
-      
-      if (dec_sym(car_val) == symrepr_lambda()) {
-	n = simple_snprint_lambda(buf, len, t);
-	return n; 
-      } else if ((t & PTR_TYPE_MASK) == PTR_TYPE_CONS) {
-	*buf++ = '(';
-	n = simple_snprint(buf, len-1, car(t));
-	*buf += n;
-	*buf++ = ' ';
-	m = simple_snprint(buf, len-n-2, cdr(t));
-	buf += m;
-	*buf++ = ')';
-	return n+m+3;
-      }
-      break;
-    }
-    case PTR_TYPE_REF:
-      n = snprintf(buf, len, "_ref_");
-      return n; 
-    case PTR_TYPE_BOXED_F: {
-      VALUE uv = car(t);
-      float v;
-      memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
-      n = snprintf(buf, len, "{%"PRI_FLOAT"}", v);
+
+  char *p = buf;
+
+  switch(type_of(t)){
+
+  case PTR_TYPE_CONS:{
+    VALUE car_val = car(t);
+
+    if (dec_sym(car_val) == symrepr_lambda()) {
+      n = simple_snprint_lambda(p, len, t);
       return n;
+    } else {
+      *p = '('; p++;
+      n  = simple_snprint(p, len-1, car(t));
+      p += n;
+      *p = ' '; p++;
+      m  = simple_snprint(p, len-n-2, cdr(t));
+      p  += m;
+      *p = ')'; p++;
+      return n+m+3;
     }
-    case PTR_TYPE_BOXED_U: {
-      VALUE v = car(t);
-      n = snprintf(buf, len, "{%"PRI_UINT"}", v);
-      return n;
-    }
-    case PTR_TYPE_BOXED_I: { 
-      int32_t v = (int32_t)car(t);
-      n =  snprintf(buf, len, "{%"PRI_INT"}", v);
-      return n;
-    }
-    case PTR_TYPE_ARRAY: {
-      array_t *array = (array_t *)car(t);
-      switch (array->elt_type){
-      case VAL_TYPE_CHAR:
-	n = snprintf(buf, len, "\"%s\"", array->data.c);
-	return n;
-      default:
-	n = snprintf(buf, len, "Array type not supported\n");
-	return n;
-      }
-    }
-    }
-  } else { 
-    switch (type_of(t)) {
-    case VAL_TYPE_SYMBOL:
-      str_ptr = symrepr_lookup_name(dec_sym(t));
-      if (str_ptr == NULL) {
-	n = snprintf(buf, len, "Error: Symbol not in table %"PRI_UINT"\n", dec_sym(t));
-	return n;
-      } else {
-	n = snprintf(buf, len, "%s", str_ptr);
-	return n;
-      }
-    case VAL_TYPE_I:
-      n = snprintf(buf, len, "%"PRI_INT"", dec_i(t));
-      return n;
-    case VAL_TYPE_U:
-      n = snprintf(buf, len, "%"PRI_UINT"", dec_u(t));
-      return n;
-    case VAL_TYPE_CHAR: // dont yet have syntax for Char and String
-      n = snprintf(buf, len, "\\#%c", dec_char(t));
+    break;
+  }
+  case PTR_TYPE_REF:
+    n = snprintf(p, len, "_ref_");
+    return n;
+  case PTR_TYPE_BOXED_F: {
+    VALUE uv = car(t);
+    float v;
+    memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
+    n = snprintf(p, len, "{%"PRI_FLOAT"}", v);
+    return n;
+  }
+  case PTR_TYPE_BOXED_U: {
+    VALUE v = car(t);
+    n = snprintf(p, len, "{%"PRI_UINT"}", v);
+    return n;
+  }
+  case PTR_TYPE_BOXED_I: {
+    int32_t v = (int32_t)car(t);
+    n =  snprintf(p, len, "{%"PRI_INT"}", v);
+    return n;
+  }
+  case PTR_TYPE_ARRAY: {
+    array_t *array = (array_t *)car(t);
+    switch (array->elt_type){
+    case VAL_TYPE_CHAR:
+      n = snprintf(p, len, "\"%s\"", array->data.c);
       return n;
     default:
-      n = snprintf(buf,len,"simple_print: Error\n");
+      n = snprintf(p, len, "Array type not supported\n");
       return n;
     }
   }
-  return 0; // not ok to end up here
+  case VAL_TYPE_SYMBOL:
+    str_ptr = symrepr_lookup_name(dec_sym(t));
+    if (str_ptr == NULL) {
+      n = snprintf(p, len, "Error: Symbol not in table %"PRI_UINT"", dec_sym(t));
+      return n;
+    } else {
+      n = snprintf(p, len, "%s", str_ptr);
+      return n;
+    }
+  case VAL_TYPE_I:
+    n = snprintf(p, len, "%"PRI_INT"", dec_i(t));
+    return n;
+  case VAL_TYPE_U:
+    n = snprintf(p, len, "%"PRI_UINT"", dec_u(t));
+    return n;
+  case VAL_TYPE_CHAR:
+    n = snprintf(p, len, "\\#%c", dec_char(t));
+    return n;
+  default:
+    break;
+  }
+  n = snprintf(p,len,"simple_print: Error\n");
+  return n;
 }

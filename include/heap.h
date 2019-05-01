@@ -218,7 +218,7 @@ extern int heap_init(unsigned int num_cells);
 extern void heap_del(void);
 extern unsigned int heap_num_free(void);
 extern unsigned int heap_num_allocated(void);
-extern unsigned int  heap_size();
+extern unsigned int heap_size(void);
 extern VALUE heap_allocate_cell(TYPE type);
 extern unsigned int heap_size_bytes(void);
 

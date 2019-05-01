@@ -1086,6 +1086,7 @@ int builtin_init(void) {
   res &= builtin_add_function("array-concat", bi_fun_array_concat);
   res &= builtin_add_function("numberp", bi_fun_numberp);
   res &= builtin_add_function("to-string", bi_fun_to_string);
+  res &= builtin_add_function("print-string", bi_fun_print_str);
   res &= builtin_add_function("ref-address", bi_fun_ref_address);
   res &= builtin_add_function("ref-read-I", bi_fun_ref_read_I);
   res &= builtin_add_function("ref-read-U", bi_fun_ref_read_U);
@@ -1101,6 +1102,7 @@ void builtin_del(void) {
     curr = curr->next;
     free(t);
   }
+  function_list = NULL;
 }
 
 VALUE built_in_gen_env(void) {

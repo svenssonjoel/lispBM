@@ -1,3 +1,23 @@
+
+/*
+    Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// File also contains code distributed as part of Chibios under license below.
+
 /*
     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
 
@@ -17,6 +37,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #include "ch.h"
 #include "hal.h"
@@ -41,7 +63,7 @@
 #define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
 
 unsigned char inbyte(BaseSequentialStream *chp) {
-  unsigned char c; 
+  unsigned char c;
   while (streamRead(chp, &c, 1) == 0);
   return c;
 }
@@ -82,9 +104,12 @@ int inputline(BaseSequentialStream *chp, char *buffer, int size) {
   buffer[size - 1] = 0;
   return 0; // Filled up buffer without reading a linebreak
 }
-      
+
 /* Can be measured using dd if=/dev/xxxx of=/dev/null bs=512 count=10000.*/
 static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
+
+  (void) argc;
+  (void) argv;
 
   size_t len = 1024;
   char *str = malloc(1024);
@@ -113,7 +138,7 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
     chprintf(chp, "Built in functions initialized.\n\r");
   else {
     chprintf(chp, "Error initializing built in functions.\n\r");
-    return 0;
+    return;
   }
   res = eval_cps_init();
   if (res)
@@ -126,13 +151,14 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
   while (1) {
     chprintf(chp,"# ");
     memset(str,0,len);
+    memset(outbuf,0, 1024);
     inputline(chp,str, len);
     chprintf(chp,"\n\r");
 
     if (strncmp(str, ":info", 5) == 0) {
       chprintf(chp,"##(ChibiOS)#################################################\n\r");
       chprintf(chp,"Used cons cells: %lu \n\r", heap_size - heap_num_free());
-      chprintf(chp,"ENV: "); simple_print(eval_cps_get_env()); printf("\n\r");
+      chprintf(chp,"ENV: "); simple_snprint(outbuf,1024, eval_cps_get_env()); chprintf(chp, "%s \n\r", outbuf);
       //symrepr_print();
       //heap_perform_gc(eval_cps_get_env());
       heap_get_state(&heap_state);
@@ -141,6 +167,9 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
       chprintf(chp,"Marked: %lu\n\r", heap_state.gc_marked);
       chprintf(chp,"Free cons cells: %lu\n\r", heap_num_free());
       chprintf(chp,"############################################################\n\r");
+      memset(outbuf,0, 1024);
+    } else if (strncmp(str, ":quit", 5) == 0) {
+      break;
     } else {
 
       VALUE t;
@@ -158,8 +187,7 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   symrepr_del();
   heap_del();
-
-  
+  builtin_del();
 }
 
 static const ShellCommand commands[] = {

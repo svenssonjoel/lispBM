@@ -195,7 +195,7 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
 unsigned int heap_num_allocated(void) {
   return heap_state.num_alloc;
 }
-unsigned int heap_size() {
+unsigned int heap_size(void) {
   return heap_state.heap_size;
 }
 
