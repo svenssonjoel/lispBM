@@ -30,7 +30,7 @@ A lisp-like language (work in progress) implemented in C.
 8. Code improvements with simplicity, clarity  and readability in mind.
 9. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
 10. (DONE) Port to STM32f4 - 128K ram platform (will need big changes). (surely there will be some more bugs)
-11. Add STM32f4 example code (repl implementation)
+11. (DONE) Add STM32f4 example code (repl implementation)
 11. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
 12. Port to X86_64 linux. (going 64bit involves some big changes) 
 13. Port to Raspberry pi 64Bit Bare-metal.
@@ -50,7 +50,7 @@ A lisp-like language (work in progress) implemented in C.
 3. Create a standalone app in Vivado SDK (helloworld template is a good starting point) 
 
 4. Go to menu: Project > Properties > Tool settings > ARM v7 gcc linker > Miscellaneous
-   and add in OTHER OBJECTS the path to library.a (build/zynq/library.a)
+   and add in OTHER OBJECTS the path to liblispbm.a (build/zynq/liblispbm.a)
 
 5. Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Directories
    and add in INCLUDE DIRECTORIES the path to the include directory.

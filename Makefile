@@ -63,7 +63,7 @@ ifdef HEAP_VIS
 endif
 
 
-LIB = $(BUILD_DIR)/library.a
+LIB = $(BUILD_DIR)/liblispbm.a
 
 all: $(OBJECTS) $(LIB)
 

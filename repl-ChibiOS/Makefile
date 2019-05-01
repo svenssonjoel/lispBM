@@ -179,7 +179,7 @@ UINCDIR = ../include
 ULIBDIR = ../build/stm32f4
 
 # List all user libraries here
-ULIBS = -lrary
+ULIBS = -llispbm
 
 #
 # End of user section

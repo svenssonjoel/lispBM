@@ -7,7 +7,7 @@ endif
 
 
 all: repl.c 
-	gcc $(CCFLAGS) repl.c ../build/linux-x86/library.a -o repl -I../include
+	gcc $(CCFLAGS) repl.c ../build/linux-x86/liblispbm.a -o repl -I../include
 
 
 clean:
