@@ -20,7 +20,6 @@
 #include "builtin.h"
 #include "print.h"
 #include "env.h"
-//#include "stack.h"
 
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
@@ -60,9 +59,6 @@ static VALUE curr_env;
 static VALUE eval_cps_global_env;
 
 static VALUE NIL;
-
-//stack *K; // Stack describes the current continuation.
-//stack *K_save; // Stack save area for resume after gc.
 
 VALUE K;
 VALUE K_save;
@@ -155,7 +151,6 @@ VALUE cont_function_app(VALUE args) {
     return enc_sym(symrepr_eerror());
   }
   VALUE f_res = f(args_rev);
-  //push_u32(K, f_res);
   GC_ON_FALSE(push(&K, f_res));
   return apply_continuation(&K);
 }
@@ -229,24 +224,16 @@ VALUE cont_function(VALUE fun) {
 
   VALUE head = car(fun_args);
 
-  //push_u32(K,fun);
   GC_ON_FALSE(push(&K, fun));
   if ( type_of(fun) == PTR_TYPE_CONS &&
        dec_sym(car(fun)) == symrepr_closure()) {
-    //push_u32(K, enc_u(CLOSURE_APP));
     GC_ON_FALSE(push(&K, enc_u(CLOSURE_APP)));
   } else {
-    //push_u32(K, enc_u(FUNCTION_APP));
     GC_ON_FALSE(push(&K, enc_u(FUNCTION_APP)));
   }
   // If args are a list with at least one element, process the elements
   if (type_of(fun_args) == PTR_TYPE_CONS &&
       length(fun_args) >= 1) {
-    // Check if this really makes sense.
-    //push_u32(K,env);
-    //push_u32(K,NIL);
-    //push_u32(K,cdr(fun_args));
-    //push_u32(K, enc_u(EVAL_REST));
     GC_ON_FALSE(push(&K, env));
     GC_ON_FALSE(push(&K, NIL));
     GC_ON_FALSE(push(&K, cdr(fun_args)));
@@ -255,7 +242,6 @@ VALUE cont_function(VALUE fun) {
     CONTINUE_EVAL(head,env);
   }
   // otherwise the arguments are an empty list (or something bad happened)
-  //push_u32(K, NIL);
   GC_ON_FALSE(push(&K, NIL));
   return apply_continuation(&K);
 }
@@ -507,12 +493,7 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
 #endif
-    //printf("--CURR_ENV--------------------------------------------\n");
-    //simple_print(curr_env); printf("\n");
-    //printf("--GLOB_ENV--------------------------------------------\n");
-    //simple_print(eval_cps_global_env); printf("\n");
     if (res == PERFORM_GC) {
-      //printf("<<< GC >>>\n");
       K = K_save;
 
       heap_perform_gc_extra(eval_cps_global_env, curr_env, curr_exp, orig_prg, K);
@@ -523,7 +504,6 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
     K_save = copy(K);
     if (type_of(K_save) == VAL_TYPE_SYMBOL &&
 	dec_sym(K_save) == symrepr_merror()) {
-      //printf("<<< STACK COPY INDUCED GC >>>\n");
       heap_perform_gc_extra(eval_cps_global_env, curr_env, curr_exp, orig_prg, K);
       K_save = copy(K);
       if (type_of(K_save) == VAL_TYPE_SYMBOL &&

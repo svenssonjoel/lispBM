@@ -38,6 +38,7 @@ A lisp-like language (work in progress) implemented in C.
 15. Reduce size of builtins.c and put platform specific built in functions elsewhere.
 16. Implement 'progn' facility.
 17. Add facilities for "pre-parsing" and for uploading "heap-images" to a running system.
+18. See if it is possible to explicitly free heap values that are used as temporaries when evaluating. 
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
