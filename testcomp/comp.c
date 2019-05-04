@@ -52,29 +52,45 @@ int main(int argc, char **argv) {
     printf("Error initializing built in functions.\n");
     return 0;
   }
-  
-  
+
   VALUE t;
   bytecode_t bc;
   int err;
+  VALUE result;
 
-  bytecode_create(&bc, 1000); 
-  
+  bytecode_create(&bc, 1000);
+
   printf("PARSING\n");
   t = tokpar_parse("(+ (+ 1 2) (+ 1 2))");
   printf("COMPILING: "); simple_print(car(t)); printf("\n");
   bytecode_ncompile(car(t), &bc, 1000, &err);
 
-  VALUE result = bytecode_eval(bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
+  result = bytecode_eval(bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
 
   for (unsigned int i = 0; i < bc.code_size +1; i ++) {
 
     printf("%u\n", bc.code[i]);
-
   }
 
   printf("Result: "); simple_print(result); printf("\n");
-      
+
+
+
+  printf("PARSING\n");
+  t = tokpar_parse("(lambda (x) (+ x 1))");
+  printf("COMPILING: "); simple_print(car(t)); printf("\n");
+  bytecode_ncompile(car(t), &bc, 1000, &err);
+
+  result = bytecode_eval(bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
+
+  for (unsigned int i = 0; i < bc.code_size +1; i ++) {
+
+    printf("%u\n", bc.code[i]);
+  }
+
+  printf("Result: "); simple_print(result); printf("\n");
+
+
   symrepr_del();
   heap_del();
 

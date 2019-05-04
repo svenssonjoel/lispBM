@@ -31,7 +31,7 @@
 #define COMPILE_DONE        0xFF000001
 #define COMPILE_ARG_LIST    0xFF000002
 #define COMPILE_FUNCTION    0xFF000003
-#define COMPILE_EMIT_CALL   0xFF000004 
+#define COMPILE_EMIT_CALL   0xFF000004
 
 int index_of(VALUE *constants, unsigned int num, VALUE v, unsigned int *res) {
 
@@ -41,7 +41,7 @@ int index_of(VALUE *constants, unsigned int num, VALUE v, unsigned int *res) {
       return 1;
     }
   }
-  return 0;  
+  return 0;
 }
 
 void continuation(stack *s, unsigned int *pc, unsigned char *code, VALUE *curr, bool *done) {
@@ -53,10 +53,10 @@ void continuation(stack *s, unsigned int *pc, unsigned char *code, VALUE *curr, 
   case COMPILE_DONE:
     code[*pc] = OP_DONE; *pc = *pc+1;
     *done = true;
-    break; 
+    break;
   case COMPILE_ARG_LIST: {
     VALUE rest;
-    pop_u32(s,&rest); 
+    pop_u32(s,&rest);
     if (type_of(rest) == VAL_TYPE_SYMBOL &&
 	dec_sym(rest) == symrepr_nil()) {
       continuation(s, pc, code, curr, done);
@@ -109,18 +109,18 @@ int bytecode_ncompile(VALUE v, bytecode_t *bc, int max_size, int *err_code) {
   VALUE   *consts = bc->constants;
   uint8_t *code = bc->code;
   stack *s = init_cont_stack(100);
-  push_u32(s, COMPILE_DONE); 
+  push_u32(s, COMPILE_DONE);
   bool done = false;
   VALUE curr = v;
   VALUE head;
   unsigned int n_args;
-  
+
   *err_code = COMPILER_OK;
-  
+
   while (!done) {
     switch(type_of(curr)) {
     case VAL_TYPE_SYMBOL:
-    case VAL_TYPE_U: 
+    case VAL_TYPE_U:
     case VAL_TYPE_I: {
       unsigned int ix;
       if ( index_of(consts, const_ix, curr, &ix) ){
@@ -138,12 +138,12 @@ int bytecode_ncompile(VALUE v, bytecode_t *bc, int max_size, int *err_code) {
 	code[pc++] = (uint8_t)curr;
       }
       continuation(s, &pc, code,  &curr, &done);
-    }break; 
+    }break;
     case PTR_TYPE_CONS:
       head = car(curr);
 
-      // Check for special form symbols 
-      if (type_of(head) == VAL_TYPE_SYMBOL) { 
+      // Check for special form symbols
+      if (type_of(head) == VAL_TYPE_SYMBOL) {
 	if (dec_sym(head) == symrepr_quote()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
 	  return 0;
@@ -164,13 +164,13 @@ int bytecode_ncompile(VALUE v, bytecode_t *bc, int max_size, int *err_code) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
 	  return 0;
 	}
-	  
+
       } // end if head is symbol
       // possibly function application
       n_args = length(cdr(curr));
       push_u32(s, n_args);
-      push_u32(s, head); 
-      push_u32(s, COMPILE_FUNCTION); 
+      push_u32(s, head);
+      push_u32(s, COMPILE_FUNCTION);
       push_u32(s, cdr(cdr(curr)));
       push_u32(s, COMPILE_ARG_LIST);
 
@@ -192,17 +192,17 @@ VALUE bytecode_eval(bytecode_t bc, VALUE globalenv, VALUE localenv) {
 
   stack *s = init_cont_stack(100);
 
-  unsigned int pc=0; 
-  unsigned int code_size = bc.code_size; 
-  uint8_t *code = bc.code; 
+  unsigned int pc=0;
+  unsigned int code_size = bc.code_size;
+  uint8_t *code = bc.code;
   bool running = true;
-  uint8_t ix; 
+  uint8_t ix;
   uint32_t val;
   VALUE fun = 0;
   VALUE hack = enc_sym(symrepr_nil());
   uint8_t n_args = 0;
-  bi_fptr bi_fun_ptr = NULL; 
-  
+  bi_fptr bi_fun_ptr = NULL;
+
   while(running) {
 
     switch(code[pc]) {
@@ -234,20 +234,17 @@ VALUE bytecode_eval(bytecode_t bc, VALUE globalenv, VALUE localenv) {
       } else {
 	printf("Error: function not found\n");
       }
-      
     }break;
     case OP_DONE:
       running = false;
       break;
-    case OP_RETURN: 
+    case OP_RETURN:
       break;
     default:
-      return enc_sym(symrepr_eerror()); 
+      return enc_sym(symrepr_eerror());
     }
   }
   VALUE v;
   pop_u32(s, &v);
   return v;
 }
-
-
