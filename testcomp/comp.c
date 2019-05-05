@@ -79,20 +79,23 @@ int main(int argc, char **argv) {
   printf("PARSING\n");
   t = tokpar_parse("(lambda (x) (+ x 1))");
   printf("COMPILING: "); simple_print(car(t)); printf("\n");
-  bytecode_ncompile(car(t), &bc, 1000, &err);
-
+  if (! bytecode_ncompile(car(t), &bc, 1000, &err) ) {
+    printf("FAILED TO COMPILE: %d\n", err);
+    return 0;
+  }
+  
   result = bytecode_eval(bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
 
-  for (unsigned int i = 0; i < bc.code_size +1; i ++) {
+  /* for (unsigned int i = 0; i < bc.code_size +1; i ++) { */
 
-    printf("%u\n", bc.code[i]);
-  }
+  /*   printf("%u\n", bc.code[i]); */
+  /* } */
 
-  printf("Result: "); simple_print(result); printf("\n");
+  /* printf("Result: "); simple_print(result); printf("\n"); */
 
 
   symrepr_del();
   heap_del();
 
-  return 0;
+  return 1;
 }

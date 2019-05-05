@@ -42,7 +42,6 @@ typedef struct {
 } bytecode_t;
 
 int bytecode_create(bytecode_t *bc, int size);
-
 int bytecode_ncompile(VALUE v, bytecode_t *bc, int max_size, int *err_code);
 int bytecode_snprint(char *buf, int size, bytecode_t bc);
 VALUE bytecode_eval(bytecode_t bc, VALUE globalenv, VALUE localenv);
