@@ -22,7 +22,7 @@
 
 
 
-stack* init_cont_stack(unsigned int stack_size) {
+stack* init_stack(unsigned int stack_size) {
 
   stack *s = malloc(sizeof(stack));
 

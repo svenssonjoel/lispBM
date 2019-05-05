@@ -27,7 +27,7 @@ typedef struct {
   unsigned int size;
 } stack;
 
-stack* init_cont_stack(unsigned int stack_size);
+stack* init_stack(unsigned int stack_size);
 int clear_stack(stack *s);
 int copy_stack(stack *dest, stack *src);
 int push_u32(stack *s, UINT val);
