@@ -27,6 +27,33 @@
 #include "print.h"
 #include "builtin.h"
 
+/* 
+ *  TODO: 
+ *    - Compile and Eval will work together. Eval will call compile and compile 
+ *      will call eval. Set up a callback function to access eval functionality 
+ *      from bytecode compiler. 
+ *        * Use for constant folding.
+ *    - Figure out what the actual interplay between eval and compile will be.
+ *    - Figure out how to compile qouted expressions.
+ *    - Figure out how to compile functions that return functions.
+ *        * Will all cases of this be compilable (make sense)?
+ *        * I guess variables need to be "captured" at compile time.
+ *        * But it feels like if the returned function depends on values from the 
+ *          "outer" function, It should either not be compiled or be compiled when 
+ *          the "outer" function is called.
+ *        * But dont want too many cases, so if it is easier to just forbid compilataion
+ *          of certain things then that is what I will do.   
+ *    - Figure out how to make tail-calls space efficient.
+ *    - I think (maybe) the compiler should have access to environments when compiling. 
+ *        * Would mean variables could be looked up and compiled into the bytecode. 
+ *        * However, also a bit odd if not the "program" you compile is self contained... 
+ *        * This depends, I guess, on how one uses it. Off-line or on-line...
+ *    - Optimize for space. 
+ *    - Change the interface to built-in function (perhaps).
+ *    - In order to use as off-line compiler, symbol representations need to 
+ *      always be the same (independent of platform etc). Currently this is probably not true
+ *      as symbols may get different ID's based on order of being added to the system.
+ */
 
 #define COMPILE_DONE        0xFF000001
 #define COMPILE_ARG_LIST    0xFF000002
@@ -165,7 +192,7 @@ int bytecode_ncompile(VALUE v, bytecode_t *bc, int max_size, int *err_code) {
 	  return 0;
 	}
 
-      } // end if head is symbol
+      } // end if head is special form symbol
       // possibly function application
       n_args = length(cdr(curr));
       push_u32(s, n_args);
@@ -193,7 +220,7 @@ VALUE bytecode_eval(bytecode_t bc, VALUE globalenv, VALUE localenv) {
   stack *s = init_cont_stack(100);
 
   unsigned int pc=0;
-  unsigned int code_size = bc.code_size;
+  //unsigned int code_size = bc.code_size;
   uint8_t *code = bc.code;
   bool running = true;
   uint8_t ix;
