@@ -135,7 +135,7 @@ int bytecode_ncompile(VALUE v, bytecode_t *bc, int max_size, int *err_code) {
 
   VALUE   *consts = bc->constants;
   uint8_t *code = bc->code;
-  stack *s = init_stack(100);
+  stack *s = init_stack(100,true);
   push_u32(s, COMPILE_DONE);
   bool done = false;
   VALUE curr = v;
@@ -201,7 +201,7 @@ int bytecode_ncompile(VALUE v, bytecode_t *bc, int max_size, int *err_code) {
       push_u32(s, cdr(cdr(curr)));
       push_u32(s, COMPILE_ARG_LIST);
 
-      curr = (car(cdr(curr))); //continue and compile first argument
+      curr = car(cdr(curr)); //continue and compile first argument
       break;
     default:
       *err_code = ERROR_CANNOT_COMPILE;
@@ -217,7 +217,7 @@ int bytecode_ncompile(VALUE v, bytecode_t *bc, int max_size, int *err_code) {
 
 VALUE bytecode_eval(bytecode_t bc, VALUE globalenv, VALUE localenv) {
 
-  stack *s = init_stack(100);
+  stack *s = init_stack(100,true);
 
   unsigned int pc=0;
   //unsigned int code_size = bc.code_size;

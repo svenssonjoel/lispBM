@@ -22,13 +22,14 @@
 
 
 
-stack* init_stack(unsigned int stack_size) {
+stack* init_stack(unsigned int stack_size, bool growable) {
 
   stack *s = malloc(sizeof(stack));
 
   s->data = malloc(sizeof(UINT) * stack_size);
   s->sp = 0;
   s->size = stack_size;
+  s->growable = growable;
 
   return s;
 }
@@ -42,6 +43,8 @@ int clear_stack(stack *s) {
 
 int grow_stack(stack *s) {
 
+  if (!s->growable) return 0;
+  
   unsigned int new_size = s->size * 2;
   UINT *data    = malloc(sizeof(UINT) * new_size);
 
@@ -55,10 +58,13 @@ int grow_stack(stack *s) {
 }
 
 int copy_stack(stack *dest, stack *src) {
-  while (dest->size < src->sp) {
-    grow_stack(dest);
-  }
 
+  if (dest->growable) {
+    while (dest->size < src->sp) {
+      if (!grow_stack(dest)) return 0;
+    }
+  }
+  if (dest->size < src->size) return 0;
   dest->sp = src->sp;
   memcpy(dest->data, src->data, src->sp * sizeof(UINT));
 

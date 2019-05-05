@@ -18,6 +18,7 @@
 */
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "typedefs.h"
 
@@ -25,9 +26,10 @@ typedef struct {
   UINT* data;
   unsigned int sp;
   unsigned int size;
+  bool growable;
 } stack;
 
-stack* init_stack(unsigned int stack_size);
+stack* init_stack(unsigned int stack_size, bool growable);
 int clear_stack(stack *s);
 int copy_stack(stack *dest, stack *src);
 int push_u32(stack *s, UINT val);
