@@ -1,4 +1,3 @@
-
 /*
     Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
 
@@ -105,7 +104,6 @@ int inputline(BaseSequentialStream *chp, char *buffer, int size) {
   return 0; // Filled up buffer without reading a linebreak
 }
 
-/* Can be measured using dd if=/dev/xxxx of=/dev/null bs=512 count=10000.*/
 static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   (void) argc;
@@ -118,7 +116,7 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   heap_state_t heap_state;
 
-  res = symrepr_init();
+  res = symrepr_init(true);
   if (res)
     chprintf(chp,"Symrepr initialized.\n\r");
   else {
@@ -140,7 +138,7 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
     chprintf(chp, "Error initializing built in functions.\n\r");
     return;
   }
-  res = eval_cps_init();
+  res = eval_cps_init(true);
   if (res)
     chprintf(chp,"Evaluator initialized.\n\r");
   else {
@@ -159,8 +157,6 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
       chprintf(chp,"##(ChibiOS)#################################################\n\r");
       chprintf(chp,"Used cons cells: %lu \n\r", heap_size - heap_num_free());
       chprintf(chp,"ENV: "); simple_snprint(outbuf,1023, eval_cps_get_env()); chprintf(chp, "%s \n\r", outbuf);
-      //symrepr_print();
-      //heap_perform_gc(eval_cps_get_env());
       heap_get_state(&heap_state);
       chprintf(chp,"GC counter: %lu\n\r", heap_state.gc_num);
       chprintf(chp,"Recovered: %lu\n\r", heap_state.gc_recovered);

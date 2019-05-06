@@ -28,7 +28,7 @@
 
 int main(int argc, char **argv) {
   int res = 0;
-  res = symrepr_init();
+  res = symrepr_init(false);
   if (res)
     printf("Symrepr initialized.\n");
   else {
