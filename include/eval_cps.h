@@ -18,6 +18,7 @@
 #define EVAL_CPS_H_
 
 extern uint32_t eval_cps_get_env(void);
-extern int eval_cps_init(void);
+extern int eval_cps_init(bool grow_continuation_stack);
+extern void eval_cps_del(void);
 extern uint32_t eval_cps_program(uint32_t lisp);
 #endif

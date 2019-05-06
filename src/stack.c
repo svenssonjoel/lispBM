@@ -22,7 +22,7 @@
 
 
 
-stack* init_stack(unsigned int stack_size, bool growable) {
+stack* stack_init(unsigned int stack_size, bool growable) {
 
   stack *s = malloc(sizeof(stack));
 
@@ -34,14 +34,20 @@ stack* init_stack(unsigned int stack_size, bool growable) {
   return s;
 }
 
+void stack_del(stack *s) {
+  if (s) {
+    free(s->data);
+    free(s);
+  }
+}
 
-int clear_stack(stack *s) {
+int stack_clear(stack *s) {
   s->sp = 0;
   return 1;
 }
 
 
-int grow_stack(stack *s) {
+int stack_grow(stack *s) {
 
   if (!s->growable) return 0;
   
@@ -57,11 +63,11 @@ int grow_stack(stack *s) {
   return 1;
 }
 
-int copy_stack(stack *dest, stack *src) {
+int stack_copy(stack *dest, stack *src) {
 
   if (dest->growable) {
     while (dest->size < src->sp) {
-      if (!grow_stack(dest)) return 0;
+      if (!stack_grow(dest)) return 0;
     }
   }
   if (dest->size < src->size) return 0;
@@ -77,7 +83,7 @@ int push_u32(stack *s, UINT val) {
   s->data[s->sp] = val;
   s->sp++;
   if ( s->sp >= s->size) {
-    res = grow_stack(s);
+    res = stack_grow(s);
   }
   return res;
 }
@@ -88,7 +94,7 @@ int push_k(stack *s, VALUE (*k)(VALUE)) {
   s->data[s->sp] = (UINT)k;
   s->sp++;
   if ( s->sp >= s->size) {
-    res = grow_stack(s);
+    res = stack_grow(s);
   }
   return res;
 }

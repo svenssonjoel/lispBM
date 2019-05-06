@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 
   heap_state_t heap_state;
 
-  res = symrepr_init();
+  res = symrepr_init(false);
   if (res)
     printf("Symrepr initialized.\n");
   else {

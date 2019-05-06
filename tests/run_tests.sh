@@ -3,7 +3,7 @@
 echo "BUILDING"
 
 make clean
-make 
+make
 
 echo "PERFORMING TESTS:"
 
@@ -14,14 +14,14 @@ result=0
 
 for exe in *.exe; do
 
-    #if [ "$exe" = "test_gensym.exe" ]; then
-    #	continue
-    #fi
-    
+    if [ "$exe" = "test_gensym.exe" ]; then
+    	continue
+    fi
+
     ./$exe
 
     result=$?
-    
+
     echo "------------------------------------------------------------"
     if [ $result -eq 1 ]
     then
@@ -36,10 +36,15 @@ done
 
 
 for lisp in *.lisp; do
+
+    if [ "$lisp" = "test_tailrec_0.lisp" ]; then
+	continue
+    fi
+
     ./test_lisp_code $lisp
 
     result=$?
-    
+
     echo "------------------------------------------------------------"
     if [ $result -eq 1 ]
     then
@@ -50,13 +55,13 @@ for lisp in *.lisp; do
 	echo $lisp FAILED
     fi
     echo "------------------------------------------------------------"
-done    
+done
 
 for lisp in *.lisp; do
     ./test_lisp_code_cps $lisp
 
     result=$?
-    
+
     echo "------------------------------------------------------------"
     if [ $result -eq 1 ]
     then
@@ -67,7 +72,7 @@ for lisp in *.lisp; do
 	echo $lisp FAILED
     fi
     echo "------------------------------------------------------------"
-done    
+done
 
 for lisp in *.lisp; do
 
@@ -79,10 +84,18 @@ for lisp in *.lisp; do
 	continue
     fi
 
+    if [ "$lisp" = "test_tailrec_0.lisp" ]; then
+	continue
+    fi
+
+    if [ "$lisp" = "test_tailrec_1.lisp" ]; then
+	continue
+    fi
+
     ./test_lisp_code_mini_heap $lisp
-    
+
     result=$?
-    
+
     echo "------------------------------------------------------------"
     if [ $result -eq 1 ]
     then
@@ -93,14 +106,15 @@ for lisp in *.lisp; do
 	echo $lisp FAILED
     fi
     echo "------------------------------------------------------------"
-done    
+done
 
 
 for lisp in *.lisp; do
+
     ./test_lisp_code_cps_mini_heap $lisp
 
     result=$?
-    
+
     echo "------------------------------------------------------------"
     if [ $result -eq 1 ]
     then
@@ -111,7 +125,7 @@ for lisp in *.lisp; do
 	echo $lisp FAILED
     fi
     echo "------------------------------------------------------------"
-done    
+done
 
 echo Tests passed: $success_count
 echo Tests failed: $fail_count

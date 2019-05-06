@@ -29,9 +29,10 @@ typedef struct {
   bool growable;
 } stack;
 
-stack* init_stack(unsigned int stack_size, bool growable);
-int clear_stack(stack *s);
-int copy_stack(stack *dest, stack *src);
+stack* stack_init(unsigned int stack_size, bool growable);
+void stack_del(stack *s);
+int stack_clear(stack *s);
+int stack_copy(stack *dest, stack *src);
 int push_u32(stack *s, UINT val);
 int push_k(stack *s, VALUE (*k)(VALUE));
 int pop_u32(stack *s, UINT *val);

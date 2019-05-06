@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 
   heap_state_t heap_state;
 
-  res = symrepr_init();
+  res = symrepr_init(true);
   if (res) 
     printf("Symrepr initialized.\n");
   else {
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = eval_cps_init();
+  res = eval_cps_init(true);
   if (res)
     printf("Evaluator initialized.\n");
   else {
