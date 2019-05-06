@@ -1,6 +1,6 @@
 # lispBM [![Build Status](https://travis-ci.org/svenssonjoel/lispBM.svg?branch=master)](https://travis-ci.org/svenssonjoel/lispBM)
 
-A lisp-like language (work in progress) implemented in C.
+A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 
 ## Purpose
 1. Have fun.
@@ -20,7 +20,7 @@ A lisp-like language (work in progress) implemented in C.
 
 ## TODOs
 0. Explicit stack in eval.c to help GC do its job. 
-1. Write some tests that stresses the Garbage collector.
+1. (DONE) Write some tests that stresses the Garbage collector.
 2. (DONE) Implement some "reference to X type", for uint32, int32. 
 3. Write a small library of useful hofs. 
 4. Document code.
@@ -33,13 +33,12 @@ A lisp-like language (work in progress) implemented in C.
 11. (DONE) Add STM32f4 example code (repl implementation)
 11. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
 12. Port to Raspberry pi 32Bit Bare-metal.
-13. Port to X86_64 linux. (going 64bit involves some big changes) 
-14. Port to Raspberry pi 64Bit Bare-metal.
-15. Reduce size of builtins.c and put platform specific built in functions elsewhere.
-16. Implement 'progn' facility.
-17. Add facilities for "pre-parsing" and for uploading "heap-images" to a running system.
-18. See if it is possible to explicitly free heap values that are used as temporaries when evaluating. 
-19. Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
+13. Reduce size of builtins.c and put platform specific built in functions elsewhere.
+14. Implement 'progn' facility.
+15. Add facilities for "pre-parsing" and for uploading "heap-images" to a running system.
+16. See if it is possible to explicitly free heap values that are used as temporaries when evaluating. 
+17. Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
+18. Test on all platforms after big changes to eval_cps.c
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
