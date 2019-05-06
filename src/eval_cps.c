@@ -102,8 +102,6 @@ VALUE apply_continuation(stack *K, VALUE arg, VALUE *curr_exp, VALUE* curr_env, 
 
   *app_cont = false;
 
-  // environment gets mixed up somewhere.
-
   switch(dec_u(k)) {
   case DONE:
     *done = true;
