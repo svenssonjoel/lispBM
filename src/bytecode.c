@@ -26,12 +26,12 @@
 #include "heap.h"
 #include "print.h"
 #include "builtin.h"
+#include "eval.h"
 
-/* 
- *  TODO: 
- *    - Compile and Eval will work together. Eval will call compile and compile 
- *      will call eval. Set up a callback function to access eval functionality 
- *      from bytecode compiler. 
+/*
+ *  TODO:
+ *    - Compile and Eval will work together. Eval will call compile and compile
+ *      will call eval.
  *        * Use for constant folding.
  *    - Figure out what the actual interplay between eval and compile will be.
  *    - Figure out how to compile qouted expressions.
@@ -42,23 +42,23 @@
  *          "outer" function, It should either not be compiled or be compiled when 
  *          the "outer" function is called.
  *        * But dont want too many cases, so if it is easier to just forbid compilataion
- *          of certain things then that is what I will do.   
+ *          of certain things then that is what I will do.
  *    - Figure out how to make tail-calls space efficient.
  *    - I think (maybe) the compiler should have access to environments when compiling. 
  *        * Would mean variables could be looked up and compiled into the bytecode. 
  *        * However, also a bit odd if not the "program" you compile is self contained... 
  *        * This depends, I guess, on how one uses it. Off-line or on-line...
- *    - Optimize for space. 
+ *    - Optimize for space.
  *    - Change the interface to built-in function (perhaps).
- *    - In order to use as off-line compiler, symbol representations need to 
+ *    - In order to use as off-line compiler, symbol representations need to
  *      always be the same (independent of platform etc). Currently this is probably not true
  *      as symbols may get different ID's based on order of being added to the system.
  */
 
-#define COMPILE_DONE        0xFF000001
-#define COMPILE_ARG_LIST    0xFF000002
-#define COMPILE_FUNCTION    0xFF000003
-#define COMPILE_EMIT_CALL   0xFF000004
+#define COMPILE_DONE        0x00000001
+#define COMPILE_ARG_LIST    0x00000002
+#define COMPILE_FUNCTION    0x00000003
+#define COMPILE_EMIT_CALL   0x00000004
 
 int index_of(VALUE *constants, unsigned int num, VALUE v, unsigned int *res) {
 
@@ -75,7 +75,7 @@ void continuation(stack *s, unsigned int *pc, unsigned char *code, VALUE *curr, 
 
   UINT top;
   pop_u32(s, &top);
-  switch(top) {
+  switch(dec_u(top)) {
 
   case COMPILE_DONE:
     code[*pc] = OP_DONE; *pc = *pc+1;
@@ -90,7 +90,7 @@ void continuation(stack *s, unsigned int *pc, unsigned char *code, VALUE *curr, 
     } else {
       VALUE head = car(rest);
       push_u32(s, cdr(rest));
-      push_u32(s, COMPILE_ARG_LIST);
+      push_u32(s, enc_u(COMPILE_ARG_LIST));
       *curr = head;
       *done = false;
     }
@@ -99,7 +99,7 @@ void continuation(stack *s, unsigned int *pc, unsigned char *code, VALUE *curr, 
   case COMPILE_FUNCTION: {
     VALUE fun;
     pop_u32(s,&fun);
-    push_u32(s, COMPILE_EMIT_CALL);
+    push_u32(s, enc_u(COMPILE_EMIT_CALL));
     *curr = fun;
     *done = false;
     break;
@@ -135,17 +135,25 @@ int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_
 
   VALUE   *consts = bc->constants;
   uint8_t *code = bc->code;
-  push_u32(s, COMPILE_DONE);
+  push_u32(s, enc_u(COMPILE_DONE));
   bool done = false;
   VALUE curr = v;
   VALUE head;
   unsigned int n_args;
+  VALUE lookup_table = enc_sym(symrepr_nil());
 
   *err_code = COMPILER_OK;
 
   while (!done) {
     switch(type_of(curr)) {
     case VAL_TYPE_SYMBOL:
+      // Symbols should be compiled into either of:
+      //  -1 A a reference to the stack where the value is located
+      //  -2 A function name symbol
+      //  -3 A value looked up from the environment within which compile was called
+      //  - Does 3 make any sense at all??
+      //  - 3 is kind of needed to get ids of built in functions.
+      //  - But what if a looked up symbol results in a closure, is it sucked in and compiled as well?.
     case VAL_TYPE_U:
     case VAL_TYPE_I: {
       unsigned int ix;
@@ -175,7 +183,7 @@ int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_
 	  return 0;
 	}
 	if (dec_sym(head) == symrepr_define()) {
-	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
+	  *err_code = ERROR_FORBIDDEN_FORM_DEFINE;
 	  return 0;
 	}
 	if (dec_sym(head) == symrepr_let()) {
@@ -190,15 +198,14 @@ int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
 	  return 0;
 	}
-
       } // end if head is special form symbol
       // possibly function application
       n_args = length(cdr(curr));
       push_u32(s, n_args);
       push_u32(s, head);
-      push_u32(s, COMPILE_FUNCTION);
+      push_u32(s, enc_u(COMPILE_FUNCTION));
       push_u32(s, cdr(cdr(curr)));
-      push_u32(s, COMPILE_ARG_LIST);
+      push_u32(s, enc_u(COMPILE_ARG_LIST));
 
       curr = car(cdr(curr)); //continue and compile first argument
       break;

@@ -30,10 +30,12 @@
 #define OP_DONE             254
 #define OP_RETURN           255
 
-#define COMPILER_OK                  0
-#define ERROR_NOT_ENOUGH_SPACE      -1
-#define ERROR_CANNOT_COMPILE        -2
-#define ERROR_FORM_NOT_IMPLEMENTED  -3
+#define COMPILER_OK                     0
+#define ERROR_NOT_ENOUGH_SPACE         -1
+#define ERROR_CANNOT_COMPILE           -2
+#define ERROR_FORM_NOT_IMPLEMENTED     -3
+#define ERROR_FORBIDDEN_FORM_DEFINE    -4
+#define ERROR_UNDEFINED                -5
 
 typedef struct {
   unsigned int code_size; 

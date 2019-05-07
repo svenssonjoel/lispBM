@@ -20,6 +20,8 @@
 #include "builtin.h"
 #include "print.h"
 #include "env.h"
+#include "bytecode.h"
+#include "eval_cps.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -28,9 +30,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define EVAL_CONTINUE     1
-#define PERFORM_GC        2
 
 #define DONE              1
 #define SET_GLOBAL_ENV    2
@@ -42,11 +41,13 @@
 #define EVAL              8
 
 
-static VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env);
-
 static VALUE eval_cps_global_env;
 
-stack *K;
+eval_context_t *eval_context = NULL;
+
+eval_context_t *eval_cps_get_current_context(void) {
+  return eval_context;
+}
 
 static VALUE NIL;
 
@@ -58,12 +59,12 @@ VALUE eval_cps_get_env(void) {
 // Continuation points and apply cont
 // ////////////////////////////////////////////////////////
 
-VALUE cont_set_global_env(VALUE val, bool *perform_gc){
+VALUE cont_set_global_env(eval_context_t *ctx, VALUE val, bool *perform_gc){
 
   VALUE curr = eval_cps_global_env;
   VALUE tmp;
   VALUE key;
-  pop_u32(K, &key);
+  pop_u32(ctx->K, &key);
 
   while(type_of(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == key) {
@@ -75,16 +76,16 @@ VALUE cont_set_global_env(VALUE val, bool *perform_gc){
   VALUE keyval;
   keyval = cons(key,val);
   if (type_of(keyval) == VAL_TYPE_SYMBOL) {
-    push_u32(K, key);
-    push_u32(K, enc_u(SET_GLOBAL_ENV));
+    push_u32(ctx->K, key);
+    push_u32(ctx->K, enc_u(SET_GLOBAL_ENV));
     *perform_gc = true;
     return val;
   }
 
   tmp = cons(keyval, eval_cps_global_env);
   if (type_of(tmp) == VAL_TYPE_SYMBOL) {
-    push_u32(K, key);
-    push_u32(K, enc_u(SET_GLOBAL_ENV));
+    push_u32(ctx->K, key);
+    push_u32(ctx->K, enc_u(SET_GLOBAL_ENV));
     *perform_gc = true;
     return val;
   }
@@ -93,10 +94,10 @@ VALUE cont_set_global_env(VALUE val, bool *perform_gc){
   return enc_sym(symrepr_true());
 }
 
-VALUE apply_continuation(stack *K, VALUE arg, VALUE *curr_exp, VALUE* curr_env, bool *done, bool *perform_gc, bool *app_cont){
+VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perform_gc, bool *app_cont){
 
   VALUE k;
-  pop_u32(K, &k);
+  pop_u32(ctx->K, &k);
 
   VALUE res;
 
@@ -107,10 +108,10 @@ VALUE apply_continuation(stack *K, VALUE arg, VALUE *curr_exp, VALUE* curr_env, 
     *done = true;
     return arg;
   case EVAL:
-    *curr_exp = arg;
+    ctx->curr_exp = arg;
     return enc_u(0);
   case SET_GLOBAL_ENV:
-    res = cont_set_global_env(arg, perform_gc);
+    res = cont_set_global_env(ctx, arg, perform_gc);
     *app_cont = true;
     return res;
 
@@ -119,13 +120,13 @@ VALUE apply_continuation(stack *K, VALUE arg, VALUE *curr_exp, VALUE* curr_env, 
     VALUE args_rev;
     VALUE fun = arg;
 
-    pop_u32(K, &args);
+    pop_u32(ctx->K, &args);
 
     if (type_of(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
       args_rev = reverse(args);
       if (type_of(args_rev) == VAL_TYPE_SYMBOL) {
-	push_u32(K, args);
-	push_u32(K, enc_u(FUNCTION_APP));
+	push_u32(ctx->K, args);
+	push_u32(ctx->K, enc_u(FUNCTION_APP));
 	*perform_gc = true;
 	*app_cont = true;
 	return fun;
@@ -149,14 +150,14 @@ VALUE apply_continuation(stack *K, VALUE arg, VALUE *curr_exp, VALUE* curr_env, 
        }
 
        if (!env_build_params_args(params, args_rev, clo_env, &local_env)) {
-	 push_u32(K, args);
-	 push_u32(K, enc_u(FUNCTION_APP));
+	 push_u32(ctx->K, args);
+	 push_u32(ctx->K, enc_u(FUNCTION_APP));
 	 *perform_gc = true;
 	 *app_cont = true;
 	 return fun;
        }
-       *curr_exp = exp;
-       *curr_env = local_env;
+       ctx->curr_exp = exp;
+       ctx->curr_env = local_env;
        return 0;
 
     } else if (type_of(fun) == VAL_TYPE_SYMBOL) { // its a built in function
@@ -171,8 +172,8 @@ VALUE apply_continuation(stack *K, VALUE arg, VALUE *curr_exp, VALUE* curr_env, 
 
       if (type_of(f_res) == VAL_TYPE_SYMBOL &&
 	  (dec_sym(f_res) == symrepr_merror())) {
-	push_u32(K, args);
-	push_u32(K, enc_u(FUNCTION_APP));
+	push_u32(ctx->K, args);
+	push_u32(ctx->K, enc_u(FUNCTION_APP));
 	*perform_gc = true;
 	*app_cont = true;
 	return fun;
@@ -185,15 +186,15 @@ VALUE apply_continuation(stack *K, VALUE arg, VALUE *curr_exp, VALUE* curr_env, 
     VALUE rest;
     VALUE acc;
     VALUE env;
-    pop_u32(K, &rest);
-    pop_u32(K, &acc);
-    pop_u32(K, &env);
+    pop_u32(ctx->K, &rest);
+    pop_u32(ctx->K, &acc);
+    pop_u32(ctx->K, &env);
     VALUE acc_ = cons(arg, acc);
     if (type_of(acc_) == VAL_TYPE_SYMBOL) {
-      push_u32(K, env);
-      push_u32(K, acc);
-      push_u32(K, rest);
-      push_u32(K, enc_u(ARG_LIST));
+      push_u32(ctx->K, env);
+      push_u32(ctx->K, acc);
+      push_u32(ctx->K, rest);
+      push_u32(ctx->K, enc_u(ARG_LIST));
       *perform_gc = true;
       *app_cont   = true;
       return arg;            // RESET EXECUTION
@@ -204,66 +205,66 @@ VALUE apply_continuation(stack *K, VALUE arg, VALUE *curr_exp, VALUE* curr_env, 
       return acc_;
     }
     VALUE head = car(rest);
-    push_u32(K, env);
-    push_u32(K, acc_);
-    push_u32(K, cdr(rest));
-    push_u32(K, enc_u(ARG_LIST));
-    *curr_env = env;
-    *curr_exp = head;
+    push_u32(ctx->K, env);
+    push_u32(ctx->K, acc_);
+    push_u32(ctx->K, cdr(rest));
+    push_u32(ctx->K, enc_u(ARG_LIST));
+    ctx->curr_env = env;
+    ctx->curr_exp = head;
     return enc_u(0);
   }
   case FUNCTION: {
     VALUE fun;
-    pop_u32(K, &fun);
-    push_u32(K, arg);
-    push_u32(K, enc_u(FUNCTION_APP));
-    *curr_exp = fun;
+    pop_u32(ctx->K, &fun);
+    push_u32(ctx->K, arg);
+    push_u32(ctx->K, enc_u(FUNCTION_APP));
+    ctx->curr_exp = fun;
     return enc_u(0); // Should return something that is very easy to recognize as nonsense 
   }
   case BIND_TO_KEY_REST:{
     VALUE key;
     VALUE env;
     VALUE rest;
-    
-    pop_u32(K, &key);
-    pop_u32(K, &env);
-    pop_u32(K, &rest);
-  
+
+    pop_u32(ctx->K, &key);
+    pop_u32(ctx->K, &env);
+    pop_u32(ctx->K, &rest);
+
     env_modify_binding(env, key, arg);
-    
+
     if ( type_of(rest) == PTR_TYPE_CONS ){
       VALUE keyn = car(car(rest));
       VALUE valn_exp = car(cdr(car(rest)));
-      
-      push_u32(K, cdr(rest));
-      push_u32(K, env);
-      push_u32(K, keyn);
-      push_u32(K, enc_u(BIND_TO_KEY_REST));
 
-      *curr_exp = valn_exp;
-      *curr_env = env;
+      push_u32(ctx->K, cdr(rest));
+      push_u32(ctx->K, env);
+      push_u32(ctx->K, keyn);
+      push_u32(ctx->K, enc_u(BIND_TO_KEY_REST));
+
+      ctx->curr_exp = valn_exp;
+      ctx->curr_env = env;
       return enc_u(0);
     }
-    
+
     // Otherwise evaluate the expression in the populated env
     VALUE exp;
-    pop_u32(K, &exp);
-    *curr_exp = exp;
-    *curr_env = env;
+    pop_u32(ctx->K, &exp);
+    ctx->curr_exp = exp;
+    ctx->curr_env = env;
     return enc_u(0);
   }
   case IF: {
     VALUE then_branch;
     VALUE else_branch;
 
-    pop_u32(K, &then_branch);
-    pop_u32(K, &else_branch);
+    pop_u32(ctx->K, &then_branch);
+    pop_u32(ctx->K, &else_branch);
 
     if (type_of(arg) == VAL_TYPE_SYMBOL &&
 	dec_sym(arg) == symrepr_true()) {
-      *curr_exp = then_branch;
+      ctx->curr_exp = then_branch;
     } else {
-      *curr_exp = else_branch;
+      ctx->curr_exp = else_branch;
     }
     return 0;
 
@@ -273,12 +274,9 @@ VALUE apply_continuation(stack *K, VALUE arg, VALUE *curr_exp, VALUE* curr_env, 
   return enc_sym(symrepr_eerror());
 }
 
-VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
+VALUE run_eval(eval_context_t *ctx){
 
-  push_u32(K, enc_u(DONE));
-
-  VALUE curr_exp = lisp;
-  VALUE curr_env = env;
+  push_u32(ctx->K, enc_u(DONE));
 
   VALUE r = NIL;
   bool done = false;
@@ -296,18 +294,27 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
     if (perform_gc) {
       if (non_gc == 0) {
 	done = true;
-	r = enc_sym(symrepr_eerror());
+	r = enc_sym(symrepr_merror());
 	continue;
       }
       non_gc = 0;
-      heap_perform_gc_aux(eval_cps_global_env, curr_env, curr_exp, orig_prg, K->data, K->size);
+      heap_perform_gc_aux(eval_cps_global_env,
+			  ctx->curr_env,
+			  ctx->curr_exp,
+			  ctx->program,
+			  ctx->K->data,
+			  ctx->K->sp);
       perform_gc = false;
     } else {
       non_gc ++;
     }
 
     if (app_cont) {
-      r = apply_continuation(K, r, &curr_exp, &curr_env, &done, &perform_gc, &app_cont);
+      r = apply_continuation(ctx,
+			     r,
+			     &done,
+			     &perform_gc,
+			     &app_cont);
       continue;
     }
     app_cont = false;
@@ -315,11 +322,11 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
     VALUE head;
     VALUE value = enc_sym(symrepr_eerror());
 
-    switch (type_of(curr_exp)) {
+    switch (type_of(ctx->curr_exp)) {
 
     case VAL_TYPE_SYMBOL:
-      if (!env_lookup(curr_exp, curr_env, &value)) {
-	if (!env_lookup(curr_exp, eval_cps_global_env, &value)){
+      if (!env_lookup(ctx->curr_exp, ctx->curr_env, &value)) {
+	if (!env_lookup(ctx->curr_exp, eval_cps_global_env, &value)){
 	  r = enc_sym(symrepr_eerror());
 	  done = true;
 	  continue;
@@ -336,7 +343,7 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
     case VAL_TYPE_CHAR:
     case PTR_TYPE_ARRAY:
       app_cont = true;
-      r = curr_exp;
+      r = ctx->curr_exp;
       break;
     case PTR_TYPE_REF:
     case PTR_TYPE_STREAM:
@@ -344,21 +351,21 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
       done = true;
       break;
     case PTR_TYPE_CONS:
-      head = car(curr_exp);
+      head = car(ctx->curr_exp);
 
       if (type_of(head) == VAL_TYPE_SYMBOL) {
 
 	// Special form: eval
 	if (dec_sym(head) == symrepr_eval()) {
-	  VALUE exp = car(cdr(curr_exp));
-	  push_u32(K, enc_u(EVAL));
-	  curr_exp = exp;
+	  VALUE exp = car(cdr(ctx->curr_exp));
+	  push_u32(ctx->K, enc_u(EVAL));
+	  ctx->curr_exp = exp;
 	  continue;
 	}
 
 	// Special form: QUOTE
 	if (dec_sym(head) == symrepr_quote()) {
-	  value = car(cdr(curr_exp));
+	  value = car(cdr(ctx->curr_exp));
 	  app_cont = true;
 	  r = value;
 	  continue;
@@ -366,8 +373,8 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 
 	// Special form: DEFINE
 	if (dec_sym(head) == symrepr_define()) {
-	  VALUE key = car(cdr(curr_exp));
-	  VALUE val_exp = car(cdr(cdr(curr_exp)));
+	  VALUE key = car(cdr(ctx->curr_exp));
+	  VALUE val_exp = car(cdr(cdr(ctx->curr_exp)));
 
 	  if (type_of(key) != VAL_TYPE_SYMBOL ||
 	      key == NIL) {
@@ -375,10 +382,10 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 	    r =  enc_sym(symrepr_eerror());
 	  }
 
-	  push_u32(K, key);
-	  push_u32(K, enc_u(SET_GLOBAL_ENV));
-	  curr_exp = val_exp;
-	  //curr_env = curr_env;
+	  push_u32(ctx->K, key);
+	  push_u32(ctx->K, enc_u(SET_GLOBAL_ENV));
+	  ctx->curr_exp = val_exp;
+	  //ctx->curr_env = ctx->curr_env;
 	  continue;
 	}
 
@@ -386,7 +393,7 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 	if (dec_sym(head) == symrepr_lambda()) {
 	  VALUE env_cpy;
 
-	  if (!env_copy_shallow(curr_env, &env_cpy)) {
+	  if (!env_copy_shallow(ctx->curr_env, &env_cpy)) {
 	    perform_gc = true;
 	    app_cont = false;
 	    continue; // perform gc and resume evaluation at same expression
@@ -397,8 +404,8 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 	  VALUE params;
 	  VALUE closure;
 	  env_end = cons(env_cpy,NIL);
-	  body    = cons(car(cdr(cdr(curr_exp))), env_end);
-	  params  = cons(car(cdr(curr_exp)), body);
+	  body    = cons(car(cdr(cdr(ctx->curr_exp))), env_end);
+	  params  = cons(car(cdr(ctx->curr_exp)), body);
 	  closure = cons(enc_sym(symrepr_closure()), params);
 
 	  if (type_of(env_end) == VAL_TYPE_SYMBOL ||
@@ -418,24 +425,24 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 	// Special form: IF
 	if (dec_sym(head) == symrepr_if()) {
 
-	  push_u32(K, car(cdr(cdr(cdr(curr_exp))))); // else branch
-	  push_u32(K, car(cdr(cdr(curr_exp)))); // Then branch
-	  push_u32(K, enc_u(IF));
-	  curr_exp = car(cdr(curr_exp));
+	  push_u32(ctx->K, car(cdr(cdr(cdr(ctx->curr_exp))))); // else branch
+	  push_u32(ctx->K, car(cdr(cdr(ctx->curr_exp)))); // Then branch
+	  push_u32(ctx->K, enc_u(IF));
+	  ctx->curr_exp = car(cdr(ctx->curr_exp));
 	  continue;
 	}
 	// Special form: LET
 	if (dec_sym(head) == symrepr_let()) {
-	  VALUE orig_env = curr_env;
-	  VALUE binds    = car(cdr(curr_exp)); // key value pairs.
-	  VALUE exp      = car(cdr(cdr(curr_exp))); // exp to evaluate in the new env.
+	  VALUE orig_env = ctx->curr_env;
+	  VALUE binds    = car(cdr(ctx->curr_exp)); // key value pairs.
+	  VALUE exp      = car(cdr(cdr(ctx->curr_exp))); // exp to evaluate in the new env.
 
 	  VALUE curr = binds;
 	  VALUE new_env = orig_env;
 
 	  if (type_of(binds) != PTR_TYPE_CONS) {
 	    // binds better be nil or there is a programmer error.
-	    curr_exp = exp;
+	    ctx->curr_exp = exp;
 	    continue;
 	  }
 
@@ -455,37 +462,37 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 	    }
 	    curr = cdr(curr);
 	  }
-	  
+
 	  VALUE key0 = car(car(binds));
 	  VALUE val0_exp = car(cdr(car(binds)));
-	  
-	  push_u32(K, exp);
-	  push_u32(K, cdr(binds));
-	  push_u32(K, new_env);
-	  push_u32(K, key0);
-	  push_u32(K, enc_u(BIND_TO_KEY_REST));
-	  curr_exp = val0_exp;
-	  curr_env = new_env;
+
+	  push_u32(ctx->K, exp);
+	  push_u32(ctx->K, cdr(binds));
+	  push_u32(ctx->K, new_env);
+	  push_u32(ctx->K, key0);
+	  push_u32(ctx->K, enc_u(BIND_TO_KEY_REST));
+	  ctx->curr_exp = val0_exp;
+	  ctx->curr_env = new_env;
 	  continue;
 	}
       } // If head is symbol
-      
-      push_u32(K, head);
-      push_u32(K, enc_u(FUNCTION));
-      if (type_of(cdr(curr_exp)) == VAL_TYPE_SYMBOL &&
-	  cdr(curr_exp) == NIL) {
+
+      push_u32(ctx->K, head);
+      push_u32(ctx->K, enc_u(FUNCTION));
+      if (type_of(cdr(ctx->curr_exp)) == VAL_TYPE_SYMBOL &&
+	  cdr(ctx->curr_exp) == NIL) {
 	// no arguments)
 	app_cont = true;
 	r = NIL;
 	continue;
       } else {
-	push_u32(K, curr_env);
-	push_u32(K, NIL); // accumulator
-	push_u32(K, cdr(cdr(curr_exp)));
-	push_u32(K, enc_u(ARG_LIST));
+	push_u32(ctx->K, ctx->curr_env);
+	push_u32(ctx->K, NIL); // accumulator
+	push_u32(ctx->K, cdr(cdr(ctx->curr_exp)));
+	push_u32(ctx->K, enc_u(ARG_LIST));
 
-	curr_exp = car(cdr(curr_exp));;
-	//curr_env = curr_env;
+	ctx->curr_exp = car(cdr(ctx->curr_exp));;
+	//ctx->curr_env = ctx->curr_env;
 	continue;
       }
     default:
@@ -500,8 +507,10 @@ VALUE run_eval(VALUE orig_prg, VALUE lisp, VALUE env){
 
 VALUE eval_cps_program(VALUE lisp) {
 
+  eval_context_t *ctx = eval_cps_get_current_context();
+
+  ctx->program  = lisp;
   VALUE res = NIL;
-  VALUE local_env = NIL;
   VALUE curr = lisp;
 
   if (dec_sym(lisp) == symrepr_eerror() ||
@@ -510,7 +519,11 @@ VALUE eval_cps_program(VALUE lisp) {
       dec_sym(lisp) == symrepr_terror())  return lisp;
 
   while (type_of(curr) == PTR_TYPE_CONS) {
-    res =  run_eval(lisp, car(curr),local_env);
+    if (ctx->K->sp > 0) printf("Stack not empty!\n");
+    stack_clear(ctx->K);
+    ctx->curr_exp = car(curr);
+    ctx->curr_env = NIL;
+    res =  run_eval(ctx);
     curr = cdr(curr);
   }
   return res;
@@ -524,8 +537,10 @@ int eval_cps_init(bool grow_continuation_stack) {
 
   eval_cps_global_env = built_in_gen_env();
 
-  K = stack_init(100, grow_continuation_stack);
-  
+  eval_context = (eval_context_t*)malloc(sizeof(eval_context_t));
+
+  eval_context->K = stack_init(100, grow_continuation_stack);
+
   VALUE nil_entry = cons(NIL, NIL);
   eval_cps_global_env = cons(nil_entry, eval_cps_global_env);
 
@@ -536,5 +551,6 @@ int eval_cps_init(bool grow_continuation_stack) {
 }
 
 void eval_cps_del(void) {
-  stack_del(K);
+  stack_del(eval_context->K);
+  free(eval_context);
 }

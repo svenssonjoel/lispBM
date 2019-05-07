@@ -237,9 +237,7 @@ extern void heap_get_state(heap_state_t *);
 
 // Garbage collection
 extern int heap_perform_gc(VALUE env);
-extern int heap_perform_gc_extra(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE list);
 extern int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, UINT *aux_data, unsigned int aux_size);
-
 
 // Array functionality
 extern int heap_allocate_array(VALUE *res, unsigned int size, TYPE type);

@@ -17,7 +17,17 @@
 #ifndef EVAL_CPS_H_
 #define EVAL_CPS_H_
 
+#include "stack.h"
+
+typedef struct {
+  VALUE program;
+  VALUE curr_exp;
+  VALUE curr_env;
+  stack *K;
+} eval_context_t;
+
 extern uint32_t eval_cps_get_env(void);
+eval_context_t *eval_cps_get_current_context(void);
 extern int eval_cps_init(bool grow_continuation_stack);
 extern void eval_cps_del(void);
 extern uint32_t eval_cps_program(uint32_t lisp);
