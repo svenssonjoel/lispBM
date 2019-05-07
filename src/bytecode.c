@@ -128,14 +128,13 @@ int bytecode_create(bytecode_t *bc, int size) {
   return 1;
 }
 
-int bytecode_ncompile(VALUE v, bytecode_t *bc, int max_size, int *err_code) {
+int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_code) {
 
   unsigned int pc = 0;
   unsigned int const_ix = 0;
 
   VALUE   *consts = bc->constants;
   uint8_t *code = bc->code;
-  stack *s = stack_init(100,true);
   push_u32(s, COMPILE_DONE);
   bool done = false;
   VALUE curr = v;
@@ -215,9 +214,7 @@ int bytecode_ncompile(VALUE v, bytecode_t *bc, int max_size, int *err_code) {
 }
 
 
-VALUE bytecode_eval(bytecode_t bc, VALUE globalenv, VALUE localenv) {
-
-  stack *s = stack_init(100,true);
+VALUE bytecode_eval(stack *s, bytecode_t bc, VALUE globalenv, VALUE localenv) {
 
   unsigned int pc=0;
   //unsigned int code_size = bc.code_size;

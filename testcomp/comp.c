@@ -25,6 +25,7 @@
 #include "tokpar.h"
 #include "bytecode.h"
 #include "print.h"
+#include "stack.h"
 
 int main(int argc, char **argv) {
   int res = 0;
@@ -53,6 +54,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  stack *s = stack_init(100,true);
   VALUE t;
   bytecode_t bc;
   int err;
@@ -63,9 +65,9 @@ int main(int argc, char **argv) {
   printf("PARSING\n");
   t = tokpar_parse("(+ (+ 1 2) (+ 1 2))");
   printf("COMPILING: "); simple_print(car(t)); printf("\n");
-  bytecode_ncompile(car(t), &bc, 1000, &err);
+  bytecode_ncompile(s, car(t), &bc, 1000, &err);
 
-  result = bytecode_eval(bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
+  result = bytecode_eval(s, bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
 
   for (unsigned int i = 0; i < bc.code_size +1; i ++) {
 
@@ -79,12 +81,12 @@ int main(int argc, char **argv) {
   printf("PARSING\n");
   t = tokpar_parse("(lambda (x) (+ x 1))");
   printf("COMPILING: "); simple_print(car(t)); printf("\n");
-  if (! bytecode_ncompile(car(t), &bc, 1000, &err) ) {
+  if (! bytecode_ncompile(s, car(t), &bc, 1000, &err) ) {
     printf("FAILED TO COMPILE: %d\n", err);
     return 0;
   }
   
-  result = bytecode_eval(bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
+  result = bytecode_eval(s, bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
 
   /* for (unsigned int i = 0; i < bc.code_size +1; i ++) { */
 
