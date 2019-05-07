@@ -50,25 +50,24 @@
 #define SMALL_PRIMES 11
 
 #define DEF_REPR_NIL       0
-#define DEF_REPR_EVAL      1
-#define DEF_REPR_QUOTE     2
-#define DEF_REPR_TRUE      3
-#define DEF_REPR_COND      4
-#define DEF_REPR_IF        5
-#define DEF_REPR_LAMBDA    6
-#define DEF_REPR_CLOSURE   7
-#define DEF_REPR_LET       8
-#define DEF_REPR_RERROR    9   /* READ ERROR */
-#define DEF_REPR_TERROR    10  /* TYPE ERROR */
-#define DEF_REPR_EERROR    11  /* EVAL ERROR */
-#define DEF_REPR_MERROR    12
-#define DEF_REPR_DEFINE    13
+#define DEF_REPR_QUOTE     1
+#define DEF_REPR_TRUE      2
+#define DEF_REPR_COND      3
+#define DEF_REPR_IF        4
+#define DEF_REPR_LAMBDA    5
+#define DEF_REPR_CLOSURE   6
+#define DEF_REPR_LET       7
+#define DEF_REPR_RERROR    8   /* READ ERROR */
+#define DEF_REPR_TERROR    9  /* TYPE ERROR */
+#define DEF_REPR_EERROR    10  /* EVAL ERROR */
+#define DEF_REPR_MERROR    11
+#define DEF_REPR_DEFINE    12
 
 static UINT gensym_next = HASHTAB_SIZE;
 
 static UINT hash_string(char *str, UINT modulo);
 
-static UINT def_repr[14];
+static UINT def_repr[13];
 
 typedef struct s_name_mapping {
   UINT key; /* hash including collision id */
@@ -117,12 +116,9 @@ name_list_t *name_list = NULL;
 name_mapping_t **name_table = NULL;
 #endif
 
-int add_default_symbols(bool eval_special_form) {
+int add_default_symbols() {
   int res = 1;
   res &= symrepr_addsym("nil"        , &def_repr[DEF_REPR_NIL]);
-  if (eval_special_form) {
-    res &= symrepr_addsym("eval"       , &def_repr[DEF_REPR_EVAL]);
-  }
   res &= symrepr_addsym("quote"      , &def_repr[DEF_REPR_QUOTE]);
   res &= symrepr_addsym("t"          , &def_repr[DEF_REPR_TRUE]);
   res &= symrepr_addsym("cond"       , &def_repr[DEF_REPR_COND]);
@@ -140,7 +136,6 @@ int add_default_symbols(bool eval_special_form) {
 }
 
 UINT symrepr_nil(void)     { return def_repr[DEF_REPR_NIL]; }
-UINT symrepr_eval(void)    { return def_repr[DEF_REPR_EVAL]; }
 UINT symrepr_quote(void)   { return def_repr[DEF_REPR_QUOTE]; }
 UINT symrepr_true(void)    { return def_repr[DEF_REPR_TRUE]; }
 UINT symrepr_cond(void)    { return def_repr[DEF_REPR_COND]; }
@@ -154,7 +149,7 @@ UINT symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }
 UINT symrepr_merror(void)  { return def_repr[DEF_REPR_MERROR]; }
 UINT symrepr_define(void)  { return def_repr[DEF_REPR_DEFINE]; }
 
-int symrepr_init(bool eval_special_form) {
+int symrepr_init() {
 #ifdef TINY_SYMTAB
   name_list = NULL; /* empty list of symbol names */
 #else
@@ -162,7 +157,7 @@ int symrepr_init(bool eval_special_form) {
   if (!name_table) return 0;
   memset(name_table, 0, HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));
 #endif
-  return add_default_symbols(eval_special_form);
+  return add_default_symbols();
 }
 
 int gensym(UINT *res) {

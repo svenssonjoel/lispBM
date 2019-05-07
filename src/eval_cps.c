@@ -40,6 +40,7 @@
 #define ARG_LIST          7
 #define EVAL              8
 
+static VALUE run_eval(eval_context_t *ctx);
 
 static VALUE eval_cps_global_env;
 
@@ -53,6 +54,14 @@ static VALUE NIL;
 
 VALUE eval_cps_get_env(void) {
   return eval_cps_global_env;
+}
+
+VALUE eval_cps_bi_eval(VALUE exp) {
+  eval_context_t *ctx = eval_cps_get_current_context();
+
+  VALUE e = car(exp); // first argument
+  ctx->curr_exp = e;
+  return run_eval(ctx);
 }
 
 // ////////////////////////////////////////////////////////
@@ -355,14 +364,6 @@ VALUE run_eval(eval_context_t *ctx){
 
       if (type_of(head) == VAL_TYPE_SYMBOL) {
 
-	// Special form: eval
-	if (dec_sym(head) == symrepr_eval()) {
-	  VALUE exp = car(cdr(ctx->curr_exp));
-	  push_u32(ctx->K, enc_u(EVAL));
-	  ctx->curr_exp = exp;
-	  continue;
-	}
-
 	// Special form: QUOTE
 	if (dec_sym(head) == symrepr_quote()) {
 	  value = car(cdr(ctx->curr_exp));
@@ -535,6 +536,7 @@ int eval_cps_init(bool grow_continuation_stack) {
 
   eval_cps_global_env = NIL;
 
+  if (!builtin_add_function("eval", eval_cps_bi_eval)) return 0;
   eval_cps_global_env = built_in_gen_env();
 
   eval_context = (eval_context_t*)malloc(sizeof(eval_context_t));

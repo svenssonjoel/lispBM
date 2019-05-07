@@ -29,7 +29,7 @@
 
 int main(int argc, char **argv) {
   int res = 0;
-  res = symrepr_init(false);
+  res = symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");
   else {

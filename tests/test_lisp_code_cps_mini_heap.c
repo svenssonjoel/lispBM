@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = symrepr_init(true);
+  res = symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");
   else {

@@ -116,7 +116,7 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   heap_state_t heap_state;
 
-  res = symrepr_init(true);
+  res = symrepr_init();
   if (res)
     chprintf(chp,"Symrepr initialized.\n\r");
   else {

@@ -33,7 +33,7 @@
 
 
 extern int symrepr_addsym(char *, uint32_t*);
-extern int symrepr_init(bool eval_special_form);
+extern int symrepr_init();
 extern void symrepr_print(void);
 extern int symrepr_lookup(char *, uint32_t*);
 extern char* symrepr_lookup_name(uint32_t);
