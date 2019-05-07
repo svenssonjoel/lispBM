@@ -21,8 +21,7 @@
 #include <stdint.h>
 #include "typedefs.h"
 #include "stack.h"
-
-#define MAX_CONSTANTS       256
+#include "heap.h"
 
 #define OP_PUSH_CONST_V     1
 #define OP_PUSH_CONST_D     2  
@@ -36,13 +35,6 @@
 #define ERROR_FORM_NOT_IMPLEMENTED     -3
 #define ERROR_FORBIDDEN_FORM_DEFINE    -4
 #define ERROR_UNDEFINED                -5
-
-typedef struct {
-  unsigned int code_size; 
-  uint8_t *code;
-  int     num_constants; 
-  VALUE   constants[MAX_CONSTANTS];
-} bytecode_t;
 
 int bytecode_create(bytecode_t *bc, int size);
 int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_code);

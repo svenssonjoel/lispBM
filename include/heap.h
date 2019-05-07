@@ -180,6 +180,8 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define VAL_TYPE_I           0x00000008u
 #define VAL_TYPE_U           0x0000000Cu
 
+#define MAX_CONSTANTS        256
+
 typedef struct {
   VALUE car;
   VALUE cdr;
@@ -202,7 +204,6 @@ typedef struct {
   unsigned int gc_recovered_arrays;// Number of arrays recovered by sweep.
 } heap_state_t;
 
-
 typedef struct {
   TYPE elt_type;            // Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
   unsigned int size;        // Number of elements
@@ -213,6 +214,13 @@ typedef struct {
     char     *c;
   } data;                   // Array data storage
 } array_t;
+
+typedef struct {
+  unsigned int code_size; 
+  uint8_t *code;
+  int     num_constants; 
+  VALUE   constants[MAX_CONSTANTS];
+} bytecode_t;
 
 extern int heap_init_addr(cons_t *addr, unsigned int num_cells);
 extern int heap_init(unsigned int num_cells);
