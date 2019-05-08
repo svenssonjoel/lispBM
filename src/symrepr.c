@@ -440,7 +440,9 @@ char *symrepr_lookup_name(UINT id) {
   if(hash == 65535) {
     switch (id) {
     case SPECIAL_SYM_RECOVERED:
-      return "RECOVERED";
+      return "recovered_cell";
+    case SPECIAL_SYM_BYTECODE:
+      return "compiled_function";
     default:
       return "special_symbol";
     }

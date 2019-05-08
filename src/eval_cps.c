@@ -40,6 +40,8 @@
 #define ARG_LIST          7
 #define EVAL              8
 
+#define BYTECODE_MAX_SIZE 4096
+
 static VALUE run_eval(eval_context_t *ctx);
 
 static VALUE eval_cps_global_env;
@@ -62,6 +64,30 @@ VALUE eval_cps_bi_eval(VALUE exp) {
   VALUE e = car(exp); // first argument
   ctx->curr_exp = e;
   return run_eval(ctx);
+}
+
+VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
+
+  VALUE exp = car(arg_list); // todo check for error
+  
+  int err;
+  
+  eval_context_t *ctx = eval_cps_get_current_context();
+  bytecode_t *bc = malloc(sizeof(bytecode_t));
+  if (!bytecode_create(bc, BYTECODE_MAX_SIZE)) {
+    return enc_sym(symrepr_eerror());
+  }
+  if (!bytecode_ncompile(ctx->K, exp, bc, BYTECODE_MAX_SIZE, &err)) {
+    bytecode_del(bc);
+    return enc_sym(symrepr_eerror());
+  }
+
+  VALUE res = cons((UINT)bc,enc_sym(SPECIAL_SYM_BYTECODE));
+  if (is_ptr(res)) {
+    res = set_ptr_type(res, PTR_TYPE_BYTECODE);
+  }
+  
+  return res;
 }
 
 // ////////////////////////////////////////////////////////
@@ -169,7 +195,24 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
        ctx->curr_env = local_env;
        return 0;
 
-    } else if (type_of(fun) == VAL_TYPE_SYMBOL) { // its a built in function
+    } else if (type_of(fun) == PTR_TYPE_BYTECODE) {
+      eval_context_t *ctx = eval_cps_get_current_context();
+
+      VALUE curr_arg = args_rev;
+ 
+      while (curr_arg != NIL) {
+	push_u32(ctx->K, car(curr_arg));
+      }
+      if (type_of(fun) == PTR_TYPE_BYTECODE) {
+	bytecode_t *bc = (bytecode_t*)car(fun);
+	res = bytecode_eval(ctx->K, bc, eval_cps_get_env(), ctx->curr_env);
+	*app_cont = true;
+	return res;
+      }
+      else return enc_sym(symrepr_eerror());
+      //TODO: Return stack to same state as before running bc, unless
+      //      it is expected that running the bc keeps exits with stack in good shape.
+    }else if (type_of(fun) == VAL_TYPE_SYMBOL) { // its a built in function
 
       VALUE (*f)(VALUE) = builtin_lookup_function(dec_sym(fun));
 
@@ -536,6 +579,7 @@ int eval_cps_init(bool grow_continuation_stack) {
 
   eval_cps_global_env = NIL;
 
+  if (!builtin_add_function("byte-compile", eval_cps_bi_byte_comp)) return 0;
   if (!builtin_add_function("eval", eval_cps_bi_eval)) return 0;
   eval_cps_global_env = built_in_gen_env();
 

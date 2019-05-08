@@ -37,8 +37,9 @@
 #define ERROR_UNDEFINED                -5
 
 int bytecode_create(bytecode_t *bc, int size);
+void bytecode_del(bytecode_t *bc);
 int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_code);
 int bytecode_snprint(char *buf, int size, bytecode_t bc);
-VALUE bytecode_eval(stack *s, bytecode_t bc, VALUE globalenv, VALUE localenv);
+VALUE bytecode_eval(stack *s, bytecode_t *bc, VALUE globalenv, VALUE localenv);
 
 #endif

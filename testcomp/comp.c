@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
   printf("COMPILING: "); simple_print(car(t)); printf("\n");
   bytecode_ncompile(s, car(t), &bc, 1000, &err);
 
-  result = bytecode_eval(s, bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
+  result = bytecode_eval(s, &bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
 
   for (unsigned int i = 0; i < bc.code_size +1; i ++) {
 
@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
     return 0;
   }
   
-  result = bytecode_eval(s, bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
+  result = bytecode_eval(s, &bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
 
   /* for (unsigned int i = 0; i < bc.code_size +1; i ++) { */
 

@@ -128,8 +128,17 @@ int bytecode_create(bytecode_t *bc, int size) {
   return 1;
 }
 
+void bytecode_del(bytecode_t *bc) {
+  if (bc) {
+    if (bc->code) free(bc->code);
+    free(bc);
+  }
+}
+
 int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_code) {
 
+
+  // TODO: Restore SP on error return
   unsigned int pc = 0;
   unsigned int const_ix = 0;
 
@@ -194,6 +203,10 @@ int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
 	  return 0;
 	}
+	if (dec_sym(head) == symrepr_closure()) {
+	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
+	  return 0;
+	}
 	if (dec_sym(head) == symrepr_if()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
 	  return 0;
@@ -221,11 +234,11 @@ int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_
 }
 
 
-VALUE bytecode_eval(stack *s, bytecode_t bc, VALUE globalenv, VALUE localenv) {
+VALUE bytecode_eval(stack *s, bytecode_t *bc, VALUE globalenv, VALUE localenv) {
 
   unsigned int pc=0;
   //unsigned int code_size = bc.code_size;
-  uint8_t *code = bc.code;
+  uint8_t *code = bc->code;
   bool running = true;
   uint8_t ix;
   uint32_t val;
@@ -235,12 +248,12 @@ VALUE bytecode_eval(stack *s, bytecode_t bc, VALUE globalenv, VALUE localenv) {
   bi_fptr bi_fun_ptr = NULL;
 
   while(running) {
-
+    
     switch(code[pc]) {
     case OP_PUSH_CONST_V:
       pc++;
       ix = code[pc++];
-      push_u32(s, bc.constants[ix]);
+      push_u32(s, bc->constants[ix]);
       break;
     case OP_PUSH_CONST_D:
       val = 0;
@@ -263,13 +276,14 @@ VALUE bytecode_eval(stack *s, bytecode_t bc, VALUE globalenv, VALUE localenv) {
 	hack = bi_fun_ptr(hack);
 	push_u32(s,hack);
       } else {
-	printf("Error: function not found\n");
+	return enc_sym(symrepr_eerror());
       }
     }break;
     case OP_DONE:
       running = false;
       break;
     case OP_RETURN:
+      running = false;
       break;
     default:
       return enc_sym(symrepr_eerror());

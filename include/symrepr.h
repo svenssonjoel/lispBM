@@ -30,7 +30,7 @@
 #define SPECIAL_SYM_BOXED_F     0x0004FFFF
 #define SPECIAL_SYM_REF         0x0005FFFF
 #define SPECIAL_SYM_RECOVERED   0x0006FFFF
-
+#define SPECIAL_SYM_BYTECODE    0x0007FFFF
 
 extern int symrepr_addsym(char *, uint32_t*);
 extern int symrepr_init();
