@@ -43,12 +43,14 @@
 VALUE run_eval(eval_context_t *ctx);
 
 static VALUE eval_cps_global_env;
+static VALUE NIL;
 
 eval_context_t *eval_context = NULL;
 
 eval_context_t *eval_cps_get_current_context(void) {
   return eval_context;
 }
+
 eval_context_t *eval_cps_new_context_inherit_env(VALUE program, VALUE curr_exp) {
   eval_context_t *ctx = malloc(sizeof(eval_context_t));
   ctx->program = program;
@@ -66,8 +68,6 @@ void eval_cps_drop_top_context(void) {
   stack_del(ctx->K);
   free(ctx);
 }
-
-static VALUE NIL;
 
 VALUE eval_cps_get_env(void) {
   return eval_cps_global_env;
