@@ -37,4 +37,74 @@ int push_u32(stack *s, UINT val);
 int push_k(stack *s, VALUE (*k)(VALUE));
 int pop_u32(stack *s, UINT *val);
 int pop_k(stack *s, VALUE (**k)(VALUE));
+
+static inline int push_u32_2(stack *s, UINT val0, UINT val1) {
+  int res = 1;
+  res &= push_u32(s,val0);
+  res &= push_u32(s,val1);
+  return res;
+}
+
+static inline int push_u32_3(stack *s, UINT val0, UINT val1, UINT val2) {
+  int res = 1;
+  res &= push_u32(s,val0);
+  res &= push_u32(s,val1);
+  res &= push_u32(s,val2);
+  return res;
+}
+
+static inline int push_u32_4(stack *s, UINT val0, UINT val1, UINT val2, UINT val3) {
+  int res = 1;
+  res &= push_u32(s,val0);
+  res &= push_u32(s,val1);
+  res &= push_u32(s,val2);
+  res &= push_u32(s,val3);
+  return res;
+}
+
+static inline int push_u32_5(stack *s, UINT val0, UINT val1, UINT val2, UINT val3, UINT val4) {
+  int res = 1;
+  res &= push_u32(s,val0);
+  res &= push_u32(s,val1);
+  res &= push_u32(s,val2);
+  res &= push_u32(s,val3);
+  res &= push_u32(s,val4);
+  return res;
+}
+
+static inline int pop_u32_2(stack *s, UINT *r0, UINT *r1) {
+  int res = 1;
+  res &= pop_u32(s, r0);
+  res &= pop_u32(s, r1);
+  return res;
+}
+
+static inline int pop_u32_3(stack *s, UINT *r0, UINT *r1, UINT *r2) {
+  int res = 1;
+  res &= pop_u32(s, r0);
+  res &= pop_u32(s, r1);
+  res &= pop_u32(s, r2);
+  return res;
+}
+
+static inline int pop_u32_4(stack *s, UINT *r0, UINT *r1, UINT *r2, UINT *r3) {
+  int res = 1;
+  res &= pop_u32(s, r0);
+  res &= pop_u32(s, r1);
+  res &= pop_u32(s, r2);
+  res &= pop_u32(s, r3);
+  return res;
+}
+
+static inline int pop_u32_5(stack *s, UINT *r0, UINT *r1, UINT *r2, UINT *r3, UINT *r4) {
+  int res = 1;
+  res &= pop_u32(s, r0);
+  res &= pop_u32(s, r1);
+  res &= pop_u32(s, r2);
+  res &= pop_u32(s, r3);
+  res &= pop_u32(s, r4);
+  return res;
+}
+
+
 #endif
