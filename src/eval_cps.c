@@ -40,9 +40,7 @@
 #define ARG_LIST          7
 #define EVAL              8
 
-#define BYTECODE_MAX_SIZE 4096
-
-static VALUE run_eval(eval_context_t *ctx);
+VALUE run_eval(eval_context_t *ctx);
 
 static VALUE eval_cps_global_env;
 
@@ -50,6 +48,23 @@ eval_context_t *eval_context = NULL;
 
 eval_context_t *eval_cps_get_current_context(void) {
   return eval_context;
+}
+eval_context_t *eval_cps_new_context_inherit_env(VALUE program, VALUE curr_exp) {
+  eval_context_t *ctx = malloc(sizeof(eval_context_t));
+  ctx->program = program;
+  ctx->curr_exp = curr_exp;
+  ctx->curr_env = eval_context->curr_env;
+  ctx->K = stack_init(100, true);
+  ctx->next = eval_context;
+  eval_context = ctx;
+  return ctx;
+}
+
+void eval_cps_drop_top_context(void) {
+  eval_context_t *ctx = eval_context;
+  eval_context = eval_context->next;
+  stack_del(ctx->K);
+  free(ctx);
 }
 
 static VALUE NIL;
@@ -74,10 +89,10 @@ VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
   
   eval_context_t *ctx = eval_cps_get_current_context();
   bytecode_t *bc = malloc(sizeof(bytecode_t));
-  if (!bytecode_create(bc, BYTECODE_MAX_SIZE)) {
+  if (!bytecode_create(bc, 4096)) {
     return enc_sym(symrepr_eerror());
   }
-  if (!bytecode_ncompile(ctx->K, exp, bc, BYTECODE_MAX_SIZE, &err)) {
+  if (!bytecode_compile(ctx->K, exp, bc, &err)) {
     bytecode_del(bc);
     return enc_sym(symrepr_eerror());
   }
@@ -205,7 +220,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       }
       if (type_of(fun) == PTR_TYPE_BYTECODE) {
 	bytecode_t *bc = (bytecode_t*)car(fun);
-	res = bytecode_eval(ctx->K, bc, eval_cps_get_env(), ctx->curr_env);
+	res = bytecode_eval(ctx->K, bc);
 	*app_cont = true;
 	return res;
       }
@@ -563,8 +578,9 @@ VALUE eval_cps_program(VALUE lisp) {
       dec_sym(lisp) == symrepr_terror())  return lisp;
 
   while (type_of(curr) == PTR_TYPE_CONS) {
-    if (ctx->K->sp > 0) printf("Stack not empty!\n");
-    stack_clear(ctx->K);
+    if (ctx->K->sp > 0) {
+      stack_clear(ctx->K); // clear stack if garbage left from failed previous evaluation
+    }
     ctx->curr_exp = car(curr);
     ctx->curr_env = NIL;
     res =  run_eval(ctx);

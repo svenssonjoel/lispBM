@@ -26,7 +26,7 @@
 #include "heap.h"
 #include "print.h"
 #include "builtin.h"
-#include "eval.h"
+#include "eval_cps.h"
 
 /*
  *  TODO:
@@ -135,8 +135,29 @@ void bytecode_del(bytecode_t *bc) {
   }
 }
 
-int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_code) {
+extern VALUE run_eval(eval_context_t *ctx); // TODO
+VALUE try_reduce_constant(VALUE exp) {
 
+  eval_context_t *ctx = eval_cps_new_context_inherit_env(exp, exp);
+
+  // TODO: look at exp and return if it is of a form that should
+  //       not be evaluated (if those exist)
+
+  VALUE res = run_eval(ctx);
+
+  if (type_of(res) == VAL_TYPE_SYMBOL &&
+      (dec_sym(res) == symrepr_eerror() ||
+       dec_sym(res) == symrepr_terror() ||
+       dec_sym(res) == symrepr_merror())) {
+    res =  exp;
+  }
+
+  eval_cps_drop_top_context();
+
+  return res;
+}
+
+int bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code) {
 
   // TODO: Restore SP on error return
   unsigned int pc = 0;
@@ -149,11 +170,12 @@ int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_
   VALUE curr = v;
   VALUE head;
   unsigned int n_args;
-  VALUE lookup_table = enc_sym(symrepr_nil());
 
   *err_code = COMPILER_OK;
-
   while (!done) {
+
+    curr = try_reduce_constant(curr);
+
     switch(type_of(curr)) {
     case VAL_TYPE_SYMBOL:
       // Symbols should be compiled into either of:
@@ -230,14 +252,14 @@ int bytecode_ncompile(stack *s, VALUE v, bytecode_t *bc, int max_size, int *err_
 
   bc->code_size = pc;
   bc->num_constants = const_ix;
+
   return 1;
 }
 
 
-VALUE bytecode_eval(stack *s, bytecode_t *bc, VALUE globalenv, VALUE localenv) {
+VALUE bytecode_eval(stack *s, bytecode_t *bc) {
 
   unsigned int pc=0;
-  //unsigned int code_size = bc.code_size;
   uint8_t *code = bc->code;
   bool running = true;
   uint8_t ix;
@@ -248,7 +270,6 @@ VALUE bytecode_eval(stack *s, bytecode_t *bc, VALUE globalenv, VALUE localenv) {
   bi_fptr bi_fun_ptr = NULL;
 
   while(running) {
-    
     switch(code[pc]) {
     case OP_PUSH_CONST_V:
       pc++;

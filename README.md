@@ -38,7 +38,8 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 15. Add facilities for "pre-parsing" and for uploading "heap-images" to a running system.
 16. See if it is possible to explicitly free heap values that are used as temporaries when evaluating. 
 17. Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
-18. Test on all platforms after big changes to eval_cps.c
+18. Test on all platforms after big changes to eval_cps.c.
+19. Bytecode compilation of functions (with restrictions).
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`

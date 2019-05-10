@@ -19,15 +19,19 @@
 
 #include "stack.h"
 
-typedef struct {
+typedef struct eval_context_s{
   VALUE program;
   VALUE curr_exp;
   VALUE curr_env;
   stack *K;
+  struct eval_context_s *next;
 } eval_context_t;
 
-extern uint32_t eval_cps_get_env(void);
 eval_context_t *eval_cps_get_current_context(void);
+extern eval_context_t *eval_cps_new_context_inherit_env(VALUE program, VALUE curr_exp);
+extern void eval_cps_drop_top_context(void);
+
+extern uint32_t eval_cps_get_env(void);
 extern int eval_cps_init(bool grow_continuation_stack);
 extern void eval_cps_del(void);
 extern uint32_t eval_cps_program(uint32_t lisp);
