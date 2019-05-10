@@ -58,3 +58,6 @@ dkms.conf
 *.raw
 [#]*[#]
 .[#]*[#]
+.cproject
+.project
+.settings

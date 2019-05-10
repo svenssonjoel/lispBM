@@ -5,10 +5,13 @@ ifdef HEAP_VIS
 	CCFLAGS += -DVISUALIZE_HEAP
 endif
 
+all: repl
 
-all: repl.c 
+debug: CCFLAGS += -g
+debug: repl
+
+repl: repl.c
 	gcc $(CCFLAGS) repl.c ../build/linux-x86/liblispbm.a -o repl -I../include
-
 
 clean:
 	rm repl

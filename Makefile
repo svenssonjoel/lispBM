@@ -67,6 +67,9 @@ LIB = $(BUILD_DIR)/liblispbm.a
 
 all: $(OBJECTS) $(LIB)
 
+debug: CCFLAGS += -g 
+debug: $(OBJECTS) $(LIB)
+
 $(LIB): $(OBJECTS)
 	$(AR) -rcs $@ $(OBJECTS)
 
