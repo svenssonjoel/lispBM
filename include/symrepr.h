@@ -32,13 +32,13 @@
 #define SPECIAL_SYM_RECOVERED   0x0006FFFF
 #define SPECIAL_SYM_BYTECODE    0x0007FFFF
 
-extern int symrepr_addsym(char *, uint32_t*);
+extern int symrepr_addsym(char *, UINT*);
 extern int symrepr_init();
 extern void symrepr_print(void);
-extern int symrepr_lookup(char *, uint32_t*);
-extern char* symrepr_lookup_name(uint32_t);
+extern int symrepr_lookup(char *, UINT*);
+extern char* symrepr_lookup_name(UINT);
 extern void symrepr_del(void);
-extern int gensym(uint32_t *res);
+extern int gensym(UINT *res);
 
 extern uint32_t symrepr_nil(void);
 extern uint32_t symrepr_eval(void);
@@ -49,12 +49,12 @@ extern uint32_t symrepr_cond(void);
 extern uint32_t symrepr_lambda(void);
 extern uint32_t symrepr_closure(void);
 extern uint32_t symrepr_let(void);
+extern uint32_t symrepr_define(void);
 
 extern uint32_t symrepr_rerror(void);
 extern uint32_t symrepr_terror(void);
 extern uint32_t symrepr_eerror(void);
 extern uint32_t symrepr_merror(void);
 
-extern uint32_t symrepr_define(void);
-
+extern bool symrepr_is_error(UINT symrep);
 #endif

@@ -84,9 +84,8 @@ VALUE eval_cps_bi_eval(VALUE exp) {
 VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
 
   VALUE exp = car(arg_list); // todo check for error
-  
   int err;
-  
+
   eval_context_t *ctx = eval_cps_get_current_context();
   bytecode_t *bc = malloc(sizeof(bytecode_t));
   if (!bytecode_create(bc, 4096)) {
@@ -101,7 +100,7 @@ VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
   if (is_ptr(res)) {
     res = set_ptr_type(res, PTR_TYPE_BYTECODE);
   }
-  
+
   return res;
 }
 
@@ -123,6 +122,7 @@ VALUE cont_set_global_env(eval_context_t *ctx, VALUE val, bool *perform_gc){
     }
     curr = cdr(curr);
   }
+
   VALUE keyval;
   keyval = cons(key,val);
   if (type_of(keyval) == VAL_TYPE_SYMBOL) {
@@ -162,7 +162,6 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     res = cont_set_global_env(ctx, arg, perform_gc);
     *app_cont = true;
     return res;
-
   case FUNCTION_APP: {
     VALUE args;
     VALUE args_rev;
@@ -210,7 +209,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       eval_context_t *ctx = eval_cps_get_current_context();
 
       VALUE curr_arg = args_rev;
- 
+
       while (curr_arg != NIL) {
 	push_u32(ctx->K, car(curr_arg));
       }
@@ -280,7 +279,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     VALUE rest;
 
     pop_u32_3(ctx->K, &key, &env, &rest);
-    
+
     env_modify_binding(env, key, arg);
 
     if ( type_of(rest) == PTR_TYPE_CONS ){
@@ -307,15 +306,13 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 
     pop_u32_2(ctx->K, &then_branch, &else_branch);
 
-    if (type_of(arg) == VAL_TYPE_SYMBOL &&
-	dec_sym(arg) == symrepr_true()) {
+    if (type_of(arg) == VAL_TYPE_SYMBOL && dec_sym(arg) == symrepr_true()) {
       ctx->curr_exp = then_branch;
     } else {
       ctx->curr_exp = else_branch;
     }
     return 0;
-
-  } break;
+  }
   } // end switch
   *done = true;
   return enc_sym(symrepr_eerror());
@@ -357,11 +354,7 @@ VALUE run_eval(eval_context_t *ctx){
     }
 
     if (app_cont) {
-      r = apply_continuation(ctx,
-			     r,
-			     &done,
-			     &perform_gc,
-			     &app_cont);
+      r = apply_continuation(ctx, r, &done, &perform_gc, &app_cont);
       continue;
     }
     app_cont = false;
@@ -465,7 +458,7 @@ VALUE run_eval(eval_context_t *ctx){
 	  push_u32_3(ctx->K,
 		     car(cdr(cdr(cdr(ctx->curr_exp)))), // Else branch
 		     car(cdr(cdr(ctx->curr_exp))),      // Then branch
-		     enc_u(IF)); 
+		     enc_u(IF));
 	  ctx->curr_exp = car(cdr(ctx->curr_exp));
 	  continue;
 	}
@@ -520,7 +513,8 @@ VALUE run_eval(eval_context_t *ctx){
 	r = NIL;
 	continue;
       } else {
-	push_u32_4(ctx->K, ctx->curr_env, NIL, cdr(cdr(ctx->curr_exp)), enc_u(ARG_LIST));
+	push_u32_4(ctx->K, ctx->curr_env, NIL,
+		   cdr(cdr(ctx->curr_exp)), enc_u(ARG_LIST));
 
 	ctx->curr_exp = car(cdr(ctx->curr_exp));;
 	continue;
@@ -543,10 +537,7 @@ VALUE eval_cps_program(VALUE lisp) {
   VALUE res = NIL;
   VALUE curr = lisp;
 
-  if (dec_sym(lisp) == symrepr_eerror() ||
-      dec_sym(lisp) == symrepr_rerror() ||
-      dec_sym(lisp) == symrepr_merror() ||
-      dec_sym(lisp) == symrepr_terror())  return lisp;
+  if (symrepr_is_error(dec_sym(lisp))) return lisp;
 
   while (type_of(curr) == PTR_TYPE_CONS) {
     if (ctx->K->sp > 0) {

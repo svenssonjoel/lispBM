@@ -149,6 +149,17 @@ UINT symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }
 UINT symrepr_merror(void)  { return def_repr[DEF_REPR_MERROR]; }
 UINT symrepr_define(void)  { return def_repr[DEF_REPR_DEFINE]; }
 
+extern bool symrepr_is_error(UINT symrep) {
+  if (symrep == def_repr[DEF_REPR_RERROR] ||
+      symrep == def_repr[DEF_REPR_TERROR] ||
+      symrep == def_repr[DEF_REPR_RERROR] ||
+      symrep == def_repr[DEF_REPR_MERROR]) {
+    return true;
+  }
+  return false;
+}
+
+
 int symrepr_init() {
 #ifdef TINY_SYMTAB
   name_list = NULL; /* empty list of symbol names */
@@ -364,7 +375,6 @@ int symrepr_addsym(char *name, UINT* id) {
     }
 
   }
-
 
   return 1;
 #else
