@@ -40,21 +40,22 @@ extern char* symrepr_lookup_name(UINT);
 extern void symrepr_del(void);
 extern int gensym(UINT *res);
 
-extern uint32_t symrepr_nil(void);
-extern uint32_t symrepr_eval(void);
-extern uint32_t symrepr_quote(void);
-extern uint32_t symrepr_true(void);
-extern uint32_t symrepr_if(void);
-extern uint32_t symrepr_cond(void);
-extern uint32_t symrepr_lambda(void);
-extern uint32_t symrepr_closure(void);
-extern uint32_t symrepr_let(void);
-extern uint32_t symrepr_define(void);
+extern UINT symrepr_nil(void);
+extern UINT symrepr_eval(void);
+extern UINT symrepr_quote(void);
+extern UINT symrepr_true(void);
+extern UINT symrepr_if(void);
+extern UINT symrepr_cond(void);
+extern UINT symrepr_lambda(void);
+extern UINT symrepr_closure(void);
+extern UINT symrepr_let(void);
+extern UINT symrepr_define(void);
+extern UINT symrepr_progn(void);
 
-extern uint32_t symrepr_rerror(void);
-extern uint32_t symrepr_terror(void);
-extern uint32_t symrepr_eerror(void);
-extern uint32_t symrepr_merror(void);
+extern UINT symrepr_rerror(void);
+extern UINT symrepr_terror(void);
+extern UINT symrepr_eerror(void);
+extern UINT symrepr_merror(void);
 
 extern bool symrepr_is_error(UINT symrep);
 #endif

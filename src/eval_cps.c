@@ -39,6 +39,7 @@
 #define IF                6
 #define ARG_LIST          7
 #define EVAL              8
+#define PROGN_REST        9
 
 VALUE run_eval(eval_context_t *ctx);
 
@@ -162,6 +163,25 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     res = cont_set_global_env(ctx, arg, perform_gc);
     *app_cont = true;
     return res;
+  case PROGN_REST: {
+    VALUE rest;
+    pop_u32(ctx->K, &rest);
+    if (type_of(rest) == VAL_TYPE_SYMBOL && rest == NIL) {
+      res = arg;
+      *app_cont = true;
+      return res;
+    }
+
+    if (symrepr_is_error(rest)) {
+      res = rest;
+      *done = true;
+      return res;
+    }
+
+    push_u32_2(ctx->K, cdr(rest), enc_u(PROGN_REST));
+    ctx->curr_exp = car(rest);
+    return enc_u(0);
+  } 
   case FUNCTION_APP: {
     VALUE args;
     VALUE args_rev;
@@ -412,10 +432,31 @@ VALUE run_eval(eval_context_t *ctx){
 	      key == NIL) {
 	    done = true;
 	    r =  enc_sym(symrepr_eerror());
+	    continue;
 	  }
 
 	  push_u32_2(ctx->K, key, enc_u(SET_GLOBAL_ENV));
 	  ctx->curr_exp = val_exp;
+	  continue;
+	}
+
+	// Special form: PROGN
+	if (dec_sym(head) == symrepr_progn()) {
+	  VALUE exps = cdr(ctx->curr_exp);
+
+	  if (type_of(exps) == VAL_TYPE_SYMBOL && exps == NIL) {
+	    r = enc_sym(symrepr_nil());
+	    app_cont = true;
+	    continue;
+	  }
+
+	  if (symrepr_is_error(exps)) {
+	    r = exps;
+	    done = true;
+	    continue;
+	  }
+	  push_u32_2(ctx->K, cdr(exps), enc_u(PROGN_REST));
+	  ctx->curr_exp = car(exps);
 	  continue;
 	}
 

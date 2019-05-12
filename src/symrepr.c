@@ -62,12 +62,13 @@
 #define DEF_REPR_EERROR    10  /* EVAL ERROR */
 #define DEF_REPR_MERROR    11
 #define DEF_REPR_DEFINE    12
+#define DEF_REPR_PROGN     13
+
+static UINT def_repr[14];
 
 static UINT gensym_next = HASHTAB_SIZE;
 
 static UINT hash_string(char *str, UINT modulo);
-
-static UINT def_repr[13];
 
 typedef struct s_name_mapping {
   UINT key; /* hash including collision id */
@@ -130,7 +131,8 @@ int add_default_symbols() {
   res &= symrepr_addsym("type_error" , &def_repr[DEF_REPR_TERROR]);
   res &= symrepr_addsym("eval_error" , &def_repr[DEF_REPR_EERROR]);
   res &= symrepr_addsym("out_of_memory_error" , &def_repr[DEF_REPR_MERROR]);
-  res &= symrepr_addsym("define" , &def_repr[DEF_REPR_DEFINE]);
+  res &= symrepr_addsym("define"     , &def_repr[DEF_REPR_DEFINE]);
+  res &= symrepr_addsym("progn"      , &def_repr[DEF_REPR_PROGN]);
 
   return res;
 }
@@ -148,6 +150,7 @@ UINT symrepr_terror(void)  { return def_repr[DEF_REPR_TERROR]; }
 UINT symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }
 UINT symrepr_merror(void)  { return def_repr[DEF_REPR_MERROR]; }
 UINT symrepr_define(void)  { return def_repr[DEF_REPR_DEFINE]; }
+UINT symrepr_progn(void)   { return def_repr[DEF_REPR_PROGN]; }
 
 extern bool symrepr_is_error(UINT symrep) {
   if (symrep == def_repr[DEF_REPR_RERROR] ||
