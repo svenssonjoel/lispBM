@@ -60,6 +60,71 @@
 #define COMPILE_FUNCTION    0x00000003
 #define COMPILE_EMIT_CALL   0x00000004
 
+#define CODE_UNIT_SIZE  256
+
+typedef struct code_unit_s{
+  char *code;
+  struct code_unit_s *next; 
+} code_unit;
+
+typedef struct code_units_s {
+  struct code_units_s *next;
+  code_unit *unit;
+} code_units;
+
+typedef struct {
+  int num_constants;
+  VALUE constants[MAX_CONSTANTS];
+  code_units *code_units; 
+} code_gen_state;
+
+int code_units_add_unit(code_units *units, code_unit *unit) {
+
+  code_units *curr = units;
+  int index = 0; 
+  
+  while (curr->next != NULL) {
+    curr = curr->next;
+    index++;
+  }
+
+  index ++;
+  curr->next = (code_units *)malloc(sizeof(code_units));
+  if (curr->next == NULL) return -1;
+  curr->next->unit = unit;
+  curr->next->next = NULL;
+
+  return index;  
+}
+
+code_unit *code_units_index(code_units *units, int index) {
+
+  if (index < 0) return NULL;
+
+  code_units * curr = units;
+
+  while ( curr != NULL && index > 0 ) {
+    curr = curr->next;
+    index --;
+  }
+  if ( curr != NULL && index == 0) return curr->unit;
+  return NULL;
+}
+
+void code_units_del(code_units *units) {
+
+  code_units *curr = units;
+  while (curr != NULL) {
+    code_units *tmp = curr->next;
+    if (curr->unit->code) free(curr->unit->code);
+    if (curr->unit) free(curr->unit);
+    if (curr) free(curr);
+    curr = tmp;
+  }
+}
+
+
+
 int index_of(VALUE *constants, unsigned int num, VALUE v, unsigned int *res) {
 
   for (unsigned int i = 0; i < num; i ++) {
