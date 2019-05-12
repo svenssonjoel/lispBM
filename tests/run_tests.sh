@@ -41,6 +41,19 @@ for lisp in *.lisp; do
 	continue
     fi
 
+    if [ "$lisp" = "test_progn_0.lisp" ]; then
+	continue
+    fi
+
+    if [ "$lisp" = "test_progn_1.lisp" ]; then
+	continue
+    fi
+
+    if [ "$lisp" = "test_progn_2.lisp" ]; then
+	continue
+    fi
+
+    
     ./test_lisp_code $lisp
 
     result=$?
@@ -89,6 +102,18 @@ for lisp in *.lisp; do
     fi
 
     if [ "$lisp" = "test_tailrec_1.lisp" ]; then
+	continue
+    fi
+    
+    if [ "$lisp" = "test_progn_0.lisp" ]; then
+	continue
+    fi
+
+    if [ "$lisp" = "test_progn_1.lisp" ]; then
+	continue
+    fi
+
+    if [ "$lisp" = "test_progn_2.lisp" ]; then
 	continue
     fi
 
