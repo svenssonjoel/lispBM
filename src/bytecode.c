@@ -62,9 +62,14 @@
 
 #define CODE_UNIT_SIZE  256
 
-typedef struct code_unit_s{
-  char *code;
-  struct code_unit_s *next; 
+typedef struct code_block_list_s {
+  uint8_t *code;
+  struct code_block_list_s *next;
+} code_block_list;
+  
+typedef struct code_unit_s {
+  int size;
+  code_block_list *blocks;
 } code_unit;
 
 typedef struct code_units_s {
@@ -75,14 +80,61 @@ typedef struct code_units_s {
 typedef struct {
   int num_constants;
   VALUE constants[MAX_CONSTANTS];
-  code_units *code_units; 
+  code_units *code_units;
 } code_gen_state;
 
-int code_units_add_unit(code_units *units, code_unit *unit) {
+
+int code_unit_size(code_unit *u) {
+  return u->size;
+}
+
+int total_code_size(code_gen_state *gs) {
+  code_units *curr = gs->code_units;
+  int size = 0;
+  while (curr != NULL) {
+    size += code_unit_size(curr->unit);
+    curr = curr->next;
+  }
+  return size;
+}
+
+bool emit_byte(code_unit *unit, unsigned int *pc, uint8_t b) {
+  *pc = *pc + 1;
+  unit->size ++;
+  unsigned int unit_no = *pc / CODE_UNIT_SIZE;
+  unsigned int unit_ix = *pc % CODE_UNIT_SIZE;
+
+  code_block_list *curr = unit->blocks;
+  code_block_list *prev = NULL;
+  unsigned int i = 0;
+
+  while (curr != NULL && i < unit_no) {
+    prev = curr;
+    i++; curr = curr->next;
+  }
+  
+  if (curr == NULL && prev == NULL) {
+    printf("emit_byte error\n");
+    return false;
+  }
+  
+  if (curr == NULL && prev != NULL) {
+    curr = (code_block_list*)malloc(sizeof(code_block_list));
+    curr->code = (uint8_t*)malloc(CODE_UNIT_SIZE);
+    memset(curr->code, 0, CODE_UNIT_SIZE);
+    curr->next = NULL;
+    prev->next = curr;
+  } 
+  
+  curr->code[unit_ix] = b;
+  return true;
+}
+
+bool code_units_add_unit(code_units *units, code_unit *unit, unsigned int *res) {
 
   code_units *curr = units;
-  int index = 0; 
-  
+  int index = 0;
+
   while (curr->next != NULL) {
     curr = curr->next;
     index++;
@@ -90,11 +142,12 @@ int code_units_add_unit(code_units *units, code_unit *unit) {
 
   index ++;
   curr->next = (code_units *)malloc(sizeof(code_units));
-  if (curr->next == NULL) return -1;
+  if (curr->next == NULL) return false;
   curr->next->unit = unit;
   curr->next->next = NULL;
 
-  return index;  
+  *res = index;
+  return true;
 }
 
 code_unit *code_units_index(code_units *units, int index) {
@@ -116,14 +169,18 @@ void code_units_del(code_units *units) {
   code_units *curr = units;
   while (curr != NULL) {
     code_units *tmp = curr->next;
-    if (curr->unit->code) free(curr->unit->code);
+    code_block_list *blks = curr->unit->blocks;
+    while (blks != NULL) {
+      free(blks->code);
+      code_block_list *this = blks;
+      blks = blks->next;
+      free(this);
+    }
     if (curr->unit) free(curr->unit);
     if (curr) free(curr);
     curr = tmp;
   }
 }
-
-
 
 int index_of(VALUE *constants, unsigned int num, VALUE v, unsigned int *res) {
 
@@ -136,7 +193,7 @@ int index_of(VALUE *constants, unsigned int num, VALUE v, unsigned int *res) {
   return 0;
 }
 
-void continuation(stack *s, unsigned int *pc, unsigned char *code, VALUE *curr, bool *done) {
+void continuation(stack *s, unsigned int *pc, uint8_t *code, VALUE *curr, bool *done) {
 
   UINT top;
   pop_u32(s, &top);
