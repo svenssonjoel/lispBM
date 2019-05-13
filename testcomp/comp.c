@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
   printf("PARSING\n");
   t = tokpar_parse("(+ (+ 1 2) (+ 1 2))");
   printf("COMPILING: "); simple_print(car(t)); printf("\n");
-  bytecode_ncompile(s, car(t), &bc, 1000, &err);
+  bytecode_compile(s, car(t), &bc, &err);
 
   result = bytecode_eval(s, &bc);
 
@@ -81,12 +81,12 @@ int main(int argc, char **argv) {
   printf("PARSING\n");
   t = tokpar_parse("(lambda (x) (+ x 1))");
   printf("COMPILING: "); simple_print(car(t)); printf("\n");
-  if (! bytecode_ncompile(s, car(t), &bc, 1000, &err) ) {
+  if (! bytecode_compile(s, car(t), &bc, &err) ) {
     printf("FAILED TO COMPILE: %d\n", err);
     return 0;
   }
   
-  result = bytecode_eval(s, &bc, enc_sym(symrepr_nil()),enc_sym(symrepr_nil()));
+  result = bytecode_eval(s, &bc);
 
   /* for (unsigned int i = 0; i < bc.code_size +1; i ++) { */
 

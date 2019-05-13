@@ -40,9 +40,9 @@
 #define ERROR_FORBIDDEN_FORM_DEFINE    -4
 #define ERROR_UNDEFINED                -5
 
-int bytecode_create(bytecode_t *bc, int size);
+bool bytecode_create(bytecode_t *bc, int size);
 void bytecode_del(bytecode_t *bc);
-int bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code);
+bool bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code);
 int bytecode_snprint(char *buf, int size, bytecode_t bc);
 VALUE bytecode_eval(stack *s, bytecode_t *bc);
 

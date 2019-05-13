@@ -60,126 +60,81 @@
 #define COMPILE_FUNCTION    0x00000003
 #define COMPILE_EMIT_CALL   0x00000004
 
-#define CODE_UNIT_SIZE  256
-
-typedef struct code_block_list_s {
-  uint8_t *code;
-  struct code_block_list_s *next;
-} code_block_list;
-  
-typedef struct code_unit_s {
-  int size;
-  code_block_list *blocks;
-} code_unit;
-
-typedef struct code_units_s {
-  struct code_units_s *next;
-  code_unit *unit;
-} code_units;
+#define CODE_REALLOC_STEP   2048
+#define FUNCTIONS_REALLOC_STEP 100
 
 typedef struct {
-  int num_constants;
+  uint8_t *code;
+  unsigned int code_size;
+  unsigned int code_buffer_size;
+  unsigned int pc;
+} code_buffer;
+
+typedef struct {
+  code_buffer **functions; // pointer to array of functions
+  unsigned int functions_buffer_size;
+  unsigned int num_functions;
   VALUE constants[MAX_CONSTANTS];
-  code_units *code_units;
+  unsigned int current_function;
 } code_gen_state;
 
-
-int code_unit_size(code_unit *u) {
-  return u->size;
+unsigned int total_code_size(code_gen_state *gs) {
+  unsigned int acc_size = 0;
+  for (unsigned int i = 0; i < gs->num_functions; i++) {
+    acc_size = gs->functions[i]->code_size;
+  }
+  return acc_size;
 }
 
-int total_code_size(code_gen_state *gs) {
-  code_units *curr = gs->code_units;
-  int size = 0;
-  while (curr != NULL) {
-    size += code_unit_size(curr->unit);
-    curr = curr->next;
-  }
-  return size;
-}
+bool emit_byte(code_gen_state *gs, uint8_t b) {
 
-bool emit_byte(code_unit *unit, unsigned int *pc, uint8_t b) {
-  *pc = *pc + 1;
-  unit->size ++;
-  unsigned int unit_no = *pc / CODE_UNIT_SIZE;
-  unsigned int unit_ix = *pc % CODE_UNIT_SIZE;
+  int ix = gs->current_function;
 
-  code_block_list *curr = unit->blocks;
-  code_block_list *prev = NULL;
-  unsigned int i = 0;
+  if (gs->functions[ix]->code_size == gs->functions[ix]->code_buffer_size) {
+    uint8_t *new_buffer =
+      (uint8_t*)realloc(gs->functions[ix]->code,
+			gs->functions[ix]->code_buffer_size +
+			CODE_REALLOC_STEP);
+    if (new_buffer == NULL) return false;
+    gs->functions[ix]->code = new_buffer;
+  }
+  gs->functions[ix]->code[gs->functions[ix]->pc] = b;
+  gs->functions[ix]->pc = gs->functions[ix]->pc + 1;
 
-  while (curr != NULL && i < unit_no) {
-    prev = curr;
-    i++; curr = curr->next;
-  }
-  
-  if (curr == NULL && prev == NULL) {
-    printf("emit_byte error\n");
-    return false;
-  }
-  
-  if (curr == NULL && prev != NULL) {
-    curr = (code_block_list*)malloc(sizeof(code_block_list));
-    curr->code = (uint8_t*)malloc(CODE_UNIT_SIZE);
-    memset(curr->code, 0, CODE_UNIT_SIZE);
-    curr->next = NULL;
-    prev->next = curr;
-  } 
-  
-  curr->code[unit_ix] = b;
   return true;
 }
 
-bool code_units_add_unit(code_units *units, code_unit *unit, unsigned int *res) {
+bool next_function(code_gen_state *gs, unsigned int *res) {
 
-  code_units *curr = units;
-  int index = 0;
+  if ( gs->num_functions == gs->functions_buffer_size) {
+    code_buffer **new_buffer =
+      (code_buffer **)realloc(gs->functions,
+			      gs->functions_buffer_size +
+			      (FUNCTIONS_REALLOC_STEP *
+			       sizeof(code_buffer*)));
+    if (!new_buffer) return false;
+    gs->functions = new_buffer;
 
-  while (curr->next != NULL) {
-    curr = curr->next;
-    index++;
   }
 
-  index ++;
-  curr->next = (code_units *)malloc(sizeof(code_units));
-  if (curr->next == NULL) return false;
-  curr->next->unit = unit;
-  curr->next->next = NULL;
+  if ( gs->num_functions < gs->functions_buffer_size) {
+    *res = gs->num_functions;
+    gs->functions[gs->num_functions]->code = (uint8_t*)malloc(CODE_REALLOC_STEP);
+    if (!gs->functions[gs->num_functions]->code) return false;
+    gs->functions[gs->num_functions]->code_size = 0;
+    gs->functions[gs->num_functions]->code_buffer_size = CODE_REALLOC_STEP;
+    gs->num_functions++;
+  }
 
-  *res = index;
   return true;
 }
 
-code_unit *code_units_index(code_units *units, int index) {
+void code_gen_state_del(code_gen_state *gs) {
 
-  if (index < 0) return NULL;
-
-  code_units * curr = units;
-
-  while ( curr != NULL && index > 0 ) {
-    curr = curr->next;
-    index --;
+  for (unsigned int i = 0; i < gs->num_functions; i ++) {
+    if (gs->functions[i]->code) free(gs->functions[i]->code);
   }
-  if ( curr != NULL && index == 0) return curr->unit;
-  return NULL;
-}
-
-void code_units_del(code_units *units) {
-
-  code_units *curr = units;
-  while (curr != NULL) {
-    code_units *tmp = curr->next;
-    code_block_list *blks = curr->unit->blocks;
-    while (blks != NULL) {
-      free(blks->code);
-      code_block_list *this = blks;
-      blks = blks->next;
-      free(this);
-    }
-    if (curr->unit) free(curr->unit);
-    if (curr) free(curr);
-    curr = tmp;
-  }
+  free(gs);
 }
 
 int index_of(VALUE *constants, unsigned int num, VALUE v, unsigned int *res) {
@@ -242,12 +197,12 @@ void continuation(stack *s, unsigned int *pc, uint8_t *code, VALUE *curr, bool *
   }
 }
 
-int bytecode_create(bytecode_t *bc, int size) {
+bool bytecode_create(bytecode_t *bc, int size) {
   bc->code = NULL;
   bc->code = malloc(size);
-  if (bc->code == NULL) return 0;
+  if (bc->code == NULL) return false;
   bc->num_constants = 0;
-  return 1;
+  return true;
 }
 
 void bytecode_del(bytecode_t *bc) {
@@ -279,7 +234,43 @@ VALUE try_reduce_constant(VALUE exp) {
   return res;
 }
 
-int bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code) {
+code_gen_state* create_gen_state(void) {
+  code_gen_state* state = (code_gen_state *)malloc(sizeof(code_gen_state));
+  if(!state) return NULL;
+
+  state->functions = (code_buffer**)malloc(FUNCTIONS_REALLOC_STEP *
+					   sizeof(code_buffer*));
+  if (!state->functions) {
+    free(state);
+    return NULL;
+  }
+  state->functions_buffer_size = FUNCTIONS_REALLOC_STEP;
+  state->num_functions = 0;
+  state->current_function = 0;
+  return state;
+}
+
+bytecode_t *state_to_bytecode(code_gen_state *state) {
+  unsigned int size = total_code_size(state);
+
+  bytecode_t *bc = (bytecode_t *)malloc(sizeof(bytecode_t));
+  if (!bc) return false;
+  bytecode_create(bc, size);
+
+  // TODO: Implement.
+
+  return bc;
+}
+
+
+bool bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code) {
+
+  code_gen_state *state;
+
+  printf("before\n");
+  state = create_gen_state();
+  if (!state) return false;
+  printf("after\n");
 
   // TODO: Restore SP on error return
   unsigned int pc = 0;
@@ -295,9 +286,7 @@ int bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code) {
 
   *err_code = COMPILER_OK;
   while (!done) {
-
-    curr = try_reduce_constant(curr);
-
+    //curr = try_reduce_constant(curr);
     switch(type_of(curr)) {
     case VAL_TYPE_SYMBOL:
       // Symbols should be compiled into either of:
@@ -333,27 +322,27 @@ int bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code) {
       if (type_of(head) == VAL_TYPE_SYMBOL) {
 	if (dec_sym(head) == symrepr_quote()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return 0;
+	  return false;
 	}
 	if (dec_sym(head) == symrepr_define()) {
 	  *err_code = ERROR_FORBIDDEN_FORM_DEFINE;
-	  return 0;
+	  return false;
 	}
 	if (dec_sym(head) == symrepr_let()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return 0;
+	  return false;
 	}
 	if (dec_sym(head) == symrepr_lambda()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return 0;
+	  return false;
 	}
 	if (dec_sym(head) == symrepr_closure()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return 0;
+	  return false;
 	}
 	if (dec_sym(head) == symrepr_if()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return 0;
+	  return false;
 	}
       } // end if head is special form symbol
       // possibly function application
@@ -368,7 +357,7 @@ int bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code) {
       break;
     default:
       *err_code = ERROR_CANNOT_COMPILE;
-      return 0;
+      return true;
     }
   }
 
