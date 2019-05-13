@@ -56,22 +56,22 @@ int main(int argc, char **argv) {
 
   stack *s = stack_init(100,true);
   VALUE t;
-  bytecode_t bc;
+  bytecode_t *bc;
   int err;
   VALUE result;
 
-  bytecode_create(&bc, 1000);
+  //bytecode_create(&bc, 1000);
 
   printf("PARSING\n");
   t = tokpar_parse("(+ (+ 1 2) (+ 1 2))");
   printf("COMPILING: "); simple_print(car(t)); printf("\n");
-  bytecode_compile(s, car(t), &bc, &err);
+  bc = bytecode_compile(s, car(t), &err);
 
-  result = bytecode_eval(s, &bc);
+  result = bytecode_eval(s, bc);
 
-  for (unsigned int i = 0; i < bc.code_size +1; i ++) {
+  for (unsigned int i = 0; i < bc->code_size +1; i ++) {
 
-    printf("%u\n", bc.code[i]);
+    printf("%u\n", bc->code[i]);
   }
 
   printf("Result: "); simple_print(result); printf("\n");
@@ -81,12 +81,13 @@ int main(int argc, char **argv) {
   printf("PARSING\n");
   t = tokpar_parse("(lambda (x) (+ x 1))");
   printf("COMPILING: "); simple_print(car(t)); printf("\n");
-  if (! bytecode_compile(s, car(t), &bc, &err) ) {
+  bc = bytecode_compile(s, car(t), &err);
+  if (!bc ) {
     printf("FAILED TO COMPILE: %d\n", err);
     return 0;
   }
   
-  result = bytecode_eval(s, &bc);
+  result = bytecode_eval(s, bc);
 
   /* for (unsigned int i = 0; i < bc.code_size +1; i ++) { */
 

@@ -42,7 +42,7 @@
 
 bool bytecode_create(bytecode_t *bc, int size);
 void bytecode_del(bytecode_t *bc);
-bool bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code);
+bytecode_t *bytecode_compile(stack *s, VALUE v, int *err_code);
 int bytecode_snprint(char *buf, int size, bytecode_t bc);
 VALUE bytecode_eval(stack *s, bytecode_t *bc);
 

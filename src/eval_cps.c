@@ -86,7 +86,7 @@ VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
 
   VALUE exp = car(arg_list); // todo check for error
   int err;
-
+  /*
   eval_context_t *ctx = eval_cps_get_current_context();
   bytecode_t *bc = malloc(sizeof(bytecode_t));
   if (!bytecode_create(bc, 4096)) {
@@ -101,8 +101,10 @@ VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
   if (is_ptr(res)) {
     res = set_ptr_type(res, PTR_TYPE_BYTECODE);
   }
-
+  
   return res;
+  */
+  return enc_sym(symrepr_nil());
 }
 
 // ////////////////////////////////////////////////////////

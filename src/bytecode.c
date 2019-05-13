@@ -75,32 +75,34 @@ typedef struct {
   unsigned int functions_buffer_size;
   unsigned int num_functions;
   VALUE constants[MAX_CONSTANTS];
+  unsigned int constant_ix; 
   unsigned int current_function;
 } code_gen_state;
 
 unsigned int total_code_size(code_gen_state *gs) {
   unsigned int acc_size = 0;
   for (unsigned int i = 0; i < gs->num_functions; i++) {
-    acc_size = gs->functions[i]->code_size;
+    acc_size += gs->functions[i]->code_size;
   }
   return acc_size;
 }
 
-bool emit_byte(code_gen_state *gs, uint8_t b) {
-
+bool emit(code_gen_state *gs, uint8_t b) {
+  
   int ix = gs->current_function;
-
+  
   if (gs->functions[ix]->code_size == gs->functions[ix]->code_buffer_size) {
     uint8_t *new_buffer =
       (uint8_t*)realloc(gs->functions[ix]->code,
 			gs->functions[ix]->code_buffer_size +
 			CODE_REALLOC_STEP);
     if (new_buffer == NULL) return false;
+    gs->functions[ix]->code_buffer_size += CODE_REALLOC_STEP;
     gs->functions[ix]->code = new_buffer;
   }
   gs->functions[ix]->code[gs->functions[ix]->pc] = b;
   gs->functions[ix]->pc = gs->functions[ix]->pc + 1;
-
+  gs->functions[ix]->code_size++;
   return true;
 }
 
@@ -148,14 +150,15 @@ int index_of(VALUE *constants, unsigned int num, VALUE v, unsigned int *res) {
   return 0;
 }
 
-void continuation(stack *s, unsigned int *pc, uint8_t *code, VALUE *curr, bool *done) {
+void continuation(stack *s, code_gen_state *gs, VALUE *curr, bool *done) {
 
   UINT top;
   pop_u32(s, &top);
   switch(dec_u(top)) {
 
   case COMPILE_DONE:
-    code[*pc] = OP_DONE; *pc = *pc+1;
+    emit(gs, OP_DONE);
+    //code[*pc] = OP_DONE; *pc = *pc+1;
     *done = true;
     break;
   case COMPILE_ARG_LIST: {
@@ -163,7 +166,7 @@ void continuation(stack *s, unsigned int *pc, uint8_t *code, VALUE *curr, bool *
     pop_u32(s,&rest);
     if (type_of(rest) == VAL_TYPE_SYMBOL &&
 	dec_sym(rest) == symrepr_nil()) {
-      continuation(s, pc, code, curr, done);
+      continuation(s, gs, curr, done);
     } else {
       VALUE head = car(rest);
       push_u32(s, cdr(rest));
@@ -185,10 +188,12 @@ void continuation(stack *s, unsigned int *pc, uint8_t *code, VALUE *curr, bool *
     UINT n_args;
     pop_u32(s, &n_args);
 
-    code[*pc] = OP_FUN_APP; *pc = *pc+1;
-    code[*pc] = n_args; *pc = *pc+1;
+    emit(gs, OP_FUN_APP);
+    emit(gs, n_args);
+    //code[*pc] = OP_FUN_APP; *pc = *pc+1;
+    //code[*pc] = n_args; *pc = *pc+1;
 
-    continuation(s, pc, code, curr, done);
+    continuation(s, gs, curr, done);
     break;
   }
 
@@ -244,40 +249,58 @@ code_gen_state* create_gen_state(void) {
     free(state);
     return NULL;
   }
+  for (int i = 0; i < FUNCTIONS_REALLOC_STEP; i ++) {
+    state->functions[i] = (code_buffer*)malloc(sizeof(code_buffer));
+    state->functions[i]->code = NULL;
+    state->functions[i]->code_size = 0;
+    state->functions[i]->code_buffer_size = 0;
+    state->functions[i]->pc = 0;
+  }
   state->functions_buffer_size = FUNCTIONS_REALLOC_STEP;
-  state->num_functions = 0;
+  state->num_functions = 1;
   state->current_function = 0;
+  state->constant_ix = 0;
   return state;
 }
 
-bytecode_t *state_to_bytecode(code_gen_state *state) {
-  unsigned int size = total_code_size(state);
+bytecode_t *state_to_bytecode(code_gen_state *gs) {
+  unsigned int size = total_code_size(gs);
 
   bytecode_t *bc = (bytecode_t *)malloc(sizeof(bytecode_t));
   if (!bc) return false;
   bytecode_create(bc, size);
 
-  // TODO: Implement.
+  for (unsigned int i = 0; i < MAX_CONSTANTS; i ++) {
+    bc->constants[i] = gs->constants[i];
+  }
+  bc->code_size = size;
+  bc->num_constants = gs->constant_ix;
+  unsigned int pc = 0;
 
+  // TODO: figure out how to relocate calls....
+  for (unsigned int i = 0; i < gs->num_functions; i ++) {
+    code_buffer *code_buf = gs->functions[i];
+    for (unsigned int j = 0; j < code_buf->code_size; j++) {
+      bc->code[pc++] = code_buf->code[j];
+    }
+  }
   return bc;
 }
 
 
-bool bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code) {
+bytecode_t * bytecode_compile(stack *s, VALUE v, int *err_code) {
 
-  code_gen_state *state;
+  code_gen_state *gs;
 
-  printf("before\n");
-  state = create_gen_state();
-  if (!state) return false;
-  printf("after\n");
+  gs = create_gen_state();
+  if (!gs) return NULL;
 
   // TODO: Restore SP on error return
-  unsigned int pc = 0;
-  unsigned int const_ix = 0;
+  // unsigned int pc = 0;
+  // unsigned int const_ix = 0;
 
-  VALUE   *consts = bc->constants;
-  uint8_t *code = bc->code;
+  //VALUE   *consts = bc->constants;
+  //uint8_t *code = bc->code;
   push_u32(s, enc_u(COMPILE_DONE));
   bool done = false;
   VALUE curr = v;
@@ -299,21 +322,30 @@ bool bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code) {
     case VAL_TYPE_U:
     case VAL_TYPE_I: {
       unsigned int ix;
-      if ( index_of(consts, const_ix, curr, &ix) ){
-	code[pc++] = OP_PUSH_CONST_V;
-	code[pc++] = (uint8_t)ix;
-      }else if (const_ix < MAX_CONSTANTS) {
-	consts[const_ix] = curr;
-	code[pc++] = OP_PUSH_CONST_V;
-	code[pc++] = (uint8_t)const_ix++;
+      if ( index_of(gs->constants, gs->constant_ix, curr, &ix) ){
+	emit(gs, OP_PUSH_CONST_V);
+	emit(gs, (uint8_t)ix);
+	//code[pc++] = OP_PUSH_CONST_V;
+	//code[pc++] = (uint8_t)ix;
+      }else if (gs->constant_ix < MAX_CONSTANTS) {
+	gs->constants[gs->constant_ix] = curr;
+	emit(gs, OP_PUSH_CONST_V);
+	emit(gs, (uint8_t)gs->constant_ix++);
+	  //code[pc++] = OP_PUSH_CONST_V;
+	  //code[pc++] = (uint8_t)const_ix++;
       } else {
-	code[pc++] = OP_PUSH_CONST_D;
-	code[pc++] = (uint8_t)curr >> 24;
-	code[pc++] = (uint8_t)curr >> 16;
-	code[pc++] = (uint8_t)curr >> 8;
-	code[pc++] = (uint8_t)curr;
+	emit(gs, OP_PUSH_CONST_D);
+	emit(gs, (uint8_t)curr >> 24);
+	emit(gs, (uint8_t)curr >> 16);
+	emit(gs, (uint8_t)curr >> 8);
+	emit(gs, (uint8_t)curr);  
+	//code[pc++] = OP_PUSH_CONST_D;
+	//code[pc++] = (uint8_t)curr >> 24;
+	//code[pc++] = (uint8_t)curr >> 16;
+	//code[pc++] = (uint8_t)curr >> 8;
+	//code[pc++] = (uint8_t)curr;
       }
-      continuation(s, &pc, code,  &curr, &done);
+      continuation(s, gs,  &curr, &done);
     }break;
     case PTR_TYPE_CONS:
       head = car(curr);
@@ -322,27 +354,27 @@ bool bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code) {
       if (type_of(head) == VAL_TYPE_SYMBOL) {
 	if (dec_sym(head) == symrepr_quote()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return false;
+	  return NULL;
 	}
 	if (dec_sym(head) == symrepr_define()) {
 	  *err_code = ERROR_FORBIDDEN_FORM_DEFINE;
-	  return false;
+	  return NULL;
 	}
 	if (dec_sym(head) == symrepr_let()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return false;
+	  return NULL;
 	}
 	if (dec_sym(head) == symrepr_lambda()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return false;
+	  return NULL;
 	}
 	if (dec_sym(head) == symrepr_closure()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return false;
+	  return NULL;
 	}
 	if (dec_sym(head) == symrepr_if()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return false;
+	  return NULL;
 	}
       } // end if head is special form symbol
       // possibly function application
@@ -357,14 +389,14 @@ bool bytecode_compile(stack *s, VALUE v, bytecode_t *bc, int *err_code) {
       break;
     default:
       *err_code = ERROR_CANNOT_COMPILE;
-      return true;
+      return NULL;
     }
   }
-
-  bc->code_size = pc;
-  bc->num_constants = const_ix;
-
-  return 1;
+  bytecode_t *bc;
+  
+  bc = state_to_bytecode(gs);
+  
+  return bc;
 }
 
 
