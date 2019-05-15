@@ -55,13 +55,24 @@
  *      as symbols may get different ID's based on order of being added to the system.
  */
 
-#define COMPILE_DONE        0x00000001
-#define COMPILE_ARG_LIST    0x00000002
-#define COMPILE_FUNCTION    0x00000003
-#define COMPILE_EMIT_CALL   0x00000004
+#define COMPILE_DONE          0x00000001
+#define COMPILE_ARG_LIST      0x00000002
+#define COMPILE_FUNCTION_APP  0x00000003
+#define COMPILE_EMIT_CALL     0x00000004
 
 #define CODE_REALLOC_STEP   2048
 #define FUNCTIONS_REALLOC_STEP 100
+
+char *bytecode_compiler_errors[6] = {"COMPILE_OK",
+				     "NOT_ENOUGH_MEMORY",
+				     "FORM_NOT_IMPLEMENTED",
+				     "FORM_NOT_ALLOWED",
+				     "NOT_A_CLOSURE",
+				     "CANNOT_COMPILE"};
+
+char *bytecode_get_error(int err) {
+  return bytecode_compiler_errors[err];
+}
 
 typedef struct {
   uint8_t *code;
@@ -75,7 +86,7 @@ typedef struct {
   unsigned int functions_buffer_size;
   unsigned int num_functions;
   VALUE constants[MAX_CONSTANTS];
-  unsigned int constant_ix; 
+  unsigned int constant_ix;
   unsigned int current_function;
 } code_gen_state;
 
@@ -88,9 +99,9 @@ unsigned int total_code_size(code_gen_state *gs) {
 }
 
 bool emit(code_gen_state *gs, uint8_t b) {
-  
+
   int ix = gs->current_function;
-  
+
   if (gs->functions[ix]->code_size == gs->functions[ix]->code_buffer_size) {
     uint8_t *new_buffer =
       (uint8_t*)realloc(gs->functions[ix]->code,
@@ -150,7 +161,13 @@ int index_of(VALUE *constants, unsigned int num, VALUE v, unsigned int *res) {
   return 0;
 }
 
-void continuation(stack *s, code_gen_state *gs, VALUE *curr, bool *done) {
+void continuation(stack *s, code_gen_state *gs, VALUE arg,
+		  VALUE *curr, bool *app_cont, bool *compile_function,
+		  bool *done) {
+
+  *app_cont = false;
+  *done = false;
+  *compile_function = false;
 
   UINT top;
   pop_u32(s, &top);
@@ -158,15 +175,15 @@ void continuation(stack *s, code_gen_state *gs, VALUE *curr, bool *done) {
 
   case COMPILE_DONE:
     emit(gs, OP_DONE);
-    //code[*pc] = OP_DONE; *pc = *pc+1;
     *done = true;
     break;
   case COMPILE_ARG_LIST: {
     VALUE rest;
+
     pop_u32(s,&rest);
     if (type_of(rest) == VAL_TYPE_SYMBOL &&
 	dec_sym(rest) == symrepr_nil()) {
-      continuation(s, gs, curr, done);
+      *app_cont = true;
     } else {
       VALUE head = car(rest);
       push_u32(s, cdr(rest));
@@ -176,24 +193,33 @@ void continuation(stack *s, code_gen_state *gs, VALUE *curr, bool *done) {
     }
     break;
   }
-  case COMPILE_FUNCTION: {
+  case COMPILE_FUNCTION_APP: {
     VALUE fun;
     pop_u32(s,&fun);
     push_u32(s, enc_u(COMPILE_EMIT_CALL));
+    *compile_function = true;
     *curr = fun;
-    *done = false;
     break;
   }
   case COMPILE_EMIT_CALL: {
     UINT n_args;
+    UINT fun = arg;
+    bi_fptr bi_fun_ptr = NULL;
     pop_u32(s, &n_args);
 
-    emit(gs, OP_FUN_APP);
-    emit(gs, n_args);
-    //code[*pc] = OP_FUN_APP; *pc = *pc+1;
-    //code[*pc] = n_args; *pc = *pc+1;
+    if (type_of(fun) == VAL_TYPE_SYMBOL) {
+      bi_fun_ptr = builtin_lookup_function(dec_sym(fun));
+      if (bi_fun_ptr) {
+	emit(gs, OP_BUILTIN_APP);
+	emit(gs, n_args);
+	emit(gs, (uint8_t)((UINT)bi_fun_ptr >> 24));
+	emit(gs, (uint8_t)((UINT)bi_fun_ptr >> 16));
+	emit(gs, (uint8_t)((UINT)bi_fun_ptr >> 8));
+	emit(gs, (uint8_t)((UINT)bi_fun_ptr));
+      }
+    }
 
-    continuation(s, gs, curr, done);
+    *app_cont = true;
     break;
   }
 
@@ -287,13 +313,7 @@ bytecode_t *state_to_bytecode(code_gen_state *gs) {
   return bc;
 }
 
-
-bytecode_t * bytecode_compile(stack *s, VALUE v, int *err_code) {
-
-  code_gen_state *gs;
-
-  gs = create_gen_state();
-  if (!gs) return NULL;
+bool do_bytecode_compile(code_gen_state *gs, stack *s, VALUE v, int *err_code) {
 
   // TODO: Restore SP on error return
   // unsigned int pc = 0;
@@ -303,50 +323,57 @@ bytecode_t * bytecode_compile(stack *s, VALUE v, int *err_code) {
   //uint8_t *code = bc->code;
   push_u32(s, enc_u(COMPILE_DONE));
   bool done = false;
+  bool app_cont = false;
+  bool compile_function = false;
   VALUE curr = v;
   VALUE head;
   unsigned int n_args;
+  UINT res = 0;
 
   *err_code = COMPILER_OK;
   while (!done) {
+
+    if (compile_function) {
+      if (type_of(curr) == VAL_TYPE_SYMBOL) {
+
+	res = curr;
+	app_cont = true;
+      } else {
+	printf("Not implementated yet.. hack hack\n");
+	return false;
+      }
+    }
+    compile_function = false;
+
+    if (app_cont) {
+      continuation(s, gs, res, &curr, &app_cont, &compile_function, &done);
+      continue;
+    }
+
     //curr = try_reduce_constant(curr);
     switch(type_of(curr)) {
     case VAL_TYPE_SYMBOL:
-      // Symbols should be compiled into either of:
-      //  -1 A a reference to the stack where the value is located
-      //  -2 A function name symbol
-      //  -3 A value looked up from the environment within which compile was called
-      //  - Does 3 make any sense at all??
-      //  - 3 is kind of needed to get ids of built in functions.
-      //  - But what if a looked up symbol results in a closure, is it sucked in and compiled as well?.
     case VAL_TYPE_U:
     case VAL_TYPE_I: {
       unsigned int ix;
       if ( index_of(gs->constants, gs->constant_ix, curr, &ix) ){
 	emit(gs, OP_PUSH_CONST_V);
 	emit(gs, (uint8_t)ix);
-	//code[pc++] = OP_PUSH_CONST_V;
-	//code[pc++] = (uint8_t)ix;
-      }else if (gs->constant_ix < MAX_CONSTANTS) {
+      } else if (gs->constant_ix < MAX_CONSTANTS) {
 	gs->constants[gs->constant_ix] = curr;
 	emit(gs, OP_PUSH_CONST_V);
 	emit(gs, (uint8_t)gs->constant_ix++);
-	  //code[pc++] = OP_PUSH_CONST_V;
-	  //code[pc++] = (uint8_t)const_ix++;
       } else {
 	emit(gs, OP_PUSH_CONST_D);
 	emit(gs, (uint8_t)curr >> 24);
 	emit(gs, (uint8_t)curr >> 16);
 	emit(gs, (uint8_t)curr >> 8);
-	emit(gs, (uint8_t)curr);  
-	//code[pc++] = OP_PUSH_CONST_D;
-	//code[pc++] = (uint8_t)curr >> 24;
-	//code[pc++] = (uint8_t)curr >> 16;
-	//code[pc++] = (uint8_t)curr >> 8;
-	//code[pc++] = (uint8_t)curr;
+	emit(gs, (uint8_t)curr);
       }
-      continuation(s, gs,  &curr, &done);
-    }break;
+
+      res = 0;
+      app_cont = true;
+    } continue;
     case PTR_TYPE_CONS:
       head = car(curr);
 
@@ -354,34 +381,34 @@ bytecode_t * bytecode_compile(stack *s, VALUE v, int *err_code) {
       if (type_of(head) == VAL_TYPE_SYMBOL) {
 	if (dec_sym(head) == symrepr_quote()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return NULL;
+	  return false;
 	}
 	if (dec_sym(head) == symrepr_define()) {
-	  *err_code = ERROR_FORBIDDEN_FORM_DEFINE;
-	  return NULL;
+	  *err_code = ERROR_FORBIDDEN_FORM;
+	  return false;
 	}
 	if (dec_sym(head) == symrepr_let()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return NULL;
+	  return false;
 	}
 	if (dec_sym(head) == symrepr_lambda()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return NULL;
+	  return false;
 	}
 	if (dec_sym(head) == symrepr_closure()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return NULL;
+	  return false;
 	}
 	if (dec_sym(head) == symrepr_if()) {
 	  *err_code = ERROR_FORM_NOT_IMPLEMENTED;
-	  return NULL;
+	  return false;
 	}
       } // end if head is special form symbol
       // possibly function application
       n_args = length(cdr(curr));
       push_u32(s, n_args);
       push_u32(s, head);
-      push_u32(s, enc_u(COMPILE_FUNCTION));
+      push_u32(s, enc_u(COMPILE_FUNCTION_APP));
       push_u32(s, cdr(cdr(curr)));
       push_u32(s, enc_u(COMPILE_ARG_LIST));
 
@@ -389,16 +416,31 @@ bytecode_t * bytecode_compile(stack *s, VALUE v, int *err_code) {
       break;
     default:
       *err_code = ERROR_CANNOT_COMPILE;
-      return NULL;
+      return false;
     }
   }
-  bytecode_t *bc;
-  
-  bc = state_to_bytecode(gs);
-  
-  return bc;
+  return true;
 }
 
+bytecode_t *bytecode_compile( stack *s, VALUE v, int *err_code) {
+
+  /* if (type_of(car(v)) != VAL_TYPE_SYMBOL || */
+  /*     dec_sym(car(v)) != symrepr_closure()) { */
+  /*   *err_code = ERROR_NOT_A_CLOSURE; */
+  /*   return NULL; */
+  /* } */
+
+  code_gen_state *gs;
+
+  gs = create_gen_state();
+  if (!gs) return NULL;
+
+  if (!do_bytecode_compile(gs, s, v, err_code)) return NULL;
+
+  bytecode_t *bc;
+  bc = state_to_bytecode(gs);
+  return bc;
+}
 
 VALUE bytecode_eval(stack *s, bytecode_t *bc) {
 
@@ -407,7 +449,6 @@ VALUE bytecode_eval(stack *s, bytecode_t *bc) {
   bool running = true;
   uint8_t ix;
   uint32_t val;
-  VALUE fun = 0;
   VALUE hack = enc_sym(symrepr_nil());
   uint8_t n_args = 0;
   bi_fptr bi_fun_ptr = NULL;
@@ -422,20 +463,25 @@ VALUE bytecode_eval(stack *s, bytecode_t *bc) {
     case OP_PUSH_CONST_D:
       val = 0;
       pc++;
-      val = code[pc++];
-      val |= code[pc++] << 8;
+      val  = code[pc++] << 24;
       val |= code[pc++] << 16;
-      val |= code[pc++] << 24;
+      val |= code[pc++] << 8;
+      val |= code[pc++];
+      push_u32(s, val);
       break;
-    case OP_FUN_APP: {
+    case OP_BUILTIN_APP: {
+      UINT tmp;
       pc++;
-      pop_u32(s, &fun);
       n_args = code[pc++];
+      tmp  = code[pc++] << 24;
+      tmp |= code[pc++] << 16;
+      tmp |= code[pc++] << 8;
+      tmp |= code[pc++];
+      bi_fun_ptr = (bi_fptr)tmp;
       for (int i = 0; i < n_args; i ++) {
 	pop_u32(s,&val);
 	hack = cons(val, hack);
       }
-      bi_fun_ptr = builtin_lookup_function(dec_sym(fun));
       if (bi_fun_ptr != NULL) {
 	hack = bi_fun_ptr(hack);
 	push_u32(s,hack);

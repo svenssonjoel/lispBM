@@ -25,7 +25,8 @@
 
 #define OP_PUSH_CONST_V     1
 #define OP_PUSH_CONST_D     2  
-#define OP_FUN_APP          3
+#define OP_FUN_APP_V        3
+#define OP_BUILTIN_APP      4
 #define OP_JMP              32    // PC relative jmp
 #define OP_JMP_ON_NIL       33
 #define OP_JMP_ON_NON_NIL   34
@@ -34,16 +35,17 @@
 #define OP_RETURN           255
 
 #define COMPILER_OK                     0
-#define ERROR_NOT_ENOUGH_SPACE         -1
-#define ERROR_CANNOT_COMPILE           -2
-#define ERROR_FORM_NOT_IMPLEMENTED     -3
-#define ERROR_FORBIDDEN_FORM_DEFINE    -4
-#define ERROR_UNDEFINED                -5
+#define ERROR_NOT_ENOUGH_SPACE          1
+#define ERROR_FORM_NOT_IMPLEMENTED      2
+#define ERROR_FORBIDDEN_FORM            3
+#define ERROR_NOT_A_CLOSURE             4
+#define ERROR_CANNOT_COMPILE            5
 
 bool bytecode_create(bytecode_t *bc, int size);
 void bytecode_del(bytecode_t *bc);
 bytecode_t *bytecode_compile(stack *s, VALUE v, int *err_code);
 int bytecode_snprint(char *buf, int size, bytecode_t bc);
 VALUE bytecode_eval(stack *s, bytecode_t *bc);
+char *bytecode_get_error(int error);
 
 #endif
