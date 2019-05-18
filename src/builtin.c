@@ -617,18 +617,6 @@ VALUE bi_fun_eq(VALUE args) {
   return( structural_equality(a1, a2) ? enc_sym(symrepr_true()) : enc_sym(symrepr_nil()) );
 }
 
-VALUE bi_fun_gensym(VALUE args) {
-
-  (void)args; // ignores any arguments
-
-  // Takes no arguments!
-  UINT gs;
-  int res = gensym(&gs);
-
-  if (res) return enc_sym(gs);
-  return enc_sym(symrepr_eerror());
-}
-
 VALUE bi_fun_list(VALUE args) {
   VALUE t = enc_sym(symrepr_nil());
   VALUE list = enc_sym(symrepr_nil());
@@ -1078,7 +1066,6 @@ int builtin_init(void) {
   res &= builtin_add_function("<", bi_fun_lt);
   res &= builtin_add_function("=", bi_fun_eq);
   res &= builtin_add_function("num-eq", bi_fun_num_eq);
-  res &= builtin_add_function("gensym", bi_fun_gensym);
   res &= builtin_add_function("list", bi_fun_list);
   res &= builtin_add_function("reverse", bi_fun_reverse);
   res &= builtin_add_function("array-read", bi_fun_array_read);

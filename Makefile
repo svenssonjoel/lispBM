@@ -2,11 +2,11 @@
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
   CCFLAGS = -m32 -O2 -Wall -Wextra -pedantic -std=c11
-  CCFLAGS += -D_32_BIT_  
+  CCFLAGS += -D_32_BIT_
 endif
 
 ifeq ($(PLATFORM),linux-x86-64)
-  $(error Platform support not implemented)
+  $(error WILL NOT SUPPORT 64bit platforms)
   BUILD_DIR = build/linux-x86-64
   CCFLAGS = -O2 -Wall -Wextra -pedantic -std=c11
   CCFLAGS += -D_64_BIT_	
@@ -37,10 +37,10 @@ endif
 
 ifeq ($(PLATFORM), pi)
   $(error Platform support not implemented)
-  CROSS_COMPILE = arm-none-eabi-
+  CROSS_COMPILE = aarch32
   BUILD_DIR = /build/pi
   CCFLAGS = 
-  CCFLAGS += -D_64_BIT_ 
+  CCFLAGS += -D_32_BIT_ 
 endif
 
 SOURCE_DIR = src

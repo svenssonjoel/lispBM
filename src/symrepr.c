@@ -34,39 +34,41 @@
    In the best case, looking up a name given a 28bit id has constant cost.
    In the worst case it has the same linked list traversal.
 
-   Replace with something more thought through (or looked up) later.
+   ## overhauling Symbol representation
 
-     - There is a 16 bit hash table (only 49999 buckets targeted by hash function) 
-     - and 12 additional bits (bucket depth 4096)
-     - The buckets numbered 49999 - 65534 are used by gensyming new symbols.
-     - The last bucket 65535 is used for internal implementation needs.
-       There are 4096 symbols that cannot collide with any user specified
-       or gensymed symbol.
+     - Remove the gensym functionality
+     - 65534 buckets of depth 4096
+     - bucket 65535 contains up to 4096 hardcoded symbols.
+       These will be used for the following symbols and such:
+       (nil, quote, true, if, lambda, closure, let, progn, +,-,*, /, mod, sin, cos, etc etc).
  */
 
-#define HASHTAB_MALLOC_SIZE 65535 /* 65535 */
-#define HASHTAB_SIZE 49999 /* 65521 */
-#define BUCKET_DEPTH 4096
-#define SMALL_PRIMES 11
+#define HASHTAB_MALLOC_SIZE 0xFFFF
+#define HASHTAB_SIZE        0xFFFF
+#define BUCKET_DEPTH        4096
 
-#define DEF_REPR_NIL       0
-#define DEF_REPR_QUOTE     1
-#define DEF_REPR_TRUE      2
-#define DEF_REPR_COND      3
-#define DEF_REPR_IF        4
-#define DEF_REPR_LAMBDA    5
-#define DEF_REPR_CLOSURE   6
-#define DEF_REPR_LET       7
-#define DEF_REPR_RERROR    8   /* READ ERROR */
-#define DEF_REPR_TERROR    9  /* TYPE ERROR */
-#define DEF_REPR_EERROR    10  /* EVAL ERROR */
-#define DEF_REPR_MERROR    11
-#define DEF_REPR_DEFINE    12
-#define DEF_REPR_PROGN     13
+#define DEF_REPR_NIL        0
+#define DEF_REPR_QUOTE      1
+#define DEF_REPR_TRUE       2
+#define DEF_REPR_COND       3
+#define DEF_REPR_IF         4
+#define DEF_REPR_LAMBDA     5
+#define DEF_REPR_CLOSURE    6
+#define DEF_REPR_LET        7
+#define DEF_REPR_RERROR     8   /* READ ERROR */
+#define DEF_REPR_TERROR     9   /* TYPE ERROR */
+#define DEF_REPR_EERROR     10  /* EVAL ERROR */
+#define DEF_REPR_MERROR     11
+#define DEF_REPR_DEFINE     12
+#define DEF_REPR_PROGN      13
 
 static UINT def_repr[14];
 
-static UINT gensym_next = HASHTAB_SIZE;
+#define SMALL_PRIMES        33
+UINT small_primes[SMALL_PRIMES] =
+  {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
+   37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
+   359, 419, 463, 523, 593, 643, 701, 761, 827, 883, 953};
 
 static UINT hash_string(char *str, UINT modulo);
 
@@ -172,133 +174,6 @@ int symrepr_init() {
   memset(name_table, 0, HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));
 #endif
   return add_default_symbols();
-}
-
-int gensym(UINT *res) {
-
-  char gensym_name[1024];
-  memset(gensym_name,0,1024);
-  int n_res;
-  unsigned int n;
-
-#ifdef TINY_SYMTAB
-  static UINT index_12bit = 0;
-
-  if (gensym_next == HASHTAB_MALLOC_SIZE-1) {
-    gensym_next = HASHTAB_SIZE;
-    if (index_12bit < 4096) index_12bit++;
-    else return 0;
-  }
-  UINT hash = gensym_next | (index_12bit << 16); /* "hash" */
-
-  n_res = snprintf(gensym_name,1024,"gensym_%"PRIu32"", hash);
-  if (n_res < 0) return 0;
-  n = (unsigned int) n_res;
-  gensym_next++;
-
-  if (name_list == NULL) {
-    name_list = (name_list_t*)malloc(sizeof(name_list_t));
-    if (name_list == NULL) return 0;
-    name_list->key = hash & 0xFFFF;
-    name_list->map = (name_mapping_t*)malloc(sizeof(name_mapping_t));
-    if (name_list->map == NULL) return 0;
-    name_list->map->key = hash;
-    name_list->map->next = NULL;
-    name_list->map->name = (char*)malloc(n+1);
-    if (name_list->map->name == NULL) return 0;
-    memset(name_list->map->name, 0, n+1);
-    strncpy(name_list->map->name, gensym_name, n);
-
-    if (res != NULL) *res = hash;
-
-  } else { /* there is at least one entry in the name list */
-
-    name_mapping_t* tmp = name_list_get_mappings(name_list, hash);
-
-    if (tmp == NULL) {
-      /* There is no entry for this hash, just append it to name_list */
-      name_list_t *new_entry = (name_list_t*)malloc(sizeof(name_list_t));
-      if (new_entry == NULL) return 0;
-      new_entry->key = hash;
-      new_entry->map = (name_mapping_t*)malloc(sizeof(name_mapping_t));
-      if (new_entry->map == NULL) return 0;
-      new_entry->map->key = hash;
-      new_entry->map->next = NULL;
-      new_entry->map->name = (char*)malloc(n+1);
-      if (new_entry->map->name == NULL) return 0;
-      memset(new_entry->map->name, 0, n+1);
-      strncpy(new_entry->map->name, gensym_name, n);
-
-      /* Update global list */
-      new_entry->next = name_list;
-      name_list = new_entry;
-
-      if (res != NULL) *res = hash;
-
-    } else {
-      while (tmp->next) {
-	tmp = tmp->next;
-      }
-
-      tmp->next = (name_mapping_t*)malloc(sizeof(name_mapping_t));
-      if (tmp->next == NULL) return 0;
-
-      UINT new_key = hash;
-
-      tmp->next->next = NULL;
-      tmp->next->key  = new_key;
-      tmp->next->name = (char*)malloc(n+1);
-      if (tmp->next->name == NULL) return 0;
-      memset(tmp->next->name, 0, n+1);
-      strncpy(tmp->next->name, gensym_name, n);
-
-      if (res != NULL) *res = hash;
-    }
-  }
-
-  return 1;
-#else
-  UINT v = gensym_next;
-
-  if(name_table[v] == NULL && v < HASHTAB_MALLOC_SIZE) {
-    name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
-    name_table[v]->key = v;
-    n_res = snprintf(gensym_name,1024,"gensym_%"PRIu32"", v);
-    if (n_res < 0) return 0;
-    n = (unsigned int) n_res;
-    name_table[v]->name = (char*)malloc(n+1);
-    memset(name_table[v]->name, 0, n+1);
-    strncpy(name_table[v]->name, gensym_name, n);
-    name_table[v]->next = NULL;
-    *res = v;
-  } else {
-    /* Gensym already added to this bucket */
-    name_mapping_t *head = name_table[v];
-    UINT hkey_id = head->key & 0xFFFF0000 ;
-
-    /* If new ID would be too big return failure */
-    if ((hkey_id >> 16) >= (BUCKET_DEPTH - 1)) {
-      return 0;
-    }
-
-    /* problem if hkey_id = 0xFFFF0000 */
-    name_table[v] = (name_mapping_t*)malloc(sizeof(name_mapping_t)); /* replace */
-    name_table[v]->key = v + (hkey_id + (1 << 16));
-    UINT v_prim = v + (hkey_id + (1 << 16));
-    n_res = snprintf(gensym_name,1024,"gensym_%"PRIu32"", v_prim);
-    if (n_res < 0) return 0;
-    n = (unsigned int) n_res;
-    name_table[v]->name = (char*)malloc(n);
-    memset(name_table[v]->name, 0, n+1);
-    strncpy(name_table[v]->name, gensym_name, n);
-    name_table[v]->next = head;
-    *res = v_prim;
-  }
-
-  gensym_next++;
-  if (gensym_next >= (HASHTAB_MALLOC_SIZE-1)) gensym_next = HASHTAB_SIZE;
-  return 1;
-#endif
 }
 
 int symrepr_addsym(char *name, UINT* id) {
@@ -540,10 +415,6 @@ void symrepr_del(void) {
 #endif
 }
 
-UINT small_primes[SMALL_PRIMES] =
-  /* {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31}; */
-  /* {37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79}; */
-  {359, 419, 463, 523, 593, 643, 701, 761, 827, 883, 953};
 UINT hash_string(char *str, UINT modulo) {
 
   UINT r = 1;
