@@ -37,32 +37,17 @@
    ## overhauling Symbol representation
 
      - Remove the gensym functionality
-     - 65534 buckets of depth 4096
-     - bucket 65535 contains up to 4096 hardcoded symbols.
+     - 65533 buckets of depth 4096
+     - bucket 65534 contains up to 4096 hardcoded symbols.
        These will be used for the following symbols and such:
        (nil, quote, true, if, lambda, closure, let, progn, +,-,*, /, mod, sin, cos, etc etc).
  */
 
-#define HASHTAB_MALLOC_SIZE 0xFFFF
+#define HASHTAB_MALLOC_SIZE 0x10000
 #define HASHTAB_SIZE        0xFFFF
 #define BUCKET_DEPTH        4096
 
-#define DEF_REPR_NIL        0
-#define DEF_REPR_QUOTE      1
-#define DEF_REPR_TRUE       2
-#define DEF_REPR_COND       3
-#define DEF_REPR_IF         4
-#define DEF_REPR_LAMBDA     5
-#define DEF_REPR_CLOSURE    6
-#define DEF_REPR_LET        7
-#define DEF_REPR_RERROR     8   /* READ ERROR */
-#define DEF_REPR_TERROR     9   /* TYPE ERROR */
-#define DEF_REPR_EERROR     10  /* EVAL ERROR */
-#define DEF_REPR_MERROR     11
-#define DEF_REPR_DEFINE     12
-#define DEF_REPR_PROGN      13
-
-static UINT def_repr[14];
+//static UINT def_repr[14];
 
 #define SMALL_PRIMES        33
 UINT small_primes[SMALL_PRIMES] =
@@ -71,6 +56,7 @@ UINT small_primes[SMALL_PRIMES] =
    359, 419, 463, 523, 593, 643, 701, 761, 827, 883, 953};
 
 static UINT hash_string(char *str, UINT modulo);
+static bool symrepr_addspecial(char *name, UINT spec_id);
 
 typedef struct s_name_mapping {
   UINT key; /* hash including collision id */
@@ -119,61 +105,79 @@ name_list_t *name_list = NULL;
 name_mapping_t **name_table = NULL;
 #endif
 
-int add_default_symbols() {
-  int res = 1;
-  res &= symrepr_addsym("nil"        , &def_repr[DEF_REPR_NIL]);
-  res &= symrepr_addsym("quote"      , &def_repr[DEF_REPR_QUOTE]);
-  res &= symrepr_addsym("t"          , &def_repr[DEF_REPR_TRUE]);
-  res &= symrepr_addsym("cond"       , &def_repr[DEF_REPR_COND]);
-  res &= symrepr_addsym("if"         , &def_repr[DEF_REPR_IF]);
-  res &= symrepr_addsym("lambda"     , &def_repr[DEF_REPR_LAMBDA]);
-  res &= symrepr_addsym("closure"    , &def_repr[DEF_REPR_CLOSURE]);
-  res &= symrepr_addsym("let"        , &def_repr[DEF_REPR_LET]);
-  res &= symrepr_addsym("read_error" , &def_repr[DEF_REPR_RERROR]);
-  res &= symrepr_addsym("type_error" , &def_repr[DEF_REPR_TERROR]);
-  res &= symrepr_addsym("eval_error" , &def_repr[DEF_REPR_EERROR]);
-  res &= symrepr_addsym("out_of_memory_error" , &def_repr[DEF_REPR_MERROR]);
-  res &= symrepr_addsym("define"     , &def_repr[DEF_REPR_DEFINE]);
-  res &= symrepr_addsym("progn"      , &def_repr[DEF_REPR_PROGN]);
+bool add_default_symbols() {
+  bool res = true;
+  res = res && symrepr_addspecial("nil"        , DEF_REPR_NIL);
+  res = res && symrepr_addspecial("quote"      , DEF_REPR_QUOTE);
+  res = res && symrepr_addspecial("t"          , DEF_REPR_TRUE);
+  res = res && symrepr_addspecial("if"         , DEF_REPR_IF);
+  res = res && symrepr_addspecial("lambda"     , DEF_REPR_LAMBDA);
+  res = res && symrepr_addspecial("closure"    , DEF_REPR_CLOSURE);
+  res = res && symrepr_addspecial("let"        , DEF_REPR_LET);
+  res = res && symrepr_addspecial("read_error" , DEF_REPR_RERROR);
+  res = res && symrepr_addspecial("type_error" , DEF_REPR_TERROR);
+  res = res && symrepr_addspecial("eval_error" , DEF_REPR_EERROR);
+  res = res && symrepr_addspecial("out_of_memory_error" , DEF_REPR_MERROR);
+  res = res && symrepr_addspecial("define"     , DEF_REPR_DEFINE);
+  res = res && symrepr_addspecial("progn"      , DEF_REPR_PROGN);
 
+  // Special symbols with unparseable names
+  res = res && symrepr_addspecial("sym_array"    , SPECIAL_SYM_ARRAY);
+  res = res && symrepr_addspecial("sym_boxed_i"  , SPECIAL_SYM_BOXED_I);
+  res = res && symrepr_addspecial("sym_boxed_u"  , SPECIAL_SYM_BOXED_U);
+  res = res && symrepr_addspecial("sym_boxed_f"  , SPECIAL_SYM_BOXED_F);
+  res = res && symrepr_addspecial("sym_ref"      , SPECIAL_SYM_REF);
+  res = res && symrepr_addspecial("sym_recovered", SPECIAL_SYM_RECOVERED);
+  res = res && symrepr_addspecial("sym_bytecode" , SPECIAL_SYM_BYTECODE);
   return res;
 }
 
-UINT symrepr_nil(void)     { return def_repr[DEF_REPR_NIL]; }
-UINT symrepr_quote(void)   { return def_repr[DEF_REPR_QUOTE]; }
-UINT symrepr_true(void)    { return def_repr[DEF_REPR_TRUE]; }
-UINT symrepr_cond(void)    { return def_repr[DEF_REPR_COND]; }
-UINT symrepr_if(void)      { return def_repr[DEF_REPR_IF]; }
-UINT symrepr_lambda(void)  { return def_repr[DEF_REPR_LAMBDA]; }
-UINT symrepr_closure(void) { return def_repr[DEF_REPR_CLOSURE]; }
-UINT symrepr_let(void)     { return def_repr[DEF_REPR_LET]; }
-UINT symrepr_rerror(void)  { return def_repr[DEF_REPR_RERROR]; }
-UINT symrepr_terror(void)  { return def_repr[DEF_REPR_TERROR]; }
-UINT symrepr_eerror(void)  { return def_repr[DEF_REPR_EERROR]; }
-UINT symrepr_merror(void)  { return def_repr[DEF_REPR_MERROR]; }
-UINT symrepr_define(void)  { return def_repr[DEF_REPR_DEFINE]; }
-UINT symrepr_progn(void)   { return def_repr[DEF_REPR_PROGN]; }
-
-extern bool symrepr_is_error(UINT symrep) {
-  if (symrep == def_repr[DEF_REPR_RERROR] ||
-      symrep == def_repr[DEF_REPR_TERROR] ||
-      symrep == def_repr[DEF_REPR_RERROR] ||
-      symrep == def_repr[DEF_REPR_MERROR]) {
-    return true;
-  }
-  return false;
-}
-
-
-int symrepr_init() {
+bool symrepr_init() {
 #ifdef TINY_SYMTAB
   name_list = NULL; /* empty list of symbol names */
 #else
   name_table = (name_mapping_t**)malloc(HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));
-  if (!name_table) return 0;
+  if (!name_table) return false;
   memset(name_table, 0, HASHTAB_MALLOC_SIZE * sizeof(name_mapping_t*));
 #endif
   return add_default_symbols();
+}
+
+
+bool symrepr_addspecial(char *name, UINT spec_id) {
+
+  size_t   n = 0;
+  UINT hash = 0xFFFF;
+  UINT key  = spec_id;
+  n = strlen(name) + 1;
+
+  if (n == 1) return false; /* failure if empty symbol */
+
+  if (name_table[hash] == NULL){
+    name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+    name_table[hash]->key = hash;
+    n = strlen(name) + 1;
+    name_table[hash]->name = (char*)malloc(n);
+    strncpy(name_table[hash]->name, name, n);
+    name_table[hash]->next = NULL;
+  } else {
+    UINT t_id;
+    if (symrepr_lookup(name, &t_id)) {
+      /* name already in table */
+      return false;
+    }
+
+    /* collision */
+    name_mapping_t *head = name_table[hash];
+
+    name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+    name_table[hash]->key = key;
+    n = strlen(name) + 1;
+    name_table[hash]->name = (char*)malloc(n);
+    strncpy(name_table[hash]->name, name, n);
+    name_table[hash]->next = head;
+  }
+  return true;
 }
 
 int symrepr_addsym(char *name, UINT* id) {
@@ -298,10 +302,27 @@ int symrepr_addsym(char *name, UINT* id) {
 }
 
 
-int symrepr_lookup(char *name, UINT* id) {
 
+int symrepr_lookup(char *name, UINT* id) {
   name_mapping_t *head;
-  UINT hash = hash_string(name, HASHTAB_SIZE);
+  UINT hash = 0xFFFF;
+  /* check if fixed_id symbol */
+#ifdef TINY_SYMTAB
+  head = name_list_get_mappings(name_list, hash);
+#else
+  head = name_table[hash];
+#endif
+  if (head != NULL) {
+    while (head) {
+      if (strcmp(head->name, name) == 0) {
+	*id = head->key;
+	return 1;
+      }
+      head = head->next;
+    }
+  }
+
+  hash = hash_string(name, HASHTAB_SIZE);
 #ifdef TINY_SYMTAB
   head = name_list_get_mappings(name_list, hash);
 #else
@@ -316,7 +337,6 @@ int symrepr_lookup(char *name, UINT* id) {
     }
     head = head->next;
   }
-
   return 0;
 }
 
@@ -325,16 +345,6 @@ char *symrepr_lookup_name(UINT id) {
 
   name_mapping_t *head = NULL;
   UINT hash = id & (UINT)0x0000FFFF; /*extract index*/
-  if(hash == 65535) {
-    switch (id) {
-    case SPECIAL_SYM_RECOVERED:
-      return "recovered_cell";
-    case SPECIAL_SYM_BYTECODE:
-      return "compiled_function";
-    default:
-      return "special_symbol";
-    }
-  }
 #ifdef TINY_SYMTAB
   head = name_list_get_mappings(name_list, hash);
 #else
