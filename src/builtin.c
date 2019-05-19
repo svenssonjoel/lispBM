@@ -223,7 +223,7 @@ VALUE bi_fun_sum(VALUE args) {
       i_sum += r;
       curr= cdr(curr);
     }
-    tmp = cons(i_sum,enc_sym(SPECIAL_SYM_BOXED_I));
+    tmp = cons(i_sum,enc_sym(DEF_REPR_BOXED_I_TYPE));
     return set_ptr_type(tmp, PTR_TYPE_BOXED_I);
 
   case PTR_TYPE_BOXED_U:
@@ -234,7 +234,7 @@ VALUE bi_fun_sum(VALUE args) {
       u_sum += r;
       curr= cdr(curr);
     }
-    tmp = cons(u_sum,enc_sym(SPECIAL_SYM_BOXED_U));
+    tmp = cons(u_sum,enc_sym(DEF_REPR_BOXED_U_TYPE));
     if (type_of(tmp) == VAL_TYPE_SYMBOL) // an error
       return tmp;
     return set_ptr_type(tmp, PTR_TYPE_BOXED_U);
@@ -248,7 +248,7 @@ VALUE bi_fun_sum(VALUE args) {
       curr = cdr(curr);
     }
     memcpy(&tmp, &f_sum, sizeof(UINT));
-    float_enc = cons(tmp,enc_sym(SPECIAL_SYM_BOXED_F));
+    float_enc = cons(tmp,enc_sym(DEF_REPR_BOXED_F_TYPE));
     if (type_of(float_enc) == VAL_TYPE_SYMBOL) // an error
       return float_enc;
     float_enc = set_ptr_type(float_enc, PTR_TYPE_BOXED_F);
@@ -288,7 +288,7 @@ VALUE bi_fun_sub(VALUE args) {
 
     case PTR_TYPE_BOXED_I:
       i_res = -(INT)car(car(args));
-      enc = cons(i_res, enc_sym(SPECIAL_SYM_BOXED_I));
+      enc = cons(i_res, enc_sym(DEF_REPR_BOXED_I_TYPE));
       if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
 	return enc;
       enc = set_ptr_type(enc,PTR_TYPE_BOXED_I);
@@ -296,7 +296,7 @@ VALUE bi_fun_sub(VALUE args) {
 
     case PTR_TYPE_BOXED_U:
       u_res = -car(car(args));
-      enc = cons(u_res, enc_sym(SPECIAL_SYM_BOXED_U));
+      enc = cons(u_res, enc_sym(DEF_REPR_BOXED_U_TYPE));
       if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
 	return enc;
       enc = set_ptr_type(enc,PTR_TYPE_BOXED_U);
@@ -307,7 +307,7 @@ VALUE bi_fun_sub(VALUE args) {
       memcpy(&f_res, &enc, sizeof(FLOAT));
       f_res = - f_res;
       memcpy(&tmp, &f_res, sizeof(UINT));
-      enc = cons(tmp,enc_sym(SPECIAL_SYM_BOXED_F));
+      enc = cons(tmp,enc_sym(DEF_REPR_BOXED_F_TYPE));
       if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
 	return enc;
       enc = set_ptr_type(enc, PTR_TYPE_BOXED_F);
@@ -354,7 +354,7 @@ VALUE bi_fun_sub(VALUE args) {
       i_res -= r;
       curr = cdr(curr);
     }
-    enc = cons(i_res, enc_sym(SPECIAL_SYM_BOXED_I));
+    enc = cons(i_res, enc_sym(DEF_REPR_BOXED_I_TYPE));
     if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
       return enc;
     enc = set_ptr_type(enc,PTR_TYPE_BOXED_I);
@@ -370,7 +370,7 @@ VALUE bi_fun_sub(VALUE args) {
       u_res -= r;
       curr = cdr(curr);
     }
-    enc = cons(u_res, enc_sym(SPECIAL_SYM_BOXED_U));
+    enc = cons(u_res, enc_sym(DEF_REPR_BOXED_U_TYPE));
     if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
       return enc;
     enc = set_ptr_type(enc,PTR_TYPE_BOXED_U);
@@ -387,7 +387,7 @@ VALUE bi_fun_sub(VALUE args) {
       curr = cdr(curr);
     }
     memcpy(&tmp, &f_res, sizeof(UINT));
-    enc = cons(tmp,enc_sym(SPECIAL_SYM_BOXED_F));
+    enc = cons(tmp,enc_sym(DEF_REPR_BOXED_F_TYPE));
     if (type_of(enc) == VAL_TYPE_SYMBOL) // an error
       return enc;
     enc = set_ptr_type(enc, PTR_TYPE_BOXED_F);
@@ -687,19 +687,19 @@ VALUE bi_fun_array_read(VALUE args) {
       res = enc_i(array->data.i[ix]);
       break;
     case PTR_TYPE_BOXED_U:
-      res = cons(array->data.u[ix], enc_sym(SPECIAL_SYM_BOXED_U));
+      res = cons(array->data.u[ix], enc_sym(DEF_REPR_BOXED_U_TYPE));
       if (type_of(res) == VAL_TYPE_SYMBOL) // an error
 	return res;
       res = set_ptr_type(res, PTR_TYPE_BOXED_U);
       break;
     case PTR_TYPE_BOXED_I:
-      res = cons(array->data.i[ix], enc_sym(SPECIAL_SYM_BOXED_I));
+      res = cons(array->data.i[ix], enc_sym(DEF_REPR_BOXED_I_TYPE));
       if (type_of(res) == VAL_TYPE_SYMBOL) // an error
 	return res;
       res = set_ptr_type(res, PTR_TYPE_BOXED_I);
       break;
     case PTR_TYPE_BOXED_F:
-      res = cons(array->data.f[ix], enc_sym(SPECIAL_SYM_BOXED_F));
+      res = cons(array->data.f[ix], enc_sym(DEF_REPR_BOXED_F_TYPE));
       if (type_of(res) == VAL_TYPE_SYMBOL) // an error
 	return res;
       res = set_ptr_type(res, PTR_TYPE_BOXED_F);
@@ -949,7 +949,7 @@ VALUE bi_fun_ref_address(VALUE args) {
 
   UINT ref = dec_U(arg); 
   
-  VALUE res = cons(ref, enc_sym(SPECIAL_SYM_REF));
+  VALUE res = cons(ref, enc_sym(DEF_REPR_REF_TYPE));
   if (type_of(res) == VAL_TYPE_SYMBOL)
     return res;
   return set_ptr_type(res,PTR_TYPE_REF);
@@ -964,7 +964,7 @@ VALUE bi_fun_ref_read_I(VALUE args) {
 
   INT val = *(INT*)addr;
 
-  VALUE res = cons(val, enc_sym(SPECIAL_SYM_BOXED_I));
+  VALUE res = cons(val, enc_sym(DEF_REPR_BOXED_I_TYPE));
   if (type_of(res) == VAL_TYPE_SYMBOL) 
     return res; // propagate error
   return set_ptr_type(res, PTR_TYPE_BOXED_I);  
@@ -977,7 +977,7 @@ VALUE bi_fun_ref_read_U(VALUE args) {
 
   UINT val = *(UINT*)addr;
 
-  VALUE res = cons(val, enc_sym(SPECIAL_SYM_BOXED_U));
+  VALUE res = cons(val, enc_sym(DEF_REPR_BOXED_U_TYPE));
   if (type_of(res) == VAL_TYPE_SYMBOL) 
     return res; // propagate error
   return set_ptr_type(res, PTR_TYPE_BOXED_U);  

@@ -114,21 +114,21 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("lambda"     , DEF_REPR_LAMBDA);
   res = res && symrepr_addspecial("closure"    , DEF_REPR_CLOSURE);
   res = res && symrepr_addspecial("let"        , DEF_REPR_LET);
-  res = res && symrepr_addspecial("read_error" , DEF_REPR_RERROR);
-  res = res && symrepr_addspecial("type_error" , DEF_REPR_TERROR);
-  res = res && symrepr_addspecial("eval_error" , DEF_REPR_EERROR);
-  res = res && symrepr_addspecial("out_of_memory_error" , DEF_REPR_MERROR);
   res = res && symrepr_addspecial("define"     , DEF_REPR_DEFINE);
   res = res && symrepr_addspecial("progn"      , DEF_REPR_PROGN);
 
   // Special symbols with unparseable names
-  res = res && symrepr_addspecial("sym_array"    , SPECIAL_SYM_ARRAY);
-  res = res && symrepr_addspecial("sym_boxed_i"  , SPECIAL_SYM_BOXED_I);
-  res = res && symrepr_addspecial("sym_boxed_u"  , SPECIAL_SYM_BOXED_U);
-  res = res && symrepr_addspecial("sym_boxed_f"  , SPECIAL_SYM_BOXED_F);
-  res = res && symrepr_addspecial("sym_ref"      , SPECIAL_SYM_REF);
-  res = res && symrepr_addspecial("sym_recovered", SPECIAL_SYM_RECOVERED);
-  res = res && symrepr_addspecial("sym_bytecode" , SPECIAL_SYM_BYTECODE);
+  res = res && symrepr_addspecial("read_error"    , DEF_REPR_RERROR);
+  res = res && symrepr_addspecial("type_error"    , DEF_REPR_TERROR);
+  res = res && symrepr_addspecial("eval_error"    , DEF_REPR_EERROR);
+  res = res && symrepr_addspecial("out_of_memory" , DEF_REPR_MERROR);
+  res = res && symrepr_addspecial("sym_array"     , DEF_REPR_ARRAY_TYPE);
+  res = res && symrepr_addspecial("sym_boxed_i"   , DEF_REPR_BOXED_I_TYPE);
+  res = res && symrepr_addspecial("sym_boxed_u"   , DEF_REPR_BOXED_U_TYPE);
+  res = res && symrepr_addspecial("sym_boxed_f"   , DEF_REPR_BOXED_F_TYPE);
+  res = res && symrepr_addspecial("sym_ref"       , DEF_REPR_REF_TYPE);
+  res = res && symrepr_addspecial("sym_recovered" , DEF_REPR_RECOVERED);
+  res = res && symrepr_addspecial("sym_bytecode"  , DEF_REPR_BYTECODE_TYPE);
   return res;
 }
 

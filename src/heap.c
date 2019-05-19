@@ -109,7 +109,7 @@ static void heap_init_state(cons_t *addr, unsigned int num_cells, bool malloced)
 int heap_init_addr(cons_t *addr, unsigned int num_cells) {
 
   NIL = enc_sym(symrepr_nil());
-  RECOVERED = enc_sym(SPECIAL_SYM_RECOVERED);
+  RECOVERED = enc_sym(DEF_REPR_RECOVERED);
 
   heap_init_state(addr, num_cells, false);
   
@@ -119,7 +119,7 @@ int heap_init_addr(cons_t *addr, unsigned int num_cells) {
 int heap_init(unsigned int num_cells) {
 
   NIL = enc_sym(symrepr_nil());
-  RECOVERED = enc_sym(SPECIAL_SYM_RECOVERED);
+  RECOVERED = enc_sym(DEF_REPR_RECOVERED);
 
   cons_t *heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
 
@@ -339,7 +339,7 @@ int gc_sweep_phase(void) {
       // TODO: Maybe also has to check for boxed values
       //
       if (type_of(heap[i].cdr) == VAL_TYPE_SYMBOL &&
-	  dec_sym(heap[i].cdr) == SPECIAL_SYM_ARRAY) {
+	  dec_sym(heap[i].cdr) == DEF_REPR_ARRAY_TYPE) {
 	array_t *arr = (array_t*)heap[i].car;
 	switch(arr->elt_type) {
 	case VAL_TYPE_CHAR:
@@ -584,7 +584,7 @@ int heap_allocate_array(VALUE *res, unsigned int size, TYPE type){
   array->size = size;
 
   set_car(cell, (UINT)array);
-  set_cdr(cell, enc_sym(SPECIAL_SYM_ARRAY));
+  set_cdr(cell, enc_sym(DEF_REPR_ARRAY_TYPE));
 
   cell = cell | PTR_TYPE_ARRAY;
 

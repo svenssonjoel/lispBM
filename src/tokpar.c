@@ -465,11 +465,11 @@ VALUE parse_sexp(token tok, tokenizer_state *ts) {
   case TOKCHAR:
     return enc_char(tok.data.c);
   case TOKBOXEDINT:
-    return set_ptr_type(cons(tok.data.i, enc_sym(SPECIAL_SYM_BOXED_I)), PTR_TYPE_BOXED_I);
+    return set_ptr_type(cons(tok.data.i, enc_sym(DEF_REPR_BOXED_I_TYPE)), PTR_TYPE_BOXED_I);
   case TOKBOXEDUINT:
-    return set_ptr_type(cons(tok.data.u, enc_sym(SPECIAL_SYM_BOXED_U)), PTR_TYPE_BOXED_U);
+    return set_ptr_type(cons(tok.data.u, enc_sym(DEF_REPR_BOXED_U_TYPE)), PTR_TYPE_BOXED_U);
   case TOKBOXEDFLOAT:
-    return set_ptr_type(cons(tok.data.u, enc_sym(SPECIAL_SYM_BOXED_F)), PTR_TYPE_BOXED_F);
+    return set_ptr_type(cons(tok.data.u, enc_sym(DEF_REPR_BOXED_F_TYPE)), PTR_TYPE_BOXED_F);
   case TOKQUOTE: {
     t = next_token(ts);
     VALUE quoted = parse_sexp(t, ts);
