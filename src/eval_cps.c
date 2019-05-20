@@ -22,10 +22,12 @@
 #include "env.h"
 #include "bytecode.h"
 #include "eval_cps.h"
+#include "stack.h"
+#include "fundamental.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
-#include <stack.h>
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
