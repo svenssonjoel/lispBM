@@ -50,6 +50,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  /*
   res = builtin_init();
   if (res)
     printf("Built in functions initialized.\n");
@@ -57,6 +58,7 @@ int main(int argc, char **argv) {
     printf("Error initializing built in functions.\n");
     return 0;
   }
+  */
 
   res = eval_cps_init(true);
   if (res)

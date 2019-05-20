@@ -48,11 +48,22 @@
 #define DEF_REPR_BYTECODE_TYPE  0x13FFFF
 
 // Fundamental Operations and Functions symbols
-#define SYM_ADD 0x100FFFF
-#define SYM_SUB 0x101FFFF
-#define SYM_MUL 0x102FFFF
-#define SYM_DIV 0x103FFFF
-#define SYM_MOD 0x104FFFF
+#define SYM_ADD   0x100FFFF
+#define SYM_SUB   0x101FFFF
+#define SYM_MUL   0x102FFFF
+#define SYM_DIV   0x103FFFF
+#define SYM_MOD   0x104FFFF
+#define SYM_EQ    0x105FFFF
+#define SYM_NUMEQ 0x106FFFF
+#define SYM_LT    0x107FFFF
+#define SYM_GT    0x108FFFF
+
+#define SYM_CONS  0x120FFFF
+#define SYM_CAR   0x121FFFF
+#define SYM_CDR   0x122FFFF
+#define SYM_LIST  0x123FFFF
+#define SYM_REV   0x124FFFF
+
 
 #define SYMBOL_MAX  0xFFFFFFF
 
@@ -84,4 +95,5 @@ static inline bool symrepr_is_error(UINT symrep){
 	  symrep == DEF_REPR_RERROR ||
 	  symrep == DEF_REPR_MERROR);
 }
+
 #endif

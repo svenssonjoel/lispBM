@@ -248,6 +248,31 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       //      it is expected that running the bc keeps exits with stack in good shape.
     }else if (type_of(fun) == VAL_TYPE_SYMBOL) { // its a built in function
 
+      VALUE curr_arg = args;
+
+      UINT nargs = 0;
+      UINT temp;
+      VALUE res;
+      while (type_of(curr_arg) == PTR_TYPE_CONS) {
+	push_u32(ctx->K, car(curr_arg));
+	nargs++;
+	curr_arg = cdr(curr_arg);
+      }
+      push_u32(ctx->K, enc_u(nargs));
+      if (!fundamental_exec(ctx->K, fun)) {
+	while (nargs > 0) {
+	  pop_u32(ctx->K, &temp);
+	  nargs--;
+	}
+	*done = true;
+	return enc_sym(symrepr_merror());
+      } else {
+	pop_u32(ctx->K, &res);
+	*app_cont = true;
+	return res;
+      }
+      
+      /*
       VALUE (*f)(VALUE) = builtin_lookup_function(dec_sym(fun));
 
       if (f == NULL) {
@@ -255,7 +280,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 	return enc_sym(symrepr_eerror());
       }
       VALUE f_res = f(args_rev);
-
+      
       if (type_of(f_res) == VAL_TYPE_SYMBOL &&
 	  (dec_sym(f_res) == symrepr_merror())) {
 	push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
@@ -263,8 +288,9 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 	*app_cont = true;
 	return fun;
       }
+      */
       *app_cont = true;
-      return f_res;
+      return res;
     }
   } break;
   case ARG_LIST: {
@@ -294,6 +320,10 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     VALUE fun;
     pop_u32(ctx->K, &fun);
     push_u32_2(ctx->K, arg, enc_u(FUNCTION_APP));
+    if (is_fundamental(fun)) {
+      *app_cont = true;
+      return fun;
+    } 
     ctx->curr_exp = fun;
     return enc_u(0); // Should return something that is very easy to recognize as nonsense 
   }
@@ -602,9 +632,9 @@ int eval_cps_init(bool grow_continuation_stack) {
 
   eval_cps_global_env = NIL;
 
-  if (!builtin_add_function("byte-compile", eval_cps_bi_byte_comp)) return 0;
-  if (!builtin_add_function("eval", eval_cps_bi_eval)) return 0;
-  eval_cps_global_env = built_in_gen_env();
+  //if (!builtin_add_function("byte-compile", eval_cps_bi_byte_comp)) return 0;
+  //if (!builtin_add_function("eval", eval_cps_bi_eval)) return 0;
+  //eval_cps_global_env = built_in_gen_env();
 
   eval_context = (eval_context_t*)malloc(sizeof(eval_context_t));
 

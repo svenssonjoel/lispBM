@@ -129,6 +129,13 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("sym_ref"       , DEF_REPR_REF_TYPE);
   res = res && symrepr_addspecial("sym_recovered" , DEF_REPR_RECOVERED);
   res = res && symrepr_addspecial("sym_bytecode"  , DEF_REPR_BYTECODE_TYPE);
+  
+  res = res && symrepr_addspecial("+", SYM_ADD);
+  res = res && symrepr_addspecial("-", SYM_SUB);
+  res = res && symrepr_addspecial("*", SYM_MUL);
+  res = res && symrepr_addspecial("/", SYM_DIV);
+  res = res && symrepr_addspecial("mod", SYM_MOD);
+  res = res && symrepr_addspecial("=",SYM_EQ);
   return res;
 }
 

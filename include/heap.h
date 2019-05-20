@@ -337,5 +337,9 @@ static inline bool val_get_gc_mark(VALUE x) {
   return x & GC_MASK;
 }
 
+static inline bool is_fundamental(VALUE symrep) {
+  return ((type_of(symrep) == VAL_TYPE_SYMBOL)  &&
+	  ((dec_sym(symrep) & 0xFFFF) == 0xFFFF));
+}
 
 #endif
