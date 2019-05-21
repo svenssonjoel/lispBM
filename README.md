@@ -19,7 +19,6 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 8. Compiles for, and runs on STM32f4. 
 
 ## TODOs
-0. Explicit stack in eval.c to help GC do its job. 
 1. (DONE) Write some tests that stresses the Garbage collector.
 2. (DONE) Implement some "reference to X type", for uint32, int32. 
 3. Write a small library of useful hofs. 

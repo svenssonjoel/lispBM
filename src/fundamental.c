@@ -291,6 +291,8 @@ static inline bool struct_eq(VALUE a, VALUE b) {
 bool fundamental_exec(stack *K, VALUE op) {
   bool ret = false;
   UINT nargs;
+  UINT tmp;
+  UINT result = enc_sym(symrepr_eerror());
   pop_u32(K, &nargs);
   /* for now assume that all of these will take at least one argument */
   nargs = dec_u(nargs);
@@ -299,16 +301,36 @@ bool fundamental_exec(stack *K, VALUE op) {
   }
   
   switch (dec_sym(op)) {
+  case SYM_CONS: {
+    UINT a;
+    UINT b;
+    pop_u32(K, &a); nargs--;
+    pop_u32(K, &b); nargs--;
+    result = cons(a,b);
+    ret = true;
+    break;
+  }
+  case SYM_CAR: {
+    pop_u32(K, &tmp); nargs--;
+    result = car(tmp);
+    ret = true;
+    break;
+  }
+  case SYM_CDR: {
+    pop_u32(K, &tmp); nargs--;
+    result = cdr(tmp);
+    ret = true;
+    break;
+  }
   case SYM_ADD: {
     UINT sum;
     UINT value;
     pop_u32(K, &sum); nargs--;
     while (nargs > 0) {
-      pop_u32(K, &value);
+      pop_u32(K, &value); nargs--;
       sum = add2(sum, value);
-      nargs--;
     }
-    push_u32(K, sum);
+    result = sum;
     ret = true;
     break;
   }
@@ -320,12 +342,11 @@ bool fundamental_exec(stack *K, VALUE op) {
       res = negate(res);
     } else {
       while (nargs > 0) {
-	pop_u32(K, &value);
+	pop_u32(K, &value); nargs--;
 	res = sub2(res, value);
-	nargs--;
       }
     }
-    push_u32(K, res);	
+    result = res;
     ret = true;
     break;
   }
@@ -340,27 +361,34 @@ bool fundamental_exec(stack *K, VALUE op) {
     break;
   case SYM_EQ: {
     if (nargs != 2) {
-      push_u32(K, enc_sym(symrepr_eerror()));
+      result = enc_sym(symrepr_eerror());
       while (nargs > 0) {
 	UINT scrap;
-	pop_u32(K, &scrap);
+	pop_u32(K, &scrap); nargs--;
 	nargs--;
       }
     } else {
       UINT a;
       UINT b;
-      pop_u32(K, &a);
-      pop_u32(K, &b);
+      pop_u32(K, &a); nargs--;
+      pop_u32(K, &b); nargs--;
       if (struct_eq(a,b)) {
-	push_u32(K, enc_sym(symrepr_true()));
+	result = enc_sym(symrepr_true());
       } else {
-	push_u32(K, enc_sym(symrepr_nil()));
+        result = enc_sym(symrepr_nil());
       }
     }
     ret = true;
     break;
   }
   }
+
+  /* clean up the stack */
+  if (nargs > 0) {
+    pop_u32(K, &tmp); nargs--;
+  }
+  
+  push_u32(K,result);
   return ret;
 }
 

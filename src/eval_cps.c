@@ -260,14 +260,18 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       }
       push_u32(ctx->K, enc_u(nargs));
       if (!fundamental_exec(ctx->K, fun)) {
-	while (nargs > 0) {
-	  pop_u32(ctx->K, &temp);
-	  nargs--;
-	}
+	/* false return value means no fundamental function existed on 
+	   that symbol */
 	*done = true;
 	return enc_sym(symrepr_merror());
       } else {
 	pop_u32(ctx->K, &res);
+	if (type_of(res) == VAL_TYPE_SYMBOL &&
+	    dec_sym(res) == symrepr_merror()) {
+	  *perform_gc = true;
+	  *app_cont = true;
+	  return 0;
+	}
 	*app_cont = true;
 	return res;
       }

@@ -136,6 +136,11 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("/", SYM_DIV);
   res = res && symrepr_addspecial("mod", SYM_MOD);
   res = res && symrepr_addspecial("=",SYM_EQ);
+  res = res && symrepr_addspecial("car", SYM_CAR);
+  res = res && symrepr_addspecial("cdr", SYM_CDR);
+  res = res && symrepr_addspecial("cons", SYM_CONS);
+  res = res && symrepr_addspecial("list", SYM_LIST);
+  
   return res;
 }
 
