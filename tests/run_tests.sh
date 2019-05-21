@@ -35,89 +35,9 @@ for exe in *.exe; do
 done
 
 
-for lisp in *.lisp; do
-
-    if [ "$lisp" = "test_tailrec_0.lisp" ]; then
-	continue
-    fi
-
-    if [ "$lisp" = "test_progn_0.lisp" ]; then
-	continue
-    fi
-
-    if [ "$lisp" = "test_progn_1.lisp" ]; then
-	continue
-    fi
-
-    if [ "$lisp" = "test_progn_2.lisp" ]; then
-	continue
-    fi
-
-    
-    ./test_lisp_code $lisp
-
-    result=$?
-
-    echo "------------------------------------------------------------"
-    if [ $result -eq 1 ]
-    then
-	success_count=$((success_count+1))
-	echo $lisp SUCCESS
-    else
-	fail_count=$((fail_count+1))
-	echo $lisp FAILED
-    fi
-    echo "------------------------------------------------------------"
-done
 
 for lisp in *.lisp; do
     ./test_lisp_code_cps $lisp
-
-    result=$?
-
-    echo "------------------------------------------------------------"
-    if [ $result -eq 1 ]
-    then
-	success_count=$((success_count+1))
-	echo $lisp SUCCESS
-    else
-	fail_count=$((fail_count+1))
-	echo $lisp FAILED
-    fi
-    echo "------------------------------------------------------------"
-done
-
-for lisp in *.lisp; do
-
-    if [ "$lisp" = "test_fib_0.lisp" ]; then
-	continue
-    fi
-
-    if [ "$lisp" = "test_fib_1.lisp" ]; then
-	continue
-    fi
-
-    if [ "$lisp" = "test_tailrec_0.lisp" ]; then
-	continue
-    fi
-
-    if [ "$lisp" = "test_tailrec_1.lisp" ]; then
-	continue
-    fi
-    
-    if [ "$lisp" = "test_progn_0.lisp" ]; then
-	continue
-    fi
-
-    if [ "$lisp" = "test_progn_1.lisp" ]; then
-	continue
-    fi
-
-    if [ "$lisp" = "test_progn_2.lisp" ]; then
-	continue
-    fi
-
-    ./test_lisp_code_mini_heap $lisp
 
     result=$?
 
