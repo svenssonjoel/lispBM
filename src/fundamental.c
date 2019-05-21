@@ -30,8 +30,8 @@
   After execution of a fundamental operation the result will be located
   at the top of the K-stack.
  */
-
-static inline UINT as_i(UINT a) {
+  
+static UINT as_i(UINT a) {
   
   UINT tmp;
   FLOAT f_tmp;
@@ -52,7 +52,7 @@ static inline UINT as_i(UINT a) {
   return 0;
 }
 
-static inline UINT as_u(UINT a) {
+static UINT as_u(UINT a) {
   
   UINT tmp;
   FLOAT f_tmp;
@@ -73,7 +73,7 @@ static inline UINT as_u(UINT a) {
   return 0;
 }
 
-static inline UINT as_f(UINT a) {
+static UINT as_f(UINT a) {
   
   UINT tmp;
   FLOAT f_tmp;
@@ -94,9 +94,30 @@ static inline UINT as_f(UINT a) {
   return 0;
 }
 
+/*
+static  UINT as_t(UINT a, UINT t) {
+  UINT tmp;
+  FLOAT f_tmp;
+  
+  switch (type_of(t)) {
+  case VAL_TYPE_I: 
+    return enc_i(as_i(a));
+  case VAL_TYPE_U:
+    return enc_u(as_u(a));
+  case PTR_TYPE_BOXED_I:
+    return enc_I(as_i(a));
+  case PTR_TYPE_BOXED_U:
+    return enc_U(as_u(a));;
+  case PTR_TYPE_BOXED_F:
+    tmp = car(a);
+    memcpy(&f_tmp, &tmp, sizeof(FLOAT));
+    return f_tmp;
+  }
+  return 0;
+}
+*/
 
-
-static inline UINT add2(UINT a, UINT b) {
+static UINT add2(UINT a, UINT b) {
 
   UINT retval = enc_sym(symrepr_terror());
   UINT t_min;
@@ -132,26 +153,26 @@ static inline UINT add2(UINT a, UINT b) {
     case PTR_TYPE_BOXED_U:
       u0 = dec_U(t_max);
       u1 = as_u(t_min);
-      retval = cons(u0+u1, enc_sym(DEF_REPR_BOXED_U_TYPE));
+      retval = enc_U(u0+u1); //cons(u0+u1, enc_sym(DEF_REPR_BOXED_U_TYPE));
       break;
     case PTR_TYPE_BOXED_I:
       i0 = dec_I(t_max);
       i1 = as_u(t_min);
-      retval = cons(i0+i1, enc_sym(DEF_REPR_BOXED_I_TYPE));
+      retval = enc_I(i0 + i1); //cons(i0+i1, enc_sym(DEF_REPR_BOXED_I_TYPE));
       break;
     case PTR_TYPE_BOXED_F:
       f0 = dec_f(t_max);
       f1 = as_f(t_min);
       f0 = f0 + f1;
-      memcpy(&retval, &f0, sizeof(FLOAT));
-      retval = cons(retval, enc_sym(DEF_REPR_BOXED_F_TYPE));
+      //memcpy(&retval, &f0, sizeof(FLOAT));
+      retval = enc_F(f0); //cons(retval, enc_sym(DEF_REPR_BOXED_F_TYPE));
       break;
     }
   } 
   return retval;
 }
 
-static inline UINT negate(UINT a) {
+static UINT negate(UINT a) {
 
   UINT retval = enc_sym(symrepr_terror());
   INT i0;
@@ -170,24 +191,24 @@ static inline UINT negate(UINT a) {
       break;
     case PTR_TYPE_BOXED_U:
       u0 = dec_U(a);
-      retval = cons(-u0, enc_sym(DEF_REPR_BOXED_U_TYPE));
+      retval = enc_U(-u0); //cons(-u0, enc_sym(DEF_REPR_BOXED_U_TYPE));
       break;
     case PTR_TYPE_BOXED_I:
       i0 = dec_I(a);
-      retval = cons(-i0, enc_sym(DEF_REPR_BOXED_I_TYPE));
+      retval = enc_I(-i0); //cons(-i0, enc_sym(DEF_REPR_BOXED_I_TYPE));
       break;
     case PTR_TYPE_BOXED_F:
       f0 = dec_f(a);
       f0 = -f0;
-      memcpy(&retval, &f0, sizeof(FLOAT));
-      retval = cons(retval, enc_sym(DEF_REPR_BOXED_F_TYPE));
+      //memcpy(&retval, &f0, sizeof(FLOAT));
+      retval = enc_F(f0); //cons(retval, enc_sym(DEF_REPR_BOXED_F_TYPE));
       break;
     }
   } 
   return retval;
 }
 
-static inline UINT sub2(UINT a, UINT b) {
+static UINT sub2(UINT a, UINT b) {
 
   UINT retval = enc_sym(symrepr_terror());
   UINT t_min;
@@ -223,19 +244,19 @@ static inline UINT sub2(UINT a, UINT b) {
     case PTR_TYPE_BOXED_U:
       u0 = dec_U(t_max);
       u1 = as_u(t_min);
-      retval = cons(u0+u1, enc_sym(DEF_REPR_BOXED_U_TYPE));
+      retval = enc_U(u0 - u1); //cons(u0-u1, enc_sym(DEF_REPR_BOXED_U_TYPE));
       break;
     case PTR_TYPE_BOXED_I:
       i0 = dec_I(t_max);
       i1 = as_u(t_min);
-      retval = cons(i0 - i1, enc_sym(DEF_REPR_BOXED_I_TYPE));
+      retval = enc_I(i0 - i1); //cons(i0 - i1, enc_sym(DEF_REPR_BOXED_I_TYPE));
       break;
     case PTR_TYPE_BOXED_F:
       f0 = dec_f(t_max);
       f1 = as_f(t_min);
       f0 = f0 - f1;
-      memcpy(&retval, &f0, sizeof(FLOAT));
-      retval = cons(retval, enc_sym(DEF_REPR_BOXED_F_TYPE));
+      //memcpy(&retval, &f0, sizeof(FLOAT));
+      retval = enc_F(f0); //cons(retval, enc_sym(DEF_REPR_BOXED_F_TYPE));
       break;
     }
   } 
@@ -243,7 +264,7 @@ static inline UINT sub2(UINT a, UINT b) {
 }
 
 
-static inline bool struct_eq(VALUE a, VALUE b) {
+static bool struct_eq(VALUE a, VALUE b) {
 
   if (!is_ptr(a) && !is_ptr(b)) {
     if (val_type(a) == val_type(b)){
@@ -287,12 +308,82 @@ static inline bool struct_eq(VALUE a, VALUE b) {
   }
   return false;
 }
- 
+
+static int cmpi(INT a, INT b, bool swapped) {
+  int res = (a > b) - (a < b);
+  return swapped ? -res : res;
+}
+
+static int cmpu(UINT a, UINT b, bool swapped) {
+  int res = (a > b) - (a < b);
+  return swapped ? -res : res;
+}
+
+static int cmpf(FLOAT a, FLOAT b, bool swapped) {
+  int res = (a > b) - (a < b);
+  return swapped ? -res : res;
+}
+
+
+/* returns -1 if a < b; 0 if a = b; 1 if a > b */
+static int compare(UINT a, UINT b) {
+  int retval = 1;
+  UINT tmp;
+  INT i0;
+  INT i1;
+  UINT u0;
+  UINT u1;
+  FLOAT f0;
+  FLOAT f1;
+  bool swapped = false;
+  
+  if (type_of(a) < type_of(b)) {
+    tmp = a;
+    a   = b;
+    b   = tmp;
+    swapped = true;
+  } 
+
+  if (type_of(b) > VAL_TYPE_CHAR) { 
+    switch (type_of(a)) {
+    case VAL_TYPE_I:
+      i0 = dec_i(a);
+      i1 = as_i(b);
+      retval = cmpi(i0,i1,swapped);
+      break;
+    case VAL_TYPE_U: 
+      u0 = dec_u(a);
+      u1 = as_u(b);
+      retval = cmpu(u0,u1,swapped);
+      break;
+    case PTR_TYPE_BOXED_U:
+      u0 = dec_U(a);
+      u1 = as_u(b);
+      retval = cmpu(u0,u1,swapped);
+      break;
+    case PTR_TYPE_BOXED_I:
+      i0 = dec_I(a);
+      i1 = as_u(b);
+      retval = cmpi(i0,i1,swapped);
+      break;
+    case PTR_TYPE_BOXED_F:
+      f0 = dec_f(a);
+      f1 = as_f(b);
+      retval = cmpf(f0,f1,swapped);
+      break;
+    }
+  } 
+  return retval;
+}
+
+
+
 bool fundamental_exec(stack *K, VALUE op) {
-  bool ret = false;
+  bool ret = true;
   UINT nargs;
   UINT tmp;
   UINT result = enc_sym(symrepr_eerror());
+  int cmp_res = -1;
   pop_u32(K, &nargs);
   /* for now assume that all of these will take at least one argument */
   nargs = dec_u(nargs);
@@ -307,19 +398,16 @@ bool fundamental_exec(stack *K, VALUE op) {
     pop_u32(K, &a); nargs--;
     pop_u32(K, &b); nargs--;
     result = cons(a,b);
-    ret = true;
     break;
   }
   case SYM_CAR: {
     pop_u32(K, &tmp); nargs--;
     result = car(tmp);
-    ret = true;
     break;
   }
   case SYM_CDR: {
     pop_u32(K, &tmp); nargs--;
     result = cdr(tmp);
-    ret = true;
     break;
   }
   case SYM_ADD: {
@@ -331,7 +419,6 @@ bool fundamental_exec(stack *K, VALUE op) {
       sum = add2(sum, value);
     }
     result = sum;
-    ret = true;
     break;
   }
   case SYM_SUB: {
@@ -347,48 +434,77 @@ bool fundamental_exec(stack *K, VALUE op) {
       }
     }
     result = res;
-    ret = true;
     break;
   }
   case SYM_MUL:
-    ret = true;
     break;
   case SYM_DIV:
-    ret = true;
     break;
   case SYM_MOD:
-    ret = true;
     break;
   case SYM_EQ: {
-    if (nargs != 2) {
-      result = enc_sym(symrepr_eerror());
-      while (nargs > 0) {
-	UINT scrap;
-	pop_u32(K, &scrap); nargs--;
-	nargs--;
-      }
-    } else {
-      UINT a;
-      UINT b;
-      pop_u32(K, &a); nargs--;
+    UINT a;
+    UINT b;
+    bool r = true;
+    pop_u32(K, &a); nargs--;
+    
+    while (nargs > 0) {
       pop_u32(K, &b); nargs--;
-      if (struct_eq(a,b)) {
-	result = enc_sym(symrepr_true());
-      } else {
-        result = enc_sym(symrepr_nil());
-      }
+      r = r && struct_eq(a, b);
     }
-    ret = true;
+    if (r) {
+      result = enc_sym(symrepr_true());
+    } else {
+      result = enc_sym(symrepr_nil());
+    }
     break;
   }
+  case SYM_NUMEQ:
+    cmp_res = 0;
+    /* fall through */
+  case SYM_GT:
+    if (dec_sym(op) == SYM_GT) cmp_res = 1;
+    /* fall through */
+  case SYM_LT: {
+    UINT a;
+    UINT b;
+    bool r = true;
+    bool ok = true;
+    pop_u32(K, &a); nargs--;
+    if (!is_number(a)) {
+      result = enc_sym(symrepr_terror());
+      break;
+    }
+    while (nargs > 0) {
+      pop_u32(K, &b); nargs--;
+      if (!is_number(b)) {
+	ok = false;
+	break;
+      }	
+      r = r && (compare(a, b) == cmp_res);
+    }
+    if (ok) {
+      if (r) {
+	result = enc_sym(symrepr_true());
+      } else {
+	result = enc_sym(symrepr_nil());
+      }
+    } else {
+      result = enc_sym(symrepr_terror());
+    }
+    break;
   }
-
+  default:
+    ret = false;
+    break;
+  }
+  
   /* clean up the stack */
   if (nargs > 0) {
     pop_u32(K, &tmp); nargs--;
   }
-  
-  push_u32(K,result);
+
+  if (ret) push_u32(K,result);
   return ret;
 }
 

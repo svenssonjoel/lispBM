@@ -20,6 +20,7 @@
 
 #include <string.h>
 #include "typedefs.h"
+#include "symrepr.h"
 
 /*
 Planning for a more space efficient heap representation.
@@ -278,6 +279,10 @@ static inline VALUE set_ptr_type(VALUE p, TYPE t) {
   return (PTR_VAL_MASK & p) | t | PTR;
 }
 
+static inline VALUE enc_sym(uint32_t s) {
+  return (s << VAL_SHIFT) | VAL_TYPE_SYMBOL;
+}
+
 static inline VALUE enc_i(INT x) {
   return ((UINT)x << VAL_SHIFT) | VAL_TYPE_I;
 }
@@ -286,12 +291,28 @@ static inline VALUE enc_u(UINT x) {
   return (x << VAL_SHIFT) | VAL_TYPE_U;
 }
 
-static inline VALUE enc_char(char x) {
-  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_CHAR;
+static inline VALUE enc_I(INT x) {
+  VALUE i = cons((UINT)x, enc_sym(DEF_REPR_BOXED_I_TYPE));
+  if (type_of(i) == VAL_TYPE_SYMBOL) return i;
+  return set_ptr_type(i, PTR_TYPE_BOXED_I);
 }
 
-static inline VALUE enc_sym(uint32_t s) {
-  return (s << VAL_SHIFT) | VAL_TYPE_SYMBOL;
+static inline VALUE enc_U(UINT x) {
+  VALUE u = cons(x, enc_sym(DEF_REPR_BOXED_U_TYPE));
+  if (type_of(u) == VAL_TYPE_SYMBOL) return u;
+  return set_ptr_type(u, PTR_TYPE_BOXED_U);
+}
+
+static inline VALUE enc_F(FLOAT x) {
+  UINT t;
+  memcpy(&t, &x, sizeof(float));
+  VALUE f = cons(t, enc_sym(DEF_REPR_BOXED_F_TYPE));
+  if (type_of(f) == VAL_TYPE_SYMBOL) return f;
+  return set_ptr_type(f, PTR_TYPE_BOXED_F);
+}
+
+static inline VALUE enc_char(char x) {
+  return ((UINT)x << VAL_SHIFT) | VAL_TYPE_CHAR;
 }
 
 static inline INT dec_i(VALUE x) {
@@ -342,4 +363,13 @@ static inline bool is_fundamental(VALUE symrep) {
 	  ((dec_sym(symrep) & 0xFFFF) == 0xFFFF));
 }
 
+
+static inline bool is_number(VALUE x) {
+  UINT t = type_of(x);
+  return ((t == VAL_TYPE_I) ||
+	  (t == VAL_TYPE_U) ||
+	  (t == PTR_TYPE_BOXED_I) ||
+	  (t == PTR_TYPE_BOXED_U) ||
+	  (t == PTR_TYPE_BOXED_F));
+}
 #endif

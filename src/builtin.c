@@ -35,14 +35,14 @@ builtin_function_t* function_list = NULL;
 
 ////////////////////////////////////////////////////////////
 // Built in predicates (numberp, symbolp and such)
-bool is_number(VALUE arg) {
-  TYPE t = type_of(arg);
-  return (t == VAL_TYPE_I ||
-	  t == VAL_TYPE_U ||
-	  t == PTR_TYPE_BOXED_I ||
-	  t == PTR_TYPE_BOXED_U ||
-	  t == PTR_TYPE_BOXED_F);
-}
+/* bool is_number(VALUE arg) { */
+/*   TYPE t = type_of(arg); */
+/*   return (t == VAL_TYPE_I || */
+/* 	  t == VAL_TYPE_U || */
+/* 	  t == PTR_TYPE_BOXED_I || */
+/* 	  t == PTR_TYPE_BOXED_U || */
+/* 	  t == PTR_TYPE_BOXED_F); */
+/* } */
 
 VALUE bi_fun_numberp(VALUE args) {
   if (is_number(car(args)) && length(args) == 1) {
