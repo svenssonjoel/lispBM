@@ -70,10 +70,13 @@ all: $(OBJECTS) $(LIB)
 debug: CCFLAGS += -g 
 debug: $(OBJECTS) $(LIB)
 
-$(LIB): $(OBJECTS)
+$(LIB): $(OBJECTS) 
 	$(AR) -rcs $@ $(OBJECTS)
 
-$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
+src/prelude.xxd: src/prelude.lisp
+	xxd -i < src/prelude.lisp > src/prelude.xxd && echo ', 0' >> src/prelude.xxd
+
+$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c src/prelude.xxd
 	$(CC) -I$(INCLUDE_DIR) $(CCFLAGS) -c $< -o $@
 
 

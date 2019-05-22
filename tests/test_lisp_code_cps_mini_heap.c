@@ -24,6 +24,7 @@
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
+#include "prelude.h"
 
 int main(int argc, char **argv) {
 
@@ -87,6 +88,9 @@ int main(int argc, char **argv) {
   else {
     printf("Error initializing evaluator.\n");
   }
+
+  VALUE prelude = prelude_load();
+  eval_cps_program(prelude);
 
   VALUE t;
   t = tokpar_parse(code_buffer);

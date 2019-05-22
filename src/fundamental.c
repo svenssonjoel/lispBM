@@ -375,8 +375,6 @@ static int compare(UINT a, UINT b) {
   return retval;
 }
 
-
-
 bool fundamental_exec(stack *K, VALUE op) {
   bool ret = true;
   UINT nargs;
