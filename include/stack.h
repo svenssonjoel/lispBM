@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "typedefs.h"
 
@@ -37,6 +38,12 @@ int push_u32(stack *s, UINT val);
 int push_k(stack *s, VALUE (*k)(VALUE));
 int pop_u32(stack *s, UINT *val);
 int pop_k(stack *s, VALUE (**k)(VALUE));
+
+static inline int stack_arg_ix(stack *s, unsigned int ix, UINT *res) {
+  if (ix > s->sp-1) return 0;
+  *res = s->data[s->sp-(ix+1)];
+  return 1;
+}
 
 static inline int push_u32_2(stack *s, UINT val0, UINT val1) {
   int res = 1;

@@ -244,19 +244,18 @@ static UINT sub2(UINT a, UINT b) {
     case PTR_TYPE_BOXED_U:
       u0 = dec_U(t_max);
       u1 = as_u(t_min);
-      retval = enc_U(u0 - u1); //cons(u0-u1, enc_sym(DEF_REPR_BOXED_U_TYPE));
+      retval = enc_U(u0 - u1);
       break;
     case PTR_TYPE_BOXED_I:
       i0 = dec_I(t_max);
       i1 = as_u(t_min);
-      retval = enc_I(i0 - i1); //cons(i0 - i1, enc_sym(DEF_REPR_BOXED_I_TYPE));
+      retval = enc_I(i0 - i1);
       break;
     case PTR_TYPE_BOXED_F:
       f0 = dec_f(t_max);
       f1 = as_f(t_min);
       f0 = f0 - f1;
-      //memcpy(&retval, &f0, sizeof(FLOAT));
-      retval = enc_F(f0); //cons(retval, enc_sym(DEF_REPR_BOXED_F_TYPE));
+      retval = enc_F(f0);
       break;
     }
   } 
@@ -410,6 +409,17 @@ bool fundamental_exec(stack *K, VALUE op) {
     result = cdr(tmp);
     break;
   }
+  case SYM_LIST: {
+    result = enc_sym(symrepr_nil());
+    for (UINT i = 1; i <= nargs; i ++) {
+      UINT a = enc_sym(symrepr_eerror());
+      stack_arg_ix(K, (nargs - i), &a);
+      result = cons(a, result);
+      if (type_of(result) == VAL_TYPE_SYMBOL)
+	break;
+    }
+    break; 
+  }
   case SYM_ADD: {
     UINT sum;
     UINT value;
@@ -500,7 +510,7 @@ bool fundamental_exec(stack *K, VALUE op) {
   }
   
   /* clean up the stack */
-  if (nargs > 0) {
+  while (nargs > 0) {
     pop_u32(K, &tmp); nargs--;
   }
 
