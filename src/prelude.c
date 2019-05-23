@@ -20,6 +20,7 @@
 VALUE prelude_load(void) {
   char prelude[] = {
 #include "prelude.xxd"
+    ,0
   };
   return tokpar_parse(prelude);
 }
