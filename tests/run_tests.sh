@@ -49,7 +49,7 @@ for lisp in *.lisp; do
 	success_count=$((success_count+1))
 	echo $lisp SUCCESS
     else
-	failing_tests="$failing_tests $lisp \n"
+	failing_tests="$failing_tests HUGE_HEAP: $lisp \n"
 	fail_count=$((fail_count+1))
 	echo $lisp FAILED
     fi
@@ -70,7 +70,7 @@ for lisp in *.lisp; do
 	success_count=$((success_count+1))
 	echo $lisp SUCCESS
     else
-	failing_tests="$failing_tests $lisp \n"
+	failing_tests="$failing_tests MINI_HEAP: $lisp \n"
 	fail_count=$((fail_count+1))
 	echo $lisp FAILED
     fi
