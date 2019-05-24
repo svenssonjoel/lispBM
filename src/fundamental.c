@@ -18,6 +18,7 @@
 #include "symrepr.h"
 #include "stack.h"
 #include "heap.h"
+#include "eval_cps.h"
 
 #include <stdio.h>
 /*
@@ -389,6 +390,10 @@ bool fundamental_exec(stack *K, VALUE op) {
   }
   
   switch (dec_sym(op)) {
+  case SYM_EVAL:
+    pop_u32(K, &tmp); nargs--;
+    result = eval_cps_bi_eval(tmp);
+    break;
   case SYM_CONS: {
     UINT a;
     UINT b;
@@ -425,6 +430,8 @@ bool fundamental_exec(stack *K, VALUE op) {
     while (nargs > 0) {
       pop_u32(K, &value); nargs--;
       sum = add2(sum, value);
+      if (type_of(sum) == VAL_TYPE_SYMBOL)
+	break;
     }
     result = sum;
     break;
@@ -439,6 +446,8 @@ bool fundamental_exec(stack *K, VALUE op) {
       while (nargs > 0) {
 	pop_u32(K, &value); nargs--;
 	res = sub2(res, value);
+	if (type_of(res) == VAL_TYPE_SYMBOL)
+	  break;
       }
     }
     result = res;

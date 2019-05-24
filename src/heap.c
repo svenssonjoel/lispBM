@@ -409,7 +409,7 @@ int heap_perform_gc_extra(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE li
   return gc_sweep_phase();
 }
 
-int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, UINT *aux_data, unsigned int aux_size) {
+int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE exp3, UINT *aux_data, unsigned int aux_size) {
   heap_state.gc_num ++;
   heap_state.gc_recovered = 0;
   heap_state.gc_marked = 0;
@@ -417,6 +417,7 @@ int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, UINT *aux_
   gc_mark_freelist();
   gc_mark_phase(exp);
   gc_mark_phase(exp2);
+  gc_mark_phase(exp3);
   gc_mark_phase(env);
   gc_mark_phase(env2);
   gc_mark_aux(aux_data, aux_size);

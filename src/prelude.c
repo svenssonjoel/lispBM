@@ -19,7 +19,9 @@
 
 VALUE prelude_load(void) {
   char prelude[] = {
+#ifdef _PRELUDE
 #include "prelude.xxd"
+#endif
     ,0
   };
   return tokpar_parse(prelude);

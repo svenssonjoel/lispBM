@@ -79,8 +79,7 @@ VALUE eval_cps_get_env(void) {
 VALUE eval_cps_bi_eval(VALUE exp) {
   eval_context_t *ctx = eval_cps_get_current_context();
 
-  VALUE e = car(exp); // first argument
-  ctx->curr_exp = e;
+  ctx->curr_exp = exp;
   return run_eval(ctx);
 }
 
@@ -260,17 +259,17 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       }
       push_u32(ctx->K, enc_u(nargs));
       if (!fundamental_exec(ctx->K, fun)) {
-	/* false return value means no fundamental function existed on 
-	   that symbol */
+
 	*done = true;
 	return enc_sym(symrepr_merror());
       } else {
 	pop_u32(ctx->K, &res);
 	if (type_of(res) == VAL_TYPE_SYMBOL &&
 	    dec_sym(res) == symrepr_merror()) {
+	  push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
 	  *perform_gc = true;
 	  *app_cont = true;
-	  return 0;
+	  return fun;
 	}
 	*app_cont = true;
 	return res;
@@ -392,18 +391,19 @@ VALUE run_eval(eval_context_t *ctx){
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
 #endif
-
+    
     if (perform_gc) {
       if (non_gc == 0) {
 	done = true;
 	r = enc_sym(symrepr_merror());
 	continue;
       }
-      non_gc = 0;
+      non_gc = 0; 
       heap_perform_gc_aux(eval_cps_global_env,
 			  ctx->curr_env,
 			  ctx->curr_exp,
 			  ctx->program,
+			  r,
 			  ctx->K->data,
 			  ctx->K->sp);
       perform_gc = false;

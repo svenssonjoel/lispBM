@@ -116,7 +116,7 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("let"        , DEF_REPR_LET);
   res = res && symrepr_addspecial("define"     , DEF_REPR_DEFINE);
   res = res && symrepr_addspecial("progn"      , DEF_REPR_PROGN);
-
+  
   // Special symbols with unparseable names
   res = res && symrepr_addspecial("read_error"    , DEF_REPR_RERROR);
   res = res && symrepr_addspecial("type_error"    , DEF_REPR_TERROR);
@@ -138,6 +138,7 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("=", SYM_EQ);
   res = res && symrepr_addspecial("<", SYM_LT);
   res = res && symrepr_addspecial(">", SYM_GT);
+  res = res && symrepr_addspecial("eval", SYM_EVAL);
   res = res && symrepr_addspecial("num-eq", SYM_NUMEQ);
   res = res && symrepr_addspecial("car", SYM_CAR);
   res = res && symrepr_addspecial("cdr", SYM_CDR);

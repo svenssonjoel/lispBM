@@ -25,6 +25,7 @@
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
+#include "prelude.h"
 
 int main(int argc, char **argv) {
   char *str = malloc(1024);;
@@ -66,6 +67,9 @@ int main(int argc, char **argv) {
   else {
     printf("Error initializing evaluator.\n");
   }
+
+  VALUE prelude = prelude_load();
+  eval_cps_program(prelude); 
 
   printf("Lisp REPL started!\n");
   printf("Type :quit to exit.\n");

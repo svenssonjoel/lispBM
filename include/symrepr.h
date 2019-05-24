@@ -57,6 +57,7 @@
 #define SYM_NUMEQ 0x106FFFF
 #define SYM_LT    0x107FFFF
 #define SYM_GT    0x108FFFF
+#define SYM_EVAL  0x109FFFF
 
 #define SYM_CONS  0x120FFFF
 #define SYM_CAR   0x121FFFF
