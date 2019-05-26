@@ -250,7 +250,6 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       VALUE curr_arg = args;
 
       UINT nargs = 0;
-      UINT temp;
       VALUE res;
       while (type_of(curr_arg) == PTR_TYPE_CONS) {
 	push_u32(ctx->K, car(curr_arg));

@@ -144,7 +144,10 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("cdr", SYM_CDR);
   res = res && symrepr_addspecial("cons", SYM_CONS);
   res = res && symrepr_addspecial("list", SYM_LIST);
-  
+
+  res = res && symrepr_addspecial("array-read", SYM_ARRAY_READ);
+  res = res && symrepr_addspecial("array-write", SYM_ARRAY_WRITE);
+  res = res && symrepr_addspecial("array-create", SYM_ARRAY_CREATE);
   return res;
 }
 
