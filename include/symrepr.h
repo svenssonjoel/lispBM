@@ -71,7 +71,7 @@
 #define SYMBOL_MAX  0xFFFFFFF
 
 extern int symrepr_addsym(char *, UINT*);
-extern bool symrepr_init();
+extern bool symrepr_init(void);
 extern void symrepr_print(void);
 extern int symrepr_lookup(char *, UINT*);
 extern char* symrepr_lookup_name(UINT);

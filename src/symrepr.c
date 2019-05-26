@@ -151,7 +151,7 @@ bool add_default_symbols() {
   return res;
 }
 
-bool symrepr_init() {
+bool symrepr_init(void) {
 #ifdef TINY_SYMTAB
   name_list = NULL; /* empty list of symbol names */
 #else
@@ -172,30 +172,77 @@ bool symrepr_addspecial(char *name, UINT spec_id) {
 
   if (n == 1) return false; /* failure if empty symbol */
 
+#ifdef TINY_SYMTAB
+  if (name_list == NULL) {
+    name_list = (name_list_t*)malloc(sizeof(name_list_t));
+    if (name_list == NULL) return false;
+    name_list->next = NULL;
+    name_list->key = hash;
+    name_list->map = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+    if (name_list->map == NULL) return false;
+    name_list->map->key = key;
+    name_list->map->next = NULL;
+    name_list->map->name = (char*)malloc(n);
+    if (name_list->map->name == NULL) return false;
+    strncpy(name_list->map->name, name, n);
+  } else {
+    UINT t_id;
+    if (symrepr_lookup(name, &t_id)) {
+      return false;
+    }
+    
+    name_mapping_t *head = name_list_get_mappings(name_list,hash);
+    if (head == NULL) {
+      name_list_t *new_entry = (name_list_t*)malloc(sizeof(name_list_t));
+      if (new_entry == NULL) return 0;
+      new_entry->next = NULL;
+      new_entry->key = hash;
+      new_entry->map = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+      if (new_entry->map == NULL) return 0;
+      new_entry->map->key = key;
+      new_entry->map->next = NULL;
+      new_entry->map->name = (char*)malloc(n);
+      if (new_entry->map->name == NULL) return 0;
+      strncpy(new_entry->map->name, name, n);
+
+      /* Update global list */
+      new_entry->next = name_list;
+      name_list = new_entry;
+    } else {
+      name_mapping_t *new_mapping = (name_mapping_t*)malloc(sizeof(name_mapping_t));
+      new_mapping->next = NULL;
+      new_mapping->key  = key;
+      new_mapping->name = (char*)malloc(n);
+      if (new_mapping->name == NULL) return false;
+      strncpy(new_mapping->name, name, n);
+      while (head->next != NULL) head = head->next;
+      head->next = new_mapping;
+    }
+  }
+      
+      
+#else
   if (name_table[hash] == NULL){
     name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
-    name_table[hash]->key = hash;
-    n = strlen(name) + 1;
+    name_table[hash]->key = key;
     name_table[hash]->name = (char*)malloc(n);
     strncpy(name_table[hash]->name, name, n);
     name_table[hash]->next = NULL;
   } else {
     UINT t_id;
-    if (symrepr_lookup(name, &t_id)) {
-      /* name already in table */
+    if (symrepr_lookup(name, &t_id))
       return false;
-    }
 
     /* collision */
     name_mapping_t *head = name_table[hash];
 
     name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));
     name_table[hash]->key = key;
-    n = strlen(name) + 1;
     name_table[hash]->name = (char*)malloc(n);
     strncpy(name_table[hash]->name, name, n);
     name_table[hash]->next = head;
   }
+#endif
   return true;
 }
 

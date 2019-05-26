@@ -53,6 +53,7 @@
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
+#include "prelude.h"
 
 
 /*===========================================================================*/
@@ -131,13 +132,13 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
     chprintf(chp,"Error initializing heap!\n\r");
     return;
   }
-  res = builtin_init();
-  if (res)
-    chprintf(chp, "Built in functions initialized.\n\r");
-  else {
-    chprintf(chp, "Error initializing built in functions.\n\r");
-    return;
-  }
+  /* res = builtin_init(); */
+  /* if (res) */
+  /*   chprintf(chp, "Built in functions initialized.\n\r"); */
+  /* else { */
+  /*   chprintf(chp, "Error initializing built in functions.\n\r"); */
+  /*   return; */
+  /* } */
   res = eval_cps_init(true);
   if (res)
     chprintf(chp,"Evaluator initialized.\n\r");
@@ -146,6 +147,9 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
   }
   chprintf(chp,"Lisp REPL started (ChibiOS)!\n\r");
 
+  VALUE prelude = prelude_load();
+  eval_cps_program(prelude); 
+  
   while (1) {
     chprintf(chp,"# ");
     memset(str,0,len);
