@@ -393,7 +393,6 @@ void array_read(stack *K, UINT *nargs, UINT *result) {
   UINT ix;
   INT  tmp;
 
-
   *result = enc_sym(symrepr_eerror());
   switch (type_of(index)) {
   case VAL_TYPE_U:
@@ -571,8 +570,7 @@ bool fundamental_exec(stack *K, VALUE op) {
   case SYM_CONS: {
     UINT a;
     UINT b;
-    pop_u32(K, &a); nargs--;
-    pop_u32(K, &b); nargs--;
+    pop_u32_2(K, &a, &b); nargs-=2;
     result = cons(a,b);
     break;
   }
