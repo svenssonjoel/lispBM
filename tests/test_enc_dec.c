@@ -44,7 +44,6 @@ int main(int argc, char **argv) {
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
   res &= (dec_sym(enc_sym(268435455)) == 268435455);
   printf("DEC/ENC %d: %s \n", n++, res ? "ok" : "NOK!");
-
+  
   return res;
-
 }
