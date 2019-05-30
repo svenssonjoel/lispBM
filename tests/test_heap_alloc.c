@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   unsigned int heap_size = 1024 * 1024; 
   uint32_t cell;
 
-  res = symrepr_init(false);
+  res = symrepr_init();
   if (!res) {
     printf("Error initializing symrepr\n");
     return 0;
