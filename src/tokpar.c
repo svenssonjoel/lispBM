@@ -115,7 +115,7 @@ int tok_symbol(char *str, char** res) {
   memset(*res,0,len+1);
 
   for (i = 0; i < len; i ++) {
-    (*res)[i] = str[i];
+    (*res)[i] = tolower(str[i]);
     n++;
   }
 
@@ -204,9 +204,11 @@ int tok_I(char *str, INT *res) {
     n++;
   }
 
-  if (*(str+n) == 'I') {
+  if (*(str+n) == 'i' &&
+      *(str+n+1) == '3' &&
+      *(str+n+2) == '2') {
     *res = acc;
-    return n+1;
+    return n+3;
   }
   return 0;
 }
@@ -220,9 +222,11 @@ int tok_u(char *str, UINT *res) {
     n++;
   }
 
-  if (*(str+n) == 'u') {
+  if (*(str+n) == 'u' &&
+      *(str+n+1) == '2' &&
+      *(str+n+2) == '8' ) {
     *res = acc;
-    return n+1;
+    return n+3;
   }
   return 0;
 }
@@ -259,9 +263,11 @@ int tok_U(char *str, UINT *res) {
     n++;
   }
 
-  if (*(str+n) == 'U') {
+  if (*(str+n) == 'u' &&
+      *(str+n+1) == '3' &&
+      *(str+n+2) == '2') {
     *res = acc;
-    return n+1;
+    return n+3;
   }
   return 0;
 }

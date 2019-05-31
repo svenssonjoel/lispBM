@@ -20,28 +20,36 @@ import collections
 
 symchars = "abcdefghijklmnopqrstuvwxyz"
 numchars = "0123456789"
-funchars = "+-*/=<>."
+funchars = "+-*/=<>.#\"\\"
 lispnames = ["lambda", "if", '\'', "list", "quote", "closure", "define", "let",
-             "cons", "car", "cdr","(", "((",  ")", "))", ")))", "))))", "nil", "TOGGLE_COMPRESS"]
+             "cons", "car", "cdr","(", "((",  ")", "))", ")))", "))))", "nil"]
 
 def total_bits(c) :
     sum = 0;
     for code in c:
         sum += len(code[1])
-    return sum    
+    return sum
+
+#TODO: implement a scoring function to maximize against in the search
+#      - small maximum number of bits
+#      - cheap common strings
+def score_fun() :
+    return 0
+
 
 def minimum_total_bits_codes() :
     min_total_num_bits = 1000000
     min_codes = []
-    r = [1, 10, 100, 1000, 10000, 100000]
+    r = [100, 200, 300, 400, 500, 600, 700]
     space = [ (x,y,z,v) for x in r for y in r
                           for z in r for v in r]
+                          #for w in r]
     for point in space :
         
-        numchars_w  = [(x, point[0] / len(numchars)) for x in numchars]
-        symchars_w  = [(x, point[1] / len(symchars)) for x in symchars]
-        funchars_w  = [(x, point[2] / len(funchars)) for x in funchars]
-        lispnames_w = [(x, point[3] / len(lispnames)) for x in lispnames]
+        numchars_w  = [(x, (point[0] * 10) / len(numchars)) for x in numchars]
+        symchars_w  = [(x, (point[1] * 5) / len(symchars)) for x in symchars]
+        funchars_w  = [(x, (point[2] * 20) / len(funchars)) for x in funchars]
+        lispnames_w = [(x, (point[3] * 15) / len(lispnames)) for x in lispnames]
         all_w = symchars_w + lispnames_w + funchars_w + numchars_w
         codes = huffman.codebook(all_w).items()
         size = total_bits(codes)
