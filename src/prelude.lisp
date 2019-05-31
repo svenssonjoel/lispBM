@@ -54,5 +54,12 @@
 		       (cdr (car xs))
 		     (lookup x (cdr xs))))))
 
+(define foldr (lambda (f i xs)
+		(if (= xs nil)
+		    i
+		  (f (car xs) (foldr f i (cdr xs))))))
 
-(define sum (lambda (acc n) (if (num-eq n 0) acc (sum (+ acc n) (- n 1)))))
+(define foldl (lambda (f i xs)
+		(if (= xs nil)
+		    i
+		  (foldl f (f i (car xs)) (cdr xs)))))
