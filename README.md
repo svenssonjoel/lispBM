@@ -21,15 +21,14 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 ## TODOs
 1. (DONE) Write some tests that stresses the Garbage collector.
 2. (DONE) Implement some "reference to X type", for uint32, int32. 
-3. Write a small library of useful hofs. 
-4. Document code.
-5. Implement some looping structure for speed or just ease of use. 
-6. Be much more stringent on checking of error conditions etc.
-7. Improve handling of arguments in eval-cps. 
-8. Code improvements with simplicity, clarity  and readability in mind.
-9. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
-10. (DONE) Port to STM32f4 - 128K ram platform (will need big changes). (surely there will be some more bugs)
-11. (DONE) Add STM32f4 example code (repl implementation)
+3. (DONE) Write a small library of useful hofs. 
+4. Implement some looping structure for speed or just ease of use. 
+5. Be much more stringent on checking of error conditions etc.
+6. Improve handling of arguments in eval-cps. 
+7. Code improvements with simplicity, clarity  and readability in mind.
+8. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
+9. (DONE) Port to STM32f4 - 128K ram platform (will need big changes). (surely there will be some more bugs)
+10. (DONE) Add STM32f4 example code (repl implementation)
 11. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
 12. Port to Raspberry pi 32Bit Bare-metal.
 13. Reduce size of builtins.c and put platform specific built in functions elsewhere.
