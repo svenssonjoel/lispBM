@@ -20,8 +20,8 @@ import collections
 
 symchars  = "abcdefghijklmnopqrstuvwxyz"
 numchars  = "0123456789"
-funchars  = ['+','-','*','/','=','<','>','.','#','\\\"','\\\\']
-lispnames = ["lambda", "if", '\'', "list", "quote", "closure", "define", "let",
+funchars  = ['+','-','*','/','=','<','>','.','#','\\\"','\\\\', '\'']
+lispnames = ["lambda", "if", "list", "quote", "closure", "define", "let",
              "cons", "car", "cdr","(", "((",  ")", "))", ")))", "))))", "nil"]
 
 def total_bits(c) :
