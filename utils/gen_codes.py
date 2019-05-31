@@ -18,11 +18,11 @@
 import huffman
 import collections
 
-symchars  = "abcdefghijklmnopqrstuvwxyz"
-numchars  = "0123456789"
-funchars  = ['+','-','*','/','=','<','>','.','#','\\\"','\\\\', '\'']
-lispnames = ["lambda", "if", "list", "quote", "closure", "define", "let",
-             "cons", "car", "cdr","(", "((",  ")", "))", ")))", "))))", "nil"]
+symchars  = 'abcdefghijklmnopqrstuvwxyz'
+numchars  = '0123456789'
+funchars  = ['+','-','*','/','=','<','>','.','#','\\\"','\\\\', '\'', ' ']
+lispnames = ['lambda', 'if', 'list', 'quote', 'closure', 'define', 'let',
+             'cons', 'car', 'cdr','(', '((',  ')', '))', ')))', '))))', 'nil']
 
 def total_bits(c) :
     sum = 0;
@@ -61,9 +61,9 @@ def minimum_total_bits_codes() :
     return (min_total_num_bits, min_codes)
 
 
-def make_c_array() :
+def make_c() :
     codes = minimum_total_bits_codes()
-    num_codes = len(codes[1])
+    num_codes = '#define NUM_CODES %d\n' % len(codes[1])
 
     print("Total number of bits %d\n" % codes[0])
     
@@ -77,11 +77,11 @@ def make_c_array() :
             first = False
         else :
             code_map = '{ \"' + code[0] + '\", \"' + code[1] + '\" },\n' + code_map
-          
+                  
+    c_str = 'char *codes[NUM_CODES][2] = {' + code_map + '};\n'
     
-    c_str = 'char *codes[' + str(num_codes) + '][2] = {' + code_map + '};\n'
-
-    return c_str
+    
+    return num_codes + c_str
 
     
     
