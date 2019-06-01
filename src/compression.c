@@ -23,6 +23,8 @@
 
 #include <stdio.h>
 
+#define  KEY  0
+#define  CODE 1
 
 /* The codes are generated using python script in utils directory */
 // Total number of bits 392
@@ -113,17 +115,16 @@ int length_max_decompressible() {
   return max;
 }
 
-// returns matching index in codex or -1
-int match_compression_code(char *string) {
+int match_longest(int which, char *string) {
 
   int longest_match_ix = -1;
   int longest_match_length = 0;
   int n = strlen(string);
 
   for (int i = 0; i < NUM_CODES; i ++) {
-    int s_len = strlen(codes[i][0]);
+    int s_len = strlen(codes[i][which]);
     if (s_len <= n) {
-      if (strncmp(codes[i][0], string, s_len) == 0) {
+      if (strncmp(codes[i][which], string, s_len) == 0) {
 	if (s_len > longest_match_length) {
 	  longest_match_ix = i;
 	  longest_match_length = s_len;
@@ -171,7 +172,7 @@ int compressed_length(char *string) {
 
       if (string[i] == '\"') string_mode = true;
 
-      int ix = match_compression_code(string + i);
+      int ix = match_longest(KEY,string + i);
 
       if (ix == -1) return -1;
 
@@ -219,13 +220,13 @@ char *compress(char *string) {
 
   uint32_t c_size_bits = compressed_length(string);
   uint32_t c_size_bytes = 4 + (c_size_bits/8+1);
-  
+
   uint32_t header_value = c_size_bits;
 
   if (header_value == 0) return NULL;
-  
+
   printf("header_value: %u\n", header_value);
-  
+
   char *compressed = malloc(c_size_bytes);
   if (!compressed) return NULL;
   memset(compressed, 0, c_size_bytes);
@@ -235,7 +236,7 @@ char *compress(char *string) {
   compressed[1] = (unsigned char)(header_value >> 8);
   compressed[2] = (unsigned char)(header_value >> 16);
   compressed[3] = (unsigned char)(header_value >> 24);
-  bit_pos = 32; 
+  bit_pos = 32;
 
   bool string_mode = false;
   bool gobbling_whitespace = false;
@@ -247,7 +248,6 @@ char *compress(char *string) {
 
       if (string[i] == '\"' &&
 	  !(string[i-1] == '\\')) {
-	printf("LEAVING string mode\n");
 	emit_string_char_code(compressed, '\"', &bit_pos);
 	i ++;
 	string_mode = false;
@@ -274,13 +274,12 @@ char *compress(char *string) {
       }
 
       if (string[i] == '\"') {
-	printf("ENTERING STRING MODE\n");
 	emit_string_char_code(compressed, '\"', &bit_pos);
 	i ++;
 	string_mode = true;
 	continue;
       }
-      int ix = match_compression_code(&string[i]);
+      int ix = match_longest(KEY,&string[i]);
 
       if (ix == -1) return NULL;
       emit_code(compressed, codes[ix][1], &bit_pos);
@@ -301,12 +300,18 @@ bool decompress(char *dest, int dest_n, char *src) {
   bool ret = true;
   bool string_mode = false;
   uint32_t compressed_bits = 0;
+  int i = 0;
+  int char_pos = 0;
 
   memcpy(&compressed_bits, src, 4);
+  memset(dest, 0, dest_n);
 
   printf("decompress -- compressed_bits = %u\n",compressed_bits);
 
-  
+  while (i < compressed_bits && char_pos < dest_n-1) {
 
-  return ret; 
+    int ix = match_longest(CODE,src);
+
+  }
+  return ret;
 }
