@@ -216,6 +216,20 @@ void emit_code(char *compressed, char *code, int *bit_pos) {
   }
 }
 
+char read_character(char *src, int *bit_pos) {
+
+  char c = 0;
+
+  for (int i = 0; i < 8; i ++) {
+    int byte_ix = (*bit_pos)/8;
+    int bit_ix  = (*bit_pos)%8;
+    bool s = src[byte_ix] & (1 << bit_ix);
+    set_bit(&c, i, s);
+    *bit_pos = *bit_pos + 1;
+  }
+  return c;
+}
+
 char *compress(char *string) {
 
   uint32_t c_size_bits = compressed_length(string);
@@ -240,8 +254,8 @@ char *compress(char *string) {
 
   bool string_mode = false;
   bool gobbling_whitespace = false;
-  int n = strlen(string);
-  int i = 0;
+  uint32_t n = strlen(string);
+  uint32_t i = 0;
 
   while (i < n) {
     if (string_mode) {
@@ -273,11 +287,9 @@ char *compress(char *string) {
 	}
       }
 
+      /* Compress string-starting " character */
       if (string[i] == '\"') {
-	emit_string_char_code(compressed, '\"', &bit_pos);
-	i ++;
 	string_mode = true;
-	continue;
       }
       int ix = match_longest(KEY,&string[i]);
 
@@ -295,13 +307,13 @@ char *compress(char *string) {
 }
 
 
-bool decompress(char *dest, int dest_n, char *src) {
+bool decompress(char *dest, uint32_t dest_n, char *src) {
 
   bool ret = true;
   bool string_mode = false;
   uint32_t compressed_bits = 0;
-  int i = 0;
-  int char_pos = 0;
+  uint32_t i = 0;
+  uint32_t char_pos = 0;
 
   memcpy(&compressed_bits, src, 4);
   memset(dest, 0, dest_n);
@@ -310,7 +322,17 @@ bool decompress(char *dest, int dest_n, char *src) {
 
   while (i < compressed_bits && char_pos < dest_n-1) {
 
+    if (string_mode) {
+      
+    }
+    
     int ix = match_longest(CODE,src);
+
+    if( strlen(codes[ix][KEY]) == 1 &&
+	strncmp(codes[ix][KEY], "\"", 1) == 0) {
+      string_mode = true;
+    }
+    
 
   }
   return ret;
