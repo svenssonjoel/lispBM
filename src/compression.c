@@ -323,16 +323,16 @@ bool decompress(char *dest, uint32_t dest_n, char *src) {
   while (i < compressed_bits && char_pos < dest_n-1) {
 
     if (string_mode) {
-      
+
     }
-    
+
     int ix = match_longest(CODE,src);
 
     if( strlen(codes[ix][KEY]) == 1 &&
 	strncmp(codes[ix][KEY], "\"", 1) == 0) {
       string_mode = true;
     }
-    
+
 
   }
   return ret;
