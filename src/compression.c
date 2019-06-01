@@ -115,20 +115,50 @@ int length_max_decompressible() {
   return max;
 }
 
-int match_longest(int which, char *string) {
+int match_longest_key(char *string) {
 
   int longest_match_ix = -1;
   int longest_match_length = 0;
   int n = strlen(string);
 
   for (int i = 0; i < NUM_CODES; i ++) {
-    int s_len = strlen(codes[i][which]);
+    int s_len = strlen(codes[i][KEY]);
     if (s_len <= n) {
-      if (strncmp(codes[i][which], string, s_len) == 0) {
+      if (strncmp(codes[i][KEY], string, s_len) == 0) {
 	if (s_len > longest_match_length) {
 	  longest_match_ix = i;
 	  longest_match_length = s_len;
 	}
+      }
+    }
+  }
+  return longest_match_ix;
+}
+
+int match_longest_code(char *string, uint32_t start_bit, uint32_t total_bits) {
+
+  uint32_t bits_left = total_bits - start_bit;
+  int longest_match_ix = -1;
+  int longest_match_length = 0;
+
+  for (int i = 0; i < NUM_CODES; i++) {
+    int s_len = strlen(codes[i][CODE]);
+    if ((unsigned int)s_len <= bits_left) {
+      bool match = true;
+      for (uint32_t b = 0; b < (unsigned int)s_len; b ++) {
+	uint32_t byte_ix = (start_bit + b) / 8;
+	uint32_t bit_ix  = (start_bit + b) % 8;
+
+	char *code_str = codes[i][CODE];
+
+	if ((((string[byte_ix] & (1 << bit_ix)) ? '1' : '0') !=
+	      code_str[b])) {
+	  match = false;
+	}
+      }
+      if (match && (s_len > longest_match_length)) {
+	longest_match_length = s_len;
+	longest_match_ix = i;
       }
     }
   }
@@ -172,7 +202,7 @@ int compressed_length(char *string) {
 
       if (string[i] == '\"') string_mode = true;
 
-      int ix = match_longest(KEY,string + i);
+      int ix = match_longest_key(string + i);
 
       if (ix == -1) return -1;
 
@@ -216,7 +246,15 @@ void emit_code(char *compressed, char *code, int *bit_pos) {
   }
 }
 
-char read_character(char *src, int *bit_pos) {
+void emit_key(char *dest, char *key, int nk, uint32_t *char_pos) {
+
+  for (int i = 0; i < nk; i ++) {
+    dest[*char_pos] = key[i];
+    *char_pos = *char_pos + 1;
+  }
+}
+
+char read_character(char *src, uint32_t *bit_pos) {
 
   char c = 0;
 
@@ -238,8 +276,6 @@ char *compress(char *string) {
   uint32_t header_value = c_size_bits;
 
   if (header_value == 0) return NULL;
-
-  printf("header_value: %u\n", header_value);
 
   char *compressed = malloc(c_size_bytes);
   if (!compressed) return NULL;
@@ -291,7 +327,7 @@ char *compress(char *string) {
       if (string[i] == '\"') {
 	string_mode = true;
       }
-      int ix = match_longest(KEY,&string[i]);
+      int ix = match_longest_key(&string[i]);
 
       if (ix == -1) return NULL;
       emit_code(compressed, codes[ix][1], &bit_pos);
@@ -300,9 +336,6 @@ char *compress(char *string) {
     }
   }
 
-  for (i = 0; i < c_size_bytes; i ++) {
-    printf("%x ",(unsigned char)compressed[i]);
-  }
   return compressed;
 }
 
@@ -317,23 +350,30 @@ bool decompress(char *dest, uint32_t dest_n, char *src) {
 
   memcpy(&compressed_bits, src, 4);
   memset(dest, 0, dest_n);
+  i = 32;
 
-  printf("decompress -- compressed_bits = %u\n",compressed_bits);
-
-  while (i < compressed_bits && char_pos < dest_n-1) {
-
+  while (i < (compressed_bits + 32) && char_pos < dest_n-1) {
     if (string_mode) {
-
+      char c = read_character(src, &i);
+      if (c == '\"') {
+	if (char_pos > 0 && (dest[char_pos-1] != '\\')) {
+	  string_mode = false;
+	}
+      }
+      dest[char_pos++] = c;
+      continue;
     }
 
-    int ix = match_longest(CODE,src);
+    int ix = match_longest_code(src, i, (compressed_bits + 32));
 
     if( strlen(codes[ix][KEY]) == 1 &&
 	strncmp(codes[ix][KEY], "\"", 1) == 0) {
       string_mode = true;
     }
 
-
+    int n_bits_decoded = strlen(codes[ix][CODE]);
+    emit_key(dest, codes[ix][KEY], strlen(codes[ix][KEY]), &char_pos);
+    i+=n_bits_decoded;
   }
   return ret;
 }
