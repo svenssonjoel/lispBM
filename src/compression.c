@@ -217,36 +217,25 @@ void emit_code(char *compressed, char *code, int *bit_pos) {
 
 char *compress(char *string) {
 
-  int c_size_bits = compressed_length(string);
-  int c_size_bytes = (c_size_bits/8+1);
+  uint32_t c_size_bits = compressed_length(string);
+  uint32_t c_size_bytes = 4 + (c_size_bits/8+1);
+  
+  uint32_t header_value = c_size_bits;
 
-  int unused_bits_end = c_size_bytes * 8 - c_size_bits;
-
-  if (unused_bits_end < 3) {
-    c_size_bytes++;
-    unused_bits_end += 8;
-  }
-
-  int header_value = unused_bits_end - 3;
-  if (header_value < 0 || header_value > 7) {
-    return NULL;
-  }
-  printf("header_value: %d\n", header_value);
+  if (header_value == 0) return NULL;
+  
+  printf("header_value: %u\n", header_value);
+  
   char *compressed = malloc(c_size_bytes);
   if (!compressed) return NULL;
   memset(compressed, 0, c_size_bytes);
   int bit_pos = 0;
 
-  /* code the number of ending unused bits into
-     the first three bits of compressed */
-  for (bit_pos = 0; bit_pos < 3; bit_pos++) {
-    if (header_value & (1 << bit_pos)) {
-      set_bit(&compressed[0], bit_pos, true);
-    } else {
-      // a bit redundant.
-      set_bit(&compressed[0], bit_pos, false);
-    }
-  }
+  compressed[0] = (unsigned char)header_value;
+  compressed[1] = (unsigned char)(header_value >> 8);
+  compressed[2] = (unsigned char)(header_value >> 16);
+  compressed[3] = (unsigned char)(header_value >> 24);
+  bit_pos = 32; 
 
   bool string_mode = false;
   bool gobbling_whitespace = false;
@@ -256,8 +245,13 @@ char *compress(char *string) {
   while (i < n) {
     if (string_mode) {
 
-      if (string[i] == '\"') {
+      if (string[i] == '\"' &&
+	  !(string[i-1] == '\\')) {
+	printf("LEAVING string mode\n");
+	emit_string_char_code(compressed, '\"', &bit_pos);
+	i ++;
 	string_mode = false;
+	continue;
       } else {
 	emit_string_char_code(compressed, string[i], &bit_pos);
 	i++;
@@ -279,8 +273,13 @@ char *compress(char *string) {
 	}
       }
 
-      if (string[i] == '\"') string_mode = true;
-
+      if (string[i] == '\"') {
+	printf("ENTERING STRING MODE\n");
+	emit_string_char_code(compressed, '\"', &bit_pos);
+	i ++;
+	string_mode = true;
+	continue;
+      }
       int ix = match_compression_code(&string[i]);
 
       if (ix == -1) return NULL;
@@ -294,4 +293,20 @@ char *compress(char *string) {
     printf("%x ",(unsigned char)compressed[i]);
   }
   return compressed;
+}
+
+
+bool decompress(char *dest, int dest_n, char *src) {
+
+  bool ret = true;
+  bool string_mode = false;
+  uint32_t compressed_bits = 0;
+
+  memcpy(&compressed_bits, src, 4);
+
+  printf("decompress -- compressed_bits = %u\n",compressed_bits);
+
+  
+
+  return ret; 
 }
