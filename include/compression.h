@@ -16,14 +16,27 @@
 */
 
 #include <stdint.h>
+#include <stdbool.h>
+
+
+typedef struct {
+  uint32_t compressed_bits;
+  uint32_t i;
+  bool string_mode;
+  char last_string_char;
+  char *src;
+} decomp_state; 
+
+
+extern void compression_init_state(decomp_state *s, char *src);
 
 /* 
-   These functions performs destructive changes to 
+   Compress performs destructive changes to 
    the input string and cannot be called on constant string literal pointers 
-   for example 
+   for example.
+ 
+   Compress returns an array that caller must free 
 */ 
-extern int compressed_length(char *string);
-
-/* Compress returns an array that caller must free */ 
-extern char *compress(char *string); 
-extern bool decompress(char *dest, uint32_t dest_n, char *src);
+extern char *compression_compress(char *string, uint32_t *res_size);
+extern uint32_t compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n);
+extern bool compression_decompress(char *dest, uint32_t dest_n, char *src);

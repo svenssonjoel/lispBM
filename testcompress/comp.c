@@ -125,45 +125,39 @@ int main(void) {
   char test2[] = "\"Hello Wööld\"";
   char dest[8192];
   char *res;
-
+  uint32_t n;
   
   int orig_n = strlen(test0); 
-  
-  int n = compressed_length(test0);
+  res = compression_compress(test0, &n);
 
   printf("original size: %d\n", orig_n);
-  printf("compressed size bits: %d, bytes : %f\n", n, (double)n / 8.0);
-  printf("comressed: %f\n", ((double)n/8) / (double)orig_n);
-
-  res = compress(test0);
-  decompress(dest, 8192, res);
+  printf("compressed size bytes : %d\n", n);
+  printf("comressed: %f\n", ((double)n) / (double)orig_n);
+  
+  compression_decompress(dest, 8192, res);
   printf("DECOMP: %s\n", dest);
   free(res);
   
-  orig_n = strlen(test1);
-  
-  n = compressed_length(test1);
+  orig_n = strlen(test1); 
+  res = compression_compress(test1, &n);
 
   printf("original size: %d\n", orig_n);
-  printf("compressed size bits: %d, bytes : %f\n", n, (double)n / 8.0);
-  printf("comressed: %f\n", ((double)n/8) / (double)orig_n);
-
-  res = compress(test1);
-  decompress(dest, 8192, res);
+  printf("compressed size bytes : %d\n", n);
+  printf("comressed: %f\n", ((double)n) / (double)orig_n);
+  
+  compression_decompress(dest, 8192, res);
   printf("DECOMP: %s\n", dest);
   free(res);
   
   
-  orig_n = strlen(test2);
-  
-  n = compressed_length(test2) + 32;
+  orig_n = strlen(test2); 
+  res = compression_compress(test2, &n);
 
   printf("original size: %d\n", orig_n);
-  printf("compressed size bits: %d, bytes : %f\n", n, (double)n / 8.0);
-  printf("comressed: %f\n", ((double)n/8) / (double)orig_n);
-
-  res = compress(test2);
-  decompress(dest, 8192, res);
+  printf("compressed size bytes : %d\n", n);
+  printf("comressed: %f\n", ((double)n) / (double)orig_n);
+  
+  compression_decompress(dest, 8192, res);
   printf("DECOMP: %s\n", dest);
   free(res);
 

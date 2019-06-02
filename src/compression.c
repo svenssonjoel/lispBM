@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <stdio.h>
+#include "compression.h"
 
 #define  KEY  0
 #define  CODE 1
@@ -268,11 +268,10 @@ char read_character(char *src, uint32_t *bit_pos) {
   return c;
 }
 
-char *compress(char *string) {
+char *compression_compress(char *string, uint32_t *res_size) {
 
   uint32_t c_size_bits = compressed_length(string);
   uint32_t c_size_bytes = 4 + (c_size_bits/8+1);
-
   uint32_t header_value = c_size_bits;
 
   if (header_value == 0) return NULL;
@@ -280,6 +279,7 @@ char *compress(char *string) {
   char *compressed = malloc(c_size_bytes);
   if (!compressed) return NULL;
   memset(compressed, 0, c_size_bytes);
+  *res_size = c_size_bytes;
   int bit_pos = 0;
 
   compressed[0] = (unsigned char)header_value;
@@ -340,40 +340,69 @@ char *compress(char *string) {
 }
 
 
-bool decompress(char *dest, uint32_t dest_n, char *src) {
+void compression_init_state(decomp_state *s, char *src) {
+  memcpy(&s->compressed_bits, src, 4);
+  s->i = 32;
+  s->string_mode = false;
+  s->last_string_char = 0;
+  s->src = src;
+}
 
-  bool ret = true;
-  bool string_mode = false;
-  uint32_t compressed_bits = 0;
-  uint32_t i = 0;
+uint32_t compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n) {
+
+  memset(dest_buff, 0, dest_n);
   uint32_t char_pos = 0;
-
-  memcpy(&compressed_bits, src, 4);
-  memset(dest, 0, dest_n);
-  i = 32;
-
-  while (i < (compressed_bits + 32) && char_pos < dest_n-1) {
-    if (string_mode) {
-      char c = read_character(src, &i);
+  
+  if (s->i < s->compressed_bits + 32) {
+     if (s->string_mode) {
+      char c = read_character(s->src, &s->i);
       if (c == '\"') {
-	if (char_pos > 0 && (dest[char_pos-1] != '\\')) {
-	  string_mode = false;
+	if (s->last_string_char != '\\') {
+	  s->string_mode = false;
 	}
       }
-      dest[char_pos++] = c;
-      continue;
+      s->last_string_char = c;
+      dest_buff[0] = c;
+      return 1;
     }
 
-    int ix = match_longest_code(src, i, (compressed_bits + 32));
+    int ix = match_longest_code(s->src, s->i, (s->compressed_bits + 32));
 
     if( strlen(codes[ix][KEY]) == 1 &&
 	strncmp(codes[ix][KEY], "\"", 1) == 0) {
-      string_mode = true;
+      s->string_mode = true;
+      s->last_string_char = 0;
     }
 
     int n_bits_decoded = strlen(codes[ix][CODE]);
-    emit_key(dest, codes[ix][KEY], strlen(codes[ix][KEY]), &char_pos);
-    i+=n_bits_decoded;
+    emit_key(dest_buff, codes[ix][KEY], strlen(codes[ix][KEY]), &char_pos);
+    s->i+=n_bits_decoded;
+    return char_pos;
+
+  } else {
+    return 0;
+  }
+
+}
+
+bool compression_decompress(char *dest, uint32_t dest_n, char *src) {
+
+  bool ret = true;
+  uint32_t char_pos = 0;
+
+  char dest_buff[32];
+  uint32_t num_chars = 0; 
+  decomp_state s;
+
+  memset(dest, 0, dest_n);
+
+  compression_init_state(&s, src); 
+
+  while ((num_chars = compression_decompress_incremental(&s, dest_buff, 32))) {
+
+    for (uint32_t i = 0; i < num_chars; i ++) {
+      dest[char_pos++] = dest_buff[i]; 
+    }
   }
   return ret;
 }
