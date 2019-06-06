@@ -10,7 +10,7 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 
 ## Features
 1. heap consisting of cons-cells with mark and sweep garbage collection.
-2. Built-in functions: cons, car, cdr, eval, list, gensym, +, -, >, <, = and more.
+2. Built-in functions: cons, car, cdr, eval, list, +, -, >, <, = and more.
 3. Some special forms: Lambdas, closures, lets (letrecs), define and quote.
 4. 28-Bit signed/unsigned integers and boxed 32-Bit Float, 32-Bit signed/unsigned values.
 5. Arrays (in progress), string is an array. 
@@ -33,11 +33,10 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 12. Port to Raspberry pi 32Bit Bare-metal.
 13. Reduce size of builtins.c and put platform specific built in functions elsewhere.
 14. (DONE, for eval_cps) Implement 'progn' facility.
-15. Add facilities for "pre-parsing" and for uploading "heap-images" to a running system.
-16. See if it is possible to explicitly free heap values that are used as temporaries when evaluating. 
-17. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
-18. Test on all platforms after big changes to eval_cps.c.
-19. Bytecode compilation of functions (with restrictions).
+15. See if it is possible to explicitly free heap values that are used as temporaries when evaluating. 
+16. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
+17. Test on all platforms after big changes to eval_cps.c.
+18. Bytecode compilation of functions (with restrictions).
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
