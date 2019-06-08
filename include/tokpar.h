@@ -20,6 +20,7 @@
 
 #include "typedefs.h"
 
-VALUE tokpar_parse(char *str);
+extern VALUE tokpar_parse(char *str);
+extern VALUE tokpar_parse_compressed(char *bytes);
 
 #endif

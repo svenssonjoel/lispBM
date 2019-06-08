@@ -176,8 +176,11 @@ int compressed_length(char *string) {
 
   while (i < n) {
     if (string_mode) {
-      if (string[i] == '\"') {
+      if (string[i] == '\"'  &&
+	  !(string[i-1] == '\\')) {
 	string_mode = false;
+	comp_len += 8;
+	i++;
       } else {
 	comp_len += 8;
 	i++;
@@ -308,19 +311,18 @@ char *compression_compress(char *string, uint32_t *res_size) {
       }
 
     } else {
-      if (!string_mode) {
-	if ( string[i] == '\n' ||
-	     string[i] == ' '  ||
-	     string[i] == '\t' ||
-	     string[i] == '\r') {
-	  gobbling_whitespace = true;
-	  *(string + i) = ' ';
-	  i ++;
-	  continue;
-	} else if (gobbling_whitespace) {
-	  gobbling_whitespace = false;
-	  i--;
-	}
+     
+      if ( string[i] == '\n' ||
+	   string[i] == ' '  ||
+	   string[i] == '\t' ||
+	   string[i] == '\r') {
+	gobbling_whitespace = true;
+	*(string + i) = ' ';
+	i ++;
+	continue;
+      } else if (gobbling_whitespace) {
+	gobbling_whitespace = false;
+	i--;
       }
 
       /* Compress string-starting " character */
@@ -367,6 +369,10 @@ uint32_t compression_decompress_incremental(decomp_state *s, char *dest_buff, ui
     }
 
     int ix = match_longest_code(s->src, s->i, (s->compressed_bits + 32));
+    if (ix == -1) {
+      return 0;
+    }
+    
 
     if( strlen(codes[ix][KEY]) == 1 &&
 	strncmp(codes[ix][KEY], "\"", 1) == 0) {

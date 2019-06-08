@@ -13,6 +13,7 @@ EXECS = $(patsubst %.c, %.exe, $(SOURCES))
 all: $(EXECS)
 	mv test_lisp_code_cps.exe test_lisp_code_cps
 	mv test_lisp_code_cps_mini_heap.exe test_lisp_code_cps_mini_heap
+	mv test_lisp_code_cps_compressed.exe test_lisp_code_cps_compressed
 
 %.exe: %.c
 	$(CC) -I../include $(CCFLAGS) $< ../build/linux-x86/liblispbm.a -o $@ 

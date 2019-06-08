@@ -123,6 +123,7 @@ int main(void) {
   0x29, 0x0a, 0x0};
   
   char test2[] = "\"Hello Wööld\"";
+  char test3[] = "(define a \"hel\\\"lo\") (= (array-read a 3u28) \\#l)";
   char dest[8192];
   char *res;
   uint32_t n;
@@ -132,35 +133,50 @@ int main(void) {
 
   printf("original size: %d\n", orig_n);
   printf("compressed size bytes : %d\n", n);
-  printf("comressed: %f\n", ((double)n) / (double)orig_n);
+  printf("compressed: %f\n", ((double)n) / (double)orig_n);
   
   compression_decompress(dest, 8192, res);
   printf("DECOMP: %s\n", dest);
   free(res);
+
+  printf("------------------------------------------------\n");
   
   orig_n = strlen(test1); 
   res = compression_compress(test1, &n);
 
   printf("original size: %d\n", orig_n);
   printf("compressed size bytes : %d\n", n);
-  printf("comressed: %f\n", ((double)n) / (double)orig_n);
+  printf("compressed: %f\n", ((double)n) / (double)orig_n);
   
   compression_decompress(dest, 8192, res);
   printf("DECOMP: %s\n", dest);
   free(res);
-  
+
+  printf("------------------------------------------------\n");
   
   orig_n = strlen(test2); 
   res = compression_compress(test2, &n);
 
   printf("original size: %d\n", orig_n);
   printf("compressed size bytes : %d\n", n);
-  printf("comressed: %f\n", ((double)n) / (double)orig_n);
+  printf("compressed: %f\n", ((double)n) / (double)orig_n);
   
   compression_decompress(dest, 8192, res);
   printf("DECOMP: %s\n", dest);
   free(res);
 
+  printf("------------------------------------------------\n");
+  
+  orig_n = strlen(test3); 
+  res = compression_compress(test3, &n);
+
+  printf("original size: %d\n", orig_n);
+  printf("compressed size bytes : %d\n", n);
+  printf("compressed: %f\n", ((double)n) / (double)orig_n);
+  
+  compression_decompress(dest, 8192, res);
+  printf("DECOMP: %s\n", dest);
+  free(res);
 
   return 0;
 }
