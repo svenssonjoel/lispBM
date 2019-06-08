@@ -654,6 +654,10 @@ VALUE tokpar_parse_compressed(char *bytes) {
 
   tokenizer_char_stream str;
   str.state = &ts;
+  str.more = more_compressed;
+  str.get = get_compressed;
+  str.peek = peek_compressed;
+  str.drop = drop_compressed;
   
 
   return parse_program(str);
