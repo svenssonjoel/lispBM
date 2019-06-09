@@ -188,27 +188,36 @@ int compressed_length(char *string) {
 
     } else {
 
-      if (!string_mode) {
-	if ( string[i] == '\n' ||
-	     string[i] == ' '  ||
-	     string[i] == '\t' ||
-	     string[i] == '\r') {
-	  gobbling_whitespace = true;
-	  *(string + i) = ' ';
-	  i ++;
-	  continue;
-	} else if (gobbling_whitespace) {
-	  gobbling_whitespace = false;
-	  i--;
+      // Gobble up any comments
+      if (string[i] == ';' ) {
+	while (string[i] && string[i] != '\n') {
+	  i++;
 	}
+	continue;
+      }
+
+      if ( string[i] == '\n' ||
+	   string[i] == ' '  ||
+	   string[i] == '\t' ||
+	   string[i] == '\r') {
+	gobbling_whitespace = true;
+	i ++;
+	continue;
+      } else if (gobbling_whitespace) {
+	gobbling_whitespace = false;
+	i--;
       }
 
       if (string[i] == '\"') string_mode = true;
 
-      int ix = match_longest_key(string + i);
+      int ix;
+      if (isspace(string[i])) {
+	ix = match_longest_key(" ");
+      } else {
+	ix = match_longest_key(string + i);
+      }
 
-      if (ix == -1) return -1;
-
+      if (ix == -1)return -1;
       int code_len = strlen(codes[ix][1]);
       comp_len += code_len;
       i += strlen(codes[ix][0]);
@@ -311,7 +320,16 @@ char *compression_compress(char *string, uint32_t *res_size) {
       }
 
     } else {
-     
+
+      // Gobble up any comments
+      if (string[i] == ';' ) {
+	while (string[i] && string[i] != '\n') {
+	  i++;
+	}
+	continue;
+      }
+
+      // gobble up whitespaces
       if ( string[i] == '\n' ||
 	   string[i] == ' '  ||
 	   string[i] == '\t' ||
@@ -332,7 +350,8 @@ char *compression_compress(char *string, uint32_t *res_size) {
       int ix = match_longest_key(&string[i]);
 
       if (ix == -1) return NULL;
-      emit_code(compressed, codes[ix][1], &bit_pos);
+
+      emit_code(compressed, codes[ix][CODE], &bit_pos);
 
       i += strlen(codes[ix][0]);
     }
@@ -354,7 +373,7 @@ uint32_t compression_decompress_incremental(decomp_state *s, char *dest_buff, ui
 
   memset(dest_buff, 0, dest_n);
   uint32_t char_pos = 0;
-  
+
   if (s->i < s->compressed_bits + 32) {
      if (s->string_mode) {
       char c = read_character(s->src, &s->i);
@@ -372,7 +391,6 @@ uint32_t compression_decompress_incremental(decomp_state *s, char *dest_buff, ui
     if (ix == -1) {
       return 0;
     }
-    
 
     if( strlen(codes[ix][KEY]) == 1 &&
 	strncmp(codes[ix][KEY], "\"", 1) == 0) {
@@ -397,17 +415,17 @@ bool compression_decompress(char *dest, uint32_t dest_n, char *src) {
   uint32_t char_pos = 0;
 
   char dest_buff[32];
-  uint32_t num_chars = 0; 
+  uint32_t num_chars = 0;
   decomp_state s;
 
   memset(dest, 0, dest_n);
 
-  compression_init_state(&s, src); 
+  compression_init_state(&s, src);
 
   while ((num_chars = compression_decompress_incremental(&s, dest_buff, 32))) {
 
     for (uint32_t i = 0; i < num_chars; i ++) {
-      dest[char_pos++] = dest_buff[i]; 
+      dest[char_pos++] = dest_buff[i];
     }
   }
   return ret;

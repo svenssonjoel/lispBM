@@ -68,7 +68,7 @@ typedef struct tcs{
   char (*get)(struct tcs);
   char (*peek)(struct tcs, int);
   void (*drop)(struct tcs, int);
-} tokenizer_char_stream; 
+} tokenizer_char_stream;
 
 bool more(tokenizer_char_stream str) {
   return str.more(str);
@@ -85,7 +85,7 @@ char peek(tokenizer_char_stream str,int n) {
 void drop(tokenizer_char_stream str,int n) {
   str.drop(str,n);
 }
-  
+
 int tok_openpar(tokenizer_char_stream str) {
   if (peek(str,0) == '(') {
     drop(str,1);
@@ -153,15 +153,13 @@ int tok_symbol(tokenizer_char_stream str, char** res) {
 }
 
 int tok_string(tokenizer_char_stream str, char **res) {
- 
+
   int i = 0;
   int n = 0;
   int len = 0;
   if (!(peek(str,0) == '\"')) return 0;
 
-  printf("tok_string\n");
-  
-  get(str); // remove the " char 
+  get(str); // remove the " char
   n++;
 
   // compute length of string
@@ -222,7 +220,7 @@ int tok_i(tokenizer_char_stream str, INT *res) {
     acc = (acc*10) + (peek(str,n) - '0');
     n++;
   }
-  
+
   // Not needed if strict adherence to ordering of calls to tokenizers.
   if (peek(str,n) == 'U' ||
       peek(str,n) == 'u' ||
@@ -318,9 +316,9 @@ int tok_U(tokenizer_char_stream str, UINT *res) {
 int tok_F(tokenizer_char_stream str, FLOAT *res) {
 
   int n = 0;
-  int m = 0; 
+  int m = 0;
   char fbuf[256];
-  
+
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
 
   if ( peek(str,n) == '.') n++;
@@ -332,7 +330,7 @@ int tok_F(tokenizer_char_stream str, FLOAT *res) {
   if (n > 255) m = 255;
   else m = n;
 
-  int i; 
+  int i;
   for (i = 0; i < m; i ++) {
     fbuf[i] = get(str);
   }
@@ -351,7 +349,7 @@ token next_token(tokenizer_char_stream str) {
   char c_val;
   FLOAT f_val;
   int n = 0;
-  printf(" ");
+
   if (!more(str)) {
     t.type = TOKENIZER_END;
     return t;
@@ -370,7 +368,7 @@ token next_token(tokenizer_char_stream str) {
       clean_whitespace = false;
     }
   }
-  
+
   // Check for end of string again
   if (!more(str)) {
     t.type = TOKENIZER_END;
@@ -556,8 +554,8 @@ VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
 }
 
 bool more_string(tokenizer_char_stream str) {
-  tokenizer_state *s = (tokenizer_state*)str.state;  
-  return s->str[s->pos] != 0;  
+  tokenizer_state *s = (tokenizer_state*)str.state;
+  return s->str[s->pos] != 0;
 }
 
 char get_string(tokenizer_char_stream str) {
@@ -569,7 +567,7 @@ char get_string(tokenizer_char_stream str) {
 
 char peek_string(tokenizer_char_stream str, int n) {
   tokenizer_state *s = (tokenizer_state*)str.state;
-  // TODO error checking ?? how ? 
+  // TODO error checking ?? how ?
   char c = s->str[s->pos + n];
   return c;
 }
@@ -580,7 +578,7 @@ void drop_string(tokenizer_char_stream str, int n) {
 }
 
 VALUE tokpar_parse(char *string) {
-  
+
   tokenizer_state ts;
   ts.str = string;
   ts.pos = 0;
@@ -591,7 +589,7 @@ VALUE tokpar_parse(char *string) {
   str.peek = peek_string;
   str.drop = drop_string;
   str.get  = get_string;
-  
+
   return parse_program(str);
 }
 
@@ -618,7 +616,7 @@ char get_compressed(tokenizer_char_stream str) {
       (s->buff_pos >= s->decomp_bytes)) {
     return 0;
   }
-  
+
   if (s->buff_pos >= s->decomp_bytes) {
     int n = compression_decompress_incremental(&s->ds, s->decomp_buff,DECOMP_BUFF_SIZE);
     if (n == 0) {
@@ -634,16 +632,16 @@ char get_compressed(tokenizer_char_stream str) {
 
 char peek_compressed(tokenizer_char_stream str, int n) {
   tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
-  
+
   tokenizer_compressed_state old;
-	
+
   memcpy(&old, s, sizeof(tokenizer_compressed_state));
 
   char c = get_compressed(str);;
   for (int i = 1; i <= n; i ++) {
     c = get_compressed(str);
   }
-  
+
   memcpy(str.state, &old, sizeof(tokenizer_compressed_state));
   return c;
 }
@@ -657,14 +655,14 @@ void drop_compressed(tokenizer_char_stream str, int n) {
 
 
 VALUE tokpar_parse_compressed(char *bytes) {
-  
+
   tokenizer_compressed_state ts;
 
   ts.decomp_bytes = 0;
   memset(ts.decomp_buff, 0, 32);
   ts.buff_pos = 0;
-  
-  compression_init_state(&ts.ds, bytes); 
+
+  compression_init_state(&ts.ds, bytes);
 
   tokenizer_char_stream str;
   str.state = &ts;
