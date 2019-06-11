@@ -63,9 +63,11 @@ def minimum_total_bits_codes() :
 
 def make_c() :
     codes = minimum_total_bits_codes()
-    num_codes = '#define NUM_CODES %d\n' % len(codes[1])
 
     print("Total number of bits %d\n" % codes[0])
+    
+    max_key  = max([len(x[0]) for x in codes[1]]);
+    max_code = max([len(x[1]) for x in codes[1]]);
     
     code_map = ''
 
@@ -73,15 +75,18 @@ def make_c() :
     
     for code in codes[1] :
         if (first) :
-            code_map = '{ \"' + code[0] + '\", \"' + code[1] + '\" }' + code_map
+            code_map = '    { \"' + code[0] + '\", \"' + code[1] + '\" }' + code_map
             first = False
         else :
-            code_map = '{ \"' + code[0] + '\", \"' + code[1] + '\" },\n' + code_map
+            code_map = '    { \"' + code[0] + '\", \"' + code[1] + '\" },\n' + code_map
                   
-    c_str = 'char *codes[NUM_CODES][2] = {' + code_map + '};\n'
+    c_str = '#define NUM_CODES ' + str(len(codes[1])) + '\n' \
+            '#define MAX_KEY_LENGTH ' + str(max_key) + '\n' + \
+            '#define MAX_CODE_LENGTH ' + str(max_code) + '\n' + \
+            'char *codes[NUM_CODES][2] = {\n' + code_map + '\n    };\n'
     
     
-    return num_codes + c_str
+    return c_str
 
     
     
