@@ -85,9 +85,11 @@ VALUE eval_cps_bi_eval(VALUE exp) {
 
 VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
 
+  (void) arg_list;
+  /*
   VALUE exp = car(arg_list); // todo check for error
   int err;
-  /*
+  
   eval_context_t *ctx = eval_cps_get_current_context();
   bytecode_t *bc = malloc(sizeof(bytecode_t));
   if (!bytecode_create(bc, 4096)) {
