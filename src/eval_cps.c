@@ -262,7 +262,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       if (!fundamental_exec(ctx->K, fun)) {
 
 	*done = true;
-	return enc_sym(symrepr_merror());
+	return enc_sym(symrepr_eerror());
       } else {
 	pop_u32(ctx->K, &res);
 	if (type_of(res) == VAL_TYPE_SYMBOL &&
