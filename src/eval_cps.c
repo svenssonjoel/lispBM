@@ -47,6 +47,7 @@ VALUE run_eval(eval_context_t *ctx);
 
 static VALUE eval_cps_global_env;
 static VALUE NIL;
+static VALUE NONSENSE;
 
 eval_context_t *eval_context = NULL;
 
@@ -163,7 +164,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     return arg;
   case EVAL:
     ctx->curr_exp = arg;
-    return enc_u(0);
+    return NONSENSE;
   case SET_GLOBAL_ENV:
     res = cont_set_global_env(ctx, arg, perform_gc);
     *app_cont = true;
@@ -185,7 +186,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 
     push_u32_2(ctx->K, cdr(rest), enc_u(PROGN_REST));
     ctx->curr_exp = car(rest);
-    return enc_u(0);
+    return NONSENSE;
   } 
   case FUNCTION_APP: {
     VALUE args;
@@ -318,7 +319,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     push_u32_4(ctx->K, env, acc_, cdr(rest), enc_u(ARG_LIST));
     ctx->curr_env = env;
     ctx->curr_exp = head;
-    return enc_u(0);
+    return NONSENSE;
   }
   case FUNCTION: {
     VALUE fun;
@@ -329,7 +330,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       return fun;
     } 
     ctx->curr_exp = fun;
-    return enc_u(0); // Should return something that is very easy to recognize as nonsense 
+    return NONSENSE; // Should return something that is very easy to recognize as nonsense 
   }
   case BIND_TO_KEY_REST:{
     VALUE key;
@@ -348,7 +349,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 
       ctx->curr_exp = valn_exp;
       ctx->curr_env = env;
-      return enc_u(0);
+      return NONSENSE;
     }
 
     // Otherwise evaluate the expression in the populated env
@@ -356,7 +357,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     pop_u32(ctx->K, &exp);
     ctx->curr_exp = exp;
     ctx->curr_env = env;
-    return enc_u(0);
+    return NONSENSE;
   }
   case IF: {
     VALUE then_branch;
@@ -634,6 +635,7 @@ VALUE eval_cps_program(VALUE lisp) {
 int eval_cps_init(bool grow_continuation_stack) {
   int res = 1;
   NIL = enc_sym(symrepr_nil());
+  NONSENSE = enc_sym(DEF_REPR_NONSENSE);
 
   eval_cps_global_env = NIL;
 

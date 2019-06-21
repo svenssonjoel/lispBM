@@ -46,6 +46,7 @@
 #define DEF_REPR_REF_TYPE       0x11FFFF
 #define DEF_REPR_RECOVERED      0x12FFFF
 #define DEF_REPR_BYTECODE_TYPE  0x13FFFF
+#define DEF_REPR_NONSENSE       0x14FFFF
 
 // Fundamental Operations and Functions symbols
 #define SYM_ADD   0x100FFFF
