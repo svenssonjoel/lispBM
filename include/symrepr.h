@@ -48,7 +48,7 @@
 #define DEF_REPR_BYTECODE_TYPE  0x13FFFF
 #define DEF_REPR_NONSENSE       0x14FFFF
 
-// Fundamental Operations and Functions symbols
+// Fundamental Operations
 #define SYM_ADD   0x100FFFF
 #define SYM_SUB   0x101FFFF
 #define SYM_MUL   0x102FFFF

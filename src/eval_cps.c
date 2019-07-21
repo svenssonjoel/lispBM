@@ -17,13 +17,13 @@
 
 #include "symrepr.h"
 #include "heap.h"
-#include "builtin.h"
 #include "print.h"
 #include "env.h"
 #include "bytecode.h"
 #include "eval_cps.h"
 #include "stack.h"
 #include "fundamental.h"
+#include "extensions.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -246,9 +246,12 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 	return res;
       }
       else return enc_sym(symrepr_eerror());
-      //TODO: Return stack to same state as before running bc, unless
+      //TODO: Return stack to same state as before running gc, unless
       //      it is expected that running the bc keeps exits with stack in good shape.
-    }else if (type_of(fun) == VAL_TYPE_SYMBOL) { // its a fundamental operation
+    }else if (type_of(fun) == VAL_TYPE_SYMBOL) {
+
+      
+      
 
       VALUE curr_arg = args;
 
