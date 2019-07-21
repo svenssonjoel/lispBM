@@ -17,12 +17,14 @@
 
 #include "tokpar.h"
 
-VALUE prelude_load(void) {
-  char prelude[] = {
+char prelude[] = {
 #ifdef _PRELUDE
 #include "prelude.xxd"
 #endif
-    ,0
-  };
+  ,0
+};
+
+
+VALUE prelude_load(void) {
   return tokpar_parse(prelude);
 }
