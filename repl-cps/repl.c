@@ -19,23 +19,32 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "heap.h" 
+#include "heap.h"
 #include "symrepr.h"
-#include "builtin.h"
+#include "extensions.h"
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
 #include "prelude.h"
 
+VALUE ext_test(VALUE *args, int argn) {
+
+  for (int i = 0; i < argn; i ++) {
+    printf("arg[%d]: %x ",i, args[i]); simple_print(args[i]); printf("\n");
+  }
+  return enc_sym(symrepr_true());
+}
+
+
 int main(int argc, char **argv) {
   char *str = malloc(1024);;
   size_t len;
-  int res = 0; 
+  int res = 0;
 
   heap_state_t heap_state;
 
   res = symrepr_init();
-  if (res) 
+  if (res)
     printf("Symrepr initialized.\n");
   else {
     printf("Error initializing symrepr!\n");
@@ -58,21 +67,27 @@ int main(int argc, char **argv) {
     printf("Error initializing evaluator.\n");
   }
 
+  res = extensions_add("ext-test", ext_test);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
   VALUE prelude = prelude_load();
-  eval_cps_program(prelude); 
+  eval_cps_program(prelude);
 
   printf("Lisp REPL started!\n");
   printf("Type :quit to exit.\n");
   printf("     :info for statistics.\n");
-  
+
   while (1) {
-    printf("# "); 
+    printf("# ");
     ssize_t n = getline(&str,&len,stdin);
 
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("############################################################\n");
       printf("Used cons cells: %d\n", heap_size - heap_num_free());
-      printf("ENV: "); simple_print(eval_cps_get_env()); printf("\n"); 
+      printf("ENV: "); simple_print(eval_cps_get_env()); printf("\n");
       //symrepr_print();
       //heap_perform_gc(eval_cps_get_env());
       heap_get_state(&heap_state);
@@ -86,22 +101,22 @@ int main(int argc, char **argv) {
     } else  if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
     } else {
-      
+
       VALUE t;
       t = tokpar_parse(str);
-      
+
       t = eval_cps_program(t);
-      
+
       if (dec_sym(t) == symrepr_eerror()) {
-	printf("Eval error\n"); 
+	printf("Eval error\n");
       } else {
 	printf("> "); simple_print(t); printf("\n");
       }
     }
   }
-  
+
   symrepr_del();
   heap_del();
-  
-  return 0;  
+
+  return 0;
 }
