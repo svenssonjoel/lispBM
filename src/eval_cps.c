@@ -17,13 +17,13 @@
 
 #include "symrepr.h"
 #include "heap.h"
-#include "builtin.h"
 #include "print.h"
 #include "env.h"
 #include "bytecode.h"
 #include "eval_cps.h"
 #include "stack.h"
 #include "fundamental.h"
+#include "extensions.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -92,7 +92,7 @@ VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
   /*
   VALUE exp = car(arg_list); // todo check for error
   int err;
-  
+
   eval_context_t *ctx = eval_cps_get_current_context();
   bytecode_t *bc = malloc(sizeof(bytecode_t));
   if (!bytecode_create(bc, 4096)) {
@@ -107,7 +107,7 @@ VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
   if (is_ptr(res)) {
     res = set_ptr_type(res, PTR_TYPE_BYTECODE);
   }
-  
+
   return res;
   */
   return enc_sym(symrepr_nil());
@@ -189,7 +189,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     push_u32_2(ctx->K, cdr(rest), enc_u(PROGN_REST));
     ctx->curr_exp = car(rest);
     return NONSENSE;
-  } 
+  }
   case FUNCTION_APP: {
     VALUE args;
     VALUE args_rev;
@@ -248,9 +248,9 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 	return res;
       }
       else return enc_sym(symrepr_eerror());
-      //TODO: Return stack to same state as before running bc, unless
+      //TODO: Return stack to same state as before running gc, unless
       //      it is expected that running the bc keeps exits with stack in good shape.
-    }else if (type_of(fun) == VAL_TYPE_SYMBOL) { // its a fundamental operation
+    }else if (type_of(fun) == VAL_TYPE_SYMBOL) {
 
       VALUE curr_arg = args;
 
@@ -262,42 +262,49 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 	curr_arg = cdr(curr_arg);
       }
       push_u32(ctx->K, enc_u(nargs));
-      if (!fundamental_exec(ctx->K, fun)) {
 
-	*done = true;
-	return enc_sym(symrepr_eerror());
-      } else {
-	pop_u32(ctx->K, &res);
-	if (type_of(res) == VAL_TYPE_SYMBOL &&
-	    dec_sym(res) == symrepr_merror()) {
-	  push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
-	  *perform_gc = true;
+      if (is_fundamental(fun)) {
+	if (!fundamental_exec(ctx->K, fun)) {
+
+	  *done = true;
+	  return enc_sym(symrepr_eerror());
+	} else {
+	  pop_u32(ctx->K, &res);
+	  if (type_of(res) == VAL_TYPE_SYMBOL &&
+	      dec_sym(res) == symrepr_merror()) {
+	    push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
+	    *perform_gc = true;
+	    *app_cont = true;
+	    return fun;
+	  }
 	  *app_cont = true;
-	  return fun;
+	  return res;
 	}
-	*app_cont = true;
-	return res;
       }
-      
-      /*
-      VALUE (*f)(VALUE) = builtin_lookup_function(dec_sym(fun));
 
+      extension_fptr f = extensions_lookup(dec_sym(fun));
       if (f == NULL) {
 	*done = true;
 	return enc_sym(symrepr_eerror());
       }
-      VALUE f_res = f(args_rev);
-      
-      if (type_of(f_res) == VAL_TYPE_SYMBOL &&
-	  (dec_sym(f_res) == symrepr_merror())) {
+
+      VALUE ext_res = f((VALUE *)&ctx->K->data[ctx->K->sp - (nargs+1)] , nargs);
+
+      VALUE clear;
+      for (unsigned int i = 0; i < nargs+1; i ++) {
+	pop_u32(ctx->K,&clear);
+      }
+
+      if (type_of(ext_res) == VAL_TYPE_SYMBOL &&
+	  (dec_sym(ext_res) == symrepr_merror())) {
 	push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
 	*perform_gc = true;
 	*app_cont = true;
 	return fun;
       }
-      */
+
       *app_cont = true;
-      return res;
+      return ext_res;
     }
   } break;
   case ARG_LIST: {
@@ -330,7 +337,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     if (is_fundamental(fun)) {
       *app_cont = true;
       return fun;
-    } 
+    }
     ctx->curr_exp = fun;
     return NONSENSE; // Should return something that is very easy to recognize as nonsense 
   }
@@ -395,14 +402,14 @@ VALUE run_eval(eval_context_t *ctx){
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
 #endif
-    
+
     if (perform_gc) {
       if (non_gc == 0) {
 	done = true;
 	r = enc_sym(symrepr_merror());
 	continue;
       }
-      non_gc = 0; 
+      non_gc = 0;
       heap_perform_gc_aux(eval_cps_global_env,
 			  ctx->curr_env,
 			  ctx->curr_exp,
@@ -429,9 +436,14 @@ VALUE run_eval(eval_context_t *ctx){
     case VAL_TYPE_SYMBOL:
       if (!env_lookup(ctx->curr_exp, ctx->curr_env, &value)) {
 	if (!env_lookup(ctx->curr_exp, eval_cps_global_env, &value)){
-	  r = enc_sym(symrepr_eerror());
-	  done = true;
-	  continue;
+	  if (extensions_lookup(dec_sym(ctx->curr_exp)) == NULL) {
+	    r = enc_sym(symrepr_eerror());
+	    done = true;
+	    continue;
+	  } else {
+	    value = ctx->curr_exp; // symbol representing extension
+	                           // evaluates to itself at this stage.
+	  }
 	}
       }
       app_cont = true;

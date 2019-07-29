@@ -15,16 +15,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "tokpar.h"
+#ifndef EXTENSIONS_H_
+#define EXTENSIONS_H_
 
-char prelude[] = {
-#ifdef _PRELUDE
-#include "prelude.xxd"
+#include "typedefs.h"
+
+typedef VALUE (*extension_fptr)(VALUE*,int);
+
+extern extension_fptr extensions_lookup(UINT sym);
+extern bool extensions_add(char *sym_str, extension_fptr ext);
+extern void extensions_del(void);
 #endif
-  ,0
-};
-
-
-VALUE prelude_load(void) {
-  return tokpar_parse(prelude);
-}
