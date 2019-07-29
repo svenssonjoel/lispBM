@@ -42,8 +42,8 @@
 #define ARG_LIST          7
 #define EVAL              8
 #define PROGN_REST        9
-#define APPLICATION_ARGS  10
-#define APPLICATION_FUN   11
+#define APPLICATION_ARGS  10   /* Function application evaluate arguments */
+#define APPLICATION_FUN   11   /* Function application apply function */
 
 VALUE run_eval(eval_context_t *ctx);
 
@@ -61,7 +61,7 @@ eval_context_t *eval_cps_new_context_inherit_env(VALUE program, VALUE curr_exp) 
   eval_context_t *ctx = malloc(sizeof(eval_context_t));
   ctx->program = program;
   ctx->curr_exp = curr_exp;
-  ctx->curr_env = eval_context->curr_env;
+  ctx->curr_env = eval_context->curr_env; /* TODO: Copy environment */
   ctx->K = stack_init(100, true);
   ctx->next = eval_context;
   eval_context = ctx;
@@ -379,8 +379,12 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     } else {
       ctx->curr_exp = else_branch;
     }
-    return 0;
+    return NONSENSE;
   }
+  case APPLICATION_ARGS:
+    return NONSENSE;
+  case APPLICATION_FUN:
+    return NONSENSE;
   } // end switch
   *done = true;
   return enc_sym(symrepr_eerror());
