@@ -42,6 +42,8 @@
 #define ARG_LIST          7
 #define EVAL              8
 #define PROGN_REST        9
+#define APPLICATION_ARGS  10
+#define APPLICATION_FUN   11
 
 VALUE run_eval(eval_context_t *ctx);
 
