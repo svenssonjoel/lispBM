@@ -23,7 +23,6 @@
 #include "symrepr.h"
 #include "heap.h"
 #include "extensions.h"
-#include "print.h"
 
 typedef struct s_extension_function{
   VALUE sym;
@@ -32,7 +31,6 @@ typedef struct s_extension_function{
 } extension_function_t;
 
 extension_function_t* extensions = NULL;
-
 
 extension_fptr extensions_lookup(UINT sym) {
   extension_function_t *t = extensions;
@@ -44,7 +42,6 @@ extension_fptr extensions_lookup(UINT sym) {
   }
   return NULL;
 }
-
 
 bool extensions_add(char *sym_str, extension_fptr ext) {
   VALUE symbol;

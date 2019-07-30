@@ -22,7 +22,8 @@ endif
 ifeq ($(PLATFORM), stm32f4)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/stm32f4
-  CCFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O2 -Wall -Wextra -pedantic -fmessage-length=0 -ffunction-sections -c -MMD -MP
+  CCFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O2 -Wall -Wextra -pedantic
+#-fmessage-length=0 -ffunction-sections -c -MMD -MP
   CCFLAGS += -DTINY_SYMTAB
   CCFLAGS += -D_32_BIT_ -D_PRELUDE
 endif

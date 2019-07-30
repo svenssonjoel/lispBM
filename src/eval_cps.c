@@ -284,8 +284,8 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 
       extension_fptr f = extensions_lookup(dec_sym(fun));
       if (f == NULL) {
-	*done = true;
-	return enc_sym(symrepr_eerror());
+      	*done = true;
+      	return enc_sym(symrepr_eerror());
       }
 
       VALUE ext_res = f((VALUE *)&ctx->K->data[ctx->K->sp - (nargs+1)] , nargs);
