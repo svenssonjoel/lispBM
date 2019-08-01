@@ -31,7 +31,7 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 10. (DONE) Add STM32f4 example code (repl implementation)
 11. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
 12. Port to Raspberry pi 32Bit Bare-metal.
-13. Reduce size of builtins.c and put platform specific built in functions elsewhere.
+13. (DONE) Reduce size of builtins.c and put platform specific built in functions elsewhere. (Builtins.c will be removed an replaced by fundamentals.c) 
 14. (DONE, for eval_cps) Implement 'progn' facility.
 15. See if it is possible to explicitly free heap values that are used as temporaries when evaluating. 
 16. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
