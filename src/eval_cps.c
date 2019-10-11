@@ -42,8 +42,9 @@
 #define ARG_LIST          7
 #define EVAL              8
 #define PROGN_REST        9
-#define APPLICATION_ARGS  10   /* Function application evaluate arguments */
-#define APPLICATION_FUN   11   /* Function application apply function */
+#define APPLICATION_EVAL_ARGS  10   /* Function application evaluate arguments */
+#define APPLICATION_EVAL_FUN   11   /* Function application evaluate function */
+#define APPLICATION_APPLY_FUN  12
 
 VALUE run_eval(eval_context_t *ctx);
 
@@ -248,8 +249,8 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 	return res;
       }
       else return enc_sym(symrepr_eerror());
-      //TODO: Return stack to same state as before running gc, unless
-      //      it is expected that running the bc keeps exits with stack in good shape.
+      //TODO: Return stack to same state as before running bc, unless
+      //      it is expected that running the bc exits with stack in good shape.
     }else if (type_of(fun) == VAL_TYPE_SYMBOL) {
 
       VALUE curr_arg = args;
@@ -330,6 +331,131 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     ctx->curr_exp = head;
     return NONSENSE;
   }
+  case APPLICATION_EVAL_ARGS: {
+    VALUE env;
+    VALUE rest;
+    UINT  count;
+    VALUE fun_exp;
+
+    printf("Evaluating argument\n");
+    pop_u32_4(ctx->K, &fun_exp, &count, &rest, &env);
+    if (type_of(rest) == VAL_TYPE_SYMBOL &&
+	rest == NIL) {
+      push_u32_3(ctx->K, arg, count + 1, enc_u(APPLICATION_EVAL_FUN));
+      *app_cont = true;
+      return fun_exp;
+    } else {
+      push_u32(ctx->K, arg);
+      push_u32_5(ctx->K, env, cdr(rest), count + 1, fun_exp, enc_u(APPLICATION_EVAL_ARGS));
+      ctx->curr_env = env;
+      ctx->curr_exp = car(rest);
+    }
+    return NONSENSE; 
+  }
+  case APPLICATION_EVAL_FUN: {
+    VALUE fun_exp  = arg;
+
+    printf("Evaluating function\n");
+    push_u32(ctx->K, enc_u(APPLICATION_APPLY_FUN));
+    if (is_fundamental(fun_exp)) {
+      *app_cont = true;
+      return fun_exp;
+    }
+    ctx->curr_exp = fun_exp;
+    return NONSENSE;
+  }
+  case APPLICATION_APPLY_FUN: {
+    VALUE fun = arg;
+
+    printf("APPLYING FUNCTION - "); simple_print(fun); printf("\n");
+    if (type_of(fun) == PTR_TYPE_CONS) { // a closure
+       VALUE params  = car(cdr(fun));
+       VALUE exp     = car(cdr(cdr(fun)));
+       VALUE clo_env = car(cdr(cdr(cdr(fun))));
+
+       VALUE local_env;
+       UINT  nargs;
+       printf("SP AT ENTRY CLO: %d\n", ctx->K->sp);
+       pop_u32(ctx->K, &nargs);
+
+       if (length(params) != nargs) {
+	 *done = true;
+	 return enc_sym(symrepr_eerror()); 
+       }
+
+       if (!env_build_params_args_2(params,
+				    (VALUE *)&ctx->K->data[ctx->K->sp - (nargs+1)],
+				    nargs,
+				    clo_env,
+				    &local_env)) {
+	 printf("GC DURING ENV BUILDING\n");
+	 push_u32_2(ctx->K, nargs, enc_u(APPLICATION_APPLY_FUN));
+	 *perform_gc = true;
+	 *app_cont   = true;
+	 return fun;
+       }
+       ctx->K->sp -= nargs;
+       printf("SP AT EXIT CLO: %d\n", ctx->K->sp);
+       ctx->curr_exp = exp;
+       ctx->curr_env = local_env;
+       return NONSENSE;
+    } else if (type_of(fun) == PTR_TYPE_BYTECODE) {
+      // TODO: IMPLEMENT
+      return enc_sym(symrepr_eerror());
+    } else if (type_of(fun) == VAL_TYPE_SYMBOL) {
+
+      if (is_fundamental(fun)) {
+	printf("SP AT ENTRY FUND: %d\n", ctx->K->sp);
+	UINT sp = ctx->K->sp;
+	UINT nargs;
+	pop_u32(ctx->K, &nargs);
+	push_u32(ctx->K, nargs);
+	
+	if (!fundamental_exec(ctx->K, fun)) {
+	  *done = true;
+	  return enc_sym(symrepr_eerror());
+	} else {
+	  pop_u32(ctx->K, &res);
+	  if (type_of(res) == VAL_TYPE_SYMBOL &&
+	      dec_sym(res) == symrepr_merror()) {
+	    printf("GC initiated from fundamental\n");
+	    push_u32(ctx->K, enc_u(APPLICATION_APPLY_FUN));
+	    *perform_gc = true;
+	    *app_cont = true;
+	    return fun;
+	  }
+	  ctx->K->sp = sp -  (nargs);
+	  printf("SP AT EXIT FUND: %d\n", ctx->K->sp);
+	  *app_cont = true;
+	  return res;
+	}
+      }
+      extension_fptr f = extensions_lookup(dec_sym(fun));
+      if (f == NULL) {
+      	*done = true;
+      	return enc_sym(symrepr_eerror());
+      }
+      UINT nargs;
+      pop_u32(ctx->K, &nargs);
+      VALUE ext_res = f((VALUE *)&ctx->K->data[ctx->K->sp - (nargs+1)] , nargs);
+
+      VALUE clear;
+      for (unsigned int i = 0; i < nargs+1; i ++) {
+	pop_u32(ctx->K,&clear);
+      }
+
+      if (type_of(ext_res) == VAL_TYPE_SYMBOL &&
+	  (dec_sym(ext_res) == symrepr_merror())) {
+	push_u32(ctx->K, enc_u(APPLICATION_APPLY_FUN));
+	*perform_gc = true;
+	*app_cont = true;
+	return fun;
+      }
+
+      *app_cont = true;
+      return ext_res;
+    }
+  } break;
   case FUNCTION: {
     VALUE fun;
     pop_u32(ctx->K, &fun);
@@ -381,10 +507,6 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     }
     return NONSENSE;
   }
-  case APPLICATION_ARGS:
-    return NONSENSE;
-  case APPLICATION_FUN:
-    return NONSENSE;
   } // end switch
   *done = true;
   return enc_sym(symrepr_eerror());
@@ -402,6 +524,8 @@ VALUE run_eval(eval_context_t *ctx){
   uint32_t non_gc = 0;
 
   while (!done) {
+
+    //simple_print(ctx->curr_exp); printf("\n");
 
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
@@ -604,6 +728,22 @@ VALUE run_eval(eval_context_t *ctx){
 	}
       } // If head is symbol
 
+      /*
+      if (type_of(cdr(ctx->curr_exp)) == VAL_TYPE_SYMBOL &&
+	  cdr(ctx->curr_exp) == NIL)  {
+	// Function with no arguments
+	push_u32_2(ctx->K, 0, enc_u(APPLICATION_EVAL_FUN));
+	app_cont = true;
+	r = head;
+	continue;
+      } else {
+	push_u32_5(ctx->K, ctx->curr_env, 
+		   cdr(cdr(ctx->curr_exp)), 0, head, enc_u(APPLICATION_EVAL_ARGS));
+	ctx->curr_exp = car(cdr(ctx->curr_exp));
+	continue;
+      }
+      */
+      
       push_u32_2(ctx->K, head, enc_u(FUNCTION));
       if (type_of(cdr(ctx->curr_exp)) == VAL_TYPE_SYMBOL &&
 	  cdr(ctx->curr_exp) == NIL) {
@@ -615,9 +755,10 @@ VALUE run_eval(eval_context_t *ctx){
 	push_u32_4(ctx->K, ctx->curr_env, NIL,
 		   cdr(cdr(ctx->curr_exp)), enc_u(ARG_LIST));
 
-	ctx->curr_exp = car(cdr(ctx->curr_exp));;
+	ctx->curr_exp = car(cdr(ctx->curr_exp));
 	continue;
       }
+      
     default:
       // BUG No applicable case!
       done = true;
@@ -656,10 +797,6 @@ int eval_cps_init(bool grow_continuation_stack) {
   NONSENSE = enc_sym(DEF_REPR_NONSENSE);
 
   eval_cps_global_env = NIL;
-
-  //if (!builtin_add_function("byte-compile", eval_cps_bi_byte_comp)) return 0;
-  //if (!builtin_add_function("eval", eval_cps_bi_eval)) return 0;
-  //eval_cps_global_env = built_in_gen_env();
 
   eval_context = (eval_context_t*)malloc(sizeof(eval_context_t));
 

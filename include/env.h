@@ -27,6 +27,11 @@ extern int env_build_params_args(VALUE params,
 				 VALUE args,
 				 VALUE env0,
 				 VALUE *res_env);
+extern int env_build_params_args_2(VALUE params,
+				   VALUE *args,
+				   UINT  nargs,
+				   VALUE env0,
+				   VALUE *res_env);
 
 
 #endif

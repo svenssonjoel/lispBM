@@ -270,7 +270,7 @@ int symrepr_addsym(char *name, UINT* id) {
     name_list->map->next = NULL;
     name_list->map->name = (char*)malloc(n);
     if (name_list->map->name == NULL) return 0;
-    strncpy(name_list->map->name, name, n);
+    strcpy(name_list->map->name, name);
 
     if (id != NULL) *id = hash;
 
@@ -289,7 +289,7 @@ int symrepr_addsym(char *name, UINT* id) {
       new_entry->map->next = NULL;
       new_entry->map->name = (char*)malloc(n);
       if (new_entry->map->name == NULL) return 0;
-      strncpy(new_entry->map->name, name, n);
+      strcpy(new_entry->map->name, name);
 
       /* Update global list */
       new_entry->next = name_list;

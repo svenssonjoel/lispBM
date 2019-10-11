@@ -118,3 +118,28 @@ int env_build_params_args(VALUE params,
   *res_env = env;
   return 1;
 }
+
+int env_build_params_args_2(VALUE params,
+			    VALUE *args,
+			    UINT  nargs,
+			    VALUE env0,
+			    VALUE *res_env) {
+
+  VALUE env = env0;
+  VALUE curr_param = params; 
+  
+  for (UINT i = 0; i < nargs; i ++) {
+    VALUE entry = cons(car(curr_param), args[i]);
+    if (type_of(entry) == VAL_TYPE_SYMBOL &&
+	dec_sym(entry) == symrepr_merror())
+      return 0;
+    env = cons(entry, env);
+    if (type_of(env) == VAL_TYPE_SYMBOL &&
+	dec_sym(entry) == symrepr_merror())
+      return 0;
+
+    curr_param = cdr(curr_param);
+  }
+  *res_env = env;
+  return 1;
+}

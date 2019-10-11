@@ -306,7 +306,7 @@ static bool struct_eq(VALUE a, VALUE b) {
       case PTR_TYPE_ARRAY:
 	return array_equality(a, b);
       default:
-	printf("TODO: Structural equality for this ptr type not implemented\n");
+	//printf("TODO: Structural equality for this ptr type not implemented\n");
 	return false;
       }
     }
@@ -556,8 +556,13 @@ bool fundamental_exec(stack *K, VALUE op) {
   UINT result = enc_sym(symrepr_eerror());
   int cmp_res = -1;
   pop_u32(K, &nargs);
-  /* for now assume that all of these will take at least one argument */
+
   nargs = dec_u(nargs);
+  
+  //printf("%d ARGUMENTS\n",nargs);
+  //printf("%d STACK SIZE\n", K->sp);
+  /* for now assume that all of these will take at least one argument */
+
   if (nargs < 1) {
     push_u32(K, symrepr_nil());
   }

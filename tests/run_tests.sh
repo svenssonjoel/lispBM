@@ -56,6 +56,25 @@ for lisp in *.lisp; do
     echo "------------------------------------------------------------"
 done
 
+for lisp in *.lisp; do
+    ./test_lisp_code_cps_fixed_stack $lisp
+
+    result=$?
+
+    echo "------------------------------------------------------------"
+    echo HUGE_HEAP - FIXED STACK!
+    if [ $result -eq 1 ]
+    then
+	success_count=$((success_count+1))
+	echo $lisp SUCCESS
+    else
+	failing_tests="$failing_tests HUGE_HEAP: $lisp \n"
+	fail_count=$((fail_count+1))
+	echo $lisp FAILED
+    fi
+    echo "------------------------------------------------------------"
+done
+
 
 for lisp in *.lisp; do
 
