@@ -97,6 +97,27 @@ for lisp in *.lisp; do
 done
 
 for lisp in *.lisp; do
+
+    ./test_lisp_code_cps_mini_heap_fixed_stack $lisp
+
+    result=$?
+
+    echo "------------------------------------------------------------"
+    echo MINI_HEAP - FIXED STACK!
+    if [ $result -eq 1 ]
+    then
+	success_count=$((success_count+1))
+	echo $lisp SUCCESS
+    else
+	failing_tests="$failing_tests MINI_HEAP: $lisp \n"
+	fail_count=$((fail_count+1))
+	echo $lisp FAILED
+    fi
+    echo "------------------------------------------------------------"
+done
+
+
+for lisp in *.lisp; do
     ./test_lisp_code_cps_compressed $lisp
 
     result=$?
