@@ -38,7 +38,7 @@ done
 
 
 for lisp in *.lisp; do
-    ./test_lisp_code_cps $lisp
+    ./test_lisp_code_cps -h 8388608 -g $lisp
 
     result=$?
 
@@ -57,7 +57,7 @@ for lisp in *.lisp; do
 done
 
 for lisp in *.lisp; do
-    ./test_lisp_code_cps_fixed_stack $lisp
+    ./test_lisp_code_cps -h 8388608 $lisp
 
     result=$?
 
@@ -78,7 +78,7 @@ done
 
 for lisp in *.lisp; do
 
-    ./test_lisp_code_cps_mini_heap $lisp
+    ./test_lisp_code_cps -h 8192 -g $lisp
 
     result=$?
 
@@ -98,7 +98,7 @@ done
 
 for lisp in *.lisp; do
 
-    ./test_lisp_code_cps_mini_heap_fixed_stack $lisp
+    ./test_lisp_code_cps -h 8192 $lisp
 
     result=$?
 
@@ -118,7 +118,7 @@ done
 
 
 for lisp in *.lisp; do
-    ./test_lisp_code_cps_compressed $lisp
+    ./test_lisp_code_cps -h 8388608 -g -c  $lisp
 
     result=$?
 

@@ -17,6 +17,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <getopt.h>
+
 
 #include "heap.h"
 #include "symrepr.h"
@@ -25,17 +29,50 @@
 #include "print.h"
 #include "tokpar.h"
 #include "prelude.h"
+#include "compression.h"
 
 int main(int argc, char **argv) {
 
   int res = 0;
 
-  if (argc < 2) {
+  unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard  
+  bool growing_continuation_stack = false;
+  bool compress_decompress = false;
+
+  int c;
+  opterr = 1;
+  
+  while (( c = getopt(argc, argv, "gch:")) != -1) {
+    switch (c) {
+    case 'h':
+      heap_size = (unsigned int)atoi((char *)optarg);
+      break;
+    case 'g':
+      growing_continuation_stack = true;
+      break;
+    case 'c':
+      compress_decompress = true;
+      break;
+    case '?':
+      break;
+    default:
+      break;
+    }
+  }
+  printf("------------------------------------------------------------\n");
+  printf("Heap size: %u\n", heap_size);
+  printf("Growing stack: %s\n", growing_continuation_stack ? "yes" : "no");
+  printf("Compression: %s\n", compress_decompress ? "yes" : "no");
+  printf("------------------------------------------------------------\n");
+	 
+  if (argc - optind < 1) {
     printf("Incorrect arguments\n");
     return 0;
   }
 
-  FILE* fp = fopen(argv[1], "r");
+  printf("Opening file: %s\n", argv[optind]);
+
+  FILE* fp = fopen(argv[optind], "r");
 
   if (fp == NULL) {
     printf("Error opening file\n");
@@ -64,8 +101,7 @@ int main(int argc, char **argv) {
     printf("Error initializing symrepr!\n");
     return 0;
   }
-
-  unsigned int heap_size = 8 * 1024 * 1024;
+  
   res = heap_init(heap_size);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
@@ -82,7 +118,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = eval_cps_init(true);
+  res = eval_cps_init(growing_continuation_stack);
   if (res)
     printf("Evaluator initialized.\n");
   else {
@@ -90,11 +126,26 @@ int main(int argc, char **argv) {
   }
 
   VALUE prelude = prelude_load();
-  eval_cps_program(prelude); 
+  eval_cps_program(prelude);
 
   VALUE t;
-  t = tokpar_parse(code_buffer);
-
+  
+  if (compress_decompress) { 
+    uint32_t compressed_size = 0;
+    char *compressed_code = compression_compress(code_buffer, &compressed_size);
+    if (!compressed_code) {
+      printf("Error compressing code\n");
+      return 0;
+    }
+    char decompress_code[8192];
+    compression_decompress(decompress_code, 8192, compressed_code);
+    printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
+    
+    t = tokpar_parse_compressed(compressed_code);
+    free(compressed_code);
+  } else { 
+    t = tokpar_parse(code_buffer);
+  } 
   printf("I: "); simple_print(t); printf("\n");
 
   t = eval_cps_program(t);
@@ -113,6 +164,7 @@ int main(int argc, char **argv) {
     printf("Test: Failed!\n");
     res = 0;
   }
+  
   symrepr_del();
   heap_del();
 
