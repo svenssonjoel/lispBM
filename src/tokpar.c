@@ -336,7 +336,7 @@ int tok_F(tokenizer_char_stream str, FLOAT *res) {
   }
 
   fbuf[i] = 0;
-  *res = atof(fbuf);
+  *res = strtod(fbuf, NULL);
   return n;
 }
 
