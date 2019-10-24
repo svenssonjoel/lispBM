@@ -17,6 +17,7 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 6. Compiles for, and runs on linux-x86 (builds 32bit library, runs on 32/64 bit).
 7. Compiles for, and runs on Zynq 7000.
 8. Compiles for, and runs on STM32f4. 
+9. Compiles for, and runs on NRF52840
 
 ## TODOs
 1. (DONE) Write some tests that stresses the Garbage collector.
@@ -29,8 +30,8 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 8. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
 9. (DONE) Port to STM32f4 - 128K ram platform (will need big changes). (surely there will be some more bugs)
 10. (DONE) Add STM32f4 example code (repl implementation)
-11. Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
-12. Port to Raspberry pi 32Bit Bare-metal.
+11. (DONE) Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
+12. Add NRF52 example repl to repository
 13. (DONE) Reduce size of builtins.c and put platform specific built in functions elsewhere. (Builtins.c will be removed an replaced by fundamentals.c) 
 14. (DONE, for eval_cps) Implement 'progn' facility.
 15. See if it is possible to explicitly free heap values that are used as temporaries when evaluating. 
