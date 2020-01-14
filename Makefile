@@ -7,9 +7,6 @@ endif
 
 ifeq ($(PLATFORM),linux-x86-64)
   $(error WILL NOT SUPPORT 64bit platforms)
-  BUILD_DIR = build/linux-x86-64
-  CCFLAGS = -O2 -Wall -Wextra -pedantic -std=c11
-  CCFLAGS += -D_64_BIT_	
 endif
 
 ifeq ($(PLATFORM), zynq)
