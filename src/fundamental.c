@@ -115,36 +115,36 @@ static UINT add2(UINT a, UINT b) {
     t_max = a;
   }
 
-  if (type_of(t_min) > VAL_TYPE_CHAR) {
-    switch (type_of(t_max)) {
-    case VAL_TYPE_I:
-      i0 = dec_i(t_max);
-      i1 = as_i(t_min);
-      retval = enc_i(i0 + i1);
-      break;
-    case VAL_TYPE_U:
-      u0 = dec_u(t_max);
-      u1 = as_u(t_min);
-      retval = enc_u(u0 + u1);
-      break;
-    case PTR_TYPE_BOXED_U:
-      u0 = dec_U(t_max);
-      u1 = as_u(t_min);
-      retval = enc_U(u0+u1); //cons(u0+u1, enc_sym(DEF_REPR_BOXED_U_TYPE));
-      break;
-    case PTR_TYPE_BOXED_I:
-      i0 = dec_I(t_max);
-      i1 = as_u(t_min);
-      retval = enc_I(i0 + i1); //cons(i0+i1, enc_sym(DEF_REPR_BOXED_I_TYPE));
-      break;
-    case PTR_TYPE_BOXED_F:
-      f0 = dec_f(t_max);
-      f1 = as_f(t_min);
-      f0 = f0 + f1;
-      //memcpy(&retval, &f0, sizeof(FLOAT));
-      retval = enc_F(f0); //cons(retval, enc_sym(DEF_REPR_BOXED_F_TYPE));
-      break;
-    }
+  if (!is_number(t_min)) enc_sym(symrepr_nil());
+ 
+  switch (type_of(t_max)) {
+  case VAL_TYPE_I:
+    i0 = dec_i(t_max);
+    i1 = as_i(t_min);
+    retval = enc_i(i0 + i1);
+    break;
+  case VAL_TYPE_U:
+    u0 = dec_u(t_max);
+    u1 = as_u(t_min);
+    retval = enc_u(u0 + u1);
+    break;
+  case PTR_TYPE_BOXED_U:
+    u0 = dec_U(t_max);
+    u1 = as_u(t_min);
+    retval = enc_U(u0+u1); //cons(u0+u1, enc_sym(DEF_REPR_BOXED_U_TYPE));
+    break;
+  case PTR_TYPE_BOXED_I:
+    i0 = dec_I(t_max);
+    i1 = as_u(t_min);
+    retval = enc_I(i0 + i1); //cons(i0+i1, enc_sym(DEF_REPR_BOXED_I_TYPE));
+    break;
+  case PTR_TYPE_BOXED_F:
+    f0 = dec_f(t_max);
+    f1 = as_f(t_min);
+    f0 = f0 + f1;
+    //memcpy(&retval, &f0, sizeof(FLOAT));
+    retval = enc_F(f0); //cons(retval, enc_sym(DEF_REPR_BOXED_F_TYPE));
+    break;
   }
   return retval;
 }

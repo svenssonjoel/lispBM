@@ -363,7 +363,6 @@ static inline bool is_fundamental(VALUE symrep) {
 	  ((dec_sym(symrep) & 0xFFFF) == 0xFFFF));
 }
 
-
 static inline bool is_number(VALUE x) {
   UINT t = type_of(x);
   return ((t == VAL_TYPE_I) ||
@@ -372,4 +371,5 @@ static inline bool is_number(VALUE x) {
 	  (t == PTR_TYPE_BOXED_U) ||
 	  (t == PTR_TYPE_BOXED_F));
 }
+
 #endif
