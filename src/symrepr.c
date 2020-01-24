@@ -41,8 +41,13 @@
      - bucket 65534 contains up to 4096 hardcoded symbols.
        These will be used for the following symbols and such:
        (nil, quote, true, if, lambda, closure, let, progn, +,-,*, /, mod, sin, cos, etc etc).
- */
 
+       
+   ## 
+     4096 - 12Bit
+            16Bit
+            28
+ */
 #define HASHTAB_MALLOC_SIZE 0x10000
 #define HASHTAB_SIZE        0xFFFF
 #define BUCKET_DEPTH        4096
@@ -122,6 +127,7 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("type_error"    , DEF_REPR_TERROR);
   res = res && symrepr_addspecial("eval_error"    , DEF_REPR_EERROR);
   res = res && symrepr_addspecial("out_of_memory" , DEF_REPR_MERROR);
+  res = res && symrepr_addspecial("fatal_error"   , DEF_REPR_FATAL_ERROR);
   res = res && symrepr_addspecial("sym_array"     , DEF_REPR_ARRAY_TYPE);
   res = res && symrepr_addspecial("sym_boxed_i"   , DEF_REPR_BOXED_I_TYPE);
   res = res && symrepr_addspecial("sym_boxed_u"   , DEF_REPR_BOXED_U_TYPE);
@@ -427,33 +433,6 @@ char *symrepr_lookup_name(UINT id) {
     head = head->next;
   }
   return NULL;
-}
-
-void symrepr_print(void) {
-#ifdef TINY_SYMTAB
-  name_list_t *curr = name_list;
-
-  while (curr) {
-    name_mapping_t *head = curr->map;
-    printf("--# Bucket: %"PRIu32"\n", head->key);
-    while (head) {
-      printf("%"PRIu32" : %"PRIx32" : %s\n", head->key, head->key, head->name);
-      head = head->next;
-    }
-    curr = curr->next;
-  }
-#else
-  int i;
-  for (i = 0; i < HASHTAB_MALLOC_SIZE; i ++) {
-    if (name_table[i] != NULL) {
-      name_mapping_t *head = name_table[i];
-      while (head) {
-	printf("%"PRIu32" : %"PRIx32" : %s\n", head->key, head->key, head->name);
-	head = head->next;
-      }
-    }
-  }
-#endif
 }
 
 void symrepr_del(void) {

@@ -25,6 +25,17 @@
 #include "builtin.h"
 #include "print.h"
 
+/* ************************************************************
+
+   This code is nolonger in use. It is just left here for reference.
+   
+
+
+   ************************************************************ */
+
+
+
+
 typedef struct s_builtin_function{
   VALUE sym;
   bi_fptr fun_ptr;

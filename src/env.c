@@ -25,7 +25,7 @@
 
 // Copies just the skeleton structure of an environment
 // The new "copy" will have pointers to the original key-val bindings.
-int env_copy_shallow(VALUE env, VALUE *cpy) {
+VALUE env_copy_shallow(VALUE env) {
 
   VALUE res = enc_sym(symrepr_nil());
   VALUE curr = env;
@@ -37,65 +37,58 @@ int env_copy_shallow(VALUE env, VALUE *cpy) {
 
       // Check for "out of memory"
       if (type_of(res) == VAL_TYPE_SYMBOL &&
-	  dec_sym(res) == symrepr_nil()) {
-	return 0;
+	  dec_sym(res) == symrepr_merror()) {
+	return res;
       }
     }
     curr = cdr(curr);
   }
-  *cpy = res;
-  return 1;
+  return  res;
 }
 
-int env_lookup(VALUE sym, VALUE env, VALUE *res) {
+VALUE env_lookup(VALUE sym, VALUE env) {
   VALUE curr = env;
 
   if(dec_sym(sym) == symrepr_nil()) {
-    *res = enc_sym(symrepr_nil());
-    return 1;
+    return sym;
   }
 
   while (type_of(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == sym) {
-      *res = cdr(car(curr));
-      return 1;
+      return cdr(car(curr));
     }
     curr = cdr(curr);
   }
-  return 0;
+  return enc_sym(symrepr_not_found());
 }
 
 
-int env_modify_binding(VALUE env, VALUE key, VALUE val) {
+VALUE env_modify_binding(VALUE env, VALUE key, VALUE val) {
 
   VALUE curr = env;
 
   while (type_of(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == key) {
       set_cdr(car(curr), val);
-      return 1;
+      return env;
     }
     curr = cdr(curr);
 
   }
-  return 0;
+  return enc_sym(symrepr_not_found());
 }
 
 
-int env_build_params_args(VALUE params,
-			  VALUE args,
-			  VALUE env0,
-			  VALUE *res_env) {
+VALUE env_build_params_args(VALUE params,
+			    VALUE args,
+			    VALUE env0) {
   VALUE curr_param = params;
   VALUE curr_arg = args;
 
   // TODO: This should be checked outside of this function.
   //
   if (length(params) != length(args)) { // programmer error
-    printf("Length mismatch params - args\n");
-    simple_print(params); printf("\n");
-    simple_print(args); printf("\n");
-    return 0;
+    return enc_sym(symrepr_fatal_error());
   }
 
   VALUE env = env0;
@@ -104,42 +97,16 @@ int env_build_params_args(VALUE params,
     VALUE entry = cons(car(curr_param), car(curr_arg));
     if (type_of(entry) == VAL_TYPE_SYMBOL &&
 	dec_sym(entry) == symrepr_merror())
-      return 0;
+      return enc_sym(symrepr_merror());
 
     env = cons(entry,env);
 
     if (type_of(env) == VAL_TYPE_SYMBOL &&
 	dec_sym(env) == symrepr_merror())
-      return 0;
+      return enc_sym(symrepr_merror());
 
     curr_param = cdr(curr_param);
     curr_arg   = cdr(curr_arg);
   }
-  *res_env = env;
-  return 1;
-}
-
-int env_build_params_args_2(VALUE params,
-			    VALUE *args,
-			    UINT  nargs,
-			    VALUE env0,
-			    VALUE *res_env) {
-
-  VALUE env = env0;
-  VALUE curr_param = params; 
-  
-  for (UINT i = 0; i < nargs; i ++) {
-    VALUE entry = cons(car(curr_param), args[i]);
-    if (type_of(entry) == VAL_TYPE_SYMBOL &&
-	dec_sym(entry) == symrepr_merror())
-      return 0;
-    env = cons(entry, env);
-    if (type_of(env) == VAL_TYPE_SYMBOL &&
-	dec_sym(entry) == symrepr_merror())
-      return 0;
-
-    curr_param = cdr(curr_param);
-  }
-  *res_env = env;
-  return 1;
+  return env;
 }

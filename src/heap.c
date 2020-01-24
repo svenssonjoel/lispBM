@@ -163,9 +163,8 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
       // all is as it should be (but no free cells)
       return enc_sym(symrepr_merror());
     } else {
-      printf("BROKEN HEAP %"PRIx32"\n", type_of(heap_state.freelist));
       // something is most likely very wrong
-      return enc_sym(symrepr_merror());
+      return enc_sym(symrepr_fatal_error());
     }
   }
 
@@ -173,7 +172,7 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
   res = heap_state.freelist;
 
   if (type_of(res) != PTR_TYPE_CONS) {
-    printf("ERROR: freelist is corrupt\n");
+    return enc_sym(symrepr_fatal_error());
   }
 
   heap_state.freelist = cdr(heap_state.freelist);
@@ -280,7 +279,6 @@ int gc_mark_freelist() {
 	fl == NIL){
       return 1; // Nothing to mark here
     } else {
-      printf(" ERROR CASE! %"PRIx32" \n", fl);
       return 0;
     }
   }

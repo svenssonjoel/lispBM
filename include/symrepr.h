@@ -24,29 +24,31 @@
 #include "typedefs.h"
 
 // Default and fixed symbol ids
-#define DEF_REPR_NIL        0x0FFFF
-#define DEF_REPR_QUOTE      0x1FFFF
-#define DEF_REPR_TRUE       0x2FFFF
-#define DEF_REPR_IF         0x3FFFF
-#define DEF_REPR_LAMBDA     0x4FFFF
-#define DEF_REPR_CLOSURE    0x5FFFF
-#define DEF_REPR_LET        0x6FFFF
-#define DEF_REPR_RERROR     0x7FFFF   /* READ ERROR */
-#define DEF_REPR_TERROR     0x8FFFF   /* TYPE ERROR */
-#define DEF_REPR_EERROR     0x9FFFF   /* EVAL ERROR */
-#define DEF_REPR_MERROR     0xAFFFF
-#define DEF_REPR_DEFINE     0xBFFFF
-#define DEF_REPR_PROGN      0xCFFFF
+#define DEF_REPR_NIL           0x0FFFF
+#define DEF_REPR_QUOTE         0x1FFFF
+#define DEF_REPR_TRUE          0x2FFFF
+#define DEF_REPR_IF            0x3FFFF
+#define DEF_REPR_LAMBDA        0x4FFFF
+#define DEF_REPR_CLOSURE       0x5FFFF
+#define DEF_REPR_LET           0x6FFFF
+#define DEF_REPR_RERROR        0x7FFFF   /* READ ERROR */
+#define DEF_REPR_TERROR        0x8FFFF   /* TYPE ERROR */
+#define DEF_REPR_EERROR        0x9FFFF   /* EVAL ERROR */
+#define DEF_REPR_MERROR        0xAFFFF
+#define DEF_REPR_FATAL_ERROR   0xBFFFF
+#define DEF_REPR_DEFINE        0xCFFFF
+#define DEF_REPR_PROGN         0xDFFFF
 
 // Special symbol ids
-#define DEF_REPR_ARRAY_TYPE     0xDFFFF
-#define DEF_REPR_BOXED_I_TYPE   0xEFFFF
-#define DEF_REPR_BOXED_U_TYPE   0xFFFFF
-#define DEF_REPR_BOXED_F_TYPE   0x10FFFF
-#define DEF_REPR_REF_TYPE       0x11FFFF
-#define DEF_REPR_RECOVERED      0x12FFFF
-#define DEF_REPR_BYTECODE_TYPE  0x13FFFF
-#define DEF_REPR_NONSENSE       0x14FFFF
+#define DEF_REPR_ARRAY_TYPE     0xEFFFF
+#define DEF_REPR_BOXED_I_TYPE   0xFFFFF
+#define DEF_REPR_BOXED_U_TYPE   0x10FFFF
+#define DEF_REPR_BOXED_F_TYPE   0x11FFFF
+#define DEF_REPR_REF_TYPE       0x12FFFF
+#define DEF_REPR_RECOVERED      0x13FFFF
+#define DEF_REPR_BYTECODE_TYPE  0x14FFFF
+#define DEF_REPR_NONSENSE       0x15FFFF
+#define DEF_REPR_NOT_FOUND      0x20FFFF
 
 // Fundamental Operations
 #define SYM_ADD   0x100FFFF
@@ -73,31 +75,35 @@
 
 extern int symrepr_addsym(char *, UINT*);
 extern bool symrepr_init(void);
-extern void symrepr_print(void);
 extern int symrepr_lookup(char *, UINT*);
 extern char* symrepr_lookup_name(UINT);
 extern void symrepr_del(void);
 
-static inline UINT symrepr_nil(void)     { return DEF_REPR_NIL; }
-static inline UINT symrepr_quote(void)   { return DEF_REPR_QUOTE; }
-static inline UINT symrepr_true(void)    { return DEF_REPR_TRUE; }
-static inline UINT symrepr_if(void)      { return DEF_REPR_IF; }
-static inline UINT symrepr_lambda(void)  { return DEF_REPR_LAMBDA; }
-static inline UINT symrepr_closure(void) { return DEF_REPR_CLOSURE; }
-static inline UINT symrepr_let(void)     { return DEF_REPR_LET; }
-static inline UINT symrepr_define(void)  { return DEF_REPR_DEFINE; }
-static inline UINT symrepr_progn(void)   { return DEF_REPR_PROGN; }
+static inline UINT symrepr_nil(void)         { return DEF_REPR_NIL; }
+static inline UINT symrepr_quote(void)       { return DEF_REPR_QUOTE; }
+static inline UINT symrepr_true(void)        { return DEF_REPR_TRUE; }
+static inline UINT symrepr_if(void)          { return DEF_REPR_IF; }
+static inline UINT symrepr_lambda(void)      { return DEF_REPR_LAMBDA; }
+static inline UINT symrepr_closure(void)     { return DEF_REPR_CLOSURE; }
+static inline UINT symrepr_let(void)         { return DEF_REPR_LET; }
+static inline UINT symrepr_define(void)      { return DEF_REPR_DEFINE; }
+static inline UINT symrepr_progn(void)       { return DEF_REPR_PROGN; }
 
-static inline UINT symrepr_rerror(void)  { return DEF_REPR_RERROR; }
-static inline UINT symrepr_terror(void)  { return DEF_REPR_TERROR; }
-static inline UINT symrepr_eerror(void)  { return DEF_REPR_EERROR; }
-static inline UINT symrepr_merror(void)  { return DEF_REPR_MERROR; }
+static inline UINT symrepr_rerror(void)      { return DEF_REPR_RERROR; }
+static inline UINT symrepr_terror(void)      { return DEF_REPR_TERROR; }
+static inline UINT symrepr_eerror(void)      { return DEF_REPR_EERROR; }
+static inline UINT symrepr_merror(void)      { return DEF_REPR_MERROR; }
+static inline UINT symrepr_fatal_error(void) { return DEF_REPR_FATAL_ERROR; }
+
+static inline UINT symrepr_nonsense(void)    { return DEF_REPR_NONSENSE; }
+static inline UINT symrepr_not_found(void)   { return DEF_REPR_NOT_FOUND; }
 
 static inline bool symrepr_is_error(UINT symrep){
   return (symrep == DEF_REPR_RERROR ||
 	  symrep == DEF_REPR_TERROR ||
 	  symrep == DEF_REPR_RERROR ||
-	  symrep == DEF_REPR_MERROR);
+	  symrep == DEF_REPR_MERROR ||
+	  symrep == DEF_REPR_FATAL_ERROR);
 }
 
 #endif

@@ -212,21 +212,26 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
        VALUE exp     = car(cdr(cdr(fun)));
        VALUE clo_env = car(cdr(cdr(cdr(fun))));
 
-       VALUE local_env;
+     
        if (length(params) != length(args)) { // programmer error
-	 printf("Length mismatch params - args\n");
-	 simple_print(params); printf("\n");
-	 simple_print(args); printf("\n");
 	 *done = true;
 	 return enc_sym(symrepr_eerror());
        }
 
-       if (!env_build_params_args(params, args_rev, clo_env, &local_env)) {
-	 push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
-	 *perform_gc = true;
-	 *app_cont = true;
-	 return fun;
+       VALUE local_env = env_build_params_args(params, args_rev, clo_env);
+       if (type_of(local_env) == VAL_TYPE_SYMBOL) { 
+	 if (dec_sym(local_env) == symrepr_merror() ) {
+	   push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
+	   *perform_gc = true;
+	   *app_cont = true;
+	   return fun;
+	 }
+
+	 if (dec_sym(local_env) == symrepr_fatal_error()) {
+	   return local_env;
+	 }
        }
+       
        ctx->curr_exp = exp;
        ctx->curr_env = local_env;
        return 0;
@@ -397,8 +402,6 @@ VALUE run_eval(eval_context_t *ctx){
 
   while (!done) {
 
-    //simple_print(ctx->curr_exp); printf("\n");
-
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
 #endif
@@ -434,8 +437,16 @@ VALUE run_eval(eval_context_t *ctx){
     switch (type_of(ctx->curr_exp)) {
 
     case VAL_TYPE_SYMBOL:
-      if (!env_lookup(ctx->curr_exp, ctx->curr_env, &value)) {
-	if (!env_lookup(ctx->curr_exp, eval_cps_global_env, &value)){
+
+      value = env_lookup(ctx->curr_exp, ctx->curr_env);
+      if (type_of(value) == VAL_TYPE_SYMBOL &&
+	  dec_sym(value) == symrepr_not_found()) {
+
+	value = env_lookup(ctx->curr_exp, eval_cps_global_env); 
+
+	if (type_of(value) == VAL_TYPE_SYMBOL &&
+	    dec_sym(value) == symrepr_not_found()) {
+	  
 	  if (extensions_lookup(dec_sym(ctx->curr_exp)) == NULL) {
 	    r = enc_sym(symrepr_eerror());
 	    done = true;
@@ -516,9 +527,11 @@ VALUE run_eval(eval_context_t *ctx){
 
 	// Special form: LAMBDA
 	if (dec_sym(head) == symrepr_lambda()) {
-	  VALUE env_cpy;
 
-	  if (!env_copy_shallow(ctx->curr_env, &env_cpy)) {
+	  VALUE env_cpy = env_copy_shallow(ctx->curr_env);
+	  
+	  if (type_of(env_cpy) == VAL_TYPE_SYMBOL &&
+	      dec_sym(env_cpy) == symrepr_merror()) {
 	    perform_gc = true;
 	    app_cont = false;
 	    continue; // perform gc and resume evaluation at same expression
@@ -650,7 +663,7 @@ VALUE eval_cps_program(VALUE lisp) {
 int eval_cps_init(bool grow_continuation_stack) {
   int res = 1;
   NIL = enc_sym(symrepr_nil());
-  NONSENSE = enc_sym(DEF_REPR_NONSENSE);
+  NONSENSE = enc_sym(symrepr_nonsense());
 
   eval_cps_global_env = NIL;
 
