@@ -22,6 +22,7 @@
 
 extern VALUE env_copy_shallow(VALUE env);
 extern VALUE env_lookup(VALUE sym, VALUE env);
+extern VALUE env_set(VALUE env, VALUE key, VALUE val);
 extern VALUE env_modify_binding(VALUE env, VALUE key, VALUE val);
 extern VALUE env_build_params_args(VALUE params,
 	     			   VALUE args,

@@ -62,6 +62,33 @@ VALUE env_lookup(VALUE sym, VALUE env) {
   return enc_sym(symrepr_not_found());
 }
 
+VALUE env_set(VALUE env, VALUE key, VALUE val) {
+  
+  VALUE curr = env;
+  VALUE new_env;
+  VALUE keyval;
+  
+  while(type_of(curr) == PTR_TYPE_CONS) {
+    if (car(car(curr)) == key) {
+      set_cdr(car(curr),val);
+      return env;
+    }
+    curr = cdr(curr);
+  }
+
+  keyval = cons(key,val);
+  if (type_of(keyval) == VAL_TYPE_SYMBOL) {
+    return keyval;
+  }
+
+  new_env = cons(keyval, env);
+  if (type_of(new_env) == VAL_TYPE_SYMBOL) {
+    return keyval;
+  }
+
+  return new_env;
+}
+
 
 VALUE env_modify_binding(VALUE env, VALUE key, VALUE val) {
 

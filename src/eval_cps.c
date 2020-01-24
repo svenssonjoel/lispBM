@@ -115,37 +115,24 @@ VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
 // Continuation points and apply cont
 // ////////////////////////////////////////////////////////
 
-VALUE cont_set_global_env(eval_context_t *ctx, VALUE val, bool *perform_gc){
+VALUE cont_set_global_env(eval_context_t *ctx, VALUE val, bool *done, bool *perform_gc){
 
-  VALUE curr = eval_cps_global_env;
-  VALUE tmp;
   VALUE key;
   pop_u32(ctx->K, &key);
+  VALUE new_env = env_set(eval_cps_global_env,key,val);
 
-  while(type_of(curr) == PTR_TYPE_CONS) {
-    if (car(car(curr)) == key) {
-      set_cdr(car(curr),val);
-      return enc_sym(symrepr_true());
+  if (type_of(new_env) == VAL_TYPE_SYMBOL) {
+    if (dec_sym(new_env) == symrepr_merror()) {
+      push_u32_2(ctx->K, key, enc_u(SET_GLOBAL_ENV));
+      *perform_gc = true;
+      return val;
     }
-    curr = cdr(curr);
+    if (dec_sym(new_env) == symrepr_fatal_error()) {
+      *done = true;
+      return new_env; 
+    }
   }
-
-  VALUE keyval;
-  keyval = cons(key,val);
-  if (type_of(keyval) == VAL_TYPE_SYMBOL) {
-    push_u32_2(ctx->K, key, enc_u(SET_GLOBAL_ENV));
-    *perform_gc = true;
-    return val;
-  }
-
-  tmp = cons(keyval, eval_cps_global_env);
-  if (type_of(tmp) == VAL_TYPE_SYMBOL) {
-    push_u32_2(ctx->K, key, enc_u(SET_GLOBAL_ENV));
-    *perform_gc = true;
-    return val;
-  }
-
-  eval_cps_global_env = tmp;
+  eval_cps_global_env = new_env;
   return enc_sym(symrepr_true());
 }
 
@@ -166,8 +153,9 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     ctx->curr_exp = arg;
     return NONSENSE;
   case SET_GLOBAL_ENV:
-    res = cont_set_global_env(ctx, arg, perform_gc);
-    *app_cont = true;
+    res = cont_set_global_env(ctx, arg, done, perform_gc);
+    if (!(*done)) 
+      *app_cont = true;
     return res;
   case PROGN_REST: {
     VALUE rest;
