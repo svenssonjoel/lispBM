@@ -35,6 +35,32 @@ VALUE ext_test(VALUE *args, int argn) {
   return enc_sym(symrepr_true());
 }
 
+VALUE ext_print(VALUE *args, int argn) {
+  if (argn < 1) return enc_sym(symrepr_nil());
+
+  for (int i = (argn-1); i >= 0; i --) {
+    VALUE t = args[i];
+
+  
+    if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
+      array_t *array = (array_t *)car(t);
+      switch (array->elt_type){
+      case VAL_TYPE_CHAR:
+	printf("%s", array->data.c);
+	break;
+      default:
+	return enc_sym(symrepr_nil());
+	break;
+      }
+    } else if (val_type(t) == VAL_TYPE_CHAR) {
+      printf("%c", dec_char(t));
+    } else {
+      return enc_sym(symrepr_nil());
+    }
+ 
+  }
+  return enc_sym(symrepr_true());
+}
 
 int main(int argc, char **argv) {
   char *str = malloc(1024);;
@@ -67,7 +93,14 @@ int main(int argc, char **argv) {
     printf("Error initializing evaluator.\n");
   }
 
+  /*
   res = extensions_add("ext-test", ext_test);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+  */
+  res = extensions_add("print", ext_print);
   if (res)
     printf("Extension added.\n");
   else

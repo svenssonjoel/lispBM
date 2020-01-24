@@ -165,7 +165,6 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
     } else {
       printf("BROKEN HEAP %"PRIx32"\n", type_of(heap_state.freelist));
       // something is most likely very wrong
-      //printf("heap_allocate_cell Error\n");
       return enc_sym(symrepr_merror());
     }
   }
