@@ -417,7 +417,6 @@ VALUE run_eval(eval_context_t *ctx){
       r = apply_continuation(ctx, r, &done, &perform_gc, &app_cont);
       continue;
     }
-    app_cont = false;
 
     VALUE head;
     VALUE value = enc_sym(symrepr_eerror());
@@ -470,9 +469,8 @@ VALUE run_eval(eval_context_t *ctx){
 
 	// Special form: QUOTE
 	if (dec_sym(head) == symrepr_quote()) {
-	  value = car(cdr(ctx->curr_exp));
+	  r = car(cdr(ctx->curr_exp));
 	  app_cont = true;
-	  r = value;
 	  continue;
 	}
 
