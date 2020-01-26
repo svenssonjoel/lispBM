@@ -693,38 +693,14 @@ VALUE run_eval(eval_context_t *ctx){
 	  continue;
 	}
       } // If head is symbol
-
-      /*
-      if (type_of(cdr(ctx->curr_exp)) == VAL_TYPE_SYMBOL &&
-	  cdr(ctx->curr_exp) == NIL) {
-	// no arguments)
-	push_u32_2(ctx->K, 0, enc_u(APPLICATION));
-      } 
-      */
       push_u32_4(ctx->K,
 		 ctx->curr_env,
 		 enc_u(0),
 		 cdr(ctx->curr_exp),
 		 enc_u(APPLICATION_ARGS));
 
-      ctx->curr_exp = head;
+      ctx->curr_exp = head; // evaluate the function
       continue;
-      /*
-      push_u32_2(ctx->K, head, enc_u(FUNCTION));
-      if (type_of(cdr(ctx->curr_exp)) == VAL_TYPE_SYMBOL &&
-	  cdr(ctx->curr_exp) == NIL) {
-	// no arguments)
-	app_cont = true;
-	r = NIL;
-	continue;
-      } else {
-	push_u32_4(ctx->K, ctx->curr_env, NIL,
-		   cdr(cdr(ctx->curr_exp)), enc_u(ARG_LIST));
-
-	ctx->curr_exp = car(cdr(ctx->curr_exp));
-	continue;
-      }
-      */
     default:
       // BUG No applicable case!
       done = true;
