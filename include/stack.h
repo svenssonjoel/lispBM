@@ -30,14 +30,16 @@ typedef struct {
   bool growable;
 } stack;
 
-stack* stack_init(unsigned int stack_size, bool growable);
-void stack_del(stack *s);
-int stack_clear(stack *s);
-int stack_copy(stack *dest, stack *src);
-int push_u32(stack *s, UINT val);
-int push_k(stack *s, VALUE (*k)(VALUE));
-int pop_u32(stack *s, UINT *val);
-int pop_k(stack *s, VALUE (**k)(VALUE));
+extern stack* stack_init(unsigned int stack_size, bool growable);
+extern void stack_del(stack *s);
+extern int stack_clear(stack *s);
+extern int stack_copy(stack *dest, stack *src);
+extern UINT *stack_ptr(stack *s, unsigned int n);
+extern int stack_drop(stack *s, unsigned int n);
+extern int push_u32(stack *s, UINT val);
+extern int push_k(stack *s, VALUE (*k)(VALUE));
+extern int pop_u32(stack *s, UINT *val);
+extern int pop_k(stack *s, VALUE (**k)(VALUE));
 
 static inline int stack_arg_ix(stack *s, unsigned int ix, UINT *res) {
   if (ix > s->sp-1) return 0;

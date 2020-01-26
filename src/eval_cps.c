@@ -42,6 +42,8 @@
 #define ARG_LIST          7
 #define EVAL              8
 #define PROGN_REST        9
+#define APPLICATION       10
+#define APPLICATION_ARGS  11
 
 VALUE run_eval(eval_context_t *ctx);
 
@@ -176,6 +178,77 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     ctx->curr_exp = car(rest);
     return NONSENSE;
   }
+  case APPLICATION: { 
+    VALUE count;
+    pop_u32(ctx->K, &count);
+
+    UINT *fun_args = stack_ptr(ctx->K, dec_u(count)+1);
+
+    VALUE fun = fun_args[0];
+
+    if (type_of(fun) == PTR_TYPE_CONS) { // a closure (it better be)
+      VALUE args = NIL;
+      for (UINT i = dec_u(count); i > 0; i --) {
+	args = cons(fun_args[i], args);
+	if (type_of(args) == VAL_TYPE_SYMBOL) {
+	  push_u32_2(ctx->K, count, enc_u(APPLICATION));
+	  *perform_gc = true;
+	  *app_cont = true;
+	  return fun;
+	}
+      }
+      VALUE params  = car(cdr(fun));
+      VALUE exp     = car(cdr(cdr(fun)));
+      VALUE clo_env = car(cdr(cdr(cdr(fun))));
+     
+      if (length(params) != length(args)) { // programmer error
+	*done = true;
+	return enc_sym(symrepr_eerror());
+      }
+
+      VALUE local_env = env_build_params_args(params, args, clo_env);
+      if (type_of(local_env) == VAL_TYPE_SYMBOL) { 
+	if (dec_sym(local_env) == symrepr_merror() ) {
+	  push_u32_2(ctx->K, count, enc_u(APPLICATION));
+	  *perform_gc = true;
+	  *app_cont = true;
+	  return fun;
+	}
+	
+	if (dec_sym(local_env) == symrepr_fatal_error()) {
+	  return local_env;
+	}
+      }
+      stack_drop(ctx->K, dec_u(count)+1);
+      ctx->curr_exp = exp;
+      ctx->curr_env = local_env;
+      return NONSENSE;
+    } else if (type_of(fun) == VAL_TYPE_SYMBOL) {
+      
+      VALUE res;
+     
+      if (is_fundamental(fun)) {
+	res = fundamental_exec(&fun_args[1], dec_u(count), fun);
+	if (type_of(res) == VAL_TYPE_SYMBOL &&
+	    dec_sym(res) == symrepr_eerror()) {
+	  
+	  *done = true;
+	  return  res;
+	} else if (type_of(res) == VAL_TYPE_SYMBOL &&
+		   dec_sym(res) == symrepr_merror()) {
+	  push_u32_2(ctx->K, count, enc_u(APPLICATION));
+	  *perform_gc = true;
+	  *app_cont = true;
+	  return fun;
+	} 
+	stack_drop(ctx->K, dec_u(count) + 1);
+	*app_cont = true;
+	return res;
+      }
+    }
+    
+    return(symrepr_nil());
+  }
   case FUNCTION_APP: {
     VALUE args;
     VALUE args_rev;
@@ -255,7 +328,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       push_u32(ctx->K, enc_u(nargs));
 
       if (is_fundamental(fun)) {
-	if (!fundamental_exec(ctx->K, fun)) {
+	if (!true) { // fundamental_exec(ctx->K, fun)) {
 
 	  *done = true;
 	  return enc_sym(symrepr_eerror());
@@ -298,6 +371,26 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       return ext_res;
     }
   } break;
+  case APPLICATION_ARGS: {
+    VALUE count;
+    VALUE env;
+    VALUE rest;
+
+    pop_u32_3(ctx->K, &rest, &count, &env);
+    push_u32(ctx->K, arg);
+    
+    if (type_of(rest) == VAL_TYPE_SYMBOL &&
+	rest == NIL) {
+      // no more arguments
+      push_u32_2(ctx->K, count, enc_u(APPLICATION));
+      *app_cont = true;
+      return NONSENSE;
+    }
+    push_u32_4(ctx->K, env, enc_u(dec_u(count) + 1), cdr(rest), enc_u(APPLICATION_ARGS));
+    ctx->curr_exp = car(rest);
+    ctx->curr_env = env;
+    return NONSENSE; 
+  }
   case ARG_LIST: {
     VALUE rest;
     VALUE acc;
@@ -389,7 +482,7 @@ VALUE run_eval(eval_context_t *ctx){
   uint32_t non_gc = 0;
 
   while (!done) {
-
+    
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
 #endif
@@ -433,8 +526,10 @@ VALUE run_eval(eval_context_t *ctx){
 
 	if (type_of(value) == VAL_TYPE_SYMBOL &&
 	    dec_sym(value) == symrepr_not_found()) {
-	  
-	  if (extensions_lookup(dec_sym(ctx->curr_exp)) == NULL) {
+
+	  if (is_fundamental(ctx->curr_exp)) {
+	    value = ctx->curr_exp;
+	  } else if (extensions_lookup(dec_sym(ctx->curr_exp)) == NULL) {
 	    r = enc_sym(symrepr_eerror());
 	    done = true;
 	    continue;
@@ -599,6 +694,22 @@ VALUE run_eval(eval_context_t *ctx){
 	}
       } // If head is symbol
 
+      /*
+      if (type_of(cdr(ctx->curr_exp)) == VAL_TYPE_SYMBOL &&
+	  cdr(ctx->curr_exp) == NIL) {
+	// no arguments)
+	push_u32_2(ctx->K, 0, enc_u(APPLICATION));
+      } 
+      */
+      push_u32_4(ctx->K,
+		 ctx->curr_env,
+		 enc_u(0),
+		 cdr(ctx->curr_exp),
+		 enc_u(APPLICATION_ARGS));
+
+      ctx->curr_exp = head;
+      continue;
+      /*
       push_u32_2(ctx->K, head, enc_u(FUNCTION));
       if (type_of(cdr(ctx->curr_exp)) == VAL_TYPE_SYMBOL &&
 	  cdr(ctx->curr_exp) == NIL) {
@@ -613,7 +724,7 @@ VALUE run_eval(eval_context_t *ctx){
 	ctx->curr_exp = car(cdr(ctx->curr_exp));
 	continue;
       }
-      
+      */
     default:
       // BUG No applicable case!
       done = true;

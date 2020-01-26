@@ -77,6 +77,20 @@ int stack_copy(stack *dest, stack *src) {
   return 1;
 }
 
+UINT *stack_ptr(stack *s, unsigned int n) {
+  if (n > s->sp) return NULL;
+  int index = s->sp - n;
+  return &s->data[index]; 
+}
+
+int stack_drop(stack *s, unsigned int n) {
+
+  if (n > s->sp) return 0;
+
+  s->sp -= n;
+  return 1;
+
+}
 
 int push_u32(stack *s, UINT val) {
   int res = 1;

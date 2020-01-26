@@ -18,5 +18,5 @@
 #ifndef _FUNDAMENTAL_H_
 #define _FUNDAMENTAL_H_
 
-extern bool fundamental_exec(stack *K, VALUE op);
+extern VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op);
 #endif

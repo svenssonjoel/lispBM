@@ -19,6 +19,7 @@
 #include "stack.h"
 #include "heap.h"
 #include "eval_cps.h"
+#include "print.h"
 
 #include <stdio.h>
 /*
@@ -381,12 +382,11 @@ static int compare(UINT a, UINT b) {
 }
 
 
-void array_read(stack *K, UINT *nargs, UINT *result) {
+void array_read(VALUE *args, UINT nargs, UINT *result) {
+  (void) nargs;
   // Args are: array, index
-  VALUE arr;
-  VALUE index;
-
-  pop_u32_2(K, &arr, &index); *nargs = *nargs - 2;
+  VALUE arr = args[0];
+  VALUE index = args[1];
 
   // Get array index
   UINT ix;
@@ -463,11 +463,11 @@ void array_read(stack *K, UINT *nargs, UINT *result) {
   *result = enc_sym(symrepr_eerror());
 }
 
-void array_write(stack *K, UINT *nargs, UINT *result) {
-  VALUE arr;
-  VALUE index;
-  VALUE val;
-  pop_u32_3(K, &arr, &index, &val); *nargs = *nargs - 3;
+void array_write(VALUE *args, UINT nargs, UINT *result) {
+  (void) nargs;
+  VALUE arr = args[0];
+  VALUE index = args[1];
+  VALUE val = args[2];
   UINT uv;
   FLOAT v;
   UINT ix;
@@ -541,85 +541,64 @@ void array_write(stack *K, UINT *nargs, UINT *result) {
 }
 
 
-void array_create(stack *K, UINT *nargs, UINT *result) {
-  (void) K;
+void array_create(VALUE *args, UINT nargs, UINT *result) {
+  (void) args;
   (void) nargs;
   (void) result;
 
 }
 
-bool fundamental_exec(stack *K, VALUE op) {
-  bool ret = true;
-  UINT nargs;
-  UINT tmp;
+VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
+
   UINT result = enc_sym(symrepr_eerror());
   int cmp_res = -1;
-  pop_u32(K, &nargs);
-
-  nargs = dec_u(nargs);
- 
-  /* for now assume that all of these will take at least one argument */
-
-  if (nargs < 1) {
-    push_u32(K, symrepr_nil());
-  }
 
   switch (dec_sym(op)) {
   case SYM_EVAL:
-    pop_u32(K, &tmp); nargs--;
-    result = eval_cps_bi_eval(tmp);
+    result = eval_cps_bi_eval(args[0]);
     break;
   case SYM_CONS: {
-    UINT a;
-    UINT b;
-    pop_u32_2(K, &a, &b); nargs-=2;
+    UINT a = args[0];
+    UINT b = args[1];
     result = cons(a,b);
     break;
   }
   case SYM_CAR: {
-    pop_u32(K, &tmp); nargs--;
-    result = car(tmp);
+    result = car(args[0]);
     break;
   }
   case SYM_CDR: {
-    pop_u32(K, &tmp); nargs--;
-    result = cdr(tmp);
+    result = cdr(args[0]);
     break;
   }
   case SYM_LIST: {
     result = enc_sym(symrepr_nil());
     for (UINT i = 1; i <= nargs; i ++) {
-      UINT a = enc_sym(symrepr_eerror());
-      stack_arg_ix(K, (nargs - i), &a);
-      result = cons(a, result);
+      result = cons(args[nargs-i], result);
       if (type_of(result) == VAL_TYPE_SYMBOL)
 	break;
     }
     break;
   }
   case SYM_ADD: {
-    UINT sum;
-    UINT value;
-    pop_u32(K, &sum); nargs--;
-    while (nargs > 0) {
-      pop_u32(K, &value); nargs--;
-      sum = add2(sum, value);
-      if (type_of(sum) == VAL_TYPE_SYMBOL)
+    UINT sum = args[0];
+    for (UINT i = 1; i < nargs; i ++) {
+      sum = add2(sum, args[i]);
+      if (type_of(sum) == VAL_TYPE_SYMBOL) {
 	break;
+      }
     }
     result = sum;
     break;
   }
   case SYM_SUB: {
-    UINT res;
-    UINT value;
-    pop_u32(K,&res); nargs--;
-    if (nargs == 0) {
+    UINT res = args[0];
+
+    if (nargs == 1) {
       res = negate(res);
     } else {
-      while (nargs > 0) {
-	pop_u32(K, &value); nargs--;
-	res = sub2(res, value);
+      for (UINT i = 1; i < nargs; i ++) {
+	res = sub2(res, args[i]);
 	if (type_of(res) == VAL_TYPE_SYMBOL)
 	  break;
       }
@@ -634,13 +613,12 @@ bool fundamental_exec(stack *K, VALUE op) {
   case SYM_MOD:
     break;
   case SYM_EQ: {
-    UINT a;
+    UINT a = args[0];
     UINT b;
     bool r = true;
-    pop_u32(K, &a); nargs--;
 
-    while (nargs > 0) {
-      pop_u32(K, &b); nargs--;
+    for (UINT i = 1; i < nargs; i ++) {
+      b = args[i];
       r = r && struct_eq(a, b);
     }
     if (r) {
@@ -657,17 +635,17 @@ bool fundamental_exec(stack *K, VALUE op) {
     if (dec_sym(op) == SYM_GT) cmp_res = 1;
     /* fall through */
   case SYM_LT: {
-    UINT a;
+    UINT a = args[0];
     UINT b;
     bool r = true;
     bool ok = true;
-    pop_u32(K, &a); nargs--;
+
     if (!is_number(a)) {
       result = enc_sym(symrepr_terror());
       break;
     }
-    while (nargs > 0) {
-      pop_u32(K, &b); nargs--;
+    for (UINT i = 1; i < nargs; i ++) {
+      b = args[i];
       if (!is_number(b)) {
 	ok = false;
 	break;
@@ -687,24 +665,18 @@ bool fundamental_exec(stack *K, VALUE op) {
   }
 
   case SYM_ARRAY_READ:
-    array_read(K, &nargs, &result);
+    array_read(args, nargs, &result);
     break;
   case SYM_ARRAY_WRITE:
-    array_write(K, &nargs, &result);
+    array_write(args, nargs, &result);
     break;
   case SYM_ARRAY_CREATE:
-    array_create(K, &nargs, &result);
+    array_create(args, nargs, &result);
     break;
   default:
-    ret = false;
+    result = enc_sym(symrepr_eerror());
     break;
   }
 
-  /* clean up the stack */
-  while (nargs > 0) {
-    pop_u32(K, &tmp); nargs--;
-  }
-
-  if (ret) push_u32(K,result);
-  return ret;
+  return result;
 }
