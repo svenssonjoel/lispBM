@@ -7,13 +7,12 @@
 		      (revacc (cons (car xs) acc) (cdr xs))))))
       (revacc nil xs))))
 
-
 (define iota (lambda (n)
-	       (let ((iacc (lambda (acc i n)
-			     (if (> i n)
-				 acc
-			       (iacc (cons (- n i) acc) (+ i 1) n)))))
-		 (iacc nil 0 n))))
+         (let ((iacc (lambda (acc i)
+                 (if (< i 0)
+                 acc
+                   (iacc (cons i acc) (- i 1))))))
+         (iacc nil n))))
 
 (define length (lambda (xs)
 		 (let ((len (lambda (l xs)
