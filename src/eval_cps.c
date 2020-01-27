@@ -35,15 +35,12 @@
 
 #define DONE              1
 #define SET_GLOBAL_ENV    2
-#define FUNCTION_APP      3
-#define FUNCTION          4
-#define BIND_TO_KEY_REST  5
-#define IF                6
-#define ARG_LIST          7
-#define EVAL              8
-#define PROGN_REST        9
-#define APPLICATION       10
-#define APPLICATION_ARGS  11
+#define BIND_TO_KEY_REST  3
+#define IF                4
+#define EVAL              5
+#define PROGN_REST        6
+#define APPLICATION       7
+#define APPLICATION_ARGS  8
 
 VALUE run_eval(eval_context_t *ctx);
 
@@ -226,7 +223,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     } else if (type_of(fun) == VAL_TYPE_SYMBOL) {
       
       VALUE res;
-     
+      
       if (is_fundamental(fun)) {
 	res = fundamental_exec(&fun_args[1], dec_u(count), fun);
 	if (type_of(res) == VAL_TYPE_SYMBOL &&
@@ -247,130 +244,29 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       }
     }
     
-    return(symrepr_nil());
-  }
-  case FUNCTION_APP: {
-    VALUE args;
-    VALUE args_rev;
-    VALUE fun = arg;
-
-    pop_u32(ctx->K, &args);
-
-    if (type_of(args) == PTR_TYPE_CONS) { // TODO: FIX THIS MESS
-      args_rev = reverse(args);
-      if (type_of(args_rev) == VAL_TYPE_SYMBOL) {
-	push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
-	*perform_gc = true;
-	*app_cont = true;
-	return fun;
-      }
-    } else {
-      args_rev = args;
+    // It may be an extension
+    
+    extension_fptr f = extensions_lookup(dec_sym(fun));
+    if (f == NULL) {
+      *done = true;
+      return enc_sym(symrepr_eerror());
     }
 
-    if (type_of(fun) == PTR_TYPE_CONS) { // its a closure
-       VALUE params  = car(cdr(fun));
-       VALUE exp     = car(cdr(cdr(fun)));
-       VALUE clo_env = car(cdr(cdr(cdr(fun))));
+    VALUE ext_res = f(&fun_args[1] , dec_u(count));
 
-     
-       if (length(params) != length(args)) { // programmer error
-	 *done = true;
-	 return enc_sym(symrepr_eerror());
-       }
-
-       VALUE local_env = env_build_params_args(params, args_rev, clo_env);
-       if (type_of(local_env) == VAL_TYPE_SYMBOL) { 
-	 if (dec_sym(local_env) == symrepr_merror() ) {
-	   push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
-	   *perform_gc = true;
-	   *app_cont = true;
-	   return fun;
-	 }
-
-	 if (dec_sym(local_env) == symrepr_fatal_error()) {
-	   return local_env;
-	 }
-       }
-       
-       ctx->curr_exp = exp;
-       ctx->curr_env = local_env;
-       return 0;
-
-    } else if (type_of(fun) == PTR_TYPE_BYTECODE) {
-      eval_context_t *ctx = eval_cps_get_current_context();
-
-      VALUE curr_arg = args_rev;
-
-      while (curr_arg != NIL) {
-	push_u32(ctx->K, car(curr_arg));
-      }
-      if (type_of(fun) == PTR_TYPE_BYTECODE) {
-	bytecode_t *bc = (bytecode_t*)car(fun);
-	res = bytecode_eval(ctx->K, bc);
-	*app_cont = true;
-	return res;
-      }
-      else return enc_sym(symrepr_eerror());
-      //TODO: Return stack to same state as before running bc, unless
-      //      it is expected that running the bc exits with stack in good shape.
-    }else if (type_of(fun) == VAL_TYPE_SYMBOL) {
-
-      VALUE curr_arg = args;
-
-      UINT nargs = 0;
-      VALUE res;
-      while (type_of(curr_arg) == PTR_TYPE_CONS) {
-	push_u32(ctx->K, car(curr_arg));
-	nargs++;
-	curr_arg = cdr(curr_arg);
-      }
-      push_u32(ctx->K, enc_u(nargs));
-
-      if (is_fundamental(fun)) {
-	if (!true) { // fundamental_exec(ctx->K, fun)) {
-
-	  *done = true;
-	  return enc_sym(symrepr_eerror());
-	} else {
-	  pop_u32(ctx->K, &res);
-	  if (type_of(res) == VAL_TYPE_SYMBOL &&
-	      dec_sym(res) == symrepr_merror()) {
-	    push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
-	    *perform_gc = true;
-	    *app_cont = true;
-	    return fun;
-	  }
-	  *app_cont = true;
-	  return res;
-	}
-      }
-
-      extension_fptr f = extensions_lookup(dec_sym(fun));
-      if (f == NULL) {
-      	*done = true;
-      	return enc_sym(symrepr_eerror());
-      }
-
-      VALUE ext_res = f((VALUE *)&ctx->K->data[ctx->K->sp - (nargs+1)] , nargs);
-
-      VALUE clear;
-      for (unsigned int i = 0; i < nargs+1; i ++) {
-	pop_u32(ctx->K,&clear);
-      }
-
-      if (type_of(ext_res) == VAL_TYPE_SYMBOL &&
-	  (dec_sym(ext_res) == symrepr_merror())) {
-	push_u32_2(ctx->K, args, enc_u(FUNCTION_APP));
-	*perform_gc = true;
-	*app_cont = true;
-	return fun;
-      }
-
+    if (type_of(ext_res) == VAL_TYPE_SYMBOL &&
+	(dec_sym(ext_res) == symrepr_merror())) {
+      push_u32_2(ctx->K, count, enc_u(APPLICATION));
+      *perform_gc = true;
       *app_cont = true;
-      return ext_res;
+      return fun;
     }
-  } break;
+    
+    stack_drop(ctx->K, dec_u(count) + 1);
+
+    *app_cont = true;
+    return ext_res;
+  }
   case APPLICATION_ARGS: {
     VALUE count;
     VALUE env;
@@ -390,40 +286,6 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     ctx->curr_exp = car(rest);
     ctx->curr_env = env;
     return NONSENSE; 
-  }
-  case ARG_LIST: {
-    VALUE rest;
-    VALUE acc;
-    VALUE env;
-    pop_u32_3(ctx->K, &rest, &acc, &env);
-    VALUE acc_ = cons(arg, acc);
-    if (type_of(acc_) == VAL_TYPE_SYMBOL) {
-      push_u32_4(ctx->K, env, acc, rest, enc_u(ARG_LIST));
-      *perform_gc = true;
-      *app_cont   = true;
-      return arg;            // RESET EXECUTION
-    }
-    if (type_of(rest) == VAL_TYPE_SYMBOL &&
-	rest == NIL) {
-      *app_cont = true;
-      return acc_;
-    }
-    VALUE head = car(rest);
-    push_u32_4(ctx->K, env, acc_, cdr(rest), enc_u(ARG_LIST));
-    ctx->curr_env = env;
-    ctx->curr_exp = head;
-    return NONSENSE;
-  }
-  case FUNCTION: {
-    VALUE fun;
-    pop_u32(ctx->K, &fun);
-    push_u32_2(ctx->K, arg, enc_u(FUNCTION_APP));
-    if (is_fundamental(fun)) {
-      *app_cont = true;
-      return fun;
-    }
-    ctx->curr_exp = fun;
-    return NONSENSE; // Should return something that is very easy to recognize as nonsense 
   }
   case BIND_TO_KEY_REST:{
     VALUE key;
