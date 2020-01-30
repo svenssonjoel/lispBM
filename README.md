@@ -23,21 +23,20 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 1. (DONE) Write some tests that stresses the Garbage collector.
 2. (DONE) Implement some "reference to X type", for uint32, int32. 
 3. (DONE) Write a small library of useful hofs. 
-4. Implement some looping structure for speed or just ease of use. 
-5. Be much more stringent on checking of error conditions etc.
-6. Improve handling of arguments in eval-cps. 
-7. Code improvements with simplicity, clarity  and readability in mind.
-8. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
-9. (DONE) Port to STM32f4 - 128K ram platform (will need big changes). (surely there will be some more bugs)
-10. (DONE) Add STM32f4 example code (repl implementation)
-11. (DONE) Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
-12. Add NRF52 example repl to repository
-13. (DONE) Reduce size of builtins.c and put platform specific built in functions elsewhere. (Builtins.c will be removed an replaced by fundamentals.c) 
-14. (DONE, for eval_cps) Implement 'progn' facility.
-15. See if it is possible to explicitly free heap values that are used as temporaries when evaluating. 
-16. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
-17. Test on all platforms after big changes to eval_cps.c.
-18. Bytecode compilation of functions (with restrictions).
+4. (DONE) Improve handling of arguments in eval-cps. 
+5. (DONE) Code improvements with simplicity, clarity  and readability in mind.
+6. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
+7. (DONE) Port to STM32f4 - 128K ram platform (will need big changes). (surely there will be some more bugs)
+8. (DONE) Add STM32f4 example code (repl implementation)
+9. (DONE) Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
+10. (DONE) Reduce size of builtins.c and put platform specific built in functions elsewhere. (Builtins.c will be removed an replaced by fundamentals.c) 
+11. (DONE, for eval_cps) Implement 'progn' facility.
+12. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
+13. Add NRF52 example repl to repository
+14. Test on all platforms after big changes to eval_cps.c.
+15. Implement some looping structure for speed or just ease of use. 
+16. Be much more stringent on checking of error conditions etc.
+
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
