@@ -27,21 +27,12 @@
 #include "tokpar.h"
 #include "prelude.h"
 
-VALUE ext_test(VALUE *args, int argn) {
-
-  for (int i = 0; i < argn; i ++) {
-    printf("arg[%d]: %x ",i, args[i]); simple_print(args[i]); printf("\n");
-  }
-  return enc_sym(symrepr_true());
-}
-
 VALUE ext_print(VALUE *args, int argn) {
   if (argn < 1) return enc_sym(symrepr_nil());
 
-  for (int i = (argn-1); i >= 0; i --) {
+  for (int i = 0; i < argn; i ++) {
     VALUE t = args[i];
 
-  
     if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
       array_t *array = (array_t *)car(t);
       switch (array->elt_type){
@@ -86,7 +77,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = eval_cps_init(true);
+  res = eval_cps_init(false); // dont grow stack 
   if (res)
     printf("Evaluator initialized.\n");
   else {

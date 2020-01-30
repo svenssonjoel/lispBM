@@ -170,7 +170,13 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       *done = true;
       return res;
     }
-
+    // allow for tail recursion
+    if (type_of(cdr(rest)) == VAL_TYPE_SYMBOL &&
+	cdr(rest) == NIL) {
+      ctx->curr_exp = car(rest);
+      return NONSENSE;
+    }
+    // Else create a continuation 
     push_u32_2(ctx->K, cdr(rest), enc_u(PROGN_REST));
     ctx->curr_exp = car(rest);
     return NONSENSE;

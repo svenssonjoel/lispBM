@@ -21,7 +21,6 @@
 #include "typedefs.h"
 
 
-
 stack* stack_init(unsigned int stack_size, bool growable) {
 
   stack *s = malloc(sizeof(stack));
