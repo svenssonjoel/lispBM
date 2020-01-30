@@ -35,20 +35,20 @@
 #define DEF_REPR_TERROR        0x8FFFF   /* TYPE ERROR */
 #define DEF_REPR_EERROR        0x9FFFF   /* EVAL ERROR */
 #define DEF_REPR_MERROR        0xAFFFF
-#define DEF_REPR_FATAL_ERROR   0xBFFFF
+#define DEF_REPR_FATAL_ERROR   0xBFFFF   /* Runtime system is corrupt */
 #define DEF_REPR_DEFINE        0xCFFFF
 #define DEF_REPR_PROGN         0xDFFFF
 
 // Special symbol ids
-#define DEF_REPR_ARRAY_TYPE     0xEFFFF
-#define DEF_REPR_BOXED_I_TYPE   0xFFFFF
-#define DEF_REPR_BOXED_U_TYPE   0x10FFFF
-#define DEF_REPR_BOXED_F_TYPE   0x11FFFF
-#define DEF_REPR_REF_TYPE       0x12FFFF
-#define DEF_REPR_RECOVERED      0x13FFFF
-#define DEF_REPR_BYTECODE_TYPE  0x14FFFF
-#define DEF_REPR_NONSENSE       0x15FFFF
-#define DEF_REPR_NOT_FOUND      0x20FFFF
+#define DEF_REPR_ARRAY_TYPE     0x20FFFF
+#define DEF_REPR_BOXED_I_TYPE   0x21FFFF
+#define DEF_REPR_BOXED_U_TYPE   0x22FFFF
+#define DEF_REPR_BOXED_F_TYPE   0x23FFFF
+#define DEF_REPR_REF_TYPE       0x24FFFF
+#define DEF_REPR_RECOVERED      0x25FFFF
+#define DEF_REPR_BYTECODE_TYPE  0x26FFFF
+#define DEF_REPR_NONSENSE       0x27FFFF
+#define DEF_REPR_NOT_FOUND      0x28FFFF
 
 // Fundamental Operations
 #define SYM_ADD   0x100FFFF
