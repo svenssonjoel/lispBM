@@ -35,9 +35,10 @@
 #define DEF_REPR_TERROR        0x8FFFF   /* TYPE ERROR */
 #define DEF_REPR_EERROR        0x9FFFF   /* EVAL ERROR */
 #define DEF_REPR_MERROR        0xAFFFF
-#define DEF_REPR_FATAL_ERROR   0xBFFFF   /* Runtime system is corrupt */
-#define DEF_REPR_DEFINE        0xCFFFF
-#define DEF_REPR_PROGN         0xDFFFF
+#define DEF_REPR_DIVZERO       0xBFFFF
+#define DEF_REPR_FATAL_ERROR   0xCFFFF   /* Runtime system is corrupt */
+#define DEF_REPR_DEFINE        0xDFFFF
+#define DEF_REPR_PROGN         0xEFFFF
 
 // Special symbol ids
 #define DEF_REPR_ARRAY_TYPE     0x20FFFF
@@ -93,6 +94,7 @@ static inline UINT symrepr_rerror(void)      { return DEF_REPR_RERROR; }
 static inline UINT symrepr_terror(void)      { return DEF_REPR_TERROR; }
 static inline UINT symrepr_eerror(void)      { return DEF_REPR_EERROR; }
 static inline UINT symrepr_merror(void)      { return DEF_REPR_MERROR; }
+static inline UINT symrepr_divzero(void)     { return DEF_REPR_DIVZERO; }
 static inline UINT symrepr_fatal_error(void) { return DEF_REPR_FATAL_ERROR; }
 
 static inline UINT symrepr_nonsense(void)    { return DEF_REPR_NONSENSE; }

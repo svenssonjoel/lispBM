@@ -123,19 +123,20 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("progn"      , DEF_REPR_PROGN);
   
   // Special symbols with unparseable names
-  res = res && symrepr_addspecial("read_error"    , DEF_REPR_RERROR);
-  res = res && symrepr_addspecial("type_error"    , DEF_REPR_TERROR);
-  res = res && symrepr_addspecial("eval_error"    , DEF_REPR_EERROR);
-  res = res && symrepr_addspecial("out_of_memory" , DEF_REPR_MERROR);
-  res = res && symrepr_addspecial("fatal_error"   , DEF_REPR_FATAL_ERROR);
-  res = res && symrepr_addspecial("sym_array"     , DEF_REPR_ARRAY_TYPE);
-  res = res && symrepr_addspecial("sym_boxed_i"   , DEF_REPR_BOXED_I_TYPE);
-  res = res && symrepr_addspecial("sym_boxed_u"   , DEF_REPR_BOXED_U_TYPE);
-  res = res && symrepr_addspecial("sym_boxed_f"   , DEF_REPR_BOXED_F_TYPE);
-  res = res && symrepr_addspecial("sym_ref"       , DEF_REPR_REF_TYPE);
-  res = res && symrepr_addspecial("sym_recovered" , DEF_REPR_RECOVERED);
-  res = res && symrepr_addspecial("sym_bytecode"  , DEF_REPR_BYTECODE_TYPE);
-  res = res && symrepr_addspecial("sym_nonsense"  , DEF_REPR_NONSENSE);
+  res = res && symrepr_addspecial("read_error"       , DEF_REPR_RERROR);
+  res = res && symrepr_addspecial("type_error"       , DEF_REPR_TERROR);
+  res = res && symrepr_addspecial("eval_error"       , DEF_REPR_EERROR);
+  res = res && symrepr_addspecial("out_of_memory"    , DEF_REPR_MERROR);
+  res = res && symrepr_addspecial("fatal_error"      , DEF_REPR_FATAL_ERROR);
+  res = res && symrepr_addspecial("division_by_zero" , DEF_REPR_DIVZERO);
+  res = res && symrepr_addspecial("sym_array"        , DEF_REPR_ARRAY_TYPE);
+  res = res && symrepr_addspecial("sym_boxed_i"      , DEF_REPR_BOXED_I_TYPE);
+  res = res && symrepr_addspecial("sym_boxed_u"      , DEF_REPR_BOXED_U_TYPE);
+  res = res && symrepr_addspecial("sym_boxed_f"      , DEF_REPR_BOXED_F_TYPE);
+  res = res && symrepr_addspecial("sym_ref"          , DEF_REPR_REF_TYPE);
+  res = res && symrepr_addspecial("sym_recovered"    , DEF_REPR_RECOVERED);
+  res = res && symrepr_addspecial("sym_bytecode"     , DEF_REPR_BYTECODE_TYPE);
+  res = res && symrepr_addspecial("sym_nonsense"     , DEF_REPR_NONSENSE);
   
   res = res && symrepr_addspecial("+", SYM_ADD);
   res = res && symrepr_addspecial("-", SYM_SUB);
