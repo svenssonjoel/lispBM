@@ -17,7 +17,6 @@
 
 #include "symrepr.h"
 #include "heap.h"
-#include "print.h"
 #include "env.h"
 #include "bytecode.h"
 #include "eval_cps.h"
@@ -27,11 +26,6 @@
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
-
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define DONE              1
 #define SET_GLOBAL_ENV    2
@@ -81,33 +75,6 @@ VALUE eval_cps_bi_eval(VALUE exp) {
 
   ctx->curr_exp = exp;
   return run_eval(ctx);
-}
-
-VALUE eval_cps_bi_byte_comp(VALUE arg_list) {
-
-  (void) arg_list;
-  /*
-  VALUE exp = car(arg_list); // todo check for error
-  int err;
-
-  eval_context_t *ctx = eval_cps_get_current_context();
-  bytecode_t *bc = malloc(sizeof(bytecode_t));
-  if (!bytecode_create(bc, 4096)) {
-    return enc_sym(symrepr_eerror());
-  }
-  if (!bytecode_compile(ctx->K, exp, bc, &err)) {
-    bytecode_del(bc);
-    return enc_sym(symrepr_eerror());
-  }
-
-  VALUE res = cons((UINT)bc,enc_sym(SPECIAL_SYM_BYTECODE));
-  if (is_ptr(res)) {
-    res = set_ptr_type(res, PTR_TYPE_BYTECODE);
-  }
-
-  return res;
-  */
-  return enc_sym(symrepr_nil());
 }
 
 // ////////////////////////////////////////////////////////

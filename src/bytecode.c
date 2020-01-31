@@ -25,7 +25,7 @@
 #include "stack.h"
 #include "heap.h"
 #include "print.h"
-#include "builtin.h"
+#include "fundamental.h" 
 #include "eval_cps.h"
 
 /*
@@ -204,19 +204,19 @@ void continuation(stack *s, code_gen_state *gs, VALUE arg,
   case COMPILE_EMIT_CALL: {
     UINT n_args;
     UINT fun = arg;
-    bi_fptr bi_fun_ptr = NULL;
+    //bi_fptr bi_fun_ptr = NULL;
     pop_u32(s, &n_args);
 
     if (type_of(fun) == VAL_TYPE_SYMBOL) {
-      bi_fun_ptr = builtin_lookup_function(dec_sym(fun));
-      if (bi_fun_ptr) {
-	emit(gs, OP_BUILTIN_APP);
-	emit(gs, n_args);
-	emit(gs, (uint8_t)((UINT)bi_fun_ptr >> 24));
-	emit(gs, (uint8_t)((UINT)bi_fun_ptr >> 16));
-	emit(gs, (uint8_t)((UINT)bi_fun_ptr >> 8));
-	emit(gs, (uint8_t)((UINT)bi_fun_ptr));
-      }
+      //bi_fun_ptr = builtin_lookup_function(dec_sym(fun));
+      //if (bi_fun_ptr) {
+        //emit(gs, OP_BUILTIN_APP);
+	//emit(gs, n_args);
+	//emit(gs, (uint8_t)((UINT)bi_fun_ptr >> 24));
+	//emit(gs, (uint8_t)((UINT)bi_fun_ptr >> 16));
+	//emit(gs, (uint8_t)((UINT)bi_fun_ptr >> 8));
+	//emit(gs, (uint8_t)((UINT)bi_fun_ptr));
+      //}
     }
 
     *app_cont = true;
@@ -451,7 +451,7 @@ VALUE bytecode_eval(stack *s, bytecode_t *bc) {
   uint32_t val;
   VALUE hack = enc_sym(symrepr_nil());
   uint8_t n_args = 0;
-  bi_fptr bi_fun_ptr = NULL;
+  //  bi_fptr bi_fun_ptr = NULL;
 
   while(running) {
     switch(code[pc]) {
@@ -477,17 +477,17 @@ VALUE bytecode_eval(stack *s, bytecode_t *bc) {
       tmp |= code[pc++] << 16;
       tmp |= code[pc++] << 8;
       tmp |= code[pc++];
-      bi_fun_ptr = (bi_fptr)tmp;
+      //bi_fun_ptr = (bi_fptr)tmp;
       for (int i = 0; i < n_args; i ++) {
 	pop_u32(s,&val);
 	hack = cons(val, hack);
       }
-      if (bi_fun_ptr != NULL) {
-	hack = bi_fun_ptr(hack);
-	push_u32(s,hack);
-      } else {
+      //if (bi_fun_ptr != NULL) {
+      //	hack = bi_fun_ptr(hack);
+      //	push_u32(s,hack);
+      //} else {
 	return enc_sym(symrepr_eerror());
-      }
+	//}
     }break;
     case OP_DONE:
       running = false;

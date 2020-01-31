@@ -24,7 +24,6 @@
 
 #include "heap.h"
 #include "symrepr.h"
-#include "builtin.h"
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
@@ -107,14 +106,6 @@ int main(int argc, char **argv) {
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
   else {
     printf("Error initializing heap!\n");
-    return 0;
-  }
-
-  res = builtin_init();
-  if (res)
-    printf("Built in functions initialized.\n");
-  else {
-    printf("Error initializing built in functions.\n");
     return 0;
   }
 
