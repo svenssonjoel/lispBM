@@ -426,7 +426,7 @@ VALUE run_eval(eval_context_t *ctx){
 	  VALUE exps = cdr(ctx->curr_exp);
 
 	  if (type_of(exps) == VAL_TYPE_SYMBOL && exps == NIL) {
-	    r = enc_sym(symrepr_nil());
+	    r = NIL;
 	    app_cont = true;
 	    continue;
 	  }
