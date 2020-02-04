@@ -31,10 +31,9 @@
 #define SET_GLOBAL_ENV    2
 #define BIND_TO_KEY_REST  3
 #define IF                4
-#define EVAL              5
-#define PROGN_REST        6
-#define APPLICATION       7
-#define APPLICATION_ARGS  8
+#define PROGN_REST        5
+#define APPLICATION       6
+#define APPLICATION_ARGS  7
 
 VALUE run_eval(eval_context_t *ctx);
 
@@ -115,9 +114,6 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
   case DONE:
     *done = true;
     return arg;
-  case EVAL:
-    ctx->curr_exp = arg;
-    return NONSENSE;
   case SET_GLOBAL_ENV:
     res = cont_set_global_env(ctx, arg, done, perform_gc);
     if (!(*done)) 

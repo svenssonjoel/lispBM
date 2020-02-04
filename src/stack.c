@@ -19,7 +19,7 @@
 
 #include "stack.h"
 #include "typedefs.h"
-
+#include "print.h"
 
 stack* stack_init(unsigned int stack_size, bool growable) {
 
