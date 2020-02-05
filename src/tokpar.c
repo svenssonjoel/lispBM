@@ -66,8 +66,8 @@ typedef struct tcs{
   void *state;
   bool (*more)(struct tcs);
   char (*get)(struct tcs);
-  char (*peek)(struct tcs, int);
-  void (*drop)(struct tcs, int);
+  char (*peek)(struct tcs, unsigned int);
+  void (*drop)(struct tcs, unsigned int);
 } tokenizer_char_stream;
 
 bool more(tokenizer_char_stream str) {
@@ -78,11 +78,11 @@ char get(tokenizer_char_stream str) {
   return str.get(str);
 }
 
-char peek(tokenizer_char_stream str,int n) {
+char peek(tokenizer_char_stream str, unsigned int n) {
   return str.peek(str,n);
 }
 
-void drop(tokenizer_char_stream str,int n) {
+void drop(tokenizer_char_stream str, unsigned int n) {
   str.drop(str,n);
 }
 
@@ -565,14 +565,14 @@ char get_string(tokenizer_char_stream str) {
   return c;
 }
 
-char peek_string(tokenizer_char_stream str, int n) {
+char peek_string(tokenizer_char_stream str, unsigned int n) {
   tokenizer_state *s = (tokenizer_state*)str.state;
   // TODO error checking ?? how ?
   char c = s->str[s->pos + n];
   return c;
 }
 
-void drop_string(tokenizer_char_stream str, int n) {
+void drop_string(tokenizer_char_stream str, unsigned int n) {
   tokenizer_state *s = (tokenizer_state*)str.state;
   s->pos = s->pos + n;
 }
@@ -630,7 +630,7 @@ char get_compressed(tokenizer_char_stream str) {
   return c;
 }
 
-char peek_compressed(tokenizer_char_stream str, int n) {
+char peek_compressed(tokenizer_char_stream str, unsigned int n) {
   tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
 
   tokenizer_compressed_state old;
@@ -638,7 +638,7 @@ char peek_compressed(tokenizer_char_stream str, int n) {
   memcpy(&old, s, sizeof(tokenizer_compressed_state));
 
   char c = get_compressed(str);;
-  for (int i = 1; i <= n; i ++) {
+  for (unsigned int i = 1; i <= n; i ++) {
     c = get_compressed(str);
   }
 
@@ -647,8 +647,8 @@ char peek_compressed(tokenizer_char_stream str, int n) {
 }
 
 
-void drop_compressed(tokenizer_char_stream str, int n) {
-  for (int i = 0; i < n; i ++) {
+void drop_compressed(tokenizer_char_stream str, unsigned int n) {
+  for (unsigned int i = 0; i < n; i ++) {
     get_compressed(str);
   }
 }

@@ -159,9 +159,9 @@ int match_longest_code(char *string, uint32_t start_bit, uint32_t total_bits) {
 }
 
 int compressed_length(char *string) {
-  int i = 0;
+  unsigned int i = 0;
 
-  int n = strlen(string);
+  unsigned int n = strlen(string);
   int comp_len = 0; // in bits
 
   bool string_mode = false;

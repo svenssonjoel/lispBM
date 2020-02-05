@@ -49,7 +49,6 @@
 
 #include "heap.h"
 #include "symrepr.h"
-#include "builtin.h"
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
@@ -182,7 +181,6 @@ static void cmd_repl(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   symrepr_del();
   heap_del();
-  builtin_del();
 }
 
 static const ShellCommand commands[] = {
