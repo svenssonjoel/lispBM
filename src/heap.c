@@ -435,7 +435,7 @@ VALUE cons(VALUE car, VALUE cdr) {
     set_cdr_(ref_cell(addr), cdr);
   }
 
-  // heap_allocate_cell returns NIL if out of heap.
+  // heap_allocate_cell returns MERROR if out of heap.
   return addr;
 }
 

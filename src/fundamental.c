@@ -22,16 +22,6 @@
 #include "print.h"
 
 #include <stdio.h>
-/*
-  Fundamental operations expect number of arguments and arguments pushed
-  onto the stack.
-  | n-args |
-  | arg1   |
-  | ...    |
-  | argn   |
-  After execution of a fundamental operation the result will be located
-  at the top of the K-stack.
- */
 
 static UINT as_i(UINT a) {
 
@@ -116,7 +106,9 @@ static UINT add2(UINT a, UINT b) {
     t_max = a;
   }
 
-  if (!is_number(t_min)) enc_sym(symrepr_nil());
+  if (!is_number(t_min)) {
+    return enc_sym(symrepr_eerror());
+  }
  
   switch (type_of(t_max)) {
   case VAL_TYPE_I:
