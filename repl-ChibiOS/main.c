@@ -176,7 +176,7 @@ static THD_FUNCTION(repl, arg) {
   while (1) {
     chprintf(chp,"# ");
     memset(str,0,len);
-    memset(outbuf,0, 1024);
+    memset(outbuf,0, 2048);
     inputline(chp,str, len);
     chprintf(chp,"\n\r");
 
