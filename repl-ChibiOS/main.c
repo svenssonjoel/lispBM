@@ -87,7 +87,6 @@ int inputline(BaseSequentialStream *chp, char *buffer, int size) {
 #define REPL_WA_SIZE THD_WORKING_AREA_SIZE(10*4096)
 
 VALUE ext_print(VALUE *args, int argn) {
-  if (argn < 1) return enc_sym(symrepr_nil());
 
   for (int i = 0; i < argn; i ++) {
     VALUE t = args[i];
@@ -117,6 +116,7 @@ VALUE ext_print(VALUE *args, int argn) {
 int reset_repl(int heap_size) {
   symrepr_del();
   heap_del();
+  extensions_del();
 
   int res = 0;
 
@@ -146,9 +146,9 @@ int reset_repl(int heap_size) {
   
   res = extensions_add("print", ext_print);
   if (res)
-    printf("Extension added.\n");
+    chprintf(chp,"Extension added.\n\r");
   else
-    printf("Error adding extension.\n");
+    chprintf(chp,"Error adding extension.\n\r");
 
   VALUE prelude = prelude_load();
   eval_cps_program(prelude);
@@ -206,7 +206,7 @@ static THD_FUNCTION(repl, arg) {
       if (dec_sym(t) == symrepr_eerror()) {
 	chprintf(chp,"Error\n");
       } else {
-	chprintf(chp,"> "); simple_snprint(outbuf, 1023, t); chprintf(chp,"%s \n\r", outbuf);
+	chprintf(chp,"> "); simple_snprint(outbuf, 2048, t); chprintf(chp,"%s \n\r", outbuf);
       }
     }
   }
