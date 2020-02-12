@@ -239,43 +239,11 @@ int gc_mark_phase(VALUE env) {
       t_ptr == PTR_TYPE_ARRAY) {
     return 1;
   } 
-  /*
-  VALUE car_env = car(env);
-  VALUE cdr_env = cdr(env);
-  VALUE t_car   = type_of(car_env);
-  VALUE t_cdr   = type_of(cdr_env);
-
-  
-  if (t_car == PTR_TYPE_BOXED_I ||
-      t_car == PTR_TYPE_BOXED_U ||
-      t_car == PTR_TYPE_BOXED_F ||
-      t_car == PTR_TYPE_ARRAY) {
-    set_gc_mark(ref_cell(car_env));
-    car_done = true;;
-  }
-
-  if (t_cdr == PTR_TYPE_BOXED_I ||
-      t_cdr == PTR_TYPE_BOXED_U ||
-      t_cdr == PTR_TYPE_BOXED_F ||
-      t_cdr == PTR_TYPE_ARRAY) {
-    set_gc_mark(ref_cell(cdr_env));
-    cdr_done = true;
-  }
-  */
- 
-  bool car_done = false;
-  bool cdr_done = false;
 
   int res = 1;
   res = res && gc_mark_phase(car(env));
   res = res && gc_mark_phase(cdr(env));
-  /*
-  int res = 1;
-  if (!car_done && is_ptr(car(env)) && ptr_type(car(env)) == PTR_TYPE_CONS)
-    res &= gc_mark_phase(car(env));
-  if (!cdr_done && is_ptr(cdr(env)) && ptr_type(cdr(env)) == PTR_TYPE_CONS)
-    res &= gc_mark_phase(cdr(env));
-  */ 
+
   return res;
 }
 
