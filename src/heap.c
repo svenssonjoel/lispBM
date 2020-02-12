@@ -231,15 +231,20 @@ int gc_mark_phase(VALUE env) {
 
   set_gc_mark(ref_cell(env));
 
+  VALUE t_ptr = type_of(env);
 
-
+  if (t_ptr == PTR_TYPE_BOXED_I ||
+      t_ptr == PTR_TYPE_BOXED_U ||
+      t_ptr == PTR_TYPE_BOXED_F ||
+      t_ptr == PTR_TYPE_ARRAY) {
+    return 1;
+  } 
+  /*
   VALUE car_env = car(env);
   VALUE cdr_env = cdr(env);
   VALUE t_car   = type_of(car_env);
   VALUE t_cdr   = type_of(cdr_env);
 
-  bool car_done = false;
-  bool cdr_done = false;
   
   if (t_car == PTR_TYPE_BOXED_I ||
       t_car == PTR_TYPE_BOXED_U ||
@@ -256,13 +261,21 @@ int gc_mark_phase(VALUE env) {
     set_gc_mark(ref_cell(cdr_env));
     cdr_done = true;
   }
+  */
+ 
+  bool car_done = false;
+  bool cdr_done = false;
 
+  int res = 1;
+  res = res && gc_mark_phase(car(env));
+  res = res && gc_mark_phase(cdr(env));
+  /*
   int res = 1;
   if (!car_done && is_ptr(car(env)) && ptr_type(car(env)) == PTR_TYPE_CONS)
     res &= gc_mark_phase(car(env));
   if (!cdr_done && is_ptr(cdr(env)) && ptr_type(cdr(env)) == PTR_TYPE_CONS)
     res &= gc_mark_phase(cdr(env));
-
+  */ 
   return res;
 }
 
@@ -332,9 +345,6 @@ int gc_sweep_phase(void) {
 
       // Check if this cell is a pointer to an array
       // and free it.
-
-      // TODO: Maybe also has to check for boxed values
-      //
       if (type_of(heap[i].cdr) == VAL_TYPE_SYMBOL &&
 	  dec_sym(heap[i].cdr) == DEF_REPR_ARRAY_TYPE) {
 	array_t *arr = (array_t*)heap[i].car;
