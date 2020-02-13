@@ -26,9 +26,14 @@
 #define  KEY  0
 #define  CODE 1
 
-/* The codes are generated using python script in utils directory */
+/* The codes are generated using python script in utils directory 
+   - Depends on the Huffman library (pip3 install huffman)
+   - exec(open('gen_codes.py').read()) 
+   - print(make_c())
+*/
+   
 #define NUM_CODES 66
-#define MAX_KEY_LENGTH 7
+#define MAX_KEY_LENGTH 6
 #define MAX_CODE_LENGTH 7
 char *codes[NUM_CODES][2] = {
     { "9", "101101" },
@@ -66,7 +71,7 @@ char *codes[NUM_CODES][2] = {
     { "cons", "000100" },
     { "let", "000101" },
     { "define", "001100" },
-    { "closure", "1111100" },
+    { "progn", "1111100" },
     { "quote", "1111101" },
     { "list", "000110" },
     { "if", "000111" },
@@ -98,7 +103,6 @@ char *codes[NUM_CODES][2] = {
     { "b", "011101" },
     { "a", "010111" }
     };
-
 
 int length_max_compressible() {
   return MAX_KEY_LENGTH;
