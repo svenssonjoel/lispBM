@@ -37,6 +37,6 @@ extern void compression_init_state(decomp_state *s, char *src);
  
    Compress returns an array that caller must free 
 */ 
-extern char *compression_compress(char *string, uint32_t *res_size);
-extern uint32_t compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n);
-extern bool compression_decompress(char *dest, uint32_t dest_n, char *src);
+extern char *compression_compress(char *string, unsigned int *res_size);
+extern int  compression_decompress_incremental(decomp_state *s, char *dest_buff, unsigned int dest_n);
+extern bool compression_decompress(char *dest, unsigned int dest_n, char *src);
