@@ -31,7 +31,77 @@
    - exec(open('gen_codes.py').read()) 
    - print(make_c())
 */
-   
+#define NUM_CODES 64
+#define MAX_KEY_LENGTH 6
+#define MAX_CODE_LENGTH 10
+char *codes[NUM_CODES][2] = {
+    { "nil", "010011100" },
+    { "cdr", "0100111010" },
+    { "car", "0100111011" },
+    { "cons", "0100111100" },
+    { "let", "0100111101" },
+    { "define", "0100111110" },
+    { "progn", "0100111111" },
+    { "quote", "010011000" },
+    { "list", "010011001" },
+    { "if", "010011010" },
+    { "lambda", "010011011" },
+    { "((", "1110" },
+    { "))", "001" },
+    { ")", "1111" },
+    { "(", "000" },
+    { "z", "110110" },
+    { "y", "011101" },
+    { "x", "110100" },
+    { "w", "101110" },
+    { "v", "100110" },
+    { "u", "011100" },
+    { "t", "100111" },
+    { "s", "101100" },
+    { "r", "101101" },
+    { "q", "101111" },
+    { "p", "011110" },
+    { "o", "011111" },
+    { "n", "100011" },
+    { "m", "110111" },
+    { "l", "110000" },
+    { "k", "100000" },
+    { "j", "01000" },
+    { "i", "101001" },
+    { "h", "101010" },
+    { "g", "011011" },
+    { "f", "100100" },
+    { "e", "101000" },
+    { "d", "110010" },
+    { "c", "100010" },
+    { "b", "100101" },
+    { "a", "110001" },
+    { "9", "1101011" },
+    { "8", "1000010" },
+    { "7", "1000011" },
+    { "6", "1010110" },
+    { "5", "1010111" },
+    { "4", "1100110" },
+    { "3", "1100111" },
+    { "2", "010010" },
+    { "1", "1101010" },
+    { "0", "0110101" },
+    { " ", "0110011" },
+    { "'", "0101011" },
+    { "\\", "0101100" },
+    { "\"", "0101110" },
+    { "#", "0101111" },
+    { ".", "0110001" },
+    { ">", "0110010" },
+    { "<", "0101000" },
+    { "=", "0101101" },
+    { "/", "0110100" },
+    { "*", "0101010" },
+    { "-", "0110000" },
+    { "+", "0101001" }
+    };
+
+/*
 #define NUM_CODES 66
 #define MAX_KEY_LENGTH 6
 #define MAX_CODE_LENGTH 7
@@ -103,15 +173,7 @@ char *codes[NUM_CODES][2] = {
     { "b", "011101" },
     { "a", "010111" }
     };
-
-int length_max_compressible() {
-  return MAX_KEY_LENGTH;
-}
-
-int length_max_decompressible() {
-  return MAX_CODE_LENGTH;
-}
-
+*/
 int match_longest_key(char *string) {
 
   int longest_match_ix = -1;
@@ -148,8 +210,8 @@ int match_longest_code(char *string, uint32_t start_bit, unsigned int total_bits
 
 	char *code_str = codes[i][CODE];
 
-	if ((((string[byte_ix] & (1 << bit_ix)) ? '1' : '0') !=
-	      code_str[b])) {
+	if (((string[byte_ix] & (1 << bit_ix)) ? '1' : '0') !=
+	      code_str[b]) {
 	  match = false;
 	}
       }
@@ -382,6 +444,7 @@ int compression_decompress_incremental(decomp_state *s, char *dest_buff, unsigne
       if (c == '\"') {
 	if (s->last_string_char != '\\') {
 	  s->string_mode = false;
+	  s->last_string_char = 0;
 	}
       }
       s->last_string_char = c;

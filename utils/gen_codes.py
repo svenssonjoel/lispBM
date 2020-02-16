@@ -21,8 +21,12 @@ import collections
 symchars  = 'abcdefghijklmnopqrstuvwxyz'
 numchars  = '0123456789'
 funchars  = ['+','-','*','/','=','<','>','.','#','\\\"','\\\\', '\'', ' ']
-lispnames = ['lambda', 'if', 'list', 'quote', 'progn', 'define', 'let',
-             'cons', 'car', 'cdr','(', '((',  ')', '))', ')))', '))))', 'nil']
+short_lispnames = ['(', ')', '))', '((']
+long_lispnames  = ['lambda', 'if', 'list', 'quote', 'progn', 'define', 'let',
+                   'cons', 'car', 'cdr', '((',  '))', ')))', '))))', 'nil']
+long_lispnames2  = ['lambda', 'if', 'list', 'quote', 'progn', 'define', 'let',
+                    'cons', 'car', 'cdr', 'nil']
+lispnames = short_lispnames + long_lispnames2
 
 def total_bits(c) :
     sum = 0;
@@ -60,7 +64,6 @@ def minimum_total_bits_codes() :
 
     return (min_total_num_bits, min_codes)
 
-
 def make_c() :
     codes = minimum_total_bits_codes()
 
@@ -87,6 +90,46 @@ def make_c() :
     
     
     return c_str
+
+def generate_codes() :
+    numchars_w = [(x, 10) for x in numchars]
+    symchars_w = [(x, 20) for x in symchars]
+    short_lispnames_w = [(x, 100) for x in short_lispnames]
+    long_lispnames_w =  [(x, 1)  for x in long_lispnames2]
+    funchars_w = [(x, 9) for x in funchars]
+
+    all_w = funchars_w + numchars_w + symchars_w + short_lispnames_w + long_lispnames_w
+    codes = huffman.codebook(all_w).items()
+    
+    return codes
+    
+def make_c_codes() :
+    codes = generate_codes()
+
+    
+    max_key  = max([len(x[0]) for x in codes]);
+    max_code = max([len(x[1]) for x in codes]);
+    
+    code_map = ''
+
+    first = True;
+    
+    for code in codes :
+        if (first) :
+            code_map = '    { \"' + code[0] + '\", \"' + code[1] + '\" }' + code_map
+            first = False
+        else :
+            code_map = '    { \"' + code[0] + '\", \"' + code[1] + '\" },\n' + code_map
+                  
+    c_str = '#define NUM_CODES ' + str(len(codes)) + '\n' \
+            '#define MAX_KEY_LENGTH ' + str(max_key) + '\n' + \
+            '#define MAX_CODE_LENGTH ' + str(max_code) + '\n' + \
+            'char *codes[NUM_CODES][2] = {\n' + code_map + '\n    };\n'
+    
+    
+    return c_str
+    
+
 
     
     
