@@ -17,7 +17,8 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 6. Compiles for, and runs on linux-x86 (builds 32bit library, runs on 32/64 bit).
 7. Compiles for, and runs on Zynq 7000.
 8. Compiles for, and runs on STM32f4. 
-9. Compiles for, and runs on NRF52840
+9. Compiles for, and runs on NRF52840.
+10. Compiles for, and runs on ESP32.
 
 ## TODOs
 1. (DONE) Write some tests that stresses the Garbage collector.
@@ -30,12 +31,13 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 8. (DONE) Add STM32f4 example code (repl implementation)
 9. (DONE) Port to nrf52840_pca10056 - 256k ram platform (same changes as above).
 10. (DONE) Reduce size of builtins.c and put platform specific built in functions elsewhere. (Builtins.c will be removed an replaced by fundamentals.c) 
-11. (DONE, for eval_cps) Implement 'progn' facility.
+11. (DONE) Implement 'progn' facility.
 12. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
-13. Add NRF52 example repl to repository
-14. Test on all platforms after big changes to eval_cps.c.
-15. Implement some looping structure for speed or just ease of use. 
-16. Be much more stringent on checking of error conditions etc.
+13. (DONE) Add NRF52 example repl to repository
+14. Add ESP32 example repl to repository.
+15. Test on all platforms after big changes to eval_cps.c.
+16. Implement some looping structure for speed or just ease of use. 
+17. Be much more stringent on checking of error conditions etc.
 
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
