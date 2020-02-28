@@ -43,7 +43,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
   int n = 0;
   int offset = 0;
   char *str_ptr;
-
+  int res;
   
   push_u32_2(&s, t, PRINT);
 
@@ -56,7 +56,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
     switch(instr) {
 
     case START_LIST: {
-
+      res = 1;
       pop_u32(&s, &curr);
       
       n = snprintf(buf + offset, len - offset, "(");
@@ -65,22 +65,29 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       VALUE cdr_val = cdr(curr);
 
       if (type_of(cdr_val) == PTR_TYPE_CONS) {
-	push_u32(&s, cdr_val);
-	push_u32(&s, CONTINUE_LIST);
+	res &= push_u32(&s, cdr_val);
+	res &= push_u32(&s, CONTINUE_LIST);
       } else if (type_of(cdr_val) == VAL_TYPE_SYMBOL &&
 	         dec_sym(cdr_val) == symrepr_nil()) {
-	push_u32(&s, END_LIST);
+	res &= push_u32(&s, END_LIST);
       } else {
-	push_u32(&s, cdr_val);
-	push_u32(&s, PRINT);
-	push_u32(&s, PRINT_SPACE);
+	res &= push_u32(&s, cdr_val);
+	res &= push_u32(&s, PRINT);
+	res &= push_u32(&s, PRINT_SPACE);
       }
-      push_u32(&s, car_val);
-      push_u32(&s, PRINT);
+      res &= push_u32(&s, car_val);
+      res &= push_u32(&s, PRINT);
+
+      if (!res) {
+	n = snprintf(error, len_error, "Error: Out of print stack\n");
+	return -1;
+      }
+      
       break;
     }
     case CONTINUE_LIST: {
 
+      res = 1;
       pop_u32(&s, &curr);
 
       if (type_of(curr) == VAL_TYPE_SYMBOL &&
@@ -95,18 +102,22 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       offset += n;
 
       if (type_of(cdr_val) == PTR_TYPE_CONS) {
-	push_u32(&s, cdr_val);
-	push_u32(&s, CONTINUE_LIST);
+	res &= push_u32(&s, cdr_val);
+	res &= push_u32(&s, CONTINUE_LIST);
       } else if (type_of(cdr_val) == VAL_TYPE_SYMBOL &&
 		  dec_sym(cdr_val) == symrepr_nil()) {
-	push_u32(&s, END_LIST);
+	res &= push_u32(&s, END_LIST);
       } else {
-	push_u32(&s, cdr_val);
-	push_u32(&s, PRINT);
-	push_u32(&s, PRINT_SPACE);
+	res &= push_u32(&s, cdr_val);
+	res &= push_u32(&s, PRINT);
+	res &= push_u32(&s, PRINT_SPACE);
       }
-      push_u32(&s, car_val);
-      push_u32(&s, PRINT);
+      res &= push_u32(&s, car_val);
+      res &= push_u32(&s, PRINT);
+      if (!res) {
+	n = snprintf(error, len_error, "Error: Out of print stack\n");
+	return -1;
+      }
       break;
     }
     case END_LIST: 
@@ -126,8 +137,13 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       switch(type_of(curr)) {
 
       case PTR_TYPE_CONS:{
-	push_u32(&s, curr);
-	push_u32(&s, START_LIST);
+	res = 1;
+	res &= push_u32(&s, curr);
+	res &= push_u32(&s, START_LIST);
+	if (!res) {
+	  n = snprintf(error, len_error, "Error: Out of print stack\n");
+	  return -1;
+	}
 	break;
       }
 

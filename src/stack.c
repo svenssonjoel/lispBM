@@ -94,7 +94,6 @@ int stack_drop(stack *s, unsigned int n) {
 
   s->sp -= n;
   return 1;
-
 }
 
 int push_u32(stack *s, UINT val) {
