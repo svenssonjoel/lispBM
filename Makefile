@@ -1,7 +1,7 @@
 
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
-  CCFLAGS = -m32 -O2 -Wall -Wextra -pedantic -std=c11
+  CCFLAGS = -g -m32 -O2 -Wall -Wextra -pedantic -std=c11
   CCFLAGS += -D_32_BIT_ -D_PRELUDE
   CC=gcc
   AR=ar

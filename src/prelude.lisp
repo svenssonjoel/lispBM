@@ -22,10 +22,12 @@
 		   (len 0 xs))))
 
 (define take (lambda (n xs)
-	       (if (num-eq n 0)
-		   nil
-		 (cons (car xs)
-		       (take (- n 1) (cdr xs))))))
+	       (let ((take-tail
+		      (lambda (acc n xs)
+			(if (num-eq n 0)
+			    acc
+			  (take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))
+		 (reverse (take-tail nil n xs)))))
 
 (define drop (lambda (n xs)
 	       (if (num-eq n 0)

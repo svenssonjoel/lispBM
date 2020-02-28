@@ -35,6 +35,9 @@
 #define APPLICATION       6
 #define APPLICATION_ARGS  7
 
+#define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; return enc_sym(symrepr_fatal_error()); }
+
+
 VALUE run_eval(eval_context_t *ctx);
 
 static VALUE eval_cps_global_env;
@@ -88,7 +91,7 @@ VALUE cont_set_global_env(eval_context_t *ctx, VALUE val, bool *done, bool *perf
 
   if (type_of(new_env) == VAL_TYPE_SYMBOL) {
     if (dec_sym(new_env) == symrepr_merror()) {
-      push_u32_2(&ctx->K, key, enc_u(SET_GLOBAL_ENV));
+      FATAL_ON_FAIL(*done, push_u32_2(&ctx->K, key, enc_u(SET_GLOBAL_ENV)));
       *perform_gc = true;
       return val;
     }
@@ -140,7 +143,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       return NONSENSE;
     }
     // Else create a continuation 
-    push_u32_2(&ctx->K, cdr(rest), enc_u(PROGN_REST));
+    FATAL_ON_FAIL(*done, push_u32_2(&ctx->K, cdr(rest), enc_u(PROGN_REST)));
     ctx->curr_exp = car(rest);
     return NONSENSE;
   }
@@ -157,7 +160,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       for (UINT i = dec_u(count); i > 0; i --) {
 	args = cons(fun_args[i], args);
 	if (type_of(args) == VAL_TYPE_SYMBOL) {
-	  push_u32_2(&ctx->K, count, enc_u(APPLICATION));
+	  FATAL_ON_FAIL(*done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
 	  *perform_gc = true;
 	  *app_cont = true;
 	  return fun;
@@ -175,7 +178,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       VALUE local_env = env_build_params_args(params, args, clo_env);
       if (type_of(local_env) == VAL_TYPE_SYMBOL) { 
 	if (dec_sym(local_env) == symrepr_merror() ) {
-	  push_u32_2(&ctx->K, count, enc_u(APPLICATION));
+	  FATAL_ON_FAIL(*done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
 	  *perform_gc = true;
 	  *app_cont = true;
 	  return fun;
@@ -202,7 +205,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 	  return  res;
 	} else if (type_of(res) == VAL_TYPE_SYMBOL &&
 		   dec_sym(res) == symrepr_merror()) {
-	  push_u32_2(&ctx->K, count, enc_u(APPLICATION));
+	  FATAL_ON_FAIL(*done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
 	  *perform_gc = true;
 	  *app_cont = true;
 	  return fun;
@@ -225,7 +228,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 
     if (type_of(ext_res) == VAL_TYPE_SYMBOL &&
 	(dec_sym(ext_res) == symrepr_merror())) {
-      push_u32_2(&ctx->K, count, enc_u(APPLICATION));
+      FATAL_ON_FAIL(*done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
       *perform_gc = true;
       *app_cont = true;
       return fun;
@@ -242,16 +245,16 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     VALUE rest;
 
     pop_u32_3(&ctx->K, &rest, &count, &env);
-    push_u32(&ctx->K, arg);
+    FATAL_ON_FAIL(*done, push_u32(&ctx->K, arg));
     
     if (type_of(rest) == VAL_TYPE_SYMBOL &&
 	rest == NIL) {
       // no more arguments
-      push_u32_2(&ctx->K, count, enc_u(APPLICATION));
+      FATAL_ON_FAIL(*done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
       *app_cont = true;
       return NONSENSE;
     }
-    push_u32_4(&ctx->K, env, enc_u(dec_u(count) + 1), cdr(rest), enc_u(APPLICATION_ARGS));
+    FATAL_ON_FAIL(*done, push_u32_4(&ctx->K, env, enc_u(dec_u(count) + 1), cdr(rest), enc_u(APPLICATION_ARGS)));
     ctx->curr_exp = car(rest);
     ctx->curr_env = env;
     return NONSENSE; 
@@ -269,7 +272,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       VALUE keyn = car(car(rest));
       VALUE valn_exp = car(cdr(car(rest)));
 
-      push_u32_4(&ctx->K, cdr(rest), env, keyn, enc_u(BIND_TO_KEY_REST));
+      FATAL_ON_FAIL(*done, push_u32_4(&ctx->K, cdr(rest), env, keyn, enc_u(BIND_TO_KEY_REST)));
 
       ctx->curr_exp = valn_exp;
       ctx->curr_env = env;
@@ -303,8 +306,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 
 VALUE run_eval(eval_context_t *ctx){
 
-  push_u32(&ctx->K, enc_u(DONE));
-
+ 
   VALUE r = NIL;
   bool done = false;
   bool perform_gc = false;
@@ -312,6 +314,10 @@ VALUE run_eval(eval_context_t *ctx){
 
   uint32_t non_gc = 0;
 
+
+  FATAL_ON_FAIL(done, push_u32(&ctx->K, enc_u(DONE)));
+
+  
   while (!done) {
     
 #ifdef VISUALIZE_HEAP
@@ -412,7 +418,7 @@ VALUE run_eval(eval_context_t *ctx){
 	    continue;
 	  }
 
-	  push_u32_2(&ctx->K, key, enc_u(SET_GLOBAL_ENV));
+	  FATAL_ON_FAIL(done, push_u32_2(&ctx->K, key, enc_u(SET_GLOBAL_ENV)));
 	  ctx->curr_exp = val_exp;
 	  continue;
 	}
@@ -432,7 +438,7 @@ VALUE run_eval(eval_context_t *ctx){
 	    done = true;
 	    continue;
 	  }
-	  push_u32_2(&ctx->K, cdr(exps), enc_u(PROGN_REST));
+	  FATAL_ON_FAIL(done, push_u32_2(&ctx->K, cdr(exps), enc_u(PROGN_REST)));
 	  ctx->curr_exp = car(exps);
 	  continue;
 	}
@@ -475,10 +481,11 @@ VALUE run_eval(eval_context_t *ctx){
 	// Special form: IF
 	if (dec_sym(head) == symrepr_if()) {
 
-	  push_u32_3(&ctx->K,
-		     car(cdr(cdr(cdr(ctx->curr_exp)))), // Else branch
-		     car(cdr(cdr(ctx->curr_exp))),      // Then branch
-		     enc_u(IF));
+	  FATAL_ON_FAIL(done,
+			push_u32_3(&ctx->K,
+				   car(cdr(cdr(cdr(ctx->curr_exp)))), // Else branch
+				   car(cdr(cdr(ctx->curr_exp))),      // Then branch
+				   enc_u(IF)));
 	  ctx->curr_exp = car(cdr(ctx->curr_exp));
 	  continue;
 	}
@@ -517,18 +524,20 @@ VALUE run_eval(eval_context_t *ctx){
 	  VALUE key0 = car(car(binds));
 	  VALUE val0_exp = car(cdr(car(binds)));
 
-	  push_u32_5(&ctx->K, exp, cdr(binds), new_env,
-		     key0, enc_u(BIND_TO_KEY_REST));
+	  FATAL_ON_FAIL(done,
+			push_u32_5(&ctx->K, exp, cdr(binds), new_env,
+				   key0, enc_u(BIND_TO_KEY_REST)));
 	  ctx->curr_exp = val0_exp;
 	  ctx->curr_env = new_env;
 	  continue;
 	}
       } // If head is symbol
-      push_u32_4(&ctx->K,
-		 ctx->curr_env,
-		 enc_u(0),
-		 cdr(ctx->curr_exp),
-		 enc_u(APPLICATION_ARGS));
+      FATAL_ON_FAIL(done,
+		    push_u32_4(&ctx->K,
+			       ctx->curr_env,
+			       enc_u(0),
+			       cdr(ctx->curr_exp),
+			       enc_u(APPLICATION_ARGS)));
 
       ctx->curr_exp = head; // evaluate the function
       continue;
@@ -574,7 +583,7 @@ int eval_cps_init(bool grow_continuation_stack) {
   eval_context = (eval_context_t*)malloc(sizeof(eval_context_t));
 
   /* TODO: There should be an eval_context_create function */ 
-  res = stack_allocate(&eval_context->K, 100, grow_continuation_stack);
+  res = stack_allocate(&(eval_context->K), 100, grow_continuation_stack);
 
   VALUE nil_entry = cons(NIL, NIL);
   eval_cps_global_env = cons(nil_entry, eval_cps_global_env);

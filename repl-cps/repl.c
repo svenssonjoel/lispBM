@@ -55,7 +55,7 @@ VALUE ext_print(VALUE *args, int argn) {
 
 int main(int argc, char **argv) {
   char *str = malloc(1024);;
-  size_t len;
+  size_t len = 1024;
   int res = 0;
 
   heap_state_t heap_state;

@@ -99,11 +99,15 @@ int stack_drop(stack *s, unsigned int n) {
 
 int push_u32(stack *s, UINT val) {
   int res = 1;
-  s->data[s->sp] = val;
-  s->sp++;
-  if ( s->sp >= s->size) {
+  if (s->sp == s->size) {
     res = stack_grow(s);
   }
+
+  if (!res) return res;
+  
+  s->data[s->sp] = val;
+  s->sp++;
+
   return res;
 }
 
