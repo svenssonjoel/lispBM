@@ -166,7 +166,9 @@ static THD_FUNCTION(repl, arg) {
   size_t len = 1024;
   char *str = malloc(1024);
   char *outbuf = malloc(2048);
-
+  char *error = malloc(1024);
+  int res = 0;
+  
   heap_state_t heap_state;
 
   int heap_size = 2048;
@@ -186,7 +188,12 @@ static THD_FUNCTION(repl, arg) {
     } else if (strncmp(str, ":info", 5) == 0) {
       chprintf(chp,"##(ChibiOS)#################################################\n\r");
       chprintf(chp,"Used cons cells: %lu \n\r", heap_size - heap_num_free());
-      chprintf(chp,"ENV: "); simple_snprint(outbuf,2048, eval_cps_get_env()); chprintf(chp, "%s \n\r", outbuf);
+      res = print_value(outbuf,2048, error, 1024, eval_cps_get_env());
+      if (res >= 0) {
+	chprintf(chp,"ENV: %s \n\r", outbuf);
+      } else {
+	chprintf(chp,"%s\n\r",error);
+      }
       heap_get_state(&heap_state);
       chprintf(chp,"GC counter: %lu\n\r", heap_state.gc_num);
       chprintf(chp,"Recovered: %lu\n\r", heap_state.gc_recovered);
@@ -203,10 +210,11 @@ static THD_FUNCTION(repl, arg) {
 
       t = eval_cps_program(t);
 
-      if (dec_sym(t) == symrepr_eerror()) {
-	chprintf(chp,"Error\n");
+      res = print_value(outbuf, 2048, error, 1024, t);
+      if (res >= 0) {
+	chprintf(chp,"> %s \n\r", outbuf);
       } else {
-	chprintf(chp,"> "); simple_snprint(outbuf, 2048, t); chprintf(chp,"%s \n\r", outbuf);
+	chprintf(chp,"%s\n\r", error);
       }
     }
   }

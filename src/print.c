@@ -201,7 +201,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 	break;
 	
       default:
-	snprintf(error, len_error, "Error: print does not recognize type of value: %x", curr);
+	snprintf(error, len_error, "Error: print does not recognize type of value: %"PRIx32"", curr);
 	return -1;
 	break;
       } // Switch type of curr

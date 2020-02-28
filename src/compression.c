@@ -194,19 +194,19 @@ int match_longest_key(char *string) {
   return longest_match_ix;
 }
 
-int match_longest_code(char *string, uint32_t start_bit, unsigned int total_bits) {
+int match_longest_code(char *string, uint32_t start_bit, uint32_t total_bits) {
 
-  unsigned int bits_left = total_bits - start_bit;
+  uint32_t bits_left = total_bits - start_bit;
   int longest_match_ix = -1;
   int longest_match_length = 0;
 
   for (int i = 0; i < NUM_CODES; i++) {
     int s_len = strlen(codes[i][CODE]);
-    if ((unsigned int)s_len <= bits_left) {
+    if ((uint32_t)s_len <= bits_left) {
       bool match = true;
-      for (uint32_t b = 0; b < (unsigned int)s_len; b ++) {
-	unsigned int byte_ix = (start_bit + b) / 8;
-	unsigned int bit_ix  = (start_bit + b) % 8;
+      for (uint32_t b = 0; b < (uint32_t)s_len; b ++) {
+	uint32_t byte_ix = (start_bit + b) / 8;
+	uint32_t bit_ix  = (start_bit + b) % 8;
 
 	char *code_str = codes[i][CODE];
 
@@ -225,9 +225,9 @@ int match_longest_code(char *string, uint32_t start_bit, unsigned int total_bits
 }
 
 int compressed_length(char *string) {
-  unsigned int i = 0;
+  uint32_t i = 0;
 
-  unsigned int n = strlen(string);
+  uint32_t n = strlen(string);
   int comp_len = 0; // in bits
 
   bool string_mode = false;
@@ -317,7 +317,7 @@ void emit_code(char *compressed, char *code, int *bit_pos) {
   }
 }
 
-void emit_key(char *dest, char *key, int nk, unsigned int *char_pos) {
+void emit_key(char *dest, char *key, int nk, uint32_t *char_pos) {
 
   for (int i = 0; i < nk; i ++) {
     dest[*char_pos] = key[i];
@@ -325,7 +325,7 @@ void emit_key(char *dest, char *key, int nk, unsigned int *char_pos) {
   }
 }
 
-char read_character(char *src, unsigned int *bit_pos) {
+char read_character(char *src, uint32_t *bit_pos) {
 
   char c = 0;
 
@@ -339,7 +339,7 @@ char read_character(char *src, unsigned int *bit_pos) {
   return c;
 }
 
-char *compression_compress(char *string, unsigned int *res_size) {
+char *compression_compress(char *string, uint32_t *res_size) {
 
   uint32_t c_size_bits = compressed_length(string);
 
@@ -366,8 +366,8 @@ char *compression_compress(char *string, unsigned int *res_size) {
 
   bool string_mode = false;
   bool gobbling_whitespace = false;
-  unsigned int n = strlen(string);
-  unsigned int i = 0;
+  uint32_t n = strlen(string);
+  uint32_t i = 0;
 
   while (i < n) {
     if (string_mode) {
@@ -433,7 +433,7 @@ void compression_init_state(decomp_state *s, char *src) {
   s->src = src;
 }
 
-int compression_decompress_incremental(decomp_state *s, char *dest_buff, unsigned int dest_n) {
+int compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n) {
 
   memset(dest_buff, 0, dest_n);
   uint32_t char_pos = 0;
@@ -476,7 +476,7 @@ int compression_decompress_incremental(decomp_state *s, char *dest_buff, unsigne
 
 bool compression_decompress(char *dest, uint32_t dest_n, char *src) {
 
-  unsigned int char_pos = 0;
+  uint32_t char_pos = 0;
 
   char dest_buff[32];
   int num_chars = 0;

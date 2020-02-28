@@ -3,6 +3,11 @@ ifndef PLATFORM
   BUILD_DIR = build/linux-x86
   CCFLAGS = -m32 -O2 -Wall -Wextra -pedantic -std=c11
   CCFLAGS += -D_32_BIT_ -D_PRELUDE
+  CC=gcc
+  AR=ar
+else
+  CC=${CROSS_COMPILE}gcc
+  AR=${CROSS_COMPILE}ar
 endif
 
 ifeq ($(PLATFORM),linux-x86-64)
@@ -45,9 +50,6 @@ SOURCE_DIR = src
 INCLUDE_DIR = include
 
 $(shell mkdir -p ${BUILD_DIR})
-
-CC=${CROSS_COMPILE}gcc
-AR=${CROSS_COMPILE}ar
 
 SRC = src
 OBJ = obj
