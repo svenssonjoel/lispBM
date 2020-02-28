@@ -35,9 +35,10 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 12. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
 13. (DONE) Add NRF52 example repl to repository
 14. Add ESP32 example repl to repository.
-15. Test on all platforms after big changes to eval_cps.c.
-16. Implement some looping structure for speed or just ease of use. 
-17. Be much more stringent on checking of error conditions etc.
+15. Recursion to Iteration. Where it is possible turn recursive function calls into iterations (Implementation).
+16. Test on all platforms after big changes to eval_cps.c.
+17. Implement some looping structure for speed or just ease of use. 
+18. Be much more stringent on checking of error conditions etc.
 
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
