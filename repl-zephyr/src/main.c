@@ -31,6 +31,7 @@
 
 #define LISPBM_HEAP_SIZE 2048
 #define LISPBM_OUTPUT_BUFFER_SIZE 4096
+#define LISPBM_ERROR_BUFFER_SIZE  1024
 #define LISPBM_INPUT_BUFFER_SIZE  1024
 
 
@@ -194,6 +195,7 @@ void main(void)
   usb_printf("Allocating input/output buffers\n\r");
   char *str = malloc(LISPBM_INPUT_BUFFER_SIZE);
   char *outbuf = malloc(LISPBM_OUTPUT_BUFFER_SIZE);
+  char *error = malloc(LISPBM_ERROR_BUFFER_SIZE);
   int res = 0;
 
   heap_state_t heap_state;
@@ -237,7 +239,12 @@ void main(void)
     if (strncmp(str, ":info", 5) == 0) {
       usb_printf("##(REPL - ZephyrOS)#########################################\n\r");
       usb_printf("Used cons cells: %lu \n\r", LISPBM_HEAP_SIZE - heap_num_free());
-      usb_printf("ENV: "); simple_snprint(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, eval_cps_get_env()); usb_printf("%s \n\r", outbuf);
+      res = print_value(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, error, LISPBM_ERROR_BUFFER_SIZE, eval_cps_get_env());
+      if (res >= 0) {
+	usb_printf("ENV: %s \n\r", outbuf);
+      } else {
+	usb_printf("%s\n", error);
+      }
       heap_get_state(&heap_state);
       usb_printf("GC counter: %lu\n\r", heap_state.gc_num);
       usb_printf("Recovered: %lu\n\r", heap_state.gc_recovered);
@@ -254,10 +261,11 @@ void main(void)
 
       t = eval_cps_program(t);
 
-      if (dec_sym(t) == symrepr_eerror()) {
-	usb_printf("Error\n");
+      res = print_value(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, error, LISPBM_ERROR_BUFFER_SIZE, t);
+      if (res >= 0) {
+	usb_printf("> %s\n\r", outbuf);
       } else {
-	usb_printf("> "); simple_snprint(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, t); usb_printf("%s \n\r", outbuf);
+	usb_printf("%s\n\r", error);
       }
     }
   }
