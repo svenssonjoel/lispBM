@@ -104,6 +104,9 @@ int main(int argc, char **argv) {
   printf("Type :quit to exit.\n");
   printf("     :info for statistics.\n");
 
+  char output[1024];
+  char error[1024];
+  
   while (1) {
     printf("# ");
     ssize_t n = getline(&str,&len,stdin);
@@ -111,9 +114,12 @@ int main(int argc, char **argv) {
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("############################################################\n");
       printf("Used cons cells: %d\n", heap_size - heap_num_free());
-      printf("ENV: "); simple_print(eval_cps_get_env()); printf("\n");
-      //symrepr_print();
-      //heap_perform_gc(eval_cps_get_env());
+      int r = print_value(output, 1024, error, 1024, eval_cps_get_env());
+      if (r >= 0) { 
+	printf("ENV: %s\n", output );
+      } else {
+	printf("%s\n", error);
+      }
       heap_get_state(&heap_state);
       printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
       printf("GC counter: %d\n", heap_state.gc_num);
@@ -131,10 +137,13 @@ int main(int argc, char **argv) {
 
       t = eval_cps_program(t);
 
-      if (dec_sym(t) == symrepr_eerror()) {
-	printf("Eval error\n");
+      int print_ret = print_value(output, 1024, error, 1024, t);
+
+     
+      if (print_ret >= 0) {
+	printf("%s\n", output);
       } else {
-	printf("> "); simple_print(t); printf("\n");
+	printf("%s\n", error);
       }
     }
   }

@@ -21,22 +21,28 @@
 #include "typedefs.h"
 #include "print.h"
 
-stack* stack_init(unsigned int stack_size, bool growable) {
-
-  stack *s = malloc(sizeof(stack));
-
+int stack_allocate(stack *s, unsigned int stack_size, bool growable) {
+  
   s->data = malloc(sizeof(UINT) * stack_size);
   s->sp = 0;
   s->size = stack_size;
   s->growable = growable;
 
-  return s;
+  if (s->data) return 1;
+  return 0;
 }
 
-void stack_del(stack *s) {
-  if (s) {
+int stack_create(stack *s, UINT* data, unsigned int size) {
+  s->data = data;
+  s->sp = 0;
+  s->size = size;
+  s->growable = false;
+  return 1;
+}
+
+void stack_free(stack *s) {
+  if (s->data) {
     free(s->data);
-    free(s);
   }
 }
 

@@ -136,12 +136,29 @@ int main(int argc, char **argv) {
     free(compressed_code);
   } else { 
     t = tokpar_parse(code_buffer);
-  } 
-  printf("I: "); simple_print(t); printf("\n");
+  }
 
+  char output[1024];
+  char error[1024];
+
+  res =  print_value(output, 1024, error, 1024, t); 
+
+  if ( res >= 0) {
+    printf("I: %s\n", output);
+  } else {
+    printf("%s\n", error);
+    return 0;
+  }
   t = eval_cps_program(t);
 
-  printf("O: "); simple_print(t); printf("\n");
+  res = print_value(output, 1024, error, 1024, t); 
+  
+  if ( res >= 0) {
+    printf("O: %s\n", output);
+  } else {
+    printf("%s\n", error);
+    return 0;
+  }
 
   if ( dec_sym(t) == symrepr_eerror()) {
     res = 0;

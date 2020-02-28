@@ -23,7 +23,7 @@ typedef struct eval_context_s{
   VALUE program;
   VALUE curr_exp;
   VALUE curr_env;
-  stack *K;
+  stack K;
   struct eval_context_s *next;
 } eval_context_t;
 

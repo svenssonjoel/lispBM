@@ -21,6 +21,6 @@
 #include <stdint.h>
 #include "typedefs.h"
 
-int simple_print(VALUE v);
-int simple_snprint(char *buf, int n, VALUE v);
+extern int print_value(char *buf,int len, char *error, int len_error, VALUE t);
+
 #endif
