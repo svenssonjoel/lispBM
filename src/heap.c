@@ -22,6 +22,7 @@
 
 #include "heap.h"
 #include "symrepr.h"
+#include "stack.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -215,36 +216,51 @@ void heap_get_state(heap_state_t *res) {
   res->gc_recovered_arrays = heap_state.gc_recovered_arrays;
 }
 
-// Recursive implementation can exhaust stack!
 int gc_mark_phase(VALUE env) {
 
+  VALUE stack_storage[1024];
+  stack s;
+  stack_create(&s, stack_storage, 1024);
+  
   if (!is_ptr(env)) {
       return 1; // Nothing to mark here
   }
 
-  if (get_gc_mark(ref_cell(env))) {
-    return 1; // Circular object on heap, or visited..
+  push_u32(&s, env);
+
+  while (!stack_is_empty(&s)) {
+    VALUE curr;
+    pop_u32(&s, &curr);
+
+    if (!is_ptr(curr)) {
+      continue;
+    }
+    
+    // Circular object on heap, or visited..
+    if (get_gc_mark(ref_cell(curr))) {
+      continue;
+    }
+
+    // There is at least a pointer to one cell here. Mark it and add children to stack
+    heap_state.gc_marked ++;
+    
+    set_gc_mark(ref_cell(curr));
+    
+    VALUE t_ptr = type_of(curr);
+    
+    if (t_ptr == PTR_TYPE_BOXED_I ||
+	t_ptr == PTR_TYPE_BOXED_U ||
+	t_ptr == PTR_TYPE_BOXED_F ||
+	t_ptr == PTR_TYPE_ARRAY) {
+      continue;
+    }  
+    push_u32(&s, cdr(curr));
+    push_u32(&s, car(curr));
+
   }
 
-  // There is at least a pointer to one cell here. Mark it and recurse over  car and cdr 
-  heap_state.gc_marked ++;
-
-  set_gc_mark(ref_cell(env));
-
-  VALUE t_ptr = type_of(env);
-
-  if (t_ptr == PTR_TYPE_BOXED_I ||
-      t_ptr == PTR_TYPE_BOXED_U ||
-      t_ptr == PTR_TYPE_BOXED_F ||
-      t_ptr == PTR_TYPE_ARRAY) {
-    return 1;
-  } 
-
-  int res = 1;
-  res = res && gc_mark_phase(car(env));
-  res = res && gc_mark_phase(cdr(env));
-
-  return res;
+  // TODO: Check for stack full
+  return 1;
 }
 
 // The free list should be a "proper list"
