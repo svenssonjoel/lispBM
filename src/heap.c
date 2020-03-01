@@ -230,6 +230,7 @@ int gc_mark_phase(VALUE env) {
 
   while (!stack_is_empty(&s)) {
     VALUE curr;
+    int res = 1;
     pop_u32(&s, &curr);
 
     if (!is_ptr(curr)) {
@@ -254,12 +255,12 @@ int gc_mark_phase(VALUE env) {
 	t_ptr == PTR_TYPE_ARRAY) {
       continue;
     }  
-    push_u32(&s, cdr(curr));
-    push_u32(&s, car(curr));
+    res &= push_u32(&s, cdr(curr));
+    res &= push_u32(&s, car(curr));
 
+    if (!res) return 0;
   }
 
-  // TODO: Check for stack full
   return 1;
 }
 

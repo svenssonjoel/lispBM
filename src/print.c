@@ -48,7 +48,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
   push_u32_2(&s, t, PRINT);
 
   while (!stack_is_empty(&s) && offset <= len - 5) {
-
+    
     VALUE curr;
     UINT  instr;
     pop_u32(&s, &instr);
