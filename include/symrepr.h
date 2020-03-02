@@ -51,26 +51,42 @@
 #define DEF_REPR_NONSENSE       0x27FFFF
 #define DEF_REPR_NOT_FOUND      0x28FFFF
 
-// Fundamental Operations
-#define SYM_ADD   0x100FFFF
-#define SYM_SUB   0x101FFFF
-#define SYM_MUL   0x102FFFF
-#define SYM_DIV   0x103FFFF
-#define SYM_MOD   0x104FFFF
-#define SYM_EQ    0x105FFFF
-#define SYM_NUMEQ 0x106FFFF
-#define SYM_LT    0x107FFFF
-#define SYM_GT    0x108FFFF
-#define SYM_EVAL  0x109FFFF
+// Type identifying symbols
+#define DEF_REPR_TYPE_LIST      0x29FFFF
+#define DEF_REPR_TYPE_I28       0x2AFFFF
+#define DEF_REPR_TYPE_U28       0x2BFFFF
+#define DEF_REPR_TYPE_FLOAT     0x2CFFFF
+#define DEF_REPR_TYPE_I32       0x2DFFFF
+#define DEF_REPR_TYPE_U32       0x2EFFFF
+#define DEF_REPR_TYPE_ARRAY     0x2FFFFF
+#define DEF_REPR_TYPE_SYMBOL    0x30FFFF
+#define DEF_REPR_TYPE_CHAR      0x31FFFF
 
-#define SYM_CONS  0x120FFFF
-#define SYM_CAR   0x121FFFF
-#define SYM_CDR   0x122FFFF
-#define SYM_LIST  0x123FFFF
+
+
+// Fundamental Operations
+#define SYM_ADD            0x100FFFF
+#define SYM_SUB            0x101FFFF
+#define SYM_MUL            0x102FFFF
+#define SYM_DIV            0x103FFFF
+#define SYM_MOD            0x104FFFF
+#define SYM_EQ             0x105FFFF
+#define SYM_NUMEQ          0x106FFFF
+#define SYM_LT             0x107FFFF
+#define SYM_GT             0x108FFFF
+#define SYM_EVAL           0x109FFFF
+
+#define SYM_CONS           0x120FFFF
+#define SYM_CAR            0x121FFFF
+#define SYM_CDR            0x122FFFF
+#define SYM_LIST           0x123FFFF
 
 #define SYM_ARRAY_READ     0x130FFFF
 #define SYM_ARRAY_WRITE    0x131FFFF
 #define SYM_ARRAY_CREATE   0x132FFFF
+
+// type-of operation and type identifiers
+#define SYM_TYPE_OF        0x200FFFF
 
 #define SYMBOL_MAX  0xFFFFFFF
 
@@ -99,6 +115,17 @@ static inline UINT symrepr_fatal_error(void) { return DEF_REPR_FATAL_ERROR; }
 
 static inline UINT symrepr_nonsense(void)    { return DEF_REPR_NONSENSE; }
 static inline UINT symrepr_not_found(void)   { return DEF_REPR_NOT_FOUND; }
+
+static inline UINT symrepr_type_list(void)   {return DEF_REPR_TYPE_LIST; }
+static inline UINT symrepr_type_i28(void)    {return DEF_REPR_TYPE_I28; }       
+static inline UINT symrepr_type_u28(void)    {return DEF_REPR_TYPE_U28; }       
+static inline UINT symrepr_type_float(void)  {return DEF_REPR_TYPE_FLOAT; }     
+static inline UINT symrepr_type_i32(void)    {return DEF_REPR_TYPE_I32; }       
+static inline UINT symrepr_type_u32(void)    {return DEF_REPR_TYPE_U32; }       
+static inline UINT symrepr_type_array(void)  {return DEF_REPR_TYPE_ARRAY; }     
+static inline UINT symrepr_type_symbol(void) {return DEF_REPR_TYPE_SYMBOL; }
+static inline UINT symrepr_type_char(void) {return DEF_REPR_TYPE_CHAR; }
+
 
 static inline bool symrepr_is_error(UINT symrep){
   return (symrep == DEF_REPR_RERROR ||

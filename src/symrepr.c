@@ -137,6 +137,16 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("sym_recovered"    , DEF_REPR_RECOVERED);
   res = res && symrepr_addspecial("sym_bytecode"     , DEF_REPR_BYTECODE_TYPE);
   res = res && symrepr_addspecial("sym_nonsense"     , DEF_REPR_NONSENSE);
+
+  res = res && symrepr_addspecial("type-i28"         , DEF_REPR_TYPE_I28);
+  res = res && symrepr_addspecial("type-u28"         , DEF_REPR_TYPE_U28);
+  res = res && symrepr_addspecial("type-float"       , DEF_REPR_TYPE_FLOAT);
+  res = res && symrepr_addspecial("type-i32"         , DEF_REPR_TYPE_I32);
+  res = res && symrepr_addspecial("type-u32"         , DEF_REPR_TYPE_U32);
+  res = res && symrepr_addspecial("type-array"       , DEF_REPR_TYPE_ARRAY);
+  res = res && symrepr_addspecial("type-symbol"      , DEF_REPR_TYPE_SYMBOL);
+  res = res && symrepr_addspecial("type-char"        , DEF_REPR_TYPE_CHAR);
+
   
   res = res && symrepr_addspecial("+", SYM_ADD);
   res = res && symrepr_addspecial("-", SYM_SUB);
@@ -156,6 +166,8 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("array-read", SYM_ARRAY_READ);
   res = res && symrepr_addspecial("array-write", SYM_ARRAY_WRITE);
   res = res && symrepr_addspecial("array-create", SYM_ARRAY_CREATE);
+
+  res = res && symrepr_addspecial("type-of", SYM_TYPE_OF);
   return res;
 }
 

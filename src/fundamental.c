@@ -857,6 +857,33 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
   case SYM_ARRAY_CREATE:
     array_create(args, nargs, &result);
     break;
+
+  case SYM_TYPE_OF:
+    if (nargs != 1) return enc_sym(symrepr_nil());
+    VALUE val = args[0];
+    switch(type_of(val)) {
+    case PTR_TYPE_CONS:
+      return enc_sym(symrepr_type_list());
+    case PTR_TYPE_ARRAY:
+      return enc_sym(symrepr_type_array());
+    case PTR_TYPE_BOXED_I:
+      return enc_sym(symrepr_type_i32());
+    case PTR_TYPE_BOXED_U:
+      return enc_sym(symrepr_type_u32());
+    case PTR_TYPE_BOXED_F:
+      return enc_sym(symrepr_type_float());
+    case VAL_TYPE_I:
+      return enc_sym(symrepr_type_i28());
+    case VAL_TYPE_U:
+      return enc_sym(symrepr_type_u28());
+    case VAL_TYPE_CHAR:
+      return enc_sym(symrepr_type_char());
+    case VAL_TYPE_SYMBOL:
+      return enc_sym(symrepr_type_symbol());
+    default:
+      return enc_sym(symrepr_terror());
+    }
+    break;
   default:
     result = enc_sym(symrepr_eerror());
     break;
