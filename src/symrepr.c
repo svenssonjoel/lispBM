@@ -138,6 +138,8 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("sym_bytecode"     , DEF_REPR_BYTECODE_TYPE);
   res = res && symrepr_addspecial("sym_nonsense"     , DEF_REPR_NONSENSE);
 
+  // special symbols with parseable names
+  res = res && symrepr_addspecial("type-list"        , DEF_REPR_TYPE_LIST);
   res = res && symrepr_addspecial("type-i28"         , DEF_REPR_TYPE_I28);
   res = res && symrepr_addspecial("type-u28"         , DEF_REPR_TYPE_U28);
   res = res && symrepr_addspecial("type-float"       , DEF_REPR_TYPE_FLOAT);
