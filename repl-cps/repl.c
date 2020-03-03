@@ -18,6 +18,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "heap.h"
 #include "symrepr.h"
@@ -53,6 +54,45 @@ VALUE ext_print(VALUE *args, int argn) {
   return enc_sym(symrepr_true());
 }
 
+
+/* load a file, caller is responsible for freeing the returned string */ 
+char * load_file(char *filename) {
+  char *file_str = NULL;
+  unsigned int str_len = strlen(filename);
+  filename[str_len-1] = 0;
+  int i = 0;
+  while (filename[i] == ' ' && filename[i] != 0) {
+    i ++;
+  }
+  FILE *fp;
+  printf("filename: %s\n", &filename[i]);
+	
+  if (strlen(&filename[i]) > 0) {
+    errno = 0;
+    fp = fopen(&filename[i], "r");
+    if (!fp) {
+      return NULL;
+    }
+    long fsize_long;
+    unsigned int fsize;
+    fseek(fp, 0, SEEK_END);
+    fsize_long = ftell(fp);
+    if (fsize_long <= 0) {
+      return NULL;
+    }
+    fsize = (unsigned int) fsize_long;
+    fseek(fp, 0, SEEK_SET);
+    file_str = malloc(fsize+1);
+    memset(file_str, 0 , fsize+1);
+    if (fread(file_str,1,fsize,fp) != fsize) {
+      free(file_str);
+      file_str = NULL;
+    }
+    fclose(fp);    
+  }
+  return file_str;
+}
+
 int main(int argc, char **argv) {
   char *str = malloc(1024);;
   size_t len = 1024;
@@ -84,13 +124,6 @@ int main(int argc, char **argv) {
     printf("Error initializing evaluator.\n");
   }
 
-  /*
-  res = extensions_add("ext-test", ext_test);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-  */
   res = extensions_add("print", ext_print);
   if (res)
     printf("Extension added.\n");
@@ -103,12 +136,14 @@ int main(int argc, char **argv) {
   printf("Lisp REPL started!\n");
   printf("Type :quit to exit.\n");
   printf("     :info for statistics.\n");
+  printf("     :load [filename] to load lisp source.\n");
 
   char output[1024];
   char error[1024];
   
   while (1) {
     printf("# ");
+    memset(str, 0 ,len);
     ssize_t n = getline(&str,&len,stdin);
 
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
@@ -128,6 +163,19 @@ int main(int argc, char **argv) {
       printf("Marked: %d\n", heap_state.gc_marked);
       printf("Free cons cells: %d\n", heap_num_free());
       printf("############################################################\n");
+    } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
+      char *file_str = load_file(&str[5]);
+      if (file_str) {
+	VALUE f_exp = tokpar_parse(file_str);
+	free(file_str);
+	VALUE f_res = eval_cps_program(f_exp);
+	int print_ret = print_value(output, 1024, error, 1024, f_res);
+	if (print_ret >= 0) {
+	  printf("%s\n", output);
+	} else {
+	  printf("%s\n", error);
+	}
+      } 
     } else  if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
     } else {
