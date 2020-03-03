@@ -97,7 +97,7 @@ VALUE cont_set_global_env(eval_context_t *ctx, VALUE val, bool *done, bool *perf
     }
     if (dec_sym(new_env) == symrepr_fatal_error()) {
       *done = true;
-      return new_env; 
+      return new_env;
     }
   }
   eval_cps_global_env = new_env;
@@ -119,12 +119,13 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     return arg;
   case SET_GLOBAL_ENV:
     res = cont_set_global_env(ctx, arg, done, perform_gc);
-    if (!(*done)) 
+    if (!(*done))
       *app_cont = true;
     return res;
   case PROGN_REST: {
     VALUE rest;
-    pop_u32(&ctx->K, &rest);
+    VALUE env;
+    pop_u32_2(&ctx->K, &rest, &env);
     if (type_of(rest) == VAL_TYPE_SYMBOL && rest == NIL) {
       res = arg;
       *app_cont = true;
@@ -142,12 +143,13 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       ctx->curr_exp = car(rest);
       return NONSENSE;
     }
-    // Else create a continuation 
-    FATAL_ON_FAIL(*done, push_u32_2(&ctx->K, cdr(rest), enc_u(PROGN_REST)));
+    // Else create a continuation
+    FATAL_ON_FAIL(*done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(PROGN_REST)));
     ctx->curr_exp = car(rest);
+    ctx->curr_env = env;
     return NONSENSE;
   }
-  case APPLICATION: { 
+  case APPLICATION: {
     VALUE count;
     pop_u32(&ctx->K, &count);
 
@@ -169,38 +171,49 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       VALUE params  = car(cdr(fun));
       VALUE exp     = car(cdr(cdr(fun)));
       VALUE clo_env = car(cdr(cdr(cdr(fun))));
-     
+
       if (length(params) != length(args)) { // programmer error
 	*done = true;
 	return enc_sym(symrepr_eerror());
       }
 
       VALUE local_env = env_build_params_args(params, args, clo_env);
-      if (type_of(local_env) == VAL_TYPE_SYMBOL) { 
+      if (type_of(local_env) == VAL_TYPE_SYMBOL) {
 	if (dec_sym(local_env) == symrepr_merror() ) {
 	  FATAL_ON_FAIL(*done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
 	  *perform_gc = true;
 	  *app_cont = true;
 	  return fun;
 	}
-	
+
 	if (dec_sym(local_env) == symrepr_fatal_error()) {
 	  return local_env;
 	}
       }
+
+      /* ************************************************************
+	 Odd area!  It feels like the callers environment should be
+	 explicitly restored after an application of a closure.
+	 However, if the callers environment is pushed onto the stack
+	 here, it will make the stack grow proportional to the call
+	 depth.
+
+	 I am very unsure about the correctness here.
+         ************************************************************ */
+
       stack_drop(&ctx->K, dec_u(count)+1);
       ctx->curr_exp = exp;
       ctx->curr_env = local_env;
       return NONSENSE;
     } else if (type_of(fun) == VAL_TYPE_SYMBOL) {
-      
+
       VALUE res;
-      
+
       if (is_fundamental(fun)) {
 	res = fundamental_exec(&fun_args[1], dec_u(count), fun);
 	if (type_of(res) == VAL_TYPE_SYMBOL &&
 	    dec_sym(res) == symrepr_eerror()) {
-	  
+
 	  *done = true;
 	  return  res;
 	} else if (type_of(res) == VAL_TYPE_SYMBOL &&
@@ -209,22 +222,22 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 	  *perform_gc = true;
 	  *app_cont = true;
 	  return fun;
-	} 
-	stack_drop(&ctx->K, dec_u(count) + 1);
+	}
+	stack_drop(&ctx->K, dec_u(count)+1);
 	*app_cont = true;
 	return res;
       }
     }
-    
+
     // It may be an extension
-    
+
     extension_fptr f = extensions_lookup(dec_sym(fun));
     if (f == NULL) {
       *done = true;
       return enc_sym(symrepr_eerror());
     }
 
-    VALUE ext_res = f(&fun_args[1] , dec_u(count));
+    VALUE ext_res = f(&fun_args[1] , dec_u(count)+1);
 
     if (type_of(ext_res) == VAL_TYPE_SYMBOL &&
 	(dec_sym(ext_res) == symrepr_merror())) {
@@ -233,7 +246,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
       *app_cont = true;
       return fun;
     }
-    
+
     stack_drop(&ctx->K, dec_u(count) + 1);
 
     *app_cont = true;
@@ -246,7 +259,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 
     pop_u32_3(&ctx->K, &rest, &count, &env);
     FATAL_ON_FAIL(*done, push_u32(&ctx->K, arg));
-    
+
     if (type_of(rest) == VAL_TYPE_SYMBOL &&
 	rest == NIL) {
       // no more arguments
@@ -257,7 +270,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     FATAL_ON_FAIL(*done, push_u32_4(&ctx->K, env, enc_u(dec_u(count) + 1), cdr(rest), enc_u(APPLICATION_ARGS)));
     ctx->curr_exp = car(rest);
     ctx->curr_env = env;
-    return NONSENSE; 
+    return NONSENSE;
   }
   case BIND_TO_KEY_REST:{
     VALUE key;
@@ -306,7 +319,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
 
 VALUE run_eval(eval_context_t *ctx){
 
- 
+
   VALUE r = NIL;
   bool done = false;
   bool perform_gc = false;
@@ -317,9 +330,9 @@ VALUE run_eval(eval_context_t *ctx){
 
   FATAL_ON_FAIL(done, push_u32(&ctx->K, enc_u(DONE)));
 
-  
+
   while (!done) {
-    
+
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
 #endif
@@ -359,7 +372,7 @@ VALUE run_eval(eval_context_t *ctx){
       if (type_of(value) == VAL_TYPE_SYMBOL &&
 	  dec_sym(value) == symrepr_not_found()) {
 
-	value = env_lookup(ctx->curr_exp, eval_cps_global_env); 
+	value = env_lookup(ctx->curr_exp, eval_cps_global_env);
 
 	if (type_of(value) == VAL_TYPE_SYMBOL &&
 	    dec_sym(value) == symrepr_not_found()) {
@@ -426,6 +439,7 @@ VALUE run_eval(eval_context_t *ctx){
 	// Special form: PROGN
 	if (dec_sym(head) == symrepr_progn()) {
 	  VALUE exps = cdr(ctx->curr_exp);
+	  VALUE env  = ctx->curr_env;
 
 	  if (type_of(exps) == VAL_TYPE_SYMBOL && exps == NIL) {
 	    r = NIL;
@@ -438,8 +452,9 @@ VALUE run_eval(eval_context_t *ctx){
 	    done = true;
 	    continue;
 	  }
-	  FATAL_ON_FAIL(done, push_u32_2(&ctx->K, cdr(exps), enc_u(PROGN_REST)));
+	  FATAL_ON_FAIL(done, push_u32_3(&ctx->K, env, cdr(exps), enc_u(PROGN_REST)));
 	  ctx->curr_exp = car(exps);
+	  ctx->curr_env = env;
 	  continue;
 	}
 
@@ -447,7 +462,7 @@ VALUE run_eval(eval_context_t *ctx){
 	if (dec_sym(head) == symrepr_lambda()) {
 
 	  VALUE env_cpy = env_copy_shallow(ctx->curr_env);
-	  
+
 	  if (type_of(env_cpy) == VAL_TYPE_SYMBOL &&
 	      dec_sym(env_cpy) == symrepr_merror()) {
 	    perform_gc = true;
@@ -582,7 +597,7 @@ int eval_cps_init(bool grow_continuation_stack) {
 
   eval_context = (eval_context_t*)malloc(sizeof(eval_context_t));
 
-  /* TODO: There should be an eval_context_create function */ 
+  /* TODO: There should be an eval_context_create function */
   res = stack_allocate(&(eval_context->K), 100, grow_continuation_stack);
 
   VALUE nil_entry = cons(NIL, NIL);
