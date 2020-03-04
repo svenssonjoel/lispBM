@@ -148,7 +148,6 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("type-array"       , DEF_REPR_TYPE_ARRAY);
   res = res && symrepr_addspecial("type-symbol"      , DEF_REPR_TYPE_SYMBOL);
   res = res && symrepr_addspecial("type-char"        , DEF_REPR_TYPE_CHAR);
-
   
   res = res && symrepr_addspecial("+", SYM_ADD);
   res = res && symrepr_addspecial("-", SYM_SUB);
@@ -159,6 +158,9 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("<", SYM_LT);
   res = res && symrepr_addspecial(">", SYM_GT);
   res = res && symrepr_addspecial("eval", SYM_EVAL);
+  res = res && symrepr_addspecial("and", SYM_AND);
+  res = res && symrepr_addspecial("or", SYM_OR);
+  res = res && symrepr_addspecial("not", SYM_NOT);
   res = res && symrepr_addspecial("num-eq", SYM_NUMEQ);
   res = res && symrepr_addspecial("car", SYM_CAR);
   res = res && symrepr_addspecial("cdr", SYM_CDR);

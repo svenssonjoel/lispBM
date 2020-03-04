@@ -847,7 +847,20 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     }
     break;
   }
-
+  case SYM_NOT: {
+    if (nargs == 0) {
+      return enc_sym(symrepr_nil());
+      break;
+    }
+    UINT a = args[0];
+    if (type_of(a) == VAL_TYPE_SYMBOL &&
+	dec_sym(a) == symrepr_nil()) {
+      result = enc_sym(symrepr_true());
+      break;
+    }
+    result = enc_sym(symrepr_nil());
+    break;
+  }
   case SYM_ARRAY_READ:
     array_read(args, nargs, &result);
     break;

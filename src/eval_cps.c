@@ -34,6 +34,8 @@
 #define PROGN_REST        5
 #define APPLICATION       6
 #define APPLICATION_ARGS  7
+#define AND               8
+#define OR                9
 
 #define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; return enc_sym(symrepr_fatal_error()); }
 
@@ -252,17 +254,87 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     *app_cont = true;
     return ext_res;
   }
+  case AND: {
+    VALUE env;
+    VALUE rest;
+    pop_u32_2(&ctx->K, &rest, &env);
+    if (type_of(arg) == VAL_TYPE_SYMBOL &&
+	dec_sym(arg) == symrepr_nil()) {
+      *app_cont = true;
+      return enc_sym(symrepr_nil());
+    }
+    if (type_of(rest) == VAL_TYPE_SYMBOL &&
+	rest == NIL) {
+      *app_cont = true;
+      return enc_sym(symrepr_true());
+    } else {
+      FATAL_ON_FAIL(*done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(AND)));
+      ctx->curr_exp = car(rest);
+      ctx->curr_env = env;
+      return NONSENSE;
+    }
+  }
+  case OR: {
+    VALUE env;
+    VALUE rest;
+    pop_u32_2(&ctx->K, &rest, &env);
+    if (type_of(arg) != VAL_TYPE_SYMBOL ||
+	dec_sym(arg) != symrepr_nil()) {
+      *app_cont = true;
+      return enc_sym(symrepr_true());
+    }
+    if (type_of(rest) == VAL_TYPE_SYMBOL &&
+	rest == NIL) {
+      *app_cont = true;
+      return enc_sym(symrepr_nil());
+    } else {
+      FATAL_ON_FAIL(*done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(OR)));
+      ctx->curr_exp = car(rest);
+      ctx->curr_env = env;
+      return NONSENSE;
+    }
+  }  
   case APPLICATION_ARGS: {
     VALUE count;
     VALUE env;
     VALUE rest;
 
     pop_u32_3(&ctx->K, &rest, &count, &env);
-    FATAL_ON_FAIL(*done, push_u32(&ctx->K, arg));
 
+    /* Deal with short-circuiting operators */
+    if (type_of(arg) == VAL_TYPE_SYMBOL &&
+	dec_sym(arg) == symrepr_and()) {
+      if (type_of(rest) == VAL_TYPE_SYMBOL &&
+	  rest == NIL) {
+	*app_cont = true;
+	return enc_sym(symrepr_true());
+      } else {
+	FATAL_ON_FAIL(*done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(AND)));
+	ctx->curr_exp = car(rest);
+	ctx->curr_env = env;
+	return NONSENSE;
+      }
+    }
+
+    if (type_of(arg) == VAL_TYPE_SYMBOL &&
+	dec_sym(arg) == symrepr_or()) {
+      if (type_of(rest) == VAL_TYPE_SYMBOL &&
+	  rest == NIL) {
+	*app_cont = true;
+	return enc_sym(symrepr_nil());
+      } else {
+	FATAL_ON_FAIL(*done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(OR)));
+	ctx->curr_exp = car(rest);
+	ctx->curr_env = env;
+	return NONSENSE;
+      }
+    }
+
+    FATAL_ON_FAIL(*done, push_u32(&ctx->K, arg));
+    /* Deal with general fundamentals */ 
     if (type_of(rest) == VAL_TYPE_SYMBOL &&
 	rest == NIL) {
-      // no more arguments
+      // no arguments
       FATAL_ON_FAIL(*done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
       *app_cont = true;
       return NONSENSE;

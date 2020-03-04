@@ -62,33 +62,33 @@
 #define DEF_REPR_TYPE_SYMBOL    0x30FFFF
 #define DEF_REPR_TYPE_CHAR      0x31FFFF
 
-
-
 // Fundamental Operations
-#define SYM_ADD            0x100FFFF
-#define SYM_SUB            0x101FFFF
-#define SYM_MUL            0x102FFFF
-#define SYM_DIV            0x103FFFF
-#define SYM_MOD            0x104FFFF
-#define SYM_EQ             0x105FFFF
-#define SYM_NUMEQ          0x106FFFF
-#define SYM_LT             0x107FFFF
-#define SYM_GT             0x108FFFF
-#define SYM_EVAL           0x109FFFF
+#define SYM_ADD                 0x100FFFF
+#define SYM_SUB                 0x101FFFF
+#define SYM_MUL                 0x102FFFF
+#define SYM_DIV                 0x103FFFF
+#define SYM_MOD                 0x104FFFF
+#define SYM_EQ                  0x105FFFF
+#define SYM_NUMEQ               0x106FFFF
+#define SYM_LT                  0x107FFFF
+#define SYM_GT                  0x108FFFF
+#define SYM_EVAL                0x109FFFF
 
-#define SYM_CONS           0x120FFFF
-#define SYM_CAR            0x121FFFF
-#define SYM_CDR            0x122FFFF
-#define SYM_LIST           0x123FFFF
+#define SYM_AND                 0x110FFFF
+#define SYM_OR                  0x111FFFF
+#define SYM_NOT                 0x112FFFF
 
-#define SYM_ARRAY_READ     0x130FFFF
-#define SYM_ARRAY_WRITE    0x131FFFF
-#define SYM_ARRAY_CREATE   0x132FFFF
+#define SYM_CONS                0x120FFFF
+#define SYM_CAR                 0x121FFFF
+#define SYM_CDR                 0x122FFFF
+#define SYM_LIST                0x123FFFF
 
-// type-of operation and type identifiers
-#define SYM_TYPE_OF        0x200FFFF
+#define SYM_ARRAY_READ          0x130FFFF
+#define SYM_ARRAY_WRITE         0x131FFFF
+#define SYM_ARRAY_CREATE        0x132FFFF
+#define SYM_TYPE_OF             0x200FFFF
 
-#define SYMBOL_MAX  0xFFFFFFF
+#define SYMBOL_MAX              0xFFFFFFF
 
 extern int symrepr_addsym(char *, UINT*);
 extern bool symrepr_init(void);
@@ -105,6 +105,9 @@ static inline UINT symrepr_closure(void)     { return DEF_REPR_CLOSURE; }
 static inline UINT symrepr_let(void)         { return DEF_REPR_LET; }
 static inline UINT symrepr_define(void)      { return DEF_REPR_DEFINE; }
 static inline UINT symrepr_progn(void)       { return DEF_REPR_PROGN; }
+
+static inline UINT symrepr_and(void)         { return SYM_AND; }
+static inline UINT symrepr_or(void)          { return SYM_OR; }
 
 static inline UINT symrepr_rerror(void)      { return DEF_REPR_RERROR; }
 static inline UINT symrepr_terror(void)      { return DEF_REPR_TERROR; }
