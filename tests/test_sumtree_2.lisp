@@ -1,12 +1,11 @@
 (define is-number
   (lambda (x)
-    (if (or (= (type-of x) type-i28)
-            (= (type-of x) type-u28)
-	    (= (type-of x) type-float)
-	    (= (type-of x) type-i32)
-	    (= (type-of x) type-u32))
-	't
-      'nil)))
+    (or (= (type-of x) type-i28)
+	(= (type-of x) type-u28)
+	(= (type-of x) type-float)
+	(= (type-of x) type-i32)
+	(= (type-of x) type-u32))
+    ))
 	    
       
 (define sumtree

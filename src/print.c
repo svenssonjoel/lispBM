@@ -33,6 +33,7 @@
 #define CONTINUE_LIST  4
 #define END_LIST       5
 
+
 int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 
   VALUE stack_storage[PRINT_STACK_SIZE];
@@ -71,6 +72,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 	         dec_sym(cdr_val) == symrepr_nil()) {
 	res &= push_u32(&s, END_LIST);
       } else {
+	res &= push_u32(&s, END_LIST);
 	res &= push_u32(&s, cdr_val);
 	res &= push_u32(&s, PRINT);
 	res &= push_u32(&s, PRINT_SPACE);
@@ -108,6 +110,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 		  dec_sym(cdr_val) == symrepr_nil()) {
 	res &= push_u32(&s, END_LIST);
       } else {
+	res &= push_u32(&s, END_LIST);
 	res &= push_u32(&s, cdr_val);
 	res &= push_u32(&s, PRINT);
 	res &= push_u32(&s, PRINT_SPACE);
