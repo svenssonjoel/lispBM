@@ -400,6 +400,16 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
+  if ((n = tok_backquote(str))) {
+    t.type = TOKBACKQUOTE;
+    return t;
+  }
+
+  if ((n  = tok_comma(str))) {
+    t.type = TOKCOMMA;
+    return t;
+  }
+
   if ((n = tok_openpar(str))) {
     t.type = TOKOPENPAR;
     return t;
@@ -539,6 +549,20 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     if (type_of(quoted) == VAL_TYPE_SYMBOL &&
 	dec_sym(quoted) == symrepr_rerror()) return quoted;
     return cons(enc_sym(symrepr_quote()), cons (quoted, enc_sym(symrepr_nil()))); 
+  }
+  case TOKBACKQUOTE: {
+    t = next_token(str);
+    VALUE quoted = parse_sexp(t, str);
+    if (type_of(quoted) == VAL_TYPE_SYMBOL &&
+	dec_sym(quoted) == symrepr_rerror()) return quoted;
+    return cons(enc_sym(symrepr_backquote()), cons (quoted, enc_sym(symrepr_nil()))); 
+  }
+  case TOKCOMMA: {
+    t = next_token(str);
+    VALUE unquoted = parse_sexp(t, str);
+    if (type_of(unquoted) == VAL_TYPE_SYMBOL &&
+	dec_sym(unquoted) == symrepr_rerror()) return unquoted;
+    return cons(enc_sym(symrepr_comma()), cons (unquoted, enc_sym(symrepr_nil()))); 
   }
   }
   return enc_sym(symrepr_rerror());
