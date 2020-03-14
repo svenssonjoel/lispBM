@@ -39,6 +39,8 @@
 #define DEF_REPR_FATAL_ERROR   0xCFFFF   /* Runtime system is corrupt */
 #define DEF_REPR_DEFINE        0xDFFFF
 #define DEF_REPR_PROGN         0xEFFFF
+#define DEF_REPR_BACKQUOTE     0xFFFFF
+#define DEF_REPR_COMMA         0x10FFFF
 
 // Special symbol ids
 #define DEF_REPR_ARRAY_TYPE     0x20FFFF
@@ -105,6 +107,8 @@ static inline UINT symrepr_closure(void)     { return DEF_REPR_CLOSURE; }
 static inline UINT symrepr_let(void)         { return DEF_REPR_LET; }
 static inline UINT symrepr_define(void)      { return DEF_REPR_DEFINE; }
 static inline UINT symrepr_progn(void)       { return DEF_REPR_PROGN; }
+static inline UINT symrepr_backquote(void)   { return DEF_REPR_BACKQUOTE; }
+static inline UINT symrepr_comma(void)       { return DEF_REPR_COMMA; }
 
 static inline UINT symrepr_and(void)         { return SYM_AND; }
 static inline UINT symrepr_or(void)          { return SYM_OR; }

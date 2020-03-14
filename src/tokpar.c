@@ -38,6 +38,8 @@
 #define TOKBOXEDFLOAT   8
 #define TOKSTRING       9
 #define TOKCHAR         10
+#define TOKBACKQUOTE    11
+#define TOKCOMMA        12
 #define TOKENIZER_ERROR 1024
 #define TOKENIZER_END   2048
 
@@ -105,6 +107,22 @@ int tok_closepar(tokenizer_char_stream str) {
 int tok_quote(tokenizer_char_stream str) {
   if (peek(str,0) == '\'') {
     drop(str,1);
+    return 1;
+  }
+  return 0;
+}
+
+int tok_backquote(tokenizer_char_stream str) {
+  if (peek(str,0) == '`') {
+    drop(str, 1);
+    return 1;
+  }
+  return 0;
+}
+
+int tok_comma(tokenizer_char_stream str) {
+  if (peek(str,0) == ',') {
+    drop(str, 1);
     return 1;
   }
   return 0;
