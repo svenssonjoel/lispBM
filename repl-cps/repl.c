@@ -28,6 +28,9 @@
 #include "tokpar.h"
 #include "prelude.h"
 
+#define EVAL_CPS_STACK_SIZE 256
+
+
 VALUE ext_print(VALUE *args, int argn) {
   if (argn < 1) return enc_sym(symrepr_nil());
 
@@ -117,7 +120,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = eval_cps_init(false); // dont grow stack 
+  res = eval_cps_init(EVAL_CPS_STACK_SIZE, false); // dont grow stack 
   if (res)
     printf("Evaluator initialized.\n");
   else {

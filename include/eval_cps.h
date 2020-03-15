@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2020 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -32,7 +32,8 @@ extern eval_context_t *eval_cps_new_context_inherit_env(VALUE program, VALUE cur
 extern void eval_cps_drop_top_context(void);
 
 extern VALUE eval_cps_get_env(void);
-extern int eval_cps_init(bool grow_continuation_stack);
+extern int eval_cps_init(unsigned int initial_stack_size,
+			 bool grow_continuation_stack);
 extern void eval_cps_del(void);
 extern VALUE eval_cps_program(VALUE lisp);
 extern VALUE eval_cps_bi_eval(VALUE exp);

@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2020 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -660,7 +660,7 @@ VALUE eval_cps_program(VALUE lisp) {
   return res;
 }
 
-int eval_cps_init(bool grow_continuation_stack) {
+int eval_cps_init(unsigned int initial_stack_size, bool grow_continuation_stack) {
   int res = 1;
   NIL = enc_sym(symrepr_nil());
   NONSENSE = enc_sym(symrepr_nonsense());
@@ -670,7 +670,7 @@ int eval_cps_init(bool grow_continuation_stack) {
   eval_context = (eval_context_t*)malloc(sizeof(eval_context_t));
 
   /* TODO: There should be an eval_context_create function */
-  res = stack_allocate(&(eval_context->K), 100, grow_continuation_stack);
+  res = stack_allocate(&(eval_context->K), initial_stack_size, grow_continuation_stack);
 
   VALUE nil_entry = cons(NIL, NIL);
   eval_cps_global_env = cons(nil_entry, eval_cps_global_env);

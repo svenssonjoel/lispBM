@@ -30,6 +30,8 @@
 #include "prelude.h"
 #include "compression.h"
 
+#define EVAL_CPS_STACK_SIZE 256
+
 int main(int argc, char **argv) {
 
   int res = 0;
@@ -109,7 +111,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = eval_cps_init(growing_continuation_stack);
+  res = eval_cps_init(EVAL_CPS_STACK_SIZE, growing_continuation_stack);
   if (res)
     printf("Evaluator initialized.\n");
   else {
