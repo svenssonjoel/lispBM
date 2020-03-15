@@ -110,7 +110,6 @@ int push_u32(stack *s, UINT val) {
   return res;
 }
 
-
 int push_k(stack *s, VALUE (*k)(VALUE)) {
   int res = 1;
   s->data[s->sp] = (UINT)k;
@@ -120,7 +119,6 @@ int push_k(stack *s, VALUE (*k)(VALUE)) {
   }
   return res;
 }
-
 
 int pop_u32(stack *s, UINT *val) {
 

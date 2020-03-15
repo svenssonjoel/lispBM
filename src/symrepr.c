@@ -121,8 +121,9 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("let"        , DEF_REPR_LET);
   res = res && symrepr_addspecial("define"     , DEF_REPR_DEFINE);
   res = res && symrepr_addspecial("progn"      , DEF_REPR_PROGN);
-  res = res && symrepr_addspecial("bquote"     , DEF_REPR_BACKQUOTE);
-  res = res && symrepr_addspecial("comma"      , DEF_REPR_COMMA);
+  //res = res && symrepr_addspecial("bquote"     , DEF_REPR_BACKQUOTE);
+  res = res && symrepr_addspecial("comma"      , DEF_REPR_COMMA);  // don't really need names.. right ?
+  res = res && symrepr_addspecial("splice"     , DEF_REPR_COMMAAT);
   
   // Special symbols with unparseable names
   res = res && symrepr_addspecial("read_error"       , DEF_REPR_RERROR);
@@ -168,6 +169,7 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("cdr", SYM_CDR);
   res = res && symrepr_addspecial("cons", SYM_CONS);
   res = res && symrepr_addspecial("list", SYM_LIST);
+  res = res && symrepr_addspecial("append", SYM_APPEND);
 
   res = res && symrepr_addspecial("array-read", SYM_ARRAY_READ);
   res = res && symrepr_addspecial("array-write", SYM_ARRAY_WRITE);

@@ -41,6 +41,7 @@
 #define TOKCHAR         10
 #define TOKBACKQUOTE    11
 #define TOKCOMMA        12
+#define TOKCOMMAAT      13
 #define TOKENIZER_ERROR 1024
 #define TOKENIZER_END   2048
 
@@ -120,6 +121,15 @@ int tok_backquote(tokenizer_char_stream str) {
   }
   return 0;
 }
+
+int tok_commaat(tokenizer_char_stream str) {
+  if (peek(str,0) == ',' &&
+      peek(str,1) == '@') {
+    drop(str,2);
+    return 2;
+  }
+  return 0;
+} 
 
 int tok_comma(tokenizer_char_stream str) {
   if (peek(str,0) == ',') {
@@ -406,7 +416,12 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
-  if ((n  = tok_comma(str))) {
+  if ((n = tok_commaat(str))) {
+    t.type= TOKCOMMAAT;
+    return t;
+  }
+  
+  if ((n = tok_comma(str))) {
     t.type = TOKCOMMA;
     return t;
   }
@@ -560,6 +575,13 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     if (type_of(expanded) == VAL_TYPE_SYMBOL &&
 	symrepr_is_error(dec_sym(expanded))) return expanded;
     return expanded;
+  }
+  case TOKCOMMAAT: {
+    t = next_token(str);
+    VALUE splice = parse_sexp(t, str);
+    if (type_of(splice) == VAL_TYPE_SYMBOL &&
+	dec_sym(splice) == symrepr_rerror()) return splice;
+    return cons(enc_sym(symrepr_commaat()), cons (splice, enc_sym(symrepr_nil())));
   }
   case TOKCOMMA: {
     t = next_token(str);

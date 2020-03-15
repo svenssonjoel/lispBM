@@ -40,6 +40,7 @@ VALUE gen_cons(VALUE a, VALUE b) {
 
 
 /* Append a list to the front of another list */ 
+/* 
 VALUE append(VALUE front, VALUE back) {
 
   UINT  storage[100]; 
@@ -62,7 +63,13 @@ VALUE append(VALUE front, VALUE back) {
     res = gen_cons(v, res);
   }
   return res;
-  
+}
+*/
+
+VALUE append(VALUE front, VALUE back) {
+  return cons (enc_sym(symrepr_append()),
+	       cons(front,
+		    cons(back, enc_sym(symrepr_nil()))));
 }
 
 /*
@@ -86,7 +93,6 @@ VALUE qq_expand_list(VALUE l) {
   VALUE res = enc_sym(symrepr_nil());
   VALUE car_val;
   VALUE cdr_val;
-  VALUE tmp;
 
   switch (type_of(l)) {
   case PTR_TYPE_CONS:
@@ -94,18 +100,24 @@ VALUE qq_expand_list(VALUE l) {
     cdr_val = cdr(l);
     if (type_of(car_val) == VAL_TYPE_SYMBOL &&
 	dec_sym(car_val) == symrepr_comma()) {
-      res = cons(car(cdr_val), res);
-      break;
+      res = cons(enc_sym(symrepr_list()),
+		 cons(car(cdr_val), res));
+    } else if (type_of(car_val) == VAL_TYPE_SYMBOL &&
+	       dec_sym(car_val) == symrepr_commaat()) {
+      res = car(cdr_val);
     } else {
       VALUE expand_car = qq_expand_list(car_val);
       VALUE expand_cdr = qq_expand(cdr_val);
-      res = cons(append(expand_car, expand_cdr), res);
-      break;
+      res = cons(enc_sym(symrepr_list()),
+		 cons(append(expand_car, expand_cdr), enc_sym(symrepr_nil())));
     }
+    break;
   default:
-    tmp = cons(enc_sym(symrepr_quote()),
-	       cons(l, enc_sym(symrepr_nil())));
-    res = cons(tmp,res);
+    //tmp = cons(enc_sym(symrepr_quote()),
+    //       cons(l, enc_sym(symrepr_nil())));
+    //res = cons(tmp,res);
+    res = cons(enc_sym(symrepr_list()),
+		    cons(l, enc_sym(symrepr_nil())));			  
   }
   return res;
 }
@@ -139,15 +151,18 @@ VALUE qq_expand(VALUE qquoted) {
     if (type_of(car_val) == VAL_TYPE_SYMBOL &&
 	dec_sym(car_val) == symrepr_comma()) {
       res = car(cdr_val);
+    } else if (type_of(car_val) == VAL_TYPE_SYMBOL &&
+	       dec_sym(car_val) == symrepr_commaat()) {
+      res = enc_sym(symrepr_rerror()); // should have a more specific error here. 
     } else {
       VALUE expand_car = qq_expand_list(car_val);
       VALUE expand_cdr = qq_expand(cdr_val);
-      if (type_of(cdr_val) == VAL_TYPE_SYMBOL &&
-	  dec_sym(cdr_val) == symrepr_nil()) {
-	res = append(expand_car, enc_sym(symrepr_nil()));
-      } else { 
+      //if (type_of(cdr_val) == VAL_TYPE_SYMBOL &&
+      //	   dec_sym(cdr_val) == symrepr_nil()) {
+      //	res = append(expand_car, enc_sym(symrepr_nil()));
+      //} else { 
 	res = append(expand_car, expand_cdr);
-      }
+	//}
     }
     break;
   default:

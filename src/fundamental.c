@@ -705,6 +705,20 @@ void array_create(VALUE *args, UINT nargs, UINT *result) {
 
 }
 
+
+VALUE index_list(VALUE l, int n) {
+  /* TODO: error checking */ 
+  VALUE curr = l;
+  while ( type_of(curr) == PTR_TYPE_CONS &&
+	  n > 0) {
+    curr = cdr(curr);
+    n --;
+  }
+
+  return car(curr);
+
+}
+
 VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
 
   UINT result = enc_sym(symrepr_eerror());
@@ -737,6 +751,27 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     }
     break;
   }
+  case SYM_APPEND: {
+    if (nargs != 2) break;
+    
+    VALUE a = args[0];
+    VALUE b = args[1];
+    
+    result = b;
+    VALUE curr = a;
+    int n = 0;
+    while (type_of(curr) == PTR_TYPE_CONS) {
+      n++;
+      curr = cdr(curr);
+    }
+
+    for (int i = n-1; i >= 0; i --) {
+      result = cons(index_list(a,i), result);
+      if (type_of(result) == VAL_TYPE_SYMBOL)
+	break;
+    }
+    break;
+  } 
   case SYM_ADD: {
     UINT sum = args[0];
     for (UINT i = 1; i < nargs; i ++) {

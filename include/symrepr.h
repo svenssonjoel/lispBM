@@ -39,8 +39,9 @@
 #define DEF_REPR_FATAL_ERROR   0xCFFFF   /* Runtime system is corrupt */
 #define DEF_REPR_DEFINE        0xDFFFF
 #define DEF_REPR_PROGN         0xEFFFF
-#define DEF_REPR_BACKQUOTE     0xFFFFF
+//#define DEF_REPR_BACKQUOTE     0xFFFFF
 #define DEF_REPR_COMMA         0x10FFFF
+#define DEF_REPR_COMMAAT       0x11FFFF
 
 // Special symbol ids
 #define DEF_REPR_ARRAY_TYPE     0x20FFFF
@@ -84,6 +85,7 @@
 #define SYM_CAR                 0x121FFFF
 #define SYM_CDR                 0x122FFFF
 #define SYM_LIST                0x123FFFF
+#define SYM_APPEND              0x124FFFF
 
 #define SYM_ARRAY_READ          0x130FFFF
 #define SYM_ARRAY_WRITE         0x131FFFF
@@ -107,11 +109,13 @@ static inline UINT symrepr_closure(void)     { return DEF_REPR_CLOSURE; }
 static inline UINT symrepr_let(void)         { return DEF_REPR_LET; }
 static inline UINT symrepr_define(void)      { return DEF_REPR_DEFINE; }
 static inline UINT symrepr_progn(void)       { return DEF_REPR_PROGN; }
-static inline UINT symrepr_backquote(void)   { return DEF_REPR_BACKQUOTE; }
+//static inline UINT symrepr_backquote(void)   { return DEF_REPR_BACKQUOTE; }
 static inline UINT symrepr_comma(void)       { return DEF_REPR_COMMA; }
+static inline UINT symrepr_commaat(void)     { return DEF_REPR_COMMAAT; }
 
 static inline UINT symrepr_cons(void)        { return SYM_CONS; }
 static inline UINT symrepr_list(void)        { return SYM_LIST; }
+static inline UINT symrepr_append(void)      { return SYM_APPEND; }
 static inline UINT symrepr_and(void)         { return SYM_AND; }
 static inline UINT symrepr_or(void)          { return SYM_OR; }
 
@@ -133,7 +137,7 @@ static inline UINT symrepr_type_i32(void)    {return DEF_REPR_TYPE_I32; }
 static inline UINT symrepr_type_u32(void)    {return DEF_REPR_TYPE_U32; }       
 static inline UINT symrepr_type_array(void)  {return DEF_REPR_TYPE_ARRAY; }     
 static inline UINT symrepr_type_symbol(void) {return DEF_REPR_TYPE_SYMBOL; }
-static inline UINT symrepr_type_char(void) {return DEF_REPR_TYPE_CHAR; }
+static inline UINT symrepr_type_char(void)   {return DEF_REPR_TYPE_CHAR; }
 
 
 static inline bool symrepr_is_error(UINT symrep){
