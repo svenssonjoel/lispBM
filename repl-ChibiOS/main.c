@@ -49,6 +49,8 @@
 #include "prelude.h"
 #include "extensions.h"
 
+#define EVAL_CPS_STACK_SIZE 256
+
 BaseSequentialStream *chp = NULL;
 
 int inputline(BaseSequentialStream *chp, char *buffer, int size) {
@@ -136,7 +138,7 @@ int reset_repl(int heap_size) {
     return res;
   }
 
-  res = eval_cps_init(false);
+  res = eval_cps_init(EVAL_CPS_STACK_SIZE,false);
   if (res)
     chprintf(chp,"Evaluator initialized.\n\r");
   else {

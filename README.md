@@ -35,12 +35,13 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 11. (DONE) Implement 'progn' facility.
 12. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
 13. (DONE) Add NRF52 example repl to repository
-14. Update all example REPLs after adding quasiquotation
-15. Add ESP32 example repl to repository.
-16. Recursion to Iteration. Where it is possible turn recursive function calls into iterations (Implementation).
-17. Test on all platforms after big changes to eval_cps.c.
-18. Implement some looping structure for speed or just ease of use. 
-19. Be much more stringent on checking of error conditions etc.
+14. (DONE) Update all example REPLs after adding quasiquotation
+15. Test all example REPLs after addition of quasiquotation
+16. Add ESP32 example repl to repository.
+17. Recursion to Iteration. Where it is possible turn recursive function calls into iterations (Implementation).
+18. Test on all platforms after big changes to eval_cps.c.
+19. Implement some looping structure for speed or just ease of use. 
+20. Be much more stringent on checking of error conditions etc.
 
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)

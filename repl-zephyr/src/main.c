@@ -33,7 +33,7 @@
 #define LISPBM_OUTPUT_BUFFER_SIZE 4096
 #define LISPBM_ERROR_BUFFER_SIZE  1024
 #define LISPBM_INPUT_BUFFER_SIZE  1024
-
+#define EVAL_CPS_STACK_SIZE 256
 
 #define RING_BUF_SIZE 1024
 u8_t in_ring_buffer[RING_BUF_SIZE];
@@ -216,7 +216,7 @@ void main(void)
     return;
   }
 
-  res = eval_cps_init(false);
+  res = eval_cps_init(EVAL_CPS_STACK_SIZE, false);
   if (res)
     usb_printf("Evaluator initialized.\n\r");
   else {

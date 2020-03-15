@@ -28,6 +28,8 @@
 #include "print.h"
 #include "tokpar.h"
 
+#define EVAL_CPS_STACK_SIZE
+
 int inputline(char *buffer, int size) {
   int n = 0;
   char c;
@@ -97,7 +99,7 @@ int main()
 		return 0;
 	}
 
-	res = eval_cps_init(true);
+	res = eval_cps_init(EVAL_CPS_STACK_SIZE, true);
 	if (res)
 		printf("Evaluator initialized.\n");
 	else {
