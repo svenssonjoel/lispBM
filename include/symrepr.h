@@ -110,6 +110,8 @@ static inline UINT symrepr_progn(void)       { return DEF_REPR_PROGN; }
 static inline UINT symrepr_backquote(void)   { return DEF_REPR_BACKQUOTE; }
 static inline UINT symrepr_comma(void)       { return DEF_REPR_COMMA; }
 
+static inline UINT symrepr_cons(void)        { return SYM_CONS; }
+static inline UINT symrepr_list(void)        { return SYM_LIST; }
 static inline UINT symrepr_and(void)         { return SYM_AND; }
 static inline UINT symrepr_or(void)          { return SYM_OR; }
 

@@ -26,6 +26,7 @@
 #include "heap.h"
 #include "typedefs.h"
 #include "compression.h"
+#include "qq_expand.h"
 
 #define TOKOPENPAR      0
 #define TOKCLOSEPAR     1
@@ -555,7 +556,10 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     VALUE quoted = parse_sexp(t, str);
     if (type_of(quoted) == VAL_TYPE_SYMBOL &&
 	dec_sym(quoted) == symrepr_rerror()) return quoted;
-    return cons(enc_sym(symrepr_backquote()), cons (quoted, enc_sym(symrepr_nil()))); 
+    VALUE expanded = qq_expand(quoted);
+    if (type_of(expanded) == VAL_TYPE_SYMBOL &&
+	symrepr_is_error(dec_sym(expanded))) return expanded;
+    return expanded;
   }
   case TOKCOMMA: {
     t = next_token(str);
