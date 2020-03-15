@@ -19,6 +19,7 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 8. Compiles for, and runs on STM32f4. 
 9. Compiles for, and runs on NRF52840.
 10. Compiles for, and runs on ESP32.
+11. Quasiquotation (needs more testing).
 
 ## TODOs
 1. (DONE) Write some tests that stresses the Garbage collector.
@@ -34,17 +35,18 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 11. (DONE) Implement 'progn' facility.
 12. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
 13. (DONE) Add NRF52 example repl to repository
-14. Add ESP32 example repl to repository.
-15. Recursion to Iteration. Where it is possible turn recursive function calls into iterations (Implementation).
-16. Test on all platforms after big changes to eval_cps.c.
-17. Implement some looping structure for speed or just ease of use. 
-18. Be much more stringent on checking of error conditions etc.
+14. Update all example REPLs after adding quasiquotation
+15. Add ESP32 example repl to repository.
+16. Recursion to Iteration. Where it is possible turn recursive function calls into iterations (Implementation).
+17. Test on all platforms after big changes to eval_cps.c.
+18. Implement some looping structure for speed or just ease of use. 
+19. Be much more stringent on checking of error conditions etc.
 
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
 
-2. Build the repl: `cd repl` and then `make`
+2. Build the repl: `cd repl-cps` and then `make`
 
 3. Run the repl: `./repl`
 
