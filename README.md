@@ -22,7 +22,7 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 11. Quasiquotation (needs more testing).
 
 ## Documentation
-LispBM's internals are documented as a series of [blog posts](svenssonjoel.github.io). 
+LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io). 
 
 ## TODOs
 1. (DONE) Write some tests that stresses the Garbage collector.
