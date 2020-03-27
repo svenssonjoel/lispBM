@@ -266,7 +266,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     if (type_of(rest) == VAL_TYPE_SYMBOL &&
 	rest == NIL) {
       *app_cont = true;
-      return enc_sym(symrepr_true());
+      return arg;
     } else {
       FATAL_ON_FAIL(*done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(AND)));
       ctx->curr_exp = car(rest);
@@ -281,7 +281,7 @@ VALUE apply_continuation(eval_context_t *ctx, VALUE arg, bool *done, bool *perfo
     if (type_of(arg) != VAL_TYPE_SYMBOL ||
 	dec_sym(arg) != symrepr_nil()) {
       *app_cont = true;
-      return enc_sym(symrepr_true());
+      return arg;
     }
     if (type_of(rest) == VAL_TYPE_SYMBOL &&
 	rest == NIL) {

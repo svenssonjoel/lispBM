@@ -16,12 +16,12 @@
 */
 
 
-/* 
-   Quasiquotation expansion attempt 
-   
-   Trying to adapt the algorithm from Bawden - Quasiquotation in Lisp 
-   to be applied during parsing.  
-   
+/*
+   Quasiquotation expansion attempt
+
+   Trying to adapt the algorithm from Bawden - Quasiquotation in Lisp
+   to be applied during parsing.
+
  */
 
 
@@ -39,17 +39,17 @@ VALUE gen_cons(VALUE a, VALUE b) {
 }
 
 
-/* Append a list to the front of another list */ 
-/* 
+/* Append a list to the front of another list */
+/*
 VALUE append(VALUE front, VALUE back) {
 
-  UINT  storage[100]; 
+  UINT  storage[100];
   VALUE res = back;
   stack s;
 
   stack_create(&s, storage, 100);
 
-  VALUE curr = front; 
+  VALUE curr = front;
   while (type_of(curr) == PTR_TYPE_CONS) {
     if (!push_u32(&s, car(curr))) {
       return enc_sym(symrepr_fatal_error());
@@ -117,7 +117,7 @@ VALUE qq_expand_list(VALUE l) {
     //       cons(l, enc_sym(symrepr_nil())));
     //res = cons(tmp,res);
     res = cons(enc_sym(symrepr_list()),
-		    cons(l, enc_sym(symrepr_nil())));			  
+	       cons(l, enc_sym(symrepr_nil())));
   }
   return res;
 }
@@ -140,10 +140,10 @@ VALUE qq_expand_list(VALUE l) {
 
 VALUE qq_expand(VALUE qquoted) {
 
-  VALUE res = enc_sym(symrepr_nil()); 
+  VALUE res = enc_sym(symrepr_nil());
   VALUE car_val;
-  VALUE cdr_val; 
-  
+  VALUE cdr_val;
+
   switch (type_of(qquoted)) {
   case PTR_TYPE_CONS:
     car_val = car(qquoted);
@@ -160,7 +160,7 @@ VALUE qq_expand(VALUE qquoted) {
       //if (type_of(cdr_val) == VAL_TYPE_SYMBOL &&
       //	   dec_sym(cdr_val) == symrepr_nil()) {
       //	res = append(expand_car, enc_sym(symrepr_nil()));
-      //} else { 
+      //} else {
 	res = append(expand_car, expand_cdr);
 	//}
     }
