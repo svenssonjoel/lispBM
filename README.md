@@ -21,6 +21,9 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 10. Compiles for, and runs on ESP32.
 11. Quasiquotation (needs more testing).
 
+## Documentation
+LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io). 
+
 ## TODOs
 1. (DONE) Write some tests that stresses the Garbage collector.
 2. (DONE) Implement some "reference to X type", for uint32, int32. 
