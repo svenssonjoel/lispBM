@@ -27,6 +27,7 @@ typedef struct eval_context_s{
   bool  done;
   bool  app_cont;
   stack K;
+  struct eval_context_s *prev;
   struct eval_context_s *next;
 } eval_context_t;
 

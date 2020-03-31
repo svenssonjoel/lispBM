@@ -40,12 +40,34 @@
 #define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ; }
 #define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ctx->r; }
 
-
 VALUE run_eval(eval_context_t *ctx);
 
 static VALUE eval_cps_global_env;
 static VALUE NIL;
 static VALUE NONSENSE;
+
+
+/* Callbacks and task queue */ 
+eval_context_t *ctx_queue = NULL;
+eval_context_t *ctx_queue_last = NULL;
+eval_context_t *ctx_curr  = NULL;
+void (*usleep_fptr)(uint32_t) = NULL;
+uint32_t (*timestamp_us)() = NULL;
+
+void enqueue_ctx(eval_context_t *ctx) {
+
+  if (ctx_queue_last == NULL) {
+    ctx->prev = NULL;
+    ctx->next = NULL;
+    ctx_queue = ctx;
+    ctx_queue_last = ctx;
+  } else {
+    ctx->prev = ctx_queue_last;
+    ctx->next = NULL;
+    ctx_queue_last->next = ctx;
+    ctx_queue_last = ctx;
+  }
+}
 
 eval_context_t *eval_context = NULL;
 
