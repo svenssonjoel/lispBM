@@ -40,19 +40,36 @@
 #define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ; }
 #define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ctx->r; }
 
+#define DEFAULT_SLEEP_US  1000
+
 VALUE run_eval(eval_context_t *ctx);
 
 static VALUE eval_cps_global_env;
 static VALUE NIL;
 static VALUE NONSENSE;
 
+static bool  eval_running = false; 
 
 /* Callbacks and task queue */ 
 eval_context_t *ctx_queue = NULL;
 eval_context_t *ctx_queue_last = NULL;
+eval_context_t *ctx_done = NULL;
 eval_context_t *ctx_curr  = NULL;
-void (*usleep_fptr)(uint32_t) = NULL;
-uint32_t (*timestamp_us)() = NULL;
+void (*usleep_callback)(uint32_t) = NULL;
+uint32_t (*timestamp_us_callback)(void) = NULL;
+void (*ctx_done_callback)(eval_context_t *) = NULL;
+
+void eval_cps_set_usleep_callback(void (*fptr)(uint32_t)) {
+  usleep_callback = fptr;
+}
+
+void eval_cps_set_timestamp_us_callback(uint32_t (*fptr)(void)) {
+  timestamp_us_callback = fptr;
+}
+
+void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
+  ctx_done_callback = fptr;
+}
 
 void enqueue_ctx(eval_context_t *ctx) {
 
@@ -67,6 +84,50 @@ void enqueue_ctx(eval_context_t *ctx) {
     ctx_queue_last->next = ctx;
     ctx_queue_last = ctx;
   }
+}
+
+eval_context_t *dequeue_ctx(uint32_t *us) {
+  uint32_t min_us = DEFAULT_SLEEP_US;
+  eval_context_t *curr = ctx_queue;
+  uint32_t t_now;
+  if (timestamp_us_callback) {
+    t_now = timestamp_us_callback();
+  } else {
+    t_now = 0;
+  }
+  
+  while (curr != NULL) {
+    uint32_t t_diff; 
+    if ( t_now < curr->timestamp ) {
+      /* There was an overflow on the counter */
+      t_diff = (0xFFFFFFFF - t_now) + curr->timestamp;
+    } else {
+      t_diff = curr->timestamp - t_now;
+    }
+
+    if (t_diff >= curr->sleep_us) {
+      eval_context_t *result = curr;
+      if (curr->prev == NULL) {
+	ctx_queue = curr->next;
+	if (ctx_queue) {
+	  ctx_queue->prev = NULL;
+	}
+      } else {
+	curr->prev->next = curr->next;
+	if (curr->next) {
+	  curr->next->prev = curr->prev;
+	}
+      }
+      return result;
+    }
+    if (min_us > t_diff) min_us = t_diff;
+    curr = curr->next;
+  }
+
+  /* No runnable context found */ 
+  *us = min_us;
+  return NULL;
+  
 }
 
 eval_context_t *eval_context = NULL;
@@ -86,15 +147,22 @@ eval_context_t *eval_cps_new_context_inherit_env(VALUE program, VALUE curr_exp) 
   return ctx;
 }
 
-void eval_cps_drop_top_context(void) {
-  eval_context_t *ctx = eval_context;
-  eval_context = eval_context->next;
-  stack_free(&ctx->K);
-  free(ctx);
-}
-
 VALUE eval_cps_get_env(void) {
   return eval_cps_global_env;
+}
+
+void yield_ctx(uint32_t sleep_us) {
+  if (timestamp_us_callback) { 
+    ctx_curr->timestamp = timestamp_us_callback();
+    ctx_curr->sleep_us = sleep_us;
+  } else {
+    ctx_curr->timestamp = 0;
+    ctx_curr->sleep_us = 0;
+  }
+  ctx_curr->r = enc_sym(symrepr_true());
+  ctx_curr->app_cont = true;
+  enqueue_ctx(ctx_curr);
+  ctx_curr = NULL;
 }
 
 VALUE eval_cps_bi_eval(VALUE exp) {
@@ -244,6 +312,17 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
       return;
     } else if (type_of(fun) == VAL_TYPE_SYMBOL) {
 
+      if (dec_sym(fun) == symrepr_yield()) {
+	if (type_of(fun_args[0] == VAL_TYPE_I)) {
+	  yield_ctx(dec_i(fun_args[0]));
+	} else {
+	  ctx->r = enc_sym(symrepr_eerror());
+	  ctx->done = true;
+	}
+	return;
+      }
+      
+      
       VALUE res;
 
       if (is_fundamental(fun)) {
@@ -442,8 +521,20 @@ VALUE run_eval(eval_context_t *ctx){
 
   FATAL_ON_FAIL_R(ctx->done, push_u32(&ctx->K, enc_u(DONE)));
 
-  while (!ctx->done) {
+  while (eval_running) {
 
+    if (ctx_curr == NULL) {
+      uint32_t us;
+      ctx_curr = dequeue_ctx(&us);
+      if (!ctx_curr) {
+	if (usleep_callback) {
+	  usleep_callback(us);
+	}
+	continue;
+      }
+    }
+    
+    
 #ifdef VISUALIZE_HEAP
     heap_vis_gen_image();
 #endif
@@ -681,7 +772,6 @@ VALUE eval_cps_program(VALUE lisp) {
 
   eval_context_t *ctx = eval_cps_get_current_context();
 
-  
   ctx->program  = lisp;
   VALUE res = NIL;
   VALUE curr = lisp;

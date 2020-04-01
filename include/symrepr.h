@@ -81,6 +81,8 @@
 #define SYM_OR                  0x111FFFF
 #define SYM_NOT                 0x112FFFF
 
+#define SYM_YIELD               0x113FFFF
+
 #define SYM_CONS                0x120FFFF
 #define SYM_CAR                 0x121FFFF
 #define SYM_CDR                 0x122FFFF
@@ -109,7 +111,6 @@ static inline UINT symrepr_closure(void)     { return DEF_REPR_CLOSURE; }
 static inline UINT symrepr_let(void)         { return DEF_REPR_LET; }
 static inline UINT symrepr_define(void)      { return DEF_REPR_DEFINE; }
 static inline UINT symrepr_progn(void)       { return DEF_REPR_PROGN; }
-//static inline UINT symrepr_backquote(void)   { return DEF_REPR_BACKQUOTE; }
 static inline UINT symrepr_comma(void)       { return DEF_REPR_COMMA; }
 static inline UINT symrepr_commaat(void)     { return DEF_REPR_COMMAAT; }
 
@@ -118,6 +119,9 @@ static inline UINT symrepr_list(void)        { return SYM_LIST; }
 static inline UINT symrepr_append(void)      { return SYM_APPEND; }
 static inline UINT symrepr_and(void)         { return SYM_AND; }
 static inline UINT symrepr_or(void)          { return SYM_OR; }
+static inline UINT symrepr_not(void)         { return SYM_NOT; }
+
+static inline UINT symrepr_yield(void)       { return SYM_YIELD; }
 
 static inline UINT symrepr_rerror(void)      { return DEF_REPR_RERROR; }
 static inline UINT symrepr_terror(void)      { return DEF_REPR_TERROR; }

@@ -164,6 +164,9 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("and", SYM_AND);
   res = res && symrepr_addspecial("or", SYM_OR);
   res = res && symrepr_addspecial("not", SYM_NOT);
+
+  res = res && symrepr_addspecial("yield", SYM_YIELD);
+  
   res = res && symrepr_addspecial("num-eq", SYM_NUMEQ);
   res = res && symrepr_addspecial("car", SYM_CAR);
   res = res && symrepr_addspecial("cdr", SYM_CDR);
