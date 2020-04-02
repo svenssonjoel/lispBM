@@ -121,6 +121,7 @@ static inline UINT symrepr_and(void)         { return SYM_AND; }
 static inline UINT symrepr_or(void)          { return SYM_OR; }
 static inline UINT symrepr_not(void)         { return SYM_NOT; }
 
+static inline UINT symrepr_eval(void)        { return SYM_EVAL; }
 static inline UINT symrepr_yield(void)       { return SYM_YIELD; }
 
 static inline UINT symrepr_rerror(void)      { return DEF_REPR_RERROR; }

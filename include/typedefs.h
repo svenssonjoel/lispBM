@@ -35,6 +35,7 @@ typedef uint32_t TYPE;  // Representation of type.
 typedef uint32_t UINT; // Must be same size as a pointer on target platform.
 typedef int32_t  INT;
 typedef float    FLOAT;
+typedef uint32_t CID;
 
 #define PRI_VALUE PRIu32
 #define PRI_TYPE  PRIu32
@@ -51,6 +52,7 @@ typedef uint64_t TYPE;
 typedef uint64_t UINT;
 typedef int64_t  INT;
 typedef double   FLOAT;
+typedef uint32_t CID;
 
 #define PRI_VALUE PRIu64
 #define PRI_TYPE  PRIu64

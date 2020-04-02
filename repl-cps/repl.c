@@ -19,6 +19,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #include "heap.h"
 #include "symrepr.h"
@@ -27,13 +30,56 @@
 #include "print.h"
 #include "tokpar.h"
 #include "prelude.h"
+#include "typedefs.h"
 
 #define EVAL_CPS_STACK_SIZE 256
+
+void *eval_thd_wrapper(void *v) {
+
+  eval_cps_run_eval();
+  
+  return NULL;
+}
+
+void done_callback(eval_context_t *ctx) {
+
+  char output[1024];
+  char error[1024];
+
+  CID cid = ctx->id;
+  VALUE t = ctx->r;
+  
+  int print_ret = print_value(output, 1024, error, 1024, t);
+
+  if (print_ret >= 0) {
+    printf("<< Context %d finished with value %s >>\n# ", cid, output);
+  } else {
+    printf("<< Context %d finished with value %s >>\n# ", cid, error);
+  }
+  fflush(stdout);
+}
+
+uint32_t timestamp_callback() {
+  struct timeval tv;
+  gettimeofday(&tv,NULL);
+  return (tv.tv_sec * 1000000 + (uint32_t)tv.tv_usec);
+}
+
+void sleep_callback(uint32_t us) {
+  struct timespec s;
+  struct timespec r;
+  s.tv_sec = 0;
+  s.tv_nsec = us * 1000;
+  nanosleep(&s, &r);
+}
 
 
 VALUE ext_print(VALUE *args, int argn) {
   if (argn < 1) return enc_sym(symrepr_nil());
 
+  char output[1024];
+  char error[1024];
+  
   for (int i = 0; i < argn; i ++) {
     VALUE t = args[i];
 
@@ -50,13 +96,18 @@ VALUE ext_print(VALUE *args, int argn) {
     } else if (val_type(t) == VAL_TYPE_CHAR) {
       printf("%c", dec_char(t));
     } else {
-      return enc_sym(symrepr_nil());
+      int print_ret = print_value(output, 1024, error, 1024, t);
+      
+      if (print_ret >= 0) {
+	printf("%s", output);
+      } else {
+	printf("%s", error);
+      }
     }
  
   }
   return enc_sym(symrepr_true());
 }
-
 
 /* load a file, caller is responsible for freeing the returned string */ 
 char * load_file(char *filename) {
@@ -101,6 +152,8 @@ int main(int argc, char **argv) {
   size_t len = 1024;
   int res = 0;
 
+  pthread_t lispbm_thd; 
+
   heap_state_t heap_state;
 
   res = symrepr_init();
@@ -120,13 +173,18 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = eval_cps_init(EVAL_CPS_STACK_SIZE, false); // dont grow stack 
+  res = eval_cps_init(); // dont grow stack 
   if (res)
     printf("Evaluator initialized.\n");
   else {
     printf("Error initializing evaluator.\n");
   }
 
+  eval_cps_set_ctx_done_callback(done_callback);
+  eval_cps_set_timestamp_us_callback(timestamp_callback);
+  eval_cps_set_usleep_callback(sleep_callback);
+  
+  
   res = extensions_add("print", ext_print);
   if (res)
     printf("Extension added.\n");
@@ -143,8 +201,17 @@ int main(int argc, char **argv) {
 
   char output[1024];
   char error[1024];
+
+  /* Start evaluator thread */
+  if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
+    printf("Error creating evaluation thread\n");
+    return 1;
+  }
+
+ 
   
   while (1) {
+    fflush(stdin);
     printf("# ");
     memset(str, 0 ,len);
     ssize_t n = getline(&str,&len,stdin);
@@ -171,13 +238,8 @@ int main(int argc, char **argv) {
       if (file_str) {
 	VALUE f_exp = tokpar_parse(file_str);
 	free(file_str);
-	VALUE f_res = eval_cps_program(f_exp);
-	int print_ret = print_value(output, 1024, error, 1024, f_res);
-	if (print_ret >= 0) {
-	  printf("%s\n", output);
-	} else {
-	  printf("%s\n", error);
-	}
+	CID cid1 = eval_cps_program(f_exp);
+	printf("started ctx: %u\n", cid1);
       } 
     } else  if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
@@ -186,16 +248,10 @@ int main(int argc, char **argv) {
       VALUE t;
       t = tokpar_parse(str);
 
-      t = eval_cps_program(t);
+      CID cid = eval_cps_program(t);
 
-      int print_ret = print_value(output, 1024, error, 1024, t);
+      printf("started ctx: %u\n", cid);
 
-     
-      if (print_ret >= 0) {
-	printf("%s\n", output);
-      } else {
-	printf("%s\n", error);
-      }
     }
   }
 

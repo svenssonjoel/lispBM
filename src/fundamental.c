@@ -707,16 +707,14 @@ void array_create(VALUE *args, UINT nargs, UINT *result) {
 
 
 VALUE index_list(VALUE l, int n) {
-  /* TODO: error checking */ 
+  /* TODO: error checking */
   VALUE curr = l;
   while ( type_of(curr) == PTR_TYPE_CONS &&
 	  n > 0) {
     curr = cdr(curr);
     n --;
   }
-
   return car(curr);
-
 }
 
 VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
@@ -725,9 +723,6 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
   int cmp_res = -1;
 
   switch (dec_sym(op)) {
-  case SYM_EVAL:
-    result = eval_cps_bi_eval(args[0]);
-    break;
   case SYM_CONS: {
     UINT a = args[0];
     UINT b = args[1];
@@ -753,10 +748,10 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
   }
   case SYM_APPEND: {
     if (nargs != 2) break;
-    
+
     VALUE a = args[0];
     VALUE b = args[1];
-    
+
     result = b;
     VALUE curr = a;
     int n = 0;
@@ -771,7 +766,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
 	break;
     }
     break;
-  } 
+  }
   case SYM_ADD: {
     UINT sum = args[0];
     for (UINT i = 1; i < nargs; i ++) {

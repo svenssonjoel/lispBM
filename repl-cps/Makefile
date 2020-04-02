@@ -5,7 +5,7 @@ ifdef HEAP_VIS
 	CCFLAGS += -DVISUALIZE_HEAP
 endif
 
-LIB = ../build/linux-x86/liblispbm.a
+LIB = ../build/linux-x86/liblispbm.a -lpthread
 
 all: repl
 

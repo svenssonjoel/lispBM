@@ -27,8 +27,11 @@ typedef struct eval_context_s{
   bool  done;
   bool  app_cont;
   stack K;
+  /* Process control */ 
   uint32_t timestamp;
   uint32_t sleep_us;
+  CID id;
+  /* List structure */ 
   struct eval_context_s *prev;
   struct eval_context_s *next;
 } eval_context_t;
@@ -37,15 +40,13 @@ extern void eval_cps_set_usleep_callback(void (*fptr)(uint32_t));
 extern void eval_cps_set_timestamp_us_callback(uint32_t (*fptr)(void));
 extern void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *));
 
-
 extern eval_context_t *eval_cps_get_current_context(void);
 extern eval_context_t *eval_cps_new_context_inherit_env(VALUE program, VALUE curr_exp);
 extern void eval_cps_drop_top_context(void);
 
 extern VALUE eval_cps_get_env(void);
-extern int eval_cps_init(unsigned int initial_stack_size,
-			 bool grow_continuation_stack);
+extern int eval_cps_init(void);
 extern void eval_cps_del(void);
-extern VALUE eval_cps_program(VALUE lisp);
-extern VALUE eval_cps_bi_eval(VALUE exp);
+extern CID eval_cps_program(VALUE lisp);
+extern void eval_cps_run_eval(void);
 #endif
