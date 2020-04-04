@@ -96,6 +96,9 @@ void finish_ctx(eval_context_t *ctx) {
   } else {
     ctx->prev = NULL;
     ctx->next = ctx_done;
+    if (ctx->next) {
+      ctx->next->prev = ctx;
+    }
     ctx_done = ctx;
   }
 
@@ -105,11 +108,32 @@ void finish_ctx(eval_context_t *ctx) {
   ctx_running = NULL;
 }
 
+void remove_done_ctx(uint32_t cid) {
+
+  eval_context_t * curr = ctx_done;
+
+  while(curr) {
+    if (curr->id == cid) {
+      if (curr->prev) {
+	curr->prev->next = curr->next;
+      }
+      if (curr->next) {
+	curr->next->prev = curr->prev;
+      }
+
+      stack_free(&curr->K);
+      free(curr);
+      break;
+    }
+    curr = curr->next;
+  }
+
+}
+
 void error_ctx(eval_context_t *ctx, VALUE err_val) {
   ctx->r = err_val;
   finish_ctx(ctx);
 }
-
 
 eval_context_t *dequeue_ctx(uint32_t *us) {
   uint32_t min_us = DEFAULT_SLEEP_US;
@@ -228,9 +252,9 @@ VALUE eval_cps_get_env(void) {
   return eval_cps_global_env;
 }
 
-// ////////////////////////////////////////////////////////
-// Continuation points and apply cont
-// ////////////////////////////////////////////////////////
+/* ************************************************************
+ * Continuation points and apply cont
+ * ************************************************************ */
 
 void cont_set_global_env(eval_context_t *ctx, bool *perform_gc){
 
@@ -573,6 +597,47 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
   return;
 }
 
+
+
+int gc(VALUE env,
+       eval_context_t *runnable,
+       eval_context_t *done,
+       eval_context_t *running) {
+  
+  gc_state_inc();
+  gc_mark_freelist();
+  gc_mark_phase(env);
+
+  eval_context_t *curr = runnable;
+  while (curr) {
+    gc_mark_phase(curr->curr_env);
+    gc_mark_phase(curr->curr_exp);
+    gc_mark_phase(curr->program);
+    gc_mark_phase(curr->r);
+    gc_mark_aux(curr->K.data, curr->K.sp);
+    curr = curr->next;
+  }
+
+  curr = done;
+  while (curr) {
+    gc_mark_phase(curr->r);
+    curr = curr->next;
+  }
+
+  gc_mark_phase(running->curr_env);
+  gc_mark_phase(running->curr_exp);
+  gc_mark_phase(running->program);
+  gc_mark_phase(running->r);
+  gc_mark_aux(running->K.data, running->K.sp);
+  
+
+#ifdef VISUALIZE_HEAP
+  heap_vis_gen_image();
+#endif
+
+  return gc_sweep_phase();
+}
+
 void eval_cps_run_eval(void){
 
   bool perform_gc = false;
@@ -604,13 +669,10 @@ void eval_cps_run_eval(void){
 	continue;
       }
       non_gc = 0;
-      heap_perform_gc_aux(eval_cps_global_env,
-			  ctx->curr_env,
-			  ctx->curr_exp,
-			  ctx->program,
-			  ctx->r,
-			  ctx->K.data,
-			  ctx->K.sp);
+      gc(eval_cps_global_env,
+	 ctx_queue,
+	 ctx_done,
+	 ctx_running);
       perform_gc = false;
     } else {
       non_gc ++;

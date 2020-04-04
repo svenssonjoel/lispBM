@@ -372,21 +372,24 @@ int gc_sweep_phase(void) {
   return 1;
 }
 
-int heap_perform_gc(VALUE env) {
+void gc_state_inc(void) {
   heap_state.gc_num ++;
   heap_state.gc_recovered = 0;
   heap_state.gc_marked = 0;
+}
+  
 
+int heap_perform_gc(VALUE env) {
+  gc_state_inc();
+  
   gc_mark_freelist();
   gc_mark_phase(env);
   return gc_sweep_phase();
 }
 
 int heap_perform_gc_extra(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE list) {
-  heap_state.gc_num ++;
-  heap_state.gc_recovered = 0;
-  heap_state.gc_marked = 0;
-
+  gc_state_inc();
+  
   gc_mark_freelist();
   gc_mark_phase(exp);
   gc_mark_phase(exp2);
@@ -402,10 +405,8 @@ int heap_perform_gc_extra(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE li
 }
 
 int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE exp3, UINT *aux_data, unsigned int aux_size) {
-  heap_state.gc_num ++;
-  heap_state.gc_recovered = 0;
-  heap_state.gc_marked = 0;
-
+  gc_state_inc();
+  
   gc_mark_freelist();
   gc_mark_phase(exp);
   gc_mark_phase(exp2);
@@ -420,7 +421,6 @@ int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE exp3
 
   return gc_sweep_phase();
 }
-
 
 // construct, alter and break apart
 VALUE cons(VALUE car, VALUE cdr) {

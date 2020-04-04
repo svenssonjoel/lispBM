@@ -62,14 +62,14 @@ void done_callback(eval_context_t *ctx) {
 uint32_t timestamp_callback() {
   struct timeval tv;
   gettimeofday(&tv,NULL);
-  return (tv.tv_sec * 1000000 + (uint32_t)tv.tv_usec);
+  return (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec);
 }
 
 void sleep_callback(uint32_t us) {
   struct timespec s;
   struct timespec r;
   s.tv_sec = 0;
-  s.tv_nsec = us * 1000;
+  s.tv_nsec = (long)us * 1000;
   nanosleep(&s, &r);
 }
 

@@ -18,6 +18,7 @@
 #define EVAL_CPS_H_
 
 #include "stack.h"
+#include "typedefs.h"
 
 typedef struct eval_context_s{
   VALUE program;
