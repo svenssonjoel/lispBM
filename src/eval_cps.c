@@ -109,12 +109,14 @@ void finish_ctx(void) {
   ctx_running = NULL;
 }
 
-bool eval_cps_remove_done_ctx(CID cid) {
+bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
+
+  if (!ctx_done) return false;
 
   eval_context_t * curr = ctx_done->next;
-
+  
   if (ctx_done->id == cid) {
-
+    *v = ctx_done->r;
     stack_free(&ctx_done->K);
     free(ctx_done);
     ctx_done = curr;
@@ -132,7 +134,7 @@ bool eval_cps_remove_done_ctx(CID cid) {
       if (curr->next) {
 	curr->next->prev = curr->prev;
       }
-
+      *v = curr->r;
       stack_free(&curr->K);
       free(curr);
       return true;
@@ -336,6 +338,26 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
     ctx->curr_env = env;
     return;
   }
+  case WAIT: {
+
+    VALUE cid_val; 
+    pop_u32(&ctx->K, &cid_val);
+    CID cid = dec_u(cid_val);
+
+    VALUE r;
+
+    if (eval_cps_remove_done_ctx(cid, &r)) {
+      ctx->r = r;
+      ctx->app_cont = true;
+    } else {
+      FOF(push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
+      ctx->r = enc_sym(symrepr_true());
+      ctx->app_cont = true;
+      yield_ctx(50000);
+    }
+    return;
+  }
+
   case APPLICATION: {
     VALUE count;
     pop_u32(&ctx->K, &count);
@@ -399,12 +421,27 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
     } else if (type_of(fun) == VAL_TYPE_SYMBOL) {
 
 
-      /* TODO: check there are enough arguments */
+      /* TODO: These should work any int type as argument */
       if (dec_sym(fun) == symrepr_yield()) {
 	if (type_of(fun_args[1]) == VAL_TYPE_I) {
 	  INT ts = dec_i(fun_args[1]);
 	  stack_drop(&ctx->K, dec_u(count)+1);
 	  yield_ctx(ts);
+	} else {
+	  ERROR
+	  error_ctx(enc_sym(symrepr_eerror()));
+	}
+	return;
+      }
+
+      if (dec_sym(fun) == symrepr_wait()) {
+	if (type_of(fun_args[1]) == VAL_TYPE_I) {
+	  CID cid = dec_i(fun_args[1]);	
+	  stack_drop(&ctx->K, dec_u(count)+1);
+	  FOF(push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
+	  ctx->r = enc_sym(symrepr_true());
+	  ctx->app_cont = true;
+	  yield_ctx(50000);
 	} else {
 	  ERROR
 	  error_ctx(enc_sym(symrepr_eerror()));
