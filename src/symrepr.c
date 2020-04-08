@@ -124,7 +124,7 @@ bool add_default_symbols() {
   //res = res && symrepr_addspecial("bquote"     , DEF_REPR_BACKQUOTE);
   res = res && symrepr_addspecial("comma"      , DEF_REPR_COMMA);  // don't really need names.. right ?
   res = res && symrepr_addspecial("splice"     , DEF_REPR_COMMAAT);
-  
+
   // Special symbols with unparseable names
   res = res && symrepr_addspecial("read_error"       , DEF_REPR_RERROR);
   res = res && symrepr_addspecial("type_error"       , DEF_REPR_TERROR);
@@ -151,7 +151,7 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("type-array"       , DEF_REPR_TYPE_ARRAY);
   res = res && symrepr_addspecial("type-symbol"      , DEF_REPR_TYPE_SYMBOL);
   res = res && symrepr_addspecial("type-char"        , DEF_REPR_TYPE_CHAR);
-  
+
   res = res && symrepr_addspecial("+", SYM_ADD);
   res = res && symrepr_addspecial("-", SYM_SUB);
   res = res && symrepr_addspecial("*", SYM_MUL);
@@ -166,7 +166,8 @@ bool add_default_symbols() {
   res = res && symrepr_addspecial("not", SYM_NOT);
 
   res = res && symrepr_addspecial("yield", SYM_YIELD);
-  
+  res = res && symrepr_addspecial("wait" , SYM_WAIT);
+
   res = res && symrepr_addspecial("num-eq", SYM_NUMEQ);
   res = res && symrepr_addspecial("car", SYM_CAR);
   res = res && symrepr_addspecial("cdr", SYM_CDR);
@@ -221,7 +222,7 @@ bool symrepr_addspecial(char *name, UINT spec_id) {
     if (symrepr_lookup(name, &t_id)) {
       return false;
     }
-    
+
     name_mapping_t *head = name_list_get_mappings(name_list,hash);
     if (head == NULL) {
       name_list_t *new_entry = (name_list_t*)malloc(sizeof(name_list_t));
@@ -250,8 +251,8 @@ bool symrepr_addspecial(char *name, UINT spec_id) {
       head->next = new_mapping;
     }
   }
-      
-      
+
+
 #else
   if (name_table[hash] == NULL){
     name_table[hash] = (name_mapping_t*)malloc(sizeof(name_mapping_t));

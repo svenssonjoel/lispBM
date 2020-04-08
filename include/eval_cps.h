@@ -41,9 +41,7 @@ extern void eval_cps_set_usleep_callback(void (*fptr)(uint32_t));
 extern void eval_cps_set_timestamp_us_callback(uint32_t (*fptr)(void));
 extern void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *));
 
-extern eval_context_t *eval_cps_get_current_context(void);
-extern eval_context_t *eval_cps_new_context_inherit_env(VALUE program, VALUE curr_exp);
-extern void eval_cps_drop_top_context(void);
+extern void eval_cps_remove_done_ctx(CID cid);
 
 extern VALUE eval_cps_get_env(void);
 extern int eval_cps_init(void);

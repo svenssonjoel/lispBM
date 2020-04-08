@@ -57,6 +57,7 @@ void done_callback(eval_context_t *ctx) {
     printf("<< Context %d finished with value %s >>\n# ", cid, error);
   }
   fflush(stdout);
+  eval_cps_remove_done_ctx(cid);
 }
 
 uint32_t timestamp_callback() {

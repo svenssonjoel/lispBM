@@ -82,6 +82,7 @@
 #define SYM_NOT                 0x112FFFF
 
 #define SYM_YIELD               0x113FFFF
+#define SYM_WAIT                0x114FFFF
 
 #define SYM_CONS                0x120FFFF
 #define SYM_CAR                 0x121FFFF
@@ -123,6 +124,7 @@ static inline UINT symrepr_not(void)         { return SYM_NOT; }
 
 static inline UINT symrepr_eval(void)        { return SYM_EVAL; }
 static inline UINT symrepr_yield(void)       { return SYM_YIELD; }
+static inline UINT symrepr_wait(void)        { return SYM_WAIT; }
 
 static inline UINT symrepr_rerror(void)      { return DEF_REPR_RERROR; }
 static inline UINT symrepr_terror(void)      { return DEF_REPR_TERROR; }

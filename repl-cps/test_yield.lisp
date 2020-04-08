@@ -1,7 +1,7 @@
 
 ;; while (true) {
 ;;  usleep(500000);
-;;  printf("hello %d \n", x++);
+;;  printf("hello %d\n", x++);
 ;; }
 
 (let ((f (lambda (x)

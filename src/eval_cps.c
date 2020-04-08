@@ -37,6 +37,7 @@
 #define APPLICATION_ARGS  7
 #define AND               8
 #define OR                9
+#define WAIT              10
 
 #define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ; }
 #define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ctx->r; }
@@ -88,35 +89,46 @@ void enqueue_ctx(eval_context_t *ctx) {
   }
 }
 
-void finish_ctx(eval_context_t *ctx) {
+void finish_ctx(void) {
   if (ctx_done == NULL) {
-    ctx->prev = NULL;
-    ctx->next = NULL;
-    ctx_done = ctx;
+    ctx_running->prev = NULL;
+    ctx_running->next = NULL;
+    ctx_done = ctx_running;
   } else {
-    ctx->prev = NULL;
-    ctx->next = ctx_done;
-    if (ctx->next) {
-      ctx->next->prev = ctx;
+    ctx_running->prev = NULL;
+    ctx_running->next = ctx_done;
+    if (ctx_running->next) {
+      ctx_running->next->prev = ctx_running;
     }
-    ctx_done = ctx;
+    ctx_done = ctx_running;
   }
 
   if (ctx_done_callback) {
-    ctx_done_callback(ctx);
+    ctx_done_callback(ctx_done);
   }
   ctx_running = NULL;
 }
 
-void remove_done_ctx(uint32_t cid) {
+void eval_cps_remove_done_ctx(CID cid) {
 
-  eval_context_t * curr = ctx_done;
+  eval_context_t * curr = ctx_done->next;
+
+  if (ctx_done->id == cid) {
+    
+    stack_free(&ctx_done->K);
+    free(ctx_done);
+    ctx_done = curr;
+    if (ctx_done) {
+      ctx_done->prev = NULL;
+    }
+    return;
+  }
 
   while(curr) {
     if (curr->id == cid) {
       if (curr->prev) {
 	curr->prev->next = curr->next;
-      }
+      } 
       if (curr->next) {
 	curr->next->prev = curr->prev;
       }
@@ -127,12 +139,11 @@ void remove_done_ctx(uint32_t cid) {
     }
     curr = curr->next;
   }
-
 }
 
-void error_ctx(eval_context_t *ctx, VALUE err_val) {
-  ctx->r = err_val;
-  finish_ctx(ctx);
+void error_ctx(VALUE err_val) {
+  ctx_running->r = err_val;
+  finish_ctx();
 }
 
 eval_context_t *dequeue_ctx(uint32_t *us) {
@@ -195,7 +206,6 @@ void yield_ctx(uint32_t sleep_us) {
     ctx_running->timestamp = 0;
     ctx_running->sleep_us = 0;
   }
-  //printf("yield: %u,  %u\n", ctx_running->timestamp, ctx_running->sleep_us);
   ctx_running->r = enc_sym(symrepr_true());
   ctx_running->app_cont = true;
   enqueue_ctx(ctx_running);
@@ -233,7 +243,7 @@ CID create_ctx(VALUE program, uint32_t stack_size, bool grow_stack) {
   return ctx->id;
 }
 
-void advance_ctx() {
+void advance_ctx(void) {
 
   if (type_of(ctx_running->program) == PTR_TYPE_CONS) {
     push_u32(&ctx_running->K, enc_u(DONE));
@@ -244,7 +254,7 @@ void advance_ctx() {
 
   } else {
     ctx_running->done = true;
-    finish_ctx(ctx_running);
+    finish_ctx();
   }
 }
 
@@ -272,7 +282,7 @@ void cont_set_global_env(eval_context_t *ctx, bool *perform_gc){
     }
     if (dec_sym(new_env) == symrepr_fatal_error()) {
       ERROR
-      error_ctx(ctx, new_env);
+      error_ctx(new_env);
       return;
     }
   }
@@ -292,7 +302,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
 
   switch(dec_u(k)) {
   case DONE:
-    advance_ctx(ctx);
+    advance_ctx();
     return;
   case SET_GLOBAL_ENV:
     cont_set_global_env(ctx, perform_gc);
@@ -310,7 +320,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
 
     if (symrepr_is_error(rest)) {
       ERROR
-      error_ctx(ctx, rest);
+      error_ctx(rest);
       return;
     }
     // allow for tail recursion
@@ -351,7 +361,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
 
       if (length(params) != length(args)) { // programmer error
 	ERROR
-	error_ctx(ctx,enc_sym(symrepr_eerror()));
+	error_ctx(enc_sym(symrepr_eerror()));
 	return;
       }
 
@@ -396,7 +406,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
 	  yield_ctx(ts);
 	} else {
 	  ERROR
-	  error_ctx(ctx, enc_sym(symrepr_eerror()));
+	  error_ctx(enc_sym(symrepr_eerror()));
 	}
 	return;
       }
@@ -414,7 +424,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
 	if (type_of(res) == VAL_TYPE_SYMBOL &&
 	    dec_sym(res) == symrepr_eerror()) {
 	  ERROR
-	  error_ctx(ctx, res);
+	  error_ctx(res);
 	  return;
 	} else if (type_of(res) == VAL_TYPE_SYMBOL &&
 		   dec_sym(res) == symrepr_merror()) {
@@ -436,7 +446,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
     extension_fptr f = extensions_lookup(dec_sym(fun));
     if (f == NULL) {
       ERROR
-      error_ctx(ctx, enc_sym(symrepr_eerror()));
+      error_ctx(enc_sym(symrepr_eerror()));
       return;
     }
 
@@ -593,17 +603,15 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
   }
   } // end switch
   ERROR
-  error_ctx(ctx,enc_sym(symrepr_eerror()));
+  error_ctx(enc_sym(symrepr_eerror()));
   return;
 }
-
-
 
 int gc(VALUE env,
        eval_context_t *runnable,
        eval_context_t *done,
        eval_context_t *running) {
-  
+
   gc_state_inc();
   gc_mark_freelist();
   gc_mark_phase(env);
@@ -629,7 +637,7 @@ int gc(VALUE env,
   gc_mark_phase(running->program);
   gc_mark_phase(running->r);
   gc_mark_aux(running->K.data, running->K.sp);
-  
+
 
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
@@ -641,7 +649,7 @@ int gc(VALUE env,
 void eval_cps_run_eval(void){
 
   bool perform_gc = false;
-  uint32_t non_gc = 0;
+  bool last_iteration_gc = false;
 
   while (eval_running) {
 
@@ -654,6 +662,7 @@ void eval_cps_run_eval(void){
 	}
 	continue;
       }
+      //last_iteration_gc = false;
     }
 
     eval_context_t *ctx = ctx_running;
@@ -663,19 +672,19 @@ void eval_cps_run_eval(void){
 #endif
 
     if (perform_gc) {
-      if (non_gc == 0) {
+      if (last_iteration_gc) {
 	ERROR
-	error_ctx(ctx,enc_sym(symrepr_merror()));
+	error_ctx(enc_sym(symrepr_merror()));
 	continue;
       }
-      non_gc = 0;
+      last_iteration_gc = true;
       gc(eval_cps_global_env,
 	 ctx_queue,
 	 ctx_done,
 	 ctx_running);
       perform_gc = false;
     } else {
-      non_gc ++;
+      last_iteration_gc = false;;
     }
 
     if (ctx->app_cont) {
@@ -703,7 +712,7 @@ void eval_cps_run_eval(void){
 	    value = ctx->curr_exp;
 	  } else if (extensions_lookup(dec_sym(ctx->curr_exp)) == NULL) {
 	    ERROR
-	    error_ctx(ctx,enc_sym(symrepr_eerror()));
+	    error_ctx(enc_sym(symrepr_eerror()));
 	    continue;
 	  } else {
 	    value = ctx->curr_exp; // symbol representing extension
@@ -727,7 +736,7 @@ void eval_cps_run_eval(void){
     case PTR_TYPE_REF:
     case PTR_TYPE_STREAM:
       ERROR
-      error_ctx(ctx, enc_sym(symrepr_eerror()));
+      error_ctx(enc_sym(symrepr_eerror()));
       break;
     case PTR_TYPE_CONS:
       head = car(ctx->curr_exp);
@@ -749,7 +758,7 @@ void eval_cps_run_eval(void){
 	  if (type_of(key) != VAL_TYPE_SYMBOL ||
 	      key == NIL) {
 	    ERROR
-	    error_ctx(ctx, enc_sym(symrepr_eerror()));
+	    error_ctx(enc_sym(symrepr_eerror()));
 	    continue;
 	  }
 
@@ -771,7 +780,7 @@ void eval_cps_run_eval(void){
 
 	  if (symrepr_is_error(exps)) {
 	    ERROR
-	    error_ctx(ctx, exps);
+	    error_ctx(exps);
 	    continue;
 	  }
 	  FOF(push_u32_3(&ctx->K, env, cdr(exps), enc_u(PROGN_REST)));
@@ -878,10 +887,10 @@ void eval_cps_run_eval(void){
     default:
       // BUG No applicable case!
       ERROR
-      error_ctx(ctx, enc_sym(symrepr_eerror()));
+      error_ctx(enc_sym(symrepr_eerror()));
       break;
     }
-  } // while (true)
+  } // while (eval_running)
 }
 
 CID eval_cps_program(VALUE lisp) {
