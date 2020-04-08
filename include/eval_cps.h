@@ -41,7 +41,7 @@ extern void eval_cps_set_usleep_callback(void (*fptr)(uint32_t));
 extern void eval_cps_set_timestamp_us_callback(uint32_t (*fptr)(void));
 extern void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *));
 
-extern void eval_cps_remove_done_ctx(CID cid);
+extern bool eval_cps_remove_done_ctx(CID cid);
 
 extern VALUE eval_cps_get_env(void);
 extern int eval_cps_init(void);

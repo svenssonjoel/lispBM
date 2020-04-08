@@ -109,7 +109,7 @@ void finish_ctx(void) {
   ctx_running = NULL;
 }
 
-void eval_cps_remove_done_ctx(CID cid) {
+bool eval_cps_remove_done_ctx(CID cid) {
 
   eval_context_t * curr = ctx_done->next;
 
@@ -121,7 +121,7 @@ void eval_cps_remove_done_ctx(CID cid) {
     if (ctx_done) {
       ctx_done->prev = NULL;
     }
-    return;
+    return true;
   }
 
   while(curr) {
@@ -135,10 +135,11 @@ void eval_cps_remove_done_ctx(CID cid) {
 
       stack_free(&curr->K);
       free(curr);
-      break;
+      return true;
     }
     curr = curr->next;
   }
+  return false;
 }
 
 void error_ctx(VALUE err_val) {
@@ -662,7 +663,6 @@ void eval_cps_run_eval(void){
 	}
 	continue;
       }
-      //last_iteration_gc = false;
     }
 
     eval_context_t *ctx = ctx_running;
