@@ -114,7 +114,7 @@ bool eval_cps_remove_done_ctx(CID cid) {
   eval_context_t * curr = ctx_done->next;
 
   if (ctx_done->id == cid) {
-    
+
     stack_free(&ctx_done->K);
     free(ctx_done);
     ctx_done = curr;
@@ -128,7 +128,7 @@ bool eval_cps_remove_done_ctx(CID cid) {
     if (curr->id == cid) {
       if (curr->prev) {
 	curr->prev->next = curr->next;
-      } 
+      }
       if (curr->next) {
 	curr->next->prev = curr->prev;
       }
