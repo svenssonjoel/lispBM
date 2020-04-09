@@ -167,6 +167,7 @@ bool add_default_symbols() {
 
   res = res && symrepr_addspecial("yield", SYM_YIELD);
   res = res && symrepr_addspecial("wait" , SYM_WAIT);
+  res = res && symrepr_addspecial("spawn", SYM_SPAWN);
 
   res = res && symrepr_addspecial("num-eq", SYM_NUMEQ);
   res = res && symrepr_addspecial("car", SYM_CAR);

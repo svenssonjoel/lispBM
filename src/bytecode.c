@@ -243,26 +243,27 @@ void bytecode_del(bytecode_t *bc) {
   }
 }
 
-extern VALUE run_eval(eval_context_t *ctx); // TODO
+
 VALUE try_reduce_constant(VALUE exp) {
 
-  eval_context_t *ctx = eval_cps_new_context_inherit_env(exp, exp);
+  (void) exp;
+  //eval_context_t *ctx = eval_cps_new_context_inherit_env(exp, exp);
 
   // TODO: look at exp and return if it is of a form that should
   //       not be evaluated (if those exist)
 
-  VALUE res = run_eval(ctx);
+  //VALUE res = run_eval(ctx);
 
-  if (type_of(res) == VAL_TYPE_SYMBOL &&
-      (dec_sym(res) == symrepr_eerror() ||
-       dec_sym(res) == symrepr_terror() ||
-       dec_sym(res) == symrepr_merror())) {
-    res =  exp;
-  }
+  //if (type_of(res) == VAL_TYPE_SYMBOL &&
+  //    (dec_sym(res) == symrepr_eerror() ||
+  //     dec_sym(res) == symrepr_terror() ||
+  //     dec_sym(res) == symrepr_merror())) {
+  //  res =  exp;
+  //}
 
-  eval_cps_drop_top_context();
+  //eval_cps_drop_top_context();
 
-  return res;
+  return enc_sym(symrepr_nil());
 }
 
 code_gen_state* create_gen_state(void) {

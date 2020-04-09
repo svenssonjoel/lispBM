@@ -780,15 +780,17 @@ void eval_cps_run_eval(void){
 
       if (type_of(head) == VAL_TYPE_SYMBOL) {
 
+	UINT sym_id = dec_sym(head); 
+	
 	// Special form: QUOTE
-	if (dec_sym(head) == symrepr_quote()) {
+	if (sym_id == symrepr_quote()) {
 	  ctx->r = car(cdr(ctx->curr_exp));
 	  ctx->app_cont = true;
 	  continue;
 	}
 
 	// Special form: DEFINE
-	if (dec_sym(head) == symrepr_define()) {
+	if (sym_id == symrepr_define()) {
 	  VALUE key = car(cdr(ctx->curr_exp));
 	  VALUE val_exp = car(cdr(cdr(ctx->curr_exp)));
 
@@ -805,7 +807,7 @@ void eval_cps_run_eval(void){
 	}
 
 	// Special form: PROGN
-	if (dec_sym(head) == symrepr_progn()) {
+	if (sym_id == symrepr_progn()) {
 	  VALUE exps = cdr(ctx->curr_exp);
 	  VALUE env  = ctx->curr_env;
 
@@ -826,8 +828,16 @@ void eval_cps_run_eval(void){
 	  continue;
 	}
 
+	// Special form: SPAWN
+	if (sym_id == symrepr_spawn()) {
+	  CID cid = eval_cps_program(cdr(ctx->curr_exp));
+	  ctx->r = enc_i(cid);
+	  ctx->app_cont = true;
+	  continue;
+	}
+
 	// Special form: LAMBDA
-	if (dec_sym(head) == symrepr_lambda()) {
+	if (sym_id == symrepr_lambda()) {
 
 	  VALUE env_cpy = env_copy_shallow(ctx->curr_env);
 
@@ -862,7 +872,7 @@ void eval_cps_run_eval(void){
 	}
 
 	// Special form: IF
-	if (dec_sym(head) == symrepr_if()) {
+	if (sym_id == symrepr_if()) {
 
 	  FOF(push_u32_3(&ctx->K,
 			 car(cdr(cdr(cdr(ctx->curr_exp)))), // Else branch
@@ -872,7 +882,7 @@ void eval_cps_run_eval(void){
 	  continue;
 	}
 	// Special form: LET
-	if (dec_sym(head) == symrepr_let()) {
+	if (sym_id == symrepr_let()) {
 	  VALUE orig_env = ctx->curr_env;
 	  VALUE binds    = car(cdr(ctx->curr_exp)); // key value pairs.
 	  VALUE exp      = car(cdr(cdr(ctx->curr_exp))); // exp to evaluate in the new env.
