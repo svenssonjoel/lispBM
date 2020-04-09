@@ -38,12 +38,16 @@
 #define AND               8
 #define OR                9
 #define WAIT              10
+#define SPAWN_ALL         11
 
 #define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ; }
 #define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ctx->r; }
 #define FOF(x)  if  (!(x)) { ctx_running->done = true; ctx_running->r = enc_sym(symrepr_fatal_error()); ctx_running = NULL; break;}
 #define ERROR printf("Line: %d\n", __LINE__);
 #define DEFAULT_SLEEP_US  1000
+
+#define EVAL_CPS_DEFAULT_STACK_SIZE 256
+#define EVAL_CPS_DEFAULT_STACK_GROW_POLICY false
 
 static VALUE eval_cps_global_env;
 static VALUE NIL;
@@ -215,7 +219,7 @@ void yield_ctx(uint32_t sleep_us) {
   ctx_running = NULL;
 }
 
-CID create_ctx(VALUE program, uint32_t stack_size, bool grow_stack) {
+CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
 
   if (next_ctx_id == 0) return 0; // overflow of CIDs
 
@@ -225,7 +229,7 @@ CID create_ctx(VALUE program, uint32_t stack_size, bool grow_stack) {
   ctx = malloc(sizeof(eval_context_t));
   ctx->program = cdr(program);
   ctx->curr_exp = car(program);
-  ctx->curr_env = NIL;
+  ctx->curr_env = env;
   ctx->done = false;
   ctx->app_cont = false;
   ctx->timestamp = 0;
@@ -336,6 +340,34 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
     FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(PROGN_REST)));
     ctx->curr_exp = car(rest);
     ctx->curr_env = env;
+    return;
+  }
+  case SPAWN_ALL: {
+    VALUE rest;
+    VALUE env;
+    pop_u32_2(&ctx->K, &rest, &env);
+    if (type_of(rest) == VAL_TYPE_SYMBOL && rest == NIL) {
+      ctx->app_cont = true;
+      return;
+    }
+
+    VALUE cid_val = enc_i(next_ctx_id);
+    VALUE cid_list = cons(cid_val, ctx->r);
+    if (type_of(cid_list) == VAL_TYPE_SYMBOL) {
+      FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, rest, enc_u(SPAWN_ALL)));
+      *perform_gc = true;
+      ctx->app_cont = true;
+      return;
+    }
+    // TODO: error checking
+    CID cid = create_ctx(car(rest),
+			 env,
+			 EVAL_CPS_DEFAULT_STACK_SIZE,
+			 EVAL_CPS_DEFAULT_STACK_GROW_POLICY);
+    (void) cid;
+    FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(SPAWN_ALL)));
+    ctx->r = cid_list;
+    ctx->app_cont = true;
     return;
   }
   case WAIT: {
@@ -830,8 +862,18 @@ void eval_cps_run_eval(void){
 
 	// Special form: SPAWN
 	if (sym_id == symrepr_spawn()) {
-	  CID cid = eval_cps_program(cdr(ctx->curr_exp));
-	  ctx->r = enc_i(cid);
+	  VALUE prgs = cdr(ctx->curr_exp);
+	  VALUE env = ctx->curr_env;
+
+	  if (type_of(prgs) == VAL_TYPE_SYMBOL && prgs == NIL) {
+	    ctx->r = NIL;
+	    ctx->app_cont = true;
+	    continue;
+	  }
+	  
+	  VALUE cid_list = NIL;
+	  FOF(push_u32_3(&ctx->K, env, prgs, enc_u(SPAWN_ALL)));
+	  ctx->r = cid_list; 
 	  ctx->app_cont = true;
 	  continue;
 	}
@@ -941,7 +983,7 @@ void eval_cps_run_eval(void){
 }
 
 CID eval_cps_program(VALUE lisp) {
-  return create_ctx(lisp, 256, false);
+  return create_ctx(lisp, NIL, 256, false);
 }
 
 int eval_cps_init() {
