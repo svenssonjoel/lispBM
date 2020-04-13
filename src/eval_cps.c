@@ -49,6 +49,10 @@
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
 #define EVAL_CPS_DEFAULT_STACK_GROW_POLICY false
 
+/* 768 us -> ~128000 "ticks" at 168MHz I assume this means also roughly 128000 instructions */ 
+#define EVAL_CPS_QUANTA_US 768
+#define EVAL_CPS_WAIT_US   1536
+
 static VALUE eval_cps_global_env;
 static VALUE NIL;
 static VALUE NONSENSE;
