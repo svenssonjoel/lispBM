@@ -49,9 +49,22 @@
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
 #define EVAL_CPS_DEFAULT_STACK_GROW_POLICY false
 
-/* 768 us -> ~128000 "ticks" at 168MHz I assume this means also roughly 128000 instructions */ 
+/* 768 us -> ~128000 "ticks" at 168MHz I assume this means also roughly 128000 instructions */
 #define EVAL_CPS_QUANTA_US 768
 #define EVAL_CPS_WAIT_US   1536
+
+/* 
+   On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
+   resolution of the timer used for sleep operations.  If this is set
+   to 10KHz the resolution is 100us.
+
+   The CH_CFG_ST_TIMEDELTA specifies the minimum number of ticks that
+   can be safely specified in a timeout directive (wonder if that
+   means sleep-period). The timedelta is set to 2. 
+
+   If I have understood these correctly it means that the minimum
+   sleep duration possible is 2 * 100us = 200us.
+*/
 
 static VALUE eval_cps_global_env;
 static VALUE NIL;
