@@ -134,9 +134,9 @@ void done_callback(eval_context_t *ctx) {
   int print_ret = print_value(output, 1024, error, 1024, t);
 
   if (print_ret >= 0) {
-    printf("<< Context %d finished with value %s >>\n# ", cid, output);
+    printf("<< Context %d finished with value %s >>\n", cid, output);
   } else {
-    printf("<< Context %d finished with value %s >>\n# ", cid, error);
+    printf("<< Context %d finished with value %s >>\n", cid, error);
   }
   fflush(stdout);
 }
@@ -276,9 +276,21 @@ int main(int argc, char **argv) {
   else
     printf("Error adding extension.\n");
 
-  VALUE prelude = prelude_load();
-  eval_cps_program(prelude);
+ 
+  /* Start evaluator thread */
+  if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
+    printf("Error creating evaluation thread\n");
+    return 1;
+  }
 
+  VALUE prelude = prelude_load();
+  CID prelude_cid = eval_cps_program(prelude);
+
+
+  eval_cps_wait_ctx(prelude_cid);
+  printf("Library loaded!\n");
+  
+  
   printf("Lisp REPL started!\n");
   printf("Type :quit to exit.\n");
   printf("     :info for statistics.\n");
@@ -287,14 +299,6 @@ int main(int argc, char **argv) {
   char output[1024];
   char error[1024];
 
-  /* Start evaluator thread */
-  if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
-    printf("Error creating evaluation thread\n");
-    return 1;
-  }
-
- 
-  
   while (1) {
     fflush(stdin);
     printf("# ");
