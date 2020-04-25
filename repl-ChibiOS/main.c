@@ -37,6 +37,8 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "chvt.h"
+#include "chtime.h"
 
 #include "usbcfg.h"
 #include "chprintf.h"
@@ -49,6 +51,8 @@
 #include "prelude.h"
 #include "extensions.h"
 
+#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(10*4096)
+#define REPL_WA_SIZE THD_WORKING_AREA_SIZE(4096)
 #define EVAL_CPS_STACK_SIZE 256
 
 BaseSequentialStream *chp = NULL;
@@ -66,6 +70,8 @@ int inputline(BaseSequentialStream *chp, char *buffer, int size) {
         n--;
       buffer[n] = 0;
       streamPut(chp,0x8); /* output backspace character */
+      streamPut(chp,' ');
+      streamPut(chp,0x8);
       n--; /* set up next iteration to deal with preceding char location */
       break;
     case '\n': /* fall through to \r */
@@ -86,7 +92,38 @@ int inputline(BaseSequentialStream *chp, char *buffer, int size) {
   return 0; // Filled up buffer without reading a linebreak
 }
 
-#define REPL_WA_SIZE THD_WORKING_AREA_SIZE(10*4096)
+void done_callback(eval_context_t *ctx) {
+
+  char output[1024];
+  char error[1024];
+
+  CID cid = ctx->id;
+  VALUE t = ctx->r;
+  
+  int print_ret = print_value(output, 1024, error, 1024, t);
+
+  if (print_ret >= 0) {
+    chprintf(chp,"<< Context %d finished with value %s >>\r\n# ", cid, output);
+  } else {
+    chprintf(chp,"<< Context %d finished with value %s >>\r\n# ", cid, error);
+  }
+}
+
+uint32_t timestamp_callback() {
+  systime_t t = chVTGetSystemTime();
+  return (uint32_t) (100 * t);
+}
+
+void sleep_callback(uint32_t us) {
+  chThdSleepMicroseconds(us);
+}
+
+
+static THD_FUNCTION(eval, arg) {
+  (void) arg;
+  eval_cps_run_eval();
+}
+
 
 VALUE ext_print(VALUE *args, int argn) {
 
@@ -124,38 +161,42 @@ int reset_repl(int heap_size) {
 
   res = symrepr_init();
   if (res)
-    chprintf(chp,"Symrepr initialized.\n\r");
+    chprintf(chp,"Symrepr initialized.\r\n");
   else {
-    chprintf(chp,"Error initializing symrepr!\n\r");
+    chprintf(chp,"Error initializing symrepr!\r\n");
     return res;
   }
   
   res = heap_init(heap_size);
   if (res)
-    chprintf(chp,"Heap initialized. Free cons cells: %u\n\r", heap_num_free());
+    chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
   else {
-    chprintf(chp,"Error initializing heap!\n\r");
+    chprintf(chp,"Error initializing heap!\r\n");
     return res;
   }
 
-  res = eval_cps_init(EVAL_CPS_STACK_SIZE,false);
+  res = eval_cps_init();
   if (res)
-    chprintf(chp,"Evaluator initialized.\n\r");
+    chprintf(chp,"Evaluator initialized.\r\n");
   else {
-    chprintf(chp,"Error initializing evaluator.\n\r");
+    chprintf(chp,"Error initializing evaluator.\r\n");
     return res;
   }
+
+  eval_cps_set_ctx_done_callback(done_callback);
+  eval_cps_set_timestamp_us_callback(timestamp_callback);
+  eval_cps_set_usleep_callback(sleep_callback);
   
   res = extensions_add("print", ext_print);
   if (res)
-    chprintf(chp,"Extension added.\n\r");
+    chprintf(chp,"Extension added.\r\n");
   else
-    chprintf(chp,"Error adding extension.\n\r");
+    chprintf(chp,"Error adding extension.\r\n");
 
   VALUE prelude = prelude_load();
   eval_cps_program(prelude);
 
-  chprintf(chp,"Lisp REPL started (ChibiOS)!\n\r");
+  chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
   
   return res;
 }
@@ -182,26 +223,26 @@ static THD_FUNCTION(repl, arg) {
     memset(str,0,len);
     memset(outbuf,0, 2048);
     inputline(chp,str, len);
-    chprintf(chp,"\n\r");
+    chprintf(chp,"\r\n");
 
     if (strncmp(str, ":reset", 6) == 0) {
       reset_repl(heap_size);
       continue;
     } else if (strncmp(str, ":info", 5) == 0) {
-      chprintf(chp,"##(ChibiOS)#################################################\n\r");
-      chprintf(chp,"Used cons cells: %lu \n\r", heap_size - heap_num_free());
+      chprintf(chp,"##(ChibiOS)#################################################\r\n");
+      chprintf(chp,"Used cons cells: %lu \r\n", heap_size - heap_num_free());
       res = print_value(outbuf,2048, error, 1024, eval_cps_get_env());
       if (res >= 0) {
-	chprintf(chp,"ENV: %s \n\r", outbuf);
+	chprintf(chp,"ENV: %s \r\n", outbuf);
       } else {
-	chprintf(chp,"%s\n\r",error);
+	chprintf(chp,"%s\r\n",error);
       }
       heap_get_state(&heap_state);
-      chprintf(chp,"GC counter: %lu\n\r", heap_state.gc_num);
-      chprintf(chp,"Recovered: %lu\n\r", heap_state.gc_recovered);
-      chprintf(chp,"Marked: %lu\n\r", heap_state.gc_marked);
-      chprintf(chp,"Free cons cells: %lu\n\r", heap_num_free());
-      chprintf(chp,"############################################################\n\r");
+      chprintf(chp,"GC counter: %lu\r\n", heap_state.gc_num);
+      chprintf(chp,"Recovered: %lu\r\n", heap_state.gc_recovered);
+      chprintf(chp,"Marked: %lu\r\n", heap_state.gc_marked);
+      chprintf(chp,"Free cons cells: %lu\r\n", heap_num_free());
+      chprintf(chp,"############################################################\r\n");
       memset(outbuf,0, 2048);
     } else if (strncmp(str, ":quit", 5) == 0) {
       break;
@@ -210,14 +251,8 @@ static THD_FUNCTION(repl, arg) {
       VALUE t;
       t = tokpar_parse(str);
 
-      t = eval_cps_program(t);
-
-      res = print_value(outbuf, 2048, error, 1024, t);
-      if (res >= 0) {
-	chprintf(chp,"> %s \n\r", outbuf);
-      } else {
-	chprintf(chp,"%s\n\r", error);
-      }
+      CID cid = eval_cps_program(t);
+      chprintf(chp,"started ctx: %u\r\n", cid);
     }
   }
 
@@ -226,32 +261,33 @@ static THD_FUNCTION(repl, arg) {
 }
 
 int main(void) {
-	halInit();
-	chSysInit();
+  halInit();
+  chSysInit();
 
-	sduObjectInit(&SDU1);
-	sduStart(&SDU1, &serusbcfg);
+  sduObjectInit(&SDU1);
+  sduStart(&SDU1, &serusbcfg);
 
-	/*
-	 * Activates the USB driver and then the USB bus pull-up on D+.
-	 * Note, a delay is inserted in order to not have to disconnect the cable
-	 * after a reset.
-	 */
-	usbDisconnectBus(serusbcfg.usbp);
-	chThdSleepMilliseconds(1500);
-	usbStart(serusbcfg.usbp, &usbcfg);
-	usbConnectBus(serusbcfg.usbp);	
+  /*
+   * Activates the USB driver and then the USB bus pull-up on D+.
+   * Note, a delay is inserted in order to not have to disconnect the cable
+   * after a reset.
+   */
+  usbDisconnectBus(serusbcfg.usbp);
+  chThdSleepMilliseconds(1500);
+  usbStart(serusbcfg.usbp, &usbcfg);
+  usbConnectBus(serusbcfg.usbp);	
 
-	chp = (BaseSequentialStream*)&SDU1;
-	
-	chThdCreateFromHeap(NULL, REPL_WA_SIZE,
-			    "repl", NORMALPRIO + 1,
-			    repl, (void *)NULL);
-	
+  chp = (BaseSequentialStream*)&SDU1;
 
-	
-	while(1) { 
-	  chThdSleepMilliseconds(500);
-	}
+  chThdCreateFromHeap(NULL, REPL_WA_SIZE,
+		      "repl", NORMALPRIO + 1,
+		      repl, (void *)NULL);
+  chThdCreateFromHeap(NULL, EVAL_WA_SIZE,
+		      "eval", NORMALPRIO + 1,
+		      eval, (void *)NULL);
+
+  while(1) { 
+    chThdSleepMilliseconds(500);
+  }
 
 }

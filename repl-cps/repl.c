@@ -22,6 +22,8 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <termios.h>
+#include <ctype.h>
 
 #include "heap.h"
 #include "symrepr.h"
@@ -33,6 +35,86 @@
 #include "typedefs.h"
 
 #define EVAL_CPS_STACK_SIZE 256
+
+bool allow_print = true;
+
+struct termios old_termios;
+struct termios new_termios;
+
+void setup_terminal(void) {
+
+  tcgetattr(0,&old_termios);
+  new_termios = old_termios;
+  //new_termios.c_iflag;                     // INPUT MODES 
+  //new_termios.c_oflag;                     // OUTPUT MODES
+  //new_termios.c_cflag;                     // CONTROL MODES
+  // LOCAL MODES 
+  new_termios.c_lflag &= (tcflag_t) ~(ICANON  | ISIG | ECHO);
+  new_termios.c_cc[VMIN] = 0;
+  new_termios.c_cc[VTIME] = 0;
+  //new_termios.c_cc;                       // SPECIAL CHARACTERS
+
+  // LOCAL MODES
+  // Turn off:
+  //  - canonical mode
+  //  - Signal generation for certain characters (INTR, QUIT, SUSP, DSUSP)
+  //  VMIN:  Minimal number of characters for noncanonical read.
+  //  VTIME: Timeout in deciseconds for noncanonical read.
+  
+  tcsetattr(0, TCSANOW, &new_termios);
+  
+}
+
+void restore_terminal(void) {
+  tcsetattr(0, TCSANOW, &old_termios);
+}
+
+
+int inputline(char *buffer, unsigned int size) {
+  int n = 0;
+  int c;
+  for (n = 0; n < size - 1; n++) {
+
+    c = getchar(); // busy waiting.
+
+    if (c < 0) {
+      n--;
+      struct timespec s;
+      struct timespec r;
+      s.tv_sec = 0;
+      s.tv_nsec = (long)1000 * 1000;
+      nanosleep(&s, &r);
+      continue;
+    }
+    allow_print = false; 
+    switch (c) {
+    case 127: /* fall through to below */
+    case '\b': /* backspace character received */
+      if (n > 0)
+        n--;
+      buffer[n] = 0;
+      putchar(0x8); /* output backspace character */
+      putchar(' ');
+      putchar(0x8);
+      n--; /* set up next iteration to deal with preceding char location */
+      break;
+    case '\n': /* fall through to \r */
+    case '\r':
+      buffer[n] = 0;
+      return n;
+    default:
+      if (isprint(c)) { /* ignore non-printable characters */
+        putchar(c);
+        buffer[n] = (char)c;
+      } else {
+        n -= 1;
+      }
+      break;
+    }
+  }
+  buffer[size - 1] = 0;
+  return 0; // Filled up buffer without reading a linebreak
+}
 
 void *eval_thd_wrapper(void *v) {
 
@@ -57,7 +139,6 @@ void done_callback(eval_context_t *ctx) {
     printf("<< Context %d finished with value %s >>\n# ", cid, error);
   }
   fflush(stdout);
-  eval_cps_remove_done_ctx(cid, &t);
 }
 
 uint32_t timestamp_callback() {
@@ -77,6 +158,8 @@ void sleep_callback(uint32_t us) {
 
 VALUE ext_print(VALUE *args, int argn) {
   if (argn < 1) return enc_sym(symrepr_nil());
+
+  if (!allow_print) return enc_sym(symrepr_true());
 
   char output[1024];
   char error[1024];
@@ -113,8 +196,8 @@ VALUE ext_print(VALUE *args, int argn) {
 /* load a file, caller is responsible for freeing the returned string */ 
 char * load_file(char *filename) {
   char *file_str = NULL;
-  unsigned int str_len = strlen(filename);
-  filename[str_len-1] = 0;
+  //size_t str_len = strlen(filename);
+  //filename[str_len-1] = 0;
   int i = 0;
   while (filename[i] == ' ' && filename[i] != 0) {
     i ++;
@@ -150,13 +233,15 @@ char * load_file(char *filename) {
 
 int main(int argc, char **argv) {
   char *str = malloc(1024);;
-  size_t len = 1024;
+  unsigned int len = 1024;
   int res = 0;
 
   pthread_t lispbm_thd; 
 
   heap_state_t heap_state;
 
+  setup_terminal();
+  
   res = symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");
@@ -215,7 +300,9 @@ int main(int argc, char **argv) {
     fflush(stdin);
     printf("# ");
     memset(str, 0 ,len);
-    ssize_t n = getline(&str,&len,stdin);
+    
+    ssize_t n = inputline(str,len);
+    printf("\n");
 
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("############################################################\n");
@@ -241,8 +328,11 @@ int main(int argc, char **argv) {
 	free(file_str);
 	CID cid1 = eval_cps_program(f_exp);
 	printf("started ctx: %u\n", cid1);
-      } 
-    } else  if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
+      }
+    } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
+      allow_print = true;
+      continue;
+    } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
     } else {
 
@@ -259,5 +349,7 @@ int main(int argc, char **argv) {
   symrepr_del();
   heap_del();
 
+  restore_terminal();
+  
   return 0;
 }
