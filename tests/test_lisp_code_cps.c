@@ -15,12 +15,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <getopt.h>
-
+#include <pthread.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #include "heap.h"
 #include "symrepr.h"
@@ -32,6 +35,25 @@
 
 #define EVAL_CPS_STACK_SIZE 256
 
+void *eval_thd_wrapper(void *v) {
+  eval_cps_run_eval();
+  return NULL;
+}
+
+uint32_t timestamp_callback() {
+  struct timeval tv;
+  gettimeofday(&tv,NULL);
+  return (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec);
+}
+
+void sleep_callback(uint32_t us) {
+  struct timespec s;
+  struct timespec r;
+  s.tv_sec = 0;
+  s.tv_nsec = (long)us * 1000;
+  nanosleep(&s, &r);
+}
+
 int main(int argc, char **argv) {
 
   int res = 0;
@@ -40,6 +62,8 @@ int main(int argc, char **argv) {
   bool growing_continuation_stack = false;
   bool compress_decompress = false;
 
+  pthread_t lispbm_thd;
+  
   int c;
   opterr = 1;
   
@@ -111,18 +135,28 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = eval_cps_init(EVAL_CPS_STACK_SIZE, growing_continuation_stack);
+  res = eval_cps_init();
   if (res)
     printf("Evaluator initialized.\n");
   else {
     printf("Error initializing evaluator.\n");
   }
 
+  eval_cps_set_timestamp_us_callback(timestamp_callback);
+  eval_cps_set_usleep_callback(sleep_callback);
+
+  if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
+    printf("Error creating evaluation thread\n");
+    return 1;
+  }  
+
   VALUE prelude = prelude_load();
-  eval_cps_program(prelude);
+  CID cid = eval_cps_program(prelude);  
+
+  eval_cps_wait_ctx(cid);
 
   VALUE t;
-  
+
   if (compress_decompress) { 
     uint32_t compressed_size = 0;
     char *compressed_code = compression_compress(code_buffer, &compressed_size);
@@ -143,7 +177,7 @@ int main(int argc, char **argv) {
   char output[1024];
   char error[1024];
 
-  res =  print_value(output, 1024, error, 1024, t); 
+  res = print_value(output, 1024, error, 1024, t); 
 
   if ( res >= 0) {
     printf("I: %s\n", output);
@@ -151,8 +185,10 @@ int main(int argc, char **argv) {
     printf("%s\n", error);
     return 0;
   }
-  t = eval_cps_program(t);
+  cid = eval_cps_program_ext(t,256,growing_continuation_stack);
 
+  t = eval_cps_wait_ctx(cid); 
+  
   res = print_value(output, 1024, error, 1024, t); 
   
   if ( res >= 0) {

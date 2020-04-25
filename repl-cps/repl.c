@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define _POSIX_C_SOURCE 200809L
+ #define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -269,8 +269,7 @@ int main(int argc, char **argv) {
   eval_cps_set_ctx_done_callback(done_callback);
   eval_cps_set_timestamp_us_callback(timestamp_callback);
   eval_cps_set_usleep_callback(sleep_callback);
-  
-  
+
   res = extensions_add("print", ext_print);
   if (res)
     printf("Extension added.\n");

@@ -165,6 +165,25 @@ bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
   return false;
 }
 
+VALUE eval_cps_wait_ctx(CID cid) {
+
+  while (true) {
+    eval_context_t *curr = ctx_done; 
+    while (curr) {
+      if (curr->id == cid) {
+	return curr->r;
+      }
+      if (curr->next) {
+	curr = curr->next;
+      } else {
+	break;
+      }
+    }
+    usleep_callback(1000);
+  }
+  return enc_sym(symrepr_nil());
+}
+
 void error_ctx(VALUE err_val) {
   ctx_running->r = err_val;
   finish_ctx();
@@ -1001,6 +1020,10 @@ void eval_cps_run_eval(void){
 
 CID eval_cps_program(VALUE lisp) {
   return create_ctx(lisp, NIL, 256, false);
+}
+
+CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size, bool grow_stack) {
+  return create_ctx(lisp, NIL, stack_size, grow_stack);
 }
 
 int eval_cps_init() {

@@ -1,6 +1,6 @@
 
 
-CCFLAGS = -m32 -O2 -Wall -Wconversion -pedantic -std=c11
+CCFLAGS = -m32 -O2 -Wall -Wconversion -pedantic -std=c11 
 CCFLAGS += -D_32_BIT_
 CC=gcc
 
@@ -14,7 +14,7 @@ all: $(EXECS)
 	mv test_lisp_code_cps.exe test_lisp_code_cps
 
 %.exe: %.c
-	$(CC) -I../include $(CCFLAGS) $< ../build/linux-x86/liblispbm.a -o $@ 
+	$(CC) -I../include $(CCFLAGS) $< ../build/linux-x86/liblispbm.a -o $@  -lpthread
 
 
 clean:

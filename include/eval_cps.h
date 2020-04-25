@@ -42,10 +42,12 @@ extern void eval_cps_set_timestamp_us_callback(uint32_t (*fptr)(void));
 extern void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *));
 
 extern bool eval_cps_remove_done_ctx(CID cid, VALUE *v);
+extern VALUE eval_cps_wait_ctx(CID cid);
 
 extern VALUE eval_cps_get_env(void);
 extern int eval_cps_init(void);
 extern void eval_cps_del(void);
 extern CID eval_cps_program(VALUE lisp);
+extern CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size, bool grow_stack);
 extern void eval_cps_run_eval(void);
 #endif
