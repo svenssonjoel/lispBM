@@ -16,22 +16,56 @@
 */
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "memory.h"
 
 
-unsigned char *bitmap = NULL;
-unsigned char *memory = NULL; 
-unsigned int memory_size;  // in 4 byte words 
-unsigned int bitmap_size;  // in bits
+uint32_t *bitmap = NULL;
+uint32_t *memory = NULL; 
+uint32_t memory_size;  // in 4 byte words 
+uint32_t bitmap_size;  // in 4 byte words
+unsigned int memory_base_address = 0;
 
-int memory_init(unsigned char *data, uint32_t size) {
+int memory_init(unsigned char *data, uint32_t data_size,
+		unsigned char *bits, uint32_t bits_size) {
 
-  if (((unsigned int)data % 4 != 0) || size < 1 || size % 4 != 0) {
+  if (data == NULL || bits == NULL) return 0;
+  
+  if (((unsigned int)data % 4 != 0) || data_size < 1 || data_size % 4 != 0 ||
+      ((unsigned int)bits % 4 != 0) || bits_size < 1 || bits_size % 4 != 0) {
     // data is not 4 byte aligned
     // size is too small
     // or size is not a multiple of 4
     return 0;
-  }  
+  }
+
+  bitmap = (uint32_t *) bits;
+  bitmap_size = bits_size / 4;  
+  
+  for (uint32_t i = 0; i < bitmap_size; i ++) {
+    bitmap[i] = 0;
+  }
+
+  memory = (uint32_t *) data;
+  memory_base_address = (unsigned int)data;
+
   return 1; 
+}
+
+static inline int bitmap_ix(uint32_t *ptr) {
+  if ((unsigned int)ptr % 4 != 0) return -1;
+  unsigned int tmp = (unsigned int)ptr - memory_base_address;
+  unsigned int ix = tmp >> 2;
+  return ix * 2;
+}
+
+
+uint32_t *memory_allocate(uint32_t num_words) {
+
+
+}
+
+int memory_free(uint32_t *ptr) {
+
 }
