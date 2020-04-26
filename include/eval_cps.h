@@ -37,6 +37,11 @@ typedef struct eval_context_s{
   struct eval_context_s *next;
 } eval_context_t;
 
+/* 
+ * Callback routines for sleeping and timestamp generation. 
+ * Depending on target platform these will be implemented in different ways. 
+ * Todo: It may become necessary to also add a mutex callback.
+ */
 extern void eval_cps_set_usleep_callback(void (*fptr)(uint32_t));
 extern void eval_cps_set_timestamp_us_callback(uint32_t (*fptr)(void));
 extern void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *));

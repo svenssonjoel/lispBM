@@ -138,7 +138,12 @@ void done_callback(eval_context_t *ctx) {
   } else {
     printf("<< Context %d finished with value %s >>\n", cid, error);
   }
+
+  if (!eval_cps_remove_done_ctx(cid, &t)) {
+    printf("Error: done context (%d)  not in list\n", cid);
+  }
   fflush(stdout);
+  
 }
 
 uint32_t timestamp_callback() {
@@ -285,12 +290,7 @@ int main(int argc, char **argv) {
 
   VALUE prelude = prelude_load();
   CID prelude_cid = eval_cps_program(prelude);
-
-
-  eval_cps_wait_ctx(prelude_cid);
-  printf("Library loaded!\n");
-  
-  
+    
   printf("Lisp REPL started!\n");
   printf("Type :quit to exit.\n");
   printf("     :info for statistics.\n");

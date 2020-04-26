@@ -124,10 +124,11 @@ void finish_ctx(void) {
     ctx_done = ctx_running;
   }
 
+  ctx_running = NULL;
+  
   if (ctx_done_callback) {
     ctx_done_callback(ctx_done);
   }
-  ctx_running = NULL;
 }
 
 bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
