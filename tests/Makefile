@@ -1,7 +1,6 @@
 
 
 CCFLAGS = -m32 -O2 -Wall -Wconversion -pedantic -std=c11 
-CCFLAGS += -D_32_BIT_
 CC=gcc
 
 SRC = src

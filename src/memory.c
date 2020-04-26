@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2020 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,26 +15,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TYPEDEFS_H_
-#define TYPEDEFS_H_
-
 #include <stdint.h>
-#include <stdbool.h>
-#include <inttypes.h>
 
-typedef uint32_t VALUE; // A Lisp value.
-typedef uint32_t TYPE;  // Representation of a type.
+#include "memory.h"
 
-typedef uint32_t UINT;
-typedef int32_t  INT;
-typedef float    FLOAT;
+int memory_init(unsigned char *data, uint32_t size) {
 
-#define PRI_VALUE PRIu32
-#define PRI_TYPE  PRIu32
-#define PRI_UINT  PRIu32
-#define PRI_INT   PRId32
-#define PRI_FLOAT "f"
+  if (((unsigned int)data % 4 != 0) || size < 1) {
+    // data is not 4 byte aligned 
+    return 0;
+  }
 
-typedef uint16_t CID;
 
-#endif
+  return 1; 
+}

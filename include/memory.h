@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2020 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,26 +15,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TYPEDEFS_H_
-#define TYPEDEFS_H_
+/* 
+ * Memory manager for allocation of strings and arrays that will not be   
+ * be located on the lisp-heap, but rather on the traditional heap ;) 
+ * 
+ * Later perhaps things such as the symbol table with symbol mappings
+ * should also be located on this managed memory area.  Symbols,
+ * however, are never freed after being created in lispBM. Currently
+ * I dont know if that is a good idea? or if it is possible to free
+ * unused symbols at all.
+ */ 
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <inttypes.h>
+#ifndef _MEMORY_H_
+#define _MEMORY_H_
 
-typedef uint32_t VALUE; // A Lisp value.
-typedef uint32_t TYPE;  // Representation of a type.
+extern int memory_init(unsigned char *data, uint32_t size);
 
-typedef uint32_t UINT;
-typedef int32_t  INT;
-typedef float    FLOAT;
 
-#define PRI_VALUE PRIu32
-#define PRI_TYPE  PRIu32
-#define PRI_UINT  PRIu32
-#define PRI_INT   PRId32
-#define PRI_FLOAT "f"
-
-typedef uint16_t CID;
-
-#endif
+#endif 
