@@ -19,13 +19,19 @@
 
 #include "memory.h"
 
+
+unsigned char *bitmap = NULL;
+unsigned char *memory = NULL; 
+unsigned int memory_size;  // in 4 byte words 
+unsigned int bitmap_size;  // in bits
+
 int memory_init(unsigned char *data, uint32_t size) {
 
-  if (((unsigned int)data % 4 != 0) || size < 1) {
-    // data is not 4 byte aligned 
+  if (((unsigned int)data % 4 != 0) || size < 1 || size % 4 != 0) {
+    // data is not 4 byte aligned
+    // size is too small
+    // or size is not a multiple of 4
     return 0;
-  }
-
-
+  }  
   return 1; 
 }
