@@ -16,35 +16,41 @@
 */
 
 /*
-   Memory manager for allocation of strings and arrays that will not be
-   be located on the lisp-heap, but rather on the traditional heap ;)
+   Motivation:
+   Memory manager for allocation of "boxed" values, strings and arrays
+   that will not be be located on the lisp-heap. These kinds of values
+   have thus far been allocated using the "malloc" function provided
+   on the platform. Using malloc is something I want to move away from
+   doing within the guts of lispBM as I want it to be possible on running
+   on the bare metal.
 
    Later perhaps things such as the symbol table with symbol mappings
    should also be located on this managed memory area.  Symbols,
    however, are never freed after being created in lispBM. Currently I
    dont know if that is a good idea? or if it is possible to free
-   unused symbols at all.
+   unused symbols at all. To become entirely free from malloc, the entire
+   symbol table management must be rewritten.
 */
 
 /*
+  Notes:
+  64Bytes = 16 * 4Byte words
+  4Bytes = 32Bits = 16 * 2Bit of status
 
-   64Bytes = 16 * 4Byte words
-   4Bytes = 32Bits = 16 * 2Bit of status
+  Status Bitpatterns:
+  00 - FREE or USED 4Byte word
+  01 - END of a sequence of allocated words
+  10 - START of a sequence of allocated words
+  11 - START and END of a sequence of allocated words (a 1 word allocation)
 
-   Status Bitpatterns:
-   00 - FREE or USED 4Byte word
-   01 - END of a sequence of allocated words
-   10 - START of a sequence of allocated words
-   11 - START and END of a sequence of allocated words (a 1 word allocation)
+    0  1  2  3  4  5  6  7  8  9
+  [11 00 00 00 00 10 01 11 00 00]
 
-     0  1  2  3  4  5  6  7  8  9
-   [11 00 00 00 00 10 01 11 00 00]
+  Favours allocation of small amounts of data.
 
-   Favours allocation of small amounts of data.
-
-   Requirements:
-     - Memory space is a multiple of 64Bytes.
-     - Memory status bitmap is the same multiple of 4Bytes.
+  Requirements:
+   - Memory space is a multiple of 64Bytes.
+   - Memory status bitmap is the same multiple of 4Bytes.
 */
 
 #define MEMORY_SIZE_64BYTES_TIMES_X(X) (64*(X))

@@ -82,7 +82,7 @@ static inline void set_status(unsigned int i, uint32_t status) {
   unsigned int word_ix = ix >> 5;    // / 32
   unsigned int bit_ix  = ix & 0x1F;  // % 32
 
-  uint32_t clr_mask = ~(3 << bit_ix); 
+  uint32_t clr_mask = ~(3 << bit_ix);
   uint32_t mask = status << bit_ix;
   bitmap[word_ix] &= clr_mask;
   bitmap[word_ix] |= mask;
