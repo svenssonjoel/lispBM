@@ -22,8 +22,8 @@
 #include "memory.h"
 
 uint32_t *bitmap = NULL;
-uint32_t *memory = NULL; 
-uint32_t memory_size;  // in 4 byte words 
+uint32_t *memory = NULL;
+uint32_t memory_size;  // in 4 byte words
 uint32_t bitmap_size;  // in 4 byte words
 unsigned int memory_base_address = 0;
 
@@ -31,7 +31,7 @@ int memory_init(unsigned char *data, uint32_t data_size,
 		unsigned char *bits, uint32_t bits_size) {
 
   if (data == NULL || bits == NULL) return 0;
-  
+
   if (((unsigned int)data % 4 != 0) || data_size < 1 || data_size % 4 != 0 ||
       ((unsigned int)bits % 4 != 0) || bits_size < 1 || bits_size % 4 != 0) {
     // data is not 4 byte aligned
@@ -41,8 +41,8 @@ int memory_init(unsigned char *data, uint32_t data_size,
   }
 
   bitmap = (uint32_t *) bits;
-  bitmap_size = bits_size / 4;  
-  
+  bitmap_size = bits_size / 4;
+
   for (uint32_t i = 0; i < bitmap_size; i ++) {
     bitmap[i] = 0;
   }
@@ -50,46 +50,46 @@ int memory_init(unsigned char *data, uint32_t data_size,
   memory = (uint32_t *) data;
   memory_base_address = (unsigned int)data;
 
-  return 1; 
+  return 1;
 }
 
 static inline unsigned int address_to_bitmap_ix(uint32_t *ptr) {
-  return ((unsigned int)ptr - memory_base_address) >> 2; 
+  return ((unsigned int)ptr - memory_base_address) >> 2;
 }
 
 static inline uint32_t *bitmap_ix_to_address(unsigned int ix) {
   return (uint32_t*)(memory_base_address + (ix << 2));
 }
 
-#define FREE_OR_USED  0  //00b 
+#define FREE_OR_USED  0  //00b
 #define END           1  //01b
 #define START         2  //10b
 #define START_END     3  //11b
 
 static inline unsigned int status(unsigned int i) {
 
-  unsigned int ix = i << 1;          // * 2 
-  unsigned int word_ix = ix >> 5;    // / 32 
+  unsigned int ix = i << 1;          // * 2
+  unsigned int word_ix = ix >> 5;    // / 32
   unsigned int bit_ix  = ix & 0x1F;  // % 32
 
   uint32_t mask = 3 << bit_ix;       // 000110..0
-  return (bitmap[word_ix] & mask) >> bit_ix; 
+  return (bitmap[word_ix] & mask) >> bit_ix;
 }
 
 static inline void set_status(unsigned int i, uint32_t status) {
-  unsigned int ix = i << 1;          // * 2 
-  unsigned int word_ix = ix >> 5;    // / 32 
+  unsigned int ix = i << 1;          // * 2
+  unsigned int word_ix = ix >> 5;    // / 32
   unsigned int bit_ix  = ix & 0x1F;  // % 32
 
-  uint32_t clr_mask = ~(3 << bit_ix); 
-  uint32_t mask = status << bit_ix;    
+  uint32_t clr_mask = ~(3 << bit_ix);
+  uint32_t mask = status << bit_ix;
   bitmap[word_ix] &= clr_mask;
   bitmap[word_ix] |= mask;
 }
 
 #define INIT                 0
 #define FREE_LENGTH_CHECK    1
-#define SKIP                 2 
+#define SKIP                 2
 
 #define ALLOC_DONE           0xF00DF00D
 #define ALLOC_FAILED         0xDEADBEAF
@@ -100,7 +100,7 @@ uint32_t *memory_allocate(uint32_t num_words) {
   uint32_t end_ix = 0;
   uint32_t free_length = 0;
   unsigned int state = INIT;
-  
+
   for (unsigned int i = 0; i < (bitmap_size << 4); i ++) {
     if (state == ALLOC_DONE) break;
 
@@ -110,9 +110,9 @@ uint32_t *memory_allocate(uint32_t num_words) {
       case INIT:
 	start_ix = i;
 	if (num_words == 1) {
-	  end_ix = i; 
-	  state = ALLOC_DONE; 
-	} else { 
+	  end_ix = i;
+	  state = ALLOC_DONE;
+	} else {
 	  state = FREE_LENGTH_CHECK;
 	  free_length = 1;
 	}
@@ -128,7 +128,7 @@ uint32_t *memory_allocate(uint32_t num_words) {
 	break;
       case SKIP:
 	break;
-      } 
+      }
       break;
     case END:
       state = INIT;
@@ -147,13 +147,13 @@ uint32_t *memory_allocate(uint32_t num_words) {
 
   if (state == ALLOC_DONE) {
     if (start_ix == end_ix) {
-      set_status(start_ix, START_END); 
+      set_status(start_ix, START_END);
     } else {
       set_status(start_ix, START);
       set_status(end_ix, END);
     }
     return bitmap_ix_to_address(start_ix);
-  } 
+  }
   return NULL;
 }
 
@@ -172,8 +172,7 @@ int memory_free(uint32_t *ptr) {
   case START_END:
     set_status(ix, FREE_OR_USED);
     return 1;
-  default:
-    return 0;
   }
-  
+
+  return 0;
 }

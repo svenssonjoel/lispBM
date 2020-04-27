@@ -15,21 +15,36 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/* 
- * Memory manager for allocation of strings and arrays that will not be   
- * be located on the lisp-heap, but rather on the traditional heap ;) 
- * 
- * Later perhaps things such as the symbol table with symbol mappings
- * should also be located on this managed memory area.  Symbols,
- * however, are never freed after being created in lispBM. Currently
- * I dont know if that is a good idea? or if it is possible to free
- * unused symbols at all.
- */ 
+/*
+   Memory manager for allocation of strings and arrays that will not be
+   be located on the lisp-heap, but rather on the traditional heap ;)
+
+   Later perhaps things such as the symbol table with symbol mappings
+   should also be located on this managed memory area.  Symbols,
+   however, are never freed after being created in lispBM. Currently I
+   dont know if that is a good idea? or if it is possible to free
+   unused symbols at all.
+*/
 
 /*
-  0  1  2  3  4  5  6  7  8  9
-[11 00 00 00 00 10 01 11 00 00] 
-[11 10 01 00 10 00 00 00 00 01]  
+
+   64Bytes = 16 * 4Byte words
+   4Bytes = 32Bits = 16 * 2Bit of status
+
+   Status Bitpatterns:
+   00 - FREE or USED 4Byte word
+   01 - END of a sequence of allocated words
+   10 - START of a sequence of allocated words
+   11 - START and END of a sequence of allocated words (a 1 word allocation)
+
+     0  1  2  3  4  5  6  7  8  9
+   [11 00 00 00 00 10 01 11 00 00]
+
+   Favours allocation of small amounts of data.
+
+   Requirements:
+     - Memory space is a multiple of 64Bytes.
+     - Memory status bitmap is the same multiple of 4Bytes.
 */
 
 #define MEMORY_SIZE_64BYTES_TIMES_X(X) (64*(X))
@@ -61,4 +76,4 @@ extern int memory_init(unsigned char *data, uint32_t data_size,
 extern uint32_t *memory_allocate(uint32_t num_words);
 extern int memory_free(uint32_t *ptr);
 
-#endif 
+#endif
