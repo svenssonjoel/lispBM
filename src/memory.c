@@ -61,6 +61,7 @@ static inline uint32_t *bitmap_ix_to_address(unsigned int ix) {
   return (uint32_t*)(memory_base_address + (ix << 2));
 }
 
+/* Status bit patterns */
 #define FREE_OR_USED  0  //00b
 #define END           1  //01b
 #define START         2  //10b
@@ -81,16 +82,16 @@ static inline void set_status(unsigned int i, uint32_t status) {
   unsigned int word_ix = ix >> 5;    // / 32
   unsigned int bit_ix  = ix & 0x1F;  // % 32
 
-  uint32_t clr_mask = ~(3 << bit_ix);
+  uint32_t clr_mask = ~(3 << bit_ix); 
   uint32_t mask = status << bit_ix;
   bitmap[word_ix] &= clr_mask;
   bitmap[word_ix] |= mask;
 }
 
+/* States */
 #define INIT                 0
 #define FREE_LENGTH_CHECK    1
 #define SKIP                 2
-
 #define ALLOC_DONE           0xF00DF00D
 #define ALLOC_FAILED         0xDEADBEAF
 
