@@ -58,8 +58,67 @@ int main(int argc, char **argv) {
   } else {
     printf("Memory configured OK!\n");
   }
-   
 
+  uint32_t *a = memory_allocate(5);
+  uint32_t *b = memory_allocate(1);
+  uint32_t *c = memory_allocate(1);
+  uint32_t *d = memory_allocate(1);
+  uint32_t *e = memory_allocate(5);
+
+  printf("%x\n", (unsigned int)a);
+  printf("%x\n", (unsigned int)b);
+  printf("%x\n", (unsigned int)c);
+  printf("%x\n", (unsigned int)d);
+  printf("%x\n", (unsigned int)e);
+
+  
+  a[0] = 1;
+  a[1] = 2;
+  a[2] = 3;
+  a[3] = 4; 
+
+  b[0] = 1000;
+  c[0] = 109999;
+  d[0] = 0xFFFFFFFF;
+  
+  e[0] = 10;
+  e[1] = 20;
+  e[2] = 30;
+  e[3] = 40;
+    
+  printf("b[0] = %u\n", b[0]);
+  printf("c[0] = %u\n", c[0]);
+  printf("d[0] = %x\n", d[0]);
+
+  printf("a[0] = %u\n", a[0]);
+  printf("a[1] = %u\n", a[1]);
+  printf("a[2] = %u\n", a[2]);
+  printf("a[3] = %u\n", a[3]);
+
+  printf("e[0] = %u\n", e[0]);
+  printf("e[1] = %u\n", e[1]);
+  printf("e[2] = %u\n", e[2]);
+  printf("e[3] = %u\n", e[3]);
+
+  if (!memory_free(b)) printf("error freeing b\n");
+  if (!memory_free(c)) printf("error freeing c\n");
+  if (!memory_free(d)) printf("error freeing d\n");
+
+  uint32_t *apa = memory_allocate(3);
+  
+  b = memory_allocate(1);
+  c = memory_allocate(1);
+  d = memory_allocate(1);
+  
+  printf("a: %x\n", (unsigned int)a);
+  printf("b: %x\n", (unsigned int)b);
+  printf("c: %x\n", (unsigned int)c);
+  printf("d: %x\n", (unsigned int)d);
+  printf("e: %x\n", (unsigned int)e);
+  printf("apa: %x\n", (unsigned int)apa);
+
+  
+  
   return 0; 
 }
 

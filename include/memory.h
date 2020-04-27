@@ -58,6 +58,7 @@
 
 extern int memory_init(unsigned char *data, uint32_t data_size,
 		       unsigned char *bitmap, uint32_t bitmap_size);
-
+extern uint32_t *memory_allocate(uint32_t num_words);
+extern int memory_free(uint32_t *ptr);
 
 #endif 
