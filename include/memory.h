@@ -52,6 +52,8 @@
    - Memory space is a multiple of 64Bytes.
    - Memory status bitmap is the same multiple of 4Bytes.
 */
+#ifndef _MEMORY_H_
+#define _MEMORY_H_
 
 #define MEMORY_SIZE_64BYTES_TIMES_X(X) (64*(X))
 #define MEMORY_BITMAP_SIZE(X) (4*(X))
@@ -73,9 +75,6 @@
 #define MEMORY_BITMAP_SIZE_16K MEMORY_BITMAP_SIZE(256)
 #define MEMORY_BITMAP_SIZE_32K MEMORY_BITMAP_SIZE(512)
 #define MEMORY_BITMAP_SIZE_1M  MEMORY_BITMAP_SIZE(16384)
-
-#ifndef _MEMORY_H_
-#define _MEMORY_H_
 
 extern int memory_init(unsigned char *data, uint32_t data_size,
 		       unsigned char *bitmap, uint32_t bitmap_size);
