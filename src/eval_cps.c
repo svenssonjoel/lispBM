@@ -53,14 +53,14 @@
 #define EVAL_CPS_QUANTA_US 768
 #define EVAL_CPS_WAIT_US   1536
 
-/* 
+/*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
    resolution of the timer used for sleep operations.  If this is set
    to 10KHz the resolution is 100us.
 
    The CH_CFG_ST_TIMEDELTA specifies the minimum number of ticks that
    can be safely specified in a timeout directive (wonder if that
-   means sleep-period). The timedelta is set to 2. 
+   means sleep-period). The timedelta is set to 2.
 
    If I have understood these correctly it means that the minimum
    sleep duration possible is 2 * 100us = 200us.
@@ -78,6 +78,8 @@ static eval_context_t *ctx_queue = NULL;
 static eval_context_t *ctx_queue_last = NULL;
 static eval_context_t *ctx_done = NULL;
 static eval_context_t *ctx_running = NULL;
+
+static eval_context_t ctx_non_concurrent;
 
 static void (*usleep_callback)(uint32_t) = NULL;
 static uint32_t (*timestamp_us_callback)(void) = NULL;
@@ -125,7 +127,7 @@ void finish_ctx(void) {
   }
 
   ctx_running = NULL;
-  
+
   if (ctx_done_callback) {
     ctx_done_callback(ctx_done);
   }
@@ -136,7 +138,7 @@ bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
   if (!ctx_done) return false;
 
   eval_context_t * curr = ctx_done->next;
-  
+
   if (ctx_done->id == cid) {
     *v = ctx_done->r;
     stack_free(&ctx_done->K);
@@ -169,7 +171,7 @@ bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
 VALUE eval_cps_wait_ctx(CID cid) {
 
   while (true) {
-    eval_context_t *curr = ctx_done; 
+    eval_context_t *curr = ctx_done;
     while (curr) {
       if (curr->id == cid) {
 	return curr->r;
@@ -409,7 +411,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
   }
   case WAIT: {
 
-    VALUE cid_val; 
+    VALUE cid_val;
     pop_u32(&ctx->K, &cid_val);
     CID cid = dec_u(cid_val);
 
@@ -505,7 +507,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
 
       if (dec_sym(fun) == symrepr_wait()) {
 	if (type_of(fun_args[1]) == VAL_TYPE_I) {
-	  CID cid = dec_i(fun_args[1]);	
+	  CID cid = dec_i(fun_args[1]);
 	  stack_drop(&ctx->K, dec_u(count)+1);
 	  FOF(push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
 	  ctx->r = enc_sym(symrepr_true());
@@ -753,9 +755,9 @@ int gc(VALUE env,
   return gc_sweep_phase();
 }
 
-void evaluation_step(bool *perform_gc, bool *last_iteration_gc){ 
+void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
   eval_context_t *ctx = ctx_running;
-  
+
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
 #endif
@@ -832,8 +834,8 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
 
     if (type_of(head) == VAL_TYPE_SYMBOL) {
 
-      UINT sym_id = dec_sym(head); 
-	
+      UINT sym_id = dec_sym(head);
+
       // Special form: QUOTE
       if (sym_id == symrepr_quote()) {
 	ctx->r = car(cdr(ctx->curr_exp));
@@ -890,10 +892,10 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
 	  ctx->app_cont = true;
 	  return;
 	}
-	  
+
 	VALUE cid_list = NIL;
 	FOF(push_u32_3(&ctx->K, env, prgs, enc_u(SPAWN_ALL)));
-	ctx->r = cid_list; 
+	ctx->r = cid_list;
 	ctx->app_cont = true;
 	return;
       }
@@ -1019,9 +1021,25 @@ void eval_cps_run_eval(void){
 	continue;
       }
     }
-
     evaluation_step(&perform_gc, &last_iteration_gc);
   }
+}
+
+VALUE evaluate_non_concurrent(void) {
+
+  bool perform_gc = false;
+  bool last_iteration_gc = false;
+
+  while (ctx_running) {
+    evaluation_step(&perform_gc, &last_iteration_gc);
+  }
+
+  if (!ctx_done) {
+    return enc_sym(symrepr_fatal_error());
+  }
+
+  ctx_done = NULL;
+  return ctx_non_concurrent.r;
 }
 
 CID eval_cps_program(VALUE lisp) {
@@ -1030,6 +1048,47 @@ CID eval_cps_program(VALUE lisp) {
 
 CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size, bool grow_stack) {
   return create_ctx(lisp, NIL, stack_size, grow_stack);
+}
+
+VALUE eval_cps_program_nc(VALUE lisp) {
+
+  if (type_of(lisp) != PTR_TYPE_CONS)
+    return enc_sym(symrepr_eerror());
+  ctx_non_concurrent.program = cdr(lisp);
+  ctx_non_concurrent.curr_exp = car(lisp);
+  ctx_non_concurrent.curr_env = NIL;
+  ctx_non_concurrent.done = false;
+  ctx_non_concurrent.app_cont = false;
+  ctx_non_concurrent.timestamp = 0;
+  ctx_non_concurrent.sleep_us = 0;
+  ctx_non_concurrent.id = 0;
+
+  stack_clear(&ctx_non_concurrent.K);
+
+  if (!push_u32(&ctx_non_concurrent.K, enc_u(DONE)))
+    return enc_sym(symrepr_merror());
+
+  ctx_running = &ctx_non_concurrent;
+
+  return evaluate_non_concurrent();
+}
+
+int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
+
+  NIL = enc_sym(symrepr_nil());
+  NONSENSE = enc_sym(symrepr_nonsense());
+  eval_cps_global_env = NIL;
+  VALUE nil_entry = cons(NIL, NIL);
+  eval_cps_global_env = cons(nil_entry, eval_cps_global_env);
+
+  if (type_of(nil_entry) == VAL_TYPE_SYMBOL ||
+      type_of(eval_cps_global_env) == VAL_TYPE_SYMBOL)
+    return 0;
+
+  if (!stack_allocate(&ctx_non_concurrent.K, stack_size, grow_stack))
+    return 0;
+
+  return 1;
 }
 
 int eval_cps_init() {
@@ -1051,5 +1110,5 @@ int eval_cps_init() {
 }
 
 void eval_cps_del(void) {
-
+  stack_free(&ctx_non_concurrent.K);
 }

@@ -28,31 +28,36 @@ typedef struct eval_context_s{
   bool  done;
   bool  app_cont;
   stack K;
-  /* Process control */ 
+  /* Process control */
   uint32_t timestamp;
   uint32_t sleep_us;
   CID id;
-  /* List structure */ 
+  /* List structure */
   struct eval_context_s *prev;
   struct eval_context_s *next;
 } eval_context_t;
 
-/* 
- * Callback routines for sleeping and timestamp generation. 
- * Depending on target platform these will be implemented in different ways. 
- * Todo: It may become necessary to also add a mutex callback.
- */
+/* Common interface */
+extern VALUE eval_cps_get_env(void);
+extern void eval_cps_del(void);
+
+/* Concurrent interface */
+extern int eval_cps_init(void);
+extern bool eval_cps_remove_done_ctx(CID cid, VALUE *v);
+extern VALUE eval_cps_wait_ctx(CID cid);
+extern CID eval_cps_program(VALUE lisp);
+extern CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size, bool grow_stack);
+extern void eval_cps_run_eval(void);
+/*
+  Callback routines for sleeping and timestamp generation.
+  Depending on target platform these will be implemented in different ways.
+  Todo: It may become necessary to also add a mutex callback.
+*/
 extern void eval_cps_set_usleep_callback(void (*fptr)(uint32_t));
 extern void eval_cps_set_timestamp_us_callback(uint32_t (*fptr)(void));
 extern void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *));
 
-extern bool eval_cps_remove_done_ctx(CID cid, VALUE *v);
-extern VALUE eval_cps_wait_ctx(CID cid);
-
-extern VALUE eval_cps_get_env(void);
-extern int eval_cps_init(void);
-extern void eval_cps_del(void);
-extern CID eval_cps_program(VALUE lisp);
-extern CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size, bool grow_stack);
-extern void eval_cps_run_eval(void);
+/* Non concurrent interface: */
+extern int eval_cps_init_nc(unsigned int stack_size, bool grow_stack);
+extern VALUE eval_cps_program_nc(VALUE lisp);
 #endif
