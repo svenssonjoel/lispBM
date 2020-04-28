@@ -753,6 +753,255 @@ int gc(VALUE env,
   return gc_sweep_phase();
 }
 
+void evaluation_step(bool *perform_gc, bool *last_iteration_gc){ 
+  eval_context_t *ctx = ctx_running;
+  
+#ifdef VISUALIZE_HEAP
+  heap_vis_gen_image();
+#endif
+
+  if (*perform_gc) {
+    if (*last_iteration_gc) {
+      ERROR
+      error_ctx(enc_sym(symrepr_merror()));
+      return;
+    }
+    *last_iteration_gc = true;
+    gc(eval_cps_global_env,
+       ctx_queue,
+       ctx_done,
+       ctx_running);
+    *perform_gc = false;
+  } else {
+    *last_iteration_gc = false;;
+  }
+
+  if (ctx->app_cont) {
+    apply_continuation(ctx, perform_gc);
+    return;
+  }
+
+  VALUE head;
+  VALUE value = enc_sym(symrepr_eerror());
+
+  switch (type_of(ctx->curr_exp)) {
+
+  case VAL_TYPE_SYMBOL:
+
+    value = env_lookup(ctx->curr_exp, ctx->curr_env);
+    if (type_of(value) == VAL_TYPE_SYMBOL &&
+	dec_sym(value) == symrepr_not_found()) {
+
+      value = env_lookup(ctx->curr_exp, eval_cps_global_env);
+
+      if (type_of(value) == VAL_TYPE_SYMBOL &&
+	  dec_sym(value) == symrepr_not_found()) {
+
+	if (is_fundamental(ctx->curr_exp)) {
+	  value = ctx->curr_exp;
+	} else if (extensions_lookup(dec_sym(ctx->curr_exp)) == NULL) {
+	  ERROR
+	  error_ctx(enc_sym(symrepr_eerror()));
+	  return;
+	} else {
+	  value = ctx->curr_exp; // symbol representing extension
+	  // evaluates to itself at this stage.
+	}
+      }
+    }
+    ctx->app_cont = true;
+    ctx->r = value;
+    break;
+  case PTR_TYPE_BOXED_F:
+  case PTR_TYPE_BOXED_U:
+  case PTR_TYPE_BOXED_I:
+  case VAL_TYPE_I:
+  case VAL_TYPE_U:
+  case VAL_TYPE_CHAR:
+  case PTR_TYPE_ARRAY:
+    ctx->app_cont = true;
+    ctx->r = ctx->curr_exp;
+    break;
+  case PTR_TYPE_REF:
+  case PTR_TYPE_STREAM:
+    ERROR
+    error_ctx(enc_sym(symrepr_eerror()));
+    break;
+  case PTR_TYPE_CONS:
+    head = car(ctx->curr_exp);
+
+    if (type_of(head) == VAL_TYPE_SYMBOL) {
+
+      UINT sym_id = dec_sym(head); 
+	
+      // Special form: QUOTE
+      if (sym_id == symrepr_quote()) {
+	ctx->r = car(cdr(ctx->curr_exp));
+	ctx->app_cont = true;
+	return;
+      }
+
+      // Special form: DEFINE
+      if (sym_id == symrepr_define()) {
+	VALUE key = car(cdr(ctx->curr_exp));
+	VALUE val_exp = car(cdr(cdr(ctx->curr_exp)));
+
+	if (type_of(key) != VAL_TYPE_SYMBOL ||
+	    key == NIL) {
+	  ERROR
+	  error_ctx(enc_sym(symrepr_eerror()));
+	  return;
+	}
+
+	FOF(push_u32_2(&ctx->K, key, enc_u(SET_GLOBAL_ENV)));
+	ctx->curr_exp = val_exp;
+	return;
+      }
+
+      // Special form: PROGN
+      if (sym_id == symrepr_progn()) {
+	VALUE exps = cdr(ctx->curr_exp);
+	VALUE env  = ctx->curr_env;
+
+	if (type_of(exps) == VAL_TYPE_SYMBOL && exps == NIL) {
+	  ctx->r = NIL;
+	  ctx->app_cont = true;
+	  return;
+	}
+
+	if (symrepr_is_error(exps)) {
+	  ERROR
+	  error_ctx(exps);
+	  return;
+	}
+	FOF(push_u32_3(&ctx->K, env, cdr(exps), enc_u(PROGN_REST)));
+	ctx->curr_exp = car(exps);
+	ctx->curr_env = env;
+	return;
+      }
+
+      // Special form: SPAWN
+      if (sym_id == symrepr_spawn()) {
+	VALUE prgs = cdr(ctx->curr_exp);
+	VALUE env = ctx->curr_env;
+
+	if (type_of(prgs) == VAL_TYPE_SYMBOL && prgs == NIL) {
+	  ctx->r = NIL;
+	  ctx->app_cont = true;
+	  return;
+	}
+	  
+	VALUE cid_list = NIL;
+	FOF(push_u32_3(&ctx->K, env, prgs, enc_u(SPAWN_ALL)));
+	ctx->r = cid_list; 
+	ctx->app_cont = true;
+	return;
+      }
+
+      // Special form: LAMBDA
+      if (sym_id == symrepr_lambda()) {
+
+	VALUE env_cpy = env_copy_shallow(ctx->curr_env);
+
+	if (type_of(env_cpy) == VAL_TYPE_SYMBOL &&
+	    dec_sym(env_cpy) == symrepr_merror()) {
+	  *perform_gc = true;
+	  ctx->app_cont = false;
+	  return; // perform gc and resume evaluation at same expression
+	}
+
+	VALUE env_end;
+	VALUE body;
+	VALUE params;
+	VALUE closure;
+	env_end = cons(env_cpy,NIL);
+	body    = cons(car(cdr(cdr(ctx->curr_exp))), env_end);
+	params  = cons(car(cdr(ctx->curr_exp)), body);
+	closure = cons(enc_sym(symrepr_closure()), params);
+
+	if (type_of(env_end) == VAL_TYPE_SYMBOL ||
+	    type_of(body)    == VAL_TYPE_SYMBOL ||
+	    type_of(params)  == VAL_TYPE_SYMBOL ||
+	    type_of(closure) == VAL_TYPE_SYMBOL) {
+	  *perform_gc = true;
+	  ctx->app_cont = false;
+	  return; // perform gc and resume evaluation at same expression
+	}
+
+	ctx->app_cont = true;
+	ctx->r = closure;
+	return;
+      }
+
+      // Special form: IF
+      if (sym_id == symrepr_if()) {
+
+	FOF(push_u32_3(&ctx->K,
+		       car(cdr(cdr(cdr(ctx->curr_exp)))), // Else branch
+		       car(cdr(cdr(ctx->curr_exp))),      // Then branch
+		       enc_u(IF)));
+	ctx->curr_exp = car(cdr(ctx->curr_exp));
+	return;
+      }
+      // Special form: LET
+      if (sym_id == symrepr_let()) {
+	VALUE orig_env = ctx->curr_env;
+	VALUE binds    = car(cdr(ctx->curr_exp)); // key value pairs.
+	VALUE exp      = car(cdr(cdr(ctx->curr_exp))); // exp to evaluate in the new env.
+
+	VALUE curr = binds;
+	VALUE new_env = orig_env;
+
+	if (type_of(binds) != PTR_TYPE_CONS) {
+	  // binds better be nil or there is a programmer error.
+	  ctx->curr_exp = exp;
+	  return;
+	}
+
+	// Implements letrec by "preallocating" the key parts
+	while (type_of(curr) == PTR_TYPE_CONS) {
+	  VALUE key = car(car(curr));
+	  VALUE val = NIL;
+	  VALUE binding;
+	  binding = cons(key, val);
+	  new_env = cons(binding, new_env);
+
+	  if (type_of(binding) == VAL_TYPE_SYMBOL ||
+	      type_of(new_env) == VAL_TYPE_SYMBOL) {
+	    *perform_gc = true;
+	    ctx->app_cont = false;
+	    return;
+	  }
+	  curr = cdr(curr);
+	}
+
+	VALUE key0 = car(car(binds));
+	VALUE val0_exp = car(cdr(car(binds)));
+
+	FOF(push_u32_5(&ctx->K, exp, cdr(binds), new_env,
+		       key0, enc_u(BIND_TO_KEY_REST)));
+	ctx->curr_exp = val0_exp;
+	ctx->curr_env = new_env;
+	return;
+      }
+    } // If head is symbol
+    FOF(push_u32_4(&ctx->K,
+		   ctx->curr_env,
+		   enc_u(0),
+		   cdr(ctx->curr_exp),
+		   enc_u(APPLICATION_ARGS)));
+
+    ctx->curr_exp = head; // evaluate the function
+    return;
+  default:
+    // BUG No applicable case!
+    ERROR
+    error_ctx(enc_sym(symrepr_eerror()));
+    break;
+  }
+  return;
+}
+
 void eval_cps_run_eval(void){
 
   bool perform_gc = false;
@@ -771,252 +1020,8 @@ void eval_cps_run_eval(void){
       }
     }
 
-    eval_context_t *ctx = ctx_running;
-
-#ifdef VISUALIZE_HEAP
-    heap_vis_gen_image();
-#endif
-
-    if (perform_gc) {
-      if (last_iteration_gc) {
-	ERROR
-	error_ctx(enc_sym(symrepr_merror()));
-	continue;
-      }
-      last_iteration_gc = true;
-      gc(eval_cps_global_env,
-	 ctx_queue,
-	 ctx_done,
-	 ctx_running);
-      perform_gc = false;
-    } else {
-      last_iteration_gc = false;;
-    }
-
-    if (ctx->app_cont) {
-      apply_continuation(ctx, &perform_gc);
-      continue;
-    }
-
-    VALUE head;
-    VALUE value = enc_sym(symrepr_eerror());
-
-    switch (type_of(ctx->curr_exp)) {
-
-    case VAL_TYPE_SYMBOL:
-
-      value = env_lookup(ctx->curr_exp, ctx->curr_env);
-      if (type_of(value) == VAL_TYPE_SYMBOL &&
-	  dec_sym(value) == symrepr_not_found()) {
-
-	value = env_lookup(ctx->curr_exp, eval_cps_global_env);
-
-	if (type_of(value) == VAL_TYPE_SYMBOL &&
-	    dec_sym(value) == symrepr_not_found()) {
-
-	  if (is_fundamental(ctx->curr_exp)) {
-	    value = ctx->curr_exp;
-	  } else if (extensions_lookup(dec_sym(ctx->curr_exp)) == NULL) {
-	    ERROR
-	    error_ctx(enc_sym(symrepr_eerror()));
-	    continue;
-	  } else {
-	    value = ctx->curr_exp; // symbol representing extension
-	                           // evaluates to itself at this stage.
-	  }
-	}
-      }
-      ctx->app_cont = true;
-      ctx->r = value;
-      break;
-    case PTR_TYPE_BOXED_F:
-    case PTR_TYPE_BOXED_U:
-    case PTR_TYPE_BOXED_I:
-    case VAL_TYPE_I:
-    case VAL_TYPE_U:
-    case VAL_TYPE_CHAR:
-    case PTR_TYPE_ARRAY:
-      ctx->app_cont = true;
-      ctx->r = ctx->curr_exp;
-      break;
-    case PTR_TYPE_REF:
-    case PTR_TYPE_STREAM:
-      ERROR
-      error_ctx(enc_sym(symrepr_eerror()));
-      break;
-    case PTR_TYPE_CONS:
-      head = car(ctx->curr_exp);
-
-      if (type_of(head) == VAL_TYPE_SYMBOL) {
-
-	UINT sym_id = dec_sym(head); 
-	
-	// Special form: QUOTE
-	if (sym_id == symrepr_quote()) {
-	  ctx->r = car(cdr(ctx->curr_exp));
-	  ctx->app_cont = true;
-	  continue;
-	}
-
-	// Special form: DEFINE
-	if (sym_id == symrepr_define()) {
-	  VALUE key = car(cdr(ctx->curr_exp));
-	  VALUE val_exp = car(cdr(cdr(ctx->curr_exp)));
-
-	  if (type_of(key) != VAL_TYPE_SYMBOL ||
-	      key == NIL) {
-	    ERROR
-	    error_ctx(enc_sym(symrepr_eerror()));
-	    continue;
-	  }
-
-	  FOF(push_u32_2(&ctx->K, key, enc_u(SET_GLOBAL_ENV)));
-	  ctx->curr_exp = val_exp;
-	  continue;
-	}
-
-	// Special form: PROGN
-	if (sym_id == symrepr_progn()) {
-	  VALUE exps = cdr(ctx->curr_exp);
-	  VALUE env  = ctx->curr_env;
-
-	  if (type_of(exps) == VAL_TYPE_SYMBOL && exps == NIL) {
-	    ctx->r = NIL;
-	    ctx->app_cont = true;
-	    continue;
-	  }
-
-	  if (symrepr_is_error(exps)) {
-	    ERROR
-	    error_ctx(exps);
-	    continue;
-	  }
-	  FOF(push_u32_3(&ctx->K, env, cdr(exps), enc_u(PROGN_REST)));
-	  ctx->curr_exp = car(exps);
-	  ctx->curr_env = env;
-	  continue;
-	}
-
-	// Special form: SPAWN
-	if (sym_id == symrepr_spawn()) {
-	  VALUE prgs = cdr(ctx->curr_exp);
-	  VALUE env = ctx->curr_env;
-
-	  if (type_of(prgs) == VAL_TYPE_SYMBOL && prgs == NIL) {
-	    ctx->r = NIL;
-	    ctx->app_cont = true;
-	    continue;
-	  }
-	  
-	  VALUE cid_list = NIL;
-	  FOF(push_u32_3(&ctx->K, env, prgs, enc_u(SPAWN_ALL)));
-	  ctx->r = cid_list; 
-	  ctx->app_cont = true;
-	  continue;
-	}
-
-	// Special form: LAMBDA
-	if (sym_id == symrepr_lambda()) {
-
-	  VALUE env_cpy = env_copy_shallow(ctx->curr_env);
-
-	  if (type_of(env_cpy) == VAL_TYPE_SYMBOL &&
-	      dec_sym(env_cpy) == symrepr_merror()) {
-	    perform_gc = true;
-	    ctx->app_cont = false;
-	    continue; // perform gc and resume evaluation at same expression
-	  }
-
-	  VALUE env_end;
-	  VALUE body;
-	  VALUE params;
-	  VALUE closure;
-	  env_end = cons(env_cpy,NIL);
-	  body    = cons(car(cdr(cdr(ctx->curr_exp))), env_end);
-	  params  = cons(car(cdr(ctx->curr_exp)), body);
-	  closure = cons(enc_sym(symrepr_closure()), params);
-
-	  if (type_of(env_end) == VAL_TYPE_SYMBOL ||
-	      type_of(body)    == VAL_TYPE_SYMBOL ||
-	      type_of(params)  == VAL_TYPE_SYMBOL ||
-	      type_of(closure) == VAL_TYPE_SYMBOL) {
-	    perform_gc = true;
-	    ctx->app_cont = false;
-	    continue; // perform gc and resume evaluation at same expression
-	  }
-
-	  ctx->app_cont = true;
-	  ctx->r = closure;
-	  continue;
-	}
-
-	// Special form: IF
-	if (sym_id == symrepr_if()) {
-
-	  FOF(push_u32_3(&ctx->K,
-			 car(cdr(cdr(cdr(ctx->curr_exp)))), // Else branch
-			 car(cdr(cdr(ctx->curr_exp))),      // Then branch
-			 enc_u(IF)));
-	  ctx->curr_exp = car(cdr(ctx->curr_exp));
-	  continue;
-	}
-	// Special form: LET
-	if (sym_id == symrepr_let()) {
-	  VALUE orig_env = ctx->curr_env;
-	  VALUE binds    = car(cdr(ctx->curr_exp)); // key value pairs.
-	  VALUE exp      = car(cdr(cdr(ctx->curr_exp))); // exp to evaluate in the new env.
-
-	  VALUE curr = binds;
-	  VALUE new_env = orig_env;
-
-	  if (type_of(binds) != PTR_TYPE_CONS) {
-	    // binds better be nil or there is a programmer error.
-	    ctx->curr_exp = exp;
-	    continue;
-	  }
-
-	  // Implements letrec by "preallocating" the key parts
-	  while (type_of(curr) == PTR_TYPE_CONS) {
-	    VALUE key = car(car(curr));
-	    VALUE val = NIL;
-	    VALUE binding;
-	    binding = cons(key, val);
-	    new_env = cons(binding, new_env);
-
-	    if (type_of(binding) == VAL_TYPE_SYMBOL ||
-		type_of(new_env) == VAL_TYPE_SYMBOL) {
-	      perform_gc = true;
-	      ctx->app_cont = false;
-	      continue;
-	    }
-	    curr = cdr(curr);
-	  }
-
-	  VALUE key0 = car(car(binds));
-	  VALUE val0_exp = car(cdr(car(binds)));
-
-	  FOF(push_u32_5(&ctx->K, exp, cdr(binds), new_env,
-			 key0, enc_u(BIND_TO_KEY_REST)));
-	  ctx->curr_exp = val0_exp;
-	  ctx->curr_env = new_env;
-	  continue;
-	}
-      } // If head is symbol
-      FOF(push_u32_4(&ctx->K,
-		     ctx->curr_env,
-		     enc_u(0),
-		     cdr(ctx->curr_exp),
-		     enc_u(APPLICATION_ARGS)));
-
-      ctx->curr_exp = head; // evaluate the function
-      continue;
-    default:
-      // BUG No applicable case!
-      ERROR
-      error_ctx(enc_sym(symrepr_eerror()));
-      break;
-    }
-  } // while (eval_running)
+    evaluation_step(&perform_gc, &last_iteration_gc);
+  }
 }
 
 CID eval_cps_program(VALUE lisp) {
