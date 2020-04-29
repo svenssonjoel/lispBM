@@ -16,13 +16,12 @@
 */
 
 /*
-   Motivation:
-   Memory manager for allocation of "boxed" values, strings and arrays
+   Motivation: Memory manager for allocation of strings and arrays
    that will not be be located on the lisp-heap. These kinds of values
    have thus far been allocated using the "malloc" function provided
    on the platform. Using malloc is something I want to move away from
-   doing within the guts of lispBM as I want it to be possible on running
-   on the bare metal.
+   doing within the guts of lispBM as I want it to be possible on
+   running on the bare metal.
 
    Later perhaps things such as the symbol table with symbol mappings
    should also be located on this managed memory area.  Symbols,

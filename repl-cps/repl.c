@@ -317,6 +317,8 @@ int main(int argc, char **argv) {
 	printf("%s\n", error);
       }
       heap_get_state(&heap_state);
+      printf("Symbol table size: %u Bytes\n", symrepr_size());
+      printf("Heap size: %u Bytes\n", heap_size * 8);
       printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
       printf("GC counter: %d\n", heap_state.gc_num);
       printf("Recovered: %d\n", heap_state.gc_recovered);

@@ -104,6 +104,8 @@ extern int symrepr_lookup(char *, UINT*);
 extern char* symrepr_lookup_name(UINT);
 extern void symrepr_del(void);
 
+extern unsigned int symrepr_size(void);
+
 static inline UINT symrepr_nil(void)         { return DEF_REPR_NIL; }
 static inline UINT symrepr_quote(void)       { return DEF_REPR_QUOTE; }
 static inline UINT symrepr_true(void)        { return DEF_REPR_TRUE; }

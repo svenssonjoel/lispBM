@@ -195,6 +195,27 @@ bool symrepr_init(void) {
   return add_default_symbols();
 }
 
+unsigned int symrepr_size(void) {
+#ifdef TINY_SYMTAB
+  unsigned int n = 0;
+  name_list_t *curr_bucket = name_list;
+
+  while (curr_bucket) {
+    n += sizeof(name_list_t);
+    name_mapping_t *curr = curr_bucket->map;
+    while (curr) {
+      n += sizeof(name_mapping_t);
+      n += strlen(curr->name);
+      curr = curr->next;
+    }
+    curr_bucket = curr_bucket->next;
+  }
+  return n;
+#else
+  return 0;
+#endif
+}
+
 
 bool symrepr_addspecial(char *name, UINT spec_id) {
 
