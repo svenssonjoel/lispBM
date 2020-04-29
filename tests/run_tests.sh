@@ -36,106 +36,106 @@ for exe in *.exe; do
 done
 
 
+for prg in "test_lisp_code_cps" "test_lisp_code_cps_nc"; do 
+    for lisp in *.lisp; do
+	./$prg -h 8388608 -g $lisp
 
-for lisp in *.lisp; do
-    ./test_lisp_code_cps -h 8388608 -g $lisp
+	result=$?
 
-    result=$?
+	echo "------------------------------------------------------------"
+	echo HUGE_HEAP!
+	if [ $result -eq 1 ]
+	then
+	    success_count=$((success_count+1))
+	    echo $lisp SUCCESS
+	else
+	    failing_tests="$failing_tests HUGE_HEAP: $prg $lisp \n"
+	    fail_count=$((fail_count+1))
+	    echo $lisp FAILED
+	fi
+	echo "------------------------------------------------------------"
+    done
 
-    echo "------------------------------------------------------------"
-    echo HUGE_HEAP!
-    if [ $result -eq 1 ]
-    then
-	success_count=$((success_count+1))
-	echo $lisp SUCCESS
-    else
-	failing_tests="$failing_tests HUGE_HEAP: $lisp \n"
-	fail_count=$((fail_count+1))
-	echo $lisp FAILED
-    fi
-    echo "------------------------------------------------------------"
+    for lisp in *.lisp; do
+	./$prg -h 8388608 $lisp
+
+	result=$?
+
+	echo "------------------------------------------------------------"
+	echo HUGE_HEAP - FIXED STACK!
+	if [ $result -eq 1 ]
+	then
+	    success_count=$((success_count+1))
+	    echo $lisp SUCCESS
+	else
+	    failing_tests="$failing_tests HUGE_HEAP: $prg $lisp \n"
+	    fail_count=$((fail_count+1))
+	    echo $lisp FAILED
+	fi
+	echo "------------------------------------------------------------"
+    done
+
+
+    for lisp in *.lisp; do
+
+	./$prg -h 8192 -g $lisp
+
+	result=$?
+
+	echo "------------------------------------------------------------"
+	echo MINI_HEAP!
+	if [ $result -eq 1 ]
+	then
+	    success_count=$((success_count+1))
+	    echo $lisp SUCCESS
+	else
+	    failing_tests="$failing_tests MINI_HEAP: $prg $lisp \n"
+	    fail_count=$((fail_count+1))
+	    echo $lisp FAILED
+	fi
+	echo "------------------------------------------------------------"
+    done
+
+    for lisp in *.lisp; do
+
+	./$prg -h 8192 $lisp
+
+	result=$?
+
+	echo "------------------------------------------------------------"
+	echo MINI_HEAP - FIXED STACK!
+	if [ $result -eq 1 ]
+	then
+	    success_count=$((success_count+1))
+	    echo $lisp SUCCESS
+	else
+	    failing_tests="$failing_tests MINI_HEAP: $prg $lisp \n"
+	    fail_count=$((fail_count+1))
+	    echo $lisp FAILED
+	fi
+	echo "------------------------------------------------------------"
+    done
+
+
+    for lisp in *.lisp; do
+	./$prg -h 8388608 -g -c  $lisp
+
+	result=$?
+
+	echo "------------------------------------------------------------"
+	echo COMPRESSED CODE!
+	if [ $result -eq 1 ]
+	then
+	    success_count=$((success_count+1))
+	    echo $lisp SUCCESS
+	else
+	    failing_tests="$failing_tests COMPRESSED: $prg $lisp \n"
+	    fail_count=$((fail_count+1))
+	    echo $lisp FAILED
+	fi
+	echo "------------------------------------------------------------"
+    done
 done
-
-for lisp in *.lisp; do
-    ./test_lisp_code_cps -h 8388608 $lisp
-
-    result=$?
-
-    echo "------------------------------------------------------------"
-    echo HUGE_HEAP - FIXED STACK!
-    if [ $result -eq 1 ]
-    then
-	success_count=$((success_count+1))
-	echo $lisp SUCCESS
-    else
-	failing_tests="$failing_tests HUGE_HEAP: $lisp \n"
-	fail_count=$((fail_count+1))
-	echo $lisp FAILED
-    fi
-    echo "------------------------------------------------------------"
-done
-
-
-for lisp in *.lisp; do
-
-    ./test_lisp_code_cps -h 8192 -g $lisp
-
-    result=$?
-
-    echo "------------------------------------------------------------"
-    echo MINI_HEAP!
-    if [ $result -eq 1 ]
-    then
-	success_count=$((success_count+1))
-	echo $lisp SUCCESS
-    else
-	failing_tests="$failing_tests MINI_HEAP: $lisp \n"
-	fail_count=$((fail_count+1))
-	echo $lisp FAILED
-    fi
-    echo "------------------------------------------------------------"
-done
-
-for lisp in *.lisp; do
-
-    ./test_lisp_code_cps -h 8192 $lisp
-
-    result=$?
-
-    echo "------------------------------------------------------------"
-    echo MINI_HEAP - FIXED STACK!
-    if [ $result -eq 1 ]
-    then
-	success_count=$((success_count+1))
-	echo $lisp SUCCESS
-    else
-	failing_tests="$failing_tests MINI_HEAP: $lisp \n"
-	fail_count=$((fail_count+1))
-	echo $lisp FAILED
-    fi
-    echo "------------------------------------------------------------"
-done
-
-
-for lisp in *.lisp; do
-    ./test_lisp_code_cps -h 8388608 -g -c  $lisp
-
-    result=$?
-
-    echo "------------------------------------------------------------"
-    echo COMPRESSED CODE!
-    if [ $result -eq 1 ]
-    then
-	success_count=$((success_count+1))
-	echo $lisp SUCCESS
-    else
-	failing_tests="$failing_tests COMPRESSED: $lisp \n"
-	fail_count=$((fail_count+1))
-	echo $lisp FAILED
-    fi
-    echo "------------------------------------------------------------"
-done
-
 
 echo -e $failing_tests
 echo Tests passed: $success_count

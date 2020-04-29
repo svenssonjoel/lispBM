@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
     printf("Error adding extension.\n");
 
   VALUE prelude = prelude_load();
-  VALUE prelude_r = eval_cps_program_nc(prelude);
+  eval_cps_program_nc(prelude);
 
   printf("Lisp REPL started!\n");
   printf("Type :quit to exit.\n");
