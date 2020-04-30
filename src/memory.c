@@ -26,13 +26,13 @@ uint32_t *memory = NULL;
 uint32_t memory_size;  // in 4 byte words
 uint32_t bitmap_size;  // in 4 byte words
 unsigned int memory_base_address = 0;
-
+ 
 int memory_init(unsigned char *data, uint32_t data_size,
 		unsigned char *bits, uint32_t bits_size) {
 
   if (data == NULL || bits == NULL) return 0;
 
-  if (((unsigned int)data % 4 != 0) || data_size < 1 || data_size % 4 != 0 ||
+  if (((unsigned int)data % 4 != 0) || data_size != 16 * bits_size || data_size % 4 != 0 ||
       ((unsigned int)bits % 4 != 0) || bits_size < 1 || bits_size % 4 != 0) {
     // data is not 4 byte aligned
     // size is too small
