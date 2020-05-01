@@ -62,9 +62,11 @@
   MEMORY_SIZE_128M => 27
   MEMORY_SIZE_256M => 28
   
-  However, due to alignment on a address multiple of 4, the 2 least significant 
-  bits are zeroes. So an offset into memory of size up to 1GB should be possible 
-  to represent within a lispBM VALUE.
+  However, due to alignment on a address multiple of 4, the 2 least
+  significant bits are zeroes. So an offset into memory of size up to
+  1GB should be possible to represent within a lispBM VALUE. This that
+  using the offset into memory could be used as the identity of a
+  symbol when it comes to replacing the symbol table. 
    
 */
 #ifndef _MEMORY_H_
