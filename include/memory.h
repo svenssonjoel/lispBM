@@ -50,6 +50,22 @@
   Requirements:
    - Memory space is a multiple of 64Bytes.
    - Memory status bitmap is the same multiple of 4Bytes.
+
+  Number of bits in an offset from the base_address 
+  MEMORY_SIZE_512  => 9
+  MEMORY_SIZE_1K   => 10
+  MEMORY_SIZE_2K   => 11 
+  MEMORY_SIZE_1M   => 20
+  MEMORY_SIZE_16M  => 24
+  MEMORY_SIZE_32M  => 25
+  MEMORY_SIZE_64M  => 26
+  MEMORY_SIZE_128M => 27
+  MEMORY_SIZE_256M => 28
+  
+  However, due to alignment on a address multiple of 4, the 2 least significant 
+  bits are zeroes. So an offset into memory of size up to 1GB should be possible 
+  to represent within a lispBM VALUE.
+   
 */
 #ifndef _MEMORY_H_
 #define _MEMORY_H_
