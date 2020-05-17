@@ -27,6 +27,7 @@
 #include "typedefs.h"
 #include "compression.h"
 #include "qq_expand.h"
+#include "memory.h"
 
 #define TOKOPENPAR      0
 #define TOKCLOSEPAR     1
@@ -541,9 +542,10 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
   }
   case TOKSTRING: {
     heap_allocate_array(&v, tok.text_len+1, VAL_TYPE_CHAR);
-    array_t *arr = (array_t*)car(v);
-    memset(arr->data.c, 0, (tok.text_len+1) * sizeof(char));
-    memcpy(arr->data.c, tok.data.text, tok.text_len * sizeof(char));
+    array_header_t *arr = (array_header_t*)car(v);
+    char *data = (char *)arr + 8;
+    memset(data, 0, (tok.text_len+1) * sizeof(char));
+    memcpy(data, tok.data.text, tok.text_len * sizeof(char));
     free(tok.data.text);
     return v;
   }

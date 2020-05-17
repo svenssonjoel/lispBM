@@ -551,6 +551,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
     }
 
     // It may be an extension
+    printf("Trying to apply to: %u\n", dec_sym(fun));
 
     extension_fptr f = extensions_lookup(dec_sym(fun));
     if (f == NULL) {
@@ -790,27 +791,20 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
 
   case VAL_TYPE_SYMBOL:
 
-    value = env_lookup(ctx->curr_exp, ctx->curr_env);
-    if (type_of(value) == VAL_TYPE_SYMBOL &&
-	dec_sym(value) == symrepr_not_found()) {
-
-      value = env_lookup(ctx->curr_exp, eval_cps_global_env);
-
+    if (is_special(ctx->curr_exp) ||
+	(extensions_lookup(dec_sym(ctx->curr_exp)) != NULL)) {
+      // Special symbols and extension symbols evaluate to themself
+      value = ctx->curr_exp; 
+    } else { 
+      // If not special, check if there is a binding in the environments
+      value = env_lookup(ctx->curr_exp, ctx->curr_env);
       if (type_of(value) == VAL_TYPE_SYMBOL &&
 	  dec_sym(value) == symrepr_not_found()) {
-
-	if (is_fundamental(ctx->curr_exp)) {
-	  value = ctx->curr_exp;
-	} else if (extensions_lookup(dec_sym(ctx->curr_exp)) == NULL) {
-	  ERROR
-	  error_ctx(enc_sym(symrepr_eerror()));
-	  return;
-	} else {
-	  value = ctx->curr_exp; // symbol representing extension
-	  // evaluates to itself at this stage.
-	}
+	
+	value = env_lookup(ctx->curr_exp, eval_cps_global_env);
       }
     }
+  
     ctx->app_cont = true;
     ctx->r = value;
     break;

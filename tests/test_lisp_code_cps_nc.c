@@ -32,6 +32,7 @@
 #include "tokpar.h"
 #include "prelude.h"
 #include "compression.h"
+#include "memory.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 
@@ -98,6 +99,19 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  unsigned char *memory = malloc(MEMORY_SIZE_16K);
+  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
+  if (memory == NULL || bitmap == NULL) return 0;
+  
+  res = memory_init(memory, MEMORY_SIZE_16K,
+		    bitmap, MEMORY_BITMAP_SIZE_16K);
+  if (res)
+    printf("Memory initialized.\n");
+  else {
+    printf("Error initializing memory!\n");
+    return 0;
+  }
+  
   res = symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");

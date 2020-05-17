@@ -33,6 +33,7 @@
 #include "tokpar.h"
 #include "prelude.h"
 #include "typedefs.h"
+#include "memory.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 
@@ -173,11 +174,13 @@ VALUE ext_print(VALUE *args, int argn) {
     VALUE t = args[i];
 
     if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
-      array_t *array = (array_t *)car(t);
+      array_header_t *array = (array_header_t *)car(t);
       switch (array->elt_type){
-      case VAL_TYPE_CHAR:
-	printf("%s", array->data.c);
+      case VAL_TYPE_CHAR: {
+	char *data = (char*)array + 8;
+	printf("%s", data);
 	break;
+      }
       default:
 	return enc_sym(symrepr_nil());
 	break;
@@ -246,7 +249,20 @@ int main(int argc, char **argv) {
   heap_state_t heap_state;
 
   setup_terminal();
+
+  unsigned char *memory = malloc(MEMORY_SIZE_16K);
+  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
+  if (memory == NULL || bitmap == NULL) return 0;
   
+  res = memory_init(memory, MEMORY_SIZE_16K,
+		    bitmap, MEMORY_BITMAP_SIZE_16K);
+  if (res)
+    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
+  else {
+    printf("Error initializing memory!\n");
+    return 0;
+  } 
+
   res = symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");
@@ -319,6 +335,8 @@ int main(int argc, char **argv) {
       heap_get_state(&heap_state);
       printf("Symbol table size: %u Bytes\n", symrepr_size());
       printf("Heap size: %u Bytes\n", heap_size * 8);
+      printf("Memory size: %u Words\n", memory_num_words());
+      printf("Memory free: %u Words\n", memory_num_free());
       printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
       printf("GC counter: %d\n", heap_state.gc_num);
       printf("Recovered: %d\n", heap_state.gc_recovered);

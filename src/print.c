@@ -43,7 +43,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 
   int n = 0;
   int offset = 0;
-  char *str_ptr;
+  const char *str_ptr;
   int res;
   
   push_u32_2(&s, t, PRINT);
@@ -179,10 +179,10 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       }
 	
       case PTR_TYPE_ARRAY: {
-	array_t *array = (array_t *)car(curr);
+	array_header_t *array = (array_header_t *)car(curr);
 	switch (array->elt_type){
 	case VAL_TYPE_CHAR:
-	  n = snprintf(buf + offset, len - offset, "\"%s\"", array->data.c);
+	  n = snprintf(buf + offset, len - offset, "\"%s\"", (char *)(array)+8);
 	  offset += n;
 	  break;
 	  break;
@@ -197,7 +197,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 	str_ptr = symrepr_lookup_name(dec_sym(curr));
 	if (str_ptr == NULL) {
 	  
-	  snprintf(error, len_error, "Error: Symbol not in table %"PRI_UINT"", dec_sym(t));
+	  snprintf(error, len_error, "Error: Symbol not in table %"PRI_UINT"", dec_sym(curr));
 	  return -1;
 	} 
 	n = snprintf(buf + offset, len - offset, "%s", str_ptr);

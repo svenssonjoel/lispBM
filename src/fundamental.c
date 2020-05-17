@@ -399,25 +399,25 @@ static UINT sub2(UINT a, UINT b) {
 static bool array_equality(VALUE a, VALUE b) {
   if (type_of(a) == PTR_TYPE_ARRAY &&
       type_of(a) == type_of(b)) {
-    array_t *a_ = (array_t*)car(a);
-    array_t *b_ = (array_t*)car(b);
+    array_header_t *a_ = (array_header_t*)car(a);
+    array_header_t *b_ = (array_header_t*)car(b);
 
     if (a_->elt_type == b_->elt_type &&
 	a_->size == b_->size) {
       switch(a_->elt_type) {
       case VAL_TYPE_U:
       case PTR_TYPE_BOXED_U:
-	if (memcmp(a_->data.u, b_->data.u, a_->size * sizeof(UINT)) == 0) return true;
+	if (memcmp(a_+2, b_+2, a_->size * sizeof(UINT)) == 0) return true;
 	break;
       case VAL_TYPE_I:
       case PTR_TYPE_BOXED_I:
-	if (memcmp(a_->data.i, b_->data.i, a_->size * sizeof(INT)) == 0) return true;
+	if (memcmp(a_+2, b_+2, a_->size * sizeof(INT)) == 0) return true;
 	break;
       case VAL_TYPE_CHAR:
-	if (memcmp(a_->data.c, b_->data.c, a_->size) == 0) return true;
+	if (memcmp(a_+2, b_+2, a_->size) == 0) return true;
 	break;
       case PTR_TYPE_BOXED_F:
-	if (memcmp(a_->data.f, b_->data.f, a_->size * sizeof(FLOAT)) == 0) return true;
+	if (memcmp(a_+2, b_+2, a_->size * sizeof(FLOAT)) == 0) return true;
 	break;
       default:
 	break; 
@@ -579,7 +579,7 @@ void array_read(VALUE *args, UINT nargs, UINT *result) {
   }
 
   if (type_of(arr) == PTR_TYPE_ARRAY) {
-    array_t *array = (array_t*)car(arr);
+    array_header_t *array = (array_header_t*)car(arr);
 
     if (ix >= array->size){
       *result = enc_sym(symrepr_nil());
@@ -588,26 +588,26 @@ void array_read(VALUE *args, UINT nargs, UINT *result) {
 
     switch(array->elt_type) {
     case VAL_TYPE_CHAR:
-      *result = enc_char((UINT) array->data.c[ix]);
+      *result = enc_char((UINT) ((char*)array+8)[ix]);
       break;
     case VAL_TYPE_U:
-      *result = enc_u(array->data.u[ix]);
+      *result = enc_u(((UINT*)array + 2)[ix]);
       break;
     case VAL_TYPE_I:
-      *result = enc_i(array->data.i[ix]);
+      *result = enc_i(((INT*)array + 2)[ix]);
       break;
     case PTR_TYPE_BOXED_U:
-      *result = cons(array->data.u[ix], enc_sym(DEF_REPR_BOXED_U_TYPE));
+      *result = cons(((UINT*)array + 2)[ix], enc_sym(DEF_REPR_BOXED_U_TYPE));
       if (type_of(*result) == VAL_TYPE_SYMBOL) return;
       *result = set_ptr_type(*result, PTR_TYPE_BOXED_U);
       break;
     case PTR_TYPE_BOXED_I:
-      *result = cons(array->data.i[ix], enc_sym(DEF_REPR_BOXED_I_TYPE));
+      *result = cons(((INT*)array + 2)[ix], enc_sym(DEF_REPR_BOXED_I_TYPE));
       if (type_of(*result) == VAL_TYPE_SYMBOL) return;
       *result = set_ptr_type(*result, PTR_TYPE_BOXED_I);
       break;
     case PTR_TYPE_BOXED_F:
-      *result = cons(array->data.f[ix], enc_sym(DEF_REPR_BOXED_F_TYPE));
+      *result = cons(((UINT*)array+2)[ix], enc_sym(DEF_REPR_BOXED_F_TYPE));
       if (type_of(*result) == VAL_TYPE_SYMBOL) return;
       *result = set_ptr_type(*result, PTR_TYPE_BOXED_F);
       break;
@@ -658,7 +658,7 @@ void array_write(VALUE *args, UINT nargs, UINT *result) {
   }
 
   if (type_of(arr) == PTR_TYPE_ARRAY) {
-    array_t *array = (array_t*)car(arr);
+    array_header_t *array = (array_header_t*)car(arr);
 
     if (type_of(val) != array->elt_type ||
 	ix >= array->size) {
@@ -667,26 +667,38 @@ void array_write(VALUE *args, UINT nargs, UINT *result) {
     }
 
     switch(array->elt_type) {
-    case VAL_TYPE_CHAR:
-      array->data.c[ix] = dec_char(val);
+    case VAL_TYPE_CHAR: { 
+      char * data = (char *)array + 8;
+      data[ix] = dec_char(val);
       break;
-    case VAL_TYPE_U:
-      array->data.u[ix] = dec_u(val);
+    }
+    case VAL_TYPE_U: {
+      UINT* data = (UINT*)array + 2;
+      data[ix] = dec_u(val);
       break;
-    case VAL_TYPE_I:
-      array->data.i[ix] = dec_i(val);
+    }
+    case VAL_TYPE_I: {
+      INT *data = (INT*)array + 2;
+      data[ix] = dec_i(val);
       break;
-    case PTR_TYPE_BOXED_U:
-      array->data.u[ix] = dec_U(val);
+    }
+    case PTR_TYPE_BOXED_U: {
+      UINT *data = (UINT*)array + 2;
+      data[ix] = dec_U(val);
       break;
-    case PTR_TYPE_BOXED_I:
-      array->data.i[ix] = dec_I(val);
+    }
+    case PTR_TYPE_BOXED_I: {
+      INT *data = (INT*)array + 2;
+      data[ix] = dec_I(val);
       break;
-    case PTR_TYPE_BOXED_F:
-      uv = car(val);
-      memcpy(&v, &uv, sizeof(FLOAT));
-      array->data.f[ix] = v;
+    }
+    case PTR_TYPE_BOXED_F: {
+      //uv = car(val);
+      //memcpy(&v, &uv, sizeof(FLOAT));
+      UINT *data = (UINT*)array + 2;
+      data[ix] = car(val);
       break;
+    }
     default:
       *result = enc_sym(symrepr_eerror());
       return;

@@ -207,14 +207,8 @@ typedef struct {
 
 typedef struct {
   TYPE elt_type;            // Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
-  unsigned int size;        // Number of elements
-  union {
-    float    *f;
-    UINT     *u; 
-    INT      *i;
-    char     *c;
-  } data;                   // Array data storage
-} array_t;
+  uint32_t size;            // Number of elements
+} array_header_t;
 
 typedef struct {
   unsigned int code_size; 
@@ -364,11 +358,6 @@ static inline bool val_get_gc_mark(VALUE x) {
   return x & GC_MASK;
 }
 
-static inline bool is_fundamental(VALUE symrep) {
-  return ((type_of(symrep) == VAL_TYPE_SYMBOL)  &&
-	  ((dec_sym(symrep) & 0xFFFF) == 0xFFFF));
-}
-
 static inline bool is_number(VALUE x) {
   UINT t = type_of(x);
   return ((t == VAL_TYPE_I) ||
@@ -377,5 +366,17 @@ static inline bool is_number(VALUE x) {
 	  (t == PTR_TYPE_BOXED_U) ||
 	  (t == PTR_TYPE_BOXED_F));
 }
+
+static inline bool is_special(VALUE symrep) {
+  return ((type_of(symrep) == VAL_TYPE_SYMBOL) &&
+	  (dec_sym(symrep) < MAX_SPECIAL_SYMBOLS));
+}  
+
+static inline bool is_fundamental(VALUE symrep) {
+  return ((type_of(symrep) == VAL_TYPE_SYMBOL)  &&
+	  (dec_sym(symrep) >= FUNDAMENTALS_START) &&
+	  (dec_sym(symrep) <= FUNDAMENTALS_END));	    
+}
+
 
 #endif

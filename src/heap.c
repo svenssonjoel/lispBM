@@ -23,6 +23,7 @@
 #include "heap.h"
 #include "symrepr.h"
 #include "stack.h"
+#include "memory.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -332,27 +333,8 @@ int gc_sweep_phase(void) {
       // and free it.
       if (type_of(heap[i].cdr) == VAL_TYPE_SYMBOL &&
 	  dec_sym(heap[i].cdr) == DEF_REPR_ARRAY_TYPE) {
-	array_t *arr = (array_t*)heap[i].car;
-	switch(arr->elt_type) {
-	case VAL_TYPE_CHAR:
-	  if (arr->data.c) free(arr->data.c);
-	  break;
-	case VAL_TYPE_I:
-	case PTR_TYPE_BOXED_I:
-	  if (arr->data.i) free(arr->data.i);
-	  break;
-	case VAL_TYPE_U:
-	case PTR_TYPE_BOXED_U:
-	case VAL_TYPE_SYMBOL:
-	  if (arr->data.u) free(arr->data.u);
-	  break;
-	case PTR_TYPE_BOXED_F:
-	  if (arr->data.f) free(arr->data.f);
-	  break;
-	default:
-	  return 0; // Error case: unrecognized element type.
-	}
-	free(arr);
+	array_header_t *arr = (array_header_t*)heap[i].car;
+	memory_free((uint32_t *)arr);
 	heap_state.gc_recovered_arrays++;
       }
 
@@ -538,41 +520,28 @@ VALUE copy(VALUE list) {
 // in the "heap of cons cells".
 int heap_allocate_array(VALUE *res, unsigned int size, TYPE type){
 
-  array_t *array = malloc(sizeof(array_t));
+  array_header_t *array = NULL;
   // allocating a cell that will, to start with, be a cons cell.
   VALUE cell  = heap_allocate_cell(PTR_TYPE_CONS);
 
-  switch(type) {
-  case PTR_TYPE_BOXED_I: // array of I
-    array->data.i = (INT*)malloc(size * sizeof(INT));
-    if (array->data.i == NULL) return 0;
-    break;
-  case PTR_TYPE_BOXED_U: // array of U
-    array->data.u = (UINT*)malloc(size * sizeof(UINT));
-    if (array->data.u == NULL) return 0;
-    break;
-  case PTR_TYPE_BOXED_F: // array of Float
-    array->data.f = (float*)malloc(size * sizeof(float));
-    if (array->data.f == NULL) return 0;
-    break;
-  case VAL_TYPE_CHAR: // Array of Char
-    array->data.c = (char*)malloc(size * sizeof(char));
-    if (array->data.c == NULL) return 0;
-    break;
-  case VAL_TYPE_I:
-    array->data.i = (INT*)malloc(size * sizeof(INT));
-    break;
-  case VAL_TYPE_U:
-    array->data.u = (UINT*)malloc(size * sizeof(UINT));
-    break;
-  case VAL_TYPE_SYMBOL:
-    array->data.u = (UINT*)malloc(size * sizeof(UINT));
-    break;
-  default:
-    *res = NIL;
-    return 0;
+  if (type_of(cell) == VAL_TYPE_SYMBOL) // Out of heap memory
+    return cell;
+
+  int allocate_size = 0;
+  if (type == VAL_TYPE_CHAR) {
+    if ( size % 4 == 0) {
+      allocate_size = size >> 2;
+    } else {
+      allocate_size = (size >> 2) + 1;
+    }
+  } else {
+    allocate_size = size;
   }
 
+  array = (array_header_t*)memory_allocate(2 + allocate_size);
+   
+  if (array == NULL) return 0;
+  
   array->elt_type = type;
   array->size = size;
 

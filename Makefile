@@ -1,8 +1,8 @@
 
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
-  CCFLAGS = -m32 -O2 -Wall -Wextra -pedantic -std=c11
-  CCFLAGS += -D_PRELUDE -DTINY_SYMTAB
+  CCFLAGS = -g -m32 -O2 -Wall -Wextra -pedantic -std=c11
+  CCFLAGS += -D_PRELUDE 
   CC=gcc
   AR=ar
 else
@@ -26,7 +26,6 @@ ifeq ($(PLATFORM), stm32f4)
   BUILD_DIR = build/stm32f4
   CCFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O2 -Wall -Wextra -pedantic
 #-fmessage-length=0 -ffunction-sections -c -MMD -MP
-  CCFLAGS += -DTINY_SYMTAB
   CCFLAGS += -D_PRELUDE
 endif
 
@@ -34,7 +33,6 @@ ifeq ($(PLATFORM), nrf52840_pca10056)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/nrf52840_pca10056
   CCFLAGS =  -mcpu=cortex-m4  -mthumb -ffunction-sections -fdata-sections -mabi=aapcs -march=armv7e-m -O2 -Wall -Wextra -pedantic
-  CCFLAGS += -DTINY_SYMTAB
   CCFLAGS += -D_PRELUDE
 endif
 
@@ -42,7 +40,6 @@ ifeq ($(PLATFORM), pi)
   $(error Platform support not implemented)
   CROSS_COMPILE = aarch32
   BUILD_DIR = /build/pi
-  CCFLAGS = 
   CCFLAGS += -D_PRELUDE
 endif
 
