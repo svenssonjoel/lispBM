@@ -407,17 +407,17 @@ static bool array_equality(VALUE a, VALUE b) {
       switch(a_->elt_type) {
       case VAL_TYPE_U:
       case PTR_TYPE_BOXED_U:
-	if (memcmp(a_+2, b_+2, a_->size * sizeof(UINT)) == 0) return true;
+	if (memcmp((char*)a_+8, (char*)b_+8, a_->size * sizeof(UINT)) == 0) return true;
 	break;
       case VAL_TYPE_I:
       case PTR_TYPE_BOXED_I:
-	if (memcmp(a_+2, b_+2, a_->size * sizeof(INT)) == 0) return true;
+	if (memcmp((char*)a_+8, (char*)b_+8, a_->size * sizeof(INT)) == 0) return true;
 	break;
       case VAL_TYPE_CHAR:
-	if (memcmp(a_+2, b_+2, a_->size) == 0) return true;
+	if (memcmp((char*)a_+8, (char*)b_+8, a_->size) == 0) return true;
 	break;
       case PTR_TYPE_BOXED_F:
-	if (memcmp(a_+2, b_+2, a_->size * sizeof(FLOAT)) == 0) return true;
+	if (memcmp((char*)a_+8, (char*)b_+8, a_->size * sizeof(FLOAT)) == 0) return true;
 	break;
       default:
 	break; 

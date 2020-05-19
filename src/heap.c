@@ -508,13 +508,6 @@ VALUE copy(VALUE list) {
   return reverse(res); 
 }
 
-
-
-
-////////////////////////////////////////////////////////////
-// ARRAY, REF and Stream functionality
-////////////////////////////////////////////////////////////
-
 // Arrays are part of the heap module because their lifespan is managed
 // by the garbage collector. The data in the array is not stored
 // in the "heap of cons cells".
