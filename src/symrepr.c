@@ -24,36 +24,6 @@
 #include "symrepr.h"
 #include "memory.h"
 
-/*
-   Name -> 28bit integer mapping that is (I hope) somewhat
-   efficient in both directions. (it's a shot from the hip... )
-
-   In the best case, looking up the 28bit id has cost relative to
-   length of name. In the worst, it has that cost + cost of a walk
-   over linked list (that can at most be 4095 links long).
-
-   In the best case, looking up a name given a 28bit id has constant cost.
-   In the worst case it has the same linked list traversal.
-
-   ## overhauling Symbol representation
-
-     - Remove the gensym functionality
-     - 65533 buckets of depth 4096
-     - bucket 65534 contains up to 4096 hardcoded symbols.
-       These will be used for the following symbols and such:
-       (nil, quote, true, if, lambda, closure, let, progn, +,-,*, /, mod, sin, cos, etc etc).
-
-       
-   ## 
-     4096 - 12Bit
-            16Bit
-            28
- */
-#define HASHTAB_MALLOC_SIZE 0x10000
-#define HASHTAB_SIZE        0xFFFF
-#define BUCKET_DEPTH        4096
-
-
 #define NUM_SPECIAL_SYMBOLS 59
 
 #define NAME   0
