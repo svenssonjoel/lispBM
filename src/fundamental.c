@@ -625,8 +625,6 @@ void array_write(VALUE *args, UINT nargs, UINT *result) {
   VALUE arr = args[0];
   VALUE index = args[1];
   VALUE val = args[2];
-  UINT uv;
-  FLOAT v;
   UINT ix;
   INT tmp;
   switch (type_of(index)) {
