@@ -333,7 +333,7 @@ void cont_set_global_env(eval_context_t *ctx, bool *perform_gc){
     }
   }
   eval_cps_global_env = new_env;
-  ctx->r = enc_sym(symrepr_true());
+  ctx->r = key;
   return;
 }
 
@@ -871,7 +871,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
 	  return;
 	}
 	FOF(push_u32_3(&ctx->K, env, cdr(exps), enc_u(PROGN_REST)));
-	ctx->curr_exp = car(exps);
+	ctx->curr_exp = car(exps); 
 	ctx->curr_env = env;
 	return;
       }
