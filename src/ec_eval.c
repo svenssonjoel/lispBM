@@ -138,9 +138,25 @@ static inline void cont_define(bool *eval_continuation) {
   *eval_continuation = true;
 }
 
-static inline void eval_application(bool *eval_continuation) {
-  (void)eval_continuation;
+static inline void eval_application(void) {
   //  TODO
+}
+
+static inline VALUE mkClosure(VALUE exp, VALUE env) {
+
+  VALUE env_end = cons(rm_state.env, enc_sym(symrepr_nil()));
+  VALUE body    = cons(car(cdr(cdr(rm_state.exp))), env_end);
+  VALUE params  = cons(car(cdr(rm_state.exp)),body);
+  VALUE closure = cons(enc_sym(symrepr_closure()), params);
+
+  //TODO: error checking and garbage collection
+  return closure;  
+}
+
+static inline void eval_lambda(bool *eval_continuation) {
+
+  rm_state.val = mkClosure(rm_state.exp, rm_state.env);
+  *eval_continuation = true;
 }
 
 void ec_eval(void) {
@@ -165,7 +181,10 @@ void ec_eval(void) {
 	eval_define();
 	break;
       case EXP_APPLICATION: 
-	eval_application(&eval_continuation);
+	eval_application();
+	break;
+      case EXP_LAMBDA:
+	eval_lambda(&eval_continuation);
 	break;
       }
     } else {
