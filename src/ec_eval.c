@@ -31,7 +31,6 @@ typedef enum {
   EXP_QUOTED,
   EXP_DEFINE,
   EXP_LAMBDA,
-  EXP_PROGN,
   EXP_IF,
   EXP_APPLICATION,
   EXP_LET
@@ -87,7 +86,7 @@ exp_kind kind_of(VALUE exp) {
       if (sym_id == symrepr_define())
 	return EXP_DEFINE;
       if (sym_id == symrepr_progn())
-	return EXP_PROGN;
+	return EXP_APPLICATION;
       if (sym_id == symrepr_lambda())
 	return EXP_LAMBDA;
       if (sym_id == symrepr_if())
@@ -139,6 +138,11 @@ static inline void cont_define(bool *eval_continuation) {
   *eval_continuation = true;
 }
 
+static inline void eval_application(bool *eval_continuation) {
+  (void)eval_continuation;
+  //  TODO
+}
+
 void ec_eval(void) {
 
   bool eval_continuation = false;
@@ -159,6 +163,9 @@ void ec_eval(void) {
 	break;
       case EXP_DEFINE:
 	eval_define();
+	break;
+      case EXP_APPLICATION: 
+	eval_application(&eval_continuation);
 	break;
       }
     } else {
