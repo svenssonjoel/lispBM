@@ -32,6 +32,7 @@ typedef enum {
   EXP_DEFINE,
   EXP_LAMBDA,
   EXP_IF,
+  EXP_NO_ARGS,
   EXP_APPLICATION,
   EXP_LET
 } exp_kind;
@@ -93,6 +94,10 @@ exp_kind kind_of(VALUE exp) {
 	return EXP_IF;
       if (sym_id == symrepr_let())
 	return EXP_LET;
+      if (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
+	  dec_sym(cdr(exp)) == symrepr_nil()) {
+	return EXP_NO_ARGS;
+      }
       return EXP_APPLICATION;
     } // end if symbol
   } // end case PTR_TYPE_CONS:
