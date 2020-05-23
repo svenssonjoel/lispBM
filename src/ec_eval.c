@@ -133,7 +133,9 @@ static inline void cont_define(bool *eval_continuation) {
   VALUE new_env = env_set(ec_eval_global_env,
 			  rm_state.unev,
 			  rm_state.val);
-  ec_eval_global_env = new_env; // TODO: GC and error checking.
+  ec_eval_global_env = new_env;
+
+  // TODO: error checking and garbage collection
   rm_state.val = rm_state.unev;
   *eval_continuation = true;
 }
