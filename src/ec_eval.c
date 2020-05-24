@@ -39,12 +39,20 @@ typedef enum {
 
 typedef enum {
   CONT_DEFINE,
+  CONT_SETUP_NO_ARG_APPLY,
+  CONT_EVAL_ARGS,
 } continuation;
 
+typedef enum {
+  EVAL_DISPATCH,
+  EVAL_CONTINUATION,
+  EVAL_ARG_LOOP,
+  EVAL_APPLY_DISPATCH
+} eval_state;
 
-/* 
+/*
    Machine model:
-   7 x 32 Bit Registers 
+   7 x 32 Bit Registers
    + Stack
 */
 typedef struct {
@@ -55,9 +63,9 @@ typedef struct {
   VALUE argl;
   VALUE val;
   VALUE fun;
-  
+
   stack S;
-} register_machine_t; 
+} register_machine_t;
 
 register_machine_t rm_state;
 VALUE ec_eval_global_env;
@@ -101,26 +109,26 @@ exp_kind kind_of(VALUE exp) {
       return EXP_APPLICATION;
     } // end if symbol
   } // end case PTR_TYPE_CONS:
-  } 
+  }
   return EXP_KIND_ERROR;
 }
 
-static inline void eval_self_evaluating(bool *eval_continuation) {
+static inline void eval_self_evaluating(eval_state *es) {
   rm_state.val = rm_state.exp;
-  *eval_continuation = true;
+  *es = EVAL_CONTINUATION;
 }
 
-static inline void eval_variable(bool *eval_continuation) {
+static inline void eval_variable(eval_state *es) {
   rm_state.val = env_lookup(rm_state.exp, rm_state.env);
-  *eval_continuation = true;
+  *es = EVAL_CONTINUATION;
 }
 
-static inline void eval_quoted(bool *eval_continuation) {
+static inline void eval_quoted(eval_state *es) {
   rm_state.val = car(cdr(rm_state.exp));
-  *eval_continuation = true;
+  *es = EVAL_CONTINUATION;
 }
 
-static inline void eval_define(void) {
+static inline void eval_define(eval_state *es) {
   rm_state.unev = car(cdr(rm_state.exp));
   rm_state.exp  = car(cdr(cdr(rm_state.exp)));
   push_u32_3(&rm_state.S,
@@ -128,9 +136,10 @@ static inline void eval_define(void) {
 	     rm_state.env,
 	     rm_state.cont);
   rm_state.cont = CONT_DEFINE;
+  *es = EVAL_DISPATCH;
 }
 
-static inline void cont_define(bool *eval_continuation) {
+static inline void cont_define(eval_state *es) {
   pop_u32_3(&rm_state.S,
 	    &rm_state.cont,
 	    &rm_state.env,
@@ -142,11 +151,7 @@ static inline void cont_define(bool *eval_continuation) {
 
   // TODO: error checking and garbage collection
   rm_state.val = rm_state.unev;
-  *eval_continuation = true;
-}
-
-static inline void eval_application(void) {
-  //  TODO
+  *es = EVAL_CONTINUATION;
 }
 
 static inline VALUE mkClosure(VALUE exp, VALUE env) {
@@ -157,50 +162,68 @@ static inline VALUE mkClosure(VALUE exp, VALUE env) {
   VALUE closure = cons(enc_sym(symrepr_closure()), params);
 
   //TODO: error checking and garbage collection
-  return closure;  
+  return closure;
 }
 
-static inline void eval_lambda(bool *eval_continuation) {
+static inline void eval_lambda(eval_state *es) {
 
   rm_state.val = mkClosure(rm_state.exp, rm_state.env);
-  *eval_continuation = true;
+  *es = EVAL_CONTINUATION;
+}
+
+
+static inline void eval_no_args(eval_state *es) {
+  rm_state.exp = car(rm_state.exp);
+  push_u32(&rm_state.S, rm_state.cont);
+  rm_state.cont = CONT_SETUP_NO_ARG_APPLY;
+  *es = EVAL_DISPATCH;
+}
+
+static inline void cont_setup_no_arg_apply(eval_state *es) {
+  rm_state.fun = rm_state.val;
+  rm_state.argl = enc_sym(symrepr_nil());
+  *es = EVAL_APPLY_DISPATCH;
+}
+
+static inline void eval_application(eval_state *es) {
+  //  TODO
+}
+
+static inline void cont_eval_args(eval_state *es) {
+  //  TODO
 }
 
 void ec_eval(void) {
 
-  bool eval_continuation = false;
-  
+  eval_state es = EVAL_DISPATCH;
+
   while (1) {
 
-    if (!eval_continuation) {
-    /* dispatch on exp */
+    switch(es) {
+    case EVAL_DISPATCH:
+      /* dispatch on exp */
       switch (kind_of(rm_state.exp)) {
-      case EXP_SELF_EVALUATING:
-	eval_self_evaluating(&eval_continuation);
-	break;
-      case EXP_VARIABLE:
-	eval_variable(&eval_continuation);
-	break;
-      case EXP_QUOTED:
-	eval_quoted(&eval_continuation);
-	break;
-      case EXP_DEFINE:
-	eval_define();
-	break;
-      case EXP_APPLICATION: 
-	eval_application();
-	break;
-      case EXP_LAMBDA:
-	eval_lambda(&eval_continuation);
-	break;
+      case EXP_SELF_EVALUATING: eval_self_evaluating(&es); break;
+      case EXP_VARIABLE:        eval_variable(&es);        break;
+      case EXP_QUOTED:          eval_quoted(&es);          break;
+      case EXP_DEFINE:          eval_define(&es);          break;
+      case EXP_NO_ARGS:         eval_no_args(&es);         break;
+      case EXP_APPLICATION:     eval_application(&es);     break;
+      case EXP_LAMBDA:          eval_lambda(&es);          break;
       }
-    } else {
-    /* dispatch on cont */
+      break;
+    case EVAL_CONTINUATION:
+      /* dispatch on cont */
       switch (rm_state.cont) {
-      case CONT_DEFINE:
-	cont_define(&eval_continuation);
-	break;
+      case CONT_DEFINE:             cont_define(&es);             break;
+      case CONT_SETUP_NO_ARG_APPLY: cont_setup_no_arg_apply(&es); break;
+      case CONT_EVAL_ARGS:          cont_eval_args(&es);          break;
       }
+      break;
+    case EVAL_ARG_LOOP:
+      break;
+    case EVAL_APPLY_DISPATCH:
+      break;
     }
   }
 }
