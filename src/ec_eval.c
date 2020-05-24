@@ -38,15 +38,19 @@ typedef enum {
 } exp_kind;
 
 typedef enum {
+  CONT_DONE, 
   CONT_DEFINE,
   CONT_SETUP_NO_ARG_APPLY,
   CONT_EVAL_ARGS,
+  CONT_ACCUMULATE_ARG,
+  CONT_ACCUMULATE_LAST_ARG
 } continuation;
 
 typedef enum {
   EVAL_DISPATCH,
   EVAL_CONTINUATION,
   EVAL_ARG_LOOP,
+  EVAL_LAST_ARG,
   EVAL_APPLY_DISPATCH
 } eval_state;
 
@@ -113,6 +117,13 @@ exp_kind kind_of(VALUE exp) {
   return EXP_KIND_ERROR;
 }
 
+static inline bool last_operand(VALUE exp) {
+  if (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
+      dec_sym(cdr(exp)) == symrepr_nil())
+    return true;
+  return false; 
+}
+
 static inline void eval_self_evaluating(eval_state *es) {
   rm_state.val = rm_state.exp;
   *es = EVAL_CONTINUATION;
@@ -154,7 +165,7 @@ static inline void cont_define(eval_state *es) {
   *es = EVAL_CONTINUATION;
 }
 
-static inline VALUE mkClosure(VALUE exp, VALUE env) {
+static inline VALUE mkClosure(void) {
 
   VALUE env_end = cons(rm_state.env, enc_sym(symrepr_nil()));
   VALUE body    = cons(car(cdr(cdr(rm_state.exp))), env_end);
@@ -167,10 +178,9 @@ static inline VALUE mkClosure(VALUE exp, VALUE env) {
 
 static inline void eval_lambda(eval_state *es) {
 
-  rm_state.val = mkClosure(rm_state.exp, rm_state.env);
+  rm_state.val = mkClosure();
   *es = EVAL_CONTINUATION;
 }
-
 
 static inline void eval_no_args(eval_state *es) {
   rm_state.exp = car(rm_state.exp);
@@ -186,18 +196,59 @@ static inline void cont_setup_no_arg_apply(eval_state *es) {
 }
 
 static inline void eval_application(eval_state *es) {
-  //  TODO
+  rm_state.unev = cdr(rm_state.exp);
+  rm_state.exp = car(rm_state.exp);
+  push_u32_3(&rm_state.S, rm_state.cont, rm_state.env, rm_state.unev);
+  rm_state.cont = CONT_EVAL_ARGS;
+  *es = EVAL_DISPATCH;
 }
 
 static inline void cont_eval_args(eval_state *es) {
-  //  TODO
+  pop_u32_2(&rm_state.S,&rm_state.unev, &rm_state.env);
+  rm_state.fun = rm_state.val;
+  push_u32(&rm_state.S,rm_state.fun);
+  rm_state.argl = enc_sym(symrepr_nil());
+  *es = EVAL_ARG_LOOP;
+}
+
+static inline void eval_arg_loop(eval_state *es) {
+  push_u32(&rm_state.S, rm_state.argl);
+  rm_state.exp = car(rm_state.unev);
+  if (last_operand(rm_state.unev)) {
+    *es = EVAL_LAST_ARG;
+    return;
+  }
+  push_u32_2(&rm_state.S, rm_state.env, rm_state.unev);
+  rm_state.cont = CONT_ACCUMULATE_ARG;
+  *es = EVAL_DISPATCH;
+}
+
+static inline void cont_accumulate_arg(eval_state *es) {
+  pop_u32_3(&rm_state.S, &rm_state.unev, &rm_state.env, &rm_state.argl);
+  rm_state.argl = cons(rm_state.val, rm_state.argl);  // TODO error checking and garbage collection
+  rm_state.unev = cdr(rm_state.unev);
+  *es = EVAL_ARG_LOOP;
+}
+
+static inline void eval_last_arg(eval_state *es) {
+  rm_state.cont = CONT_ACCUMULATE_LAST_ARG;
+  *es = EVAL_DISPATCH;
+}
+
+static inline void cont_accumulate_last_arg(eval_state *es) {
+  pop_u32(&rm_state.S, &rm_state.argl);
+  rm_state.argl = cons(rm_state.val, rm_state.argl); // TODO error checking and garbage collection
+  pop_u32(&rm_state.S, &rm_state.fun);
+  *es = EVAL_DISPATCH;
 }
 
 void ec_eval(void) {
 
   eval_state es = EVAL_DISPATCH;
 
-  while (1) {
+  bool done = false; 
+  
+  while (!done) {
 
     switch(es) {
     case EVAL_DISPATCH:
@@ -210,18 +261,24 @@ void ec_eval(void) {
       case EXP_NO_ARGS:         eval_no_args(&es);         break;
       case EXP_APPLICATION:     eval_application(&es);     break;
       case EXP_LAMBDA:          eval_lambda(&es);          break;
+      case EXP_IF:                                         break;
+      case EXP_LET:                                        break;
+      case EXP_KIND_ERROR:      done = true;               break;   
       }
       break;
     case EVAL_CONTINUATION:
       /* dispatch on cont */
       switch (rm_state.cont) {
-      case CONT_DEFINE:             cont_define(&es);             break;
-      case CONT_SETUP_NO_ARG_APPLY: cont_setup_no_arg_apply(&es); break;
-      case CONT_EVAL_ARGS:          cont_eval_args(&es);          break;
+      case CONT_DONE:                done = true;                   break;
+      case CONT_DEFINE:              cont_define(&es);              break;
+      case CONT_SETUP_NO_ARG_APPLY:  cont_setup_no_arg_apply(&es);  break;
+      case CONT_EVAL_ARGS:           cont_eval_args(&es);           break;
+      case CONT_ACCUMULATE_ARG:      cont_accumulate_arg(&es);      break;
+      case CONT_ACCUMULATE_LAST_ARG: cont_accumulate_last_arg(&es); break;
       }
       break;
-    case EVAL_ARG_LOOP:
-      break;
+    case EVAL_ARG_LOOP:        eval_arg_loop(&es);  break;
+    case EVAL_LAST_ARG:        eval_last_arg(&es);  break;
     case EVAL_APPLY_DISPATCH:
       break;
     }
