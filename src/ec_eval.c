@@ -52,9 +52,18 @@ typedef enum {
   EVAL_APPLY_DISPATCH
 } eval_state;
 
+/* Register machine: 
+ * cont : Continuation register (what to do when hitting a leaf)
+ * unev : Hold something un-evaluated for a while 
+ * prg  : Keeps track of a list of expressions to evaluate (top-level)
+ * exp  : Current expression 
+ * argl : List of evaluated arguments to function
+ * val  : Final or intermediate result 
+ * fun  : Evaluated function (for application)
+ */  
 
 typedef struct {
-  uint32_t cont;
+  uint32_t cont; 
   VALUE env;
   VALUE unev;
   VALUE prg;
