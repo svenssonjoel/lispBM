@@ -49,8 +49,6 @@ typedef enum {
 typedef enum {
   EVAL_DISPATCH,
   EVAL_CONTINUATION,
-  EVAL_ARG_LOOP,
-  EVAL_LAST_ARG,
   EVAL_APPLY_DISPATCH
 } eval_state;
 
@@ -202,19 +200,16 @@ static inline void eval_application(eval_state *es) {
   *es = EVAL_DISPATCH;
 }
 
-static inline void cont_eval_args(eval_state *es) {
-  pop_u32_2(&rm_state.S,&rm_state.unev, &rm_state.env);
-  rm_state.fun = rm_state.val;
-  push_u32(&rm_state.S,rm_state.fun);
-  rm_state.argl = enc_sym(symrepr_nil());
-  *es = EVAL_ARG_LOOP;
+static inline void eval_last_arg(eval_state *es) {
+  rm_state.cont = CONT_ACCUMULATE_LAST_ARG;
+  *es = EVAL_DISPATCH;
 }
 
 static inline void eval_arg_loop(eval_state *es) {
   push_u32(&rm_state.S, rm_state.argl);
   rm_state.exp = car(rm_state.unev);
   if (last_operand(rm_state.unev)) {
-    *es = EVAL_LAST_ARG;
+    eval_last_arg(es);
     return;
   }
   push_u32_2(&rm_state.S, rm_state.env, rm_state.unev);
@@ -222,16 +217,19 @@ static inline void eval_arg_loop(eval_state *es) {
   *es = EVAL_DISPATCH;
 }
 
+static inline void cont_eval_args(eval_state *es) {
+  pop_u32_2(&rm_state.S,&rm_state.unev, &rm_state.env);
+  rm_state.fun = rm_state.val;
+  push_u32(&rm_state.S,rm_state.fun);
+  rm_state.argl = enc_sym(symrepr_nil());
+  eval_arg_loop(es);
+}
+
 static inline void cont_accumulate_arg(eval_state *es) {
   pop_u32_3(&rm_state.S, &rm_state.unev, &rm_state.env, &rm_state.argl);
   rm_state.argl = cons(rm_state.val, rm_state.argl);  // TODO error checking and garbage collection
   rm_state.unev = cdr(rm_state.unev);
-  *es = EVAL_ARG_LOOP;
-}
-
-static inline void eval_last_arg(eval_state *es) {
-  rm_state.cont = CONT_ACCUMULATE_LAST_ARG;
-  *es = EVAL_DISPATCH;
+  eval_arg_loop(es);
 }
 
 static inline void cont_accumulate_last_arg(eval_state *es) {
@@ -285,7 +283,6 @@ void ec_eval(void) {
 
     switch(es) {
     case EVAL_DISPATCH:
-      /* dispatch on exp */
       switch (kind_of(rm_state.exp)) {
       case EXP_SELF_EVALUATING: eval_self_evaluating(&es); break;
       case EXP_VARIABLE:        eval_variable(&es);        break;
@@ -300,7 +297,6 @@ void ec_eval(void) {
       }
       break;
     case EVAL_CONTINUATION:
-      /* dispatch on cont */
       switch (rm_state.cont) {
       case CONT_DONE:                done = true;                   break;
       case CONT_DEFINE:              cont_define(&es);              break;
@@ -310,8 +306,6 @@ void ec_eval(void) {
       case CONT_ACCUMULATE_LAST_ARG: cont_accumulate_last_arg(&es); break;
       }
       break;
-    case EVAL_ARG_LOOP:        eval_arg_loop(&es);       break;
-    case EVAL_LAST_ARG:        eval_last_arg(&es);       break;
     case EVAL_APPLY_DISPATCH:  eval_apply_dispatch(&es); break; 
     }
   }
