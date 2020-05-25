@@ -378,5 +378,10 @@ static inline bool is_fundamental(VALUE symrep) {
 	  (dec_sym(symrep) <= FUNDAMENTALS_END));	    
 }
 
+static inline bool is_closure(VALUE exp) {
+  return ((type_of(exp) == PTR_TYPE_CONS) &&
+	  (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
+	  (dec_sym(car(exp)) == symrepr_closure()));
+}
 
 #endif

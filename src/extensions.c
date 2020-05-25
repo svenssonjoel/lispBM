@@ -20,8 +20,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "symrepr.h"
-#include "heap.h"
 #include "extensions.h"
 
 typedef struct s_extension_function{

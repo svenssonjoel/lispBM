@@ -18,6 +18,8 @@
 #ifndef EXTENSIONS_H_
 #define EXTENSIONS_H_
 
+#include "symrepr.h"
+#include "heap.h"
 #include "typedefs.h"
 
 typedef VALUE (*extension_fptr)(VALUE*,int);
@@ -25,4 +27,9 @@ typedef VALUE (*extension_fptr)(VALUE*,int);
 extern extension_fptr extensions_lookup(UINT sym);
 extern bool extensions_add(char *sym_str, extension_fptr ext);
 extern void extensions_del(void);
+
+static inline bool is_extension(VALUE exp) {
+  return ((type_of(exp) == VAL_TYPE_SYMBOL) &&
+	  (extensions_lookup(dec_sym(exp)) != NULL));
+}
 #endif

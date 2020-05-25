@@ -177,7 +177,6 @@ static inline VALUE mkClosure(void) {
 }
 
 static inline void eval_lambda(eval_state *es) {
-
   rm_state.val = mkClosure();
   *es = EVAL_CONTINUATION;
 }
@@ -242,6 +241,40 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
   *es = EVAL_DISPATCH;
 }
 
+static inline void eval_apply_fundamental(eval_state *es) {
+  UINT count = 0;
+  VALUE args = rm_state.argl;
+  while (type_of(args) == PTR_TYPE_CONS) {
+    push_u32(&rm_state.S, car(args));
+    count ++;
+  }
+  UINT *fun_args = stack_ptr(&rm_state.S, dec_u(count));
+  rm_state.val = fundamental_exec(fun_args, count, rm_state.fun);
+  stack_drop(&rm_state.S, count);
+  *es = EVAL_CONTINUATION;
+}
+
+static inline void eval_apply_closure(eval_state *es) {
+  VALUE local_env = env_build_params_args(car(cdr(rm_state.fun)),
+					  rm_state.argl,
+					  car(cdr(cdr(cdr(rm_state.fun)))));
+  //TODO: Error checking and garbage collection
+  rm_state.env = local_env;
+  rm_state.exp = car(cdr(cdr(rm_state.fun)));
+  *es = EVAL_DISPATCH;			      
+}
+
+static inline void eval_apply_extension(eval_state *es) {
+  (void) es;
+}
+
+static inline void eval_apply_dispatch(eval_state *es) {
+  if (is_fundamental(rm_state.fun)) eval_apply_fundamental(es);
+  else if (is_closure(rm_state.fun)) eval_apply_closure(es);
+  else if (is_extension(rm_state.fun)) eval_apply_extension(es);
+  // TODO: else is an error. Set cont to done 
+}
+
 void ec_eval(void) {
 
   eval_state es = EVAL_DISPATCH;
@@ -277,10 +310,9 @@ void ec_eval(void) {
       case CONT_ACCUMULATE_LAST_ARG: cont_accumulate_last_arg(&es); break;
       }
       break;
-    case EVAL_ARG_LOOP:        eval_arg_loop(&es);  break;
-    case EVAL_LAST_ARG:        eval_last_arg(&es);  break;
-    case EVAL_APPLY_DISPATCH:
-      break;
+    case EVAL_ARG_LOOP:        eval_arg_loop(&es);       break;
+    case EVAL_LAST_ARG:        eval_last_arg(&es);       break;
+    case EVAL_APPLY_DISPATCH:  eval_apply_dispatch(&es); break; 
     }
   }
 }
