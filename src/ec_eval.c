@@ -52,15 +52,12 @@ typedef enum {
   EVAL_APPLY_DISPATCH
 } eval_state;
 
-/*
-   Machine model:
-   7 x 32 Bit Registers
-   + Stack
-*/
+
 typedef struct {
   uint32_t cont;
   VALUE env;
   VALUE unev;
+  VALUE prg;
   VALUE exp;
   VALUE argl;
   VALUE val;
@@ -285,6 +282,23 @@ static inline void eval_apply_dispatch(eval_state *es) {
   // TODO: else is an error. Set cont to done
 }
 
+static inline void cont_done(eval_state *es, bool *done) {
+  if (type_of(rm_state.prg) != PTR_TYPE_CONS) {
+    *done = true;
+    return;
+  }
+  rm_state.exp = car(rm_state.prg);
+  rm_state.prg = cdr(rm_state.prg);
+  rm_state.cont = CONT_DONE;
+  rm_state.env = enc_sym(symrepr_nil());
+  rm_state.argl = enc_sym(symrepr_nil());
+  rm_state.val = enc_sym(symrepr_nil());
+  rm_state.fun = enc_sym(symrepr_nil());
+  stack_clear(&rm_state.S);
+  *done = false;
+  *es = EVAL_DISPATCH;
+}
+
 void ec_eval(void) {
 
   eval_state es = EVAL_DISPATCH;
@@ -310,7 +324,7 @@ void ec_eval(void) {
       break;
     case EVAL_CONTINUATION:
       switch (rm_state.cont) {
-      case CONT_DONE:                done = true;                   break;
+      case CONT_DONE:                cont_done(&es, &done);              break;
       case CONT_DEFINE:              cont_define(&es);              break;
       case CONT_SETUP_NO_ARG_APPLY:  cont_setup_no_arg_apply(&es);  break;
       case CONT_EVAL_ARGS:           cont_eval_args(&es);           break;
@@ -326,6 +340,7 @@ void ec_eval(void) {
 
 VALUE ec_eval_program(VALUE prg) {
 
+  rm_state.prg = cdr(prg);
   rm_state.exp = car(prg);
   rm_state.cont = CONT_DONE;
   rm_state.env = enc_sym(symrepr_nil());
