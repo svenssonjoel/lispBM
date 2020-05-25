@@ -18,6 +18,7 @@
 #ifndef _EC_EVAL_H_
 #define _EC_EVAL_H_
 
-
+extern VALUE ec_eval_program(VALUE prg);
+extern VALUE ec_eval_get_env(void);
 
 #endif

@@ -38,7 +38,7 @@ typedef enum {
 } exp_kind;
 
 typedef enum {
-  CONT_DONE, 
+  CONT_DONE,
   CONT_DEFINE,
   CONT_SETUP_NO_ARG_APPLY,
   CONT_EVAL_ARGS,
@@ -71,6 +71,10 @@ typedef struct {
 
 register_machine_t rm_state;
 VALUE ec_eval_global_env;
+
+VALUE ec_eval_get_env(void) {
+  return ec_eval_global_env;
+}
 
 exp_kind kind_of(VALUE exp) {
 
@@ -108,18 +112,16 @@ exp_kind kind_of(VALUE exp) {
 	  dec_sym(cdr(exp)) == symrepr_nil()) {
 	return EXP_NO_ARGS;
       }
-      return EXP_APPLICATION;
     } // end if symbol
+    return EXP_APPLICATION;
   } // end case PTR_TYPE_CONS:
   }
   return EXP_KIND_ERROR;
 }
 
 static inline bool last_operand(VALUE exp) {
-  if (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
-      dec_sym(cdr(exp)) == symrepr_nil())
-    return true;
-  return false; 
+  return (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
+	  dec_sym(cdr(exp)) == symrepr_nil());
 }
 
 static inline void eval_self_evaluating(eval_state *es) {
@@ -128,7 +130,13 @@ static inline void eval_self_evaluating(eval_state *es) {
 }
 
 static inline void eval_variable(eval_state *es) {
-  rm_state.val = env_lookup(rm_state.exp, rm_state.env);
+  if (is_special(rm_state.exp)) rm_state.val = rm_state.exp;
+  else rm_state.val = env_lookup(rm_state.exp, rm_state.env);
+
+  if (type_of(rm_state.val) == VAL_TYPE_SYMBOL &&
+      dec_sym(rm_state.val) == symrepr_not_found()) {
+    rm_state.val = env_lookup(rm_state.exp, ec_eval_global_env);
+  }
   *es = EVAL_CONTINUATION;
 }
 
@@ -236,19 +244,22 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
   pop_u32(&rm_state.S, &rm_state.argl);
   rm_state.argl = cons(rm_state.val, rm_state.argl); // TODO error checking and garbage collection
   pop_u32(&rm_state.S, &rm_state.fun);
-  *es = EVAL_DISPATCH;
+  *es = EVAL_APPLY_DISPATCH;
 }
 
+//TODO Args are in reversed order
 static inline void eval_apply_fundamental(eval_state *es) {
   UINT count = 0;
   VALUE args = rm_state.argl;
   while (type_of(args) == PTR_TYPE_CONS) {
     push_u32(&rm_state.S, car(args));
     count ++;
+    args = cdr(args);
   }
-  UINT *fun_args = stack_ptr(&rm_state.S, dec_u(count));
+  UINT *fun_args = stack_ptr(&rm_state.S, count);
   rm_state.val = fundamental_exec(fun_args, count, rm_state.fun);
   stack_drop(&rm_state.S, count);
+  pop_u32(&rm_state.S, &rm_state.cont);
   *es = EVAL_CONTINUATION;
 }
 
@@ -259,7 +270,8 @@ static inline void eval_apply_closure(eval_state *es) {
   //TODO: Error checking and garbage collection
   rm_state.env = local_env;
   rm_state.exp = car(cdr(cdr(rm_state.fun)));
-  *es = EVAL_DISPATCH;			      
+  pop_u32(&rm_state.S, &rm_state.cont);
+  *es = EVAL_DISPATCH;
 }
 
 static inline void eval_apply_extension(eval_state *es) {
@@ -270,15 +282,15 @@ static inline void eval_apply_dispatch(eval_state *es) {
   if (is_fundamental(rm_state.fun)) eval_apply_fundamental(es);
   else if (is_closure(rm_state.fun)) eval_apply_closure(es);
   else if (is_extension(rm_state.fun)) eval_apply_extension(es);
-  // TODO: else is an error. Set cont to done 
+  // TODO: else is an error. Set cont to done
 }
 
 void ec_eval(void) {
 
   eval_state es = EVAL_DISPATCH;
 
-  bool done = false; 
-  
+  bool done = false;
+
   while (!done) {
 
     switch(es) {
@@ -293,7 +305,7 @@ void ec_eval(void) {
       case EXP_LAMBDA:          eval_lambda(&es);          break;
       case EXP_IF:                                         break;
       case EXP_LET:                                        break;
-      case EXP_KIND_ERROR:      done = true;               break;   
+      case EXP_KIND_ERROR:      done = true;               break;
       }
       break;
     case EVAL_CONTINUATION:
@@ -306,7 +318,23 @@ void ec_eval(void) {
       case CONT_ACCUMULATE_LAST_ARG: cont_accumulate_last_arg(&es); break;
       }
       break;
-    case EVAL_APPLY_DISPATCH:  eval_apply_dispatch(&es); break; 
+    case EVAL_APPLY_DISPATCH:  eval_apply_dispatch(&es); break;
     }
   }
+}
+
+
+VALUE ec_eval_program(VALUE prg) {
+
+  rm_state.exp = car(prg);
+  rm_state.cont = CONT_DONE;
+  rm_state.env = enc_sym(symrepr_nil());
+  rm_state.argl = enc_sym(symrepr_nil());
+  rm_state.val = enc_sym(symrepr_nil());
+  rm_state.fun = enc_sym(symrepr_nil());
+  stack_allocate(&rm_state.S, 256, false);
+  ec_eval();
+
+  stack_free(&rm_state.S);
+  return rm_state.val;
 }
