@@ -24,7 +24,7 @@
 #include "symrepr.h"
 #include "memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 59
+#define NUM_SPECIAL_SYMBOLS 60
 
 #define NAME   0
 #define ID     1
@@ -50,20 +50,21 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"splice"     , DEF_REPR_COMMAAT},
   
   // Special symbols with unparseable names
-  {"read_error"       , DEF_REPR_RERROR},
-  {"type_error"       , DEF_REPR_TERROR},
-  {"eval_error"       , DEF_REPR_EERROR},
-  {"out_of_memory"    , DEF_REPR_MERROR},
-  {"fatal_error"      , DEF_REPR_FATAL_ERROR},
-  {"division_by_zero" , DEF_REPR_DIVZERO},
-  {"sym_array"        , DEF_REPR_ARRAY_TYPE},
-  {"sym_boxed_i"      , DEF_REPR_BOXED_I_TYPE},
-  {"sym_boxed_u"      , DEF_REPR_BOXED_U_TYPE},
-  {"sym_boxed_f"      , DEF_REPR_BOXED_F_TYPE},
-  {"sym_ref"          , DEF_REPR_REF_TYPE},
-  {"sym_recovered"    , DEF_REPR_RECOVERED},
-  {"sym_bytecode"     , DEF_REPR_BYTECODE_TYPE},
-  {"sym_nonsense"     , DEF_REPR_NONSENSE},
+  {"read_error"         , DEF_REPR_RERROR},
+  {"type_error"         , DEF_REPR_TERROR},
+  {"eval_error"         , DEF_REPR_EERROR},
+  {"out_of_memory"      , DEF_REPR_MERROR},
+  {"fatal_error"        , DEF_REPR_FATAL_ERROR},
+  {"division_by_zero"   , DEF_REPR_DIVZERO},
+  {"sym_array"          , DEF_REPR_ARRAY_TYPE},
+  {"sym_boxed_i"        , DEF_REPR_BOXED_I_TYPE},
+  {"sym_boxed_u"        , DEF_REPR_BOXED_U_TYPE},
+  {"sym_boxed_f"        , DEF_REPR_BOXED_F_TYPE},
+  {"sym_ref"            , DEF_REPR_REF_TYPE},
+  {"sym_recovered"      , DEF_REPR_RECOVERED},
+  {"sym_bytecode"       , DEF_REPR_BYTECODE_TYPE},
+  {"sym_nonsense"       , DEF_REPR_NONSENSE},
+  {"variable_not_bound" , DEF_REPR_NOT_FOUND},
   
   // special symbols with parseable names
   {"type-list"        , DEF_REPR_TYPE_LIST},

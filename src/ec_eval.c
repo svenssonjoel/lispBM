@@ -45,7 +45,8 @@ typedef enum {
   CONT_EVAL_ARGS,
   CONT_ACCUMULATE_ARG,
   CONT_ACCUMULATE_LAST_ARG,
-  CONT_BRANCH
+  CONT_BRANCH,
+  CONT_BIND_VAR
 } continuation;
 
 typedef enum {
@@ -252,6 +253,7 @@ static inline void cont_accumulate_arg(eval_state *es) {
 static inline void cont_accumulate_last_arg(eval_state *es) {
   pop_u32(&rm_state.S, &rm_state.argl);
   rm_state.argl = cons(rm_state.val, rm_state.argl); // TODO error checking and garbage collection
+  rm_state.argl = reverse(rm_state.argl);
   pop_u32(&rm_state.S, &rm_state.fun);
   *es = EVAL_APPLY_DISPATCH;
 }
@@ -340,6 +342,34 @@ static inline void cont_branch(eval_state *es) {
   *es = EVAL_DISPATCH;
 }
 
+static inline void eval_let_loop(eval_state *es) {
+  if (type_of(rm_state.unev) == VAL_TYPE_SYMBOL &&
+      dec_sym(rm_state.unev) == symrepr_nil()) {
+    pop_u32_2(&rm_state.S, &rm_state.exp, &rm_state.cont);
+    *es = EVAL_DISPATCH;
+    return;
+  }
+  rm_state.exp = car(cdr(car(rm_state.unev)));
+  push_u32_2(&rm_state.S, rm_state.env, rm_state.unev);
+  rm_state.cont = CONT_BIND_VAR;
+  *es = EVAL_DISPATCH;
+}
+
+static inline void eval_let(eval_state *es) {
+  rm_state.unev = car(cdr(cdr(rm_state.exp)));
+  push_u32_2(&rm_state.S, rm_state.cont, rm_state.unev);
+
+  rm_state.unev = car(cdr(rm_state.exp));
+  eval_let_loop(es);
+}
+
+static inline void cont_bind_var(eval_state *es) {
+  pop_u32_2(&rm_state.S,&rm_state.unev, &rm_state.env);
+  rm_state.env = cons(cons(car(car(rm_state.unev)), rm_state.val), rm_state.env);
+  rm_state.unev = cdr(rm_state.unev);
+  eval_let_loop(es);
+}
+
 static inline void cont_done(eval_state *es, bool *done) {
   if (type_of(rm_state.prg) != PTR_TYPE_CONS) {
     *done = true;
@@ -377,7 +407,7 @@ void ec_eval(void) {
       case EXP_LAMBDA:          eval_lambda(&es);          break;
       case EXP_PROGN:           eval_progn(&es);           break;    
       case EXP_IF:              eval_if(&es);              break;
-      case EXP_LET:                                        break;
+      case EXP_LET:             eval_let(&es);             break;
       case EXP_KIND_ERROR:      done = true;               break;
       }
       break;
@@ -390,6 +420,7 @@ void ec_eval(void) {
       case CONT_ACCUMULATE_ARG:      cont_accumulate_arg(&es);      break;
       case CONT_ACCUMULATE_LAST_ARG: cont_accumulate_last_arg(&es); break;
       case CONT_BRANCH:              cont_branch(&es);              break;
+      case CONT_BIND_VAR:            cont_bind_var(&es);            break;
       }
       break;
     case EVAL_APPLY_DISPATCH:  eval_apply_dispatch(&es); break;
