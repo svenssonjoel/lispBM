@@ -32,6 +32,7 @@ typedef enum {
   EXP_DEFINE,
   EXP_LAMBDA,
   EXP_IF,
+  EXP_PROGN,
   EXP_NO_ARGS,
   EXP_APPLICATION,
   EXP_LET
@@ -43,7 +44,8 @@ typedef enum {
   CONT_SETUP_NO_ARG_APPLY,
   CONT_EVAL_ARGS,
   CONT_ACCUMULATE_ARG,
-  CONT_ACCUMULATE_LAST_ARG
+  CONT_ACCUMULATE_LAST_ARG,
+  CONT_BRANCH
 } continuation;
 
 typedef enum {
@@ -107,7 +109,7 @@ exp_kind kind_of(VALUE exp) {
       if (sym_id == symrepr_define())
 	return EXP_DEFINE;
       if (sym_id == symrepr_progn())
-	return EXP_APPLICATION;
+	return EXP_PROGN;
       if (sym_id == symrepr_lambda())
 	return EXP_LAMBDA;
       if (sym_id == symrepr_if())
@@ -314,6 +316,30 @@ static inline void eval_apply_dispatch(eval_state *es) {
   // TODO: else is an error. Set cont to done
 }
 
+static inline void eval_progn(eval_state *es) {
+  (void) es;
+  // TODO: Implement
+}
+
+static inline void eval_if(eval_state *es) {
+  rm_state.unev = cdr(cdr(rm_state.exp));
+  rm_state.exp = car(cdr(rm_state.exp));
+  push_u32_2(&rm_state.S, rm_state.cont, rm_state.unev);
+  rm_state.cont = CONT_BRANCH;
+  *es = EVAL_DISPATCH;
+}
+
+static inline void cont_branch(eval_state *es) {
+  if (type_of(rm_state.val) == VAL_TYPE_SYMBOL &&
+      dec_sym(rm_state.val) == symrepr_nil()) {
+    rm_state.exp = car(cdr(rm_state.unev));
+  }else {
+    rm_state.exp = car(rm_state.unev);
+  }
+  pop_u32_2(&rm_state.S, &rm_state.unev, &rm_state.cont);
+  *es = EVAL_DISPATCH;
+}
+
 static inline void cont_done(eval_state *es, bool *done) {
   if (type_of(rm_state.prg) != PTR_TYPE_CONS) {
     *done = true;
@@ -349,7 +375,8 @@ void ec_eval(void) {
       case EXP_NO_ARGS:         eval_no_args(&es);         break;
       case EXP_APPLICATION:     eval_application(&es);     break;
       case EXP_LAMBDA:          eval_lambda(&es);          break;
-      case EXP_IF:                                         break;
+      case EXP_PROGN:           eval_progn(&es);           break;    
+      case EXP_IF:              eval_if(&es);              break;
       case EXP_LET:                                        break;
       case EXP_KIND_ERROR:      done = true;               break;
       }
@@ -362,6 +389,7 @@ void ec_eval(void) {
       case CONT_EVAL_ARGS:           cont_eval_args(&es);           break;
       case CONT_ACCUMULATE_ARG:      cont_accumulate_arg(&es);      break;
       case CONT_ACCUMULATE_LAST_ARG: cont_accumulate_last_arg(&es); break;
+      case CONT_BRANCH:              cont_branch(&es);              break;
       }
       break;
     case EVAL_APPLY_DISPATCH:  eval_apply_dispatch(&es); break;
