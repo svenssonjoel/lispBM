@@ -52,18 +52,18 @@ typedef enum {
   EVAL_APPLY_DISPATCH
 } eval_state;
 
-/* Register machine: 
+/* Register machine:
  * cont : Continuation register (what to do when hitting a leaf)
- * unev : Hold something un-evaluated for a while 
+ * unev : Hold something un-evaluated for a while
  * prg  : Keeps track of a list of expressions to evaluate (top-level)
- * exp  : Current expression 
+ * exp  : Current expression
  * argl : List of evaluated arguments to function
- * val  : Final or intermediate result 
+ * val  : Final or intermediate result
  * fun  : Evaluated function (for application)
- */  
+ */
 
 typedef struct {
-  uint32_t cont; 
+  uint32_t cont;
   VALUE env;
   VALUE unev;
   VALUE prg;
@@ -333,7 +333,7 @@ void ec_eval(void) {
       break;
     case EVAL_CONTINUATION:
       switch (rm_state.cont) {
-      case CONT_DONE:                cont_done(&es, &done);              break;
+      case CONT_DONE:                cont_done(&es, &done);         break;
       case CONT_DEFINE:              cont_define(&es);              break;
       case CONT_SETUP_NO_ARG_APPLY:  cont_setup_no_arg_apply(&es);  break;
       case CONT_EVAL_ARGS:           cont_eval_args(&es);           break;
