@@ -46,7 +46,8 @@ typedef enum {
   CONT_ACCUMULATE_ARG,
   CONT_ACCUMULATE_LAST_ARG,
   CONT_BRANCH,
-  CONT_BIND_VAR
+  CONT_BIND_VAR,
+  CONT_SEQUENCE
 } continuation;
 
 typedef enum {
@@ -318,9 +319,31 @@ static inline void eval_apply_dispatch(eval_state *es) {
   // TODO: else is an error. Set cont to done
 }
 
+static inline void eval_sequence(eval_state *es) {
+
+  rm_state.exp = car(rm_state.unev); 
+  VALUE tmp = cdr(rm_state.unev);
+  if (type_of(tmp) == VAL_TYPE_SYMBOL &&
+      dec_sym(tmp) == symrepr_nil()) {
+    pop_u32(&rm_state.S, &rm_state.cont);
+    *es = EVAL_DISPATCH;
+    return;
+  }
+  push_u32(&rm_state.S, rm_state.unev);
+  rm_state.cont = CONT_SEQUENCE;
+  *es = EVAL_DISPATCH;
+}
+
+static inline void cont_sequence(eval_state *es) {
+  pop_u32(&rm_state.S, &rm_state.unev);
+  rm_state.unev = cdr(rm_state.unev);
+  eval_sequence(es);
+}
+
 static inline void eval_progn(eval_state *es) {
-  (void) es;
-  // TODO: Implement
+  push_u32(&rm_state.S, rm_state.cont);
+  rm_state.unev = cdr(rm_state.exp);
+  eval_sequence(es);
 }
 
 static inline void eval_if(eval_state *es) {
@@ -421,6 +444,7 @@ void ec_eval(void) {
       case CONT_ACCUMULATE_LAST_ARG: cont_accumulate_last_arg(&es); break;
       case CONT_BRANCH:              cont_branch(&es);              break;
       case CONT_BIND_VAR:            cont_bind_var(&es);            break;
+      case CONT_SEQUENCE:            cont_sequence(&es);            break;
       }
       break;
     case EVAL_APPLY_DISPATCH:  eval_apply_dispatch(&es); break;
