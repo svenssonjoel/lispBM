@@ -62,7 +62,7 @@ typedef enum {
 } eval_state;
 
 /* Register machine:
- * cont : Continuation register (what to do when hitting a leaf)
+ * cont : Continuation register (what to do after evaluating a leaf)
  * unev : Hold something un-evaluated for a while
  * prg  : Keeps track of a list of expressions to evaluate (top-level)
  * exp  : Current expression
@@ -109,6 +109,7 @@ static int gc(VALUE env,
 
   return gc_sweep_phase();
 }
+
 
 exp_kind kind_of(VALUE exp) {
 
@@ -234,7 +235,7 @@ static inline VALUE mkClosure(void) {
     params  = cons(car(cdr(rm_state.exp)),body);
     closure = cons(enc_sym(symrepr_closure()), params);
   }
-  
+
   if (is_symbol_merror(closure)) {
     // eval_lambda sets *es = EVAL_CONTINUATION
     // this replaces the existing continuation with "done"
@@ -296,11 +297,11 @@ static inline void cont_eval_args(eval_state *es) {
 
 static inline void cont_accumulate_arg(eval_state *es) {
   pop_u32_3(&rm_state.S, &rm_state.unev, &rm_state.env, &rm_state.argl);
-  VALUE argl = cons(rm_state.val, rm_state.argl); 
+  VALUE argl = cons(rm_state.val, rm_state.argl);
 
   if (is_symbol_merror(argl)) {
     gc(ec_eval_global_env, &rm_state);
-    
+
     argl = cons(rm_state.val, rm_state.argl);
   }
   if (is_symbol_merror(argl)) {
@@ -340,7 +341,7 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
     rm_state.cont = CONT_DONE;
     *es = EVAL_CONTINUATION;
   }
-  
+
   rm_state.argl = rev_args;
   pop_u32(&rm_state.S, &rm_state.fun);
   *es = EVAL_APPLY_DISPATCH;
@@ -368,7 +369,7 @@ static inline void eval_apply_fundamental(eval_state *es) {
   }
 
   rm_state.val = val;
-  
+
   stack_drop(&rm_state.S, count);
   pop_u32(&rm_state.S, &rm_state.cont);
   *es = EVAL_CONTINUATION;
@@ -389,7 +390,7 @@ static inline void eval_apply_closure(eval_state *es) {
     *es = EVAL_CONTINUATION;
     return;
   }
-  
+
   rm_state.env = local_env;
   rm_state.exp = car(cdr(cdr(rm_state.fun)));
   pop_u32(&rm_state.S, &rm_state.cont);
@@ -436,7 +437,7 @@ static inline void eval_apply_dispatch(eval_state *es) {
 
 static inline void eval_sequence(eval_state *es) {
 
-  rm_state.exp = car(rm_state.unev); 
+  rm_state.exp = car(rm_state.unev);
   VALUE tmp = cdr(rm_state.unev);
   if (type_of(tmp) == VAL_TYPE_SYMBOL &&
       dec_sym(tmp) == symrepr_nil()) {
@@ -506,7 +507,7 @@ static inline void eval_let(eval_state *es) {
     VALUE val = enc_u(symrepr_nil());
     VALUE binding = cons(key, val);
     VALUE tmp_env = cons(binding, new_env);
-    
+
     if (is_symbol_merror(binding) ||
 	is_symbol_merror(new_env)) {
       gc(ec_eval_global_env, &rm_state);
@@ -523,7 +524,7 @@ static inline void eval_let(eval_state *es) {
     curr = cdr(curr);
   }
 
-  rm_state.env = new_env;  
+  rm_state.env = new_env;
   eval_let_loop(es);
 }
 
@@ -644,7 +645,7 @@ void ec_eval(void) {
       case EXP_NO_ARGS:         eval_no_args(&es);         break;
       case EXP_APPLICATION:     eval_application(&es);     break;
       case EXP_LAMBDA:          eval_lambda(&es);          break;
-      case EXP_PROGN:           eval_progn(&es);           break;    
+      case EXP_PROGN:           eval_progn(&es);           break;
       case EXP_IF:              eval_if(&es);              break;
       case EXP_LET:             eval_let(&es);             break;
       case EXP_AND:             eval_and(&es);             break;
