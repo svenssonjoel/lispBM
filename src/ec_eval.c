@@ -203,9 +203,18 @@ static inline void cont_define(eval_state *es) {
   VALUE new_env = env_set(ec_eval_global_env,
 			  rm_state.unev,
 			  rm_state.val);
+  if (is_symbol_nil(new_env)) {
+    gc(ec_eval_global_env, &rm_state);
+    new_env = env_set(ec_eval_global_env,
+			  rm_state.unev,
+			  rm_state.val);
+  }
+  if (is_symbol_nil(new_env)) {
+    rm_state.cont = enc_u(CONT_DONE);
+    *es = EVAL_CONTINUATION;
+    return;
+  }
   ec_eval_global_env = new_env;
-
-  // TODO: error checking and garbage collection
   rm_state.val = rm_state.unev;
   *es = EVAL_CONTINUATION;
 }
@@ -231,7 +240,6 @@ static inline VALUE mkClosure(void) {
     // this replaces the existing continuation with "done"
     rm_state.cont = enc_u(CONT_DONE);
   }
-  
   return closure;
 }
 
@@ -302,7 +310,6 @@ static inline void cont_accumulate_arg(eval_state *es) {
   }
 
   rm_state.argl = argl;
-  
   rm_state.unev = cdr(rm_state.unev);
   eval_arg_loop(es);
 }
@@ -312,7 +319,6 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
 
   VALUE argl =  cons(rm_state.val, rm_state.argl);
 
-  
   if (is_symbol_merror(argl)) {
     gc(ec_eval_global_env, &rm_state);
     argl = cons(rm_state.val, rm_state.argl);
@@ -490,8 +496,7 @@ static inline void eval_let_loop(eval_state *es) {
     *es = EVAL_CONTINUATION;
   }
 
-  rm_state.env = new_env;
-  
+  rm_state.env = new_env;  
   push_u32_2(&rm_state.S, rm_state.env, rm_state.unev);
   rm_state.cont = enc_u(CONT_BIND_VAR);
   *es = EVAL_DISPATCH;
@@ -574,8 +579,6 @@ static inline void cont_or(eval_state *es) {
   *es = EVAL_DISPATCH;
 }
 
-
-
 static inline void cont_done(eval_state *es, bool *done) {
   if (type_of(rm_state.prg) != PTR_TYPE_CONS) {
     *done = true;
@@ -651,7 +654,6 @@ void ec_eval(void) {
     }
   }
 }
-
 
 VALUE ec_eval_program(VALUE prg) {
 
