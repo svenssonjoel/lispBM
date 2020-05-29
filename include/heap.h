@@ -384,4 +384,16 @@ static inline bool is_closure(VALUE exp) {
 	  (dec_sym(car(exp)) == symrepr_closure()));
 }
 
+static inline bool is_symbol(VALUE exp) {
+  return (type_of(exp) == VAL_TYPE_SYMBOL);
+}
+
+static inline bool is_symbol_nil(VALUE exp) {
+  return (is_symbol(exp) && dec_sym(exp) == symrepr_nil());
+}
+
+static inline bool is_symbol_merror(VALUE exp) {
+  return (is_symbol(exp) && dec_sym(exp) == symrepr_merror());
+}
+
 #endif
