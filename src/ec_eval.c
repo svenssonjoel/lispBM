@@ -486,24 +486,7 @@ static inline void eval_let_loop(eval_state *es) {
     return;
   }
   rm_state.exp = car(cdr(car(rm_state.unev)));
-  VALUE key = car(car(rm_state.unev));
-  VALUE val = enc_u(symrepr_nil());
-  VALUE binding = cons(key, val);
-  VALUE new_env = cons(binding, rm_state.env);
 
-  if (is_symbol_merror(binding) ||
-      is_symbol_merror(new_env)) {
-    gc(ec_eval_global_env, &rm_state);
-    binding = cons(key, val);
-    new_env = cons(binding, rm_state.env);
-  }
-  if (is_symbol_merror(binding) ||
-      is_symbol_merror(new_env)) {
-    rm_state.cont = enc_u(CONT_DONE);
-    *es = EVAL_CONTINUATION;
-  }
-
-  rm_state.env = new_env;  
   push_u32_2(&rm_state.S, rm_state.env, rm_state.unev);
   rm_state.cont = enc_u(CONT_BIND_VAR);
   *es = EVAL_DISPATCH;
@@ -514,6 +497,33 @@ static inline void eval_let(eval_state *es) {
   push_u32_2(&rm_state.S, rm_state.cont, rm_state.unev);
 
   rm_state.unev = car(cdr(rm_state.exp));
+
+  // Preallocate bindings
+  VALUE curr = rm_state.unev;
+  VALUE new_env = rm_state.env;
+  while (!is_symbol_nil(curr)) {
+    VALUE key = car(car(curr));
+    VALUE val = enc_u(symrepr_nil());
+    VALUE binding = cons(key, val);
+    VALUE tmp_env = cons(binding, new_env);
+    
+    if (is_symbol_merror(binding) ||
+	is_symbol_merror(new_env)) {
+      gc(ec_eval_global_env, &rm_state);
+      binding = cons(key, val);
+      tmp_env = cons(binding, new_env);
+    }
+    if (is_symbol_merror(binding) ||
+	is_symbol_merror(new_env)) {
+      rm_state.cont = enc_u(CONT_DONE);
+      *es = EVAL_CONTINUATION;
+      return;
+    }
+    new_env = tmp_env;
+    curr = cdr(curr);
+  }
+
+  rm_state.env = new_env;  
   eval_let_loop(es);
 }
 
