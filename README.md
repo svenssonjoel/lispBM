@@ -5,8 +5,9 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 ## Purpose
 1. Have fun.
 2. Learn about lisp.
-3. An interactive REPL for devboards.
-4. ...
+3. Learn about microcontrollers.
+4. An interactive REPL for devboards.
+5. ...
 
 ## Features
 1. heap consisting of cons-cells with mark and sweep garbage collection.
@@ -19,8 +20,10 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 8. Compiles for, and runs on STM32f4. 
 9. Compiles for, and runs on NRF52840.
 10. Compiles for, and runs on ESP32.
-11. Quasiquotation (needs more testing).
-12. Concurrency (Work in progress).
+
+## Experimental
+1. Quasiquotation (needs more testing).
+2. Concurrency (Work in progress).
 
 ## Documentation
 LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io). 
@@ -41,11 +44,8 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 13. (DONE) Add NRF52 example repl to repository
 14. (DONE) Update all example REPLs after adding quasiquotation
 15. Test all example REPLs after addition of quasiquotation
-16. Add ESP32 example repl to repository.
-17. Recursion to Iteration. Where it is possible turn recursive function calls into iterations (Implementation).
-18. Test on all platforms after big changes to eval_cps.c.
-19. Implement some looping structure for speed or just ease of use. 
-20. Be much more stringent on checking of error conditions etc.
+16. Implement some looping structure for speed or just ease of use. 
+17. Be much more stringent on checking of error conditions etc.
 
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
@@ -54,26 +54,3 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 2. Build the repl: `cd repl-cps` and then `make`
 
 3. Run the repl: `./repl`
-
-## Compile for Zynq devboard (bare-metal)
-1. Source your vivado settings: `source <PATH_TO>/settings.sh`
-
-2. Build library for ARM A9: `PLATFORM=zynq make`
-
-3. Create a standalone app in Vivado SDK (helloworld template is a good starting point) 
-
-4. Go to menu: Project > Properties > Tool settings > ARM v7 gcc linker > Miscellaneous
-   and add in OTHER OBJECTS the path to liblispbm.a (build/zynq/liblispbm.a)
-
-5. Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Directories
-   and add in INCLUDE DIRECTORIES the path to the include directory.
-
-6. Go to menu: Project > Properties > Tool settings > ARM v7 gcc compiler > Miscellaneous
-    and add `-D_32_BIT_` to "Other flags"
-
-7. Go to menu: Xilinx > Generate linker script
-   and set up for enough of heap and stack. 128MB heap and 16MB stack is an ok starting point.
-
-8. Remove the helloworld.c file from the project and replace with repl-zynq/repl.c
-
-9. build and run. 
