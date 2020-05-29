@@ -50,7 +50,9 @@ typedef enum {
   CONT_ACCUMULATE_LAST_ARG,
   CONT_BRANCH,
   CONT_BIND_VAR,
-  CONT_SEQUENCE
+  CONT_SEQUENCE,
+  CONT_AND,
+  CONT_OR
 } continuation;
 
 typedef enum {
@@ -511,12 +513,68 @@ static inline void cont_bind_var(eval_state *es) {
 }
 
 static inline void eval_and(eval_state *es) {
-  (void) es;
+  if (is_symbol_nil(cdr(rm_state.exp))) {
+    rm_state.val = enc_sym(symrepr_true());
+    *es = EVAL_CONTINUATION;
+  }
+  rm_state.unev = cdr(cdr(rm_state.exp));
+  push_u32_2(&rm_state.S, rm_state.cont, rm_state.unev);
+  rm_state.exp = car(cdr(rm_state.exp));
+  rm_state.cont = enc_u(CONT_AND);
+  *es = EVAL_DISPATCH;
+}
+
+static inline void cont_and(eval_state *es) {
+  pop_u32(&rm_state.S, &rm_state.unev);
+  if (is_symbol_nil(rm_state.val)) {
+    pop_u32(&rm_state.S, &rm_state.cont);
+    *es = EVAL_CONTINUATION;
+    return;
+  }
+  if (is_symbol_nil(rm_state.unev)) {
+    pop_u32(&rm_state.S, &rm_state.cont);
+    *es = EVAL_CONTINUATION;
+    return;
+  }
+  rm_state.exp = car(rm_state.unev);
+  rm_state.unev = cdr(rm_state.unev);
+  push_u32(&rm_state.S, rm_state.unev);
+  rm_state.cont = enc_u(CONT_AND);
+  *es = EVAL_DISPATCH;
 }
 
 static inline void eval_or(eval_state *es) {
-  (void) es;
+  if (is_symbol_nil(cdr(rm_state.exp))) {
+    rm_state.val = enc_sym(symrepr_nil());
+    *es = EVAL_CONTINUATION;
+  }
+  rm_state.unev = cdr(cdr(rm_state.exp));
+  push_u32_2(&rm_state.S, rm_state.cont, rm_state.unev);
+  rm_state.exp = car(cdr(rm_state.exp));
+  rm_state.cont = enc_u(CONT_OR);
+  *es = EVAL_DISPATCH;
 }
+
+static inline void cont_or(eval_state *es) {
+  pop_u32(&rm_state.S, &rm_state.unev);
+  if (!is_symbol_nil(rm_state.val)) {
+    pop_u32(&rm_state.S, &rm_state.cont);
+    *es = EVAL_CONTINUATION;
+    return;
+  }
+  if (is_symbol_nil(rm_state.unev)) {
+    pop_u32(&rm_state.S, &rm_state.cont);
+    *es = EVAL_CONTINUATION;
+    return;
+  }
+  rm_state.exp = car(rm_state.unev);
+  rm_state.unev = cdr(rm_state.unev);
+  push_u32(&rm_state.S, rm_state.unev);
+  rm_state.cont = enc_u(CONT_OR);
+  *es = EVAL_DISPATCH;
+}
+
+
 
 static inline void cont_done(eval_state *es, bool *done) {
   if (type_of(rm_state.prg) != PTR_TYPE_CONS) {
@@ -585,6 +643,8 @@ void ec_eval(void) {
       case CONT_BRANCH:              cont_branch(&es);              break;
       case CONT_BIND_VAR:            cont_bind_var(&es);            break;
       case CONT_SEQUENCE:            cont_sequence(&es);            break;
+      case CONT_AND:                 cont_and(&es);                 break;
+      case CONT_OR:                  cont_or(&es);                  break;
       }
       break;
     case EVAL_APPLY_DISPATCH:  eval_apply_dispatch(&es); break;
