@@ -28,6 +28,7 @@
 #include "heap.h"
 #include "symrepr.h"
 #include "eval_cps.h"
+#include "ec_eval.h"
 #include "print.h"
 #include "tokpar.h"
 #include "prelude.h"
@@ -43,11 +44,12 @@ int main(int argc, char **argv) {
   unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard  
   bool growing_continuation_stack = false;
   bool compress_decompress = false;
+  bool use_ec_eval = false;
   
   int c;
   opterr = 1;
   
-  while (( c = getopt(argc, argv, "gch:")) != -1) {
+  while (( c = getopt(argc, argv, "gceh:")) != -1) {
     switch (c) {
     case 'h':
       heap_size = (unsigned int)atoi((char *)optarg);
@@ -58,6 +60,8 @@ int main(int argc, char **argv) {
     case 'c':
       compress_decompress = true;
       break;
+    case 'e':
+      use_ec_eval = true;
     case '?':
       break;
     default:
@@ -68,6 +72,7 @@ int main(int argc, char **argv) {
   printf("Heap size: %u\n", heap_size);
   printf("Growing stack: %s\n", growing_continuation_stack ? "yes" : "no");
   printf("Compression: %s\n", compress_decompress ? "yes" : "no");
+  printf("Evaluator: %s\n", use_ec_eval ? "ec_eval" : "eval_cps");
   printf("------------------------------------------------------------\n");
 	 
   if (argc - optind < 1) {
@@ -128,16 +133,22 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = eval_cps_init_nc(EVAL_CPS_STACK_SIZE, growing_continuation_stack);
-  if (res)
-    printf("Evaluator initialized.\n");
-  else {
-    printf("Error initializing evaluator.\n");
+  if (!use_ec_eval) {
+    res = eval_cps_init_nc(EVAL_CPS_STACK_SIZE, growing_continuation_stack);
+    if (res)
+      printf("Evaluator initialized.\n");
+    else {
+      printf("Error initializing evaluator.\n");
+    }
   }
 
   VALUE prelude = prelude_load();
-  eval_cps_program_nc(prelude);  
-
+  if (use_ec_eval) {
+    ec_eval_program(prelude);
+  } else {
+    eval_cps_program_nc(prelude);  
+  }
+  
   VALUE t;
 
   if (compress_decompress) { 
@@ -168,8 +179,13 @@ int main(int argc, char **argv) {
     printf("%s\n", error);
     return 0;
   }
-  t = eval_cps_program_nc(t);
 
+  if (use_ec_eval) {
+    t = ec_eval_program(t);
+  } else {
+    t = eval_cps_program_nc(t);
+  }
+  
   res = print_value(output, 1024, error, 1024, t); 
   
   if ( res >= 0) {

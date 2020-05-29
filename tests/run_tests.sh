@@ -36,7 +36,7 @@ for exe in *.exe; do
 done
 
 
-for prg in "test_lisp_code_cps" "test_lisp_code_cps_nc"; do 
+for prg in "test_lisp_code_cps" "test_lisp_code_cps_nc" "test_lisp_code_cps_nc -e"; do 
     for lisp in *.lisp; do
 	./$prg -h 8388608 -g $lisp
 

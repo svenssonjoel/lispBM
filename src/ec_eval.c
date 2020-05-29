@@ -91,7 +91,7 @@ VALUE ec_eval_get_env(void) {
   return ec_eval_global_env;
 }
 
-int gc(VALUE env,
+static int gc(VALUE env,
        register_machine_t *rm) {
 
   gc_state_inc();
@@ -417,8 +417,15 @@ static inline void eval_apply_extension(eval_state *es) {
   *es = EVAL_CONTINUATION;
 }
 
+static inline void eval_eval(eval_state *es) {
+  rm_state.exp = car(rm_state.argl);
+  pop_u32(&rm_state.S, &rm_state.cont);
+  *es = EVAL_DISPATCH;
+}
+
 static inline void eval_apply_dispatch(eval_state *es) {
-  if (is_fundamental(rm_state.fun)) eval_apply_fundamental(es);
+  if (is_symbol_eval(rm_state.fun)) eval_eval(es);
+  else if (is_fundamental(rm_state.fun)) eval_apply_fundamental(es);
   else if (is_closure(rm_state.fun)) eval_apply_closure(es);
   else if (is_extension(rm_state.fun)) eval_apply_extension(es);
   else {

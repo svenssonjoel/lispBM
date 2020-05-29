@@ -392,6 +392,10 @@ static inline bool is_symbol_nil(VALUE exp) {
   return (is_symbol(exp) && dec_sym(exp) == symrepr_nil());
 }
 
+static inline bool is_symbol_eval(VALUE exp) {
+  return (is_symbol(exp) && dec_sym(exp) == symrepr_eval());
+}
+
 static inline bool is_symbol_merror(VALUE exp) {
   return (is_symbol(exp) && dec_sym(exp) == symrepr_merror());
 }
