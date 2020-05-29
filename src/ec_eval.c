@@ -35,11 +35,14 @@ typedef enum {
   EXP_PROGN,
   EXP_NO_ARGS,
   EXP_APPLICATION,
-  EXP_LET
+  EXP_LET,
+  EXP_AND,
+  EXP_OR
 } exp_kind;
 
 typedef enum {
   CONT_DONE,
+  CONT_ERROR,
   CONT_DEFINE,
   CONT_SETUP_NO_ARG_APPLY,
   CONT_EVAL_ARGS,
@@ -125,6 +128,10 @@ exp_kind kind_of(VALUE exp) {
     if (type_of(head) == VAL_TYPE_SYMBOL) {
       UINT sym_id = dec_sym(head);
 
+      if (sym_id == symrepr_and())
+	return EXP_AND;
+      if (sym_id == symrepr_or())
+	return EXP_OR;
       if (sym_id == symrepr_quote())
 	return EXP_QUOTED;
       if (sym_id == symrepr_define())
@@ -498,23 +505,17 @@ static inline void eval_let(eval_state *es) {
 
 static inline void cont_bind_var(eval_state *es) {
   pop_u32_2(&rm_state.S,&rm_state.unev, &rm_state.env);
-  //  rm_state.env = cons(cons(car(car(rm_state.unev)), rm_state.val), rm_state.env);
-
   env_modify_binding(rm_state.env, car(car(rm_state.unev)), rm_state.val);
-  
-  /*
-  if (is_symbol_merror(rm_state.env)) {
-    gc(ec_eval_global_env, &rm_state);
-    rm_state.env = cons(cons(car(car(rm_state.unev)), rm_state.val), rm_state.env);
-  }
-  if (is_symbol_merror(rm_state.env)) {
-    rm_state.cont = enc_u(CONT_DONE);
-    *es = EVAL_CONTINUATION;
-  }
-  */
-
   rm_state.unev = cdr(rm_state.unev);
   eval_let_loop(es);
+}
+
+static inline void eval_and(eval_state *es) {
+  (void) es;
+}
+
+static inline void eval_or(eval_state *es) {
+  (void) es;
 }
 
 static inline void cont_done(eval_state *es, bool *done) {
@@ -531,6 +532,19 @@ static inline void cont_done(eval_state *es, bool *done) {
   rm_state.fun = enc_sym(symrepr_nil());
   stack_clear(&rm_state.S);
   *done = false;
+  *es = EVAL_DISPATCH;
+}
+
+static inline void cont_error(eval_state *es, bool *done) {
+  rm_state.exp = enc_sym(symrepr_nil());
+  rm_state.prg = enc_sym(symrepr_nil());
+  rm_state.cont = enc_sym(symrepr_nil());
+  rm_state.env = enc_sym(symrepr_nil());
+  rm_state.argl = enc_sym(symrepr_nil());
+  rm_state.val = enc_sym(symrepr_eerror());
+  rm_state.fun = enc_sym(symrepr_nil());
+  stack_clear(&rm_state.S);
+  *done = true;
   *es = EVAL_DISPATCH;
 }
 
@@ -555,6 +569,8 @@ void ec_eval(void) {
       case EXP_PROGN:           eval_progn(&es);           break;    
       case EXP_IF:              eval_if(&es);              break;
       case EXP_LET:             eval_let(&es);             break;
+      case EXP_AND:             eval_and(&es);             break;
+      case EXP_OR:              eval_or(&es);              break;
       case EXP_KIND_ERROR:      done = true;               break;
       }
       break;
