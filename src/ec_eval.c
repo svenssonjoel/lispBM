@@ -160,8 +160,7 @@ exp_kind kind_of(VALUE exp) {
 }
 
 static inline bool last_operand(VALUE exp) {
-  return (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
-	  dec_sym(cdr(exp)) == symrepr_nil());
+  return is_symbol_nil(cdr(exp));
 }
 
 static inline void eval_self_evaluating(eval_state *es) {
@@ -348,7 +347,6 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
   *es = EVAL_APPLY_DISPATCH;
 }
 
-//TODO Args are in reversed order
 static inline void eval_apply_fundamental(eval_state *es) {
   UINT count = 0;
   VALUE args = rm_state.argl;
