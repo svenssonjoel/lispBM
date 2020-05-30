@@ -63,6 +63,7 @@ typedef enum {
 
 /* Register machine:
  * cont : Continuation register (what to do after evaluating a leaf)
+ * env  : Local (let bound) environments
  * unev : Hold something un-evaluated for a while
  * prg  : Keeps track of a list of expressions to evaluate (top-level)
  * exp  : Current expression

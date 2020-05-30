@@ -717,10 +717,10 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
   return;
 }
 
-int gc(VALUE env,
-       eval_context_t *runnable,
-       eval_context_t *done,
-       eval_context_t *running) {
+static int gc(VALUE env,
+	      eval_context_t *runnable,
+	      eval_context_t *done,
+	      eval_context_t *running) {
 
   gc_state_inc();
   gc_mark_freelist();
