@@ -188,18 +188,16 @@ static inline void eval_quoted(eval_state *es) {
 static inline void eval_define(eval_state *es) {
   rm_state.unev = car(cdr(rm_state.exp));
   rm_state.exp  = car(cdr(cdr(rm_state.exp)));
-  push_u32_3(&rm_state.S,
+  push_u32_2(&rm_state.S,
 	     rm_state.unev,
-	     rm_state.env,
 	     rm_state.cont);
   rm_state.cont = enc_u(CONT_DEFINE);
   *es = EVAL_DISPATCH;
 }
 
 static inline void cont_define(eval_state *es) {
-  pop_u32_3(&rm_state.S,
+  pop_u32_2(&rm_state.S,
 	    &rm_state.cont,
-	    &rm_state.env,
 	    &rm_state.unev);
   VALUE new_env = env_set(ec_eval_global_env,
 			  rm_state.unev,
