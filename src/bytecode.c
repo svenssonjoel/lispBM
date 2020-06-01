@@ -26,6 +26,28 @@ typedef enum {
   CONT_DONE
 } continuation;
 
+
+typedef enum {
+  REG_CONT,
+  REG_EXP,
+  REG_UNEV,
+  REG_PRG,
+  REG_ARGL,
+  REG_VAL,
+  REG_FUN
+} target;
+
+typedef enum {
+  RETURN,
+  NEXT,
+  JUMP
+} link_kind;
+
+typedef struct {
+  link_kind kind;
+  VALUE     flag;
+} linkage;
+
 typedef struct {
   VALUE exp;
   VALUE prg;
@@ -41,9 +63,10 @@ VALUE compile_instr_list(VALUE exp) {
   cs.exp = car(exp);
   cs.prg = cdr(exp);
   cs.cont = CONT_DONE;
+  cs.code_list = enc_sym(symrepr_nil());
   
   bool done = false;
-  VALUE code;
+  
 
   dispatch_mode dm = COMPILE_DISPATCH;
   
@@ -59,5 +82,5 @@ VALUE compile_instr_list(VALUE exp) {
     }
   }
 
-  return code;
+  return cs.code_list;
 }
