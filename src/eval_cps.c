@@ -18,7 +18,6 @@
 #include "symrepr.h"
 #include "heap.h"
 #include "env.h"
-#include "bytecode.h"
 #include "eval_cps.h"
 #include "stack.h"
 #include "fundamental.h"
