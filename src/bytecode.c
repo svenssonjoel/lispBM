@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "exp_kind"
+#include "exp_kind.h"
 
 typedef enum {
   COMPILE_DISPATCH,
@@ -43,6 +43,7 @@ VALUE compile_instr_list(VALUE exp) {
   cs.cont = CONT_DONE;
   
   bool done = false;
+  VALUE code;
 
   dispatch_mode dm = COMPILE_DISPATCH;
   
