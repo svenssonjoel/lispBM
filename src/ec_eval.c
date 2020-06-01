@@ -23,22 +23,7 @@
 #include "extensions.h"
 #include "typedefs.h"
 #include "ec_eval.h"
-
-typedef enum {
-  EXP_KIND_ERROR,
-  EXP_SELF_EVALUATING,
-  EXP_VARIABLE,
-  EXP_QUOTED,
-  EXP_DEFINE,
-  EXP_LAMBDA,
-  EXP_IF,
-  EXP_PROGN,
-  EXP_NO_ARGS,
-  EXP_APPLICATION,
-  EXP_LET,
-  EXP_AND,
-  EXP_OR
-} exp_kind;
+#include "exp_kind.h"
 
 typedef enum {
   CONT_DONE,
@@ -109,54 +94,6 @@ static int gc(VALUE env,
   gc_mark_aux(rm->S.data, rm->S.sp);
 
   return gc_sweep_phase();
-}
-
-
-exp_kind kind_of(VALUE exp) {
-
-  switch (type_of(exp)) {
-  case VAL_TYPE_SYMBOL:
-    if (!is_special(exp))
-      return EXP_VARIABLE;
-    // fall through
-  case PTR_TYPE_BOXED_F:
-  case PTR_TYPE_BOXED_U:
-  case PTR_TYPE_BOXED_I:
-  case VAL_TYPE_I:
-  case VAL_TYPE_U:
-  case VAL_TYPE_CHAR:
-  case PTR_TYPE_ARRAY:
-    return EXP_SELF_EVALUATING;
-  case PTR_TYPE_CONS: {
-    VALUE head = car(rm_state.exp);
-    if (type_of(head) == VAL_TYPE_SYMBOL) {
-      UINT sym_id = dec_sym(head);
-
-      if (sym_id == symrepr_and())
-	return EXP_AND;
-      if (sym_id == symrepr_or())
-	return EXP_OR;
-      if (sym_id == symrepr_quote())
-	return EXP_QUOTED;
-      if (sym_id == symrepr_define())
-	return EXP_DEFINE;
-      if (sym_id == symrepr_progn())
-	return EXP_PROGN;
-      if (sym_id == symrepr_lambda())
-	return EXP_LAMBDA;
-      if (sym_id == symrepr_if())
-	return EXP_IF;
-      if (sym_id == symrepr_let())
-	return EXP_LET;
-      if (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
-	  dec_sym(cdr(exp)) == symrepr_nil()) {
-	return EXP_NO_ARGS;
-      }
-    } // end if symbol
-    return EXP_APPLICATION;
-  } // end case PTR_TYPE_CONS:
-  }
-  return EXP_KIND_ERROR;
 }
 
 static inline bool last_operand(VALUE exp) {
@@ -634,7 +571,7 @@ void ec_eval(void) {
 
     switch(es) {
     case EVAL_DISPATCH:
-      switch (kind_of(rm_state.exp)) {
+      switch (exp_kind_of(rm_state.exp)) {
       case EXP_SELF_EVALUATING: eval_self_evaluating(&es); break;
       case EXP_VARIABLE:        eval_variable(&es);        break;
       case EXP_QUOTED:          eval_quoted(&es);          break;
