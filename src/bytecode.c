@@ -15,7 +15,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "symrepr.h"
 #include "exp_kind.h"
+
+const uint8_t nop  = 0x0;
+/* ... */ 
 
 typedef enum {
   COMPILE_DISPATCH,
@@ -25,7 +29,6 @@ typedef enum {
 typedef enum {
   CONT_DONE
 } continuation;
-
 
 typedef enum {
   REG_CONT,
@@ -52,8 +55,9 @@ typedef struct {
   VALUE exp;
   VALUE prg;
   VALUE cont;
-
+  
   VALUE code_list;
+  VALUE fun_list; 
 } compiler_state;
 
 compiler_state cs;
@@ -64,6 +68,7 @@ VALUE compile_instr_list(VALUE exp) {
   cs.prg = cdr(exp);
   cs.cont = CONT_DONE;
   cs.code_list = enc_sym(symrepr_nil());
+  cs.fun_list  = enc_sym(symrepr_nil());
   
   bool done = false;
   
