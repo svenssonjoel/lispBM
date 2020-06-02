@@ -18,7 +18,8 @@
 #include "symrepr.h"
 #include "exp_kind.h"
 
-const uint8_t nop  = 0x0;
+const uint8_t nop      = 0x0;
+const uint8_t load_imm = 0x1;
 /* ... */ 
 
 typedef enum {
@@ -38,7 +39,7 @@ typedef enum {
   REG_ARGL,
   REG_VAL,
   REG_FUN
-} target;
+} reg;
 
 typedef enum {
   RETURN,
@@ -61,6 +62,39 @@ typedef struct {
 } compiler_state;
 
 compiler_state cs;
+
+VALUE list_1(VALUE v) {
+  VALUE l = cons(v, enc_sym(symrepr_nil()));
+  if (is_symbol_merror(l)) {
+    printf("error: perform GC here!\n");
+  }
+  return l;
+}
+
+VALUE list_2(VALUE v1, VALUE v2) {
+  VALUE l = cons(v1, cons(v2, enc_sym(symrepr_nil())));
+  if (is_symbol_merror(l)) {
+    printf("error: perform GC here!\n");
+  }
+  return l;
+}
+
+VALUE list_3(VALUE v1, VALUE v2, VALUE v3) {
+  VALUE l = cons(v1, cons(v2, cons(v3,enc_sym(symrepr_nil()))));
+  if (is_symbol_merror(l)) {
+    printf("error: perform GC here!\n");
+  }
+  return l;
+}
+
+VALUE gen_load_imm(reg target, VALUE exp) {
+    return list_3(enc_u(load_imm), enc_u(target), exp);
+}
+
+VALUE compile_self_evaluating(VALUE exp, reg target, linkage link) {
+  
+}
+
 
 VALUE compile_instr_list(VALUE exp) {
 
