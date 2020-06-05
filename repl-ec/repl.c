@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
       printf("Free cons cells: %d\n", heap_num_free());
       printf("############################################################\n");
     } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
-      int fstr_len = strlen(&str[5]); 
+      unsigned int fstr_len = strlen(&str[5]); 
       str[5+fstr_len-1] = 0;
       char *file_str = load_file(&str[5]);
       if (file_str) {

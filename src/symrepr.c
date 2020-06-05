@@ -24,7 +24,7 @@
 #include "symrepr.h"
 #include "memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 60
+#define NUM_SPECIAL_SYMBOLS 61
 
 #define NAME   0
 #define ID     1
@@ -76,6 +76,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"type-array"       , DEF_REPR_TYPE_ARRAY},
   {"type-symbol"      , DEF_REPR_TYPE_SYMBOL},
   {"type-char"        , DEF_REPR_TYPE_CHAR},
+  {"type-ref"         , DEF_REPR_TYPE_REF},
 
   // Fundamental operations
   {"+"           , SYM_ADD},

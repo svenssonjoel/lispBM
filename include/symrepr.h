@@ -64,6 +64,7 @@
 #define DEF_REPR_TYPE_ARRAY     0x2F
 #define DEF_REPR_TYPE_SYMBOL    0x30
 #define DEF_REPR_TYPE_CHAR      0x31
+#define DEF_REPR_TYPE_REF       0x32
 
 // Fundamental Operations
 #define FUNDAMENTALS_START      0x100
@@ -95,6 +96,7 @@
 #define SYM_ARRAY_READ          0x130
 #define SYM_ARRAY_WRITE         0x131
 #define SYM_ARRAY_CREATE        0x132
+
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200
 
@@ -151,6 +153,7 @@ static inline UINT symrepr_type_u32(void)    {return DEF_REPR_TYPE_U32; }
 static inline UINT symrepr_type_array(void)  {return DEF_REPR_TYPE_ARRAY; }     
 static inline UINT symrepr_type_symbol(void) {return DEF_REPR_TYPE_SYMBOL; }
 static inline UINT symrepr_type_char(void)   {return DEF_REPR_TYPE_CHAR; }
+static inline UINT symrepr_type_ref(void)    {return DEF_REPR_TYPE_REF; }
 
 
 static inline bool symrepr_is_error(UINT symrep){
