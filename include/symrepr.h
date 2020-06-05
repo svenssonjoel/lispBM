@@ -97,6 +97,9 @@
 #define SYM_ARRAY_WRITE         0x131
 #define SYM_ARRAY_CREATE        0x132
 
+#define SYM_SYMBOL_TO_STRING    0x140
+#define SYM_STRING_TO_SYMBOL    0x141
+
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200
 

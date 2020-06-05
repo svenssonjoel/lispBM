@@ -24,7 +24,7 @@
 #include "symrepr.h"
 #include "memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 61
+#define NUM_SPECIAL_SYMBOLS 63
 
 #define NAME   0
 #define ID     1
@@ -104,6 +104,8 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"array-write" , SYM_ARRAY_WRITE},
   {"array-create", SYM_ARRAY_CREATE},
   {"type-of"     , SYM_TYPE_OF},
+  {"sym-to-str"  , SYM_SYMBOL_TO_STRING},
+  {"str-to-sym"  , SYM_STRING_TO_SYMBOL},
 };
 
 

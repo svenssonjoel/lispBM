@@ -733,6 +733,45 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
   int cmp_res = -1;
 
   switch (dec_sym(op)) {
+  case SYM_SYMBOL_TO_STRING: {
+    if (nargs < 1 ||
+	type_of(args[0]) != VAL_TYPE_SYMBOL)
+      return enc_sym(symrepr_nil());
+    VALUE sym = args[0];
+    const char *sym_str = symrepr_lookup_name(dec_sym(sym));
+    if (sym_str == NULL) return enc_sym(symrepr_nil());
+    size_t len = strlen(sym_str);
+
+    VALUE v;
+    if (heap_allocate_array(&v, len+1, VAL_TYPE_CHAR)) {
+      array_header_t *arr = (array_header_t*)car(v);
+      if (!arr) return enc_sym(symrepr_merror());
+      char *data = (char *)arr+8;
+      memset(data,0,len+1);
+      memcpy(data,sym_str,len);
+    } else {
+      return enc_sym(symrepr_merror());
+    }
+    result = v;
+    break;
+  }
+  case SYM_STRING_TO_SYMBOL: {
+    result = enc_sym(symrepr_eerror());
+    if (nargs < 1 ||
+	type_of(args[0] != PTR_TYPE_ARRAY))
+      break;
+    array_header_t *arr = (array_header_t *)car(args[0]);
+    if (arr->elt_type != VAL_TYPE_CHAR)
+      break;
+    char *str = (char *)arr+8;
+    UINT sym;
+    if (symrepr_lookup(str, &sym)) {
+      result = enc_sym(sym);
+    } else if (symrepr_addsym(str, &sym)) {
+      result = enc_sym(sym);
+    } 
+    break;
+  }
   case SYM_CONS: {
     UINT a = args[0];
     UINT b = args[1];
