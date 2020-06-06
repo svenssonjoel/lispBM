@@ -39,20 +39,19 @@
 	  't
 	(mem x (cdr xs))))))
 
-;; (define (list-union s1 s2)
-;;   (cond ((null? s1) s2)
-;;         ((memq (car s1) s2) (list-union (cdr s1) s2))
-;;         (else (cons (car s1) (list-union (cdr s1) s2)))))
-;; (define (list-difference s1 s2)
-;;   (cond ((null? s1) '())
-;;         ((memq (car s1) s2) (list-difference (cdr s1) s2))
-;;         (else (cons (car s1)
-;;                     (list-difference (cdr s1) s2)))))
-;; (define list-union
-;;   (lambda (s1 s2)
-;;     (if (is-nil s1) s2
-;;       (if (
-    
+(define list-union
+   (lambda (s1 s2)
+     (if (is-nil s1) s2
+       (if (mem (car s1) s2)
+	   (list-union (cdr s1) s2)
+	 (cons (car s1) (list-union (cdr s1) s2))))))
+
+(define list-diff
+  (lambda (s1 s2)
+    (if (is-nil s1) '()
+      (if (mem (car s1) s2) (list-diff (cdr s1) s2)
+	(cons (car s1) (list-diff (cdr s1) s2))))))
+
 
 
 (define compile-instr-list
