@@ -73,6 +73,9 @@ typedef struct {
 register_machine_t rm_state;
 VALUE ec_eval_global_env;
 
+char str[1024];
+char err[1024];
+
 VALUE ec_eval_get_env(void) {
   return ec_eval_global_env;
 }
@@ -399,13 +402,13 @@ static inline void eval_progn(eval_state *es) {
 static inline void eval_if(eval_state *es) {
   rm_state.unev = cdr(cdr(rm_state.exp));
   rm_state.exp = car(cdr(rm_state.exp));
-  push_u32_2(&rm_state.S, rm_state.cont, rm_state.unev);
-  rm_state.cont = enc_u(CONT_BRANCH);
+  push_u32_3(&rm_state.S, rm_state.cont, rm_state.env, rm_state.unev);
+  rm_state.cont = enc_u(CONT_BRANCH);  
   *es = EVAL_DISPATCH;
 }
 
 static inline void cont_branch(eval_state *es) {
-  pop_u32_2(&rm_state.S, &rm_state.unev, &rm_state.cont);
+  pop_u32_3(&rm_state.S, &rm_state.unev,&rm_state.env, &rm_state.cont);
   if (is_symbol_nil(rm_state.val)) {
     rm_state.exp = car(cdr(rm_state.unev));
   }else {

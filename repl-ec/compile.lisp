@@ -10,6 +10,9 @@
 (define is-symbol
   (lambda (exp) (= type-symbol (type-of exp))))
 
+(define is-nil
+  (lambda (exp) (= exp 'nil)))
+
 (define is-number
   (lambda (exp)
     (let ((typ (type-of exp))) 
@@ -27,6 +30,30 @@
   (lambda (exp)
     (or (is-number exp)
 	(is-array  exp))))
+
+(define mem
+  (lambda (x xs)
+    (if (is-nil xs)
+	'nil
+      (if (= x (car xs))
+	  't
+	(mem x (cdr xs))))))
+
+;; (define (list-union s1 s2)
+;;   (cond ((null? s1) s2)
+;;         ((memq (car s1) s2) (list-union (cdr s1) s2))
+;;         (else (cons (car s1) (list-union (cdr s1) s2)))))
+;; (define (list-difference s1 s2)
+;;   (cond ((null? s1) '())
+;;         ((memq (car s1) s2) (list-difference (cdr s1) s2))
+;;         (else (cons (car s1)
+;;                     (list-difference (cdr s1) s2)))))
+;; (define list-union
+;;   (lambda (s1 s2)
+;;     (if (is-nil s1) s2
+;;       (if (
+    
+
 
 (define compile-instr-list
   (lambda (exp target linkage)
