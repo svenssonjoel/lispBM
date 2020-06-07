@@ -53,6 +53,14 @@
 	(cons (car s1) (list-diff (cdr s1) s2))))))
 
 
+;;(define (make-instruction-sequence needs modifies statements)
+;;  (list needs modifies statements))
+
+(define mk-instr-seq
+  (lambda (needs mods stms)
+    (list needs mods stms)))
+
+(define empty-instr-seq (mk-instr-seq '() '() '()))
 
 (define compile-instr-list
   (lambda (exp target linkage)
