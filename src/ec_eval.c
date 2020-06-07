@@ -142,13 +142,13 @@ static inline void cont_define(eval_state *es) {
   VALUE new_env = env_set(ec_eval_global_env,
 			  rm_state.unev,
 			  rm_state.val);
-  if (is_symbol_nil(new_env)) {
+  if (is_symbol_merror(new_env)) {
     gc(ec_eval_global_env, &rm_state);
     new_env = env_set(ec_eval_global_env,
-			  rm_state.unev,
-			  rm_state.val);
+		      rm_state.unev,
+		      rm_state.val);
   }
-  if (is_symbol_nil(new_env)) {
+  if (is_symbol_merror(new_env)) {
     rm_state.cont = enc_u(CONT_DONE);
     *es = EVAL_CONTINUATION;
     return;
@@ -403,7 +403,7 @@ static inline void eval_if(eval_state *es) {
   rm_state.unev = cdr(cdr(rm_state.exp));
   rm_state.exp = car(cdr(rm_state.exp));
   push_u32_3(&rm_state.S, rm_state.cont, rm_state.env, rm_state.unev);
-  rm_state.cont = enc_u(CONT_BRANCH);  
+  rm_state.cont = enc_u(CONT_BRANCH);
   *es = EVAL_DISPATCH;
 }
 

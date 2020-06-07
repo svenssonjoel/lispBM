@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
   unsigned char *memory = malloc(MEMORY_SIZE_16K);
   unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
   if (memory == NULL || bitmap == NULL) return 0;
-  
+
   res = memory_init(memory, MEMORY_SIZE_16K,
 		    bitmap, MEMORY_BITMAP_SIZE_16K);
   if (res)
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  
+
   unsigned int heap_size = 2048;
   res = heap_init(heap_size);
   if (res)
@@ -193,6 +193,13 @@ int main(int argc, char **argv) {
       } else {
 	printf("%s\n", error);
       }
+      int env_len = 0;
+      VALUE curr = ec_eval_get_env();
+      while (type_of(curr) == PTR_TYPE_CONS) {
+	env_len ++;
+	curr = cdr(curr);
+      }
+      printf("Global env num bindings: %d\n", env_len);
       heap_get_state(&heap_state);
       printf("Symbol table size: %u Bytes\n", symrepr_size());
       printf("Heap size: %u Bytes\n", heap_size * 8);
@@ -206,7 +213,7 @@ int main(int argc, char **argv) {
       printf("Free cons cells: %d\n", heap_num_free());
       printf("############################################################\n");
     } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
-      unsigned int fstr_len = strlen(&str[5]); 
+      unsigned int fstr_len = strlen(&str[5]);
       str[5+fstr_len-1] = 0;
       char *file_str = load_file(&str[5]);
       if (file_str) {
@@ -223,8 +230,8 @@ int main(int argc, char **argv) {
       } else {
 	printf("Failed to load file %s\n", &str[5]);
       }
-	
-      
+
+
     }  else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
     } else {
