@@ -473,14 +473,14 @@ static inline void eval_and(eval_state *es) {
     *es = EVAL_CONTINUATION;
   }
   rm_state.unev = cdr(cdr(rm_state.exp));
-  push_u32_2(&rm_state.S, rm_state.cont, rm_state.unev);
+  push_u32_3(&rm_state.S, rm_state.cont, rm_state.env, rm_state.unev);
   rm_state.exp = car(cdr(rm_state.exp));
   rm_state.cont = enc_u(CONT_AND);
   *es = EVAL_DISPATCH;
 }
 
 static inline void cont_and(eval_state *es) {
-  pop_u32(&rm_state.S, &rm_state.unev);
+  pop_u32_2(&rm_state.S, &rm_state.unev, &rm_state.env);
   if (is_symbol_nil(rm_state.val)) {
     pop_u32(&rm_state.S, &rm_state.cont);
     *es = EVAL_CONTINUATION;
@@ -493,7 +493,7 @@ static inline void cont_and(eval_state *es) {
   }
   rm_state.exp = car(rm_state.unev);
   rm_state.unev = cdr(rm_state.unev);
-  push_u32(&rm_state.S, rm_state.unev);
+  push_u32_2(&rm_state.S, rm_state.env, rm_state.unev);
   rm_state.cont = enc_u(CONT_AND);
   *es = EVAL_DISPATCH;
 }
@@ -504,14 +504,14 @@ static inline void eval_or(eval_state *es) {
     *es = EVAL_CONTINUATION;
   }
   rm_state.unev = cdr(cdr(rm_state.exp));
-  push_u32_2(&rm_state.S, rm_state.cont, rm_state.unev);
+  push_u32_3(&rm_state.S, rm_state.cont, rm_state.env, rm_state.unev);
   rm_state.exp = car(cdr(rm_state.exp));
   rm_state.cont = enc_u(CONT_OR);
   *es = EVAL_DISPATCH;
 }
 
 static inline void cont_or(eval_state *es) {
-  pop_u32(&rm_state.S, &rm_state.unev);
+  pop_u32_2(&rm_state.S, &rm_state.unev, &rm_state.env);
   if (!is_symbol_nil(rm_state.val)) {
     pop_u32(&rm_state.S, &rm_state.cont);
     *es = EVAL_CONTINUATION;
@@ -524,7 +524,7 @@ static inline void cont_or(eval_state *es) {
   }
   rm_state.exp = car(rm_state.unev);
   rm_state.unev = cdr(rm_state.unev);
-  push_u32(&rm_state.S, rm_state.unev);
+  push_u32_2(&rm_state.S, rm_state.env, rm_state.unev);
   rm_state.cont = enc_u(CONT_OR);
   *es = EVAL_DISPATCH;
 }
