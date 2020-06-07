@@ -31,6 +31,20 @@
     (or (is-number exp)
 	(is-array  exp))))
 
+(define label-counter 0)
+
+(define incr-label
+  (lambda () 
+    (progn
+      ;; Define used to redefine label-counter
+      (define label-counter (+ 1 label-counter))
+      label-counter)))
+
+(define mk-label
+  (lambda (name)
+    (list 'label name (incr-label))))
+
+
 (define mem
   (lambda (x xs)
     (if (is-nil xs)
@@ -51,10 +65,6 @@
     (if (is-nil s1) '()
       (if (mem (car s1) s2) (list-diff (cdr s1) s2)
 	(cons (car s1) (list-diff (cdr s1) s2))))))
-
-
-;;(define (make-instruction-sequence needs modifies statements)
-;;  (list needs modifies statements))
 
 (define mk-instr-seq
   (lambda (needs mods stms)
