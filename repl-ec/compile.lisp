@@ -7,6 +7,8 @@
 ;; Will need a way to set this definition to another value
 (define compiler-symbols '())
 
+(define all-regs '(env proc val argl cont))
+
 (define is-symbol
   (lambda (exp) (= type-symbol (type-of exp))))
 
@@ -71,6 +73,16 @@
     (list needs mods stms)))
 
 (define empty-instr-seq (mk-instr-seq '() '() '()))
+
+(define compile-linkage 
+  (lambda (linkage)
+    (if (= linkage 'return)
+	(mk-instr-seq '(cont) '() '(jmpcnt))
+      (if (= linkage 'next)
+	  (empty-instr-seq)
+	(mk-instr-seq '() '() `((jmpimm (label ,linkage))))))))
+      
+    
 
 (define compile-instr-list
   (lambda (exp target linkage)

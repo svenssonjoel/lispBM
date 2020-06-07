@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2020 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -114,8 +114,8 @@ int heap_init_addr(cons_t *addr, unsigned int num_cells) {
   RECOVERED = enc_sym(DEF_REPR_RECOVERED);
 
   heap_init_state(addr, num_cells, false);
-  
-  return generate_freelist(num_cells);  
+
+  return generate_freelist(num_cells);
 }
 
 int heap_init(unsigned int num_cells) {
@@ -128,9 +128,9 @@ int heap_init(unsigned int num_cells) {
   if (!heap) return 0;
   heap_init_state(heap, num_cells, true);
 
-  return generate_freelist(num_cells); 
+  return generate_freelist(num_cells);
 }
-  
+
 void heap_del(void) {
   if (heap_state.heap && heap_state.malloced)
     free(heap_state.heap);
@@ -222,7 +222,7 @@ int gc_mark_phase(VALUE env) {
   VALUE stack_storage[1024];
   stack s;
   stack_create(&s, stack_storage, 1024);
-  
+
   if (!is_ptr(env)) {
       return 1; // Nothing to mark here
   }
@@ -237,7 +237,7 @@ int gc_mark_phase(VALUE env) {
     if (!is_ptr(curr)) {
       continue;
     }
-    
+
     // Circular object on heap, or visited..
     if (get_gc_mark(ref_cell(curr))) {
       continue;
@@ -245,17 +245,17 @@ int gc_mark_phase(VALUE env) {
 
     // There is at least a pointer to one cell here. Mark it and add children to stack
     heap_state.gc_marked ++;
-    
+
     set_gc_mark(ref_cell(curr));
-    
+
     VALUE t_ptr = type_of(curr);
-    
+
     if (t_ptr == PTR_TYPE_BOXED_I ||
 	t_ptr == PTR_TYPE_BOXED_U ||
 	t_ptr == PTR_TYPE_BOXED_F ||
 	t_ptr == PTR_TYPE_ARRAY) {
       continue;
-    }  
+    }
     res &= push_u32(&s, cdr(curr));
     res &= push_u32(&s, car(curr));
 
@@ -359,11 +359,11 @@ void gc_state_inc(void) {
   heap_state.gc_recovered = 0;
   heap_state.gc_marked = 0;
 }
-  
+
 
 int heap_perform_gc(VALUE env) {
   gc_state_inc();
-  
+
   gc_mark_freelist();
   gc_mark_phase(env);
   return gc_sweep_phase();
@@ -371,7 +371,7 @@ int heap_perform_gc(VALUE env) {
 
 int heap_perform_gc_extra(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE list) {
   gc_state_inc();
-  
+
   gc_mark_freelist();
   gc_mark_phase(exp);
   gc_mark_phase(exp2);
@@ -388,7 +388,7 @@ int heap_perform_gc_extra(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE li
 
 int heap_perform_gc_aux(VALUE env, VALUE env2, VALUE exp, VALUE exp2, VALUE exp3, UINT *aux_data, unsigned int aux_size) {
   gc_state_inc();
-  
+
   gc_mark_freelist();
   gc_mark_phase(exp);
   gc_mark_phase(exp2);
@@ -505,7 +505,7 @@ VALUE copy(VALUE list) {
     curr = cdr(curr);
   }
 
-  return reverse(res); 
+  return reverse(res);
 }
 
 // Arrays are part of the heap module because their lifespan is managed
@@ -532,9 +532,9 @@ int heap_allocate_array(VALUE *res, unsigned int size, TYPE type){
   }
 
   array = (array_header_t*)memory_allocate(2 + allocate_size);
-   
+
   if (array == NULL) return 0;
-  
+
   array->elt_type = type;
   array->size = size;
 

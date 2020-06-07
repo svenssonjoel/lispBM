@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2020 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@
 #include "prelude.h"
 #include "typedefs.h"
 #include "memory.h"
+#include "env.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 
@@ -142,7 +143,6 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-
   unsigned int heap_size = 2048;
   res = heap_init(heap_size);
   if (res)
@@ -152,18 +152,21 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  //  res = eval_cps_init_nc(EVAL_CPS_STACK_SIZE, false);
-  //if (res)
-  //  printf("Evaluator initialized.\n");
-  //else {
-  //  printf("Error initializing evaluator.\n");
-  //}
+  res = env_init();
+  if (res)
+    printf("Environment initialized.\n");
+  else {
+    printf("Error initializing environment!\n");
+    return 0;
+  }
 
   res = extensions_add("print", ext_print);
   if (res)
     printf("Extension added.\n");
-  else
+  else {
     printf("Error adding extension.\n");
+    return 0;
+  }
 
   VALUE prelude = prelude_load();
   ec_eval_program(prelude);
@@ -187,14 +190,14 @@ int main(int argc, char **argv) {
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("############################################################\n");
       printf("Used cons cells: %d\n", heap_size - heap_num_free());
-      int r = print_value(output, 1024, error, 1024, ec_eval_get_env());
+      int r = print_value(output, 1024, error, 1024, *env_get_global_ptr());
       if (r >= 0) {
 	printf("ENV: %s\n", output );
       } else {
 	printf("%s\n", error);
       }
       int env_len = 0;
-      VALUE curr = ec_eval_get_env();
+      VALUE curr = *env_get_global_ptr();
       while (type_of(curr) == PTR_TYPE_CONS) {
 	env_len ++;
 	curr = cdr(curr);

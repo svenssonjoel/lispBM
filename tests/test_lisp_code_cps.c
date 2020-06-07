@@ -33,6 +33,7 @@
 #include "prelude.h"
 #include "compression.h"
 #include "memory.h"
+#include "env.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 
@@ -156,6 +157,13 @@ int main(int argc, char **argv) {
     printf("Error initializing evaluator.\n");
   }
 
+  res = env_init();
+  if (res)
+    printf("Environment initialized.\n");
+  else {
+    printf("Error initializing environment.\n");
+  }
+  
   eval_cps_set_timestamp_us_callback(timestamp_callback);
   eval_cps_set_usleep_callback(sleep_callback);
 

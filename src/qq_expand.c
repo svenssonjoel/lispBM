@@ -84,9 +84,11 @@ VALUE qq_expand_list(VALUE l) {
 		 cons(append(expand_car, expand_cdr), enc_sym(symrepr_nil())));
     }
     break;
-  default:
-    res = cons(enc_sym(symrepr_list()),
-	       cons(l, enc_sym(symrepr_nil())));
+  default: {
+    VALUE a_list = cons(l, enc_sym(symrepr_nil()));
+    res =
+      cons(enc_sym(symrepr_quote()), cons (a_list, enc_sym(symrepr_nil())));
+  }
   }
   return res;
 }

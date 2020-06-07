@@ -1,6 +1,5 @@
-
 /*
-    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2020 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,6 +21,17 @@
 #include "heap.h"
 #include "print.h"
 #include "typedefs.h"
+
+VALUE env_global;
+
+int env_init(void) {
+  env_global = enc_sym(symrepr_nil());
+  return 1;
+}
+
+VALUE *env_get_global_ptr(void) {
+  return &env_global;
+}
 
 // Copies just the skeleton structure of an environment
 // The new "copy" will have pointers to the original key-val bindings.
@@ -63,11 +73,11 @@ VALUE env_lookup(VALUE sym, VALUE env) {
 }
 
 VALUE env_set(VALUE env, VALUE key, VALUE val) {
-  
+
   VALUE curr = env;
   VALUE new_env;
   VALUE keyval;
-  
+
   while(type_of(curr) == PTR_TYPE_CONS) {
     if (car(car(curr)) == key) {
       set_cdr(car(curr),val);

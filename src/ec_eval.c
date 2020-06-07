@@ -71,14 +71,9 @@ typedef struct {
 } register_machine_t;
 
 register_machine_t rm_state;
-VALUE ec_eval_global_env;
 
 char str[1024];
 char err[1024];
-
-VALUE ec_eval_get_env(void) {
-  return ec_eval_global_env;
-}
 
 static int gc(VALUE env,
        register_machine_t *rm) {
@@ -115,7 +110,7 @@ static inline void eval_variable(eval_state *es) {
 
   if (type_of(rm_state.val) == VAL_TYPE_SYMBOL &&
       dec_sym(rm_state.val) == symrepr_not_found()) {
-    rm_state.val = env_lookup(rm_state.exp, ec_eval_global_env);
+    rm_state.val = env_lookup(rm_state.exp, *env_get_global_ptr());
   }
   *es = EVAL_CONTINUATION;
 }
@@ -139,12 +134,12 @@ static inline void cont_define(eval_state *es) {
   pop_u32_2(&rm_state.S,
 	    &rm_state.cont,
 	    &rm_state.unev);
-  VALUE new_env = env_set(ec_eval_global_env,
+  VALUE new_env = env_set(*env_get_global_ptr(),
 			  rm_state.unev,
 			  rm_state.val);
   if (is_symbol_merror(new_env)) {
-    gc(ec_eval_global_env, &rm_state);
-    new_env = env_set(ec_eval_global_env,
+    gc(*env_get_global_ptr(), &rm_state);
+    new_env = env_set(*env_get_global_ptr(),
 		      rm_state.unev,
 		      rm_state.val);
   }
@@ -153,7 +148,7 @@ static inline void cont_define(eval_state *es) {
     *es = EVAL_CONTINUATION;
     return;
   }
-  ec_eval_global_env = new_env;
+  *env_get_global_ptr() = new_env;
   rm_state.val = rm_state.unev;
   *es = EVAL_CONTINUATION;
 }
@@ -166,7 +161,7 @@ static inline VALUE mkClosure(void) {
   VALUE closure = cons(enc_sym(symrepr_closure()), params);
 
   if (is_symbol_merror(closure)) {
-    gc(ec_eval_global_env, &rm_state);
+    gc(*env_get_global_ptr(), &rm_state);
 
     env_end = cons(rm_state.env, enc_sym(symrepr_nil()));
     body    = cons(car(cdr(cdr(rm_state.exp))), env_end);
@@ -238,7 +233,7 @@ static inline void cont_accumulate_arg(eval_state *es) {
   VALUE argl = cons(rm_state.val, rm_state.argl);
 
   if (is_symbol_merror(argl)) {
-    gc(ec_eval_global_env, &rm_state);
+    gc(*env_get_global_ptr(), &rm_state);
 
     argl = cons(rm_state.val, rm_state.argl);
   }
@@ -259,7 +254,7 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
   VALUE argl =  cons(rm_state.val, rm_state.argl);
 
   if (is_symbol_merror(argl)) {
-    gc(ec_eval_global_env, &rm_state);
+    gc(*env_get_global_ptr(), &rm_state);
     argl = cons(rm_state.val, rm_state.argl);
   }
   if (is_symbol_merror(argl)) {
@@ -272,7 +267,7 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
   VALUE rev_args = reverse(rm_state.argl);
 
   if (is_symbol_merror(rev_args)) {
-    gc(ec_eval_global_env, &rm_state);
+    gc(*env_get_global_ptr(), &rm_state);
     rev_args = reverse(rm_state.argl);
   }
   if (is_symbol_merror(rev_args)) {
@@ -296,7 +291,7 @@ static inline void eval_apply_fundamental(eval_state *es) {
   UINT *fun_args = stack_ptr(&rm_state.S, count);
   VALUE val = fundamental_exec(fun_args, count, rm_state.fun);
   if (is_symbol_merror(val)) {
-    gc(ec_eval_global_env, &rm_state);
+    gc(*env_get_global_ptr(), &rm_state);
     val = fundamental_exec(fun_args, count, rm_state.fun);
   }
   if (is_symbol_merror(val)) {
@@ -317,7 +312,7 @@ static inline void eval_apply_closure(eval_state *es) {
 					  rm_state.argl,
 					  car(cdr(cdr(cdr(rm_state.fun)))));
   if (is_symbol_merror(local_env)) {
-    gc(ec_eval_global_env, &rm_state);
+    gc(*env_get_global_ptr(), &rm_state);
     local_env = env_build_params_args(car(cdr(rm_state.fun)),
 					  rm_state.argl,
 					  car(cdr(cdr(cdr(rm_state.fun)))));
@@ -447,7 +442,7 @@ static inline void eval_let(eval_state *es) {
 
     if (is_symbol_merror(binding) ||
 	is_symbol_merror(new_env)) {
-      gc(ec_eval_global_env, &rm_state);
+      gc(*env_get_global_ptr(), &rm_state);
       binding = cons(key, val);
       tmp_env = cons(binding, new_env);
     }

@@ -28,6 +28,7 @@
 #include "compression.h"
 #include "qq_expand.h"
 #include "memory.h"
+#include "env.h"
 
 #define TOKOPENPAR      0
 #define TOKCLOSEPAR     1
@@ -74,6 +75,14 @@ typedef struct tcs{
   char (*peek)(struct tcs, unsigned int);
   void (*drop)(struct tcs, unsigned int);
 } tokenizer_char_stream;
+
+// Todo: Try to figure out how to do GC while reading
+static int gc() {
+  gc_state_inc();
+  gc_mark_freelist();
+  gc_mark_phase(*env_get_global_ptr());
+  return gc_sweep_phase();
+}
 
 bool more(tokenizer_char_stream str) {
   return str.more(str);

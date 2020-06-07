@@ -65,7 +65,6 @@
    sleep duration possible is 2 * 100us = 200us.
 */
 
-static VALUE eval_cps_global_env;
 static VALUE NIL;
 static VALUE NONSENSE;
 
@@ -303,10 +302,6 @@ void advance_ctx(void) {
   }
 }
 
-VALUE eval_cps_get_env(void) {
-  return eval_cps_global_env;
-}
-
 /* ************************************************************
  * Continuation points and apply cont
  * ************************************************************ */
@@ -317,7 +312,7 @@ void cont_set_global_env(eval_context_t *ctx, bool *perform_gc){
   VALUE val = ctx->r;
 
   pop_u32(&ctx->K, &key);
-  VALUE new_env = env_set(eval_cps_global_env,key,val);
+  VALUE new_env = env_set(*env_get_global_ptr(),key,val);
 
   if (type_of(new_env) == VAL_TYPE_SYMBOL) {
     if (dec_sym(new_env) == symrepr_merror()) {
@@ -331,7 +326,7 @@ void cont_set_global_env(eval_context_t *ctx, bool *perform_gc){
       return;
     }
   }
-  eval_cps_global_env = new_env;
+  *env_get_global_ptr() = new_env;
   ctx->r = key;
   return;
 }
@@ -769,7 +764,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       return;
     }
     *last_iteration_gc = true;
-    gc(eval_cps_global_env,
+    gc(*env_get_global_ptr(),
        ctx_queue,
        ctx_done,
        ctx_running);
@@ -800,7 +795,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       if (type_of(value) == VAL_TYPE_SYMBOL &&
 	  dec_sym(value) == symrepr_not_found()) {
 	
-	value = env_lookup(ctx->curr_exp, eval_cps_global_env);
+	value = env_lookup(ctx->curr_exp, *env_get_global_ptr());
       }
     }
   
@@ -1070,12 +1065,12 @@ int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
 
   NIL = enc_sym(symrepr_nil());
   NONSENSE = enc_sym(symrepr_nonsense());
-  eval_cps_global_env = NIL;
+ 
   VALUE nil_entry = cons(NIL, NIL);
-  eval_cps_global_env = cons(nil_entry, eval_cps_global_env);
+  *env_get_global_ptr() = cons(nil_entry, *env_get_global_ptr());
 
   if (type_of(nil_entry) == VAL_TYPE_SYMBOL ||
-      type_of(eval_cps_global_env) == VAL_TYPE_SYMBOL)
+      type_of(*env_get_global_ptr()) == VAL_TYPE_SYMBOL)
     return 0;
 
   if (!stack_allocate(&ctx_non_concurrent.K, stack_size, grow_stack))
@@ -1089,13 +1084,11 @@ int eval_cps_init() {
   NIL = enc_sym(symrepr_nil());
   NONSENSE = enc_sym(symrepr_nonsense());
 
-  eval_cps_global_env = NIL;
-
   VALUE nil_entry = cons(NIL, NIL);
-  eval_cps_global_env = cons(nil_entry, eval_cps_global_env);
+  *env_get_global_ptr() = cons(nil_entry, *env_get_global_ptr());
 
   if (type_of(nil_entry) == VAL_TYPE_SYMBOL ||
-      type_of(eval_cps_global_env) == VAL_TYPE_SYMBOL) res = 0;
+      type_of(*env_get_global_ptr()) == VAL_TYPE_SYMBOL) res = 0;
 
   eval_running = true;
 

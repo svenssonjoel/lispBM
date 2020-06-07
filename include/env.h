@@ -20,6 +20,8 @@
 
 #include "typedefs.h"
 
+extern int env_init(void);
+extern VALUE *env_get_global_ptr(void);
 extern VALUE env_copy_shallow(VALUE env);
 extern VALUE env_lookup(VALUE sym, VALUE env);
 extern VALUE env_set(VALUE env, VALUE key, VALUE val);
