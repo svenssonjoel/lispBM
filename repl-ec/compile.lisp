@@ -7,7 +7,17 @@
 ;; Will need a way to set this definition to another value
 (define compiler-symbols '())
 
-(define all-regs '(env proc val argl cont))
+(define all-regs '(env
+		   proc
+		   val
+		   argl
+		   cont))
+
+(define all-instrs '(jmpcnt
+		     jmpimm
+		     movimm
+		     lookup))
+
 
 (define is-symbol
   (lambda (exp) (= type-symbol (type-of exp))))
@@ -17,6 +27,9 @@
 
 (define is-nil
   (lambda (exp) (= exp 'nil)))
+
+(define is-quoted
+  (lambda (exp) (= (car exp) 'quote)))
 
 (define is-number
   (lambda (exp)
@@ -70,20 +83,6 @@
     (if (is-nil s1) '()
       (if (mem (car s1) s2) (list-diff (cdr s1) s2)
 	(cons (car s1) (list-diff (cdr s1) s2))))))
-
-(define mk-instr-seq
-  (lambda (needs mods stms)
-    (list needs mods stms)))
-
-(define empty-instr-seq (mk-instr-seq '() '() '()))
-
-(define compile-linkage 
-  (lambda (linkage)
-    (if (= linkage 'return)
-	(mk-instr-seq '(cont) '() '(jmpcnt))
-      (if (= linkage 'next)
-	  empty-instr-seq
-	(mk-instr-seq '() '() `((jmpimm (label ,linkage))))))))
 
 (define regs-needed
   (lambda (s)
@@ -147,13 +146,30 @@
 
 	  (preserving (cdr regs) s1 s2))))))
 
+		
+;; COMPILERS
+
+(define mk-instr-seq
+  (lambda (needs mods stms)
+    (list needs mods stms)))
+
+(define empty-instr-seq (mk-instr-seq '() '() '()))
+
+(define compile-linkage 
+  (lambda (linkage)
+    (if (= linkage 'return)
+	;; jmpcnt implies usage of cont register
+	(mk-instr-seq '(cont) '() '(jmpcnt))
+      (if (= linkage 'next)
+	  empty-instr-seq
+	(mk-instr-seq '() '() `((jmpimm (label ,linkage))))))))
+
 (define end-with-linkage
   (lambda (linkage seq)
     (preserving '(cont)
     		seq
     		(compile-linkage linkage))))
-		
-;; COMPILERS
+
 
 (define compile-self-evaluating
   (lambda (exp target linkage)
@@ -161,10 +177,27 @@
 		      (mk-instr-seq '()
 				    (list target)
 				    `((movimm ,target ,exp))))))
+(define compile-quoted
+  (lambda (exp target linkage)
+    (end-with-linkage linkage
+		      (mk-instr-seq '()
+				    (list target)
+				    `((movimm ,target ,(car (cdr exp))))))))
+(define compile-symbol
+  (lambda (exp target linkage)
+    (end-with-linkage linkage
+		      ;; Implied that the lookup looks in env register
+		      (mk-instr-seq '(env)
+				    (list target)
+				    `((lookup ,target ,exp))))))
 
 
 (define compile-instr-list
   (lambda (exp target linkage)
     (if (is-self-evaluating exp)
 	(compile-self-evaluating exp target linkage)
-      '())))
+      (if (is-quoted exp)
+	  (compile-quoted exp target linkage)
+	(if (is-symbol exp)
+	    (compile-symbol exp target linkage)
+	  '())))))
