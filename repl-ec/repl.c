@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  unsigned int heap_size = 2048;
+  unsigned int heap_size = 8192;
   res = heap_init(heap_size);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());

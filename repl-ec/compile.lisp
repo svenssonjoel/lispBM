@@ -19,7 +19,10 @@
 		     lookup
 		     setglb
 		     push
-		     pop))
+		     pop
+		     mcp
+		     ldenv
+		     exenv))
 
 
 (define is-symbol
@@ -36,6 +39,9 @@
 
 (define is-quoted
   (lambda (exp) (= (car exp) 'quote)))
+
+(define is-lambda
+  (lambda (exp) (= (car exp) 'lambda)))
 
 (define is-number
   (lambda (exp)
@@ -133,6 +139,13 @@
       (append-two-instr-seqs (car seqs)
 		  (append-instr-seqs (cdr seqs))))))
 
+(define tack-on-instr-seq
+  (lambda (s b)
+    (mk-instr-seq (regs-needed s)
+		  (regs-modified s)
+		  (append (statements s) (statements b)))))
+  
+
 (define preserving
   (lambda (regs s1 s2)
     (if (is-nil regs)
@@ -168,7 +181,7 @@
 	(mk-instr-seq '(cont) '() '(jmpcnt))
       (if (= linkage 'next)
 	  empty-instr-seq
-	(mk-instr-seq '() '() `((jmpimm (label ,linkage))))))))
+	(mk-instr-seq '() '() `((jmpimm ,linkage)))))))
 
 (define end-with-linkage
   (lambda (linkage seq)
@@ -206,6 +219,34 @@
 						(mk-instr-seq '(val) (list target)
 							      `((setglb ,var val)
 								(movimm ,target ,var))))))))
+
+(define compile-lambda
+  (lambda (exp target linkage)
+    (let ((proc-entry    (mk-label "entry"))
+	  (after-lambda  (mk-label "after-lambda"))
+	  (lambda-linkage (if (= linkage 'next) after-lambda linkage)))
+      (append-two-instr-seqs
+       (tack-on-instr-seq
+	(end-with-linkage lambda-linkage
+			  (mk-instr-seq '(env) (list target)
+					`((mcp ,target ,proc-entry env))))
+	(compile-lambda-body exp proc-entry))
+       after-lambda))))
+
+(define compile-lambda-body
+  (lambda (exp proc-entry)   
+    (let ((formals (car (cdr exp))))
+      (append-two-instr-seqs
+       (mk-instr-seq '(env proc argl) '(env)
+    		     `(,proc-entry
+    		       (ldenv proc)
+    		       (exenv ,formals
+    			      argl
+    			      env)))
+       (compile-instr-list (car (cdr (cdr exp))) 'val 'return)))))
+	 
+
+
 (define compile-instr-list
   (lambda (exp target linkage)
     (if (is-self-evaluating exp)
@@ -216,4 +257,6 @@
 	    (compile-symbol exp target linkage)
 	  (if (is-def exp)
 	      (compile-def exp target linkage)
-	  'print "Not recognized"))))))
+	    (if (is-lambda exp)
+		(compile-lambda exp target linkage)
+	  'print "Not recognized")))))))
