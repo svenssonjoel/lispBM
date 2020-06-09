@@ -43,6 +43,9 @@
 (define is-lambda
   (lambda (exp) (= (car exp) 'lambda)))
 
+(define is-list
+  (lambda (exp) (= type-list (type-of exp)))
+
 (define is-number
   (lambda (exp)
     (let ((typ (type-of exp)))
@@ -165,6 +168,14 @@
 
 	  (preserving (cdr regs) s1 s2))))))
 
+;; (define (parallel-instruction-sequences seq1 seq2)
+;;   (make-instruction-sequence
+;;    (list-union (registers-needed seq1)
+;;                (registers-needed seq2))
+;;    (list-union (registers-modified seq1)
+;;                (registers-modified seq2))
+;;    (append (statements seq1) (statements seq2))))
+
 
 ;; COMPILERS
 
@@ -245,6 +256,75 @@
     			      env)))
        (compile-instr-list (car (cdr (cdr exp))) 'val 'return)))))
 	 
+(define compile-application
+  (lambda (exp target linkage)
+    '()))
+;; (define (compile-application exp target linkage)
+;;   (let ((proc-code (compile (operator exp) 'proc 'next))
+;;         (operand-codes
+;;          (map (lambda (operand) (compile operand 'val 'next))
+;;               (operands exp))))
+;;     (preserving '(env continue)
+;;      proc-code
+;;      (preserving '(proc continue)
+;;       (construct-arglist operand-codes)
+;;       (compile-procedure-call target linkage)))))
+
+;; (define (construct-arglist operand-codes)
+;;   (let ((operand-codes (reverse operand-codes)))
+;;     (if (null? operand-codes)
+;;         (make-instruction-sequence '() '(argl)
+;;          '((assign argl (const ()))))
+;;         (let ((code-to-get-last-arg
+;;                (append-instruction-sequences
+;;                 (car operand-codes)
+;;                 (make-instruction-sequence '(val) '(argl)
+;;                  '((assign argl (op list) (reg val)))))))
+;;           (if (null? (cdr operand-codes))
+;;               code-to-get-last-arg
+;;               (preserving '(env)
+;;                code-to-get-last-arg
+;;                (code-to-get-rest-args
+;;                 (cdr operand-codes))))))))
+
+;; (define (code-to-get-rest-args operand-codes)
+;;   (let ((code-for-next-arg
+;;          (preserving '(argl)
+;;           (car operand-codes)
+;;           (make-instruction-sequence '(val argl) '(argl)
+;;            '((assign argl
+;;               (op cons) (reg val) (reg argl)))))))
+;;     (if (null? (cdr operand-codes))
+;;         code-for-next-arg
+;;         (preserving '(env)
+;;          code-for-next-arg
+;;          (code-to-get-rest-args (cdr operand-codes))))))
+
+
+;; (define (compile-procedure-call target linkage)
+;;   (let ((primitive-branch (make-label 'primitive-branch))
+;;         (compiled-branch (make-label 'compiled-branch))
+;;         (after-call (make-label 'after-call)))
+;;     (let ((compiled-linkage
+;;            (if (eq? linkage 'next) after-call linkage)))
+;;       (append-instruction-sequences
+;;        (make-instruction-sequence '(proc) '()
+;;         `((test (op primitive-procedure?) (reg proc))
+;;           (branch (label ,primitive-branch))))
+;;        (parallel-instruction-sequences
+;;         (append-instruction-sequences
+;;          compiled-branch
+;;          (compile-proc-appl target compiled-linkage))
+;;         (append-instruction-sequences
+;;          primitive-branch
+;;          (end-with-linkage linkage
+;;           (make-instruction-sequence '(proc argl)
+;;                                      (list target)
+;;            `((assign ,target
+;;                      (op apply-primitive-procedure)
+;;                      (reg proc)
+;;                      (reg argl)))))))
+;;        after-call))))
 
 
 (define compile-instr-list
@@ -259,4 +339,6 @@
 	      (compile-def exp target linkage)
 	    (if (is-lambda exp)
 		(compile-lambda exp target linkage)
-	  'print "Not recognized")))))))
+	      (if (is-list exp)
+		  (compile-application exp target linkage)
+	  'print "Not recognized"))))))))
