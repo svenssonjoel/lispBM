@@ -16,7 +16,10 @@
 (define all-instrs '(jmpcnt
 		     jmpimm
 		     movimm
-		     lookup))
+		     lookup
+		     setglb
+		     push
+		     pop))
 
 
 (define is-symbol
@@ -24,6 +27,9 @@
 
 (define is-label
   (lambda (exp) (= (car exp) 'label)))
+
+(define is-def
+  (lambda (exp) (= (car exp) 'define)))
 
 (define is-nil
   (lambda (exp) (= exp 'nil)))
@@ -33,7 +39,7 @@
 
 (define is-number
   (lambda (exp)
-    (let ((typ (type-of exp))) 
+    (let ((typ (type-of exp)))
       (or (= typ type-i28)
 	  (= typ type-u28)
 	  (= typ type-i32)
@@ -52,7 +58,7 @@
 (define label-counter 0)
 
 (define incr-label
-  (lambda () 
+  (lambda ()
     (progn
       ;; Define used to redefine label-counter
       (define label-counter (+ 1 label-counter))
@@ -101,7 +107,7 @@
     (if (is-label s)
 	(list s)
       (car (cdr (cdr s))))))
-      
+
 (define needs-reg
   (lambda (s r)
     (mem r (regs-needed s))))
@@ -111,22 +117,22 @@
     (mem r (regs-modified s))))
 
 
-(define append-instr-seqs
-  (let ((append-two
-	 (lambda (s1 s2)
-	   (mk-instr-seq
+(define append-two-instr-seqs
+  (lambda (s1 s2)
+ 	   (mk-instr-seq
 	    (list-union (regs-needed s1)
 	   		(list-diff (regs-needed s2)
 	   			   (regs-modified s1)))
 	    (list-union (regs-modified s1)
 	   		(regs-modified s2))
 	    (append (statements s1) (statements s2))))))
-    (lambda (seqs)
-      (if (is-nil seqs)
-      	  empty-instr-seq
-      	(append-two (car seqs)
-      		    (append-instr-seqs (cdr seqs)))))))
-       
+(define append-instr-seqs
+  (lambda (seqs)
+    (if (is-nil seqs)
+	empty-instr-seq
+      (append-two-instr-seqs (car seqs)
+		  (append-instr-seqs (cdr seqs))))))
+
 (define preserving
   (lambda (regs s1 s2)
     (if (is-nil regs)
@@ -146,7 +152,7 @@
 
 	  (preserving (cdr regs) s1 s2))))))
 
-		
+
 ;; COMPILERS
 
 (define mk-instr-seq
@@ -155,7 +161,7 @@
 
 (define empty-instr-seq (mk-instr-seq '() '() '()))
 
-(define compile-linkage 
+(define compile-linkage
   (lambda (linkage)
     (if (= linkage 'return)
 	;; jmpcnt implies usage of cont register
@@ -190,7 +196,16 @@
 		      (mk-instr-seq '(env)
 				    (list target)
 				    `((lookup ,target ,exp))))))
-
+(define compile-def
+  (lambda (exp target linkage)
+     (let ((var (car (cdr exp)))
+	   (get-value-code
+	    (compile-instr-list (car (cdr (cdr exp))) 'val 'next)))
+       (end-with-linkage linkage
+       			 (append-two-instr-seqs get-value-code
+						(mk-instr-seq '(val) (list target)
+							      `((setglb ,var val)
+								(movimm ,target ,var))))))))
 
 (define compile-instr-list
   (lambda (exp target linkage)
@@ -200,4 +215,6 @@
 	  (compile-quoted exp target linkage)
 	(if (is-symbol exp)
 	    (compile-symbol exp target linkage)
-	  '())))))
+	  (if (is-def exp)
+	      (compile-def exp target linkage)
+	  'print "Not recognized"))))))

@@ -35,6 +35,7 @@ typedef enum {
   CONT_ACCUMULATE_LAST_ARG,
   CONT_BRANCH,
   CONT_BIND_VAR,
+  CONT_END_LET,
   CONT_SEQUENCE,
   CONT_AND,
   CONT_OR
@@ -414,7 +415,8 @@ static inline void cont_branch(eval_state *es) {
 
 static inline void eval_let_loop(eval_state *es) {
   if (is_symbol_nil(rm_state.unev)) {
-    pop_u32_2(&rm_state.S, &rm_state.exp, &rm_state.cont);
+    pop_u32(&rm_state.S, &rm_state.exp);
+    rm_state.cont = enc_u(CONT_END_LET);
     *es = EVAL_DISPATCH;
     return;
   }
@@ -427,7 +429,7 @@ static inline void eval_let_loop(eval_state *es) {
 
 static inline void eval_let(eval_state *es) {
   rm_state.unev = car(cdr(cdr(rm_state.exp)));
-  push_u32_2(&rm_state.S, rm_state.cont, rm_state.unev);
+  push_u32_3(&rm_state.S, rm_state.cont, rm_state.env, rm_state.unev);
 
   rm_state.unev = car(cdr(rm_state.exp));
 
@@ -465,6 +467,11 @@ static inline void cont_bind_var(eval_state *es) {
   env_modify_binding(rm_state.env, car(car(rm_state.unev)), rm_state.val);
   rm_state.unev = cdr(rm_state.unev);
   eval_let_loop(es);
+}
+
+static inline void cont_end_let(eval_state *es)  {
+  pop_u32_2(&rm_state.S, &rm_state.env, &rm_state.cont);
+  *es = EVAL_CONTINUATION;
 }
 
 static inline void eval_and(eval_state *es) {
@@ -595,6 +602,7 @@ void ec_eval(void) {
       case CONT_ACCUMULATE_LAST_ARG: cont_accumulate_last_arg(&es); break;
       case CONT_BRANCH:              cont_branch(&es);              break;
       case CONT_BIND_VAR:            cont_bind_var(&es);            break;
+      case CONT_END_LET:             cont_end_let(&es);             break;
       case CONT_SEQUENCE:            cont_sequence(&es);            break;
       case CONT_AND:                 cont_and(&es);                 break;
       case CONT_OR:                  cont_or(&es);                  break;
