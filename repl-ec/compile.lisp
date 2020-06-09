@@ -206,7 +206,6 @@
 						(mk-instr-seq '(val) (list target)
 							      `((setglb ,var val)
 								(movimm ,target ,var))))))))
-
 (define compile-instr-list
   (lambda (exp target linkage)
     (if (is-self-evaluating exp)
