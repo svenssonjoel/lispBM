@@ -373,6 +373,7 @@ static inline void eval_apply_dispatch(eval_state *es) {
   else if (is_extension(rm_state.fun)) eval_apply_extension(es);
   else {
     rm_state.cont = enc_u(CONT_DONE);
+    rm_state.val  = enc_sym(symrepr_eerror());
     *es = EVAL_CONTINUATION;
   }
 }
