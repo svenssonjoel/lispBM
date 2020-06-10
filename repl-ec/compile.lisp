@@ -45,7 +45,7 @@
   (lambda (exp) (= (car exp) 'lambda)))
 
 (define is-list
-  (lambda (exp) (= type-list (type-of exp)))
+  (lambda (exp) (= type-list (type-of exp))))
 
 (define is-number
   (lambda (exp)
@@ -206,9 +206,10 @@
 (define compile-self-evaluating
   (lambda (exp target linkage)
     (end-with-linkage linkage
-		      (mk-instr-seq '()
-				    (list target)
-				    `((movimm ,target ,exp))))))
+    		      (mk-instr-seq '()
+    				    (list target)
+    				    `((movimm ,target ,exp))))))
+
 (define compile-quoted
   (lambda (exp target linkage)
     (end-with-linkage linkage
@@ -286,59 +287,84 @@
 	      get-last-arg
 	    (preserving '(env)
 			get-last-arg
-			(get-rest-args (cdr operant-codes)))))))))
+			(get-rest-args (cdr operand-codes)))))))))
 
-;; (define (code-to-get-rest-args operand-codes)
-;;   (let ((code-for-next-arg
-;;          (preserving '(argl)
-;;           (car operand-codes)
-;;           (make-instruction-sequence '(val argl) '(argl)
-;;            '((assign argl
-;;               (op cons) (reg val) (reg argl)))))))
-;;     (if (null? (cdr operand-codes))
-;;         code-for-next-arg
-;;         (preserving '(env)
-;;          code-for-next-arg
-;;          (code-to-get-rest-args (cdr operand-codes))))))
+(define get-rest-args
+  (lambda (operand-codes)
+    (let ((code-for-next-arg
+	   (preserving '(argl)
+		       (car operand-codes)
+		       (mk-instr-seq '(val argl) '(argl)
+				     '((cons argl val))))))
+      (if (is-nil (cdr operand-codes))
+	  code-for-next-arg
+	(preserving '(env)
+		    code-for-next-arg
+		    (get-rest-args (cdr operand-codes)))))))
 
-;; (define (compile-procedure-call target linkage)
-;;   (let ((primitive-branch (make-label 'primitive-branch))
-;;         (compiled-branch (make-label 'compiled-branch))
-;;         (after-call (make-label 'after-call)))
-;;     (let ((compiled-linkage
-;;            (if (eq? linkage 'next) after-call linkage)))
-;;       (append-instruction-sequences
-;;        (make-instruction-sequence '(proc) '()
-;;         `((test (op primitive-procedure?) (reg proc))
-;;           (branch (label ,primitive-branch))))
-;;        (parallel-instruction-sequences
-;;         (append-instruction-sequences
-;;          compiled-branch
-;;          (compile-proc-appl target compiled-linkage))
-;;         (append-instruction-sequences
-;;          primitive-branch
-;;          (end-with-linkage linkage
-;;           (make-instruction-sequence '(proc argl)
-;;                                      (list target)
-;;            `((assign ,target
-;;                      (op apply-primitive-procedure)
-;;                      (reg proc)
-;;                      (reg argl)))))))
-;;        after-call))))
 
+(define compile-proc-call
+  (lambda (target linkage)
+    (let ((primitive-branch (make-label "fund-branch"))
+	  (compiled-branch  (make-label "comp-branch"))
+	  (after-call       (make-label "after-call"))
+	  (compiled-linkage (if (= linkage 'next)
+				after-call
+			      linkage)))
+      (append-instr-seqs
+       (list (make-instr-seq '(proc) '()
+			     `((bpf ,primitive-branch)))
+	     (parallel-instr-seqs
+	      (append-two-instr-seqs
+	       compiled-branch
+	       (compile-proc-appl target compiled-linkage))
+	      (append-two-instr-seqs
+	       primitive-branch
+	       (end-with-linkage linkage
+				 (mk-instr-seq '(proc argl)
+					       (list target)
+					       `((call-fundamental))))))
+	     after-call)))))
+
+;; (define (compile-proc-appl target linkage)
+;;   (cond ((and (eq? target 'val) (not (eq? linkage 'return)))
+;;          (make-instruction-sequence '(proc) all-regs
+;;            `((assign continue (label ,linkage))
+;;              (assign val (op compiled-procedure-entry)
+;;                          (reg proc))
+;;              (goto (reg val)))))
+;;         ((and (not (eq? target 'val))
+;;               (not (eq? linkage 'return)))
+;;          (let ((proc-return (make-label 'proc-return)))
+;;            (make-instruction-sequence '(proc) all-regs
+;;             `((assign continue (label ,proc-return))
+;;               (assign val (op compiled-procedure-entry)
+;;                           (reg proc))
+;;               (goto (reg val))
+;;               ,proc-return
+;;               (assign ,target (reg val))
+;;               (goto (label ,linkage))))))
+;;         ((and (eq? target 'val) (eq? linkage 'return))
+;;          (make-instruction-sequence '(proc continue) all-regs
+;;           '((assign val (op compiled-procedure-entry)
+;;                         (reg proc))
+;;             (goto (reg val)))))
+;;         ((and (not (eq? target 'val)) (eq? linkage 'return))
+;;          (error "return linkage, target not val -- COMPILE"
+;;                 target))))
 
 (define compile-instr-list
   (lambda (exp target linkage)
     (if (is-self-evaluating exp)
-	(compile-self-evaluating exp target linkage)
+     	(compile-self-evaluating exp target linkage)
       (if (is-quoted exp)
-	  (compile-quoted exp target linkage)
-	(if (is-symbol exp)
-	    (compile-symbol exp target linkage)
-	  (if (is-def exp)
-	      (compile-def exp target linkage)
-	    (if (is-lambda exp)
-		(compile-lambda exp target linkage)
-	      (if (is-list exp)
-		  (compile-application exp target linkage)
-	  'print "Not recognized"))))))))
+    	  (compile-quoted exp target linkage)
+    	(if (is-symbol exp)
+    	    (compile-symbol exp target linkage)
+    	  (if (is-def exp)
+    	      (compile-def exp target linkage)
+    	    (if (is-lambda exp)
+    		(compile-lambda exp target linkage)
+    	      (if (is-list exp)
+    		  (compile-application exp target linkage)
+    		(print "Not recognized")))))))))
