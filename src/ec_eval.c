@@ -113,6 +113,10 @@ static inline void eval_variable(eval_state *es) {
       dec_sym(rm_state.val) == symrepr_not_found()) {
     rm_state.val = env_lookup(rm_state.exp, *env_get_global_ptr());
   }
+  if (type_of(rm_state.val) == VAL_TYPE_SYMBOL &&
+      dec_sym(rm_state.val) == symrepr_not_found()) {
+    rm_state.cont = enc_u(CONT_DONE);
+  }
   *es = EVAL_CONTINUATION;
 }
 
@@ -146,6 +150,7 @@ static inline void cont_define(eval_state *es) {
   }
   if (is_symbol_merror(new_env)) {
     rm_state.cont = enc_u(CONT_DONE);
+    rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -154,7 +159,7 @@ static inline void cont_define(eval_state *es) {
   *es = EVAL_CONTINUATION;
 }
 
-static inline VALUE mkClosure(void) {
+static inline void eval_lambda(eval_state *es) {
 
   VALUE env_end = cons(rm_state.env, enc_sym(symrepr_nil()));
   VALUE body    = cons(car(cdr(cdr(rm_state.exp))), env_end);
@@ -174,12 +179,11 @@ static inline VALUE mkClosure(void) {
     // eval_lambda sets *es = EVAL_CONTINUATION
     // this replaces the existing continuation with "done"
     rm_state.cont = enc_u(CONT_DONE);
+    rm_state.val  = enc_sym(symrepr_merror());
+    *es = EVAL_CONTINUATION;
+    return;
   }
-  return closure;
-}
-
-static inline void eval_lambda(eval_state *es) {
-  rm_state.val = mkClosure();
+  rm_state.val = closure;
   *es = EVAL_CONTINUATION;
 }
 
@@ -240,6 +244,7 @@ static inline void cont_accumulate_arg(eval_state *es) {
   }
   if (is_symbol_merror(argl)) {
     rm_state.cont = enc_u(CONT_DONE);
+    rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -260,6 +265,7 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
   }
   if (is_symbol_merror(argl)) {
     rm_state.cont = enc_u(CONT_DONE);
+    rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -273,6 +279,7 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
   }
   if (is_symbol_merror(rev_args)) {
     rm_state.cont = CONT_DONE;
+    rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
   }
 
@@ -297,6 +304,7 @@ static inline void eval_apply_fundamental(eval_state *es) {
   }
   if (is_symbol_merror(val)) {
     rm_state.cont = enc_u(CONT_DONE);
+    rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -320,6 +328,7 @@ static inline void eval_apply_closure(eval_state *es) {
   }
   if (is_symbol_merror(local_env)) {
     rm_state.cont = enc_u(CONT_DONE);
+    rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -451,6 +460,7 @@ static inline void eval_let(eval_state *es) {
     if (is_symbol_merror(binding) ||
 	is_symbol_merror(new_env)) {
       rm_state.cont = enc_u(CONT_DONE);
+      rm_state.val  = enc_sym(symrepr_merror());
       *es = EVAL_CONTINUATION;
       return;
     }
