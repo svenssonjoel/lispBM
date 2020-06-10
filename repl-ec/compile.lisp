@@ -22,7 +22,8 @@
 		     pop
 		     mcp
 		     ldenv
-		     exenv))
+		     exenv
+		     cons))
 
 
 (define is-symbol
