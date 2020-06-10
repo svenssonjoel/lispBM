@@ -262,35 +262,30 @@
 	 
 (define compile-application
   (lambda (exp target linkage)
-    '()))
+    (let ((proc-code (compile-instr-list (car exp) 'proc 'next))
+	  (operand-codes
+	   (map (lambda (o) (compile-instr-list o 'val 'next)) (car (cdr exp)))))
+      (preserving '(env cont)
+		  proc-code
+		  (preserving '(proc cont)
+			      (construct-arglist operand-codes)
+			      (compile-proc-call target linkage))))))
 
-;; (define (compile-application exp target linkage)
-;;   (let ((proc-code (compile (operator exp) 'proc 'next))
-;;         (operand-codes
-;;          (map (lambda (operand) (compile operand 'val 'next))
-;;               (operands exp))))
-;;     (preserving '(env continue)
-;;      proc-code
-;;      (preserving '(proc continue)
-;;       (construct-arglist operand-codes)
-;;       (compile-procedure-call target linkage)))))
-
-;; (define (construct-arglist operand-codes)
-;;   (let ((operand-codes (reverse operand-codes)))
-;;     (if (null? operand-codes)
-;;         (make-instruction-sequence '() '(argl)
-;;          '((assign argl (const ()))))
-;;         (let ((code-to-get-last-arg
-;;                (append-instruction-sequences
-;;                 (car operand-codes)
-;;                 (make-instruction-sequence '(val) '(argl)
-;;                  '((assign argl (op list) (reg val)))))))
-;;           (if (null? (cdr operand-codes))
-;;               code-to-get-last-arg
-;;               (preserving '(env)
-;;                code-to-get-last-arg
-;;                (code-to-get-rest-args
-;;                 (cdr operand-codes))))))))
+(define construct-arglist
+  (lambda (codes)
+    (let ((operand-codes (reverse codes)))
+      (if (is-nil operand-codes)
+	  (mk-instr-seq '() '(argl)
+			'(movimm argl ()))
+	(let ((get-last-arg
+	       (append-two-instr-seqs (car operand-codes)
+				      (mk-instr-seq '(val) '(argl)
+						    '((cons argl val))))))
+	  (if (is-nil (cdr operand-codes))
+	      get-last-arg
+	    (preserving '(env)
+			get-last-arg
+			(get-rest-args (cdr operant-codes)))))))))
 
 ;; (define (code-to-get-rest-args operand-codes)
 ;;   (let ((code-for-next-arg
