@@ -168,14 +168,15 @@
 
 	  (preserving (cdr regs) s1 s2))))))
 
-;; (define (parallel-instruction-sequences seq1 seq2)
-;;   (make-instruction-sequence
-;;    (list-union (registers-needed seq1)
-;;                (registers-needed seq2))
-;;    (list-union (registers-modified seq1)
-;;                (registers-modified seq2))
-;;    (append (statements seq1) (statements seq2))))
-
+(define parallel-instr-seqs
+  (lambda (s1 s2)
+    (mk-instruction-seq
+     (list-union (regs-needed s1)
+		 (regs-needed s2))
+     (list-union (regs-modified s1)
+		 (regs-modified s2))
+     (append (statements s1) (statements s2)))))
+		 
 
 ;; COMPILERS
 
