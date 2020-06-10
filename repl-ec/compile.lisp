@@ -245,6 +245,9 @@
 	(compile-lambda-body exp proc-entry))
        after-lambda))))
 
+;; TODO: Change ldenv and add another register to hold a heap-ptr
+;;       to the formals list. perhaps?
+;;       Decide at run-time what to do with mismatch of n-args and n-formals
 (define compile-lambda-body
   (lambda (exp proc-entry)   
     (let ((formals (car (cdr exp))))
@@ -260,6 +263,7 @@
 (define compile-application
   (lambda (exp target linkage)
     '()))
+
 ;; (define (compile-application exp target linkage)
 ;;   (let ((proc-code (compile (operator exp) 'proc 'next))
 ;;         (operand-codes
@@ -300,7 +304,6 @@
 ;;         (preserving '(env)
 ;;          code-for-next-arg
 ;;          (code-to-get-rest-args (cdr operand-codes))))))
-
 
 ;; (define (compile-procedure-call target linkage)
 ;;   (let ((primitive-branch (make-label 'primitive-branch))
