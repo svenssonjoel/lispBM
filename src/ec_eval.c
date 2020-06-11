@@ -24,6 +24,7 @@
 #include "typedefs.h"
 #include "ec_eval.h"
 #include "exp_kind.h"
+#include "print.h"
 
 typedef enum {
   CONT_DONE,
@@ -115,7 +116,8 @@ static inline void eval_variable(eval_state *es) {
   }
   if (type_of(rm_state.val) == VAL_TYPE_SYMBOL &&
       dec_sym(rm_state.val) == symrepr_not_found()) {
-    rm_state.cont = enc_u(CONT_DONE);
+    print_value(str, 1024, err, 1024, rm_state.exp);
+    rm_state.cont = enc_u(CONT_ERROR);
   }
   *es = EVAL_CONTINUATION;
 }
@@ -149,7 +151,7 @@ static inline void cont_define(eval_state *es) {
 		      rm_state.val);
   }
   if (is_symbol_merror(new_env)) {
-    rm_state.cont = enc_u(CONT_DONE);
+    rm_state.cont = enc_u(CONT_ERROR);
     rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
@@ -178,7 +180,7 @@ static inline void eval_lambda(eval_state *es) {
   if (is_symbol_merror(closure)) {
     // eval_lambda sets *es = EVAL_CONTINUATION
     // this replaces the existing continuation with "done"
-    rm_state.cont = enc_u(CONT_DONE);
+    rm_state.cont = enc_u(CONT_ERROR);
     rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
@@ -243,7 +245,7 @@ static inline void cont_accumulate_arg(eval_state *es) {
     argl = cons(rm_state.val, rm_state.argl);
   }
   if (is_symbol_merror(argl)) {
-    rm_state.cont = enc_u(CONT_DONE);
+    rm_state.cont = enc_u(CONT_ERROR);
     rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
@@ -264,7 +266,7 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
     argl = cons(rm_state.val, rm_state.argl);
   }
   if (is_symbol_merror(argl)) {
-    rm_state.cont = enc_u(CONT_DONE);
+    rm_state.cont = enc_u(CONT_ERROR);
     rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
@@ -278,7 +280,7 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
     rev_args = reverse(rm_state.argl);
   }
   if (is_symbol_merror(rev_args)) {
-    rm_state.cont = CONT_DONE;
+    rm_state.cont = CONT_ERROR;
     rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
   }
@@ -303,7 +305,7 @@ static inline void eval_apply_fundamental(eval_state *es) {
     val = fundamental_exec(fun_args, count, rm_state.fun);
   }
   if (is_symbol_merror(val)) {
-    rm_state.cont = enc_u(CONT_DONE);
+    rm_state.cont = enc_u(CONT_ERROR);
     rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
@@ -327,7 +329,7 @@ static inline void eval_apply_closure(eval_state *es) {
 					  car(cdr(cdr(cdr(rm_state.fun)))));
   }
   if (is_symbol_merror(local_env)) {
-    rm_state.cont = enc_u(CONT_DONE);
+    rm_state.cont = enc_u(CONT_ERROR);
     rm_state.val  = enc_sym(symrepr_merror());
     *es = EVAL_CONTINUATION;
     return;
@@ -342,7 +344,7 @@ static inline void eval_apply_closure(eval_state *es) {
 static inline void eval_apply_extension(eval_state *es) {
   extension_fptr f = extensions_lookup(dec_sym(rm_state.fun));
   if (!f) {
-    rm_state.cont = enc_u(CONT_DONE);
+    rm_state.cont = enc_u(CONT_ERROR);
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -372,7 +374,7 @@ static inline void eval_apply_dispatch(eval_state *es) {
   else if (is_closure(rm_state.fun)) eval_apply_closure(es);
   else if (is_extension(rm_state.fun)) eval_apply_extension(es);
   else {
-    rm_state.cont = enc_u(CONT_DONE);
+    rm_state.cont = enc_u(CONT_ERROR);
     rm_state.val  = enc_sym(symrepr_eerror());
     *es = EVAL_CONTINUATION;
   }
@@ -460,7 +462,7 @@ static inline void eval_let(eval_state *es) {
     }
     if (is_symbol_merror(binding) ||
 	is_symbol_merror(new_env)) {
-      rm_state.cont = enc_u(CONT_DONE);
+      rm_state.cont = enc_u(CONT_ERROR);
       rm_state.val  = enc_sym(symrepr_merror());
       *es = EVAL_CONTINUATION;
       return;
@@ -606,6 +608,7 @@ void ec_eval(void) {
     case EVAL_CONTINUATION:
       switch (dec_u(rm_state.cont)) {
       case CONT_DONE:                cont_done(&es, &done);         break;
+      case CONT_ERROR:               cont_error(&es, &done);        break;
       case CONT_DEFINE:              cont_define(&es);              break;
       case CONT_SETUP_NO_ARG_APPLY:  cont_setup_no_arg_apply(&es);  break;
       case CONT_EVAL_ARGS:           cont_eval_args(&es);           break;

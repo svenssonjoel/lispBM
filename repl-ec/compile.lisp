@@ -15,15 +15,26 @@
 
 (define all-instrs '(jmpcnt
 		     jmpimm
+		     jmp
 		     movimm
 		     lookup
 		     setglb
 		     push
 		     pop
 		     mcp
+		     bpf
 		     ldenv
 		     exenv
-		     cons))
+		     cons
+		     cdr
+		     car))
+
+;; jmpcnt           - jump to label stored in cont register
+;; jmpimm lab       - jump to label stored after opcode in instruction sequence
+;; jmp reg
+;; movimm reg value - write value stored after opcode into register
+;; lookup reg sym   - lookup sym in env-register and store result in reg
+;; setglb key reg   - Create a global binding
 
 
 (define is-symbol
@@ -171,7 +182,7 @@
 
 (define parallel-instr-seqs
   (lambda (s1 s2)
-    (mk-instruction-seq
+    (mk-instr-seq
      (list-union (regs-needed s1)
 		 (regs-needed s2))
      (list-union (regs-modified s1)
@@ -243,7 +254,10 @@
        (tack-on-instr-seq
 	(end-with-linkage lambda-linkage
 			  (mk-instr-seq '(env) (list target)
-					`((mcp ,target ,proc-entry env))))
+					`((movimm ,target '())
+					  (cons target env)
+					  (cons target ,proc-entry)
+					  (cons target 'proc))))
 	(compile-lambda-body exp proc-entry))
        after-lambda))))
 
@@ -265,13 +279,12 @@
 (define compile-application
   (lambda (exp target linkage)
     (let ((proc-code (compile-instr-list (car exp) 'proc 'next))
-	  (operand-codes
-	   (map (lambda (o) (compile-instr-list o 'val 'next)) (car (cdr exp)))))
+	  (operand-codes (map (lambda (o) (compile-instr-list o 'val 'next)) (cdr exp))))
       (preserving '(env cont)
-		  proc-code
-		  (preserving '(proc cont)
-			      (construct-arglist operand-codes)
-			      (compile-proc-call target linkage))))))
+      		  proc-code
+      		  (preserving '(proc cont)
+      			      (construct-arglist operand-codes)
+      			      (compile-proc-call target linkage))))))
 
 (define construct-arglist
   (lambda (codes)
@@ -305,66 +318,116 @@
 
 (define compile-proc-call
   (lambda (target linkage)
-    (let ((primitive-branch (make-label "fund-branch"))
-	  (compiled-branch  (make-label "comp-branch"))
-	  (after-call       (make-label "after-call"))
+    (let ((fund-branch      (mk-label "fund-branch"))
+	  (compiled-branch  (mk-label "comp-branch"))
+	  (after-call       (mk-label "after-call"))
 	  (compiled-linkage (if (= linkage 'next)
 				after-call
 			      linkage)))
       (append-instr-seqs
-       (list (make-instr-seq '(proc) '()
-			     `((bpf ,primitive-branch)))
+       (list (mk-instr-seq '(proc) '()
+			     `((bpf ,fund-branch)))
 	     (parallel-instr-seqs
 	      (append-two-instr-seqs
 	       compiled-branch
 	       (compile-proc-appl target compiled-linkage))
 	      (append-two-instr-seqs
-	       primitive-branch
+	       fund-branch
 	       (end-with-linkage linkage
 				 (mk-instr-seq '(proc argl)
 					       (list target)
 					       `((call-fundamental))))))
 	     after-call)))))
 
-;; (define (compile-proc-appl target linkage)
-;;   (cond ((and (eq? target 'val) (not (eq? linkage 'return)))
-;;          (make-instruction-sequence '(proc) all-regs
-;;            `((assign continue (label ,linkage))
-;;              (assign val (op compiled-procedure-entry)
-;;                          (reg proc))
-;;              (goto (reg val)))))
-;;         ((and (not (eq? target 'val))
-;;               (not (eq? linkage 'return)))
-;;          (let ((proc-return (make-label 'proc-return)))
-;;            (make-instruction-sequence '(proc) all-regs
-;;             `((assign continue (label ,proc-return))
-;;               (assign val (op compiled-procedure-entry)
-;;                           (reg proc))
-;;               (goto (reg val))
-;;               ,proc-return
-;;               (assign ,target (reg val))
-;;               (goto (label ,linkage))))))
-;;         ((and (eq? target 'val) (eq? linkage 'return))
-;;          (make-instruction-sequence '(proc continue) all-regs
-;;           '((assign val (op compiled-procedure-entry)
-;;                         (reg proc))
-;;             (goto (reg val)))))
-;;         ((and (not (eq? target 'val)) (eq? linkage 'return))
-;;          (error "return linkage, target not val -- COMPILE"
-;;                 target))))
-
+(define compile-proc-appl
+  (lambda (target linkage)
+    (if (and (= target 'val) (not (= linkage 'return)))
+	(mk-instr-seq '(proc) all-regs
+		      `((movimm cont ,linkage)
+			(cdr val proc)
+			(car val val)
+			(jmp val)))
+      (if (and (not (= target 'val))
+	       (not (= linkage 'return)))
+	  (let ((proc-return (mk-label "proc-return")))
+	    (mk-instr-seq '(proc) all-regs
+			  `((movimm cont ,proc-return)
+			    (cdr val proc)
+			    (car val val)
+			    (jmp val)
+			    ,proc-return
+			    (mov ,target val)
+			    (jmpimm ,linkage))))
+	(if (and (= target 'val)
+		 (= linkage 'return))
+	    (mk-instr-seq '(proc continue) all-regs
+			  '((cdr val proc)
+			    (car val proc)
+			    (jmp val)))
+	  'compile-error)))))
+	    				 
 (define compile-instr-list
   (lambda (exp target linkage)
     (if (is-self-evaluating exp)
-     	(compile-self-evaluating exp target linkage)
+	(compile-self-evaluating exp target linkage)
       (if (is-quoted exp)
-    	  (compile-quoted exp target linkage)
+	  (compile-quoted exp target linkage)
     	(if (is-symbol exp)
-    	    (compile-symbol exp target linkage)
+	    (compile-symbol exp target linkage)
     	  (if (is-def exp)
-    	      (compile-def exp target linkage)
+	      (compile-def exp target linkage)
     	    (if (is-lambda exp)
-    		(compile-lambda exp target linkage)
+		(compile-lambda exp target linkage)
     	      (if (is-list exp)
-    		  (compile-application exp target linkage)
+		  (compile-application exp target linkage)
     		(print "Not recognized")))))))))
+
+
+;; (compile-instr-list '((lambda (x) 1) 42) 'val 'return)
+;; ((env continue cont)
+;;  (env proc argl cont val)
+;;  ((mcp proc (label "entry" 1) env)
+;;   (jmpimm (label "after-lambda" 2))
+;;   (label "entry" 1)
+;;   (ldenv proc)
+;;   (exenv (x) argl env)
+;;   (movimm val 1)
+;;   jmpcnt
+;;   (label "after-lambda" 2)
+;;   (movimm val 42)
+;;   (cons argl val)
+;;   (bpf (label "fund-branch" 3))
+;;   (label "comp-branch" 4)
+;;   (cdr val proc)
+;;   (car val proc)
+;;   (jmp val)
+;;   (label "fund-branch" 3)
+;;   (call-fundamental)
+;;   jmpcnt
+;;   (label "after-call" 5)))
+
+
+;; (compile-instr-list '((lambda (x) 1) 42) 'val 'return)
+;; ((env continue cont)
+;;  (env proc argl cont val)
+;;  ((movimm proc (quote nil))
+;;   (cons target env)
+;;   (cons target (label "entry" 1))
+;;   (cons target (quote proc))
+;;   (jmpimm (label "after-lambda" 2))
+;;   (label "entry" 1)
+;;   (ldenv proc)
+;;   (exenv (x) argl env)
+;;   (movimm val 1)
+;;   jmpcnt (label "after-lambda" 2)
+;;   (movimm val 42)
+;;   (cons argl val)
+;;   (bpf (label "fund-branch" 3))
+;;   (label "comp-branch" 4)
+;;   (cdr val proc)
+;;   (car val proc)
+;;   (jmp val)
+;;   (label "fund-branch" 3)
+;;   (call-fundamental)
+;;   jmpcnt
+;;   (label "after-call" 5)))
