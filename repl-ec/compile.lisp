@@ -11,7 +11,8 @@
 		   proc
 		   val
 		   argl
-		   cont))
+		   cont
+		   tmp0))
 
 (define all-instrs '(jmpcnt
 		     jmpimm
@@ -23,9 +24,9 @@
 		     pop
 		     mcp
 		     bpf
-		     ldenv
 		     exenv
 		     cons
+		     consimm
 		     cdr
 		     car))
 
@@ -256,8 +257,8 @@
 			  (mk-instr-seq '(env) (list target)
 					`((movimm ,target '())
 					  (cons target env)
-					  (cons target ,proc-entry)
-					  (cons target 'proc))))
+					  (consimm target ,proc-entry)
+					  (cons target proc))))
 	(compile-lambda-body exp proc-entry))
        after-lambda))))
 
@@ -270,7 +271,10 @@
       (append-two-instr-seqs
        (mk-instr-seq '(env proc argl) '(env)
     		     `(,proc-entry
-    		       (ldenv proc)
+		       (mov env proc)
+		       (cdr env env)
+		       (cdr env env)
+		       (car env env)
     		       (exenv ,formals
     			      argl
     			      env)))
@@ -362,7 +366,7 @@
 		 (= linkage 'return))
 	    (mk-instr-seq '(proc continue) all-regs
 			  '((cdr val proc)
-			    (car val proc)
+			    (car val val)
 			    (jmp val)))
 	  'compile-error)))))
 	    				 
@@ -383,51 +387,100 @@
     		(print "Not recognized")))))))))
 
 
-;; (compile-instr-list '((lambda (x) 1) 42) 'val 'return)
-;; ((env continue cont)
-;;  (env proc argl cont val)
-;;  ((mcp proc (label "entry" 1) env)
+;; Examples of compilation output 
+
+
+;; ((env)
+;;  (env proc argl cont tmp0 val)
+;;  ((movimm proc (quote nil))
+;;   (cons target env)
+;;   (consimm target (label "entry" 1))
+;;   (cons target proc)
 ;;   (jmpimm (label "after-lambda" 2))
 ;;   (label "entry" 1)
-;;   (ldenv proc)
+;;   (mov env proc)
+;;   (cdr env env)
+;;   (cdr env env)
+;;   (car env env)
 ;;   (exenv (x) argl env)
+;;   (lookup proc +)
 ;;   (movimm val 1)
+;;   (cons argl val)
+;;   (lookup val x)
+;;   (cons argl val)
+;;   (bpf (label "fund-branch" 3))
+;;   (label "comp-branch" 4)
+;;   (cdr val proc)
+;;   (car val val)
+;;   (jmp val)
+;;   (label "fund-branch" 3)
+;;   (call-fundamental)
 ;;   jmpcnt
+;;   (label "after-call" 5)
 ;;   (label "after-lambda" 2)
 ;;   (movimm val 42)
 ;;   (cons argl val)
-;;   (bpf (label "fund-branch" 3))
-;;   (label "comp-branch" 4)
+;;   (bpf (label "fund-branch" 6))
+;;   (label "comp-branch" 7)
+;;   (movimm cont (label "after-call" 8))
 ;;   (cdr val proc)
-;;   (car val proc)
+;;   (car val val)
 ;;   (jmp val)
-;;   (label "fund-branch" 3)
+;;   (label "fund-branch" 6)
+;;   (call-fundamental)
+;;   (label "after-call" 8)))
+
+;; (compile-instr-list '(+ ((lambda (x) (+ x 1)) 42) 10) 'val 'next)
+;; ((env)
+;;  (env proc argl cont tmp0 val)
+;;  ((lookup proc +)
+;;   (push proc)
+;;   (movimm val 10)
+;;   (cons argl val)
+;;   (push argl)
+;;   (movimm proc (quote nil))
+;;   (cons target env)
+;;   (consimm target (label "entry" 25))
+;;   (cons target proc)
+;;   (jmpimm (label "after-lambda" 26))
+;;   (label "entry" 25)
+;;   (mov env proc)
+;;   (cdr env env)
+;;   (cdr env env)
+;;   (car env env)
+;;   (exenv (x) argl env)
+;;   (lookup proc +)
+;;   (movimm val 1)
+;;   (cons argl val)
+;;   (lookup val x)
+;;   (cons argl val)
+;;   (bpf (label "fund-branch" 27))
+;;   (label "comp-branch" 28)
+;;   (cdr val proc)
+;;   (car val val)
+;;   (jmp val)
+;;   (label "fund-branch" 27)
 ;;   (call-fundamental)
 ;;   jmpcnt
-;;   (label "after-call" 5)))
-
-
-;; (compile-instr-list '((lambda (x) 1) 42) 'val 'return)
-;; ((env continue cont)
-;;  (env proc argl cont val)
-;;  ((movimm proc (quote nil))
-;;   (cons target env)
-;;   (cons target (label "entry" 1))
-;;   (cons target (quote proc))
-;;   (jmpimm (label "after-lambda" 2))
-;;   (label "entry" 1)
-;;   (ldenv proc)
-;;   (exenv (x) argl env)
-;;   (movimm val 1)
-;;   jmpcnt (label "after-lambda" 2)
+;;   (label "after-call" 29)
+;;   (label "after-lambda" 26)
 ;;   (movimm val 42)
 ;;   (cons argl val)
-;;   (bpf (label "fund-branch" 3))
-;;   (label "comp-branch" 4)
+;;   (bpf (label "fund-branch" 30))
+;;   (label "comp-branch" 31)
+;;   (movimm cont (label "after-call" 32))
 ;;   (cdr val proc)
-;;   (car val proc)
+;;   (car val val)
 ;;   (jmp val)
-;;   (label "fund-branch" 3)
+;;   (label "fund-branch" 30)
 ;;   (call-fundamental)
-;;   jmpcnt
-;;   (label "after-call" 5)))
+;;   (label "after-call" 32)
+;;   (pop argl)
+;;   (cons argl val)
+;;   (pop proc)
+;;   (bpf (label "fund-branch" 33))
+;;   (label "comp-branch" 34)
+;;   (movimm cont (label "after-call" 35))
+;;   (cdr val proc)
+;;   (car val val)
+;;   (jmp val) ...
