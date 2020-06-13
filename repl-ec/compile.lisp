@@ -239,15 +239,18 @@
   (lambda (exp target)
     (if (is-list exp)
 	(append-two-instr-seqs
-	 (mk-instr-seq '() '(argl)
-		       '((movimm argl nil)))
+	 (mk-instr-seq '() (list target)
+		       `((movimm ,target nil)))
 	 (compile-data-list exp target))
       (compile-data-prim exp target))))
 
 (define compile-data-nest
   (lambda (exp target)
     (if (is-list exp)
-	 (compile-data-list (reverse exp) target)
+	(append-two-instr-seqs
+	 (mk-instr-seq (list target) '()
+		       `((push ,target)))
+	 (compile-data-list (reverse exp) target))
       (compile-data-prim exp target))))
 
 
@@ -262,14 +265,15 @@
 	empty-instr-seq
       (append-two-instr-seqs
        (append-two-instr-seqs
-	(append-two-instr-seqs
+	(mk-instr-seq (list target) (list target)
+		      `((push ,target)))
+	(append-two-instr-seqs 
 	 (compile-data-nest (car exp) target)
-	 (mk-instr-seq (list target) '(argl)
-		       `((cons argl ,target))))
-	(mk-instr-seq '(argl) (list target)
-		      `((mov ,target argl))))
+	 (mk-instr-seq (list target) (list target 'argl)
+		       `((mov argl ,target)
+			 (pop ,target)
+			 (cons ,target argl)))))
        (compile-data-list (cdr exp) target)))))
-
 
 (define compile-symbol
   (lambda (exp target linkage)
@@ -639,25 +643,3 @@
 
 
 ;; (compile-instr-list ''(+ 1 (+ 9 8)) 'val 'next)
-;; (nil
-;;  (argl val)
-;;  ((movimm argl nil)
-;;   (movimm val 8)
-;;   (cons argl val)
-;;   (mov val argl)
-;;   (movimm val 9)
-;;   (cons argl val)
-;;   (mov val argl)
-;;   (movimm val +)
-;;   (cons argl val)
-;;   (mov val argl)
-;;   (cons argl val)
-;;   (mov val argl)
-;;   (movimm val 1)
-;;   (cons argl val)
-;;   (mov val argl)
-;;   (movimm val +)
-;;   (cons argl val)
-;;   (mov val argl)
-;;   (cons argl val)
-;;   (mov val argl)))
