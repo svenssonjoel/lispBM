@@ -96,7 +96,6 @@
   (lambda (name)
     (list 'label name (incr-label))))
 
-
 (define mem
   (lambda (x xs)
     (if (is-nil xs)
@@ -144,7 +143,6 @@
   (lambda (s r)
     (mem r (regs-modified s))))
 
-
 (define append-two-instr-seqs
   (lambda (s1 s2)
  	   (mk-instr-seq
@@ -154,6 +152,7 @@
 	    (list-union (regs-modified s1)
 	   		(regs-modified s2))
 	    (append (statements s1) (statements s2))))))
+
 (define append-instr-seqs
   (lambda (seqs)
     (if (is-nil seqs)
@@ -230,13 +229,48 @@
 
 ;; TODO: The output code in this case should be code that recreates 
 ;;       the quoted expression on the heap. At least this would be required
-;;       if loading the compiled bytecode into a fresh RTS. 
+;;       if loading the compiled bytecode into a fresh RTS.
 (define compile-quoted
   (lambda (exp target linkage)
     (end-with-linkage linkage
-		      (mk-instr-seq '()
-				    (list target)
-				    `((movimm ,target ,(car (cdr exp))))))))
+		      (compile-data (cdr exp) target))))
+
+(define compile-data
+  (lambda (exp target)
+    (if (is-list exp)
+	(append-two-instr-seqs
+	 (mk-instr-seq '() '(argl)
+		       '((movimm argl nil)))
+	 (compile-data-list exp target))
+      (compile-data-prim exp target))))
+
+(define compile-data-nest
+  (lambda (exp target)
+    (if (is-list exp)
+	 (compile-data-list (reverse exp) target)
+      (compile-data-prim exp target))))
+
+
+(define compile-data-prim
+  (lambda (exp target)
+    (mk-instr-seq '() (list target)
+		  `((movimm ,target ,exp)))))
+
+(define compile-data-list
+  (lambda (exp target)
+    (if (is-nil exp)
+	empty-instr-seq
+      (append-two-instr-seqs
+       (append-two-instr-seqs
+	(append-two-instr-seqs
+	 (compile-data-nest (car exp) target)
+	 (mk-instr-seq (list target) '(argl)
+		       `((cons argl ,target))))
+	(mk-instr-seq '(argl) (list target)
+		      `((mov ,target argl))))
+       (compile-data-list (cdr exp) target)))))
+
+
 (define compile-symbol
   (lambda (exp target linkage)
     (end-with-linkage linkage
@@ -602,3 +636,28 @@
 ;;   (extenv b val)
 ;;   (movimm val 42)
 ;;   jmpcnt))
+
+
+;; (compile-instr-list ''(+ 1 (+ 9 8)) 'val 'next)
+;; (nil
+;;  (argl val)
+;;  ((movimm argl nil)
+;;   (movimm val 8)
+;;   (cons argl val)
+;;   (mov val argl)
+;;   (movimm val 9)
+;;   (cons argl val)
+;;   (mov val argl)
+;;   (movimm val +)
+;;   (cons argl val)
+;;   (mov val argl)
+;;   (cons argl val)
+;;   (mov val argl)
+;;   (movimm val 1)
+;;   (cons argl val)
+;;   (mov val argl)
+;;   (movimm val +)
+;;   (cons argl val)
+;;   (mov val argl)
+;;   (cons argl val)
+;;   (mov val argl)))

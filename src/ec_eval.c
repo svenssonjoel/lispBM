@@ -376,6 +376,7 @@ static inline void eval_apply_dispatch(eval_state *es) {
   else {
     rm_state.cont = enc_u(CONT_ERROR);
     rm_state.val  = enc_sym(symrepr_eerror());
+    print_value(str,1024,err,1024, rm_state.fun);
     *es = EVAL_CONTINUATION;
   }
 }
