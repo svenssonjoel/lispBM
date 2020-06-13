@@ -4,15 +4,19 @@
 ;; while peeking a lot in the SICP book.
 
 
-;; Will need a way to set this definition to another value
+;; Possible Optimisations
+;; - If it is known at compile time that a function call is to a
+;;   fundamental operation, more efficient call code can be generated.
+;;
+
+;; Hold a list of symbols that are used within the compiled code 
 (define compiler-symbols '())
 
 (define all-regs '(env
 		   proc
 		   val
 		   argl
-		   cont
-		   tmp0))
+		   cont))
 
 (define all-instrs '(jmpcnt
 		     jmpimm
@@ -29,13 +33,6 @@
 		     consimm
 		     cdr
 		     car))
-
-;; jmpcnt           - jump to label stored in cont register
-;; jmpimm lab       - jump to label stored after opcode in instruction sequence
-;; jmp reg
-;; movimm reg value - write value stored after opcode into register
-;; lookup reg sym   - lookup sym in env-register and store result in reg
-;; setglb key reg   - Create a global binding
 
 
 (define is-symbol
@@ -56,8 +53,17 @@
 (define is-lambda
   (lambda (exp) (= (car exp) 'lambda)))
 
+(define is-let
+  (lambda (exp) (= (car exp) 'let)))
+
+(define is-progn
+  (lambda (exp) (= (car exp) 'progn)))
+
 (define is-list
   (lambda (exp) (= type-list (type-of exp))))
+
+(define is-last-element
+  (lambda (exp) (and (is-list exp) (is-nil (cdr exp)))))
 
 (define is-number
   (lambda (exp)
@@ -222,6 +228,9 @@
     				    (list target)
     				    `((movimm ,target ,exp))))))
 
+;; TODO: The output code in this case should be code that recreates 
+;;       the quoted expression on the heap. At least this would be required
+;;       if loading the compiled bytecode into a fresh RTS. 
 (define compile-quoted
   (lambda (exp target linkage)
     (end-with-linkage linkage
@@ -246,6 +255,32 @@
 							      `((setglb ,var val)
 								(movimm ,target ,var))))))))
 
+
+;; Very unsure of how to do this one correctly.
+(define compile-let
+  (lambda (exp target linkage)
+    (append-two-instr-seqs
+     (append-instr-seqs (map compile-binding (car (cdr exp))))
+     (compile-instr-list (car (cdr (cdr exp))) target linkage))))
+
+(define compile-binding
+  (lambda (keyval)
+    (let ((get-value-code
+    	   (compile-instr-list (car (cdr keyval)) 'val 'next))
+	  (var (car keyval)))
+      (append-two-instr-seqs get-value-code			     
+      			     (mk-instr-seq '(val) (list 'env)
+      					   `((extenv ,var val)))))))
+		    
+		  
+(define compile-progn
+  (lambda (exp target linkage)
+    (if (is-last-element exp)
+	(compile-instr-list (car exp) target linkage)
+      (preserving '(env continue)
+		  (compile-instr-list (car exp) target 'next)
+		  (compile-progn (cdr exp) target linkage)))))
+    
 (define compile-lambda
   (lambda (exp target linkage)
     (let ((proc-entry    (mk-label "entry"))
@@ -382,10 +417,18 @@
 	      (compile-def exp target linkage)
     	    (if (is-lambda exp)
 		(compile-lambda exp target linkage)
-    	      (if (is-list exp)
-		  (compile-application exp target linkage)
-    		(print "Not recognized")))))))))
+	      (if (is-progn exp)
+		  (compile-progn (cdr exp) target linkage)
+		(if (is-let exp)
+		    (compile-let exp target linkage)
+		  (if (is-list exp)
+		      (compile-application exp target linkage)
+		    (print "Not recognized")))))))))))
 
+
+(define compile-program
+  (lambda (exp target linkage)
+    (compile-progn exp target linkage)))
 
 ;; Examples of compilation output 
 
@@ -484,3 +527,78 @@
 ;;   (cdr val proc)
 ;;   (car val val)
 ;;   (jmp val) ...
+
+
+;; (compile-instr-list '(progn (+ 1 2) (+ 3 4) (+ 4 5)) 'val 'next)
+;; ((env)
+;;  (env proc argl cont tmp0 val)
+;;  ((push env)
+;;   (lookup proc +)
+;;   (movimm val 2)
+;;   (cons argl val)
+;;   (movimm val 1)
+;;   (cons argl val)
+;;   (bpf (label "fund-branch" 1))
+;;   (label "comp-branch" 2)
+;;   (movimm cont (label "after-call" 3))
+;;   (cdr val proc)
+;;   (car val val)
+;;   (jmp val)
+;;   (label "fund-branch" 1)
+;;   (call-fundamental)
+;;   (label "after-call" 3)
+;;   (pop env)
+;;   (push env)
+;;   (lookup proc +)
+;;   (movimm val 4)
+;;   (cons argl val)
+;;   (movimm val 3)
+;;   (cons argl val)
+;;   (bpf (label "fund-branch" 4))
+;;   (label "comp-branch" 5)
+;;   (movimm cont (label "after-call" 6))
+;;   (cdr val proc)
+;;   (car val val)
+;;   (jmp val)
+;;   (label "fund-branch" 4)
+;;   (call-fundamental)
+;;   (label "after-call" 6)
+;;   (pop env)
+;;   (lookup proc +)
+;;   (movimm val 5)
+;;   (cons argl val)
+;;   (movimm val 4)
+;;   (cons argl val)
+;;   (bpf (label "fund-branch" 7))
+;;   (label "comp-branch" 8)
+;;   (movimm cont (label "after-call" 9))
+;;   (cdr val proc)
+;;   (car val val)
+;;   (jmp val)
+;;   (label "fund-branch" 7)
+;;   (call-fundamental)
+;;   (label "after-call" 9)))
+
+
+;; (compile-instr-list '(let ((a 1) (b (+ 1 2))) 42) 'val 'return)
+;; (nil
+;;  (proc argl cont env val)
+;;  ((movimm val 1)
+;;   (extenv a val)
+;;   (lookup proc +)
+;;   (movimm val 2)
+;;   (cons argl val)
+;;   (movimm val 1)
+;;   (cons argl val)
+;;   (bpf (label "fund-branch" 12))
+;;   (label "comp-branch" 13)
+;;   (movimm cont (label "after-call" 14))
+;;   (cdr val proc)
+;;   (car val val)
+;;   (jmp val)
+;;   (label "fund-branch" 12)
+;;   (call-fundamental)
+;;   (label "after-call" 14)
+;;   (extenv b val)
+;;   (movimm val 42)
+;;   jmpcnt))
