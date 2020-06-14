@@ -233,7 +233,7 @@
 (define compile-quoted
   (lambda (exp target linkage)
     (end-with-linkage linkage
-		      (compile-data (cdr exp) target))))
+		      (compile-data (car (cdr exp)) target))))
 
 (define compile-data
   (lambda (exp target)
@@ -241,7 +241,7 @@
 	(append-two-instr-seqs
 	 (mk-instr-seq '() (list target)
 		       `((movimm ,target nil)))
-	 (compile-data-list exp target))
+	 (compile-data-list (reverse exp) target))
       (compile-data-prim exp target))))
 
 (define compile-data-nest
@@ -249,10 +249,18 @@
     (if (is-list exp)
 	(append-two-instr-seqs
 	 (mk-instr-seq (list target) '()
-		       `((push ,target)))
-	 (compile-data-list (reverse exp) target))
-      (compile-data-prim exp target))))
-
+		       `((push ,target)
+			 (movimm ,target nil)))
+	 (append-two-instr-seqs
+	  (compile-data-list (reverse exp) target)
+	  (mk-instr-seq (list target) (list target 'argl)
+			`((mov argl ,target)
+			  (pop ,target)
+			  (cons ,target argl)))))
+      (append-two-instr-seqs
+       (compile-data-prim exp 'argl)
+       (mk-instr-seq '(argl) (list target)
+		     `((cons ,target argl)))))))
 
 (define compile-data-prim
   (lambda (exp target)
@@ -263,17 +271,10 @@
   (lambda (exp target)
     (if (is-nil exp)
 	empty-instr-seq
-      (append-two-instr-seqs
-       (append-two-instr-seqs
-	(mk-instr-seq (list target) (list target)
-		      `((push ,target)))
-	(append-two-instr-seqs 
-	 (compile-data-nest (car exp) target)
-	 (mk-instr-seq (list target) (list target 'argl)
-		       `((mov argl ,target)
-			 (pop ,target)
-			 (cons ,target argl)))))
-       (compile-data-list (cdr exp) target)))))
+      (append-instr-seqs
+       (map (lambda (e)
+	      (compile-data-nest e target))
+	    exp)))))
 
 (define compile-symbol
   (lambda (exp target linkage)
@@ -642,4 +643,26 @@
 ;;   jmpcnt))
 
 
-;; (compile-instr-list ''(+ 1 (+ 9 8)) 'val 'next)
+;; Input: (compile-instr-list ''(+ 1 (+ 9 8)) 'val 'return)
+
+;; Output:
+;; ((cont)
+;;  (argl val)
+;; code starts here
+;;  ((movimm val nil)
+;;   (push val)
+;;   (movimm val nil)
+;;   (movimm argl 8)
+;;   (cons val argl)
+;;   (movimm argl 9)
+;;   (cons val argl)
+;;   (movimm argl +)
+;;   (cons val argl)
+;;   (mov argl val)
+;;   (pop val)
+;;   (cons val argl)
+;;   (movimm argl 1)
+;;   (cons val argl)
+;;   (movimm argl +)
+;;   (cons val argl)
+;;   jmpcnt))
