@@ -733,6 +733,16 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
   int cmp_res = -1;
 
   switch (dec_sym(op)) {
+  case SYM_IS_FUNDAMENTAL:
+    if (nargs < 1 ||
+	type_of(args[0]) != VAL_TYPE_SYMBOL)
+      result = enc_sym(symrepr_nil());
+    else if (is_fundamental(args[0]))
+      result = enc_sym(symrepr_true());
+    else
+      result = enc_sym(symrepr_nil());
+    break;
+	
   case SYM_SYMBOL_TO_STRING: {
     if (nargs < 1 ||
 	type_of(args[0]) != VAL_TYPE_SYMBOL)

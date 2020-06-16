@@ -24,7 +24,7 @@
 #include "symrepr.h"
 #include "memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 63
+#define NUM_SPECIAL_SYMBOLS 64
 
 #define NAME   0
 #define ID     1
@@ -79,33 +79,34 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"type-ref"         , DEF_REPR_TYPE_REF},
 
   // Fundamental operations
-  {"+"           , SYM_ADD},
-  {"-"           , SYM_SUB},
-  {"*"           , SYM_MUL},
-  {"/"           , SYM_DIV},
-  {"mod"         , SYM_MOD},
-  {"="           , SYM_EQ},
-  {"<"           , SYM_LT},
-  {">"           , SYM_GT},
-  {"eval"        , SYM_EVAL},
-  {"and"         , SYM_AND},
-  {"or"          , SYM_OR},
-  {"not"         , SYM_NOT},
-  {"yield"       , SYM_YIELD},
-  {"wait"        , SYM_WAIT},
-  {"spawn"       , SYM_SPAWN},
-  {"num-eq"      , SYM_NUMEQ},
-  {"car"         , SYM_CAR},
-  {"cdr"         , SYM_CDR},
-  {"cons"        , SYM_CONS},
-  {"list"        , SYM_LIST},
-  {"append"      , SYM_APPEND},
-  {"array-read"  , SYM_ARRAY_READ},
-  {"array-write" , SYM_ARRAY_WRITE},
-  {"array-create", SYM_ARRAY_CREATE},
-  {"type-of"     , SYM_TYPE_OF},
-  {"sym-to-str"  , SYM_SYMBOL_TO_STRING},
-  {"str-to-sym"  , SYM_STRING_TO_SYMBOL},
+  {"+"              , SYM_ADD},
+  {"-"              , SYM_SUB},
+  {"*"              , SYM_MUL},
+  {"/"              , SYM_DIV},
+  {"mod"            , SYM_MOD},
+  {"="              , SYM_EQ},
+  {"<"              , SYM_LT},
+  {">"              , SYM_GT},
+  {"eval"           , SYM_EVAL},
+  {"and"            , SYM_AND},
+  {"or"             , SYM_OR},
+  {"not"            , SYM_NOT},
+  {"yield"          , SYM_YIELD},
+  {"wait"           , SYM_WAIT},
+  {"spawn"          , SYM_SPAWN},
+  {"num-eq"         , SYM_NUMEQ},
+  {"car"            , SYM_CAR},
+  {"cdr"            , SYM_CDR},
+  {"cons"           , SYM_CONS},
+  {"list"           , SYM_LIST},
+  {"append"         , SYM_APPEND},
+  {"array-read"     , SYM_ARRAY_READ},
+  {"array-write"    , SYM_ARRAY_WRITE},
+  {"array-create"   , SYM_ARRAY_CREATE},
+  {"type-of"        , SYM_TYPE_OF},
+  {"sym-to-str"     , SYM_SYMBOL_TO_STRING},
+  {"str-to-sym"     , SYM_STRING_TO_SYMBOL},
+  {"is-fundamental" , SYM_IS_FUNDAMENTAL} 
 };
 
 

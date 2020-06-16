@@ -362,7 +362,11 @@
       		  proc-code
       		  (preserving '(proc cont)
       			      (construct-arglist operand-codes)
-      			      (compile-proc-call target linkage))))))
+			      (if (is-fundamental (car exp))
+				  (compile-fundamental-proc-call target linkage)
+				(if (is-lambda (car exp))
+				    (compile-lambda-proc-call target linkage)
+				  (compile-proc-call target linkage))))))))
 
 (define construct-arglist
   (lambda (codes)
@@ -394,6 +398,25 @@
 		    (get-rest-args (cdr operand-codes)))))))
 
 
+(define compile-fundamental-proc-call
+  (lambda (target linkage)
+      (end-with-linkage linkage
+			(mk-instr-seq '(proc argl)
+				      (list target)
+				      '(call-fundamental)))))
+
+(define compile-lambda-proc-call
+  (lambda (target linkage)
+    (let ((after-call       (mk-label "after-call"))
+	  (compiled-linkage (if (= linkage 'next)
+				after-call
+			      linkage)))
+      (append-two-instr-seqs
+       (compile-proc-appl target compiled-linkage)
+       after-call))))
+
+
+
 (define compile-proc-call
   (lambda (target linkage)
     (let ((fund-branch      (mk-label "fund-branch"))
@@ -414,7 +437,7 @@
 	       (end-with-linkage linkage
 				 (mk-instr-seq '(proc argl)
 					       (list target)
-					       `((call-fundamental))))))
+					       '(call-fundamental)))))
 	     after-call)))))
 
 (define compile-proc-appl
@@ -695,3 +718,14 @@
 ;;   (label "fund-branch" 3)
 ;;   (call-fundamental)
 ;;   (label "after-call" 5)))
+
+
+;; (compile-instr-list '(+ 1 2) 'val 'next)
+;; ((env)
+;;  (proc argl val)
+;;  ((lookup proc +)
+;;   (movimm val 2)
+;;   (cons argl val)
+;;   (movimm val 1)
+;;   (cons argl val)
+;;   call-fundamental))
