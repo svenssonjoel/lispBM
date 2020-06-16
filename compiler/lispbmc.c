@@ -168,17 +168,38 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  char output[1024];
+  char error[1024];
+  
   VALUE prelude = prelude_load();
-  ec_eval_program(prelude);
+  VALUE p_r = ec_eval_program(prelude);
+
+  int r = print_value(output, 1024, error, 1024, p_r);
+  
+  if (is_symbol(p_r) && symrepr_is_error(dec_sym(p_r))) {
+    printf("Error loading Prelude: %s\n", r == 0 ? "UNKNOWN" : output);
+  } else {
+    printf("Prelude loaded successfully: %s\n", r == 0 ? "UNKNOWN" : output);
+  }
+
+  char *comp_str = load_file("compile.lisp");
+  VALUE f_exp = tokpar_parse(comp_str);
+  free(comp_str);
+  VALUE c_r = ec_eval_program(f_exp);
+
+  r = print_value(output, 1024, error, 1024, c_r);
+  
+  if (is_symbol(c_r) && symrepr_is_error(dec_sym(c_r))) {
+    printf("Error loading compiler: %s\n", r == 0 ? "UNKNOWN" : "output");
+  } else {
+    printf("Compiler loaded successfully: %s\n", r == 0 ? "UNKNOWN" : output);
+  }
 
   printf("Lisp REPL started!\n");
   printf("Type :quit to exit.\n");
   printf("     :info for statistics.\n");
   printf("     :load [filename] to load lisp source.\n");
-
-  char output[1024];
-  char error[1024];
-
+  
   while (1) {
     fflush(stdin);
     printf("# ");

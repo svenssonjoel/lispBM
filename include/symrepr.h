@@ -166,6 +166,7 @@ static inline bool symrepr_is_error(UINT symrep){
 	  symrep == DEF_REPR_TERROR ||
 	  symrep == DEF_REPR_RERROR ||
 	  symrep == DEF_REPR_MERROR ||
+	  symrep == DEF_REPR_EERROR || 
 	  symrep == DEF_REPR_FATAL_ERROR);
 }
 
