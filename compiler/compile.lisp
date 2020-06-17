@@ -334,7 +334,7 @@
 					`((movimm ,target nil)
 					  (cons ,target env)
 					  (consimm ,target ,proc-entry)
-					  (cons ,target 'proc))))
+					  (consimm ,target proc)))) ;; put symbol proc first in list
 	(compile-lambda-body exp proc-entry))
        after-lambda))))
 
@@ -348,8 +348,7 @@
        (append-two-instr-seqs 
 	(mk-instr-seq '(env proc argl) '(env)
 		      `(,proc-entry
-			(mov env proc)
-			(caddr env env)))
+			(caddr env proc)))
 	(append-instr-seqs
 	 (map (lambda (p)
 		(mk-instr-seq '(argl) '(env)
