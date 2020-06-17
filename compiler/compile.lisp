@@ -356,7 +356,11 @@
 	 
 (define compile-application
   (lambda (exp target linkage)
-    (let ((proc-code (compile-instr-list (car exp) 'proc 'next))
+    (let ((proc-code
+	   (if (is-fundamental (car exp))
+	       (mk-instr-seq '() '(proc)
+			     `((movimm proc ,(car exp))))
+	     (compile-instr-list (car exp) 'proc 'next)))
 	  (operand-codes (map (lambda (o) (compile-instr-list o 'val 'next)) (cdr exp))))
       (preserving '(env cont)
       		  proc-code
