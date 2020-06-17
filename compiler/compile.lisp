@@ -32,6 +32,8 @@
 		     cons
 		     consimm
 		     cdr
+		     cadr
+		     caddr
 		     car))
 
 
@@ -343,15 +345,16 @@
   (lambda (exp proc-entry)   
     (let ((formals (car (cdr exp))))
       (append-two-instr-seqs
-       (mk-instr-seq '(env proc argl) '(env)
-    		     `(,proc-entry
-		       (mov env proc)
-		       (cdr env env)
-		       (cdr env env)
-		       (car env env)
-    		       (exenv ,formals
-    			      argl
-    			      env)))
+       (append-two-instr-seqs 
+	(mk-instr-seq '(env proc argl) '(env)
+		      `(,proc-entry
+			(mov env proc)
+			(caddr env env)))
+	(append-instr-seqs
+	 (map (lambda (p)
+		(mk-instr-seq '(argl) '(env)
+			      `((exenv ,p argl env))))
+	      formals)))
        (compile-instr-list (car (cdr (cdr exp))) 'val 'return)))))
 	 
 (define compile-application
@@ -382,11 +385,14 @@
 	       (append-two-instr-seqs (car operand-codes)
 				      (mk-instr-seq '(val) '(argl)
 						    '((cons argl val))))))
-	  (if (is-nil (cdr operand-codes))
-	      get-last-arg
-	    (preserving '(env)
-			get-last-arg
-			(get-rest-args (cdr operand-codes)))))))))
+	  (append-two-instr-seqs
+	   (mk-instr-seq '() '(argl)
+			 '((movimm argl nil)))
+	   (if (is-nil (cdr operand-codes))
+	       get-last-arg
+	     (preserving '(env)
+			 get-last-arg
+			 (get-rest-args (cdr operand-codes))))))))))
 
 (define get-rest-args
   (lambda (operand-codes)
@@ -449,16 +455,14 @@
     (if (and (= target 'val) (not (= linkage 'return)))
 	(mk-instr-seq '(proc) all-regs
 		      `((movimm cont ,linkage)
-			(cdr val proc)
-			(car val val)
+			(cadr val proc)
 			(jmp val)))
       (if (and (not (= target 'val))
 	       (not (= linkage 'return)))
 	  (let ((proc-return (mk-label "proc-return")))
 	    (mk-instr-seq '(proc) all-regs
 			  `((movimm cont ,proc-return)
-			    (cdr val proc)
-			    (car val val)
+			    (cadr val proc)
 			    (jmp val)
 			    ,proc-return
 			    (mov ,target val)
@@ -466,8 +470,7 @@
 	(if (and (= target 'val)
 		 (= linkage 'return))
 	    (mk-instr-seq '(proc continue) all-regs
-			  '((cdr val proc)
-			    (car val val)
+			  '((cadr val proc)
 			    (jmp val)))
 	  'compile-error)))))
 	    				 
