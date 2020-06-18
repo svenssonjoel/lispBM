@@ -4,11 +4,6 @@
 ;; while peeking a lot in the SICP book.
 
 
-;; Possible Optimisations
-;; - If it is known at compile time that a function call is to a
-;;   fundamental operation, more efficient call code can be generated.
-;;
-
 ;; Hold a list of symbols that are used within the compiled code 
 (define compiler-symbols '())
 
@@ -36,6 +31,7 @@
 		     car
  		     callf))
 
+;; OpCode to size in bytes (including arguments)
 (define instr-size
   '((jmpcnt  1)
     (jmpimm  5) ;; 5 bytes is overkill
