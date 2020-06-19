@@ -4,11 +4,6 @@
 ;; while peeking a lot in the SICP book.
 
 
-;; Possible Optimisations
-;; - If it is known at compile time that a function call is to a
-;;   fundamental operation, more efficient call code can be generated.
-;;
-
 ;; Hold a list of symbols that are used within the compiled code 
 (define compiler-symbols '())
 
@@ -26,7 +21,6 @@
 		     setglb
 		     push
 		     pop
-		     mcp
 		     bpf
 		     exenv
 		     cons
@@ -34,7 +28,30 @@
 		     cdr
 		     cadr
 		     caddr
-		     car))
+		     car
+ 		     callf))
+
+;; OpCode to size in bytes (including arguments)
+(define instr-size
+  '((jmpcnt  1)
+    (jmpimm  5) ;; 5 bytes is overkill
+    (jmp     2)
+    (movimm  5)
+    (mov     3)
+    (lookup  6) 
+    (setglb  9)
+    (push    2)
+    (pop     2)
+    (bpf     5) ;; 5 bytes is overkill
+    (exenv   9)
+    (cons    3)
+    (consimm 6)
+    (cdr     3)
+    (cadr    3)
+    (caddr   3)
+    (car     2)
+    (callf   1)
+    (label   0)))
 
 
 (define is-symbol
@@ -196,8 +213,16 @@
      (list-union (regs-modified s1)
 		 (regs-modified s2))
      (append (statements s1) (statements s2)))))
-		 
 
+
+(define instr-seq-bytes
+  (lambda (s)
+    (let ((sum-bytes
+	   (lambda (x acc)
+	     (if (is-nil x) acc
+	       (sum-bytes (cdr x) (+ (lookup (car (car x)) instr-size) acc))))))
+      (sum-bytes (car (cdr (cdr s))) 0))))
+	       
 ;; COMPILERS
 
 (define mk-instr-seq
@@ -210,7 +235,7 @@
   (lambda (linkage)
     (if (= linkage 'return)
 	;; jmpcnt implies usage of cont register
-	(mk-instr-seq '(cont) '() '(jmpcnt))
+	(mk-instr-seq '(cont) '() '((jmpcnt)))
       (if (= linkage 'next)
 	  empty-instr-seq
 	(mk-instr-seq '() '() `((jmpimm ,linkage)))))))
@@ -412,7 +437,7 @@
       (end-with-linkage linkage
 			(mk-instr-seq '(proc argl)
 				      (list target)
-				      '(call-fundamental)))))
+				      '((callf))))))
 
 (define compile-lambda-proc-call
   (lambda (target linkage)
@@ -446,7 +471,7 @@
 	       (end-with-linkage linkage
 				 (mk-instr-seq '(proc argl)
 					       (list target)
-					       '(call-fundamental)))))
+					       '((callf))))))
 	     after-call)))))
 
 (define compile-proc-appl
@@ -498,240 +523,3 @@
   (lambda (exp target linkage)
     (compile-progn exp target linkage)))
 
-;; Examples of compilation output 
-
-
-;; ((env)
-;;  (env proc argl cont tmp0 val)
-;;  ((movimm proc (quote nil))
-;;   (cons target env)
-;;   (consimm target (label "entry" 1))
-;;   (cons target proc)
-;;   (jmpimm (label "after-lambda" 2))
-;;   (label "entry" 1)
-;;   (mov env proc)
-;;   (cdr env env)
-;;   (cdr env env)
-;;   (car env env)
-;;   (exenv (x) argl env)
-;;   (lookup proc +)
-;;   (movimm val 1)
-;;   (cons argl val)
-;;   (lookup val x)
-;;   (cons argl val)
-;;   (bpf (label "fund-branch" 3))
-;;   (label "comp-branch" 4)
-;;   (cdr val proc)
-;;   (car val val)
-;;   (jmp val)
-;;   (label "fund-branch" 3)
-;;   (call-fundamental)
-;;   jmpcnt
-;;   (label "after-call" 5)
-;;   (label "after-lambda" 2)
-;;   (movimm val 42)
-;;   (cons argl val)
-;;   (bpf (label "fund-branch" 6))
-;;   (label "comp-branch" 7)
-;;   (movimm cont (label "after-call" 8))
-;;   (cdr val proc)
-;;   (car val val)
-;;   (jmp val)
-;;   (label "fund-branch" 6)
-;;   (call-fundamental)
-;;   (label "after-call" 8)))
-
-;; (compile-instr-list '(+ ((lambda (x) (+ x 1)) 42) 10) 'val 'next)
-;; ((env)
-;;  (env proc argl cont tmp0 val)
-;;  ((lookup proc +)
-;;   (push proc)
-;;   (movimm val 10)
-;;   (cons argl val)
-;;   (push argl)
-;;   (movimm proc (quote nil))
-;;   (cons target env)
-;;   (consimm target (label "entry" 25))
-;;   (cons target proc)
-;;   (jmpimm (label "after-lambda" 26))
-;;   (label "entry" 25)
-;;   (mov env proc)
-;;   (cdr env env)
-;;   (cdr env env)
-;;   (car env env)
-;;   (exenv (x) argl env)
-;;   (lookup proc +)
-;;   (movimm val 1)
-;;   (cons argl val)
-;;   (lookup val x)
-;;   (cons argl val)
-;;   (bpf (label "fund-branch" 27))
-;;   (label "comp-branch" 28)
-;;   (cdr val proc)
-;;   (car val val)
-;;   (jmp val)
-;;   (label "fund-branch" 27)
-;;   (call-fundamental)
-;;   jmpcnt
-;;   (label "after-call" 29)
-;;   (label "after-lambda" 26)
-;;   (movimm val 42)
-;;   (cons argl val)
-;;   (bpf (label "fund-branch" 30))
-;;   (label "comp-branch" 31)
-;;   (movimm cont (label "after-call" 32))
-;;   (cdr val proc)
-;;   (car val val)
-;;   (jmp val)
-;;   (label "fund-branch" 30)
-;;   (call-fundamental)
-;;   (label "after-call" 32)
-;;   (pop argl)
-;;   (cons argl val)
-;;   (pop proc)
-;;   (bpf (label "fund-branch" 33))
-;;   (label "comp-branch" 34)
-;;   (movimm cont (label "after-call" 35))
-;;   (cdr val proc)
-;;   (car val val)
-;;   (jmp val) ...
-
-
-;; (compile-instr-list '(progn (+ 1 2) (+ 3 4) (+ 4 5)) 'val 'next)
-;; ((env)
-;;  (env proc argl cont tmp0 val)
-;;  ((push env)
-;;   (lookup proc +)
-;;   (movimm val 2)
-;;   (cons argl val)
-;;   (movimm val 1)
-;;   (cons argl val)
-;;   (bpf (label "fund-branch" 1))
-;;   (label "comp-branch" 2)
-;;   (movimm cont (label "after-call" 3))
-;;   (cdr val proc)
-;;   (car val val)
-;;   (jmp val)
-;;   (label "fund-branch" 1)
-;;   (call-fundamental)
-;;   (label "after-call" 3)
-;;   (pop env)
-;;   (push env)
-;;   (lookup proc +)
-;;   (movimm val 4)
-;;   (cons argl val)
-;;   (movimm val 3)
-;;   (cons argl val)
-;;   (bpf (label "fund-branch" 4))
-;;   (label "comp-branch" 5)
-;;   (movimm cont (label "after-call" 6))
-;;   (cdr val proc)
-;;   (car val val)
-;;   (jmp val)
-;;   (label "fund-branch" 4)
-;;   (call-fundamental)
-;;   (label "after-call" 6)
-;;   (pop env)
-;;   (lookup proc +)
-;;   (movimm val 5)
-;;   (cons argl val)
-;;   (movimm val 4)
-;;   (cons argl val)
-;;   (bpf (label "fund-branch" 7))
-;;   (label "comp-branch" 8)
-;;   (movimm cont (label "after-call" 9))
-;;   (cdr val proc)
-;;   (car val val)
-;;   (jmp val)
-;;   (label "fund-branch" 7)
-;;   (call-fundamental)
-;;   (label "after-call" 9)))
-
-
-;; (compile-instr-list '(let ((a 1) (b (+ 1 2))) 42) 'val 'return)
-;; (nil
-;;  (proc argl cont env val)
-;;  ((movimm val 1)
-;;   (extenv a val)
-;;   (lookup proc +)
-;;   (movimm val 2)
-;;   (cons argl val)
-;;   (movimm val 1)
-;;   (cons argl val)
-;;   (bpf (label "fund-branch" 12))
-;;   (label "comp-branch" 13)
-;;   (movimm cont (label "after-call" 14))
-;;   (cdr val proc)
-;;   (car val val)
-;;   (jmp val)
-;;   (label "fund-branch" 12)
-;;   (call-fundamental)
-;;   (label "after-call" 14)
-;;   (extenv b val)
-;;   (movimm val 42)
-;;   jmpcnt))
-
-
-;; Input: (compile-instr-list ''(+ 1 (+ 9 8)) 'val 'return)
-
-;; Output:
-;; ((cont)
-;;  (argl val)
-;; code starts here
-;;  ((movimm val nil)
-;;   (push val)
-;;   (movimm val nil)
-;;   (movimm argl 8)
-;;   (cons val argl)
-;;   (movimm argl 9)
-;;   (cons val argl)
-;;   (movimm argl +)
-;;   (cons val argl)
-;;   (mov argl val)
-;;   (pop val)
-;;   (cons val argl)
-;;   (movimm argl 1)
-;;   (cons val argl)
-;;   (movimm argl +)
-;;   (cons val argl)
-;;   jmpcnt))
-
-;; (compile-instr-list '((lambda (x) x) 42) 'val 'next)
-;; ((env)
-;;  (env proc argl cont val)
-;;  ((movimm proc nil)
-;;   (cons proc env)
-;;   (consimm proc (label "entry" 1))
-;;   (cons proc 'proc)
-;;   (jmpimm (label "after-lambda" 2))
-;;   (label "entry" 1)
-;;   (mov env proc)
-;;   (cdr env env)
-;;   (cdr env env)
-;;   (car env env)
-;;   (exenv (x) argl env)
-;;   (lookup val x)
-;;   jmpcnt
-;;   (label "after-lambda" 2)
-;;   (movimm val 42)
-;;   (cons argl val)
-;;   (bpf (label "fund-branch" 3))
-;;   (label "comp-branch" 4)
-;;   (movimm cont (label "after-call" 5))
-;;   (cdr val proc)
-;;   (car val val)
-;;   (jmp val)
-;;   (label "fund-branch" 3)
-;;   (call-fundamental)
-;;   (label "after-call" 5)))
-
-
-;; (compile-instr-list '(+ 1 2) 'val 'next)
-;; ((env)
-;;  (proc argl val)
-;;  ((lookup proc +)
-;;   (movimm val 2)
-;;   (cons argl val)
-;;   (movimm val 1)
-;;   (cons argl val)
-;;   call-fundamental))

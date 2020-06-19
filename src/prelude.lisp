@@ -52,7 +52,7 @@
 		 (if (= xs nil)
 		     nil
 		   (if (= (car (car xs)) x)
-		       (cdr (car xs))
+		       (car (cdr (car xs)))
 		     (lookup x (cdr xs))))))
 
 (define foldr (lambda (f i xs)
