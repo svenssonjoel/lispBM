@@ -26,7 +26,13 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 2. Concurrency (Work in progress).
 
 ## Documentation
-LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io). 
+LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).
+
+## Want to get involved or help out?
+1. Are you interested in microcontrollers and programming languages?
+2. You find it fun to mess around in C code with close to zero comments?
+3. Then join in the fun. Lots to do, so little time!
+4. Poke me by mail bo(dot)joel(dot)svensson(whirly-a)gmail(dot)com
 
 ## TODOs
 1. (DONE) Write some tests that stresses the Garbage collector.
