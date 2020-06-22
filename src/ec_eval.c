@@ -384,6 +384,7 @@ static inline void eval_apply_dispatch(eval_state *es) {
 static inline void eval_sequence(eval_state *es) {
 
   rm_state.exp = car(rm_state.unev);
+  pop_u32(&rm_state.S, &rm_state.env);
   VALUE tmp = cdr(rm_state.unev);
   if (type_of(tmp) == VAL_TYPE_SYMBOL &&
       dec_sym(tmp) == symrepr_nil()) {
@@ -391,7 +392,7 @@ static inline void eval_sequence(eval_state *es) {
     *es = EVAL_DISPATCH;
     return;
   }
-  push_u32(&rm_state.S, rm_state.unev);
+  push_u32_2(&rm_state.S, rm_state.env, rm_state.unev);
   rm_state.cont = enc_u(CONT_SEQUENCE);
   *es = EVAL_DISPATCH;
 }
@@ -403,7 +404,7 @@ static inline void cont_sequence(eval_state *es) {
 }
 
 static inline void eval_progn(eval_state *es) {
-  push_u32(&rm_state.S, rm_state.cont);
+  push_u32_2(&rm_state.S, rm_state.cont, rm_state.env);
   rm_state.unev = cdr(rm_state.exp);
   eval_sequence(es);
 }

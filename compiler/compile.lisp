@@ -123,6 +123,8 @@
 	  't
 	(mem x (cdr xs))))))
 
+
+
 (define list-union
    (lambda (s1 s2)
      (if (is-nil s1) s2
@@ -303,13 +305,23 @@
 	      (compile-data-nest e target))
 	    exp)))))
 
+;; Add a symbol to the compiler-symbols list
+(define add-symbol
+  (lambda (exp)
+    (if (not (lookup exp compiler-symbols)) 
+	(define compiler-symbols (cons (cons exp (sym-to-str exp)) compiler-symbols))
+      nil)))
+
+    
 (define compile-symbol
   (lambda (exp target linkage)
-    (end-with-linkage linkage
-		      ;; Implied that the lookup looks in env register
-		      (mk-instr-seq '(env)
-				    (list target)
-				    `((lookup ,target ,exp))))))
+    (progn
+      (add-symbol exp)
+      (end-with-linkage linkage
+      			;; Implied that the lookup looks in env register
+      			(mk-instr-seq '(env)
+      				      (list target)
+      				      `((lookup ,target ,exp)))))))
 (define compile-def
   (lambda (exp target linkage)
      (let ((var (car (cdr exp)))
