@@ -43,13 +43,12 @@
     (push    2)
     (pop     2)
     (bpf     5) ;; 5 bytes is overkill
-    (exenv   9)
+    (exenv   5)
     (cons    3)
     (consimm 6)
     (cdr     3)
     (cadr    3)
     (caddr   3)
-    (car     2)
     (callf   1)
     (label   0)))
 
@@ -388,8 +387,8 @@
 			(caddr env proc)))
 	(append-instr-seqs
 	 (map (lambda (p)
-		(mk-instr-seq '(argl) '(env)
-			      `((exenv ,p argl env))))
+		(mk-instr-seq '(argl) '(env argl)
+			      `((exenv ,p))))
 	      formals)))
        (compile-instr-list (car (cdr (cdr exp))) 'val 'return)))))
 	 
