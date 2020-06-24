@@ -411,7 +411,7 @@
 				    (compile-lambda-proc-call target linkage)
 				  (compile-proc-call target linkage))))))))
 
-(define add-argument
+(define add-fst-argument
   (lambda (arg-code)
     (append-two-instr-seqs
      arg-code
@@ -427,9 +427,9 @@
 	  (mk-instr-seq '() '(argl)
 			'((movimm argl ())))
 	(if (is-nil (cdr operand-codes))
-	    (add-argument (car operand-codes))
+	    (add-fst-argument (car operand-codes))
 	  (preserving '(env)
-		      (add-argument (car operand-codes))
+		      (add-fst-argument (car operand-codes))
 		      (get-rest-args (cdr operand-codes))))))))
 
 (define get-rest-args
