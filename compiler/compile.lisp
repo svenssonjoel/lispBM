@@ -348,7 +348,7 @@
 	  (var (car keyval)))
       (append-two-instr-seqs get-value-code			     
       			     (mk-instr-seq '(val) (list 'env)
-      					   `((extenv ,var val)))))))
+      					   `((exenv ,var val)))))))
 		    
 		  
 (define compile-progn
@@ -389,7 +389,7 @@
 	(append-instr-seqs
 	 (map (lambda (p)
 		(mk-instr-seq '(argl) '(env)
-			      `((exenv ,p argl env))))
+			      `((exenv ,p argl))))
 	      formals)))
        (compile-instr-list (car (cdr (cdr exp))) 'val 'return)))))
 	 
