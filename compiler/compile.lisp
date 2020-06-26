@@ -13,45 +13,47 @@
 		   argl
 		   cont))
 
-(define all-instrs '(jmpcnt
-		     jmpimm
-		     jmp
-		     movimm
-		     lookup
-		     setglb
-		     push
-		     pop
-		     bpf
-		     exenv
-		     cons
-		     consimm
-		     cdr
-		     cadr
-		     caddr
-		     car
- 		     callf))
+(define all-instrs '(jmpcnt      ;; pc <- cont 
+		     jmpimm      ;; pc <- reg
+		     jmpval      ;; pc <- val
+		     movimm      ;; reg <- imm
+		     lookup      ;; reg <- lookup exp
+		     setglbval   ;; global-env <- cons global-env (cons symbol val)
+		     push        ;; stack[sp] <- reg; sp++
+		     pop         ;; reg <- stack[--sp]
+		     bpf         ;; pc <- if (is-fundamental proc) (jmpaddress proc)
+		     exenvargl   ;; env <- cons env (cons symbol (car argl)); argl <- (cdr argl)
+		     exenvval    ;; env <- cons env (cons symbol val)
+		     cons        ;; reg0 <- cons reg0 (cons symbol reg1) 
+		     consimm     ;; reg <- cons reg (cons symbol imm) 
+		     cdr         ;; reg0 <- cdr reg1 
+		     cadr        ;; reg0 <- cadr reg1
+		     caddr       ;; reg0 <- caddr reg1
+		     car         ;; reg0 <- car reg1
+ 		     callf))     ;; val <- fund-apply proc argl 
 
 ;; OpCode to size in bytes (including arguments)
 (define instr-size
-  '((jmpcnt  1)
-    (jmpimm  5) ;; 5 bytes is overkill
-    (jmp     2)
-    (movimm  5)
-    (mov     3)
-    (lookup  6) 
-    (setglb  9)
-    (push    2)
-    (pop     2)
-    (bpf     5) ;; 5 bytes is overkill
-    (exenv   9)
-    (cons    3)
-    (consimm 6)
-    (cdr     3)
-    (cadr    3)
-    (caddr   3)
-    (car     2)
-    (callf   1)
-    (label   0)))
+  '((jmpcnt       1)
+    (jmpimm       5) ;; 5 bytes is overkill
+    (jmp          2)
+    (movimm       6)
+    (mov          3)
+    (lookup       6) 
+    (setglbval    5)
+    (push         2)
+    (pop          2)
+    (bpf          5) ;; 5 bytes is overkill
+    (exenvargl    5)
+    (exenvval     5)
+    (cons         3)
+    (consimm      6)
+    (cdr          3)
+    (cadr         3)
+    (caddr        3)
+    (car          2)
+    (callf        1)
+    (label        0)))
 
 
 (define is-symbol
@@ -330,7 +332,7 @@
        (end-with-linkage linkage
        			 (append-two-instr-seqs get-value-code
 						(mk-instr-seq '(val) (list target)
-							      `((setglb ,var val)
+							      `((setglbval ,var)
 								(movimm ,target ,var))))))))
 
 
@@ -348,7 +350,7 @@
 	  (var (car keyval)))
       (append-two-instr-seqs get-value-code			     
       			     (mk-instr-seq '(val) (list 'env)
-      					   `((exenv ,var val)))))))
+      					   `((exenvval ,var)))))))
 		    
 		  
 (define compile-progn
@@ -389,7 +391,7 @@
 	(append-instr-seqs
 	 (map (lambda (p)
 		(mk-instr-seq '(argl) '(env)
-			      `((exenv ,p argl))))
+			      `((exenvargl ,p))))
 	      formals)))
        (compile-instr-list (car (cdr (cdr exp))) 'val 'return)))))
 	 
@@ -494,14 +496,14 @@
 	(mk-instr-seq '(proc) all-regs
 		      `((movimm cont ,linkage)
 			(cadr val proc)
-			(jmp val)))
+			(jmpval)))
       (if (and (not (= target 'val))
 	       (not (= linkage 'return)))
 	  (let ((proc-return (mk-label "proc-return")))
 	    (mk-instr-seq '(proc) all-regs
 			  `((movimm cont ,proc-return)
 			    (cadr val proc)
-			    (jmp val)
+			    (jmpval)
 			    ,proc-return
 			    (mov ,target val)
 			    (jmpimm ,linkage))))
@@ -509,7 +511,7 @@
 		 (= linkage 'return))
 	    (mk-instr-seq '(proc continue) all-regs
 			  '((cadr val proc)
-			    (jmp val)))
+			    (jmpval)))
 	  'compile-error)))))
 	    				 
 (define compile-instr-list
