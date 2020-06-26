@@ -155,33 +155,34 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define ADDRESS_SHIFT        3
 #define VAL_SHIFT            4
 
-#define PTR_MASK             0x00000001u
-#define PTR                  0x00000001u
-#define PTR_VAL_MASK         0x03FFFFF8u
-#define PTR_TYPE_MASK        0xFC000000u
+#define PTR_MASK                    0x00000001u
+#define PTR                         0x00000001u
+#define PTR_VAL_MASK                0x03FFFFF8u
+#define PTR_TYPE_MASK               0xFC000000u
 
-#define PTR_TYPE_CONS        0x10000000u
-#define PTR_TYPE_BOXED_I     0x20000000u
-#define PTR_TYPE_BOXED_U     0x30000000u
-#define PTR_TYPE_BOXED_F     0x40000000u
+#define PTR_TYPE_CONS               0x10000000u
+#define PTR_TYPE_BOXED_I            0x20000000u
+#define PTR_TYPE_BOXED_U            0x30000000u
+#define PTR_TYPE_BOXED_F            0x40000000u
+#define PTR_TYPE_SYMBOL_INDIRECTION 0x50000000u
 
-#define PTR_TYPE_BYTECODE    0xC0000000u 
-#define PTR_TYPE_ARRAY       0xD0000000u
-#define PTR_TYPE_REF         0xE0000000u //untyped reference to memory location
-#define PTR_TYPE_STREAM      0xF0000000u
+#define PTR_TYPE_BYTECODE           0xC0000000u 
+#define PTR_TYPE_ARRAY              0xD0000000u
+#define PTR_TYPE_REF                0xE0000000u //untyped reference to memory location
+#define PTR_TYPE_STREAM             0xF0000000u
 
-#define GC_MASK              0x00000002u
-#define GC_MARKED            0x00000002u
+#define GC_MASK                     0x00000002u
+#define GC_MARKED                   0x00000002u
 
-#define VAL_MASK             0xFFFFFFF0u
-#define VAL_TYPE_MASK        0x0000000Cu
+#define VAL_MASK                    0xFFFFFFF0u
+#define VAL_TYPE_MASK               0x0000000Cu
+                                                //    gc ptr
+#define VAL_TYPE_SYMBOL             0x00000000u // 00  0   0
+#define VAL_TYPE_CHAR               0x00000004u // 01  0   0 
+#define VAL_TYPE_I                  0x00000008u // 10  0   0
+#define VAL_TYPE_U                  0x0000000Cu // 11  0   0
 
-#define VAL_TYPE_SYMBOL      0x00000000u
-#define VAL_TYPE_CHAR        0x00000004u
-#define VAL_TYPE_I           0x00000008u
-#define VAL_TYPE_U           0x0000000Cu
-
-#define MAX_CONSTANTS        256
+#define MAX_CONSTANTS               256
 
 typedef struct {
   VALUE car;
