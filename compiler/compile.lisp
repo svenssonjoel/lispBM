@@ -36,7 +36,7 @@
 (define instr-size
   '((jmpcnt       1)
     (jmpimm       5) ;; 5 bytes is overkill
-    (jmp          2)
+    (jmpval       1)
     (movimm       6)
     (mov          3)
     (lookup       6) 
