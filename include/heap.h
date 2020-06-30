@@ -272,6 +272,14 @@ static inline VALUE enc_cons_ptr(UINT x) {
   return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR);
 }
 
+static inline VALUE enc_symbol_indirection(UINT x) {
+  return ((x << ADDRESS_SHIFT) | PTR_TYPE_SYMBOL_INDIRECTION | PTR);
+}
+
+static inline VALUE dec_symbol_indirection(VALUE p) {
+  return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
+}
+
 static inline uint32_t dec_ptr(VALUE p) {
   return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
 }
@@ -387,6 +395,10 @@ static inline bool is_closure(VALUE exp) {
 
 static inline bool is_symbol(VALUE exp) {
   return (type_of(exp) == VAL_TYPE_SYMBOL);
+}
+
+static inline bool is_symbol_indirection(VALUE exp) {
+  return (type_of(exp) == PTR_TYPE_SYMBOL_INDIRECTION);
 }
 
 static inline bool is_symbol_nil(VALUE exp) {

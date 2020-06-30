@@ -21,12 +21,14 @@
 #include <sys/ring_buffer.h>
 
 
+#include "memory.h"
 #include "heap.h"
 #include "symrepr.h"
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
 #include "prelude.h"
+#include "env.h"
 
 
 #define LISPBM_HEAP_SIZE 2048
@@ -177,7 +179,7 @@ void main(void)
     if (dtr) {
       break;
     } else {
-      k_sleep(100);
+      k_sleep(K_MSEC(100));
     }
   }
 
@@ -200,6 +202,19 @@ void main(void)
 
   heap_state_t heap_state;
 
+  unsigned char *memory = malloc(MEMORY_SIZE_16K);
+  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
+  if (memory == NULL || bitmap == NULL) return 0;
+  
+  res = memory_init(memory, MEMORY_SIZE_16K,
+		    bitmap, MEMORY_BITMAP_SIZE_16K);
+  if (res)
+    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
+  else {
+    printf("Error initializing memory!\n");
+    return 0;
+  } 
+  
   res = symrepr_init();
   if (res)
     usb_printf("Symrepr initialized.\n\r");
@@ -216,7 +231,7 @@ void main(void)
     return;
   }
 
-  res = eval_cps_init(EVAL_CPS_STACK_SIZE, false);
+  res = eval_cps_init_nc(EVAL_CPS_STACK_SIZE, false);
   if (res)
     usb_printf("Evaluator initialized.\n\r");
   else {
@@ -224,12 +239,13 @@ void main(void)
   }
 	
   VALUE prelude = prelude_load();
-  eval_cps_program(prelude);
+  eval_cps_program_nc(prelude);
+
 
   usb_printf("Lisp REPL started (ZephyrOS)!\n\r");
 	
   while (1) {
-    k_sleep(100);
+    k_sleep(K_MSEC(100));
     usb_printf("# ");
     memset(str,0,LISPBM_INPUT_BUFFER_SIZE);
     memset(outbuf,0, LISPBM_OUTPUT_BUFFER_SIZE);
@@ -239,7 +255,7 @@ void main(void)
     if (strncmp(str, ":info", 5) == 0) {
       usb_printf("##(REPL - ZephyrOS)#########################################\n\r");
       usb_printf("Used cons cells: %lu \n\r", LISPBM_HEAP_SIZE - heap_num_free());
-      res = print_value(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, error, LISPBM_ERROR_BUFFER_SIZE, eval_cps_get_env());
+      res = print_value(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, error, LISPBM_ERROR_BUFFER_SIZE, *env_get_global_ptr());
       if (res >= 0) {
 	usb_printf("ENV: %s \n\r", outbuf);
       } else {
@@ -259,7 +275,7 @@ void main(void)
       VALUE t;
       t = tokpar_parse(str);
 
-      t = eval_cps_program(t);
+      t = eval_cps_program_nc(t);
 
       res = print_value(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, error, LISPBM_ERROR_BUFFER_SIZE, t);
       if (res >= 0) {

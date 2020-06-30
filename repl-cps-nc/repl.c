@@ -34,6 +34,7 @@
 #include "prelude.h"
 #include "typedefs.h"
 #include "memory.h"
+#include "env.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 
@@ -184,7 +185,7 @@ int main(int argc, char **argv) {
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("############################################################\n");
       printf("Used cons cells: %d\n", heap_size - heap_num_free());
-      int r = print_value(output, 1024, error, 1024, eval_cps_get_env());
+      int r = print_value(output, 1024, error, 1024, *env_get_global_ptr());
       if (r >= 0) {
 	printf("ENV: %s\n", output );
       } else {
