@@ -452,6 +452,8 @@ static bool struct_eq(VALUE a, VALUE b) {
   if (is_ptr(a) && is_ptr(b)) {
     if (ptr_type(a) == ptr_type(b)) {
       switch (ptr_type(a)) {
+      case PTR_TYPE_SYMBOL_INDIRECTION:
+	return dec_symbol_indirection(a) == dec_symbol_indirection(b);
       case PTR_TYPE_CONS:
 	return ( struct_eq(car(a),car(b)) &&
 		 struct_eq(cdr(a),cdr(b)) );
@@ -780,6 +782,32 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     } else if (symrepr_addsym(str, &sym)) {
       result = enc_sym(sym);
     } 
+    break;
+  }
+  case SYM_SYMBOL_TO_UINT: {
+    VALUE s = args[0];
+    if (type_of(s) == VAL_TYPE_SYMBOL)
+      result = enc_u(dec_sym(s));
+    else
+      result = enc_sym(symrepr_eerror());
+    break;
+  }
+  case SYM_UINT_TO_SYMBOL: {
+    VALUE s = args[0];
+    if (type_of(s) == VAL_TYPE_U)
+      result = enc_sym(dec_u(s));
+    else
+      result = enc_sym(symrepr_eerror());
+    break;
+  }
+  //  Create a symbol indirection from an unsigned 
+  case SYM_MK_SYMBOL_INDIRECT: {
+    VALUE s = args[0];
+    if (type_of(s) == VAL_TYPE_U &&
+	dec_u(s) < 33554432)
+      result = enc_symbol_indirection(dec_u(s));
+    else
+      result = enc_sym(symrepr_eerror());
     break;
   }
   case SYM_CONS: {

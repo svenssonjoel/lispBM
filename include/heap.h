@@ -151,9 +151,9 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 1111 AA00 0000 0000 0000 0000 0000 0000   : 0xFC00 0000 (AA bits left unused for now, future heap growth?)
  */
 
-#define CONS_CELL_SIZE       8
-#define ADDRESS_SHIFT        3
-#define VAL_SHIFT            4
+#define CONS_CELL_SIZE              8
+#define ADDRESS_SHIFT               3
+#define VAL_SHIFT                   4
 
 #define PTR_MASK                    0x00000001u
 #define PTR                         0x00000001u
@@ -276,11 +276,11 @@ static inline VALUE enc_symbol_indirection(UINT x) {
   return ((x << ADDRESS_SHIFT) | PTR_TYPE_SYMBOL_INDIRECTION | PTR);
 }
 
-static inline VALUE dec_symbol_indirection(VALUE p) {
+static inline UINT dec_symbol_indirection(VALUE p) {
   return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
 }
 
-static inline uint32_t dec_ptr(VALUE p) {
+static inline UINT dec_ptr(VALUE p) {
   return ((PTR_VAL_MASK & p) >> ADDRESS_SHIFT);
 }
 

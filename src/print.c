@@ -192,6 +192,12 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 	}
 	break;
       }
+      case PTR_TYPE_SYMBOL_INDIRECTION: {
+	UINT v = dec_symbol_indirection(curr);
+	return snprintf(buf + offset, len - offset, "*%"PRI_UINT"*", v);
+	offset += n;
+	break;
+      }
 	
       case VAL_TYPE_SYMBOL:
 	str_ptr = symrepr_lookup_name(dec_sym(curr));
