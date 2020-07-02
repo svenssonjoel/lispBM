@@ -173,7 +173,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 	
       case PTR_TYPE_BOXED_I: {
 	int32_t v = (int32_t)car(curr);
-	return snprintf(buf + offset, len - offset, "{%"PRI_INT"}", v);
+	n = snprintf(buf + offset, len - offset, "{%"PRI_INT"}", v);
 	offset += n;
 	break;
       }
@@ -194,7 +194,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       }
       case PTR_TYPE_SYMBOL_INDIRECTION: {
 	UINT v = dec_symbol_indirection(curr);
-	return snprintf(buf + offset, len - offset, "*%"PRI_UINT"*", v);
+	n = snprintf(buf + offset, len - offset, "*%"PRI_UINT"*", v);
 	offset += n;
 	break;
       }

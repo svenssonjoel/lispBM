@@ -4,8 +4,31 @@
 ;; while peeking a lot in the SICP book.
 
 
-;; Hold a list of symbols that are used within the compiled code 
-(define compiler-symbols '())
+;; Symbols that are used within the compiled code 
+(define symbol-indirections '())
+(define indirection-counter 1u28)
+
+(define new-indirection
+  (lambda (sym)
+    (let ((exists (lookup sym symbol-indirections)))
+      (if exists	
+	  (cdr exists)
+	(let ((indirection (mk-sym-indirect indirection-counter))
+	      (mapping (cons sym (cons (cons (sym-to-str sym) indirection) '()))))
+	  (progn
+	    (define indirection-counter (+ 1 indirection-counter))
+	    (define symbol-indirections (cons mapping symbol-indirections))
+	    indirection))))))
+	 
+      
+
+(define add-symbol
+  (lambda (exp)
+    (if (not (lookup exp compiler-symbols)) 
+	(define compiler-symbols (cons (cons exp (sym-to-str exp)) compiler-symbols))
+      nil)))
+
+
 
 (define all-regs '(env
 		   proc
@@ -306,14 +329,6 @@
 	      (compile-data-nest e target))
 	    exp)))))
 
-;; Add a symbol to the compiler-symbols list
-(define add-symbol
-  (lambda (exp)
-    (if (not (lookup exp compiler-symbols)) 
-	(define compiler-symbols (cons (cons exp (sym-to-str exp)) compiler-symbols))
-      nil)))
-
-    
 (define compile-symbol
   (lambda (exp target linkage)
     (progn
