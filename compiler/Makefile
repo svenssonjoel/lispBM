@@ -20,4 +20,4 @@ $(LIB):
 
 
 clean:
-	rm repl
+	rm lispbmc
