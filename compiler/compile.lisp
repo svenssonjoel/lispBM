@@ -8,6 +8,9 @@
 (define symbol-indirections '())
 (define indirection-counter 1u28)
 
+;; Create a new indirect for a symbol:
+;; If an indirection already exists for the symbol in question,
+;; the existing indirection is returned.
 (define new-indirection
   (lambda (sym)
     (let ((exists (lookup sym symbol-indirections)))
@@ -20,15 +23,6 @@
 	    (define symbol-indirections (cons mapping symbol-indirections))
 	    indirection))))))
 	 
-      
-
-(define add-symbol
-  (lambda (exp)
-    (if (not (lookup exp compiler-symbols)) 
-	(define compiler-symbols (cons (cons exp (sym-to-str exp)) compiler-symbols))
-      nil)))
-
-
 
 (define all-regs '(env
 		   proc
@@ -331,23 +325,23 @@
 
 (define compile-symbol
   (lambda (exp target linkage)
-    (progn
-      (add-symbol exp)
+    (let ((i (new-indirection exp)))
       (end-with-linkage linkage
       			;; Implied that the lookup looks in env register
       			(mk-instr-seq '(env)
       				      (list target)
-      				      `((lookup ,target ,exp)))))))
+      				      `((lookup ,target ,i)))))))
 (define compile-def
   (lambda (exp target linkage)
-     (let ((var (car (cdr exp)))
-	   (get-value-code
-	    (compile-instr-list (car (cdr (cdr exp))) 'val 'next)))
-       (end-with-linkage linkage
-       			 (append-two-instr-seqs get-value-code
-						(mk-instr-seq '(val) (list target)
-							      `((setglbval ,var)
-								(movimm ,target ,var))))))))
+    (let ((var (car (cdr exp)))
+	  (i (new-indirection var))
+	  (get-value-code
+	   (compile-instr-list (car (cdr (cdr exp))) 'val 'next)))
+      (end-with-linkage linkage
+			(append-two-instr-seqs get-value-code
+					       (mk-instr-seq '(val) (list target)
+							     `((setglbval ,i)
+							       (movimm ,target ,i))))))))
 
 
 ;; Very unsure of how to do this one correctly.
@@ -361,10 +355,11 @@
   (lambda (keyval)
     (let ((get-value-code
     	   (compile-instr-list (car (cdr keyval)) 'val 'next))
-	  (var (car keyval)))
+	  (var (car keyval))
+	  (i (new-indirection var)))
       (append-two-instr-seqs get-value-code			     
       			     (mk-instr-seq '(val) (list 'env)
-      					   `((exenvval ,var)))))))
+      					   `((exenvval ,i)))))))
 		    
 		  
 (define compile-progn
