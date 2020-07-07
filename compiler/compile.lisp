@@ -274,9 +274,8 @@
     				    (list target)
     				    `((movimm ,target ,exp))))))
 
-;; TODO: The output code in this case should be code that recreates 
-;;       the quoted expression on the heap. At least this would be required
-;;       if loading the compiled bytecode into a fresh RTS.
+;; Compiling a quoted expression results in
+;; code that re-creates the quoted expression on the heap. 
 (define compile-quoted
   (lambda (exp target linkage)
     (end-with-linkage linkage
