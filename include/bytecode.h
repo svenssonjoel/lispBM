@@ -15,14 +15,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef BYTECODE_H_
+#define BYTECODE_H_
+
 typedef struct {
   char* symbol_str;
   VALUE symbol_indirection;
 } symbol_indirection_t;
 
 typedef struct {
-  unsigned int code_size; 
+  unsigned int code_size;
   uint8_t *code;
   unsigned int num_indirections;
   symbol_indirection_t *indirections;
 } bytecode_t;
+
+
+#endif
