@@ -212,10 +212,15 @@ typedef struct {
 } array_header_t;
 
 typedef struct {
+  char* symbol_str;
+  VALUE symbol_indirection;
+} symbol_indirection_t;
+
+typedef struct {
   unsigned int code_size; 
   uint8_t *code;
-  int     num_constants; 
-  VALUE   constants[MAX_CONSTANTS];
+  unsigned int num_indirections;
+  symbol_indirection_t *indirections;
 } bytecode_t;
 
 extern int heap_init_addr(cons_t *addr, unsigned int num_cells);
