@@ -211,18 +211,6 @@ typedef struct {
   uint32_t size;            // Number of elements
 } array_header_t;
 
-typedef struct {
-  char* symbol_str;
-  VALUE symbol_indirection;
-} symbol_indirection_t;
-
-typedef struct {
-  unsigned int code_size; 
-  uint8_t *code;
-  unsigned int num_indirections;
-  symbol_indirection_t *indirections;
-} bytecode_t;
-
 extern int heap_init_addr(cons_t *addr, unsigned int num_cells);
 extern int heap_init(unsigned int num_cells);
 extern void heap_del(void);
