@@ -78,6 +78,10 @@
 (define is-label
   (lambda (exp) (= (car exp) 'label)))
 
+(define get-label
+    (lambda (exp) (car exp)))
+
+
 (define is-def
   (lambda (exp) (= (car exp) 'define)))
 
@@ -242,6 +246,24 @@
 	     (if (is-nil x) acc
 	       (sum-bytes (cdr x) (+ (lookup (car (car x)) instr-size) acc))))))
       (sum-bytes (car (cdr (cdr s))) 0))))
+
+
+(define label-loc '())
+
+(define locate-labels
+    (lambda (s)
+      (let ((f
+	     (lambda (x acc)
+	       (if (is-nil x) acc
+		   (progn
+		     (if (is-label (car x))
+			 (define label-loc (cons (cons (car x) acc) label-loc))
+			 nil)
+		     (f (cdr x) (+ (lookup (car (car x)) instr-size) acc)))))))
+	(f (car (cdr (cdr s))) 0))))
+		     
+	     
+
 	       
 ;; COMPILERS
 
@@ -342,7 +364,6 @@
 							     `((setglbval ,i)
 							       (movimm ,target ,i))))))))
 
-
 ;; Very unsure of how to do this one correctly.
 (define compile-let
   (lambda (exp target linkage)
@@ -385,9 +406,9 @@
 	(compile-lambda-body exp proc-entry))
        after-lambda))))
 
-;; TODO: Change ldenv and add another register to hold a heap-ptr
-;;       to the formals list. perhaps?
-;;       Decide at run-time what to do with mismatch of n-args and n-formals
+
+
+
 (define compile-lambda-body
   (lambda (exp proc-entry)   
     (let ((formals (car (cdr exp))))
