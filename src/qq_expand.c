@@ -111,7 +111,7 @@ VALUE qq_expand_list(VALUE l) {
 
 VALUE qq_expand(VALUE qquoted) {
 
-  VALUE res = enc_sym(symrepr_nil());
+  VALUE res;
   VALUE car_val;
   VALUE cdr_val;
 

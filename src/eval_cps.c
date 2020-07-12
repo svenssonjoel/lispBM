@@ -264,6 +264,8 @@ CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
 
   eval_context_t *ctx = NULL;
   ctx = malloc(sizeof(eval_context_t));
+  if (ctx == NULL) return 0;
+  
   ctx->program = cdr(program);
   ctx->curr_exp = car(program);
   ctx->curr_env = env;
@@ -779,7 +781,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
   }
 
   VALUE head;
-  VALUE value = enc_sym(symrepr_eerror());
+  VALUE value;
 
   switch (type_of(ctx->curr_exp)) {
 

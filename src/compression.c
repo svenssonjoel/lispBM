@@ -486,7 +486,10 @@ char *compression_compress(char *string, uint32_t *res_size) {
       }
       int ix = match_longest_key(&string[i]);
 
-      if (ix == -1) return NULL;
+      if (ix == -1) {
+	free(compressed);
+	return NULL;
+      }
 
       emit_code(compressed, codes[ix][CODE], &bit_pos);
 

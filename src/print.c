@@ -81,7 +81,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       res &= push_u32(&s, PRINT);
 
       if (!res) {
-	n = snprintf(error, len_error, "Error: Out of print stack\n");
+	snprintf(error, len_error, "Error: Out of print stack\n");
 	return -1;
       }
       
@@ -118,7 +118,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       res &= push_u32(&s, car_val);
       res &= push_u32(&s, PRINT);
       if (!res) {
-	n = snprintf(error, len_error, "Error: Out of print stack\n");
+	snprintf(error, len_error, "Error: Out of print stack\n");
 	return -1;
       }
       break;
@@ -144,7 +144,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 	res &= push_u32(&s, curr);
 	res &= push_u32(&s, START_LIST);
 	if (!res) {
-	  n = snprintf(error, len_error, "Error: Out of print stack\n");
+	  snprintf(error, len_error, "Error: Out of print stack\n");
 	  return -1;
 	}
 	break;
@@ -187,7 +187,7 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 	  break;
 	  break;
 	default:
-	  n = snprintf(error, len_error, "Error: Array type not supported\n");
+	  snprintf(error, len_error, "Error: Array type not supported\n");
 	  return -1;
 	}
 	break;
