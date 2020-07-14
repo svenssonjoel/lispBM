@@ -182,6 +182,7 @@ int tok_symbol(tokenizer_char_stream str, char** res) {
   }
 
   *res = malloc(len+1);
+  if (*res == NULL) return -1;
   memset(*res,0,len+1);
 
   for (i = 0; i < len; i ++) {
@@ -214,6 +215,7 @@ int tok_string(tokenizer_char_stream str, char **res) {
 
   // allocate memory for result string
   *res = malloc(len+1);
+  if (*res == NULL) return -1;
   memset(*res, 0, len+1);
 
   for (i = 0; i < len; i ++) {
@@ -446,21 +448,29 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
-  if ((n = tok_symbol(str, &t.data.text))) {
+  n = tok_symbol(str, &t.data.text);
+  if (n > 0) {
     t.text_len = n;
     t.type = TOKSYMBOL;
     return t;
+  } else if (n < 0) {
+    t.type = TOKENIZER_ERROR;
+    return t;
   }
-
+   
   if ((n = tok_char(str, &c_val))) {
     t.data.c = c_val;
     t.type = TOKCHAR;
     return t;
   }
 
-  if ((n = tok_string(str, &t.data.text))) {
+  n = tok_string(str, &t.data.text);
+  if (n > 0) {
     t.text_len = n - 2;
     t.type = TOKSTRING;
+    return t;
+  } else if (n < 0) {
+    t.type = TOKENIZER_ERROR;
     return t;
   }
 
