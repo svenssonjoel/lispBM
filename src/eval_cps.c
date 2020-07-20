@@ -41,7 +41,7 @@
 
 #define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ; }
 #define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ctx->r; }
-#define FOF(x)  if  (!(x)) { ctx_running->done = true; ctx_running->r = enc_sym(symrepr_fatal_error()); ctx_running = NULL; break;}
+#define FOF(x)  if  (!(x)) { ctx_running->done = true; error_ctx(enc_sym(symrepr_fatal_error()));return;}
 #define ERROR printf("Line: %d\n", __LINE__);
 #define DEFAULT_SLEEP_US  1000
 

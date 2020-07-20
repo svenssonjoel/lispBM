@@ -416,34 +416,32 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
-  n = 0;
-
-  if ((n = tok_quote(str))) {
+  if (tok_quote(str)) {
     t.type = TOKQUOTE;
     return t;
   }
 
-  if ((n = tok_backquote(str))) {
+  if (tok_backquote(str)) {
     t.type = TOKBACKQUOTE;
     return t;
   }
 
-  if ((n = tok_commaat(str))) {
+  if (tok_commaat(str)) {
     t.type= TOKCOMMAAT;
     return t;
   }
   
-  if ((n = tok_comma(str))) {
+  if (tok_comma(str)) {
     t.type = TOKCOMMA;
     return t;
   }
 
-  if ((n = tok_openpar(str))) {
+  if (tok_openpar(str)) {
     t.type = TOKOPENPAR;
     return t;
   }
 
-  if ((n = tok_closepar(str))) {
+  if (tok_closepar(str)) {
     t.type = TOKCLOSEPAR;
     return t;
   }
@@ -458,7 +456,7 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
    
-  if ((n = tok_char(str, &c_val))) {
+  if (tok_char(str, &c_val)) {
     t.data.c = c_val;
     t.type = TOKCHAR;
     return t;
@@ -474,33 +472,33 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
-  if ((n = tok_F(str, &f_val))) {
+  if (tok_F(str, &f_val)) {
     t.data.f = f_val;
     t.type = TOKBOXEDFLOAT;
     return t;
   }
 
-  if ((n = tok_U(str, &u_val))) {
+  if (tok_U(str, &u_val)) {
     t.data.u = u_val;
     t.type = TOKBOXEDUINT;
     return t;
   }
 
 
-  if ((n = tok_u(str, &u_val))) {
+  if (tok_u(str, &u_val)) {
     t.data.u = u_val;
     t.type = TOKUINT;
     return t;
   }
 
-  if ((n = tok_I(str, &i_val))) {
+  if (tok_I(str, &i_val)) {
     t.data.i = i_val;
     t.type = TOKBOXEDINT;
     return t;
   }
 
   // Shortest form of integer match. Move to last in chain of numerical tokens.
-  if ((n = tok_i(str, &i_val))) {
+  if (tok_i(str, &i_val)) {
     t.data.i = i_val;
     t.type = TOKINT;
     return t;
