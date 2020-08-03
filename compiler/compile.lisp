@@ -47,7 +47,8 @@
 		     cadr        ;; reg0 <- cadr reg1
 		     caddr       ;; reg0 <- caddr reg1
 		     car         ;; reg0 <- car reg1
- 		     callf))     ;; val <- fund-apply proc argl 
+ 		     callf       ;; val <- fund-apply proc argl
+                     done))      ;; Computation done
 
 ;; OpCode to size in bytes (including arguments)
 (define instr-size
@@ -69,6 +70,7 @@
     (cadr         3)
     (caddr        3)
     (callf        1)
+    (done         1)
     (label        0)))
 
 
@@ -565,6 +567,9 @@
 
 
 (define compile-program
-  (lambda (exp target linkage)
-    (compile-progn exp target linkage)))
+  (lambda (exp)
+    (append-two-instr-seqs 
+      (compile-progn exp 'val 'next)
+      (mk-instr-seq () ()
+		    '((done))))))
 
