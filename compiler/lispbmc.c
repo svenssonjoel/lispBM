@@ -22,6 +22,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <termios.h>
 #include <ctype.h>
 
@@ -115,10 +116,132 @@ char * load_file(char *filename) {
   return file_str;
 }
 
+
+/* Arguments: 
+   
+   first non-option argument is input file
+   -o output-file 
+   -S out assembler
+   
+
+ */
+
+char input_file[1024];
+char output_file[1024];
+bool output_file_ok = false;
+
+bool output_assembler = false;
+
+
+int parse_args(int argc, char **argv) {
+  int c;
+  int digit_optind = 0;
+
+  memset(input_file,0,1024);
+  memset(output_file,0,1024);
+  
+  while (1) {
+    int this_option_optind = optind ? optind : 1;
+    int option_index = 0;
+    static struct option long_options[] = {
+      {0,         0,                 0,  0 }
+    };
+
+    c = getopt_long(argc, argv, "So:",
+		    long_options, &option_index);
+    if (c == -1)
+      break;
+
+    switch (c) {
+      
+    case 'S':
+      output_assembler = true;
+      break;
+
+    case 'o':
+      if (strlen(optarg) < 1023) {
+	strncpy(output_file, optarg, 1024);
+	output_file_ok = true;
+      } else {
+	printf("Error: Output filename is too long\n");
+	return 0;
+      }
+      break;
+
+    case '?':
+      break;
+
+    default:
+      printf("?? getopt returned character code 0%o ??\n", c);
+    }
+  }
+
+  if (optind < argc) {
+    if (strlen(argv[optind]) >= 1023) {
+      printf("Error: Input filename is too long\n");
+      return 0;
+    }
+
+    strncpy(input_file, argv[optind], 1024);
+    
+    bool dot_found = false;
+    int dot_index = strlen(input_file);
+    while (dot_index >= 0)  {
+      if (input_file[dot_index] == '.') {
+	dot_found = true;
+	break;
+      }
+      dot_index --;
+    }
+
+    if (!dot_found) {
+      printf("Error: Incorrect input filename %s. File extension missing\n", input_file);
+      return 0;
+    }
+    
+    if (!output_file_ok) {
+      strncpy(output_file,input_file,1024);
+      output_file[dot_index] = 0;
+      if (dot_index < 1020) { 
+	if (output_assembler) {
+	  output_file[dot_index]   = '.';
+	  output_file[dot_index+1] = 'S';
+	  output_file[dot_index+2] = 0;
+	} else {
+	  output_file[dot_index]   = '.';
+	  output_file[dot_index+1] = 'b';
+	  output_file[dot_index+2] = 'm';
+	  output_file[dot_index+3] = 'c';
+	  output_file[dot_index+4] = 0;
+	}
+      } else {
+	printf("Error: Input filename is too long\n");
+	return 0;
+      }
+
+      output_file_ok = true;
+    }
+
+    printf("Output to: %s\n", output_file);
+
+  } else {
+    printf("Error: No input file specified\n");
+    return 0;
+  }
+
+  return 1;
+}
+
+
 int main(int argc, char **argv) {
   char *str = malloc(1024);;
   unsigned int len = 1024;
   int res = 0;
+
+  // Experiment
+  if (!parse_args(argc, argv))
+    exit(EXIT_FAILURE);
+  // Experiment
 
   heap_state_t heap_state;
 
