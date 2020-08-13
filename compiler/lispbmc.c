@@ -87,12 +87,14 @@ int output_arg_assembly(VALUE arg) {
 
   VALUE name;
   VALUE num;
-  
+
   switch (type_of(arg)) {
   case VAL_TYPE_I:
+    printf("outputing int argument\n");
     fprintf(out_file,"%d", dec_i(arg));
     break;
   case VAL_TYPE_U:
+    printf("outputing uint argument\n");
     fprintf(out_file,"%u", dec_u(arg));
     break;
   case PTR_TYPE_CONS: 
@@ -100,7 +102,7 @@ int output_arg_assembly(VALUE arg) {
     num  = car(cdr(cdr(arg)));
     if (type_of(name) == PTR_TYPE_ARRAY &&
 	type_of(num)  == VAL_TYPE_I) {
-      array_header_t *array = (array_header_t *)name;
+      array_header_t *array = (array_header_t *)(car(name));
       switch (array->elt_type){
       case VAL_TYPE_CHAR: {
 	char *data = (char *)array + 8;
@@ -131,7 +133,7 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
     VALUE num  = car(cdr(cdr(args[0])));
     if (type_of(name) == PTR_TYPE_ARRAY &&
 	type_of(num)  == VAL_TYPE_I) {
-      array_header_t *array = (array_header_t *)name;
+      array_header_t *array = (array_header_t *)(car(name));
       switch (array->elt_type){
       case VAL_TYPE_CHAR: {
 	char *data = (char *)array + 8;
@@ -150,11 +152,11 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
 
   /* print opcode */
   if (type_of(args[1]) == PTR_TYPE_ARRAY) {
-    array_header_t *array = (array_header_t *)args[1];
+    array_header_t *array = (array_header_t *)(car(args[1]));
     switch (array->elt_type){
     case VAL_TYPE_CHAR: {
       char *data = (char *)array + 8;
-      fprintf(out_file,"%s ", data);
+      fprintf(out_file,"%s\t", data);
       break;
     }
     default:
@@ -164,13 +166,14 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
   } else {
     return enc_sym(symrepr_eerror());
   }
-
+  
   for (int i = 2; i < argn; i ++) {
     if (!output_arg_assembly(args[i])) {
       return enc_sym(symrepr_eerror());
     }
+    fprintf(out_file," ");
   }
-  
+  fprintf(out_file,"\n");
   return enc_sym(symrepr_nil());
 }
 
@@ -410,11 +413,20 @@ int main(int argc, char **argv) {
 
   res = extensions_add("print", ext_print);
   if (res)
-    printf("Extension added.\n");
+    printf("Extension print added.\n");
   else {
-    printf("Error adding extension.\n");
+    printf("Error adding print extension.\n");
     return 0;
   }
+
+  res = extensions_add("asm-out", ext_output_assembly);
+  if (res)
+    printf("Extension asm-out added.\n");
+  else {
+    printf("Error adding asm-out extension.\n");
+    return 0;
+  }
+  
 
   char output[1024];
   char error[1024];
