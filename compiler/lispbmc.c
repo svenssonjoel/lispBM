@@ -39,6 +39,12 @@
 
 #define EVAL_CPS_STACK_SIZE 256
 
+FILE *in_file = NULL;
+FILE *out_file = NULL;
+
+/* 
+ Extensions 
+ */
 VALUE ext_print(VALUE *args, int argn) {
   if (argn < 1) return enc_sym(symrepr_nil());
 
@@ -74,6 +80,27 @@ VALUE ext_print(VALUE *args, int argn) {
 
   }
   return enc_sym(symrepr_true());
+}
+
+/* ext_output_assembly 
+   args: label or Nil, opcode, arguments 
+*/
+VALUE ext_output_assembly(VALUE *args, int argn) {
+
+  return enc_sym(symrepr_nil());
+}
+
+/* ext_output_bytecode
+ args: opcode, arguments 
+ */
+VALUE ext_output_bytecode(VALUE *args, int argn) {
+
+  return enc_sym(symrepr_nil());
+}
+
+VALUE ext_output_symbol_indirection(VALUE *args, int argn) {
+
+  return enc_sym(symrepr_nil());
 }
 
 /* load a file, caller is responsible for freeing the returned string */
@@ -118,7 +145,6 @@ char * load_file(char *filename) {
 
 
 /* Arguments: 
-   
    first non-option argument is input file
    -o output-file 
    -S out assembler
@@ -135,13 +161,11 @@ bool output_assembler = false;
 
 int parse_args(int argc, char **argv) {
   int c;
-  int digit_optind = 0;
 
   memset(input_file,0,1024);
   memset(output_file,0,1024);
   
   while (1) {
-    int this_option_optind = optind ? optind : 1;
     int option_index = 0;
     static struct option long_options[] = {
       {0,         0,                 0,  0 }
@@ -185,7 +209,7 @@ int parse_args(int argc, char **argv) {
     strncpy(input_file, argv[optind], 1024);
     
     bool dot_found = false;
-    int dot_index = strlen(input_file);
+    size_t dot_index = strlen(input_file);
     while (dot_index >= 0)  {
       if (input_file[dot_index] == '.') {
 	dot_found = true;
@@ -229,6 +253,23 @@ int parse_args(int argc, char **argv) {
     return 0;
   }
 
+
+  /* Attempt open input and output files */
+  in_file = fopen(input_file, "r");
+
+  if (!in_file) {
+    printf("Error: Unable to open input file %s\n", input_file);
+    return 0;
+  }
+
+  out_file = fopen(output_file, "w");
+
+  if (!out_file) {
+    printf("Error: Unable to open output file %s\n", output_file);
+    return 0;
+  }
+
+  
   return 1;
 }
 
