@@ -191,42 +191,26 @@ VALUE ext_output_symbol_indirection(VALUE *args, int argn) {
 }
 
 /* load a file, caller is responsible for freeing the returned string */
-char * load_file(char *filename) {
+char * load_file(FILE *fp) {
   char *file_str = NULL;
-  //size_t str_len = strlen(filename);
-  //filename[str_len-1] = 0;
-  int i = 0;
-  while (filename[i] == ' ' && filename[i] != 0) {
-    i ++;
-  }
-  FILE *fp;
 
-  if (strlen(&filename[i]) > 0) {
-    errno = 0;
-    fp = fopen(&filename[i], "r");
-    if (!fp) {
-      printf("cannot fopen file %s\n", &filename[i]);
-      printf("filename length: %d\n", strlen(&filename[i]));
-      printf("%d\n", errno);
-      return NULL;
-    }
-    long fsize_long;
-    unsigned int fsize;
-    fseek(fp, 0, SEEK_END);
-    fsize_long = ftell(fp);
-    if (fsize_long <= 0) {
-      return NULL;
-    }
-    fsize = (unsigned int) fsize_long;
-    fseek(fp, 0, SEEK_SET);
-    file_str = malloc(fsize+1);
-    memset(file_str, 0 , fsize+1);
-    if (fread(file_str,1,fsize,fp) != fsize) {
-      free(file_str);
-      file_str = NULL;
-    }
-    fclose(fp);
+  long fsize_long;
+  unsigned int fsize;
+  fseek(fp, 0, SEEK_END);
+  fsize_long = ftell(fp);
+  if (fsize_long <= 0) {
+    printf("File is empty\n");
+    return NULL;
   }
+  fsize = (unsigned int) fsize_long;
+  fseek(fp, 0, SEEK_SET);
+  file_str = malloc(fsize+1);
+  memset(file_str, 0 , fsize+1);
+  if (fread(file_str,1,fsize,fp) != fsize) {
+    free(file_str);
+    file_str = NULL;
+  }
+  fclose(fp);
   return file_str;
 }
 
@@ -235,16 +219,12 @@ char * load_file(char *filename) {
    first non-option argument is input file
    -o output-file 
    -S out assembler
-   
-
  */
 
 char input_file[1024];
 char output_file[1024];
 bool output_file_ok = false;
-
 bool output_assembler = false;
-
 
 int parse_args(int argc, char **argv) {
   int c;
@@ -362,16 +342,10 @@ int parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
-  char *str = malloc(1024);;
-  unsigned int len = 1024;
   int res = 0;
 
-  // Experiment
   if (!parse_args(argc, argv))
     exit(EXIT_FAILURE);
-  // Experiment
-
-  heap_state_t heap_state;
 
   unsigned char *memory = malloc(MEMORY_SIZE_16K);
   unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
@@ -427,7 +401,6 @@ int main(int argc, char **argv) {
     return 0;
   }
   
-
   char output[1024];
   char error[1024];
   
@@ -442,7 +415,14 @@ int main(int argc, char **argv) {
     printf("Prelude loaded successfully: %s\n", r == 0 ? "UNKNOWN" : output);
   }
 
-  char *comp_str = load_file("compile.lisp");
+  FILE *fp;
+  fp = fopen("compile.lisp", "r");
+  if (!fp) {
+    printf("Error: Unable to open compile.lisp\n");
+    return 1;
+  }
+  
+  char *comp_str = load_file(fp);
   VALUE f_exp = tokpar_parse(comp_str);
   free(comp_str);
   VALUE c_r = ec_eval_program(f_exp);
@@ -455,84 +435,37 @@ int main(int argc, char **argv) {
     printf("Compiler loaded successfully: %s\n", r == 0 ? "UNKNOWN" : output);
   }
 
-  printf("Lisp REPL started!\n");
-  printf("Type :quit to exit.\n");
-  printf("     :info for statistics.\n");
-  printf("     :load [filename] to load lisp source.\n");
+  char *file_str = load_file(in_file);
+  VALUE input_prg = tokpar_parse(file_str);
   
-  while (1) {
-    fflush(stdin);
-    printf("# ");
-    memset(str, 0 ,len);
+  free(file_str);
 
-    ssize_t n = getline(&str,&len, stdin);
-    printf("\n");
+  UINT compiler;
+  if (symrepr_lookup("compile-program", &compiler));
+  VALUE invoce_compiler =cons(cons (enc_sym(compiler),
+				    cons(cons (enc_sym(symrepr_quote()),
+					       cons (input_prg, enc_sym(symrepr_nil()))),
+					 enc_sym(symrepr_nil()))),
+			      enc_sym(symrepr_nil()));
+ 
 
-    if (n >= 5 && strncmp(str, ":info", 5) == 0) {
-      printf("############################################################\n");
-      printf("Used cons cells: %d\n", heap_size - heap_num_free());
-      int r = print_value(output, 1024, error, 1024, *env_get_global_ptr());
-      if (r >= 0) {
-	printf("ENV: %s\n", output );
-      } else {
-	printf("%s\n", error);
-      }
-      int env_len = 0;
-      VALUE curr = *env_get_global_ptr();
-      while (type_of(curr) == PTR_TYPE_CONS) {
-	env_len ++;
-	curr = cdr(curr);
-      }
-      printf("Global env num bindings: %d\n", env_len);
-      heap_get_state(&heap_state);
-      printf("Symbol table size: %u Bytes\n", symrepr_size());
-      printf("Heap size: %u Bytes\n", heap_size * 8);
-      printf("Memory size: %u Words\n", memory_num_words());
-      printf("Memory free: %u Words\n", memory_num_free());
-      printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
-      printf("GC counter: %d\n", heap_state.gc_num);
-      printf("Recovered: %d\n", heap_state.gc_recovered);
-      printf("Recovered arrays: %u\n", heap_state.gc_recovered_arrays);
-      printf("Marked: %d\n", heap_state.gc_marked);
-      printf("Free cons cells: %d\n", heap_num_free());
-      printf("############################################################\n");
-    } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
-      unsigned int fstr_len = strlen(&str[5]);
-      str[5+fstr_len-1] = 0;
-      char *file_str = load_file(&str[5]);
-      if (file_str) {
-	printf("Loading file %s\n", &str[5]);
-	VALUE f_exp = tokpar_parse(file_str);
-	free(file_str);
-	VALUE l_r = ec_eval_program(f_exp);
-	int r = print_value(output, 1024, error, 1024, l_r);
-	if (r >= 0) {
-	  printf("> %s\n", output );
-	} else {
-	  printf("%s\n", error);
-	}
-      } else {
-	printf("Failed to load file %s\n", &str[5]);
-      }
+  printf("Compiler invocation command\n");
+  r = print_value(output, 1024, error, 1024, invoce_compiler);
+  if (r >= 0) {
+    printf("> %s\n", output );
+  } else {
+    printf("%s\n", error);
+  }
 
 
-    }  else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
-      break;
-    } else {
+  VALUE compiled_res = ec_eval_program(invoce_compiler);
 
-      VALUE t;
-      t = tokpar_parse(str);
-
-      VALUE r_r = ec_eval_program(t);
-
-      int r = print_value(output, 1024, error, 1024, r_r);
-      if (r >= 0) {
-	printf("> %s\n", output );
-      } else {
-	printf("%s\n", error);
-      }
-
-    }
+  printf("Compilation result\n");
+  r = print_value(output, 1024, error, 1024, compiled_res);
+  if (r >= 0) {
+    printf("> %s\n", output );
+  } else {
+    printf("%s\n", error);
   }
 
   symrepr_del();
