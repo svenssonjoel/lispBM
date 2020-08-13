@@ -82,11 +82,95 @@ VALUE ext_print(VALUE *args, int argn) {
   return enc_sym(symrepr_true());
 }
 
+
+int output_arg_assembly(VALUE arg) {
+
+  VALUE name;
+  VALUE num;
+  
+  switch (type_of(arg)) {
+  case VAL_TYPE_I:
+    fprintf(out_file,"%d", dec_i(arg));
+    break;
+  case VAL_TYPE_U:
+    fprintf(out_file,"%u", dec_u(arg));
+    break;
+  case PTR_TYPE_CONS: 
+    name = car(cdr(arg));
+    num  = car(cdr(cdr(arg)));
+    if (type_of(name) == PTR_TYPE_ARRAY &&
+	type_of(num)  == VAL_TYPE_I) {
+      array_header_t *array = (array_header_t *)name;
+      switch (array->elt_type){
+      case VAL_TYPE_CHAR: {
+	char *data = (char *)array + 8;
+	fprintf(out_file,"%s%d", data, dec_i(num));
+	break;
+      }
+      default:
+	return 0;
+	break;
+      }
+    }
+  default:
+    return 0;
+  }
+  return 1;
+}
+
 /* ext_output_assembly 
-   args: label or Nil, opcode, arguments 
+   args: label (as string, num) or Nil, opcode (as string), arguments 
 */
 VALUE ext_output_assembly(VALUE *args, int argn) {
 
+  if (argn < 3)  return enc_sym(symrepr_eerror());
+
+  /* Print potential label */ 
+  if (type_of(args[0]) == PTR_TYPE_CONS) {
+    VALUE name = car(cdr(args[0]));
+    VALUE num  = car(cdr(cdr(args[0])));
+    if (type_of(name) == PTR_TYPE_ARRAY &&
+	type_of(num)  == VAL_TYPE_I) {
+      array_header_t *array = (array_header_t *)name;
+      switch (array->elt_type){
+      case VAL_TYPE_CHAR: {
+	char *data = (char *)array + 8;
+	fprintf(out_file,"%s%d\t", data, dec_i(num));
+	break;
+      }
+      default:
+	return enc_sym(symrepr_eerror());
+	break;
+      }
+    }
+  } else if (type_of(args[0]) == VAL_TYPE_SYMBOL &&
+	     dec_sym(args[0]) == symrepr_nil()) {
+    fprintf(out_file,"\t\t");
+  }
+
+  /* print opcode */
+  if (type_of(args[1]) == PTR_TYPE_ARRAY) {
+    array_header_t *array = (array_header_t *)args[1];
+    switch (array->elt_type){
+    case VAL_TYPE_CHAR: {
+      char *data = (char *)array + 8;
+      fprintf(out_file,"%s ", data);
+      break;
+    }
+    default:
+      return enc_sym(symrepr_eerror());
+      break;
+    }
+  } else {
+    return enc_sym(symrepr_eerror());
+  }
+
+  for (int i = 2; i < argn; i ++) {
+    if (!output_arg_assembly(args[i])) {
+      return enc_sym(symrepr_eerror());
+    }
+  }
+  
   return enc_sym(symrepr_nil());
 }
 
