@@ -42,8 +42,8 @@
 FILE *in_file = NULL;
 FILE *out_file = NULL;
 
-/* 
- Extensions 
+/*
+ Extensions
  */
 VALUE ext_print(VALUE *args, int argn) {
   if (argn < 1) return enc_sym(symrepr_nil());
@@ -97,7 +97,7 @@ int output_arg_assembly(VALUE arg) {
     printf("outputing uint argument\n");
     fprintf(out_file,"%u", dec_u(arg));
     break;
-  case PTR_TYPE_CONS: 
+  case PTR_TYPE_CONS:
     name = car(cdr(arg));
     num  = car(cdr(cdr(arg)));
     if (type_of(name) == PTR_TYPE_ARRAY &&
@@ -120,14 +120,14 @@ int output_arg_assembly(VALUE arg) {
   return 1;
 }
 
-/* ext_output_assembly 
-   args: label (as string, num) or Nil, opcode (as string), arguments 
+/* ext_output_assembly
+   args: label (as string, num) or Nil, opcode (as string), arguments
 */
 VALUE ext_output_assembly(VALUE *args, int argn) {
 
   if (argn < 3)  return enc_sym(symrepr_eerror());
 
-  /* Print potential label */ 
+  /* Print potential label */
   if (type_of(args[0]) == PTR_TYPE_CONS) {
     VALUE name = car(cdr(args[0]));
     VALUE num  = car(cdr(cdr(args[0])));
@@ -166,7 +166,7 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
   } else {
     return enc_sym(symrepr_eerror());
   }
-  
+
   for (int i = 2; i < argn; i ++) {
     if (!output_arg_assembly(args[i])) {
       return enc_sym(symrepr_eerror());
@@ -178,7 +178,7 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
 }
 
 /* ext_output_bytecode
- args: opcode, arguments 
+ args: opcode, arguments
  */
 VALUE ext_output_bytecode(VALUE *args, int argn) {
 
@@ -215,9 +215,9 @@ char * load_file(FILE *fp) {
 }
 
 
-/* Arguments: 
+/* Arguments:
    first non-option argument is input file
-   -o output-file 
+   -o output-file
    -S out assembler
  */
 
@@ -231,7 +231,7 @@ int parse_args(int argc, char **argv) {
 
   memset(input_file,0,1024);
   memset(output_file,0,1024);
-  
+
   while (1) {
     int option_index = 0;
     static struct option long_options[] = {
@@ -244,7 +244,7 @@ int parse_args(int argc, char **argv) {
       break;
 
     switch (c) {
-      
+
     case 'S':
       output_assembler = true;
       break;
@@ -274,7 +274,7 @@ int parse_args(int argc, char **argv) {
     }
 
     strncpy(input_file, argv[optind], 1024);
-    
+
     bool dot_found = false;
     size_t dot_index = strlen(input_file);
     while (dot_index >= 0)  {
@@ -289,11 +289,11 @@ int parse_args(int argc, char **argv) {
       printf("Error: Incorrect input filename %s. File extension missing\n", input_file);
       return 0;
     }
-    
+
     if (!output_file_ok) {
       strncpy(output_file,input_file,1024);
       output_file[dot_index] = 0;
-      if (dot_index < 1020) { 
+      if (dot_index < 1020) {
 	if (output_assembler) {
 	  output_file[dot_index]   = '.';
 	  output_file[dot_index+1] = 'S';
@@ -336,7 +336,7 @@ int parse_args(int argc, char **argv) {
     return 0;
   }
 
-  
+
   return 1;
 }
 
@@ -400,15 +400,15 @@ int main(int argc, char **argv) {
     printf("Error adding asm-out extension.\n");
     return 0;
   }
-  
+
   char output[1024];
   char error[1024];
-  
+
   VALUE prelude = prelude_load();
   VALUE p_r = ec_eval_program(prelude);
 
   int r = print_value(output, 1024, error, 1024, p_r);
-  
+
   if (is_symbol(p_r) && symrepr_is_error(dec_sym(p_r))) {
     printf("Error loading Prelude: %s\n", r == 0 ? "UNKNOWN" : output);
   } else {
@@ -421,14 +421,14 @@ int main(int argc, char **argv) {
     printf("Error: Unable to open compile.lisp\n");
     return 1;
   }
-  
+
   char *comp_str = load_file(fp);
   VALUE f_exp = tokpar_parse(comp_str);
   free(comp_str);
   VALUE c_r = ec_eval_program(f_exp);
 
   r = print_value(output, 1024, error, 1024, c_r);
-  
+
   if (is_symbol(c_r) && symrepr_is_error(dec_sym(c_r))) {
     printf("Error loading compiler: %s\n", r == 0 ? "UNKNOWN" : "output");
   } else {
@@ -437,17 +437,17 @@ int main(int argc, char **argv) {
 
   char *file_str = load_file(in_file);
   VALUE input_prg = tokpar_parse(file_str);
-  
+
   free(file_str);
 
   UINT compiler;
   if (symrepr_lookup("compile-program", &compiler));
-  VALUE invoce_compiler =cons(cons (enc_sym(compiler),
-				    cons(cons (enc_sym(symrepr_quote()),
-					       cons (input_prg, enc_sym(symrepr_nil()))),
-					 enc_sym(symrepr_nil()))),
-			      enc_sym(symrepr_nil()));
- 
+  VALUE invoce_compiler = cons(cons (enc_sym(compiler),
+				     cons(cons (enc_sym(symrepr_quote()),
+						cons (input_prg, enc_sym(symrepr_nil()))),
+					  enc_sym(symrepr_nil()))),
+			       enc_sym(symrepr_nil()));
+
 
   printf("Compiler invocation command\n");
   r = print_value(output, 1024, error, 1024, invoce_compiler);
