@@ -178,7 +178,9 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
       switch (array->elt_type){
       case VAL_TYPE_CHAR: {
 	char *data = (char *)array + 8;
-	fprintf(out_file,"%s%d\t", data, dec_i(num));
+	char composite[1024];
+	snprintf(composite, 1024, "%s%d", data, dec_i(num));
+	fprintf(out_file,"%-20s", composite);
 	break;
       }
       default:
@@ -189,7 +191,7 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
     }
   } else if (type_of(args[0]) == VAL_TYPE_SYMBOL &&
 	     dec_sym(args[0]) == symrepr_nil()) {
-    fprintf(out_file,"\t\t");
+    fprintf(out_file,"%-20s", "");
   }
 
   /* Print instruction opcode and potential arguments */
