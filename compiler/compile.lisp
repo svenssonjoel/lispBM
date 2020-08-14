@@ -573,3 +573,21 @@
        (compile-progn exp 'val 'next)
        (mk-instr-seq () ()
 		     '((done))))))
+
+(define ops-out
+    (lambda (lab ops)
+      (if ops 
+	  (if (is-label (car ops))
+	      (ops-out (car ops) (cdr ops))
+	      (progn (asm-out lab (car ops))
+		     (ops-out nil (cdr ops))))
+	  (print "done"))))
+
+(define gen-asm
+    (lambda (prg)
+      (let ((ir (compile-program prg))
+	    (ir-ops (car (cdr (cdr ir)))))
+	(progn
+	  (ops-out nil ir-ops)
+	  symbol-indirections
+	  ))))

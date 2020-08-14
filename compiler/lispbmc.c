@@ -84,10 +84,10 @@ VALUE ext_print(VALUE *args, int argn) {
 
 
 int output_arg_assembly(VALUE arg) {
-
+  
   VALUE name;
   VALUE num;
-
+  
   switch (type_of(arg)) {
   case VAL_TYPE_I:
     printf("outputing int argument\n");
@@ -97,7 +97,44 @@ int output_arg_assembly(VALUE arg) {
     printf("outputing uint argument\n");
     fprintf(out_file,"%u", dec_u(arg));
     break;
-  case PTR_TYPE_CONS:
+
+    /* SYMBOL INDIRECTION */
+  case PTR_TYPE_SYMBOL_INDIRECTION: {
+    UINT v = dec_symbol_indirection(arg);
+    fprintf(out_file,"*%"PRI_UINT"*", v);
+    break;
+  }
+    /* SYMBOL */
+  case VAL_TYPE_SYMBOL: {
+    const char *sym_name = symrepr_lookup_name(dec_sym(arg));
+    if (sym_name) {
+      fprintf(out_file,"%s", sym_name);
+    } else {
+      printf("Error looking up symbol name\n");
+      return 0;
+    }
+    break;
+  }
+    /* STRING */
+  case PTR_TYPE_ARRAY: {
+    array_header_t *array = (array_header_t *)arg;
+    switch (array->elt_type){
+    case VAL_TYPE_CHAR: {
+      char *data = (char *)array + 8;
+      fprintf(out_file,"%s", data);
+      break;
+    }
+    default:
+      printf("Error outputing string argument\n");
+      return 0;
+      break;
+    }
+    break;
+  }
+  
+
+    /* LABEL */
+  case PTR_TYPE_CONS: {
     name = car(cdr(arg));
     num  = car(cdr(cdr(arg)));
     if (type_of(name) == PTR_TYPE_ARRAY &&
@@ -110,23 +147,27 @@ int output_arg_assembly(VALUE arg) {
 	break;
       }
       default:
+	printf("Error outputing label argument\n");
 	return 0;
 	break;
       }
     }
+    break;
+  }
   default:
+    printf("Error default\n");
     return 0;
   }
   return 1;
 }
 
 /* ext_output_assembly
-   args: label (as string, num) or Nil, opcode (as string), arguments
+   args: label (as string, num) or Nil, (instr with args list) 
 */
 VALUE ext_output_assembly(VALUE *args, int argn) {
-
-  if (argn < 3)  return enc_sym(symrepr_eerror());
-
+  
+  if (argn != 2)  return enc_sym(symrepr_eerror());
+  
   /* Print potential label */
   if (type_of(args[0]) == PTR_TYPE_CONS) {
     VALUE name = car(cdr(args[0]));
@@ -141,6 +182,7 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
 	break;
       }
       default:
+	printf("Error in asm-out 1\n");
 	return enc_sym(symrepr_eerror());
 	break;
       }
@@ -150,38 +192,34 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
     fprintf(out_file,"\t\t");
   }
 
-  /* print opcode */
-  if (type_of(args[1]) == PTR_TYPE_ARRAY) {
-    array_header_t *array = (array_header_t *)(car(args[1]));
-    switch (array->elt_type){
-    case VAL_TYPE_CHAR: {
-      char *data = (char *)array + 8;
-      fprintf(out_file,"%s\t", data);
-      break;
-    }
-    default:
-      return enc_sym(symrepr_eerror());
-      break;
+  /* Print instruction opcode and potential arguments */
+
+  if (type_of(args[1]) == PTR_TYPE_CONS) {
+    VALUE op_args = args[1];
+    
+    /* Try to print the instr and argument list */
+    VALUE curr = op_args;
+    while (type_of(curr) != VAL_TYPE_SYMBOL) {
+      if (!output_arg_assembly(car(curr))) {
+	printf("Error in asm-out (argument output)\n");
+	return enc_sym(symrepr_eerror());
+      }
+      fprintf(out_file,"\t");
+      curr = cdr(curr);
     }
   } else {
+    printf("Error in asm-out 3\n");
     return enc_sym(symrepr_eerror());
   }
-
-  for (int i = 2; i < argn; i ++) {
-    if (!output_arg_assembly(args[i])) {
-      return enc_sym(symrepr_eerror());
-    }
-    fprintf(out_file," ");
-  }
   fprintf(out_file,"\n");
-  return enc_sym(symrepr_nil());
+  return enc_sym(symrepr_nil());  
 }
-
+ 
 /* ext_output_bytecode
- args: opcode, arguments
- */
+   args: opcode, arguments
+*/
 VALUE ext_output_bytecode(VALUE *args, int argn) {
-
+   
   return enc_sym(symrepr_nil());
 }
 
@@ -441,7 +479,7 @@ int main(int argc, char **argv) {
   free(file_str);
 
   UINT compiler;
-  if (symrepr_lookup("compile-program", &compiler));
+  if (symrepr_lookup("gen-asm", &compiler));
   VALUE invoce_compiler = cons(cons (enc_sym(compiler),
 				     cons(cons (enc_sym(symrepr_quote()),
 						cons (input_prg, enc_sym(symrepr_nil()))),
