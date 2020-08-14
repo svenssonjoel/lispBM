@@ -4,7 +4,7 @@
 ;; while peeking a lot in the SICP book.
 
 
-;; Symbols that are used within the compiled code 
+;; Symbols that are used within the compiled code
 (define symbol-indirections '())
 (define indirection-counter 1u28)
 
@@ -14,7 +14,7 @@
 (define new-indirection
     (lambda (sym)
       (let ((exists (lookup sym symbol-indirections)))
-	(if exists	
+	(if exists
 	    (cdr exists)
 	    (let ((indirection (mk-sym-indirect indirection-counter))
 		  (mapping (cons sym (cons (cons (sym-to-str sym) indirection) '()))))
@@ -30,7 +30,7 @@
 		   argl
 		   cont))
 
-(define all-instrs '(jmpcnt      ;; pc <- cont 
+(define all-instrs '(jmpcnt      ;; pc <- cont
 		     jmpimm      ;; pc <- reg
 		     jmpval      ;; pc <- val
 		     movimm      ;; reg <- imm
@@ -42,9 +42,9 @@
 		     ;; pc <- if (!is-fundamental proc) (+ pc 1)
 		     exenvargl   ;; env <- cons env (cons symbol (car argl)); argl <- (cdr argl)
 		     exenvval    ;; env <- cons env (cons symbol val)
-		     cons        ;; reg0 <- cons reg0 (cons symbol reg1) 
-		     consimm     ;; reg <- cons reg (cons symbol imm) 
-		     cdr         ;; reg0 <- cdr reg1 
+		     cons        ;; reg0 <- cons reg0 (cons symbol reg1)
+		     consimm     ;; reg <- cons reg (cons symbol imm)
+		     cdr         ;; reg0 <- cdr reg1
 		     cadr        ;; reg0 <- cadr reg1
 		     caddr       ;; reg0 <- caddr reg1
 		     car         ;; reg0 <- car reg1
@@ -58,7 +58,7 @@
       (jmpval       1)
       (movimm       6)
       (mov          3)
-      (lookup       6) 
+      (lookup       6)
       (setglbval    5)
       (push         2)
       (pop          2)
@@ -300,7 +300,7 @@
 				      `((movimm ,target ,exp))))))
 
 ;; Compiling a quoted expression results in
-;; code that re-creates the quoted expression on the heap. 
+;; code that re-creates the quoted expression on the heap.
 (define compile-quoted
     (lambda (exp target linkage)
       (end-with-linkage linkage
@@ -380,7 +380,7 @@
 	     (compile-instr-list (car (cdr keyval)) 'val 'next))
 	    (var (car keyval))
 	    (i (new-indirection var)))
-	(append-two-instr-seqs get-value-code			     
+	(append-two-instr-seqs get-value-code
 			       (mk-instr-seq '(val) (list 'env)
 					     `((exenvval ,i)))))))
 
@@ -413,10 +413,10 @@
 
 
 (define compile-lambda-body
-    (lambda (exp proc-entry)   
+    (lambda (exp proc-entry)
       (let ((formals (car (cdr exp))))
 	(append-two-instr-seqs
-	 (append-two-instr-seqs 
+	 (append-two-instr-seqs
 	  (mk-instr-seq '(env proc argl) '(env)
 			`(,proc-entry
 			  (caddr env proc)))
@@ -569,8 +569,7 @@
 
 (define compile-program
     (lambda (exp)
-      (append-two-instr-seqs 
+      (append-two-instr-seqs
        (compile-progn exp 'val 'next)
        (mk-instr-seq () ()
 		     '((done))))))
-
