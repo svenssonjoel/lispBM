@@ -50,6 +50,7 @@
 #include "tokpar.h"
 #include "prelude.h"
 #include "extensions.h"
+#include "env.h"
 
 #define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(10*4096)
 #define REPL_WA_SIZE THD_WORKING_AREA_SIZE(4096)
@@ -131,10 +132,10 @@ VALUE ext_print(VALUE *args, int argn) {
     VALUE t = args[i];
 
     if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
-      array_t *array = (array_t *)car(t);
+      array_header_t *array = (array_header_t *)car(t);
       switch (array->elt_type){
       case VAL_TYPE_CHAR:
-	chprintf(chp,"%s", array->data.c);
+	chprintf(chp,"%s", (char*)array + 8);
 	break;
       default:
 	return enc_sym(symrepr_nil());
@@ -231,7 +232,7 @@ static THD_FUNCTION(repl, arg) {
     } else if (strncmp(str, ":info", 5) == 0) {
       chprintf(chp,"##(ChibiOS)#################################################\r\n");
       chprintf(chp,"Used cons cells: %lu \r\n", heap_size - heap_num_free());
-      res = print_value(outbuf,2048, error, 1024, eval_cps_get_env());
+      res = print_value(outbuf,2048, error, 1024, *env_get_global_ptr());
       if (res >= 0) {
 	chprintf(chp,"ENV: %s \r\n", outbuf);
       } else {

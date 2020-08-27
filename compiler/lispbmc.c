@@ -132,7 +132,6 @@ int output_arg_assembly(VALUE arg) {
     break;
   }
   
-
     /* LABEL */
   case PTR_TYPE_CONS: {
     name = car(cdr(arg));
@@ -481,33 +480,33 @@ int main(int argc, char **argv) {
   free(file_str);
 
   UINT compiler;
-  if (symrepr_lookup("gen-asm", &compiler));
-  VALUE invoce_compiler = cons(cons (enc_sym(compiler),
-				     cons(cons (enc_sym(symrepr_quote()),
-						cons (input_prg, enc_sym(symrepr_nil()))),
-					  enc_sym(symrepr_nil()))),
-			       enc_sym(symrepr_nil()));
+  if (symrepr_lookup("gen-asm", &compiler)) {
+    VALUE invoce_compiler = cons(cons (enc_sym(compiler),
+				       cons(cons (enc_sym(symrepr_quote()),
+						  cons (input_prg, enc_sym(symrepr_nil()))),
+					    enc_sym(symrepr_nil()))),
+				 enc_sym(symrepr_nil()));
+    
+    r = print_value(output, 1024, error, 1024, invoce_compiler);
+    if (r >= 0) {
+      printf("> %s\n", output );
+    } else {
+      printf("%s\n", error);
+    }
 
 
-  printf("Compiler invocation command\n");
-  r = print_value(output, 1024, error, 1024, invoce_compiler);
-  if (r >= 0) {
-    printf("> %s\n", output );
+    VALUE compiled_res = ec_eval_program(invoce_compiler);
+
+    r = print_value(output, 1024, error, 1024, compiled_res);
+    if (r >= 0) {
+      printf("> %s\n", output );
+    } else {
+      printf("%s\n", error);
+    }
   } else {
-    printf("%s\n", error);
+    printf("Error: Compiler not present\n");
   }
-
-
-  VALUE compiled_res = ec_eval_program(invoce_compiler);
-
-  printf("Compilation result\n");
-  r = print_value(output, 1024, error, 1024, compiled_res);
-  if (r >= 0) {
-    printf("> %s\n", output );
-  } else {
-    printf("%s\n", error);
-  }
-
+  
   symrepr_del();
   heap_del();
 

@@ -54,7 +54,7 @@
 		     push        ;; stack[sp] <- reg; sp++
 		     pop         ;; reg <- stack[--sp]
 		     bpf         ;; pc <- if (is-fundamental proc) (jmpaddress proc)
-		     ;; pc <- if (!is-fundamental proc) (+ pc 1)
+		                 ;; pc <- if (!is-fundamental proc) (+ pc 1)
 		     exenvargl   ;; env <- cons env (cons symbol (car argl)); argl <- (cdr argl)
 		     exenvval    ;; env <- cons env (cons symbol val)
 		     cons        ;; reg0 <- cons reg0 (cons symbol reg1)
@@ -602,7 +602,4 @@
     (lambda (prg)
       (let ((ir (compile-program prg))
 	    (ir-ops (car (cdr (cdr ir)))))
-	(progn
-	  (ops-out nil ir-ops)
-	  symbol-indirections
-	  ))))
+	  (ops-out nil ir-ops))))
