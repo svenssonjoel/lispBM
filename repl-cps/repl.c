@@ -38,7 +38,7 @@
 
 #define EVAL_CPS_STACK_SIZE 256
 
-bool allow_print = true;
+static volatile bool allow_print = true;
 
 struct termios old_termios;
 struct termios new_termios;
@@ -88,7 +88,6 @@ int inputline(char *buffer, unsigned int size) {
       nanosleep(&s, &r);
       continue;
     }
-    allow_print = false; 
     switch (c) {
     case 127: /* fall through to below */
     case '\b': /* backspace character received */
@@ -355,6 +354,9 @@ int main(int argc, char **argv) {
       }
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
       allow_print = true;
+      continue;
+    } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
+      allow_print = false;
       continue;
     } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;

@@ -42,7 +42,10 @@
 #define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ; }
 #define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ctx->r; }
 #define FOF(x)  if  (!(x)) { ctx_running->done = true; error_ctx(enc_sym(symrepr_fatal_error()));return;}
-#define ERROR printf("Line: %d\n", __LINE__);
+
+#define ERROR 
+//#define ERROR printf("Line: %d\n", __LINE__);
+
 #define DEFAULT_SLEEP_US  1000
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
@@ -547,7 +550,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
     }
 
     // It may be an extension
-    printf("Trying to apply to: %u\n", dec_sym(fun));
+    // printf("Trying to apply to: %u\n", dec_sym(fun));
 
     extension_fptr f = extensions_lookup(dec_sym(fun));
     if (f == NULL) {
