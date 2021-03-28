@@ -47,9 +47,6 @@ void main(void)
 {
 
   start_usb_cdc_thread();
-
-  /* If this sleep is needed here we can just as well not start up 
-     the USB in another thread */
   
   k_sleep(K_SECONDS(5));
 
