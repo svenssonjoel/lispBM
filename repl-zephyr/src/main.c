@@ -48,6 +48,9 @@ void main(void)
 
   start_usb_cdc_thread();
 
+  /* If this sleep is needed here we can just as well not start up 
+     the USB in another thread */
+  
   k_sleep(K_SECONDS(5));
 
   usb_printf("Allocating input/output buffers\r\n");
@@ -105,6 +108,8 @@ void main(void)
     usb_printf("# ");
     memset(str,0,LISPBM_INPUT_BUFFER_SIZE);
     memset(outbuf,0, LISPBM_OUTPUT_BUFFER_SIZE);
+
+    /* While loop handles empty lines */
     while ( usb_readl(str, LISPBM_INPUT_BUFFER_SIZE) == 0) {
       k_sleep(K_MSEC(100));
     }
