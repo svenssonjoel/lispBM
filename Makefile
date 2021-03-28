@@ -29,9 +29,9 @@ ifeq ($(PLATFORM), stm32f4)
   CCFLAGS += -D_PRELUDE
 endif
 
-ifeq ($(PLATFORM), nrf52840_pca10056)
+ifeq ($(PLATFORM), nrf52840)
   CROSS_COMPILE = arm-none-eabi-
-  BUILD_DIR = build/nrf52840_pca10056
+  BUILD_DIR = build/nrf52840
   CCFLAGS =  -mcpu=cortex-m4  -mthumb -ffunction-sections -fdata-sections -mabi=aapcs -march=armv7e-m -O2 -Wall -Wextra -pedantic
   CCFLAGS += -D_PRELUDE
 endif
