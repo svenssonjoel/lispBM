@@ -43,7 +43,7 @@
 #define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error()); return ctx->r; }
 #define FOF(x)  if  (!(x)) { ctx_running->done = true; error_ctx(enc_sym(symrepr_fatal_error()));return;}
 
-#define ERROR 
+#define ERROR
 //#define ERROR printf("Line: %d\n", __LINE__);
 
 #define DEFAULT_SLEEP_US  1000
@@ -268,7 +268,7 @@ CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
   eval_context_t *ctx = NULL;
   ctx = malloc(sizeof(eval_context_t));
   if (ctx == NULL) return 0;
-  
+
   ctx->program = cdr(program);
   ctx->curr_exp = car(program);
   ctx->curr_env = env;
@@ -794,17 +794,17 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
     if (is_special(ctx->curr_exp) ||
 	(extensions_lookup(dec_sym(ctx->curr_exp)) != NULL)) {
       // Special symbols and extension symbols evaluate to themself
-      value = ctx->curr_exp; 
-    } else { 
+      value = ctx->curr_exp;
+    } else {
       // If not special, check if there is a binding in the environments
       value = env_lookup(ctx->curr_exp, ctx->curr_env);
       if (type_of(value) == VAL_TYPE_SYMBOL &&
 	  dec_sym(value) == symrepr_not_found()) {
-	
+
 	value = env_lookup(ctx->curr_exp, *env_get_global_ptr());
       }
     }
-  
+
     ctx->app_cont = true;
     ctx->r = value;
     break;
@@ -871,7 +871,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
 	  return;
 	}
 	FOF(push_u32_3(&ctx->K, env, cdr(exps), enc_u(PROGN_REST)));
-	ctx->curr_exp = car(exps); 
+	ctx->curr_exp = car(exps);
 	ctx->curr_env = env;
 	return;
       }
@@ -1071,7 +1071,7 @@ int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
 
   NIL = enc_sym(symrepr_nil());
   NONSENSE = enc_sym(symrepr_nonsense());
- 
+
   VALUE nil_entry = cons(NIL, NIL);
   *env_get_global_ptr() = cons(nil_entry, *env_get_global_ptr());
 
