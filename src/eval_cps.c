@@ -113,6 +113,8 @@ void enqueue_ctx(eval_context_t *ctx) {
   }
 }
 
+/* End exection of the running context and add it to the
+   list of finished contexts. */
 void finish_ctx(void) {
   if (ctx_done == NULL) {
     ctx_running->prev = NULL;
