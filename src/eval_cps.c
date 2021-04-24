@@ -292,6 +292,7 @@ CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
   return ctx->id;
 }
 
+/* Advance execution to the next expression in the program */
 void advance_ctx(void) {
 
   if (type_of(ctx_running->program) == PTR_TYPE_CONS) {
