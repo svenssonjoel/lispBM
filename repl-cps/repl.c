@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
 
   heap_state_t heap_state;
 
-  setup_terminal();
+  //setup_terminal();
 
   unsigned char *memory = malloc(MEMORY_SIZE_16K);
   unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
@@ -375,7 +375,7 @@ int main(int argc, char **argv) {
   symrepr_del();
   heap_del();
 
-  restore_terminal();
+  //restore_terminal();
   
   return 0;
 }
