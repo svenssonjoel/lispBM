@@ -19,6 +19,7 @@
 #define _EXP_KIND_H_
 
 #include "heap.h"
+#include "symrepr.h"
 
 typedef enum {
   EXP_KIND_ERROR,
@@ -36,6 +37,51 @@ typedef enum {
   EXP_OR
 } exp_kind;
 
-extern exp_kind exp_kind_of(VALUE exp);
+static inline exp_kind exp_kind_of(VALUE exp) {
+
+  switch (type_of(exp)) {
+  case VAL_TYPE_SYMBOL:
+    if (!is_special(exp))
+      return EXP_VARIABLE;
+    // fall through
+  case PTR_TYPE_BOXED_F:
+  case PTR_TYPE_BOXED_U:
+  case PTR_TYPE_BOXED_I:
+  case VAL_TYPE_I:
+  case VAL_TYPE_U:
+  case VAL_TYPE_CHAR:
+  case PTR_TYPE_ARRAY:
+    return EXP_SELF_EVALUATING;
+  case PTR_TYPE_CONS: {
+    VALUE head = car(exp);
+    if (type_of(head) == VAL_TYPE_SYMBOL) {
+      UINT sym_id = dec_sym(head);
+
+      if (sym_id == symrepr_and())
+	return EXP_AND;
+      if (sym_id == symrepr_or())
+	return EXP_OR;
+      if (sym_id == symrepr_quote())
+	return EXP_QUOTED;
+      if (sym_id == symrepr_define())
+	return EXP_DEFINE;
+      if (sym_id == symrepr_progn())
+	return EXP_PROGN;
+      if (sym_id == symrepr_lambda())
+	return EXP_LAMBDA;
+      if (sym_id == symrepr_if())
+	return EXP_IF;
+      if (sym_id == symrepr_let())
+	return EXP_LET;
+      if (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
+	  dec_sym(cdr(exp)) == symrepr_nil()) {
+	return EXP_NO_ARGS;
+      }
+    } // end if symbol
+    return EXP_APPLICATION;
+  } // end case PTR_TYPE_CONS:
+  }
+  return EXP_KIND_ERROR;
+}
 
 #endif
