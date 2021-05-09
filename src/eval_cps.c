@@ -23,6 +23,7 @@
 #include "fundamental.h"
 #include "extensions.h"
 #include "typedefs.h"
+#include "exp_kind.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif

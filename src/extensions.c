@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2019, 2021 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,7 +20,12 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "memory.h"
 #include "extensions.h"
+
+#define SYM 0
+#define FPTR 1
+#define NEXT 2
 
 typedef struct s_extension_function{
   VALUE sym;
@@ -28,15 +33,15 @@ typedef struct s_extension_function{
   struct s_extension_function* next;
 } extension_function_t;
 
-extension_function_t* extensions = NULL;
+uint32_t* extensions = NULL;
 
 extension_fptr extensions_lookup(UINT sym) {
-  extension_function_t *t = extensions;
+  uint32_t *t = extensions;
   while (t != NULL) {
-    if (t->sym == sym) {
-      return t->ext_fun;
+    if (t[SYM] == sym) {
+      return (extension_fptr)t[FPTR];
     }
-    t = t->next;
+    t = (uint32_t*)t[NEXT];
   }
   return NULL;
 }
@@ -47,23 +52,22 @@ bool extensions_add(char *sym_str, extension_fptr ext) {
 
   if (!res) return false;
 
-  extension_function_t *extension = malloc(sizeof(extension_function_t));
+  uint32_t *m = memory_allocate(3); /* 3 words */
 
-  if (!extension) return false;
+  if (!m) return false;
 
-  extension->sym = symbol;
-  extension->ext_fun = ext;
-  extension->next = extensions;
-  extensions = extension;
+  m[SYM] = symbol;
+  m[FPTR] = (uint32_t) ext;
+  m[NEXT] = (uint32_t) extensions;
   return true;
 }
 
 void extensions_del(void) {
-  extension_function_t *curr = extensions;
-  extension_function_t *t;
+  uint32_t *curr = extensions;
+  uint32_t *t;
   while (curr) {
     t = curr;
-    curr = curr->next;
+    curr = (uint32_t*)curr[NEXT];
     free(t);
   }
   extensions = NULL;

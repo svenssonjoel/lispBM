@@ -72,6 +72,8 @@
 #ifndef _MEMORY_H_
 #define _MEMORY_H_
 
+#include <stdint.h>
+
 #define MEMORY_SIZE_64BYTES_TIMES_X(X) (64*(X))
 #define MEMORY_BITMAP_SIZE(X) (4*(X))
 

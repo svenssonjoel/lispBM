@@ -38,6 +38,35 @@ TODO: Need to find a good reference to read up on this.
 0FFF FFFF  256MB     4
 1FFF FFFF  512MB     3
 
+
+--- May 9 2021 ---
+Actually now I am much more interested in way smaller memories ;)
+
+0000 0000  Size    Free bits
+0000 0FFF   4KB     20          |
+0000 1FFF   8KB     19          |
+0000 3FFF  16KB     18          |
+0000 7FFF  32KB     17          |
+0000 FFFF  64KB     16          |
+0001 FFFF  128KB    15          |
+0003 FFFF  256KB    14          | - This range is very interesting.
+0007 FFFF  512KB    13
+000F FFFF  1MB      12
+001F FFFF  2MB      11
+003F FFFF  4MB      10
+007F FFFF  8MB       9
+00FF FFFF  16MB      8
+01FF FFFF  32MB      7
+03FF FFFF  64MB      6
+07FF FFFF  128MB     5
+0FFF FFFF  256MB     4
+1FFF FFFF  512MB     3
+
+Those are the kind of platforms that are fun... so a bunch of
+wasted bits in heap pointers if we run on small MCUs.
+
+-----------------
+
 it is also the case that not all addresses will be used if all "cells" are
 of the same size, 8 bytes...
 
@@ -166,7 +195,7 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define PTR_TYPE_BOXED_F            0x40000000u
 #define PTR_TYPE_SYMBOL_INDIRECTION 0x50000000u
 
-#define PTR_TYPE_BYTECODE           0xC0000000u 
+#define PTR_TYPE_BYTECODE           0xC0000000u
 #define PTR_TYPE_ARRAY              0xD0000000u
 #define PTR_TYPE_REF                0xE0000000u //untyped reference to memory location
 #define PTR_TYPE_STREAM             0xF0000000u
@@ -178,7 +207,7 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define VAL_TYPE_MASK               0x0000000Cu
                                                 //    gc ptr
 #define VAL_TYPE_SYMBOL             0x00000000u // 00  0   0
-#define VAL_TYPE_CHAR               0x00000004u // 01  0   0 
+#define VAL_TYPE_CHAR               0x00000004u // 01  0   0
 #define VAL_TYPE_I                  0x00000008u // 10  0   0
 #define VAL_TYPE_U                  0x0000000Cu // 11  0   0
 
@@ -190,7 +219,7 @@ typedef struct {
 } cons_t;
 
 typedef struct {
-  cons_t  *heap;            
+  cons_t  *heap;
   bool  malloced;           // allocated by heap_init
   VALUE freelist;           // list of free cons cells.
 
@@ -372,12 +401,12 @@ static inline bool is_number(VALUE x) {
 static inline bool is_special(VALUE symrep) {
   return ((type_of(symrep) == VAL_TYPE_SYMBOL) &&
 	  (dec_sym(symrep) < MAX_SPECIAL_SYMBOLS));
-}  
+}
 
 static inline bool is_fundamental(VALUE symrep) {
   return ((type_of(symrep) == VAL_TYPE_SYMBOL)  &&
 	  (dec_sym(symrep) >= FUNDAMENTALS_START) &&
-	  (dec_sym(symrep) <= FUNDAMENTALS_END));	    
+	  (dec_sym(symrep) <= FUNDAMENTALS_END));
 }
 
 static inline bool is_closure(VALUE exp) {
