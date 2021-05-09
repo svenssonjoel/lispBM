@@ -34,6 +34,7 @@
 #include "compression.h"
 #include "memory.h"
 #include "env.h"
+#include "extensions.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 
@@ -55,6 +56,38 @@ void sleep_callback(uint32_t us) {
   s.tv_nsec = (long)us * 1000;
   nanosleep(&s, &r);
 }
+
+VALUE ext_even(VALUE *args, int argn) {
+
+  if (argn < 1) return enc_sym(symrepr_nil());
+
+  VALUE v = args[0];
+  
+  if (val_type(v) == VAL_TYPE_I ||
+      val_type(v) == VAL_TYPE_U) {
+    if (dec_i(v) % 2 == 0)
+      return enc_sym(symrepr_true());
+  }
+
+  return enc_sym(symrepr_nil());
+}
+
+VALUE ext_odd(VALUE *args, int argn) {
+
+  if (argn < 1) return enc_sym(symrepr_nil());
+
+  VALUE v = args[0];
+
+  if (val_type(v) == VAL_TYPE_I ||
+      val_type(v) == VAL_TYPE_U) {
+    if (dec_i(v) % 2 == 1)
+      return enc_sym(symrepr_true());
+  }
+
+  return enc_sym(symrepr_nil());
+}
+
+
 
 int main(int argc, char **argv) {
 
@@ -155,6 +188,7 @@ int main(int argc, char **argv) {
     printf("Evaluator initialized.\n");
   else {
     printf("Error initializing evaluator.\n");
+    return 0;
   }
 
   res = env_init();
@@ -162,6 +196,23 @@ int main(int argc, char **argv) {
     printf("Environment initialized.\n");
   else {
     printf("Error initializing environment.\n");
+    return 0;
+  }
+
+  res = extensions_add("ext-even", ext_even);
+  if (res) 
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+   res = extensions_add("ext-odd", ext_odd);
+  if (res) 
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
   }
   
   eval_cps_set_timestamp_us_callback(timestamp_callback);

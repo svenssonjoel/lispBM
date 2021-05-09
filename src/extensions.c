@@ -27,11 +27,11 @@
 #define FPTR 1
 #define NEXT 2
 
-typedef struct s_extension_function{
-  VALUE sym;
-  extension_fptr ext_fun;
-  struct s_extension_function* next;
-} extension_function_t;
+/* typedef struct s_extension_function{ */
+/*   VALUE sym; */
+/*   extension_fptr ext_fun; */
+/*   struct s_extension_function* next; */
+/* } extension_function_t; */
 
 uint32_t* extensions = NULL;
 
@@ -59,6 +59,7 @@ bool extensions_add(char *sym_str, extension_fptr ext) {
   m[SYM] = symbol;
   m[FPTR] = (uint32_t) ext;
   m[NEXT] = (uint32_t) extensions;
+  extensions = m;
   return true;
 }
 

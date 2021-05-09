@@ -34,8 +34,41 @@
 #include "prelude.h"
 #include "compression.h"
 #include "memory.h"
+#include "extensions.h"
 
 #define EVAL_CPS_STACK_SIZE 256
+
+
+VALUE ext_even(VALUE *args, int argn) {
+
+  if (argn < 1) return enc_sym(symrepr_nil());
+
+  VALUE v = args[0];
+  
+  if (val_type(v) == VAL_TYPE_I ||
+      val_type(v) == VAL_TYPE_U) {
+    if (dec_i(v) % 2 == 0)
+      return enc_sym(symrepr_true());
+  }
+
+  return enc_sym(symrepr_nil());
+}
+
+VALUE ext_odd(VALUE *args, int argn) {
+
+  if (argn < 1) return enc_sym(symrepr_nil());
+
+  VALUE v = args[0];
+  
+  if (val_type(v) == VAL_TYPE_I ||
+      val_type(v) == VAL_TYPE_U) {
+    if (dec_i(v) % 2 == 1)
+      return enc_sym(symrepr_true());
+  }
+
+  return enc_sym(symrepr_nil());
+}
+
 
 int main(int argc, char **argv) {
 
@@ -133,6 +166,22 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  res = extensions_add("ext-even", ext_even);
+  if (res) 
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = extensions_add("ext-odd", ext_odd);
+  if (res) 
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+  
   if (!use_ec_eval) {
     res = eval_cps_init_nc(EVAL_CPS_STACK_SIZE, growing_continuation_stack);
     if (res)
