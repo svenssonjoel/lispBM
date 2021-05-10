@@ -1,2 +1,0 @@
-ch.exe
-PAUSE

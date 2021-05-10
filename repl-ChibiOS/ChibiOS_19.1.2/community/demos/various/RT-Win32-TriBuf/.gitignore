@@ -1,9 +1,0 @@
-*.origin
-*.swp
-*~
-.dep
-build
-*.o
-*.exe
-*.lst
-*.map
