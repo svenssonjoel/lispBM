@@ -92,7 +92,7 @@ endif
 PROJECT = lisp_test
 
 # Imported source files and paths
-CHIBIOS  := ChibiOS_19.1.2
+CHIBIOS  := ../../ChibiOS_19.1.2
 BUILDDIR := ./build
 DEPDIR   := ./.dep
 
