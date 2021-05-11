@@ -21,27 +21,28 @@
 #include <ctype.h>
 #include <getopt.h>
 
-
 #include "heap.h"
 #include "symrepr.h"
-#include "builtin.h"
 #include "eval_cps.h"
 #include "print.h"
 #include "tokpar.h"
 #include "prelude.h"
 #include "compression.h"
+#include "memory.h"
+
+#define EVAL_CPS_STACK_SIZE 256
 
 int main(int argc, char **argv) {
 
   int res = 0;
 
-  unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard  
+  unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard
   bool growing_continuation_stack = false;
   bool compress_decompress = false;
 
   int c;
   opterr = 1;
-  
+
   while (( c = getopt(argc, argv, "gch:")) != -1) {
     switch (c) {
     case 'h':
@@ -94,6 +95,19 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  unsigned char *memory = malloc(MEMORY_SIZE_16K);
+  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
+  if (memory == NULL || bitmap == NULL) return 0;
+  
+  res = memory_init(memory, MEMORY_SIZE_16K,
+		    bitmap, MEMORY_BITMAP_SIZE_16K);
+  if (res)
+    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
+  else {
+    printf("Error initializing memory!\n");
+    return 0;
+  }
+  
   res = symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");
@@ -110,15 +124,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = builtin_init();
-  if (res)
-    printf("Built in functions initialized.\n");
-  else {
-    printf("Error initializing built in functions.\n");
-    return 0;
-  }
-
-  res = eval_cps_init(growing_continuation_stack);
+  res = eval_cps_init_nc(EVAL_CPS_STACK_SIZE, false);
   if (res)
     printf("Evaluator initialized.\n");
   else {
@@ -126,7 +132,7 @@ int main(int argc, char **argv) {
   }
 
   VALUE prelude = prelude_load();
-  eval_cps_program(prelude);
+  eval_cps_program_nc(prelude);
 
   VALUE t;
   
@@ -148,16 +154,21 @@ int main(int argc, char **argv) {
   } 
   //printf("I: "); simple_print(t); printf("\n");
 
-  t = eval_cps_program(t);
+  t = eval_cps_program_nc(t);
 
-  printf("Result: "); simple_print(t); printf("\n");
+  char output[1024];
+  char error[1024];
+  
+  int v =  print_value(output,1024,error,1024,t);
 
-  if ( dec_sym(t) == symrepr_eerror()) {
-    res = 0;
+  if (v >= 0) {
+    printf("> %s\n", output);
+  } else {
+    printf("> %s\n", error);
   }
-
+  
   symrepr_del();
   heap_del();
 
-  return res;
+  return v;
 }
