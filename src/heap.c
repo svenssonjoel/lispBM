@@ -517,10 +517,12 @@ int heap_allocate_array(VALUE *res, unsigned int size, TYPE type){
   // allocating a cell that will, to start with, be a cons cell.
   VALUE cell  = heap_allocate_cell(PTR_TYPE_CONS);
 
-  if (type_of(cell) == VAL_TYPE_SYMBOL) // Out of heap memory
-    return cell;
+  if (type_of(cell) == VAL_TYPE_SYMBOL) { // Out of heap memory
+    *res = cell;
+    return 0;
+  }
 
-  int allocate_size = 0;
+  unsigned int allocate_size = 0;
   if (type == VAL_TYPE_CHAR) {
     if ( size % 4 == 0) {
       allocate_size = size >> 2;

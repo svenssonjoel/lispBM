@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 
-static UINT as_i(UINT a) {
+static INT as_i(UINT a) {
 
   UINT tmp;
   FLOAT f_tmp;
@@ -65,7 +65,7 @@ static UINT as_u(UINT a) {
   return 0;
 }
 
-static UINT as_f(UINT a) {
+static FLOAT as_f(UINT a) {
 
   UINT tmp;
   FLOAT f_tmp;
@@ -382,7 +382,7 @@ static UINT sub2(UINT a, UINT b) {
       break;
     case PTR_TYPE_BOXED_I:
       i0 = dec_I(t_max);
-      i1 = as_u(t_min);
+      i1 = as_i(t_min);
       retval = enc_I(i0 - i1);
       break;
     case PTR_TYPE_BOXED_F:
@@ -527,7 +527,7 @@ static int compare(UINT a, UINT b) {
       break;
     case PTR_TYPE_BOXED_I:
       i0 = dec_I(a);
-      i1 = as_u(b);
+      i1 = as_i(b);
       retval = cmpi(i0,i1,swapped);
       break;
     case PTR_TYPE_BOXED_F:
@@ -604,7 +604,7 @@ void array_read(VALUE *args, UINT nargs, UINT *result) {
       *result = set_ptr_type(*result, PTR_TYPE_BOXED_U);
       break;
     case PTR_TYPE_BOXED_I:
-      *result = cons(((INT*)array + 2)[ix], enc_sym(DEF_REPR_BOXED_I_TYPE));
+      *result = cons(((UINT*)array + 2)[ix], enc_sym(DEF_REPR_BOXED_I_TYPE));
       if (type_of(*result) == VAL_TYPE_SYMBOL) return;
       *result = set_ptr_type(*result, PTR_TYPE_BOXED_I);
       break;
