@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2019, 2021 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -77,12 +77,12 @@ typedef struct tcs{
 } tokenizer_char_stream;
 
 // Todo: Try to figure out how to do GC while reading
-static int gc() {
-  gc_state_inc();
-  gc_mark_freelist();
-  gc_mark_phase(*env_get_global_ptr());
-  return gc_sweep_phase();
-}
+/* static int gc() { */
+/*   gc_state_inc(); */
+/*   gc_mark_freelist(); */
+/*   gc_mark_phase(*env_get_global_ptr()); */
+/*   return gc_sweep_phase(); */
+/* } */
 
 bool more(tokenizer_char_stream str) {
   return str.more(str);
@@ -173,8 +173,8 @@ int tok_symbol(tokenizer_char_stream str, char** res) {
 
   if (!symchar0(peek(str,0)))  return 0;
 
-  int i = 0;
-  int len = 1;
+  unsigned int i = 0;
+  unsigned int len = 1;
   int n = 0;
 
   while (symchar((peek(str,len)))) {
@@ -185,18 +185,27 @@ int tok_symbol(tokenizer_char_stream str, char** res) {
   if (*res == NULL) return -1;
   memset(*res,0,len+1);
 
+  int c = 0;
+
   for (i = 0; i < len; i ++) {
-    (*res)[i] = tolower(get(str));
-    n++;
+    c = tolower(get(str));
+    if (c >= 0 && c <= 255) {
+      (*res)[i] = (char)c; 
+      n++;
+    } else {
+      return -1;
+    }
   }
-  return n;
+  /* means the longest len of a symbol allowed is 2^31-1 */
+  /* Should be a check that the length makes sense */
+  return (int)n;
 }
 
 int tok_string(tokenizer_char_stream str, char **res) {
 
-  int i = 0;
+  unsigned int i = 0;
   int n = 0;
-  int len = 0;
+  unsigned int len = 0;
   if (!(peek(str,0) == '\"')) return 0;
 
   get(str); // remove the " char
@@ -224,7 +233,8 @@ int tok_string(tokenizer_char_stream str, char **res) {
   }
 
   get(str);  // throw away the "
-  return (n+1);
+  /* The longest readable string is 2^31-1 characters. enforce this with a check */
+  return (int)(n+1);
 }
 
 int tok_char(tokenizer_char_stream str, char *res) {
@@ -255,7 +265,7 @@ int tok_char(tokenizer_char_stream str, char *res) {
 int tok_i(tokenizer_char_stream str, INT *res) {
 
   INT acc = 0;
-  int n = 0;
+  unsigned int n = 0;
 
   while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
     acc = (acc*10) + (peek(str,n) - '0');
@@ -270,12 +280,12 @@ int tok_i(tokenizer_char_stream str, INT *res) {
 
   drop(str,n);
   *res = acc;
-  return n;
+  return (int)n; /*check that isnt so high that it becomes a negative number when casted */
 }
 
 int tok_I(tokenizer_char_stream str, INT *res) {
   INT acc = 0;
-  int n = 0;
+  unsigned int n = 0;
 
   while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
     acc = (acc*10) + (peek(str,n) - '0');
@@ -287,17 +297,17 @@ int tok_I(tokenizer_char_stream str, INT *res) {
       peek(str,n+2) == '2') {
     *res = acc;
     drop(str,n+3);
-    return n+3;
+    return (int)(n+3);
   }
   return 0;
 }
 
 int tok_u(tokenizer_char_stream str, UINT *res) {
   UINT acc = 0;
-  int n = 0;
+  unsigned int n = 0;
 
   while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (peek(str,n) - '0');
+    acc = (acc*10) + (UINT)(peek(str,n) - '0');
     n++;
   }
 
@@ -306,14 +316,14 @@ int tok_u(tokenizer_char_stream str, UINT *res) {
       peek(str,n+2) == '8' ) {
     *res = acc;
     drop(str,n+3);
-    return n+3;
+    return (int)(n+3);
   }
   return 0;
 }
 
 int tok_U(tokenizer_char_stream str, UINT *res) {
   UINT acc = 0;
-  int n = 0;
+  unsigned int n = 0;
 
   // Check if hex notation is used
   if (peek(str,0) == '0' &&
@@ -324,23 +334,23 @@ int tok_U(tokenizer_char_stream str, UINT *res) {
 	    (peek(str,n) >= 'A' && peek(str,n) <= 'F')){
       UINT val;
       if (peek(str,n) >= 'a' && peek(str,n) <= 'f') {
-	val = 10 + (peek(str,n) - 'a');
+	val = 10 + (UINT)(peek(str,n) - 'a');
       } else if (peek(str,n) >= 'A' && peek(str,n) <= 'F') {
-	val = 10 + (peek(str,n) - 'A');
+	val = 10 + (UINT)(peek(str,n) - 'A');
       } else {
-	val = peek(str,n) - '0';
+	val = (UINT)peek(str,n) - '0';
       }
       acc = (acc * 0x10) + val;
       n++;
     }
     *res = acc;
     drop(str,n);
-    return n;
+    return (int)n;
   }
 
   // check if nonhex
   while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (peek(str,n) - '0');
+    acc = (acc*10) + (UINT)(peek(str,n) - '0');
     n++;
   }
 
@@ -349,15 +359,15 @@ int tok_U(tokenizer_char_stream str, UINT *res) {
       peek(str,n+2) == '2') {
     *res = acc;
     drop(str,n+3);
-    return n+3;
+    return (int)(n+3);
   }
   return 0;
 }
 
 int tok_F(tokenizer_char_stream str, FLOAT *res) {
 
-  int n = 0;
-  int m = 0;
+  unsigned int n = 0;
+  unsigned int m = 0;
   char fbuf[256];
 
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
@@ -371,14 +381,14 @@ int tok_F(tokenizer_char_stream str, FLOAT *res) {
   if (n > 255) m = 255;
   else m = n;
 
-  int i;
+  unsigned int i;
   for (i = 0; i < m; i ++) {
     fbuf[i] = get(str);
   }
 
   fbuf[i] = 0;
-  *res = strtod(fbuf, NULL);
-  return n;
+  *res = (float)strtod(fbuf, NULL);
+  return (int)n;
 }
 
 
@@ -448,7 +458,7 @@ token next_token(tokenizer_char_stream str) {
 
   n = tok_symbol(str, &t.data.text);
   if (n > 0) {
-    t.text_len = n;
+    t.text_len = (unsigned int)n;
     t.type = TOKSYMBOL;
     return t;
   } else if (n < 0) {
@@ -463,8 +473,8 @@ token next_token(tokenizer_char_stream str) {
   }
 
   n = tok_string(str, &t.data.text);
-  if (n > 0) {
-    t.text_len = n - 2;
+  if (n >= 2) {
+    t.text_len = (unsigned int)n - 2;
     t.type = TOKSTRING;
     return t;
   } else if (n < 0) {
@@ -573,7 +583,7 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
   case TOKCHAR:
     return enc_char(tok.data.c);
   case TOKBOXEDINT:
-    return set_ptr_type(cons(tok.data.i, enc_sym(DEF_REPR_BOXED_I_TYPE)), PTR_TYPE_BOXED_I);
+    return set_ptr_type(cons((VALUE)tok.data.i, enc_sym(DEF_REPR_BOXED_I_TYPE)), PTR_TYPE_BOXED_I);
   case TOKBOXEDUINT:
     return set_ptr_type(cons(tok.data.u, enc_sym(DEF_REPR_BOXED_U_TYPE)), PTR_TYPE_BOXED_U);
   case TOKBOXEDFLOAT:
