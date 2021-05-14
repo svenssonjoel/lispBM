@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -34,15 +34,16 @@
 #define END_LIST       5
 
 
-int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
+int print_value(char *buf,unsigned int len, char *error, unsigned int len_error, VALUE t) {
 
   VALUE stack_storage[PRINT_STACK_SIZE];
   
   stack s;
   stack_create(&s, stack_storage, PRINT_STACK_SIZE);
 
-  int n = 0;
-  int offset = 0;
+  int r = 0;
+  unsigned int n = 0;
+  unsigned int offset = 0;
   const char *str_ptr;
   int res;
   
@@ -60,7 +61,14 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       res = 1;
       pop_u32(&s, &curr);
       
-      n = snprintf(buf + offset, len - offset, "(");
+      r = snprintf(buf + offset, len - offset, "(");
+      if ( r >= 0 ) {
+	n = (unsigned int) r;
+      } else {
+	snprintf(error, len_error, "Error: print failed\n");
+	return -1;
+      }
+	
       offset += n;
       VALUE car_val = car(curr);
       VALUE cdr_val = cdr(curr);
@@ -100,7 +108,13 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       VALUE car_val = car(curr);
       VALUE cdr_val = cdr(curr);
 
-      n = snprintf(buf + offset, len - offset, " ");
+      r = snprintf(buf + offset, len - offset, " ");
+      if ( r > 0) {
+	n = (unsigned int) r;
+      } else {
+	snprintf(error, len_error, "Error: print failed\n");
+	return -1;
+      }
       offset += n;
 
       if (type_of(cdr_val) == PTR_TYPE_CONS) {
@@ -124,12 +138,25 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       break;
     }
     case END_LIST: 
-      n = snprintf(buf + offset, len - offset, ")");
+      r = snprintf(buf + offset, len - offset, ")");
+      if ( r > 0) {
+	n = (unsigned int) r;
+      } else {
+	snprintf(error, len_error, "Error: print failed\n");
+	return -1;
+      }
       offset += n;
       break;
 
     case PRINT_SPACE:
-      n = snprintf(buf + offset, len - offset, " ");
+      r = snprintf(buf + offset, len - offset, " ");
+      if ( r > 0) {
+	n = (unsigned int) r;
+      } else {
+	snprintf(error, len_error, "Error: print failed\n");
+	return -1;
+      }
+
       offset += n;
       break;
       
@@ -151,7 +178,13 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       }
 
       case PTR_TYPE_REF:
-	n = snprintf(buf + offset, len - offset, "_ref_");
+	r = snprintf(buf + offset, len - offset, "_ref_");
+	if ( r > 0) {
+	  n = (unsigned int) r;
+	} else {
+	  snprintf(error, len_error, "Error: print failed\n");
+	  return -1;
+	}
 	offset += n;
 	break;
 
@@ -159,21 +192,39 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 	VALUE uv = car(curr);
 	float v;
 	memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
-	n = snprintf(buf + offset, len - offset, "{%"PRI_FLOAT"}", v);
+	r = snprintf(buf + offset, len - offset, "{%"PRI_FLOAT"}", v);
+	if ( r > 0) {
+	  n = (unsigned int) r;
+	} else {
+	  snprintf(error, len_error, "Error: print failed\n");
+	  return -1;
+	}
 	offset += n;
 	break;
       }
 	
       case PTR_TYPE_BOXED_U: {
 	VALUE v = car(curr);
-	n = snprintf(buf + offset, len - offset, "{%"PRI_UINT"}", v);
+	r = snprintf(buf + offset, len - offset, "{%"PRI_UINT"}", v);
+	if ( r > 0) {
+	  n = (unsigned int) r;
+	} else {
+	  snprintf(error, len_error, "Error: print failed\n");
+	  return -1;
+	}
 	offset += n;
 	break;
       }
 	
       case PTR_TYPE_BOXED_I: {
 	int32_t v = (int32_t)car(curr);
-	n = snprintf(buf + offset, len - offset, "{%"PRI_INT"}", v);
+	r = snprintf(buf + offset, len - offset, "{%"PRI_INT"}", v);
+	if ( r > 0) {
+	  n = (unsigned int) r;
+	} else {
+	  snprintf(error, len_error, "Error: print failed\n");
+	  return -1;
+	}
 	offset += n;
 	break;
       }
@@ -182,7 +233,13 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 	array_header_t *array = (array_header_t *)car(curr);
 	switch (array->elt_type){
 	case VAL_TYPE_CHAR:
-	  n = snprintf(buf + offset, len - offset, "\"%s\"", (char *)(array)+8);
+	  r = snprintf(buf + offset, len - offset, "\"%s\"", (char *)(array)+8);
+	  if ( r > 0) {
+	    n = (unsigned int) r;
+	  } else {
+	    snprintf(error, len_error, "Error: print failed\n");
+	    return -1;
+	  }
 	  offset += n;
 	  break;
 	  break;
@@ -194,7 +251,13 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
       }
       case PTR_TYPE_SYMBOL_INDIRECTION: {
 	UINT v = dec_symbol_indirection(curr);
-	n = snprintf(buf + offset, len - offset, "*%"PRI_UINT"*", v);
+	r = snprintf(buf + offset, len - offset, "*%"PRI_UINT"*", v);
+	if ( r > 0) {
+	  n = (unsigned int) r;
+	} else {
+	  snprintf(error, len_error, "Error: print failed\n");
+	  return -1;
+	}
 	offset += n;
 	break;
       }
@@ -206,22 +269,46 @@ int print_value(char *buf,int len, char *error, int len_error, VALUE t) {
 	  snprintf(error, len_error, "Error: Symbol not in table %"PRI_UINT"", dec_sym(curr));
 	  return -1;
 	} 
-	n = snprintf(buf + offset, len - offset, "%s", str_ptr);
+	r = snprintf(buf + offset, len - offset, "%s", str_ptr);
+	if ( r > 0) {
+	  n = (unsigned int) r;
+	} else {
+	  snprintf(error, len_error, "Error: print failed\n");
+	  return -1;
+	}
 	offset += n;
 	break; //Break VAL_TYPE_SYMBOL
 	
       case VAL_TYPE_I:
-	n = snprintf(buf + offset, len - offset, "%"PRI_INT"", dec_i(curr));
+	r = snprintf(buf + offset, len - offset, "%"PRI_INT"", dec_i(curr));
+	if ( r > 0) {
+	  n = (unsigned int) r;
+	} else {
+	  snprintf(error, len_error, "Error: print failed\n");
+	  return -1;
+	}
 	offset += n;
 	break;
 	
       case VAL_TYPE_U:
-	n = snprintf(buf + offset, len - offset, "%"PRI_UINT"", dec_u(curr));
+	r = snprintf(buf + offset, len - offset, "%"PRI_UINT"", dec_u(curr));
+	if ( r > 0) {
+	  n = (unsigned int) r;
+	} else {
+	  snprintf(error, len_error, "Error: print failed\n");
+	  return -1;
+	}
 	offset += n;
 	break;
 	
       case VAL_TYPE_CHAR:
-	n = snprintf(buf + offset, len - offset, "\\#%c", dec_char(curr));
+	r = snprintf(buf + offset, len - offset, "\\#%c", dec_char(curr));
+	if ( r > 0) {
+	  n = (unsigned int) r;
+	} else {
+	  snprintf(error, len_error, "Error: print failed\n");
+	  return -1;
+	}
 	offset += n;
 	break;
 	
