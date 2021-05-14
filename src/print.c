@@ -329,10 +329,10 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
   if (!stack_is_empty(&s)) {
     snprintf(buf + (len - 5), 4, "...");
     buf[len-1] = 0;
-    return len;
+    return (int)len;
   }
 
   
-  return n;
+  return (int)n;
 }
 
