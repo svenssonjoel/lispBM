@@ -36,5 +36,6 @@ typedef float    FLOAT;
 #define PRI_FLOAT "f"
 
 typedef uint16_t CID;
+#define CID_MAX   65536
 
 #endif

@@ -162,7 +162,7 @@ void sleep_callback(uint32_t us) {
 }
 
 
-VALUE ext_print(VALUE *args, int argn) {
+VALUE ext_print(VALUE *args, UINT argn) {
   if (argn < 1) return enc_sym(symrepr_nil());
 
   if (!allow_print) return enc_sym(symrepr_true());
@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
   }
 
   VALUE prelude = prelude_load();
-  CID prelude_cid = eval_cps_program(prelude);
+  eval_cps_program(prelude);
     
   printf("Lisp REPL started!\n");
   printf("Type :quit to exit.\n");

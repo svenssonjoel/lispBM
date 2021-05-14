@@ -22,7 +22,7 @@
 #include "heap.h"
 #include "typedefs.h"
 
-typedef VALUE (*extension_fptr)(VALUE*,int);
+typedef VALUE (*extension_fptr)(VALUE*,UINT);
 
 extern extension_fptr extensions_lookup(UINT sym);
 extern bool extensions_add(char *sym_str, extension_fptr ext);

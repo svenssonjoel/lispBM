@@ -57,7 +57,7 @@ void sleep_callback(uint32_t us) {
   nanosleep(&s, &r);
 }
 
-VALUE ext_even(VALUE *args, int argn) {
+VALUE ext_even(VALUE *args, UINT argn) {
 
   if (argn < 1) return enc_sym(symrepr_nil());
 
@@ -72,7 +72,7 @@ VALUE ext_even(VALUE *args, int argn) {
   return enc_sym(symrepr_nil());
 }
 
-VALUE ext_odd(VALUE *args, int argn) {
+VALUE ext_odd(VALUE *args, UINT argn) {
 
   if (argn < 1) return enc_sym(symrepr_nil());
 

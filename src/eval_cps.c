@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -279,7 +279,11 @@ CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
   ctx->app_cont = false;
   ctx->timestamp = 0;
   ctx->sleep_us = 0;
-  ctx->id = next_ctx_id++;
+  if (next_ctx_id > CID_MAX) {
+    free(ctx);
+    return 0;
+  }
+  ctx->id = (uint16_t)next_ctx_id++;
   if (!stack_allocate(&ctx->K, stack_size, grow_stack)) {
     free(ctx);
     return 0;
@@ -393,7 +397,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
       return;
     }
 
-    VALUE cid_val = enc_i(next_ctx_id);
+    VALUE cid_val = enc_u((UINT)next_ctx_id); /* CIDS range from 0 - 65535, so this is fine */
     VALUE cid_list = cons(cid_val, ctx->r);
     if (type_of(cid_list) == VAL_TYPE_SYMBOL) {
       FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, rest, enc_u(SPAWN_ALL)));
@@ -416,7 +420,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
 
     VALUE cid_val;
     pop_u32(&ctx->K, &cid_val);
-    CID cid = dec_u(cid_val);
+    CID cid = (CID)dec_u(cid_val);
 
     VALUE r;
 
@@ -498,7 +502,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
       /* TODO: These should work any int type as argument */
       if (dec_sym(fun) == symrepr_yield()) {
 	if (type_of(fun_args[1]) == VAL_TYPE_I) {
-	  INT ts = dec_i(fun_args[1]);
+	  UINT ts = dec_u(fun_args[1]);
 	  stack_drop(&ctx->K, dec_u(count)+1);
 	  yield_ctx(ts);
 	} else {
@@ -510,7 +514,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
 
       if (dec_sym(fun) == symrepr_wait()) {
 	if (type_of(fun_args[1]) == VAL_TYPE_I) {
-	  CID cid = dec_i(fun_args[1]);
+	  CID cid = (CID)dec_u(fun_args[1]);
 	  stack_drop(&ctx->K, dec_u(count)+1);
 	  FOF(push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
 	  ctx->r = enc_sym(symrepr_true());

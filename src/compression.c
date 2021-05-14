@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2019, 2021 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -250,11 +250,11 @@ char *codes[NUM_CODES][2] = {
 int match_longest_key(char *string) {
 
   int longest_match_ix = -1;
-  int longest_match_length = 0;
-  int n = strlen(string);
+  unsigned int longest_match_length = 0;
+  unsigned int n = strlen(string);
 
   for (int i = 0; i < NUM_CODES; i ++) {
-    int s_len = strlen(codes[i][KEY]);
+    unsigned int s_len = strlen(codes[i][KEY]);
     if (s_len <= n) {
       if (strncmp(codes[i][KEY], string, s_len) == 0) {
 	if (s_len > longest_match_length) {
@@ -271,10 +271,10 @@ int match_longest_code(char *string, uint32_t start_bit, uint32_t total_bits) {
 
   uint32_t bits_left = total_bits - start_bit;
   int longest_match_ix = -1;
-  int longest_match_length = 0;
+  unsigned int longest_match_length = 0;
 
   for (int i = 0; i < NUM_CODES; i++) {
-    int s_len = strlen(codes[i][CODE]);
+    unsigned int s_len = strlen(codes[i][CODE]);
     if ((uint32_t)s_len <= bits_left) {
       bool match = true;
       for (uint32_t b = 0; b < (uint32_t)s_len; b ++) {
@@ -350,20 +350,23 @@ int compressed_length(char *string) {
       }
 
       if (ix == -1)return -1;
-      int code_len = strlen(codes[ix][1]);
-      comp_len += code_len;
+      unsigned int code_len = strlen(codes[ix][1]);
+      comp_len += (int)code_len;
       i += strlen(codes[ix][0]);
     }
   }
   return comp_len;
 }
 
-void set_bit(char *c, char bit_pos, bool set) {
-  char bval = 1 << bit_pos;
+void set_bit(char *c, int bit_pos, bool set) {
+  char bval = 0;
+  if (bit_pos <= 7) {
+    bval = (char)(1 << bit_pos);
+  }
   if (set) {
-    *c = *c | bval;
+    *c = (char)(*c | bval);
   } else {
-    *c = *c & ~bval;
+    *c = (char)(*c & ~bval);
   }
 }
 
@@ -379,9 +382,9 @@ void emit_string_char_code(char *compressed, char c, int *bit_pos) {
 }
 
 void emit_code(char *compressed, char *code, int *bit_pos) {
-  int n = strlen(code);
+  unsigned int n = strlen(code);
 
-  for (int i = 0; i < n; i ++) {
+  for (unsigned int i = 0; i < n; i ++) {
     int byte_ix = (*bit_pos) / 8;
     int bit_ix  = (*bit_pos) % 8;
     bool s = (code[i] == '1');
@@ -403,8 +406,8 @@ char read_character(char *src, uint32_t *bit_pos) {
   char c = 0;
 
   for (int i = 0; i < 8; i ++) {
-    int byte_ix = (*bit_pos)/8;
-    int bit_ix  = (*bit_pos)%8;
+    uint32_t byte_ix = (*bit_pos)/8;
+    uint32_t bit_ix  = (*bit_pos)%8;
     bool s = src[byte_ix] & (1 << bit_ix);
     set_bit(&c, i, s);
     *bit_pos = *bit_pos + 1;
@@ -414,7 +417,11 @@ char read_character(char *src, uint32_t *bit_pos) {
 
 char *compression_compress(char *string, uint32_t *res_size) {
 
-  uint32_t c_size_bits = compressed_length(string);
+  int c_size_bits_i = compressed_length(string);
+  uint32_t c_size_bits = 0;
+  if ( c_size_bits_i >= 0 ) {
+    c_size_bits = (uint32_t)compressed_length(string);
+  }
 
   uint32_t c_size_bytes = 4 + (c_size_bits/8);
   if (c_size_bits % 8 > 0) {
@@ -431,10 +438,10 @@ char *compression_compress(char *string, uint32_t *res_size) {
   *res_size = c_size_bytes;
   int bit_pos = 0;
 
-  compressed[0] = (unsigned char)header_value;
-  compressed[1] = (unsigned char)(header_value >> 8);
-  compressed[2] = (unsigned char)(header_value >> 16);
-  compressed[3] = (unsigned char)(header_value >> 24);
+  compressed[0] = (char)header_value;
+  compressed[1] = (char)(header_value >> 8);
+  compressed[2] = (char)(header_value >> 16);
+  compressed[3] = (char)(header_value >> 24);
   bit_pos = 32;
 
   bool string_mode = false;
@@ -539,10 +546,10 @@ int compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_
       s->last_string_char = 0;
     }
 
-    int n_bits_decoded = strlen(codes[ix][CODE]);
-    emit_key(dest_buff, codes[ix][KEY], strlen(codes[ix][KEY]), &char_pos);
+    unsigned int n_bits_decoded = strlen(codes[ix][CODE]);
+    emit_key(dest_buff, codes[ix][KEY], (int)strlen(codes[ix][KEY]), &char_pos);
     s->i+=n_bits_decoded;
-    return char_pos;
+    return (int)char_pos;
 
   } else {
     return 0;
