@@ -47,8 +47,13 @@
 #define TOKENIZER_ERROR 1024
 #define TOKENIZER_END   2048
 
-#define TOKENIZER_MAX_SYMBOL_LENGTH 255
-#define TOKENIZER_MAX_STRING_LENGTH 255
+#define TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH 255
+
+char sym_str[TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH];
+
+static void clear_sym_str(void) {
+  memset(sym_str,0,TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH);
+}
 
 typedef struct {
 
@@ -142,7 +147,7 @@ int tok_commaat(tokenizer_char_stream str) {
     return 2;
   }
   return 0;
-} 
+}
 
 int tok_comma(tokenizer_char_stream str) {
   if (peek(str,0) == ',') {
@@ -172,7 +177,7 @@ bool symchar(char c) {
   return false;
 }
 
-int tok_symbol(tokenizer_char_stream str, char** res) {
+int tok_symbol(tokenizer_char_stream str) {
 
   if (!symchar0(peek(str,0)))  return 0;
 
@@ -184,28 +189,26 @@ int tok_symbol(tokenizer_char_stream str, char** res) {
     len++;
   }
 
-  *res = malloc(len+1);
-  if (*res == NULL) return -1;
-  memset(*res,0,len+1);
+  if (len > TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH)
+    return -1; /* TODO: specific error code that can be presented to user */
+
+  clear_sym_str();
 
   int c = 0;
 
   for (i = 0; i < len; i ++) {
     c = tolower(get(str));
     if (c >= 0 && c <= 255) {
-      (*res)[i] = (char)c; 
+      sym_str[i] = (char)c;
       n++;
     } else {
-      free(*res);
       return -1;
     }
   }
-  /* means the longest len of a symbol allowed is 2^31-1 */
-  /* Should be a check that the length makes sense */
   return (int)n;
 }
 
-int tok_string(tokenizer_char_stream str, char **res) {
+int tok_string(tokenizer_char_stream str) {
 
   unsigned int i = 0;
   int n = 0;
@@ -221,23 +224,22 @@ int tok_string(tokenizer_char_stream str, char **res) {
     len++;
   }
 
+  if (len > TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH)
+    return -1; /* TODO: specific error code that can be presented to user */
+
   // str ends before tokenized string is closed.
   if ((peek(str,len)) != '\"') {
     return 0;
   }
 
-  // allocate memory for result string
-  *res = malloc(len+1);
-  if (*res == NULL) return -1;
-  memset(*res, 0, len+1);
+  clear_sym_str();
 
   for (i = 0; i < len; i ++) {
-    (*res)[i] = get(str);
+    sym_str[i] = get(str);
     n++;
   }
 
   get(str);  // throw away the "
-  /* The longest readable string is 2^31-1 characters. enforce this with a check */
   return (int)(n+1);
 }
 
@@ -444,7 +446,7 @@ token next_token(tokenizer_char_stream str) {
     t.type= TOKCOMMAAT;
     return t;
   }
-  
+
   if (tok_comma(str)) {
     t.type = TOKCOMMA;
     return t;
@@ -460,7 +462,7 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
-  n = tok_symbol(str, &t.data.text);
+  n = tok_symbol(str);
   if (n > 0) {
     t.text_len = (unsigned int)n;
     t.type = TOKSYMBOL;
@@ -469,14 +471,14 @@ token next_token(tokenizer_char_stream str) {
     t.type = TOKENIZER_ERROR;
     return t;
   }
-   
+
   if (tok_char(str, &c_val)) {
     t.data.c = c_val;
     t.type = TOKCHAR;
     return t;
   }
 
-  n = tok_string(str, &t.data.text);
+  n = tok_string(str);
   if (n >= 2) {
     t.text_len = (unsigned int)n - 2;
     t.type = TOKSTRING;
@@ -559,15 +561,14 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
   case TOKSYMBOL: {
     UINT symbol_id;
 
-    if (symrepr_lookup(tok.data.text, &symbol_id)) {
+    if (symrepr_lookup(sym_str, &symbol_id)) {
       v = enc_sym(symbol_id);
     }
-    else if (symrepr_addsym(tok.data.text, &symbol_id)) {
+    else if (symrepr_addsym(sym_str, &symbol_id)) {
       v = enc_sym(symbol_id);
     } else {
       v = enc_sym(symrepr_rerror());
     }
-    free(tok.data.text);
     return v;
   }
   case TOKSTRING: {
@@ -575,8 +576,7 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     array_header_t *arr = (array_header_t*)car(v);
     char *data = (char *)arr + 8;
     memset(data, 0, (tok.text_len+1) * sizeof(char));
-    memcpy(data, tok.data.text, tok.text_len * sizeof(char));
-    free(tok.data.text);
+    memcpy(data, sym_str, tok.text_len * sizeof(char));
     return v;
   }
   case TOKINT:
