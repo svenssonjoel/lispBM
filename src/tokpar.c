@@ -47,6 +47,9 @@
 #define TOKENIZER_ERROR 1024
 #define TOKENIZER_END   2048
 
+#define TOKENIZER_MAX_SYMBOL_LENGTH 255
+#define TOKENIZER_MAX_STRING_LENGTH 255
+
 typedef struct {
 
   unsigned int type;
@@ -193,6 +196,7 @@ int tok_symbol(tokenizer_char_stream str, char** res) {
       (*res)[i] = (char)c; 
       n++;
     } else {
+      free(*res);
       return -1;
     }
   }
@@ -493,7 +497,6 @@ token next_token(tokenizer_char_stream str) {
     t.type = TOKBOXEDUINT;
     return t;
   }
-
 
   if (tok_u(str, &u_val)) {
     t.data.u = u_val;
