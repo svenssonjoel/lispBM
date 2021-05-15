@@ -38,7 +38,7 @@
 
 #define EVAL_CPS_STACK_SIZE 256
 
-VALUE ext_print(VALUE *args, int argn) {
+VALUE ext_print(VALUE *args, UINT argn) {
   if (argn < 1) return enc_sym(symrepr_nil());
 
   char output[1024];
