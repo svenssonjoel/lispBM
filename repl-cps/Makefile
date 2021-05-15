@@ -1,12 +1,10 @@
 
-
-
 LISPBM := ../
 
 LISPBM_USE_COMPRESSION = true
 LISPBM_USE_EVAL_CPS = true
 LISPBM_USE_PRELUDE = true
-LISPBM_USE_EXTENSIONS =    true
+LISPBM_USE_EXTENSIONS = true
 
 include $(LISPBM)/lispbm.mk
 
