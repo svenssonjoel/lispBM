@@ -397,6 +397,7 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
       return;
     }
 
+
     VALUE cid_val = enc_u((UINT)next_ctx_id); /* CIDS range from 0 - 65535, so this is fine */
     VALUE cid_list = cons(cid_val, ctx->r);
     if (type_of(cid_list) == VAL_TYPE_SYMBOL) {
@@ -405,12 +406,14 @@ void apply_continuation(eval_context_t *ctx, bool *perform_gc){
       ctx->app_cont = true;
       return;
     }
-    // TODO: error checking
+    
     CID cid = create_ctx(car(rest),
 			 env,
 			 EVAL_CPS_DEFAULT_STACK_SIZE,
 			 EVAL_CPS_DEFAULT_STACK_GROW_POLICY);
-    (void) cid;
+    if (!cid) {
+      set_car(cid_list, enc_sym(symrepr_nil()));	      
+    } 
     FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(SPAWN_ALL)));
     ctx->r = cid_list;
     ctx->app_cont = true;
