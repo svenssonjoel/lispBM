@@ -232,8 +232,8 @@ VALUE ext_output_symbol_indirection(VALUE *args, UINT argn) {
   }
   
   if (type_of(args[0]) == PTR_TYPE_CONS) {
-    VALUE name = car(args[0]);
-    VALUE num  = car(cdr(args[0]));
+    VALUE name = car(car(args[0]));
+    VALUE num  = cdr(car(args[0]));
     if (type_of(name) == PTR_TYPE_ARRAY) {
       array_header_t *array = (array_header_t *)(car(name));
       switch (array->elt_type){

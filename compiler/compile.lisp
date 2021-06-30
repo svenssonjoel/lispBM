@@ -1,5 +1,5 @@
 ;; ----------------------------------------------------------------------
-;; Copyright 2020 Joel Svensson	svenssonjoel@yahoo.se
+;; Copyright 2020, 2021 Joel Svensson	svenssonjoel@yahoo.se
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
 	(if exists
 	    (cdr exists)
 	    (let ((indirection (mk-sym-indirect indirection-counter))
-		  (mapping (cons sym (cons (sym-to-str sym) (cons indirection '())))))
+		  (mapping (cons sym (cons (cons (sym-to-str sym) indirection) '()))))
 	      (progn
 		(define indirection-counter (+ 1 indirection-counter))
 		(define symbol-indirections (cons mapping symbol-indirections))
@@ -437,8 +437,9 @@
 			  (caddr env proc)))
 	  (append-instr-seqs
 	   (map (lambda (p)
-		  (mk-instr-seq '(argl) '(env)
-				`((exenvargl ,p))))
+		  (let ((i (new-indirection p)))
+		    (mk-instr-seq '(argl) '(env)
+				  `((exenvargl ,i)))))
 		formals)))
 	 (compile-instr-list (car (cdr (cdr exp))) 'val 'return)))))
 
