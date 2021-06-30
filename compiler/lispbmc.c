@@ -45,7 +45,7 @@ FILE *out_file = NULL;
 /*
  Extensions
  */
-VALUE ext_print(VALUE *args, int argn) {
+VALUE ext_print(VALUE *args, UINT argn) {
   if (argn < 1) return enc_sym(symrepr_nil());
 
   char output[1024];
@@ -84,10 +84,10 @@ VALUE ext_print(VALUE *args, int argn) {
 
 
 int output_arg_assembly(VALUE arg) {
-  
+
   VALUE name;
   VALUE num;
-  
+
   switch (type_of(arg)) {
   case VAL_TYPE_I:
     printf("outputing int argument\n");
@@ -131,7 +131,7 @@ int output_arg_assembly(VALUE arg) {
     }
     break;
   }
-  
+
     /* LABEL */
   case PTR_TYPE_CONS: {
     name = car(cdr(arg));
@@ -161,12 +161,12 @@ int output_arg_assembly(VALUE arg) {
 }
 
 /* ext_output_assembly
-   args: label (as string, num) or Nil, (instr with args list) 
+   args: label (as string, num) or Nil, (instr with args list)
 */
-VALUE ext_output_assembly(VALUE *args, int argn) {
-  
+VALUE ext_output_assembly(VALUE *args, UINT argn) {
+
   if (argn != 2)  return enc_sym(symrepr_eerror());
-  
+
   /* Print potential label */
   if (type_of(args[0]) == PTR_TYPE_CONS) {
     VALUE name = car(cdr(args[0]));
@@ -197,7 +197,7 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
 
   if (type_of(args[1]) == PTR_TYPE_CONS) {
     VALUE op_args = args[1];
-    
+
     /* Try to print the instr and argument list */
     VALUE curr = op_args;
     while (type_of(curr) != VAL_TYPE_SYMBOL) {
@@ -213,18 +213,18 @@ VALUE ext_output_assembly(VALUE *args, int argn) {
     return enc_sym(symrepr_eerror());
   }
   fprintf(out_file,"\n");
-  return enc_sym(symrepr_nil());  
-}
- 
-/* ext_output_bytecode
-   args: opcode, arguments
-*/
-VALUE ext_output_bytecode(VALUE *args, int argn) {
-   
   return enc_sym(symrepr_nil());
 }
 
-VALUE ext_output_symbol_indirection(VALUE *args, int argn) {
+/* ext_output_bytecode
+   args: opcode, arguments
+*/
+VALUE ext_output_bytecode(VALUE *args, UINT argn) {
+
+  return enc_sym(symrepr_nil());
+}
+
+VALUE ext_output_symbol_indirection(VALUE *args, UINT argn) {
 
   return enc_sym(symrepr_nil());
 }
@@ -486,7 +486,7 @@ int main(int argc, char **argv) {
 						  cons (input_prg, enc_sym(symrepr_nil()))),
 					    enc_sym(symrepr_nil()))),
 				 enc_sym(symrepr_nil()));
-    
+
     r = print_value(output, 1024, error, 1024, invoce_compiler);
     if (r >= 0) {
       printf("> %s\n", output );
@@ -506,7 +506,7 @@ int main(int argc, char **argv) {
   } else {
     printf("Error: Compiler not present\n");
   }
-  
+
   symrepr_del();
   heap_del();
 
