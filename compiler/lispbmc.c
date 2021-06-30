@@ -90,11 +90,11 @@ int output_arg_assembly(VALUE arg) {
 
   switch (type_of(arg)) {
   case VAL_TYPE_I:
-    printf("outputing int argument\n");
+    //printf("outputing int argument\n");
     fprintf(out_file,"%d", dec_i(arg));
     break;
   case VAL_TYPE_U:
-    printf("outputing uint argument\n");
+    //printf("outputing uint argument\n");
     fprintf(out_file,"%u", dec_u(arg));
     break;
 
@@ -226,8 +226,11 @@ VALUE ext_output_bytecode(VALUE *args, UINT argn) {
 
 VALUE ext_output_symbol_indirection(VALUE *args, UINT argn) {
 
-  if (argn != 1)  return enc_sym(symrepr_eerror());
-
+  if (argn != 1) {
+    printf("Error: Incorrect arguments to output_symbol_indirection\n"); 
+    return enc_sym(symrepr_eerror());
+  }
+  
   if (type_of(args[0]) == PTR_TYPE_CONS) {
     VALUE name = car(args[0]);
     VALUE num  = car(cdr(args[0]));
@@ -237,16 +240,21 @@ VALUE ext_output_symbol_indirection(VALUE *args, UINT argn) {
       case VAL_TYPE_CHAR: {
 	char *data = (char *)array + 8;
 	char composite[1024];
-	snprintf(composite, 1024, "%s%u", data, num); /*raw */
-	fprintf(out_file,"%-20s", composite);
+	UINT v = dec_symbol_indirection(num);
+	snprintf(composite, 1024,"*%"PRI_UINT"* %s %u\n",v,  data, num); /*raw */
+	fprintf(out_file,"%s", composite);
 	break;
       }
       default:
-	printf("Error in indirection-out 1\n");
+	printf("Error: Incorrect argument type to output_symbol_indirection\n");
 	return enc_sym(symrepr_eerror());
 	break;
       }
+    } else {
+      printf("Error: Incorrect argument type to output_symbol_indirection\n");
     }
+  } else {
+    printf("Error: Incorrect argument type to output_symbol_indirection\n");
   }
   return enc_sym(symrepr_nil());
 }

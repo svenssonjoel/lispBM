@@ -29,7 +29,7 @@
 	(if exists
 	    (cdr exists)
 	    (let ((indirection (mk-sym-indirect indirection-counter))
-		  (mapping (cons sym (cons (cons (sym-to-str sym) indirection) '()))))
+		  (mapping (cons sym (cons (sym-to-str sym) (cons indirection '())))))
 	      (progn
 		(define indirection-counter (+ 1 indirection-counter))
 		(define symbol-indirections (cons mapping symbol-indirections))
@@ -595,11 +595,23 @@
 	  (if (is-label (car ops))
 	      (ops-out (car ops) (cdr ops))
 	      (progn (asm-out lab (car ops))
+		     (print ".")
 		     (ops-out nil (cdr ops))))
-	  (print "done"))))
+	  (print "Opcodes done" \#newline))))
+
+(define inds
+    (lambda (x)
+      (if x
+	  (let ((h (car x))
+		(p (cdr h)))
+	    (progn (ind-out p)
+		   (print ".")
+		   (inds (cdr x))))
+	  (print "Indirections done" \#newline))))
 
 (define gen-asm
     (lambda (prg)
       (let ((ir (compile-program prg))
 	    (ir-ops (car (cdr (cdr ir)))))
-	  (ops-out nil ir-ops))))
+	(progn (inds symbol-indirections)
+	       (ops-out nil ir-ops)))))
