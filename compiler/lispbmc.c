@@ -226,6 +226,28 @@ VALUE ext_output_bytecode(VALUE *args, UINT argn) {
 
 VALUE ext_output_symbol_indirection(VALUE *args, UINT argn) {
 
+  if (argn != 1)  return enc_sym(symrepr_eerror());
+
+  if (type_of(args[0]) == PTR_TYPE_CONS) {
+    VALUE name = car(args[0]);
+    VALUE num  = car(cdr(args[0]));
+    if (type_of(name) == PTR_TYPE_ARRAY) {
+      array_header_t *array = (array_header_t *)(car(name));
+      switch (array->elt_type){
+      case VAL_TYPE_CHAR: {
+	char *data = (char *)array + 8;
+	char composite[1024];
+	snprintf(composite, 1024, "%s%u", data, num); /*raw */
+	fprintf(out_file,"%-20s", composite);
+	break;
+      }
+      default:
+	printf("Error in indirection-out 1\n");
+	return enc_sym(symrepr_eerror());
+	break;
+      }
+    }
+  }
   return enc_sym(symrepr_nil());
 }
 
@@ -439,6 +461,16 @@ int main(int argc, char **argv) {
     printf("Error adding asm-out extension.\n");
     return 0;
   }
+
+  res = extensions_add("ind-out", ext_output_symbol_indirection);
+  if (res)
+    printf("Extension ind-out added.\n");
+  else {
+    printf("Error adding ind-out extension.\n");
+    return 0;
+  }
+
+  
 
   char output[1024];
   char error[1024];
