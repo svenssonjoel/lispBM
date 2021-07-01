@@ -35,7 +35,7 @@ static VALUE        RECOVERED;
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
-cons_t* ref_cell(VALUE addr) {
+static inline cons_t* ref_cell(VALUE addr) {
   return &heap_state.heap[dec_ptr(addr)];
   //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
