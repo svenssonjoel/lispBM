@@ -37,6 +37,13 @@
 
 
 
+;; This wont work. Indirections can collide with a value
+;; TODO: See if there is a work-around.
+;;  The problem is 32bit literals... so maybe those should be handled by a special opcode
+;;   - load32U, load32I, loadFloat
+;;  Once then are loaded they will be represented by a heap-pointer (boxed value)
+;;  so the collision will be avoided. 
+
 
 
 (define all-regs '(env
