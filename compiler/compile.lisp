@@ -56,6 +56,10 @@
 		     jmpimm      ;; pc <- reg
 		     jmpval      ;; pc <- val
 		     movimm      ;; reg <- imm
+		     mov         ;;
+		     loadi32     ;; load i32 imm value on heap and put a pointer to it in val
+		     loadu32     ;;
+		     loadf
 		     lookup      ;; reg <- lookup exp
 		     setglbval   ;; global-env <- cons global-env (cons symbol val)
 		     push        ;; stack[sp] <- reg; sp++
@@ -80,6 +84,9 @@
       (jmpval       1)
       (movimm       6)
       (mov          3)
+      (loadi32      5)
+      (loadu32      5)
+      (loadf        5)
       (lookup       6)
       (setglbval    5)
       (push         2)
@@ -143,6 +150,13 @@
 (define is-array
     (lambda (exp)
       (= (type-of exp) type-array)))
+
+(define is-boxed
+  (lambda (exp)
+    (let ((t (type-of exp)))
+      (or (= t type-i32)
+	  (= t type-u32)
+	  (= t type-float)))))
 
 (define is-self-evaluating
     (lambda (exp)
@@ -314,12 +328,33 @@
 		  (compile-linkage linkage))))
 
 
+;; Self evaluating expressions 
+
+;; Todo: special case and opcodes for array loading
 (define compile-self-evaluating
     (lambda (exp target linkage)
-      (end-with-linkage linkage
-			(mk-instr-seq '()
-				      (list target)
-				      `((movimm ,target ,exp))))))
+      (let ((typ (type-of exp)))
+	(if (= typ type-i32)
+	  (end-with-linkage linkage  ;; Then
+			    (mk-instr-seq '()
+					  (list target)
+					  `((loadi32 ,target ,exp))))
+	  (if (= typ type-u32)
+	      (end-with-linkage linkage  ;; Then
+			    (mk-instr-seq '()
+					  (list target)
+					  `((loadu32 ,target ,exp))))
+	    (if (= typ type-float)
+		(end-with-linkage linkage  ;; Then
+			    (mk-instr-seq '()
+					  (list target)
+					  `((loadf ,target ,exp))))
+	        
+	      (end-with-linkage linkage  ;; Else 
+				(mk-instr-seq '()
+					      (list target)
+					      `((movimm ,target apa))))))))))
+
 
 ;; Compiling a quoted expression results in
 ;; code that re-creates the quoted expression on the heap.
@@ -382,7 +417,7 @@
       (let ((var (car (cdr exp)))
 	    (i (new-indirection var))
 	    (get-value-code
-	     (compile-instr-list (car (cdr (cdr exp))) 'val 'next)))
+	     (compile-instr-list (car (cdr (cdr exp))) 'val 'next))) ;; value 
 	(end-with-linkage linkage
 			  (append-two-instr-seqs get-value-code
 						 (mk-instr-seq '(val) (list target)

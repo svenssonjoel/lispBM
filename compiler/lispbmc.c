@@ -98,6 +98,15 @@ int output_arg_assembly(VALUE arg) {
     fprintf(out_file,"%u", dec_u(arg));
     break;
 
+  case PTR_TYPE_BOXED_I:
+    fprintf(out_file,"%d", dec_I(arg));
+    break;
+  case PTR_TYPE_BOXED_U:
+    fprintf(out_file,"%u", dec_U(arg));
+    break;
+  case PTR_TYPE_BOXED_F:
+    fprintf(out_file,"%f", dec_f(arg));
+    break;
     /* SYMBOL INDIRECTION */
   case PTR_TYPE_SYMBOL_INDIRECTION: {
     UINT v = dec_symbol_indirection(arg);
