@@ -113,6 +113,8 @@ int heap_init_addr(cons_t *addr, unsigned int num_cells) {
   NIL = enc_sym(symrepr_nil());
   RECOVERED = enc_sym(DEF_REPR_RECOVERED);
 
+  if (((uint32_t)addr % 8) != 0) return 0;
+  
   heap_init_state(addr, num_cells, false);
 
   return generate_freelist(num_cells);
@@ -124,6 +126,8 @@ int heap_init(unsigned int num_cells) {
   RECOVERED = enc_sym(DEF_REPR_RECOVERED);
 
   cons_t *heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
+
+  if (((uint32_t)heap % 8) != 0) return 0;
 
   if (!heap) return 0;
   heap_init_state(heap, num_cells, true);
