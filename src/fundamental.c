@@ -109,7 +109,7 @@ static UINT add2(UINT a, UINT b) {
   if (!is_number(t_min)) {
     return enc_sym(symrepr_eerror());
   }
- 
+
   switch (type_of(t_max)) {
   case VAL_TYPE_I:
     i0 = dec_i(t_max);
@@ -163,7 +163,7 @@ static UINT mul2(UINT a, UINT b) {
   }
 
   if (!is_number(t_min)) enc_sym(symrepr_nil());
- 
+
   switch (type_of(t_max)) {
   case VAL_TYPE_I:
     i0 = dec_i(t_max);
@@ -217,7 +217,7 @@ static UINT div2(UINT a, UINT b) {
   }
 
   if (!is_number(t_min)) enc_sym(symrepr_nil());
- 
+
   switch (type_of(t_max)) {
   case VAL_TYPE_I:
     i0 = dec_i(t_max);
@@ -274,7 +274,7 @@ static UINT mod2(UINT a, UINT b) {
   }
 
   if (!is_number(t_min)) enc_sym(symrepr_nil());
- 
+
   switch (type_of(t_max)) {
   case VAL_TYPE_I:
     i0 = dec_i(t_max);
@@ -292,13 +292,13 @@ static UINT mod2(UINT a, UINT b) {
     u0 = dec_U(t_max);
     u1 = as_u(t_min);
     if (u1 == 0) return enc_sym(symrepr_divzero());
-    retval = enc_U(u0 % u1); 
+    retval = enc_U(u0 % u1);
     break;
   case PTR_TYPE_BOXED_I:
     i0 = dec_I(t_max);
     i1 = as_i(t_min);
     if (i1 == 0) return enc_sym(symrepr_divzero());
-    retval = enc_I(i0 % i1); 
+    retval = enc_I(i0 % i1);
     break;
   case PTR_TYPE_BOXED_F:
     retval = enc_sym(symrepr_terror());
@@ -420,11 +420,11 @@ static bool array_equality(VALUE a, VALUE b) {
 	if (memcmp((char*)a_+8, (char*)b_+8, a_->size * sizeof(FLOAT)) == 0) return true;
 	break;
       default:
-	break; 
+	break;
       }
     }
   }
-  return false; 
+  return false;
 }
 
 static bool struct_eq(VALUE a, VALUE b) {
@@ -667,7 +667,7 @@ void array_write(VALUE *args, UINT nargs, UINT *result) {
     }
 
     switch(array->elt_type) {
-    case VAL_TYPE_CHAR: { 
+    case VAL_TYPE_CHAR: {
       char * data = (char *)array + 8;
       data[ix] = dec_char(val);
       break;
@@ -744,7 +744,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     else
       result = enc_sym(symrepr_nil());
     break;
-	
+
   case SYM_SYMBOL_TO_STRING: {
     if (nargs < 1 ||
 	type_of(args[0]) != VAL_TYPE_SYMBOL)
@@ -781,7 +781,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
       result = enc_sym(sym);
     } else if (symrepr_addsym(str, &sym)) {
       result = enc_sym(sym);
-    } 
+    }
     break;
   }
   case SYM_SYMBOL_TO_UINT: {
@@ -800,7 +800,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
       result = enc_sym(symrepr_eerror());
     break;
   }
-  //  Create a symbol indirection from an unsigned 
+  //  Create a symbol indirection from an unsigned
   case SYM_MK_SYMBOL_INDIRECT: {
     VALUE s = args[0];
     if (type_of(s) == VAL_TYPE_U &&
@@ -810,6 +810,24 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
       result = enc_sym(symrepr_eerror());
     break;
   }
+  case SYM_SET_CAR:
+    if (nargs == 2) {
+      if (set_car(args[0],args[1])) {
+	result = enc_sym(symrepr_true());
+      } else {
+	result = enc_sym(symrepr_nil());
+      }
+    }
+    break;
+  case SYM_SET_CDR:
+    if (nargs == 2) {
+      if (set_cdr(args[0],args[1])) {
+	result = enc_sym(symrepr_true());
+      } else {
+	result = enc_sym(symrepr_nil());
+      }
+    }
+    break;
   case SYM_CONS: {
     UINT a = args[0];
     UINT b = args[1];

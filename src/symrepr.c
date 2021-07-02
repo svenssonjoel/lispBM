@@ -24,7 +24,7 @@
 #include "symrepr.h"
 #include "memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 67
+#define NUM_SPECIAL_SYMBOLS 69
 
 #define NAME   0
 #define ID     1
@@ -109,6 +109,8 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"sym-to-u"       , SYM_SYMBOL_TO_UINT},
   {"u-to-sym"       , SYM_UINT_TO_SYMBOL},
   {"mk-sym-indirect", SYM_MK_SYMBOL_INDIRECT},
+  {"set-car"        , SYM_SET_CAR},
+  {"set-cdr"        , SYM_SET_CDR},
   {"is-fundamental" , SYM_IS_FUNDAMENTAL} 
 };
 

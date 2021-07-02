@@ -102,6 +102,8 @@
 #define SYM_SYMBOL_TO_UINT      0x142
 #define SYM_UINT_TO_SYMBOL      0x143
 #define SYM_MK_SYMBOL_INDIRECT  0x144
+#define SYM_SET_CAR             0x145
+#define SYM_SET_CDR             0x146
 
 #define SYM_IS_FUNDAMENTAL      0x150
 

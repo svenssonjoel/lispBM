@@ -448,18 +448,25 @@ VALUE cdr(VALUE c){
   return enc_sym(symrepr_terror());
 }
 
-void set_car(VALUE c, VALUE v) {
+bool set_car(VALUE c, VALUE v) { // Todo: Where are these used?
+                                 //   Can then return VALUE instead?
+  bool r = false;
   if (is_ptr(c) && ptr_type(c) == PTR_TYPE_CONS) {
     cons_t *cell = ref_cell(c);
     set_car_(cell,v);
+    r = true;
   }
+  return r;
 }
 
-void set_cdr(VALUE c, VALUE v) {
+bool set_cdr(VALUE c, VALUE v) {
+  bool r = false;
   if (type_of(c) == PTR_TYPE_CONS){
     cons_t *cell = ref_cell(c);
     set_cdr_(cell,v);
+    r = true;
   }
+  return r;
 }
 
 /* calculate length of a proper list */
