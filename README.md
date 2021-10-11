@@ -19,7 +19,8 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 7. Compiles for, and runs on Zynq 7000.
 8. Compiles for, and runs on STM32f4. 
 9. Compiles for, and runs on NRF52840.
-10. Compiles for, and runs on ESP32.
+10. Compiles for, and runs on ESP32 (ARM - WROOM).
+11. Compiles for, and runs on ESP32C3 (RISC-V).
 
 ## Experimental
 1. Quasiquotation (needs more testing).
