@@ -1,5 +1,5 @@
 /*
-    Copyright 2020      Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2020, 2021     Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -56,29 +56,25 @@ static inline exp_kind exp_kind_of(VALUE exp) {
     VALUE head = car(exp);
     if (type_of(head) == VAL_TYPE_SYMBOL) {
       UINT sym_id = dec_sym(head);
-
-      if (sym_id == symrepr_and)
-	return EXP_AND;
-      if (sym_id == symrepr_or)
-	return EXP_OR;
-      if (sym_id == symrepr_quote)
-	return EXP_QUOTED;
-      if (sym_id == symrepr_define)
-	return EXP_DEFINE;
-      if (sym_id == symrepr_progn)
-	return EXP_PROGN;
-      if (sym_id == symrepr_lambda)
-	return EXP_LAMBDA;
-      if (sym_id == symrepr_if)
-	return EXP_IF;
-      if (sym_id == symrepr_let)
-	return EXP_LET;
-      if (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
-	  dec_sym(cdr(exp)) == symrepr_nil) {
-	return EXP_NO_ARGS;
+      switch(sym_id){
+      case SYM_AND:         return EXP_AND;
+      case SYM_OR:          return EXP_OR;
+      case DEF_REPR_QUOTE:  return EXP_QUOTED;
+      case DEF_REPR_DEFINE: return EXP_DEFINE;
+      case DEF_REPR_PROGN:  return EXP_PROGN;
+      case DEF_REPR_LAMBDA: return EXP_LAMBDA;
+      case DEF_REPR_IF:     return EXP_IF;
+      case DEF_REPR_LET:    return EXP_LET;
+      default: break;
       }
     } // end if symbol
-    return EXP_APPLICATION;
+
+    if (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
+	dec_sym(cdr(exp)) == symrepr_nil) {
+      return EXP_NO_ARGS;
+    } else {
+      return EXP_APPLICATION;
+    }
   } // end case PTR_TYPE_CONS:
   }
   return EXP_KIND_ERROR;
