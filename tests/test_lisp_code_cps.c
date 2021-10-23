@@ -59,32 +59,32 @@ void sleep_callback(uint32_t us) {
 
 VALUE ext_even(VALUE *args, UINT argn) {
 
-  if (argn < 1) return enc_sym(symrepr_nil());
+  if (argn < 1) return enc_sym(symrepr_nil);
 
   VALUE v = args[0];
   
   if (val_type(v) == VAL_TYPE_I ||
       val_type(v) == VAL_TYPE_U) {
     if (dec_i(v) % 2 == 0)
-      return enc_sym(symrepr_true());
+      return enc_sym(symrepr_true);
   }
 
-  return enc_sym(symrepr_nil());
+  return enc_sym(symrepr_nil);
 }
 
 VALUE ext_odd(VALUE *args, UINT argn) {
 
-  if (argn < 1) return enc_sym(symrepr_nil());
+  if (argn < 1) return enc_sym(symrepr_nil);
 
   VALUE v = args[0];
 
   if (val_type(v) == VAL_TYPE_I ||
       val_type(v) == VAL_TYPE_U) {
     if (dec_i(v) % 2 == 1)
-      return enc_sym(symrepr_true());
+      return enc_sym(symrepr_true);
   }
 
-  return enc_sym(symrepr_nil());
+  return enc_sym(symrepr_nil);
 }
 
 
@@ -271,12 +271,12 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if ( dec_sym(t) == symrepr_eerror()) {
+  if ( dec_sym(t) == symrepr_eerror) {
     res = 0;
   }
 
 
-  if (res && type_of(t) == VAL_TYPE_SYMBOL && dec_sym(t) == symrepr_true()){ // structural_equality(car(rest),car(cdr(rest)))) {
+  if (res && type_of(t) == VAL_TYPE_SYMBOL && dec_sym(t) == symrepr_true){ // structural_equality(car(rest),car(cdr(rest)))) {
     printf("Test: OK!\n");
     res = 1;
   } else {

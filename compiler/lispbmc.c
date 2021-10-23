@@ -46,7 +46,7 @@ FILE *out_file = NULL;
  Extensions
  */
 VALUE ext_print(VALUE *args, UINT argn) {
-  if (argn < 1) return enc_sym(symrepr_nil());
+  if (argn < 1) return enc_sym(symrepr_nil);
 
   char output[1024];
   char error[1024];
@@ -63,7 +63,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
 	break;
       }
       default:
-	return enc_sym(symrepr_nil());
+	return enc_sym(symrepr_nil);
 	break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
@@ -79,7 +79,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
     }
 
   }
-  return enc_sym(symrepr_true());
+  return enc_sym(symrepr_true);
 }
 
 
@@ -174,7 +174,7 @@ int output_arg_assembly(VALUE arg) {
 */
 VALUE ext_output_assembly(VALUE *args, UINT argn) {
 
-  if (argn != 2)  return enc_sym(symrepr_eerror());
+  if (argn != 2)  return enc_sym(symrepr_eerror);
 
   /* Print potential label */
   if (type_of(args[0]) == PTR_TYPE_CONS) {
@@ -193,12 +193,12 @@ VALUE ext_output_assembly(VALUE *args, UINT argn) {
       }
       default:
 	printf("Error in asm-out 1\n");
-	return enc_sym(symrepr_eerror());
+	return enc_sym(symrepr_eerror);
 	break;
       }
     }
   } else if (type_of(args[0]) == VAL_TYPE_SYMBOL &&
-	     dec_sym(args[0]) == symrepr_nil()) {
+	     dec_sym(args[0]) == symrepr_nil) {
     fprintf(out_file,"%-20s", "");
   }
 
@@ -212,17 +212,17 @@ VALUE ext_output_assembly(VALUE *args, UINT argn) {
     while (type_of(curr) != VAL_TYPE_SYMBOL) {
       if (!output_arg_assembly(car(curr))) {
 	printf("Error in asm-out (argument output)\n");
-	return enc_sym(symrepr_eerror());
+	return enc_sym(symrepr_eerror);
       }
       fprintf(out_file,"\t");
       curr = cdr(curr);
     }
   } else {
     printf("Error in asm-out 3\n");
-    return enc_sym(symrepr_eerror());
+    return enc_sym(symrepr_eerror);
   }
   fprintf(out_file,"\n");
-  return enc_sym(symrepr_nil());
+  return enc_sym(symrepr_nil);
 }
 
 /* ext_output_bytecode
@@ -230,14 +230,14 @@ VALUE ext_output_assembly(VALUE *args, UINT argn) {
 */
 VALUE ext_output_bytecode(VALUE *args, UINT argn) {
 
-  return enc_sym(symrepr_nil());
+  return enc_sym(symrepr_nil);
 }
 
 VALUE ext_output_symbol_indirection(VALUE *args, UINT argn) {
 
   if (argn != 1) {
     printf("Error: Incorrect arguments to output_symbol_indirection\n"); 
-    return enc_sym(symrepr_eerror());
+    return enc_sym(symrepr_eerror);
   }
   
   if (type_of(args[0]) == PTR_TYPE_CONS) {
@@ -256,7 +256,7 @@ VALUE ext_output_symbol_indirection(VALUE *args, UINT argn) {
       }
       default:
 	printf("Error: Incorrect argument type to output_symbol_indirection\n");
-	return enc_sym(symrepr_eerror());
+	return enc_sym(symrepr_eerror);
 	break;
       }
     } else {
@@ -265,7 +265,7 @@ VALUE ext_output_symbol_indirection(VALUE *args, UINT argn) {
   } else {
     printf("Error: Incorrect argument type to output_symbol_indirection\n");
   }
-  return enc_sym(symrepr_nil());
+  return enc_sym(symrepr_nil);
 }
 
 /* load a file, caller is responsible for freeing the returned string */
@@ -531,10 +531,10 @@ int main(int argc, char **argv) {
   UINT compiler;
   if (symrepr_lookup("gen-asm", &compiler)) {
     VALUE invoce_compiler = cons(cons (enc_sym(compiler),
-				       cons(cons (enc_sym(symrepr_quote()),
-						  cons (input_prg, enc_sym(symrepr_nil()))),
-					    enc_sym(symrepr_nil()))),
-				 enc_sym(symrepr_nil()));
+				       cons(cons (enc_sym(symrepr_quote),
+						  cons (input_prg, enc_sym(symrepr_nil))),
+					    enc_sym(symrepr_nil))),
+				 enc_sym(symrepr_nil));
 
     r = print_value(output, 1024, error, 1024, invoce_compiler);
     if (r >= 0) {

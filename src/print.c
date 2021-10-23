@@ -77,7 +77,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
 	res &= push_u32(&s, cdr_val);
 	res &= push_u32(&s, CONTINUE_LIST);
       } else if (type_of(cdr_val) == VAL_TYPE_SYMBOL &&
-	         dec_sym(cdr_val) == symrepr_nil()) {
+	         dec_sym(cdr_val) == symrepr_nil) {
 	res &= push_u32(&s, END_LIST);
       } else {
 	res &= push_u32(&s, END_LIST);
@@ -101,7 +101,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
       pop_u32(&s, &curr);
 
       if (type_of(curr) == VAL_TYPE_SYMBOL &&
-	  dec_sym(curr) == symrepr_nil()) {
+	  dec_sym(curr) == symrepr_nil) {
 	break;
       }
 	   
@@ -121,7 +121,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
 	res &= push_u32(&s, cdr_val);
 	res &= push_u32(&s, CONTINUE_LIST);
       } else if (type_of(cdr_val) == VAL_TYPE_SYMBOL &&
-		  dec_sym(cdr_val) == symrepr_nil()) {
+		  dec_sym(cdr_val) == symrepr_nil) {
 	res &= push_u32(&s, END_LIST);
       } else {
 	res &= push_u32(&s, END_LIST);

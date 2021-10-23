@@ -133,7 +133,7 @@ int main()
 
 			t = eval_cps_program(t);
 
-			if (dec_sym(t) == symrepr_eerror()) {
+			if (dec_sym(t) == symrepr_eerror) {
 			  printf("Error\n");
 			} else {
 				printf("> "); simple_print(t); printf("\n");

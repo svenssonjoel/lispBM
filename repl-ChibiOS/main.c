@@ -138,17 +138,17 @@ VALUE ext_print(VALUE *args, int argn) {
 	chprintf(chp,"%s", (char*)array + 8);
 	break;
       default:
-	return enc_sym(symrepr_nil());
+	return enc_sym(symrepr_nil);
 	break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
       chprintf(chp,"%c", dec_char(t));
     } else {
-      return enc_sym(symrepr_nil());
+      return enc_sym(symrepr_nil);
     }
  
   }
-  return enc_sym(symrepr_true());
+  return enc_sym(symrepr_true);
 }
 
 

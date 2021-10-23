@@ -412,7 +412,7 @@ static inline bool is_fundamental(VALUE symrep) {
 static inline bool is_closure(VALUE exp) {
   return ((type_of(exp) == PTR_TYPE_CONS) &&
 	  (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
-	  (dec_sym(car(exp)) == symrepr_closure()));
+	  (dec_sym(car(exp)) == symrepr_closure));
 }
 
 static inline bool is_symbol(VALUE exp) {
@@ -424,15 +424,15 @@ static inline bool is_symbol_indirection(VALUE exp) {
 }
 
 static inline bool is_symbol_nil(VALUE exp) {
-  return (is_symbol(exp) && dec_sym(exp) == symrepr_nil());
+  return (is_symbol(exp) && dec_sym(exp) == symrepr_nil);
 }
 
 static inline bool is_symbol_eval(VALUE exp) {
-  return (is_symbol(exp) && dec_sym(exp) == symrepr_eval());
+  return (is_symbol(exp) && dec_sym(exp) == symrepr_eval);
 }
 
 static inline bool is_symbol_merror(VALUE exp) {
-  return (is_symbol(exp) && dec_sym(exp) == symrepr_merror());
+  return (is_symbol(exp) && dec_sym(exp) == symrepr_merror);
 }
 
 #endif

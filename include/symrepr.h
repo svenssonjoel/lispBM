@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018 2021 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -120,51 +120,50 @@ extern void symrepr_del(void);
 
 extern unsigned int symrepr_size(void);
 
-static inline UINT symrepr_nil(void)         { return DEF_REPR_NIL; }
-static inline UINT symrepr_quote(void)       { return DEF_REPR_QUOTE; }
-static inline UINT symrepr_true(void)        { return DEF_REPR_TRUE; }
-static inline UINT symrepr_if(void)          { return DEF_REPR_IF; }
-static inline UINT symrepr_lambda(void)      { return DEF_REPR_LAMBDA; }
-static inline UINT symrepr_closure(void)     { return DEF_REPR_CLOSURE; }
-static inline UINT symrepr_let(void)         { return DEF_REPR_LET; }
-static inline UINT symrepr_define(void)      { return DEF_REPR_DEFINE; }
-static inline UINT symrepr_progn(void)       { return DEF_REPR_PROGN; }
-static inline UINT symrepr_comma(void)       { return DEF_REPR_COMMA; }
-static inline UINT symrepr_commaat(void)     { return DEF_REPR_COMMAAT; }
+extern const UINT symrepr_nil; 
+extern const UINT symrepr_quote; 
+extern const UINT symrepr_true; 
+extern const UINT symrepr_if; 
+extern const UINT symrepr_lambda; 
+extern const UINT symrepr_closure; 
+extern const UINT symrepr_let; 
+extern const UINT symrepr_define; 
+extern const UINT symrepr_progn; 
+extern const UINT symrepr_comma; 
+extern const UINT symrepr_commaat; 
 
-static inline UINT symrepr_cons(void)        { return SYM_CONS; }
-static inline UINT symrepr_list(void)        { return SYM_LIST; }
-static inline UINT symrepr_append(void)      { return SYM_APPEND; }
-static inline UINT symrepr_and(void)         { return SYM_AND; }
-static inline UINT symrepr_or(void)          { return SYM_OR; }
-static inline UINT symrepr_not(void)         { return SYM_NOT; }
+extern const UINT symrepr_cons; 
+extern const UINT symrepr_list; 
+extern const UINT symrepr_append; 
+extern const UINT symrepr_and; 
+extern const UINT symrepr_or; 
+extern const UINT symrepr_not;
 
-static inline UINT symrepr_eval(void)        { return SYM_EVAL; }
-static inline UINT symrepr_yield(void)       { return SYM_YIELD; }
-static inline UINT symrepr_wait(void)        { return SYM_WAIT; }
-static inline UINT symrepr_spawn(void)       { return SYM_SPAWN; }
+extern const UINT symrepr_eval; 
+extern const UINT symrepr_yield; 
+extern const UINT symrepr_wait; 
+extern const UINT symrepr_spawn; 
 
-static inline UINT symrepr_rerror(void)      { return DEF_REPR_RERROR; }
-static inline UINT symrepr_terror(void)      { return DEF_REPR_TERROR; }
-static inline UINT symrepr_eerror(void)      { return DEF_REPR_EERROR; }
-static inline UINT symrepr_merror(void)      { return DEF_REPR_MERROR; }
-static inline UINT symrepr_divzero(void)     { return DEF_REPR_DIVZERO; }
-static inline UINT symrepr_fatal_error(void) { return DEF_REPR_FATAL_ERROR; }
+extern const UINT symrepr_rerror; 
+extern const UINT symrepr_terror; 
+extern const UINT symrepr_eerror; 
+extern const UINT symrepr_merror; 
+extern const UINT symrepr_divzero; 
+extern const UINT symrepr_fatal_error; 
 
-static inline UINT symrepr_nonsense(void)    { return DEF_REPR_NONSENSE; }
-static inline UINT symrepr_not_found(void)   { return DEF_REPR_NOT_FOUND; }
+extern const UINT symrepr_nonsense; 
+extern const UINT symrepr_not_found; 
 
-static inline UINT symrepr_type_list(void)   {return DEF_REPR_TYPE_LIST; }
-static inline UINT symrepr_type_i28(void)    {return DEF_REPR_TYPE_I28; }       
-static inline UINT symrepr_type_u28(void)    {return DEF_REPR_TYPE_U28; }       
-static inline UINT symrepr_type_float(void)  {return DEF_REPR_TYPE_FLOAT; }     
-static inline UINT symrepr_type_i32(void)    {return DEF_REPR_TYPE_I32; }       
-static inline UINT symrepr_type_u32(void)    {return DEF_REPR_TYPE_U32; }       
-static inline UINT symrepr_type_array(void)  {return DEF_REPR_TYPE_ARRAY; }     
-static inline UINT symrepr_type_symbol(void) {return DEF_REPR_TYPE_SYMBOL; }
-static inline UINT symrepr_type_char(void)   {return DEF_REPR_TYPE_CHAR; }
-static inline UINT symrepr_type_ref(void)    {return DEF_REPR_TYPE_REF; }
-
+extern const UINT symrepr_type_list;
+extern const UINT symrepr_type_i28;
+extern const UINT symrepr_type_u28;
+extern const UINT symrepr_type_float;
+extern const UINT symrepr_type_i32;
+extern const UINT symrepr_type_u32;
+extern const UINT symrepr_type_array;
+extern const UINT symrepr_type_symbol;
+extern const UINT symrepr_type_char;
+extern const UINT symrepr_type_ref;
 
 static inline bool symrepr_is_error(UINT symrep){
   return (symrep == DEF_REPR_RERROR ||

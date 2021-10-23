@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2021 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -163,9 +163,9 @@ void sleep_callback(uint32_t us) {
 
 
 VALUE ext_print(VALUE *args, UINT argn) {
-  if (argn < 1) return enc_sym(symrepr_nil());
+  if (argn < 1) return enc_sym(symrepr_nil);
 
-  if (!allow_print) return enc_sym(symrepr_true());
+  if (!allow_print) return enc_sym(symrepr_true);
 
   char output[1024];
   char error[1024];
@@ -182,7 +182,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
 	break;
       }
       default:
-	return enc_sym(symrepr_nil());
+	return enc_sym(symrepr_nil);
 	break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
@@ -198,7 +198,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
     }
  
   }
-  return enc_sym(symrepr_true());
+  return enc_sym(symrepr_true);
 }
 
 /* load a file, caller is responsible for freeing the returned string */ 

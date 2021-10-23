@@ -40,33 +40,33 @@ static inline cons_t* ref_cell(VALUE addr) {
   //  return (cons_t*)(heap_base + (addr & PTR_VAL_MASK));
 }
 
-static VALUE read_car(cons_t *cell) {
+static inline VALUE read_car(cons_t *cell) {
   return cell->car;
 }
 
-static VALUE read_cdr(cons_t *cell) {
+static inline VALUE read_cdr(cons_t *cell) {
   return cell->cdr;
 }
 
-static void set_car_(cons_t *cell, VALUE v) {
+static inline void set_car_(cons_t *cell, VALUE v) {
   cell->car = v;
 }
 
-static void set_cdr_(cons_t *cell, VALUE v) {
+static inline void set_cdr_(cons_t *cell, VALUE v) {
   cell->cdr = v;
 }
 
-static void set_gc_mark(cons_t *cell) {
+static inline void set_gc_mark(cons_t *cell) {
   VALUE cdr = read_cdr(cell);
   set_cdr_(cell, val_set_gc_mark(cdr));
 }
 
-static void clr_gc_mark(cons_t *cell) {
+static inline void clr_gc_mark(cons_t *cell) {
   VALUE cdr = read_cdr(cell);
   set_cdr_(cell, val_clr_gc_mark(cdr));
 }
 
-static bool get_gc_mark(cons_t* cell) {
+static inline bool get_gc_mark(cons_t* cell) {
   VALUE cdr = read_cdr(cell);
   return val_get_gc_mark(cdr);
 }
@@ -110,7 +110,7 @@ static void heap_init_state(cons_t *addr, unsigned int num_cells, bool malloced)
 
 int heap_init_addr(cons_t *addr, unsigned int num_cells) {
 
-  NIL = enc_sym(symrepr_nil());
+  NIL = enc_sym(symrepr_nil);
   RECOVERED = enc_sym(DEF_REPR_RECOVERED);
 
   if (((uint32_t)addr % 8) != 0) return 0;
@@ -122,7 +122,7 @@ int heap_init_addr(cons_t *addr, unsigned int num_cells) {
 
 int heap_init(unsigned int num_cells) {
 
-  NIL = enc_sym(symrepr_nil());
+  NIL = enc_sym(symrepr_nil);
   RECOVERED = enc_sym(DEF_REPR_RECOVERED);
 
   cons_t *heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
@@ -167,10 +167,10 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
     if ((type_of(heap_state.freelist) == VAL_TYPE_SYMBOL) &&
 	(heap_state.freelist == NIL)) {
       // all is as it should be (but no free cells)
-      return enc_sym(symrepr_merror());
+      return enc_sym(symrepr_merror);
     } else {
       // something is most likely very wrong
-      return enc_sym(symrepr_fatal_error());
+      return enc_sym(symrepr_fatal_error);
     }
   }
 
@@ -178,7 +178,7 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
   res = heap_state.freelist;
 
   if (type_of(res) != PTR_TYPE_CONS) {
-    return enc_sym(symrepr_fatal_error());
+    return enc_sym(symrepr_fatal_error);
   }
 
   heap_state.freelist = cdr(heap_state.freelist);
@@ -431,7 +431,7 @@ VALUE car(VALUE c){
     cons_t *cell = ref_cell(c);
     return read_car(cell);
   }
-  return enc_sym(symrepr_terror());
+  return enc_sym(symrepr_terror);
 }
 
 VALUE cdr(VALUE c){
@@ -445,7 +445,7 @@ VALUE cdr(VALUE c){
     cons_t *cell = ref_cell(c);
     return read_cdr(cell);
   }
-  return enc_sym(symrepr_terror());
+  return enc_sym(symrepr_terror);
 }
 
 bool set_car(VALUE c, VALUE v) { // Todo: Where are these used?
@@ -494,7 +494,7 @@ VALUE reverse(VALUE list) {
 
     new_list = cons(car(curr), new_list);
     if (type_of(new_list) == VAL_TYPE_SYMBOL) {
-      return enc_sym(symrepr_merror());
+      return enc_sym(symrepr_merror);
     }
     curr = cdr(curr);
   }
@@ -510,7 +510,7 @@ VALUE copy(VALUE list) {
   while (type_of(curr) == PTR_TYPE_CONS) {
     VALUE c = cons (car(curr), res);
     if (type_of(c) == VAL_TYPE_SYMBOL) {
-      return enc_sym(symrepr_merror());
+      return enc_sym(symrepr_merror);
     }
     res = c;
     curr = cdr(curr);

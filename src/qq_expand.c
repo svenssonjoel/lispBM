@@ -1,5 +1,5 @@
 /*
-    Copyright 2020 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2020, 2021 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -32,16 +32,16 @@
 
 
 VALUE gen_cons(VALUE a, VALUE b) {
-  return cons(enc_sym(symrepr_cons()),
+  return cons(enc_sym(symrepr_cons),
 		   cons(a,
-			cons(b, enc_sym(symrepr_nil()))));
+			cons(b, enc_sym(symrepr_nil))));
 }
 
 
 VALUE append(VALUE front, VALUE back) {
-  return cons (enc_sym(symrepr_append()),
+  return cons (enc_sym(symrepr_append),
 	       cons(front,
-		    cons(back, enc_sym(symrepr_nil()))));
+		    cons(back, enc_sym(symrepr_nil))));
 }
 
 /* Bawden's qq-expand-list implementation
@@ -62,7 +62,7 @@ VALUE append(VALUE front, VALUE back) {
 */
 
 VALUE qq_expand_list(VALUE l) {
-  VALUE res = enc_sym(symrepr_nil());
+  VALUE res = enc_sym(symrepr_nil);
   VALUE car_val;
   VALUE cdr_val;
 
@@ -71,23 +71,23 @@ VALUE qq_expand_list(VALUE l) {
     car_val = car(l);
     cdr_val = cdr(l);
     if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-	dec_sym(car_val) == symrepr_comma()) {
-      res = cons(enc_sym(symrepr_list()),
+	dec_sym(car_val) == symrepr_comma) {
+      res = cons(enc_sym(symrepr_list),
 		 cons(car(cdr_val), res));
     } else if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-	       dec_sym(car_val) == symrepr_commaat()) {
+	       dec_sym(car_val) == symrepr_commaat) {
       res = car(cdr_val);
     } else {
       VALUE expand_car = qq_expand_list(car_val);
       VALUE expand_cdr = qq_expand(cdr_val);
-      res = cons(enc_sym(symrepr_list()),
-		 cons(append(expand_car, expand_cdr), enc_sym(symrepr_nil())));
+      res = cons(enc_sym(symrepr_list),
+		 cons(append(expand_car, expand_cdr), enc_sym(symrepr_nil)));
     }
     break;
   default: {
-    VALUE a_list = cons(l, enc_sym(symrepr_nil()));
+    VALUE a_list = cons(l, enc_sym(symrepr_nil));
     res =
-      cons(enc_sym(symrepr_quote()), cons (a_list, enc_sym(symrepr_nil())));
+      cons(enc_sym(symrepr_quote), cons (a_list, enc_sym(symrepr_nil)));
   }
   }
   return res;
@@ -120,11 +120,11 @@ VALUE qq_expand(VALUE qquoted) {
     car_val = car(qquoted);
     cdr_val = cdr(qquoted);
     if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-	dec_sym(car_val) == symrepr_comma()) {
+	dec_sym(car_val) == symrepr_comma) {
       res = car(cdr_val);
     } else if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-	       dec_sym(car_val) == symrepr_commaat()) {
-      res = enc_sym(symrepr_rerror()); // should have a more specific error here. 
+	       dec_sym(car_val) == symrepr_commaat) {
+      res = enc_sym(symrepr_rerror); // should have a more specific error here. 
     } else {
       VALUE expand_car = qq_expand_list(car_val);
       VALUE expand_cdr = qq_expand(cdr_val);
@@ -132,7 +132,7 @@ VALUE qq_expand(VALUE qquoted) {
     }
     break;
   default:
-    res = cons(enc_sym(symrepr_quote()), cons(qquoted, enc_sym(symrepr_nil())));
+    res = cons(enc_sym(symrepr_quote), cons(qquoted, enc_sym(symrepr_nil)));
     break;
   }
   return res;

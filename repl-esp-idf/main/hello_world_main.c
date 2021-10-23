@@ -136,13 +136,13 @@ int inputline(char *buffer, int size) {
 
 VALUE ext_led(VALUE *args, UINT argn) {
 
-  if (argn != 1) return enc_sym(symrepr_nil());
+  if (argn != 1) return enc_sym(symrepr_nil);
 
   unsigned char r,g, b;
 
   VALUE v = args[0]; 
 
-  if (! is_ptr(v)) return enc_sym(symrepr_nil());
+  if (! is_ptr(v)) return enc_sym(symrepr_nil);
 
   r = (unsigned char)dec_i(car(v));
   g = (unsigned char)dec_i(car(cdr(v)));
@@ -152,7 +152,7 @@ VALUE ext_led(VALUE *args, UINT argn) {
   /* Refresh the strip to send data */
   pStrip_a->refresh(pStrip_a, 100);
 
-  return enc_sym(symrepr_true());
+  return enc_sym(symrepr_true);
   
   
 }

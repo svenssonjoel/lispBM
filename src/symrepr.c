@@ -24,6 +24,54 @@
 #include "symrepr.h"
 #include "memory.h"
 
+/*************************************/
+/* Constants for be built in symbols */
+
+const UINT symrepr_nil         =  DEF_REPR_NIL; 
+const UINT symrepr_quote       =  DEF_REPR_QUOTE; 
+const UINT symrepr_true        =  DEF_REPR_TRUE; 
+const UINT symrepr_if          =  DEF_REPR_IF; 
+const UINT symrepr_lambda      =  DEF_REPR_LAMBDA; 
+const UINT symrepr_closure     =  DEF_REPR_CLOSURE; 
+const UINT symrepr_let         =  DEF_REPR_LET; 
+const UINT symrepr_define      =  DEF_REPR_DEFINE; 
+const UINT symrepr_progn       =  DEF_REPR_PROGN; 
+const UINT symrepr_comma       =  DEF_REPR_COMMA; 
+const UINT symrepr_commaat     =  DEF_REPR_COMMAAT; 
+
+const UINT symrepr_cons        =  SYM_CONS; 
+const UINT symrepr_list        =  SYM_LIST; 
+const UINT symrepr_append      =  SYM_APPEND; 
+const UINT symrepr_and         =  SYM_AND; 
+const UINT symrepr_or          =  SYM_OR; 
+const UINT symrepr_not         =  SYM_NOT; 
+
+const UINT symrepr_eval        =  SYM_EVAL; 
+const UINT symrepr_yield       =  SYM_YIELD; 
+const UINT symrepr_wait        =  SYM_WAIT; 
+const UINT symrepr_spawn       =  SYM_SPAWN; 
+
+const UINT symrepr_rerror      =  DEF_REPR_RERROR; 
+const UINT symrepr_terror      =  DEF_REPR_TERROR; 
+const UINT symrepr_eerror      =  DEF_REPR_EERROR; 
+const UINT symrepr_merror      =  DEF_REPR_MERROR; 
+const UINT symrepr_divzero     =  DEF_REPR_DIVZERO; 
+const UINT symrepr_fatal_error =  DEF_REPR_FATAL_ERROR; 
+
+const UINT symrepr_nonsense    =  DEF_REPR_NONSENSE; 
+const UINT symrepr_not_found   =  DEF_REPR_NOT_FOUND; 
+
+const UINT symrepr_type_list   =  DEF_REPR_TYPE_LIST; 
+const UINT symrepr_type_i28    =  DEF_REPR_TYPE_I28;        
+const UINT symrepr_type_u28    =  DEF_REPR_TYPE_U28;        
+const UINT symrepr_type_float  =  DEF_REPR_TYPE_FLOAT;      
+const UINT symrepr_type_i32    =  DEF_REPR_TYPE_I32;        
+const UINT symrepr_type_u32    =  DEF_REPR_TYPE_U32;        
+const UINT symrepr_type_array  =  DEF_REPR_TYPE_ARRAY;      
+const UINT symrepr_type_symbol =  DEF_REPR_TYPE_SYMBOL; 
+const UINT symrepr_type_char   =  DEF_REPR_TYPE_CHAR; 
+const UINT symrepr_type_ref    =  DEF_REPR_TYPE_REF; 
+
 #define NUM_SPECIAL_SYMBOLS 69
 
 #define NAME   0
