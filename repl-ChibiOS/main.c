@@ -241,7 +241,6 @@ static THD_FUNCTION(repl, arg) {
     memset(str,0,len);
     memset(outbuf,0, 2048);
     inputline(chp,str, len);
-    chprintf(chp,"read: %s\r\n", str);
     chprintf(chp,"\r\n");
 
     if (strncmp(str, ":reset", 6) == 0) {
