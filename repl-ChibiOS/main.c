@@ -50,6 +50,7 @@
 #include "tokpar.h"
 #include "prelude.h"
 #include "extensions.h"
+#include "memory.h"
 #include "env.h"
 
 #define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(10*4096)
@@ -217,6 +218,22 @@ static THD_FUNCTION(repl, arg) {
 
   int heap_size = 2048;
 
+  unsigned char *memory = malloc(MEMORY_SIZE_16K);
+  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
+  if (memory == NULL || bitmap == NULL) {
+    chprintf(chp,"Unable to allocate memory!\r\n");
+    return 0;
+  }
+  
+  res = memory_init(memory, MEMORY_SIZE_16K,
+		    bitmap, MEMORY_BITMAP_SIZE_16K);
+  if (res)
+    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
+  else {
+    printf("Error initializing memory!\n");
+    return 0;
+  }
+  
   reset_repl(heap_size);
 
   while (1) {
@@ -224,6 +241,7 @@ static THD_FUNCTION(repl, arg) {
     memset(str,0,len);
     memset(outbuf,0, 2048);
     inputline(chp,str, len);
+    chprintf(chp,"read: %s\r\n", str);
     chprintf(chp,"\r\n");
 
     if (strncmp(str, ":reset", 6) == 0) {
