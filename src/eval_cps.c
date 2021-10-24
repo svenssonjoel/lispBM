@@ -531,10 +531,35 @@ static inline void eval_let(eval_context_t *ctx, bool *perform_gc) {
   return;
 }
 
+static inline void eval_and(eval_context_t *ctx) {
+  VALUE rest = cdr(ctx->curr_exp);
+  if (type_of(rest) == VAL_TYPE_SYMBOL &&
+      rest == NIL) {
+    ctx->app_cont = true;
+    ctx->r = enc_sym(symrepr_true);
+  } else {
+    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(AND)));
+    ctx->curr_exp = car(rest);
+  }
+}
+
+static inline void eval_or(eval_context_t *ctx) {
+  VALUE rest = cdr(ctx->curr_exp);
+  if (type_of(rest) == VAL_TYPE_SYMBOL &&
+      rest == NIL) {
+    ctx->app_cont = true;
+    ctx->r = enc_sym(symrepr_nil);
+    return;
+  } else {
+    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(OR)));
+    ctx->curr_exp = car(rest);
+  }
+}
+
 /*********************************************************/
 /*  Continuation functions                               */
 
-void cont_set_global_env(eval_context_t *ctx, bool *perform_gc){
+static inline void cont_set_global_env(eval_context_t *ctx, bool *perform_gc){
 
   VALUE key;
   VALUE val = ctx->r;
@@ -795,37 +820,6 @@ static inline void cont_application_args(eval_context_t *ctx) {
   VALUE arg = ctx->r;
   pop_u32_3(&ctx->K, &rest, &count, &env);
 
-  /* Deal with short-circuiting operators */
-  if (type_of(arg) == VAL_TYPE_SYMBOL &&
-      dec_sym(arg) == symrepr_and) {
-    if (type_of(rest) == VAL_TYPE_SYMBOL &&
-	rest == NIL) {
-      ctx->app_cont = true;
-      ctx->r = enc_sym(symrepr_true);
-      return;
-    } else {
-      FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(AND)));
-      ctx->curr_exp = car(rest);
-      ctx->curr_env = env;
-      return;
-    }
-  }
-
-  if (type_of(arg) == VAL_TYPE_SYMBOL &&
-      dec_sym(arg) == symrepr_or) {
-    if (type_of(rest) == VAL_TYPE_SYMBOL &&
-	rest == NIL) {
-      ctx->app_cont = true;
-      ctx->r = enc_sym(symrepr_nil);
-      return;
-    } else {
-      FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(OR)));
-      ctx->curr_exp = car(rest);
-      ctx->curr_env = env;
-      return;
-    }
-  }
-
   FATAL_ON_FAIL(ctx->done, push_u32(&ctx->K, arg));
   /* Deal with general fundamentals */
   if (type_of(rest) == VAL_TYPE_SYMBOL &&
@@ -842,10 +836,9 @@ static inline void cont_application_args(eval_context_t *ctx) {
 }
 
 static inline void cont_and(eval_context_t *ctx) {
-  VALUE env;
   VALUE rest;
   VALUE arg = ctx->r;
-  pop_u32_2(&ctx->K, &rest, &env);
+  pop_u32(&ctx->K, &rest);
   if (type_of(arg) == VAL_TYPE_SYMBOL &&
       dec_sym(arg) == symrepr_nil) {
     ctx->app_cont = true;
@@ -854,17 +847,15 @@ static inline void cont_and(eval_context_t *ctx) {
 	     rest == NIL) {
     ctx->app_cont = true;
   } else {
-    FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(AND)));
+    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(AND)));
     ctx->curr_exp = car(rest);
-    ctx->curr_env = env;
   }
 }
 
 static inline void cont_or(eval_context_t *ctx) {
-  VALUE env;
   VALUE rest;
   VALUE arg = ctx->r;
-  pop_u32_2(&ctx->K, &rest, &env);
+  pop_u32(&ctx->K, &rest);
   if (type_of(arg) != VAL_TYPE_SYMBOL ||
       dec_sym(arg) != symrepr_nil) {
     ctx->app_cont = true;
@@ -873,9 +864,8 @@ static inline void cont_or(eval_context_t *ctx) {
     ctx->app_cont = true;
     ctx->r = enc_sym(symrepr_nil);
   } else {
-    FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(OR)));
+    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(OR)));
     ctx->curr_exp = car(rest);
-    ctx->curr_env = env;
   }
 }
 
@@ -1000,6 +990,8 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       case DEF_REPR_LAMBDA: eval_lambda(ctx, perform_gc); return;
       case DEF_REPR_IF:     eval_if(ctx); return;
       case DEF_REPR_LET:    eval_let(ctx, perform_gc); return;
+      case SYM_AND:         eval_and(ctx); return;
+      case SYM_OR:          eval_or(ctx); return;
       default: break; /* May be general application form. Checked below*/
       }
     } // If head is symbol
