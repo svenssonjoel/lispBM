@@ -670,6 +670,10 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
 
   UINT *fun_args = stack_ptr(&ctx->K, dec_u(count)+1);
 
+  if (fun_args == NULL) {
+    ctx->r = enc_sym(symrepr_fatal_error);
+    return;
+  }
   VALUE fun = fun_args[0];
 
   if (type_of(fun) == PTR_TYPE_CONS) { // a closure (it better be)
