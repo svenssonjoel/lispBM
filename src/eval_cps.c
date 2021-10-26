@@ -831,11 +831,15 @@ static inline void cont_application_args(eval_context_t *ctx) {
     // no arguments
     FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
     ctx->app_cont = true;
-    return;
+  } else if (type_of(rest) == PTR_TYPE_CONS) { 
+    FATAL_ON_FAIL(ctx->done, push_u32_4(&ctx->K, env, enc_u(dec_u(count) + 1), cdr(rest), enc_u(APPLICATION_ARGS)));
+    ctx->curr_exp = car(rest);
+    ctx->curr_env = env;
+  } else {
+    /* TODO: Should pop count elements from the stack here as this application is an error */
+    ctx->curr_exp = enc_sym(symrepr_eerror);
+    ctx->curr_env = env;
   }
-  FATAL_ON_FAIL(ctx->done, push_u32_4(&ctx->K, env, enc_u(dec_u(count) + 1), cdr(rest), enc_u(APPLICATION_ARGS)));
-  ctx->curr_exp = car(rest);
-  ctx->curr_env = env;
   return;
 }
 
