@@ -37,7 +37,8 @@ const UINT symrepr_let         =  DEF_REPR_LET;
 const UINT symrepr_define      =  DEF_REPR_DEFINE; 
 const UINT symrepr_progn       =  DEF_REPR_PROGN; 
 const UINT symrepr_comma       =  DEF_REPR_COMMA; 
-const UINT symrepr_commaat     =  DEF_REPR_COMMAAT; 
+const UINT symrepr_commaat     =  DEF_REPR_COMMAAT;
+const UINT symrepr_dontcare    =  DEF_REPR_DONTCARE;
 
 const UINT symrepr_cons        =  SYM_CONS; 
 const UINT symrepr_list        =  SYM_LIST; 

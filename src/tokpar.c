@@ -44,6 +44,8 @@
 #define TOKBACKQUOTE    11
 #define TOKCOMMA        12
 #define TOKCOMMAAT      13
+#define TOKDOT          14
+#define TOKDONTCARE     15
 #define TOKENIZER_ERROR 1024
 #define TOKENIZER_END   2048
 
@@ -118,6 +120,22 @@ int tok_openpar(tokenizer_char_stream str) {
 
 int tok_closepar(tokenizer_char_stream str) {
   if (peek(str,0) == ')') {
+    drop(str,1);
+    return 1;
+  }
+  return 0;
+}
+
+int tok_dot(tokenizer_char_stream str) {
+  if (peek(str,0) == '.') {
+    drop(str,1);
+    return 1;
+  }
+  return 0;
+}
+
+int tok_dontcare(tokenizer_char_stream str) {
+  if (peek(str,0) == '_') {
     drop(str,1);
     return 1;
   }
@@ -462,6 +480,16 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
+  if (tok_dot(str)) {
+    t.type = TOKDOT;
+    return t;
+  }
+
+  if (tok_dontcare(str)) {
+    t.type = TOKDONTCARE;
+    return t;
+  }
+  
   n = tok_symbol(str);
   if (n > 0) {
     t.text_len = (unsigned int)n;
@@ -558,6 +586,9 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
   case TOKOPENPAR:
     t = next_token(str);
     return parse_sexp_list(t,str);
+  case TOKDONTCARE:
+    v = enc_sym(symrepr_dontcare);
+    return v;
   case TOKSYMBOL: {
     UINT symbol_id;
 
@@ -642,16 +673,28 @@ VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
   default:
     head = parse_sexp(tok, str);
     t = next_token(str);
-    tail = parse_sexp_list(t, str);
+
+    if (t.type == TOKDOT) {
+      t = next_token(str);     
+      tail = parse_sexp(t, str);
+      t = next_token(str);
+      if (t.type != TOKCLOSEPAR) {
+	return enc_sym(symrepr_rerror);
+      }
+      
+    } else {
+      tail = parse_sexp_list(t, str);
+    }
     if ((type_of(head) == VAL_TYPE_SYMBOL &&
 	 dec_sym(head) == symrepr_rerror ) ||
 	(type_of(tail) == VAL_TYPE_SYMBOL &&
 	 dec_sym(tail) == symrepr_rerror )) return enc_sym(symrepr_rerror);
     return cons(head, tail);
   }
-
   return enc_sym(symrepr_rerror);
 }
+
+
 
 bool more_string(tokenizer_char_stream str) {
   tokenizer_state *s = (tokenizer_state*)str.state;

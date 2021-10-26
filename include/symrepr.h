@@ -42,6 +42,7 @@
 //#define DEF_REPR_BACKQUOTE     0xF
 #define DEF_REPR_COMMA         0x10
 #define DEF_REPR_COMMAAT       0x11
+#define DEF_REPR_DONTCARE      0x12
 
 // Special symbol ids
 #define DEF_REPR_ARRAY_TYPE     0x20
@@ -130,7 +131,8 @@ extern const UINT symrepr_let;
 extern const UINT symrepr_define; 
 extern const UINT symrepr_progn; 
 extern const UINT symrepr_comma; 
-extern const UINT symrepr_commaat; 
+extern const UINT symrepr_commaat;
+extern const UINT symrepr_dontcare;
 
 extern const UINT symrepr_cons; 
 extern const UINT symrepr_list; 
