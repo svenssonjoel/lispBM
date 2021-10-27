@@ -94,9 +94,9 @@ int inputline(char *buffer, unsigned int size) {
       if (n > 0)
         n--;
       buffer[n] = 0;
-      putchar(0x8); /* output backspace character */
-      putchar(' ');
-      putchar(0x8);
+      //putchar(0x8); /* output backspace character */
+      //putchar(' ');
+      //putchar(0x8);
       n--; /* set up next iteration to deal with preceding char location */
       break;
     case '\n': /* fall through to \r */
@@ -105,7 +105,7 @@ int inputline(char *buffer, unsigned int size) {
       return n;
     default:
       if (isprint(c)) { /* ignore non-printable characters */
-        putchar(c);
+        //putchar(c);
         buffer[n] = (char)c;
       } else {
         n -= 1;
@@ -321,7 +321,8 @@ int main(int argc, char **argv) {
     memset(str, 0 ,len);
     
     ssize_t n = inputline(str,len);
-    printf("\n");
+    fflush(stdout);
+    //printf("\n");
 
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("############################################################\n");

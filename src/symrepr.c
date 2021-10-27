@@ -73,7 +73,7 @@ const UINT symrepr_type_symbol =  DEF_REPR_TYPE_SYMBOL;
 const UINT symrepr_type_char   =  DEF_REPR_TYPE_CHAR; 
 const UINT symrepr_type_ref    =  DEF_REPR_TYPE_REF; 
 
-#define NUM_SPECIAL_SYMBOLS 69
+#define NUM_SPECIAL_SYMBOLS 71
 
 #define NAME   0
 #define ID     1
@@ -97,6 +97,8 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   //{"bquote"     , DEF_REPR_BACKQUOTE},
   {"comma"      , DEF_REPR_COMMA},
   {"splice"     , DEF_REPR_COMMAAT},
+  {"match"      , DEF_REPR_MATCH},
+  {"_"          , DEF_REPR_DONTCARE},
   
   // Special symbols with unparseable names
   {"read_error"         , DEF_REPR_RERROR},

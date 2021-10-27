@@ -43,6 +43,7 @@
 #define DEF_REPR_COMMA         0x10
 #define DEF_REPR_COMMAAT       0x11
 #define DEF_REPR_DONTCARE      0x12
+#define DEF_REPR_MATCH         0x13
 
 // Special symbol ids
 #define DEF_REPR_ARRAY_TYPE     0x20

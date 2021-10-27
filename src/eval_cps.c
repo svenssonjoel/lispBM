@@ -39,6 +39,7 @@
 #define OR                9
 #define WAIT              10
 #define SPAWN_ALL         11
+#define MATCH             12
 
 #define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error); return ; }
 #define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error); return ctx->r; }
@@ -556,6 +557,26 @@ static inline void eval_or(eval_context_t *ctx) {
   }
 }
 
+/* pattern matching experiment */
+/* format:                     */
+/* (match e ((pattern body)    */
+/*           (pattern body)    */
+/*           ... )             */
+static inline void eval_match(eval_context_t *ctx) {
+
+  VALUE rest = cdr(ctx->curr_exp);
+  if (type_of(rest) == VAL_TYPE_SYMBOL &&
+      rest == NIL) {
+    ctx->app_cont = true;
+    ctx->r = enc_sym(symrepr_nil); /* make up new specific symbol? */ 
+    return;
+  } else {
+    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, car(cdr(rest)), enc_u(MATCH)));
+    ctx->curr_exp = car(rest); /* e */
+  }
+}
+
+
 /*********************************************************/
 /*  Continuation functions                               */
 
@@ -916,6 +937,84 @@ static inline void cont_if(eval_context_t *ctx) {
     ctx->curr_exp = else_branch;
   }
 }
+
+
+bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
+  
+  VALUE binding;
+
+  if (type_of(p) == VAL_TYPE_SYMBOL) {
+    UINT s = dec_sym(p);
+    if (s == symrepr_nil) {
+      /* nil matches nil */
+      return (p == e ? true : false);
+    } else if (s == symrepr_true) {
+      /* true matches true */
+      return (p == e ? true : false);
+    } else if (s == symrepr_dontcare) {
+      /* dontcare matches anything */
+      return true;
+    } else {
+      /* a case that is very easy to abuse! */
+      /* a symbol matches anything */
+      binding = cons(p, e);
+      *env = cons(binding, *env);
+      if (type_of(binding) == VAL_TYPE_SYMBOL ||
+	  type_of(*env) == VAL_TYPE_SYMBOL) {
+	*gc = true;
+	return false;
+      }
+      return true;
+    }
+  } else if (type_of(p) == PTR_TYPE_CONS &&
+	     type_of(e) == PTR_TYPE_CONS) {
+
+    VALUE headp = car(p);
+    VALUE heade = car(e);
+    if (!match(headp, heade, env, gc)) {
+      return false;
+    }
+    return match (cdr(p), cdr(e), env, gc);
+  } else if (p == e) {
+    return true;
+  }
+  return false;
+}
+
+static inline void cont_match(eval_context_t *ctx, bool *perform_gc) {
+  VALUE e = ctx->r;
+  VALUE patterns;
+  VALUE new_env = ctx->curr_env;
+  bool  gc = false;
+  
+  pop_u32(&ctx->K, &patterns);
+  
+  if (type_of(patterns) == VAL_TYPE_SYMBOL && dec_sym(patterns) == symrepr_nil) {
+    /* no more patterns */
+    ctx->r = enc_sym(symrepr_nil);
+    ctx->app_cont = true;
+  } else if (type_of(patterns) == PTR_TYPE_CONS) {  
+    VALUE pattern = car(car(patterns)); 
+    VALUE body    = car(cdr(car(patterns)));
+
+    if (match(pattern, e, &new_env, &gc)) {
+      ctx->curr_env = new_env;
+      ctx->curr_exp = body;
+    } else if (gc) {
+      FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, patterns, enc_u(MATCH))); /* resume */
+      *perform_gc = true;
+    } else {
+      /* set up for checking of next pattern */
+      FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(patterns), enc_u(MATCH)));
+      /* leave r unaltered */
+      ctx->app_cont = true;
+    }
+  } else { 
+    /* TODO: return type error */
+    ctx->r = enc_sym(symrepr_terror);
+    ctx->done = true;
+  }
+}
   
 
 /*********************************************************/
@@ -961,6 +1060,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
     case OR:               cont_or(ctx); return;
     case BIND_TO_KEY_REST: cont_bind_to_key_rest(ctx); return;
     case IF:               cont_if(ctx); return;
+    case MATCH:            cont_match(ctx, perform_gc); return;
     default:
       ERROR
       error_ctx(enc_sym(symrepr_eerror));
@@ -1000,6 +1100,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       case DEF_REPR_LET:    eval_let(ctx, perform_gc); return;
       case SYM_AND:         eval_and(ctx); return;
       case SYM_OR:          eval_or(ctx); return;
+      case DEF_REPR_MATCH:  eval_match(ctx); return;
       default: break; /* May be general application form. Checked below*/
       }
     } // If head is symbol
