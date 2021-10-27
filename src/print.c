@@ -32,6 +32,7 @@
 #define START_LIST     3
 #define CONTINUE_LIST  4
 #define END_LIST       5
+#define PRINT_DOT      6
 
 
 int print_value(char *buf,unsigned int len, char *error, unsigned int len_error, VALUE t) {
@@ -83,7 +84,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
 	res &= push_u32(&s, END_LIST);
 	res &= push_u32(&s, cdr_val);
 	res &= push_u32(&s, PRINT);
-	res &= push_u32(&s, PRINT_SPACE);
+	res &= push_u32(&s, PRINT_DOT);
       }
       res &= push_u32(&s, car_val);
       res &= push_u32(&s, PRINT);
@@ -127,7 +128,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
 	res &= push_u32(&s, END_LIST);
 	res &= push_u32(&s, cdr_val);
 	res &= push_u32(&s, PRINT);
-	res &= push_u32(&s, PRINT_SPACE);
+	res &= push_u32(&s, PRINT_DOT);
       }
       res &= push_u32(&s, car_val);
       res &= push_u32(&s, PRINT);
@@ -158,6 +159,16 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
       }
 
       offset += n;
+      break;
+    case PRINT_DOT: /* space dot space */
+      r = snprintf(buf + offset, len - offset, " . ");
+      if (r > 0) {
+	n = (unsigned int) r;
+      } else {
+	snprintf(error, len_error, "Error: PRINT_DOT failed\n");
+	return -1;
+      }
+      offset +=n;
       break;
       
     case PRINT:
