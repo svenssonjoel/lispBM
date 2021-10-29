@@ -37,6 +37,8 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 4. Poke me by mail bo(dot)joel(dot)svensson(whirly-a)gmail(dot)com
 
 ## TODOs
+<details>
+  <summary> Old todos </summary>
 1. (DONE) Write some tests that stresses the Garbage collector.
 2. (DONE) Implement some "reference to X type", for uint32, int32. 
 3. (DONE) Write a small library of useful hofs. 
@@ -51,6 +53,7 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 12. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
 13. (DONE) Add NRF52 example repl to repository
 14. (DONE) Update all example REPLs after adding quasiquotation
+</details>
 15. Test all example REPLs after addition of quasiquotation
 16. Implement some looping structure for speed or just ease of use. 
 17. Be much more stringent on checking of error conditions etc.
