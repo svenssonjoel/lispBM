@@ -21,10 +21,11 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 9. Compiles for, and runs on NRF52840.
 10. Compiles for, and runs on ESP32 (ARM - WROOM).
 11. Compiles for, and runs on ESP32C3 (RISC-V).
+12. Quasiquotation.
 
 ## Experimental
-1. Quasiquotation (needs more testing).
-2. Concurrency (Work in progress).
+1. Concurrency (Work in progress).
+2. Pattern-matchin (Work in progress).
 
 ## Documentation
 LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).
