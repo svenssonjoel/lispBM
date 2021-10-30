@@ -40,6 +40,7 @@
 #define WAIT              10
 #define SPAWN_ALL         11
 #define MATCH             12
+#define MATCH_MANY        13
 
 #define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error); return ; }
 #define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error); return ctx->r; }
@@ -78,6 +79,7 @@ static uint32_t next_ctx_id = 1;
 
 /* Callbacks and task queue */
 static eval_context_t *ctx_blocked_queue = NULL;
+static eval_context_t *ctx_blocked_queue_last = NULL;
 static eval_context_t *ctx_queue = NULL;
 static eval_context_t *ctx_queue_last = NULL;
 static eval_context_t *ctx_done = NULL;
@@ -115,6 +117,22 @@ void enqueue_ctx(eval_context_t *ctx) {
     ctx_queue_last = ctx;
   }
 }
+
+void block_enqueue_ctx(eval_context_t *ctx) {
+
+  if (ctx_blocked_queue_last == NULL) {
+    ctx->prev = NULL;
+    ctx->next = NULL;
+    ctx_blocked_queue = ctx;
+    ctx_blocked_queue_last = ctx;
+  } else {
+    ctx->prev = ctx_queue_last;
+    ctx->next = NULL;
+    ctx_blocked_queue_last->next = ctx;
+    ctx_blocked_queue_last = ctx;
+  }
+}
+
 
 /* End exection of the running context and add it to the
    list of finished contexts. */
@@ -321,7 +339,8 @@ void advance_ctx(void) {
 static int gc(VALUE env,
 	      eval_context_t *runnable,
 	      eval_context_t *done,
-	      eval_context_t *running) {
+	      eval_context_t *running,
+	      eval_context_t *blocked) {
 
   gc_state_inc();
   gc_mark_freelist();
@@ -333,6 +352,7 @@ static int gc(VALUE env,
     gc_mark_phase(curr->curr_exp);
     gc_mark_phase(curr->program);
     gc_mark_phase(curr->r);
+    gc_mark_phase(curr->mailbox);
     gc_mark_aux(curr->K.data, curr->K.sp);
     curr = curr->next;
   }
@@ -343,10 +363,22 @@ static int gc(VALUE env,
     curr = curr->next;
   }
 
+  curr = blocked;
+  while (curr) {
+    gc_mark_phase(curr->curr_env);
+    gc_mark_phase(curr->curr_exp);
+    gc_mark_phase(curr->program);
+    gc_mark_phase(curr->r);
+    gc_mark_phase(curr->mailbox);
+    gc_mark_aux(curr->K.data, curr->K.sp);
+    curr = curr->next;
+  }
+
   gc_mark_phase(running->curr_env);
   gc_mark_phase(running->curr_exp);
   gc_mark_phase(running->program);
   gc_mark_phase(running->r);
+  gc_mark_phase(running->mailbox);
   gc_mark_aux(running->K.data, running->K.sp);
 
 
@@ -584,16 +616,36 @@ static inline void eval_send(eval_context_t *ctx, bool *perform_gc) {
 }
 
 static inline void eval_receive(eval_context_t *ctx) {
-  /* Check the mailbox */
-  /* if there are no messages, put ctx on the blocked queue */
-  /* if there are messages */
-  /*    schedule a continuation to deal with no message matches */
-  /*    schedule a continuation to deal with the result of matching */ 
-  /*    schedule the match continuation on the head of mailbox */
-  
 
   
-  
+  if (type_of(ctx->mailbox) == VAL_TYPE_SYMBOL &&
+      dec_sym(ctx->mailbox) == symrepr_nil) {
+
+    /*nothing in the mailbox: block the context*/
+    ctx->timestamp = timestamp_us_callback();
+    ctx->sleep_us = 0;
+    block_enqueue_ctx(ctx);
+    ctx_running = NULL;
+    
+    
+  } else {
+
+    VALUE pats = ctx->curr_exp;
+    VALUE msgs = ctx->mailbox;
+    
+    if (type_of(pats) == VAL_TYPE_SYMBOL &&
+	pats == NIL) {
+      ctx->app_cont = true;
+      ctx->r = enc_sym(symrepr_nil);
+      return;
+    } else {
+      FATAL_ON_FAIL(ctx->done, push_u32_4(&ctx->K, ctx->curr_exp, car(cdr(pats)), cdr(msgs), enc_u(MATCH_MANY)));
+      FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, car(cdr(pats)), enc_u(MATCH)));
+      ctx->r = car(msgs);
+      ctx->app_cont = true;
+    }
+  }
+
 }
 
 
@@ -1001,6 +1053,35 @@ bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
   return false;
 }
 
+static inline void cont_match_many(eval_context_t *ctx) {
+
+  VALUE r = ctx->r;
+
+  VALUE rest_msgs;
+  VALUE pats;
+  VALUE exp; 
+  
+  pop_u32_3(&ctx->K, &rest_msgs, &pats, &exp);
+  
+  if (type_of(r) == VAL_TYPE_SYMBOL &&
+      (dec_sym(r) == symrepr_nomatch)) {
+
+    if (type_of(rest_msgs) == VAL_TYPE_SYMBOL &&
+	dec_sym(rest_msgs) == symrepr_nil) {
+
+      ctx->curr_exp = exp;
+      
+    } else {
+      /* try match the next one */
+      FATAL_ON_FAIL(ctx->done, push_u32_4(&ctx->K, exp, pats, cdr(rest_msgs), enc_u(MATCH_MANY)));
+      FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, car(pats), enc_u(MATCH)));
+    }
+  }
+  
+  /* I think the else branch will be "do nothing" here. */
+  
+}
+
 static inline void cont_match(eval_context_t *ctx, bool *perform_gc) {
   VALUE e = ctx->r;
   VALUE patterns;
@@ -1057,7 +1138,8 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
     gc(*env_get_global_ptr(),
        ctx_queue,
        ctx_done,
-       ctx_running);
+       ctx_running,
+       ctx_blocked_queue);
     *perform_gc = false;
   } else {
     *last_iteration_gc = false;;
