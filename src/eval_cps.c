@@ -77,6 +77,7 @@ static bool     eval_running = false;
 static uint32_t next_ctx_id = 1;
 
 /* Callbacks and task queue */
+static eval_context_t *ctx_blocked_queue = NULL;
 static eval_context_t *ctx_queue = NULL;
 static eval_context_t *ctx_queue_last = NULL;
 static eval_context_t *ctx_done = NULL;
@@ -276,6 +277,7 @@ CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
   ctx->program = cdr(program);
   ctx->curr_exp = car(program);
   ctx->curr_env = env;
+  ctx->mailbox = enc_sym(symrepr_nil);
   ctx->done = false;
   ctx->app_cont = false;
   ctx->timestamp = 0;

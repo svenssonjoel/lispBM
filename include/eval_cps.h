@@ -24,6 +24,7 @@ typedef struct eval_context_s{
   VALUE program;
   VALUE curr_exp;
   VALUE curr_env;
+  VALUE mailbox;  /*massage passing mailbox */
   VALUE r;
   bool  done;
   bool  app_cont;
