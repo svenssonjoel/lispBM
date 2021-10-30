@@ -587,7 +587,10 @@ static inline void eval_receive(eval_context_t *ctx) {
   /* Check the mailbox */
   /* if there are no messages, put ctx on the blocked queue */
   /* if there are messages */
-
+  /*    schedule a continuation to deal with no message matches */
+  /*    schedule a continuation to deal with the result of matching */ 
+  /*    schedule the match continuation on the head of mailbox */
+  
 
   
   
