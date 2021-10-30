@@ -44,8 +44,9 @@
 #define DEF_REPR_COMMAAT       0x11
 #define DEF_REPR_DONTCARE      0x12
 #define DEF_REPR_MATCH         0x13
+#define DEF_REPR_SEND          0x14
+#define DEF_REPR_RECEIVE       0x15
 
-// Special symbol ids
 #define DEF_REPR_ARRAY_TYPE     0x20
 #define DEF_REPR_BOXED_I_TYPE   0x21
 #define DEF_REPR_BOXED_U_TYPE   0x22
@@ -55,18 +56,19 @@
 #define DEF_REPR_BYTECODE_TYPE  0x26
 #define DEF_REPR_NONSENSE       0x27
 #define DEF_REPR_NOT_FOUND      0x28
+#define DEF_REPR_NO_MATCH       0x29
 
 // Type identifying symbols
-#define DEF_REPR_TYPE_LIST      0x29
-#define DEF_REPR_TYPE_I28       0x2A
-#define DEF_REPR_TYPE_U28       0x2B
-#define DEF_REPR_TYPE_FLOAT     0x2C
-#define DEF_REPR_TYPE_I32       0x2D
-#define DEF_REPR_TYPE_U32       0x2E
-#define DEF_REPR_TYPE_ARRAY     0x2F
-#define DEF_REPR_TYPE_SYMBOL    0x30
-#define DEF_REPR_TYPE_CHAR      0x31
-#define DEF_REPR_TYPE_REF       0x32
+#define DEF_REPR_TYPE_LIST      0x2A
+#define DEF_REPR_TYPE_I28       0x2B
+#define DEF_REPR_TYPE_U28       0x2C
+#define DEF_REPR_TYPE_FLOAT     0x2D
+#define DEF_REPR_TYPE_I32       0x2E
+#define DEF_REPR_TYPE_U32       0x2F
+#define DEF_REPR_TYPE_ARRAY     0x30
+#define DEF_REPR_TYPE_SYMBOL    0x31
+#define DEF_REPR_TYPE_CHAR      0x32
+#define DEF_REPR_TYPE_REF       0x33
 
 // Fundamental Operations
 #define FUNDAMENTALS_START      0x100
@@ -134,6 +136,10 @@ extern const UINT symrepr_progn;
 extern const UINT symrepr_comma; 
 extern const UINT symrepr_commaat;
 extern const UINT symrepr_dontcare;
+extern const UINT symrepr_send;
+extern const UINT symrepr_receive;
+extern const UINT symrepr_match;
+extern const UINT symrepr_nomatch;
 
 extern const UINT symrepr_cons; 
 extern const UINT symrepr_list; 

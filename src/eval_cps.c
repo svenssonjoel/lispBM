@@ -578,6 +578,21 @@ static inline void eval_match(eval_context_t *ctx) {
   }
 }
 
+static inline void eval_send(eval_context_t *ctx, bool *perform_gc) {
+
+
+}
+
+static inline void eval_receive(eval_context_t *ctx) {
+  /* Check the mailbox */
+  /* if there are no messages, put ctx on the blocked queue */
+  /* if there are messages */
+
+
+  
+  
+}
+
 
 /*********************************************************/
 /*  Continuation functions                               */
@@ -993,7 +1008,7 @@ static inline void cont_match(eval_context_t *ctx, bool *perform_gc) {
   
   if (type_of(patterns) == VAL_TYPE_SYMBOL && dec_sym(patterns) == symrepr_nil) {
     /* no more patterns */
-    ctx->r = enc_sym(symrepr_nil);
+    ctx->r = enc_sym(symrepr_nomatch);
     ctx->app_cont = true;
   } else if (type_of(patterns) == PTR_TYPE_CONS) {  
     VALUE pattern = car(car(patterns)); 
@@ -1093,16 +1108,20 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       UINT sym_id = dec_sym(head);
 
       switch(sym_id) {
-      case DEF_REPR_QUOTE:  eval_quote(ctx); return;
-      case DEF_REPR_DEFINE: eval_define(ctx); return;
-      case DEF_REPR_PROGN:  eval_progn(ctx); return;
-      case SYM_SPAWN:       eval_spawn(ctx); return;
-      case DEF_REPR_LAMBDA: eval_lambda(ctx, perform_gc); return;
-      case DEF_REPR_IF:     eval_if(ctx); return;
-      case DEF_REPR_LET:    eval_let(ctx, perform_gc); return;
-      case SYM_AND:         eval_and(ctx); return;
-      case SYM_OR:          eval_or(ctx); return;
-      case DEF_REPR_MATCH:  eval_match(ctx); return;
+      case DEF_REPR_QUOTE:   eval_quote(ctx); return;
+      case DEF_REPR_DEFINE:  eval_define(ctx); return;
+      case DEF_REPR_PROGN:   eval_progn(ctx); return;
+      case SYM_SPAWN:        eval_spawn(ctx); return;
+      case DEF_REPR_LAMBDA:  eval_lambda(ctx, perform_gc); return;
+      case DEF_REPR_IF:      eval_if(ctx); return;
+      case DEF_REPR_LET:     eval_let(ctx, perform_gc); return;
+      case SYM_AND:          eval_and(ctx); return;
+      case SYM_OR:           eval_or(ctx); return;
+      case DEF_REPR_MATCH:   eval_match(ctx); return;
+	/* message passing primitives */
+      case DEF_REPR_SEND:    eval_send(ctx, perform_gc); return;
+      case DEF_REPR_RECEIVE: eval_receive(ctx);
+      
       default: break; /* May be general application form. Checked below*/
       }
     } // If head is symbol

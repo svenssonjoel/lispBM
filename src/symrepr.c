@@ -39,6 +39,10 @@ const UINT symrepr_progn       =  DEF_REPR_PROGN;
 const UINT symrepr_comma       =  DEF_REPR_COMMA; 
 const UINT symrepr_commaat     =  DEF_REPR_COMMAAT;
 const UINT symrepr_dontcare    =  DEF_REPR_DONTCARE;
+const UINT symrepr_send        =  DEF_REPR_SEND;
+const UINT symrepr_receive     =  DEF_REPR_RECEIVE;
+const UINT symrepr_match       =  DEF_REPR_MATCH;
+const UINT symrepr_nomatch     =  DEF_REPR_NO_MATCH;
 
 const UINT symrepr_cons        =  SYM_CONS; 
 const UINT symrepr_list        =  SYM_LIST; 
@@ -73,7 +77,7 @@ const UINT symrepr_type_symbol =  DEF_REPR_TYPE_SYMBOL;
 const UINT symrepr_type_char   =  DEF_REPR_TYPE_CHAR; 
 const UINT symrepr_type_ref    =  DEF_REPR_TYPE_REF; 
 
-#define NUM_SPECIAL_SYMBOLS 71
+#define NUM_SPECIAL_SYMBOLS 74
 
 #define NAME   0
 #define ID     1
@@ -99,8 +103,11 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"splice"     , DEF_REPR_COMMAAT},
   {"match"      , DEF_REPR_MATCH},
   {"_"          , DEF_REPR_DONTCARE},
+  {"send"       , DEF_REPR_SEND},
+  {"recv"       , DEF_REPR_RECEIVE},
   
   // Special symbols with unparseable names
+  {"no_match"           , DEF_REPR_NO_MATCH},
   {"read_error"         , DEF_REPR_RERROR},
   {"type_error"         , DEF_REPR_TERROR},
   {"eval_error"         , DEF_REPR_EERROR},
