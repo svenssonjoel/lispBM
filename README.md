@@ -26,6 +26,7 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 ## Experimental
 1. Concurrency (Work in progress).
 2. Pattern-matching (Work in progress).
+3. Message passing (Work in progress).
 
 ## Documentation
 LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).

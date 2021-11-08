@@ -1,7 +1,7 @@
 
 (define fred (lambda ()
 	       (progn (print "fred iteration" \#newline )
-		      (recv (x (print "fred received " x \#newline)))
+		      (recv ((x (print "fred received " x \#newline))))
 		      (yield 500000)
 		      (fred))))
 

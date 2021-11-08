@@ -400,7 +400,6 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
 
   while (curr != NULL) {
     if (curr->id == cid) {
-      printf("receiver found in blocked queue\n");
       found = curr;
       break;
     }
@@ -413,7 +412,6 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
     curr = ctx_queue;
     while (curr != NULL) { 
       if (curr->id == cid) {
-	printf("receiver found in ready queue\n");
 	found = curr;
 	break;
       }
@@ -449,8 +447,106 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
   }
 
   
-  return enc_sym(symrepr_nil);
+  return enc_sym(symrepr_nil); 
+}
+
+VALUE list_remove(int n, VALUE list) {
+  int c = 0;
+  VALUE res;
+  VALUE curr = list;
   
+  VALUE tmp = enc_sym(symrepr_nil);
+
+  while (type_of(curr) == PTR_TYPE_CONS) {
+    if (n == c) {
+      curr = cdr(curr);
+      break;
+    }
+    tmp = cons(car(curr), tmp);
+    if (type_of(tmp) == VAL_TYPE_SYMBOL) {
+      res = tmp;
+      return res;
+    }
+    curr = cdr(curr);
+    c++;
+  }
+
+  res = curr; /*res is the tail */
+  curr = tmp;
+  if ( c != 0) {
+    while (type_of(curr) == PTR_TYPE_CONS) {
+      res = cons(car(curr),res);
+      if (type_of(res) == VAL_TYPE_SYMBOL) {
+	return res;
+      }	
+      curr = cdr(curr);
+    }
+  }
+  return res;
+}
+
+bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
+
+  VALUE binding;
+
+  if (type_of(p) == VAL_TYPE_SYMBOL) {
+    UINT s = dec_sym(p);
+    if (s == symrepr_nil) {
+      /* nil matches nil */
+      return (p == e ? true : false);
+    } else if (s == symrepr_true) {
+      /* true matches true */
+      return (p == e ? true : false);
+    } else if (s == symrepr_dontcare) {
+      /* dontcare matches anything */
+      return true;
+    } else {
+      /* a case that is very easy to abuse! */
+      /* a symbol matches anything */
+      binding = cons(p, e);
+      *env = cons(binding, *env);
+      if (type_of(binding) == VAL_TYPE_SYMBOL ||
+	  type_of(*env) == VAL_TYPE_SYMBOL) {
+	*gc = true;
+	return false;
+      }
+      return true;
+    }
+  } else if (type_of(p) == PTR_TYPE_CONS &&
+	     type_of(e) == PTR_TYPE_CONS) {
+
+    VALUE headp = car(p);
+    VALUE heade = car(e);
+    if (!match(headp, heade, env, gc)) {
+      return false;
+    }
+    return match (cdr(p), cdr(e), env, gc);
+  } else if (p == e) {
+    return true;
+  }
+  return false;
+}
+
+int find_match(VALUE plist, VALUE elist, VALUE *e, VALUE *env, bool *gc) {
+  
+  VALUE curr_p = plist;
+  VALUE curr_e = elist;
+  int n = 0;
+  while (type_of(curr_e) == PTR_TYPE_CONS) {
+    while (type_of(curr_p) == PTR_TYPE_CONS) { 
+      if (match(car(car(curr_p)), car(curr_e), env, gc)) {
+	if (*gc) return -1;
+	*e = car(cdr(car(curr_p)));
+	return n;
+      }
+      curr_p = cdr(curr_p);
+    }
+    curr_p = plist;       /* search all patterns against next exp */
+    curr_e = cdr(curr_e);
+    n ++;
+  }
+
+  return -1;
 }
 
 /****************************************************/
@@ -731,8 +827,8 @@ static inline void eval_match(eval_context_t *ctx) {
   }
 }
 
-static inline void eval_receive(eval_context_t *ctx) {
-
+static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
+    
   if (type_of(ctx->mailbox) == VAL_TYPE_SYMBOL &&
       dec_sym(ctx->mailbox) == symrepr_nil) {
     /*nothing in the mailbox: block the context*/
@@ -749,13 +845,42 @@ static inline void eval_receive(eval_context_t *ctx) {
       /* A receive statement without any patterns */
       ctx->app_cont = true;
       ctx->r = enc_sym(symrepr_nil);
-    } else {
+    } else {      
       /* The common case */
+      VALUE e;
+      VALUE new_env = ctx->curr_env;
+      bool do_gc = false;;
+      int n = find_match(car(cdr(pats)), msgs, &e, &new_env, &do_gc);
+      if (do_gc) {
+	*perform_gc = true;
+	ctx->app_cont = false;
+      } else if (n >= 0 ) { /* Match */ 
+	printf("match found\n");
+	VALUE new_mailbox = list_remove(n, msgs);
+
+	if ((type_of(new_mailbox) == VAL_TYPE_SYMBOL) &&
+	    (dec_sym(new_mailbox) == symrepr_merror)) {
+	  *perform_gc = true;
+	  ctx->app_cont = false;
+	  return;
+	}
+	ctx->mailbox = new_mailbox;
+	ctx->curr_env = new_env;
+	ctx->curr_exp = e;
+      } else { /* No match  go back to sleep */
+	printf("going back to sleep\n");
+	ctx->timestamp = timestamp_us_callback();
+	ctx->sleep_us = 0;
+	block_enqueue_ctx(ctx);
+	ctx_running = NULL;
+	ctx->r = enc_sym(symrepr_nomatch);
+      }
+      
       /* Match messages on mailbox against the patterns */
-      FATAL_ON_FAIL(ctx->done, push_u32_4(&ctx->K, ctx->curr_exp, car(cdr(pats)), cdr(msgs), enc_u(MATCH_MANY)));
-      FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, car(cdr(pats)), enc_u(MATCH)));
-      ctx->r = car(msgs);
-      ctx->app_cont = true;
+      /* FATAL_ON_FAIL(ctx->done, push_u32_4(&ctx->K, ctx->curr_exp, car(cdr(pats)), cdr(msgs), enc_u(MATCH_MANY))); */
+      /* FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, car(cdr(pats)), enc_u(MATCH))); */
+      /* ctx->r = car(msgs); */
+      /* ctx->app_cont = true; */
     }
   }
   return;
@@ -969,24 +1094,12 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
       stack_drop(&ctx->K, dec_u(count)+1);
       return;
     } else if (dfun == DEF_REPR_SEND) {
-      printf("Sending\n");
       VALUE status = enc_sym(symrepr_eerror);
       
       if (dec_u(count) == 2) {
 
-	char str[1024];
-	char err[1024];
-	print_value(str, 1024, err, 1024, fun_args[0]);
-	printf("0: %s    %x\n",str, type_of(fun_args[0]));
-	print_value(str, 1024, err, 1024, fun_args[1]);
-	printf("1: %s    %x\n",str, type_of(fun_args[1]));
-	print_value(str, 1024, err, 1024, fun_args[2]);
-	printf("2: %s    %x\n",str, type_of(fun_args[2]));
-
-	
 	if (type_of(fun_args[1]) == VAL_TYPE_U) { /* CID is of U type */
 	  CID cid = (CID)dec_u(fun_args[1]);
-	  printf("Sending to %u\n",  cid);
 	  VALUE msg = fun_args[2];
 	  status = find_receiver_and_send(cid, msg);
 	  if (type_of(status) != VAL_TYPE_SYMBOL) {
@@ -999,13 +1112,8 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
 	    ctx->app_cont = true;
 	    ctx->r = fun;
 	  }
-	} else {
-	  printf("num arguments: %d\n", dec_u(count));
-	  printf("argument not unsigned:");
-	}
-      } else {
-	printf("not 2 args: %d\n", dec_u(count));
-      }
+	} 
+      } 
       /* return the status */
       stack_drop(&ctx->K, dec_u(count)+1);
       ctx->r = status;
@@ -1161,49 +1269,6 @@ static inline void cont_if(eval_context_t *ctx) {
   } else {
     ctx->curr_exp = else_branch;
   }
-}
-
-
-bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
-
-  VALUE binding;
-
-  if (type_of(p) == VAL_TYPE_SYMBOL) {
-    UINT s = dec_sym(p);
-    if (s == symrepr_nil) {
-      /* nil matches nil */
-      return (p == e ? true : false);
-    } else if (s == symrepr_true) {
-      /* true matches true */
-      return (p == e ? true : false);
-    } else if (s == symrepr_dontcare) {
-      /* dontcare matches anything */
-      return true;
-    } else {
-      /* a case that is very easy to abuse! */
-      /* a symbol matches anything */
-      binding = cons(p, e);
-      *env = cons(binding, *env);
-      if (type_of(binding) == VAL_TYPE_SYMBOL ||
-	  type_of(*env) == VAL_TYPE_SYMBOL) {
-	*gc = true;
-	return false;
-      }
-      return true;
-    }
-  } else if (type_of(p) == PTR_TYPE_CONS &&
-	     type_of(e) == PTR_TYPE_CONS) {
-
-    VALUE headp = car(p);
-    VALUE heade = car(e);
-    if (!match(headp, heade, env, gc)) {
-      return false;
-    }
-    return match (cdr(p), cdr(e), env, gc);
-  } else if (p == e) {
-    return true;
-  }
-  return false;
 }
 
 static inline void cont_match_many(eval_context_t *ctx) {
@@ -1362,7 +1427,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       case DEF_REPR_MATCH:   eval_match(ctx); return;
 	/* message passing primitives */
 	//case DEF_REPR_SEND:    eval_send(ctx, perform_gc); return;
-      case DEF_REPR_RECEIVE: eval_receive(ctx);
+      case DEF_REPR_RECEIVE: eval_receive(ctx, perform_gc); return;
 
       default: break; /* May be general application form. Checked below*/
       }
@@ -1390,7 +1455,6 @@ void eval_cps_run_eval(void){
   bool last_iteration_gc = false;
 
   while (eval_running) {
-
     if (!ctx_running) {
       uint32_t us;
       ctx_running = dequeue_ctx(&us);
