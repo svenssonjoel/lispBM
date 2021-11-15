@@ -30,23 +30,24 @@
 #include "memory.h"
 #include "env.h"
 
-#define TOKOPENPAR      0      // "("
-#define TOKCLOSEPAR     1      // ")"
-#define TOKQUOTE        2      // "'"
-#define TOKSYMBOL       3      // "foo"
-#define TOKINT          4      // "42", "42i28"
-#define TOKUINT         5      // "42u28"
-#define TOKBOXEDINT     6      // "42i32"
-#define TOKBOXEDUINT    7      // "42u32"
-#define TOKBOXEDFLOAT   8      // "42.0"
-#define TOKSTRING       9      // "\"Hello\""
-#define TOKCHAR         10     // "\\#c"
-#define TOKBACKQUOTE    11     // "´"
-#define TOKCOMMA        12     // ","
-#define TOKCOMMAAT      13     // ",@"
-#define TOKDOT          14     // "."
-#define TOKDONTCARE     15     // "_"
+#define NOTOKEN         0
 
+#define TOKOPENPAR      1      // "("
+#define TOKCLOSEPAR     2      // ")"
+#define TOKQUOTE        3      // "'"
+#define TOKSYMBOL       4      // "foo"
+#define TOKINT          5      // "42", "42i28"
+#define TOKUINT         6      // "42u28"
+#define TOKBOXEDINT     7      // "42i32"
+#define TOKBOXEDUINT    8      // "42u32"
+#define TOKBOXEDFLOAT   9      // "42.0"
+#define TOKSTRING       10     // "\"Hello\""
+#define TOKCHAR         11     // "\\#c"
+#define TOKBACKQUOTE    12     // "´"
+#define TOKCOMMA        13     // ","
+#define TOKCOMMAAT      14     // ",@"
+#define TOKDOT          15     // "."
+#define TOKDONTCARE     16     // "_"
 
 #define TOKENIZER_ERROR 1024
 #define TOKENIZER_END   2048
@@ -88,6 +89,25 @@ typedef struct tcs{
   void (*drop)(struct tcs, unsigned int);
 } tokenizer_char_stream;
 
+typedef struct {
+  const char *str;
+  int  token;
+  int  len;
+} matcher;
+
+#define NUM_FIXED_SIZE_TOKENS 8
+const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
+  {"(", TOKOPENPAR, 1},
+  {")", TOKCLOSEPAR, 1},
+  {".", TOKDOT, 1},
+  {"_", TOKDONTCARE, 1},
+  {"'", TOKQUOTE, 1},
+  {"`", TOKBACKQUOTE, 1},
+  {",@", TOKCOMMAAT, 2},
+  {",", TOKCOMMA, 1},
+};
+
+
 // Todo: Try to figure out how to do GC while reading
 /* static int gc() { */
 /*   gc_state_inc(); */
@@ -112,69 +132,24 @@ void drop(tokenizer_char_stream str, unsigned int n) {
   str.drop(str,n);
 }
 
-int tok_openpar(tokenizer_char_stream str) {
-  if (peek(str,0) == '(') {
-    drop(str,1);
-    return 1;
-  }
-  return 0;
-}
 
-int tok_closepar(tokenizer_char_stream str) {
-  if (peek(str,0) == ')') {
-    drop(str,1);
-    return 1;
-  }
-  return 0;
-}
+int tok_match_fixed_size_tokens(tokenizer_char_stream str) {
 
-int tok_dot(tokenizer_char_stream str) {
-  if (peek(str,0) == '.') {
-    drop(str,1);
-    return 1;
-  }
-  return 0;
-}
+  for (int i = 0; i < NUM_FIXED_SIZE_TOKENS; i ++) {
+    int tok_len = match_table[i].len;
+    const char *match_str = match_table[i].str;
+    int tok = match_table[i].token;
 
-int tok_dontcare(tokenizer_char_stream str) {
-  if (peek(str,0) == '_') {
-    drop(str,1);
-    return 1;
+    int char_pos;
+    for (char_pos = 0; char_pos < tok_len; char_pos ++) {
+      if (peek(str,char_pos) != match_str[char_pos]) break;
+    }
+    if (char_pos == tok_len) { //match
+      drop(str,tok_len);
+      return tok;
+    }
   }
-  return 0;
-}
-
-int tok_quote(tokenizer_char_stream str) {
-  if (peek(str,0) == '\'') {
-    drop(str,1);
-    return 1;
-  }
-  return 0;
-}
-
-int tok_backquote(tokenizer_char_stream str) {
-  if (peek(str,0) == '`') {
-    drop(str, 1);
-    return 1;
-  }
-  return 0;
-}
-
-int tok_commaat(tokenizer_char_stream str) {
-  if (peek(str,0) == ',' &&
-      peek(str,1) == '@') {
-    drop(str,2);
-    return 2;
-  }
-  return 0;
-}
-
-int tok_comma(tokenizer_char_stream str) {
-  if (peek(str,0) == ',') {
-    drop(str, 1);
-    return 1;
-  }
-  return 0;
+  return NOTOKEN;
 }
 
 bool symchar0(char c) {
@@ -452,43 +427,10 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
-  if (tok_quote(str)) {
-    t.type = TOKQUOTE;
-    return t;
-  }
-
-  if (tok_backquote(str)) {
-    t.type = TOKBACKQUOTE;
-    return t;
-  }
-
-  if (tok_commaat(str)) {
-    t.type= TOKCOMMAAT;
-    return t;
-  }
-
-  if (tok_comma(str)) {
-    t.type = TOKCOMMA;
-    return t;
-  }
-
-  if (tok_openpar(str)) {
-    t.type = TOKOPENPAR;
-    return t;
-  }
-
-  if (tok_closepar(str)) {
-    t.type = TOKCLOSEPAR;
-    return t;
-  }
-
-  if (tok_dot(str)) {
-    t.type = TOKDOT;
-    return t;
-  }
-
-  if (tok_dontcare(str)) {
-    t.type = TOKDONTCARE;
+  int match;;
+  match = tok_match_fixed_size_tokens(str);
+  if (match > 0) {
+    t.type = match;
     return t;
   }
 
