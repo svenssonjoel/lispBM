@@ -440,7 +440,7 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
     VALUE new_mailbox = cons(msg, ctx_running->mailbox);
 
     if (type_of(new_mailbox) == VAL_TYPE_SYMBOL) {
-      return new_mailbox; /* An error sumbol */
+      return new_mailbox; /* An error symbol */
     }
     ctx_running->mailbox = new_mailbox;
     return enc_sym(symrepr_true);
