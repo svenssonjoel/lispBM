@@ -30,22 +30,24 @@
 #include "memory.h"
 #include "env.h"
 
-#define TOKOPENPAR      0
-#define TOKCLOSEPAR     1
-#define TOKQUOTE        2
-#define TOKSYMBOL       3
-#define TOKINT          4
-#define TOKUINT         5
-#define TOKBOXEDINT     6
-#define TOKBOXEDUINT    7
-#define TOKBOXEDFLOAT   8
-#define TOKSTRING       9
-#define TOKCHAR         10
-#define TOKBACKQUOTE    11
-#define TOKCOMMA        12
-#define TOKCOMMAAT      13
-#define TOKDOT          14
-#define TOKDONTCARE     15
+#define TOKOPENPAR      0      // "("
+#define TOKCLOSEPAR     1      // ")"
+#define TOKQUOTE        2      // "'"
+#define TOKSYMBOL       3      // "foo"
+#define TOKINT          4      // "42", "42i28"
+#define TOKUINT         5      // "42u28"
+#define TOKBOXEDINT     6      // "42i32"
+#define TOKBOXEDUINT    7      // "42u32"
+#define TOKBOXEDFLOAT   8      // "42.0"
+#define TOKSTRING       9      // "\"Hello\""
+#define TOKCHAR         10     // "\\#c"
+#define TOKBACKQUOTE    11     // "´"
+#define TOKCOMMA        12     // ","
+#define TOKCOMMAAT      13     // ",@"
+#define TOKDOT          14     // "."
+#define TOKDONTCARE     15     // "_"
+
+
 #define TOKENIZER_ERROR 1024
 #define TOKENIZER_END   2048
 
@@ -489,7 +491,7 @@ token next_token(tokenizer_char_stream str) {
     t.type = TOKDONTCARE;
     return t;
   }
-  
+
   n = tok_symbol(str);
   if (n > 0) {
     t.text_len = (unsigned int)n;
@@ -627,7 +629,7 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     VALUE quoted = parse_sexp(t, str);
     if (type_of(quoted) == VAL_TYPE_SYMBOL &&
 	dec_sym(quoted) == symrepr_rerror) return quoted;
-    return cons(enc_sym(symrepr_quote), cons (quoted, enc_sym(symrepr_nil))); 
+    return cons(enc_sym(symrepr_quote), cons (quoted, enc_sym(symrepr_nil)));
   }
   case TOKBACKQUOTE: {
     t = next_token(str);
@@ -675,13 +677,13 @@ VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
     t = next_token(str);
 
     if (t.type == TOKDOT) {
-      t = next_token(str);     
+      t = next_token(str);
       tail = parse_sexp(t, str);
       t = next_token(str);
       if (t.type != TOKCLOSEPAR) {
 	return enc_sym(symrepr_rerror);
       }
-      
+
     } else {
       tail = parse_sexp_list(t, str);
     }
