@@ -55,7 +55,7 @@ Even with this simple sketch there are so many lispy options to concider.
    (recv '(pattern1 . what-to-do1)
          '(pattern2 . what-to-do2)
          '(...)
-		 '(patternN . what-to-doN))
+         '(patternN . what-to-doN))
    ```
 
 	If doing this then you could write `(recv (f x))` where `f` is a
@@ -92,7 +92,7 @@ Anyway! what should patterns look like?
 ``` 
 (recv ((foo 1 (? x)) . (+ x 10))
       ((bar (? y)) . y)
-	  (_ . ()))
+      (_ . ()))
 ```
 What if in `(?foo x)`, `?foo` is an arbitrary predicate that is evaluated on the part of the expression we match 
 against? And the part of the expression is bound to x if that predicate evaluates to true. This feels like a rabbit-hole!
