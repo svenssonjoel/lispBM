@@ -30,27 +30,27 @@
 #include "memory.h"
 #include "env.h"
 
-#define NOTOKEN         0
+#define NOTOKEN         0u
 
-#define TOKOPENPAR      1      // "("
-#define TOKCLOSEPAR     2      // ")"
-#define TOKQUOTE        3      // "'"
-#define TOKSYMBOL       4      // "foo"
-#define TOKINT          5      // "42", "42i28"
-#define TOKUINT         6      // "42u28"
-#define TOKBOXEDINT     7      // "42i32"
-#define TOKBOXEDUINT    8      // "42u32"
-#define TOKBOXEDFLOAT   9      // "42.0"
-#define TOKSTRING       10     // "\"Hello\""
-#define TOKCHAR         11     // "\\#c"
-#define TOKBACKQUOTE    12     // "´"
-#define TOKCOMMA        13     // ","
-#define TOKCOMMAAT      14     // ",@"
-#define TOKDOT          15     // "."
-#define TOKDONTCARE     16     // "_"
+#define TOKOPENPAR      1u      // "("
+#define TOKCLOSEPAR     2u      // ")"
+#define TOKQUOTE        3u      // "'"
+#define TOKSYMBOL       4u      // "foo"
+#define TOKINT          5u      // "42", "42i28"
+#define TOKUINT         6u      // "42u28"
+#define TOKBOXEDINT     7u      // "42i32"
+#define TOKBOXEDUINT    8u      // "42u32"
+#define TOKBOXEDFLOAT   9u      // "42.0"
+#define TOKSTRING       10u     // "\"Hello\""
+#define TOKCHAR         11u     // "\\#c"
+#define TOKBACKQUOTE    12u     // "´"
+#define TOKCOMMA        13u     // ","
+#define TOKCOMMAAT      14u     // ",@"
+#define TOKDOT          15u     // "."
+#define TOKDONTCARE     16u     // "_"
 
-#define TOKENIZER_ERROR 1024
-#define TOKENIZER_END   2048
+#define TOKENIZER_ERROR 1024u
+#define TOKENIZER_END   2048u
 
 #define TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH 255
 
@@ -91,7 +91,7 @@ typedef struct tcs{
 
 typedef struct {
   const char *str;
-  int  token;
+  uint32_t  token;
   uint32_t len;
 } matcher;
 
@@ -133,12 +133,12 @@ void drop(tokenizer_char_stream str, unsigned int n) {
 }
 
 
-int tok_match_fixed_size_tokens(tokenizer_char_stream str) {
+uint32_t tok_match_fixed_size_tokens(tokenizer_char_stream str) {
 
   for (int i = 0; i < NUM_FIXED_SIZE_TOKENS; i ++) {
     uint32_t tok_len = match_table[i].len;
     const char *match_str = match_table[i].str;
-    int tok = match_table[i].token;
+    uint32_t tok = match_table[i].token;
 
     uint32_t char_pos;
     for (char_pos = 0; char_pos < tok_len; char_pos ++) {
@@ -427,7 +427,7 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
-  int match;;
+  uint32_t match;;
   match = tok_match_fixed_size_tokens(str);
   if (match > 0) {
     t.type = match;
