@@ -1,5 +1,5 @@
 
-# Random thoughts about adding pattern matchint to lispBM 
+# Random thoughts about adding pattern matching to lispBM 
 
 
 I want to add a match and a recv primitive. The `match` should implement pattern matching as a programming abstraction. 
