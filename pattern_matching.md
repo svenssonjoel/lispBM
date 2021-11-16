@@ -18,3 +18,9 @@ There are so many choices though... I dont know where to start!
       (patternN . what-to-doN))
 ```
 
+```
+(match e (pattern1 . what-to-do1)
+         (pattern2 . what-to-do2)
+         (...)
+         (patternN . what-to-doN))
+```
