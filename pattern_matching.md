@@ -11,8 +11,10 @@ There are so many choices though... I dont know where to start!
 
 ## a sketch
 
-`(recv (pattern1 . what-to-do1)
+``` 
+(recv (pattern1 . what-to-do1)
        (pattern2 . what-to-do2)
 	   (...)
-	   (patternN . what-to-doN))`
+	   (patternN . what-to-doN))
+```
 
