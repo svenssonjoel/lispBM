@@ -87,3 +87,10 @@ Anyway! what should patterns look like?
 5. (a1 a2 ... aN) matches exactly a list where a1,a2,...,aN matches the elements of that list. 
 6. (? x) matches anything and binds that anything to `x` in the environment we are constructing. 
 7. (?<type\_indicator> x) matches anything of type type\_indicator and binds that anything to `x` in the environment.
+
+
+``` 
+(recv ((foo 1 (? x)) . (+ x 10))
+      ((bar (? y)) . y)
+	  (_ . ()))
+```

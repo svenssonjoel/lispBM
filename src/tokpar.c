@@ -92,7 +92,7 @@ typedef struct tcs{
 typedef struct {
   const char *str;
   int  token;
-  int  len;
+  uint32_t len;
 } matcher;
 
 #define NUM_FIXED_SIZE_TOKENS 8
@@ -136,11 +136,11 @@ void drop(tokenizer_char_stream str, unsigned int n) {
 int tok_match_fixed_size_tokens(tokenizer_char_stream str) {
 
   for (int i = 0; i < NUM_FIXED_SIZE_TOKENS; i ++) {
-    int tok_len = match_table[i].len;
+    uint32_t tok_len = match_table[i].len;
     const char *match_str = match_table[i].str;
     int tok = match_table[i].token;
 
-    int char_pos;
+    uint32_t char_pos;
     for (char_pos = 0; char_pos < tok_len; char_pos ++) {
       if (peek(str,char_pos) != match_str[char_pos]) break;
     }
