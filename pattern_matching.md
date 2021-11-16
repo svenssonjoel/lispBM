@@ -94,3 +94,6 @@ Anyway! what should patterns look like?
       ((bar (? y)) . y)
 	  (_ . ()))
 ```
+What if in `(?foo x)`, `?foo` is an arbitrary predicate that is evaluated on the part of the expression we match 
+against? And the part of the expression is bound to x if that predicate evaluates to true. This feels like a rabbit-hole!
+
