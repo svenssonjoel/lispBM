@@ -97,3 +97,15 @@ Anyway! what should patterns look like?
 What if in `(?foo x)`, `?foo` is an arbitrary predicate that is evaluated on the part of the expression we match 
 against? And the part of the expression is bound to x if that predicate evaluates to true. This feels like a rabbit-hole!
 
+
+# Guards 
+
+Having case guards feels useful. What could those look like in this context?
+
+in Haskell: 
+```
+apa = 
+  case x of
+    Just n | n > 10 -> f n
+	_ -> something else
+```
