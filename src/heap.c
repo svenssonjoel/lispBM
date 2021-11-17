@@ -127,9 +127,13 @@ int heap_init(unsigned int num_cells) {
 
   cons_t *heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
 
-  if (((uintptr_t)heap % 8) != 0) return 0;
-
   if (!heap) return 0;
+  
+  if (((uintptr_t)heap % 8) != 0) {
+    free(heap);
+    return 0;
+  }
+  
   heap_init_state(heap, num_cells, true);
 
   return generate_freelist(num_cells);

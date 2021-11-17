@@ -30,24 +30,27 @@
 #include "memory.h"
 #include "env.h"
 
-#define TOKOPENPAR      0
-#define TOKCLOSEPAR     1
-#define TOKQUOTE        2
-#define TOKSYMBOL       3
-#define TOKINT          4
-#define TOKUINT         5
-#define TOKBOXEDINT     6
-#define TOKBOXEDUINT    7
-#define TOKBOXEDFLOAT   8
-#define TOKSTRING       9
-#define TOKCHAR         10
-#define TOKBACKQUOTE    11
-#define TOKCOMMA        12
-#define TOKCOMMAAT      13
-#define TOKDOT          14
-#define TOKDONTCARE     15
-#define TOKENIZER_ERROR 1024
-#define TOKENIZER_END   2048
+#define NOTOKEN         0u
+
+#define TOKOPENPAR      1u      // "("
+#define TOKCLOSEPAR     2u      // ")"
+#define TOKQUOTE        3u      // "'"
+#define TOKSYMBOL       4u      // "foo"
+#define TOKINT          5u      // "42", "42i28"
+#define TOKUINT         6u      // "42u28"
+#define TOKBOXEDINT     7u      // "42i32"
+#define TOKBOXEDUINT    8u      // "42u32"
+#define TOKBOXEDFLOAT   9u      // "42.0"
+#define TOKSTRING       10u     // "\"Hello\""
+#define TOKCHAR         11u     // "\\#c"
+#define TOKBACKQUOTE    12u     // "´"
+#define TOKCOMMA        13u     // ","
+#define TOKCOMMAAT      14u     // ",@"
+#define TOKDOT          15u     // "."
+#define TOKDONTCARE     16u     // "_"
+
+#define TOKENIZER_ERROR 1024u
+#define TOKENIZER_END   2048u
 
 #define TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH 255
 
@@ -86,6 +89,25 @@ typedef struct tcs{
   void (*drop)(struct tcs, unsigned int);
 } tokenizer_char_stream;
 
+typedef struct {
+  const char *str;
+  uint32_t  token;
+  uint32_t len;
+} matcher;
+
+#define NUM_FIXED_SIZE_TOKENS 8
+const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
+  {"(", TOKOPENPAR, 1},
+  {")", TOKCLOSEPAR, 1},
+  {".", TOKDOT, 1},
+  {"_", TOKDONTCARE, 1},
+  {"'", TOKQUOTE, 1},
+  {"`", TOKBACKQUOTE, 1},
+  {",@", TOKCOMMAAT, 2},
+  {",", TOKCOMMA, 1},
+};
+
+
 // Todo: Try to figure out how to do GC while reading
 /* static int gc() { */
 /*   gc_state_inc(); */
@@ -110,69 +132,24 @@ void drop(tokenizer_char_stream str, unsigned int n) {
   str.drop(str,n);
 }
 
-int tok_openpar(tokenizer_char_stream str) {
-  if (peek(str,0) == '(') {
-    drop(str,1);
-    return 1;
-  }
-  return 0;
-}
 
-int tok_closepar(tokenizer_char_stream str) {
-  if (peek(str,0) == ')') {
-    drop(str,1);
-    return 1;
-  }
-  return 0;
-}
+uint32_t tok_match_fixed_size_tokens(tokenizer_char_stream str) {
 
-int tok_dot(tokenizer_char_stream str) {
-  if (peek(str,0) == '.') {
-    drop(str,1);
-    return 1;
-  }
-  return 0;
-}
+  for (int i = 0; i < NUM_FIXED_SIZE_TOKENS; i ++) {
+    uint32_t tok_len = match_table[i].len;
+    const char *match_str = match_table[i].str;
+    uint32_t tok = match_table[i].token;
 
-int tok_dontcare(tokenizer_char_stream str) {
-  if (peek(str,0) == '_') {
-    drop(str,1);
-    return 1;
+    uint32_t char_pos;
+    for (char_pos = 0; char_pos < tok_len; char_pos ++) {
+      if (peek(str,char_pos) != match_str[char_pos]) break;
+    }
+    if (char_pos == tok_len) { //match
+      drop(str,tok_len);
+      return tok;
+    }
   }
-  return 0;
-}
-
-int tok_quote(tokenizer_char_stream str) {
-  if (peek(str,0) == '\'') {
-    drop(str,1);
-    return 1;
-  }
-  return 0;
-}
-
-int tok_backquote(tokenizer_char_stream str) {
-  if (peek(str,0) == '`') {
-    drop(str, 1);
-    return 1;
-  }
-  return 0;
-}
-
-int tok_commaat(tokenizer_char_stream str) {
-  if (peek(str,0) == ',' &&
-      peek(str,1) == '@') {
-    drop(str,2);
-    return 2;
-  }
-  return 0;
-}
-
-int tok_comma(tokenizer_char_stream str) {
-  if (peek(str,0) == ',') {
-    drop(str, 1);
-    return 1;
-  }
-  return 0;
+  return NOTOKEN;
 }
 
 bool symchar0(char c) {
@@ -450,46 +427,13 @@ token next_token(tokenizer_char_stream str) {
     return t;
   }
 
-  if (tok_quote(str)) {
-    t.type = TOKQUOTE;
+  uint32_t match;;
+  match = tok_match_fixed_size_tokens(str);
+  if (match > 0) {
+    t.type = match;
     return t;
   }
 
-  if (tok_backquote(str)) {
-    t.type = TOKBACKQUOTE;
-    return t;
-  }
-
-  if (tok_commaat(str)) {
-    t.type= TOKCOMMAAT;
-    return t;
-  }
-
-  if (tok_comma(str)) {
-    t.type = TOKCOMMA;
-    return t;
-  }
-
-  if (tok_openpar(str)) {
-    t.type = TOKOPENPAR;
-    return t;
-  }
-
-  if (tok_closepar(str)) {
-    t.type = TOKCLOSEPAR;
-    return t;
-  }
-
-  if (tok_dot(str)) {
-    t.type = TOKDOT;
-    return t;
-  }
-
-  if (tok_dontcare(str)) {
-    t.type = TOKDONTCARE;
-    return t;
-  }
-  
   n = tok_symbol(str);
   if (n > 0) {
     t.text_len = (unsigned int)n;
@@ -627,7 +571,7 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     VALUE quoted = parse_sexp(t, str);
     if (type_of(quoted) == VAL_TYPE_SYMBOL &&
 	dec_sym(quoted) == symrepr_rerror) return quoted;
-    return cons(enc_sym(symrepr_quote), cons (quoted, enc_sym(symrepr_nil))); 
+    return cons(enc_sym(symrepr_quote), cons (quoted, enc_sym(symrepr_nil)));
   }
   case TOKBACKQUOTE: {
     t = next_token(str);
@@ -675,13 +619,13 @@ VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
     t = next_token(str);
 
     if (t.type == TOKDOT) {
-      t = next_token(str);     
+      t = next_token(str);
       tail = parse_sexp(t, str);
       t = next_token(str);
       if (t.type != TOKCLOSEPAR) {
 	return enc_sym(symrepr_rerror);
       }
-      
+
     } else {
       tail = parse_sexp_list(t, str);
     }
