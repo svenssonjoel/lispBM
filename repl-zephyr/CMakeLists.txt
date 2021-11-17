@@ -15,19 +15,12 @@ add_custom_command(OUTPUT ../src/prelude.xxd
 FILE(GLOB app_sources src/*.c)
 FILE(GLOB lisp_sources ../src/*.c)
 
-FILE(GLOB llbridge_zephyr_sources ../../LLBridge/common/src/abstraction/zephyr/*.c)
-FILE(GLOB llbridge_sources ../../LLBridge/common/src/*.c)
-
 target_sources(app PRIVATE ${app_sources}
 		   PRIVATE ${lisp_sources}
-		   PRIVATE ../src/prelude.xxd
-		   PRIVATE ${llbridge_sources}
-		   PRIVATE ${llbridge_zephyr_sources})
+		   PRIVATE ../src/prelude.xxd)
 		 
 target_include_directories(app PRIVATE ../include
                                PRIVATE ../src
-                               PRIVATE ../../LLBridge/common/src/abstraction/zephyr
-                               PRIVATE ../../LLBridge/common/src
 			       ${ZEPHYR_BASE}/kernel/include
 			       ${ZEPHYR_BASE}/arch/${ARCH}/include)
 

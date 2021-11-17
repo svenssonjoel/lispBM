@@ -855,7 +855,6 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
 	*perform_gc = true;
 	ctx->app_cont = false;
       } else if (n >= 0 ) { /* Match */ 
-	printf("match found\n");
 	VALUE new_mailbox = list_remove(n, msgs);
 
 	if ((type_of(new_mailbox) == VAL_TYPE_SYMBOL) &&
@@ -868,7 +867,6 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
 	ctx->curr_env = new_env;
 	ctx->curr_exp = e;
       } else { /* No match  go back to sleep */
-	printf("going back to sleep\n");
 	ctx->timestamp = timestamp_us_callback();
 	ctx->sleep_us = 0;
 	block_enqueue_ctx(ctx);
