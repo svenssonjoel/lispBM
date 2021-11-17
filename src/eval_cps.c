@@ -77,11 +77,16 @@ static VALUE NONSENSE;
 static bool     eval_running = false;
 static uint32_t next_ctx_id = 1;
 
+typedef struct {
+  eval_context_t *first;
+  eval_context_t *last;
+} eval_context_queue_t;
+
+
 /* Callbacks and task queue */
-static eval_context_t *ctx_blocked_queue = NULL;
-static eval_context_t *ctx_blocked_queue_last = NULL;
-static eval_context_t *ctx_queue = NULL;
-static eval_context_t *ctx_queue_last = NULL;
+static eval_context_queue_t blocked = {NULL, NULL};
+static eval_context_queue_t queue   = {NULL, NULL};
+
 static eval_context_t *ctx_done = NULL;
 static eval_context_t *ctx_running = NULL;
 
@@ -103,90 +108,45 @@ void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
   ctx_done_callback = fptr;
 }
 
-void enqueue_ctx(eval_context_t *ctx) {
-
-  if (ctx_queue_last == NULL) {
+void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
+  if (q->last == NULL) {
     ctx->prev = NULL;
     ctx->next = NULL;
-    ctx_queue = ctx;
-    ctx_queue_last = ctx;
+    q->first = ctx;
+    q->last  = ctx;
   } else {
-    ctx->prev = ctx_queue_last;
+    ctx->prev = q->last;
     ctx->next = NULL;
-    ctx_queue_last->next = ctx;
-    ctx_queue_last = ctx;
+    q->last->next = ctx;
+    q->last = ctx;
   }
 }
 
-void block_enqueue_ctx(eval_context_t *ctx) {
+void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
-  if (ctx_blocked_queue_last == NULL) {
-    ctx->prev = NULL;
-    ctx->next = NULL;
-    ctx_blocked_queue = ctx;
-    ctx_blocked_queue_last = ctx;
-  } else {
-    ctx->prev = ctx_blocked_queue_last;
-    ctx->next = NULL;
-    ctx_blocked_queue_last->next = ctx;
-    ctx_blocked_queue_last = ctx;
+  if (q->first == NULL && q->last == NULL) {
+    return;
   }
-}
 
-void block_drop_ctx(eval_context_t *ctx) {
+  /* If queue is 1 element long both conditionals will be true */
+  if (ctx == q->first) {
+    q->first = q->first->next;
+  }
+  if ( ctx == q->last) {
+    q->last = q->last->prev;
+  }
 
-  eval_context_t *curr = ctx_blocked_queue;
-
+  eval_context_t *curr = q->first;
   while (curr) {
     if (curr->id == ctx->id) {
-      bool done = false;
-      if (curr == ctx_blocked_queue) {
-	/* first element */
-	ctx_blocked_queue = curr->next;
-	done = true;
-      }
-      if ( curr == ctx_blocked_queue_last) {
-	ctx_blocked_queue_last = curr->prev;
-	done = true; 
-      }
-      if (!done) {
-	eval_context_t *tmp = curr->next;
-	curr->next = curr->prev;
-	curr->prev = tmp;
-      }
-      break;
+      eval_context_t *tmp = curr->next;
+      curr->next = curr->prev;
+      curr->prev = tmp;
+	break;
     }
     curr = curr->next;
   }
 }
-
-void drop_ctx(eval_context_t *ctx) {
-
-  eval_context_t *curr = ctx_queue;
-
-  while (curr) {
-    if (curr->id == ctx->id) {
-      bool done = false;
-      if (curr == ctx_queue) {
-	/* first element */
-	ctx_queue = curr->next;
-	done = true;
-      }
-      if ( curr == ctx_queue_last) {
-	ctx_queue_last = curr->prev;
-	done = true; 
-      }
-      if (!done) {
-	eval_context_t *tmp = curr->next;
-	curr->next = curr->prev;
-	curr->prev = tmp;
-      }
-      break;
-    }
-    curr = curr->next;
-  }
-}
-
 
 /* End exection of the running context and add it to the
    list of finished contexts. */
@@ -280,7 +240,7 @@ eval_context_t *dequeue_ctx(uint32_t *us) {
     t_now = 0;
   }
 
-  eval_context_t *curr = ctx_queue;
+  eval_context_t *curr = queue.first; //ctx_queue;
 
   while (curr != NULL) {
     uint32_t t_diff;
@@ -293,18 +253,18 @@ eval_context_t *dequeue_ctx(uint32_t *us) {
 
     if (t_diff >= curr->sleep_us) {
       eval_context_t *result = curr;
-      if (curr == ctx_queue_last) {
+      if (curr == queue.last) {
 	if (curr->prev) {
-	  ctx_queue_last = curr->prev;
-	  ctx_queue_last->next = NULL;
+	  queue.last = curr->prev;
+	  queue.last->next = NULL;
 	} else {
-	  ctx_queue = NULL;
-	  ctx_queue_last = NULL;
+	  queue.first = NULL;
+	  queue.last = NULL;
 	}
       } else if (curr->prev == NULL) {
-	ctx_queue = curr->next;
-	if (ctx_queue) {
-	  ctx_queue->prev = NULL;
+	queue.first = curr->next;
+	if (queue.first) {
+	  queue.first->prev = NULL;
 	}
       } else {
 	curr->prev->next = curr->next;
@@ -332,7 +292,7 @@ void yield_ctx(uint32_t sleep_us) {
   }
   ctx_running->r = enc_sym(symrepr_true);
   ctx_running->app_cont = true;
-  enqueue_ctx(ctx_running);
+  enqueue_ctx(&queue,ctx_running);
   ctx_running = NULL;
 }
 
@@ -358,7 +318,7 @@ CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
     free(ctx);
     return 0;
   }
-  
+
   ctx->id = (uint16_t)next_ctx_id++;
   if (!stack_allocate(&ctx->K, stack_size, grow_stack)) {
     free(ctx);
@@ -370,7 +330,7 @@ CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
     return 0;
   }
 
-  enqueue_ctx(ctx);
+  enqueue_ctx(&queue,ctx);
 
   return ctx->id;
 }
@@ -396,7 +356,7 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
   eval_context_t *found = NULL;
 
   /* Search the blocked queue */
-  curr = ctx_blocked_queue;
+  curr = blocked.first;
 
   while (curr != NULL) {
     if (curr->id == cid) {
@@ -404,13 +364,13 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
       break;
     }
     curr = curr->next;
-  } 
+  }
 
   /* Search the queue */
 
   if (found == NULL) {
-    curr = ctx_queue;
-    while (curr != NULL) { 
+    curr = queue.first;
+    while (curr != NULL) {
       if (curr->id == cid) {
 	found = curr;
 	break;
@@ -423,15 +383,15 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
     VALUE new_mailbox = cons(msg, found->mailbox);
 
     if (type_of(new_mailbox) == VAL_TYPE_SYMBOL) {
-      return new_mailbox; /* An error sumbol */
+      return new_mailbox; /* An error symbol */
     }
 
     found->mailbox = new_mailbox;
 
-    block_drop_ctx(found);
-    drop_ctx(found);
+    drop_ctx(&blocked,found);
+    drop_ctx(&queue,found);
 
-    enqueue_ctx(found);
+    enqueue_ctx(&queue,found);
     return enc_sym(symrepr_true);
   }
 
@@ -446,15 +406,15 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
     return enc_sym(symrepr_true);
   }
 
-  
-  return enc_sym(symrepr_nil); 
+
+  return enc_sym(symrepr_nil);
 }
 
 VALUE list_remove(int n, VALUE list) {
   int c = 0;
   VALUE res;
   VALUE curr = list;
-  
+
   VALUE tmp = enc_sym(symrepr_nil);
 
   while (type_of(curr) == PTR_TYPE_CONS) {
@@ -478,7 +438,7 @@ VALUE list_remove(int n, VALUE list) {
       res = cons(car(curr),res);
       if (type_of(res) == VAL_TYPE_SYMBOL) {
 	return res;
-      }	
+      }
       curr = cdr(curr);
     }
   }
@@ -528,12 +488,12 @@ bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
 }
 
 int find_match(VALUE plist, VALUE elist, VALUE *e, VALUE *env, bool *gc) {
-  
+
   VALUE curr_p = plist;
   VALUE curr_e = elist;
   int n = 0;
   while (type_of(curr_e) == PTR_TYPE_CONS) {
-    while (type_of(curr_p) == PTR_TYPE_CONS) { 
+    while (type_of(curr_p) == PTR_TYPE_CONS) {
       if (match(car(car(curr_p)), car(curr_e), env, gc)) {
 	if (*gc) return -1;
 	*e = car(cdr(car(curr_p)));
@@ -828,13 +788,13 @@ static inline void eval_match(eval_context_t *ctx) {
 }
 
 static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
-    
+
   if (type_of(ctx->mailbox) == VAL_TYPE_SYMBOL &&
       dec_sym(ctx->mailbox) == symrepr_nil) {
     /*nothing in the mailbox: block the context*/
     ctx->timestamp = timestamp_us_callback();
     ctx->sleep_us = 0;
-    block_enqueue_ctx(ctx);
+    enqueue_ctx(&blocked,ctx);
     ctx_running = NULL;
   } else {
     VALUE pats = ctx->curr_exp;
@@ -845,7 +805,7 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
       /* A receive statement without any patterns */
       ctx->app_cont = true;
       ctx->r = enc_sym(symrepr_nil);
-    } else {      
+    } else {
       /* The common case */
       VALUE e;
       VALUE new_env = ctx->curr_env;
@@ -854,7 +814,7 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
       if (do_gc) {
 	*perform_gc = true;
 	ctx->app_cont = false;
-      } else if (n >= 0 ) { /* Match */ 
+      } else if (n >= 0 ) { /* Match */
 	VALUE new_mailbox = list_remove(n, msgs);
 
 	if ((type_of(new_mailbox) == VAL_TYPE_SYMBOL) &&
@@ -869,11 +829,11 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
       } else { /* No match  go back to sleep */
 	ctx->timestamp = timestamp_us_callback();
 	ctx->sleep_us = 0;
-	block_enqueue_ctx(ctx);
+	enqueue_ctx(&blocked,ctx);
 	ctx_running = NULL;
 	ctx->r = enc_sym(symrepr_nomatch);
       }
-      
+
       /* Match messages on mailbox against the patterns */
       /* FATAL_ON_FAIL(ctx->done, push_u32_4(&ctx->K, ctx->curr_exp, car(cdr(pats)), cdr(msgs), enc_u(MATCH_MANY))); */
       /* FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, car(cdr(pats)), enc_u(MATCH))); */
@@ -1060,7 +1020,7 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
   } else if (type_of(fun) == VAL_TYPE_SYMBOL) {
 
      VALUE res;
-    
+
     /* eval_cps specific operations */
     /* TODO: These should work any int type as argument */
     UINT dfun = dec_sym(fun);
@@ -1093,7 +1053,7 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
       return;
     } else if (dfun == DEF_REPR_SEND) {
       VALUE status = enc_sym(symrepr_eerror);
-      
+
       if (dec_u(count) == 2) {
 
 	if (type_of(fun_args[1]) == VAL_TYPE_U) { /* CID is of U type */
@@ -1102,7 +1062,7 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
 	  status = find_receiver_and_send(cid, msg);
 	  if (type_of(status) != VAL_TYPE_SYMBOL) {
 	    ERROR /* The error macro returns */
-	      error_ctx(enc_sym(symrepr_eerror)); 
+	      error_ctx(enc_sym(symrepr_eerror));
 	  } else if (dec_sym(status) == symrepr_merror) {
 	    /* perform gc and try again */
 	    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
@@ -1110,8 +1070,8 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
 	    ctx->app_cont = true;
 	    ctx->r = fun;
 	  }
-	} 
-      } 
+	}
+      }
       /* return the status */
       stack_drop(&ctx->K, dec_u(count)+1);
       ctx->r = status;
@@ -1131,7 +1091,7 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
 	*perform_gc = true;
 	ctx->app_cont = true;
 	ctx->r = fun;
-	
+
       } else {
 	stack_drop(&ctx->K, dec_u(count)+1);
 	ctx->app_cont = true;
@@ -1355,10 +1315,10 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
     }
     *last_iteration_gc = true;
     gc(*env_get_global_ptr(),
-       ctx_queue,
+       queue.first,
        ctx_done,
        ctx_running,
-       ctx_blocked_queue);
+       blocked.first);
     *perform_gc = false;
   } else {
     *last_iteration_gc = false;;
