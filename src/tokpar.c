@@ -43,7 +43,7 @@
 #define TOKBOXEDFLOAT   9u      // "42.0"
 #define TOKSTRING       10u     // "\"Hello\""
 #define TOKCHAR         11u     // "\\#c"
-#define TOKBACKQUOTE    12u     // "´"
+#define TOKBACKQUOTE    12u     // "`"
 #define TOKCOMMA        13u     // ","
 #define TOKCOMMAAT      14u     // ",@"
 #define TOKDOT          15u     // "."
