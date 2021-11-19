@@ -21,7 +21,8 @@ A lisp-like language (work in progress) implemented in C for 32-bit platforms.
 9. Compiles for, and runs on NRF52840.
 10. Compiles for, and runs on ESP32 (ARM - WROOM).
 11. Compiles for, and runs on ESP32C3 (RISC-V).
-12. Quasiquotation.
+12. Compiles for, and runs on Raspberry PI (Tested on 32bit Raspbian OS)
+13. Quasiquotation.
 
 ## Experimental
 1. Concurrency (Work in progress).
