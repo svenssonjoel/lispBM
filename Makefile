@@ -36,10 +36,8 @@ ifeq ($(PLATFORM), nrf52840)
   CCFLAGS += -D_PRELUDE
 endif
 
-ifeq ($(PLATFORM), pi)
-  $(error Platform support not implemented)
-  CROSS_COMPILE = aarch32
-  BUILD_DIR = /build/pi
+ifeq ($(PLATFORM), pi) #for compiling natively on the pi
+  BUILD_DIR = build/pi
   CCFLAGS += -D_PRELUDE
 endif
 
