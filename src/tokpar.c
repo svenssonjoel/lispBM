@@ -52,7 +52,7 @@
 #define TOKENIZER_ERROR 1024u
 #define TOKENIZER_END   2048u
 
-#define TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH 255
+#define TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH 256
 
 char sym_str[TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH];
 
@@ -106,7 +106,6 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
 };
-
 
 // Todo: Try to figure out how to do GC while reading
 /* static int gc() { */
