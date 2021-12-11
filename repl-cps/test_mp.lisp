@@ -1,13 +1,17 @@
 
 (define fred (lambda ()
 	       (progn (print "fred iteration" \#newline )
-		      (recv ((x (print "fred received " x \#newline))))
+		      (recv ( (apa (? x) 107)  (print "fred received apa " x \#newline))
+			    ( (bepa (?i28 x))  (print "fred received bepa " x \#newline)))
+		            
 		      (yield 500000)
 		      (fred))))
 
 (define bella (lambda (pid x)
 		(progn (print "bella iteration" x \#newline)
-		       (send pid x)
+		       (send pid `(apa ,x 107))
+		       (yield 500000)
+		       (send pid '(bepa 2))
 		       (yield 500000)
 		       (bella pid (+ x 1)))))
 
