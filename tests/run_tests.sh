@@ -51,8 +51,8 @@ for prg in "test_lisp_code_cps" "test_lisp_code_cps_nc" "test_lisp_code_cps_nc -
 		    continue
 		fi
 	    fi
-	    
-	    
+
+
 	    ./$prg $arg $lisp
 	    
 	    result=$?
