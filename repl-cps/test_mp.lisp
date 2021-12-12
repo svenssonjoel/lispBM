@@ -3,7 +3,6 @@
 	       (progn (print "fred iteration" \#newline )
 		      (recv ( (apa (? x) 107)  (print "fred received apa " x \#newline))
 			    ( (bepa (?i28 x))  (print "fred received bepa " x \#newline)))
-		            
 		      (yield 500000)
 		      (fred))))
 
