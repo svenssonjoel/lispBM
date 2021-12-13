@@ -53,7 +53,7 @@
 #include "memory.h"
 #include "env.h"
 
-#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(8192)
+#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(2*8192)
 #define REPL_WA_SIZE THD_WORKING_AREA_SIZE(4096)
 #define EVAL_CPS_STACK_SIZE 256
 
@@ -111,7 +111,7 @@ void done_callback(eval_context_t *ctx) {
   }
 }
 
-uint32_t timestamp_callback() {
+uint32_t timestamp_callback(void) {
   systime_t t = chVTGetSystemTime();
   return (uint32_t) (100 * t);
 }
@@ -120,7 +120,7 @@ void sleep_callback(uint32_t us) {
   chThdSleepMicroseconds(us);
 }
 
-volatile static eval_initiated=false;
+static volatile bool eval_initiated=false;
 
 static THD_FUNCTION(eval, arg) {
   (void) arg;
@@ -134,9 +134,9 @@ static THD_FUNCTION(eval, arg) {
 }
 
 
-VALUE ext_print(VALUE *args, int argn) {
+VALUE ext_print(VALUE *args, UINT argn) {
 
-  for (int i = 0; i < argn; i ++) {
+  for (UINT i = 0; i < argn; i ++) {
     VALUE t = args[i];
 
     if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
@@ -150,7 +150,11 @@ VALUE ext_print(VALUE *args, int argn) {
 	break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
-      chprintf(chp,"%c", dec_char(t));
+      if (dec_char(t) =='\n') {
+	chprintf(chp, "\r\n");
+      } else {
+	chprintf(chp,"%c", dec_char(t));
+      }
     } else {
       return enc_sym(symrepr_nil);
     }
@@ -182,7 +186,7 @@ static THD_FUNCTION(repl, arg) {
   unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
   if (memory == NULL || bitmap == NULL) {
     chprintf(chp,"Unable to allocate memory!\r\n");
-    return 0;
+    return;
   }
 
   res = memory_init(memory, MEMORY_SIZE_16K,
@@ -191,7 +195,7 @@ static THD_FUNCTION(repl, arg) {
     chprintf(chp,"Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
   else {
     chprintf(chp,"Error initializing memory!\n");
-    return 0;
+    return;
   }
   
    res = symrepr_init();
@@ -199,7 +203,7 @@ static THD_FUNCTION(repl, arg) {
     chprintf(chp,"Symrepr initialized.\r\n");
   else {
     chprintf(chp,"Error initializing symrepr!\r\n");
-    return res;
+    return;
   }
   
   res = heap_init(heap_size);
@@ -207,7 +211,7 @@ static THD_FUNCTION(repl, arg) {
     chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
   else {
     chprintf(chp,"Error initializing heap!\r\n");
-    return res;
+    return;
   }
 
   eval_cps_set_ctx_done_callback(done_callback);
@@ -219,7 +223,7 @@ static THD_FUNCTION(repl, arg) {
     chprintf(chp,"Evaluator initialized.\r\n");
   else {
     chprintf(chp,"Error initializing evaluator.\r\n");
-    return res;
+    return;
   }
   
   res = extensions_add("print", ext_print);
@@ -263,7 +267,7 @@ static THD_FUNCTION(repl, arg) {
     } else if (strncmp(str, ":read", 5) == 0) {
       memset(file_buffer, 0, 8192);
       bool done = false;
-      char c; 
+      int c; 
       
       for (int i = 0; i < 8192; i ++) {
 	c = streamGet(chp); 
@@ -272,7 +276,7 @@ static THD_FUNCTION(repl, arg) {
 	  done = true;
 	  break;
 	}
-	file_buffer[i] = c;
+	file_buffer[i] = (char)c;
       }
 
       
