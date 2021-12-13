@@ -124,7 +124,11 @@ void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
 void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
-  if (q->first == NULL && q->last == NULL) {
+  if (q->first == NULL) { 
+     if (q->last != NULL) {
+       /* error state that should not happen */
+       return;
+     }
     return;
   }
 

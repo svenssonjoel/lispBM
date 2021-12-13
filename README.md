@@ -1,6 +1,6 @@
 # lispBM
 
-A lisp-like language (work in progress) implemented in C for 32-bit platforms.
+A lisp-like language implemented in C for 32-bit platforms.
 
 ## Purpose
 1. Have fun.
