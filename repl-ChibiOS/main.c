@@ -169,6 +169,8 @@ static THD_FUNCTION(repl, arg) {
   char *outbuf = malloc(2048);
   char *error = malloc(1024);
   int res = 0;
+
+  char *file_buffer = malloc(8192);
   
   heap_state_t heap_state;
 
@@ -258,6 +260,36 @@ static THD_FUNCTION(repl, arg) {
       memset(outbuf,0, 2048);
     } else if (strncmp(str, ":quit", 5) == 0) {
       break;
+    } else if (strncmp(str, ":read", 5) == 0) {
+      memset(file_buffer, 0, 8192);
+      bool done = false;
+      char c; 
+      
+      for (int i = 0; i < 8192; i ++) {
+	c = streamGet(chp); 
+	
+	if (c == 4 || c == 26 || c == STM_RESET) {
+	  done = true;
+	  break;
+	}
+	file_buffer[i] = c;
+      }
+
+      
+      //chThdSleepMilliseconds(100);
+      chprintf(chp, "%s\r\n", file_buffer);
+      chprintf(chp, "received %d bytes\r\n", strlen(file_buffer));
+      
+      if (done) {
+	VALUE t;
+	t = tokpar_parse(file_buffer);
+	CID cid = eval_cps_program(t);
+	if (cid == 0) {
+	  chprintf(chp,"Error creating ctx\r\n");
+	} else {
+	  chprintf(chp,"started ctx: %u\r\n", cid);
+	}
+      }
     } else {
 
       if (strlen(str) == 0) {
