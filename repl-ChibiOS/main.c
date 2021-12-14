@@ -54,7 +54,6 @@
 #include "env.h"
 
 #define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(2*8192)
-#define REPL_WA_SIZE THD_WORKING_AREA_SIZE(4096)
 #define EVAL_CPS_STACK_SIZE 256
 
 BaseSequentialStream *chp = NULL;
@@ -120,22 +119,18 @@ void sleep_callback(uint32_t us) {
   chThdSleepMicroseconds(us);
 }
 
-static volatile bool eval_initiated=false;
 
 static THD_FUNCTION(eval, arg) {
   (void) arg;
-
-  while (!eval_initiated) {
-    chThdSleepMilliseconds(10);
-  }
-  
-  chprintf(chp,"Starting evaluator\n");
   eval_cps_run_eval();
 }
 
 
 VALUE ext_print(VALUE *args, UINT argn) {
 
+  char output[1024];
+  char error[1024];
+  
   for (UINT i = 0; i < argn; i ++) {
     VALUE t = args[i];
 
@@ -155,46 +150,62 @@ VALUE ext_print(VALUE *args, UINT argn) {
       } else {
 	chprintf(chp,"%c", dec_char(t));
       }
-    } else {
-      return enc_sym(symrepr_nil);
+    }  else {
+      int print_ret = print_value(output, 1024, error, 1024, t);
+      
+      if (print_ret >= 0) {
+	chprintf(chp,"%s", output);
+      } else {
+	chprintf(chp,"%s", error);
+      }
     }
- 
   }
   return enc_sym(symrepr_true);
 }
 
+unsigned char memory_array[MEMORY_SIZE_8K];
+unsigned char bitmap_array[MEMORY_BITMAP_SIZE_8K];
 
-static THD_FUNCTION(repl, arg) {
+char str[1024];
+char outbuf[2048];
+char error[1024];
+char file_buffer[2048];
 
-  (void) arg;
+int main(void) {
+  halInit();
+  chSysInit();
+
+  sduObjectInit(&SDU1);
+  sduStart(&SDU1, &serusbcfg);
+
+  /*
+   * Activates the USB driver and then the USB bus pull-up on D+.
+   * Note, a delay is inserted in order to not have to disconnect the cable
+   * after a reset.
+   */
+  usbDisconnectBus(serusbcfg.usbp);
+  chThdSleepMilliseconds(1500);
+  usbStart(serusbcfg.usbp, &usbcfg);
+  usbConnectBus(serusbcfg.usbp);	
+
+  chp = (BaseSequentialStream*)&SDU1;
   
   size_t len = 1024;
-  char *str = malloc(1024);
-  char *outbuf = malloc(2048);
-  char *error = malloc(1024);
+ 
   int res = 0;
-
-  char *file_buffer = malloc(8192);
   
   heap_state_t heap_state;
 
   int heap_size = 2048;
 
-  chThdSleepMilliseconds(2000);
-  
-  unsigned char *memory = malloc(MEMORY_SIZE_16K);
-  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
-  if (memory == NULL || bitmap == NULL) {
-    chprintf(chp,"Unable to allocate memory!\r\n");
-    return;
-  }
+  chThdSleepMilliseconds(2000);  
 
-  res = memory_init(memory, MEMORY_SIZE_16K,
-		    bitmap, MEMORY_BITMAP_SIZE_16K);
+  res = memory_init(memory_array, MEMORY_SIZE_8K,
+		    bitmap_array, MEMORY_BITMAP_SIZE_8K);
   if (res)
-    chprintf(chp,"Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
+    chprintf(chp,"Memory initialized. Memory size: %u Words. Free: %u Words.\r\n", memory_num_words(), memory_num_free());
   else {
-    chprintf(chp,"Error initializing memory!\n");
+    chprintf(chp,"Error initializing memory!\r\n");
     return;
   }
   
@@ -214,10 +225,6 @@ static THD_FUNCTION(repl, arg) {
     return;
   }
 
-  eval_cps_set_ctx_done_callback(done_callback);
-  eval_cps_set_timestamp_us_callback(timestamp_callback);
-  eval_cps_set_usleep_callback(sleep_callback);
-  
   res = eval_cps_init();
   if (res)
     chprintf(chp,"Evaluator initialized.\r\n");
@@ -225,6 +232,10 @@ static THD_FUNCTION(repl, arg) {
     chprintf(chp,"Error initializing evaluator.\r\n");
     return;
   }
+
+  eval_cps_set_ctx_done_callback(done_callback);
+  eval_cps_set_timestamp_us_callback(timestamp_callback);
+  eval_cps_set_usleep_callback(sleep_callback);
   
   res = extensions_add("print", ext_print);
   if (res)
@@ -232,13 +243,28 @@ static THD_FUNCTION(repl, arg) {
   else
     chprintf(chp,"Error adding extension.\r\n");
 
-  eval_initiated = true;
+  thread_t *t = chThdCreateFromHeap(NULL, EVAL_WA_SIZE,
+  				    "eval", NORMALPRIO+1,
+  				    eval, (void *)NULL);
+
+  if (!t) {
+    chprintf(chp,"Error starting evaluator thread.\r\n");
+    return;
+  }
   
   VALUE prelude = prelude_load();
   eval_cps_program(prelude);
 
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
 
+  /* while (1) { */
+  /*   uint32_t time = timestamp_callback(); */
+  /*   chprintf(chp,"time %u \r\n", time); */
+  /*   chThdSleepMilliseconds(500); */
+  /* } */
+  
+
+  
   while (1) {
     chprintf(chp,"# ");
     memset(str,0,len);
@@ -265,11 +291,11 @@ static THD_FUNCTION(repl, arg) {
     } else if (strncmp(str, ":quit", 5) == 0) {
       break;
     } else if (strncmp(str, ":read", 5) == 0) {
-      memset(file_buffer, 0, 8192);
+      memset(file_buffer, 0, 2048);
       bool done = false;
       int c; 
       
-      for (int i = 0; i < 8192; i ++) {
+      for (int i = 0; i < 2048; i ++) {
 	c = streamGet(chp); 
 	
 	if (c == 4 || c == 26 || c == STM_RESET) {
@@ -314,38 +340,5 @@ static THD_FUNCTION(repl, arg) {
 
   symrepr_del();
   heap_del();
-}
-
-int main(void) {
-  halInit();
-  chSysInit();
-
-  sduObjectInit(&SDU1);
-  sduStart(&SDU1, &serusbcfg);
-
-  /*
-   * Activates the USB driver and then the USB bus pull-up on D+.
-   * Note, a delay is inserted in order to not have to disconnect the cable
-   * after a reset.
-   */
-  usbDisconnectBus(serusbcfg.usbp);
-  chThdSleepMilliseconds(1500);
-  usbStart(serusbcfg.usbp, &usbcfg);
-  usbConnectBus(serusbcfg.usbp);	
-
-  chp = (BaseSequentialStream*)&SDU1;
-
-  chThdCreateFromHeap(NULL, EVAL_WA_SIZE,
-		      "eval", NORMALPRIO + 1,
-		      eval, (void *)NULL);
-
-  
-  chThdCreateFromHeap(NULL, REPL_WA_SIZE,
-		      "repl", NORMALPRIO + 1,
-		      repl, (void *)NULL);
-  
-  while(1) { 
-    chThdSleepMilliseconds(500);
-  }
 
 }

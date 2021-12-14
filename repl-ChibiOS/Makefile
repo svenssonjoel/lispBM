@@ -61,7 +61,7 @@ endif
 # Stack size to be allocated to the Cortex-M process stack. This stack is
 # the stack used by the main() thread.
 ifeq ($(USE_PROCESS_STACKSIZE),)
-  USE_PROCESS_STACKSIZE = 0x400
+  USE_PROCESS_STACKSIZE = 0x1600
 endif
 
 # Stack size to the allocated to the Cortex-M main/exceptions stack. This
@@ -87,12 +87,11 @@ endif
 ##############################################################################
 # Project, sources and paths
 #
-
 # Define project name here
 PROJECT = lisp_test
 
 # Imported source files and paths
-CHIBIOS  := ../../ChibiOS_19.1.2
+CHIBIOS  := ../../ChibiOS_19.1.4
 BUILDDIR := ./build
 DEPDIR   := ./.dep
 
@@ -122,8 +121,24 @@ LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
+
+LBMSRC = ../src/compression.c \
+         ../src/env.c \
+         ../src/eval_cps.c \
+         ../src/extensions.c \
+         ../src/fundamental.c \
+         ../src/heap.c \
+         ../src/memory.c \
+         ../src/prelude.c \
+         ../src/print.c \
+         ../src/qq_expand.c \
+         ../src/stack.c \
+         ../src/symrepr.c \
+         ../src/tokpar.c
+
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \
+       $(LBMSRC) \
        main.c \
        usbcfg.c \
        $(CHIBIOS)/os/various/syscalls.c 
@@ -179,7 +194,7 @@ UINCDIR = ../include
 ULIBDIR = ../build/stm32f4
 
 # List all user libraries here
-ULIBS = -llispbm
+ULIBS = 
 
 #
 # End of user section

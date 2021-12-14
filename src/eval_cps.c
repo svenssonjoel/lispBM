@@ -124,9 +124,10 @@ void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
 void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
-  if (q->first == NULL) { 
-     if (q->last != NULL) {
+  if (q->first == NULL || q->last == NULL) {
+     if (q->last != NULL || q->first != NULL) {
        /* error state that should not happen */
+       //printf("error!!!!\n");
        return;
      }
     return;
@@ -152,7 +153,7 @@ void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   }
 }
 
-/* End exection of the running context and add it to the
+/* End execution of the running context and add it to the
    list of finished contexts. */
 void finish_ctx(void) {
   if (ctx_done == NULL) {
@@ -281,8 +282,9 @@ eval_context_t *dequeue_ctx(uint32_t *us) {
     if (min_us > t_diff) min_us = t_diff;
     curr = curr->next;
   }
-
-  *us = min_us;
+  /* ChibiOS does not like a sleep time of 0 */
+  /* TODO: Make sure that does not happen. */
+  *us = DEFAULT_SLEEP_US;
   return NULL;
 }
 
@@ -458,7 +460,7 @@ bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
     VALUE bindertype = car(p);
 
     if (!is_symbol(var)) return false;
-    
+
     switch (dec_sym(bindertype)) {
     case DEF_REPR_MATCH_ANY:
       if (dec_sym(var) == symrepr_dontcare) {
@@ -515,12 +517,12 @@ bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
     }
     return true;
   }
-    
+
   if (is_symbol(p)) {
     if (dec_sym(p) == symrepr_dontcare) return true;
     return (p == e);
   }
-  
+
   if (type_of(p) == PTR_TYPE_CONS &&
       type_of(e) == PTR_TYPE_CONS) {
 
