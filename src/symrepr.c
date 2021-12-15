@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2021 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -43,6 +43,11 @@ const UINT symrepr_send        =  DEF_REPR_SEND;
 const UINT symrepr_receive     =  DEF_REPR_RECEIVE;
 const UINT symrepr_match       =  DEF_REPR_MATCH;
 const UINT symrepr_nomatch     =  DEF_REPR_NO_MATCH;
+const UINT symrepr_match_any   =  DEF_REPR_MATCH_ANY;
+const UINT symrepr_match_i28   =  DEF_REPR_MATCH_I28;
+const UINT symrepr_match_u28   =  DEF_REPR_MATCH_U28;
+const UINT symrepr_match_float =  DEF_REPR_MATCH_FLOAT;
+const UINT symrepr_match_cons  =  DEF_REPR_MATCH_CONS;
 
 const UINT symrepr_cons        =  SYM_CONS; 
 const UINT symrepr_list        =  SYM_LIST; 
@@ -77,7 +82,7 @@ const UINT symrepr_type_symbol =  DEF_REPR_TYPE_SYMBOL;
 const UINT symrepr_type_char   =  DEF_REPR_TYPE_CHAR; 
 const UINT symrepr_type_ref    =  DEF_REPR_TYPE_REF; 
 
-#define NUM_SPECIAL_SYMBOLS 74
+#define NUM_SPECIAL_SYMBOLS 79
 
 #define NAME   0
 #define ID     1
@@ -105,6 +110,11 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"_"          , DEF_REPR_DONTCARE},
   {"send"       , DEF_REPR_SEND},
   {"recv"       , DEF_REPR_RECEIVE},
+  {"?"          , DEF_REPR_MATCH_ANY},
+  {"?i28"       , DEF_REPR_MATCH_I28},
+  {"?u28"       , DEF_REPR_MATCH_U28},
+  {"?float"     , DEF_REPR_MATCH_FLOAT},
+  {"?cons"      , DEF_REPR_MATCH_CONS},
   
   // Special symbols with unparseable names
   {"no_match"           , DEF_REPR_NO_MATCH},

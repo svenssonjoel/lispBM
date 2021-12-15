@@ -415,6 +415,16 @@ static inline bool is_closure(VALUE exp) {
 	  (dec_sym(car(exp)) == symrepr_closure));
 }
 
+static inline bool is_match_binder(VALUE exp) {
+  return ((type_of(exp) == PTR_TYPE_CONS) &&
+	  (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
+	  ((dec_sym(car(exp)) == symrepr_match_any) ||
+	   (dec_sym(car(exp)) == symrepr_match_i28) ||
+	   (dec_sym(car(exp)) == symrepr_match_u28) ||
+	   (dec_sym(car(exp)) == symrepr_match_float) ||
+	   (dec_sym(car(exp)) == symrepr_match_cons)));
+}
+
 static inline bool is_symbol(VALUE exp) {
   return (type_of(exp) == VAL_TYPE_SYMBOL);
 }

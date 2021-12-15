@@ -49,10 +49,16 @@
 #define TOKDOT          15u     // "."
 #define TOKDONTCARE     16u     // "_"
 
+#define TOKMATCHANY     17u
+#define TOKMATCHI28     18u
+#define TOKMATCHU28     19u
+#define TOKMATCHFLOAT   20u
+#define TOKMATCHCONS    21u
+
 #define TOKENIZER_ERROR 1024u
 #define TOKENIZER_END   2048u
 
-#define TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH 255
+#define TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH 256
 
 char sym_str[TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH];
 
@@ -95,7 +101,7 @@ typedef struct {
   uint32_t len;
 } matcher;
 
-#define NUM_FIXED_SIZE_TOKENS 8
+#define NUM_FIXED_SIZE_TOKENS 13
 const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
@@ -105,8 +111,12 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"`", TOKBACKQUOTE, 1},
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
+  {"?i28", TOKMATCHI28, 4},
+  {"?u28", TOKMATCHU28, 4},
+  {"?float", TOKMATCHFLOAT, 6},
+  {"?cons", TOKMATCHCONS, 5},
+  {"?", TOKMATCHANY, 1}
 };
-
 
 // Todo: Try to figure out how to do GC while reading
 /* static int gc() { */
@@ -531,8 +541,17 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     t = next_token(str);
     return parse_sexp_list(t,str);
   case TOKDONTCARE:
-    v = enc_sym(symrepr_dontcare);
-    return v;
+    return enc_sym(symrepr_dontcare);
+  case TOKMATCHANY: 
+    return enc_sym(symrepr_match_any);
+  case TOKMATCHI28:
+    return enc_sym(symrepr_match_i28);
+  case TOKMATCHU28:
+    return enc_sym(symrepr_match_u28);
+  case TOKMATCHFLOAT:
+    return enc_sym(symrepr_match_float);
+  case TOKMATCHCONS:
+    return enc_sym(symrepr_match_cons);
   case TOKSYMBOL: {
     UINT symbol_id;
 

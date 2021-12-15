@@ -124,7 +124,12 @@ void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
 void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
-  if (q->first == NULL && q->last == NULL) {
+  if (q->first == NULL || q->last == NULL) {
+     if (q->last != NULL || q->first != NULL) {
+       /* error state that should not happen */
+       //printf("error!!!!\n");
+       return;
+     }
     return;
   }
 
@@ -148,7 +153,7 @@ void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   }
 }
 
-/* End exection of the running context and add it to the
+/* End execution of the running context and add it to the
    list of finished contexts. */
 void finish_ctx(void) {
   if (ctx_done == NULL) {
@@ -277,8 +282,9 @@ eval_context_t *dequeue_ctx(uint32_t *us) {
     if (min_us > t_diff) min_us = t_diff;
     curr = curr->next;
   }
-
-  *us = min_us;
+  /* ChibiOS does not like a sleep time of 0 */
+  /* TODO: Make sure that does not happen. */
+  *us = DEFAULT_SLEEP_US;
   return NULL;
 }
 
@@ -449,31 +455,76 @@ bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
 
   VALUE binding;
 
-  if (type_of(p) == VAL_TYPE_SYMBOL) {
-    UINT s = dec_sym(p);
-    if (s == symrepr_nil) {
-      /* nil matches nil */
-      return (p == e ? true : false);
-    } else if (s == symrepr_true) {
-      /* true matches true */
-      return (p == e ? true : false);
-    } else if (s == symrepr_dontcare) {
-      /* dontcare matches anything */
-      return true;
-    } else {
-      /* a case that is very easy to abuse! */
-      /* a symbol matches anything */
-      binding = cons(p, e);
-      *env = cons(binding, *env);
-      if (type_of(binding) == VAL_TYPE_SYMBOL ||
-	  type_of(*env) == VAL_TYPE_SYMBOL) {
-	*gc = true;
-	return false;
+  if (is_match_binder(p)) {
+    VALUE var = car(cdr(p));
+    VALUE bindertype = car(p);
+
+    if (!is_symbol(var)) return false;
+
+    switch (dec_sym(bindertype)) {
+    case DEF_REPR_MATCH_ANY:
+      if (dec_sym(var) == symrepr_dontcare) {
+	return true;
+      } else {
+	break;
       }
-      return true;
+      return false;
+    case DEF_REPR_MATCH_I28:
+      if (type_of(e) == VAL_TYPE_I) {
+	if (dec_sym(var) == symrepr_dontcare) {
+	  return true;
+	} else {
+	  break;
+	}
+      }
+      return false;
+    case DEF_REPR_MATCH_U28:
+      if (type_of(e) == VAL_TYPE_U) {
+	if (dec_sym(var) == symrepr_dontcare) {
+	  return true;
+	} else {
+	  break;
+	}
+      }
+      return false;
+    case DEF_REPR_MATCH_FLOAT:
+      if (type_of(e) == PTR_TYPE_BOXED_F) {
+	if (dec_sym(var) == symrepr_dontcare) {
+	  return true;
+	} else {
+	  break;
+	}
+      }
+      return false;
+    case DEF_REPR_MATCH_CONS:
+      if (type_of(e) == PTR_TYPE_CONS) {
+	if (dec_sym(var) == symrepr_dontcare) {
+	  return true;
+	} else {
+	  break;
+	}
+      }
+      return false;
+    default: /* this should be an error case */
+      return false;
     }
-  } else if (type_of(p) == PTR_TYPE_CONS &&
-	     type_of(e) == PTR_TYPE_CONS) {
+    binding = cons(var, e);
+    *env = cons(binding, *env);
+    if (type_of(binding) == VAL_TYPE_SYMBOL ||
+	type_of(*env) == VAL_TYPE_SYMBOL) {
+      *gc = true;
+      return false;
+    }
+    return true;
+  }
+
+  if (is_symbol(p)) {
+    if (dec_sym(p) == symrepr_dontcare) return true;
+    return (p == e);
+  }
+
+  if (type_of(p) == PTR_TYPE_CONS &&
+      type_of(e) == PTR_TYPE_CONS) {
 
     VALUE headp = car(p);
     VALUE heade = car(e);
@@ -770,20 +821,21 @@ static inline void eval_or(eval_context_t *ctx) {
 
 /* pattern matching experiment */
 /* format:                     */
-/* (match e ((pattern body)    */
-/*           (pattern body)    */
-/*           ... )             */
+/* (match e (pattern body)     */
+/*          (pattern body)     */
+/*          ...  )             */
 static inline void eval_match(eval_context_t *ctx) {
 
   VALUE rest = cdr(ctx->curr_exp);
   if (type_of(rest) == VAL_TYPE_SYMBOL &&
       rest == NIL) {
+    /* Someone wrote the program (match) */
     ctx->app_cont = true;
     ctx->r = enc_sym(symrepr_nil); /* make up new specific symbol? */
     return;
   } else {
-    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, car(cdr(rest)), enc_u(MATCH)));
-    ctx->curr_exp = car(rest); /* e */
+    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(MATCH)));
+    ctx->curr_exp = car(rest); /* Evaluate e next*/
   }
 }
 
@@ -810,7 +862,7 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
       VALUE e;
       VALUE new_env = ctx->curr_env;
       bool do_gc = false;;
-      int n = find_match(car(cdr(pats)), msgs, &e, &new_env, &do_gc);
+      int n = find_match(cdr(pats), msgs, &e, &new_env, &do_gc);
       if (do_gc) {
 	*perform_gc = true;
 	ctx->app_cont = false;

@@ -250,12 +250,12 @@ int main(int argc, char **argv) {
 
   //setup_terminal();
 
-  unsigned char *memory = malloc(MEMORY_SIZE_16K);
-  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
+  unsigned char *memory = malloc(MEMORY_SIZE_8K);
+  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_8K);
   if (memory == NULL || bitmap == NULL) return 0;
   
-  res = memory_init(memory, MEMORY_SIZE_16K,
-		    bitmap, MEMORY_BITMAP_SIZE_16K);
+  res = memory_init(memory, MEMORY_SIZE_8K,
+		    bitmap, MEMORY_BITMAP_SIZE_8K);
   if (res)
     printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
   else {
