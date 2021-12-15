@@ -65,3 +65,22 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 2. Build the repl: `cd repl-cps` and then `make`
 
 3. Run the repl: `./repl`
+
+
+## Compile on Raspberry Pi
+
+To build the library exeute the following command in the lispbm folder:
+
+```
+PLATFORM=pi make
+```
+
+To build the `repl-cps` example repl do:
+
+```
+cd repl-cps
+make pirepl
+```
+
+Then start it up using `./repl`
+Building the library is not a prerequisite for building the repl anymore.
