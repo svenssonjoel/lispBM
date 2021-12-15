@@ -10,6 +10,8 @@ include $(LISPBM)/lispbm.mk
 
 CCFLAGS = -m32 -O2 -Wall -Wconversion -pedantic -std=c11
 
+PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11
+
 ifdef HEAP_VIS
 	CCFLAGS += -DVISUALIZE_HEAP
 endif
@@ -21,6 +23,9 @@ debug: repl
 
 repl: repl.c $(LISPBM_SRC)
 	gcc $(CCFLAGS) $(LISPBM_SRC) $(LISPBM_FLAGS) repl.c -o repl -I../include -lpthread
+
+pirepl: repl.c $(LISPBM_SRC)
+	gcc $(PICCFLAGS) $(LISPBM_SRC) $(LISPBM_FLAGS) repl.c -o repl -I../include -lpthread
 
 clean:
 	rm repl
