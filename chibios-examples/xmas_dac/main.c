@@ -445,7 +445,10 @@ int main(void) {
       
       if (done) {
 	VALUE t;
+
+	chprintf(chp, "Parsing file\r\n");
 	t = tokpar_parse(file_buffer);
+	chprintf(chp, "Evaluating contents\r\n");
 	CID cid = eval_cps_program(t);
 	if (cid == 0) {
 	  chprintf(chp,"Error creating ctx\r\n");

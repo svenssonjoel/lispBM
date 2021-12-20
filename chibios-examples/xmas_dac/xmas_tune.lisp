@@ -17,46 +17,43 @@
 
 
 
+(define melody
+    (list `(,quarter . ,g)  `(,eight . ,g) `(,eight . ,a) `(,quarter . ,g)
+	  `(,quarter . ,e)  `(,eight . ,e) `(,eight . ,f) `(,quarter . ,e)
+	  `(,quarter . ,d)  `(,eight . ,d) `(,eight . ,e) `(,eight   . ,d)
+	  `(,eight   . ,h)
+	  `(,eight   . ,c)  `(,eight . ,d) `(,eight . ,e) `(,eight   . ,f)
+	  `(,quarter . ,g)
+	  `(,quarter . ,g)  `(,eight . ,g) `(,eight . ,a) `(,quarter . ,g)
+	  `(,quarter . ,d)  `(,eight . ,g) `(,eight . ,a) `(,quarter . ,h1)
+	  `(,quarter . ,c1) `(,quarter . ,e) `(,quarter . ,fs)
+	  `(,quarter . ,g)  `(,quarter . ,pause) `(,quarter . ,pause)
+	  `(,eight   . ,c)  `(,eight . ,c)
+	  `(,eight   . ,c)  `(,eight . ,d) `(,eight . ,e)   `(,eight . ,d)
+	  `(,eight   . ,c)  `(,eight . ,d) `(,quarter . ,e) `(,quarter . ,c)
+	  `(,eight   . ,d)  `(,eight . ,d) `(,eight . ,d)   `(,eight . ,e)
+	  `(,eight . ,f) `(,eight . ,d)
+	  `(,eight   . ,d)  `(,eight . ,e) `(,quarter . ,f) `(,quarter . ,d)
+	  `(,eight   . ,e)  `(,eight . ,f) `(,quarter . ,g) `(,eight . ,f)
+	  `(,eight . ,e)
+	  `(,eight   . ,f)  `(,eight . ,g) `(,quarter . ,a) `(,eight . ,g)
+	  `(,eight . ,f)
+	  `(,eight   . ,g)  `(,eight . ,a) `(,quarter . ,h1) `(,eight . ,a)
+	  `(,eight . ,g)
+	  `(,quarter . ,c1)  `(,quarter . ,c1) `(,quarter . ,pause)
+	  ))
 
-(define melody `((,quarter . ,g)  (,eight . ,g) (,eight . ,a) (,quarter . ,g)
-		 (,quarter . ,e)  (,eight . ,e) (,eight . ,f) (,quarter . ,e)
-		 (,quarter . ,d)  (,eight . ,d) (,eight . ,e) (,eight   . ,d) (,eight   . ,h)
-		 (,eight   . ,c)  (,eight . ,d) (,eight . ,e) (,eight   . ,f) (,quarter . ,g)
-		 (,quarter . ,g)  (,eight . ,g) (,eight . ,a) (,quarter . ,g)
-		 (,quarter . ,d)  (,eight . ,g) (,eight . ,a) (,quarter . ,h1)
-		 (,quarter . ,c1) (,quarter . ,e) (,quarter . ,fs)
-		 (,quarter . ,g)  (,quarter . ,pause) (,quarter . ,pause)
-		 (,eight   . ,c) 
-		 ))
-
-(define melody2 `( (,eight . ,c)
-		  (,eight   . ,c)  (,eight . ,d) (,eight . ,e) (,eight . ,d)
-		  (,eight   . ,c)  (,eight . ,d) (,quarter . ,e) (,quarter . ,c)
-		  (,eight   . ,d)  (,eight . ,d) (,eight . ,d) (,eight . ,e) (,eight . ,f) (,eight . ,d)
-		  (,eight   . ,d)  (,eight . ,e) (,quarter . ,f) (,quarter . ,d)
-		  (,eight   . ,e)  (,eight . ,f) (,quarter . ,g) (,eight . ,f) (,eight . ,e)
-		  (,eight   . ,f)  (,eight . ,g) (,quarter . ,a) (,eight . ,g) (,eight . ,f)
-		  (,eight   . ,g)  (,eight . ,a) (,quarter . ,h1) (,eight . ,a) (,eight . ,g)
-		  (,quarter . ,c1)  (,quarter . ,c1) (,quarter . ,pause)
-		  ))
-
+  
 (define send-note (lambda (n)
 		    (note (car n) (cdr n))))
 
 (define play (lambda (x)
 	       (match x
-		      ( nil (play2 melody2))
+		      ( nil (play melody))
 		      ( (? ls) (progn
 			        (send-note (cdr (car ls)))
 			        (yield (car (car ls)))
 			        (play (cdr ls)))))))
 
-(define play2 (lambda (x)
-	       (match x
-		      ( nil (play melody))
-		      ( (? ls) (progn
-			        (send-note (cdr (car ls)))
-			        (yield (car (car ls)))
-			        (play2 (cdr ls)))))))
 			       
 		      
