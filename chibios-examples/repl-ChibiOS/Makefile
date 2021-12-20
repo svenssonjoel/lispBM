@@ -91,7 +91,7 @@ endif
 PROJECT = lisp_test
 
 # Imported source files and paths
-CHIBIOS  := ../../ChibiOS_19.1.4
+CHIBIOS  := ../../../ChibiOS_19.1.4
 BUILDDIR := ./build
 DEPDIR   := ./.dep
 
@@ -122,19 +122,19 @@ LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 
-LBMSRC = ../src/compression.c \
-         ../src/env.c \
-         ../src/eval_cps.c \
-         ../src/extensions.c \
-         ../src/fundamental.c \
-         ../src/heap.c \
-         ../src/memory.c \
-         ../src/prelude.c \
-         ../src/print.c \
-         ../src/qq_expand.c \
-         ../src/stack.c \
-         ../src/symrepr.c \
-         ../src/tokpar.c
+LBMSRC = ../../src/compression.c \
+         ../../src/env.c \
+         ../../src/eval_cps.c \
+         ../../src/extensions.c \
+         ../../src/fundamental.c \
+         ../../src/heap.c \
+         ../../src/memory.c \
+         ../../src/prelude.c \
+         ../../src/print.c \
+         ../../src/qq_expand.c \
+         ../../src/stack.c \
+         ../../src/symrepr.c \
+         ../../src/tokpar.c
 
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \
@@ -188,10 +188,10 @@ UDEFS = -D_32_BIT_ -D_PRELUDE
 UADEFS =
 
 # List all user directories here
-UINCDIR = ../include
+UINCDIR = ../../include
 
 # List the user directory to look for the libraries here
-ULIBDIR = ../build/stm32f4
+ULIBDIR =
 
 # List all user libraries here
 ULIBS = 
