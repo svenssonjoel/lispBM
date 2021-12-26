@@ -52,15 +52,16 @@
 #define DEF_REPR_BOXED_U_TYPE   0x22
 #define DEF_REPR_BOXED_F_TYPE   0x23
 #define DEF_REPR_REF_TYPE       0x24
-#define DEF_REPR_RECOVERED      0x25
-#define DEF_REPR_BYTECODE_TYPE  0x26
-#define DEF_REPR_NONSENSE       0x27
-#define DEF_REPR_NOT_FOUND      0x28
-#define DEF_REPR_NO_MATCH       0x29
-#define DEF_REPR_MATCH_ANY      0x2A
-#define DEF_REPR_MATCH_I28      0x2B
-#define DEF_REPR_MATCH_U28      0x2C
-#define DEF_REPR_MATCH_FLOAT    0x2D
+#define DEF_REPR_STREAM_TYPE    0x25
+#define DEF_REPR_RECOVERED      0x26
+#define DEF_REPR_BYTECODE_TYPE  0x27
+#define DEF_REPR_NONSENSE       0x28
+#define DEF_REPR_NOT_FOUND      0x29
+#define DEF_REPR_NO_MATCH       0x2A
+#define DEF_REPR_MATCH_ANY      0x2B
+#define DEF_REPR_MATCH_I28      0x2C
+#define DEF_REPR_MATCH_U28      0x2D
+#define DEF_REPR_MATCH_FLOAT    0x2E
 #define DEF_REPR_MATCH_CONS     0x2F
 
 // Type identifying symbols
@@ -74,6 +75,7 @@
 #define DEF_REPR_TYPE_SYMBOL    0x57
 #define DEF_REPR_TYPE_CHAR      0x58
 #define DEF_REPR_TYPE_REF       0x59
+#define DEF_REPR_TYPE_STREAM    0x5A
 
 // Fundamental Operations
 #define FUNDAMENTALS_START      0x100

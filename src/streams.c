@@ -15,27 +15,33 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef STREAMS_H_
-#define STREAMS_H_
+#include "streams.h"
+#include "heap.h"
 
-#include "typedefs.h"
+VALUE stream_get(stream_t *str) {
+  return str->get(str);
+}
 
-typedef struct stream_s{
-  void  *state;   /* stream implementation dependent state */
-  VALUE (*more)(struct stream_s*);
-  VALUE (*get)(struct stream_s*);
-  VALUE (*peek)(struct stream_s*, VALUE);
-  VALUE (*drop)(struct stream_s*, VALUE);
-  VALUE (*put)(struct stream_s*, VALUE);
-} stream_t;
+VALUE stream_more(stream_t *str) {
+  return str->more(str);
+}
 
+VALUE stream_peek(stream_t *str, VALUE n) {
+  return str->peek(str,n);
+}
 
-extern VALUE stream_get(stream_t *str);
-extern VALUE stream_more(stream_t *str);
-extern VALUE stream_peek(stream_t *str, VALUE n);
-extern VALUE stream_drop(stream_t *str, VALUE n);
-extern VALUE stream_put(stream_t *str, VALUE v);
+VALUE stream_drop(stream_t *str, VALUE n) {
+  return str->drop(str,n);
+}
 
-extern VALUE stream_create(stream_t *str);
+VALUE stream_put(stream_t *str, VALUE v) {
+  return str->put(str,v);
+}
 
-#endif
+VALUE stream_create(stream_t *str) {
+  VALUE s = cons((VALUE)str, enc_sym(DEF_REPR_STREAM_TYPE));
+  if (type_of(s) == PTR_TYPE_CONS) {
+    set_ptr_type(s, DEF_REPR_TYPE_STREAM);
+  }
+  return s;
+}

@@ -24,6 +24,7 @@
 #include "extensions.h"
 #include "typedefs.h"
 #include "exp_kind.h"
+#include "streams.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
