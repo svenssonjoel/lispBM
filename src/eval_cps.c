@@ -43,9 +43,9 @@
 #define MATCH             12
 #define MATCH_MANY        13
 
-#define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error); return ; }
-#define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(symrepr_fatal_error); return ctx->r; }
-#define FOF(x)  if  (!(x)) { ctx_running->done = true; error_ctx(enc_sym(symrepr_fatal_error));return;}
+#define FATAL_ON_FAIL(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(SYM_FATAL_ERROR); return ; }
+#define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(SYM_FATAL_ERROR); return ctx->r; }
+#define FOF(x)  if  (!(x)) { ctx_running->done = true; error_ctx(enc_sym(SYM_FATAL_ERROR));return;}
 
 #define ERROR
 //#define ERROR printf("Line: %d\n", __LINE__);
@@ -228,7 +228,7 @@ VALUE eval_cps_wait_ctx(CID cid) {
     }
     usleep_callback(1000);
   }
-  return enc_sym(symrepr_nil);
+  return enc_sym(SYM_NIL);
 }
 
 void error_ctx(VALUE err_val) {
@@ -297,7 +297,7 @@ void yield_ctx(uint32_t sleep_us) {
     ctx_running->timestamp = 0;
     ctx_running->sleep_us = 0;
   }
-  ctx_running->r = enc_sym(symrepr_true);
+  ctx_running->r = enc_sym(SYM_TRUE);
   ctx_running->app_cont = true;
   enqueue_ctx(&queue,ctx_running);
   ctx_running = NULL;
@@ -316,7 +316,7 @@ CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
   ctx->program = cdr(program);
   ctx->curr_exp = car(program);
   ctx->curr_env = env;
-  ctx->mailbox = enc_sym(symrepr_nil);
+  ctx->mailbox = enc_sym(SYM_NIL);
   ctx->done = false;
   ctx->app_cont = false;
   ctx->timestamp = 0;
@@ -399,7 +399,7 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
     drop_ctx(&queue,found);
 
     enqueue_ctx(&queue,found);
-    return enc_sym(symrepr_true);
+    return enc_sym(SYM_TRUE);
   }
 
   /* check the current context */
@@ -410,11 +410,11 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
       return new_mailbox; /* An error symbol */
     }
     ctx_running->mailbox = new_mailbox;
-    return enc_sym(symrepr_true);
+    return enc_sym(SYM_TRUE);
   }
 
 
-  return enc_sym(symrepr_nil);
+  return enc_sym(SYM_NIL);
 }
 
 VALUE list_remove(int n, VALUE list) {
@@ -422,7 +422,7 @@ VALUE list_remove(int n, VALUE list) {
   VALUE res;
   VALUE curr = list;
 
-  VALUE tmp = enc_sym(symrepr_nil);
+  VALUE tmp = enc_sym(SYM_NIL);
 
   while (type_of(curr) == PTR_TYPE_CONS) {
     if (n == c) {
@@ -463,43 +463,43 @@ bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
     if (!is_symbol(var)) return false;
 
     switch (dec_sym(bindertype)) {
-    case DEF_REPR_MATCH_ANY:
-      if (dec_sym(var) == symrepr_dontcare) {
+    case SYM_MATCH_ANY:
+      if (dec_sym(var) == SYM_DONTCARE) {
 	return true;
       } else {
 	break;
       }
       return false;
-    case DEF_REPR_MATCH_I28:
+    case SYM_MATCH_I28:
       if (type_of(e) == VAL_TYPE_I) {
-	if (dec_sym(var) == symrepr_dontcare) {
+	if (dec_sym(var) == SYM_DONTCARE) {
 	  return true;
 	} else {
 	  break;
 	}
       }
       return false;
-    case DEF_REPR_MATCH_U28:
+    case SYM_MATCH_U28:
       if (type_of(e) == VAL_TYPE_U) {
-	if (dec_sym(var) == symrepr_dontcare) {
+	if (dec_sym(var) == SYM_DONTCARE) {
 	  return true;
 	} else {
 	  break;
 	}
       }
       return false;
-    case DEF_REPR_MATCH_FLOAT:
+    case SYM_MATCH_FLOAT:
       if (type_of(e) == PTR_TYPE_BOXED_F) {
-	if (dec_sym(var) == symrepr_dontcare) {
+	if (dec_sym(var) == SYM_DONTCARE) {
 	  return true;
 	} else {
 	  break;
 	}
       }
       return false;
-    case DEF_REPR_MATCH_CONS:
+    case SYM_MATCH_CONS:
       if (type_of(e) == PTR_TYPE_CONS) {
-	if (dec_sym(var) == symrepr_dontcare) {
+	if (dec_sym(var) == SYM_DONTCARE) {
 	  return true;
 	} else {
 	  break;
@@ -520,7 +520,7 @@ bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
   }
 
   if (is_symbol(p)) {
-    if (dec_sym(p) == symrepr_dontcare) return true;
+    if (dec_sym(p) == SYM_DONTCARE) return true;
     return (p == e);
   }
 
@@ -632,7 +632,7 @@ static inline void eval_symbol(eval_context_t *ctx) {
     // If not special, check if there is a binding in the environments
     value = env_lookup(ctx->curr_exp, ctx->curr_env);
     if (type_of(value) == VAL_TYPE_SYMBOL &&
-	dec_sym(value) == symrepr_not_found) {
+	dec_sym(value) == SYM_NOT_FOUND) {
 
       value = env_lookup(ctx->curr_exp, *env_get_global_ptr());
     }
@@ -650,7 +650,7 @@ static inline void eval_selfevaluating(eval_context_t *ctx) {
 
 static inline void eval_ref_stream() {
   ERROR
-  error_ctx(enc_sym(symrepr_eerror));
+  error_ctx(enc_sym(SYM_EERROR));
 }
 
 static inline void eval_quote(eval_context_t *ctx) {
@@ -665,7 +665,7 @@ static inline void eval_define(eval_context_t *ctx) {
   if (type_of(key) != VAL_TYPE_SYMBOL ||
       key == NIL) {
     ERROR
-      error_ctx(enc_sym(symrepr_eerror));
+      error_ctx(enc_sym(SYM_EERROR));
     return;
   }
 
@@ -716,7 +716,7 @@ static inline void eval_lambda(eval_context_t *ctx, bool *perform_gc) {
   VALUE env_cpy = env_copy_shallow(ctx->curr_env);
 
   if (type_of(env_cpy) == VAL_TYPE_SYMBOL &&
-      dec_sym(env_cpy) == symrepr_merror) {
+      dec_sym(env_cpy) == SYM_MERROR) {
     *perform_gc = true;
     ctx->app_cont = false;
     return; // perform gc and resume evaluation at same expression
@@ -729,7 +729,7 @@ static inline void eval_lambda(eval_context_t *ctx, bool *perform_gc) {
   env_end = cons(env_cpy,NIL);
   body    = cons(car(cdr(cdr(ctx->curr_exp))), env_end);
   params  = cons(car(cdr(ctx->curr_exp)), body);
-  closure = cons(enc_sym(symrepr_closure), params);
+  closure = cons(enc_sym(SYM_CLOSURE), params);
 
   if (type_of(env_end) == VAL_TYPE_SYMBOL ||
       type_of(body)    == VAL_TYPE_SYMBOL ||
@@ -800,7 +800,7 @@ static inline void eval_and(eval_context_t *ctx) {
   if (type_of(rest) == VAL_TYPE_SYMBOL &&
       rest == NIL) {
     ctx->app_cont = true;
-    ctx->r = enc_sym(symrepr_true);
+    ctx->r = enc_sym(SYM_TRUE);
   } else {
     FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(AND)));
     ctx->curr_exp = car(rest);
@@ -812,7 +812,7 @@ static inline void eval_or(eval_context_t *ctx) {
   if (type_of(rest) == VAL_TYPE_SYMBOL &&
       rest == NIL) {
     ctx->app_cont = true;
-    ctx->r = enc_sym(symrepr_nil);
+    ctx->r = enc_sym(SYM_NIL);
     return;
   } else {
     FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(OR)));
@@ -832,7 +832,7 @@ static inline void eval_match(eval_context_t *ctx) {
       rest == NIL) {
     /* Someone wrote the program (match) */
     ctx->app_cont = true;
-    ctx->r = enc_sym(symrepr_nil); /* make up new specific symbol? */
+    ctx->r = enc_sym(SYM_NIL); /* make up new specific symbol? */
     return;
   } else {
     FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(MATCH)));
@@ -843,7 +843,7 @@ static inline void eval_match(eval_context_t *ctx) {
 static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
 
   if (type_of(ctx->mailbox) == VAL_TYPE_SYMBOL &&
-      dec_sym(ctx->mailbox) == symrepr_nil) {
+      dec_sym(ctx->mailbox) == SYM_NIL) {
     /*nothing in the mailbox: block the context*/
     ctx->timestamp = timestamp_us_callback();
     ctx->sleep_us = 0;
@@ -857,7 +857,7 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
 	pats == NIL) {
       /* A receive statement without any patterns */
       ctx->app_cont = true;
-      ctx->r = enc_sym(symrepr_nil);
+      ctx->r = enc_sym(SYM_NIL);
     } else {
       /* The common case */
       VALUE e;
@@ -871,7 +871,7 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
 	VALUE new_mailbox = list_remove(n, msgs);
 
 	if ((type_of(new_mailbox) == VAL_TYPE_SYMBOL) &&
-	    (dec_sym(new_mailbox) == symrepr_merror)) {
+	    (dec_sym(new_mailbox) == SYM_MERROR)) {
 	  *perform_gc = true;
 	  ctx->app_cont = false;
 	  return;
@@ -884,7 +884,7 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
 	ctx->sleep_us = 0;
 	enqueue_ctx(&blocked,ctx);
 	ctx_running = NULL;
-	ctx->r = enc_sym(symrepr_nomatch);
+	ctx->r = enc_sym(SYM_NO_MATCH);
       }
 
       /* Match messages on mailbox against the patterns */
@@ -910,12 +910,12 @@ static inline void cont_set_global_env(eval_context_t *ctx, bool *perform_gc){
   VALUE new_env = env_set(*env_get_global_ptr(),key,val);
 
   if (type_of(new_env) == VAL_TYPE_SYMBOL) {
-    if (dec_sym(new_env) == symrepr_merror) {
+    if (dec_sym(new_env) == SYM_MERROR) {
       FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, key, enc_u(SET_GLOBAL_ENV)));
       *perform_gc = true;
       return;
     }
-    if (dec_sym(new_env) == symrepr_fatal_error) {
+    if (dec_sym(new_env) == SYM_FATAL_ERROR) {
       ERROR
       error_ctx(new_env);
       return;
@@ -979,7 +979,7 @@ static inline void cont_spawn_all(eval_context_t *ctx, bool *perform_gc) {
 		       EVAL_CPS_DEFAULT_STACK_SIZE,
 		       EVAL_CPS_DEFAULT_STACK_GROW_POLICY);
   if (!cid) {
-    set_car(cid_list, enc_sym(symrepr_nil));
+    set_car(cid_list, enc_sym(SYM_NIL));
   }
   FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, cdr(rest), enc_u(SPAWN_ALL)));
   ctx->r = cid_list;
@@ -999,7 +999,7 @@ static inline void cont_wait(eval_context_t *ctx) {
     ctx->app_cont = true;
   } else {
     FOF(push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
-    ctx->r = enc_sym(symrepr_true);
+    ctx->r = enc_sym(SYM_TRUE);
     ctx->app_cont = true;
     yield_ctx(50000);
   }
@@ -1013,7 +1013,7 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
   UINT *fun_args = stack_ptr(&ctx->K, dec_u(count)+1);
 
   if (fun_args == NULL) {
-    ctx->r = enc_sym(symrepr_fatal_error);
+    ctx->r = enc_sym(SYM_FATAL_ERROR);
     return;
   }
   VALUE fun = fun_args[0];
@@ -1036,13 +1036,13 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
 
     if (length(params) != length(args)) { // programmer error
       ERROR
-	error_ctx(enc_sym(symrepr_eerror));
+	error_ctx(enc_sym(SYM_EERROR));
       return;
     }
 
     VALUE local_env = env_build_params_args(params, args, clo_env);
     if (type_of(local_env) == VAL_TYPE_SYMBOL) {
-      if (dec_sym(local_env) == symrepr_merror ) {
+      if (dec_sym(local_env) == SYM_MERROR ) {
 	FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
 	*perform_gc = true;
 	ctx->app_cont = true;
@@ -1050,7 +1050,7 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
 	return;
       }
 
-      if (dec_sym(local_env) == symrepr_fatal_error) {
+      if (dec_sym(local_env) == SYM_FATAL_ERROR) {
 	ctx->r = local_env;
 	return;
       }
@@ -1077,35 +1077,35 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
     /* eval_cps specific operations */
     /* TODO: These should work any int type as argument */
     UINT dfun = dec_sym(fun);
-    if (dfun == symrepr_yield) {
+    if (dfun == SYM_YIELD) {
       if (type_of(fun_args[1]) == VAL_TYPE_I) {
 	UINT ts = dec_u(fun_args[1]);
 	stack_drop(&ctx->K, dec_u(count)+1);
 	yield_ctx(ts);
       } else {
 	ERROR
-	  error_ctx(enc_sym(symrepr_eerror));
+	  error_ctx(enc_sym(SYM_EERROR));
       }
       return;
-    } else if (dfun == symrepr_wait) {
+    } else if (dfun == SYM_WAIT) {
       if (type_of(fun_args[1]) == VAL_TYPE_I) {
 	CID cid = (CID)dec_u(fun_args[1]);
 	stack_drop(&ctx->K, dec_u(count)+1);
 	FOF(push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
-	ctx->r = enc_sym(symrepr_true);
+	ctx->r = enc_sym(SYM_TRUE);
 	ctx->app_cont = true;
 	yield_ctx(50000);
       } else {
 	ERROR
-	error_ctx(enc_sym(symrepr_eerror));
+	error_ctx(enc_sym(SYM_EERROR));
       }
       return;
-    } else if (dfun == symrepr_eval) {
+    } else if (dfun == SYM_EVAL) {
       ctx->curr_exp = fun_args[1];
       stack_drop(&ctx->K, dec_u(count)+1);
       return;
-    } else if (dfun == DEF_REPR_SEND) {
-      VALUE status = enc_sym(symrepr_eerror);
+    } else if (dfun == SYM_SEND) {
+      VALUE status = enc_sym(SYM_EERROR);
 
       if (dec_u(count) == 2) {
 
@@ -1115,8 +1115,8 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
 	  status = find_receiver_and_send(cid, msg);
 	  if (type_of(status) != VAL_TYPE_SYMBOL) {
 	    ERROR /* The error macro returns */
-	      error_ctx(enc_sym(symrepr_eerror));
-	  } else if (dec_sym(status) == symrepr_merror) {
+	      error_ctx(enc_sym(SYM_EERROR));
+	  } else if (dec_sym(status) == SYM_MERROR) {
 	    /* perform gc and try again */
 	    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
 	    *perform_gc = true;
@@ -1135,11 +1135,11 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
       /* If it is not a eval_cps specific function, it may be a fundamental operation */
       res = fundamental_exec(&fun_args[1], dec_u(count), fun);
       if (type_of(res) == VAL_TYPE_SYMBOL &&
-	  dec_sym(res) == symrepr_eerror) {
+	  dec_sym(res) == SYM_EERROR) {
 	ERROR
 	  error_ctx(res);
       } else if (type_of(res) == VAL_TYPE_SYMBOL &&
-		 dec_sym(res) == symrepr_merror) {
+		 dec_sym(res) == SYM_MERROR) {
 	FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
 	*perform_gc = true;
 	ctx->app_cont = true;
@@ -1160,14 +1160,14 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
   extension_fptr f = extensions_lookup(dec_sym(fun));
   if (f == NULL) {
     ERROR
-      error_ctx(enc_sym(symrepr_eerror));
+      error_ctx(enc_sym(SYM_EERROR));
     return;
   }
 
   VALUE ext_res = f(&fun_args[1] , dec_u(count));
 
   if (type_of(ext_res) == VAL_TYPE_SYMBOL &&
-      (dec_sym(ext_res) == symrepr_merror)) {
+      (dec_sym(ext_res) == SYM_MERROR)) {
     FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
     *perform_gc = true;
     ctx->app_cont = true;
@@ -1202,7 +1202,7 @@ static inline void cont_application_args(eval_context_t *ctx) {
     ctx->curr_env = env;
   } else {
     /* TODO: Should pop count elements from the stack here as this application is an error */
-    ctx->curr_exp = enc_sym(symrepr_eerror);
+    ctx->curr_exp = enc_sym(SYM_EERROR);
     ctx->curr_env = env;
   }
   return;
@@ -1213,9 +1213,9 @@ static inline void cont_and(eval_context_t *ctx) {
   VALUE arg = ctx->r;
   pop_u32(&ctx->K, &rest);
   if (type_of(arg) == VAL_TYPE_SYMBOL &&
-      dec_sym(arg) == symrepr_nil) {
+      dec_sym(arg) == SYM_NIL) {
     ctx->app_cont = true;
-    ctx->r = enc_sym(symrepr_nil);
+    ctx->r = enc_sym(SYM_NIL);
   } else if (type_of(rest) == VAL_TYPE_SYMBOL &&
 	     rest == NIL) {
     ctx->app_cont = true;
@@ -1230,12 +1230,12 @@ static inline void cont_or(eval_context_t *ctx) {
   VALUE arg = ctx->r;
   pop_u32(&ctx->K, &rest);
   if (type_of(arg) != VAL_TYPE_SYMBOL ||
-      dec_sym(arg) != symrepr_nil) {
+      dec_sym(arg) != SYM_NIL) {
     ctx->app_cont = true;
   } else  if (type_of(rest) == VAL_TYPE_SYMBOL &&
 	      rest == NIL) {
     ctx->app_cont = true;
-    ctx->r = enc_sym(symrepr_nil);
+    ctx->r = enc_sym(SYM_NIL);
   } else {
     FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(OR)));
     ctx->curr_exp = car(rest);
@@ -1275,7 +1275,7 @@ static inline void cont_if(eval_context_t *ctx) {
 
   pop_u32_2(&ctx->K, &then_branch, &else_branch);
 
-  if (type_of(arg) == VAL_TYPE_SYMBOL && dec_sym(arg) == symrepr_true) {
+  if (type_of(arg) == VAL_TYPE_SYMBOL && dec_sym(arg) == SYM_TRUE) {
     ctx->curr_exp = then_branch;
   } else {
     ctx->curr_exp = else_branch;
@@ -1293,10 +1293,10 @@ static inline void cont_match_many(eval_context_t *ctx) {
   pop_u32_3(&ctx->K, &rest_msgs, &pats, &exp);
 
   if (type_of(r) == VAL_TYPE_SYMBOL &&
-      (dec_sym(r) == symrepr_nomatch)) {
+      (dec_sym(r) == SYM_NO_MATCH)) {
 
     if (type_of(rest_msgs) == VAL_TYPE_SYMBOL &&
-	dec_sym(rest_msgs) == symrepr_nil) {
+	dec_sym(rest_msgs) == SYM_NIL) {
 
       ctx->curr_exp = exp;
 
@@ -1322,9 +1322,9 @@ static inline void cont_match(eval_context_t *ctx, bool *perform_gc) {
 
   pop_u32(&ctx->K, &patterns);
 
-  if (type_of(patterns) == VAL_TYPE_SYMBOL && dec_sym(patterns) == symrepr_nil) {
+  if (type_of(patterns) == VAL_TYPE_SYMBOL && dec_sym(patterns) == SYM_NIL) {
     /* no more patterns */
-    ctx->r = enc_sym(symrepr_nomatch);
+    ctx->r = enc_sym(SYM_NO_MATCH);
     ctx->app_cont = true;
   } else if (type_of(patterns) == PTR_TYPE_CONS) {
     VALUE pattern = car(car(patterns));
@@ -1344,7 +1344,7 @@ static inline void cont_match(eval_context_t *ctx, bool *perform_gc) {
     }
   } else {
     /* TODO: return type error */
-    ctx->r = enc_sym(symrepr_terror);
+    ctx->r = enc_sym(SYM_TERROR);
     ctx->done = true;
   }
 }
@@ -1363,7 +1363,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
   if (*perform_gc) {
     if (*last_iteration_gc) {
       ERROR
-      error_ctx(enc_sym(symrepr_merror));
+      error_ctx(enc_sym(SYM_MERROR));
       return;
     }
     *last_iteration_gc = true;
@@ -1398,7 +1398,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
     case MATCH_MANY:       cont_match_many(ctx); return;
     default:
       ERROR
-      error_ctx(enc_sym(symrepr_eerror));
+      error_ctx(enc_sym(SYM_EERROR));
       return;
     }
   }
@@ -1426,19 +1426,19 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       UINT sym_id = dec_sym(head);
 
       switch(sym_id) {
-      case DEF_REPR_QUOTE:   eval_quote(ctx); return;
-      case DEF_REPR_DEFINE:  eval_define(ctx); return;
-      case DEF_REPR_PROGN:   eval_progn(ctx); return;
+      case SYM_QUOTE:   eval_quote(ctx); return;
+      case SYM_DEFINE:  eval_define(ctx); return;
+      case SYM_PROGN:   eval_progn(ctx); return;
       case SYM_SPAWN:        eval_spawn(ctx); return;
-      case DEF_REPR_LAMBDA:  eval_lambda(ctx, perform_gc); return;
-      case DEF_REPR_IF:      eval_if(ctx); return;
-      case DEF_REPR_LET:     eval_let(ctx, perform_gc); return;
+      case SYM_LAMBDA:  eval_lambda(ctx, perform_gc); return;
+      case SYM_IF:      eval_if(ctx); return;
+      case SYM_LET:     eval_let(ctx, perform_gc); return;
       case SYM_AND:          eval_and(ctx); return;
       case SYM_OR:           eval_or(ctx); return;
-      case DEF_REPR_MATCH:   eval_match(ctx); return;
+      case SYM_MATCH:   eval_match(ctx); return;
 	/* message passing primitives */
-	//case DEF_REPR_SEND:    eval_send(ctx, perform_gc); return;
-      case DEF_REPR_RECEIVE: eval_receive(ctx, perform_gc); return;
+	//case SYM_SEND:    eval_send(ctx, perform_gc); return;
+      case SYM_RECEIVE: eval_receive(ctx, perform_gc); return;
 
       default: break; /* May be general application form. Checked below*/
       }
@@ -1454,7 +1454,7 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
   default:
     // BUG No applicable case!
     ERROR
-    error_ctx(enc_sym(symrepr_eerror));
+    error_ctx(enc_sym(SYM_EERROR));
     break;
   }
   return;
@@ -1490,7 +1490,7 @@ VALUE evaluate_non_concurrent(void) {
   }
 
   if (!ctx_done) {
-    return enc_sym(symrepr_fatal_error);
+    return enc_sym(SYM_FATAL_ERROR);
   }
 
   ctx_done = NULL;
@@ -1508,7 +1508,7 @@ CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size, bool grow_stack) {
 VALUE eval_cps_program_nc(VALUE lisp) {
 
   if (type_of(lisp) != PTR_TYPE_CONS)
-    return enc_sym(symrepr_eerror);
+    return enc_sym(SYM_EERROR);
   ctx_non_concurrent.program = cdr(lisp);
   ctx_non_concurrent.curr_exp = car(lisp);
   ctx_non_concurrent.curr_env = NIL;
@@ -1521,7 +1521,7 @@ VALUE eval_cps_program_nc(VALUE lisp) {
   stack_clear(&ctx_non_concurrent.K);
 
   if (!push_u32(&ctx_non_concurrent.K, enc_u(DONE)))
-    return enc_sym(symrepr_merror);
+    return enc_sym(SYM_MERROR);
 
   ctx_running = &ctx_non_concurrent;
 
@@ -1530,8 +1530,8 @@ VALUE eval_cps_program_nc(VALUE lisp) {
 
 int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
 
-  NIL = enc_sym(symrepr_nil);
-  NONSENSE = enc_sym(symrepr_nonsense);
+  NIL = enc_sym(SYM_NIL);
+  NONSENSE = enc_sym(SYM_NONSENSE);
 
   VALUE nil_entry = cons(NIL, NIL);
   *env_get_global_ptr() = cons(nil_entry, *env_get_global_ptr());
@@ -1548,8 +1548,8 @@ int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
 
 int eval_cps_init() {
   int res = 1;
-  NIL = enc_sym(symrepr_nil);
-  NONSENSE = enc_sym(symrepr_nonsense);
+  NIL = enc_sym(SYM_NIL);
+  NONSENSE = enc_sym(SYM_NONSENSE);
 
   VALUE nil_entry = cons(NIL, NIL);
   *env_get_global_ptr() = cons(nil_entry, *env_get_global_ptr());

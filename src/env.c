@@ -25,7 +25,7 @@
 VALUE env_global;
 
 int env_init(void) {
-  env_global = enc_sym(symrepr_nil);
+  env_global = enc_sym(SYM_NIL);
   return 1;
 }
 
@@ -37,17 +37,17 @@ VALUE *env_get_global_ptr(void) {
 // The new "copy" will have pointers to the original key-val bindings.
 VALUE env_copy_shallow(VALUE env) {
 
-  VALUE res = enc_sym(symrepr_nil);
+  VALUE res = enc_sym(SYM_NIL);
   VALUE curr = env;
 
   while (type_of(curr) == PTR_TYPE_CONS) {
     VALUE key = car(car(curr));
-    if (dec_sym(key) != symrepr_nil) {
+    if (dec_sym(key) != SYM_NIL) {
       res = cons(car(curr), res);
 
       // Check for "out of memory"
       if (type_of(res) == VAL_TYPE_SYMBOL &&
-	  dec_sym(res) == symrepr_merror) {
+	  dec_sym(res) == SYM_MERROR) {
 	return res;
       }
     }
@@ -59,7 +59,7 @@ VALUE env_copy_shallow(VALUE env) {
 VALUE env_lookup(VALUE sym, VALUE env) {
   VALUE curr = env;
 
-  if(dec_sym(sym) == symrepr_nil) {
+  if(dec_sym(sym) == SYM_NIL) {
     return sym;
   }
 
@@ -69,7 +69,7 @@ VALUE env_lookup(VALUE sym, VALUE env) {
     }
     curr = cdr(curr);
   }
-  return enc_sym(symrepr_not_found);
+  return enc_sym(SYM_NOT_FOUND);
 }
 
 VALUE env_set(VALUE env, VALUE key, VALUE val) {
@@ -112,7 +112,7 @@ VALUE env_modify_binding(VALUE env, VALUE key, VALUE val) {
     curr = cdr(curr);
 
   }
-  return enc_sym(symrepr_not_found);
+  return enc_sym(SYM_NOT_FOUND);
 }
 
 
@@ -125,7 +125,7 @@ VALUE env_build_params_args(VALUE params,
   // TODO: This should be checked outside of this function.
   //
   if (length(params) != length(args)) { // programmer error
-    return enc_sym(symrepr_fatal_error);
+    return enc_sym(SYM_FATAL_ERROR);
   }
 
   VALUE env = env0;
@@ -133,14 +133,14 @@ VALUE env_build_params_args(VALUE params,
 
     VALUE entry = cons(car(curr_param), car(curr_arg));
     if (type_of(entry) == VAL_TYPE_SYMBOL &&
-	dec_sym(entry) == symrepr_merror)
-      return enc_sym(symrepr_merror);
+	dec_sym(entry) == SYM_MERROR)
+      return enc_sym(SYM_MERROR);
 
     env = cons(entry,env);
 
     if (type_of(env) == VAL_TYPE_SYMBOL &&
-	dec_sym(env) == symrepr_merror)
-      return enc_sym(symrepr_merror);
+	dec_sym(env) == SYM_MERROR)
+      return enc_sym(SYM_MERROR);
 
     curr_param = cdr(curr_param);
     curr_arg   = cdr(curr_arg);

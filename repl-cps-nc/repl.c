@@ -39,7 +39,7 @@
 #define EVAL_CPS_STACK_SIZE 256
 
 VALUE ext_print(VALUE *args, UINT argn) {
-  if (argn < 1) return enc_sym(symrepr_nil);
+  if (argn < 1) return enc_sym(SYM_NIL);
 
   char output[1024];
   char error[1024];
@@ -56,7 +56,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
 	break;
       }
       default:
-	return enc_sym(symrepr_nil);
+	return enc_sym(SYM_NIL);
 	break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
@@ -72,7 +72,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
     }
 
   }
-  return enc_sym(symrepr_true);
+  return enc_sym(SYM_TRUE);
 }
 
 /* load a file, caller is responsible for freeing the returned string */

@@ -111,11 +111,11 @@ static inline void eval_variable(eval_state *es) {
   else rm_state.val = env_lookup(rm_state.exp, rm_state.env);
 
   if (type_of(rm_state.val) == VAL_TYPE_SYMBOL &&
-      dec_sym(rm_state.val) == symrepr_not_found) {
+      dec_sym(rm_state.val) == SYM_NOT_FOUND) {
     rm_state.val = env_lookup(rm_state.exp, *env_get_global_ptr());
   }
   if (type_of(rm_state.val) == VAL_TYPE_SYMBOL &&
-      dec_sym(rm_state.val) == symrepr_not_found) {
+      dec_sym(rm_state.val) == SYM_NOT_FOUND) {
     print_value(str, 1024, err, 1024, rm_state.exp);
     rm_state.cont = enc_u(CONT_ERROR);
   }
@@ -152,7 +152,7 @@ static inline void cont_define(eval_state *es) {
   }
   if (is_symbol_merror(new_env)) {
     rm_state.cont = enc_u(CONT_ERROR);
-    rm_state.val  = enc_sym(symrepr_merror);
+    rm_state.val  = enc_sym(SYM_MERROR);
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -163,25 +163,25 @@ static inline void cont_define(eval_state *es) {
 
 static inline void eval_lambda(eval_state *es) {
 
-  VALUE env_end = cons(rm_state.env, enc_sym(symrepr_nil));
+  VALUE env_end = cons(rm_state.env, enc_sym(SYM_NIL));
   VALUE body    = cons(car(cdr(cdr(rm_state.exp))), env_end);
   VALUE params  = cons(car(cdr(rm_state.exp)),body);
-  VALUE closure = cons(enc_sym(symrepr_closure), params);
+  VALUE closure = cons(enc_sym(SYM_CLOSURE), params);
 
   if (is_symbol_merror(closure)) {
     gc(*env_get_global_ptr(), &rm_state);
 
-    env_end = cons(rm_state.env, enc_sym(symrepr_nil));
+    env_end = cons(rm_state.env, enc_sym(SYM_NIL));
     body    = cons(car(cdr(cdr(rm_state.exp))), env_end);
     params  = cons(car(cdr(rm_state.exp)),body);
-    closure = cons(enc_sym(symrepr_closure), params);
+    closure = cons(enc_sym(SYM_CLOSURE), params);
   }
 
   if (is_symbol_merror(closure)) {
     // eval_lambda sets *es = EVAL_CONTINUATION
     // this replaces the existing continuation with "done"
     rm_state.cont = enc_u(CONT_ERROR);
-    rm_state.val  = enc_sym(symrepr_merror);
+    rm_state.val  = enc_sym(SYM_MERROR);
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -198,7 +198,7 @@ static inline void eval_no_args(eval_state *es) {
 
 static inline void cont_setup_no_arg_apply(eval_state *es) {
   rm_state.fun = rm_state.val;
-  rm_state.argl = enc_sym(symrepr_nil);
+  rm_state.argl = enc_sym(SYM_NIL);
   *es = EVAL_APPLY_DISPATCH;
 }
 
@@ -231,7 +231,7 @@ static inline void cont_eval_args(eval_state *es) {
   pop_u32_2(&rm_state.S,&rm_state.unev, &rm_state.env);
   rm_state.fun = rm_state.val;
   push_u32(&rm_state.S,rm_state.fun);
-  rm_state.argl = enc_sym(symrepr_nil);
+  rm_state.argl = enc_sym(SYM_NIL);
   eval_arg_loop(es);
 }
 
@@ -246,7 +246,7 @@ static inline void cont_accumulate_arg(eval_state *es) {
   }
   if (is_symbol_merror(argl)) {
     rm_state.cont = enc_u(CONT_ERROR);
-    rm_state.val  = enc_sym(symrepr_merror);
+    rm_state.val  = enc_sym(SYM_MERROR);
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -267,7 +267,7 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
   }
   if (is_symbol_merror(argl)) {
     rm_state.cont = enc_u(CONT_ERROR);
-    rm_state.val  = enc_sym(symrepr_merror);
+    rm_state.val  = enc_sym(SYM_MERROR);
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -281,7 +281,7 @@ static inline void cont_accumulate_last_arg(eval_state *es) {
   }
   if (is_symbol_merror(rev_args)) {
     rm_state.cont = CONT_ERROR;
-    rm_state.val  = enc_sym(symrepr_merror);
+    rm_state.val  = enc_sym(SYM_MERROR);
     *es = EVAL_CONTINUATION;
   }
 
@@ -306,7 +306,7 @@ static inline void eval_apply_fundamental(eval_state *es) {
   }
   if (is_symbol_merror(val)) {
     rm_state.cont = enc_u(CONT_ERROR);
-    rm_state.val  = enc_sym(symrepr_merror);
+    rm_state.val  = enc_sym(SYM_MERROR);
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -330,7 +330,7 @@ static inline void eval_apply_closure(eval_state *es) {
   }
   if (is_symbol_merror(local_env)) {
     rm_state.cont = enc_u(CONT_ERROR);
-    rm_state.val  = enc_sym(symrepr_merror);
+    rm_state.val  = enc_sym(SYM_MERROR);
     *es = EVAL_CONTINUATION;
     return;
   }
@@ -375,7 +375,7 @@ static inline void eval_apply_dispatch(eval_state *es) {
   else if (is_extension(rm_state.fun)) eval_apply_extension(es);
   else {
     rm_state.cont = enc_u(CONT_ERROR);
-    rm_state.val  = enc_sym(symrepr_eerror);
+    rm_state.val  = enc_sym(SYM_EERROR);
     print_value(str,1024,err,1024, rm_state.fun);
     *es = EVAL_CONTINUATION;
   }
@@ -387,7 +387,7 @@ static inline void eval_sequence(eval_state *es) {
   pop_u32(&rm_state.S, &rm_state.env);
   VALUE tmp = cdr(rm_state.unev);
   if (type_of(tmp) == VAL_TYPE_SYMBOL &&
-      dec_sym(tmp) == symrepr_nil) {
+      dec_sym(tmp) == SYM_NIL) {
     pop_u32(&rm_state.S, &rm_state.cont);
     *es = EVAL_DISPATCH;
     return;
@@ -452,7 +452,7 @@ static inline void eval_let(eval_state *es) {
   VALUE new_env = rm_state.env;
   while (!is_symbol_nil(curr)) {
     VALUE key = car(car(curr));
-    VALUE val = enc_u(symrepr_nil);
+    VALUE val = enc_u(SYM_NIL);
     VALUE binding = cons(key, val);
     VALUE tmp_env = cons(binding, new_env);
 
@@ -465,7 +465,7 @@ static inline void eval_let(eval_state *es) {
     if (is_symbol_merror(binding) ||
 	is_symbol_merror(new_env)) {
       rm_state.cont = enc_u(CONT_ERROR);
-      rm_state.val  = enc_sym(symrepr_merror);
+      rm_state.val  = enc_sym(SYM_MERROR);
       *es = EVAL_CONTINUATION;
       return;
     }
@@ -491,7 +491,7 @@ static inline void cont_end_let(eval_state *es)  {
 
 static inline void eval_and(eval_state *es) {
   if (is_symbol_nil(cdr(rm_state.exp))) {
-    rm_state.val = enc_sym(symrepr_true);
+    rm_state.val = enc_sym(SYM_TRUE);
     *es = EVAL_CONTINUATION;
   }
   rm_state.unev = cdr(cdr(rm_state.exp));
@@ -522,7 +522,7 @@ static inline void cont_and(eval_state *es) {
 
 static inline void eval_or(eval_state *es) {
   if (is_symbol_nil(cdr(rm_state.exp))) {
-    rm_state.val = enc_sym(symrepr_nil);
+    rm_state.val = enc_sym(SYM_NIL);
     *es = EVAL_CONTINUATION;
   }
   rm_state.unev = cdr(cdr(rm_state.exp));
@@ -559,23 +559,23 @@ static inline void cont_done(eval_state *es, bool *done) {
   rm_state.exp = car(rm_state.prg);
   rm_state.prg = cdr(rm_state.prg);
   rm_state.cont = enc_u(CONT_DONE);
-  rm_state.env = enc_sym(symrepr_nil);
-  rm_state.argl = enc_sym(symrepr_nil);
-  rm_state.val = enc_sym(symrepr_nil);
-  rm_state.fun = enc_sym(symrepr_nil);
+  rm_state.env = enc_sym(SYM_NIL);
+  rm_state.argl = enc_sym(SYM_NIL);
+  rm_state.val = enc_sym(SYM_NIL);
+  rm_state.fun = enc_sym(SYM_NIL);
   stack_clear(&rm_state.S);
   *done = false;
   *es = EVAL_DISPATCH;
 }
 
 static inline void cont_error(eval_state *es, bool *done) {
-  rm_state.exp = enc_sym(symrepr_nil);
-  rm_state.prg = enc_sym(symrepr_nil);
-  rm_state.cont = enc_sym(symrepr_nil);
-  rm_state.env = enc_sym(symrepr_nil);
-  rm_state.argl = enc_sym(symrepr_nil);
-  rm_state.val = enc_sym(symrepr_eerror);
-  rm_state.fun = enc_sym(symrepr_nil);
+  rm_state.exp = enc_sym(SYM_NIL);
+  rm_state.prg = enc_sym(SYM_NIL);
+  rm_state.cont = enc_sym(SYM_NIL);
+  rm_state.env = enc_sym(SYM_NIL);
+  rm_state.argl = enc_sym(SYM_NIL);
+  rm_state.val = enc_sym(SYM_EERROR);
+  rm_state.fun = enc_sym(SYM_NIL);
   stack_clear(&rm_state.S);
   *done = true;
   *es = EVAL_DISPATCH;
@@ -634,10 +634,10 @@ VALUE ec_eval_program(VALUE prg) {
   rm_state.prg = cdr(prg);
   rm_state.exp = car(prg);
   rm_state.cont = enc_u(CONT_DONE);
-  rm_state.env = enc_sym(symrepr_nil);
-  rm_state.argl = enc_sym(symrepr_nil);
-  rm_state.val = enc_sym(symrepr_nil);
-  rm_state.fun = enc_sym(symrepr_nil);
+  rm_state.env = enc_sym(SYM_NIL);
+  rm_state.argl = enc_sym(SYM_NIL);
+  rm_state.val = enc_sym(SYM_NIL);
+  rm_state.fun = enc_sym(SYM_NIL);
   stack_allocate(&rm_state.S, 256, false);
   ec_eval();
 

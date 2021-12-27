@@ -141,7 +141,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
 	chprintf(chp,"%s", (char*)array + 8);
 	break;
       default:
-	return enc_sym(symrepr_nil);
+	return enc_sym(SYM_NIL);
 	break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
@@ -160,7 +160,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
       }
     }
   }
-  return enc_sym(symrepr_true);
+  return enc_sym(SYM_TRUE);
 }
 
 unsigned char memory_array[MEMORY_SIZE_8K];

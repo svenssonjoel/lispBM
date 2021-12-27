@@ -323,13 +323,13 @@ static inline VALUE enc_u(UINT x) {
 }
 
 static inline VALUE enc_I(INT x) {
-  VALUE i = cons((UINT)x, enc_sym(DEF_REPR_BOXED_I_TYPE));
+  VALUE i = cons((UINT)x, enc_sym(SYM_BOXED_I_TYPE));
   if (type_of(i) == VAL_TYPE_SYMBOL) return i;
   return set_ptr_type(i, PTR_TYPE_BOXED_I);
 }
 
 static inline VALUE enc_U(UINT x) {
-  VALUE u = cons(x, enc_sym(DEF_REPR_BOXED_U_TYPE));
+  VALUE u = cons(x, enc_sym(SYM_BOXED_U_TYPE));
   if (type_of(u) == VAL_TYPE_SYMBOL) return u;
   return set_ptr_type(u, PTR_TYPE_BOXED_U);
 }
@@ -337,7 +337,7 @@ static inline VALUE enc_U(UINT x) {
 static inline VALUE enc_F(FLOAT x) {
   UINT t;
   memcpy(&t, &x, sizeof(float));
-  VALUE f = cons(t, enc_sym(DEF_REPR_BOXED_F_TYPE));
+  VALUE f = cons(t, enc_sym(SYM_BOXED_F_TYPE));
   if (type_of(f) == VAL_TYPE_SYMBOL) return f;
   return set_ptr_type(f, PTR_TYPE_BOXED_F);
 }
@@ -412,17 +412,17 @@ static inline bool is_fundamental(VALUE symrep) {
 static inline bool is_closure(VALUE exp) {
   return ((type_of(exp) == PTR_TYPE_CONS) &&
 	  (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
-	  (dec_sym(car(exp)) == symrepr_closure));
+	  (dec_sym(car(exp)) == SYM_CLOSURE));
 }
 
 static inline bool is_match_binder(VALUE exp) {
   return ((type_of(exp) == PTR_TYPE_CONS) &&
 	  (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
-	  ((dec_sym(car(exp)) == symrepr_match_any) ||
-	   (dec_sym(car(exp)) == symrepr_match_i28) ||
-	   (dec_sym(car(exp)) == symrepr_match_u28) ||
-	   (dec_sym(car(exp)) == symrepr_match_float) ||
-	   (dec_sym(car(exp)) == symrepr_match_cons)));
+	  ((dec_sym(car(exp)) == SYM_MATCH_ANY) ||
+	   (dec_sym(car(exp)) == SYM_MATCH_I28) ||
+	   (dec_sym(car(exp)) == SYM_MATCH_U28) ||
+	   (dec_sym(car(exp)) == SYM_MATCH_FLOAT) ||
+	   (dec_sym(car(exp)) == SYM_MATCH_CONS)));
 }
 
 static inline bool is_symbol(VALUE exp) {
@@ -434,15 +434,15 @@ static inline bool is_symbol_indirection(VALUE exp) {
 }
 
 static inline bool is_symbol_nil(VALUE exp) {
-  return (is_symbol(exp) && dec_sym(exp) == symrepr_nil);
+  return (is_symbol(exp) && dec_sym(exp) == SYM_NIL);
 }
 
 static inline bool is_symbol_eval(VALUE exp) {
-  return (is_symbol(exp) && dec_sym(exp) == symrepr_eval);
+  return (is_symbol(exp) && dec_sym(exp) == SYM_EVAL);
 }
 
 static inline bool is_symbol_merror(VALUE exp) {
-  return (is_symbol(exp) && dec_sym(exp) == symrepr_merror);
+  return (is_symbol(exp) && dec_sym(exp) == SYM_MERROR);
 }
 
 #endif

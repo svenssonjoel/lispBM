@@ -163,9 +163,9 @@ void sleep_callback(uint32_t us) {
 
 
 VALUE ext_print(VALUE *args, UINT argn) {
-  if (argn < 1) return enc_sym(symrepr_nil);
+  if (argn < 1) return enc_sym(SYM_NIL);
 
-  if (!allow_print) return enc_sym(symrepr_true);
+  if (!allow_print) return enc_sym(SYM_TRUE);
 
   char output[1024];
   char error[1024];
@@ -182,7 +182,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
 	break;
       }
       default:
-	return enc_sym(symrepr_nil);
+	return enc_sym(SYM_NIL);
 	break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
@@ -198,8 +198,20 @@ VALUE ext_print(VALUE *args, UINT argn) {
     }
  
   }
-  return enc_sym(symrepr_true);
+  return enc_sym(SYM_TRUE);
 }
+
+VALUE ext_note(VALUE *args, UINT argn) {
+
+  if (argn != 2) {
+    return enc_sym(SYM_NIL);
+  }
+
+  printf("note %u %u\n", dec_u(args[0]),  dec_u(args[1]));
+
+  return enc_sym(SYM_TRUE);
+}
+
 
 /* load a file, caller is responsible for freeing the returned string */ 
 char * load_file(char *filename) {
@@ -292,6 +304,12 @@ int main(int argc, char **argv) {
   eval_cps_set_usleep_callback(sleep_callback);
 
   res = extensions_add("print", ext_print);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
+  res = extensions_add("note", ext_note);
   if (res)
     printf("Extension added.\n");
   else

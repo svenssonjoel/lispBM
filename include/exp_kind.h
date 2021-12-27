@@ -57,20 +57,20 @@ static inline exp_kind exp_kind_of(VALUE exp) {
     if (type_of(head) == VAL_TYPE_SYMBOL) {
       UINT sym_id = dec_sym(head);
       switch(sym_id){
-      case SYM_AND:         return EXP_AND;
-      case SYM_OR:          return EXP_OR;
-      case DEF_REPR_QUOTE:  return EXP_QUOTED;
-      case DEF_REPR_DEFINE: return EXP_DEFINE;
-      case DEF_REPR_PROGN:  return EXP_PROGN;
-      case DEF_REPR_LAMBDA: return EXP_LAMBDA;
-      case DEF_REPR_IF:     return EXP_IF;
-      case DEF_REPR_LET:    return EXP_LET;
+      case SYM_AND:    return EXP_AND;
+      case SYM_OR:     return EXP_OR;
+      case SYM_QUOTE:  return EXP_QUOTED;
+      case SYM_DEFINE: return EXP_DEFINE;
+      case SYM_PROGN:  return EXP_PROGN;
+      case SYM_LAMBDA: return EXP_LAMBDA;
+      case SYM_IF:     return EXP_IF;
+      case SYM_LET:    return EXP_LET;
       default: break;
       }
     } // end if symbol
 
     if (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
-	dec_sym(cdr(exp)) == symrepr_nil) {
+	dec_sym(cdr(exp)) == SYM_NIL) {
       return EXP_NO_ARGS;
     } else {
       return EXP_APPLICATION;

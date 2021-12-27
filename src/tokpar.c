@@ -118,14 +118,6 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"?", TOKMATCHANY, 1}
 };
 
-// Todo: Try to figure out how to do GC while reading
-/* static int gc() { */
-/*   gc_state_inc(); */
-/*   gc_mark_freelist(); */
-/*   gc_mark_phase(*env_get_global_ptr()); */
-/*   return gc_sweep_phase(); */
-/* } */
-
 bool more(tokenizer_char_stream str) {
   return str.more(str);
 }
@@ -514,11 +506,11 @@ VALUE parse_program(tokenizer_char_stream str) {
   VALUE tail;
 
   if (tok.type == TOKENIZER_ERROR) {
-    return enc_sym(symrepr_rerror);
+    return enc_sym(SYM_RERROR);
   }
 
   if (tok.type == TOKENIZER_END) {
-    return enc_sym(symrepr_nil);
+    return enc_sym(SYM_NIL);
   }
 
   head = parse_sexp(tok, str);
@@ -534,24 +526,24 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
 
   switch (tok.type) {
   case TOKENIZER_END:
-    return enc_sym(symrepr_rerror);
+    return enc_sym(SYM_RERROR);
   case TOKENIZER_ERROR:
-    return enc_sym(symrepr_rerror);
+    return enc_sym(SYM_RERROR);
   case TOKOPENPAR:
     t = next_token(str);
     return parse_sexp_list(t,str);
   case TOKDONTCARE:
-    return enc_sym(symrepr_dontcare);
+    return enc_sym(SYM_DONTCARE);
   case TOKMATCHANY: 
-    return enc_sym(symrepr_match_any);
+    return enc_sym(SYM_MATCH_ANY);
   case TOKMATCHI28:
-    return enc_sym(symrepr_match_i28);
+    return enc_sym(SYM_MATCH_I28);
   case TOKMATCHU28:
-    return enc_sym(symrepr_match_u28);
+    return enc_sym(SYM_MATCH_U28);
   case TOKMATCHFLOAT:
-    return enc_sym(symrepr_match_float);
+    return enc_sym(SYM_MATCH_FLOAT);
   case TOKMATCHCONS:
-    return enc_sym(symrepr_match_cons);
+    return enc_sym(SYM_MATCH_CONS);
   case TOKSYMBOL: {
     UINT symbol_id;
 
@@ -561,7 +553,7 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     else if (symrepr_addsym(sym_str, &symbol_id)) {
       v = enc_sym(symbol_id);
     } else {
-      v = enc_sym(symrepr_rerror);
+      v = enc_sym(SYM_RERROR);
     }
     return v;
   }
@@ -580,23 +572,23 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
   case TOKCHAR:
     return enc_char(tok.data.c);
   case TOKBOXEDINT:
-    return set_ptr_type(cons((VALUE)tok.data.i, enc_sym(DEF_REPR_BOXED_I_TYPE)), PTR_TYPE_BOXED_I);
+    return set_ptr_type(cons((VALUE)tok.data.i, enc_sym(SYM_BOXED_I_TYPE)), PTR_TYPE_BOXED_I);
   case TOKBOXEDUINT:
-    return set_ptr_type(cons(tok.data.u, enc_sym(DEF_REPR_BOXED_U_TYPE)), PTR_TYPE_BOXED_U);
+    return set_ptr_type(cons(tok.data.u, enc_sym(SYM_BOXED_U_TYPE)), PTR_TYPE_BOXED_U);
   case TOKBOXEDFLOAT:
-    return set_ptr_type(cons(tok.data.u, enc_sym(DEF_REPR_BOXED_F_TYPE)), PTR_TYPE_BOXED_F);
+    return set_ptr_type(cons(tok.data.u, enc_sym(SYM_BOXED_F_TYPE)), PTR_TYPE_BOXED_F);
   case TOKQUOTE: {
     t = next_token(str);
     VALUE quoted = parse_sexp(t, str);
     if (type_of(quoted) == VAL_TYPE_SYMBOL &&
-	dec_sym(quoted) == symrepr_rerror) return quoted;
-    return cons(enc_sym(symrepr_quote), cons (quoted, enc_sym(symrepr_nil)));
+	dec_sym(quoted) == SYM_RERROR) return quoted;
+    return cons(enc_sym(SYM_QUOTE), cons (quoted, enc_sym(SYM_NIL)));
   }
   case TOKBACKQUOTE: {
     t = next_token(str);
     VALUE quoted = parse_sexp(t, str);
     if (type_of(quoted) == VAL_TYPE_SYMBOL &&
-	dec_sym(quoted) == symrepr_rerror) return quoted;
+	dec_sym(quoted) == SYM_RERROR) return quoted;
     VALUE expanded = qq_expand(quoted);
     if (type_of(expanded) == VAL_TYPE_SYMBOL &&
 	symrepr_is_error(dec_sym(expanded))) return expanded;
@@ -606,18 +598,18 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     t = next_token(str);
     VALUE splice = parse_sexp(t, str);
     if (type_of(splice) == VAL_TYPE_SYMBOL &&
-	dec_sym(splice) == symrepr_rerror) return splice;
-    return cons(enc_sym(symrepr_commaat), cons (splice, enc_sym(symrepr_nil)));
+	dec_sym(splice) == SYM_RERROR) return splice;
+    return cons(enc_sym(SYM_COMMAAT), cons (splice, enc_sym(SYM_NIL)));
   }
   case TOKCOMMA: {
     t = next_token(str);
     VALUE unquoted = parse_sexp(t, str);
     if (type_of(unquoted) == VAL_TYPE_SYMBOL &&
-	dec_sym(unquoted) == symrepr_rerror) return unquoted;
-    return cons(enc_sym(symrepr_comma), cons (unquoted, enc_sym(symrepr_nil))); 
+	dec_sym(unquoted) == SYM_RERROR) return unquoted;
+    return cons(enc_sym(SYM_COMMA), cons (unquoted, enc_sym(SYM_NIL))); 
   }
   }
-  return enc_sym(symrepr_rerror);
+  return enc_sym(SYM_RERROR);
 }
 
 VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
@@ -628,11 +620,11 @@ VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
 
   switch (tok.type) {
   case TOKENIZER_END:
-    return enc_sym(symrepr_rerror);
+    return enc_sym(SYM_RERROR);
   case TOKENIZER_ERROR:
-    return enc_sym(symrepr_rerror);
+    return enc_sym(SYM_RERROR);
   case TOKCLOSEPAR:
-    return enc_sym(symrepr_nil);
+    return enc_sym(SYM_NIL);
   default:
     head = parse_sexp(tok, str);
     t = next_token(str);
@@ -642,19 +634,19 @@ VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
       tail = parse_sexp(t, str);
       t = next_token(str);
       if (t.type != TOKCLOSEPAR) {
-	return enc_sym(symrepr_rerror);
+	return enc_sym(SYM_RERROR);
       }
 
     } else {
       tail = parse_sexp_list(t, str);
     }
     if ((type_of(head) == VAL_TYPE_SYMBOL &&
-	 dec_sym(head) == symrepr_rerror ) ||
+	 dec_sym(head) == SYM_RERROR ) ||
 	(type_of(tail) == VAL_TYPE_SYMBOL &&
-	 dec_sym(tail) == symrepr_rerror )) return enc_sym(symrepr_rerror);
+	 dec_sym(tail) == SYM_RERROR )) return enc_sym(SYM_RERROR);
     return cons(head, tail);
   }
-  return enc_sym(symrepr_rerror);
+  return enc_sym(SYM_RERROR);
 }
 
 

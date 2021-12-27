@@ -110,8 +110,8 @@ static void heap_init_state(cons_t *addr, unsigned int num_cells, bool malloced)
 
 int heap_init_addr(cons_t *addr, unsigned int num_cells) {
 
-  NIL = enc_sym(symrepr_nil);
-  RECOVERED = enc_sym(DEF_REPR_RECOVERED);
+  NIL = enc_sym(SYM_NIL);
+  RECOVERED = enc_sym(SYM_RECOVERED);
 
   if (((uintptr_t)addr % 8) != 0) return 0;
   
@@ -122,8 +122,8 @@ int heap_init_addr(cons_t *addr, unsigned int num_cells) {
 
 int heap_init(unsigned int num_cells) {
 
-  NIL = enc_sym(symrepr_nil);
-  RECOVERED = enc_sym(DEF_REPR_RECOVERED);
+  NIL = enc_sym(SYM_NIL);
+  RECOVERED = enc_sym(SYM_RECOVERED);
 
   cons_t *heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
 
@@ -171,10 +171,10 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
     if ((type_of(heap_state.freelist) == VAL_TYPE_SYMBOL) &&
 	(heap_state.freelist == NIL)) {
       // all is as it should be (but no free cells)
-      return enc_sym(symrepr_merror);
+      return enc_sym(SYM_MERROR);
     } else {
       // something is most likely very wrong
-      return enc_sym(symrepr_fatal_error);
+      return enc_sym(SYM_FATAL_ERROR);
     }
   }
 
@@ -182,7 +182,7 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
   res = heap_state.freelist;
 
   if (type_of(res) != PTR_TYPE_CONS) {
-    return enc_sym(symrepr_fatal_error);
+    return enc_sym(SYM_FATAL_ERROR);
   }
 
   heap_state.freelist = cdr(heap_state.freelist);
@@ -340,7 +340,7 @@ int gc_sweep_phase(void) {
       // Check if this cell is a pointer to an array
       // and free it.
       if (type_of(heap[i].cdr) == VAL_TYPE_SYMBOL &&
-	  dec_sym(heap[i].cdr) == DEF_REPR_ARRAY_TYPE) {
+	  dec_sym(heap[i].cdr) == SYM_ARRAY_TYPE) {
 	array_header_t *arr = (array_header_t*)heap[i].car;
 	memory_free((uint32_t *)arr);
 	heap_state.gc_recovered_arrays++;
@@ -435,7 +435,7 @@ VALUE car(VALUE c){
     cons_t *cell = ref_cell(c);
     return read_car(cell);
   }
-  return enc_sym(symrepr_terror);
+  return enc_sym(SYM_TERROR);
 }
 
 VALUE cdr(VALUE c){
@@ -449,7 +449,7 @@ VALUE cdr(VALUE c){
     cons_t *cell = ref_cell(c);
     return read_cdr(cell);
   }
-  return enc_sym(symrepr_terror);
+  return enc_sym(SYM_TERROR);
 }
 
 bool set_car(VALUE c, VALUE v) { // Todo: Where are these used?
@@ -498,7 +498,7 @@ VALUE reverse(VALUE list) {
 
     new_list = cons(car(curr), new_list);
     if (type_of(new_list) == VAL_TYPE_SYMBOL) {
-      return enc_sym(symrepr_merror);
+      return enc_sym(SYM_MERROR);
     }
     curr = cdr(curr);
   }
@@ -514,7 +514,7 @@ VALUE copy(VALUE list) {
   while (type_of(curr) == PTR_TYPE_CONS) {
     VALUE c = cons (car(curr), res);
     if (type_of(c) == VAL_TYPE_SYMBOL) {
-      return enc_sym(symrepr_merror);
+      return enc_sym(SYM_MERROR);
     }
     res = c;
     curr = cdr(curr);
@@ -556,7 +556,7 @@ int heap_allocate_array(VALUE *res, unsigned int size, TYPE type){
   array->size = size;
 
   set_car(cell, (UINT)array);
-  set_cdr(cell, enc_sym(DEF_REPR_ARRAY_TYPE));
+  set_cdr(cell, enc_sym(SYM_ARRAY_TYPE));
 
   cell = cell | PTR_TYPE_ARRAY;
 

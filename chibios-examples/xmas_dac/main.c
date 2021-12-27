@@ -231,7 +231,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
 	chprintf(chp,"%s", (char*)array + 8);
 	break;
       default:
-	return enc_sym(symrepr_nil);
+	return enc_sym(SYM_NIL);
 	break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
@@ -250,13 +250,13 @@ VALUE ext_print(VALUE *args, UINT argn) {
       }
     }
   }
-  return enc_sym(symrepr_true);
+  return enc_sym(SYM_TRUE);
 }
 
 VALUE ext_note(VALUE *args, UINT argn) {
 
   if (argn != 2) {
-    return enc_sym(symrepr_nil);
+    return enc_sym(SYM_NIL);
   }
 
   dac_msg_t msg;
@@ -267,7 +267,7 @@ VALUE ext_note(VALUE *args, UINT argn) {
   chSysLock();
   send_to_dac(msg);
   chSysUnlock();
-  return enc_sym(symrepr_true);
+  return enc_sym(SYM_TRUE);
 }
 
 

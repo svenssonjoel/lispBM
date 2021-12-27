@@ -24,64 +24,6 @@
 #include "symrepr.h"
 #include "memory.h"
 
-/*************************************/
-/* Constants for be built in symbols */
-
-const UINT symrepr_nil         =  DEF_REPR_NIL; 
-const UINT symrepr_quote       =  DEF_REPR_QUOTE; 
-const UINT symrepr_true        =  DEF_REPR_TRUE; 
-const UINT symrepr_if          =  DEF_REPR_IF; 
-const UINT symrepr_lambda      =  DEF_REPR_LAMBDA; 
-const UINT symrepr_closure     =  DEF_REPR_CLOSURE; 
-const UINT symrepr_let         =  DEF_REPR_LET; 
-const UINT symrepr_define      =  DEF_REPR_DEFINE; 
-const UINT symrepr_progn       =  DEF_REPR_PROGN; 
-const UINT symrepr_comma       =  DEF_REPR_COMMA; 
-const UINT symrepr_commaat     =  DEF_REPR_COMMAAT;
-const UINT symrepr_dontcare    =  DEF_REPR_DONTCARE;
-const UINT symrepr_send        =  DEF_REPR_SEND;
-const UINT symrepr_receive     =  DEF_REPR_RECEIVE;
-const UINT symrepr_match       =  DEF_REPR_MATCH;
-const UINT symrepr_nomatch     =  DEF_REPR_NO_MATCH;
-const UINT symrepr_match_any   =  DEF_REPR_MATCH_ANY;
-const UINT symrepr_match_i28   =  DEF_REPR_MATCH_I28;
-const UINT symrepr_match_u28   =  DEF_REPR_MATCH_U28;
-const UINT symrepr_match_float =  DEF_REPR_MATCH_FLOAT;
-const UINT symrepr_match_cons  =  DEF_REPR_MATCH_CONS;
-
-const UINT symrepr_cons        =  SYM_CONS; 
-const UINT symrepr_list        =  SYM_LIST; 
-const UINT symrepr_append      =  SYM_APPEND; 
-const UINT symrepr_and         =  SYM_AND; 
-const UINT symrepr_or          =  SYM_OR; 
-const UINT symrepr_not         =  SYM_NOT; 
-
-const UINT symrepr_eval        =  SYM_EVAL; 
-const UINT symrepr_yield       =  SYM_YIELD; 
-const UINT symrepr_wait        =  SYM_WAIT; 
-const UINT symrepr_spawn       =  SYM_SPAWN; 
-
-const UINT symrepr_rerror      =  DEF_REPR_RERROR; 
-const UINT symrepr_terror      =  DEF_REPR_TERROR; 
-const UINT symrepr_eerror      =  DEF_REPR_EERROR; 
-const UINT symrepr_merror      =  DEF_REPR_MERROR; 
-const UINT symrepr_divzero     =  DEF_REPR_DIVZERO; 
-const UINT symrepr_fatal_error =  DEF_REPR_FATAL_ERROR; 
-
-const UINT symrepr_nonsense    =  DEF_REPR_NONSENSE; 
-const UINT symrepr_not_found   =  DEF_REPR_NOT_FOUND; 
-
-const UINT symrepr_type_list   =  DEF_REPR_TYPE_LIST; 
-const UINT symrepr_type_i28    =  DEF_REPR_TYPE_I28;        
-const UINT symrepr_type_u28    =  DEF_REPR_TYPE_U28;        
-const UINT symrepr_type_float  =  DEF_REPR_TYPE_FLOAT;      
-const UINT symrepr_type_i32    =  DEF_REPR_TYPE_I32;        
-const UINT symrepr_type_u32    =  DEF_REPR_TYPE_U32;        
-const UINT symrepr_type_array  =  DEF_REPR_TYPE_ARRAY;      
-const UINT symrepr_type_symbol =  DEF_REPR_TYPE_SYMBOL; 
-const UINT symrepr_type_char   =  DEF_REPR_TYPE_CHAR; 
-const UINT symrepr_type_ref    =  DEF_REPR_TYPE_REF; 
-
 #define NUM_SPECIAL_SYMBOLS 79
 
 #define NAME   0
@@ -94,57 +36,57 @@ typedef struct {
 } special_sym;
 
 special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
-  {"nil"        , DEF_REPR_NIL},
-  {"quote"      , DEF_REPR_QUOTE},
-  {"t"          , DEF_REPR_TRUE},
-  {"if"         , DEF_REPR_IF},
-  {"lambda"     , DEF_REPR_LAMBDA},
-  {"closure"    , DEF_REPR_CLOSURE},
-  {"let"        , DEF_REPR_LET},
-  {"define"     , DEF_REPR_DEFINE},
-  {"progn"      , DEF_REPR_PROGN},
-  //{"bquote"     , DEF_REPR_BACKQUOTE},
-  {"comma"      , DEF_REPR_COMMA},
-  {"splice"     , DEF_REPR_COMMAAT},
-  {"match"      , DEF_REPR_MATCH},
-  {"_"          , DEF_REPR_DONTCARE},
-  {"send"       , DEF_REPR_SEND},
-  {"recv"       , DEF_REPR_RECEIVE},
-  {"?"          , DEF_REPR_MATCH_ANY},
-  {"?i28"       , DEF_REPR_MATCH_I28},
-  {"?u28"       , DEF_REPR_MATCH_U28},
-  {"?float"     , DEF_REPR_MATCH_FLOAT},
-  {"?cons"      , DEF_REPR_MATCH_CONS},
+  {"nil"        , SYM_NIL},
+  {"quote"      , SYM_QUOTE},
+  {"t"          , SYM_TRUE},
+  {"if"         , SYM_IF},
+  {"lambda"     , SYM_LAMBDA},
+  {"closure"    , SYM_CLOSURE},
+  {"let"        , SYM_LET},
+  {"define"     , SYM_DEFINE},
+  {"progn"      , SYM_PROGN},
+  //{"bquote"     , SYM_BACKQUOTE},
+  {"comma"      , SYM_COMMA},
+  {"splice"     , SYM_COMMAAT},
+  {"match"      , SYM_MATCH},
+  {"_"          , SYM_DONTCARE},
+  {"send"       , SYM_SEND},
+  {"recv"       , SYM_RECEIVE},
+  {"?"          , SYM_MATCH_ANY},
+  {"?i28"       , SYM_MATCH_I28},
+  {"?u28"       , SYM_MATCH_U28},
+  {"?float"     , SYM_MATCH_FLOAT},
+  {"?cons"      , SYM_MATCH_CONS},
   
   // Special symbols with unparseable names
-  {"no_match"           , DEF_REPR_NO_MATCH},
-  {"read_error"         , DEF_REPR_RERROR},
-  {"type_error"         , DEF_REPR_TERROR},
-  {"eval_error"         , DEF_REPR_EERROR},
-  {"out_of_memory"      , DEF_REPR_MERROR},
-  {"fatal_error"        , DEF_REPR_FATAL_ERROR},
-  {"division_by_zero"   , DEF_REPR_DIVZERO},
-  {"sym_array"          , DEF_REPR_ARRAY_TYPE},
-  {"sym_boxed_i"        , DEF_REPR_BOXED_I_TYPE},
-  {"sym_boxed_u"        , DEF_REPR_BOXED_U_TYPE},
-  {"sym_boxed_f"        , DEF_REPR_BOXED_F_TYPE},
-  {"sym_ref"            , DEF_REPR_REF_TYPE},
-  {"sym_recovered"      , DEF_REPR_RECOVERED},
-  {"sym_bytecode"       , DEF_REPR_BYTECODE_TYPE},
-  {"sym_nonsense"       , DEF_REPR_NONSENSE},
-  {"variable_not_bound" , DEF_REPR_NOT_FOUND},
+  {"no_match"           , SYM_NO_MATCH},
+  {"read_error"         , SYM_RERROR},
+  {"type_error"         , SYM_TERROR},
+  {"eval_error"         , SYM_EERROR},
+  {"out_of_memory"      , SYM_MERROR},
+  {"fatal_error"        , SYM_FATAL_ERROR},
+  {"division_by_zero"   , SYM_DIVZERO},
+  {"sym_array"          , SYM_ARRAY_TYPE},
+  {"sym_boxed_i"        , SYM_BOXED_I_TYPE},
+  {"sym_boxed_u"        , SYM_BOXED_U_TYPE},
+  {"sym_boxed_f"        , SYM_BOXED_F_TYPE},
+  {"sym_ref"            , SYM_REF_TYPE},
+  {"sym_recovered"      , SYM_RECOVERED},
+  {"sym_bytecode"       , SYM_BYTECODE_TYPE},
+  {"sym_nonsense"       , SYM_NONSENSE},
+  {"variable_not_bound" , SYM_NOT_FOUND},
   
   // special symbols with parseable names
-  {"type-list"        , DEF_REPR_TYPE_LIST},
-  {"type-i28"         , DEF_REPR_TYPE_I28},
-  {"type-u28"         , DEF_REPR_TYPE_U28},
-  {"type-float"       , DEF_REPR_TYPE_FLOAT},
-  {"type-i32"         , DEF_REPR_TYPE_I32},
-  {"type-u32"         , DEF_REPR_TYPE_U32},
-  {"type-array"       , DEF_REPR_TYPE_ARRAY},
-  {"type-symbol"      , DEF_REPR_TYPE_SYMBOL},
-  {"type-char"        , DEF_REPR_TYPE_CHAR},
-  {"type-ref"         , DEF_REPR_TYPE_REF},
+  {"type-list"        , SYM_TYPE_LIST},
+  {"type-i28"         , SYM_TYPE_I28},
+  {"type-u28"         , SYM_TYPE_U28},
+  {"type-float"       , SYM_TYPE_FLOAT},
+  {"type-i32"         , SYM_TYPE_I32},
+  {"type-u32"         , SYM_TYPE_U32},
+  {"type-array"       , SYM_TYPE_ARRAY},
+  {"type-symbol"      , SYM_TYPE_SYMBOL},
+  {"type-char"        , SYM_TYPE_CHAR},
+  {"type-ref"         , SYM_TYPE_REF},
 
   // Fundamental operations
   {"+"              , SYM_ADD},
