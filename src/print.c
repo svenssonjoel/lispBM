@@ -301,6 +301,17 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         offset += n;
         break;
 
+      case VAL_TYPE_U:
+        r = snprintf(buf + offset, len - offset, "%"PRI_UINT"", dec_u(curr));
+        if ( r > 0) {
+          n = (unsigned int) r;
+        } else {
+          snprintf(error, len_error, "Error: print failed\n");
+          return -1;
+        }
+        offset += n;
+        break;
+
       case VAL_TYPE_CHAR:
         r = snprintf(buf + offset, len - offset, "\\#%c", dec_char(curr));
         if ( r > 0) {
