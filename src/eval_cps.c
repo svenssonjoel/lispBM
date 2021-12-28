@@ -85,6 +85,8 @@ typedef struct {
 
 
 /* Callbacks and task queue */
+/* TODO: There should be mutex controlling access to these queues 
+   if used in a scenario where another thread enqueues work */
 static eval_context_queue_t blocked = {NULL, NULL};
 static eval_context_queue_t queue   = {NULL, NULL};
 
@@ -592,6 +594,7 @@ static int gc(VALUE env,
     curr = curr->next;
   }
 
+
   curr = blocked;
   while (curr) {
     gc_mark_phase(curr->curr_env);
@@ -603,13 +606,14 @@ static int gc(VALUE env,
     curr = curr->next;
   }
 
-  gc_mark_phase(running->curr_env);
-  gc_mark_phase(running->curr_exp);
-  gc_mark_phase(running->program);
-  gc_mark_phase(running->r);
-  gc_mark_phase(running->mailbox);
-  gc_mark_aux(running->K.data, running->K.sp);
-
+  if (running) {
+    gc_mark_phase(running->curr_env);
+    gc_mark_phase(running->curr_exp);
+    gc_mark_phase(running->program);
+    gc_mark_phase(running->r);
+    gc_mark_phase(running->mailbox);
+    gc_mark_aux(running->K.data, running->K.sp);
+  }
 
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
@@ -1353,7 +1357,7 @@ static inline void cont_match(eval_context_t *ctx, bool *perform_gc) {
 /*********************************************************/
 /* Evaluator step function                               */
 
-void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
+static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
   eval_context_t *ctx = ctx_running;
 
 #ifdef VISUALIZE_HEAP
@@ -1364,6 +1368,15 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
     if (*last_iteration_gc) {
       ERROR
       error_ctx(enc_sym(SYM_MERROR));
+      /* Perform GC now */
+      gc(*env_get_global_ptr(),
+         queue.first,
+         ctx_done,
+         ctx_running,
+         blocked.first);
+
+      *perform_gc = false;
+      *last_iteration_gc = false;
       return;
     }
     *last_iteration_gc = true;
