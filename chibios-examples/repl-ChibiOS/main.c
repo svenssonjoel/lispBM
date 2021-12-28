@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -100,7 +100,7 @@ void done_callback(eval_context_t *ctx) {
 
   CID cid = ctx->id;
   VALUE t = ctx->r;
-  
+
   int print_ret = print_value(output, 1024, error, 1024, t);
 
   if (print_ret >= 0) {
@@ -130,7 +130,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
 
   char output[1024];
   char error[1024];
-  
+
   for (UINT i = 0; i < argn; i ++) {
     VALUE t = args[i];
 
@@ -138,25 +138,25 @@ VALUE ext_print(VALUE *args, UINT argn) {
       array_header_t *array = (array_header_t *)car(t);
       switch (array->elt_type){
       case VAL_TYPE_CHAR:
-	chprintf(chp,"%s", (char*)array + 8);
-	break;
+        chprintf(chp,"%s", (char*)array + 8);
+        break;
       default:
-	return enc_sym(SYM_NIL);
-	break;
+        return enc_sym(SYM_NIL);
+        break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
       if (dec_char(t) =='\n') {
-	chprintf(chp, "\r\n");
+        chprintf(chp, "\r\n");
       } else {
-	chprintf(chp,"%c", dec_char(t));
+        chprintf(chp,"%c", dec_char(t));
       }
     }  else {
       int print_ret = print_value(output, 1024, error, 1024, t);
-      
+
       if (print_ret >= 0) {
-	chprintf(chp,"%s", output);
+        chprintf(chp,"%s", output);
       } else {
-	chprintf(chp,"%s", error);
+        chprintf(chp,"%s", error);
       }
     }
   }
@@ -186,43 +186,43 @@ int main(void) {
   usbDisconnectBus(serusbcfg.usbp);
   chThdSleepMilliseconds(1500);
   usbStart(serusbcfg.usbp, &usbcfg);
-  usbConnectBus(serusbcfg.usbp);	
+  usbConnectBus(serusbcfg.usbp);
 
   chp = (BaseSequentialStream*)&SDU1;
-  
+
   size_t len = 1024;
- 
+
   int res = 0;
-  
+
   heap_state_t heap_state;
 
   int heap_size = 2048;
 
-  chThdSleepMilliseconds(2000);  
+  chThdSleepMilliseconds(2000);
 
   res = memory_init(memory_array, MEMORY_SIZE_8K,
-		    bitmap_array, MEMORY_BITMAP_SIZE_8K);
+                    bitmap_array, MEMORY_BITMAP_SIZE_8K);
   if (res)
     chprintf(chp,"Memory initialized. Memory size: %u Words. Free: %u Words.\r\n", memory_num_words(), memory_num_free());
   else {
     chprintf(chp,"Error initializing memory!\r\n");
-    return;
+    return 0;
   }
-  
+
    res = symrepr_init();
   if (res)
     chprintf(chp,"Symrepr initialized.\r\n");
   else {
     chprintf(chp,"Error initializing symrepr!\r\n");
-    return;
+    return 0;
   }
-  
+
   res = heap_init(heap_size);
   if (res)
     chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
   else {
     chprintf(chp,"Error initializing heap!\r\n");
-    return;
+    return 0;
   }
 
   res = eval_cps_init();
@@ -230,13 +230,13 @@ int main(void) {
     chprintf(chp,"Evaluator initialized.\r\n");
   else {
     chprintf(chp,"Error initializing evaluator.\r\n");
-    return;
+    return 0;
   }
 
   eval_cps_set_ctx_done_callback(done_callback);
   eval_cps_set_timestamp_us_callback(timestamp_callback);
   eval_cps_set_usleep_callback(sleep_callback);
-  
+
   res = extensions_add("print", ext_print);
   if (res)
     chprintf(chp,"Extension added.\r\n");
@@ -244,27 +244,19 @@ int main(void) {
     chprintf(chp,"Error adding extension.\r\n");
 
   thread_t *t = chThdCreateFromHeap(NULL, EVAL_WA_SIZE,
-  				    "eval", NORMALPRIO+1,
-  				    eval, (void *)NULL);
+                                    "eval", NORMALPRIO+1,
+                                    eval, (void *)NULL);
 
   if (!t) {
     chprintf(chp,"Error starting evaluator thread.\r\n");
-    return;
+    return 0;
   }
-  
+
   VALUE prelude = prelude_load();
   eval_cps_program(prelude);
 
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
 
-  /* while (1) { */
-  /*   uint32_t time = timestamp_callback(); */
-  /*   chprintf(chp,"time %u \r\n", time); */
-  /*   chThdSleepMilliseconds(500); */
-  /* } */
-  
-
-  
   while (1) {
     chprintf(chp,"# ");
     memset(str,0,len);
@@ -277,9 +269,9 @@ int main(void) {
       chprintf(chp,"Used cons cells: %lu \r\n", heap_size - heap_num_free());
       res = print_value(outbuf,2048, error, 1024, *env_get_global_ptr());
       if (res >= 0) {
-	chprintf(chp,"ENV: %s \r\n", outbuf);
+        chprintf(chp,"ENV: %s \r\n", outbuf);
       } else {
-	chprintf(chp,"%s\r\n",error);
+        chprintf(chp,"%s\r\n",error);
       }
       heap_get_state(&heap_state);
       chprintf(chp,"GC counter: %lu\r\n", heap_state.gc_num);
@@ -293,52 +285,50 @@ int main(void) {
     } else if (strncmp(str, ":read", 5) == 0) {
       memset(file_buffer, 0, 2048);
       bool done = false;
-      int c; 
-      
+      int c;
+
       for (int i = 0; i < 2048; i ++) {
-	c = streamGet(chp); 
-	
-	if (c == 4 || c == 26 || c == STM_RESET) {
-	  done = true;
-	  break;
-	}
-	file_buffer[i] = (char)c;
+        c = streamGet(chp);
+
+        if (c == 4 || c == 26 || c == STM_RESET) {
+          done = true;
+          break;
+        }
+        file_buffer[i] = (char)c;
       }
 
-      
-      //chThdSleepMilliseconds(100);
       chprintf(chp, "%s\r\n", file_buffer);
       chprintf(chp, "received %d bytes\r\n", strlen(file_buffer));
-      
+
       if (done) {
-	VALUE t;
-	t = tokpar_parse(file_buffer);
-	CID cid = eval_cps_program(t);
-	if (cid == 0) {
-	  chprintf(chp,"Error creating ctx\r\n");
-	} else {
-	  chprintf(chp,"started ctx: %u\r\n", cid);
-	}
+        VALUE t;
+        t = tokpar_parse(file_buffer);
+        CID cid = eval_cps_program(t);
+        if (cid == 0) {
+          chprintf(chp,"Error creating ctx\r\n");
+        } else {
+          chprintf(chp,"started ctx: %u\r\n", cid);
+        }
       }
     } else {
 
       if (strlen(str) == 0) {
-	continue;
+        continue;
       }
-      
+
       VALUE t;
       t = tokpar_parse(str);
 
       CID cid = eval_cps_program(t);
       if (cid == 0) {
-	chprintf(chp,"Error creating ctx\r\n");
+        chprintf(chp,"Error creating ctx\r\n");
       } else {
-	chprintf(chp,"started ctx: %u\r\n", cid);
+        chprintf(chp,"started ctx: %u\r\n", cid);
       }
     }
   }
 
   symrepr_del();
   heap_del();
-
 }
+
