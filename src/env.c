@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -47,8 +47,8 @@ VALUE env_copy_shallow(VALUE env) {
 
       // Check for "out of memory"
       if (type_of(res) == VAL_TYPE_SYMBOL &&
-	  dec_sym(res) == SYM_MERROR) {
-	return res;
+          dec_sym(res) == SYM_MERROR) {
+        return res;
       }
     }
     curr = cdr(curr);
@@ -117,8 +117,8 @@ VALUE env_modify_binding(VALUE env, VALUE key, VALUE val) {
 
 
 VALUE env_build_params_args(VALUE params,
-			    VALUE args,
-			    VALUE env0) {
+                            VALUE args,
+                            VALUE env0) {
   VALUE curr_param = params;
   VALUE curr_arg = args;
 
@@ -133,13 +133,13 @@ VALUE env_build_params_args(VALUE params,
 
     VALUE entry = cons(car(curr_param), car(curr_arg));
     if (type_of(entry) == VAL_TYPE_SYMBOL &&
-	dec_sym(entry) == SYM_MERROR)
+        dec_sym(entry) == SYM_MERROR)
       return enc_sym(SYM_MERROR);
 
     env = cons(entry,env);
 
     if (type_of(env) == VAL_TYPE_SYMBOL &&
-	dec_sym(env) == SYM_MERROR)
+        dec_sym(env) == SYM_MERROR)
       return enc_sym(SYM_MERROR);
 
     curr_param = cdr(curr_param);

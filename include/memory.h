@@ -1,5 +1,5 @@
 /*
-    Copyright 2020 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2020 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@
 #define MEMORY_BITMAP_SIZE_1M  MEMORY_BITMAP_SIZE(16384)
 
 extern int memory_init(unsigned char *data, uint32_t data_size,
-		       unsigned char *bitmap, uint32_t bitmap_size);
+                       unsigned char *bitmap, uint32_t bitmap_size);
 extern uint32_t memory_num_words(void);
 extern uint32_t memory_num_free(void);
 extern uint32_t *memory_allocate(uint32_t num_words);

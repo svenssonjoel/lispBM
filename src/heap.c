@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2020 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -169,7 +169,7 @@ VALUE heap_allocate_cell(TYPE ptr_type) {
   if (!is_ptr(heap_state.freelist)) {
     // Free list not a ptr (should be Symbol NIL)
     if ((type_of(heap_state.freelist) == VAL_TYPE_SYMBOL) &&
-	(heap_state.freelist == NIL)) {
+        (heap_state.freelist == NIL)) {
       // all is as it should be (but no free cells)
       return enc_sym(SYM_MERROR);
     } else {
@@ -259,9 +259,9 @@ int gc_mark_phase(VALUE env) {
     VALUE t_ptr = type_of(curr);
 
     if (t_ptr == PTR_TYPE_BOXED_I ||
-	t_ptr == PTR_TYPE_BOXED_U ||
-	t_ptr == PTR_TYPE_BOXED_F ||
-	t_ptr == PTR_TYPE_ARRAY) {
+        t_ptr == PTR_TYPE_BOXED_U ||
+        t_ptr == PTR_TYPE_BOXED_F ||
+        t_ptr == PTR_TYPE_ARRAY) {
       continue;
     }
     res &= push_u32(&s, cdr(curr));
@@ -283,7 +283,7 @@ int gc_mark_freelist() {
 
   if (!is_ptr(fl)) {
     if (val_type(fl) == VAL_TYPE_SYMBOL &&
-	fl == NIL){
+        fl == NIL){
       return 1; // Nothing to mark here
     } else {
       return 0;
@@ -311,15 +311,15 @@ int gc_mark_aux(UINT *aux_data, unsigned int aux_size) {
       UINT pt_v = dec_ptr(aux_data[i]);
 
       if ( (pt_t == PTR_TYPE_CONS ||
-	    pt_t == PTR_TYPE_BOXED_I ||
-	    pt_t == PTR_TYPE_BOXED_U ||
-	    pt_t == PTR_TYPE_BOXED_F ||
-	    pt_t == PTR_TYPE_ARRAY ||
-	    pt_t == PTR_TYPE_REF ||
-	    pt_t == PTR_TYPE_STREAM) &&
-	   pt_v < heap_state.heap_size) {
+            pt_t == PTR_TYPE_BOXED_I ||
+            pt_t == PTR_TYPE_BOXED_U ||
+            pt_t == PTR_TYPE_BOXED_F ||
+            pt_t == PTR_TYPE_ARRAY ||
+            pt_t == PTR_TYPE_REF ||
+            pt_t == PTR_TYPE_STREAM) &&
+           pt_v < heap_state.heap_size) {
 
-	gc_mark_phase(aux_data[i]);
+        gc_mark_phase(aux_data[i]);
       }
     }
   }
@@ -340,10 +340,10 @@ int gc_sweep_phase(void) {
       // Check if this cell is a pointer to an array
       // and free it.
       if (type_of(heap[i].cdr) == VAL_TYPE_SYMBOL &&
-	  dec_sym(heap[i].cdr) == SYM_ARRAY_TYPE) {
-	array_header_t *arr = (array_header_t*)heap[i].car;
-	memory_free((uint32_t *)arr);
-	heap_state.gc_recovered_arrays++;
+          dec_sym(heap[i].cdr) == SYM_ARRAY_TYPE) {
+        array_header_t *arr = (array_header_t*)heap[i].car;
+        memory_free((uint32_t *)arr);
+        heap_state.gc_recovered_arrays++;
       }
 
       // create pointer to use as new freelist

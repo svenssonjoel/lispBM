@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2019 2021 Joel Svensson   svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -403,24 +403,24 @@ static bool array_equality(VALUE a, VALUE b) {
     array_header_t *b_ = (array_header_t*)car(b);
 
     if (a_->elt_type == b_->elt_type &&
-	a_->size == b_->size) {
+        a_->size == b_->size) {
       switch(a_->elt_type) {
       case VAL_TYPE_U:
       case PTR_TYPE_BOXED_U:
-	if (memcmp((char*)a_+8, (char*)b_+8, a_->size * sizeof(UINT)) == 0) return true;
-	break;
+        if (memcmp((char*)a_+8, (char*)b_+8, a_->size * sizeof(UINT)) == 0) return true;
+        break;
       case VAL_TYPE_I:
       case PTR_TYPE_BOXED_I:
-	if (memcmp((char*)a_+8, (char*)b_+8, a_->size * sizeof(INT)) == 0) return true;
-	break;
+        if (memcmp((char*)a_+8, (char*)b_+8, a_->size * sizeof(INT)) == 0) return true;
+        break;
       case VAL_TYPE_CHAR:
-	if (memcmp((char*)a_+8, (char*)b_+8, a_->size) == 0) return true;
-	break;
+        if (memcmp((char*)a_+8, (char*)b_+8, a_->size) == 0) return true;
+        break;
       case PTR_TYPE_BOXED_F:
-	if (memcmp((char*)a_+8, (char*)b_+8, a_->size * sizeof(FLOAT)) == 0) return true;
-	break;
+        if (memcmp((char*)a_+8, (char*)b_+8, a_->size * sizeof(FLOAT)) == 0) return true;
+        break;
       default:
-	break;
+        break;
       }
     }
   }
@@ -433,16 +433,16 @@ static bool struct_eq(VALUE a, VALUE b) {
     if (val_type(a) == val_type(b)){
       switch (val_type(a)) {
       case VAL_TYPE_SYMBOL:
-	return (dec_sym(a) == dec_sym(b));
+        return (dec_sym(a) == dec_sym(b));
       case VAL_TYPE_I:
-	return (dec_i(a) == dec_i(b));
+        return (dec_i(a) == dec_i(b));
       case VAL_TYPE_U:
-	return (dec_u(a) == dec_u(b));
+        return (dec_u(a) == dec_u(b));
       case VAL_TYPE_CHAR:
-	return (dec_char(a) == dec_char(b));
+        return (dec_char(a) == dec_char(b));
       default:
-	return false;
-	break;
+        return false;
+        break;
       }
     } else {
       return false;
@@ -453,20 +453,20 @@ static bool struct_eq(VALUE a, VALUE b) {
     if (ptr_type(a) == ptr_type(b)) {
       switch (ptr_type(a)) {
       case PTR_TYPE_SYMBOL_INDIRECTION:
-	return dec_symbol_indirection(a) == dec_symbol_indirection(b);
+        return dec_symbol_indirection(a) == dec_symbol_indirection(b);
       case PTR_TYPE_CONS:
-	return ( struct_eq(car(a),car(b)) &&
-		 struct_eq(cdr(a),cdr(b)) );
+        return ( struct_eq(car(a),car(b)) &&
+                 struct_eq(cdr(a),cdr(b)) );
       case PTR_TYPE_BOXED_I:
-	return ((INT)car(a) == (INT)car(b));
+        return ((INT)car(a) == (INT)car(b));
       case PTR_TYPE_BOXED_U:
-	return (car(a) == car(b));
+        return (car(a) == car(b));
       case PTR_TYPE_BOXED_F:
-	return ((FLOAT)car(a) == (FLOAT)car(b));
+        return ((FLOAT)car(a) == (FLOAT)car(b));
       case PTR_TYPE_ARRAY:
-	return array_equality(a, b);
+        return array_equality(a, b);
       default:
-	return false;
+        return false;
       }
     }
   }
@@ -661,7 +661,7 @@ void array_write(VALUE *args, UINT nargs, UINT *result) {
     array_header_t *array = (array_header_t*)car(arr);
 
     if (type_of(val) != array->elt_type ||
-	ix >= array->size) {
+        ix >= array->size) {
       *result =  enc_sym(SYM_NIL);
       return;
     }
@@ -722,7 +722,7 @@ VALUE index_list(VALUE l, int n) {
   /* TODO: error checking */
   VALUE curr = l;
   while ( type_of(curr) == PTR_TYPE_CONS &&
-	  n > 0) {
+          n > 0) {
     curr = cdr(curr);
     n --;
   }
@@ -737,7 +737,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
   switch (dec_sym(op)) {
   case SYM_IS_FUNDAMENTAL:
     if (nargs < 1 ||
-	type_of(args[0]) != VAL_TYPE_SYMBOL)
+        type_of(args[0]) != VAL_TYPE_SYMBOL)
       result = enc_sym(SYM_NIL);
     else if (is_fundamental(args[0]))
       result = enc_sym(SYM_TRUE);
@@ -747,7 +747,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
 
   case SYM_SYMBOL_TO_STRING: {
     if (nargs < 1 ||
-	type_of(args[0]) != VAL_TYPE_SYMBOL)
+        type_of(args[0]) != VAL_TYPE_SYMBOL)
       return enc_sym(SYM_NIL);
     VALUE sym = args[0];
     const char *sym_str = symrepr_lookup_name(dec_sym(sym));
@@ -770,7 +770,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
   case SYM_STRING_TO_SYMBOL: {
     result = enc_sym(SYM_EERROR);
     if (nargs < 1 ||
-	type_of(args[0] != PTR_TYPE_ARRAY))
+        type_of(args[0] != PTR_TYPE_ARRAY))
       break;
     array_header_t *arr = (array_header_t *)car(args[0]);
     if (arr->elt_type != VAL_TYPE_CHAR)
@@ -804,7 +804,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
   case SYM_MK_SYMBOL_INDIRECT: {
     VALUE s = args[0];
     if (type_of(s) == VAL_TYPE_U &&
-	dec_u(s) < 33554432)
+        dec_u(s) < 33554432)
       result = enc_symbol_indirection(dec_u(s));
     else
       result = enc_sym(SYM_EERROR);
@@ -813,18 +813,18 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
   case SYM_SET_CAR:
     if (nargs == 2) {
       if (set_car(args[0],args[1])) {
-	result = enc_sym(SYM_TRUE);
+        result = enc_sym(SYM_TRUE);
       } else {
-	result = enc_sym(SYM_NIL);
+        result = enc_sym(SYM_NIL);
       }
     }
     break;
   case SYM_SET_CDR:
     if (nargs == 2) {
       if (set_cdr(args[0],args[1])) {
-	result = enc_sym(SYM_TRUE);
+        result = enc_sym(SYM_TRUE);
       } else {
-	result = enc_sym(SYM_NIL);
+        result = enc_sym(SYM_NIL);
       }
     }
     break;
@@ -847,7 +847,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     for (UINT i = 1; i <= nargs; i ++) {
       result = cons(args[nargs-i], result);
       if (type_of(result) == VAL_TYPE_SYMBOL)
-	break;
+        break;
     }
     break;
   }
@@ -868,7 +868,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     for (int i = n-1; i >= 0; i --) {
       result = cons(index_list(a,i), result);
       if (type_of(result) == VAL_TYPE_SYMBOL)
-	break;
+        break;
     }
     break;
   }
@@ -877,7 +877,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     for (UINT i = 1; i < nargs; i ++) {
       sum = add2(sum, args[i]);
       if (type_of(sum) == VAL_TYPE_SYMBOL) {
-	break;
+        break;
       }
     }
     result = sum;
@@ -890,9 +890,9 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
       res = negate(res);
     } else {
       for (UINT i = 1; i < nargs; i ++) {
-	res = sub2(res, args[i]);
-	if (type_of(res) == VAL_TYPE_SYMBOL)
-	  break;
+        res = sub2(res, args[i]);
+        if (type_of(res) == VAL_TYPE_SYMBOL)
+          break;
       }
     }
     result = res;
@@ -903,7 +903,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     for (UINT i = 1; i < nargs; i ++) {
       prod = mul2(prod, args[i]);
       if (type_of(prod) == VAL_TYPE_SYMBOL) {
-	break;
+        break;
       }
     }
     result = prod;
@@ -914,7 +914,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     for (UINT i = 1; i < nargs; i ++) {
       res = div2(res, args[i]);
       if (type_of(res) == VAL_TYPE_SYMBOL) {
-	break;
+        break;
       }
     }
     result = res;
@@ -925,7 +925,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     for (UINT i = 1; i < nargs; i ++) {
       res = mod2(res, args[i]);
       if (type_of(res) == VAL_TYPE_SYMBOL) {
-	break;
+        break;
       }
     }
     result = res;
@@ -966,16 +966,16 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     for (UINT i = 1; i < nargs; i ++) {
       b = args[i];
       if (!is_number(b)) {
-	ok = false;
-	break;
+        ok = false;
+        break;
       }
       r = r && (compare(a, b) == cmp_res);
     }
     if (ok) {
       if (r) {
-	result = enc_sym(SYM_TRUE);
+        result = enc_sym(SYM_TRUE);
       } else {
-	result = enc_sym(SYM_NIL);
+        result = enc_sym(SYM_NIL);
       }
     } else {
       result = enc_sym(SYM_TERROR);
@@ -989,7 +989,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     }
     UINT a = args[0];
     if (type_of(a) == VAL_TYPE_SYMBOL &&
-	dec_sym(a) == SYM_NIL) {
+        dec_sym(a) == SYM_NIL) {
       result = enc_sym(SYM_TRUE);
       break;
     }

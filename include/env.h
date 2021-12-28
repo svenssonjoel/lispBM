@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ extern VALUE env_lookup(VALUE sym, VALUE env);
 extern VALUE env_set(VALUE env, VALUE key, VALUE val);
 extern VALUE env_modify_binding(VALUE env, VALUE key, VALUE val);
 extern VALUE env_build_params_args(VALUE params,
-	     			   VALUE args,
-				   VALUE env0);
+                                   VALUE args,
+                                   VALUE env0);
 
 #endif

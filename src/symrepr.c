@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2021 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -160,7 +160,7 @@ const char *symrepr_lookup_name(UINT id) {
   if (id < MAX_SPECIAL_SYMBOLS) {
     for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
       if (id == special_symbols[i].id) {
-	return (special_symbols[i].name);
+        return (special_symbols[i].name);
       }
     } 
   }

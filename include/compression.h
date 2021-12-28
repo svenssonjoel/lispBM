@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,6 +14,9 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+#ifndef COMPRESSION_H_
+#define COMPRESSION_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -40,3 +43,5 @@ extern void compression_init_state(decomp_state *s, char *src);
 extern char *compression_compress(char *string, uint32_t *res_size);
 extern int  compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n);
 extern bool compression_decompress(char *dest, uint32_t dest_n, char *src);
+
+#endif

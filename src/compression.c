@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2019, 2021 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,9 +26,9 @@
 #define  KEY  0
 #define  CODE 1
 
-/* The codes are generated using python script in utils directory 
+/* The codes are generated using python script in utils directory
    - Depends on the Huffman library (pip3 install huffman)
-   - exec(open('gen_codes.py').read()) 
+   - exec(open('gen_codes.py').read())
    - print(make_c())
 */
 
@@ -192,10 +192,10 @@ int match_longest_key(char *string) {
     unsigned int s_len = strlen(codes[i][KEY]);
     if (s_len <= n) {
       if (strncmp(codes[i][KEY], string, s_len) == 0) {
-	if (s_len > longest_match_length) {
-	  longest_match_ix = i;
-	  longest_match_length = s_len;
-	}
+        if (s_len > longest_match_length) {
+          longest_match_ix = i;
+          longest_match_length = s_len;
+        }
       }
     }
   }
@@ -213,19 +213,19 @@ int match_longest_code(char *string, uint32_t start_bit, uint32_t total_bits) {
     if ((uint32_t)s_len <= bits_left) {
       bool match = true;
       for (uint32_t b = 0; b < (uint32_t)s_len; b ++) {
-	uint32_t byte_ix = (start_bit + b) / 8;
-	uint32_t bit_ix  = (start_bit + b) % 8;
+        uint32_t byte_ix = (start_bit + b) / 8;
+        uint32_t bit_ix  = (start_bit + b) % 8;
 
-	char *code_str = codes[i][CODE];
+        char *code_str = codes[i][CODE];
 
-	if (((string[byte_ix] & (1 << bit_ix)) ? '1' : '0') !=
-	      code_str[b]) {
-	  match = false;
-	}
+        if (((string[byte_ix] & (1 << bit_ix)) ? '1' : '0') !=
+              code_str[b]) {
+          match = false;
+        }
       }
       if (match && (s_len > longest_match_length)) {
-	longest_match_length = s_len;
-	longest_match_ix = i;
+        longest_match_length = s_len;
+        longest_match_ix = i;
       }
     }
   }
@@ -244,44 +244,44 @@ int compressed_length(char *string) {
   while (i < n) {
     if (string_mode) {
       if (string[i] == '\"'  &&
-	  !(string[i-1] == '\\')) {
-	string_mode = false;
-	comp_len += 8;
-	i++;
+          !(string[i-1] == '\\')) {
+        string_mode = false;
+        comp_len += 8;
+        i++;
       } else {
-	comp_len += 8;
-	i++;
+        comp_len += 8;
+        i++;
       }
 
     } else {
 
       // Gobble up any comments
       if (string[i] == ';' ) {
-	while (string[i] && string[i] != '\n') {
-	  i++;
-	}
-	continue;
+        while (string[i] && string[i] != '\n') {
+          i++;
+        }
+        continue;
       }
 
       if ( string[i] == '\n' ||
-	   string[i] == ' '  ||
-	   string[i] == '\t' ||
-	   string[i] == '\r') {
-	gobbling_whitespace = true;
-	i ++;
-	continue;
+           string[i] == ' '  ||
+           string[i] == '\t' ||
+           string[i] == '\r') {
+        gobbling_whitespace = true;
+        i ++;
+        continue;
       } else if (gobbling_whitespace) {
-	gobbling_whitespace = false;
-	i--;
+        gobbling_whitespace = false;
+        i--;
       }
 
       if (string[i] == '\"') string_mode = true;
 
       int ix;
       if (isspace(string[i])) {
-	ix = match_longest_key(" ");
+        ix = match_longest_key(" ");
       } else {
-	ix = match_longest_key(string + i);
+        ix = match_longest_key(string + i);
       }
 
       if (ix == -1)return -1;
@@ -388,49 +388,49 @@ char *compression_compress(char *string, uint32_t *res_size) {
     if (string_mode) {
 
       if (string[i] == '\"' &&
-	  !(string[i-1] == '\\')) {
-	emit_string_char_code(compressed, '\"', &bit_pos);
-	i ++;
-	string_mode = false;
-	continue;
+          !(string[i-1] == '\\')) {
+        emit_string_char_code(compressed, '\"', &bit_pos);
+        i ++;
+        string_mode = false;
+        continue;
       } else {
-	emit_string_char_code(compressed, string[i], &bit_pos);
-	i++;
+        emit_string_char_code(compressed, string[i], &bit_pos);
+        i++;
       }
 
     } else {
 
       // Gobble up any comments
       if (string[i] == ';' ) {
-	while (string[i] && string[i] != '\n') {
-	  i++;
-	}
-	continue;
+        while (string[i] && string[i] != '\n') {
+          i++;
+        }
+        continue;
       }
 
       // gobble up whitespaces
       if ( string[i] == '\n' ||
-	   string[i] == ' '  ||
-	   string[i] == '\t' ||
-	   string[i] == '\r') {
-	gobbling_whitespace = true;
-	*(string + i) = ' ';
-	i ++;
-	continue;
+           string[i] == ' '  ||
+           string[i] == '\t' ||
+           string[i] == '\r') {
+        gobbling_whitespace = true;
+        *(string + i) = ' ';
+        i ++;
+        continue;
       } else if (gobbling_whitespace) {
-	gobbling_whitespace = false;
-	i--;
+        gobbling_whitespace = false;
+        i--;
       }
 
       /* Compress string-starting " character */
       if (string[i] == '\"') {
-	string_mode = true;
+        string_mode = true;
       }
       int ix = match_longest_key(&string[i]);
 
       if (ix == -1) {
-	free(compressed);
-	return NULL;
+        free(compressed);
+        return NULL;
       }
 
       emit_code(compressed, codes[ix][CODE], &bit_pos);
@@ -460,10 +460,10 @@ int compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_
      if (s->string_mode) {
       char c = read_character(s->src, &s->i);
       if (c == '\"') {
-	if (s->last_string_char != '\\') {
-	  s->string_mode = false;
-	  s->last_string_char = 0;
-	}
+        if (s->last_string_char != '\\') {
+          s->string_mode = false;
+          s->last_string_char = 0;
+        }
       }
       s->last_string_char = c;
       dest_buff[0] = c;
@@ -476,7 +476,7 @@ int compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_
     }
 
     if( strlen(codes[ix][KEY]) == 1 &&
-	strncmp(codes[ix][KEY], "\"", 1) == 0) {
+        strncmp(codes[ix][KEY], "\"", 1) == 0) {
       s->string_mode = true;
       s->last_string_char = 0;
     }
@@ -505,11 +505,11 @@ bool compression_decompress(char *dest, uint32_t dest_n, char *src) {
   compression_init_state(&s, src);
 
   while (true) {
-    
+
     num_chars = compression_decompress_incremental(&s, dest_buff, 32);
     if (num_chars == 0) break;
-    if (num_chars == -1) return false; 
-    
+    if (num_chars == -1) return false;
+
     for (int i = 0; i < num_chars; i ++) {
       dest[char_pos++] = dest_buff[i];
     }

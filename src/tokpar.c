@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2019, 2021 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -217,7 +217,7 @@ int tok_string(tokenizer_char_stream str) {
 
   // compute length of string
   while (peek(str,len) != 0 &&
-	 peek(str,len) != '\"') {
+         peek(str,len) != '\"') {
     len++;
   }
 
@@ -256,8 +256,8 @@ int tok_char(tokenizer_char_stream str, char *res) {
     drop(str,9);
     count = 9;
   } else if (peek(str,0) == '\\' &&
-	     peek(str,1) == '#' &&
-	     isgraph(peek(str,2))) {
+             peek(str,1) == '#' &&
+             isgraph(peek(str,2))) {
     *res = peek(str,2);
     drop(str,3);
     count = 3;
@@ -333,15 +333,15 @@ int tok_U(tokenizer_char_stream str, UINT *res) {
       (peek(str,1) == 'x' || peek(str,1) == 'X')) {
     n+= 2;
     while ( (peek(str,n) >= '0' && peek(str,n) <= '9') ||
-	    (peek(str,n) >= 'a' && peek(str,n) <= 'f') ||
-	    (peek(str,n) >= 'A' && peek(str,n) <= 'F')){
+            (peek(str,n) >= 'a' && peek(str,n) <= 'f') ||
+            (peek(str,n) >= 'A' && peek(str,n) <= 'F')){
       UINT val;
       if (peek(str,n) >= 'a' && peek(str,n) <= 'f') {
-	val = 10 + (UINT)(peek(str,n) - 'a');
+        val = 10 + (UINT)(peek(str,n) - 'a');
       } else if (peek(str,n) >= 'A' && peek(str,n) <= 'F') {
-	val = 10 + (UINT)(peek(str,n) - 'A');
+        val = 10 + (UINT)(peek(str,n) - 'A');
       } else {
-	val = (UINT)peek(str,n) - '0';
+        val = (UINT)peek(str,n) - '0';
       }
       acc = (acc * 0x10) + val;
       n++;
@@ -414,7 +414,7 @@ token next_token(tokenizer_char_stream str) {
   while ( clean_whitespace ){
     if ( peek(str,0) == ';' ) {
       while ( more(str) && peek(str, 0) != '\n') {
-	drop(str,1);
+        drop(str,1);
       }
     } else if ( isspace(peek(str,0))) {
       drop(str,1);
@@ -581,31 +581,31 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     t = next_token(str);
     VALUE quoted = parse_sexp(t, str);
     if (type_of(quoted) == VAL_TYPE_SYMBOL &&
-	dec_sym(quoted) == SYM_RERROR) return quoted;
+        dec_sym(quoted) == SYM_RERROR) return quoted;
     return cons(enc_sym(SYM_QUOTE), cons (quoted, enc_sym(SYM_NIL)));
   }
   case TOKBACKQUOTE: {
     t = next_token(str);
     VALUE quoted = parse_sexp(t, str);
     if (type_of(quoted) == VAL_TYPE_SYMBOL &&
-	dec_sym(quoted) == SYM_RERROR) return quoted;
+        dec_sym(quoted) == SYM_RERROR) return quoted;
     VALUE expanded = qq_expand(quoted);
     if (type_of(expanded) == VAL_TYPE_SYMBOL &&
-	symrepr_is_error(dec_sym(expanded))) return expanded;
+        symrepr_is_error(dec_sym(expanded))) return expanded;
     return expanded;
   }
   case TOKCOMMAAT: {
     t = next_token(str);
     VALUE splice = parse_sexp(t, str);
     if (type_of(splice) == VAL_TYPE_SYMBOL &&
-	dec_sym(splice) == SYM_RERROR) return splice;
+        dec_sym(splice) == SYM_RERROR) return splice;
     return cons(enc_sym(SYM_COMMAAT), cons (splice, enc_sym(SYM_NIL)));
   }
   case TOKCOMMA: {
     t = next_token(str);
     VALUE unquoted = parse_sexp(t, str);
     if (type_of(unquoted) == VAL_TYPE_SYMBOL &&
-	dec_sym(unquoted) == SYM_RERROR) return unquoted;
+        dec_sym(unquoted) == SYM_RERROR) return unquoted;
     return cons(enc_sym(SYM_COMMA), cons (unquoted, enc_sym(SYM_NIL))); 
   }
   }
@@ -634,16 +634,16 @@ VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
       tail = parse_sexp(t, str);
       t = next_token(str);
       if (t.type != TOKCLOSEPAR) {
-	return enc_sym(SYM_RERROR);
+        return enc_sym(SYM_RERROR);
       }
 
     } else {
       tail = parse_sexp_list(t, str);
     }
     if ((type_of(head) == VAL_TYPE_SYMBOL &&
-	 dec_sym(head) == SYM_RERROR ) ||
-	(type_of(tail) == VAL_TYPE_SYMBOL &&
-	 dec_sym(tail) == SYM_RERROR )) return enc_sym(SYM_RERROR);
+         dec_sym(head) == SYM_RERROR ) ||
+        (type_of(tail) == VAL_TYPE_SYMBOL &&
+         dec_sym(tail) == SYM_RERROR )) return enc_sym(SYM_RERROR);
     return cons(head, tail);
   }
   return enc_sym(SYM_RERROR);

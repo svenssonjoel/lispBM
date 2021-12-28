@@ -1,5 +1,5 @@
 /*
-    Copyright 2020, 2021     Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2020, 2021     Joel Svensson      svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ static inline exp_kind exp_kind_of(VALUE exp) {
     } // end if symbol
 
     if (type_of(cdr(exp)) == VAL_TYPE_SYMBOL &&
-	dec_sym(cdr(exp)) == SYM_NIL) {
+        dec_sym(cdr(exp)) == SYM_NIL) {
       return EXP_NO_ARGS;
     } else {
       return EXP_APPLICATION;

@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -30,6 +30,6 @@ extern void extensions_del(void);
 
 static inline bool is_extension(VALUE exp) {
   return ((type_of(exp) == VAL_TYPE_SYMBOL) &&
-	  (extensions_lookup(dec_sym(exp)) != NULL));
+          (extensions_lookup(dec_sym(exp)) != NULL));
 }
 #endif

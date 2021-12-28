@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -392,37 +392,37 @@ static inline bool val_get_gc_mark(VALUE x) {
 static inline bool is_number(VALUE x) {
   UINT t = type_of(x);
   return ((t == VAL_TYPE_I) ||
-	  (t == VAL_TYPE_U) ||
-	  (t == PTR_TYPE_BOXED_I) ||
-	  (t == PTR_TYPE_BOXED_U) ||
-	  (t == PTR_TYPE_BOXED_F));
+          (t == VAL_TYPE_U) ||
+          (t == PTR_TYPE_BOXED_I) ||
+          (t == PTR_TYPE_BOXED_U) ||
+          (t == PTR_TYPE_BOXED_F));
 }
 
 static inline bool is_special(VALUE symrep) {
   return ((type_of(symrep) == VAL_TYPE_SYMBOL) &&
-	  (dec_sym(symrep) < MAX_SPECIAL_SYMBOLS));
+          (dec_sym(symrep) < MAX_SPECIAL_SYMBOLS));
 }
 
 static inline bool is_fundamental(VALUE symrep) {
   return ((type_of(symrep) == VAL_TYPE_SYMBOL)  &&
-	  (dec_sym(symrep) >= FUNDAMENTALS_START) &&
-	  (dec_sym(symrep) <= FUNDAMENTALS_END));
+          (dec_sym(symrep) >= FUNDAMENTALS_START) &&
+          (dec_sym(symrep) <= FUNDAMENTALS_END));
 }
 
 static inline bool is_closure(VALUE exp) {
   return ((type_of(exp) == PTR_TYPE_CONS) &&
-	  (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
-	  (dec_sym(car(exp)) == SYM_CLOSURE));
+          (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
+          (dec_sym(car(exp)) == SYM_CLOSURE));
 }
 
 static inline bool is_match_binder(VALUE exp) {
   return ((type_of(exp) == PTR_TYPE_CONS) &&
-	  (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
-	  ((dec_sym(car(exp)) == SYM_MATCH_ANY) ||
-	   (dec_sym(car(exp)) == SYM_MATCH_I28) ||
-	   (dec_sym(car(exp)) == SYM_MATCH_U28) ||
-	   (dec_sym(car(exp)) == SYM_MATCH_FLOAT) ||
-	   (dec_sym(car(exp)) == SYM_MATCH_CONS)));
+          (type_of(car(exp)) == VAL_TYPE_SYMBOL) &&
+          ((dec_sym(car(exp)) == SYM_MATCH_ANY) ||
+           (dec_sym(car(exp)) == SYM_MATCH_I28) ||
+           (dec_sym(car(exp)) == SYM_MATCH_U28) ||
+           (dec_sym(car(exp)) == SYM_MATCH_FLOAT) ||
+           (dec_sym(car(exp)) == SYM_MATCH_CONS)));
 }
 
 static inline bool is_symbol(VALUE exp) {

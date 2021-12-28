@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018 2021 Joel Svensson   svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 #define SYM_QUOTE         0x1
 #define SYM_TRUE          0x2
 #define SYM_IF            0x3
-#define SYM_LAMBDA        0x4 
+#define SYM_LAMBDA        0x4
 #define SYM_CLOSURE       0x5
 #define SYM_LET           0x6
 #define SYM_RERROR        0x7   /* READ ERROR */
@@ -121,7 +121,7 @@
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200
 
-#define MAX_SPECIAL_SYMBOLS 4096 // 12bits (highest id allowed is 0xFFFF) 
+#define MAX_SPECIAL_SYMBOLS 4096 // 12bits (highest id allowed is 0xFFFF)
 
 extern int symrepr_addsym(char *, UINT*);
 extern bool symrepr_init(void);
@@ -133,11 +133,11 @@ extern unsigned int symrepr_size(void);
 
 static inline bool symrepr_is_error(UINT symrep){
   return (symrep == SYM_RERROR ||
-	  symrep == SYM_TERROR ||
-	  symrep == SYM_RERROR ||
-	  symrep == SYM_MERROR ||
-	  symrep == SYM_EERROR || 
-	  symrep == SYM_FATAL_ERROR);
+          symrep == SYM_TERROR ||
+          symrep == SYM_RERROR ||
+          symrep == SYM_MERROR ||
+          symrep == SYM_EERROR ||
+          symrep == SYM_FATAL_ERROR);
 }
 
 

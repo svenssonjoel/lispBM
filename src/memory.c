@@ -1,5 +1,5 @@
 /*
-    Copyright 2020, 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2020, 2021 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ uint32_t bitmap_size;  // in 4 byte words
 unsigned int memory_base_address = 0;
 
 int memory_init(unsigned char *data, uint32_t data_size,
-		unsigned char *bits, uint32_t bits_size) {
+                unsigned char *bits, uint32_t bits_size) {
 
   if (data == NULL || bits == NULL) return 0;
 
@@ -113,15 +113,15 @@ uint32_t memory_num_free(void) {
     case FREE_OR_USED:
       switch (state) {
       case INIT:
-	  state = FREE_LENGTH_CHECK;
-	  sum_length ++;
-	break;
+          state = FREE_LENGTH_CHECK;
+          sum_length ++;
+        break;
       case FREE_LENGTH_CHECK:
-	sum_length ++;
-	state = FREE_LENGTH_CHECK;
-	break;
+        sum_length ++;
+        state = FREE_LENGTH_CHECK;
+        break;
       case SKIP:
-	break;
+        break;
       }
       break;
     case END:
@@ -159,26 +159,26 @@ uint32_t *memory_allocate(uint32_t num_words) {
     case FREE_OR_USED:
       switch (state) {
       case INIT:
-	start_ix = i;
-	if (num_words == 1) {
-	  end_ix = i;
-	  state = ALLOC_DONE;
-	} else {
-	  state = FREE_LENGTH_CHECK;
-	  free_length = 1;
-	}
-	break;
+        start_ix = i;
+        if (num_words == 1) {
+          end_ix = i;
+          state = ALLOC_DONE;
+        } else {
+          state = FREE_LENGTH_CHECK;
+          free_length = 1;
+        }
+        break;
       case FREE_LENGTH_CHECK:
-	free_length ++;
-	if (free_length == num_words) {
-	  end_ix = i;
-	  state = ALLOC_DONE;
-	} else {
-	  state = FREE_LENGTH_CHECK;
-	}
-	break;
+        free_length ++;
+        if (free_length == num_words) {
+          end_ix = i;
+          state = ALLOC_DONE;
+        } else {
+          state = FREE_LENGTH_CHECK;
+        }
+        break;
       case SKIP:
-	break;
+        break;
       }
       break;
     case END:
@@ -215,8 +215,8 @@ int memory_free(uint32_t *ptr) {
     set_status(ix, FREE_OR_USED);
     for (unsigned int i = ix; i < (bitmap_size << 4); i ++) {
       if (status(i) == END) {
-	set_status(i, FREE_OR_USED);
-	return 1;
+        set_status(i, FREE_OR_USED);
+        return 1;
       }
     }
     return 0;

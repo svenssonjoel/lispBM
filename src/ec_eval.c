@@ -1,5 +1,5 @@
 /*
-    Copyright 2020, 2021      Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2020, 2021      Joel Svensson     svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -131,24 +131,24 @@ static inline void eval_define(eval_state *es) {
   rm_state.unev = car(cdr(rm_state.exp));
   rm_state.exp  = car(cdr(cdr(rm_state.exp)));
   push_u32_2(&rm_state.S,
-	     rm_state.unev,
-	     rm_state.cont);
+             rm_state.unev,
+             rm_state.cont);
   rm_state.cont = enc_u(CONT_DEFINE);
   *es = EVAL_DISPATCH;
 }
 
 static inline void cont_define(eval_state *es) {
   pop_u32_2(&rm_state.S,
-	    &rm_state.cont,
-	    &rm_state.unev);
+            &rm_state.cont,
+            &rm_state.unev);
   VALUE new_env = env_set(*env_get_global_ptr(),
-			  rm_state.unev,
-			  rm_state.val);
+                          rm_state.unev,
+                          rm_state.val);
   if (is_symbol_merror(new_env)) {
     gc(*env_get_global_ptr(), &rm_state);
     new_env = env_set(*env_get_global_ptr(),
-		      rm_state.unev,
-		      rm_state.val);
+                      rm_state.unev,
+                      rm_state.val);
   }
   if (is_symbol_merror(new_env)) {
     rm_state.cont = enc_u(CONT_ERROR);
@@ -320,13 +320,13 @@ static inline void eval_apply_fundamental(eval_state *es) {
 
 static inline void eval_apply_closure(eval_state *es) {
   VALUE local_env = env_build_params_args(car(cdr(rm_state.fun)),
-					  rm_state.argl,
-					  car(cdr(cdr(cdr(rm_state.fun)))));
+                                          rm_state.argl,
+                                          car(cdr(cdr(cdr(rm_state.fun)))));
   if (is_symbol_merror(local_env)) {
     gc(*env_get_global_ptr(), &rm_state);
     local_env = env_build_params_args(car(cdr(rm_state.fun)),
-					  rm_state.argl,
-					  car(cdr(cdr(cdr(rm_state.fun)))));
+                                          rm_state.argl,
+                                          car(cdr(cdr(cdr(rm_state.fun)))));
   }
   if (is_symbol_merror(local_env)) {
     rm_state.cont = enc_u(CONT_ERROR);
@@ -457,13 +457,13 @@ static inline void eval_let(eval_state *es) {
     VALUE tmp_env = cons(binding, new_env);
 
     if (is_symbol_merror(binding) ||
-	is_symbol_merror(new_env)) {
+        is_symbol_merror(new_env)) {
       gc(*env_get_global_ptr(), &rm_state);
       binding = cons(key, val);
       tmp_env = cons(binding, new_env);
     }
     if (is_symbol_merror(binding) ||
-	is_symbol_merror(new_env)) {
+        is_symbol_merror(new_env)) {
       rm_state.cont = enc_u(CONT_ERROR);
       rm_state.val  = enc_sym(SYM_MERROR);
       *es = EVAL_CONTINUATION;

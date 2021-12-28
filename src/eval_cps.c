@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -148,7 +148,7 @@ void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
       eval_context_t *tmp = curr->next;
       curr->next = curr->prev;
       curr->prev = tmp;
-	break;
+        break;
     }
     curr = curr->next;
   }
@@ -197,10 +197,10 @@ bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
   while(curr) {
     if (curr->id == cid) {
       if (curr->prev) {
-	curr->prev->next = curr->next;
+        curr->prev->next = curr->next;
       }
       if (curr->next) {
-	curr->next->prev = curr->prev;
+        curr->next->prev = curr->prev;
       }
       *v = curr->r;
       stack_free(&curr->K);
@@ -218,12 +218,12 @@ VALUE eval_cps_wait_ctx(CID cid) {
     eval_context_t *curr = ctx_done;
     while (curr) {
       if (curr->id == cid) {
-	return curr->r;
+        return curr->r;
       }
       if (curr->next) {
-	curr = curr->next;
+        curr = curr->next;
       } else {
-	break;
+        break;
       }
     }
     usleep_callback(1000);
@@ -260,23 +260,23 @@ eval_context_t *dequeue_ctx(uint32_t *us) {
     if (t_diff >= curr->sleep_us) {
       eval_context_t *result = curr;
       if (curr == queue.last) {
-	if (curr->prev) {
-	  queue.last = curr->prev;
-	  queue.last->next = NULL;
-	} else {
-	  queue.first = NULL;
-	  queue.last = NULL;
-	}
+        if (curr->prev) {
+          queue.last = curr->prev;
+          queue.last->next = NULL;
+        } else {
+          queue.first = NULL;
+          queue.last = NULL;
+        }
       } else if (curr->prev == NULL) {
-	queue.first = curr->next;
-	if (queue.first) {
-	  queue.first->prev = NULL;
-	}
+        queue.first = curr->next;
+        if (queue.first) {
+          queue.first->prev = NULL;
+        }
       } else {
-	curr->prev->next = curr->next;
-	if (curr->next) {
-	  curr->next->prev = curr->prev;
-	}
+        curr->prev->next = curr->next;
+        if (curr->next) {
+          curr->next->prev = curr->prev;
+        }
       }
       return result;
     }
@@ -379,8 +379,8 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
     curr = queue.first;
     while (curr != NULL) {
       if (curr->id == cid) {
-	found = curr;
-	break;
+        found = curr;
+        break;
       }
       curr = curr->next;
     }
@@ -444,7 +444,7 @@ VALUE list_remove(int n, VALUE list) {
     while (type_of(curr) == PTR_TYPE_CONS) {
       res = cons(car(curr),res);
       if (type_of(res) == VAL_TYPE_SYMBOL) {
-	return res;
+        return res;
       }
       curr = cdr(curr);
     }
@@ -465,45 +465,45 @@ bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
     switch (dec_sym(bindertype)) {
     case SYM_MATCH_ANY:
       if (dec_sym(var) == SYM_DONTCARE) {
-	return true;
+        return true;
       } else {
-	break;
+        break;
       }
       return false;
     case SYM_MATCH_I28:
       if (type_of(e) == VAL_TYPE_I) {
-	if (dec_sym(var) == SYM_DONTCARE) {
-	  return true;
-	} else {
-	  break;
-	}
+        if (dec_sym(var) == SYM_DONTCARE) {
+          return true;
+        } else {
+          break;
+        }
       }
       return false;
     case SYM_MATCH_U28:
       if (type_of(e) == VAL_TYPE_U) {
-	if (dec_sym(var) == SYM_DONTCARE) {
-	  return true;
-	} else {
-	  break;
-	}
+        if (dec_sym(var) == SYM_DONTCARE) {
+          return true;
+        } else {
+          break;
+        }
       }
       return false;
     case SYM_MATCH_FLOAT:
       if (type_of(e) == PTR_TYPE_BOXED_F) {
-	if (dec_sym(var) == SYM_DONTCARE) {
-	  return true;
-	} else {
-	  break;
-	}
+        if (dec_sym(var) == SYM_DONTCARE) {
+          return true;
+        } else {
+          break;
+        }
       }
       return false;
     case SYM_MATCH_CONS:
       if (type_of(e) == PTR_TYPE_CONS) {
-	if (dec_sym(var) == SYM_DONTCARE) {
-	  return true;
-	} else {
-	  break;
-	}
+        if (dec_sym(var) == SYM_DONTCARE) {
+          return true;
+        } else {
+          break;
+        }
       }
       return false;
     default: /* this should be an error case */
@@ -512,7 +512,7 @@ bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
     binding = cons(var, e);
     *env = cons(binding, *env);
     if (type_of(binding) == VAL_TYPE_SYMBOL ||
-	type_of(*env) == VAL_TYPE_SYMBOL) {
+        type_of(*env) == VAL_TYPE_SYMBOL) {
       *gc = true;
       return false;
     }
@@ -547,9 +547,9 @@ int find_match(VALUE plist, VALUE elist, VALUE *e, VALUE *env, bool *gc) {
   while (type_of(curr_e) == PTR_TYPE_CONS) {
     while (type_of(curr_p) == PTR_TYPE_CONS) {
       if (match(car(car(curr_p)), car(curr_e), env, gc)) {
-	if (*gc) return -1;
-	*e = car(cdr(car(curr_p)));
-	return n;
+        if (*gc) return -1;
+        *e = car(cdr(car(curr_p)));
+        return n;
       }
       curr_p = cdr(curr_p);
     }
@@ -566,10 +566,10 @@ int find_match(VALUE plist, VALUE elist, VALUE *e, VALUE *env, bool *gc) {
 
 
 static int gc(VALUE env,
-	      eval_context_t *runnable,
-	      eval_context_t *done,
-	      eval_context_t *running,
-	      eval_context_t *blocked) {
+              eval_context_t *runnable,
+              eval_context_t *done,
+              eval_context_t *running,
+              eval_context_t *blocked) {
 
   gc_state_inc();
   gc_mark_freelist();
@@ -632,7 +632,7 @@ static inline void eval_symbol(eval_context_t *ctx) {
     // If not special, check if there is a binding in the environments
     value = env_lookup(ctx->curr_exp, ctx->curr_env);
     if (type_of(value) == VAL_TYPE_SYMBOL &&
-	dec_sym(value) == SYM_NOT_FOUND) {
+        dec_sym(value) == SYM_NOT_FOUND) {
 
       value = env_lookup(ctx->curr_exp, *env_get_global_ptr());
     }
@@ -748,9 +748,9 @@ static inline void eval_lambda(eval_context_t *ctx, bool *perform_gc) {
 static inline void eval_if(eval_context_t *ctx) {
 
   FOF(push_u32_3(&ctx->K,
-		 car(cdr(cdr(cdr(ctx->curr_exp)))), // Else branch
-		 car(cdr(cdr(ctx->curr_exp))),      // Then branch
-		 enc_u(IF)));
+                 car(cdr(cdr(cdr(ctx->curr_exp)))), // Else branch
+                 car(cdr(cdr(ctx->curr_exp))),      // Then branch
+                 enc_u(IF)));
   ctx->curr_exp = car(cdr(ctx->curr_exp));
 }
 
@@ -777,7 +777,7 @@ static inline void eval_let(eval_context_t *ctx, bool *perform_gc) {
     new_env = cons(binding, new_env);
 
     if (type_of(binding) == VAL_TYPE_SYMBOL ||
-	type_of(new_env) == VAL_TYPE_SYMBOL) {
+        type_of(new_env) == VAL_TYPE_SYMBOL) {
       *perform_gc = true;
       ctx->app_cont = false;
       return;
@@ -789,7 +789,7 @@ static inline void eval_let(eval_context_t *ctx, bool *perform_gc) {
   VALUE val0_exp = car(cdr(car(binds)));
 
   FOF(push_u32_5(&ctx->K, exp, cdr(binds), new_env,
-		 key0, enc_u(BIND_TO_KEY_REST)));
+                 key0, enc_u(BIND_TO_KEY_REST)));
   ctx->curr_exp = val0_exp;
   ctx->curr_env = new_env;
   return;
@@ -854,7 +854,7 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
     VALUE msgs = ctx->mailbox;
 
     if (type_of(pats) == VAL_TYPE_SYMBOL &&
-	pats == NIL) {
+        pats == NIL) {
       /* A receive statement without any patterns */
       ctx->app_cont = true;
       ctx->r = enc_sym(SYM_NIL);
@@ -865,26 +865,26 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
       bool do_gc = false;;
       int n = find_match(cdr(pats), msgs, &e, &new_env, &do_gc);
       if (do_gc) {
-	*perform_gc = true;
-	ctx->app_cont = false;
+        *perform_gc = true;
+        ctx->app_cont = false;
       } else if (n >= 0 ) { /* Match */
-	VALUE new_mailbox = list_remove(n, msgs);
+        VALUE new_mailbox = list_remove(n, msgs);
 
-	if ((type_of(new_mailbox) == VAL_TYPE_SYMBOL) &&
-	    (dec_sym(new_mailbox) == SYM_MERROR)) {
-	  *perform_gc = true;
-	  ctx->app_cont = false;
-	  return;
-	}
-	ctx->mailbox = new_mailbox;
-	ctx->curr_env = new_env;
-	ctx->curr_exp = e;
+        if ((type_of(new_mailbox) == VAL_TYPE_SYMBOL) &&
+            (dec_sym(new_mailbox) == SYM_MERROR)) {
+          *perform_gc = true;
+          ctx->app_cont = false;
+          return;
+        }
+        ctx->mailbox = new_mailbox;
+        ctx->curr_env = new_env;
+        ctx->curr_exp = e;
       } else { /* No match  go back to sleep */
-	ctx->timestamp = timestamp_us_callback();
-	ctx->sleep_us = 0;
-	enqueue_ctx(&blocked,ctx);
-	ctx_running = NULL;
-	ctx->r = enc_sym(SYM_NO_MATCH);
+        ctx->timestamp = timestamp_us_callback();
+        ctx->sleep_us = 0;
+        enqueue_ctx(&blocked,ctx);
+        ctx_running = NULL;
+        ctx->r = enc_sym(SYM_NO_MATCH);
       }
 
       /* Match messages on mailbox against the patterns */
@@ -975,9 +975,9 @@ static inline void cont_spawn_all(eval_context_t *ctx, bool *perform_gc) {
   }
 
   CID cid = create_ctx(car(rest),
-		       env,
-		       EVAL_CPS_DEFAULT_STACK_SIZE,
-		       EVAL_CPS_DEFAULT_STACK_GROW_POLICY);
+                       env,
+                       EVAL_CPS_DEFAULT_STACK_SIZE,
+                       EVAL_CPS_DEFAULT_STACK_GROW_POLICY);
   if (!cid) {
     set_car(cid_list, enc_sym(SYM_NIL));
   }
@@ -1023,11 +1023,11 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
     for (UINT i = dec_u(count); i > 0; i --) {
       args = cons(fun_args[i], args);
       if (type_of(args) == VAL_TYPE_SYMBOL) {
-	FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
-	*perform_gc = true;
-	ctx->app_cont = true;
-	ctx->r = fun;
-	return;
+        FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
+        *perform_gc = true;
+        ctx->app_cont = true;
+        ctx->r = fun;
+        return;
       }
     }
     VALUE params  = car(cdr(fun));
@@ -1036,23 +1036,23 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
 
     if (length(params) != length(args)) { // programmer error
       ERROR
-	error_ctx(enc_sym(SYM_EERROR));
+        error_ctx(enc_sym(SYM_EERROR));
       return;
     }
 
     VALUE local_env = env_build_params_args(params, args, clo_env);
     if (type_of(local_env) == VAL_TYPE_SYMBOL) {
       if (dec_sym(local_env) == SYM_MERROR ) {
-	FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
-	*perform_gc = true;
-	ctx->app_cont = true;
-	ctx->r = fun;
-	return;
+        FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
+        *perform_gc = true;
+        ctx->app_cont = true;
+        ctx->r = fun;
+        return;
       }
 
       if (dec_sym(local_env) == SYM_FATAL_ERROR) {
-	ctx->r = local_env;
-	return;
+        ctx->r = local_env;
+        return;
       }
     }
 
@@ -1079,25 +1079,25 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
     UINT dfun = dec_sym(fun);
     if (dfun == SYM_YIELD) {
       if (type_of(fun_args[1]) == VAL_TYPE_I) {
-	UINT ts = dec_u(fun_args[1]);
-	stack_drop(&ctx->K, dec_u(count)+1);
-	yield_ctx(ts);
+        UINT ts = dec_u(fun_args[1]);
+        stack_drop(&ctx->K, dec_u(count)+1);
+        yield_ctx(ts);
       } else {
-	ERROR
-	  error_ctx(enc_sym(SYM_EERROR));
+        ERROR
+          error_ctx(enc_sym(SYM_EERROR));
       }
       return;
     } else if (dfun == SYM_WAIT) {
       if (type_of(fun_args[1]) == VAL_TYPE_I) {
-	CID cid = (CID)dec_u(fun_args[1]);
-	stack_drop(&ctx->K, dec_u(count)+1);
-	FOF(push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
-	ctx->r = enc_sym(SYM_TRUE);
-	ctx->app_cont = true;
-	yield_ctx(50000);
+        CID cid = (CID)dec_u(fun_args[1]);
+        stack_drop(&ctx->K, dec_u(count)+1);
+        FOF(push_u32_2(&ctx->K, enc_u(cid), enc_u(WAIT)));
+        ctx->r = enc_sym(SYM_TRUE);
+        ctx->app_cont = true;
+        yield_ctx(50000);
       } else {
-	ERROR
-	error_ctx(enc_sym(SYM_EERROR));
+        ERROR
+        error_ctx(enc_sym(SYM_EERROR));
       }
       return;
     } else if (dfun == SYM_EVAL) {
@@ -1109,21 +1109,21 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
 
       if (dec_u(count) == 2) {
 
-	if (type_of(fun_args[1]) == VAL_TYPE_U) { /* CID is of U type */
-	  CID cid = (CID)dec_u(fun_args[1]);
-	  VALUE msg = fun_args[2];
-	  status = find_receiver_and_send(cid, msg);
-	  if (type_of(status) != VAL_TYPE_SYMBOL) {
-	    ERROR /* The error macro returns */
-	      error_ctx(enc_sym(SYM_EERROR));
-	  } else if (dec_sym(status) == SYM_MERROR) {
-	    /* perform gc and try again */
-	    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
-	    *perform_gc = true;
-	    ctx->app_cont = true;
-	    ctx->r = fun;
-	  }
-	}
+        if (type_of(fun_args[1]) == VAL_TYPE_U) { /* CID is of U type */
+          CID cid = (CID)dec_u(fun_args[1]);
+          VALUE msg = fun_args[2];
+          status = find_receiver_and_send(cid, msg);
+          if (type_of(status) != VAL_TYPE_SYMBOL) {
+            ERROR /* The error macro returns */
+              error_ctx(enc_sym(SYM_EERROR));
+          } else if (dec_sym(status) == SYM_MERROR) {
+            /* perform gc and try again */
+            FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
+            *perform_gc = true;
+            ctx->app_cont = true;
+            ctx->r = fun;
+          }
+        }
       }
       /* return the status */
       stack_drop(&ctx->K, dec_u(count)+1);
@@ -1135,20 +1135,20 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
       /* If it is not a eval_cps specific function, it may be a fundamental operation */
       res = fundamental_exec(&fun_args[1], dec_u(count), fun);
       if (type_of(res) == VAL_TYPE_SYMBOL &&
-	  dec_sym(res) == SYM_EERROR) {
-	ERROR
-	  error_ctx(res);
+          dec_sym(res) == SYM_EERROR) {
+        ERROR
+          error_ctx(res);
       } else if (type_of(res) == VAL_TYPE_SYMBOL &&
-		 dec_sym(res) == SYM_MERROR) {
-	FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
-	*perform_gc = true;
-	ctx->app_cont = true;
-	ctx->r = fun;
+                 dec_sym(res) == SYM_MERROR) {
+        FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
+        *perform_gc = true;
+        ctx->app_cont = true;
+        ctx->r = fun;
 
       } else {
-	stack_drop(&ctx->K, dec_u(count)+1);
-	ctx->app_cont = true;
-	ctx->r = res;
+        stack_drop(&ctx->K, dec_u(count)+1);
+        ctx->app_cont = true;
+        ctx->r = res;
       }
       return;
     }
@@ -1217,7 +1217,7 @@ static inline void cont_and(eval_context_t *ctx) {
     ctx->app_cont = true;
     ctx->r = enc_sym(SYM_NIL);
   } else if (type_of(rest) == VAL_TYPE_SYMBOL &&
-	     rest == NIL) {
+             rest == NIL) {
     ctx->app_cont = true;
   } else {
     FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(rest), enc_u(AND)));
@@ -1233,7 +1233,7 @@ static inline void cont_or(eval_context_t *ctx) {
       dec_sym(arg) != SYM_NIL) {
     ctx->app_cont = true;
   } else  if (type_of(rest) == VAL_TYPE_SYMBOL &&
-	      rest == NIL) {
+              rest == NIL) {
     ctx->app_cont = true;
     ctx->r = enc_sym(SYM_NIL);
   } else {
@@ -1296,7 +1296,7 @@ static inline void cont_match_many(eval_context_t *ctx) {
       (dec_sym(r) == SYM_NO_MATCH)) {
 
     if (type_of(rest_msgs) == VAL_TYPE_SYMBOL &&
-	dec_sym(rest_msgs) == SYM_NIL) {
+        dec_sym(rest_msgs) == SYM_NIL) {
 
       ctx->curr_exp = exp;
 
@@ -1436,18 +1436,18 @@ void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       case SYM_AND:          eval_and(ctx); return;
       case SYM_OR:           eval_or(ctx); return;
       case SYM_MATCH:   eval_match(ctx); return;
-	/* message passing primitives */
-	//case SYM_SEND:    eval_send(ctx, perform_gc); return;
+        /* message passing primitives */
+        //case SYM_SEND:    eval_send(ctx, perform_gc); return;
       case SYM_RECEIVE: eval_receive(ctx, perform_gc); return;
 
       default: break; /* May be general application form. Checked below*/
       }
     } // If head is symbol
     FOF(push_u32_4(&ctx->K,
-		   ctx->curr_env,
-		   enc_u(0),
-		   cdr(ctx->curr_exp),
-		   enc_u(APPLICATION_ARGS)));
+                   ctx->curr_env,
+                   enc_u(0),
+                   cdr(ctx->curr_exp),
+                   enc_u(APPLICATION_ARGS)));
 
     ctx->curr_exp = head; // evaluate the function
     return;
@@ -1470,10 +1470,10 @@ void eval_cps_run_eval(void){
       uint32_t us;
       ctx_running = dequeue_ctx(&us);
       if (!ctx_running) {
-	if (usleep_callback) {
-	  usleep_callback(us);
-	}
-	continue;
+        if (usleep_callback) {
+          usleep_callback(us);
+        }
+        continue;
       }
     }
     evaluation_step(&perform_gc, &last_iteration_gc);

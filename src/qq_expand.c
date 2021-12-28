@@ -1,5 +1,5 @@
 /*
-    Copyright 2020, 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2020, 2021 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -33,32 +33,32 @@
 
 VALUE gen_cons(VALUE a, VALUE b) {
   return cons(enc_sym(SYM_CONS),
-		   cons(a,
-			cons(b, enc_sym(SYM_NIL))));
+                   cons(a,
+                        cons(b, enc_sym(SYM_NIL))));
 }
 
 
 VALUE append(VALUE front, VALUE back) {
   return cons (enc_sym(SYM_APPEND),
-	       cons(front,
-		    cons(back, enc_sym(SYM_NIL))));
+               cons(front,
+                    cons(back, enc_sym(SYM_NIL))));
 }
 
 /* Bawden's qq-expand-list implementation
 (define (qq-expand-list x)
   (cond ((tag-comma? x)
-	 `(list ,(tag-data x)))
-	((tag-comma-atsign? x)
-	 (tag-data x))
-	((tag-backquote? x)
-	 (qq-expand-list
-	  (qq-expand (tag-data x))))
-	((pair? x)
-	 `(list
-	   (append
-	    ,(qq-expand-list (car x))
-	    ,(qq-expand (cdr x)))))
-	(else `'(,x))))
+         `(list ,(tag-data x)))
+        ((tag-comma-atsign? x)
+         (tag-data x))
+        ((tag-backquote? x)
+         (qq-expand-list
+          (qq-expand (tag-data x))))
+        ((pair? x)
+         `(list
+           (append
+            ,(qq-expand-list (car x))
+            ,(qq-expand (cdr x)))))
+        (else `'(,x))))
 */
 
 VALUE qq_expand_list(VALUE l) {
@@ -71,17 +71,17 @@ VALUE qq_expand_list(VALUE l) {
     car_val = car(l);
     cdr_val = cdr(l);
     if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-	dec_sym(car_val) == SYM_COMMA) {
+        dec_sym(car_val) == SYM_COMMA) {
       res = cons(enc_sym(SYM_LIST),
-		 cons(car(cdr_val), res));
+                 cons(car(cdr_val), res));
     } else if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-	       dec_sym(car_val) == SYM_COMMAAT) {
+               dec_sym(car_val) == SYM_COMMAAT) {
       res = car(cdr_val);
     } else {
       VALUE expand_car = qq_expand_list(car_val);
       VALUE expand_cdr = qq_expand(cdr_val);
       res = cons(enc_sym(SYM_LIST),
-		 cons(append(expand_car, expand_cdr), enc_sym(SYM_NIL)));
+                 cons(append(expand_car, expand_cdr), enc_sym(SYM_NIL)));
     }
     break;
   default: {
@@ -96,17 +96,17 @@ VALUE qq_expand_list(VALUE l) {
 /* Bawden's qq-expand implementation
 (define (qq-expand x)
   (cond ((tag-comma? x)
-	 (tag-data x))
-	((tag-comma-atsign? x)
-	 (error "Illegal"))
-	((tag-backquote? x)
-	 (qq-expand
-	  (qq-expand (tag-data x))))
-	((pair? x)
-	 `(append
-	   ,(qq-expand-list (car x))
-	   ,(qq-expand (cdr x))))
-	(else `',x)))
+         (tag-data x))
+        ((tag-comma-atsign? x)
+         (error "Illegal"))
+        ((tag-backquote? x)
+         (qq-expand
+          (qq-expand (tag-data x))))
+        ((pair? x)
+         `(append
+           ,(qq-expand-list (car x))
+           ,(qq-expand (cdr x))))
+        (else `',x)))
  */
 
 VALUE qq_expand(VALUE qquoted) {
@@ -120,10 +120,10 @@ VALUE qq_expand(VALUE qquoted) {
     car_val = car(qquoted);
     cdr_val = cdr(qquoted);
     if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-	dec_sym(car_val) == SYM_COMMA) {
+        dec_sym(car_val) == SYM_COMMA) {
       res = car(cdr_val);
     } else if (type_of(car_val) == VAL_TYPE_SYMBOL &&
-	       dec_sym(car_val) == SYM_COMMAAT) {
+               dec_sym(car_val) == SYM_COMMAAT) {
       res = enc_sym(SYM_RERROR); // should have a more specific error here. 
     } else {
       VALUE expand_car = qq_expand_list(car_val);

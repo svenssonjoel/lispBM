@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -36,6 +36,6 @@ typedef float    FLOAT;
 #define PRI_FLOAT "f"
 
 typedef uint16_t CID;
-#define CID_MAX   65536
+#define CID_MAX   65535
 
 #endif
