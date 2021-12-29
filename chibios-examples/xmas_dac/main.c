@@ -332,7 +332,7 @@ int main(void) {
     chprintf(chp,"Memory initialized. Memory size: %u Words. Free: %u Words.\r\n", memory_num_words(), memory_num_free());
   else {
     chprintf(chp,"Error initializing memory!\r\n");
-    return;
+    return 1;
   }
   
    res = symrepr_init();
@@ -340,7 +340,7 @@ int main(void) {
     chprintf(chp,"Symrepr initialized.\r\n");
   else {
     chprintf(chp,"Error initializing symrepr!\r\n");
-    return;
+    return 1;
   }
   
   res = heap_init(heap_size);
@@ -348,7 +348,7 @@ int main(void) {
     chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
   else {
     chprintf(chp,"Error initializing heap!\r\n");
-    return;
+    return 1;
   }
 
   res = eval_cps_init();
@@ -356,7 +356,7 @@ int main(void) {
     chprintf(chp,"Evaluator initialized.\r\n");
   else {
     chprintf(chp,"Error initializing evaluator.\r\n");
-    return;
+    return 1;
   }
 
   eval_cps_set_ctx_done_callback(done_callback);
@@ -382,7 +382,7 @@ int main(void) {
 
   if (!t) {
     chprintf(chp,"Error starting evaluator thread.\r\n");
-    return;
+    return 1;
   }
   
   VALUE prelude = prelude_load();

@@ -134,7 +134,8 @@ LBMSRC = ../../src/compression.c \
          ../../src/qq_expand.c \
          ../../src/stack.c \
          ../../src/symrepr.c \
-         ../../src/tokpar.c
+         ../../src/tokpar.c \
+         ../../platform/chibios/src/platform_mutex.c
 
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \
@@ -188,7 +189,7 @@ UDEFS = -D_32_BIT_ -D_PRELUDE
 UADEFS =
 
 # List all user directories here
-UINCDIR = ../../include
+UINCDIR = ../../include ../../platform/chibios/include
 
 # List the user directory to look for the libraries here
 ULIBDIR =

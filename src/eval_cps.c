@@ -652,7 +652,7 @@ static inline void eval_selfevaluating(eval_context_t *ctx) {
   ctx->r = ctx->curr_exp;
 }
 
-static inline void eval_ref_stream() {
+static inline void eval_stream(void) {
   ERROR
   error_ctx(enc_sym(SYM_EERROR));
 }
@@ -1429,7 +1429,7 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
   case VAL_TYPE_CHAR:
   case PTR_TYPE_ARRAY: eval_selfevaluating(ctx); return;
   case PTR_TYPE_REF: /* fall through */
-  case PTR_TYPE_STREAM: eval_ref_stream(); return;
+  case PTR_TYPE_STREAM: eval_stream(); return;
 
   case PTR_TYPE_CONS:
     head = car(ctx->curr_exp);
