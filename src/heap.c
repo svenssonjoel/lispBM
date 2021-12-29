@@ -108,7 +108,7 @@ static void heap_init_state(cons_t *addr, unsigned int num_cells, bool malloced)
   heap_state.gc_recovered_arrays = 0;
 }
 
-int heap_init_addr(cons_t *addr, unsigned int num_cells) {
+int heap_init_static(cons_t *addr, unsigned int num_cells) {
 
   NIL = enc_sym(SYM_NIL);
   RECOVERED = enc_sym(SYM_RECOVERED);

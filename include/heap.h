@@ -240,7 +240,7 @@ typedef struct {
   uint32_t size;            // Number of elements
 } array_header_t;
 
-extern int heap_init_addr(cons_t *addr, unsigned int num_cells);
+extern int heap_init_static(cons_t *addr, unsigned int num_cells);
 extern int heap_init(unsigned int num_cells);
 extern void heap_del(void);
 extern unsigned int heap_num_free(void);
