@@ -12,8 +12,8 @@ add_custom_command(OUTPUT ../src/prelude.xxd
 		   DEPENDS ../src/prelude.lisp
                   )
 		
-FILE(GLOB app_sources src/*.c)
-FILE(GLOB lisp_sources ../src/*.c)
+FILE(GLOB app_sources src/*.c usb_cdc.c)
+FILE(GLOB lisp_sources ../src/*.c ../platform/zephyr/src/*.c)
 
 target_sources(app PRIVATE ${app_sources}
 		   PRIVATE ${lisp_sources}
@@ -21,6 +21,8 @@ target_sources(app PRIVATE ${app_sources}
 		 
 target_include_directories(app PRIVATE ../include
                                PRIVATE ../src
+                               PRIVATE ../platform/zephyr/include
+                               PRIVATE .
 			       ${ZEPHYR_BASE}/kernel/include
 			       ${ZEPHYR_BASE}/arch/${ARCH}/include)
 

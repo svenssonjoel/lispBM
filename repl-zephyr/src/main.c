@@ -34,8 +34,6 @@
 /* LLBridge includes                */
 
 #include "usb_cdc.h"
-#include "ll_uart.h"
-#include "ll_led.h"
 
 #define LISPBM_HEAP_SIZE 2048
 #define LISPBM_OUTPUT_BUFFER_SIZE 4096
