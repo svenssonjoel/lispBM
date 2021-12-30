@@ -116,7 +116,7 @@ void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
   ctx_done_callback = fptr;
 }
 
-void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
+static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   mutex_lock(&qmutex);
   if (q->last == NULL) {
     ctx->prev = NULL;
@@ -132,7 +132,7 @@ void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   mutex_unlock(&qmutex);
 }
 
-void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
+static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
   mutex_lock(&qmutex);
   
@@ -170,7 +170,7 @@ void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
 /* End execution of the running context and add it to the
    list of finished contexts. */
-void finish_ctx(void) {
+static void finish_ctx(void) {
   mutex_lock(&qmutex);
   
   if (ctx_done == NULL) {
@@ -194,7 +194,6 @@ void finish_ctx(void) {
   mutex_unlock(&qmutex);
 }
 
-/* remove_done_ctx is currently only done from the eval thread */
 bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
 
   if (!ctx_done) return false;
@@ -249,12 +248,12 @@ VALUE eval_cps_wait_ctx(CID cid) {
   return enc_sym(SYM_NIL);
 }
 
-void error_ctx(VALUE err_val) {
+static void error_ctx(VALUE err_val) {
   ctx_running->r = err_val;
   finish_ctx();
 }
 
-eval_context_t *dequeue_ctx(uint32_t *us) {
+static eval_context_t *dequeue_ctx(uint32_t *us) {
   uint32_t min_us = DEFAULT_SLEEP_US;
   uint32_t t_now;
 
@@ -311,7 +310,7 @@ eval_context_t *dequeue_ctx(uint32_t *us) {
   return NULL;
 }
 
-void yield_ctx(uint32_t sleep_us) {
+static void yield_ctx(uint32_t sleep_us) {
   if (timestamp_us_callback) {
     ctx_running->timestamp = timestamp_us_callback();
     ctx_running->sleep_us = sleep_us;
@@ -325,7 +324,7 @@ void yield_ctx(uint32_t sleep_us) {
   ctx_running = NULL;
 }
 
-CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
+static CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
 
   if (next_ctx_id == 0) return 0; // overflow of CIDs
 
@@ -365,7 +364,7 @@ CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
 }
 
 /* Advance execution to the next expression in the program */
-void advance_ctx(void) {
+static void advance_ctx(void) {
 
   if (type_of(ctx_running->program) == PTR_TYPE_CONS) {
     push_u32(&ctx_running->K, enc_u(DONE));
@@ -382,7 +381,7 @@ void advance_ctx(void) {
 
 
 
-VALUE find_receiver_and_send(CID cid, VALUE msg) {
+static VALUE find_receiver_and_send(CID cid, VALUE msg) {
   eval_context_t *curr;
   eval_context_t *found = NULL;
 
@@ -445,7 +444,7 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
   return enc_sym(SYM_NIL);
 }
 
-VALUE list_remove(int n, VALUE list) {
+static VALUE remove_from_list(int n, VALUE list) {
   int c = 0;
   VALUE res;
   VALUE curr = list;
@@ -483,7 +482,7 @@ VALUE list_remove(int n, VALUE list) {
 /* Pattern matching is currently implemented as a recursive 
    function and make use of stack relative to the size of 
    expressions that are being matched. */
-bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
+static bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
 
   VALUE binding;
 
@@ -570,7 +569,7 @@ bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
   return false;
 }
 
-int find_match(VALUE plist, VALUE elist, VALUE *e, VALUE *env, bool *gc) {
+static int find_match(VALUE plist, VALUE elist, VALUE *e, VALUE *env, bool *gc) {
 
   VALUE curr_p = plist;
   VALUE curr_e = elist;
@@ -901,7 +900,7 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
         *perform_gc = true;
         ctx->app_cont = false;
       } else if (n >= 0 ) { /* Match */
-        VALUE new_mailbox = list_remove(n, msgs);
+        VALUE new_mailbox = remove_from_list(n, msgs);
 
         if ((type_of(new_mailbox) == VAL_TYPE_SYMBOL) &&
             (dec_sym(new_mailbox) == SYM_MERROR)) {
