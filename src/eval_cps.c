@@ -88,11 +88,10 @@ typedef struct {
 
 
 /* Callbacks and task queue */
-/* TODO: There should be mutex controlling access to these queues 
-   if used in a scenario where another thread enqueues work */
 static eval_context_queue_t blocked = {NULL, NULL};
 static eval_context_queue_t queue   = {NULL, NULL};
 
+/* one mutex for all queue operations */
 mutex_t qmutex;
 
 static eval_context_t *ctx_done = NULL;
@@ -132,10 +131,27 @@ static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   mutex_unlock(&qmutex);
 }
 
+static eval_context_t *lookup_ctx(eval_context_queue_t *q, CID cid) {
+
+  mutex_lock(&qmutex);
+  eval_context_t *curr;
+
+  curr = q->first;
+  while (curr != NULL) {
+    if (curr->id == cid) {
+      mutex_unlock(&qmutex);
+      return curr;
+    }
+    curr = curr->next;
+  }
+  mutex_unlock(&qmutex);
+  return NULL;
+}
+
 static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
   mutex_lock(&qmutex);
-  
+
   if (q->first == NULL || q->last == NULL) {
     if (q->last != NULL || q->first != NULL) {
       /* error state that should not happen */
@@ -146,7 +162,7 @@ static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
     mutex_unlock(&qmutex);
     return;
   }
-  
+
   /* If queue is 1 element long both conditionals will be true */
   if (ctx == q->first) {
     q->first = q->first->next;
@@ -172,7 +188,7 @@ static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
    list of finished contexts. */
 static void finish_ctx(void) {
   mutex_lock(&qmutex);
-  
+
   if (ctx_done == NULL) {
     ctx_running->prev = NULL;
     ctx_running->next = NULL;
@@ -382,36 +398,13 @@ static void advance_ctx(void) {
 
 
 static VALUE find_receiver_and_send(CID cid, VALUE msg) {
-  eval_context_t *curr;
   eval_context_t *found = NULL;
 
-  /* Search the blocked queue */
-  curr = blocked.first;
+  found = lookup_ctx(&blocked, cid);
 
-  while (curr != NULL) {
-    if (curr->id == cid) {
-      found = curr;
-      break;
-    }
-    curr = curr->next;
-  }
-
-  /* Search the queue */
-
-  mutex_lock(&qmutex);
-  
   if (found == NULL) {
-    curr = queue.first;
-    while (curr != NULL) {
-      if (curr->id == cid) {
-        found = curr;
-        break;
-      }
-      curr = curr->next;
-    }
+    found = lookup_ctx(&queue, cid);
   }
-
-  mutex_unlock(&qmutex);
 
   if (found) {
     VALUE new_mailbox = cons(msg, found->mailbox);
@@ -439,7 +432,6 @@ static VALUE find_receiver_and_send(CID cid, VALUE msg) {
     ctx_running->mailbox = new_mailbox;
     return enc_sym(SYM_TRUE);
   }
-
 
   return enc_sym(SYM_NIL);
 }
