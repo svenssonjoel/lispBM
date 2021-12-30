@@ -25,6 +25,9 @@
 #include "typedefs.h"
 #include "exp_kind.h"
 #include "streams.h"
+
+#include "platform_mutex.h"
+
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -90,6 +93,8 @@ typedef struct {
 static eval_context_queue_t blocked = {NULL, NULL};
 static eval_context_queue_t queue   = {NULL, NULL};
 
+mutex_t qmutex;
+
 static eval_context_t *ctx_done = NULL;
 static eval_context_t *ctx_running = NULL;
 
@@ -112,6 +117,7 @@ void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
 }
 
 void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
+  mutex_lock(&qmutex);
   if (q->last == NULL) {
     ctx->prev = NULL;
     ctx->next = NULL;
@@ -123,19 +129,24 @@ void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
     q->last->next = ctx;
     q->last = ctx;
   }
+  mutex_unlock(&qmutex);
 }
 
 void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 
+  mutex_lock(&qmutex);
+  
   if (q->first == NULL || q->last == NULL) {
-     if (q->last != NULL || q->first != NULL) {
-       /* error state that should not happen */
-       //printf("error!!!!\n");
-       return;
-     }
+    if (q->last != NULL || q->first != NULL) {
+      /* error state that should not happen */
+      //printf("error!!!!\n");
+      mutex_unlock(&qmutex);
+      return;
+    }
+    mutex_unlock(&qmutex);
     return;
   }
-
+  
   /* If queue is 1 element long both conditionals will be true */
   if (ctx == q->first) {
     q->first = q->first->next;
@@ -154,11 +165,14 @@ void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
     }
     curr = curr->next;
   }
+  mutex_unlock(&qmutex);
 }
 
 /* End execution of the running context and add it to the
    list of finished contexts. */
 void finish_ctx(void) {
+  mutex_lock(&qmutex);
+  
   if (ctx_done == NULL) {
     ctx_running->prev = NULL;
     ctx_running->next = NULL;
@@ -177,8 +191,10 @@ void finish_ctx(void) {
   if (ctx_done_callback) {
     ctx_done_callback(ctx_done);
   }
+  mutex_unlock(&qmutex);
 }
 
+/* remove_done_ctx is currently only done from the eval thread */
 bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
 
   if (!ctx_done) return false;
@@ -240,8 +256,10 @@ void error_ctx(VALUE err_val) {
 
 eval_context_t *dequeue_ctx(uint32_t *us) {
   uint32_t min_us = DEFAULT_SLEEP_US;
-
   uint32_t t_now;
+
+  mutex_lock(&qmutex);
+
   if (timestamp_us_callback) {
     t_now = timestamp_us_callback();
   } else {
@@ -280,6 +298,7 @@ eval_context_t *dequeue_ctx(uint32_t *us) {
           curr->next->prev = curr->prev;
         }
       }
+      mutex_unlock(&qmutex);
       return result;
     }
     if (min_us > t_diff) min_us = t_diff;
@@ -288,6 +307,7 @@ eval_context_t *dequeue_ctx(uint32_t *us) {
   /* ChibiOS does not like a sleep time of 0 */
   /* TODO: Make sure that does not happen. */
   *us = DEFAULT_SLEEP_US;
+  mutex_unlock(&qmutex);
   return NULL;
 }
 
@@ -360,6 +380,8 @@ void advance_ctx(void) {
   }
 }
 
+
+
 VALUE find_receiver_and_send(CID cid, VALUE msg) {
   eval_context_t *curr;
   eval_context_t *found = NULL;
@@ -377,6 +399,8 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
 
   /* Search the queue */
 
+  mutex_lock(&qmutex);
+  
   if (found == NULL) {
     curr = queue.first;
     while (curr != NULL) {
@@ -387,6 +411,8 @@ VALUE find_receiver_and_send(CID cid, VALUE msg) {
       curr = curr->next;
     }
   }
+
+  mutex_unlock(&qmutex);
 
   if (found) {
     VALUE new_mailbox = cons(msg, found->mailbox);
@@ -454,6 +480,9 @@ VALUE list_remove(int n, VALUE list) {
   return res;
 }
 
+/* Pattern matching is currently implemented as a recursive 
+   function and make use of stack relative to the size of 
+   expressions that are being matched. */
 bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
 
   VALUE binding;
@@ -1561,6 +1590,9 @@ int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
 
 int eval_cps_init() {
   int res = 1;
+
+  mutex_init(&qmutex);
+
   NIL = enc_sym(SYM_NIL);
   NONSENSE = enc_sym(SYM_NONSENSE);
 

@@ -2,7 +2,9 @@
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
   CCFLAGS = -g -O2 -m32 -Wall -Wextra -pedantic -std=c11
-  CCFLAGS += -D_PRELUDE 
+  CCFLAGS += -D_PRELUDE
+  PLATFORMSRC = platform/linux/src
+  PLATFORMINC = platform/linux/include
   CC=gcc
   AR=ar
 else
@@ -26,6 +28,9 @@ ifeq ($(PLATFORM), stm32f4)
   BUILD_DIR = build/stm32f4
   CCFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O2 -Wall -Wextra -pedantic
 #-fmessage-length=0 -ffunction-sections -c -MMD -MP
+  PLATFORMSRC = platform/chibios/src
+  PLATFORMINC = platform/chibios/include
+
   CCFLAGS += -D_PRELUDE
 endif
 
@@ -39,6 +44,8 @@ endif
 ifeq ($(PLATFORM), pi) #for compiling natively on the pi
   BUILD_DIR = build/pi
   CCFLAGS += -D_PRELUDE
+  PLATFORMSRC = platform/linux/src
+  PLATFORMINC = platform/linux/include
 endif
 
 SOURCE_DIR = src
@@ -51,6 +58,9 @@ OBJ = obj
 
 SOURCES = $(wildcard $(SOURCE_DIR)/*.c)
 OBJECTS = $(patsubst $(SOURCE_DIR)/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
+
+PLATSRCS = $(wildcard $(PLATFORMSRC)/*.c)
+PLATOBJS = $(patsubst $(PLATFORMSRC)/%.c, $(BUILD_DIR)/%.o, $(PLATSRCS))
 
 ifdef HEAP_VIS
 	OBJECTS += $(BUILD_DIR)/heap_vis.o
@@ -65,18 +75,20 @@ all: $(OBJECTS) $(LIB)
 debug: CCFLAGS += -g 
 debug: $(OBJECTS) $(LIB)
 
-$(LIB): $(OBJECTS) 
-	$(AR) -rcs $@ $(OBJECTS)
+$(LIB): $(OBJECTS) $(PLATOBJS)
+	$(AR) -rcs $@ $(OBJECTS) $(PLATOBJS)
 
 src/prelude.xxd: src/prelude.lisp
 	xxd -i < src/prelude.lisp > src/prelude.xxd 
 
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c src/prelude.xxd
-	$(CC) -I$(INCLUDE_DIR) $(CCFLAGS) -c $< -o $@
+	$(CC) -I$(INCLUDE_DIR) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/%.o: $(PLATFORMSRC)/%.c 
+	$(CC) -I$(INCLUDE_DIR) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/heap_vis.o: $(SOURCE_DIR)/visual/heap_vis.c
-	$(CC) -I$(INCLUDE_DIR) $(CCFLAGS) -c $< -o $@
+	$(CC) -I$(INCLUDE_DIR) -I$(PLAFORMINC) $(CCFLAGS) -c $< -o $@
 
 
 clean:
