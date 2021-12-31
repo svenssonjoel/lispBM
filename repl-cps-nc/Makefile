@@ -8,6 +8,9 @@ LISPBM_USE_EXTENSIONS = true
 
 include $(LISPBM)/lispbm.mk
 
+PLATFORMSRC = ../platform/linux/src/platform_mutex.c
+PLATFORMINC = ../platform/linux/include
+
 CCFLAGS = -m32 -O2 -Wall -Wconversion -pedantic -std=c11
 
 ifdef HEAP_VIS
@@ -20,7 +23,7 @@ debug: CCFLAGS += -g
 debug: repl
 
 repl: repl.c $(LISPBM_SRC)
-	gcc $(CCFLAGS) $(LISPBM_SRC) $(LISPBM_FLAGS) repl.c -o repl -I../include
+	gcc $(CCFLAGS) $(LISPBM_SRC) $(PLATFORMSRC) $(LISPBM_FLAGS) repl.c -o repl -I../include -I$(PLATFORMINC) -lpthread
 
 clean:
 	rm repl

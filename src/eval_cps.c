@@ -215,8 +215,17 @@ static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
    list of finished contexts. */
 static void finish_ctx(void) {
 
+  if (!ctx_running) {
+    printf("ctx_running == NULL\n");
+  }
+  
+  printf("finishing context\n");
   enqueue_ctx(&done, ctx_running);
 
+  if (!done.first) {
+    printf("enqueue failed\n");
+  }
+  
   if (ctx_done_callback) {
     ctx_done_callback(ctx_running);
   }
@@ -245,6 +254,9 @@ VALUE eval_cps_wait_ctx(CID cid) {
   while (!ctx) {
     usleep_callback(1000);
     ctx = lookup_ctx(&done, cid);
+    if (ctx) {
+      return ctx->r;
+    }
   }
   return enc_sym(SYM_NIL);
 }
@@ -1503,17 +1515,19 @@ VALUE evaluate_non_concurrent(void) {
   bool perform_gc = false;
   bool last_iteration_gc = false;
 
+  CID cid = ctx_running->id;
+  
   while (ctx_running) {
     evaluation_step(&perform_gc, &last_iteration_gc);
   }
 
-  if (!done.first) {
-    return enc_sym(SYM_FATAL_ERROR);
+  eval_context_t *ctx = lookup_ctx(&done, cid);
+  if (ctx) {
+    drop_ctx(&done, ctx);
+  } else {
+    return enc_sym(SYM_FATAL_ERROR); 
   }
 
-  /* TODO: The context should be cleaned up here */
-  
-  done.first = NULL;
   return ctx_non_concurrent.r;
 }
 
@@ -1553,6 +1567,8 @@ int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
   NIL = enc_sym(SYM_NIL);
   NONSENSE = enc_sym(SYM_NONSENSE);
 
+  mutex_init(&qmutex);
+  
   VALUE nil_entry = cons(NIL, NIL);
   *env_get_global_ptr() = cons(nil_entry, *env_get_global_ptr());
 
