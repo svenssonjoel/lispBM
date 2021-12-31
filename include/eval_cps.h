@@ -38,6 +38,8 @@ typedef struct eval_context_s{
   struct eval_context_s *next;
 } eval_context_t;
 
+typedef void (*ctx_fun)(eval_context_t *, void *);
+
 /* Common interface */
 extern VALUE eval_cps_get_env(void);
 extern void eval_cps_del(void);
@@ -49,6 +51,12 @@ extern VALUE eval_cps_wait_ctx(CID cid);
 extern CID eval_cps_program(VALUE lisp);
 extern CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size, bool grow_stack);
 extern void eval_cps_run_eval(void);
+
+/* statistics interface */
+extern void eval_cps_running_iterator(ctx_fun f, void *aux);
+extern void eval_cps_blocked_iterator(ctx_fun f, void *aux);
+extern void eval_cps_done_iterator(ctx_fun f, void *aux);
+
 /*
   Callback routines for sleeping and timestamp generation.
   Depending on target platform these will be implemented in different ways.

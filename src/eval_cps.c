@@ -61,6 +61,7 @@
 /* 768 us -> ~128000 "ticks" at 168MHz I assume this means also roughly 128000 instructions */
 #define EVAL_CPS_QUANTA_US 768
 #define EVAL_CPS_WAIT_US   1536
+#define EVAL_CPS_MIN_SLEEP 200
 
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
@@ -90,11 +91,12 @@ typedef struct {
 /* Callbacks and task queue */
 static eval_context_queue_t blocked = {NULL, NULL};
 static eval_context_queue_t queue   = {NULL, NULL};
+static eval_context_queue_t done    = {NULL, NULL};
 
 /* one mutex for all queue operations */
 mutex_t qmutex;
 
-static eval_context_t *ctx_done = NULL;
+//static eval_context_t *ctx_done = NULL;
 static eval_context_t *ctx_running = NULL;
 
 static eval_context_t ctx_non_concurrent;
@@ -115,6 +117,31 @@ void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
   ctx_done_callback = fptr;
 }
 
+
+static void queue_iterator(eval_context_queue_t *q, ctx_fun f, void *aux) {
+  mutex_lock(&qmutex);
+  eval_context_t *curr;
+  curr = q->first;
+
+  while (curr != NULL) {
+    f(curr, aux);
+    curr = curr->next;
+  }
+  mutex_unlock(&qmutex);
+}
+
+void eval_cps_running_iterator(ctx_fun f, void *aux){
+  queue_iterator(&queue, f, aux);
+}
+
+void eval_cps_blocked_iterator(ctx_fun f, void *aux){
+  queue_iterator(&blocked, f, aux);
+}
+
+void eval_cps_done_iterator(ctx_fun f, void *aux){
+  queue_iterator(&done, f, aux);
+}
+    
 static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   mutex_lock(&qmutex);
   if (q->last == NULL) {
@@ -187,79 +214,37 @@ static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 /* End execution of the running context and add it to the
    list of finished contexts. */
 static void finish_ctx(void) {
-  mutex_lock(&qmutex);
 
-  if (ctx_done == NULL) {
-    ctx_running->prev = NULL;
-    ctx_running->next = NULL;
-    ctx_done = ctx_running;
-  } else {
-    ctx_running->prev = NULL;
-    ctx_running->next = ctx_done;
-    if (ctx_running->next) {
-      ctx_running->next->prev = ctx_running;
-    }
-    ctx_done = ctx_running;
-  }
-
-  ctx_running = NULL;
+  enqueue_ctx(&done, ctx_running);
 
   if (ctx_done_callback) {
-    ctx_done_callback(ctx_done);
+    ctx_done_callback(ctx_running);
   }
-  mutex_unlock(&qmutex);
+  ctx_running = NULL;
 }
 
 bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
 
-  if (!ctx_done) return false;
+  eval_context_t *ctx = lookup_ctx(&done, cid);
 
-  eval_context_t * curr = ctx_done->next;
+  if (ctx) {
+    drop_ctx(&done, ctx);
 
-  if (ctx_done->id == cid) {
-    *v = ctx_done->r;
-    stack_free(&ctx_done->K);
-    free(ctx_done);
-    ctx_done = curr;
-    if (ctx_done) {
-      ctx_done->prev = NULL;
-    }
+    *v = ctx->r;
+    stack_free(&ctx->K);
+    free(ctx);
     return true;
-  }
-
-  while(curr) {
-    if (curr->id == cid) {
-      if (curr->prev) {
-        curr->prev->next = curr->next;
-      }
-      if (curr->next) {
-        curr->next->prev = curr->prev;
-      }
-      *v = curr->r;
-      stack_free(&curr->K);
-      free(curr);
-      return true;
-    }
-    curr = curr->next;
   }
   return false;
 }
 
 VALUE eval_cps_wait_ctx(CID cid) {
 
-  while (true) {
-    eval_context_t *curr = ctx_done;
-    while (curr) {
-      if (curr->id == cid) {
-        return curr->r;
-      }
-      if (curr->next) {
-        curr = curr->next;
-      } else {
-        break;
-      }
-    }
+  eval_context_t *ctx = NULL;
+  
+  while (!ctx) {
     usleep_callback(1000);
+    ctx = lookup_ctx(&done, cid);
   }
   return enc_sym(SYM_NIL);
 }
@@ -1391,7 +1376,7 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       /* Perform GC now */
       gc(*env_get_global_ptr(),
          queue.first,
-         ctx_done,
+         done.first,
          ctx_running,
          blocked.first);
 
@@ -1402,7 +1387,7 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
     *last_iteration_gc = true;
     gc(*env_get_global_ptr(),
        queue.first,
-       ctx_done,
+       done.first,
        ctx_running,
        blocked.first);
     *perform_gc = false;
@@ -1522,11 +1507,13 @@ VALUE evaluate_non_concurrent(void) {
     evaluation_step(&perform_gc, &last_iteration_gc);
   }
 
-  if (!ctx_done) {
+  if (!done.first) {
     return enc_sym(SYM_FATAL_ERROR);
   }
 
-  ctx_done = NULL;
+  /* TODO: The context should be cleaned up here */
+  
+  done.first = NULL;
   return ctx_non_concurrent.r;
 }
 

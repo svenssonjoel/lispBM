@@ -140,9 +140,9 @@ void done_callback(eval_context_t *ctx) {
     printf("<< Context %d finished with value %s >>\n", cid, error);
   }
 
-  if (!eval_cps_remove_done_ctx(cid, &t)) {
-    printf("Error: done context (%d)  not in list\n", cid);
-  }
+  //  if (!eval_cps_remove_done_ctx(cid, &t)) {
+  //   printf("Error: done context (%d)  not in list\n", cid);
+  //}
   fflush(stdout);
   
 }
@@ -250,6 +250,26 @@ char * load_file(char *filename) {
   }
   return file_str;
 }
+
+
+void print_ctx_info(eval_context_t *ctx, void *aux) {
+
+  char output[1024];
+  char error[1024];
+  
+  int print_ret = print_value(output, 1024, error, 1024, ctx->r);
+  
+  printf("--------------------------------\n");
+  printf("ContextID: %u\n", ctx->id);
+  printf("Stack SP: %u\n",  ctx->K.sp);
+  if (print_ret) { 
+    printf("Value: %s\n", output);
+  } else {
+    printf("Error: %s\n", error);
+  }
+
+}
+
 
 int main(int argc, char **argv) {
   char *str = malloc(1024);;
@@ -377,10 +397,16 @@ int main(int argc, char **argv) {
     } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
       allow_print = false;
       continue;
+    } else if (strncmp(str, ":ctxs", 5) == 0) {
+      printf("****** Running contexts ******\n");
+      eval_cps_running_iterator(print_ctx_info, NULL);
+      printf("****** Blocked contexts ******\n");
+      eval_cps_blocked_iterator(print_ctx_info, NULL);
+      printf("****** Done contexts ******\n");
+      eval_cps_done_iterator(print_ctx_info, NULL);
     } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
     } else {
-
       VALUE t;
       t = tokpar_parse(str);
 
