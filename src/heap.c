@@ -225,9 +225,10 @@ void heap_get_state(heap_state_t *res) {
   res->gc_recovered_arrays = heap_state.gc_recovered_arrays;
 }
 
+static VALUE stack_storage[1024];
+
 int gc_mark_phase(VALUE env) {
 
-  VALUE stack_storage[1024];
   stack s;
   stack_create(&s, stack_storage, 1024);
 

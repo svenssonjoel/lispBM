@@ -35,7 +35,7 @@
 #include "memory.h"
 #include "env.h"
 
-#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(4096)
+#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(2048 + 512)
 #define EVAL_CPS_STACK_SIZE 256
 
 BaseSequentialStream *chp = NULL;
@@ -106,11 +106,14 @@ static THD_FUNCTION(eval, arg) {
   eval_cps_run_eval();
 }
 
+/* ext_print is atomic from the point of view of the lisp RTS */
+char print_output[1024];
+char error_output[1024]; 
 
 VALUE ext_print(VALUE *args, UINT argn) {
 
-  char output[1024];
-  char error[1024];
+  char *output = print_output;
+  char *error = error_output;
 
   for (UINT i = 0; i < argn; i ++) {
     VALUE t = args[i];
