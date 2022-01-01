@@ -1,5 +1,6 @@
 /*
     Copyright 2019, 2022  Joel Svensson        svenssonjoel@yahoo.se
+                          Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -261,6 +262,28 @@ int main(void) {
       chprintf(chp,"Free cons cells: %lu\r\n", heap_num_free());
       chprintf(chp,"############################################################\r\n");
       memset(outbuf,0, 2048);
+    } else if (strncmp(str, ":threads", 8) == 0) {
+      thread_t *tp;
+      static const char *states[] = {CH_STATE_NAMES};
+      chprintf(chp, "    addr prio refs     state           name time    \r\n");
+      chprintf(chp, "-------------------------------------------------------------------\r\n");
+      tp = chRegFirstThread();
+      do {
+        chprintf(chp, "%.8lx %4lu %4lu %9s %14s %lu (%.1f %%)\r\n",
+                 (uint32_t)tp,
+                 (uint32_t)tp->prio, (uint32_t)(tp->refs - 1),
+                 states[tp->state], tp->name, (uint32_t)(tp->time - tp->time_last),
+                 (double)(100.0 * (float)(tp->time - tp->time_last) / (float)(chVTGetSystemTimeX() - tp->time_last)));
+        tp->time_last = tp->time;
+        tp = chRegNextThread(tp);
+      } while (tp != NULL);
+    } else if (strncmp(str, ":mem", 4) == 0) {
+      size_t n, size, sizel;
+      n = chHeapStatus(NULL, &size, &sizel);
+      chprintf(chp, "core free memory  : %u bytes\r\n", chCoreGetStatusX());
+      chprintf(chp, "heap fragments    : %u\r\n", n);
+      chprintf(chp, "heap free largest : %u bytes\r\n", sizel);
+      chprintf(chp, "heap free total   : %u bytes\n\r\n", size);
     } else if (strncmp(str, ":quit", 5) == 0) {
       break;
     } else if (strncmp(str, ":read", 5) == 0) {
