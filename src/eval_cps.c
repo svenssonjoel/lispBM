@@ -242,10 +242,14 @@ bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
   return false;
 }
 
+/* Dangerous function that will lock up if called 
+   with the incorrect cid 
+   TODO: replace with less dangerous alternatives
+*/
 VALUE eval_cps_wait_ctx(CID cid) {
 
   eval_context_t *ctx = NULL;
-  VALUE r;
+  VALUE r = enc_sym(SYM_NIL);
   
   while (!ctx) {
     ctx = lookup_ctx(&done, cid);
@@ -255,7 +259,7 @@ VALUE eval_cps_wait_ctx(CID cid) {
     }
     usleep_callback(1000);
   }
-  return enc_sym(SYM_NIL);
+  return r;
 }
 
 static void error_ctx(VALUE err_val) {

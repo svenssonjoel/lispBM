@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
     compression_decompress(decompress_code, 8192, compressed_code);
     printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
     
-    t = tokpar_parse_compressed(compressed_code);
+    t = compression_parse(compressed_code);
     free(compressed_code);
   } else { 
     t = tokpar_parse(code_buffer);

@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2021, 2022 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@
 #include "memory.h"
 #include "env.h"
 
-#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(2*8192)
+#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(1024)
 #define EVAL_CPS_STACK_SIZE 256
 
 BaseSequentialStream *chp = NULL;

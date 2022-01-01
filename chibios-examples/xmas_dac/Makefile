@@ -110,11 +110,11 @@ include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Auto-build files in ./source recursively.
 include $(CHIBIOS)/tools/mk/autobuild.mk
 # Other files (optional).
-include $(CHIBIOS)/test/lib/test.mk
-include $(CHIBIOS)/test/rt/rt_test.mk
-include $(CHIBIOS)/test/oslib/oslib_test.mk
+#include $(CHIBIOS)/test/lib/test.mk
+#include $(CHIBIOS)/test/rt/rt_test.mk
+#include $(CHIBIOS)/test/oslib/oslib_test.mk
 include $(CHIBIOS)/os/hal/lib/streams/streams.mk
-include $(CHIBIOS)/os/various/shell/shell.mk
+#include $(CHIBIOS)/os/various/shell/shell.mk
 
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
@@ -122,8 +122,8 @@ LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 
-LBMSRC = ../../src/compression.c \
-         ../../src/env.c \
+# ../../src/compression.c 
+LBMSRC = ../../src/env.c \
          ../../src/eval_cps.c \
          ../../src/extensions.c \
          ../../src/fundamental.c \

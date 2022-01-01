@@ -21,6 +21,6 @@
 #include "typedefs.h"
 
 extern VALUE tokpar_parse(char *str);
-extern VALUE tokpar_parse_compressed(char *bytes);
+extern VALUE tokpar_parse_program(tokenizer_char_stream str);
 
 #endif

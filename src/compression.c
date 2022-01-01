@@ -22,6 +22,8 @@
 #include <stdbool.h>
 
 #include "compression.h"
+#include "typedefs.h"
+#include "tokpar.h"
 
 #define  KEY  0
 #define  CODE 1
@@ -107,80 +109,6 @@ char *codes[NUM_CODES][2] = {
     { "+", "0100010" }
     };
 
-
-/* #define NUM_CODES 68 */
-/* #define MAX_KEY_LENGTH 6 */
-/* #define MAX_CODE_LENGTH 7 */
-/* char *codes[NUM_CODES][2] = { */
-/*     { "9", "111000" }, */
-/*     { "8", "101011" }, */
-/*     { "7", "111001" }, */
-/*     { "6", "110001" }, */
-/*     { "5", "111010" }, */
-/*     { "4", "100111" }, */
-/*     { "3", "100010" }, */
-/*     { "2", "110010" }, */
-/*     { "1", "110110" }, */
-/*     { "0", "101100" }, */
-/*     { "_", "000111" }, */
-/*     { ",@", "1110110" }, */
-/*     { ",", "1110111" }, */
-/*     { "`", "000010" }, */
-/*     { " ", "000011" }, */
-/*     { "'", "000000" }, */
-/*     { "\\", "000001" }, */
-/*     { "\"", "1111000" }, */
-/*     { "#", "1111001" }, */
-/*     { ".", "000110" }, */
-/*     { ">", "1111101" }, */
-/*     { "<", "000100" }, */
-/*     { "=", "000101" }, */
-/*     { "/", "1111110" }, */
-/*     { "*", "1111111" }, */
-/*     { "-", "1111010" }, */
-/*     { "+", "1111011" }, */
-/*     { "nil", "110011" }, */
-/*     { "cdr", "100100" }, */
-/*     { "car", "100101" }, */
-/*     { "cons", "101110" }, */
-/*     { "let", "101111" }, */
-/*     { "define", "110100" }, */
-/*     { "progn", "110101" }, */
-/*     { "quote", "101000" }, */
-/*     { "list", "110000" }, */
-/*     { "if", "101101" }, */
-/*     { "lambda", "100011" }, */
-/*     { "((", "101010" }, */
-/*     { "))", "110111" }, */
-/*     { ")", "101001" }, */
-/*     { "(", "100110" }, */
-/*     { "z", "001011" }, */
-/*     { "y", "001000" }, */
-/*     { "x", "010010" }, */
-/*     { "w", "010011" }, */
-/*     { "v", "011000" }, */
-/*     { "u", "001110" }, */
-/*     { "t", "010100" }, */
-/*     { "s", "010101" }, */
-/*     { "r", "011110" }, */
-/*     { "q", "011111" }, */
-/*     { "p", "011101" }, */
-/*     { "o", "010000" }, */
-/*     { "n", "010001" }, */
-/*     { "m", "100001" }, */
-/*     { "l", "001001" }, */
-/*     { "k", "001101" }, */
-/*     { "j", "001111" }, */
-/*     { "i", "010110" }, */
-/*     { "h", "011100" }, */
-/*     { "g", "011010" }, */
-/*     { "f", "001010" }, */
-/*     { "e", "001100" }, */
-/*     { "d", "010111" }, */
-/*     { "c", "011011" }, */
-/*     { "b", "011001" }, */
-/*     { "a", "100000" } */
-/*     }; */
 
 int match_longest_key(char *string) {
 
@@ -515,4 +443,87 @@ bool compression_decompress(char *dest, uint32_t dest_n, char *src) {
     }
   }
   return true;
+}
+
+/* Implementation of the parsing interface */
+
+#define DECOMP_BUFF_SIZE 32
+typedef struct {
+  decomp_state ds;
+  char decomp_buff[DECOMP_BUFF_SIZE];
+  int  decomp_bytes;
+  int  buff_pos;
+} tokenizer_compressed_state;
+
+bool more_compressed(tokenizer_char_stream str) {
+  tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
+  bool more =
+    (s->ds.i < s->ds.compressed_bits + 32) ||
+    (s->buff_pos < s->decomp_bytes);
+  return more;
+}
+
+char get_compressed(tokenizer_char_stream str) {
+  tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
+
+  if (s->ds.i >= s->ds.compressed_bits + 32 &&
+      (s->buff_pos >= s->decomp_bytes)) {
+    return 0;
+  }
+
+  if (s->buff_pos >= s->decomp_bytes) {
+    int n = compression_decompress_incremental(&s->ds, s->decomp_buff,DECOMP_BUFF_SIZE);
+    if (n == 0) {
+      return 0;
+    }
+    s->decomp_bytes = n;
+    s->buff_pos = 0;
+  }
+  char c = s->decomp_buff[s->buff_pos];
+  s->buff_pos += 1;
+  return c;
+}
+
+char peek_compressed(tokenizer_char_stream str, unsigned int n) {
+  tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
+
+  tokenizer_compressed_state old;
+
+  memcpy(&old, s, sizeof(tokenizer_compressed_state));
+
+  char c = get_compressed(str);;
+  for (unsigned int i = 1; i <= n; i ++) {
+    c = get_compressed(str);
+  }
+
+  memcpy(str.state, &old, sizeof(tokenizer_compressed_state));
+  return c;
+}
+
+
+void drop_compressed(tokenizer_char_stream str, unsigned int n) {
+  for (unsigned int i = 0; i < n; i ++) {
+    get_compressed(str);
+  }
+}
+
+
+VALUE compression_parse(char *bytes) {
+
+  tokenizer_compressed_state ts;
+
+  ts.decomp_bytes = 0;
+  memset(ts.decomp_buff, 0, 32);
+  ts.buff_pos = 0;
+
+  compression_init_state(&ts.ds, bytes);
+
+  tokenizer_char_stream str;
+  str.state = &ts;
+  str.more = more_compressed;
+  str.get = get_compressed;
+  str.peek = peek_compressed;
+  str.drop = drop_compressed;
+
+  return tokpar_parse_program(str);
 }

@@ -28,7 +28,6 @@ LISPBM_DEPS += $(LISPBM)/src/prelude.xxd
 $(LISPBM)/src/prelude.xxd: $(LISPBM)/src/prelude.lisp
 	xxd -i < $(LISPBM)/src/prelude.lisp > $(LISPBM)/src/prelude.xxd 
 
-
 endif
 
 ifeq ($(LISPBM_USE_EXTENSIONS), true)

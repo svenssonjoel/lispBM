@@ -1,5 +1,19 @@
 
 
+LISPBM := ../
+
+LISPBM_USE_COMPRESSION = true
+LISPBM_USE_EVAL_CPS = true
+LISPBM_USE_EC_EVAL = true
+LISPBM_USE_PRELUDE = true
+LISPBM_USE_EXTENSIONS = true
+
+include $(LISPBM)/lispbm.mk
+
+PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
+PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c
+
+
 CCFLAGS = -g -m32 -O2 -Wall -Wconversion -pedantic -std=c11 
 CC=gcc
 
@@ -13,8 +27,8 @@ all: $(EXECS)
 	mv test_lisp_code_cps.exe test_lisp_code_cps
 	mv test_lisp_code_cps_nc.exe test_lisp_code_cps_nc
 
-%.exe: %.c
-	$(CC) -I../include $(CCFLAGS) $< ../build/linux-x86/liblispbm.a -o $@  -lpthread
+%.exe: %.c $(LISPBM_DEPS)
+	$(CC) $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $< -o $@  -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread
 
 
 clean:

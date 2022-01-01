@@ -86,15 +86,6 @@ typedef struct {
   unsigned int pos;
 } tokenizer_state;
 
-
-typedef struct tcs{
-  void *state;
-  bool (*more)(struct tcs);
-  char (*get)(struct tcs);
-  char (*peek)(struct tcs, unsigned int);
-  void (*drop)(struct tcs, unsigned int);
-} tokenizer_char_stream;
-
 typedef struct {
   const char *str;
   uint32_t  token;
@@ -500,7 +491,7 @@ token next_token(tokenizer_char_stream str) {
 VALUE parse_sexp(token tok, tokenizer_char_stream str);
 VALUE parse_sexp_list(token tok, tokenizer_char_stream str);
 
-VALUE parse_program(tokenizer_char_stream str) {
+VALUE tokpar_parse_program(tokenizer_char_stream str) {
   token tok = next_token(str);
   VALUE head;
   VALUE tail;
@@ -514,7 +505,7 @@ VALUE parse_program(tokenizer_char_stream str) {
   }
 
   head = parse_sexp(tok, str);
-  tail = parse_program(str);
+  tail = tokpar_parse_program(str);
 
   return cons(head, tail);
 }
@@ -688,86 +679,6 @@ VALUE tokpar_parse(char *string) {
   str.drop = drop_string;
   str.get  = get_string;
 
-  return parse_program(str);
+  return tokpar_parse_program(str);
 }
 
-#define DECOMP_BUFF_SIZE 32
-typedef struct {
-  decomp_state ds;
-  char decomp_buff[DECOMP_BUFF_SIZE];
-  int  decomp_bytes;
-  int  buff_pos;
-} tokenizer_compressed_state;
-
-bool more_compressed(tokenizer_char_stream str) {
-  tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
-  bool more =
-    (s->ds.i < s->ds.compressed_bits + 32) ||
-    (s->buff_pos < s->decomp_bytes);
-  return more;
-}
-
-char get_compressed(tokenizer_char_stream str) {
-  tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
-
-  if (s->ds.i >= s->ds.compressed_bits + 32 &&
-      (s->buff_pos >= s->decomp_bytes)) {
-    return 0;
-  }
-
-  if (s->buff_pos >= s->decomp_bytes) {
-    int n = compression_decompress_incremental(&s->ds, s->decomp_buff,DECOMP_BUFF_SIZE);
-    if (n == 0) {
-      return 0;
-    }
-    s->decomp_bytes = n;
-    s->buff_pos = 0;
-  }
-  char c = s->decomp_buff[s->buff_pos];
-  s->buff_pos += 1;
-  return c;
-}
-
-char peek_compressed(tokenizer_char_stream str, unsigned int n) {
-  tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
-
-  tokenizer_compressed_state old;
-
-  memcpy(&old, s, sizeof(tokenizer_compressed_state));
-
-  char c = get_compressed(str);;
-  for (unsigned int i = 1; i <= n; i ++) {
-    c = get_compressed(str);
-  }
-
-  memcpy(str.state, &old, sizeof(tokenizer_compressed_state));
-  return c;
-}
-
-
-void drop_compressed(tokenizer_char_stream str, unsigned int n) {
-  for (unsigned int i = 0; i < n; i ++) {
-    get_compressed(str);
-  }
-}
-
-
-VALUE tokpar_parse_compressed(char *bytes) {
-
-  tokenizer_compressed_state ts;
-
-  ts.decomp_bytes = 0;
-  memset(ts.decomp_buff, 0, 32);
-  ts.buff_pos = 0;
-
-  compression_init_state(&ts.ds, bytes);
-
-  tokenizer_char_stream str;
-  str.state = &ts;
-  str.more = more_compressed;
-  str.get = get_compressed;
-  str.peek = peek_compressed;
-  str.drop = drop_compressed;
-
-  return parse_program(str);
-}
