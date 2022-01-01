@@ -666,11 +666,6 @@ static inline void eval_selfevaluating(eval_context_t *ctx) {
   ctx->r = ctx->curr_exp;
 }
 
-static inline void eval_stream(void) {
-  ERROR
-  error_ctx(enc_sym(SYM_EERROR));
-}
-
 static inline void eval_quote(eval_context_t *ctx) {
   ctx->r = car(cdr(ctx->curr_exp));
   ctx->app_cont = true;
@@ -1439,9 +1434,9 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
   case VAL_TYPE_I:
   case VAL_TYPE_U:
   case VAL_TYPE_CHAR:
-  case PTR_TYPE_ARRAY: eval_selfevaluating(ctx); return;
-  case PTR_TYPE_REF: /* fall through */
-  case PTR_TYPE_STREAM: eval_stream(); return;
+  case PTR_TYPE_ARRAY: 
+  case PTR_TYPE_REF: 
+  case PTR_TYPE_STREAM: eval_selfevaluating(ctx);  return;
 
   case PTR_TYPE_CONS:
     head = car(ctx->curr_exp);
@@ -1454,12 +1449,12 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       case SYM_QUOTE:   eval_quote(ctx); return;
       case SYM_DEFINE:  eval_define(ctx); return;
       case SYM_PROGN:   eval_progn(ctx); return;
-      case SYM_SPAWN:        eval_spawn(ctx); return;
+      case SYM_SPAWN:   eval_spawn(ctx); return;
       case SYM_LAMBDA:  eval_lambda(ctx, perform_gc); return;
       case SYM_IF:      eval_if(ctx); return;
       case SYM_LET:     eval_let(ctx, perform_gc); return;
-      case SYM_AND:          eval_and(ctx); return;
-      case SYM_OR:           eval_or(ctx); return;
+      case SYM_AND:     eval_and(ctx); return;
+      case SYM_OR:      eval_or(ctx); return;
       case SYM_MATCH:   eval_match(ctx); return;
         /* message passing primitives */
         //case SYM_SEND:    eval_send(ctx, perform_gc); return;
