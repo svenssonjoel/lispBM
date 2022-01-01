@@ -202,9 +202,14 @@ static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   while (curr) {
     if (curr->id == ctx->id) {
       eval_context_t *tmp = curr->next;
-      curr->next = curr->prev;
-      curr->prev = tmp;
-        break;
+      if (curr->prev == NULL) {
+        q->first = tmp;
+        tmp->prev = NULL;
+      } else {
+        curr->prev->next = tmp;
+        tmp->prev = curr->prev;
+      }
+      break;
     }
     curr = curr->next;
   }
@@ -356,6 +361,8 @@ static CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_s
   ctx->app_cont = false;
   ctx->timestamp = 0;
   ctx->sleep_us = 0;
+  ctx->prev = NULL;
+  ctx->next = NULL;
   if (next_ctx_id > CID_MAX) {
     free(ctx);
     return 0;

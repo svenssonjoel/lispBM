@@ -35,7 +35,7 @@
 #include "memory.h"
 #include "env.h"
 
-#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(1024)
+#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(4096)
 #define EVAL_CPS_STACK_SIZE 256
 
 BaseSequentialStream *chp = NULL;
@@ -101,7 +101,6 @@ void sleep_callback(uint32_t us) {
   chThdSleepMicroseconds(us);
 }
 
-
 static THD_FUNCTION(eval, arg) {
   (void) arg;
   eval_cps_run_eval();
@@ -145,13 +144,20 @@ VALUE ext_print(VALUE *args, UINT argn) {
   return enc_sym(SYM_TRUE);
 }
 
-unsigned char memory_array[MEMORY_SIZE_8K];
-unsigned char bitmap_array[MEMORY_BITMAP_SIZE_8K];
-
 char str[1024];
 char outbuf[2048];
 char error[1024];
 char file_buffer[2048];
+
+
+void print_ctx_info(eval_context_t *ctx, void *aux) {
+  int print_ret = print_value(outbuf, 2048, error, 1024, ctx->r);
+  chprintf(chp, "%s %x %u %u %s\r\n", (char*)aux, (uint32_t)ctx, ctx->id, ctx->K.sp, print_ret ? outbuf : error );   
+}
+
+
+unsigned char memory_array[MEMORY_SIZE_8K];
+unsigned char bitmap_array[MEMORY_BITMAP_SIZE_8K];
 
 int main(void) {
   halInit();
@@ -284,7 +290,11 @@ int main(void) {
       chprintf(chp, "heap fragments    : %u\r\n", n);
       chprintf(chp, "heap free largest : %u bytes\r\n", sizel);
       chprintf(chp, "heap free total   : %u bytes\n\r\n", size);
-    } else if (strncmp(str, ":quit", 5) == 0) {
+    } else if (strncmp(str, ":ctxs", 5) == 0) {
+      eval_cps_running_iterator(print_ctx_info, "RUNNING");
+      eval_cps_blocked_iterator(print_ctx_info, "BLOCKED");
+      eval_cps_done_iterator   (print_ctx_info, "DONE");
+    }else if (strncmp(str, ":quit", 5) == 0) {
       break;
     } else if (strncmp(str, ":read", 5) == 0) {
       memset(file_buffer, 0, 2048);

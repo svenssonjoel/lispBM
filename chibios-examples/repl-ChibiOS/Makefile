@@ -6,7 +6,7 @@
 # Compiler options here.
 ifeq ($(USE_OPT),)
   USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16
-  USE_OPT += -DBOARD_OTG_NOVBUSSENS
+  USE_OPT += -DBOARD_OTG_NOVBUSSENS -DCHPRINTF_USE_FLOAT=TRUE
 endif
 
 # C specific options here (added to USE_OPT).
