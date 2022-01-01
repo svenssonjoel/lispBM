@@ -192,7 +192,7 @@ void done_callback(eval_context_t *ctx) {
   VALUE t = ctx->r;
   
   int print_ret = print_value(output, 1024, error, 1024, t);
-
+  
   if (print_ret >= 0) {
     chprintf(chp,"<< Context %d finished with value %s >>\r\n# ", cid, output);
   } else {
@@ -389,14 +389,6 @@ int main(void) {
   eval_cps_program(prelude);
 
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
-
-  /* while (1) { */
-  /*   uint32_t time = timestamp_callback(); */
-  /*   chprintf(chp,"time %u \r\n", time); */
-  /*   chThdSleepMilliseconds(500); */
-  /* } */
-  
-
   
   while (1) {
     chprintf(chp,"# ");
@@ -423,6 +415,10 @@ int main(void) {
       memset(outbuf,0, 2048);
     } else if (strncmp(str, ":quit", 5) == 0) {
       break;
+    } else if (strncmp(str, ":wait", 5) == 0) {
+      int cid = atoi(str+5);
+      chprintf(chp,"waiting for cid: %d\r\n", cid);
+      eval_cps_wait_ctx(cid);    
     } else if (strncmp(str, ":read", 5) == 0) {
       memset(file_buffer, 0, 4096);
       bool done = false;
@@ -457,7 +453,7 @@ int main(void) {
 	}
       }
     } else {
-
+      
       if (strlen(str) == 0) {
 	continue;
       }

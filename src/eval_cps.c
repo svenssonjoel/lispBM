@@ -216,15 +216,10 @@ static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 static void finish_ctx(void) {
 
   if (!ctx_running) {
-    printf("ctx_running == NULL\n");
+    return;
   }
   
-  printf("finishing context\n");
   enqueue_ctx(&done, ctx_running);
-
-  if (!done.first) {
-    printf("enqueue failed\n");
-  }
   
   if (ctx_done_callback) {
     ctx_done_callback(ctx_running);
@@ -250,13 +245,15 @@ bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
 VALUE eval_cps_wait_ctx(CID cid) {
 
   eval_context_t *ctx = NULL;
+  VALUE r;
   
   while (!ctx) {
-    usleep_callback(1000);
     ctx = lookup_ctx(&done, cid);
     if (ctx) {
-      return ctx->r;
+      eval_cps_remove_done_ctx(cid, &r);
+      return r;
     }
+    usleep_callback(1000);
   }
   return enc_sym(SYM_NIL);
 }
@@ -1176,8 +1173,6 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
   }
 
   // It may be an extension
-  // printf("Trying to apply to: %u\n", dec_sym(fun));
-
   extension_fptr f = extensions_lookup(dec_sym(fun));
   if (f == NULL) {
     ERROR

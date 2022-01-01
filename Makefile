@@ -75,16 +75,13 @@ all: $(OBJECTS) $(LIB)
 debug: CCFLAGS += -g 
 debug: $(OBJECTS) $(LIB)
 
-$(LIB): $(OBJECTS) $(PLATOBJS)
-	$(AR) -rcs $@ $(OBJECTS) $(PLATOBJS)
+$(LIB): $(OBJECTS) 
+	$(AR) -rcs $@ $(OBJECTS) 
 
 src/prelude.xxd: src/prelude.lisp
 	xxd -i < src/prelude.lisp > src/prelude.xxd 
 
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c src/prelude.xxd
-	$(CC) -I$(INCLUDE_DIR) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/%.o: $(PLATFORMSRC)/%.c 
 	$(CC) -I$(INCLUDE_DIR) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/heap_vis.o: $(SOURCE_DIR)/visual/heap_vis.c
