@@ -1,6 +1,7 @@
 # lispBM
 
-A lisp-like language implemented in C for 32-bit platforms.
+A concurrent lisp-like language with message-passing and
+pattern-matching implemented in C for 32-bit platforms.
 
 ## Purpose
 1. Have fun.
@@ -23,11 +24,9 @@ A lisp-like language implemented in C for 32-bit platforms.
 11. Compiles for, and runs on ESP32C3 (RISC-V).
 12. Compiles for, and runs on Raspberry PI (Tested on 32bit Raspbian OS)
 13. Quasiquotation.
-
-## Experimental
-1. Concurrency (Work in progress).
-2. Pattern-matching (Work in progress).
-3. Message passing (Work in progress).
+14. Concurrency. 
+15. Message-passing.
+16. Pattern-matching
 
 ## Documentation
 LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).
@@ -38,7 +37,7 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 3. Then join in the fun. Lots to do, so little time!
 4. Poke me by mail bo(dot)joel(dot)svensson(whirly-a)gmail(dot)com
 
-## TODOs  
+## TODOs
 1. (DONE) Write some tests that stresses the Garbage collector.
 2. (DONE) Implement some "reference to X type", for uint32, int32. 
 3. (DONE) Write a small library of useful hofs. 
@@ -57,7 +56,6 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 16. Implement some looping structure for speed or just ease of use. 
 17. Be much more stringent on checking of error conditions etc.
 18. The parser allocates heap memory, but there are no interfacing with the GC there.
-
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
