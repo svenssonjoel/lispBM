@@ -256,21 +256,32 @@ int main(void) {
     chprintf(chp,"\r\n");
 
     if (strncmp(str, ":info", 5) == 0) {
-      chprintf(chp,"##(ChibiOS)#################################################\r\n");
+      chprintf(chp,"------------------------------------------------------------\r\n");
       chprintf(chp,"Used cons cells: %lu \r\n", heap_size - heap_num_free());
-      res = print_value(outbuf,2048, error, 1024, *env_get_global_ptr());
-      if (res >= 0) {
-        chprintf(chp,"ENV: %s \r\n", outbuf);
-      } else {
-        chprintf(chp,"%s\r\n",error);
-      }
+      chprintf(chp,"Free cons cells: %lu\r\n", heap_num_free());
       heap_get_state(&heap_state);
       chprintf(chp,"GC counter: %lu\r\n", heap_state.gc_num);
       chprintf(chp,"Recovered: %lu\r\n", heap_state.gc_recovered);
       chprintf(chp,"Marked: %lu\r\n", heap_state.gc_marked);
-      chprintf(chp,"Free cons cells: %lu\r\n", heap_num_free());
-      chprintf(chp,"############################################################\r\n");
+      
+      chprintf(chp,"Array and symbol string memory:\r\n");
+      chprintf(chp,"  Size: %u 32Bit words\r\n", memory_num_words());
+      chprintf(chp,"  Free: %u 32Bit words\r\n", memory_num_free());
+      chprintf(chp,"------------------------------------------------------------\r\n");
       memset(outbuf,0, 2048);
+    } else if (strncmp(str, ":env", 4) == 0) {
+      VALUE curr = *env_get_global_ptr();
+      chprintf(chp,"Environment:\r\n");
+      while (type_of(curr) == PTR_TYPE_CONS) {
+        res = print_value(outbuf,2048, error, 1024, car(curr));
+        curr = cdr(curr);
+
+        if (res >= 0) {
+          chprintf(chp,"  %s \r\n", outbuf);
+        } else {
+          chprintf(chp,"  %s\r\n",error);
+        }
+      }
     } else if (strncmp(str, ":threads", 8) == 0) {
       thread_t *tp;
       static const char *states[] = {CH_STATE_NAMES};
