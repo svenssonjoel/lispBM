@@ -52,6 +52,11 @@ extern CID eval_cps_program(VALUE lisp);
 extern CID eval_cps_program_ext(VALUE lisp, unsigned int stack_size, bool grow_stack);
 extern void eval_cps_run_eval(void);
 
+extern void eval_cps_pause_eval(void);
+extern void eval_cps_step_eval(void);
+extern void eval_cps_continue_eval(void); 
+extern void eval_cps_kill_eval(void); 
+
 /* statistics interface */
 extern void eval_cps_running_iterator(ctx_fun f, void *aux);
 extern void eval_cps_blocked_iterator(ctx_fun f, void *aux);

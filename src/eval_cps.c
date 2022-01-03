@@ -63,6 +63,14 @@
 #define EVAL_CPS_WAIT_US   1536
 #define EVAL_CPS_MIN_SLEEP 200
 
+#define STATE_INIT    0
+#define STATE_PAUSED  1
+#define STATE_RUNNING 2
+#define STATE_STEP    3
+#define STATE_KILL    4
+
+volatile uint32_t eval_cps_run_state = STATE_INIT;
+
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
    resolution of the timer used for sleep operations.  If this is set
@@ -1491,12 +1499,50 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
   return;
 }
 
+void eval_cps_pause_eval(void) {
+  eval_cps_run_state = STATE_PAUSED;
+}
+
+void eval_cps_step_eval(void) {
+  eval_cps_run_state = STATE_STEP;
+}
+
+void eval_cps_continue_eval(void) {
+  eval_cps_run_state = STATE_RUNNING;
+}
+
+void eval_cps_kill_eval(void) {
+  eval_cps_run_state = STATE_KILL;
+}
+
+/* eval_cps_run can be paused 
+   I think it would be better use a mailbox for 
+   communication between other threads and the run_eval 
+   but for now a set of variables will be used. */
 void eval_cps_run_eval(void){
 
   bool perform_gc = false;
   bool last_iteration_gc = false;
 
   while (eval_running) {
+
+    switch (eval_cps_run_state) {
+    case STATE_INIT:
+      eval_cps_run_state = STATE_RUNNING;
+      break;
+    case STATE_STEP:
+      eval_cps_run_state = STATE_PAUSED;
+      break;
+    case STATE_PAUSED:
+      usleep_callback(EVAL_CPS_MIN_SLEEP);
+      continue; /* jump back to start of eval_running loop */
+    case STATE_KILL:
+      eval_running = false;
+      continue;
+    default:
+      break;
+    }
+
     if (!ctx_running) {
       uint32_t us;
       ctx_running = dequeue_ctx(&us);
