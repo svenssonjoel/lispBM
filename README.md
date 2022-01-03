@@ -4,7 +4,7 @@ A concurrent lisp-like language with message-passing and
 pattern-matching implemented in C for 32-bit platforms.
 
 ![LispBM mascot](https://github.com/svenssonjoel/lispBM/blob/master/mascot/lispbm_llama_small.png)
-
+All programming languages need a mascot, so here the is the LispBM llama by [PixiLady](https://www.instagram.com/pixiladyart/).
 
 ## Purpose
 1. Have fun.
