@@ -3,6 +3,9 @@
 A concurrent lisp-like language with message-passing and
 pattern-matching implemented in C for 32-bit platforms.
 
+![LispBM mascot](https://github.com/svenssonjoel/lispBM/blob/master/mascot/lispbm_llama_small.png)
+
+
 ## Purpose
 1. Have fun.
 2. Learn about lisp.
@@ -55,7 +58,7 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 15. Test all example REPLs after addition of quasiquotation
 16. Implement some looping structure for speed or just ease of use. 
 17. Be much more stringent on checking of error conditions etc.
-18. The parser allocates heap memory, but there are no interfacing with the GC there.
+18. The parser allocates heap memory, but there is no interfacing with the GC there.
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
