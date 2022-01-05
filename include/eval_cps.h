@@ -42,7 +42,6 @@ typedef void (*ctx_fun)(eval_context_t *, void *);
 
 /* Common interface */
 extern VALUE eval_cps_get_env(void);
-extern void eval_cps_del(void);
 
 /* Concurrent interface */
 extern int eval_cps_init(void);
@@ -55,7 +54,8 @@ extern void eval_cps_run_eval(void);
 extern void eval_cps_pause_eval(void);
 extern void eval_cps_step_eval(void);
 extern void eval_cps_continue_eval(void); 
-extern void eval_cps_kill_eval(void); 
+extern void eval_cps_kill_eval(void);
+extern uint32_t eval_cps_current_state(void);
 
 /* statistics interface */
 extern void eval_cps_running_iterator(ctx_fun f, void *aux);
@@ -73,5 +73,6 @@ extern void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *));
 
 /* Non concurrent interface: */
 extern int eval_cps_init_nc(unsigned int stack_size, bool grow_stack);
+extern void eval_cps_del_nc(void);
 extern VALUE eval_cps_program_nc(VALUE lisp);
 #endif

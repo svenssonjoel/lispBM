@@ -69,7 +69,8 @@
 #define STATE_STEP    3
 #define STATE_KILL    4
 
-volatile uint32_t eval_cps_run_state = STATE_INIT;
+static uint32_t eval_cps_run_state = STATE_INIT;
+volatile uint32_t eval_cps_next_state = STATE_INIT;
 
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
@@ -351,6 +352,7 @@ static void yield_ctx(uint32_t sleep_us) {
   ctx_running = NULL;
 }
 
+/* todo: Allocate contexts in "memory" as it is provided by memory.h */
 static CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
 
   if (next_ctx_id == 0) return 0; // overflow of CIDs
@@ -1500,19 +1502,23 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
 }
 
 void eval_cps_pause_eval(void) {
-  eval_cps_run_state = STATE_PAUSED;
+  eval_cps_next_state = STATE_PAUSED;
 }
 
 void eval_cps_step_eval(void) {
-  eval_cps_run_state = STATE_STEP;
+  eval_cps_next_state = STATE_STEP;
 }
 
 void eval_cps_continue_eval(void) {
-  eval_cps_run_state = STATE_RUNNING;
+  eval_cps_next_state = STATE_RUNNING;
 }
 
 void eval_cps_kill_eval(void) {
-  eval_cps_run_state = STATE_KILL;
+  eval_cps_next_state = STATE_KILL;
+}
+
+uint32_t eval_cps_current_state(void) {
+  return eval_cps_run_state;
 }
 
 /* eval_cps_run can be paused 
@@ -1526,14 +1532,17 @@ void eval_cps_run_eval(void){
 
   while (eval_running) {
 
+    eval_cps_run_state = eval_cps_next_state;
+    
     switch (eval_cps_run_state) {
     case STATE_INIT:
-      eval_cps_run_state = STATE_RUNNING;
+      eval_cps_next_state = STATE_RUNNING;
       break;
     case STATE_STEP:
-      eval_cps_run_state = STATE_PAUSED;
+      eval_cps_next_state = STATE_PAUSED;
       break;
     case STATE_PAUSED:
+      eval_cps_next_state = STATE_PAUSED;
       usleep_callback(EVAL_CPS_MIN_SLEEP);
       continue; /* jump back to start of eval_running loop */
     case STATE_KILL:
@@ -1648,6 +1657,6 @@ int eval_cps_init() {
   return res;
 }
 
-void eval_cps_del(void) {
+void eval_cps_del_nc(void) {
   stack_free(&ctx_non_concurrent.K);
 }
