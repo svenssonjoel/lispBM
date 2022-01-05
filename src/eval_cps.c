@@ -25,6 +25,7 @@
 #include "typedefs.h"
 #include "exp_kind.h"
 #include "streams.h"
+#include "memory.h"
 
 #include "platform_mutex.h"
 
@@ -250,7 +251,7 @@ bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
 
     *v = ctx->r;
     stack_free(&ctx->K);
-    free(ctx);
+    memory_free((uint32_t*)ctx);
     return true;
   }
   return false;
@@ -360,7 +361,7 @@ static CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_s
   if (type_of(program) != PTR_TYPE_CONS) return 0;
 
   eval_context_t *ctx = NULL;
-  ctx = malloc(sizeof(eval_context_t));
+  ctx = (eval_context_t*)memory_allocate(sizeof(eval_context_t) / 4);
   if (ctx == NULL) return 0;
 
   ctx->program = cdr(program);
@@ -374,17 +375,17 @@ static CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_s
   ctx->prev = NULL;
   ctx->next = NULL;
   if (next_ctx_id > CID_MAX) {
-    free(ctx);
+    memory_free((uint32_t*)ctx);
     return 0;
   }
 
   ctx->id = (uint16_t)next_ctx_id++;
   if (!stack_allocate(&ctx->K, stack_size, grow_stack)) {
-    free(ctx);
+    memory_free((uint32_t*)ctx);
     return 0;
   }
   if (!push_u32(&ctx->K, enc_u(DONE))) {
-    free(ctx);
+    memory_free((uint32_t*)ctx);
     stack_free(&ctx->K);
     return 0;
   }

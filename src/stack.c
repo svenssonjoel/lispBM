@@ -20,10 +20,12 @@
 #include "stack.h"
 #include "typedefs.h"
 #include "print.h"
+#include "memory.h"
 
 int stack_allocate(stack *s, unsigned int stack_size, bool growable) {
   
-  s->data = malloc(sizeof(UINT) * stack_size);
+  // s->data = malloc(sizeof(UINT) * stack_size);
+  s->data = memory_allocate(stack_size);
   s->sp = 0;
   s->size = stack_size;
   s->growable = growable;
@@ -42,7 +44,7 @@ int stack_create(stack *s, UINT* data, unsigned int size) {
 
 void stack_free(stack *s) {
   if (s->data) {
-    free(s->data);
+    memory_free(s->data);
   }
 }
 
@@ -57,12 +59,12 @@ int stack_grow(stack *s) {
   if (!s->growable) return 0;
   
   unsigned int new_size = s->size * 2;
-  UINT *data    = malloc(sizeof(UINT) * new_size);
+  UINT *data    = memory_allocate(new_size);
 
   if (data == NULL) return 0;
 
   memcpy(data, s->data, s->size*sizeof(UINT));
-  free(s->data);
+  memory_free(s->data);
   s->data = data;
   s->size = new_size;
   return 1;
