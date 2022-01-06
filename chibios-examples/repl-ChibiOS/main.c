@@ -1,6 +1,6 @@
 /*
     Copyright 2019, 2022  Joel Svensson        svenssonjoel@yahoo.se
-                          Benjamin Vedder
+                    2022  Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ int inputline(BaseSequentialStream *chp, char *buffer, int size) {
 }
 
 char print_output[1024];
-char error_output[1024]; 
+char error_output[1024];
 
 void done_callback(eval_context_t *ctx) {
 
@@ -265,7 +265,7 @@ int main(void) {
       chprintf(chp,"GC counter: %lu\r\n", heap_state.gc_num);
       chprintf(chp,"Recovered: %lu\r\n", heap_state.gc_recovered);
       chprintf(chp,"Marked: %lu\r\n", heap_state.gc_marked);
-      
+
       chprintf(chp,"Array and symbol string memory:\r\n");
       chprintf(chp,"  Size: %u 32Bit words\r\n", memory_num_words());
       chprintf(chp,"  Free: %u 32Bit words\r\n", memory_num_free());
