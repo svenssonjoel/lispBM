@@ -108,7 +108,7 @@ static void heap_init_state(cons_t *addr, unsigned int num_cells, bool malloced)
   heap_state.gc_recovered_arrays = 0;
 }
 
-int heap_init_static(cons_t *addr, unsigned int num_cells) {
+int heap_init(cons_t *addr, unsigned int num_cells) {
 
   NIL = enc_sym(SYM_NIL);
   RECOVERED = enc_sym(SYM_RECOVERED);
@@ -118,30 +118,6 @@ int heap_init_static(cons_t *addr, unsigned int num_cells) {
   heap_init_state(addr, num_cells, false);
 
   return generate_freelist(num_cells);
-}
-
-int heap_init(unsigned int num_cells) {
-
-  NIL = enc_sym(SYM_NIL);
-  RECOVERED = enc_sym(SYM_RECOVERED);
-
-  cons_t *heap = (cons_t *)malloc(num_cells * sizeof(cons_t));
-
-  if (!heap) return 0;
-  
-  if (((uintptr_t)heap % 8) != 0) {
-    free(heap);
-    return 0;
-  }
-  
-  heap_init_state(heap, num_cells, true);
-
-  return generate_freelist(num_cells);
-}
-
-void heap_del(void) {
-  if (heap_state.heap && heap_state.malloced)
-    free(heap_state.heap);
 }
 
 unsigned int heap_num_free(void) {

@@ -280,6 +280,8 @@ int main(int argc, char **argv) {
 
   heap_state_t heap_state;
 
+  cons_t *heap_storage = NULL;
+  
   //setup_terminal();
 
   unsigned char *memory = malloc(MEMORY_SIZE_8K);
@@ -304,7 +306,13 @@ int main(int argc, char **argv) {
   }
 
   unsigned int heap_size = 2048;
-  res = heap_init(heap_size);
+
+  heap_storage = (cons_t*)malloc(sizeof(cons_t) * heap_size);
+  if (heap_storage == NULL) {
+    return 0;
+  }
+  
+  res = heap_init(heap_storage, heap_size);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
   else {
@@ -418,7 +426,7 @@ int main(int argc, char **argv) {
   }
 
   symrepr_del();
-  heap_del();
+  free(heap_storage);
 
   //restore_terminal();
   

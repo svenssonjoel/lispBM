@@ -10,6 +10,8 @@ int main(int argc, char **argv) {
 
   int res = 1;
 
+  cons_t *heap_storage = NULL;
+  
   unsigned int heap_size = 1024 * 1024; 
   uint32_t cell;
 
@@ -19,8 +21,13 @@ int main(int argc, char **argv) {
     return 0;
   }
   printf("Initialized symrepr: OK\n"); 
+
+  heap_storage = (cons_t*)malloc(sizeof(cons_t) * heap_size);
+  if (heap_storage == NULL) {
+    return 0;
+  }
   
-  res = heap_init(heap_size);
+  res = heap_init(heap_storage,heap_size);
   if (!res) {
     printf("Error initializing heap\n"); 
     return 0;

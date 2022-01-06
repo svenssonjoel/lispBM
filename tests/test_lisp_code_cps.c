@@ -98,6 +98,8 @@ int main(int argc, char **argv) {
   bool compress_decompress = false;
 
   pthread_t lispbm_thd;
+  cons_t *heap_storage = NULL;
+  
   
   int c;
   opterr = 1;
@@ -174,8 +176,13 @@ int main(int argc, char **argv) {
     printf("Error initializing symrepr!\n");
     return 0;
   } 
+
+  heap_storage = (cons_t*)malloc(sizeof(cons_t) * heap_size);
+  if (heap_storage == NULL) {
+    return 0;
+  }
   
-  res = heap_init(heap_size);
+  res = heap_init(heap_storage, heap_size);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
   else {
@@ -285,7 +292,7 @@ int main(int argc, char **argv) {
   }
   
   symrepr_del();
-  heap_del();
+  free(heap_storage);
 
   return res;
 }

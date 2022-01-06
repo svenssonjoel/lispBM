@@ -39,6 +39,11 @@
 #define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(1024)
 #define EVAL_CPS_STACK_SIZE 256
 
+#define HEAP_SIZE 8192
+
+cons_t heap[HEAP_SIZE];
+
+
 BaseSequentialStream *chp = NULL;
 
 #define DAC0_CH   1
@@ -305,8 +310,6 @@ int main(void) {
   
   heap_state_t heap_state;
 
-  int heap_size = 8192;
-
   chThdSleepMilliseconds(2000);  
 
   chprintf(chp,"\r\n\r\nStarting up\r\n\r\n");
@@ -343,7 +346,7 @@ int main(void) {
     return 1;
   }
   
-  res = heap_init(heap_size);
+  res = heap_init(heap, HEAP_SIZE);
   if (res)
     chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
   else {
@@ -471,6 +474,4 @@ int main(void) {
   }
 
   symrepr_del();
-  heap_del();
-
 }

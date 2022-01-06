@@ -38,6 +38,10 @@
 #define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(1024)
 #define EVAL_CPS_STACK_SIZE 256
 
+#define HEAP_SIZE 2048
+
+cons_t heap[HEAP_SIZE];
+
 BaseSequentialStream *chp = NULL;
 
 int inputline(BaseSequentialStream *chp, char *buffer, int size) {
@@ -187,8 +191,6 @@ int main(void) {
 
   heap_state_t heap_state;
 
-  int heap_size = 2048;
-
   chThdSleepMilliseconds(2000);
 
   res = memory_init(memory_array, MEMORY_SIZE_8K,
@@ -208,7 +210,7 @@ int main(void) {
     return 0;
   }
 
-  res = heap_init(heap_size);
+  res = heap_init(heap, HEAP_SIZE);
   if (res)
     chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
   else {
@@ -357,6 +359,5 @@ int main(void) {
   }
 
   symrepr_del();
-  heap_del();
 }
 
