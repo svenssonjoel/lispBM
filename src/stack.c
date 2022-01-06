@@ -23,8 +23,6 @@
 #include "memory.h"
 
 int stack_allocate(stack *s, unsigned int stack_size, bool growable) {
-  
-  // s->data = malloc(sizeof(UINT) * stack_size);
   s->data = memory_allocate(stack_size);
   s->sp = 0;
   s->size = stack_size;
