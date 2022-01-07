@@ -20,6 +20,13 @@
 #include "stack.h"
 #include "typedefs.h"
 
+#define EVAL_CPS_STATE_INIT    0
+#define EVAL_CPS_STATE_PAUSED  1
+#define EVAL_CPS_STATE_RUNNING 2
+#define EVAL_CPS_STATE_STEP    3
+#define EVAL_CPS_STATE_KILL    4
+
+
 typedef struct eval_context_s{
   VALUE program;
   VALUE curr_exp;

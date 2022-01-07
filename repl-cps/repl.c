@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2021 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -47,10 +47,10 @@ void setup_terminal(void) {
 
   tcgetattr(0,&old_termios);
   new_termios = old_termios;
-  //new_termios.c_iflag;                     // INPUT MODES 
+  //new_termios.c_iflag;                     // INPUT MODES
   //new_termios.c_oflag;                     // OUTPUT MODES
   //new_termios.c_cflag;                     // CONTROL MODES
-  // LOCAL MODES 
+  // LOCAL MODES
   new_termios.c_lflag &= (tcflag_t) ~(ICANON  | ISIG | ECHO);
   new_termios.c_cc[VMIN] = 0;
   new_termios.c_cc[VTIME] = 0;
@@ -62,9 +62,9 @@ void setup_terminal(void) {
   //  - Signal generation for certain characters (INTR, QUIT, SUSP, DSUSP)
   //  VMIN:  Minimal number of characters for noncanonical read.
   //  VTIME: Timeout in deciseconds for noncanonical read.
-  
+
   tcsetattr(0, TCSANOW, &new_termios);
-  
+
 }
 
 void restore_terminal(void) {
@@ -120,7 +120,7 @@ int inputline(char *buffer, unsigned int size) {
 void *eval_thd_wrapper(void *v) {
 
   eval_cps_run_eval();
-  
+
   return NULL;
 }
 
@@ -131,7 +131,7 @@ void done_callback(eval_context_t *ctx) {
 
   CID cid = ctx->id;
   VALUE t = ctx->r;
-  
+
   int print_ret = print_value(output, 1024, error, 1024, t);
 
   if (print_ret >= 0) {
@@ -144,7 +144,7 @@ void done_callback(eval_context_t *ctx) {
   //   printf("Error: done context (%d)  not in list\n", cid);
   //}
   fflush(stdout);
-  
+
 }
 
 uint32_t timestamp_callback() {
@@ -169,7 +169,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
 
   char output[1024];
   char error[1024];
-  
+
   for (int i = 0; i < argn; i ++) {
     VALUE t = args[i];
 
@@ -177,26 +177,26 @@ VALUE ext_print(VALUE *args, UINT argn) {
       array_header_t *array = (array_header_t *)car(t);
       switch (array->elt_type){
       case VAL_TYPE_CHAR: {
-	char *data = (char*)array + 8;
-	printf("%s", data);
-	break;
+        char *data = (char*)array + 8;
+        printf("%s", data);
+        break;
       }
       default:
-	return enc_sym(SYM_NIL);
-	break;
+        return enc_sym(SYM_NIL);
+        break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
       printf("%c", dec_char(t));
     } else {
       int print_ret = print_value(output, 1024, error, 1024, t);
-      
+
       if (print_ret >= 0) {
-	printf("%s", output);
+        printf("%s", output);
       } else {
-	printf("%s", error);
+        printf("%s", error);
       }
     }
- 
+
   }
   return enc_sym(SYM_TRUE);
 }
@@ -213,7 +213,7 @@ VALUE ext_note(VALUE *args, UINT argn) {
 }
 
 
-/* load a file, caller is responsible for freeing the returned string */ 
+/* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
   char *file_str = NULL;
   //size_t str_len = strlen(filename);
@@ -224,7 +224,7 @@ char * load_file(char *filename) {
   }
   FILE *fp;
   printf("filename: %s\n", &filename[i]);
-	
+
   if (strlen(&filename[i]) > 0) {
     errno = 0;
     fp = fopen(&filename[i], "r");
@@ -246,7 +246,7 @@ char * load_file(char *filename) {
       free(file_str);
       file_str = NULL;
     }
-    fclose(fp);    
+    fclose(fp);
   }
   return file_str;
 }
@@ -255,16 +255,16 @@ char * load_file(char *filename) {
 void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void) arg1;
   (void) arg2;
-  
+
   char output[1024];
   char error[1024];
-  
+
   int print_ret = print_value(output, 1024, error, 1024, ctx->r);
-  
+
   printf("--------------------------------\n");
   printf("ContextID: %u\n", ctx->id);
   printf("Stack SP: %u\n",  ctx->K.sp);
-  if (print_ret) { 
+  if (print_ret) {
     printf("Value: %s\n", output);
   } else {
     printf("Error: %s\n", error);
@@ -287,26 +287,26 @@ int main(int argc, char **argv) {
   unsigned int len = 1024;
   int res = 0;
 
-  pthread_t lispbm_thd; 
+  pthread_t lispbm_thd;
 
   heap_state_t heap_state;
 
   cons_t *heap_storage = NULL;
-  
+
   //setup_terminal();
 
   unsigned char *memory = malloc(MEMORY_SIZE_8K);
   unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_8K);
   if (memory == NULL || bitmap == NULL) return 0;
-  
+
   res = memory_init(memory, MEMORY_SIZE_8K,
-		    bitmap, MEMORY_BITMAP_SIZE_8K);
+                    bitmap, MEMORY_BITMAP_SIZE_8K);
   if (res)
     printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
   else {
     printf("Error initializing memory!\n");
     return 0;
-  } 
+  }
 
   res = symrepr_init();
   if (res)
@@ -322,7 +322,7 @@ int main(int argc, char **argv) {
   if (heap_storage == NULL) {
     return 0;
   }
-  
+
   res = heap_init(heap_storage, heap_size);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
@@ -331,7 +331,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = eval_cps_init(); // dont grow stack 
+  res = eval_cps_init(); // dont grow stack
   if (res)
     printf("Evaluator initialized.\n");
   else {
@@ -354,7 +354,7 @@ int main(int argc, char **argv) {
   else
     printf("Error adding extension.\n");
 
- 
+
   /* Start evaluator thread */
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
@@ -363,7 +363,7 @@ int main(int argc, char **argv) {
 
   VALUE prelude = prelude_load();
   eval_cps_program(prelude);
-    
+
   printf("Lisp REPL started!\n");
   printf("Type :quit to exit.\n");
   printf("     :info for statistics.\n");
@@ -376,7 +376,7 @@ int main(int argc, char **argv) {
     fflush(stdin);
     printf("# ");
     memset(str, 0 ,len);
-    
+
     ssize_t n = inputline(str,len);
     fflush(stdout);
     //printf("\n");
@@ -385,10 +385,10 @@ int main(int argc, char **argv) {
       printf("############################################################\n");
       printf("Used cons cells: %d\n", heap_size - heap_num_free());
       int r = print_value(output, 1024, error, 1024, *env_get_global_ptr());
-      if (r >= 0) { 
-	printf("ENV: %s\n", output );
+      if (r >= 0) {
+        printf("ENV: %s\n", output );
       } else {
-	printf("%s\n", error);
+        printf("%s\n", error);
       }
       heap_get_state(&heap_state);
       printf("Symbol table size: %u Bytes\n", symrepr_size());
@@ -405,10 +405,20 @@ int main(int argc, char **argv) {
     } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
       char *file_str = load_file(&str[5]);
       if (file_str) {
-	VALUE f_exp = tokpar_parse(file_str);
-	free(file_str);
-	CID cid1 = eval_cps_program(f_exp);
-	printf("started ctx: %u\n", cid1);
+
+        /* Get exclusive access to the heap */
+        eval_cps_pause_eval();
+        while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+
+        VALUE f_exp = tokpar_parse(file_str);
+        free(file_str);
+        CID cid1 = eval_cps_program(f_exp);
+
+        eval_cps_continue_eval();
+
+        printf("started ctx: %u\n", cid1);
       }
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
       allow_print = true;
@@ -424,23 +434,29 @@ int main(int argc, char **argv) {
       printf("****** Done contexts ******\n");
       eval_cps_done_iterator(print_ctx_info, NULL, NULL);
     } else if (strncmp(str, ":wait", 5) == 0) {
-
       int id = atoi(str + 5);
       bool exists = false;
       eval_cps_done_iterator(ctx_exists, (void*)&id, (void*)&exists);
       if (exists) {
-	eval_cps_wait_ctx((CID)id);
+        eval_cps_wait_ctx((CID)id);
       }
-      
     }
-
     else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
     } else {
       VALUE t;
+
+      /* Get exclusive access to the heap */
+      eval_cps_pause_eval();
+      while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+
       t = tokpar_parse(str);
 
       CID cid = eval_cps_program(t);
+
+      eval_cps_continue_eval();
 
       printf("started ctx: %u\n", cid);
 
@@ -451,6 +467,6 @@ int main(int argc, char **argv) {
   free(heap_storage);
 
   //restore_terminal();
-  
+
   return 0;
 }

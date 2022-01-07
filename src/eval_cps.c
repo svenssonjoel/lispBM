@@ -64,14 +64,8 @@
 #define EVAL_CPS_WAIT_US   1536
 #define EVAL_CPS_MIN_SLEEP 200
 
-#define STATE_INIT    0
-#define STATE_PAUSED  1
-#define STATE_RUNNING 2
-#define STATE_STEP    3
-#define STATE_KILL    4
-
-static uint32_t eval_cps_run_state = STATE_INIT;
-volatile uint32_t eval_cps_next_state = STATE_INIT;
+static uint32_t eval_cps_run_state = EVAL_CPS_STATE_INIT;
+volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_INIT;
 
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
@@ -1503,19 +1497,19 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
 }
 
 void eval_cps_pause_eval(void) {
-  eval_cps_next_state = STATE_PAUSED;
+  eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
 }
 
 void eval_cps_step_eval(void) {
-  eval_cps_next_state = STATE_STEP;
+  eval_cps_next_state = EVAL_CPS_STATE_STEP;
 }
 
 void eval_cps_continue_eval(void) {
-  eval_cps_next_state = STATE_RUNNING;
+  eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
 }
 
 void eval_cps_kill_eval(void) {
-  eval_cps_next_state = STATE_KILL;
+  eval_cps_next_state = EVAL_CPS_STATE_KILL;
 }
 
 uint32_t eval_cps_current_state(void) {
@@ -1536,17 +1530,17 @@ void eval_cps_run_eval(void){
     eval_cps_run_state = eval_cps_next_state;
     
     switch (eval_cps_run_state) {
-    case STATE_INIT:
-      eval_cps_next_state = STATE_RUNNING;
+    case EVAL_CPS_STATE_INIT:
+      eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
       break;
-    case STATE_STEP:
-      eval_cps_next_state = STATE_PAUSED;
+    case EVAL_CPS_STATE_STEP:
+      eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
       break;
-    case STATE_PAUSED:
-      eval_cps_next_state = STATE_PAUSED;
+    case EVAL_CPS_STATE_PAUSED:
+      eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
       usleep_callback(EVAL_CPS_MIN_SLEEP);
       continue; /* jump back to start of eval_running loop */
-    case STATE_KILL:
+    case EVAL_CPS_STATE_KILL:
       eval_running = false;
       continue;
     default:
