@@ -38,7 +38,7 @@ typedef struct eval_context_s{
   struct eval_context_s *next;
 } eval_context_t;
 
-typedef void (*ctx_fun)(eval_context_t *, void *);
+typedef void (*ctx_fun)(eval_context_t *, void*, void*);
 
 /* Common interface */
 extern VALUE eval_cps_get_env(void);
@@ -58,9 +58,9 @@ extern void eval_cps_kill_eval(void);
 extern uint32_t eval_cps_current_state(void);
 
 /* statistics interface */
-extern void eval_cps_running_iterator(ctx_fun f, void *aux);
-extern void eval_cps_blocked_iterator(ctx_fun f, void *aux);
-extern void eval_cps_done_iterator(ctx_fun f, void *aux);
+extern void eval_cps_running_iterator(ctx_fun f, void*, void*);
+extern void eval_cps_blocked_iterator(ctx_fun f, void*, void*);
+extern void eval_cps_done_iterator(ctx_fun f, void*, void*);
 
 /*
   Callback routines for sleeping and timestamp generation.

@@ -128,28 +128,28 @@ void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
 }
 
 
-static void queue_iterator(eval_context_queue_t *q, ctx_fun f, void *aux) {
+static void queue_iterator(eval_context_queue_t *q, ctx_fun f, void *arg1, void *arg2) {
   mutex_lock(&qmutex);
   eval_context_t *curr;
   curr = q->first;
 
   while (curr != NULL) {
-    f(curr, aux);
+    f(curr, arg1, arg2);
     curr = curr->next;
   }
   mutex_unlock(&qmutex);
 }
 
-void eval_cps_running_iterator(ctx_fun f, void *aux){
-  queue_iterator(&queue, f, aux);
+void eval_cps_running_iterator(ctx_fun f, void *arg1, void *arg2){
+  queue_iterator(&queue, f, arg1, arg2);
 }
 
-void eval_cps_blocked_iterator(ctx_fun f, void *aux){
-  queue_iterator(&blocked, f, aux);
+void eval_cps_blocked_iterator(ctx_fun f, void *arg1, void *arg2){
+  queue_iterator(&blocked, f, arg1, arg2);
 }
 
-void eval_cps_done_iterator(ctx_fun f, void *aux){
-  queue_iterator(&done, f, aux);
+void eval_cps_done_iterator(ctx_fun f, void *arg1, void *arg2){
+  queue_iterator(&done, f, arg1, arg2);
 }
     
 static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {

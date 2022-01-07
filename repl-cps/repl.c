@@ -252,8 +252,10 @@ char * load_file(char *filename) {
 }
 
 
-void print_ctx_info(eval_context_t *ctx, void *aux) {
-
+void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
+  (void) arg1;
+  (void) arg2;
+  
   char output[1024];
   char error[1024];
   
@@ -267,7 +269,16 @@ void print_ctx_info(eval_context_t *ctx, void *aux) {
   } else {
     printf("Error: %s\n", error);
   }
+}
 
+void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
+
+  CID id = *(CID*)arg1;
+  bool *exists = (bool*)arg2;
+
+  if (ctx->id == id) {
+    *exists = true;
+  }
 }
 
 
@@ -407,12 +418,23 @@ int main(int argc, char **argv) {
       continue;
     } else if (strncmp(str, ":ctxs", 5) == 0) {
       printf("****** Running contexts ******\n");
-      eval_cps_running_iterator(print_ctx_info, NULL);
+      eval_cps_running_iterator(print_ctx_info, NULL, NULL);
       printf("****** Blocked contexts ******\n");
-      eval_cps_blocked_iterator(print_ctx_info, NULL);
+      eval_cps_blocked_iterator(print_ctx_info, NULL, NULL);
       printf("****** Done contexts ******\n");
-      eval_cps_done_iterator(print_ctx_info, NULL);
-    } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
+      eval_cps_done_iterator(print_ctx_info, NULL, NULL);
+    } else if (strncmp(str, ":wait", 5) == 0) {
+
+      int id = atoi(str + 5);
+      bool exists = false;
+      eval_cps_done_iterator(ctx_exists, (void*)&id, (void*)&exists);
+      if (exists) {
+	eval_cps_wait_ctx((CID)id);
+      }
+      
+    }
+
+    else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
     } else {
       VALUE t;

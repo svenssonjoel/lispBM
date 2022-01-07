@@ -157,9 +157,10 @@ char error[1024];
 char file_buffer[2048];
 
 
-void print_ctx_info(eval_context_t *ctx, void *aux) {
+void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
+  (void)arg2;
   int print_ret = print_value(outbuf, 2048, error, 1024, ctx->r);
-  chprintf(chp, "%s %x %u %u %s\r\n", (char*)aux, (uint32_t)ctx, ctx->id, ctx->K.sp, print_ret ? outbuf : error );   
+  chprintf(chp, "%s %x %u %u %s\r\n", (char*)arg1, (uint32_t)ctx, ctx->id, ctx->K.sp, print_ret ? outbuf : error );   
 }
 
 
@@ -307,9 +308,9 @@ int main(void) {
       chprintf(chp, "heap free largest : %u bytes\r\n", sizel);
       chprintf(chp, "heap free total   : %u bytes\n\r\n", size);
     } else if (strncmp(str, ":ctxs", 5) == 0) {
-      eval_cps_running_iterator(print_ctx_info, "RUNNING");
-      eval_cps_blocked_iterator(print_ctx_info, "BLOCKED");
-      eval_cps_done_iterator   (print_ctx_info, "DONE");
+      eval_cps_running_iterator(print_ctx_info, "RUNNING", NULL);
+      eval_cps_blocked_iterator(print_ctx_info, "BLOCKED", NULL);
+      eval_cps_done_iterator   (print_ctx_info, "DONE", NULL);
     }else if (strncmp(str, ":quit", 5) == 0) {
       break;
     } else if (strncmp(str, ":read", 5) == 0) {
