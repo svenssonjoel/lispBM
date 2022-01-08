@@ -382,35 +382,29 @@ int main(int argc, char **argv) {
     //printf("\n");
 
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
-      printf("############################################################\n");
-      printf("Used cons cells: %d\n", heap_size - heap_num_free());
-      int r = print_value(output, 1024, error, 1024, *env_get_global_ptr());
-      if (r >= 0) {
-        printf("ENV: %s\n", output );
-      } else {
-        printf("%s\n", error);
-      }
+      printf("--(LISP HEAP)-----------------------------------------------\n");
       heap_get_state(&heap_state);
-      printf("Symbol table size: %u Bytes\n", symrepr_size());
       printf("Heap size: %u Bytes\n", heap_size * 8);
-      printf("Memory size: %u Words\n", memory_num_words());
-      printf("Memory free: %u Words\n", memory_num_free());
-      printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
+      printf("Used cons cells: %d\n", heap_size - heap_num_free());
+      printf("Free cons cells: %d\n", heap_num_free());
       printf("GC counter: %d\n", heap_state.gc_num);
       printf("Recovered: %d\n", heap_state.gc_recovered);
       printf("Recovered arrays: %u\n", heap_state.gc_recovered_arrays);
       printf("Marked: %d\n", heap_state.gc_marked);
-      printf("Free cons cells: %d\n", heap_num_free());
-      printf("############################################################\n");
+      printf("--(Symbol and Array memory)---------------------------------\n");
+      printf("Memory size: %u Words\n", memory_num_words());
+      printf("Memory free: %u Words\n", memory_num_free());
+      printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
+      printf("Symbol table size: %u Bytes\n", symrepr_size());
     }  else if (strncmp(str, ":env", 4) == 0) {
       VALUE curr = *env_get_global_ptr();
       printf("Environment:\r\n");
       while (type_of(curr) == PTR_TYPE_CONS) {
-        res = print_value(outbuf,2048, error, 1024, car(curr));
+        res = print_value(output,2048, error, 1024, car(curr));
         curr = cdr(curr);
 
         if (res >= 0) {
-          printf("  %s \r\n", outbuf);
+          printf("  %s \r\n", output);
         } else {
           printf("  %s\r\n",error);
         }

@@ -184,22 +184,14 @@ static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   mutex_lock(&qmutex);
 
   if (q->first == NULL || q->last == NULL) {
-    if (q->last != NULL || q->first != NULL) {
+    if (!(q->last == NULL && q->first == NULL)) {
       /* error state that should not happen */
-      //printf("error!!!!\n");
       mutex_unlock(&qmutex);
       return;
     }
+    /* Queue is empty */
     mutex_unlock(&qmutex);
     return;
-  }
-
-  /* If queue is 1 element long both conditionals will be true */
-  if (ctx == q->first) {
-    q->first = q->first->next;
-  }
-  if ( ctx == q->last) {
-    q->last = q->last->prev;
   }
 
   eval_context_t *curr = q->first;
@@ -207,9 +199,17 @@ static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
     if (curr->id == ctx->id) {
       eval_context_t *tmp = curr->next;
       if (curr->prev == NULL) {
-        q->first = tmp;
-        tmp->prev = NULL;
+        if (curr->next == NULL) {
+          q->last = NULL;
+          q->first = NULL;
+        } else {
+          q->first = tmp;
+          tmp->prev = NULL;
+        }
       } else {
+        if (curr->next == NULL) {
+          q->last = curr->prev;
+        }
         curr->prev->next = tmp;
         tmp->prev = curr->prev;
       }
