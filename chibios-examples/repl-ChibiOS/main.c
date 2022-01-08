@@ -40,7 +40,7 @@
 
 #define HEAP_SIZE 2048
 
-cons_t heap[HEAP_SIZE];
+cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
 BaseSequentialStream *chp = NULL;
 
@@ -163,6 +163,16 @@ void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   chprintf(chp, "%s %x %u %u %s\r\n", (char*)arg1, (uint32_t)ctx, ctx->id, ctx->K.sp, print_ret ? outbuf : error );   
 }
 
+void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
+
+  CID id = *(CID*)arg1;
+  bool *exists = (bool*)arg2;
+
+  if (ctx->id == id) {
+    *exists = true;
+  }
+}
+
 
 unsigned char memory_array[MEMORY_SIZE_8K];
 unsigned char bitmap_array[MEMORY_BITMAP_SIZE_8K];
@@ -260,7 +270,7 @@ int main(void) {
 
     if (strncmp(str, ":info", 5) == 0) {
       chprintf(chp,"------------------------------------------------------------\r\n");
-      chprintf(chp,"Used cons cells: %lu \r\n", heap_size - heap_num_free());
+      chprintf(chp,"Used cons cells: %lu \r\n", HEAP_SIZE - heap_num_free());
       chprintf(chp,"Free cons cells: %lu\r\n", heap_num_free());
       heap_get_state(&heap_state);
       chprintf(chp,"GC counter: %lu\r\n", heap_state.gc_num);
@@ -308,10 +318,31 @@ int main(void) {
       chprintf(chp, "heap free largest : %u bytes\r\n", sizel);
       chprintf(chp, "heap free total   : %u bytes\n\r\n", size);
     } else if (strncmp(str, ":ctxs", 5) == 0) {
-      eval_cps_running_iterator(print_ctx_info, "RUNNING", NULL);
+      eval_cps_running_iterator(print_ctx_info, "RUNNABLE", NULL);
       eval_cps_blocked_iterator(print_ctx_info, "BLOCKED", NULL);
       eval_cps_done_iterator   (print_ctx_info, "DONE", NULL);
-    }else if (strncmp(str, ":quit", 5) == 0) {
+    } else if (strncmp(str, ":wait", 5) == 0) {
+      int id = atoi(str + 5);
+      bool exists = false;
+      eval_cps_done_iterator(ctx_exists, (void*)&id, (void*)&exists);
+      if (exists) {
+        eval_cps_wait_ctx((CID)id);
+      }
+    } else if (strncmp(str, ":pause", 6) == 0) {
+      eval_cps_pause_eval();
+      while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+      chprintf(chp, "Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
+    } else if (strncmp(str, ":continue", 9) == 0) {
+      eval_cps_continue_eval();
+    } else if (strncmp(str, ":step", 5) == 0) {
+      eval_cps_step_eval();
+            while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+      chprintf(chp, "Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
+    } else if (strncmp(str, ":quit", 5) == 0) {
       break;
     } else if (strncmp(str, ":read", 5) == 0) {
       memset(file_buffer, 0, 2048);
@@ -333,6 +364,13 @@ int main(void) {
 
       if (done) {
         VALUE t;
+
+        /* Get exclusive access to the heap */
+        eval_cps_pause_eval();
+        while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+
         t = tokpar_parse(file_buffer);
         CID cid = eval_cps_program(t);
         if (cid == 0) {
@@ -340,6 +378,9 @@ int main(void) {
         } else {
           chprintf(chp,"started ctx: %u\r\n", cid);
         }
+
+        eval_cps_continue_eval();
+
       }
     } else {
 
@@ -348,6 +389,13 @@ int main(void) {
       }
 
       VALUE t;
+
+      /* Get exclusive access to the heap */
+      eval_cps_pause_eval();
+      while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+
       t = tokpar_parse(str);
 
       CID cid = eval_cps_program(t);
@@ -356,6 +404,8 @@ int main(void) {
       } else {
         chprintf(chp,"started ctx: %u\r\n", cid);
       }
+
+      eval_cps_continue_eval();
     }
   }
 

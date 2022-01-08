@@ -402,7 +402,20 @@ int main(int argc, char **argv) {
       printf("Marked: %d\n", heap_state.gc_marked);
       printf("Free cons cells: %d\n", heap_num_free());
       printf("############################################################\n");
-    } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
+    }  else if (strncmp(str, ":env", 4) == 0) {
+      VALUE curr = *env_get_global_ptr();
+      printf("Environment:\r\n");
+      while (type_of(curr) == PTR_TYPE_CONS) {
+        res = print_value(outbuf,2048, error, 1024, car(curr));
+        curr = cdr(curr);
+
+        if (res >= 0) {
+          printf("  %s \r\n", outbuf);
+        } else {
+          printf("  %s\r\n",error);
+        }
+      }
+    }else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
       char *file_str = load_file(&str[5]);
       if (file_str) {
 
@@ -440,8 +453,7 @@ int main(int argc, char **argv) {
       if (exists) {
         eval_cps_wait_ctx((CID)id);
       }
-    }
-    else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
+    } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
     } else {
       VALUE t;
