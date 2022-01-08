@@ -51,6 +51,19 @@
 #define FATAL_ON_FAIL_R(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(SYM_FATAL_ERROR); return ctx->r; }
 #define FOF(x)  if  (!(x)) { ctx_running->done = true; error_ctx(enc_sym(SYM_FATAL_ERROR));return;}
 
+#define WITH_GC(y, x, remember)                 \
+  (y) = (x);                                    \
+  if (is_symbol_merror((y))) {                  \
+    gc(remember);                              \
+    (y) = (x);                                  \
+    if (is_symbol_merror((y))) {                \
+      ctx_running->done = true;                 \
+      error_ctx(enc_sym(SYM_MERROR));           \
+      return;                                   \
+    }                                           \
+    /* continue executing statements below */   \
+  }
+
 #define ERROR
 //#define ERROR printf("Line: %d\n", __LINE__);
 
@@ -145,7 +158,7 @@ void eval_cps_blocked_iterator(ctx_fun f, void *arg1, void *arg2){
 void eval_cps_done_iterator(ctx_fun f, void *arg1, void *arg2){
   queue_iterator(&done, f, arg1, arg2);
 }
-    
+
 static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   mutex_lock(&qmutex);
   if (q->last == NULL) {
@@ -227,9 +240,9 @@ static void finish_ctx(void) {
   if (!ctx_running) {
     return;
   }
-  
+
   enqueue_ctx(&done, ctx_running);
-  
+
   if (ctx_done_callback) {
     ctx_done_callback(ctx_running);
   }
@@ -251,15 +264,15 @@ bool eval_cps_remove_done_ctx(CID cid, VALUE *v) {
   return false;
 }
 
-/* Dangerous function that will lock up if called 
-   with the incorrect cid 
+/* Dangerous function that will lock up if called
+   with the incorrect cid
    TODO: replace with less dangerous alternatives
 */
 VALUE eval_cps_wait_ctx(CID cid) {
 
   eval_context_t *ctx = NULL;
   VALUE r = enc_sym(SYM_NIL);
-  
+
   while (!ctx) {
     ctx = lookup_ctx(&done, cid);
     if (ctx) {
@@ -481,8 +494,8 @@ static VALUE remove_from_list(int n, VALUE list) {
   return res;
 }
 
-/* Pattern matching is currently implemented as a recursive 
-   function and make use of stack relative to the size of 
+/* Pattern matching is currently implemented as a recursive
+   function and make use of stack relative to the size of
    expressions that are being matched. */
 static bool match(VALUE p, VALUE e, VALUE *env, bool *gc) {
 
@@ -595,19 +608,14 @@ static int find_match(VALUE plist, VALUE elist, VALUE *e, VALUE *env, bool *gc) 
 
 /****************************************************/
 /* Garbage collection                               */
-
-
-static int gc(VALUE env,
-              eval_context_t *runnable,
-              eval_context_t *done,
-              eval_context_t *running,
-              eval_context_t *blocked) {
+static int gc(VALUE remember) {
 
   gc_state_inc();
   gc_mark_freelist();
-  gc_mark_phase(env);
+  gc_mark_phase(*env_get_global_ptr());
+  gc_mark_phase(remember);
 
-  eval_context_t *curr = runnable;
+  eval_context_t *curr = queue.first;
   while (curr) {
     gc_mark_phase(curr->curr_env);
     gc_mark_phase(curr->curr_exp);
@@ -618,14 +626,14 @@ static int gc(VALUE env,
     curr = curr->next;
   }
 
-  curr = done;
+  curr = done.first;
   while (curr) {
     gc_mark_phase(curr->r);
     curr = curr->next;
   }
 
 
-  curr = blocked;
+  curr = blocked.first;
   while (curr) {
     gc_mark_phase(curr->curr_env);
     gc_mark_phase(curr->curr_exp);
@@ -636,13 +644,13 @@ static int gc(VALUE env,
     curr = curr->next;
   }
 
-  if (running) {
-    gc_mark_phase(running->curr_env);
-    gc_mark_phase(running->curr_exp);
-    gc_mark_phase(running->program);
-    gc_mark_phase(running->r);
-    gc_mark_phase(running->mailbox);
-    gc_mark_aux(running->K.data, running->K.sp);
+  if (ctx_running) {
+    gc_mark_phase(ctx_running->curr_env);
+    gc_mark_phase(ctx_running->curr_exp);
+    gc_mark_phase(ctx_running->program);
+    gc_mark_phase(ctx_running->r);
+    gc_mark_phase(ctx_running->mailbox);
+    gc_mark_aux(ctx_running->K.data, ctx_running->K.sp);
   }
 
 #ifdef VISUALIZE_HEAP
@@ -650,7 +658,9 @@ static int gc(VALUE env,
 #endif
 
   return gc_sweep_phase();
+
 }
+
 
 /****************************************************/
 /* Evaluation functions                             */
@@ -740,34 +750,29 @@ static inline void eval_spawn(eval_context_t *ctx) {
 }
 
 
-static inline void eval_lambda(eval_context_t *ctx, bool *perform_gc) {
+static inline void eval_lambda(eval_context_t *ctx) {
 
   VALUE env_cpy = env_copy_shallow(ctx->curr_env);
 
-  if (type_of(env_cpy) == VAL_TYPE_SYMBOL &&
-      dec_sym(env_cpy) == SYM_MERROR) {
-    *perform_gc = true;
-    ctx->app_cont = false;
-    return; // perform gc and resume evaluation at same expression
+  if (is_symbol_merror(env_cpy)) {
+    gc(NIL);
+    env_cpy = env_copy_shallow(ctx->curr_env);
+
+    if (is_symbol_merror(env_cpy)) {
+       ctx_running->done = true;
+       error_ctx(enc_sym(SYM_MERROR));
+       return;
+    }
   }
 
   VALUE env_end;
   VALUE body;
   VALUE params;
   VALUE closure;
-  env_end = cons(env_cpy,NIL);
-  body    = cons(car(cdr(cdr(ctx->curr_exp))), env_end);
-  params  = cons(car(cdr(ctx->curr_exp)), body);
-  closure = cons(enc_sym(SYM_CLOSURE), params);
-
-  if (type_of(env_end) == VAL_TYPE_SYMBOL ||
-      type_of(body)    == VAL_TYPE_SYMBOL ||
-      type_of(params)  == VAL_TYPE_SYMBOL ||
-      type_of(closure) == VAL_TYPE_SYMBOL) {
-    *perform_gc = true;
-    ctx->app_cont = false;
-    return; // perform gc and resume evaluation at same expression
-  }
+  WITH_GC(env_end, cons(env_cpy,NIL), NIL);
+  WITH_GC(body,    cons(car(cdr(cdr(ctx->curr_exp))), env_end), NIL);
+  WITH_GC(params,  cons(car(cdr(ctx->curr_exp)), body), NIL);
+  WITH_GC(closure, cons(enc_sym(SYM_CLOSURE), params), NIL);
 
   ctx->app_cont = true;
   ctx->r = closure;
@@ -783,7 +788,7 @@ static inline void eval_if(eval_context_t *ctx) {
   ctx->curr_exp = car(cdr(ctx->curr_exp));
 }
 
-static inline void eval_let(eval_context_t *ctx, bool *perform_gc) {
+static inline void eval_let(eval_context_t *ctx) {
   VALUE orig_env = ctx->curr_env;
   VALUE binds    = car(cdr(ctx->curr_exp)); // key value pairs.
   VALUE exp      = car(cdr(cdr(ctx->curr_exp))); // exp to evaluate in the new env.
@@ -802,15 +807,9 @@ static inline void eval_let(eval_context_t *ctx, bool *perform_gc) {
     VALUE key = car(car(curr));
     VALUE val = NIL;
     VALUE binding;
-    binding = cons(key, val);
-    new_env = cons(binding, new_env);
+    WITH_GC(binding, cons(key, val), NIL);
+    WITH_GC(new_env, cons(binding, new_env), new_env);
 
-    if (type_of(binding) == VAL_TYPE_SYMBOL ||
-        type_of(new_env) == VAL_TYPE_SYMBOL) {
-      *perform_gc = true;
-      ctx->app_cont = false;
-      return;
-    }
     curr = cdr(curr);
   }
 
@@ -869,7 +868,7 @@ static inline void eval_match(eval_context_t *ctx) {
   }
 }
 
-static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
+static inline void eval_receive(eval_context_t *ctx) {
 
   if (type_of(ctx->mailbox) == VAL_TYPE_SYMBOL &&
       dec_sym(ctx->mailbox) == SYM_NIL) {
@@ -894,17 +893,19 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
       bool do_gc = false;;
       int n = find_match(cdr(pats), msgs, &e, &new_env, &do_gc);
       if (do_gc) {
-        *perform_gc = true;
-        ctx->app_cont = false;
-      } else if (n >= 0 ) { /* Match */
-        VALUE new_mailbox = remove_from_list(n, msgs);
-
-        if ((type_of(new_mailbox) == VAL_TYPE_SYMBOL) &&
-            (dec_sym(new_mailbox) == SYM_MERROR)) {
-          *perform_gc = true;
-          ctx->app_cont = false;
+        gc(NIL);
+        do_gc = false;
+        n = find_match(cdr(pats), msgs, &e, &new_env, &do_gc);
+        if (do_gc) {
+          ctx_running->done = true;
+          error_ctx(enc_sym(SYM_MERROR));
           return;
         }
+      }
+      if (n >= 0 ) { /* Match */
+        VALUE new_mailbox;
+        WITH_GC(new_mailbox, remove_from_list(n, msgs), NIL);
+
         ctx->mailbox = new_mailbox;
         ctx->curr_env = new_env;
         ctx->curr_exp = e;
@@ -930,26 +931,15 @@ static inline void eval_receive(eval_context_t *ctx, bool *perform_gc) {
 /*********************************************************/
 /*  Continuation functions                               */
 
-static inline void cont_set_global_env(eval_context_t *ctx, bool *perform_gc){
+static inline void cont_set_global_env(eval_context_t *ctx){
 
   VALUE key;
   VALUE val = ctx->r;
 
   pop_u32(&ctx->K, &key);
-  VALUE new_env = env_set(*env_get_global_ptr(),key,val);
+  VALUE new_env;
+  WITH_GC(new_env, env_set(*env_get_global_ptr(),key,val), NIL);
 
-  if (type_of(new_env) == VAL_TYPE_SYMBOL) {
-    if (dec_sym(new_env) == SYM_MERROR) {
-      FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, key, enc_u(SET_GLOBAL_ENV)));
-      *perform_gc = true;
-      return;
-    }
-    if (dec_sym(new_env) == SYM_FATAL_ERROR) {
-      ERROR
-      error_ctx(new_env);
-      return;
-    }
-  }
   *env_get_global_ptr() = new_env;
   ctx->r = key;
 
@@ -985,7 +975,7 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
   ctx->curr_env = env;
 }
 
-static inline void cont_spawn_all(eval_context_t *ctx, bool *perform_gc) {
+static inline void cont_spawn_all(eval_context_t *ctx) {
   VALUE rest;
   VALUE env;
   pop_u32_2(&ctx->K, &rest, &env);
@@ -995,13 +985,8 @@ static inline void cont_spawn_all(eval_context_t *ctx, bool *perform_gc) {
   }
 
   VALUE cid_val = enc_u((UINT)next_ctx_id); /* CIDS range from 0 - 65535, so this is fine */
-  VALUE cid_list = cons(cid_val, ctx->r);
-  if (type_of(cid_list) == VAL_TYPE_SYMBOL) {
-    FATAL_ON_FAIL(ctx->done, push_u32_3(&ctx->K, env, rest, enc_u(SPAWN_ALL)));
-    *perform_gc = true;
-    ctx->app_cont = true;
-    return;
-  }
+  VALUE cid_list;
+  WITH_GC(cid_list, cons(cid_val, ctx->r), NIL);
 
   CID cid = create_ctx(car(rest),
                        env,
@@ -1035,7 +1020,7 @@ static inline void cont_wait(eval_context_t *ctx) {
   return;
 }
 
-static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
+static inline void cont_application(eval_context_t *ctx) {
   VALUE count;
   pop_u32(&ctx->K, &count);
 
@@ -1050,15 +1035,9 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
   if (type_of(fun) == PTR_TYPE_CONS) { // a closure (it better be)
     VALUE args = NIL;
     for (UINT i = dec_u(count); i > 0; i --) {
-      args = cons(fun_args[i], args);
-      if (type_of(args) == VAL_TYPE_SYMBOL) {
-        FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
-        *perform_gc = true;
-        ctx->app_cont = true;
-        ctx->r = fun;
-        return;
-      }
+      WITH_GC(args, cons(fun_args[i], args), args);
     }
+
     VALUE params  = car(cdr(fun));
     VALUE exp     = car(cdr(cdr(fun)));
     VALUE clo_env = car(cdr(cdr(cdr(fun))));
@@ -1069,20 +1048,12 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
       return;
     }
 
-    VALUE local_env = env_build_params_args(params, args, clo_env);
-    if (type_of(local_env) == VAL_TYPE_SYMBOL) {
-      if (dec_sym(local_env) == SYM_MERROR ) {
-        FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
-        *perform_gc = true;
-        ctx->app_cont = true;
-        ctx->r = fun;
-        return;
-      }
+    VALUE local_env;
+    WITH_GC(local_env, env_build_params_args(params, args, clo_env), args);
 
-      if (dec_sym(local_env) == SYM_FATAL_ERROR) {
-        ctx->r = local_env;
-        return;
-      }
+    if (dec_sym(local_env) == SYM_FATAL_ERROR) {
+      ctx->r = local_env;
+      return;
     }
 
     /* ************************************************************
@@ -1141,17 +1112,8 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
         if (type_of(fun_args[1]) == VAL_TYPE_U) { /* CID is of U type */
           CID cid = (CID)dec_u(fun_args[1]);
           VALUE msg = fun_args[2];
-          status = find_receiver_and_send(cid, msg);
-          if (type_of(status) != VAL_TYPE_SYMBOL) {
-            ERROR /* The error macro returns */
-              error_ctx(enc_sym(SYM_EERROR));
-          } else if (dec_sym(status) == SYM_MERROR) {
-            /* perform gc and try again */
-            FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
-            *perform_gc = true;
-            ctx->app_cont = true;
-            ctx->r = fun;
-          }
+
+          WITH_GC(status, find_receiver_and_send(cid, msg), NIL);
         }
       }
       /* return the status */
@@ -1162,19 +1124,12 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
     }
     else if (is_fundamental(fun)) {
       /* If it is not a eval_cps specific function, it may be a fundamental operation */
-      res = fundamental_exec(&fun_args[1], dec_u(count), fun);
+      WITH_GC(res, fundamental_exec(&fun_args[1], dec_u(count), fun), NIL);
       if (type_of(res) == VAL_TYPE_SYMBOL &&
           dec_sym(res) == SYM_EERROR) {
         ERROR
           error_ctx(res);
-      } else if (type_of(res) == VAL_TYPE_SYMBOL &&
-                 dec_sym(res) == SYM_MERROR) {
-        FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
-        *perform_gc = true;
-        ctx->app_cont = true;
-        ctx->r = fun;
-
-      } else {
+      }  else {
         stack_drop(&ctx->K, dec_u(count)+1);
         ctx->app_cont = true;
         ctx->r = res;
@@ -1191,16 +1146,8 @@ static inline void cont_application(eval_context_t *ctx, bool *perform_gc) {
     return;
   }
 
-  VALUE ext_res = f(&fun_args[1] , dec_u(count));
-
-  if (type_of(ext_res) == VAL_TYPE_SYMBOL &&
-      (dec_sym(ext_res) == SYM_MERROR)) {
-    FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, count, enc_u(APPLICATION)));
-    *perform_gc = true;
-    ctx->app_cont = true;
-    ctx->r = fun;
-    return;
-  }
+  VALUE ext_res;
+  WITH_GC(ext_res, f(&fun_args[1] , dec_u(count)),NIL);
 
   stack_drop(&ctx->K, dec_u(count) + 1);
 
@@ -1341,11 +1288,11 @@ static inline void cont_match_many(eval_context_t *ctx) {
   }
 }
 
-static inline void cont_match(eval_context_t *ctx, bool *perform_gc) {
+static inline void cont_match(eval_context_t *ctx) {
   VALUE e = ctx->r;
   VALUE patterns;
   VALUE new_env = ctx->curr_env;
-  bool  gc = false;
+  bool  do_gc = false;
 
   pop_u32(&ctx->K, &patterns);
 
@@ -1357,12 +1304,20 @@ static inline void cont_match(eval_context_t *ctx, bool *perform_gc) {
     VALUE pattern = car(car(patterns));
     VALUE body    = car(cdr(car(patterns)));
 
-    if (match(pattern, e, &new_env, &gc)) {
+    if (match(pattern, e, &new_env, &do_gc)) {
       ctx->curr_env = new_env;
       ctx->curr_exp = body;
-    } else if (gc) {
-      FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, patterns, enc_u(MATCH))); /* resume */
-      *perform_gc = true;
+    } else if (do_gc) {
+      gc(NIL);
+      do_gc = false;
+      match(pattern, e, &new_env, &do_gc);
+      if (do_gc) {
+        ctx_running->done = true;
+        error_ctx(enc_sym(SYM_MERROR));
+        return;
+      }
+      ctx->curr_env = new_env;
+      ctx->curr_exp = body;
     } else {
       /* set up for checking of next pattern */
       FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, cdr(patterns), enc_u(MATCH)));
@@ -1380,38 +1335,12 @@ static inline void cont_match(eval_context_t *ctx, bool *perform_gc) {
 /*********************************************************/
 /* Evaluator step function                               */
 
-static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
+static void evaluation_step(void){
   eval_context_t *ctx = ctx_running;
 
 #ifdef VISUALIZE_HEAP
   heap_vis_gen_image();
 #endif
-
-  if (*perform_gc) {
-    if (*last_iteration_gc) {
-      ERROR
-      error_ctx(enc_sym(SYM_MERROR));
-      /* Perform GC now */
-      gc(*env_get_global_ptr(),
-         queue.first,
-         done.first,
-         ctx_running,
-         blocked.first);
-
-      *perform_gc = false;
-      *last_iteration_gc = false;
-      return;
-    }
-    *last_iteration_gc = true;
-    gc(*env_get_global_ptr(),
-       queue.first,
-       done.first,
-       ctx_running,
-       blocked.first);
-    *perform_gc = false;
-  } else {
-    *last_iteration_gc = false;;
-  }
 
   if (ctx->app_cont) {
     VALUE k;
@@ -1420,17 +1349,17 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
 
     switch(dec_u(k)) {
     case DONE: advance_ctx(); return;
-    case SET_GLOBAL_ENV:   cont_set_global_env(ctx, perform_gc); return;
+    case SET_GLOBAL_ENV:   cont_set_global_env(ctx); return;
     case PROGN_REST:       cont_progn_rest(ctx); return;
-    case SPAWN_ALL:        cont_spawn_all(ctx,perform_gc); return;
+    case SPAWN_ALL:        cont_spawn_all(ctx); return;
     case WAIT:             cont_wait(ctx); return;
-    case APPLICATION:      cont_application(ctx,perform_gc); return;
+    case APPLICATION:      cont_application(ctx); return;
     case APPLICATION_ARGS: cont_application_args(ctx); return;
     case AND:              cont_and(ctx); return;
     case OR:               cont_or(ctx); return;
     case BIND_TO_KEY_REST: cont_bind_to_key_rest(ctx); return;
     case IF:               cont_if(ctx); return;
-    case MATCH:            cont_match(ctx, perform_gc); return;
+    case MATCH:            cont_match(ctx); return;
     case MATCH_MANY:       cont_match_many(ctx); return;
     default:
       ERROR
@@ -1450,8 +1379,8 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
   case VAL_TYPE_I:
   case VAL_TYPE_U:
   case VAL_TYPE_CHAR:
-  case PTR_TYPE_ARRAY: 
-  case PTR_TYPE_REF: 
+  case PTR_TYPE_ARRAY:
+  case PTR_TYPE_REF:
   case PTR_TYPE_STREAM: eval_selfevaluating(ctx);  return;
 
   case PTR_TYPE_CONS:
@@ -1466,15 +1395,14 @@ static void evaluation_step(bool *perform_gc, bool *last_iteration_gc){
       case SYM_DEFINE:  eval_define(ctx); return;
       case SYM_PROGN:   eval_progn(ctx); return;
       case SYM_SPAWN:   eval_spawn(ctx); return;
-      case SYM_LAMBDA:  eval_lambda(ctx, perform_gc); return;
+      case SYM_LAMBDA:  eval_lambda(ctx); return;
       case SYM_IF:      eval_if(ctx); return;
-      case SYM_LET:     eval_let(ctx, perform_gc); return;
+      case SYM_LET:     eval_let(ctx); return;
       case SYM_AND:     eval_and(ctx); return;
       case SYM_OR:      eval_or(ctx); return;
       case SYM_MATCH:   eval_match(ctx); return;
         /* message passing primitives */
-        //case SYM_SEND:    eval_send(ctx, perform_gc); return;
-      case SYM_RECEIVE: eval_receive(ctx, perform_gc); return;
+      case SYM_RECEIVE: eval_receive(ctx); return;
 
       default: break; /* May be general application form. Checked below*/
       }
@@ -1516,19 +1444,16 @@ uint32_t eval_cps_current_state(void) {
   return eval_cps_run_state;
 }
 
-/* eval_cps_run can be paused 
-   I think it would be better use a mailbox for 
-   communication between other threads and the run_eval 
+/* eval_cps_run can be paused
+   I think it would be better use a mailbox for
+   communication between other threads and the run_eval
    but for now a set of variables will be used. */
 void eval_cps_run_eval(void){
-
-  bool perform_gc = false;
-  bool last_iteration_gc = false;
 
   while (eval_running) {
 
     eval_cps_run_state = eval_cps_next_state;
-    
+
     switch (eval_cps_run_state) {
     case EVAL_CPS_STATE_INIT:
       eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
@@ -1557,26 +1482,23 @@ void eval_cps_run_eval(void){
         continue;
       }
     }
-    evaluation_step(&perform_gc, &last_iteration_gc);
+    evaluation_step();
   }
 }
 
 VALUE evaluate_non_concurrent(void) {
 
-  bool perform_gc = false;
-  bool last_iteration_gc = false;
-
   CID cid = ctx_running->id;
-  
+
   while (ctx_running) {
-    evaluation_step(&perform_gc, &last_iteration_gc);
+    evaluation_step();
   }
 
   eval_context_t *ctx = lookup_ctx(&done, cid);
   if (ctx) {
     drop_ctx(&done, ctx);
   } else {
-    return enc_sym(SYM_FATAL_ERROR); 
+    return enc_sym(SYM_FATAL_ERROR);
   }
 
   return ctx_non_concurrent.r;
@@ -1619,7 +1541,7 @@ int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
   NONSENSE = enc_sym(SYM_NONSENSE);
 
   mutex_init(&qmutex);
-  
+
   VALUE nil_entry = cons(NIL, NIL);
   *env_get_global_ptr() = cons(nil_entry, *env_get_global_ptr());
 
