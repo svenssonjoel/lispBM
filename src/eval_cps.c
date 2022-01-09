@@ -54,7 +54,7 @@
 #define WITH_GC(y, x, remember)                 \
   (y) = (x);                                    \
   if (is_symbol_merror((y))) {                  \
-    gc(remember);                              \
+    gc(remember);                               \
     (y) = (x);                                  \
     if (is_symbol_merror((y))) {                \
       ctx_running->done = true;                 \
@@ -360,7 +360,6 @@ static void yield_ctx(uint32_t sleep_us) {
   ctx_running = NULL;
 }
 
-/* todo: Allocate contexts in "memory" as it is provided by memory.h */
 static CID create_ctx(VALUE program, VALUE env, uint32_t stack_size, bool grow_stack) {
 
   if (next_ctx_id == 0) return 0; // overflow of CIDs
