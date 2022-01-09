@@ -41,7 +41,7 @@
 
 #define HEAP_SIZE 8192
 
-cons_t heap[HEAP_SIZE];
+cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
 
 BaseSequentialStream *chp = NULL;
