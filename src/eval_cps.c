@@ -218,12 +218,14 @@ static void drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
           q->first = tmp;
           tmp->prev = NULL;
         }
-      } else {
+      } else { /* curr->prev != NULL */
         if (curr->next == NULL) {
           q->last = curr->prev;
+          q->last->next = NULL;
+        } else {
+          curr->prev->next = tmp;
+          tmp->prev = curr->prev;
         }
-        curr->prev->next = tmp;
-        tmp->prev = curr->prev;
       }
       break;
     }
