@@ -47,8 +47,12 @@
 #define MATCH             12
 #define MATCH_MANY        13
 
-#define FOF(done, x)  if (!(x)) { (done)=true; ctx->r = enc_sym(SYM_FATAL_ERROR); return ; }
-//#define FOF(x)  if  (!(x)) { ctx_running->done = true; error_ctx(enc_sym(SYM_FATAL_ERROR));return;}
+#define FOF(done, x)                            \
+  if (!(x)) {                                   \
+    (done)=true;                                \
+    ctx->r = enc_sym(SYM_FATAL_ERROR);          \
+    return;                                     \
+  }
 
 #define WITH_GC(y, x, remember)                 \
   (y) = (x);                                    \

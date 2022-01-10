@@ -48,6 +48,7 @@ for prg in "test_lisp_code_cps" "test_lisp_code_cps_nc" "test_lisp_code_cps_nc -
 		       [ "$lisp" = "test_match_2.lisp" ] ||
 		       [ "$lisp" = "test_match_3.lisp" ] ||
 		       [ "$lisp" = "test_match_4.lisp" ] ||
+                       [ "$lisp" = "test_match_5.lisp" ] ||
                        [ "$lisp" = "test_fib_3.lisp" ] ||
                        [ "$lisp" = "test_fib_4.lisp" ]; then
 		    excluded_count=$((excluded_count+1))
