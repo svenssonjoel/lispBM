@@ -57,7 +57,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"?u28"       , SYM_MATCH_U28},
   {"?float"     , SYM_MATCH_FLOAT},
   {"?cons"      , SYM_MATCH_CONS},
-  
+
   // Special symbols with unparseable names
   {"no_match"           , SYM_NO_MATCH},
   {"read_error"         , SYM_RERROR},
@@ -75,7 +75,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"sym_bytecode"       , SYM_BYTECODE_TYPE},
   {"sym_nonsense"       , SYM_NONSENSE},
   {"variable_not_bound" , SYM_NOT_FOUND},
-  
+
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
   {"type-i28"         , SYM_TYPE_I28},
@@ -121,14 +121,16 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"mk-sym-indirect", SYM_MK_SYMBOL_INDIRECT},
   {"set-car"        , SYM_SET_CAR},
   {"set-cdr"        , SYM_SET_CDR},
-  {"is-fundamental" , SYM_IS_FUNDAMENTAL} 
+  {"is-fundamental" , SYM_IS_FUNDAMENTAL}
 };
 
 
-uint32_t *symlist = NULL;
-UINT next_symbol_id = 0;
+static uint32_t *symlist = NULL;
+static UINT next_symbol_id = 0;
 
 bool symrepr_init(void) {
+  symlist = NULL;
+  next_symbol_id = 0;
   return true;
 }
 
@@ -136,7 +138,7 @@ void symrepr_del(void) {
 
   uint32_t *curr = symlist;
   while (curr) {
-    uint32_t *tmp = curr; 
+    uint32_t *tmp = curr;
     curr = (uint32_t*)curr[NEXT];
     memory_free((uint32_t*)tmp[NAME]);
     memory_free(tmp);
@@ -162,7 +164,7 @@ const char *symrepr_lookup_name(UINT id) {
       if (id == special_symbols[i].id) {
         return (special_symbols[i].name);
       }
-    } 
+    }
   }
   return lookup_symrepr_name_memory(id);
 }
@@ -217,7 +219,7 @@ int symrepr_addsym(char *name, UINT* id) {
   strcpy(symbol_name_storage, name);
 
   m[NAME] = (uint32_t)symbol_name_storage;
-  
+
   if (symlist == NULL) {
     m[NEXT] = (uint32_t) NULL;
     symlist = m;
@@ -225,7 +227,7 @@ int symrepr_addsym(char *name, UINT* id) {
     m[NEXT] = (uint32_t) symlist;
     symlist = m;
   }
-  m[ID] = MAX_SPECIAL_SYMBOLS + next_symbol_id++; 
+  m[ID] = MAX_SPECIAL_SYMBOLS + next_symbol_id++;
   *id = m[ID];
   return 1;
 }

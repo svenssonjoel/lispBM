@@ -1562,6 +1562,17 @@ int eval_cps_init_nc(unsigned int stack_size, bool grow_stack) {
 int eval_cps_init() {
   int res = 1;
 
+  blocked.first = NULL;
+  blocked.last = NULL;
+  queue.first = NULL;
+  queue.last = NULL;
+  done.first = NULL;
+  done.last = NULL;
+  ctx_running = NULL;
+  next_ctx_id = 1;
+
+  eval_cps_run_state = EVAL_CPS_STATE_INIT;
+  
   mutex_init(&qmutex);
 
   NIL = enc_sym(SYM_NIL);

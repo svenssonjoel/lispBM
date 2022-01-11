@@ -1,4 +1,4 @@
-# lispBM
+# lispBM (Lisp Black Magic)
 
 A concurrent lisp-like language with message-passing and
 pattern-matching implemented in C for 32-bit platforms.
@@ -19,16 +19,16 @@ All programming languages need a mascot, so here is the LispBM llama by [PixiLad
 2. Built-in functions: cons, car, cdr, eval, list, +, -, >, <, = and more.
 3. Some special forms: Lambdas, closures, lets (letrecs), define and quote.
 4. 28-Bit signed/unsigned integers and boxed 32-Bit Float, 32-Bit signed/unsigned values.
-5. Arrays (in progress), string is an array. 
+5. Arrays (in progress), string is an array.
 6. Compiles for, and runs on linux-x86 (builds 32bit library, runs on 32/64 bit).
 7. Compiles for, and runs on Zynq 7000.
-8. Compiles for, and runs on STM32f4. 
+8. Compiles for, and runs on STM32f4.
 9. Compiles for, and runs on NRF52840.
 10. Compiles for, and runs on ESP32 (ARM - WROOM).
 11. Compiles for, and runs on ESP32C3 (RISC-V).
 12. Compiles for, and runs on Raspberry PI (Tested on 32bit Raspbian OS)
 13. Quasiquotation.
-14. Concurrency. 
+14. Concurrency.
 15. Message-passing.
 16. Pattern-matching
 
@@ -43,9 +43,9 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 
 ## TODOs
 1. (DONE) Write some tests that stresses the Garbage collector.
-2. (DONE) Implement some "reference to X type", for uint32, int32. 
-3. (DONE) Write a small library of useful hofs. 
-4. (DONE) Improve handling of arguments in eval-cps. 
+2. (DONE) Implement some "reference to X type", for uint32, int32.
+3. (DONE) Write a small library of useful hofs.
+4. (DONE) Improve handling of arguments in eval-cps.
 5. (DONE) Code improvements with simplicity, clarity  and readability in mind.
 6. (DONE) Implement a small dedicated lisp reader/parser to replace MPC. MPC eats way to much memory for small platforms.
 7. (DONE) Port to STM32f4 - 128K ram platform (will need big changes). (surely there will be some more bugs)
@@ -57,9 +57,15 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 13. (DONE) Add NRF52 example repl to repository
 14. (DONE) Update all example REPLs after adding quasiquotation
 15. Test all example REPLs after addition of quasiquotation
-16. Implement some looping structure for speed or just ease of use. 
+16. Implement some looping structure for speed or just ease of use.
 17. Be much more stringent on checking of error conditions etc.
 18. The parser allocates heap memory, but there is no interfacing with the GC there.
+19. The parser uses a lot of stack memory, fix by making tail recursive and accumulating lists onto heap directly. 
+20. Images (heap + symbol memory).
+21. Rename files with names that may conflict with common stuff (memory.h, memory.c). 
+
+
+
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`

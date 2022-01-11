@@ -213,7 +213,7 @@ int main(void) {
     return 0;
   }
 
-   res = symrepr_init();
+  res = symrepr_init();
   if (res)
     chprintf(chp,"Symrepr initialized.\r\n");
   else {
@@ -226,6 +226,14 @@ int main(void) {
     chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
   else {
     chprintf(chp,"Error initializing heap!\r\n");
+    return 0;
+  }
+
+  res = env_init();
+  if (res)
+    chprintf(chp,"Environment initialized.\r\n");
+  else {
+    chprintf(chp,"Error initializing environment!\r\n");
     return 0;
   }
 
@@ -255,10 +263,6 @@ int main(void) {
     chprintf(chp,"Error starting evaluator thread.\r\n");
     return 0;
   }
-
-  VALUE prelude = prelude_load();
-  eval_cps_program(prelude);
-
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
 
   while (1) {
@@ -338,11 +342,83 @@ int main(void) {
       eval_cps_continue_eval();
     } else if (strncmp(str, ":step", 5) == 0) {
       eval_cps_step_eval();
-            while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
-        sleep_callback(10);
+      while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+        chThdSleepMilliseconds(1);
       }
       chprintf(chp, "Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
-    } else if (strncmp(str, ":quit", 5) == 0) {
+    } else if (strncmp(str, ":reset", 6) == 0) {
+      eval_cps_pause_eval();
+      while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+        chThdSleepMilliseconds(1);
+      }
+      res = memory_init(memory_array, MEMORY_SIZE_8K,
+                        bitmap_array, MEMORY_BITMAP_SIZE_8K);
+      if (res)
+        chprintf(chp,"Memory initialized. Memory size: %u Words. Free: %u Words.\r\n", memory_num_words(), memory_num_free());
+      else {
+        chprintf(chp,"Error initializing memory!\r\n");
+        return 0;
+      }
+
+      res = symrepr_init();
+      if (res)
+        chprintf(chp,"Symrepr initialized.\r\n");
+      else {
+        chprintf(chp,"Error initializing symrepr!\r\n");
+        return 0;
+      }
+
+      res = heap_init(heap, HEAP_SIZE);
+      if (res)
+        chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
+      else {
+        chprintf(chp,"Error initializing heap!\r\n");
+        return 0;
+      }
+
+      res = env_init();
+      if (res)
+        chprintf(chp,"Environment initialized.\r\n");
+      else {
+        chprintf(chp,"Error initializing environment!\r\n");
+        return 0;
+      }
+
+      res = eval_cps_init();
+      if (res)
+        chprintf(chp,"Evaluator initialized.\r\n");
+      else {
+        chprintf(chp,"Error initializing evaluator.\r\n");
+        return 0;
+      }
+
+      eval_cps_set_ctx_done_callback(done_callback);
+      eval_cps_set_timestamp_us_callback(timestamp_callback);
+      eval_cps_set_usleep_callback(sleep_callback);
+
+      res = extensions_add("print", ext_print);
+      if (res)
+        chprintf(chp,"Extension added.\r\n");
+      else
+        chprintf(chp,"Error adding extension.\r\n");
+    } else if (strncmp(str, ":prelude", 8) == 0) {
+
+      eval_cps_pause_eval();
+      while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+        chThdSleepMilliseconds(1);
+      }
+
+      chprintf(chp,"Parsing prelude.\r\n");
+      VALUE prelude = prelude_load();
+
+      chprintf(chp,"Evaluate prelude.\r\n");
+      eval_cps_program(prelude);
+
+      chprintf(chp,"Eval resuming.\r\n");
+      eval_cps_continue_eval();
+
+    }
+    else if (strncmp(str, ":quit", 5) == 0) {
       break;
     } else if (strncmp(str, ":read", 5) == 0) {
       memset(file_buffer, 0, 2048);

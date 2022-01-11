@@ -362,7 +362,7 @@ int tok_F(tokenizer_char_stream str, FLOAT *res) {
 
   unsigned int n = 0;
   unsigned int m = 0;
-  char fbuf[256];
+  static char fbuf[256];
 
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
 
@@ -525,7 +525,7 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     return parse_sexp_list(t,str);
   case TOKDONTCARE:
     return enc_sym(SYM_DONTCARE);
-  case TOKMATCHANY: 
+  case TOKMATCHANY:
     return enc_sym(SYM_MATCH_ANY);
   case TOKMATCHI28:
     return enc_sym(SYM_MATCH_I28);
@@ -597,7 +597,7 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
     VALUE unquoted = parse_sexp(t, str);
     if (type_of(unquoted) == VAL_TYPE_SYMBOL &&
         dec_sym(unquoted) == SYM_RERROR) return unquoted;
-    return cons(enc_sym(SYM_COMMA), cons (unquoted, enc_sym(SYM_NIL))); 
+    return cons(enc_sym(SYM_COMMA), cons (unquoted, enc_sym(SYM_NIL)));
   }
   }
   return enc_sym(SYM_RERROR);
@@ -639,8 +639,6 @@ VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
   }
   return enc_sym(SYM_RERROR);
 }
-
-
 
 bool more_string(tokenizer_char_stream str) {
   tokenizer_state *s = (tokenizer_state*)str.state;

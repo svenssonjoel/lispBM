@@ -282,8 +282,12 @@ void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
 }
 
 
+unsigned char memory[MEMORY_SIZE_8K] __attribute__ ((aligned (4)));
+unsigned char bitmap[MEMORY_BITMAP_SIZE_8K] __attribute__ ((aligned (4)));
+
+
 int main(int argc, char **argv) {
-  char *str = malloc(1024);;
+  char str[1024];
   unsigned int len = 1024;
   int res = 0;
 
@@ -294,10 +298,6 @@ int main(int argc, char **argv) {
   cons_t *heap_storage = NULL;
 
   //setup_terminal();
-
-  unsigned char *memory = malloc(MEMORY_SIZE_8K);
-  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_8K);
-  if (memory == NULL || bitmap == NULL) return 0;
 
   res = memory_init(memory, MEMORY_SIZE_8K,
                     bitmap, MEMORY_BITMAP_SIZE_8K);
@@ -327,7 +327,16 @@ int main(int argc, char **argv) {
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
   else {
+    free(heap_storage);
     printf("Error initializing heap!\n");
+    return 0;
+  }
+
+  res = env_init();
+  if (res)
+    printf("Environment initialized.\n");
+  else {
+    printf("Error initializing environment!\n");
     return 0;
   }
 
@@ -360,9 +369,6 @@ int main(int argc, char **argv) {
     printf("Error creating evaluation thread\n");
     return 1;
   }
-
-  VALUE prelude = prelude_load();
-  eval_cps_program(prelude);
 
   printf("Lisp REPL started!\n");
   printf("Type :quit to exit.\n");
@@ -449,6 +455,68 @@ int main(int argc, char **argv) {
       }
     } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       break;
+    } else if (strncmp(str, ":reset", 6) == 0) {
+      eval_cps_pause_eval();
+      while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+      res = memory_init(memory, MEMORY_SIZE_8K,
+                        bitmap, MEMORY_BITMAP_SIZE_8K);
+      if (res)
+        printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
+      else {
+        printf("Error initializing memory!\n");
+        return 0;
+      }
+
+      res = symrepr_init();
+      if (res)
+        printf("Symrepr initialized.\n");
+      else {
+        printf("Error initializing symrepr!\n");
+        return 0;
+      }
+
+      res = heap_init(heap_storage, heap_size);
+      if (res)
+        printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
+      else {
+        printf("Error initializing heap!\n");
+        return 0;
+      }
+
+      res = env_init();
+      if (res)
+        printf("Environment initialized.\n");
+      else {
+        printf("Error initializing environment!\n");
+        return 0;
+      }
+
+      res = eval_cps_init(); // dont grow stack
+      if (res)
+        printf("Evaluator initialized.\n");
+      else {
+        printf("Error initializing evaluator.\n");
+      }
+      continue;
+    } else if (strncmp(str, ":prelude", 8) == 0) {
+
+      eval_cps_pause_eval();
+      while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+
+      printf("Parsing prelude.\n");
+      VALUE prelude = prelude_load();
+
+      printf("Evaluate prelude.\n");
+      eval_cps_program(prelude);
+
+      printf("Eval resuming.\n");
+      eval_cps_continue_eval();
+
+      continue;
     } else {
       VALUE t;
 

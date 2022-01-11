@@ -114,6 +114,8 @@ int heap_init(cons_t *addr, unsigned int num_cells) {
   RECOVERED = enc_sym(SYM_RECOVERED);
 
   if (((uintptr_t)addr % 8) != 0) return 0;
+
+  memset(addr,0, sizeof(cons_t) * num_cells);
   
   heap_init_state(addr, num_cells, false);
 
