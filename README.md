@@ -62,7 +62,7 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 18. The parser allocates heap memory, but there is no interfacing with the GC there.
 19. The parser uses a lot of stack memory, fix by making tail recursive and accumulating lists onto heap directly. 
 20. Images (heap + symbol memory).
-21. Rename files with names that may conflict with common stuff (memory.h, memory.c). 
+21. (DONE) Rename files with names that may conflict with common stuff (memory.h, memory.c). 
 22. (DONE) It should be possible to reset the runtime system. 
 
 
