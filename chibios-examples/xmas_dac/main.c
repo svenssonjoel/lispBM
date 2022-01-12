@@ -26,15 +26,7 @@
 #include "usbcfg.h"
 #include "chprintf.h"
 
-#include "heap.h"
-#include "symrepr.h"
-#include "eval_cps.h"
-#include "print.h"
-#include "tokpar.h"
-#include "prelude.h"
-#include "extensions.h"
-#include "memory.h"
-#include "env.h"
+#include "lispbm.h"
 
 #define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(1024)
 #define EVAL_CPS_STACK_SIZE 256
@@ -64,7 +56,7 @@ static msg_t b[MAX_MESSAGES];
 typedef struct {
   uint32_t type;
   uint32_t data[4];
-} dac_msg_t; 
+} dac_msg_t;
 
 
 static dac_msg_t msgs[MAX_MESSAGES] __attribute__((aligned((4))));
@@ -89,11 +81,11 @@ static int send_to_dac(dac_msg_t msg) {
 static int read_msg(dac_msg_t *msg) {
 
   msg_t msg_value;
-  
+
   int r = chMBFetchTimeout(&mb, &msg_value, 0);
 
   if (r == MSG_OK ) {
-    
+
     *msg = *(dac_msg_t*)msg_value;
 
     chPoolFree(&msg_pool, (void*)msg_value);
@@ -105,7 +97,7 @@ static int read_msg(dac_msg_t *msg) {
   return r;
 }
 
-// Message types 
+// Message types
 #define NOTE 100
 
 static THD_FUNCTION(dac_thread, arg) {
@@ -117,23 +109,23 @@ static THD_FUNCTION(dac_thread, arg) {
   uint32_t vol_mask = 0;
   uint32_t volume = 4095;
   uint     s = 1;
-  
+
   while (1) {
 
 
-    if (read_msg(&msg)) {      
+    if (read_msg(&msg)) {
       switch (msg.type) {
       case NOTE:
-	half_period = msg.data[0];
-	vol_mask    = msg.data[1];
-	break;
+        half_period = msg.data[0];
+        vol_mask    = msg.data[1];
+        break;
       default:
-	break;
+        break;
       }
     }
-    
+
     dacPutChannelX(dacd, 0, s * (volume & vol_mask));
-    
+
     chThdSleepMicroseconds(half_period); // 440Hz
     s = 1 - s;
   }
@@ -146,10 +138,10 @@ void init_dac(void) {
   dacc.init = 0u;
   dacc.datamode = DAC_DHRM_12BIT_RIGHT;
   dacc.cr = 0;
-  
+
   palSetPadMode(DAC0_GPIO, DAC0_PIN, DAC0_MODE);
 
-  dacStart(dacd, &dacc);  
+  dacStart(dacd, &dacc);
 }
 
 
@@ -195,9 +187,9 @@ void done_callback(eval_context_t *ctx) {
 
   CID cid = ctx->id;
   VALUE t = ctx->r;
-  
+
   int print_ret = print_value(output, 1024, error, 1024, t);
-  
+
   if (print_ret >= 0) {
     chprintf(chp,"<< Context %d finished with value %s >>\r\n# ", cid, output);
   } else {
@@ -225,7 +217,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
 
   char output[1024];
   char error[1024];
-  
+
   for (UINT i = 0; i < argn; i ++) {
     VALUE t = args[i];
 
@@ -233,25 +225,25 @@ VALUE ext_print(VALUE *args, UINT argn) {
       array_header_t *array = (array_header_t *)car(t);
       switch (array->elt_type){
       case VAL_TYPE_CHAR:
-	chprintf(chp,"%s", (char*)array + 8);
-	break;
+        chprintf(chp,"%s", (char*)array + 8);
+        break;
       default:
-	return enc_sym(SYM_NIL);
-	break;
+        return enc_sym(SYM_NIL);
+        break;
       }
     } else if (val_type(t) == VAL_TYPE_CHAR) {
       if (dec_char(t) =='\n') {
-	chprintf(chp, "\r\n");
+        chprintf(chp, "\r\n");
       } else {
-	chprintf(chp,"%c", dec_char(t));
+        chprintf(chp,"%c", dec_char(t));
       }
     }  else {
       int print_ret = print_value(output, 1024, error, 1024, t);
-      
+
       if (print_ret >= 0) {
-	chprintf(chp,"%s", output);
+        chprintf(chp,"%s", output);
       } else {
-	chprintf(chp,"%s", error);
+        chprintf(chp,"%s", error);
       }
     }
   }
@@ -277,8 +269,8 @@ VALUE ext_note(VALUE *args, UINT argn) {
 
 
 
-unsigned char memory_array[MEMORY_SIZE_8K];
-unsigned char bitmap_array[MEMORY_BITMAP_SIZE_8K];
+static uint32_t memory_array[MEMORY_SIZE_8K];
+static uint32_t bitmap_array[MEMORY_BITMAP_SIZE_8K];
 
 char str[1024];
 char outbuf[2048];
@@ -300,17 +292,17 @@ int main(void) {
   usbDisconnectBus(serusbcfg.usbp);
   chThdSleepMilliseconds(1500);
   usbStart(serusbcfg.usbp, &usbcfg);
-  usbConnectBus(serusbcfg.usbp);	
+  usbConnectBus(serusbcfg.usbp);
 
   chp = (BaseSequentialStream*)&SDU1;
-  
+
   size_t len = 1024;
- 
+
   int res = 0;
-  
+
   heap_state_t heap_state;
 
-  chThdSleepMilliseconds(2000);  
+  chThdSleepMilliseconds(2000);
 
   chprintf(chp,"\r\n\r\nStarting up\r\n\r\n");
 
@@ -320,52 +312,25 @@ int main(void) {
 
 
   chThdCreateStatic(dac_wa,
-		    sizeof dac_wa,
-		    NORMALPRIO,
-		    dac_thread,
-		    NULL);
+                    sizeof dac_wa,
+                    NORMALPRIO,
+                    dac_thread,
+                    NULL);
 
   chThdSleepMilliseconds(1); // start up the dac thread now
 
 
-  
-  res = memory_init(memory_array, MEMORY_SIZE_8K,
-		    bitmap_array, MEMORY_BITMAP_SIZE_8K);
-  if (res)
-    chprintf(chp,"Memory initialized. Memory size: %u Words. Free: %u Words.\r\n", memory_num_words(), memory_num_free());
-  else {
-    chprintf(chp,"Error initializing memory!\r\n");
-    return 1;
-  }
-  
-   res = symrepr_init();
-  if (res)
-    chprintf(chp,"Symrepr initialized.\r\n");
-  else {
-    chprintf(chp,"Error initializing symrepr!\r\n");
-    return 1;
-  }
-  
-  res = heap_init(heap, HEAP_SIZE);
-  if (res)
-    chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
-  else {
-    chprintf(chp,"Error initializing heap!\r\n");
-    return 1;
-  }
-
-  res = eval_cps_init();
-  if (res)
-    chprintf(chp,"Evaluator initialized.\r\n");
-  else {
-    chprintf(chp,"Error initializing evaluator.\r\n");
-    return 1;
+  if (!lispbm_init(heap, HEAP_SIZE,
+                   memory_array, MEMORY_SIZE_8K,
+                   bitmap_array, MEMORY_BITMAP_SIZE_8K)) {
+    chprintf(chp,"Initializing LispBM failed\r\n");
+    return 0;
   }
 
   eval_cps_set_ctx_done_callback(done_callback);
   eval_cps_set_timestamp_us_callback(timestamp_callback);
   eval_cps_set_usleep_callback(sleep_callback);
-  
+
   res = extensions_add("print", ext_print);
   if (res)
     chprintf(chp,"Extension added: print.\r\n");
@@ -378,21 +343,21 @@ int main(void) {
   else
     chprintf(chp,"Error adding extension.\r\n");
 
-  
+
   thread_t *t = chThdCreateFromHeap(NULL, EVAL_WA_SIZE,
-  				    "eval", NORMALPRIO+1,
-  				    eval, (void *)NULL);
+                                    "eval", NORMALPRIO+1,
+                                    eval, (void *)NULL);
 
   if (!t) {
     chprintf(chp,"Error starting evaluator thread.\r\n");
     return 1;
   }
-  
+
   VALUE prelude = prelude_load();
   eval_cps_program(prelude);
 
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
-  
+
   while (1) {
     chprintf(chp,"# ");
     memset(str,0,len);
@@ -402,12 +367,12 @@ int main(void) {
 
     if (strncmp(str, ":info", 5) == 0) {
       chprintf(chp,"##(ChibiOS)#################################################\r\n");
-      chprintf(chp,"Used cons cells: %lu \r\n", heap_size - heap_num_free());
+      chprintf(chp,"Used cons cells: %lu \r\n", HEAP_SIZE - heap_num_free());
       res = print_value(outbuf,2048, error, 1024, *env_get_global_ptr());
       if (res >= 0) {
-	chprintf(chp,"ENV: %s \r\n", outbuf);
+        chprintf(chp,"ENV: %s \r\n", outbuf);
       } else {
-	chprintf(chp,"%s\r\n",error);
+        chprintf(chp,"%s\r\n",error);
       }
       heap_get_state(&heap_state);
       chprintf(chp,"GC counter: %lu\r\n", heap_state.gc_num);
@@ -421,54 +386,54 @@ int main(void) {
     } else if (strncmp(str, ":wait", 5) == 0) {
       int cid = atoi(str+5);
       chprintf(chp,"waiting for cid: %d\r\n", cid);
-      eval_cps_wait_ctx(cid);    
+      eval_cps_wait_ctx(cid);
     } else if (strncmp(str, ":read", 5) == 0) {
       memset(file_buffer, 0, 4096);
       bool done = false;
-      int c; 
-      
+      int c;
+
       for (int i = 0; i < 4096; i ++) {
-	c = streamGet(chp); 
-	
-	if (c == 4 || c == 26 || c == STM_RESET) {
-	  done = true;
-	  break;
-	}
-	file_buffer[i] = (char)c;
+        c = streamGet(chp);
+
+        if (c == 4 || c == 26 || c == STM_RESET) {
+          done = true;
+          break;
+        }
+        file_buffer[i] = (char)c;
       }
 
-      
+
       //chThdSleepMilliseconds(100);
       chprintf(chp, "%s\r\n", file_buffer);
       chprintf(chp, "received %d bytes\r\n", strlen(file_buffer));
-      
-      if (done) {
-	VALUE t;
 
-	chprintf(chp, "Parsing file\r\n");
-	t = tokpar_parse(file_buffer);
-	chprintf(chp, "Evaluating contents\r\n");
-	CID cid = eval_cps_program(t);
-	if (cid == 0) {
-	  chprintf(chp,"Error creating ctx\r\n");
-	} else {
-	  chprintf(chp,"started ctx: %u\r\n", cid);
-	}
+      if (done) {
+        VALUE t;
+
+        chprintf(chp, "Parsing file\r\n");
+        t = tokpar_parse(file_buffer);
+        chprintf(chp, "Evaluating contents\r\n");
+        CID cid = eval_cps_program(t);
+        if (cid == 0) {
+          chprintf(chp,"Error creating ctx\r\n");
+        } else {
+          chprintf(chp,"started ctx: %u\r\n", cid);
+        }
       }
     } else {
-      
+
       if (strlen(str) == 0) {
-	continue;
+        continue;
       }
-      
+
       VALUE t;
       t = tokpar_parse(str);
 
       CID cid = eval_cps_program(t);
       if (cid == 0) {
-	chprintf(chp,"Error creating ctx\r\n");
+        chprintf(chp,"Error creating ctx\r\n");
       } else {
-	chprintf(chp,"started ctx: %u\r\n", cid);
+        chprintf(chp,"started ctx: %u\r\n", cid);
       }
     }
   }

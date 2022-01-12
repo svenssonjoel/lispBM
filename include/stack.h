@@ -21,7 +21,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "typedefs.h"
+#include "lispbm_types.h"
 
 typedef struct {
   UINT* data;

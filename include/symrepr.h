@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "typedefs.h"
+#include "lispbm_types.h"
 
 // Default and fixed symbol ids
 #define SYM_NIL           0x0

@@ -18,7 +18,7 @@
 #define EVAL_CPS_H_
 
 #include "stack.h"
-#include "typedefs.h"
+#include "lispbm_types.h"
 
 #define EVAL_CPS_STATE_INIT    0
 #define EVAL_CPS_STATE_PAUSED  1

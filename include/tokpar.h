@@ -18,7 +18,7 @@
 #ifndef TOKPAR_H_
 #define TOKPAR_H_
 
-#include "typedefs.h"
+#include "lispbm_types.h"
 
 extern VALUE tokpar_parse(char *str);
 extern VALUE tokpar_parse_program(tokenizer_char_stream str);

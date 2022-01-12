@@ -18,7 +18,7 @@
 #ifndef ENV_H_
 #define ENV_H_
 
-#include "typedefs.h"
+#include "lispbm_types.h"
 
 extern int env_init(void);
 extern VALUE *env_get_global_ptr(void);

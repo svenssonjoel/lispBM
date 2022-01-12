@@ -22,7 +22,7 @@
 #include <inttypes.h>
 
 #include "symrepr.h"
-#include "memory.h"
+#include "lispbm_memory.h"
 
 #define NUM_SPECIAL_SYMBOLS 79
 

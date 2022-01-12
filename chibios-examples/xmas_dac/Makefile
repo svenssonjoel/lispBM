@@ -128,13 +128,14 @@ LBMSRC = ../../src/env.c \
          ../../src/extensions.c \
          ../../src/fundamental.c \
          ../../src/heap.c \
-         ../../src/memory.c \
+         ../../src/lispbm_memory.c \
          ../../src/prelude.c \
          ../../src/print.c \
          ../../src/qq_expand.c \
          ../../src/stack.c \
          ../../src/symrepr.c \
          ../../src/tokpar.c \
+         ../../src/lispbm.c \
          ../../platform/chibios/src/platform_mutex.c
 
 CSRC = $(ALLCSRC) \

@@ -33,7 +33,7 @@
 #include "tokpar.h"
 #include "prelude.h"
 #include "compression.h"
-#include "memory.h"
+#include "lispbm_memory.h"
 #include "extensions.h"
 
 #define EVAL_CPS_STACK_SIZE 256
@@ -139,9 +139,10 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  unsigned char *memory = malloc(MEMORY_SIZE_16K);
-  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
-  if (memory == NULL || bitmap == NULL) return 0;
+  uint32_t *memory = malloc(4 * MEMORY_SIZE_16K);
+  if (memory == NULL) return 0;
+  uint32_t *bitmap = malloc(4 * MEMORY_BITMAP_SIZE_16K);
+  if (memory == NULL) return 0;
   
   res = memory_init(memory, MEMORY_SIZE_16K,
 		    bitmap, MEMORY_BITMAP_SIZE_16K);

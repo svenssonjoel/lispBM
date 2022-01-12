@@ -20,8 +20,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "typedefs.h"
-
+#include "lispbm_types.h"
 
 typedef struct {
   uint32_t compressed_bits;

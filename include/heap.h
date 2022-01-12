@@ -19,7 +19,7 @@
 #define HEAP_H_
 
 #include <string.h>
-#include "typedefs.h"
+#include "lispbm_types.h"
 #include "symrepr.h"
 
 /*

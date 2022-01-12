@@ -1,35 +1,30 @@
 first_rule: all
 
-include $(LISPBM)/src/lispbm.mk
+LISPBM_SRC = $(LISPBM)/src/env.c \
+             $(LISPBM)/src/fundamental.c \
+	     $(LISPBM)/src/heap.c \
+             $(LISPBM)/src/lispbm_memory.c \
+             $(LISPBM)/src/print.c \
+             $(LISPBM)/src/qq_expand.c \
+             $(LISPBM)/src/stack.c \
+             $(LISPBM)/src/symrepr.c \
+             $(LISPBM)/src/tokpar.c \
+             $(LISPBM)/src/compression.c \
+             $(LISPBM)/src/prelude.c \
+             $(LISPBM)/src/extensions.c \
+             $(LISPBM)/src/lispbm.c \
+             $(LISPBM)/src/ec_eval.c \
+             $(LISPBM)/src/eval_cps.c
 
-LISPBM_SRC = $(LISPBM_BASE_SRC)
-LISPBM_H   = $(LISPBM)/include
+LISPBM_INC = -I$(LISPBM)/include \
+             -I$(LISPBM)/src
+
 LISPBM_FLAGS =
 LISPBM_DEPS  = 
 
-ifeq ($(LISPBM_USE_COMPRESSION), true)
-LISPBM_SRC += $(LISPBM_COMPRESSION_SRC)
-endif
-
-ifeq ($(LISPBM_USE_EC_EVAL), true)
-LISPBM_SRC += $(LISPBM_EC_EVAL_SRC)
-endif
-
-ifeq ($(LISPBM_USE_EVAL_CPS), true)
-LISPBM_SRC += $(LISPBM_EVAL_CPS_SRC)
-endif
-
-ifeq ($(LISPBM_USE_PRELUDE), true)
-LISPBM_SRC += $(LISPBM_PRELUDE_SRC)
 LISPBM_FLAGS += -D_PRELUDE
 
 LISPBM_DEPS += $(LISPBM)/src/prelude.xxd
 
 $(LISPBM)/src/prelude.xxd: $(LISPBM)/src/prelude.lisp
 	xxd -i < $(LISPBM)/src/prelude.lisp > $(LISPBM)/src/prelude.xxd 
-
-endif
-
-ifeq ($(LISPBM_USE_EXTENSIONS), true)
-LISPBM_SRC += $(LISPBM_EXTENSIONS_SRC)
-endif 

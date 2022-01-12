@@ -20,10 +20,11 @@
 
 #include "symrepr.h"
 #include "heap.h"
-#include "typedefs.h"
+#include "lispbm_types.h"
 
 typedef VALUE (*extension_fptr)(VALUE*,UINT);
 
+extern int extensions_init(void);
 extern extension_fptr extensions_lookup(UINT sym);
 extern bool extensions_add(char *sym_str, extension_fptr ext);
 extern void extensions_del(void);

@@ -15,8 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TYPEDEFS_H_
-#define TYPEDEFS_H_
+#ifndef LISPBM_TYPES_H_
+#define LISPBM_TYPES_H_
 
 #include <stdint.h>
 #include <stdbool.h>

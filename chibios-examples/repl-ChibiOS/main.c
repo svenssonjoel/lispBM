@@ -25,22 +25,14 @@
 #include "usbcfg.h"
 #include "chprintf.h"
 
-#include "heap.h"
-#include "symrepr.h"
-#include "eval_cps.h"
-#include "print.h"
-#include "tokpar.h"
-#include "prelude.h"
-#include "extensions.h"
-#include "memory.h"
-#include "env.h"
+#include "lispbm.h"
 
 #define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(1024)
 #define EVAL_CPS_STACK_SIZE 256
 
 #define HEAP_SIZE 2048
 
-cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
+static cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
 BaseSequentialStream *chp = NULL;
 
@@ -151,11 +143,10 @@ VALUE ext_print(VALUE *args, UINT argn) {
   return enc_sym(SYM_TRUE);
 }
 
-char str[1024];
-char outbuf[2048];
-char error[1024];
-char file_buffer[2048];
-
+static char str[1024];
+static char outbuf[2048];
+static char error[1024];
+static char file_buffer[2048];
 
 void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void)arg2;
@@ -174,8 +165,8 @@ void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
 }
 
 
-unsigned char memory_array[MEMORY_SIZE_8K];
-unsigned char bitmap_array[MEMORY_BITMAP_SIZE_8K];
+static uint32_t memory_array[MEMORY_SIZE_8K];
+static uint32_t bitmap_array[MEMORY_BITMAP_SIZE_8K];
 
 int main(void) {
   halInit();
@@ -204,44 +195,10 @@ int main(void) {
 
   chThdSleepMilliseconds(2000);
 
-  res = memory_init(memory_array, MEMORY_SIZE_8K,
-                    bitmap_array, MEMORY_BITMAP_SIZE_8K);
-  if (res)
-    chprintf(chp,"Memory initialized. Memory size: %u Words. Free: %u Words.\r\n", memory_num_words(), memory_num_free());
-  else {
-    chprintf(chp,"Error initializing memory!\r\n");
-    return 0;
-  }
-
-  res = symrepr_init();
-  if (res)
-    chprintf(chp,"Symrepr initialized.\r\n");
-  else {
-    chprintf(chp,"Error initializing symrepr!\r\n");
-    return 0;
-  }
-
-  res = heap_init(heap, HEAP_SIZE);
-  if (res)
-    chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
-  else {
-    chprintf(chp,"Error initializing heap!\r\n");
-    return 0;
-  }
-
-  res = env_init();
-  if (res)
-    chprintf(chp,"Environment initialized.\r\n");
-  else {
-    chprintf(chp,"Error initializing environment!\r\n");
-    return 0;
-  }
-
-  res = eval_cps_init();
-  if (res)
-    chprintf(chp,"Evaluator initialized.\r\n");
-  else {
-    chprintf(chp,"Error initializing evaluator.\r\n");
+  if (!lispbm_init(heap, HEAP_SIZE,
+                   memory_array, MEMORY_SIZE_8K,
+                   bitmap_array, MEMORY_BITMAP_SIZE_8K)) {
+    chprintf(chp,"LispBM Init failed.\r\n");
     return 0;
   }
 
@@ -351,56 +308,13 @@ int main(void) {
       while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
         chThdSleepMilliseconds(1);
       }
-      res = memory_init(memory_array, MEMORY_SIZE_8K,
-                        bitmap_array, MEMORY_BITMAP_SIZE_8K);
-      if (res)
-        chprintf(chp,"Memory initialized. Memory size: %u Words. Free: %u Words.\r\n", memory_num_words(), memory_num_free());
-      else {
-        chprintf(chp,"Error initializing memory!\r\n");
-        return 0;
-      }
 
-      res = symrepr_init();
-      if (res)
-        chprintf(chp,"Symrepr initialized.\r\n");
-      else {
-        chprintf(chp,"Error initializing symrepr!\r\n");
-        return 0;
-      }
+      lispbm_init(heap, HEAP_SIZE,
+                  memory_array, MEMORY_SIZE_8K,
+                  bitmap_array, MEMORY_BITMAP_SIZE_8K);
 
-      res = heap_init(heap, HEAP_SIZE);
-      if (res)
-        chprintf(chp,"Heap initialized. Free cons cells: %u\r\n", heap_num_free());
-      else {
-        chprintf(chp,"Error initializing heap!\r\n");
-        return 0;
-      }
+      extensions_add("print", ext_print);
 
-      res = env_init();
-      if (res)
-        chprintf(chp,"Environment initialized.\r\n");
-      else {
-        chprintf(chp,"Error initializing environment!\r\n");
-        return 0;
-      }
-
-      res = eval_cps_init();
-      if (res)
-        chprintf(chp,"Evaluator initialized.\r\n");
-      else {
-        chprintf(chp,"Error initializing evaluator.\r\n");
-        return 0;
-      }
-
-      eval_cps_set_ctx_done_callback(done_callback);
-      eval_cps_set_timestamp_us_callback(timestamp_callback);
-      eval_cps_set_usleep_callback(sleep_callback);
-
-      res = extensions_add("print", ext_print);
-      if (res)
-        chprintf(chp,"Extension added.\r\n");
-      else
-        chprintf(chp,"Error adding extension.\r\n");
     } else if (strncmp(str, ":prelude", 8) == 0) {
 
       eval_cps_pause_eval();

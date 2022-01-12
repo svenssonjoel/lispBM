@@ -1,5 +1,5 @@
 /*
-    Copyright 2020, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2020, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "memory.h"
+#include "lispbm_memory.h"
 
 /* Status bit patterns */
 #define FREE_OR_USED  0  //00b
@@ -34,14 +34,14 @@
 #define ALLOC_DONE           0xF00DF00D
 #define ALLOC_FAILED         0xDEADBEAF
 
-uint32_t *bitmap = NULL;
-uint32_t *memory = NULL;
-uint32_t memory_size;  // in 4 byte words
-uint32_t bitmap_size;  // in 4 byte words
-unsigned int memory_base_address = 0;
+static uint32_t *bitmap = NULL;
+static uint32_t *memory = NULL;
+static uint32_t memory_size;  // in 4 byte words
+static uint32_t bitmap_size;  // in 4 byte words
+static unsigned int memory_base_address = 0;
 
-int memory_init(unsigned char *data, uint32_t data_size,
-                unsigned char *bits, uint32_t bits_size) {
+int memory_init(uint32_t *data, uint32_t data_size,
+                uint32_t *bits, uint32_t bits_size) {
 
   if (data == NULL || bits == NULL) return 0;
 
@@ -53,16 +53,16 @@ int memory_init(unsigned char *data, uint32_t data_size,
     return 0;
   }
 
-  bitmap = (uint32_t *) bits;
-  bitmap_size = bits_size >> 2;
+  bitmap = bits;
+  bitmap_size = bits_size;
 
   for (uint32_t i = 0; i < bitmap_size; i ++) {
     bitmap[i] = 0;
   }
 
-  memory = (uint32_t *) data;
+  memory = data;
   memory_base_address = (unsigned int)data;
-  memory_size = data_size >> 2;
+  memory_size = data_size;
   return 1;
 }
 

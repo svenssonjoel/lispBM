@@ -22,7 +22,7 @@
 #include <stdbool.h>
 
 #include "compression.h"
-#include "typedefs.h"
+#include "lispbm_types.h"
 #include "tokpar.h"
 
 #define  KEY  0

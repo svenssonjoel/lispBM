@@ -19,7 +19,7 @@
 #define PRINT_H_
 
 #include <stdint.h>
-#include "typedefs.h"
+#include "lispbm_types.h"
 
 extern int print_value(char *buf,unsigned int len, char *error, unsigned int len_error, VALUE t);
 

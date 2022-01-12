@@ -2,12 +2,6 @@
 
 LISPBM := ../
 
-LISPBM_USE_COMPRESSION = true
-LISPBM_USE_EVAL_CPS = true
-LISPBM_USE_EC_EVAL = true
-LISPBM_USE_PRELUDE = true
-LISPBM_USE_EXTENSIONS = true
-
 include $(LISPBM)/lispbm.mk
 
 PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include

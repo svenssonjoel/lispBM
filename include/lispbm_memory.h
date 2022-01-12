@@ -1,5 +1,5 @@
 /*
-    Copyright 2020 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2020, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -69,13 +69,16 @@
   symbol when it comes to replacing the symbol table. 
    
 */
-#ifndef _MEMORY_H_
-#define _MEMORY_H_
+#ifndef _LISPBM_MEMORY_H_
+#define _LISPBM_MEMORY_H_
 
 #include <stdint.h>
 
-#define MEMORY_SIZE_64BYTES_TIMES_X(X) (64*(X))
-#define MEMORY_BITMAP_SIZE(X) (4*(X))
+//#define MEMORY_SIZE_64BYTES_TIMES_X(X) (64*(X))
+//#define MEMORY_BITMAP_SIZE(X) (4*(X))
+#define MEMORY_SIZE_64BYTES_TIMES_X(X) (16*(X))
+#define MEMORY_BITMAP_SIZE(X) (X)
+
 
 #define MEMORY_SIZE_512 MEMORY_SIZE_64BYTES_TIMES_X(8)
 #define MEMORY_SIZE_1K MEMORY_SIZE_64BYTES_TIMES_X(16)
@@ -95,8 +98,8 @@
 #define MEMORY_BITMAP_SIZE_32K MEMORY_BITMAP_SIZE(512)
 #define MEMORY_BITMAP_SIZE_1M  MEMORY_BITMAP_SIZE(16384)
 
-extern int memory_init(unsigned char *data, uint32_t data_size,
-                       unsigned char *bitmap, uint32_t bitmap_size);
+extern int memory_init(uint32_t *data, uint32_t data_size,
+                       uint32_t *bitmap, uint32_t bitmap_size);
 extern uint32_t memory_num_words(void);
 extern uint32_t memory_num_free(void);
 extern uint32_t *memory_allocate(uint32_t num_words);

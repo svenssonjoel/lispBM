@@ -22,7 +22,7 @@
 #include "print.h"
 #include "heap.h"
 #include "symrepr.h"
-#include "typedefs.h"
+#include "lispbm_types.h"
 #include "stack.h"
 
 #define PRINT_STACK_SIZE 256 /* 1 KB */

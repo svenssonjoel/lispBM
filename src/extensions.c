@@ -20,7 +20,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "memory.h"
+#include "lispbm_memory.h"
 #include "extensions.h"
 
 #define SYM 0
@@ -34,6 +34,11 @@
 /* } extension_function_t; */
 
 uint32_t* extensions = NULL;
+
+int extensions_init(void) {
+  extensions = NULL;
+  return 1;
+}
 
 extension_fptr extensions_lookup(UINT sym) {
   uint32_t *t = extensions;

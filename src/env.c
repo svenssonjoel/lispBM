@@ -20,7 +20,7 @@
 #include "symrepr.h"
 #include "heap.h"
 #include "print.h"
-#include "typedefs.h"
+#include "lispbm_types.h"
 
 VALUE env_global;
 

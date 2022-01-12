@@ -21,7 +21,7 @@
 #include "stack.h"
 #include "fundamental.h"
 #include "extensions.h"
-#include "typedefs.h"
+#include "lispbm_types.h"
 #include "ec_eval.h"
 #include "exp_kind.h"
 #include "print.h"

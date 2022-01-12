@@ -18,9 +18,9 @@
 #include <string.h>
 
 #include "stack.h"
-#include "typedefs.h"
+#include "lispbm_types.h"
 #include "print.h"
-#include "memory.h"
+#include "lispbm_memory.h"
 
 int stack_allocate(stack *s, unsigned int stack_size, bool growable) {
   s->data = memory_allocate(stack_size);

@@ -18,7 +18,7 @@
 #ifndef _PRELUDE_H_
 #define _PRELUDE_H_
 
-#include "typedefs.h"
+#include "lispbm_types.h"
 
 extern VALUE prelude_load(void);
 

@@ -23,7 +23,7 @@
 #include "heap.h"
 #include "symrepr.h"
 #include "stack.h"
-#include "memory.h"
+#include "lispbm_memory.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -116,7 +116,7 @@ int heap_init(cons_t *addr, unsigned int num_cells) {
   if (((uintptr_t)addr % 8) != 0) return 0;
 
   memset(addr,0, sizeof(cons_t) * num_cells);
-  
+
   heap_init_state(addr, num_cells, false);
 
   return generate_freelist(num_cells);

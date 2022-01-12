@@ -24,10 +24,10 @@
 #include "tokpar.h"
 #include "symrepr.h"
 #include "heap.h"
-#include "typedefs.h"
+#include "lispbm_types.h"
 #include "compression.h"
 #include "qq_expand.h"
-#include "memory.h"
+#include "lispbm_memory.h"
 #include "env.h"
 
 #define NOTOKEN         0u

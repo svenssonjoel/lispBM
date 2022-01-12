@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
- #define _POSIX_C_SOURCE 200809L
+#define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -25,16 +25,7 @@
 #include <termios.h>
 #include <ctype.h>
 
-#include "heap.h"
-#include "symrepr.h"
-#include "extensions.h"
-#include "eval_cps.h"
-#include "print.h"
-#include "tokpar.h"
-#include "prelude.h"
-#include "typedefs.h"
-#include "memory.h"
-#include "env.h"
+#include "lispbm.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 
@@ -201,18 +192,6 @@ VALUE ext_print(VALUE *args, UINT argn) {
   return enc_sym(SYM_TRUE);
 }
 
-VALUE ext_note(VALUE *args, UINT argn) {
-
-  if (argn != 2) {
-    return enc_sym(SYM_NIL);
-  }
-
-  printf("note %u %u\n", dec_u(args[0]),  dec_u(args[1]));
-
-  return enc_sym(SYM_TRUE);
-}
-
-
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
   char *file_str = NULL;
@@ -281,10 +260,8 @@ void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
   }
 }
 
-
-unsigned char memory[MEMORY_SIZE_8K] __attribute__ ((aligned (4)));
-unsigned char bitmap[MEMORY_BITMAP_SIZE_8K] __attribute__ ((aligned (4)));
-
+static uint32_t memory[MEMORY_SIZE_8K];
+static uint32_t bitmap[MEMORY_BITMAP_SIZE_8K];
 
 int main(int argc, char **argv) {
   char str[1024];
@@ -294,58 +271,19 @@ int main(int argc, char **argv) {
   pthread_t lispbm_thd;
 
   heap_state_t heap_state;
-
+  unsigned int heap_size = 2048;
   cons_t *heap_storage = NULL;
 
   //setup_terminal();
-
-  res = memory_init(memory, MEMORY_SIZE_8K,
-                    bitmap, MEMORY_BITMAP_SIZE_8K);
-  if (res)
-    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
-  else {
-    printf("Error initializing memory!\n");
-    return 0;
-  }
-
-  res = symrepr_init();
-  if (res)
-    printf("Symrepr initialized.\n");
-  else {
-    printf("Error initializing symrepr!\n");
-    return 0;
-  }
-
-  unsigned int heap_size = 2048;
 
   heap_storage = (cons_t*)malloc(sizeof(cons_t) * heap_size);
   if (heap_storage == NULL) {
     return 0;
   }
 
-  res = heap_init(heap_storage, heap_size);
-  if (res)
-    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
-  else {
-    free(heap_storage);
-    printf("Error initializing heap!\n");
-    return 0;
-  }
-
-  res = env_init();
-  if (res)
-    printf("Environment initialized.\n");
-  else {
-    printf("Error initializing environment!\n");
-    return 0;
-  }
-
-  res = eval_cps_init(); // dont grow stack
-  if (res)
-    printf("Evaluator initialized.\n");
-  else {
-    printf("Error initializing evaluator.\n");
-  }
+  lispbm_init(heap_storage, heap_size,
+              memory, MEMORY_SIZE_8K,
+              bitmap, MEMORY_BITMAP_SIZE_8K);
 
   eval_cps_set_ctx_done_callback(done_callback);
   eval_cps_set_timestamp_us_callback(timestamp_callback);
@@ -356,13 +294,6 @@ int main(int argc, char **argv) {
     printf("Extension added.\n");
   else
     printf("Error adding extension.\n");
-
-  res = extensions_add("note", ext_note);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
 
   /* Start evaluator thread */
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
@@ -385,7 +316,6 @@ int main(int argc, char **argv) {
 
     ssize_t n = inputline(str,len);
     fflush(stdout);
-    //printf("\n");
 
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("--(LISP HEAP)-----------------------------------------------\n");
@@ -460,46 +390,12 @@ int main(int argc, char **argv) {
       while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
-      res = memory_init(memory, MEMORY_SIZE_8K,
-                        bitmap, MEMORY_BITMAP_SIZE_8K);
-      if (res)
-        printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
-      else {
-        printf("Error initializing memory!\n");
-        return 0;
-      }
 
-      res = symrepr_init();
-      if (res)
-        printf("Symrepr initialized.\n");
-      else {
-        printf("Error initializing symrepr!\n");
-        return 0;
-      }
+      lispbm_init(heap_storage, heap_size,
+                  memory, MEMORY_SIZE_8K,
+                  bitmap, MEMORY_BITMAP_SIZE_8K);
 
-      res = heap_init(heap_storage, heap_size);
-      if (res)
-        printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
-      else {
-        printf("Error initializing heap!\n");
-        return 0;
-      }
-
-      res = env_init();
-      if (res)
-        printf("Environment initialized.\n");
-      else {
-        printf("Error initializing environment!\n");
-        return 0;
-      }
-
-      res = eval_cps_init(); // dont grow stack
-      if (res)
-        printf("Evaluator initialized.\n");
-      else {
-        printf("Error initializing evaluator.\n");
-      }
-      continue;
+      extensions_add("print", ext_print);
     } else if (strncmp(str, ":prelude", 8) == 0) {
 
       eval_cps_pause_eval();
@@ -515,8 +411,6 @@ int main(int argc, char **argv) {
 
       printf("Eval resuming.\n");
       eval_cps_continue_eval();
-
-      continue;
     } else {
       VALUE t;
 
@@ -533,7 +427,6 @@ int main(int argc, char **argv) {
       eval_cps_continue_eval();
 
       printf("started ctx: %u\n", cid);
-
     }
   }
 

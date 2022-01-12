@@ -22,10 +22,10 @@
 #include "stack.h"
 #include "fundamental.h"
 #include "extensions.h"
-#include "typedefs.h"
+#include "lispbm_types.h"
 #include "exp_kind.h"
 #include "streams.h"
-#include "memory.h"
+#include "lispbm_memory.h"
 
 #include "platform_mutex.h"
 
