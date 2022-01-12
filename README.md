@@ -56,15 +56,15 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 12. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
 13. (DONE) Add NRF52 example repl to repository
 14. (DONE) Update all example REPLs after adding quasiquotation
-15. Test all example REPLs after addition of quasiquotation
-16. Implement some looping structure for speed or just ease of use.
-17. Be much more stringent on checking of error conditions etc.
-18. The parser allocates heap memory, but there is no interfacing with the GC there.
-19. The parser uses a lot of stack memory, fix by making tail recursive and accumulating lists onto heap directly. 
-20. Images (heap + symbol memory).
-21. (DONE) Rename files with names that may conflict with common stuff (memory.h, memory.c). 
-22. (DONE) It should be possible to reset the runtime system. 
+15. Implement some looping structure for speed or just ease of use.
+16. Be much more stringent on checking of error conditions etc.
+17. The parser allocates heap memory, but there is no interfacing with the GC there.
+18. The parser uses a lot of stack memory, fix by making tail recursive and accumulating lists onto heap directly. 
+19. (DONE) Rename files with names that may conflict with common stuff (memory.h, memory.c). 
+20. (DONE) It should be possible to reset the runtime system. 
 
+## Very platform dependent TODOs 
+1. Save images (heap + symbol memory) to flash or sd-card.
 
 
 
