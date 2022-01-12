@@ -21,17 +21,7 @@
 #include <sys/ring_buffer.h>
 #include <stdint.h>
 
-#include "memory.h"
-#include "heap.h"
-#include "symrepr.h"
-#include "eval_cps.h"
-#include "print.h"
-#include "tokpar.h"
-#include "prelude.h"
-#include "env.h"
-
-/* ******************************** */
-/* LLBridge includes                */
+#include "lispbm.h"
 
 #include "usb_cdc.h"
 
@@ -41,56 +31,60 @@
 #define LISPBM_INPUT_BUFFER_SIZE  1024
 #define EVAL_CPS_STACK_SIZE 256
 
+static char str[LISPBM_INPUT_BUFFER_SIZE];
+static char outbuf[LISPBM_OUTPUT_BUFFER_SIZE];
+static char error[LISPBM_ERROR_BUFFER_SIZE];
+
+static uint32_t memory[MEMORY_SIZE_8K];
+static uint32_t bitmap[MEMORY_BITMAP_SIZE_8K];
+
+static cons_t heap[LISPBM_HEAP_SIZE];
+
+
+void done_callback(eval_context_t *ctx) {
+
+  static char print_output[1024];
+  static char error_output[1024];
+  
+  CID cid = ctx->id;
+  VALUE t = ctx->r;
+
+  int print_ret = print_value(print_output, 1024, error_output, 1024, t);
+
+  if (print_ret >= 0) {
+    usb_printf("<< Context %d finished with value %s >>\r\n# ", cid, print_output);
+  } else {
+    usb_printf("<< Context %d finished with value %s >>\r\n# ", cid, error_output);
+  }
+}
+
+
+uint32_t timestamp_callback(void) {
+  return (1000000 / sys_clock_hw_cycles_per_sec()) *  k_cycle_get_32();
+}
+
+void sleep_callback(uint32_t us) {
+  k_sleep(K_USEC(us));
+}
+
+
 void main(void)
 {
-
+  int res = 0;
   start_usb_cdc_thread();
   
   k_sleep(K_SECONDS(5));
 
-  usb_printf("Allocating input/output buffers\r\n");
-  char *str = malloc(LISPBM_INPUT_BUFFER_SIZE);
-  char *outbuf = malloc(LISPBM_OUTPUT_BUFFER_SIZE);
-  char *error = malloc(LISPBM_ERROR_BUFFER_SIZE);
-  int res = 0;
-
   heap_state_t heap_state;
 
-  unsigned char *memory = malloc(MEMORY_SIZE_16K);
-  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
-  if (memory == NULL || bitmap == NULL) return;
-  
-  res = memory_init(memory, MEMORY_SIZE_16K,
-		    bitmap, MEMORY_BITMAP_SIZE_16K);
-  if (res)
-    usb_printf("Memory initialized. Memory size: %u Words. Free: %u Words.\r\n", memory_num_words(), memory_num_free());
-  else {
-    usb_printf("Error initializing memory!\r\n");
-    return;
-  } 
-  
-  res = symrepr_init();
-  if (res)
-    usb_printf("Symrepr initialized.\r\n");
-  else {
-    usb_printf("Error initializing symrepr!\r\n");
-    return;
-  }
+  lispbm_init(heap, LISPBM_HEAP_SIZE,
+              memory, MEMORY_SIZE_8K,
+              bitmap, MEMORY_BITMAP_SIZE_8K);
 
-  res = heap_init(LISPBM_HEAP_SIZE);
-  if (res)
-    usb_printf("Heap initialized. Free cons cells: %u\r\n", heap_num_free());
-  else {
-    usb_printf("Error initializing heap!\r\n");
-    return;
-  }
+  eval_cps_set_ctx_done_callback(done_callback);
+  eval_cps_set_timestamp_us_callback(timestamp_callback);
+  eval_cps_set_usleep_callback(sleep_callback);
 
-  res = eval_cps_init_nc(EVAL_CPS_STACK_SIZE, false);
-  if (res)
-    usb_printf("Evaluator initialized.\r\n");
-  else {
-    usb_printf("Error initializing evaluator.\r\n");
-  }
 	
   VALUE prelude = prelude_load();
   eval_cps_program_nc(prelude);
@@ -146,6 +140,4 @@ void main(void)
   }
 
   symrepr_del();
-  heap_del();
-
 }

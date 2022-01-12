@@ -185,7 +185,7 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define VAL_SHIFT                   4
 
 #define PTR_MASK                    0x00000001u
-#define PTR                         0x00000001u
+#define PTR_BIT                     0x00000001u
 #define PTR_VAL_MASK                0x03FFFFF8u
 #define PTR_TYPE_MASK               0xFC000000u
 
@@ -289,11 +289,11 @@ static inline bool is_ptr(VALUE x) {
 }
 
 static inline VALUE enc_cons_ptr(UINT x) {
-  return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR);
+  return ((x << ADDRESS_SHIFT) | PTR_TYPE_CONS | PTR_BIT);
 }
 
 static inline VALUE enc_symbol_indirection(UINT x) {
-  return ((x << ADDRESS_SHIFT) | PTR_TYPE_SYMBOL_INDIRECTION | PTR);
+  return ((x << ADDRESS_SHIFT) | PTR_TYPE_SYMBOL_INDIRECTION | PTR_BIT);
 }
 
 static inline UINT dec_symbol_indirection(VALUE p) {
@@ -305,7 +305,7 @@ static inline UINT dec_ptr(VALUE p) {
 }
 
 static inline VALUE set_ptr_type(VALUE p, TYPE t) {
-  return (PTR_VAL_MASK & p) | t | PTR;
+  return (PTR_VAL_MASK & p) | t | PTR_BIT;
 }
 
 static inline VALUE enc_sym(uint32_t s) {
