@@ -34,6 +34,10 @@
 
 static cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
+static uint32_t memory_array[MEMORY_SIZE_8K];
+static uint32_t bitmap_array[MEMORY_BITMAP_SIZE_8K];
+
+
 BaseSequentialStream *chp = NULL;
 
 int inputline(BaseSequentialStream *chp, char *buffer, int size) {
@@ -71,8 +75,8 @@ int inputline(BaseSequentialStream *chp, char *buffer, int size) {
   return 0; // Filled up buffer without reading a linebreak
 }
 
-char print_output[1024];
-char error_output[1024];
+static char print_output[1024];
+static char error_output[1024];
 
 void done_callback(eval_context_t *ctx) {
 
@@ -163,11 +167,6 @@ void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
     *exists = true;
   }
 }
-
-
-static uint32_t memory_array[MEMORY_SIZE_8K];
-static uint32_t bitmap_array[MEMORY_BITMAP_SIZE_8K];
-
 int main(void) {
   halInit();
   chSysInit();

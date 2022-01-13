@@ -62,6 +62,9 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 18. The parser uses a lot of stack memory, fix by making tail recursive and accumulating lists onto heap directly. 
 19. (DONE) Rename files with names that may conflict with common stuff (memory.h, memory.c). 
 20. (DONE) It should be possible to reset the runtime system. 
+21. More built in arithmetic.
+22. More built in comparisons.
+23. Add messages to lisp process mailbox from C to unlock blocked proc.
 
 ## Very platform dependent TODOs 
 1. Save images (heap + symbol memory) to flash or sd-card.

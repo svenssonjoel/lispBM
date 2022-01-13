@@ -202,7 +202,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         VALUE uv = car(curr);
         float v;
         memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
-        r = snprintf(buf + offset, len - offset, "{%"PRI_FLOAT"}", v);
+        r = snprintf(buf + offset, len - offset, "{%"PRI_FLOAT"}", (double)v);
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
