@@ -1,5 +1,6 @@
 /*
-    Copyright 2018 2021 Joel Svensson   svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022 Joel Svensson   svenssonjoel@yahoo.se
+                          2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -124,10 +125,10 @@
 #define MAX_SPECIAL_SYMBOLS 4096 // 12bits (highest id allowed is 0xFFFF)
 
 extern int symrepr_addsym(char *, UINT*);
+extern int symrepr_addsym_const(char *, UINT*);
 extern bool symrepr_init(void);
 extern int symrepr_lookup(char *, UINT*);
 extern const char* symrepr_lookup_name(UINT);
-extern void symrepr_del(void);
 
 extern unsigned int symrepr_size(void);
 

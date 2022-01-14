@@ -1,5 +1,6 @@
 /*
-    Copyright 2019, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
+                          2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -53,7 +54,7 @@ extension_fptr extensions_lookup(UINT sym) {
 
 bool extensions_add(char *sym_str, extension_fptr ext) {
   VALUE symbol;
-  int res = symrepr_addsym(sym_str, &symbol);
+  int res = symrepr_addsym_const(sym_str, &symbol);
 
   if (!res) return false;
 
@@ -68,13 +69,3 @@ bool extensions_add(char *sym_str, extension_fptr ext) {
   return true;
 }
 
-void extensions_del(void) {
-  uint32_t *curr = extensions;
-  uint32_t *t;
-  while (curr) {
-    t = curr;
-    curr = (uint32_t*)curr[NEXT];
-    free(t);
-  }
-  extensions = NULL;
-}

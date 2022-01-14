@@ -397,7 +397,5 @@ int main(void) {
       eval_cps_continue_eval();
     }
   }
-
-  symrepr_del();
 }
 

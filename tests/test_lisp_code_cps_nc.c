@@ -264,8 +264,7 @@ int main(int argc, char **argv) {
     printf("Test: Failed!\n");
     res = 0;
   }
-  
-  symrepr_del();
+
   free(heap_storage);
 
   return res;

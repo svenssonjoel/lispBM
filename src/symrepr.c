@@ -206,9 +206,9 @@ int symrepr_addsym(char *name, UINT* id) {
 
   char *symbol_name_storage = NULL;;
   if (n % 4 == 0) {
-    symbol_name_storage = (char *)memory_allocate(n);
+    symbol_name_storage = (char *)memory_allocate(n/4);
   } else {
-    symbol_name_storage = (char *)memory_allocate(n);
+    symbol_name_storage = (char *)memory_allocate((n/4) + 1);
   }
 
   if (symbol_name_storage == NULL) {
@@ -219,6 +219,29 @@ int symrepr_addsym(char *name, UINT* id) {
   strcpy(symbol_name_storage, name);
 
   m[NAME] = (uint32_t)symbol_name_storage;
+
+  if (symlist == NULL) {
+    m[NEXT] = (uint32_t) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (uint32_t) symlist;
+    symlist = m;
+  }
+  m[ID] = MAX_SPECIAL_SYMBOLS + next_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
+int symrepr_addsym_const(char *name, UINT* id) {
+  if (strlen(name) == 0) return 0; // failure if empty symbol
+
+  uint32_t *m = memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  m[NAME] = (uint32_t)name;
 
   if (symlist == NULL) {
     m[NEXT] = (uint32_t) NULL;

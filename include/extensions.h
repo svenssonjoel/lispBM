@@ -1,5 +1,6 @@
 /*
-    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2019, 2022 Joel Svensson        svenssonjoel@yahoo.se
+                    2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,7 +28,6 @@ typedef VALUE (*extension_fptr)(VALUE*,UINT);
 extern int extensions_init(void);
 extern extension_fptr extensions_lookup(UINT sym);
 extern bool extensions_add(char *sym_str, extension_fptr ext);
-extern void extensions_del(void);
 
 static inline bool is_extension(VALUE exp) {
   return ((type_of(exp) == VAL_TYPE_SYMBOL) &&

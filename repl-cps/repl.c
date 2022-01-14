@@ -429,8 +429,6 @@ int main(int argc, char **argv) {
       printf("started ctx: %u\n", cid);
     }
   }
-
-  symrepr_del();
   free(heap_storage);
 
   //restore_terminal();

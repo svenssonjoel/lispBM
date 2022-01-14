@@ -19,7 +19,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
 LISPBM_INC = -I$(LISPBM)/include \
              -I$(LISPBM)/src
 
-LISPBM_FLAGS =
+LISPBM_FLAGS = -lm
 LISPBM_DEPS  =
 
 LISPBM_FLAGS += -D_PRELUDE

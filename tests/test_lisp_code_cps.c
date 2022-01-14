@@ -293,7 +293,6 @@ int main(int argc, char **argv) {
     res = 0;
   }
   
-  symrepr_del();
   free(heap_storage);
 
   return res;

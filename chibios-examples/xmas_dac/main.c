@@ -437,6 +437,4 @@ int main(void) {
       }
     }
   }
-
-  symrepr_del();
 }

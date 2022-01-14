@@ -1,5 +1,6 @@
 /*
-    Copyright 2018, 2020 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2022 Joel Svensson  svenssonjoel@yahoo.se
+                          2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -71,7 +72,7 @@ static inline bool get_gc_mark(cons_t* cell) {
   return val_get_gc_mark(cdr);
 }
 
-int generate_freelist(size_t num_cells) {
+static int generate_freelist(size_t num_cells) {
   size_t i = 0;
 
   if (!heap_state.heap) return 0;
