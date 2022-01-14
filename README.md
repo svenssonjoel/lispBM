@@ -65,6 +65,7 @@ LispBM's internals are documented as a series of [blog posts](http://svenssonjoe
 21. More built in arithmetic.
 22. More built in comparisons.
 23. Add messages to lisp process mailbox from C to unlock blocked proc.
+24. All built-in symbols should be created using symrepr_add_const.
 
 ## Very platform dependent TODOs 
 1. Save images (heap + symbol memory) to flash or sd-card.
