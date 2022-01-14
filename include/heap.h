@@ -247,7 +247,7 @@ extern unsigned int heap_size(void);
 extern VALUE heap_allocate_cell(TYPE type);
 extern unsigned int heap_size_bytes(void);
 
-extern FLOAT dec_any_as_f(VALUE);
+extern char *dec_str(VALUE);
 
 extern VALUE cons(VALUE car, VALUE cdr);
 extern VALUE car(VALUE cons);

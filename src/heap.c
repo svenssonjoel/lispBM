@@ -34,6 +34,19 @@ static heap_state_t heap_state;
 static VALUE        NIL;
 static VALUE        RECOVERED;
 
+char *dec_str(VALUE val) {
+  char *res = 0;
+
+  if (type_of(val) == PTR_TYPE_ARRAY) {
+    array_header_t *array = (array_header_t *)car(val);
+
+    if (array->elt_type == VAL_TYPE_CHAR) {
+      res = (char *)array + 8;
+    }
+  }
+  return res;
+}
+
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
 static inline cons_t* ref_cell(VALUE addr) {
