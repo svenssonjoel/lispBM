@@ -129,11 +129,11 @@ static UINT mul2(UINT a, UINT b) {
 static UINT div2(UINT a, UINT b) {
 
   UINT retval = enc_sym(SYM_TERROR);
-  
+
   if (!(is_number(a) && is_number(b))) {
     return retval;
   }
-    
+
   UINT t = (type_of(a) < type_of(b)) ? type_of(b) : type_of(a);
   switch (t) {
   case VAL_TYPE_I: if (dec_i(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_i(as_i(a) / as_i(b)); break;

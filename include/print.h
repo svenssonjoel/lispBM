@@ -1,5 +1,6 @@
 /*
-    Copyright 2018 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2018, 2022 Joel Svensson        svenssonjoel@yahoo.se
+                    2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,6 +22,6 @@
 #include <stdint.h>
 #include "lispbm_types.h"
 
-extern int print_value(char *buf,unsigned int len, char *error, unsigned int len_error, VALUE t);
+extern int print_value(char *buf,unsigned int len, VALUE t);
 
 #endif

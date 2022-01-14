@@ -76,22 +76,20 @@ int inputline(BaseSequentialStream *chp, char *buffer, int size) {
 }
 
 static char print_output[1024];
-static char error_output[1024];
 
 void done_callback(eval_context_t *ctx) {
 
   char *output = print_output;
-  char *error  = error_output;
 
   CID cid = ctx->id;
   VALUE t = ctx->r;
 
-  int print_ret = print_value(output, 1024, error, 1024, t);
+  int print_ret = print_value(output, 1024, t);
 
   if (print_ret >= 0) {
     chprintf(chp,"<< Context %d finished with value %s >>\r\n# ", cid, output);
   } else {
-    chprintf(chp,"<< Context %d finished with value %s >>\r\n# ", cid, error);
+    chprintf(chp,"<< Context %d finished with value %s >>\r\n# ", cid, output);
   }
 }
 
@@ -113,7 +111,6 @@ static THD_FUNCTION(eval, arg) {
 VALUE ext_print(VALUE *args, UINT argn) {
 
   char *output = print_output;
-  char *error = error_output;
 
   for (UINT i = 0; i < argn; i ++) {
     VALUE t = args[i];
@@ -135,27 +132,21 @@ VALUE ext_print(VALUE *args, UINT argn) {
         chprintf(chp,"%c", dec_char(t));
       }
     }  else {
-      int print_ret = print_value(output, 1024, error, 1024, t);
-
-      if (print_ret >= 0) {
-        chprintf(chp,"%s", output);
-      } else {
-        chprintf(chp,"%s", error);
-      }
+      print_value(output, 1024, t);
+      chprintf(chp,"%s", output);
     }
   }
   return enc_sym(SYM_TRUE);
 }
 
 static char str[1024];
-static char outbuf[2048];
-static char error[1024];
+static char outbuf[1024];
 static char file_buffer[2048];
 
 void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void)arg2;
-  int print_ret = print_value(outbuf, 2048, error, 1024, ctx->r);
-  chprintf(chp, "%s %x %u %u %s\r\n", (char*)arg1, (uint32_t)ctx, ctx->id, ctx->K.sp, print_ret ? outbuf : error );   
+  int print_ret = print_value(outbuf, 1024, ctx->r);
+  chprintf(chp, "%s %x %u %u %s\r\n", (char*)arg1, (uint32_t)ctx, ctx->id, ctx->K.sp, outbuf);
 }
 
 void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
@@ -224,7 +215,7 @@ int main(void) {
   while (1) {
     chprintf(chp,"# ");
     memset(str,0,len);
-    memset(outbuf,0, 2048);
+    memset(outbuf,0, 1024);
     inputline(chp,str, len);
     chprintf(chp,"\r\n");
 
@@ -241,19 +232,15 @@ int main(void) {
       chprintf(chp,"  Size: %u 32Bit words\r\n", memory_num_words());
       chprintf(chp,"  Free: %u 32Bit words\r\n", memory_num_free());
       chprintf(chp,"------------------------------------------------------------\r\n");
-      memset(outbuf,0, 2048);
+      memset(outbuf,0, 1024);
     } else if (strncmp(str, ":env", 4) == 0) {
       VALUE curr = *env_get_global_ptr();
       chprintf(chp,"Environment:\r\n");
       while (type_of(curr) == PTR_TYPE_CONS) {
-        res = print_value(outbuf,2048, error, 1024, car(curr));
+        res = print_value(outbuf,1024, car(curr));
         curr = cdr(curr);
 
-        if (res >= 0) {
-          chprintf(chp,"  %s \r\n", outbuf);
-        } else {
-          chprintf(chp,"  %s\r\n",error);
-        }
+        chprintf(chp,"  %s \r\n", outbuf);
       }
     } else if (strncmp(str, ":threads", 8) == 0) {
       thread_t *tp;

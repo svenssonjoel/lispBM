@@ -118,17 +118,16 @@ void *eval_thd_wrapper(void *v) {
 void done_callback(eval_context_t *ctx) {
 
   char output[1024];
-  char error[1024];
 
   CID cid = ctx->id;
   VALUE t = ctx->r;
 
-  int print_ret = print_value(output, 1024, error, 1024, t);
+  int print_ret = print_value(output, 1024, t);
 
   if (print_ret >= 0) {
     printf("<< Context %d finished with value %s >>\n", cid, output);
   } else {
-    printf("<< Context %d finished with value %s >>\n", cid, error);
+    printf("<< Context %d finished with value %s >>\n", cid, output);
   }
 
   //  if (!eval_cps_remove_done_ctx(cid, &t)) {
@@ -159,7 +158,6 @@ VALUE ext_print(VALUE *args, UINT argn) {
   if (!allow_print) return enc_sym(SYM_TRUE);
 
   char output[1024];
-  char error[1024];
 
   for (int i = 0; i < argn; i ++) {
     VALUE t = args[i];
@@ -179,15 +177,9 @@ VALUE ext_print(VALUE *args, UINT argn) {
     } else if (val_type(t) == VAL_TYPE_CHAR) {
       printf("%c", dec_char(t));
     } else {
-      int print_ret = print_value(output, 1024, error, 1024, t);
-
-      if (print_ret >= 0) {
-        printf("%s", output);
-      } else {
-        printf("%s", error);
-      }
+      print_value(output, 1024, t);
+      printf("%s", output);
     }
-
   }
   return enc_sym(SYM_TRUE);
 }
@@ -236,9 +228,8 @@ void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void) arg2;
 
   char output[1024];
-  char error[1024];
 
-  int print_ret = print_value(output, 1024, error, 1024, ctx->r);
+  int print_ret = print_value(output, 1024, ctx->r);
 
   printf("--------------------------------\n");
   printf("ContextID: %u\n", ctx->id);
@@ -246,7 +237,7 @@ void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   if (print_ret) {
     printf("Value: %s\n", output);
   } else {
-    printf("Error: %s\n", error);
+    printf("Error: %s\n", output);
   }
 }
 
@@ -307,7 +298,6 @@ int main(int argc, char **argv) {
   printf("     :load [filename] to load lisp source.\n");
 
   char output[1024];
-  char error[1024];
 
   while (1) {
     fflush(stdin);
@@ -336,14 +326,9 @@ int main(int argc, char **argv) {
       VALUE curr = *env_get_global_ptr();
       printf("Environment:\r\n");
       while (type_of(curr) == PTR_TYPE_CONS) {
-        res = print_value(output,2048, error, 1024, car(curr));
+        res = print_value(output,1024, car(curr));
         curr = cdr(curr);
-
-        if (res >= 0) {
-          printf("  %s \r\n", output);
-        } else {
-          printf("  %s\r\n",error);
-        }
+        printf("  %s\r\n",output);
       }
     }else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
       char *file_str = load_file(&str[5]);

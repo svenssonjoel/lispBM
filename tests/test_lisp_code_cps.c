@@ -62,7 +62,7 @@ VALUE ext_even(VALUE *args, UINT argn) {
   if (argn < 1) return enc_sym(SYM_NIL);
 
   VALUE v = args[0];
-  
+
   if (val_type(v) == VAL_TYPE_I ||
       val_type(v) == VAL_TYPE_U) {
     if (dec_i(v) % 2 == 0)
@@ -93,17 +93,16 @@ int main(int argc, char **argv) {
 
   int res = 0;
 
-  unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard  
+  unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard
   bool growing_continuation_stack = false;
   bool compress_decompress = false;
 
   pthread_t lispbm_thd;
   cons_t *heap_storage = NULL;
-  
-  
+
   int c;
   opterr = 1;
-  
+
   while (( c = getopt(argc, argv, "gch:")) != -1) {
     switch (c) {
     case 'h':
@@ -126,7 +125,7 @@ int main(int argc, char **argv) {
   printf("Growing stack: %s\n", growing_continuation_stack ? "yes" : "no");
   printf("Compression: %s\n", compress_decompress ? "yes" : "no");
   printf("------------------------------------------------------------\n");
-	 
+
   if (argc - optind < 1) {
     printf("Incorrect arguments\n");
     return 0;
@@ -161,29 +160,29 @@ int main(int argc, char **argv) {
   uint32_t *bitmap = malloc(4 * MEMORY_BITMAP_SIZE_16K);
   if (bitmap == NULL) return 0;
 
-  
+
   res = memory_init(memory, MEMORY_SIZE_16K,
-		    bitmap, MEMORY_BITMAP_SIZE_16K);
+                    bitmap, MEMORY_BITMAP_SIZE_16K);
   if (res)
     printf("Memory initialized.\n");
   else {
     printf("Error initializing memory!\n");
     return 0;
   }
-  
+
   res = symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");
   else {
     printf("Error initializing symrepr!\n");
     return 0;
-  } 
+  }
 
   heap_storage = (cons_t*)malloc(sizeof(cons_t) * heap_size);
   if (heap_storage == NULL) {
     return 0;
   }
-  
+
   res = heap_init(heap_storage, heap_size);
   if (res)
     printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
@@ -209,7 +208,7 @@ int main(int argc, char **argv) {
   }
 
   res = extensions_add("ext-even", ext_even);
-  if (res) 
+  if (res)
     printf("Extension added.\n");
   else {
     printf("Error adding extension.\n");
@@ -217,29 +216,29 @@ int main(int argc, char **argv) {
   }
 
    res = extensions_add("ext-odd", ext_odd);
-  if (res) 
+  if (res)
     printf("Extension added.\n");
   else {
     printf("Error adding extension.\n");
     return 0;
   }
-  
+
   eval_cps_set_timestamp_us_callback(timestamp_callback);
   eval_cps_set_usleep_callback(sleep_callback);
 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 1;
-  }  
+  }
 
   VALUE prelude = prelude_load();
-  CID cid = eval_cps_program(prelude);  
+  CID cid = eval_cps_program(prelude);
 
   eval_cps_wait_ctx(cid);
 
   VALUE t;
 
-  if (compress_decompress) { 
+  if (compress_decompress) {
     uint32_t compressed_size = 0;
     char *compressed_code = compression_compress(code_buffer, &compressed_size);
     if (!compressed_code) {
@@ -249,34 +248,33 @@ int main(int argc, char **argv) {
     char decompress_code[8192];
     compression_decompress(decompress_code, 8192, compressed_code);
     printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
-    
+
     t = compression_parse(compressed_code);
     free(compressed_code);
-  } else { 
+  } else {
     t = tokpar_parse(code_buffer);
   }
 
-  char output[1024];
-  char error[1024];
+  char output[128];
 
-  res = print_value(output, 1024, error, 1024, t); 
+  res = print_value(output, 128, t);
 
   if ( res >= 0) {
     printf("I: %s\n", output);
   } else {
-    printf("%s\n", error);
+    printf("%s\n", output);
     return 0;
   }
   cid = eval_cps_program_ext(t,256,growing_continuation_stack);
 
-  t = eval_cps_wait_ctx(cid); 
-  
-  res = print_value(output, 1024, error, 1024, t); 
-  
+  t = eval_cps_wait_ctx(cid);
+
+  res = print_value(output, 128, t);
+
   if ( res >= 0) {
     printf("O: %s\n", output);
   } else {
-    printf("%s\n", error);
+    printf("%s\n", output);
     return 0;
   }
 
@@ -292,7 +290,7 @@ int main(int argc, char **argv) {
     printf("Test: Failed!\n");
     res = 0;
   }
-  
+
   free(heap_storage);
 
   return res;

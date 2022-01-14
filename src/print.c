@@ -1,5 +1,6 @@
 /*
-    Copyright 2018, 2020, 2021 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021, 2022 Joel Svensson    svenssonjoel@yahoo.se
+                                2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,7 +26,7 @@
 #include "lispbm_types.h"
 #include "stack.h"
 
-#define PRINT_STACK_SIZE 256 /* 1 KB */
+#define PRINT_STACK_SIZE 128 /* 1 KB */
 
 #define PRINT          1
 #define PRINT_SPACE    2
@@ -36,7 +37,9 @@
 
 static VALUE stack_storage[PRINT_STACK_SIZE];
 
-int print_value(char *buf,unsigned int len, char *error, unsigned int len_error, VALUE t) {
+const char *failed_str = "Error: print failed\n";
+
+int print_value(char *buf,unsigned int len, VALUE t) {
 
   stack s;
   stack_create(&s, stack_storage, PRINT_STACK_SIZE);
@@ -65,7 +68,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
       if ( r >= 0 ) {
         n = (unsigned int) r;
       } else {
-        snprintf(error, len_error, "Error: print failed\n");
+        snprintf(buf, len, "%s", failed_str);
         return -1;
       }
 
@@ -89,7 +92,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
       res &= push_u32(&s, PRINT);
 
       if (!res) {
-        snprintf(error, len_error, "Error: Out of print stack\n");
+        snprintf(buf, len, "Error: Out of print stack\n");
         return -1;
       }
 
@@ -112,7 +115,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
       if ( r > 0) {
         n = (unsigned int) r;
       } else {
-        snprintf(error, len_error, "Error: print failed\n");
+        snprintf(buf, len, "%s", failed_str);
         return -1;
       }
       offset += n;
@@ -132,7 +135,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
       res &= push_u32(&s, car_val);
       res &= push_u32(&s, PRINT);
       if (!res) {
-        snprintf(error, len_error, "Error: Out of print stack\n");
+        snprintf(buf, len, "Error: Out of print stack\n");
         return -1;
       }
       break;
@@ -142,7 +145,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
       if ( r > 0) {
         n = (unsigned int) r;
       } else {
-        snprintf(error, len_error, "Error: print failed\n");
+        snprintf(buf, len, "%s", failed_str);
         return -1;
       }
       offset += n;
@@ -153,7 +156,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
       if ( r > 0) {
         n = (unsigned int) r;
       } else {
-        snprintf(error, len_error, "Error: print failed\n");
+        snprintf(buf, len, "%s", failed_str);
         return -1;
       }
 
@@ -164,7 +167,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
       if (r > 0) {
         n = (unsigned int) r;
       } else {
-        snprintf(error, len_error, "Error: PRINT_DOT failed\n");
+        snprintf(buf, len, "%s", failed_str);
         return -1;
       }
       offset +=n;
@@ -181,7 +184,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         res &= push_u32(&s, curr);
         res &= push_u32(&s, START_LIST);
         if (!res) {
-          snprintf(error, len_error, "Error: Out of print stack\n");
+          snprintf(buf, len, "Error: Out of print stack\n");
           return -1;
         }
         break;
@@ -192,7 +195,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(error, len_error, "Error: print failed\n");
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -206,7 +209,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(error, len_error, "Error: print failed\n");
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -219,7 +222,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(error, len_error, "Error: print failed\n");
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -232,7 +235,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(error, len_error, "Error: print failed\n");
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -247,14 +250,14 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
           if ( r > 0) {
             n = (unsigned int) r;
           } else {
-            snprintf(error, len_error, "Error: print failed\n");
+            snprintf(buf, len, "%s", failed_str);
             return -1;
           }
           offset += n;
           break;
           break;
         default:
-          snprintf(error, len_error, "Error: Array type not supported\n");
+          snprintf(buf, len, "Error: Array type not supported\n");
           return -1;
         }
         break;
@@ -265,7 +268,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(error, len_error, "Error: print failed\n");
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -276,14 +279,14 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         str_ptr = symrepr_lookup_name(dec_sym(curr));
         if (str_ptr == NULL) {
 
-          snprintf(error, len_error, "Error: Symbol not in table %"PRI_UINT"", dec_sym(curr));
+          snprintf(buf, len, "Error: Symbol not in table %"PRI_UINT"", dec_sym(curr));
           return -1;
         }
         r = snprintf(buf + offset, len - offset, "%s", str_ptr);
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(error, len_error, "Error: print failed\n");
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -294,7 +297,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(error, len_error, "Error: print failed\n");
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -305,7 +308,7 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(error, len_error, "Error: print failed\n");
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
@@ -316,21 +319,21 @@ int print_value(char *buf,unsigned int len, char *error, unsigned int len_error,
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
-          snprintf(error, len_error, "Error: print failed\n");
+          snprintf(buf, len, "%s", failed_str);
           return -1;
         }
         offset += n;
         break;
 
       default:
-        snprintf(error, len_error, "Error: print does not recognize type of value: %"PRIx32"", curr);
+        snprintf(buf, len, "Error: print does not recognize type of value: %"PRIx32"", curr);
         return -1;
         break;
       } // Switch type of curr
       break; // case PRINT
 
     default:
-      snprintf(error, len_error, "Error: Corrupt print stack!");
+      snprintf(buf, len, "Error: Corrupt print stack!");
       return -1;
     }// Switch instruction
   }//While not empty stack
