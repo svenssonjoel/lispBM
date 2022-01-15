@@ -25,69 +25,6 @@
 #include <stdio.h>
 #include <math.h>
 
-static INT as_i(UINT a) {
-
-  UINT tmp;
-  FLOAT f_tmp;
-
-  switch (type_of(a)) {
-  case VAL_TYPE_I:
-    return dec_i(a);
-  case VAL_TYPE_U:
-    return (INT) dec_u(a);
-  case PTR_TYPE_BOXED_I:
-  case PTR_TYPE_BOXED_U:
-    return (INT)car(a);
-  case PTR_TYPE_BOXED_F:
-    tmp = car(a);
-    memcpy(&f_tmp, &tmp, sizeof(FLOAT));
-    return (INT)f_tmp;
-  }
-  return 0;
-}
-
-static UINT as_u(UINT a) {
-
-  UINT tmp;
-  FLOAT f_tmp;
-
-  switch (type_of(a)) {
-  case VAL_TYPE_I:
-    return (UINT) dec_i(a);
-  case VAL_TYPE_U:
-    return dec_u(a);
-  case PTR_TYPE_BOXED_I:
-  case PTR_TYPE_BOXED_U:
-    return (UINT)car(a);
-  case PTR_TYPE_BOXED_F:
-    tmp = car(a);
-    memcpy(&f_tmp, &tmp, sizeof(FLOAT));
-    return (UINT)f_tmp;
-  }
-  return 0;
-}
-
-static FLOAT as_f(UINT a) {
-
-  UINT tmp;
-  FLOAT f_tmp;
-
-  switch (type_of(a)) {
-  case VAL_TYPE_I:
-    return (FLOAT) dec_i(a);
-  case VAL_TYPE_U:
-    return (FLOAT)dec_u(a);
-  case PTR_TYPE_BOXED_I:
-  case PTR_TYPE_BOXED_U:
-    return (FLOAT)car(a);
-  case PTR_TYPE_BOXED_F:
-    tmp = car(a);
-    memcpy(&f_tmp, &tmp, sizeof(FLOAT));
-    return f_tmp;
-  }
-  return 0;
-}
-
 static UINT add2(UINT a, UINT b) {
 
   UINT retval = enc_sym(SYM_TERROR);
@@ -98,11 +35,11 @@ static UINT add2(UINT a, UINT b) {
 
   UINT t = (type_of(a) < type_of(b)) ? type_of(b) : type_of(a);
   switch (t) {
-  case VAL_TYPE_I: retval = enc_i(as_i(a) + as_i(b)); break;
-  case VAL_TYPE_U: retval = enc_u(as_u(a) + as_u(b)); break;
-  case PTR_TYPE_BOXED_U: retval = enc_U(as_u(a) + as_u(b)); break;
-  case PTR_TYPE_BOXED_I: retval = enc_I(as_i(a) + as_i(b)); break;
-  case PTR_TYPE_BOXED_F: retval = enc_F(as_f(a) + as_f(b)); break;
+  case VAL_TYPE_I: retval = enc_i(dec_as_i(a) + dec_as_i(b)); break;
+  case VAL_TYPE_U: retval = enc_u(dec_as_u(a) + dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_U: retval = enc_U(dec_as_u(a) + dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_I: retval = enc_I(dec_as_i(a) + dec_as_i(b)); break;
+  case PTR_TYPE_BOXED_F: retval = enc_F(dec_as_f(a) + dec_as_f(b)); break;
   }
   return retval;
 }
@@ -117,11 +54,11 @@ static UINT mul2(UINT a, UINT b) {
 
   UINT t = (type_of(a) < type_of(b)) ? type_of(b) : type_of(a);
   switch (t) {
-  case VAL_TYPE_I: retval = enc_i(as_i(a) * as_i(b)); break;
-  case VAL_TYPE_U: retval = enc_u(as_u(a) * as_u(b)); break;
-  case PTR_TYPE_BOXED_U: retval = enc_U(as_u(a) * as_u(b)); break;
-  case PTR_TYPE_BOXED_I: retval = enc_I(as_i(a) * as_i(b)); break;
-  case PTR_TYPE_BOXED_F: retval = enc_F(as_f(a) * as_f(b)); break;
+  case VAL_TYPE_I: retval = enc_i(dec_as_i(a) * dec_as_i(b)); break;
+  case VAL_TYPE_U: retval = enc_u(dec_as_u(a) * dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_U: retval = enc_U(dec_as_u(a) * dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_I: retval = enc_I(dec_as_i(a) * dec_as_i(b)); break;
+  case PTR_TYPE_BOXED_F: retval = enc_F(dec_as_f(a) * dec_as_f(b)); break;
   }
   return retval;
 }
@@ -136,11 +73,11 @@ static UINT div2(UINT a, UINT b) {
 
   UINT t = (type_of(a) < type_of(b)) ? type_of(b) : type_of(a);
   switch (t) {
-  case VAL_TYPE_I: if (dec_i(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_i(as_i(a) / as_i(b)); break;
-  case VAL_TYPE_U: if (as_u(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_u(as_u(a) / as_u(b)); break;
-  case PTR_TYPE_BOXED_U: if (as_u(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_U(as_u(a) / as_u(b)); break;
-  case PTR_TYPE_BOXED_I: if (as_i(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_I(as_i(a) / as_i(b)); break;
-  case PTR_TYPE_BOXED_F: if (as_f(b) == 0.0 || as_f(b) == -0.0) {return enc_sym(SYM_DIVZERO);} retval = enc_F(as_f(a) / as_f(b)); break;
+  case VAL_TYPE_I: if (dec_i(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_i(dec_as_i(a) / dec_as_i(b)); break;
+  case VAL_TYPE_U: if (dec_as_u(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_u(dec_as_u(a) / dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_U: if (dec_as_u(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_U(dec_as_u(a) / dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_I: if (dec_as_i(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_I(dec_as_i(a) / dec_as_i(b)); break;
+  case PTR_TYPE_BOXED_F: if (dec_as_f(b) == 0.0 || dec_as_f(b) == -0.0) {return enc_sym(SYM_DIVZERO);} retval = enc_F(dec_as_f(a) / dec_as_f(b)); break;
   }
   return retval;
 }
@@ -155,11 +92,11 @@ static UINT mod2(UINT a, UINT b) {
 
   UINT t = (type_of(a) < type_of(b)) ? type_of(b) : type_of(a);
   switch (t) {
-  case VAL_TYPE_I: if (dec_i(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_i(as_i(a) % as_i(b)); break;
-  case VAL_TYPE_U: if (as_u(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_u(as_u(a) % as_u(b)); break;
-  case PTR_TYPE_BOXED_U: if (as_u(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_U(as_u(a) % as_u(b)); break;
-  case PTR_TYPE_BOXED_I: if (as_i(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_I(as_i(a) % as_i(b)); break;
-  case PTR_TYPE_BOXED_F: if (as_f(b) == 0.0 || as_f(b) == -0.0) {return enc_sym(SYM_DIVZERO);} retval = enc_F(fmodf(as_f(a), as_f(b))); break;
+  case VAL_TYPE_I: if (dec_i(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_i(dec_as_i(a) % dec_as_i(b)); break;
+  case VAL_TYPE_U: if (dec_as_u(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_u(dec_as_u(a) % dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_U: if (dec_as_u(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_U(dec_as_u(a) % dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_I: if (dec_as_i(b) == 0) {return enc_sym(SYM_DIVZERO);} retval = enc_I(dec_as_i(a) % dec_as_i(b)); break;
+  case PTR_TYPE_BOXED_F: if (dec_as_f(b) == 0.0 || dec_as_f(b) == -0.0) {return enc_sym(SYM_DIVZERO);} retval = enc_F(fmodf(dec_as_f(a), dec_as_f(b))); break;
   }
   return retval;
 }
@@ -210,11 +147,11 @@ static UINT sub2(UINT a, UINT b) {
 
   UINT t = (type_of(a) < type_of(b)) ? type_of(b) : type_of(a);
   switch (t) {
-  case VAL_TYPE_I: retval = enc_i(as_i(a) - as_i(b)); break;
-  case VAL_TYPE_U: retval = enc_u(as_u(a) - as_u(b)); break;
-  case PTR_TYPE_BOXED_U: retval = enc_U(as_u(a) - as_u(b)); break;
-  case PTR_TYPE_BOXED_I: retval = enc_I(as_i(a) - as_i(b)); break;
-  case PTR_TYPE_BOXED_F: retval = enc_F(as_f(a) - as_f(b)); break;
+  case VAL_TYPE_I: retval = enc_i(dec_as_i(a) - dec_as_i(b)); break;
+  case VAL_TYPE_U: retval = enc_u(dec_as_u(a) - dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_U: retval = enc_U(dec_as_u(a) - dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_I: retval = enc_I(dec_as_i(a) - dec_as_i(b)); break;
+  case PTR_TYPE_BOXED_F: retval = enc_F(dec_as_f(a) - dec_as_f(b)); break;
   }
   return retval;
 }
@@ -323,11 +260,11 @@ static int compare(UINT a, UINT b) {
 
   UINT t = (type_of(a) < type_of(b)) ? type_of(b) : type_of(a);
   switch (t) {
-  case VAL_TYPE_I: retval = cmpi(as_i(a), as_i(b)); break;
-  case VAL_TYPE_U: retval = cmpu(as_u(a), as_u(b)); break;
-  case PTR_TYPE_BOXED_U: retval = cmpu(as_u(a), as_u(b)); break;
-  case PTR_TYPE_BOXED_I: retval = cmpi(as_i(a), as_i(b)); break;
-  case PTR_TYPE_BOXED_F: retval = cmpf(as_f(a), as_f(b)); break;
+  case VAL_TYPE_I: retval = cmpi(dec_as_i(a), dec_as_i(b)); break;
+  case VAL_TYPE_U: retval = cmpu(dec_as_u(a), dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_U: retval = cmpu(dec_as_u(a), dec_as_u(b)); break;
+  case PTR_TYPE_BOXED_I: retval = cmpi(dec_as_i(a), dec_as_i(b)); break;
+  case PTR_TYPE_BOXED_F: retval = cmpf(dec_as_f(a), dec_as_f(b)); break;
   }
   return retval;  
 }

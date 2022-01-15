@@ -184,6 +184,48 @@ VALUE ext_print(VALUE *args, UINT argn) {
   return enc_sym(SYM_TRUE);
 }
 
+char output[128];
+
+static VALUE ext_range(VALUE *args, UINT argn) {
+        if (argn != 2 || type_of(args[0]) != VAL_TYPE_I || type_of(args[1]) != VAL_TYPE_I) {
+                return enc_sym(SYM_EERROR);
+        }
+
+        INT start = dec_i(args[0]);
+        INT end = dec_i(args[1]);
+
+        if (start > end || (end - start) > 100) {
+                return enc_sym(SYM_EERROR);
+        }
+
+        VALUE res = enc_sym(SYM_NIL);
+
+        for (INT i = end;i >= start;i--) {
+                res = cons(enc_i(i), res);
+        }
+
+        return res;
+}
+
+
+static VALUE ext_get_bms_val(VALUE *args, UINT argn) {
+        VALUE res = enc_sym(SYM_EERROR);
+
+        if (argn != 1 && argn != 2) {
+                return enc_sym(SYM_EERROR);
+        }
+
+        char *name = dec_str(args[0]);
+
+        if (!name) {
+                return enc_sym(SYM_EERROR);
+        }
+
+        res = enc_i(20);
+        return res;
+}
+
+
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
   char *file_str = NULL;
@@ -285,6 +327,20 @@ int main(int argc, char **argv) {
     printf("Extension added.\n");
   else
     printf("Error adding extension.\n");
+
+
+  res = extensions_add("get-bms-val", ext_get_bms_val);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
+  res = extensions_add("range", ext_range);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
 
   /* Start evaluator thread */
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {

@@ -957,7 +957,6 @@ static inline void eval_receive(eval_context_t *ctx) {
   return;
 }
 
-
 /*********************************************************/
 /*  Continuation functions                               */
 
@@ -1105,16 +1104,14 @@ static inline void cont_application(eval_context_t *ctx) {
      VALUE res;
 
     /* eval_cps specific operations */
-    /* TODO: These should work any int type as argument */
     UINT dfun = dec_sym(fun);
     if (dfun == SYM_YIELD) {
-      if (type_of(fun_args[1]) == VAL_TYPE_I) {
-        UINT ts = dec_u(fun_args[1]);
+      if (dec_u(count) == 1 && !is_number(fun_args[0])) {
+        UINT ts = dec_as_u(fun_args[0]);
         stack_drop(&ctx->K, dec_u(count)+1);
         yield_ctx(ts);
       } else {
-        ERROR
-          error_ctx(enc_sym(SYM_EERROR));
+        error_ctx(enc_sym(SYM_EERROR));
       }
       return;
     } else if (dfun == SYM_WAIT) {

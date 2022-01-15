@@ -248,6 +248,9 @@ extern VALUE heap_allocate_cell(TYPE type);
 extern unsigned int heap_size_bytes(void);
 
 extern char *dec_str(VALUE);
+extern UINT dec_as_u(VALUE);
+extern INT dec_as_i(VALUE);
+extern FLOAT dec_as_f(VALUE);
 
 extern VALUE cons(VALUE car, VALUE cdr);
 extern VALUE car(VALUE cons);
@@ -444,5 +447,4 @@ static inline bool is_symbol_eval(VALUE exp) {
 static inline bool is_symbol_merror(VALUE exp) {
   return (is_symbol(exp) && dec_sym(exp) == SYM_MERROR);
 }
-
 #endif
