@@ -276,6 +276,7 @@ void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   printf("--------------------------------\n");
   printf("ContextID: %u\n", ctx->id);
   printf("Stack SP: %u\n",  ctx->K.sp);
+  printf("Stack SP max: %u\n", ctx->K.max_sp);
   if (print_ret) {
     printf("Value: %s\n", output);
   } else {

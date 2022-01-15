@@ -27,6 +27,7 @@ int stack_allocate(stack *s, unsigned int stack_size, bool growable) {
   s->sp = 0;
   s->size = stack_size;
   s->growable = growable;
+  s->max_sp = 0;
 
   if (s->data) return 1;
   return 0;
@@ -37,6 +38,7 @@ int stack_create(stack *s, UINT* data, unsigned int size) {
   s->sp = 0;
   s->size = size;
   s->growable = false;
+  s->max_sp = 0;
   return 1;
 }
 
@@ -107,6 +109,8 @@ int push_u32(stack *s, UINT val) {
   s->data[s->sp] = val;
   s->sp++;
 
+  if (s->sp > s->max_sp) s->max_sp = s->sp;
+
   return res;
 }
 
@@ -117,6 +121,9 @@ int push_k(stack *s, VALUE (*k)(VALUE)) {
   if ( s->sp >= s->size) {
     res = stack_grow(s);
   }
+
+  if (s->sp > s->max_sp) s->max_sp = s->sp;
+
   return res;
 }
 
