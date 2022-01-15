@@ -1106,8 +1106,8 @@ static inline void cont_application(eval_context_t *ctx) {
     /* eval_cps specific operations */
     UINT dfun = dec_sym(fun);
     if (dfun == SYM_YIELD) {
-      if (dec_u(count) == 1 && !is_number(fun_args[0])) {
-        UINT ts = dec_as_u(fun_args[0]);
+      if (dec_u(count) == 1 && is_number(fun_args[1])) {
+        UINT ts = dec_as_u(fun_args[1]);
         stack_drop(&ctx->K, dec_u(count)+1);
         yield_ctx(ts);
       } else {
