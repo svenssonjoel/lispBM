@@ -57,7 +57,7 @@ int stack_clear(stack *s) {
 int stack_grow(stack *s) {
 
   if (!s->growable) return 0;
-  
+
   unsigned int new_size = s->size * 2;
   UINT *data    = memory_allocate(new_size);
 
@@ -87,7 +87,7 @@ int stack_copy(stack *dest, stack *src) {
 UINT *stack_ptr(stack *s, unsigned int n) {
   if (n > s->sp) return NULL;
   unsigned int index = s->sp - n;
-  return &s->data[index]; 
+  return &s->data[index];
 }
 
 int stack_drop(stack *s, unsigned int n) {
@@ -105,7 +105,7 @@ int push_u32(stack *s, UINT val) {
   }
 
   if (!res) return res;
-  
+
   s->data[s->sp] = val;
   s->sp++;
 
