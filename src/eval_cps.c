@@ -774,10 +774,10 @@ static inline void eval_lambda(eval_context_t *ctx) {
   VALUE body;
   VALUE params;
   VALUE closure;
-  WITH_GC(env_end, cons(env_cpy,NIL), NIL);
-  WITH_GC(body,    cons(car(cdr(cdr(ctx->curr_exp))), env_end), NIL);
-  WITH_GC(params,  cons(car(cdr(ctx->curr_exp)), body), NIL);
-  WITH_GC(closure, cons(enc_sym(SYM_CLOSURE), params), NIL);
+  WITH_GC(env_end, cons(env_cpy,NIL), env_cpy);
+  WITH_GC(body,    cons(car(cdr(cdr(ctx->curr_exp))), env_end), env_end);
+  WITH_GC(params,  cons(car(cdr(ctx->curr_exp)), body), body);
+  WITH_GC(closure, cons(enc_sym(SYM_CLOSURE), params), params);
 
   ctx->app_cont = true;
   ctx->r = closure;
