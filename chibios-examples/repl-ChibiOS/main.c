@@ -37,6 +37,8 @@ static cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[MEMORY_SIZE_8K];
 static uint32_t bitmap_array[MEMORY_BITMAP_SIZE_8K];
 
+static tokenizer_string_state_t string_tok_state;
+static tokenizer_char_stream string_tok;
 
 BaseSequentialStream *chp = NULL;
 
@@ -307,18 +309,19 @@ int main(void) {
       while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
         chThdSleepMilliseconds(1);
       }
+      prelude_load(&string_tok_state,
+                   &string_tok);
 
-      chprintf(chp,"Parsing prelude.\r\n");
-      VALUE prelude = prelude_load();
+      printf("Parsing prelude.\n");
+      VALUE prelude = tokpar_parse_program(&string_tok);
 
-      chprintf(chp,"Evaluate prelude.\r\n");
+      printf("Evaluate prelude.\n");
       eval_cps_program(prelude);
 
-      chprintf(chp,"Eval resuming.\r\n");
+      printf("Eval resuming.\n");
       eval_cps_continue_eval();
+    } else if (strncmp(str, ":quit", 5) == 0) {
 
-    }
-    else if (strncmp(str, ":quit", 5) == 0) {
       break;
     } else if (strncmp(str, ":read", 5) == 0) {
       memset(file_buffer, 0, 2048);
@@ -346,8 +349,10 @@ int main(void) {
         while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
           sleep_callback(10);
         }
-
-        t = tokpar_parse(file_buffer);
+        tokpar_create_char_stream_from_string(&string_tok_state,
+                                              &string_tok,
+                                              file_buffer);
+        t = tokpar_parse(&string_tok);
         CID cid = eval_cps_program(t);
         if (cid == 0) {
           chprintf(chp,"Error creating ctx\r\n");
@@ -372,7 +377,10 @@ int main(void) {
         sleep_callback(10);
       }
 
-      t = tokpar_parse(str);
+      tokpar_create_char_stream_from_string(&string_tok_state,
+                                            &string_tok,
+                                            str);
+      t = tokpar_parse(&string_tok);
 
       CID cid = eval_cps_program(t);
       if (cid == 0) {

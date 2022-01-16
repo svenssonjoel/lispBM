@@ -30,6 +30,14 @@ typedef struct {
   char *src;
 } decomp_state; 
 
+#define DECOMP_BUFF_SIZE 32
+
+typedef struct {
+  decomp_state ds;
+  char decomp_buff[DECOMP_BUFF_SIZE];
+  int  decomp_bytes;
+  int  buff_pos;
+} tokenizer_compressed_state_t;
 
 extern void compression_init_state(decomp_state *s, char *src);
 
@@ -45,6 +53,8 @@ extern int  compression_decompress_incremental(decomp_state *s, char *dest_buff,
 extern bool compression_decompress(char *dest, uint32_t dest_n, char *src);
 
 /* parse compressed code */
-extern VALUE compression_parse(char *bytes);
+extern void compression_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
+                                                           tokenizer_char_stream *str,
+                                                           char *bytes);
 
 #endif

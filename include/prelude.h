@@ -20,8 +20,8 @@
 
 #include "lispbm_types.h"
 
-extern VALUE prelude_load(void);
-
+extern void prelude_load(tokenizer_string_state_t *,
+                         tokenizer_char_stream *);
 
 
 #endif

@@ -42,10 +42,10 @@ typedef uint16_t CID;
 
 typedef struct tcs{
   void *state;
-  bool (*more)(struct tcs);
-  char (*get)(struct tcs);
-  char (*peek)(struct tcs, unsigned int);
-  void (*drop)(struct tcs, unsigned int);
+  bool (*more)(struct tcs*);
+  char (*get)(struct tcs*);
+  char (*peek)(struct tcs*, unsigned int);
+  void (*drop)(struct tcs*, unsigned int);
 } tokenizer_char_stream;
 
 

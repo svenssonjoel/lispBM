@@ -35,6 +35,8 @@
 
 cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
+static tokenizer_string_state_t string_tok_state;
+static tokenizer_char_stream string_tok;
 
 BaseSequentialStream *chp = NULL;
 
@@ -236,7 +238,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
         chprintf(chp,"%c", dec_char(t));
       }
     }  else {
-      int print_ret = print_value(output, 1024, t);
+      print_value(output, 1024, t);
       chprintf(chp,"%s", output);
     }
   }
@@ -346,8 +348,13 @@ int main(void) {
     return 1;
   }
 
-  VALUE prelude = prelude_load();
+  prelude_load(&string_tok_state,
+                   &string_tok);
+
+  VALUE prelude = tokpar_parse_program(&string_tok);
+
   eval_cps_program(prelude);
+
 
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
 
@@ -400,9 +407,10 @@ int main(void) {
       if (done) {
         VALUE t;
 
-        chprintf(chp, "Parsing file\r\n");
-        t = tokpar_parse(file_buffer);
-        chprintf(chp, "Evaluating contents\r\n");
+        tokpar_create_char_stream_from_string(&string_tok_state,
+                                              &string_tok,
+                                              file_buffer);
+        t = tokpar_parse(&string_tok);
         CID cid = eval_cps_program(t);
         if (cid == 0) {
           chprintf(chp,"Error creating ctx\r\n");
@@ -417,7 +425,10 @@ int main(void) {
       }
 
       VALUE t;
-      t = tokpar_parse(str);
+      tokpar_create_char_stream_from_string(&string_tok_state,
+                                            &string_tok,
+                                            str);
+      t = tokpar_parse(&string_tok);
 
       CID cid = eval_cps_program(t);
       if (cid == 0) {

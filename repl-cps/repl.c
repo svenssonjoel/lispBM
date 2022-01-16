@@ -34,6 +34,9 @@ static volatile bool allow_print = true;
 struct termios old_termios;
 struct termios new_termios;
 
+static tokenizer_string_state_t string_tok_state;
+static tokenizer_char_stream string_tok;
+
 void setup_terminal(void) {
 
   tcgetattr(0,&old_termios);
@@ -391,13 +394,17 @@ int main(int argc, char **argv) {
       char *file_str = load_file(&str[5]);
       if (file_str) {
 
+        tokpar_create_char_stream_from_string(&string_tok_state,
+                                              &string_tok,
+                                              file_str);
+
         /* Get exclusive access to the heap */
         eval_cps_pause_eval();
         while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
           sleep_callback(10);
         }
 
-        VALUE f_exp = tokpar_parse(file_str);
+        VALUE f_exp = tokpar_parse(&string_tok);
         free(file_str);
         CID cid1 = eval_cps_program(f_exp);
 
@@ -445,8 +452,11 @@ int main(int argc, char **argv) {
         sleep_callback(10);
       }
 
+      prelude_load(&string_tok_state,
+                   &string_tok);
+
       printf("Parsing prelude.\n");
-      VALUE prelude = prelude_load();
+      VALUE prelude = tokpar_parse_program(&string_tok);
 
       printf("Evaluate prelude.\n");
       eval_cps_program(prelude);
@@ -462,7 +472,10 @@ int main(int argc, char **argv) {
         sleep_callback(10);
       }
 
-      t = tokpar_parse(str);
+      tokpar_create_char_stream_from_string(&string_tok_state,
+                                            &string_tok,
+                                            str);
+      t = tokpar_parse(&string_tok);
 
       CID cid = eval_cps_program(t);
 

@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2021 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021, 2022 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include "exp_kind.h"
 #include "streams.h"
 #include "lispbm_memory.h"
+#include "tokpar.h"
 
 #include "platform_mutex.h"
 
@@ -162,6 +163,26 @@ void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
   ctx_done_callback = fptr;
 }
 
+/****************************************************/
+/* Tokenizing and parsing                           */
+
+
+
+
+/* VALUE eval_cps_create_token_stream(tokenizer_char_stream *str) { */
+
+/*   stream_t stream; */
+
+/*   stream.state = (void*)str; */
+/*   stream.more =  */
+
+/*   return stream_create( */
+/* } */
+
+
+
+/****************************************************/
+/* Queue functions                                  */
 
 static void queue_iterator(eval_context_queue_t *q, ctx_fun f, void *arg1, void *arg2) {
   mutex_lock(&qmutex);

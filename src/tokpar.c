@@ -80,12 +80,6 @@ typedef struct {
   }data;
 } token;
 
-
-typedef struct {
-  char *str;
-  unsigned int pos;
-} tokenizer_state;
-
 typedef struct {
   const char *str;
   uint32_t  token;
@@ -109,24 +103,24 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"?", TOKMATCHANY, 1}
 };
 
-bool more(tokenizer_char_stream str) {
-  return str.more(str);
+bool more(tokenizer_char_stream *str) {
+  return str->more(str);
 }
 
-char get(tokenizer_char_stream str) {
-  return str.get(str);
+char get(tokenizer_char_stream *str) {
+  return str->get(str);
 }
 
-char peek(tokenizer_char_stream str, unsigned int n) {
-  return str.peek(str,n);
+char peek(tokenizer_char_stream *str, unsigned int n) {
+  return str->peek(str,n);
 }
 
-void drop(tokenizer_char_stream str, unsigned int n) {
-  str.drop(str,n);
+void drop(tokenizer_char_stream *str, unsigned int n) {
+  str->drop(str,n);
 }
 
 
-uint32_t tok_match_fixed_size_tokens(tokenizer_char_stream str) {
+uint32_t tok_match_fixed_size_tokens(tokenizer_char_stream *str) {
 
   for (int i = 0; i < NUM_FIXED_SIZE_TOKENS; i ++) {
     uint32_t tok_len = match_table[i].len;
@@ -165,7 +159,7 @@ bool symchar(char c) {
   return false;
 }
 
-int tok_symbol(tokenizer_char_stream str) {
+int tok_symbol(tokenizer_char_stream *str) {
 
   if (!symchar0(peek(str,0)))  return 0;
 
@@ -196,7 +190,7 @@ int tok_symbol(tokenizer_char_stream str) {
   return (int)n;
 }
 
-int tok_string(tokenizer_char_stream str) {
+int tok_string(tokenizer_char_stream *str) {
 
   unsigned int i = 0;
   int n = 0;
@@ -231,7 +225,7 @@ int tok_string(tokenizer_char_stream str) {
   return (int)(n+1);
 }
 
-int tok_char(tokenizer_char_stream str, char *res) {
+int tok_char(tokenizer_char_stream *str, char *res) {
 
   int count = 0;
   if (peek(str,0) == '\\' &&
@@ -256,7 +250,7 @@ int tok_char(tokenizer_char_stream str, char *res) {
   return count;
 }
 
-int tok_i(tokenizer_char_stream str, INT *res) {
+int tok_i(tokenizer_char_stream *str, INT *res) {
 
   INT acc = 0;
   unsigned int n = 0;
@@ -277,7 +271,7 @@ int tok_i(tokenizer_char_stream str, INT *res) {
   return (int)n; /*check that isnt so high that it becomes a negative number when casted */
 }
 
-int tok_I(tokenizer_char_stream str, INT *res) {
+int tok_I(tokenizer_char_stream *str, INT *res) {
   INT acc = 0;
   unsigned int n = 0;
 
@@ -296,7 +290,7 @@ int tok_I(tokenizer_char_stream str, INT *res) {
   return 0;
 }
 
-int tok_u(tokenizer_char_stream str, UINT *res) {
+int tok_u(tokenizer_char_stream *str, UINT *res) {
   UINT acc = 0;
   unsigned int n = 0;
 
@@ -315,7 +309,7 @@ int tok_u(tokenizer_char_stream str, UINT *res) {
   return 0;
 }
 
-int tok_U(tokenizer_char_stream str, UINT *res) {
+int tok_U(tokenizer_char_stream *str, UINT *res) {
   UINT acc = 0;
   unsigned int n = 0;
 
@@ -358,7 +352,7 @@ int tok_U(tokenizer_char_stream str, UINT *res) {
   return 0;
 }
 
-int tok_F(tokenizer_char_stream str, FLOAT *res) {
+int tok_F(tokenizer_char_stream *str, FLOAT *res) {
 
   unsigned int n = 0;
   unsigned int m = 0;
@@ -386,7 +380,7 @@ int tok_F(tokenizer_char_stream str, FLOAT *res) {
 }
 
 
-token next_token(tokenizer_char_stream str) {
+token next_token(tokenizer_char_stream *str) {
   token t;
 
   INT i_val;
@@ -488,10 +482,10 @@ token next_token(tokenizer_char_stream str) {
   return t;
 }
 
-VALUE parse_sexp(token tok, tokenizer_char_stream str);
-VALUE parse_sexp_list(token tok, tokenizer_char_stream str);
+VALUE parse_sexp(token tok, tokenizer_char_stream *str);
+VALUE parse_sexp_list(token tok, tokenizer_char_stream *str);
 
-VALUE tokpar_parse_program(tokenizer_char_stream str) {
+VALUE tokpar_parse_program(tokenizer_char_stream *str) {
   token tok = next_token(str);
   VALUE head;
   VALUE tail;
@@ -510,7 +504,7 @@ VALUE tokpar_parse_program(tokenizer_char_stream str) {
   return cons(head, tail);
 }
 
-VALUE parse_sexp(token tok, tokenizer_char_stream str) {
+VALUE parse_sexp(token tok, tokenizer_char_stream *str) {
 
   VALUE v;
   token t;
@@ -603,7 +597,7 @@ VALUE parse_sexp(token tok, tokenizer_char_stream str) {
   return enc_sym(SYM_RERROR);
 }
 
-VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
+VALUE parse_sexp_list(token tok, tokenizer_char_stream *str) {
 
   token t;
   VALUE head;
@@ -640,43 +634,49 @@ VALUE parse_sexp_list(token tok, tokenizer_char_stream str) {
   return enc_sym(SYM_RERROR);
 }
 
-bool more_string(tokenizer_char_stream str) {
-  tokenizer_state *s = (tokenizer_state*)str.state;
+bool more_string(tokenizer_char_stream *str) {
+  tokenizer_string_state_t *s =
+    (tokenizer_string_state_t *)str->state;
   return s->str[s->pos] != 0;
 }
 
-char get_string(tokenizer_char_stream str) {
-  tokenizer_state *s = (tokenizer_state*)str.state;
+char get_string(tokenizer_char_stream *str) {
+  tokenizer_string_state_t *s =
+    (tokenizer_string_state_t *)str->state;
   char c = s->str[s->pos];
   s->pos = s->pos + 1;
   return c;
 }
 
-char peek_string(tokenizer_char_stream str, unsigned int n) {
-  tokenizer_state *s = (tokenizer_state*)str.state;
+char peek_string(tokenizer_char_stream *str, unsigned int n) {
+  tokenizer_string_state_t *s =
+    (tokenizer_string_state_t *)str->state;
   // TODO error checking ?? how ?
   char c = s->str[s->pos + n];
   return c;
 }
 
-void drop_string(tokenizer_char_stream str, unsigned int n) {
-  tokenizer_state *s = (tokenizer_state*)str.state;
+void drop_string(tokenizer_char_stream *str, unsigned int n) {
+  tokenizer_string_state_t *s =
+    (tokenizer_string_state_t *)str->state;
   s->pos = s->pos + n;
 }
 
-VALUE tokpar_parse(char *string) {
+void tokpar_create_char_stream_from_string(tokenizer_string_state_t *state,
+                                           tokenizer_char_stream *char_stream,
+                                           char *string){ 
+  state->str = string;
+  state->pos = 0;
 
-  tokenizer_state ts;
-  ts.str = string;
-  ts.pos = 0;
+  char_stream->state = state;
+  char_stream->more  = more_string;
+  char_stream->peek  = peek_string;
+  char_stream->drop  = drop_string;
+  char_stream->get   = get_string;
+}
 
-  tokenizer_char_stream str;
-  str.state = &ts;
-  str.more = more_string;
-  str.peek = peek_string;
-  str.drop = drop_string;
-  str.get  = get_string;
+VALUE tokpar_parse(tokenizer_char_stream *char_stream) {
 
-  return tokpar_parse_program(str);
+  return tokpar_parse_program(char_stream);
 }
 

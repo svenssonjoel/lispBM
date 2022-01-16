@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -290,7 +290,7 @@ char *compression_compress(char *string, uint32_t *res_size) {
   if (c_size_bits % 8 > 0) {
     c_size_bytes += 1;
   }
-  
+
   uint32_t header_value = c_size_bits;
 
   if (header_value == 0) return NULL;
@@ -446,25 +446,16 @@ bool compression_decompress(char *dest, uint32_t dest_n, char *src) {
 }
 
 /* Implementation of the parsing interface */
-
-#define DECOMP_BUFF_SIZE 32
-typedef struct {
-  decomp_state ds;
-  char decomp_buff[DECOMP_BUFF_SIZE];
-  int  decomp_bytes;
-  int  buff_pos;
-} tokenizer_compressed_state;
-
-bool more_compressed(tokenizer_char_stream str) {
-  tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
+bool more_compressed(tokenizer_char_stream *str) {
+  tokenizer_compressed_state_t *s = (tokenizer_compressed_state_t*)str->state;
   bool more =
     (s->ds.i < s->ds.compressed_bits + 32) ||
     (s->buff_pos < s->decomp_bytes);
   return more;
 }
 
-char get_compressed(tokenizer_char_stream str) {
-  tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
+char get_compressed(tokenizer_char_stream *str) {
+  tokenizer_compressed_state_t *s = (tokenizer_compressed_state_t*)str->state;
 
   if (s->ds.i >= s->ds.compressed_bits + 32 &&
       (s->buff_pos >= s->decomp_bytes)) {
@@ -484,46 +475,41 @@ char get_compressed(tokenizer_char_stream str) {
   return c;
 }
 
-char peek_compressed(tokenizer_char_stream str, unsigned int n) {
-  tokenizer_compressed_state *s = (tokenizer_compressed_state*)str.state;
+char peek_compressed(tokenizer_char_stream *str, unsigned int n) {
+  tokenizer_compressed_state_t *s = (tokenizer_compressed_state_t *)str->state;
 
-  tokenizer_compressed_state old;
+  tokenizer_compressed_state_t old;
 
-  memcpy(&old, s, sizeof(tokenizer_compressed_state));
+  memcpy(&old, s, sizeof(tokenizer_compressed_state_t));
 
   char c = get_compressed(str);;
   for (unsigned int i = 1; i <= n; i ++) {
     c = get_compressed(str);
   }
 
-  memcpy(str.state, &old, sizeof(tokenizer_compressed_state));
+  memcpy(str->state, &old, sizeof(tokenizer_compressed_state_t));
   return c;
 }
 
-
-void drop_compressed(tokenizer_char_stream str, unsigned int n) {
+void drop_compressed(tokenizer_char_stream *str, unsigned int n) {
   for (unsigned int i = 0; i < n; i ++) {
     get_compressed(str);
   }
 }
 
 
-VALUE compression_parse(char *bytes) {
+void compression_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
+                                                    tokenizer_char_stream *str,
+                                                    char *bytes) {
+  ts->decomp_bytes = 0;
+  memset(ts->decomp_buff, 0, 32);
+  ts->buff_pos = 0;
 
-  tokenizer_compressed_state ts;
+  compression_init_state(&ts->ds, bytes);
 
-  ts.decomp_bytes = 0;
-  memset(ts.decomp_buff, 0, 32);
-  ts.buff_pos = 0;
-
-  compression_init_state(&ts.ds, bytes);
-
-  tokenizer_char_stream str;
-  str.state = &ts;
-  str.more = more_compressed;
-  str.get = get_compressed;
-  str.peek = peek_compressed;
-  str.drop = drop_compressed;
-
-  return tokpar_parse_program(str);
+  str->state = ts;
+  str->more = more_compressed;
+  str->get = get_compressed;
+  str->peek = peek_compressed;
+  str->drop = drop_compressed;
 }

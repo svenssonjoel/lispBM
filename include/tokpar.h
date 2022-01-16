@@ -20,7 +20,15 @@
 
 #include "lispbm_types.h"
 
-extern VALUE tokpar_parse(char *str);
-extern VALUE tokpar_parse_program(tokenizer_char_stream str);
+typedef struct {
+  char *str;
+  unsigned int pos;
+} tokenizer_string_state_t;
+
+extern void tokpar_create_char_stream_from_string(tokenizer_string_state_t *,
+                                                  tokenizer_char_stream *,
+                                                  char *);
+extern VALUE tokpar_parse(tokenizer_char_stream *str);
+extern VALUE tokpar_parse_program(tokenizer_char_stream *str);
 
 #endif

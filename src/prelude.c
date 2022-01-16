@@ -25,6 +25,10 @@ char prelude[] = {
 };
 
 
-VALUE prelude_load(void) {
-  return tokpar_parse(prelude);
+void prelude_load(tokenizer_string_state_t *state,
+                  tokenizer_char_stream *stream) {
+  
+  tokpar_create_char_stream_from_string(state,
+                                        stream,
+                                        prelude);
 }

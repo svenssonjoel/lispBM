@@ -38,6 +38,14 @@
 
 #define EVAL_CPS_STACK_SIZE 256
 
+/* Tokenizer for strings */
+static tokenizer_string_state_t string_tok_state;
+static tokenizer_char_stream string_tok;
+
+/* Tokenizer for compressed data */
+static tokenizer_compressed_state_t comp_tok_state;
+static tokenizer_char_stream comp_tok;
+
 void *eval_thd_wrapper(void *v) {
   eval_cps_run_eval();
   return NULL;
@@ -226,7 +234,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  VALUE prelude = prelude_load();
+  prelude_load(&string_tok_state, &string_tok);
+  VALUE prelude = tokpar_parse_program(&string_tok);
+
   CID cid = eval_cps_program(prelude);
 
   eval_cps_wait_ctx(cid);
@@ -241,13 +251,20 @@ int main(int argc, char **argv) {
       return 0;
     }
     char decompress_code[8192];
+
     compression_decompress(decompress_code, 8192, compressed_code);
     printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
 
-    t = compression_parse(compressed_code);
+    compression_create_char_stream_from_compressed(&comp_tok_state,
+                                                   &comp_tok,
+                                                   compressed_code);
+    t = tokpar_parse(&comp_tok);
     free(compressed_code);
   } else {
-    t = tokpar_parse(code_buffer);
+    tokpar_create_char_stream_from_string(&string_tok_state,
+                                          &string_tok,
+                                          code_buffer);
+    t = tokpar_parse(&string_tok);
   }
 
   char output[128];
