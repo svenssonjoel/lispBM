@@ -28,7 +28,6 @@
 #include "heap.h"
 #include "symrepr.h"
 #include "eval_cps.h"
-#include "ec_eval.h"
 #include "print.h"
 #include "tokpar.h"
 #include "prelude.h"
@@ -75,9 +74,7 @@ int main(int argc, char **argv) {
   int res = 0;
 
   unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard
-  bool growing_continuation_stack = false;
   bool compress_decompress = false;
-  bool use_ec_eval = false;
 
   cons_t *heap_storage = NULL;
 
@@ -89,14 +86,9 @@ int main(int argc, char **argv) {
     case 'h':
       heap_size = (unsigned int)atoi((char *)optarg);
       break;
-    case 'g':
-      growing_continuation_stack = true;
-      break;
     case 'c':
       compress_decompress = true;
       break;
-    case 'e':
-      use_ec_eval = true;
     case '?':
       break;
     default:
@@ -105,9 +97,7 @@ int main(int argc, char **argv) {
   }
   printf("------------------------------------------------------------\n");
   printf("Heap size: %u\n", heap_size);
-  printf("Growing stack: %s\n", growing_continuation_stack ? "yes" : "no");
   printf("Compression: %s\n", compress_decompress ? "yes" : "no");
-  printf("Evaluator: %s\n", use_ec_eval ? "ec_eval" : "eval_cps");
   printf("------------------------------------------------------------\n");
 
   if (argc - optind < 1) {
@@ -190,21 +180,17 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (!use_ec_eval) {
-    res = eval_cps_init_nc(EVAL_CPS_STACK_SIZE, growing_continuation_stack);
-    if (res)
-      printf("Evaluator initialized.\n");
-    else {
-      printf("Error initializing evaluator.\n");
-    }
+  res = eval_cps_init_nc(EVAL_CPS_STACK_SIZE);
+  if (res)
+    printf("Evaluator initialized.\n");
+  else {
+    printf("Error initializing evaluator.\n");
   }
 
+
   VALUE prelude = prelude_load();
-  if (use_ec_eval) {
-    ec_eval_program(prelude);
-  } else {
-    eval_cps_program_nc(prelude);
-  }
+  eval_cps_program_nc(prelude);
+
 
   VALUE t;
 
@@ -236,11 +222,13 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (use_ec_eval) {
-    t = ec_eval_program(t);
-  } else {
-    t = eval_cps_program_nc(t);
+  if (type_of(t) == VAL_TYPE_SYMBOL &&
+      dec_sym(t) == SYM_MERROR) {
+    printf("out of memory while parsing\n");
+    return 0;
   }
+
+  t = eval_cps_program_nc(t);
 
   res = print_value(output, 128, t);
 

@@ -38,9 +38,9 @@
 #define SYM_MERROR        0xA
 #define SYM_DIVZERO       0xB
 #define SYM_FATAL_ERROR   0xC  /* Runtime system is corrupt */
-#define SYM_DEFINE        0xD
-#define SYM_PROGN         0xE
-//#define SYM_BACKQUOTE     0xF
+#define SYM_STACK_ERROR   0xD
+#define SYM_DEFINE        0xE
+#define SYM_PROGN         0xF
 #define SYM_COMMA         0x10
 #define SYM_COMMAAT       0x11
 #define SYM_DONTCARE      0x12

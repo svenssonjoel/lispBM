@@ -94,7 +94,6 @@ int main(int argc, char **argv) {
   int res = 0;
 
   unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard
-  bool growing_continuation_stack = false;
   bool compress_decompress = false;
 
   pthread_t lispbm_thd;
@@ -108,9 +107,6 @@ int main(int argc, char **argv) {
     case 'h':
       heap_size = (unsigned int)atoi((char *)optarg);
       break;
-    case 'g':
-      growing_continuation_stack = true;
-      break;
     case 'c':
       compress_decompress = true;
       break;
@@ -122,7 +118,6 @@ int main(int argc, char **argv) {
   }
   printf("------------------------------------------------------------\n");
   printf("Heap size: %u\n", heap_size);
-  printf("Growing stack: %s\n", growing_continuation_stack ? "yes" : "no");
   printf("Compression: %s\n", compress_decompress ? "yes" : "no");
   printf("------------------------------------------------------------\n");
 
@@ -265,7 +260,14 @@ int main(int argc, char **argv) {
     printf("%s\n", output);
     return 0;
   }
-  cid = eval_cps_program_ext(t,256,growing_continuation_stack);
+
+  if (type_of(t) == VAL_TYPE_SYMBOL &&
+      dec_sym(t) == SYM_MERROR) {
+    printf("out of memory while parsing\n");
+    return 0;
+  }
+
+  cid = eval_cps_program_ext(t,256);
 
   t = eval_cps_wait_ctx(cid);
 
