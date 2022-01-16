@@ -35,6 +35,8 @@ All programming languages need a mascot, so here is the LispBM llama by [PixiLad
 ## Documentation
 LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).
 
+There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3TaqZoDOQqZcB9Yj-R1zS2DWDZ9q9).
+
 ## Want to get involved and help out?
 1. Are you interested in microcontrollers and programming languages?
 2. You find it fun to mess around in C code with close to zero comments?
