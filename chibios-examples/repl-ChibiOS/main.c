@@ -147,7 +147,7 @@ static char file_buffer[2048];
 
 void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void)arg2;
-  int print_ret = print_value(outbuf, 1024, ctx->r);
+  print_value(outbuf, 1024, ctx->r);
   chprintf(chp, "%s %x %u %u %s\r\n", (char*)arg1, (uint32_t)ctx, ctx->id, ctx->K.sp, outbuf);
 }
 
