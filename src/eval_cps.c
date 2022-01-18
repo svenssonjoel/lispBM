@@ -27,6 +27,7 @@
 #include "streams.h"
 #include "lispbm_memory.h"
 #include "tokpar.h"
+#include "qq_expand.h"
 
 #include "platform_mutex.h"
 
@@ -47,6 +48,7 @@
 #define SPAWN_ALL         11
 #define MATCH             12
 #define MATCH_MANY        13
+#define READ              14
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
@@ -166,19 +168,97 @@ void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
 /****************************************************/
 /* Tokenizing and parsing                           */
 
+static VALUE token_stream_more(stream_t *str) {
+  (void) str;
+  return enc_sym(SYM_NIL);
+}
 
+static VALUE token_stream_get(stream_t *str){
+  return tokpar_next_token((tokenizer_char_stream_t*)str->state);
+}
 
+static VALUE token_stream_peek(stream_t *str, VALUE n){
+  (void) str;
+  (void) n;
+  return enc_sym(SYM_NIL);
+}
 
-/* VALUE eval_cps_create_token_stream(tokenizer_char_stream *str) { */
+static VALUE token_stream_drop(stream_t *str, VALUE n){
+  (void) str;
+  (void) n;
+  return enc_sym(SYM_NIL);
+}
 
-/*   stream_t stream; */
+static VALUE token_stream_put(stream_t *str, VALUE v){
+  (void) str;
+  (void) v;
+  return enc_sym(SYM_NIL);
+}
 
-/*   stream.state = (void*)str; */
-/*   stream.more =  */
+VALUE eval_cps_create_token_stream(tokenizer_char_stream_t *str) {
 
-/*   return stream_create( */
-/* } */
+  stream_t *stream;
 
+  stream = (stream_t*)memory_allocate(sizeof(stream_t) / 4);
+
+  if (stream == NULL) {
+    return enc_sym(SYM_MERROR);
+  }
+
+  /* gc can check if the state pointer is inside of the
+     lispbm_memory and free it if that is that case.
+     Otherwise we assume it is a statically created tokenizer */
+  stream->state = (void*)str;
+  stream->more = token_stream_more;
+  stream->get  = token_stream_get;
+  stream->peek = token_stream_peek;
+  stream->drop = token_stream_drop;
+  stream->put  = token_stream_put;
+
+  return stream_create(stream);
+}
+
+VALUE token_stream_from_string_value(VALUE s) {
+  char *str = dec_str(s);
+
+  stream_t *stream = NULL;
+  tokenizer_string_state_t *tok_stream_state = NULL;
+  tokenizer_char_stream_t *tok_stream = NULL;
+
+  stream = (stream_t*)memory_allocate(sizeof(stream_t) / 4);
+  if (stream == NULL) {
+    return enc_sym(SYM_MERROR);
+  }
+
+  tok_stream_state = (tokenizer_string_state_t*)memory_allocate(1 + (sizeof(tokenizer_string_state_t) / 4));
+  if (tok_stream_state == NULL) {
+    memory_free((uint32_t*)stream);
+    return enc_sym(SYM_MERROR);
+  }
+
+  tok_stream = (tokenizer_char_stream_t*)memory_allocate(sizeof(tokenizer_char_stream_t) / 4);
+  if (tok_stream == NULL) {
+    memory_free((uint32_t*)stream);
+    memory_free((uint32_t*)tok_stream_state);
+    return enc_sym(SYM_MERROR);
+  }
+
+  printf("creating internal stream representation\n");
+  tokpar_create_char_stream_from_string(tok_stream_state,
+                                        tok_stream,
+                                        str);
+
+  stream->state = (void*)tok_stream;
+  stream->more = token_stream_more;
+  stream->get  = token_stream_get;
+  stream->peek = token_stream_peek;
+  stream->drop = token_stream_drop;
+  stream->put  = token_stream_put;
+
+  printf("creating surface level stream\n");
+
+  return stream_create(stream);
+}
 
 
 /****************************************************/
@@ -1121,13 +1201,39 @@ static inline void cont_application(eval_context_t *ctx) {
 
     /* eval_cps specific operations */
     UINT dfun = dec_sym(fun);
-    if (dfun == SYM_YIELD) {
+    if (dfun == SYM_READ || SYM_READ_PROGRAM) {
+      if (dec_u(count) == 1) {
+        VALUE stream = NIL;
+        if (type_of(fun_args[1]) == PTR_TYPE_ARRAY) {
+          array_header_t *array = (array_header_t *)car(fun_args[1]);
+          if(array->elt_type == VAL_TYPE_CHAR) {
+            printf("creating stream from string value\n");
+            stream = token_stream_from_string_value(fun_args[1]);
+          }
+        } else if (type_of(fun_args[1]) == PTR_TYPE_STREAM) {
+          stream = fun_args[1];
+        } else {
+          error_ctx(enc_sym(SYM_EERROR));
+          return;
+        }
+
+        stream_t *s = dec_stream(stream);
+
+        stack_drop(&ctx->K, dec_u(count)+1);
+        CHECK_STACK(push_u32_3(&ctx->K, stream, fun, enc_u(READ)));
+        ctx->r = NIL;
+        ctx->app_cont = true;
+      } else {
+        error_ctx(enc_sym(SYM_EERROR));
+      }
+      return;
+    } else if (dfun == SYM_YIELD) {
       if (dec_u(count) == 1 && is_number(fun_args[1])) {
         UINT ts = dec_as_u(fun_args[1]);
         stack_drop(&ctx->K, dec_u(count)+1);
         yield_ctx(ts);
       } else {
-        error_ctx(enc_sym(SYM_EERROR));
+         error_ctx(enc_sym(SYM_EERROR));
       }
       return;
     } else if (dfun == SYM_WAIT) {
@@ -1375,6 +1481,211 @@ static inline void cont_match(eval_context_t *ctx) {
 }
 
 
+//#define PARSE_PROGRAM 1
+#define PARSE            1
+#define PARSE_LIST       2
+#define QUOTE_RESULT     3
+#define BACKQUOTE_RESULT 4
+#define COMMAAT_RESULT   5
+#define COMMA_RESULT     6
+
+#define APPEND_CONTINUE 100
+#define READ_DONE       110
+
+static inline void cont_read(eval_context_t *ctx) {
+
+  VALUE stream = NIL;
+  VALUE prg_val = NIL;
+  pop_u32_2(&ctx->K, &prg_val, &stream);
+
+  stream_t *str = dec_stream(stream);
+
+  VALUE tok = ctx->r;
+
+  char output[1024];
+  bool done = false;
+
+  bool app_cont = false;
+  bool program=false;
+
+  unsigned int sp_start = ctx->K.sp;
+
+  if (type_of(prg_val) == VAL_TYPE_SYMBOL) {
+    if (dec_sym(prg_val) == SYM_READ) program = false;
+    else if (dec_sym(prg_val) == SYM_READ_PROGRAM) program = true;
+    else {
+      ctx->r = enc_sym(SYM_FATAL_ERROR);
+      return;
+    }
+  }
+
+  CHECK_STACK(push_u32(&ctx->K, enc_u(READ_DONE)));
+
+  if (program) {
+    CHECK_STACK(push_u32_3(&ctx->K, NIL, NIL, enc_u(APPEND_CONTINUE)));
+  }
+
+  while (!done) {
+
+    if (app_cont) {
+      VALUE cont = NIL;
+      pop_u32(&ctx->K, &cont);
+      app_cont = false; // false unless explicitly set
+
+      switch(dec_u(cont)) {
+
+      case APPEND_CONTINUE: {
+        printf("append continue -------------------------------\n");
+        VALUE first_cell = NIL;
+        VALUE last_cell  = NIL;
+        pop_u32_2(&ctx->K, &last_cell, &first_cell);
+
+        print_value(output,1024, ctx->r);
+        printf("ctx->r = %s\n", output);
+
+        print_value(output,1024, last_cell);
+        printf("last_cell = %s\n", output);
+
+        print_value(output,1024, first_cell);
+        printf("first_cell = %s\n", output);
+
+        if (type_of(ctx->r) == VAL_TYPE_SYMBOL &&
+            dec_sym(ctx->r) == SYM_CLOSEPAR) {
+          if (type_of(last_cell) == PTR_TYPE_CONS) {
+            set_cdr(last_cell, NIL); // terminate the list
+            ctx->r = first_cell;
+          } else {
+            // empty list case
+            ctx->r = NIL;
+          }
+          app_cont = true;
+        } else {
+          VALUE new_cell = NIL;
+          CONS_WITH_GC(new_cell, ctx->r, NIL, stream);
+          if (type_of(last_cell) == PTR_TYPE_CONS) {
+            set_cdr(last_cell, new_cell);
+            last_cell = new_cell;
+          } else {
+            first_cell = last_cell = new_cell;
+          }
+          CHECK_STACK(push_u32_3(&ctx->K,
+                                 first_cell, last_cell,
+                                 enc_u(APPEND_CONTINUE)));
+        }
+      } break;
+      case READ_DONE:
+        printf("parser done\n");
+        print_value(output,1024, ctx->r);
+        printf("done val: %s\n", output);
+        ctx->app_cont = true;
+        done = true;
+        continue;
+      case QUOTE_RESULT: {
+        printf("Quote result\n");
+        VALUE cell1;
+        VALUE cell2;
+        CONS_WITH_GC(cell2, ctx->r, NIL, stream);
+        CONS_WITH_GC(cell1, enc_sym(SYM_QUOTE), cell2, stream);
+        ctx->r = cell1;
+        app_cont = true;
+      } break;
+      case BACKQUOTE_RESULT: {
+        printf("Backquote result\n");
+        VALUE expanded = qq_expand(ctx->r);
+        ctx->r = expanded;
+        app_cont = true;
+      } break;
+      case COMMAAT_RESULT: {
+        printf("Commaat result\n");
+        VALUE cell1;
+        VALUE cell2;
+        CONS_WITH_GC(cell2, ctx->r,NIL, stream);
+        CONS_WITH_GC(cell1, enc_sym(SYM_COMMAAT), cell2, stream);
+        ctx->r = cell1;
+        app_cont = true;
+      } break;
+      case COMMA_RESULT: {
+        printf("Comma result\n");
+        VALUE cell1;
+        VALUE cell2;
+        CONS_WITH_GC(cell2, ctx->r,NIL, stream);
+        CONS_WITH_GC(cell1, enc_sym(SYM_COMMA), cell2, stream);
+        ctx->r = cell1;
+        app_cont = true;
+      } break;
+      }
+    } else {
+      tok = token_stream_get(str);
+      print_value(output,1024, tok);
+      printf("new tok %s\n", output);
+
+      if (type_of(tok) == VAL_TYPE_SYMBOL) {
+        print_value(output,1024, tok);
+        printf("symbol case: %s\n", output);
+        switch (dec_sym(tok)) {
+        case SYM_TOKENIZER_DONE:
+          if (program) {
+            ctx->r = enc_sym(SYM_CLOSEPAR);
+          }
+          app_cont = true;
+          break;
+        case SYM_CLOSEPAR:
+          printf("SYM_CLOSEPAR\n");
+          ctx->r = tok;
+          app_cont = true;
+          break;
+        case SYM_OPENPAR:
+          printf("openpar\n");
+          CHECK_STACK(push_u32_3(&ctx->K,
+                                 NIL, NIL,
+                                 enc_u(APPEND_CONTINUE)));
+          app_cont = false;
+          break;
+        case SYM_QUOTE:
+          printf("quote\n");
+          CHECK_STACK(push_u32(&ctx->K,
+                               enc_u(QUOTE_RESULT)));
+          app_cont = false;
+          break;
+        case SYM_BACKQUOTE:
+          printf("backquote\n");
+          CHECK_STACK(push_u32(&ctx->K,
+                               enc_u(BACKQUOTE_RESULT)));
+          app_cont = false;
+          break;
+        case SYM_COMMAAT:
+          printf("commaat\n");
+          CHECK_STACK(push_u32(&ctx->K,
+                               enc_u(COMMAAT_RESULT)));
+          app_cont = false;
+          break;
+        case SYM_COMMA:
+          printf("comma\n");
+          CHECK_STACK(push_u32(&ctx->K,
+                               enc_u(COMMA_RESULT)));
+          app_cont = false;
+          break;
+        default:
+          printf("arbitrary symbol case\n");
+          ctx->r = tok;
+          app_cont = true;
+          break;
+        }
+      } else { // arbitrary value form
+        printf("Parse arbitrary value form -----------------------\n");
+        ctx->r = tok;
+        app_cont = true;
+      }
+    }
+  }
+
+  if (ctx->K.sp != sp_start) {
+    printf("Reader corrupted the stack\n");
+  } else {
+    printf("Reader done and SP restored\n");
+  }
+}
+
 /*********************************************************/
 /* Evaluator step function                               */
 
@@ -1404,6 +1715,7 @@ static void evaluation_step(void){
     case IF:               cont_if(ctx); return;
     case MATCH:            cont_match(ctx); return;
     case MATCH_MANY:       cont_match_many(ctx); return;
+    case READ:             cont_read(ctx); return;
     default:
       ERROR
       error_ctx(enc_sym(SYM_EERROR));
@@ -1515,9 +1827,9 @@ void eval_cps_run_eval(void){
       break;
     }
 
-    if (heap_size() - heap_num_allocated() < PRELIMINARY_GC_MEASURE) {
-      gc(NIL, NIL);
-    }
+    //if (heap_size() - heap_num_allocated() < PRELIMINARY_GC_MEASURE) {
+    //  gc(NIL, NIL);
+    //}
     /* TODO: Logic for sleeping in case the evaluator has been using a lot of CPU
        should go here */
 

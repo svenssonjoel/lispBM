@@ -46,7 +46,7 @@ typedef struct tcs{
   char (*get)(struct tcs*);
   char (*peek)(struct tcs*, unsigned int);
   void (*drop)(struct tcs*, unsigned int);
-} tokenizer_char_stream;
+} tokenizer_char_stream_t;
 
 
 

@@ -21,6 +21,7 @@
 #include <string.h>
 #include "lispbm_types.h"
 #include "symrepr.h"
+#include "streams.h"
 
 /*
 Planning for a more space efficient heap representation.
@@ -248,6 +249,7 @@ extern VALUE heap_allocate_cell(TYPE type);
 extern unsigned int heap_size_bytes(void);
 
 extern char *dec_str(VALUE);
+extern stream_t *dec_stream(VALUE val);
 extern UINT dec_as_u(VALUE);
 extern INT dec_as_i(VALUE);
 extern FLOAT dec_as_f(VALUE);

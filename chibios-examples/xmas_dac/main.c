@@ -36,7 +36,7 @@
 cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
 static tokenizer_string_state_t string_tok_state;
-static tokenizer_char_stream string_tok;
+static tokenizer_char_stream_t string_tok;
 
 BaseSequentialStream *chp = NULL;
 

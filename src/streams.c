@@ -39,9 +39,11 @@ VALUE stream_put(stream_t *str, VALUE v) {
 }
 
 VALUE stream_create(stream_t *str) {
-  VALUE s = cons((VALUE)str, enc_sym(SYM_STREAM_TYPE));
+  VALUE s = cons((VALUE)str, enc_sym(SYM_TYPE_STREAM));
   if (type_of(s) == PTR_TYPE_CONS) {
-    set_ptr_type(s, SYM_TYPE_STREAM);
+    printf("setting stream type onto cons cell\n");
+    s = s | PTR_TYPE_STREAM;
+    //set_ptr_type(s, PTR_TYPE_STREAM);
   }
   return s;
 }

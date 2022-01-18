@@ -41,8 +41,8 @@
 #define SYM_STACK_ERROR   0xD
 #define SYM_DEFINE        0xE
 #define SYM_PROGN         0xF
-#define SYM_COMMA         0x10
-#define SYM_COMMAAT       0x11
+#define SYM_READ          0x10
+#define SYM_READ_PROGRAM  0x11
 #define SYM_DONTCARE      0x12
 #define SYM_MATCH         0x13
 #define SYM_SEND          0x14
@@ -53,7 +53,6 @@
 #define SYM_BOXED_U_TYPE   0x22
 #define SYM_BOXED_F_TYPE   0x23
 #define SYM_REF_TYPE       0x24
-#define SYM_STREAM_TYPE    0x25
 #define SYM_RECOVERED      0x26
 #define SYM_BYTECODE_TYPE  0x27
 #define SYM_NONSENSE       0x28
@@ -77,6 +76,15 @@
 #define SYM_TYPE_CHAR      0x58
 #define SYM_TYPE_REF       0x59
 #define SYM_TYPE_STREAM    0x5A
+
+//Relevant for the tokenizer
+#define SYM_OPENPAR        0x70
+#define SYM_CLOSEPAR       0x71
+#define SYM_BACKQUOTE      0x72
+#define SYM_COMMA          0x73
+#define SYM_COMMAAT        0x74
+#define SYM_TOKENIZER_DONE 0x75
+#define SYM_DOT            0x76
 
 // Fundamental Operations
 #define FUNDAMENTALS_START      0x100

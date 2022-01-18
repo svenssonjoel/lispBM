@@ -40,11 +40,11 @@
 
 /* Tokenizer for strings */
 static tokenizer_string_state_t string_tok_state;
-static tokenizer_char_stream string_tok;
+static tokenizer_char_stream_t string_tok;
 
 /* Tokenizer for compressed data */
 static tokenizer_compressed_state_t comp_tok_state;
-static tokenizer_char_stream comp_tok;
+static tokenizer_char_stream_t comp_tok;
 
 void *eval_thd_wrapper(void *v) {
   eval_cps_run_eval();

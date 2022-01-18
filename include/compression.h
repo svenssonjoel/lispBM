@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2019, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ extern bool compression_decompress(char *dest, uint32_t dest_n, char *src);
 
 /* parse compressed code */
 extern void compression_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
-                                                           tokenizer_char_stream *str,
+                                                           tokenizer_char_stream_t *str,
                                                            char *bytes);
 
 #endif

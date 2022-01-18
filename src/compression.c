@@ -446,7 +446,7 @@ bool compression_decompress(char *dest, uint32_t dest_n, char *src) {
 }
 
 /* Implementation of the parsing interface */
-bool more_compressed(tokenizer_char_stream *str) {
+bool more_compressed(tokenizer_char_stream_t *str) {
   tokenizer_compressed_state_t *s = (tokenizer_compressed_state_t*)str->state;
   bool more =
     (s->ds.i < s->ds.compressed_bits + 32) ||
@@ -454,7 +454,7 @@ bool more_compressed(tokenizer_char_stream *str) {
   return more;
 }
 
-char get_compressed(tokenizer_char_stream *str) {
+char get_compressed(tokenizer_char_stream_t *str) {
   tokenizer_compressed_state_t *s = (tokenizer_compressed_state_t*)str->state;
 
   if (s->ds.i >= s->ds.compressed_bits + 32 &&
@@ -475,7 +475,7 @@ char get_compressed(tokenizer_char_stream *str) {
   return c;
 }
 
-char peek_compressed(tokenizer_char_stream *str, unsigned int n) {
+char peek_compressed(tokenizer_char_stream_t *str, unsigned int n) {
   tokenizer_compressed_state_t *s = (tokenizer_compressed_state_t *)str->state;
 
   tokenizer_compressed_state_t old;
@@ -491,7 +491,7 @@ char peek_compressed(tokenizer_char_stream *str, unsigned int n) {
   return c;
 }
 
-void drop_compressed(tokenizer_char_stream *str, unsigned int n) {
+void drop_compressed(tokenizer_char_stream_t *str, unsigned int n) {
   for (unsigned int i = 0; i < n; i ++) {
     get_compressed(str);
   }
@@ -499,7 +499,7 @@ void drop_compressed(tokenizer_char_stream *str, unsigned int n) {
 
 
 void compression_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
-                                                    tokenizer_char_stream *str,
+                                                    tokenizer_char_stream_t *str,
                                                     char *bytes) {
   ts->decomp_bytes = 0;
   memset(ts->decomp_buff, 0, 32);

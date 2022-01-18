@@ -38,7 +38,7 @@ static uint32_t memory_array[MEMORY_SIZE_8K];
 static uint32_t bitmap_array[MEMORY_BITMAP_SIZE_8K];
 
 static tokenizer_string_state_t string_tok_state;
-static tokenizer_char_stream string_tok;
+static tokenizer_char_stream_t string_tok;
 
 BaseSequentialStream *chp = NULL;
 

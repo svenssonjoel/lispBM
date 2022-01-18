@@ -35,7 +35,7 @@ struct termios old_termios;
 struct termios new_termios;
 
 static tokenizer_string_state_t string_tok_state;
-static tokenizer_char_stream string_tok;
+static tokenizer_char_stream_t string_tok;
 
 void setup_terminal(void) {
 

@@ -39,11 +39,11 @@
 
 /* Tokenizer for strings */
 static tokenizer_string_state_t string_tok_state;
-static tokenizer_char_stream string_tok;
+static tokenizer_char_stream_t string_tok;
 
 /* Tokenizer for compressed data */
 static tokenizer_compressed_state_t comp_tok_state;
-static tokenizer_char_stream comp_tok;
+static tokenizer_char_stream_t comp_tok;
 
 VALUE ext_even(VALUE *args, UINT argn) {
 

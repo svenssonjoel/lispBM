@@ -47,6 +47,15 @@ char *dec_str(VALUE val) {
   return res;
 }
 
+stream_t *dec_stream(VALUE val) {
+  stream_t *res = 0;
+
+  if (type_of(val) == PTR_TYPE_STREAM) {
+    res = (stream_t *)car(val);
+  }
+  return res;
+}
+
 
 UINT dec_as_u(VALUE a) {
   UINT tmp;

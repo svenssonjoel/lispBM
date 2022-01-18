@@ -24,7 +24,7 @@
 #include "symrepr.h"
 #include "lispbm_memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 80
+#define NUM_SPECIAL_SYMBOLS 88
 
 #define NAME   0
 #define ID     1
@@ -45,8 +45,10 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"let"        , SYM_LET},
   {"define"     , SYM_DEFINE},
   {"progn"      , SYM_PROGN},
-  {"comma"      , SYM_COMMA},
-  {"splice"     , SYM_COMMAAT},
+  {"read"       , SYM_READ},
+  {"read-program" , SYM_READ_PROGRAM},
+  //{"comma"      , SYM_COMMA},   // should not be accessible to programmer
+  //{"splice"     , SYM_COMMAAT},
   {"match"      , SYM_MATCH},
   {"_"          , SYM_DONTCARE},
   {"send"       , SYM_SEND},
@@ -57,7 +59,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"?float"     , SYM_MATCH_FLOAT},
   {"?cons"      , SYM_MATCH_CONS},
 
-  // Special symbols with unparseable names
+  // Special symbols with unparsable names
   {"no_match"           , SYM_NO_MATCH},
   {"read_error"         , SYM_RERROR},
   {"type_error"         , SYM_TERROR},
@@ -76,6 +78,15 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"sym_nonsense"       , SYM_NONSENSE},
   {"variable_not_bound" , SYM_NOT_FOUND},
 
+  // tokenizer symbols with unparsable names
+  {"sym_openpar"        , SYM_OPENPAR},
+  {"sym_closepar"       , SYM_CLOSEPAR},
+  {"sym_backquote"      , SYM_BACKQUOTE},
+  {"sym_comma"          , SYM_COMMA},
+  {"sym_commaat"        , SYM_COMMAAT},
+  {"sym_dot"            , SYM_DOT},
+  {"sym_tok_done"       , SYM_TOKENIZER_DONE},
+
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
   {"type-i28"         , SYM_TYPE_I28},
@@ -87,7 +98,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-ref"         , SYM_TYPE_REF},
-
+  {"type-stream"      , SYM_TYPE_STREAM},
   // Fundamental operations
   {"+"              , SYM_ADD},
   {"-"              , SYM_SUB},
