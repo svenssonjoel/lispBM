@@ -404,6 +404,13 @@ int tok_F(tokenizer_char_stream_t *str, FLOAT *res) {
   unsigned int n = 0;
   unsigned int m = 0;
   char fbuf[128];
+  bool negative = false;
+  bool valid_num = false;
+
+  if (peek(str, 0) == '-') {
+    n = 1;
+    negative = true;
+  }
 
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
 
@@ -413,17 +420,22 @@ int tok_F(tokenizer_char_stream_t *str, FLOAT *res) {
   if ( !(peek(str,n) >= '0' && peek(str,n) <= '9')) return 0;
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
 
+  if ((negative && n > 1) ||
+      (!negative && n > 0)) valid_num = true;
+
   if (n > 127) m = 127;
   else m = n;
-
-  unsigned int i;
-  for (i = 0; i < m; i ++) {
-    fbuf[i] = get(str);
+  if(valid_num) {
+    unsigned int i;
+    for (i = 0; i < m; i ++) {
+      fbuf[i] = get(str);
+    }
+    
+    fbuf[i] = 0;
+    *res = (float)strtod(fbuf, NULL);
+    return (int)n;
   }
-
-  fbuf[i] = 0;
-  *res = (float)strtod(fbuf, NULL);
-  return (int)n;
+  return 0;
 }
 
 
