@@ -1611,6 +1611,10 @@ static inline void cont_read(eval_context_t *ctx) {
         }
       } break;
       case READ_DONE:
+        tok = token_stream_get(str);
+        if (tok != enc_sym(SYM_TOKENIZER_DONE)) {
+          ctx->r = enc_sym(SYM_RERROR);
+        }
         ctx->app_cont = true;
         done = true;
         continue;
@@ -1667,6 +1671,7 @@ static inline void cont_read(eval_context_t *ctx) {
               done = true;
             }
           } else {
+            printf("%d, %d\n", ctx->K.sp, sp_start);
             if (ctx->K.sp > sp_start &&
                 ctx->K.data[sp_start] == enc_u(READ_DONE)) {
               ctx->K.sp = sp_start;
