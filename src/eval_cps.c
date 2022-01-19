@@ -1650,9 +1650,37 @@ static inline void cont_read(eval_context_t *ctx) {
         switch (dec_sym(tok)) {
         case SYM_TOKENIZER_DONE:
           if (program) {
-            ctx->r = enc_sym(SYM_CLOSEPAR);
+
+            if (ctx->K.sp == sp_start + 4) {
+              ctx->r = enc_sym(SYM_CLOSEPAR);
+              app_cont = true;
+            } else if (ctx->K.data[sp_start] == enc_u(READ_DONE) &&
+                       ctx->K.data[sp_start+3] == enc_u(APPEND_CONTINUE)) {
+              // Parsing failed but stack seems to not be corrupted.
+              ctx->K.sp = sp_start;
+              ctx->r = enc_sym(SYM_RERROR);
+              ctx->app_cont = true;
+              done = true;
+            } else {
+              // parsing failed and left a corrupted stack.
+              error_ctx(enc_sym(SYM_FATAL_ERROR));
+              done = true;
+            }
+          } else {
+            if (ctx->K.sp > sp_start &&
+                ctx->K.data[sp_start] == enc_u(READ_DONE)) {
+              ctx->K.sp = sp_start;
+              ctx->r = enc_sym(SYM_RERROR);
+              ctx->app_cont = true;
+              done = true;
+            } else if (ctx->K.sp < sp_start) {
+              /*the stack is broken */
+              error_ctx(enc_sym(SYM_FATAL_ERROR));
+              done = true;
+            } else {
+              app_cont = true;
+            }
           }
-          app_cont = true;
           break;
         case SYM_CLOSEPAR:
           ctx->r = tok;

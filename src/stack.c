@@ -101,12 +101,13 @@ int pop_u32(stack *s, UINT *val) {
 
   s->sp--;
   *val = s->data[s->sp];
-
+  s->data[s->sp] = 0;
   return 1;
 }
 
 int pop_k(stack *s, VALUE (**k)(VALUE)) {
   s->sp--;
   *k = (VALUE (*)(VALUE))s->data[s->sp];
+  s->data[s->sp] = 0;
   return 1;
 }
