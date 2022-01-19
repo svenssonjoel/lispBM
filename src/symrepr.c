@@ -24,7 +24,7 @@
 #include "symrepr.h"
 #include "lispbm_memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 88
+#define NUM_SPECIAL_SYMBOLS 89
 
 #define NAME   0
 #define ID     1
@@ -109,6 +109,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"<"              , SYM_LT},
   {">"              , SYM_GT},
   {"eval"           , SYM_EVAL},
+  {"eval-program"   , SYM_EVAL_PROGRAM},
   {"and"            , SYM_AND},
   {"or"             , SYM_OR},
   {"not"            , SYM_NOT},

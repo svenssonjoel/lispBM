@@ -58,8 +58,8 @@ for exe in *.exe; do
     echo "------------------------------------------------------------"
 done
 
-
-for prg in "test_lisp_code_cps" "test_lisp_code_cps_nc"; do
+#"test_lisp_code_cps_nc"
+for prg in "test_lisp_code_cps" ; do
     for arg in  "-h 32768" "-c -h 32768" "-h 16384" "-c -h 16384" "-h 8192" "-c -h 8192" "-h 4096" "-c -h 4096" "-h 2048"  "-c -h 2048" "-h 1024" "-c -h 1024" "-h 512" "-c -h 512" ; do
         for lisp in *.lisp; do
 

@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2019, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -29,7 +29,5 @@ extern void tokpar_create_char_stream_from_string(tokenizer_string_state_t *,
                                                   tokenizer_char_stream_t *,
                                                   char *);
 extern VALUE tokpar_next_token(tokenizer_char_stream_t *str);
-extern VALUE tokpar_parse(tokenizer_char_stream_t *str);
-extern VALUE tokpar_parse_program(tokenizer_char_stream_t *str);
 
 #endif

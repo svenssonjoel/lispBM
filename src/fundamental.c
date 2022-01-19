@@ -266,7 +266,7 @@ static int compare(UINT a, UINT b) {
   case PTR_TYPE_BOXED_I: retval = cmpi(dec_as_i(a), dec_as_i(b)); break;
   case PTR_TYPE_BOXED_F: retval = cmpf(dec_as_f(a), dec_as_f(b)); break;
   }
-  return retval;  
+  return retval;
 }
 
 
@@ -762,6 +762,7 @@ VALUE fundamental_exec(VALUE* args, UINT nargs, VALUE op) {
     }
     break;
   default:
+    printf("fundamental unknown\n");
     result = enc_sym(SYM_EERROR);
     break;
   }

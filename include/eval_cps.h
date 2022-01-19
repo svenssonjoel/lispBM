@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ extern void eval_cps_run_eval(void);
 
 extern void eval_cps_pause_eval(void);
 extern void eval_cps_step_eval(void);
-extern void eval_cps_continue_eval(void); 
+extern void eval_cps_continue_eval(void);
 extern void eval_cps_kill_eval(void);
 extern uint32_t eval_cps_current_state(void);
 
@@ -82,4 +82,12 @@ extern void eval_cps_set_ctx_done_callback(void (*fptr)(eval_context_t *));
 extern int eval_cps_init_nc(unsigned int stack_size);
 extern void eval_cps_del_nc(void);
 extern VALUE eval_cps_program_nc(VALUE lisp);
+
+
+/* loading of programs interface */
+extern CID eval_cps_load_and_eval_program(tokenizer_char_stream_t *tokenizer);
+extern CID eval_cps_load_and_eval_expression(tokenizer_char_stream_t *tokenizer);
+extern CID eval_cps_load_and_define_program(tokenizer_char_stream_t *tokenizer, char *symbol);
+extern CID eval_cps_load_and_define_expression(tokenizer_char_stream_t *tokenizer, char *symbol);
+
 #endif

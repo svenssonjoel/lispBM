@@ -38,13 +38,14 @@
 
 #define EVAL_CPS_STACK_SIZE 256
 
-/* Tokenizer for strings */
+/* Tokenizer state for strings */
 static tokenizer_string_state_t string_tok_state;
-static tokenizer_char_stream_t string_tok;
 
-/* Tokenizer for compressed data */
+/* Tokenizer statefor compressed data */
 static tokenizer_compressed_state_t comp_tok_state;
-static tokenizer_char_stream_t comp_tok;
+
+/* shared tokenizer */
+static tokenizer_char_stream_t string_tok;
 
 void *eval_thd_wrapper(void *v) {
   eval_cps_run_eval();
@@ -235,17 +236,14 @@ int main(int argc, char **argv) {
   }
 
   prelude_load(&string_tok_state, &string_tok);
-  VALUE prelude = tokpar_parse_program(&string_tok);
-
-  CID cid = eval_cps_program(prelude);
-
+  CID cid = eval_cps_load_and_eval_program(&string_tok);
   eval_cps_wait_ctx(cid);
 
   VALUE t;
-
+  char *compressed_code;
   if (compress_decompress) {
     uint32_t compressed_size = 0;
-    char *compressed_code = compression_compress(code_buffer, &compressed_size);
+    compressed_code = compression_compress(code_buffer, &compressed_size);
     if (!compressed_code) {
       printf("Error compressing code\n");
       return 0;
@@ -256,37 +254,25 @@ int main(int argc, char **argv) {
     printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
 
     compression_create_char_stream_from_compressed(&comp_tok_state,
-                                                   &comp_tok,
+                                                   &string_tok,
                                                    compressed_code);
-    t = tokpar_parse(&comp_tok);
-    free(compressed_code);
+
   } else {
     tokpar_create_char_stream_from_string(&string_tok_state,
                                           &string_tok,
                                           code_buffer);
-    t = tokpar_parse(&string_tok);
+
   }
+
+  cid = eval_cps_load_and_eval_program(&string_tok);
+
+  t = eval_cps_wait_ctx(cid);
 
   char output[128];
 
-  res = print_value(output, 128, t);
-
-  if ( res >= 0) {
-    printf("I: %s\n", output);
-  } else {
-    printf("%s\n", output);
-    return 0;
+  if (compress_decompress) {
+    free(compressed_code);
   }
-
-  if (type_of(t) == VAL_TYPE_SYMBOL &&
-      dec_sym(t) == SYM_MERROR) {
-    printf("out of memory while parsing\n");
-    return 0;
-  }
-
-  cid = eval_cps_program_ext(t,256);
-
-  t = eval_cps_wait_ctx(cid);
 
   res = print_value(output, 128, t);
 
@@ -300,7 +286,6 @@ int main(int argc, char **argv) {
   if ( dec_sym(t) == SYM_EERROR) {
     res = 0;
   }
-
 
   if (res && type_of(t) == VAL_TYPE_SYMBOL && dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
     printf("Test: OK!\n");

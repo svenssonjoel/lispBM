@@ -262,6 +262,18 @@ int print_value(char *buf,unsigned int len, VALUE t) {
         }
         break;
       }
+      case PTR_TYPE_STREAM: {
+
+        r = snprintf(buf + offset, len - offset, "~STREAM~");
+        if ( r > 0) {
+          n = (unsigned int) r;
+        } else {
+          snprintf(buf, len, "%s", failed_str);
+          return -1;
+        }
+        offset += n;
+        break;
+      }
       case PTR_TYPE_SYMBOL_INDIRECTION: {
         UINT v = dec_symbol_indirection(curr);
         r = snprintf(buf + offset, len - offset, "*%"PRI_UINT"*", v);

@@ -327,7 +327,8 @@ int gc_mark_phase(VALUE env) {
     if (t_ptr == PTR_TYPE_BOXED_I ||
         t_ptr == PTR_TYPE_BOXED_U ||
         t_ptr == PTR_TYPE_BOXED_F ||
-        t_ptr == PTR_TYPE_ARRAY) {
+        t_ptr == PTR_TYPE_ARRAY   ||
+        t_ptr == PTR_TYPE_STREAM) {
       continue;
     }
     res &= push_u32(&s, cdr(curr));
@@ -587,6 +588,25 @@ VALUE copy(VALUE list) {
   }
 
   return reverse(res);
+}
+
+// Append for proper lists only
+// Destructive update of list1.
+VALUE list_append(VALUE list1, VALUE list2) {
+
+  if (type_of(list1) != PTR_TYPE_CONS) {
+    return list2;
+  }
+  if (type_of(list1) != PTR_TYPE_CONS) {
+    return list1;
+  }
+
+  VALUE curr = list1;
+  while(type_of(cdr(curr)) == PTR_TYPE_CONS) {
+    curr = cdr(curr);
+  }
+  set_cdr(curr, list2);
+  return list1;
 }
 
 // Arrays are part of the heap module because their lifespan is managed

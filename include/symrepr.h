@@ -98,6 +98,7 @@
 #define SYM_LT                  0x107
 #define SYM_GT                  0x108
 #define SYM_EVAL                0x109
+#define SYM_EVAL_PROGRAM        0x10A
 
 #define SYM_AND                 0x110
 #define SYM_OR                  0x111

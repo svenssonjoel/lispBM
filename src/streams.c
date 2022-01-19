@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2021, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -41,9 +41,7 @@ VALUE stream_put(stream_t *str, VALUE v) {
 VALUE stream_create(stream_t *str) {
   VALUE s = cons((VALUE)str, enc_sym(SYM_TYPE_STREAM));
   if (type_of(s) == PTR_TYPE_CONS) {
-    printf("setting stream type onto cons cell\n");
     s = s | PTR_TYPE_STREAM;
-    //set_ptr_type(s, PTR_TYPE_STREAM);
   }
   return s;
 }

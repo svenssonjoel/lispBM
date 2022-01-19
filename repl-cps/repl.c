@@ -404,13 +404,13 @@ int main(int argc, char **argv) {
           sleep_callback(10);
         }
 
-        VALUE f_exp = tokpar_parse(&string_tok);
-        free(file_str);
-        CID cid1 = eval_cps_program(f_exp);
+        CID cid = eval_cps_load_and_eval_program(&string_tok);
 
         eval_cps_continue_eval();
 
-        printf("started ctx: %u\n", cid1);
+        printf("started ctx: %u\n", cid);
+        eval_cps_wait_ctx((CID)cid);
+
       }
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
       allow_print = true;
@@ -455,33 +455,27 @@ int main(int argc, char **argv) {
       prelude_load(&string_tok_state,
                    &string_tok);
 
-      printf("Parsing prelude.\n");
-      VALUE prelude = tokpar_parse_program(&string_tok);
 
-      printf("Evaluate prelude.\n");
-      eval_cps_program(prelude);
+      eval_cps_load_and_define_program(&string_tok, "prelude");
 
-      printf("Eval resuming.\n");
       eval_cps_continue_eval();
     } else {
-      VALUE t;
 
       /* Get exclusive access to the heap */
       eval_cps_pause_eval();
       while(eval_cps_current_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
-
+      printf("loading: %s\n", str);
       tokpar_create_char_stream_from_string(&string_tok_state,
                                             &string_tok,
                                             str);
-      t = tokpar_parse(&string_tok);
-
-      CID cid = eval_cps_program(t);
+      CID cid = eval_cps_load_and_eval_expression(&string_tok);
 
       eval_cps_continue_eval();
 
       printf("started ctx: %u\n", cid);
+      eval_cps_wait_ctx((CID)cid);
     }
   }
   free(heap_storage);

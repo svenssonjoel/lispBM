@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2018 , 2022Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -260,8 +260,12 @@ extern VALUE cdr(VALUE cons);
 extern bool set_car(VALUE c, VALUE v);
 extern bool set_cdr(VALUE c, VALUE v);
 extern unsigned int length(VALUE c);
+
+// List functions
 extern VALUE reverse(VALUE list);
 extern VALUE copy(VALUE list);
+extern VALUE list_append(VALUE list1, VALUE list2);
+
 
 // State and statistics
 extern void heap_get_state(heap_state_t *);
