@@ -32,7 +32,7 @@
 
 typedef struct {
   const char *name;
-  const UINT id;
+  const lbm_uint id;
 } special_sym;
 
 special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
@@ -138,9 +138,9 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
 
 
 static uint32_t *symlist = NULL;
-static UINT next_symbol_id = 0;
+static lbm_uint next_symbol_id = 0;
 
-bool symrepr_init(void) {
+bool lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = 0;
   return true;
@@ -152,12 +152,12 @@ void symrepr_del(void) {
   while (curr) {
     uint32_t *tmp = curr;
     curr = (uint32_t*)curr[NEXT];
-    memory_free((uint32_t*)tmp[NAME]);
-    memory_free(tmp);
+    lbm_memory_free((uint32_t*)tmp[NAME]);
+    lbm_memory_free(tmp);
   }
 }
 
-const char *lookup_symrepr_name_memory(UINT id) {
+const char *lookup_symrepr_name_memory(lbm_uint id) {
 
   uint32_t *curr = symlist;
   while (curr) {
@@ -170,7 +170,7 @@ const char *lookup_symrepr_name_memory(UINT id) {
 }
 
 // Lookup symbol name given a symbol id
-const char *symrepr_lookup_name(UINT id) {
+const char *lbm_get_name_by_symbol(lbm_uint id) {
   if (id < MAX_SPECIAL_SYMBOLS) {
     for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
       if (id == special_symbols[i].id) {
@@ -182,7 +182,7 @@ const char *symrepr_lookup_name(UINT id) {
 }
 
 // Lookup symbol id given symbol name
-int symrepr_lookup(char *name, UINT* id) {
+int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
 
   // loop through special symbols
   for (int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
@@ -204,13 +204,13 @@ int symrepr_lookup(char *name, UINT* id) {
   return 0;
 }
 
-int symrepr_addsym(char *name, UINT* id) {
+int lbm_add_symbol(char *name, lbm_uint* id) {
   size_t  n = 0;
 
   n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
 
-  uint32_t *m = memory_allocate(3);
+  uint32_t *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
@@ -218,13 +218,13 @@ int symrepr_addsym(char *name, UINT* id) {
 
   char *symbol_name_storage = NULL;;
   if (n % 4 == 0) {
-    symbol_name_storage = (char *)memory_allocate(n/4);
+    symbol_name_storage = (char *)lbm_memory_allocate(n/4);
   } else {
-    symbol_name_storage = (char *)memory_allocate((n/4) + 1);
+    symbol_name_storage = (char *)lbm_memory_allocate((n/4) + 1);
   }
 
   if (symbol_name_storage == NULL) {
-    memory_free(m);
+    lbm_memory_free(m);
     return 0;
   }
 
@@ -244,10 +244,10 @@ int symrepr_addsym(char *name, UINT* id) {
   return 1;
 }
 
-int symrepr_addsym_const(char *name, UINT* id) {
+int lbm_add_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
 
-  uint32_t *m = memory_allocate(3);
+  uint32_t *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
@@ -267,7 +267,7 @@ int symrepr_addsym_const(char *name, UINT* id) {
   return 1;
 }
 
-unsigned int symrepr_size(void) {
+unsigned int lbm_get_symbol_table_size(void) {
 
   unsigned int n = 0;
   uint32_t *curr = symlist;

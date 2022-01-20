@@ -1,7 +1,9 @@
 
+CCFLAGS = -Wall -Wextra -Wshadow -pedantic -std=c99
+
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
-  CCFLAGS = -g -O2 -m32 -Wall -Wextra -pedantic -std=c11
+  CCFLAGS += -g -O2 -m32 
   CCFLAGS += -D_PRELUDE
   PLATFORMSRC = platform/linux/src
   PLATFORMINC = platform/linux/include
@@ -19,14 +21,14 @@ endif
 ifeq ($(PLATFORM), zynq)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/zynq
-  CCFLAGS = -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -O2 -Wall -Wextra -pedantic
+  CCFLAGS += -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -O2 
   CCFLAGS += -D_PRELUDE
 endif
 
 ifeq ($(PLATFORM), stm32f4)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/stm32f4
-  CCFLAGS = -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O2 -Wall -Wextra -pedantic
+  CCFLAGS += -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -O2
 #-fmessage-length=0 -ffunction-sections -c -MMD -MP
   PLATFORMSRC = platform/chibios/src
   PLATFORMINC = platform/chibios/include
@@ -37,12 +39,13 @@ endif
 ifeq ($(PLATFORM), nrf52840)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/nrf52840
-  CCFLAGS =  -mcpu=cortex-m4  -mthumb -ffunction-sections -fdata-sections -mabi=aapcs -march=armv7e-m -O2 -Wall -Wextra -pedantic
+  CCFLAGS += -mcpu=cortex-m4  -mthumb -ffunction-sections -fdata-sections -mabi=aapcs -march=armv7e-m -O2
   CCFLAGS += -D_PRELUDE
 endif
 
 ifeq ($(PLATFORM), pi) #for compiling natively on the pi
   BUILD_DIR = build/pi
+  CCFLAGS += -g -O2 -m32 
   CCFLAGS += -D_PRELUDE
   PLATFORMSRC = platform/linux/src
   PLATFORMINC = platform/linux/include

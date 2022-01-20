@@ -133,6 +133,7 @@ LBMSRC = ../../src/env.c \
          ../../src/print.c \
          ../../src/qq_expand.c \
          ../../src/stack.c \
+         ../../src/streams.c \
          ../../src/symrepr.c \
          ../../src/tokpar.c \
          ../../src/lispbm.c \

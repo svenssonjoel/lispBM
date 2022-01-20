@@ -133,15 +133,15 @@
 
 #define MAX_SPECIAL_SYMBOLS 4096 // 12bits (highest id allowed is 0xFFFF)
 
-extern int symrepr_addsym(char *, UINT*);
-extern int symrepr_addsym_const(char *, UINT*);
-extern bool symrepr_init(void);
-extern int symrepr_lookup(char *, UINT*);
-extern const char* symrepr_lookup_name(UINT);
+extern int lbm_add_symbol(char *, lbm_uint*);
+extern int lbm_add_symbol_const(char *, lbm_uint*);
+extern bool lbm_symrepr_init(void);
+extern int lbm_get_symbol_by_name(char *, lbm_uint*);
+extern const char* lbm_get_name_by_symbol(lbm_uint);
 
-extern unsigned int symrepr_size(void);
+extern unsigned int lbm_get_symbol_table_size(void);
 
-static inline bool symrepr_is_error(UINT symrep){
+static inline bool lbm_is_error(lbm_uint symrep){
   return (symrep == SYM_RERROR ||
           symrep == SYM_TERROR ||
           symrep == SYM_RERROR ||

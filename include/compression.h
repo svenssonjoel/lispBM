@@ -39,7 +39,7 @@ typedef struct {
   int  buff_pos;
 } tokenizer_compressed_state_t;
 
-extern void compression_init_state(decomp_state *s, char *src);
+extern void lbm_init_compression_state(decomp_state *s, char *src);
 
 /* 
    Compress performs destructive changes to 
@@ -48,13 +48,13 @@ extern void compression_init_state(decomp_state *s, char *src);
  
    Compress returns an array that caller must free 
 */ 
-extern char *compression_compress(char *string, uint32_t *res_size);
-extern int  compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n);
-extern bool compression_decompress(char *dest, uint32_t dest_n, char *src);
+extern char *lbm_compress(char *string, uint32_t *res_size);
+extern int  lbm_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n);
+extern bool lbm_decompress(char *dest, uint32_t dest_n, char *src);
 
 /* parse compressed code */
-extern void compression_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
-                                                           tokenizer_char_stream_t *str,
-                                                           char *bytes);
+extern void lbm_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
+                                                   lbm_tokenizer_char_stream_t *str,
+                                                   char *bytes);
 
 #endif

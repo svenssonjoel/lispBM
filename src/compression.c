@@ -278,7 +278,7 @@ char read_character(char *src, uint32_t *bit_pos) {
   return c;
 }
 
-char *compression_compress(char *string, uint32_t *res_size) {
+char *lbm_compress(char *string, uint32_t *res_size) {
 
   int c_size_bits_i = compressed_length(string);
   uint32_t c_size_bits = 0;
@@ -371,7 +371,7 @@ char *compression_compress(char *string, uint32_t *res_size) {
 }
 
 
-void compression_init_state(decomp_state *s, char *src) {
+void lbm_init_compression_state(decomp_state *s, char *src) {
   memcpy(&s->compressed_bits, src, 4);
   s->i = 32;
   s->string_mode = false;
@@ -379,7 +379,7 @@ void compression_init_state(decomp_state *s, char *src) {
   s->src = src;
 }
 
-int compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n) {
+int lbm_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n) {
 
   memset(dest_buff, 0, dest_n);
   uint32_t char_pos = 0;
@@ -420,7 +420,7 @@ int compression_decompress_incremental(decomp_state *s, char *dest_buff, uint32_
 
 }
 
-bool compression_decompress(char *dest, uint32_t dest_n, char *src) {
+bool lbm_decompress(char *dest, uint32_t dest_n, char *src) {
 
   uint32_t char_pos = 0;
 
@@ -430,11 +430,11 @@ bool compression_decompress(char *dest, uint32_t dest_n, char *src) {
 
   memset(dest, 0, dest_n);
 
-  compression_init_state(&s, src);
+  lbm_init_compression_state(&s, src);
 
   while (true) {
 
-    num_chars = compression_decompress_incremental(&s, dest_buff, 32);
+    num_chars = lbm_decompress_incremental(&s, dest_buff, 32);
     if (num_chars == 0) break;
     if (num_chars == -1) return false;
 
@@ -446,7 +446,7 @@ bool compression_decompress(char *dest, uint32_t dest_n, char *src) {
 }
 
 /* Implementation of the parsing interface */
-bool more_compressed(tokenizer_char_stream_t *str) {
+bool more_compressed(lbm_tokenizer_char_stream_t *str) {
   tokenizer_compressed_state_t *s = (tokenizer_compressed_state_t*)str->state;
   bool more =
     (s->ds.i < s->ds.compressed_bits + 32) ||
@@ -454,7 +454,7 @@ bool more_compressed(tokenizer_char_stream_t *str) {
   return more;
 }
 
-char get_compressed(tokenizer_char_stream_t *str) {
+char get_compressed(lbm_tokenizer_char_stream_t *str) {
   tokenizer_compressed_state_t *s = (tokenizer_compressed_state_t*)str->state;
 
   if (s->ds.i >= s->ds.compressed_bits + 32 &&
@@ -463,7 +463,7 @@ char get_compressed(tokenizer_char_stream_t *str) {
   }
 
   if (s->buff_pos >= s->decomp_bytes) {
-    int n = compression_decompress_incremental(&s->ds, s->decomp_buff,DECOMP_BUFF_SIZE);
+    int n = lbm_decompress_incremental(&s->ds, s->decomp_buff,DECOMP_BUFF_SIZE);
     if (n == 0) {
       return 0;
     }
@@ -475,7 +475,7 @@ char get_compressed(tokenizer_char_stream_t *str) {
   return c;
 }
 
-char peek_compressed(tokenizer_char_stream_t *str, unsigned int n) {
+char peek_compressed(lbm_tokenizer_char_stream_t *str, unsigned int n) {
   tokenizer_compressed_state_t *s = (tokenizer_compressed_state_t *)str->state;
 
   tokenizer_compressed_state_t old;
@@ -491,21 +491,21 @@ char peek_compressed(tokenizer_char_stream_t *str, unsigned int n) {
   return c;
 }
 
-void drop_compressed(tokenizer_char_stream_t *str, unsigned int n) {
+void drop_compressed(lbm_tokenizer_char_stream_t *str, unsigned int n) {
   for (unsigned int i = 0; i < n; i ++) {
     get_compressed(str);
   }
 }
 
 
-void compression_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
-                                                    tokenizer_char_stream_t *str,
+void lbm_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
+                                                    lbm_tokenizer_char_stream_t *str,
                                                     char *bytes) {
   ts->decomp_bytes = 0;
   memset(ts->decomp_buff, 0, 32);
   ts->buff_pos = 0;
 
-  compression_init_state(&ts->ds, bytes);
+  lbm_init_compression_state(&ts->ds, bytes);
 
   str->state = ts;
   str->more = more_compressed;

@@ -41,7 +41,7 @@
 
 #define HEAP_SIZE 8192
 
-cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
+lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
 FILE *in_file = NULL;
 FILE *out_file = NULL;
@@ -49,31 +49,31 @@ FILE *out_file = NULL;
 /*
  Extensions
  */
-VALUE ext_print(VALUE *args, UINT argn) {
-  if (argn < 1) return enc_sym(SYM_NIL);
+lbm_value ext_print(lbm_value *args, lbm_uint argn) {
+  if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
   char output[1024];
   char error[1024];
 
   for (int i = 0; i < argn; i ++) {
-    VALUE t = args[i];
+    lbm_value t = args[i];
 
-    if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
-      array_header_t *array = (array_header_t *)car(t);
+    if (lbm_is_ptr(t) && ptr_type(t) == LBM_PTR_TYPE_ARRAY) {
+      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
       switch (array->elt_type){
-      case VAL_TYPE_CHAR: {
+      case LBM_VAL_TYPE_CHAR: {
 	char *data = (char *)array + 8;
 	printf("%s", data);
 	break;
       }
       default:
-	return enc_sym(SYM_NIL);
+	return lbm_enc_sym(SYM_NIL);
 	break;
       }
-    } else if (val_type(t) == VAL_TYPE_CHAR) {
-      printf("%c", dec_char(t));
+    } else if (val_type(t) == LBM_VAL_TYPE_CHAR) {
+      printf("%c", lbm_dec_char(t));
     } else {
-      int print_ret = print_value(output, 1024, error, 1024, t);
+      int print_ret = lbm_print_value(output, 1024, error, 1024, t);
 
       if (print_ret >= 0) {
 	printf("%s", output);
@@ -83,43 +83,43 @@ VALUE ext_print(VALUE *args, UINT argn) {
     }
 
   }
-  return enc_sym(SYM_TRUE);
+  return lbm_enc_sym(SYM_TRUE);
 }
 
 
-int output_arg_assembly(VALUE arg) {
+int output_arg_assembly(lbm_value arg) {
 
-  VALUE name;
-  VALUE num;
+  lbm_value name;
+  lbm_value num;
 
-  switch (type_of(arg)) {
-  case VAL_TYPE_I:
+  switch (lbm_type_of(arg)) {
+  case LBM_VAL_TYPE_I:
     //printf("outputing int argument\n");
-    fprintf(out_file,"%d", dec_i(arg));
+    fprintf(out_file,"%d", lbm_dec_i(arg));
     break;
-  case VAL_TYPE_U:
+  case LBM_VAL_TYPE_U:
     //printf("outputing uint argument\n");
-    fprintf(out_file,"%u", dec_u(arg));
+    fprintf(out_file,"%u", lbm_dec_u(arg));
     break;
 
-  case PTR_TYPE_BOXED_I:
-    fprintf(out_file,"%d", dec_I(arg));
+  case LBM_PTR_TYPE_BOXED_I:
+    fprintf(out_file,"%d", lbm_dec_I(arg));
     break;
-  case PTR_TYPE_BOXED_U:
-    fprintf(out_file,"%u", dec_U(arg));
+  case LBM_PTR_TYPE_BOXED_U:
+    fprintf(out_file,"%u", lbm_dec_U(arg));
     break;
-  case PTR_TYPE_BOXED_F:
+  case LBM_PTR_TYPE_BOXED_F:
     fprintf(out_file,"%f", dec_f(arg));
     break;
     /* SYMBOL INDIRECTION */
   case PTR_TYPE_SYMBOL_INDIRECTION: {
-    UINT v = dec_symbol_indirection(arg);
+    lbm_uint v = dec_symbol_indirection(arg);
     fprintf(out_file,"*%"PRI_UINT"*", v);
     break;
   }
     /* SYMBOL */
-  case VAL_TYPE_SYMBOL: {
-    const char *sym_name = symrepr_lookup_name(dec_sym(arg));
+  case LBM_VAL_TYPE_SYMBOL: {
+    const char *sym_name = lbm_get_name_by_symbol(lbm_dec_sym(arg));
     if (sym_name) {
       fprintf(out_file,"%s", sym_name);
     } else {
@@ -129,10 +129,10 @@ int output_arg_assembly(VALUE arg) {
     break;
   }
     /* STRING */
-  case PTR_TYPE_ARRAY: {
-    array_header_t *array = (array_header_t *)arg;
+  case LBM_PTR_TYPE_ARRAY: {
+    lbm_array_header_t *array = (lbm_array_header_t *)arg;
     switch (array->elt_type){
-    case VAL_TYPE_CHAR: {
+    case LBM_VAL_TYPE_CHAR: {
       char *data = (char *)array + 8;
       fprintf(out_file,"%s", data);
       break;
@@ -146,16 +146,16 @@ int output_arg_assembly(VALUE arg) {
   }
 
     /* LABEL */
-  case PTR_TYPE_CONS: {
-    name = car(cdr(arg));
-    num  = car(cdr(cdr(arg)));
-    if (type_of(name) == PTR_TYPE_ARRAY &&
-	type_of(num)  == VAL_TYPE_I) {
-      array_header_t *array = (array_header_t *)(car(name));
+  case LBM_PTR_TYPE_CONS: {
+    name = lbm_car(lbm_cdr(arg));
+    num  = lbm_car(lbm_cdr(lbm_cdr(arg)));
+    if (lbm_type_of(name) == LBM_PTR_TYPE_ARRAY &&
+	lbm_type_of(num)  == LBM_VAL_TYPE_I) {
+      lbm_array_header_t *array = (lbm_array_header_t *)(lbm_car(name));
       switch (array->elt_type){
-      case VAL_TYPE_CHAR: {
+      case LBM_VAL_TYPE_CHAR: {
 	char *data = (char *)array + 8;
-	fprintf(out_file,"%s%d", data, dec_i(num));
+	fprintf(out_file,"%s%d", data, lbm_dec_i(num));
 	break;
       }
       default:
@@ -176,91 +176,91 @@ int output_arg_assembly(VALUE arg) {
 /* ext_output_assembly
    args: label (as string, num) or Nil, (instr with args list)
 */
-VALUE ext_output_assembly(VALUE *args, UINT argn) {
+lbm_value ext_output_assembly(lbm_value *args, lbm_uint argn) {
 
-  if (argn != 2)  return enc_sym(SYM_EERROR);
+  if (argn != 2)  return lbm_enc_sym(SYM_EERROR);
 
   /* Print potential label */
-  if (type_of(args[0]) == PTR_TYPE_CONS) {
-    VALUE name = car(cdr(args[0]));
-    VALUE num  = car(cdr(cdr(args[0])));
-    if (type_of(name) == PTR_TYPE_ARRAY &&
-	type_of(num)  == VAL_TYPE_I) {
-      array_header_t *array = (array_header_t *)(car(name));
+  if (lbm_type_of(args[0]) == LBM_PTR_TYPE_CONS) {
+    lbm_value name = lbm_car(lbm_cdr(args[0]));
+    lbm_value num  = lbm_car(lbm_cdr(lbm_cdr(args[0])));
+    if (lbm_type_of(name) == LBM_PTR_TYPE_ARRAY &&
+	lbm_type_of(num)  == LBM_VAL_TYPE_I) {
+      lbm_array_header_t *array = (lbm_array_header_t *)(lbm_car(name));
       switch (array->elt_type){
-      case VAL_TYPE_CHAR: {
+      case LBM_VAL_TYPE_CHAR: {
 	char *data = (char *)array + 8;
 	char composite[1024];
-	snprintf(composite, 1024, "%s%d", data, dec_i(num));
+	snprintf(composite, 1024, "%s%d", data, lbm_dec_i(num));
 	fprintf(out_file,"%-20s", composite);
 	break;
       }
       default:
 	printf("Error in asm-out 1\n");
-	return enc_sym(SYM_EERROR);
+	return lbm_enc_sym(SYM_EERROR);
 	break;
       }
     }
-  } else if (type_of(args[0]) == VAL_TYPE_SYMBOL &&
-	     dec_sym(args[0]) == SYM_NIL) {
+  } else if (lbm_type_of(args[0]) == LBM_VAL_TYPE_SYMBOL &&
+	     lbm_dec_sym(args[0]) == SYM_NIL) {
     fprintf(out_file,"%-20s", "");
   }
 
   /* Print instruction opcode and potential arguments */
 
-  if (type_of(args[1]) == PTR_TYPE_CONS) {
-    VALUE op_args = args[1];
+  if (lbm_type_of(args[1]) == LBM_PTR_TYPE_CONS) {
+    lbm_value op_args = args[1];
 
     /* Try to print the instr and argument list */
-    VALUE curr = op_args;
-    while (type_of(curr) != VAL_TYPE_SYMBOL) {
-      if (!output_arg_assembly(car(curr))) {
+    lbm_value curr = op_args;
+    while (lbm_type_of(curr) != LBM_VAL_TYPE_SYMBOL) {
+      if (!output_arg_assembly(lbm_car(curr))) {
 	printf("Error in asm-out (argument output)\n");
-	return enc_sym(SYM_EERROR);
+	return lbm_enc_sym(SYM_EERROR);
       }
       fprintf(out_file,"\t");
-      curr = cdr(curr);
+      curr = lbm_cdr(curr);
     }
   } else {
     printf("Error in asm-out 3\n");
-    return enc_sym(SYM_EERROR);
+    return lbm_enc_sym(SYM_EERROR);
   }
   fprintf(out_file,"\n");
-  return enc_sym(SYM_NIL);
+  return lbm_enc_sym(SYM_NIL);
 }
 
 /* ext_output_bytecode
    args: opcode, arguments
 */
-VALUE ext_output_bytecode(VALUE *args, UINT argn) {
+lbm_value ext_output_bytecode(lbm_value *args, lbm_uint argn) {
 
-  return enc_sym(SYM_NIL);
+  return lbm_enc_sym(SYM_NIL);
 }
 
-VALUE ext_output_symbol_indirection(VALUE *args, UINT argn) {
+lbm_value ext_output_symbol_indirection(lbm_value *args, lbm_uint argn) {
 
   if (argn != 1) {
     printf("Error: Incorrect arguments to output_symbol_indirection\n"); 
-    return enc_sym(SYM_EERROR);
+    return lbm_enc_sym(SYM_EERROR);
   }
   
-  if (type_of(args[0]) == PTR_TYPE_CONS) {
-    VALUE name = car(car(args[0]));
-    VALUE num  = cdr(car(args[0]));
-    if (type_of(name) == PTR_TYPE_ARRAY) {
-      array_header_t *array = (array_header_t *)(car(name));
+  if (lbm_type_of(args[0]) == LBM_PTR_TYPE_CONS) {
+    lbm_value name = lbm_car(lbm_car(args[0]));
+    lbm_value num  = lbm_cdr(lbm_car(args[0]));
+    if (lbm_type_of(name) == LBM_PTR_TYPE_ARRAY) {
+      lbm_array_header_t *array = (lbm_array_header_t *)(lbm_car(name));
       switch (array->elt_type){
-      case VAL_TYPE_CHAR: {
+      case LBM_VAL_TYPE_CHAR: {
 	char *data = (char *)array + 8;
 	char composite[1024];
-	UINT v = dec_symbol_indirection(num);
+	lbm_uint v = dec_symbol_indirection(num);
 	snprintf(composite, 1024,"*%"PRI_UINT"* %s %u\n",v,  data, num); /*raw */
 	fprintf(out_file,"%s", composite);
 	break;
       }
       default:
 	printf("Error: Incorrect argument type to output_symbol_indirection\n");
-	return enc_sym(SYM_EERROR);
+	return lbm_enc_sym(SYM_EERROR);
 	break;
       }
     } else {
@@ -269,7 +269,7 @@ VALUE ext_output_symbol_indirection(VALUE *args, UINT argn) {
   } else {
     printf("Error: Incorrect argument type to output_symbol_indirection\n");
   }
-  return enc_sym(SYM_NIL);
+  return lbm_enc_sym(SYM_NIL);
 }
 
 /* load a file, caller is responsible for freeing the returned string */
@@ -433,16 +433,16 @@ int main(int argc, char **argv) {
   unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
   if (memory == NULL || bitmap == NULL) return 0;
 
-  res = memory_init(memory, MEMORY_SIZE_16K,
+  res = lbm_memory_init(memory, MEMORY_SIZE_16K,
 		    bitmap, MEMORY_BITMAP_SIZE_16K);
   if (res)
-    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
+    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", lbm_memory_num_words(), lbm_memory_num_free());
   else {
     printf("Error initializing memory!\n");
     return 0;
   }
 
-  res = symrepr_init();
+  res = lbm_symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");
   else {
@@ -451,15 +451,15 @@ int main(int argc, char **argv) {
   }
 
 
-  res = heap_init(heap, HEAP_SIZE);
+  res = lbm_heap_init(heap, HEAP_SIZE);
   if (res)
-    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
+    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
   else {
     printf("Error initializing heap!\n");
     return 0;
   }
 
-  res = env_init();
+  res = lbm_init_env();
   if (res)
     printf("Environment initialized.\n");
   else {
@@ -467,7 +467,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = extensions_add("print", ext_print);
+  res = lbm_add_extension("print", ext_print);
   if (res)
     printf("Extension print added.\n");
   else {
@@ -475,7 +475,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = extensions_add("asm-out", ext_output_assembly);
+  res = lbm_add_extension("asm-out", ext_output_assembly);
   if (res)
     printf("Extension asm-out added.\n");
   else {
@@ -483,7 +483,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = extensions_add("ind-out", ext_output_symbol_indirection);
+  res = lbm_add_extension("ind-out", ext_output_symbol_indirection);
   if (res)
     printf("Extension ind-out added.\n");
   else {
@@ -496,12 +496,12 @@ int main(int argc, char **argv) {
   char output[1024];
   char error[1024];
 
-  VALUE prelude = prelude_load();
-  VALUE p_r = ec_eval_program(prelude);
+  lbm_value prelude = prelude_load();
+  lbm_value p_r = ec_eval_program(prelude);
 
-  int r = print_value(output, 1024, error, 1024, p_r);
+  int r = lbm_print_value(output, 1024, error, 1024, p_r);
 
-  if (is_symbol(p_r) && symrepr_is_error(dec_sym(p_r))) {
+  if (lbm_is_symbol(p_r) && lbm_is_error(lbm_dec_sym(p_r))) {
     printf("Error loading Prelude: %s\n", r == 0 ? "UNKNOWN" : output);
   } else {
     printf("Prelude loaded successfully: %s\n", r == 0 ? "UNKNOWN" : output);
@@ -515,32 +515,32 @@ int main(int argc, char **argv) {
   }
 
   char *comp_str = load_file(fp);
-  VALUE f_exp = tokpar_parse(comp_str);
+  lbm_value f_exp = tokpar_parse(comp_str);
   free(comp_str);
-  VALUE c_r = ec_eval_program(f_exp);
+  lbm_value c_r = ec_eval_program(f_exp);
 
-  r = print_value(output, 1024, error, 1024, c_r);
+  r = lbm_print_value(output, 1024, error, 1024, c_r);
 
-  if (is_symbol(c_r) && symrepr_is_error(dec_sym(c_r))) {
+  if (lbm_is_symbol(c_r) && lbm_is_error(lbm_dec_sym(c_r))) {
     printf("Error loading compiler: %s\n", r == 0 ? "UNKNOWN" : "output");
   } else {
     printf("Compiler loaded successfully: %s\n", r == 0 ? "UNKNOWN" : output);
   }
 
   char *file_str = load_file(in_file);
-  VALUE input_prg = tokpar_parse(file_str);
+  lbm_value input_prg = tokpar_parse(file_str);
 
   free(file_str);
 
-  UINT compiler;
-  if (symrepr_lookup("gen-asm", &compiler)) {
-    VALUE invoce_compiler = cons(cons (enc_sym(compiler),
-				       cons(cons (enc_sym(SYM_QUOTE),
-						  cons (input_prg, enc_sym(SYM_NIL))),
-					    enc_sym(SYM_NIL))),
-				 enc_sym(SYM_NIL));
+  lbm_uint compiler;
+  if (lbm_get_symbol_by_name("gen-asm", &compiler)) {
+    lbm_value invoce_compiler = lbm_cons(lbm_cons (lbm_enc_sym(compiler),
+				       lbm_cons(lbm_cons (lbm_enc_sym(SYM_QUOTE),
+						  lbm_cons (input_prg, lbm_enc_sym(SYM_NIL))),
+					    lbm_enc_sym(SYM_NIL))),
+				 lbm_enc_sym(SYM_NIL));
 
-    r = print_value(output, 1024, error, 1024, invoce_compiler);
+    r = lbm_print_value(output, 1024, error, 1024, invoce_compiler);
     if (r >= 0) {
       printf("> %s\n", output );
     } else {
@@ -548,9 +548,9 @@ int main(int argc, char **argv) {
     }
 
 
-    VALUE compiled_res = ec_eval_program(invoce_compiler);
+    lbm_value compiled_res = ec_eval_program(invoce_compiler);
 
-    r = print_value(output, 1024, error, 1024, compiled_res);
+    r = lbm_print_value(output, 1024, error, 1024, compiled_res);
     if (r >= 0) {
       printf("> %s\n", output );
     } else {

@@ -73,9 +73,9 @@ int main()
 	size_t len = 1024;
 	int res = 0;
 
-	heap_state_t heap_state;
+	lbm_heap_state_t heap_state;
 
-	res = symrepr_init();
+	res = lbm_symrepr_init();
 	if (res)
 		printf("Symrepr initialized.\n");
 	else {
@@ -83,9 +83,9 @@ int main()
 		return 0;
 	}
 	int heap_size = 8 * 1024 * 1024;
-	res = heap_init(heap_size);
+	res = lbm_heap_init(heap_size);
 	if (res)
-		printf("Heap initialized. Heap size: %f MiB. Free cons cells: %lu\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
+		printf("Heap initialized. Heap size: %f MiB. Free cons cells: %lu\n", lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
 	else {
 		printf("Error initializing heap!\n");
 		return 0;
@@ -116,24 +116,24 @@ int main()
 
 		if (strncmp(str, ":info", 5) == 0) {
 			printf("##(ZYNQ)####################################################\n");
-			printf("Used cons cells: %lu \n", heap_size - heap_num_free());
+			printf("Used cons cells: %lu \n", heap_size - lbm_heap_num_free());
 			printf("ENV: "); simple_print(eval_cps_get_env()); printf("\n");
 			//symrepr_print();
 			//heap_perform_gc(eval_cps_get_env());
-			heap_get_state(&heap_state);
+			lbm_get_heap_state(&heap_state);
 			printf("GC counter: %lu\n", heap_state.gc_num);
 			printf("Recovered: %lu\n", heap_state.gc_recovered);
 			printf("Marked: %lu\n", heap_state.gc_marked);
-			printf("Free cons cells: %lu\n", heap_num_free());
+			printf("Free cons cells: %lu\n", lbm_heap_num_free());
 			printf("############################################################\n");
 		} else {
 
-			VALUE t;
+			lbm_value t;
 			t = tokpar_parse(str);
 
-			t = eval_cps_program(t);
+			t = lbm_eval_program(t);
 
-			if (dec_sym(t) == symrepr_eerror) {
+			if (lbm_dec_sym(t) == symrepr_eerror) {
 			  printf("Error\n");
 			} else {
 				printf("> "); simple_print(t); printf("\n");

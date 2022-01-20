@@ -99,16 +99,16 @@ int main(int argc, char **argv) {
   unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
   if (memory == NULL || bitmap == NULL) return 0;
   
-  res = memory_init(memory, MEMORY_SIZE_16K,
+  res = lbm_memory_init(memory, MEMORY_SIZE_16K,
 		    bitmap, MEMORY_BITMAP_SIZE_16K);
   if (res)
-    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
+    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", lbm_memory_num_words(), lbm_memory_num_free());
   else {
     printf("Error initializing memory!\n");
     return 0;
   }
   
-  res = symrepr_init();
+  res = lbm_symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");
   else {
@@ -116,9 +116,9 @@ int main(int argc, char **argv) {
     return 0;
   }
   
-  res = heap_init(heap_size);
+  res = lbm_heap_init(heap_size);
   if (res)
-    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
+    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
   else {
     printf("Error initializing heap!\n");
     return 0;
@@ -131,20 +131,20 @@ int main(int argc, char **argv) {
     printf("Error initializing evaluator.\n");
   }
 
-  VALUE prelude = prelude_load();
+  lbm_value prelude = prelude_load();
   eval_cps_program_nc(prelude);
 
-  VALUE t;
+  lbm_value t;
   
   if (compress_decompress) { 
     uint32_t compressed_size = 0;
-    char *compressed_code = compression_compress(code_buffer, &compressed_size);
+    char *compressed_code = lbm_compress(code_buffer, &compressed_size);
     if (!compressed_code) {
       printf("Error compressing code\n");
       return 0;
     }
     char decompress_code[8192];
-    compression_decompress(decompress_code, 8192, compressed_code);
+    lbm_decompress(decompress_code, 8192, compressed_code);
     printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
     
     t = tokpar_parse_compressed(compressed_code);
@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
   char output[1024];
   char error[1024];
   
-  int v =  print_value(output,1024,error,1024,t);
+  int v =  lbm_print_value(output,1024,error,1024,t);
 
   if (v >= 0) {
     printf("> %s\n", output);

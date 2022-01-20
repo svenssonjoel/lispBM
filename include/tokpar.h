@@ -23,11 +23,11 @@
 typedef struct {
   char *str;
   unsigned int pos;
-} tokenizer_string_state_t;
+} lbm_tokenizer_string_state_t;
 
-extern void tokpar_create_char_stream_from_string(tokenizer_string_state_t *,
-                                                  tokenizer_char_stream_t *,
+extern void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *,
+                                                  lbm_tokenizer_char_stream_t *,
                                                   char *);
-extern VALUE tokpar_next_token(tokenizer_char_stream_t *str);
+extern lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str);
 
 #endif

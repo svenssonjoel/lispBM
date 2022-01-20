@@ -33,10 +33,10 @@
 
 #define HEAP_SIZE 8192
 
-cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
+lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
-static tokenizer_string_state_t string_tok_state;
-static tokenizer_char_stream_t string_tok;
+static lbm_tokenizer_string_state_t string_tok_state;
+static lbm_tokenizer_char_stream_t string_tok;
 
 BaseSequentialStream *chp = NULL;
 
@@ -186,10 +186,10 @@ void done_callback(eval_context_t *ctx) {
 
   char output[1024];
 
-  CID cid = ctx->id;
-  VALUE t = ctx->r;
+  lbm_cid cid = ctx->id;
+  lbm_value t = ctx->r;
 
-  int print_ret = print_value(output, 1024, t);
+  int print_ret = lbm_print_value(output, 1024, t);
 
   if (print_ret >= 0) {
     chprintf(chp,"<< Context %d finished with value %s >>\r\n# ", cid, output);
@@ -210,62 +210,62 @@ void sleep_callback(uint32_t us) {
 
 static THD_FUNCTION(eval, arg) {
   (void) arg;
-  eval_cps_run_eval();
+  lbm_run_eval();
 }
 
 
-VALUE ext_print(VALUE *args, UINT argn) {
+lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
   char output[1024];
 
-  for (UINT i = 0; i < argn; i ++) {
-    VALUE t = args[i];
+  for (lbm_uint i = 0; i < argn; i ++) {
+    lbm_value t = args[i];
 
-    if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
-      array_header_t *array = (array_header_t *)car(t);
+    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_PTR_TYPE_ARRAY) {
+      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
       switch (array->elt_type){
-      case VAL_TYPE_CHAR:
+      case LBM_VAL_TYPE_CHAR:
         chprintf(chp,"%s", (char*)array + 8);
         break;
       default:
-        return enc_sym(SYM_NIL);
+        return lbm_enc_sym(SYM_NIL);
         break;
       }
-    } else if (val_type(t) == VAL_TYPE_CHAR) {
-      if (dec_char(t) =='\n') {
+    } else if (lbm_type_of(t) == LBM_VAL_TYPE_CHAR) {
+      if (lbm_dec_char(t) =='\n') {
         chprintf(chp, "\r\n");
       } else {
-        chprintf(chp,"%c", dec_char(t));
+        chprintf(chp,"%c", lbm_dec_char(t));
       }
     }  else {
-      print_value(output, 1024, t);
+      lbm_print_value(output, 1024, t);
       chprintf(chp,"%s", output);
     }
   }
-  return enc_sym(SYM_TRUE);
+  return lbm_enc_sym(SYM_TRUE);
 }
 
-VALUE ext_note(VALUE *args, UINT argn) {
+lbm_value ext_note(lbm_value *args, lbm_uint argn) {
 
   if (argn != 2) {
-    return enc_sym(SYM_NIL);
+    return lbm_enc_sym(SYM_NIL);
   }
 
   dac_msg_t msg;
   msg.type = NOTE;
-  msg.data[0] = dec_u(args[0]);
-  msg.data[1] = dec_u(args[1]);
+  msg.data[0] = lbm_dec_u(args[0]);
+  msg.data[1] = lbm_dec_u(args[1]);
 
   chSysLock();
   send_to_dac(msg);
   chSysUnlock();
-  return enc_sym(SYM_TRUE);
+  return lbm_enc_sym(SYM_TRUE);
 }
 
 
 
-static uint32_t memory_array[MEMORY_SIZE_8K];
-static uint32_t bitmap_array[MEMORY_BITMAP_SIZE_8K];
+static uint32_t memory_array[LBM_MEMORY_SIZE_8K];
+static uint32_t bitmap_array[LBM_MEMORY_BITMAP_SIZE_8K];
 
 char str[1024];
 char outbuf[2048];
@@ -295,7 +295,7 @@ int main(void) {
 
   int res = 0;
 
-  heap_state_t heap_state;
+  lbm_heap_state_t heap_state;
 
   chThdSleepMilliseconds(2000);
 
@@ -315,24 +315,24 @@ int main(void) {
   chThdSleepMilliseconds(1); // start up the dac thread now
 
 
-  if (!lispbm_init(heap, HEAP_SIZE,
-                   memory_array, MEMORY_SIZE_8K,
-                   bitmap_array, MEMORY_BITMAP_SIZE_8K)) {
+  if (!lbm_init(heap, HEAP_SIZE,
+                   memory_array, LBM_MEMORY_SIZE_8K,
+                   bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K)) {
     chprintf(chp,"Initializing LispBM failed\r\n");
     return 0;
   }
 
-  eval_cps_set_ctx_done_callback(done_callback);
-  eval_cps_set_timestamp_us_callback(timestamp_callback);
-  eval_cps_set_usleep_callback(sleep_callback);
+  lbm_set_ctx_done_callback(done_callback);
+  lbm_set_timestamp_us_callback(timestamp_callback);
+  lbm_set_usleep_callback(sleep_callback);
 
-  res = extensions_add("print", ext_print);
+  res = lbm_add_extension("print", ext_print);
   if (res)
     chprintf(chp,"Extension added: print.\r\n");
   else
     chprintf(chp,"Error adding extension.\r\n");
 
-  res = extensions_add("note", ext_note);
+  res = lbm_add_extension("note", ext_note);
   if (res)
     chprintf(chp,"Extension added: note.\r\n");
   else
@@ -351,10 +351,11 @@ int main(void) {
   prelude_load(&string_tok_state,
                    &string_tok);
 
-  VALUE prelude = tokpar_parse_program(&string_tok);
+  lbm_cid cid = lbm_load_and_eval_program(&string_tok);
 
-  eval_cps_program(prelude);
+  lbm_continue_eval();
 
+  lbm_wait_ctx(cid);
 
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
 
@@ -367,15 +368,15 @@ int main(void) {
 
     if (strncmp(str, ":info", 5) == 0) {
       chprintf(chp,"##(ChibiOS)#################################################\r\n");
-      chprintf(chp,"Used cons cells: %lu \r\n", HEAP_SIZE - heap_num_free());
-      res = print_value(outbuf,1024, *env_get_global_ptr());
+      chprintf(chp,"Used cons cells: %lu \r\n", HEAP_SIZE - lbm_heap_num_free());
+      res = lbm_print_value(outbuf,1024, *lbm_get_env_ptr());
       chprintf(chp,"%s\r\n",outbuf);
 
-      heap_get_state(&heap_state);
+      lbm_get_heap_state(&heap_state);
       chprintf(chp,"GC counter: %lu\r\n", heap_state.gc_num);
       chprintf(chp,"Recovered: %lu\r\n", heap_state.gc_recovered);
       chprintf(chp,"Marked: %lu\r\n", heap_state.gc_marked);
-      chprintf(chp,"Free cons cells: %lu\r\n", heap_num_free());
+      chprintf(chp,"Free cons cells: %lu\r\n", lbm_heap_num_free());
       chprintf(chp,"############################################################\r\n");
       memset(outbuf,0, 1024);
     } else if (strncmp(str, ":quit", 5) == 0) {
@@ -383,7 +384,7 @@ int main(void) {
     } else if (strncmp(str, ":wait", 5) == 0) {
       int cid = atoi(str+5);
       chprintf(chp,"waiting for cid: %d\r\n", cid);
-      eval_cps_wait_ctx(cid);
+      lbm_wait_ctx(cid);
     } else if (strncmp(str, ":read", 5) == 0) {
       memset(file_buffer, 0, 4096);
       bool done = false;
@@ -405,18 +406,15 @@ int main(void) {
       chprintf(chp, "received %d bytes\r\n", strlen(file_buffer));
 
       if (done) {
-        VALUE t;
+        lbm_value t;
 
-        tokpar_create_char_stream_from_string(&string_tok_state,
+        lbm_create_char_stream_from_string(&string_tok_state,
                                               &string_tok,
                                               file_buffer);
-        t = tokpar_parse(&string_tok);
-        CID cid = eval_cps_program(t);
-        if (cid == 0) {
-          chprintf(chp,"Error creating ctx\r\n");
-        } else {
-          chprintf(chp,"started ctx: %u\r\n", cid);
-        }
+        lbm_cid cid = lbm_load_and_eval_program(&string_tok);
+
+        lbm_continue_eval();
+        lbm_wait_ctx((lbm_cid)cid);
       }
     } else {
 
@@ -424,18 +422,23 @@ int main(void) {
         continue;
       }
 
-      VALUE t;
-      tokpar_create_char_stream_from_string(&string_tok_state,
+      lbm_value t;
+        /* Get exclusive access to the heap */
+      lbm_pause_eval();
+      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+
+      lbm_create_char_stream_from_string(&string_tok_state,
                                             &string_tok,
                                             str);
-      t = tokpar_parse(&string_tok);
 
-      CID cid = eval_cps_program(t);
-      if (cid == 0) {
-        chprintf(chp,"Error creating ctx\r\n");
-      } else {
-        chprintf(chp,"started ctx: %u\r\n", cid);
-      }
+      lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
+
+      lbm_continue_eval();
+
+      printf("started ctx: %u\n", cid);
+      lbm_wait_ctx((lbm_cid)cid);
     }
   }
 }

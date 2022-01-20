@@ -38,31 +38,31 @@
 
 #define EVAL_CPS_STACK_SIZE 256
 
-VALUE ext_print(VALUE *args, UINT argn) {
-  if (argn < 1) return enc_sym(symrepr_nil);
+lbm_value ext_print(lbm_value *args, lbm_uint argn) {
+  if (argn < 1) return lbm_enc_sym(symrepr_nil);
 
   char output[1024];
   char error[1024];
 
   for (int i = 0; i < argn; i ++) {
-    VALUE t = args[i];
+    lbm_value t = args[i];
 
-    if (is_ptr(t) && ptr_type(t) == PTR_TYPE_ARRAY) {
-      array_header_t *array = (array_header_t *)car(t);
+    if (lbm_is_ptr(t) && ptr_type(t) == LBM_PTR_TYPE_ARRAY) {
+      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
       switch (array->elt_type){
-      case VAL_TYPE_CHAR: {
+      case LBM_VAL_TYPE_CHAR: {
 	char *data = (char *)array + 8;
 	printf("%s", data);
 	break;
       }
       default:
-	return enc_sym(symrepr_nil);
+	return lbm_enc_sym(symrepr_nil);
 	break;
       }
-    } else if (val_type(t) == VAL_TYPE_CHAR) {
-      printf("%c", dec_char(t));
+    } else if (val_type(t) == LBM_VAL_TYPE_CHAR) {
+      printf("%c", lbm_dec_char(t));
     } else {
-      int print_ret = print_value(output, 1024, error, 1024, t);
+      int print_ret = lbm_print_value(output, 1024, error, 1024, t);
 
       if (print_ret >= 0) {
 	printf("%s", output);
@@ -72,7 +72,7 @@ VALUE ext_print(VALUE *args, UINT argn) {
     }
 
   }
-  return enc_sym(symrepr_true);
+  return lbm_enc_sym(symrepr_true);
 }
 
 /* load a file, caller is responsible for freeing the returned string */
@@ -120,22 +120,22 @@ int main(int argc, char **argv) {
   unsigned int len = 1024;
   int res = 0;
 
-  heap_state_t heap_state;
+  lbm_heap_state_t heap_state;
 
   unsigned char *memory = malloc(MEMORY_SIZE_16K);
   unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
   if (memory == NULL || bitmap == NULL) return 0;
 
-  res = memory_init(memory, MEMORY_SIZE_16K,
+  res = lbm_memory_init(memory, MEMORY_SIZE_16K,
 		    bitmap, MEMORY_BITMAP_SIZE_16K);
   if (res)
-    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", memory_num_words(), memory_num_free());
+    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", lbm_memory_num_words(), lbm_memory_num_free());
   else {
     printf("Error initializing memory!\n");
     return 0;
   }
 
-  res = symrepr_init();
+  res = lbm_symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");
   else {
@@ -144,15 +144,15 @@ int main(int argc, char **argv) {
   }
 
   unsigned int heap_size = 8192;
-  res = heap_init(heap_size);
+  res = lbm_heap_init(heap_size);
   if (res)
-    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
+    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
   else {
     printf("Error initializing heap!\n");
     return 0;
   }
 
-  res = env_init();
+  res = lbm_init_env();
   if (res)
     printf("Environment initialized.\n");
   else {
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = extensions_add("print", ext_print);
+  res = lbm_add_extension("print", ext_print);
   if (res)
     printf("Extension added.\n");
   else {
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  VALUE prelude = prelude_load();
+  lbm_value prelude = prelude_load();
   ec_eval_program(prelude);
 
   printf("Lisp REPL started!\n");
@@ -189,31 +189,31 @@ int main(int argc, char **argv) {
 
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("############################################################\n");
-      printf("Used cons cells: %d\n", heap_size - heap_num_free());
-      int r = print_value(output, 1024, error, 1024, *env_get_global_ptr());
+      printf("Used cons cells: %d\n", heap_size - lbm_heap_num_free());
+      int r = lbm_print_value(output, 1024, error, 1024, *lbm_get_env_ptr());
       if (r >= 0) {
 	printf("ENV: %s\n", output );
       } else {
 	printf("%s\n", error);
       }
       int env_len = 0;
-      VALUE curr = *env_get_global_ptr();
-      while (type_of(curr) == PTR_TYPE_CONS) {
+      lbm_value curr = *lbm_get_env_ptr();
+      while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
 	env_len ++;
-	curr = cdr(curr);
+	curr = lbm_cdr(curr);
       }
       printf("Global env num bindings: %d\n", env_len);
-      heap_get_state(&heap_state);
-      printf("Symbol table size: %u Bytes\n", symrepr_size());
+      lbm_get_heap_state(&heap_state);
+      printf("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
       printf("Heap size: %u Bytes\n", heap_size * 8);
-      printf("Memory size: %u Words\n", memory_num_words());
-      printf("Memory free: %u Words\n", memory_num_free());
+      printf("Memory size: %u Words\n", lbm_memory_num_words());
+      printf("Memory free: %u Words\n", lbm_memory_num_free());
       printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
       printf("GC counter: %d\n", heap_state.gc_num);
       printf("Recovered: %d\n", heap_state.gc_recovered);
       printf("Recovered arrays: %u\n", heap_state.gc_recovered_arrays);
       printf("Marked: %d\n", heap_state.gc_marked);
-      printf("Free cons cells: %d\n", heap_num_free());
+      printf("Free cons cells: %d\n", lbm_heap_num_free());
       printf("############################################################\n");
     } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
       unsigned int fstr_len = strlen(&str[5]);
@@ -221,10 +221,10 @@ int main(int argc, char **argv) {
       char *file_str = load_file(&str[5]);
       if (file_str) {
 	printf("Loading file %s\n", &str[5]);
-	VALUE f_exp = tokpar_parse(file_str);
+	lbm_value f_exp = tokpar_parse(file_str);
 	free(file_str);
-	VALUE l_r = ec_eval_program(f_exp);
-	int r = print_value(output, 1024, error, 1024, l_r);
+	lbm_value l_r = ec_eval_program(f_exp);
+	int r = lbm_print_value(output, 1024, error, 1024, l_r);
 	if (r >= 0) {
 	  printf("> %s\n", output );
 	} else {
@@ -239,12 +239,12 @@ int main(int argc, char **argv) {
       break;
     } else {
 
-      VALUE t;
+      lbm_value t;
       t = tokpar_parse(str);
 
-      VALUE r_r = ec_eval_program(t);
+      lbm_value r_r = ec_eval_program(t);
 
-      int r = print_value(output, 1024, error, 1024, r_r);
+      int r = lbm_print_value(output, 1024, error, 1024, r_r);
       if (r >= 0) {
 	printf("> %s\n", output );
       } else {

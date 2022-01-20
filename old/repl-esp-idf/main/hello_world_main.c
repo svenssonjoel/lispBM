@@ -134,25 +134,25 @@ int inputline(char *buffer, int size) {
   return 0; // Filled up buffer without reading a linebreak
 }
 
-VALUE ext_led(VALUE *args, UINT argn) {
+lbm_value ext_led(lbm_value *args, lbm_uint argn) {
 
-  if (argn != 1) return enc_sym(symrepr_nil);
+  if (argn != 1) return lbm_enc_sym(symrepr_nil);
 
   unsigned char r,g, b;
 
-  VALUE v = args[0]; 
+  lbm_value v = args[0]; 
 
-  if (! is_ptr(v)) return enc_sym(symrepr_nil);
+  if (! lbm_is_ptr(v)) return lbm_enc_sym(symrepr_nil);
 
-  r = (unsigned char)dec_i(car(v));
-  g = (unsigned char)dec_i(car(cdr(v)));
-  b = (unsigned char)dec_i(car(cdr(cdr(v))));
+  r = (unsigned char)lbm_dec_i(lbm_car(v));
+  g = (unsigned char)lbm_dec_i(lbm_car(lbm_cdr(v)));
+  b = (unsigned char)lbm_dec_i(lbm_car(lbm_cdr(lbm_cdr(v))));
 
   pStrip_a->set_pixel(pStrip_a, 0, r, g, b);
   /* Refresh the strip to send data */
   pStrip_a->refresh(pStrip_a, 100);
 
-  return enc_sym(symrepr_true);
+  return lbm_enc_sym(symrepr_true);
   
   
 }
@@ -194,11 +194,11 @@ void app_main(void)
   unsigned char *memory = malloc(MEMORY_SIZE_16K);
   unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
 
-  res = memory_init(memory, MEMORY_SIZE_16K,
+  res = lbm_memory_init(memory, MEMORY_SIZE_16K,
   		    bitmap, MEMORY_BITMAP_SIZE_16K);
 
   snprintf(out_str,1024,"Memory initialized. Memory size: %u Words. Free: %u Words.\n",
-  	   memory_num_words(), memory_num_free());
+  	   lbm_memory_num_words(), lbm_memory_num_free());
   
   if (res)
     uart_print(out_str);
@@ -208,7 +208,7 @@ void app_main(void)
     esp_restart();
   }
 
-  res = symrepr_init();
+  res = lbm_symrepr_init();
   if (res)
     uart_print("Symrepr initialized.\r\n");
   else {
@@ -217,7 +217,7 @@ void app_main(void)
     esp_restart();
   }
 
-  res = heap_init(4096);
+  res = lbm_heap_init(4096);
   if (res)
     uart_print("Heap initialized.\r\n");
   else {
@@ -236,14 +236,14 @@ void app_main(void)
     esp_restart();
   }
 
-  res = extensions_add("led", ext_led);
+  res = lbm_add_extension("led", ext_led);
   if (res)
     uart_print("Extension added.\n");
   else
     uart_print("Error adding extension.\n");
 
 
-  VALUE prelude = prelude_load();
+  lbm_value prelude = prelude_load();
   eval_cps_program_nc(prelude);
 
   snprintf(out_str,1024,"Lisp REPL started on %s chip with %d CPU core(s), WiFi%s%s, \n",
@@ -279,12 +279,12 @@ void app_main(void)
     } else if (n == 0)  {
       continue;
     } else {
-      VALUE t;
+      lbm_value t;
       t = tokpar_parse(str);
       
-      VALUE r_r = eval_cps_program_nc(t);
+      lbm_value r_r = eval_cps_program_nc(t);
       
-      int r = print_value(out_str, 1024, out_err, 1024, r_r);
+      int r = lbm_print_value(out_str, 1024, out_err, 1024, r_r);
       if (r >= 0) {
   	uart_print("> ");
   	uart_print(out_str);

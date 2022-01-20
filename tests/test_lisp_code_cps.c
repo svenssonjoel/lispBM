@@ -39,16 +39,16 @@
 #define EVAL_CPS_STACK_SIZE 256
 
 /* Tokenizer state for strings */
-static tokenizer_string_state_t string_tok_state;
+static lbm_tokenizer_string_state_t string_tok_state;
 
 /* Tokenizer statefor compressed data */
 static tokenizer_compressed_state_t comp_tok_state;
 
 /* shared tokenizer */
-static tokenizer_char_stream_t string_tok;
+static lbm_tokenizer_char_stream_t string_tok;
 
 void *eval_thd_wrapper(void *v) {
-  eval_cps_run_eval();
+  lbm_run_eval();
   return NULL;
 }
 
@@ -66,34 +66,34 @@ void sleep_callback(uint32_t us) {
   nanosleep(&s, &r);
 }
 
-VALUE ext_even(VALUE *args, UINT argn) {
+lbm_value ext_even(lbm_value *args, lbm_uint argn) {
 
-  if (argn < 1) return enc_sym(SYM_NIL);
+  if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
-  VALUE v = args[0];
+  lbm_value v = args[0];
 
-  if (val_type(v) == VAL_TYPE_I ||
-      val_type(v) == VAL_TYPE_U) {
-    if (dec_i(v) % 2 == 0)
-      return enc_sym(SYM_TRUE);
+  if (lbm_type_of(v) == LBM_VAL_TYPE_I ||
+      lbm_type_of(v) == LBM_VAL_TYPE_U) {
+    if (lbm_dec_i(v) % 2 == 0)
+      return lbm_enc_sym(SYM_TRUE);
   }
 
-  return enc_sym(SYM_NIL);
+  return lbm_enc_sym(SYM_NIL);
 }
 
-VALUE ext_odd(VALUE *args, UINT argn) {
+lbm_value ext_odd(lbm_value *args, lbm_uint argn) {
 
-  if (argn < 1) return enc_sym(SYM_NIL);
+  if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
-  VALUE v = args[0];
+  lbm_value v = args[0];
 
-  if (val_type(v) == VAL_TYPE_I ||
-      val_type(v) == VAL_TYPE_U) {
-    if (dec_i(v) % 2 == 1)
-      return enc_sym(SYM_TRUE);
+  if (lbm_type_of(v) == LBM_VAL_TYPE_I ||
+      lbm_type_of(v) == LBM_VAL_TYPE_U) {
+    if (lbm_dec_i(v) % 2 == 1)
+      return lbm_enc_sym(SYM_TRUE);
   }
 
-  return enc_sym(SYM_NIL);
+  return lbm_enc_sym(SYM_NIL);
 }
 
 
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
   bool compress_decompress = false;
 
   pthread_t lispbm_thd;
-  cons_t *heap_storage = NULL;
+  lbm_cons_t *heap_storage = NULL;
 
   int c;
   opterr = 1;
@@ -159,14 +159,14 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  uint32_t *memory = malloc(4 * MEMORY_SIZE_16K);
+  uint32_t *memory = malloc(4 * LBM_MEMORY_SIZE_16K);
   if (memory == NULL) return 0;
-  uint32_t *bitmap = malloc(4 * MEMORY_BITMAP_SIZE_16K);
+  uint32_t *bitmap = malloc(4 * LBM_MEMORY_BITMAP_SIZE_16K);
   if (bitmap == NULL) return 0;
 
 
-  res = memory_init(memory, MEMORY_SIZE_16K,
-                    bitmap, MEMORY_BITMAP_SIZE_16K);
+  res = lbm_memory_init(memory, LBM_MEMORY_SIZE_16K,
+                    bitmap, LBM_MEMORY_BITMAP_SIZE_16K);
   if (res)
     printf("Memory initialized.\n");
   else {
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = symrepr_init();
+  res = lbm_symrepr_init();
   if (res)
     printf("Symrepr initialized.\n");
   else {
@@ -182,20 +182,20 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  heap_storage = (cons_t*)malloc(sizeof(cons_t) * heap_size);
+  heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
   if (heap_storage == NULL) {
     return 0;
   }
 
-  res = heap_init(heap_storage, heap_size);
+  res = lbm_heap_init(heap_storage, heap_size);
   if (res)
-    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", heap_size_bytes() / 1024.0 / 1024.0, heap_num_free());
+    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
   else {
     printf("Error initializing heap!\n");
     return 0;
   }
 
-  res = eval_cps_init();
+  res = lbm_eval_init();
   if (res)
     printf("Evaluator initialized.\n");
   else {
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = env_init();
+  res = lbm_init_env();
   if (res)
     printf("Environment initialized.\n");
   else {
@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  res = extensions_add("ext-even", ext_even);
+  res = lbm_add_extension("ext-even", ext_even);
   if (res)
     printf("Extension added.\n");
   else {
@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-   res = extensions_add("ext-odd", ext_odd);
+   res = lbm_add_extension("ext-odd", ext_odd);
   if (res)
     printf("Extension added.\n");
   else {
@@ -227,8 +227,8 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  eval_cps_set_timestamp_us_callback(timestamp_callback);
-  eval_cps_set_usleep_callback(sleep_callback);
+  lbm_set_timestamp_us_callback(timestamp_callback);
+  lbm_set_usleep_callback(sleep_callback);
 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
@@ -236,37 +236,37 @@ int main(int argc, char **argv) {
   }
 
   prelude_load(&string_tok_state, &string_tok);
-  CID cid = eval_cps_load_and_eval_program(&string_tok);
-  eval_cps_wait_ctx(cid);
+  lbm_cid cid = lbm_load_and_eval_program(&string_tok);
+  lbm_wait_ctx(cid);
 
-  VALUE t;
+  lbm_value t;
   char *compressed_code;
   if (compress_decompress) {
     uint32_t compressed_size = 0;
-    compressed_code = compression_compress(code_buffer, &compressed_size);
+    compressed_code = lbm_compress(code_buffer, &compressed_size);
     if (!compressed_code) {
       printf("Error compressing code\n");
       return 0;
     }
     char decompress_code[8192];
 
-    compression_decompress(decompress_code, 8192, compressed_code);
+    lbm_decompress(decompress_code, 8192, compressed_code);
     printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
 
-    compression_create_char_stream_from_compressed(&comp_tok_state,
+    lbm_create_char_stream_from_compressed(&comp_tok_state,
                                                    &string_tok,
                                                    compressed_code);
 
   } else {
-    tokpar_create_char_stream_from_string(&string_tok_state,
+    lbm_create_char_stream_from_string(&string_tok_state,
                                           &string_tok,
                                           code_buffer);
 
   }
 
-  cid = eval_cps_load_and_eval_program(&string_tok);
+  cid = lbm_load_and_eval_program(&string_tok);
 
-  t = eval_cps_wait_ctx(cid);
+  t = lbm_wait_ctx(cid);
 
   char output[128];
 
@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
     free(compressed_code);
   }
 
-  res = print_value(output, 128, t);
+  res = lbm_print_value(output, 128, t);
 
   if ( res >= 0) {
     printf("O: %s\n", output);
@@ -283,11 +283,11 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if ( dec_sym(t) == SYM_EERROR) {
+  if ( lbm_dec_sym(t) == SYM_EERROR) {
     res = 0;
   }
 
-  if (res && type_of(t) == VAL_TYPE_SYMBOL && dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
+  if (res && lbm_type_of(t) == LBM_VAL_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
     printf("Test: OK!\n");
     res = 1;
   } else {

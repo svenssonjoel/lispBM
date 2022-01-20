@@ -35,10 +35,10 @@ static char str[LISPBM_INPUT_BUFFER_SIZE];
 static char outbuf[LISPBM_OUTPUT_BUFFER_SIZE];
 static char error[LISPBM_ERROR_BUFFER_SIZE];
 
-static uint32_t memory[MEMORY_SIZE_8K];
-static uint32_t bitmap[MEMORY_BITMAP_SIZE_8K];
+static uint32_t memory[LBM_MEMORY_SIZE_8K];
+static uint32_t bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
 
-static cons_t heap[LISPBM_HEAP_SIZE];
+static lbm_cons_t heap[LISPBM_HEAP_SIZE];
 
 
 void done_callback(eval_context_t *ctx) {
@@ -46,10 +46,10 @@ void done_callback(eval_context_t *ctx) {
   static char print_output[1024];
   static char error_output[1024];
   
-  CID cid = ctx->id;
-  VALUE t = ctx->r;
+  lbm_cid cid = ctx->id;
+  lbm_value t = ctx->r;
 
-  int print_ret = print_value(print_output, 1024, error_output, 1024, t);
+  int print_ret = lbm_print_value(print_output, 1024, error_output, 1024, t);
 
   if (print_ret >= 0) {
     usb_printf("<< Context %d finished with value %s >>\r\n# ", cid, print_output);
@@ -75,18 +75,18 @@ void main(void)
   
   k_sleep(K_SECONDS(5));
 
-  heap_state_t heap_state;
+  lbm_heap_state_t heap_state;
 
-  lispbm_init(heap, LISPBM_HEAP_SIZE,
-              memory, MEMORY_SIZE_8K,
-              bitmap, MEMORY_BITMAP_SIZE_8K);
+  lbm_init(heap, LISPBM_HEAP_SIZE,
+              memory, LBM_MEMORY_SIZE_8K,
+              bitmap, LBM_MEMORY_BITMAP_SIZE_8K);
 
-  eval_cps_set_ctx_done_callback(done_callback);
-  eval_cps_set_timestamp_us_callback(timestamp_callback);
-  eval_cps_set_usleep_callback(sleep_callback);
+  lbm_set_ctx_done_callback(done_callback);
+  lbm_set_timestamp_us_callback(timestamp_callback);
+  lbm_set_usleep_callback(sleep_callback);
 
 	
-  VALUE prelude = prelude_load();
+  lbm_value prelude = prelude_load();
   eval_cps_program_nc(prelude);
 
 
@@ -107,30 +107,30 @@ void main(void)
 
     if (strncmp(str, ":info", 5) == 0) {
       usb_printf("##(REPL - ZephyrOS)#########################################\r\n");
-      usb_printf("Used cons cells: %lu \r\n", LISPBM_HEAP_SIZE - heap_num_free());
-      res = print_value(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, error, LISPBM_ERROR_BUFFER_SIZE, *env_get_global_ptr());
+      usb_printf("Used cons cells: %lu \r\n", LISPBM_HEAP_SIZE - lbm_heap_num_free());
+      res = lbm_print_value(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, error, LISPBM_ERROR_BUFFER_SIZE, *lbm_get_env_ptr());
       if (res >= 0) {
 	usb_printf("ENV: %s \r\n", outbuf);
       } else {
 	usb_printf("%s\n", error);
       }
-      heap_get_state(&heap_state);
+      lbm_get_heap_state(&heap_state);
       usb_printf("GC counter: %lu\r\n", heap_state.gc_num);
       usb_printf("Recovered: %lu\r\n", heap_state.gc_recovered);
       usb_printf("Marked: %lu\r\n", heap_state.gc_marked);
-      usb_printf("Free cons cells: %lu\r\n", heap_num_free());
+      usb_printf("Free cons cells: %lu\r\n", lbm_heap_num_free());
       usb_printf("############################################################\r\n");
       memset(outbuf,0, LISPBM_OUTPUT_BUFFER_SIZE);
     } else if (strncmp(str, ":quit", 5) == 0) {
       break;
     } else {
 
-      VALUE t;
+      lbm_value t;
       t = tokpar_parse(str);
 
       t = eval_cps_program_nc(t);
 
-      res = print_value(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, error, LISPBM_ERROR_BUFFER_SIZE, t);
+      res = lbm_print_value(outbuf, LISPBM_OUTPUT_BUFFER_SIZE, error, LISPBM_ERROR_BUFFER_SIZE, t);
       if (res >= 0) {
 	usb_printf("> %s\r\n", outbuf);
       } else {
