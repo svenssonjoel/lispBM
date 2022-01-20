@@ -1650,8 +1650,42 @@ static inline void cont_read(eval_context_t *ctx) {
       }
     } else {
       tok = token_stream_get(str);
+
       if (type_of(tok) == VAL_TYPE_SYMBOL) {
         switch (dec_sym(tok)) {
+        case SYM_RERROR:
+        case SYM_MERROR:
+          // check if stack is corrupted
+          if (program) {
+            if (ctx->K.sp >= sp_start+4 &&
+                ctx->K.data[sp_start] == enc_u(READ_DONE) &&
+                ctx->K.data[sp_start+3] == enc_u(APPEND_CONTINUE)) {
+              // stack seems fine 
+              ctx->K.sp = sp_start; 
+              ctx->r = enc_sym(SYM_RERROR);
+              ctx->app_cont = true;
+              done = true;
+              // as the continuation will run, the result will
+              // be an eval error rather than an READ_ERROR.
+            } else {
+              error_ctx(enc_sym(SYM_FATAL_ERROR));
+              done = true;
+            }
+          } else {
+            // This may be dead code as the expression case does
+            // not seem to end up here.  
+            if (ctx->K.sp >= sp_start &&
+                ctx->K.data[sp_start] == enc_u(READ_DONE)) {
+              ctx->K.sp = sp_start; 
+              ctx->r = enc_sym(SYM_RERROR);
+              ctx->app_cont = true;
+              done = true;
+            } else {
+              error_ctx(enc_sym(SYM_FATAL_ERROR));
+              done = true;
+            }
+          }
+          break;
         case SYM_TOKENIZER_DONE:
           if (program) {
 
@@ -1671,7 +1705,6 @@ static inline void cont_read(eval_context_t *ctx) {
               done = true;
             }
           } else {
-            printf("%d, %d\n", ctx->K.sp, sp_start);
             if (ctx->K.sp > sp_start &&
                 ctx->K.data[sp_start] == enc_u(READ_DONE)) {
               ctx->K.sp = sp_start;
