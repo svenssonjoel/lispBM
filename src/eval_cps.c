@@ -2102,3 +2102,46 @@ lbm_cid lbm_load_and_define_expression(lbm_tokenizer_char_stream_t *tokenizer, c
 lbm_cid lbm_load_and_eval_program(lbm_tokenizer_char_stream_t *tokenizer) {
   return eval_cps_load_and_eval(tokenizer, true);
 }
+
+static lbm_cid lbm_eval_defined(char *symbol, bool program) {
+
+  lbm_uint sym_id;
+
+  if(!lbm_get_symbol_by_name(symbol, &sym_id)) {
+    // The symbol does not exist, so it cannot be defined
+    return 0;
+  }
+
+  lbm_value binding = lbm_env_lookup(lbm_enc_sym(sym_id), *lbm_get_env_ptr());
+
+  if (lbm_type_of(binding) == LBM_VAL_TYPE_SYMBOL &&
+      lbm_dec_sym(binding) == SYM_NOT_FOUND) {
+    return 0;
+  }
+
+  /* LISP ZONE */
+
+  lbm_value launcher = NIL;
+  launcher = lbm_cons(lbm_enc_sym(sym_id), NIL);
+  lbm_value evaluator = launcher;
+  evaluator = lbm_cons(lbm_enc_sym(program ? SYM_EVAL_PROGRAM : SYM_EVAL), evaluator);
+  lbm_value start_prg = lbm_cons(evaluator, NIL);
+
+  /* LISP ZONE ENDS */
+
+  if (lbm_type_of(launcher) != LBM_PTR_TYPE_CONS ||
+      lbm_type_of(evaluator) != LBM_PTR_TYPE_CONS ||
+      lbm_type_of(start_prg) != LBM_PTR_TYPE_CONS ) {
+    return 0;
+  }
+  return create_ctx(start_prg, NIL, 256);
+}
+
+lbm_cid lbm_eval_defined_expression(char *symbol) {
+  return lbm_eval_defined(symbol, false);
+}
+
+lbm_cid lbm_eval_defined_program(char *symbol) {
+  return lbm_eval_defined(symbol, true);
+}
+

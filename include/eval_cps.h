@@ -84,4 +84,8 @@ extern lbm_cid lbm_load_and_eval_expression(lbm_tokenizer_char_stream_t *tokeniz
 extern lbm_cid lbm_load_and_define_program(lbm_tokenizer_char_stream_t *tokenizer, char *symbol);
 extern lbm_cid lbm_load_and_define_expression(lbm_tokenizer_char_stream_t *tokenizer, char *symbol);
 
+/* Evaluating a definition in a new context */
+extern lbm_cid lbm_eval_defined_expression(char *symbol);
+extern lbm_cid lbm_eval_defined_program(char *symbol);
+
 #endif

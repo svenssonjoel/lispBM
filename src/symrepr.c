@@ -146,17 +146,6 @@ bool lbm_symrepr_init(void) {
   return true;
 }
 
-void symrepr_del(void) {
-
-  uint32_t *curr = symlist;
-  while (curr) {
-    uint32_t *tmp = curr;
-    curr = (uint32_t*)curr[NEXT];
-    lbm_memory_free((uint32_t*)tmp[NAME]);
-    lbm_memory_free(tmp);
-  }
-}
-
 const char *lookup_symrepr_name_memory(lbm_uint id) {
 
   uint32_t *curr = symlist;
