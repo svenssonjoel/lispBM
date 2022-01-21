@@ -29,6 +29,7 @@
 #include "lispbm_types.h"
 #include "lispbm_memory.h"
 #include "env.h"
+#include "compression.h"
 
 extern int lbm_init(lbm_cons_t *heap_storage, uint32_t heap_size,
                     uint32_t *memory, uint32_t memory_size,

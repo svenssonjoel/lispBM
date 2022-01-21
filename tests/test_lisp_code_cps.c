@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
 
 
   res = lbm_memory_init(memory, LBM_MEMORY_SIZE_16K,
-                    bitmap, LBM_MEMORY_BITMAP_SIZE_16K);
+                        bitmap, LBM_MEMORY_BITMAP_SIZE_16K);
   if (res)
     printf("Memory initialized.\n");
   else {

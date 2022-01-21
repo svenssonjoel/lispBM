@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021 Joel Svensson	svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022 Joel Svensson	svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,31 +14,52 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+#define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <getopt.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include <unistd.h>
 
-#include "heap.h"
-#include "symrepr.h"
-#include "eval_cps.h"
-#include "print.h"
-#include "tokpar.h"
-#include "prelude.h"
-#include "compression.h"
-#include "memory.h"
+#include "lispbm.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 
+/* Tokenizer state for strings */
+static lbm_tokenizer_string_state_t string_tok_state;
+/* Tokenizer statefor compressed data */
+static tokenizer_compressed_state_t comp_tok_state;
+/* shared tokenizer */
+static lbm_tokenizer_char_stream_t string_tok;
+
+
+uint32_t timestamp_callback() {
+  struct timeval tv;
+  gettimeofday(&tv,NULL);
+  return (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec);
+}
+
+void sleep_callback(uint32_t us) {
+  struct timespec s;
+  struct timespec r;
+  s.tv_sec = 0;
+  s.tv_nsec = (long)us * 1000;
+  nanosleep(&s, &r);
+}
+
+void *eval_thd_wrapper(void *v) {
+  lbm_run_eval();
+  return NULL;
+}
+
 int main(int argc, char **argv) {
 
-  int res = 0;
-
   unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard
-  bool growing_continuation_stack = false;
   bool compress_decompress = false;
+  pthread_t lispbm_thd;
 
   int c;
   opterr = 1;
@@ -47,9 +68,6 @@ int main(int argc, char **argv) {
     switch (c) {
     case 'h':
       heap_size = (unsigned int)atoi((char *)optarg);
-      break;
-    case 'g':
-      growing_continuation_stack = true;
       break;
     case 'c':
       compress_decompress = true;
@@ -62,10 +80,9 @@ int main(int argc, char **argv) {
   }
   printf("------------------------------------------------------------\n");
   printf("Heap size: %u\n", heap_size);
-  printf("Growing stack: %s\n", growing_continuation_stack ? "yes" : "no");
   printf("Compression: %s\n", compress_decompress ? "yes" : "no");
   printf("------------------------------------------------------------\n");
-	 
+
   if (argc - optind < 1) {
     printf("Incorrect arguments\n");
     return 0;
@@ -95,80 +112,72 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  unsigned char *memory = malloc(MEMORY_SIZE_16K);
-  unsigned char *bitmap = malloc(MEMORY_BITMAP_SIZE_16K);
+  uint32_t *memory = (uint32_t*)malloc(4 * LBM_MEMORY_SIZE_16K);
+  uint32_t *bitmap = (uint32_t*)malloc(4 * LBM_MEMORY_BITMAP_SIZE_16K);
   if (memory == NULL || bitmap == NULL) return 0;
-  
-  res = lbm_memory_init(memory, MEMORY_SIZE_16K,
-		    bitmap, MEMORY_BITMAP_SIZE_16K);
-  if (res)
-    printf("Memory initialized. Memory size: %u Words. Free: %u Words.\n", lbm_memory_num_words(), lbm_memory_num_free());
-  else {
-    printf("Error initializing memory!\n");
-    return 0;
-  }
-  
-  res = lbm_symrepr_init();
-  if (res)
-    printf("Symrepr initialized.\n");
-  else {
-    printf("Error initializing symrepr!\n");
-    return 0;
-  }
-  
-  res = lbm_heap_init(heap_size);
-  if (res)
-    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
-  else {
-    printf("Error initializing heap!\n");
+
+  lbm_cons_t *heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
+  if (heap_storage == NULL) {
     return 0;
   }
 
-  res = eval_cps_init_nc(EVAL_CPS_STACK_SIZE, false);
-  if (res)
-    printf("Evaluator initialized.\n");
-  else {
-    printf("Error initializing evaluator.\n");
+  lbm_init(heap_storage, heap_size,
+           memory, LBM_MEMORY_SIZE_16K,
+           bitmap, LBM_MEMORY_BITMAP_SIZE_16K);
+
+  lbm_set_timestamp_us_callback(timestamp_callback);
+  lbm_set_usleep_callback(sleep_callback);
+
+  if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
+    printf("Error creating evaluation thread\n");
+    return 1;
   }
 
-  lbm_value prelude = prelude_load();
-  eval_cps_program_nc(prelude);
+  prelude_load(&string_tok_state,
+               &string_tok);
+  lbm_cid cid = lbm_load_and_eval_program(&string_tok);
+
+  lbm_wait_ctx(cid);
 
   lbm_value t;
-  
-  if (compress_decompress) { 
+  char *compressed_code;
+  char decompress_code[8192];
+
+  if (compress_decompress) {
     uint32_t compressed_size = 0;
-    char *compressed_code = lbm_compress(code_buffer, &compressed_size);
+    compressed_code = lbm_compress(code_buffer, &compressed_size);
     if (!compressed_code) {
       printf("Error compressing code\n");
       return 0;
     }
-    char decompress_code[8192];
     lbm_decompress(decompress_code, 8192, compressed_code);
     printf("\n\nDECOMPRESS TEST: %s\n\n", decompress_code);
-    
-    t = tokpar_parse_compressed(compressed_code);
-    free(compressed_code);
-  } else { 
-    t = tokpar_parse(code_buffer);
-  } 
-  //printf("I: "); simple_print(t); printf("\n");
+    lbm_create_char_stream_from_compressed(&comp_tok_state,
+                                           &string_tok,
+                                           compressed_code);
+  } else {
+     lbm_create_char_stream_from_string(&string_tok_state,
+                                        &string_tok,
+                                        code_buffer);
+  }
 
-  t = eval_cps_program_nc(t);
+  cid = lbm_load_and_eval_program(&string_tok);
+
+  t = lbm_wait_ctx(cid);
 
   char output[1024];
-  char error[1024];
-  
-  int v =  lbm_print_value(output,1024,error,1024,t);
+
+  if (compress_decompress) {
+    free(compressed_code);
+  }
+
+  int v =  lbm_print_value(output,1024,t);
 
   if (v >= 0) {
     printf("> %s\n", output);
   } else {
-    printf("> %s\n", error);
+    printf("> %s\n", output);
   }
-  
-  symrepr_del();
-  heap_del();
 
   return v;
 }
