@@ -1510,7 +1510,7 @@ static inline void cont_read(eval_context_t *ctx) {
 
   lbm_stream_t *str = lbm_dec_stream(stream);
 
-  lbm_value tok = ctx->r;
+  lbm_value tok;
   bool read_done = false;
 
   bool app_cont = false;
@@ -1562,7 +1562,7 @@ static inline void cont_read(eval_context_t *ctx) {
                                  first_cell, last_cell,
                                  lbm_enc_u(DOT_TERMINATE)));
         } else {
-          lbm_value new_cell = NIL;
+          lbm_value new_cell;
           CONS_WITH_GC(new_cell, ctx->r, NIL, stream);
           if (lbm_type_of(last_cell) == LBM_PTR_TYPE_CONS) {
             lbm_set_cdr(last_cell, new_cell);
@@ -1669,7 +1669,7 @@ static inline void cont_read(eval_context_t *ctx) {
               // be an eval error rather than an READ_ERROR.
             } else {
               error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
-              read_done = true;
+              return;  // there is no context to keep working in so return.
             }
           } else {
             // This may be dead code as the expression case does
@@ -1682,7 +1682,7 @@ static inline void cont_read(eval_context_t *ctx) {
               read_done = true;
             } else {
               error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
-              read_done = true;
+              return; // there is no context to keep working in so return.
             }
           }
           break;
@@ -1702,7 +1702,7 @@ static inline void cont_read(eval_context_t *ctx) {
             } else {
               // parsing failed and left a corrupted stack.
               error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
-              read_done = true;
+              return; // there is no context to keep working in so return.
             }
           } else {
             if (ctx->K.sp > sp_start &&
@@ -1714,7 +1714,7 @@ static inline void cont_read(eval_context_t *ctx) {
             } else if (ctx->K.sp < sp_start) {
               /*the stack is broken */
               error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
-              read_done = true;
+              return; // there is no context to keep working in so return.
             } else {
               app_cont = true;
             }
@@ -2015,8 +2015,7 @@ static lbm_cid eval_cps_load_and_eval(lbm_tokenizer_char_stream_t *tokenizer, bo
 
   /* LISP ZONE */
 
-  lbm_value launcher = NIL;
-  launcher = lbm_cons(lisp_stream, NIL);
+  lbm_value launcher = lbm_cons(lisp_stream, NIL);
   launcher = lbm_cons(lbm_enc_sym(program ? SYM_READ_PROGRAM : SYM_READ), launcher);
   lbm_value evaluator = lbm_cons(launcher, NIL);
   evaluator = lbm_cons(lbm_enc_sym(program ? SYM_EVAL_PROGRAM : SYM_EVAL), evaluator);
@@ -2071,13 +2070,11 @@ static lbm_cid eval_cps_load_and_define(lbm_tokenizer_char_stream_t *tokenizer, 
 
   /* LISP ZONE */
 
-  lbm_value launcher = NIL;
-  launcher = lbm_cons(lisp_stream, NIL);
+  lbm_value launcher = lbm_cons(lisp_stream, NIL);
   launcher = lbm_cons(lbm_enc_sym(program ? SYM_READ_PROGRAM : SYM_READ), launcher);
   lbm_value binding = lbm_cons(launcher, NIL);
   binding = lbm_cons(lbm_enc_sym(sym_id), binding);
-  lbm_value definer = lbm_cons(binding, NIL);
-  definer = lbm_cons(lbm_enc_sym(SYM_DEFINE), binding);
+  lbm_value definer = lbm_cons(lbm_enc_sym(SYM_DEFINE), binding);
   definer  = lbm_cons(definer, NIL);
   /* LISP ZONE ENDS */
 
@@ -2121,8 +2118,7 @@ static lbm_cid lbm_eval_defined(char *symbol, bool program) {
 
   /* LISP ZONE */
 
-  lbm_value launcher = NIL;
-  launcher = lbm_cons(lbm_enc_sym(sym_id), NIL);
+  lbm_value launcher = lbm_cons(lbm_enc_sym(sym_id), NIL);
   lbm_value evaluator = launcher;
   evaluator = lbm_cons(lbm_enc_sym(program ? SYM_EVAL_PROGRAM : SYM_EVAL), evaluator);
   lbm_value start_prg = lbm_cons(evaluator, NIL);
