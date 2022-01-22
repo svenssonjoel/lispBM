@@ -1660,8 +1660,8 @@ static inline void cont_read(eval_context_t *ctx) {
             if (ctx->K.sp >= sp_start+4 &&
                 ctx->K.data[sp_start] == lbm_enc_u(READ_DONE) &&
                 ctx->K.data[sp_start+3] == lbm_enc_u(APPEND_CONTINUE)) {
-              // stack seems fine 
-              ctx->K.sp = sp_start; 
+              // stack seems fine
+              ctx->K.sp = sp_start;
               ctx->r = lbm_enc_sym(SYM_RERROR);
               ctx->app_cont = true;
               read_done = true;
@@ -1673,10 +1673,10 @@ static inline void cont_read(eval_context_t *ctx) {
             }
           } else {
             // This may be dead code as the expression case does
-            // not seem to end up here.  
+            // not seem to end up here.
             if (ctx->K.sp >= sp_start &&
                 ctx->K.data[sp_start] == lbm_enc_u(READ_DONE)) {
-              ctx->K.sp = sp_start; 
+              ctx->K.sp = sp_start;
               ctx->r = lbm_enc_sym(SYM_RERROR);
               ctx->app_cont = true;
               read_done = true;
