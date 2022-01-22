@@ -60,8 +60,8 @@ There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3Ta
 14. (DONE) Update all example REPLs after adding quasiquotation
 15. Implement some looping structure for speed or just ease of use.
 16. Be much more stringent on checking of error conditions etc.
-17. The parser allocates heap memory, but there is no interfacing with the GC there.
-18. The parser uses a lot of stack memory, fix by making tail recursive and accumulating lists onto heap directly. 
+17. (DONE) The parser allocates heap memory, but there is no interfacing with the GC there.
+18. (DONE) The parser uses a lot of stack memory, fix by making tail recursive and accumulating lists onto heap directly. 
 19. (DONE) Rename files with names that may conflict with common stuff (memory.h, memory.c). 
 20. (DONE) It should be possible to reset the runtime system. 
 21. More built in arithmetic.
