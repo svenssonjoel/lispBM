@@ -66,7 +66,8 @@ There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3Ta
 20. (DONE) It should be possible to reset the runtime system. 
 21. More built in arithmetic.
 22. More built in comparisons.
-23. Add messages to lisp process mailbox from C to unlock blocked proc.
+23. (DONE) Add messages to lisp process mailbox from C to unlock blocked proc.
+24. Doxygen?
 
 ## Very platform dependent TODOs 
 1. Save images (heap + symbol memory) to flash or sd-card.

@@ -572,7 +572,7 @@ static lbm_value find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   }
 
   /* check the current context */
-  if (ctx_running->id == cid) {
+  if (ctx_running && ctx_running->id == cid) {
     lbm_value new_mailbox = lbm_cons(msg, ctx_running->mailbox);
 
     if (lbm_type_of(new_mailbox) == LBM_VAL_TYPE_SYMBOL) {
@@ -2141,3 +2141,17 @@ lbm_cid lbm_eval_defined_program(char *symbol) {
   return lbm_eval_defined(symbol, true);
 }
 
+int lbm_send_message(lbm_cid cid, lbm_value msg) {
+  int res = 0;
+
+  if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
+
+    lbm_value v = find_receiver_and_send(cid, msg);
+
+    if (lbm_type_of(v) == LBM_VAL_TYPE_SYMBOL &&
+        lbm_dec_sym(v) == SYM_TRUE) {
+      res = 1;
+    }
+  }
+  return res;
+}

@@ -409,8 +409,6 @@ int main(int argc, char **argv) {
         lbm_continue_eval();
 
         printf("started ctx: %u\n", cid);
-        lbm_wait_ctx((lbm_cid)cid);
-
       }
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
       allow_print = true;
@@ -459,6 +457,30 @@ int main(int argc, char **argv) {
       lbm_load_and_define_program(&string_tok, "prelude");
 
       lbm_continue_eval();
+      /* Something better is needed. 
+         this sleep ís to ensure the string is alive until parsing 
+         is done */
+      sleep_callback(10000);
+    } else if (strncmp(str, ":send", 5) == 0) {
+
+      int id;
+      int i_val;
+      
+      if (sscanf(str + 5, "%d%d", &id, &i_val) == 2) {
+        lbm_pause_eval();
+        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+              
+        if (lbm_send_message((lbm_cid)id, lbm_enc_i(i_val)) == 0) {
+          printf("Could not send message\n");
+        }
+                         
+        lbm_continue_eval();
+      } else {
+        printf("Incorrect arguments to send\n");
+      }
+      
     } else {
 
       /* Get exclusive access to the heap */
@@ -468,14 +490,17 @@ int main(int argc, char **argv) {
       }
       printf("loading: %s\n", str);
       lbm_create_char_stream_from_string(&string_tok_state,
-                                            &string_tok,
-                                            str);
+                                         &string_tok,
+                                         str);
       lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
 
       lbm_continue_eval();
 
       printf("started ctx: %u\n", cid);
-      lbm_wait_ctx((lbm_cid)cid);
+      /* Something better is needed. 
+         this sleep ís to ensure the string is alive until parsing 
+         is done */
+      sleep_callback(10000);
     }
   }
   free(heap_storage);

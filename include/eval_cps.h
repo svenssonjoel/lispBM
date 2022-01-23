@@ -88,4 +88,6 @@ extern lbm_cid lbm_load_and_define_expression(lbm_tokenizer_char_stream_t *token
 extern lbm_cid lbm_eval_defined_expression(char *symbol);
 extern lbm_cid lbm_eval_defined_program(char *symbol);
 
+/* send message from c to LBM process */
+extern int lbm_send_message(lbm_cid cid, lbm_value msg);
 #endif
