@@ -1187,6 +1187,11 @@ static inline void cont_application(eval_context_t *ctx) {
        depth.
 
        I am very unsure about the correctness here.
+
+       Jan 2022:
+       This is ok. Only if this function is part of a progn
+       is there a need to restore the environment after the call.
+       progn is responsible for this saving and restoring.
        ************************************************************ */
     lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
     ctx->curr_exp = exp;
