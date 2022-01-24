@@ -33,6 +33,10 @@ lbm_value *lbm_get_env_ptr(void) {
   return &env_global;
 }
 
+lbm_value lbm_get_env(void) {
+  return env_global;
+}
+
 // Copies just the skeleton structure of an environment
 // The new "copy" will have pointers to the original key-val bindings.
 lbm_value lbm_env_copy_shallow(lbm_value env) {
