@@ -1,3 +1,4 @@
+/** \file extensions.h */
 /*
     Copyright 2019, 2022 Joel Svensson        svenssonjoel@yahoo.se
                     2022 Benjamin Vedder
@@ -23,12 +24,34 @@
 #include "heap.h"
 #include "lispbm_types.h"
 
+/** Type representing an extension function.
+ * \param Pointer to array of lbm_values.
+ * \param Number of arguments.
+ * \return Result value.
+ */
 typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
 
+/** Initialize the extensions subsystem.
+ * \return 1
+ */
 extern int lbm_extensions_init(void);
+/** Look up an extension associated with a key symbol.
+ *
+ * \param sym Symbol bound to the extension to look for.
+ * \return extension_fptr on success or NULL on failure.
+ */
 extern extension_fptr lbm_get_extension(lbm_uint sym);
+/** Adds a symbol-extension mapping.
+ * \param sym_str String representation of symbol to use as key.
+ * \param ext The extension function pointer.
+ * \return true on success and false on failure.
+ */
 extern bool lbm_add_extension(char *sym_str, extension_fptr ext);
 
+/** Check if an lbm_value is a symbol that is bound to an extension.
+ * \param exp Key to look up.
+ * \return true if the lbm_value respresents an extension otherwise false.
+ */
 static inline bool lbm_is_extension(lbm_value exp) {
   return ((lbm_type_of(exp) == LBM_VAL_TYPE_SYMBOL) &&
           (lbm_get_extension(lbm_dec_sym(exp)) != NULL));

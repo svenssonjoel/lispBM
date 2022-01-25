@@ -68,6 +68,7 @@ There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3Ta
 22. More built in comparisons.
 23. (DONE) Add messages to lisp process mailbox from C to unlock blocked proc.
 24. Doxygen?
+25. Tutorials?
 
 ## Very platform dependent TODOs 
 1. Save images (heap + symbol memory) to flash or sd-card.
