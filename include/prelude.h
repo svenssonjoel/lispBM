@@ -1,3 +1,4 @@
+/** \file prelude.h */
 /*
     Copyright 2019, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
@@ -20,6 +21,11 @@
 
 #include "lispbm_types.h"
 
+/** Creates the tokenizer state needed to load the prelude library into the heap.
+ *
+ * \param lbm_tokenizer_string_state_t pointer
+ * \param lbm_tokenizer_char_stream_t pointer
+ */
 extern void prelude_load(lbm_tokenizer_string_state_t *,
                          lbm_tokenizer_char_stream_t *);
 

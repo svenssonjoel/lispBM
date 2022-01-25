@@ -1,5 +1,4 @@
-#ifndef STACK_H_
-#define STACK_H_
+/** \file stack.h */
 /*
     Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
 
@@ -16,6 +15,10 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#ifndef STACK_H_
+#define STACK_H_
+
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -30,6 +33,12 @@ typedef struct {
   unsigned int max_sp;
 } lbm_stack_t;
 
+/** Allocate a stack on the symbols and arrays memory.
+ *  lbm_memory_init must have been run before this function or it will fail.
+ * \param s pointer to an lbm_stack_t to initialize.
+ * \param stack_size Size in 32 bit words of stack to allocate.
+ * \return 1 on success and 0 on failure.
+ */
 extern int lbm_stack_allocate(lbm_stack_t *s, unsigned int stack_size);
 extern int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, unsigned int size);
 extern void lbm_stack_free(lbm_stack_t *s);
