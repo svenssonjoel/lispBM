@@ -3,6 +3,10 @@
 @author Bo Joel Svensson (svenssonjoel@yahoo.se).
 \license GNU General Public License
 
+<h2> Source repository </h2>
+
+https://github.com/svenssonjoel/lispBM
+
 <h2> Documentation </h2>
 
 Environment: \ref env.h <br>
