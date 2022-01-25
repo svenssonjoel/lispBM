@@ -1,0 +1,16 @@
+/**
+ * @mainpage LispBM
+ * @author Bo Joel Svensson (svenssonjoel@yahoo.se).
+ *
+ * 
+ *
+ * <h2> Documentation </h2>
+ *
+ * Environment: \ref env.h <br>
+ * Extensions: \ref extensions.h <br>
+ * Symbol and array memory: \ref lispbm_memory.h <br>
+ * 
+ *
+ *
+ * \image html lispbm_llama_small.png  
+ */

@@ -1,3 +1,4 @@
+/** \file lispbm_memory.h */
 /*
     Copyright 2020, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
@@ -99,11 +100,37 @@
 #define LBM_MEMORY_BITMAP_SIZE_32K LBM_MEMORY_BITMAP_SIZE(512)
 #define LBM_MEMORY_BITMAP_SIZE_1M  LBM_MEMORY_BITMAP_SIZE(16384)
 
+/** Initialize the symbols and arrays memory
+ *
+ * \param data Pointer to an array of uint32_t for data storage.
+ * \param data_size The size of the data storage array in number of uint32_t elements.
+ * \param bitmap Pointer to an array of uint32_t for memory allocator meta-data.
+ * \param bitmap_size The size of the meta-data in number of uint32_t elements.
+ * \return
+ */
 extern int lbm_memory_init(uint32_t *data, uint32_t data_size,
-                       uint32_t *bitmap, uint32_t bitmap_size);
+                           uint32_t *bitmap, uint32_t bitmap_size);
+/** Size of of the symbols and arrays memory in uint32_t chunks.
+ *
+ * \return Numberof uint32_t words.
+ */
 extern uint32_t lbm_memory_num_words(void);
+/**
+ *
+ * \return The number of free words in the symbols and arrays memory.
+ */
 extern uint32_t lbm_memory_num_free(void);
+/** Allocate a number of words from the symbols and arrays memory.
+ *
+ * \param num_words Number of words to allocate.
+ * \return pointer to allocated array or NULL.
+ */
 extern uint32_t *lbm_memory_allocate(uint32_t num_words);
+/** Free an allocated array int the symbols and arrays memory.
+ *
+ * \param ptr Pointer to array to free.
+ * \return 1 on success and 0 on failure.
+ */
 extern int lbm_memory_free(uint32_t *ptr);
 
 #endif
