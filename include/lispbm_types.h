@@ -1,3 +1,4 @@
+/** \file lispbm_types.h */
 /*
     Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
 
@@ -22,8 +23,13 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-typedef uint32_t lbm_value; // A Lisp value.
-typedef uint32_t lbm_type;  // Representation of a type.
+/** A lispBM value.
+ *  Can represent a character, 28 bit signed or unsigned integer.
+ *  A value can also represent a pointer to a heap cell or to boxed 32 bit values such as a float.
+ */
+typedef uint32_t lbm_value;
+/** A lispBM type. */
+typedef uint32_t lbm_type;
 
 typedef uint32_t lbm_uint;
 typedef int32_t  lbm_int;
@@ -35,18 +41,24 @@ typedef float    lbm_float;
 #define PRI_INT   PRId32
 #define PRI_FLOAT "f"
 
+/**
+ * Represents a lisp process "context"-id
+ */
 typedef uint16_t lbm_cid;
 #define CID_MAX   65535
 
 /* tokenizer */
 
-typedef struct lbm_tcs{
+struct lbm_tcs{
   void *state;
   bool (*more)(struct lbm_tcs*);
   char (*get)(struct lbm_tcs*);
   char (*peek)(struct lbm_tcs*, unsigned int);
   void (*drop)(struct lbm_tcs*, unsigned int);
-} lbm_tokenizer_char_stream_t;
+};
+
+/** Tokenizer character stream */
+typedef struct lbm_tcs lbm_tokenizer_char_stream_t;
 
 
 
