@@ -20,7 +20,8 @@
  *  symrepr.h implements the symbol table and symbol creation and lookup functions.
  *
  *  The symbol table is implemented as a linked list in the arrays and symbols
- *  memory defined in lispbm_memory.h. So lbm_memory_init must be run before the symbol table is initialized.
+ *  memory defined in lispbm_memory.h. So lbm_memory_init must be run before
+ *  the symbol table is initialized and used.
  *
  */
 

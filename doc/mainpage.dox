@@ -14,7 +14,9 @@ Extensions: \ref extensions.h <br>
 Stacks: \ref stack.h <br>
 Streams: \ref streams.h <br>
 Symbol and array memory: \ref lispbm_memory.h <br>
+Symbol table: \ref symrepr.h <br>
 Types: \ref lispbm_types.h <br>
+Quasiquotation: \ref qq_expand.h <br>
 
 \image html lispbm_llama_small.png
 

@@ -14,10 +14,17 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/** \file qq_expand.h  */
 
 #ifndef _QQ_EXPAND_H
 #define _QQ_EXPAND_H
 
+/** Expand a quasiquoted expression using a C:ified
+ *  version of the algorithm presented in Alan Bawden's "Quasiquotation in lisp"
+ *
+ * \param Quasiquoted value
+ * \return value where quasiquotations have been removed and expanded.
+ */
 extern lbm_value lbm_qq_expand(lbm_value);
 
 #endif
