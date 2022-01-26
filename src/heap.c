@@ -435,50 +435,6 @@ void lbm_gc_state_inc(void) {
   heap_state.gc_marked = 0;
 }
 
-
-int lbm_perform_gc(lbm_value env) {
-  lbm_gc_state_inc();
-
-  lbm_gc_mark_freelist();
-  lbm_gc_mark_phase(env);
-  return lbm_gc_sweep_phase();
-}
-
-int heap_perform_gc_extra(lbm_value env, lbm_value env2, lbm_value exp, lbm_value exp2, lbm_value list) {
-  lbm_gc_state_inc();
-
-  lbm_gc_mark_freelist();
-  lbm_gc_mark_phase(exp);
-  lbm_gc_mark_phase(exp2);
-  lbm_gc_mark_phase(env);
-  lbm_gc_mark_phase(env2);
-  lbm_gc_mark_phase(list);
-
-#ifdef VISUALIZE_HEAP
-  heap_vis_gen_image();
-#endif
-
-  return lbm_gc_sweep_phase();
-}
-
-int lbm_perform_gc_aux(lbm_value env, lbm_value env2, lbm_value exp, lbm_value exp2, lbm_value exp3, lbm_uint *aux_data, unsigned int aux_size) {
-  lbm_gc_state_inc();
-
-  lbm_gc_mark_freelist();
-  lbm_gc_mark_phase(exp);
-  lbm_gc_mark_phase(exp2);
-  lbm_gc_mark_phase(exp3);
-  lbm_gc_mark_phase(env);
-  lbm_gc_mark_phase(env2);
-  lbm_gc_mark_aux(aux_data, aux_size);
-
-#ifdef VISUALIZE_HEAP
-  heap_vis_gen_image();
-#endif
-
-  return lbm_gc_sweep_phase();
-}
-
 // construct, alter and break apart
 lbm_value lbm_cons(lbm_value car, lbm_value cdr) {
   lbm_value addr = lbm_heap_allocate_cell(LBM_PTR_TYPE_CONS);
@@ -519,23 +475,22 @@ lbm_value lbm_cdr(lbm_value c){
   return lbm_enc_sym(SYM_TERROR);
 }
 
-bool lbm_set_car(lbm_value c, lbm_value v) { // Todo: Where are these used?
-                                 //   Can then return VALUE instead?
-  bool r = false;
+int lbm_set_car(lbm_value c, lbm_value v) {
+  int r = 0;
   if (lbm_is_ptr(c) && lbm_type_of(c) == LBM_PTR_TYPE_CONS) {
     lbm_cons_t *cell = ref_cell(c);
     set_car_(cell,v);
-    r = true;
+    r = 1;
   }
   return r;
 }
 
-bool lbm_set_cdr(lbm_value c, lbm_value v) {
-  bool r = false;
+int lbm_set_cdr(lbm_value c, lbm_value v) {
+  int r = 0;
   if (lbm_type_of(c) == LBM_PTR_TYPE_CONS){
     lbm_cons_t *cell = ref_cell(c);
     set_cdr_(cell,v);
-    r = true;
+    r = 1;
   }
   return r;
 }

@@ -24,7 +24,8 @@ Symbol table: \ref symrepr.h <br>
 Types: \ref lispbm_types.h <br>
 Quasiquotation: \ref qq_expand.h <br>
 
-<h2> Language reference <h2>
+<h2> Language reference </h2>
+
 
 \image html lispbm_llama_small.png
 

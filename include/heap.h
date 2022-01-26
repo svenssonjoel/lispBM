@@ -247,38 +247,154 @@ typedef struct {
   uint32_t size;            // Number of elements
 } lbm_array_header_t;
 
+/** Initialize heap storage.
+ *
+ * \param addr Pointer to an array of lbm_cons_t elements. This array must at least be aligned 4.
+ * \param num_cells Number of lbm_cons_t elements in the array.
+ * \return 1 on success or 0 for failure.
+ */
 extern int lbm_heap_init(lbm_cons_t *addr, unsigned int num_cells);
+/** Check how many lbm_cons_t cells are on the free-list
+ *
+ * \return Number of free lbm_cons_t cells.
+ */
 extern unsigned int lbm_heap_num_free(void);
+/** Check how many lbm_cons_t cells are allocated.
+ *
+ * \return  Number of lbm_cons_t cells that are currently allocated.
+ */
 extern unsigned int lbm_heap_num_allocated(void);
+/** Size of the heap in number of lbm_cons_t cells.
+ *
+ * \return Size of the heap in number of lbm_cons_t cells.
+ */
 extern unsigned int lbm_heap_size(void);
-extern lbm_value lbm_heap_allocate_cell(lbm_type type);
+/** Size of the heap in bytes.
+ *
+ * \return Size of heap in bytes.
+ */
 extern unsigned int lbm_heap_size_bytes(void);
+/** Allocate an lbm_cons_t cell from the heap.
+ *
+ * \param type A type that can be encoded onto the cell (most often LBM_PTR_TYPE_CONS).
+ * \return An lbm_value referring to a cons_cell or enc_sym(SYM_MERROR) in case the heap is full.
+ */
+extern lbm_value lbm_heap_allocate_cell(lbm_type type);
 
-extern char *lbm_dec_str(lbm_value);
+/** Decode an lbm_value representing a string into a C string
+ *
+ * \param val Value
+ * \return String or NULL if the value does not encode a string.
+ */
+extern char *lbm_dec_str(lbm_value val);
+/** Decode an lbm_value representing a stream into an lbm_stream_t pointer.
+ *
+ * \param val Value
+ * \return A pointer to an lbm_stream_t or NULL if the value does not encode a stream.
+ */
 extern lbm_stream_t *lbm_dec_stream(lbm_value val);
-extern lbm_uint lbm_dec_as_u(lbm_value);
-extern lbm_int lbm_dec_as_i(lbm_value);
-extern lbm_float lbm_dec_as_f(lbm_value);
+/** Decode a numerical value as if it is unsigned
+ *
+ * \param val Value to decode
+ * \return The value encoded in val casted to an unsigned int. Returns 0 if val does not encode a number.
+ */
+extern lbm_uint lbm_dec_as_u(lbm_value val);
+/** Decode a numerical value as a signed integer.
+ *
+ * \param val Value to decode
+ * \return The value encoded in val casted to a signed int. Returns 0 if val does not encode a number.
+ */
+extern lbm_int lbm_dec_as_i(lbm_value val);
+/** Decode a numerical value as a float.
+ *
+ * \param val Value to decode.
+ * \return The value encoded in val casted to a float. Returns 0 if val does not encode a number.
+ */
+extern lbm_float lbm_dec_as_f(lbm_value val);
 
+/** Allocates an lbm_cons_t cell from the heap and populates it.
+ *
+ * \param car The value to put in the car field of the allocated lbm_cons_t.
+ * \param cdr The value to put in the cdr field of the allocated lbm_cons_t.
+ * \return A value referencing the lbm_cons_t or enc_sym(SYM_MERROR) if heap is full.
+ */
 extern lbm_value lbm_cons(lbm_value car, lbm_value cdr);
+
+/** Accesses the car field of an lbm_cons_t.
+ *
+ * \param cons Value
+ * \return The car field of the lbm_cons_t if cons is a reference to a heap cell.
+ * If cons is nil, the return value is nil. If the value
+ * is not cons or nil, the return value is enc_sym(SYM_TERROR) for type error.
+ */
 extern lbm_value lbm_car(lbm_value cons);
+/** Accesses the cdr field of an lbm_cons_t.
+ *
+ * \param cons Value
+ * \return The cdr field of the lbm_cons_t if cons is a reference to a heap cell.
+ * If cons is nil, the return value is nil. If the value
+ * if not cons or nil, the return value is enc_sym(SYM_TERROR) for type error.
+ */
 extern lbm_value lbm_cdr(lbm_value cons);
-extern bool lbm_set_car(lbm_value c, lbm_value v);
-extern bool lbm_set_cdr(lbm_value c, lbm_value v);
+/** Update the value stored in the car field of a heap cell.
+ *
+ * \param c Value referring to a heap cell.
+ * \param v Value to replace the car field with.
+ * \return 1 on success and 0 if the c value does not refer to a heap cell.
+ */
+extern int lbm_set_car(lbm_value c, lbm_value v);
+/** Update the value stored in the cdr field of a heap cell.
+ *
+ * \param c Value referring to a heap cell.
+ * \param v Value to replace the cdr field with.
+ * \return 1 on success and 0 if the c value does not refer to a heap cell.
+ */
+extern int lbm_set_cdr(lbm_value c, lbm_value v);
 
 // List functions
+/** Calculate the length of a proper list
+ * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
+ * may lead to the function not terminating.
+ *
+ * \param c A list
+ * \return The length of the list. Unless the value is a cyclic structure on the heap, this function will terminate.
+ */
 extern unsigned int lbm_list_length(lbm_value c);
+/** Reverse a proper list
+ * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
+ * may lead to the function not terminating.
+ *
+ * \param list A list
+ * \return The list reversed or enc_sym(SYM_MERROR) if heap is full.
+ */
 extern lbm_value lbm_list_reverse(lbm_value list);
+/** Copy a list
+ * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
+ * may lead to the function not terminating.
+ *
+ * \param list A list.
+ * \return Reversed list or enc_sym(SYM_MERROR) if heap is full.
+ */
 extern lbm_value lbm_list_copy(lbm_value list);
+
+/** A destructive append of two lists
+ *
+ * \param list1 A list
+ * \param list2 A list
+ * \return list1 with list2 appended at the end.
+ */
 extern lbm_value lbm_list_append(lbm_value list1, lbm_value list2);
 
 
 // State and statistics
+/** Get a copy of the heap statistics structure.
+ *
+ * \param A pointer to an lbm_heap_state_t to populate
+ * with the current statistics.
+ */
 extern void lbm_get_heap_state(lbm_heap_state_t *);
 
 // Garbage collection
-extern int lbm_perform_gc(lbm_value env);
-extern int lbm_perform_gc_aux(lbm_value env, lbm_value env2, lbm_value exp, lbm_value exp2, lbm_value exp3, lbm_uint *aux_data, unsigned int aux_size);
 extern void lbm_gc_state_inc(void);
 extern int lbm_gc_mark_freelist(void);
 extern int lbm_gc_mark_phase(lbm_value v);
