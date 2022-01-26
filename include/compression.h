@@ -14,6 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/** \file compression.h */
 
 #ifndef COMPRESSION_H_
 #define COMPRESSION_H_
@@ -30,6 +31,7 @@ typedef struct {
   char *src;
 } decomp_state; 
 
+/* This buffer may be too small really... */
 #define DECOMP_BUFF_SIZE 32
 
 typedef struct {
@@ -40,19 +42,28 @@ typedef struct {
 } tokenizer_compressed_state_t;
 
 extern void lbm_init_compression_state(decomp_state *s, char *src);
-
-/* 
-   Compress performs destructive changes to 
-   the input string and cannot be called on constant string literal pointers 
-   for example.
  
-   Compress returns an array that caller must free 
-*/ 
+/** Compress lisp code. This function is not suitable for execution on a microcontroller.
+ *
+ * \param string String to compress. This string cannot be constant.
+ *  The compression algorithm will make destructive updates to the input string.
+ * \param res_size The resulting, compressed, size is stored in this variable.
+ * \return A pointer to compressed data allocated using malloc. The user is
+ * responsible for freeing this memory.
+ */
 extern char *lbm_compress(char *string, uint32_t *res_size);
+
+/* Maybe these should not be exposed at all */
 extern int  lbm_decompress_incremental(decomp_state *s, char *dest_buff, uint32_t dest_n);
 extern bool lbm_decompress(char *dest, uint32_t dest_n, char *src);
 
-/* parse compressed code */
+
+/** Create a tokenizer for compressed data
+ *
+ * \param ts Pointer to tokenizer_compressed_state_t to initialize.
+ * \param str Pointer to tokenizer_char_stream_t to initialize.
+ * \param bytes Pointer to the compressed data.
+ */
 extern void lbm_create_char_stream_from_compressed(tokenizer_compressed_state_t *ts,
                                                    lbm_tokenizer_char_stream_t *str,
                                                    char *bytes);

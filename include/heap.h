@@ -14,6 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/** \file heap.h */
 
 #ifndef HEAP_H_
 #define HEAP_H_
@@ -210,11 +211,17 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_VAL_TYPE_U                  0x00000008u // 11  0   0
 #define LBM_VAL_TYPE_I                  0x0000000Cu // 10  0   0
 
+/** Struct representing a heap cons-cell.
+ *
+ */
 typedef struct {
   lbm_value car;
   lbm_value cdr;
 } lbm_cons_t;
 
+/**
+ *  Heap statistics struct.
+ */
 typedef struct {
   lbm_cons_t  *heap;
   bool  malloced;           // allocated by heap_init
@@ -232,6 +239,9 @@ typedef struct {
   unsigned int gc_recovered_arrays;// Number of arrays recovered by sweep.
 } lbm_heap_state_t;
 
+/**
+ *  The header portion of an array stored in array and symbol memory.
+ */
 typedef struct {
   lbm_type elt_type;            // Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
   uint32_t size;            // Number of elements

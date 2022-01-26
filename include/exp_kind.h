@@ -1,5 +1,5 @@
 /*
-    Copyright 2020, 2021     Joel Svensson      svenssonjoel@yahoo.se
+    Copyright 2020, 2021, 2022   Joel Svensson      svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/** \file exp_kind.h */
 
 #ifndef _EXP_KIND_H_
 #define _EXP_KIND_H_
@@ -21,22 +22,31 @@
 #include "heap.h"
 #include "symrepr.h"
 
+/**
+ *  A set of classes of expressions.
+ *  The classification is useful for deciding upon evaluation pattern to apply
+ */
 typedef enum {
-  EXP_KIND_ERROR,
-  EXP_SELF_EVALUATING,
-  EXP_VARIABLE,
-  EXP_QUOTED,
-  EXP_DEFINE,
-  EXP_LAMBDA,
-  EXP_IF,
-  EXP_PROGN,
-  EXP_NO_ARGS,
-  EXP_APPLICATION,
-  EXP_LET,
-  EXP_AND,
-  EXP_OR
+  EXP_KIND_ERROR,     /**< EXP_KIND_ERROR */
+  EXP_SELF_EVALUATING,/**< EXP_SELF_EVALUATING */
+  EXP_VARIABLE,       /**< EXP_VARIABLE */
+  EXP_QUOTED,         /**< EXP_QUOTED */
+  EXP_DEFINE,         /**< EXP_DEFINE */
+  EXP_LAMBDA,         /**< EXP_LAMBDA */
+  EXP_IF,             /**< EXP_IF */
+  EXP_PROGN,          /**< EXP_PROGN */
+  EXP_NO_ARGS,        /**< EXP_NO_ARGS */
+  EXP_APPLICATION,    /**< EXP_APPLICATION */
+  EXP_LET,            /**< EXP_LET */
+  EXP_AND,            /**< EXP_AND */
+  EXP_OR              /**< EXP_OR */
 } lbm_exp_kind;
 
+/** Classify an expression according the lbm_exp_kind classes.
+ *
+ * \param exp Expression to classify.
+ * \return Class that expression belongs to.
+ */
 static inline lbm_exp_kind lbm_exp_kind_of(lbm_value exp) {
 
   switch (lbm_type_of(exp)) {

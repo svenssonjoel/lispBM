@@ -14,10 +14,22 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/** \file fundamental.h
+ *
+ *  Implementation of the built in functions of the lispbm language (such as +, -, ... ).
+ *
+ */
 
 #ifndef _FUNDAMENTAL_H_
 #define _FUNDAMENTAL_H_
 
+/** Executes a fundamental operation on an array of arguments.
+ *
+ * \param args  Pointer to array of lbm_value.
+ * \param nargs Number of arguments in the argument array.
+ * \param op An lbm_value (symbol) representing the operation to perform.
+ * \return Returns a result value on success and enc_sym(SYM_EERROR) "evaluation error" on failure.
+ */
 extern lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op);
 #endif
 

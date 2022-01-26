@@ -48,7 +48,7 @@ void heap_vis_gen_image(void) {
 
   if (pix_data == NULL) return; 
   
-  uint32_t *heap = (uint32_t*)hs.heap_base;
+  uint32_t *heap = (uint32_t*)hs.heap;
 
   for (i = 0; i < num_pix*2; i +=2 ) {
 

@@ -377,7 +377,7 @@ static void finish_ctx(void) {
   ctx_running = NULL;
 }
 
-bool lbm_remove_done_ctx(lbm_cid cid, lbm_value *v) {
+int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v) {
 
   eval_context_t *ctx = lookup_ctx(&done, cid);
 
@@ -387,9 +387,9 @@ bool lbm_remove_done_ctx(lbm_cid cid, lbm_value *v) {
     *v = ctx->r;
     lbm_stack_free(&ctx->K);
     lbm_memory_free((uint32_t*)ctx);
-    return true;
+    return 1;
   }
-  return false;
+  return 0;
 }
 
 /* Dangerous function that will lock up if called
