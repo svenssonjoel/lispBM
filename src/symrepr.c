@@ -140,10 +140,10 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
 static uint32_t *symlist = NULL;
 static lbm_uint next_symbol_id = 0;
 
-bool lbm_symrepr_init(void) {
+int lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = 0;
-  return true;
+  return 1;
 }
 
 const char *lookup_symrepr_name_memory(lbm_uint id) {
