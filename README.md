@@ -63,12 +63,13 @@ There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3Ta
 17. (DONE) The parser allocates heap memory, but there is no interfacing with the GC there.
 18. (DONE) The parser uses a lot of stack memory, fix by making tail recursive and accumulating lists onto heap directly. 
 19. (DONE) Rename files with names that may conflict with common stuff (memory.h, memory.c). 
-20. (DONE) It should be possible to reset the runtime system. 
+20. (DONE) It should be possible to reset the runtime system.
 21. More built in arithmetic.
 22. More built in comparisons.
 23. (DONE) Add messages to lisp process mailbox from C to unlock blocked proc.
 24. Doxygen?
 25. Tutorials?
+26. Make uniform how to return success or failure. It is sometimes bool and sometimes int right now. 
 
 ## Very platform dependent TODOs 
 1. Save images (heap + symbol memory) to flash or sd-card.

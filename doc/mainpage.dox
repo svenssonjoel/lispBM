@@ -11,6 +11,7 @@ https://github.com/svenssonjoel/lispBM
 
 Environment: \ref env.h <br>
 Extensions: \ref extensions.h <br>
+Stacks: \ref stack.h <br>
 Symbol and array memory: \ref lispbm_memory.h <br>
 Types: \ref lispbm_types.h <br>
 

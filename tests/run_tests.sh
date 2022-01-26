@@ -26,12 +26,16 @@ expected_fails=("test_lisp_code_cps -h 512 test_qq_4.lisp"
                 "test_lisp_code_cps_nc -c -h 512 test_qq_5.lisp"
                 "test_lisp_code_cps_nc -c -h 512 test_sumtree_0.lisp"
                 "test_lisp_code_cps_nc -c -h 512 test_sumtree_1.lisp"
-                "test_lisp_code_cps_nc -c -h 512 test_sumtree_2.lisp")
+                "test_lisp_code_cps_nc -c -h 512 test_sumtree_2.lisp"
+                "test_lisp_code_cps -h 1024 test_take_iota_0.lisp"
+                "test_lisp_code_cps -c -h 1024 test_take_iota_0.lisp"
+                "test_lisp_code_cps -h 512 test_take_iota_0.lisp"
+                "test_lisp_code_cps -c -h 512 test_take_iota_0.lisp"
+               )
 
 
 success_count=0
 fail_count=0
-excluded_count=0
 failing_tests=()
 result=0
 
@@ -63,24 +67,12 @@ for prg in "test_lisp_code_cps" ; do
     for arg in  "-h 32768" "-c -h 32768" "-h 16384" "-c -h 16384" "-h 8192" "-c -h 8192" "-h 4096" "-c -h 4096" "-h 2048"  "-c -h 2048" "-h 1024" "-c -h 1024" "-h 512" "-c -h 512" ; do
         for lisp in *.lisp; do
 
-            # exclude
-            if [ "$arg" = "-h 1024" ] ||
-               [ "$arg" = "-c -h 1024" ] ||
-               [ "$arg" = "-h 512" ] ||
-               [ "$arg" = "-c -h 512" ]; then
-                if [ "$lisp" = "test_take_iota_0.lisp" ]; then
-                    excluded_count=$((excluded_count+1))
-                    continue
-                fi
-            fi
-
-
             ./$prg $arg $lisp
 
             result=$?
 
             echo "------------------------------------------------------------"
-            echo $arg
+            #echo $arg
             if [ $result -eq 1 ]
             then
                 success_count=$((success_count+1))
@@ -88,17 +80,17 @@ for prg in "test_lisp_code_cps" ; do
             else
 
                 #!/bin/bash
-                foo=('foo bar' 'foo baz' 'bar baz')
-                bar=$(printf ",%s" "${foo[@]}")
-                bar=${bar:1}
+                # foo=('foo bar' 'foo baz' 'bar baz')
+                # bar=$(printf ",%s" "${foo[@]}")
+                # bar=${bar:1}
 
-                echo $bar
+                # echo $bar
                 str=$(printf "%s " "$prg $arg $lisp")
-                echo $str
+                #echo $str
 
                 failing_tests+=("$prg $arg $lisp")
                 fail_count=$((fail_count+1))
-                echo $failing_tests
+                #echo $failing_tests
 
                 echo $lisp FAILED
             fi
@@ -107,7 +99,9 @@ for prg in "test_lisp_code_cps" ; do
     done
 done
 
-echo -e $failing_tests
+# echo -e $failing_tests
+
+expected_count=0
 
 for (( i = 0; i < ${#failing_tests[@]}; i++ ))
 do
@@ -121,6 +115,7 @@ do
       fi
   done
   if $expected ; then
+      expected_count=$((expected_count+1))
       echo "(OK - expected to fail)" ${failing_tests[$i]}
   else
       echo "(FAILURE)" ${failing_tests[$i]}
@@ -130,7 +125,8 @@ done
 
 echo Tests passed: $success_count
 echo Tests failed: $fail_count
-echo Tests excluded: $excluded_count
+echo Expected fails: $expected_count
+echo Actual fails: $((fail_count - expected_count))
 
 if [ $fail_count -gt 0 ]
 then

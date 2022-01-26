@@ -35,30 +35,76 @@ typedef struct {
 
 /** Allocate a stack on the symbols and arrays memory.
  *  lbm_memory_init must have been run before this function or it will fail.
- * \param s pointer to an lbm_stack_t to initialize.
+ * \param s Pointer to an lbm_stack_t to initialize.
  * \param stack_size Size in 32 bit words of stack to allocate.
  * \return 1 on success and 0 on failure.
  */
 extern int lbm_stack_allocate(lbm_stack_t *s, unsigned int stack_size);
+/** Create a stack in a statically allocated array.
+ *
+ * \param s Pointer to an lbm_stack_t to initialize.
+ * \param data Pointer to array of 32 bit words to use as the stack storage.
+ * \param size Size in number of 32 bit words.
+ * \return 1
+ */
 extern int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, unsigned int size);
+/** Free a stack allocated on the lispbm_memory.
+ *
+ * \param s Pointer to lbm_stack_t to free.
+ */
 extern void lbm_stack_free(lbm_stack_t *s);
+/** Sets the stack SP to 0.
+ *
+ * \param s Stack to clear.
+ * \return 1
+ */
 extern int lbm_stack_clear(lbm_stack_t *s);
+/** Get a pointer to the nth element (from the top) of a stack.
+ *
+ * \param s Stack.
+ * \param n Index.
+ * \return Pointer into the stack or NULL.
+ */
 extern lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, unsigned int n);
+/** Drop n elements (from the top) of a stack.
+ *
+ * \param s Stack to drop elements from.
+ * \param n Number of elements to drop.
+ * \return 1 on Success and 0 on failure.
+ */
 extern int lbm_stack_drop(lbm_stack_t *s, unsigned int n);
+/** Push an element onto a stack.
+ *
+ * \param s Stack to push a value onto.
+ * \param val Value to push to the stack.
+ * \return 1 on success and 0 on failure (stack is full).
+ */
 extern int lbm_push_u32(lbm_stack_t *s, lbm_uint val);
+/** Pop a value from a stack.
+ *
+ * \param s Stack to pop a value from.
+ * \param val Pointer to an lbm_value to store the pop:ed value int.
+ * \return 1 on success and 0 on failure (stack is empty).
+ */
 extern int lbm_pop_u32(lbm_stack_t *s, lbm_uint *val);
 
+/** Check if a stack is empty.
+ *
+ * \param s Stack to check.
+ * \return 1 if stack is empty otherwise 0.
+ */
 static inline int lbm_stack_is_empty(lbm_stack_t *s) {
   if (s->sp == 0) return 1;
   return 0;
 }
 
-//static inline int stack_arg_ix(lbm_stack_t *s, unsigned int ix, lbm_uint *res) {
-//  if (ix > s->sp-1) return 0;
-//  *res = s->data[s->sp-(ix+1)];
-//  return 1;
-//}
-
+/** Push 2 values to a stack.
+ *
+ * \param s Stack to push values onto.
+ * \param val0 Is pushed first.
+ * \param val1 Is pushed last.
+ * \return 1 on success and 0 on failure (stack is full).
+ */
 static inline int lbm_push_u32_2(lbm_stack_t *s, lbm_uint val0, lbm_uint val1) {
   int res = 1;
   res &= lbm_push_u32(s,val0);
@@ -66,6 +112,14 @@ static inline int lbm_push_u32_2(lbm_stack_t *s, lbm_uint val0, lbm_uint val1) {
   return res;
 }
 
+/** Push 3 values to a stack.
+ *
+ * \param s Stack to push values onto.
+ * \param val0
+ * \param val1
+ * \param val2
+ * \return 1 on success and 0 on failure (stack is full).
+ */
 static inline int lbm_push_u32_3(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2) {
   int res = 1;
   res &= lbm_push_u32(s,val0);
@@ -74,6 +128,15 @@ static inline int lbm_push_u32_3(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, l
   return res;
 }
 
+/** Push 4 values to a stack.
+ *
+ * \param s Stack to push values onto.
+ * \param val0
+ * \param val1
+ * \param val2
+ * \param val3
+ * \return 1 on success and 0 on failure (stack is full).
+ */
 static inline int lbm_push_u32_4(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2, lbm_uint val3) {
   int res = 1;
   res &= lbm_push_u32(s,val0);
@@ -83,6 +146,16 @@ static inline int lbm_push_u32_4(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, l
   return res;
 }
 
+/** Push 5 values to a stack.
+ *
+ * \param s Stack to push values onto.
+ * \param val0
+ * \param val1
+ * \param val2
+ * \param val3
+ * \param val4
+ * \return 1 on success and 0 on failure (stack is full).
+ */
 static inline int lbm_push_u32_5(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, lbm_uint val2, lbm_uint val3, lbm_uint val4) {
   int res = 1;
   res &= lbm_push_u32(s,val0);
@@ -93,6 +166,13 @@ static inline int lbm_push_u32_5(lbm_stack_t *s, lbm_uint val0, lbm_uint val1, l
   return res;
 }
 
+/** Pop 2 values from a stack.
+ *
+ * \param s Stack to pop values from.
+ * \param r0 Pointer to lbm_value where the first pop:ed value will be stored.
+ * \param r1 Pointer to lbm_value where the seconds pop:ed value will be stored.
+ * \return 1 on success and 0 on failure (stack is empty).
+ */
 static inline int lbm_pop_u32_2(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1) {
   int res = 1;
   res &= lbm_pop_u32(s, r0);
@@ -100,6 +180,14 @@ static inline int lbm_pop_u32_2(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1) {
   return res;
 }
 
+/** Pop 3 values from a stack.
+ *
+ * \param s Stack to pop values from.
+ * \param r0
+ * \param r1
+ * \param r2
+ * \return 1 on success and 0 on failure (stack is empty).
+ */
 static inline int lbm_pop_u32_3(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint *r2) {
   int res = 1;
   res &= lbm_pop_u32(s, r0);
@@ -108,6 +196,15 @@ static inline int lbm_pop_u32_3(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_
   return res;
 }
 
+/** Pop 4 values from a stack.
+ *
+ * \param s Stack to pop values from.
+ * \param r0
+ * \param r1
+ * \param r2
+ * \param r3
+ * \return 1 on success and 0 on failure (stack is empty).
+ */
 static inline int lbm_pop_u32_4(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint *r2, lbm_uint *r3) {
   int res = 1;
   res &= lbm_pop_u32(s, r0);
@@ -117,6 +214,16 @@ static inline int lbm_pop_u32_4(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_
   return res;
 }
 
+/** Pop 5 values from a stack.
+ *
+ * \param s Stack to pop values from.
+ * \param r0
+ * \param r1
+ * \param r2
+ * \param r3
+ * \param r4
+ * \return 1 on success and 0 on failure (stack is empty).
+ */
 static inline int lbm_pop_u32_5(lbm_stack_t *s, lbm_uint *r0, lbm_uint *r1, lbm_uint *r2, lbm_uint *r3, lbm_uint *r4) {
   int res = 1;
   res &= lbm_pop_u32(s, r0);
