@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** \file lispbm.h */
 
 #ifndef LISPBM_H_
 #define LISPBM_H_
@@ -31,6 +32,22 @@
 #include "env.h"
 #include "compression.h"
 
+/** Initialize lispBM. This function initials all subsystems by calling:
+ *  - \ref lbm_memory_init
+ *  - \ref lbm_symrepr_init
+ *  - \ref lbm_heap_init
+ *  - \ref lbm_init_env
+ *  - \ref lbm_eval_init
+ *  - \ref lbm_extensions_init
+ *
+ * \param heap_storage Pointer to array of lbm_cons_t to use as heap. This array must be aligned 4 at least.
+ * \param heap_size Size of heap storage array in number of lm_cons_t.
+ * \param memory Pointer to uint32_t array to use for the arrays and symbols memory. This array must be aligned 4 at least.
+ * \param memory_size  Size of the memory array.
+ * \param memory_bitmap Pointer to uint32_t array to use for the memory subsystem meta-data.
+ * \param bitmap_size Size of the memory meta-data array.
+ * \return 1 on success and 0 on failure.
+ */
 extern int lbm_init(lbm_cons_t *heap_storage, uint32_t heap_size,
                     uint32_t *memory, uint32_t memory_size,
                     uint32_t *memory_bitmap, uint32_t bitmap_size);

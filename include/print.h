@@ -15,6 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/** \file print.h */
 
 #ifndef PRINT_H_
 #define PRINT_H_
@@ -22,6 +23,14 @@
 #include <stdint.h>
 #include "lispbm_types.h"
 
+/** Print an lbm_value into a buffer provided by the user.
+ *  If printing fails, the buffer may contain an error message.
+ *
+ * \param buf Buffer to print into.
+ * \param len The size of the buffer in bytes.
+ * \param t The value to print.
+ * \return negative number for failure and the number of printed characters on success.
+ */
 extern int lbm_print_value(char *buf,unsigned int len, lbm_value t);
 
 #endif
