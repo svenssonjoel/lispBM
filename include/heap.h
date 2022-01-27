@@ -395,16 +395,50 @@ extern lbm_value lbm_list_append(lbm_value list1, lbm_value list2);
 extern void lbm_get_heap_state(lbm_heap_state_t *);
 
 // Garbage collection
+/** Increment the counter that is counting the number of times GC ran
+ *
+ */
 extern void lbm_gc_state_inc(void);
+/** Mark all heap cells that are on the free-list.
+ *
+ * \return 1 on success or 0 if the free-list is corrupted.
+ */
 extern int lbm_gc_mark_freelist(void);
+/** Mark heap cells reachable from the lbm_value v.
+ *
+ * \param v Root node to start marking from.
+ * \return 1 on success and 0 if the stack used internally is full.
+ */
 extern int lbm_gc_mark_phase(lbm_value v);
+/** Performs lbm_gc_mark_phase on all the values of an array.
+ *
+ * \param data Array of roots to traverse from.
+ * \param n Number of elements in roots-array.
+ * \return 1 on success or 0 for failure.
+ */
 extern int lbm_gc_mark_aux(lbm_uint *data, unsigned int n);
+
+/** Sweep up all non marked heap cells and place them on the free list.
+ *
+ * \return 1
+ */
 extern int lbm_gc_sweep_phase(void);
 
-
 // Array functionality
+/** Allocate an array in symbols and arrays memory (lispbm_memory.h)
+ * and create a heap cell that refers to this array.
+ * \param res The resulting lbm_value is returned through this argument.
+ * \param size Array size in number of 32 bit words.
+ * \param type The type information to encode onto the heap cell.
+ * \return 1 for success of 0 for failure.
+ */
 extern int lbm_heap_allocate_array(lbm_value *res, unsigned int size, lbm_type type);
 
+/** Query the type information of a value.
+ *
+ * \param x Value to check the type of.
+ * \return The type information.
+ */
 static inline lbm_type lbm_type_of(lbm_value x) {
   return (x & LBM_PTR_MASK) ? (x & LBM_PTR_TYPE_MASK) : (x & LBM_VAL_TYPE_MASK);
 }

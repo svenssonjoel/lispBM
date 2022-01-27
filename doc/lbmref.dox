@@ -1,0 +1,190 @@
+/** \page lbmref LispBM language reference
+\tableofcontents
+
+
+<a name="nil"><h3>nil</h3></a>
+
+Represents the empty list. The nil value is also considered to be false by
+conditionals<br>
+\note
+The example below creates a one element list by allocating a cons cell and putting a value (1) in the <a href="#car"> car </a> field
+and nil in the <a href="#cdr"> cdr </a> field.<br>
+\code{.lisp}
+(cons 1 nil)
+\endcode
+
+
+---
+
+<a name="t"><h3>t</h3></a>
+
+All non nil values are considered true in conditionals. t should be used in cases where an
+explicit true makes sense.
+
+---
+\section sec_forms Special forms
+
+<a name="quote"> <h3>quote</h3> </a>
+
+Usages of the ' quote symbol in input code is replaced with the symbol quote
+by the reader. <br>
+Evaluating a quoted expression, (quote a), results in a unevaluated.<br>
+\note
+The program string <code>'(+ 1 2) </code> gets read into the heap as the list <code>(quote (+ 1 2))</code>.<br>
+Evaluating the expression <code>(quote (+ 1 2))</code) results in the value <code>(+ 1 2)</code>.
+
+
+---
+
+<a name="if"> <h3>if</h3> </a>
+
+---
+
+<a name="lambda"> <h3>lambda</h3> </a>
+
+---
+
+<a name="closure"> <h3>closure</h3> </a>
+
+---
+
+<a name="let"> <h3>let</h3> </a>
+
+---
+
+<a name="define"> <h3>define</h3> </a>
+
+---
+
+<a name="progn"> <h3>progn</h3> </a>
+
+---
+
+<a name="read"> <h3>read</h3> </a>
+
+---
+
+<a name="read-program"> <h3>read-program</h3> </a>
+
+---
+
+\section sec_pattern Pattern-matching
+
+<a name="match"> <h3>match</h3> </a>
+
+---
+
+<a name="_"> <h3>_</h3> </a>
+
+---
+
+<a name="?"> <h3>?</h3> </a>
+
+---
+
+<a name="?i28"> <h3>?i28</h3> </a>
+
+---
+
+<a name="?u28"> <h3>?u28</h3> </a>
+
+---
+
+<a name="?float"> <h3>?float</h3> </a>
+
+---
+
+<a name="?cons"> <h3>?cons</h3> </a>
+
+---
+
+\section sec_messages Message-passing
+
+<a name="send"> <h3>send</h3> </a>
+
+---
+
+<a name="recv"> <h3>recv</h3> </a>
+
+
+\section sec_unparse Unparsable symbols
+  "no_match"
+  "read_error"
+  "type_error"
+  "eval_error"
+  "out_of_memory"
+  "fatal_error"
+  "out_of_stack"
+  "division_by_zero"
+  "variable_not_bound"
+  
+\section sec_builtin Built-in operations
+
+  "+"
+  "-"
+  "*"
+  "/"
+  "mod"
+  "="
+  "<"
+  ">"
+  "eval"
+  "eval-program"
+  "and"
+  "or"
+  "not"
+  "yield"
+  "wait"
+  "spawn"
+  "num-eq"
+  "car"
+  "cdr"
+  "cons"
+  "list"
+  "append"
+  "array-read"
+  "array-write"
+  "array-create"
+  "type-of"
+  "sym-to-str"
+  "str-to-sym"
+  "sym-to-u"
+  "u-to-sym"
+  "set-car"
+  "set-cdr"
+  "is-fundamental"
+
+\section sec_types Types
+
+  "type-list"
+  "type-i28"
+  "type-u28"
+  "type-float"
+  "type-i32"
+  "type-u32"
+  "type-array"
+  "type-symbol"
+  "type-char"
+  "type-ref"
+  "type-stream"
+
+\section sec_internal Internal symbols
+
+  "sym_openpar"
+  "sym_closepar"
+  "sym_backquote"
+  "sym_comma"
+  "sym_commaat"
+  "sym_dot"
+  "sym_tok_done"
+
+  "sym_array"
+  "sym_boxed_i"
+  "sym_boxed_u"
+  "sym_boxed_f"
+  "sym_ref"
+  "sym_recovered"
+  "sym_bytecode"
+  "sym_nonsense"
+
+*/
