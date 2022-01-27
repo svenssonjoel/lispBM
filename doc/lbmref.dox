@@ -6,6 +6,7 @@
 
 Represents the empty list. The nil value is also considered to be false by
 conditionals<br>
+
 \note
 The example below creates a one element list by allocating a cons cell and putting a value (1) in the <a href="#car"> car </a> field
 and nil in the <a href="#cdr"> cdr </a> field.<br>
@@ -22,6 +23,7 @@ All non nil values are considered true in conditionals. t should be used in case
 explicit true makes sense.
 
 ---
+
 \section sec_forms Special forms
 
 <a name="quote"> <h3>quote</h3> </a>
@@ -31,32 +33,147 @@ by the reader. <br>
 Evaluating a quoted expression, (quote a), results in a unevaluated.<br>
 \note
 The program string <code>'(+ 1 2) </code> gets read into the heap as the list <code>(quote (+ 1 2))</code>.<br>
-Evaluating the expression <code>(quote (+ 1 2))</code) results in the value <code>(+ 1 2)</code>.
+Evaluating the expression <code>(quote (+ 1 2))</code> results in the value <code>(+ 1 2)</code>.
 
 
 ---
 
 <a name="if"> <h3>if</h3> </a>
 
+Conditionals are written as <code>(if cond-expr then-expr else-expr)</code>.
+If the cond-expr evaluates to <a href="#nil"> nil </a> the else-expr will be evaluated.
+for any other value of cond-expr the then-expr will be evalated.
+
+\note
+The example below evaluates to 0 if a is less than or equal to 4. Otherwise it evaluates to a + 10.
+\code
+(if (> a 4) (+ a 10) 0)
+\endcode
+
+
 ---
 
 <a name="lambda"> <h3>lambda</h3> </a>
+
+You create an anonymous function with lambda. The function can be given a name by binding the lambda expression using <a href="#define">define</a>
+or <a href="#let">let</a>. A lambda expression has the form <code>(lambda param-list body-expr)</code>.
+\note
+The example shows an anonymous function that adds one.
+\code
+(lambda (x) (+ x 1))
+\endcode
+A lambda can be immediately applied to an argument.
+\code
+((lambda (x) (+ x 1)) 10)
+\endcode
+The application above results in the value 11. <br>
+Using <a href="#define"> define </a> you can give a name to the function.
+\code
+(define inc (lambda (x) (+ x 1)))
+\endcode
+Now the expression <code>(inc 10)</code> computes the result 11.
+
 
 ---
 
 <a name="closure"> <h3>closure</h3> </a>
 
+<a href="#lambda"> lambda </a> expressions evaluate into closures which are very similar to a <a href="#lambda">lambda</a>
+but extended with a captured environment for any names unbound in the param-list appearing in the body-expr.
+The form of a closure is <code>(closure param-list body-exp environment)</code>.
+
+\note
+Evaluation of the expression
+\code
+(lambda (x) (+ x 1))
+\endcode
+results in the value
+\code
+(closure (x) (+ x 1) nil)
+\endcode<br>
+Below is an example of how a value is captured into the closure.
+\code
+(let ((a 1)) (lambda (x) (+ x a)))
+\endcode
+The expression above evaluates to the following. Note that <code>(a . 1)</code> appears in
+the closure.
+\code
+(closure (x) (+ x a) ((a . 1)))
+\endcode
+
+
 ---
 
 <a name="let"> <h3>let</h3> </a>
+
+Local environments are created using let. The let binding in
+lispbm allows for mutually recursive bindings. The form of a let is
+<code>(let list-of-bindings body-expr)</code> and evaluating this expression
+means that body-expr is evaluted in an environment extended with the list-of-bindings.
+
+\note
+Example that evaluates to 3.
+\code
+(let ((a 1)
+      (b 2))
+  (+ a b))
+\endcode
+Below is a more advanced example of two mutually recursive functions created
+in a let binding.
+\code
+(let ((f (lambda (x) (if (= x 0) 0 (g (- x 1)))))
+      (g (lambda (x) (if (= x 0) 1 (f (- x 1))))))
+  (f 11))
+\endcode
+The mutually recursive program above evaluates to 1.
+
 
 ---
 
 <a name="define"> <h3>define</h3> </a>
 
+You can give names to values in a global scope by using define.
+The form of define is <code>(define name expr)</code>. The expr is evaluated and it is the
+result of the evaluated expr that is stored in the environment.
+In lispbm you can redefine already defined values.
+
+\note
+Example
+\code
+(define apa 10)
+\endcode
+
+
 ---
 
 <a name="progn"> <h3>progn</h3> </a>
+
+The progn special form allows you to sequence a number of expressions.
+The form of a progn expression is:
+\code
+(progn expr1
+       expr2
+       ...
+       exprN)
+\endcode
+The evaluation result of a progn sequence is the value that the last <code>exprN</code>
+evaluated to. This is useful for sequencing of side-effecting operations.
+
+\note
+Simple example that evaluates to 3.
+\code
+(progn 1
+       2
+       3)
+\endcode
+An example where side effects are sequenced.
+\code
+(progn (define a 10)
+       (define b 20)
+       (+ a b))
+\endcode
+This program evaluates 30 but also extends the global environment with the
+2 bindings <code>(a 10)</code> and <code>(b 20)</code> created using <a href="#define">define</a>.
 
 ---
 
@@ -98,6 +215,20 @@ Evaluating the expression <code>(quote (+ 1 2))</code) results in the value <cod
 
 ---
 
+\section sec_concurrency Concurrency
+
+<a name="spawn"> <h3>spawn</h3> </a>
+
+---
+
+<a name="wait"> <h3>wait</h3> </a>
+
+---
+
+<a name="yield"> <h3>yield</h3> </a>
+
+---
+
 \section sec_messages Message-passing
 
 <a name="send"> <h3>send</h3> </a>
@@ -108,83 +239,265 @@ Evaluating the expression <code>(quote (+ 1 2))</code) results in the value <cod
 
 
 \section sec_unparse Unparsable symbols
-  "no_match"
-  "read_error"
-  "type_error"
-  "eval_error"
-  "out_of_memory"
-  "fatal_error"
-  "out_of_stack"
-  "division_by_zero"
-  "variable_not_bound"
-  
+
+<a name="no_match"> <h3>no_match</h3> </a>
+
+---
+
+<a name="read_error"> <h3>read_error</h3> </a>
+
+---
+
+<a name="type_error"> <h3>type_error</h3> </a>
+
+---
+
+<a name="eval_error"> <h3>eval_error</h3> </a>
+
+---
+
+<a name="out_of_memory"> <h3>out_of_memory</h3> </a>
+
+---
+
+<a name="fatal_error"> <h3>fatal_error</h3> </a>
+
+---
+
+<a name="out_of_stack"> <h3>out_of_stack</h3> </a>
+
+--
+
+<a name="division_by_zero"> <h3>division_by_zero</h3> </a>
+
+---
+
+<a name="variable_not_bound"> <h3>variable_not_bound</h3> </a>
+
 \section sec_builtin Built-in operations
 
-  "+"
-  "-"
-  "*"
-  "/"
-  "mod"
-  "="
-  "<"
-  ">"
-  "eval"
-  "eval-program"
-  "and"
-  "or"
-  "not"
-  "yield"
-  "wait"
-  "spawn"
-  "num-eq"
-  "car"
-  "cdr"
-  "cons"
-  "list"
-  "append"
-  "array-read"
-  "array-write"
-  "array-create"
-  "type-of"
-  "sym-to-str"
-  "str-to-sym"
-  "sym-to-u"
-  "u-to-sym"
-  "set-car"
-  "set-cdr"
-  "is-fundamental"
+<a name="+"> <h3>+</h3> </a>
+
+---
+
+<a name="-"> <h3>-</h3> </a>
+
+---
+
+<a name="*"> <h3>*</h3> </a>
+
+---
+
+<a name="/"> <h3>/</h3> </a>
+
+---
+
+<a name="mod"> <h3>mod</h3> </a>
+
+---
+
+<a name="="> <h3>=</h3> </a>
+
+---
+
+<a name=">"> <h3>></h3> </a>
+
+---
+
+<a name="<"> <h3><</h3> </a>
+
+---
+
+<a name="eval"> <h3>eval</h3> </a>
+
+---
+
+<a name="eval-program"> <h3>eval-program</h3> </a>
+
+---
+
+<a name="and"> <h3>and</h3> </a>
+
+---
+
+<a name="or"> <h3>or</h3> </a>
+
+---
+
+<a name="not"> <h3>not</h3> </a>
+
+---
+
+<a name="num-eq"> <h3>num-eq</h3> </a>
+
+---
+
+<a name="car"> <h3>car</h3> </a>
+
+---
+
+<a name="cdr"> <h3>cdr</h3> </a>
+
+---
+
+<a name="cons"> <h3>cons</h3> </a>
+
+---
+
+<a name="list"> <h3>list</h3> </a>
+
+---
+
+<a name="append"> <h3>append</h3> </a>
+
+
+---
+
+<a name="array-read"> <h3>array-read</h3> </a>
+
+
+---
+
+<a name="array-write"> <h3>array-write</h3> </a>
+
+---
+
+<a name="array-create"> <h3>array-create</h3> </a>
+
+---
+
+<a name="type-of"> <h3>type-of</h3> </a>
+
+---
+
+<a name="sym-to-str"> <h3>sym-to-str</h3> </a>
+
+---
+
+<a name="str-to-sym"> <h3>str-to-sym</h3> </a>
+
+---
+
+<a name="sym-to-u"> <h3>sym-to-u</h3> </a>
+
+---
+
+<a name="u-to-sym"> <h3>u-to-sym</h3> </a>
+
+---
+
+<a name="set-car"> <h3>set-car</h3> </a>
+
+---
+
+<a name="set-cdr"> <h3>set-cdr</h3> </a>
+
+---
+
+<a name="is-fundamental"> <h3>is-fundamental</h3> </a>
+
+---
 
 \section sec_types Types
 
-  "type-list"
-  "type-i28"
-  "type-u28"
-  "type-float"
-  "type-i32"
-  "type-u32"
-  "type-array"
-  "type-symbol"
-  "type-char"
-  "type-ref"
-  "type-stream"
+<a name="type-list"> <h3>type-list</h3> </a>
+
+---
+
+<a name="type-i28"> <h3>type-i28</h3> </a>
+
+---
+
+<a name="type-u28"> <h3>type-u28</h3> </a>
+
+---
+
+<a name="type-float"> <h3>type-float</h3> </a>
+
+---
+
+<a name="type-i32"> <h3>type-i32</h3> </a>
+
+---
+
+<a name="type-u32"> <h3>type-u32</h3> </a>
+
+---
+
+<a name="type-array"> <h3>type-array</h3> </a>
+
+---
+
+<a name="type-symbol"> <h3>type-symbol</h3> </a>
+
+---
+
+<a name="type-char"> <h3>type-char</h3> </a>
+
+---
+
+<a name="type-ref"> <h3>type-ref</h3> </a>
+
+---
+
+<a name="type-stream"> <h3>type-stream</h3> </a>
+
+---
 
 \section sec_internal Internal symbols
 
-  "sym_openpar"
-  "sym_closepar"
-  "sym_backquote"
-  "sym_comma"
-  "sym_commaat"
-  "sym_dot"
-  "sym_tok_done"
+<a name="sym_openpar"> <h3>sym_openpar</h3> </a>
 
-  "sym_array"
-  "sym_boxed_i"
-  "sym_boxed_u"
-  "sym_boxed_f"
-  "sym_ref"
-  "sym_recovered"
-  "sym_bytecode"
-  "sym_nonsense"
+---
 
+<a name="sym_closepar"> <h3>sym_closepar</h3> </a>
+
+---
+<a name="sym_backquote"> <h3>sym_backquote</h3> </a>
+
+---
+
+<a name="sym_comma"> <h3>sym_comma</h3> </a>
+
+---
+
+<a name="sym_commaat"> <h3>sym_commaat</h3> </a>
+
+---
+
+<a name="sym_dot"> <h3>sym_dot</h3> </a>
+
+---
+
+<a name="sym_tok_done"> <h3>sym_tok_done</h3> </a>
+
+---
+
+<a name="sym_array"> <h3>sym_array</h3> </a>
+
+---
+
+<a name="sym_boxed_i"> <h3>sym_boxed_i</h3> </a>
+
+---
+
+<a name="sym_boxed_u"> <h3>sym_boxed_u</h3> </a>
+
+---
+
+<a name="sym_boxed_f"> <h3>sym_boxed_f</h3> </a>
+
+---
+
+<a name="sym_ref"> <h3>sym_ref</h3> </a>
+
+---
+
+<a name="sym_recovered"> <h3>sym_recovered</h3> </a>
+
+---
+
+<a name="sym_nonsense"> <h3>sym_nonsense</h3> </a>
+
+---
 */
