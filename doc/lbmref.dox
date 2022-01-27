@@ -78,7 +78,7 @@ Now the expression <code>(inc 10)</code> computes the result 11.
 
 <a name="closure"> <h3>closure</h3> </a>
 
-<a href="#lambda"> lambda </a> expressions evaluate into closures which are very similar to a <a href="#lambda">lambda</a>
+A <a href="#lambda"> lambda </a> expression evaluates into a closure which is very similar to a <a href="#lambda">lambda</a>
 but extended with a captured environment for any names unbound in the param-list appearing in the body-expr.
 The form of a closure is <code>(closure param-list body-exp environment)</code>.
 
@@ -175,13 +175,48 @@ An example where side effects are sequenced.
 This program evaluates 30 but also extends the global environment with the
 2 bindings <code>(a 10)</code> and <code>(b 20)</code> created using <a href="#define">define</a>.
 
+
 ---
 
 <a name="read"> <h3>read</h3> </a>
 
+Parses a string resulting in either an expression or the <a href="#read_error">read_error</a> in case
+the string can not be parsed into an expression. The form of a read expression is
+<code>(read string)</code>.
+
+\note
+The example below evaluates to the value 1.
+\code
+(read "1")
+\endcode
+You can also read code.
+\code
+(read "(lambda (x) (+ x 1))")
+\endcode
+That lambda you just read in from a string can be directly applied to an
+argument.
+\code
+((read "(lambda (x) (+ x 1))") 10)
+\endcode
+The code above evaluates to 11.
+
+
 ---
 
 <a name="read-program"> <h3>read-program</h3> </a>
+
+Parses a string containing multiple sequenced expressed. The resulting list of
+expressions can be evaluated as a program using <a href="#eval-program">eval-program</a>.
+The form of a read-program expression is <code>(read-program string)</code>.
+
+\note
+Evaluate a program you just read from a string with <a href="#eval-program">eval-program</a>.
+\code
+(eval-program (read-program "(define apa 1) (+ 2 apa)"))
+\endcode
+The expression above evaluates to 3 with the side effect that the global environment
+has been extended with the binding <code>(apa 1)</code>.
+
 
 ---
 
