@@ -224,13 +224,56 @@ has been extended with the binding <code>(apa 1)</code>.
 
 <a name="match"> <h3>match</h3> </a>
 
+Pattern-matching is expressed using match. The form of a match expression is
+<code>(match expr (pat1 expr1) ... (patN exprN))</code>. Pattern-matching compares
+the shape of an expression to each of the <code>pat1</code> ... <code>patN</code>
+and evaluates the expression <code>exprM</code> of the pattern that matches.
+In a pattern you can use a number of match-binders or wildcards: <a href="#_">_</a>,
+<a href="#?">?</a>, <a href="#?i28">?i28</a>, <a href="#?u28">?u28</a>, <a href="#?float">?float</a>, 
+<a href="#?cons">?cons</a>. 
+
+\note
+For example the match expression below evaluates to 2.
+\code
+(match 'orange
+       (green 1)
+       (orange 2)
+       (blue 3))
+\endcode
+
+
 ---
 
 <a name="_"> <h3>_</h3> </a>
 
+The underscore pattern matches anything.
+
+\note
+An example that evaluates to <code>i-dont-know</code>
+\code
+(match 'fish
+       (horse 'its-a-horse)
+       (pig 'its-a-pig)
+       (_ 'i-dont-know))
+\endcode
+
+
 ---
 
 <a name="?"> <h3>?</h3> </a>
+
+The ? pattern matches anything and binds that anything to variable.
+Using the ? pattern is done as <code>(? var)</code> and the part of the expression
+that matches is bound to <code>var</code>.
+
+\note
+An example that evaluates to 19. 
+\code
+(match '(orange 17)
+       ((green (? n)) (+ n 1))
+       ((orange (? n)) (+ n 2))
+       ((blue (?n)) (+ n 3)))
+\endcode
 
 ---
 
