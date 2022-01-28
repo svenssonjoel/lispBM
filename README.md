@@ -58,23 +58,24 @@ There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3Ta
 12. (DONE) Remove the "gensym" functionality havent found a use for it so far and it only complicates things.
 13. (DONE) Add NRF52 example repl to repository
 14. (DONE) Update all example REPLs after adding quasiquotation
-15. Implement some looping structure for speed or just ease of use.
-16. Be much more stringent on checking of error conditions etc.
-17. (DONE) The parser allocates heap memory, but there is no interfacing with the GC there.
-18. (DONE) The parser uses a lot of stack memory, fix by making tail recursive and accumulating lists onto heap directly. 
-19. (DONE) Rename files with names that may conflict with common stuff (memory.h, memory.c). 
-20. (DONE) It should be possible to reset the runtime system.
-21. More built in arithmetic.
-22. More built in comparisons.
-23. (DONE) Add messages to lisp process mailbox from C to unlock blocked proc.
-24. Doxygen?
-25. Tutorials?
-26. Make uniform how to return success or failure. It is sometimes bool and sometimes int right now. 
+15. (DONE) The parser allocates heap memory, but there is no interfacing with the GC there.
+16. (DONE) The parser uses a lot of stack memory, fix by making tail recursive and accumulating lists onto heap directly. 
+17. (DONE) Rename files with names that may conflict with common stuff (memory.h, memory.c). 
+18. (DONE) It should be possible to reset the runtime system.
+19. (DONE) Add messages to lisp process mailbox from C to unlock blocked proc.
+20. Make uniform how to return success or failure. It is sometimes bool and sometimes int right now. 
+21. Spawn closures specifically instead of expressions in general.
+22. Implement some looping structure for speed or just ease of use.
+
+## Vague or continuosly ongoing todos 
+1. Doxygen?
+2. Tutorials?
+3. Be much more stringent on checking of error conditions etc.
+4. More built in arithmetic.
+5. More built in comparisons.
 
 ## Very platform dependent TODOs 
 1. Save images (heap + symbol memory) to flash or sd-card.
-
-
 
 ## Compile for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 1. Build the library: `make`
