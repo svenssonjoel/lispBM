@@ -138,9 +138,43 @@ Example of <code>num-eq</code> comparison.
 
 <a name=">"> <h3>></h3> </a>
 
+Greater than comparison. A greater than comparison has the form <code>(> expr1 ... exprN)</code>
+and evaluates to <code>t</code> if expr1 is greater than all of expr2 ... exprN.
+
+\note
+Example
+\code
+(> 5 2)
+\endcode
+
+
 ---
 
 <a name="<"> <h3><</h3> </a>
+
+Less than comparison. A less than comparison has the form <code>(> expr1 ... exprN)</code>
+and evaluates to <code>t</code> if expr1 is less than all of expr2 ... exprN.
+
+\note
+Example
+\code
+(< 5 2)
+\endcode
+
+
+---
+
+\section sec_bool Boolean operators
+
+<a name="and"> <h3>and</h3> </a>
+
+---
+
+<a name="or"> <h3>or</h3> </a>
+
+---
+
+<a name="not"> <h3>not</h3> </a>
 
 ---
 
@@ -506,18 +540,6 @@ An example that evaluates to 19.
 ---
 
 <a name="eval-program"> <h3>eval-program</h3> </a>
-
----
-
-<a name="and"> <h3>and</h3> </a>
-
----
-
-<a name="or"> <h3>or</h3> </a>
-
----
-
-<a name="not"> <h3>not</h3> </a>
 
 ---
 
