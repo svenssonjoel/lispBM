@@ -590,8 +590,8 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     break;
   }
   case SYM_ADD: {
-    lbm_uint sum = args[0];
-    for (lbm_uint i = 1; i < nargs; i ++) {
+    lbm_uint sum = lbm_enc_u(0);
+    for (lbm_uint i = 0; i < nargs; i ++) {
       sum = add2(sum, args[i]);
       if (lbm_type_of(sum) == LBM_VAL_TYPE_SYMBOL) {
         break;
@@ -601,7 +601,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     break;
   }
   case SYM_SUB: {
-    lbm_uint res = args[0];
+    lbm_uint res = nargs == 0 ? lbm_enc_u(0) : args[0];
 
     if (nargs == 1) {
       res = negate(res);
@@ -616,8 +616,8 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     break;
   }
   case SYM_MUL: {
-    lbm_uint prod = args[0];
-    for (lbm_uint i = 1; i < nargs; i ++) {
+    lbm_uint prod = lbm_enc_u(1);
+    for (lbm_uint i = 0; i < nargs; i ++) {
       prod = mul2(prod, args[i]);
       if (lbm_type_of(prod) == LBM_VAL_TYPE_SYMBOL) {
         break;
@@ -627,14 +627,18 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     break;
   }
   case SYM_DIV:  {
-    lbm_uint res = args[0];
-    for (lbm_uint i = 1; i < nargs; i ++) {
-      res = div2(res, args[i]);
-      if (lbm_type_of(res) == LBM_VAL_TYPE_SYMBOL) {
-        break;
+    if (nargs >= 1) {
+      lbm_uint res = args[0];
+      for (lbm_uint i = 1; i < nargs; i ++) {
+        res = div2(res, args[i]);
+        if (lbm_type_of(res) == LBM_VAL_TYPE_SYMBOL) {
+          break;
+        }
       }
+      result = res;
+    } else {
+      result = lbm_enc_sym(SYM_EERROR);
     }
-    result = res;
     break;
   }
   case SYM_MOD: {
