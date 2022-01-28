@@ -1,6 +1,106 @@
 /** \page lbmref LispBM language reference
 \tableofcontents
 
+\section sec_arith Arithmetic
+
+<a name="+"> <h3>+</h3> </a>
+
+Adds up an aribtrary number of values. The form of a + expression is
+<code>(+ expr1 ... exprN)</code>.
+
+\note
+Example adding up two numbers. The result is 3.
+\code
+(+ 1 2)
+\endcode
+When adding up values of different types values are converted.
+\code
+(+ 1i28 3.14)
+\endcode
+The example above evaluates to float value 4.14.<br>
+You can add up multiple values.
+\code
+(+ 1 2 3 4 5 6 7 8 9 10)
+\endcode
+The example above results in the value 55.
+
+
+---
+
+<a name="-"> <h3>-</h3> </a>
+
+Subtract an arbitrary number of values from a value. The form of a - expression is
+<code>(- expr1 ... exprN)</code>
+
+\note
+Example subtracting 3 from 5.
+\code
+(- 5 3)
+\endcode
+
+
+---
+
+<a name="*"> <h3>*</h3> </a>
+
+Multiplying an arbitrary number of values. The form of a * expression is
+<code>(* expr1 ... exprN)</code>
+
+\note
+Example 2pi.
+\code
+(* 2 3.14) 
+\endcode
+
+
+---
+
+<a name="/"> <h3>/</h3> </a>
+
+Division. The form of a / expression is <code>(/ expr1 ... exprN)</code>.
+
+\note
+Divide 128 by 2
+\code
+(/ 128 2)
+\endcode
+The following example evaluates to 1.
+\code
+(/ 128 2 2 2 2 2 2 2)
+\endcode
+
+---
+
+<a name="mod"> <h3>mod</h3> </a>
+
+Modulo operation. The form of a mod expression is <code>(mode expr1 ... exprN)</code>.
+
+\note
+Compute 5 % 3, evaluates to 2.
+\code
+(mod 5 3) 
+\endcode
+
+
+
+---
+
+\section sec_comp Comparisons
+
+<a name="="> <h3>=</h3> </a>
+
+---
+
+<a name=">"> <h3>></h3> </a>
+
+---
+
+<a name="<"> <h3><</h3> </a>
+
+---
+
+
+\section sec_nil nil and t
 
 <a name="nil"><h3>nil</h3></a>
 
@@ -354,37 +454,7 @@ An example that evaluates to 19.
 
 \section sec_builtin Built-in operations
 
-<a name="+"> <h3>+</h3> </a>
 
----
-
-<a name="-"> <h3>-</h3> </a>
-
----
-
-<a name="*"> <h3>*</h3> </a>
-
----
-
-<a name="/"> <h3>/</h3> </a>
-
----
-
-<a name="mod"> <h3>mod</h3> </a>
-
----
-
-<a name="="> <h3>=</h3> </a>
-
----
-
-<a name=">"> <h3>></h3> </a>
-
----
-
-<a name="<"> <h3><</h3> </a>
-
----
 
 <a name="eval"> <h3>eval</h3> </a>
 

@@ -275,8 +275,14 @@ int tok_i(lbm_tokenizer_char_stream_t *str, lbm_int *res) {
       peek(str,n) == '.' ||
       peek(str,n) == 'I') return 0;
 
+  unsigned int ndrop = n;
+  if (peek(str,n) == 'i' &&
+      peek(str,n+1) == '2' &&
+      peek(str,n+2) == '8' ) {
+    ndrop += 3;
+  }
   if (valid_num) {
-    drop(str,n);
+    drop(str,ndrop);
     *res = negative ? -acc : acc;
     return (int)n; /*check that isnt so high that it becomes a negative number when casted */
   }
