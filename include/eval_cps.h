@@ -18,8 +18,8 @@
 #ifndef EVAL_CPS_H_
 #define EVAL_CPS_H_
 
+#include "lbm_types.h"
 #include "stack.h"
-#include "lispbm_types.h"
 
 #define EVAL_CPS_STATE_INIT    0
 #define EVAL_CPS_STATE_PAUSED  1

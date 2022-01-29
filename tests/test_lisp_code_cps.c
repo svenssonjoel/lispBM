@@ -32,7 +32,7 @@
 #include "tokpar.h"
 #include "prelude.h"
 #include "compression.h"
-#include "lispbm_memory.h"
+#include "../include/lbm_memory.h"
 #include "env.h"
 #include "extensions.h"
 

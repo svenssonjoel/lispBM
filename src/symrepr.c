@@ -20,11 +20,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <lbm_memory.h>
 
 #include "symrepr.h"
-#include "lispbm_memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 93
+#define NUM_SPECIAL_SYMBOLS 98
 
 #define NAME   0
 #define ID     1
@@ -133,7 +133,14 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"set-car"        , SYM_SET_CAR},
   {"set-cdr"        , SYM_SET_CDR},
 
-  // fast access
+  // Streams
+  {"stream-get"     , SYM_STREAM_GET},
+  {"stream-more"    , SYM_STREAM_MORE},
+  {"stream-peek"    , SYM_STREAM_PEEK},
+  {"stream-drop"    , SYM_STREAM_DROP},
+  {"stream-put"     , SYM_STREAM_PUT},
+
+  // fast access in list
   {"ix"             , SYM_IX},
 
   // Low-level

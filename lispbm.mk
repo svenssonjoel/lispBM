@@ -3,7 +3,7 @@ first_rule: all
 LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/fundamental.c \
              $(LISPBM)/src/heap.c \
-             $(LISPBM)/src/lispbm_memory.c \
+             $(LISPBM)/src/lbm_memory.c \
              $(LISPBM)/src/print.c \
              $(LISPBM)/src/qq_expand.c \
              $(LISPBM)/src/stack.c \

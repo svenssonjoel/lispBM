@@ -20,7 +20,8 @@
 #define HEAP_H_
 
 #include <string.h>
-#include "lispbm_types.h"
+
+#include "lbm_types.h"
 #include "symrepr.h"
 #include "streams.h"
 

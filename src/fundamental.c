@@ -16,13 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <lbm_types.h>
 #include "symrepr.h"
 #include "stack.h"
 #include "heap.h"
 #include "eval_cps.h"
 #include "print.h"
-#include "lispbm_types.h"
-
 #include <stdio.h>
 #include <math.h>
 

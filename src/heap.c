@@ -20,11 +20,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <lbm_memory.h>
 
 #include "heap.h"
 #include "symrepr.h"
 #include "stack.h"
-#include "lispbm_memory.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif

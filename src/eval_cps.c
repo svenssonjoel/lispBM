@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <lbm_memory.h>
+#include <lbm_types.h>
 #include "symrepr.h"
 #include "heap.h"
 #include "env.h"
@@ -22,10 +24,8 @@
 #include "stack.h"
 #include "fundamental.h"
 #include "extensions.h"
-#include "lispbm_types.h"
 #include "exp_kind.h"
 #include "streams.h"
-#include "lispbm_memory.h"
 #include "tokpar.h"
 #include "qq_expand.h"
 

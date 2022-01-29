@@ -19,11 +19,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <lbm_types.h>
 
 #include "print.h"
 #include "heap.h"
 #include "symrepr.h"
-#include "lispbm_types.h"
 #include "stack.h"
 
 #define PRINT_STACK_SIZE 128 /* 1 KB */
