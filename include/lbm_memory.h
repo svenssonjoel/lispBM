@@ -1,4 +1,4 @@
-/** \file lispbm_memory.h */
+/** \file lbm_memory.h */
 /*
     Copyright 2020, 2022 Joel Svensson        svenssonjoel@yahoo.se
 
