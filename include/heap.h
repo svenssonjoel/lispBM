@@ -224,7 +224,6 @@ typedef struct {
  */
 typedef struct {
   lbm_cons_t  *heap;
-  bool  malloced;           // allocated by heap_init
   lbm_value freelist;           // list of free cons cells.
 
   unsigned int heap_size;          // In number of cells.
@@ -237,6 +236,11 @@ typedef struct {
   unsigned int gc_marked;          // Number of cells marked by mark phase.
   unsigned int gc_recovered;       // Number of cells recovered by sweep phase.
   unsigned int gc_recovered_arrays;// Number of arrays recovered by sweep.
+  unsigned int gc_least_free;      // The smallest length of the freelist.
+
+  uint64_t     gc_time_acc;
+  uint32_t     gc_min_duration;
+  uint32_t     gc_max_duration;
 } lbm_heap_state_t;
 
 /**
@@ -254,6 +258,17 @@ typedef struct {
  * \return 1 on success or 0 for failure.
  */
 extern int lbm_heap_init(lbm_cons_t *addr, unsigned int num_cells);
+
+/** Add GC time statistics to heap_stats
+ *
+ * \param dur Duration as reported by the timestamp callback.
+ */
+extern void lbm_heap_new_gc_time(uint32_t dur);
+/** Add a new free_list length to the heap_stats.
+ *
+ * \param l Current length of freelist.
+ */
+extern void lbm_heap_new_freelist_length(uint32_t l);
 /** Check how many lbm_cons_t cells are on the free-list
  *
  * \return Number of free lbm_cons_t cells.

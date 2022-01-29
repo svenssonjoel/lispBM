@@ -27,9 +27,9 @@
 
 #include "lispbm.h"
 
-/* 
+/*
    (float)chVTTimeElapsedSinceX(x) / (float)CH_CFG_ST_FREQUENCY)
-   
+
    systime_t x = chVTGetSystemTimeX()
 */
 
@@ -103,7 +103,9 @@ void done_callback(eval_context_t *ctx) {
 
 uint32_t timestamp_callback(void) {
   systime_t t = chVTGetSystemTime();
-  return (uint32_t) (100 * t);
+  uint32_t ts = (uint32_t) ((1000000 / CH_CFG_ST_FREQUENCY) * t);
+  //chprintf(chp,"timestamp %d\r\n ", ts);
+  return ts;
 }
 
 void sleep_callback(uint32_t us) {
@@ -368,10 +370,9 @@ int main(void) {
           sleep_callback(10);
         }
 
-        
         systime_t t_eval = chVTGetSystemTimeX();
         cid = lbm_eval_defined_program("prg");
- 
+
         lbm_continue_eval();
         lbm_wait_ctx((lbm_cid)cid);
 
@@ -380,6 +381,13 @@ int main(void) {
         chprintf(chp, "time eval: %fs\r\n", (float)elapsed_eval / (float)CH_CFG_ST_FREQUENCY);
         chprintf(chp, "time load: %fs\r\n", (float)elapsed_load / (float)CH_CFG_ST_FREQUENCY);
 
+        lbm_get_heap_state(&heap_state);
+
+        chprintf(chp, "gc invocations: %d\r\n", heap_state.gc_num);
+        chprintf(chp, "gc time avg: %f\r\n", (float)heap_state.gc_time_acc / (float)heap_state.gc_num);
+        chprintf(chp, "gc min time: %u\r\n", heap_state.gc_min_duration);
+        chprintf(chp, "gc max time: %u\r\n", heap_state.gc_max_duration);
+        chprintf(chp, "gc least free: %u\r\n", heap_state.gc_least_free);
       }
     } else {
 

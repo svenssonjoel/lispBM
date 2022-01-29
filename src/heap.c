@@ -181,11 +181,10 @@ static int generate_freelist(size_t num_cells) {
   return 1;
 }
 
-static void heap_init_state(lbm_cons_t *addr, unsigned int num_cells, bool malloced) {
+static void heap_init_state(lbm_cons_t *addr, unsigned int num_cells) {
   heap_state.heap         = addr;
   heap_state.heap_bytes   = (unsigned int)(num_cells * sizeof(lbm_cons_t));
   heap_state.heap_size    = num_cells;
-  heap_state.malloced = malloced;
 
   heap_state.num_alloc           = 0;
   heap_state.num_alloc_arrays    = 0;
@@ -193,6 +192,24 @@ static void heap_init_state(lbm_cons_t *addr, unsigned int num_cells, bool mallo
   heap_state.gc_marked           = 0;
   heap_state.gc_recovered        = 0;
   heap_state.gc_recovered_arrays = 0;
+  heap_state.gc_least_free       = num_cells;
+
+  heap_state.gc_time_acc = 0;
+  heap_state.gc_max_duration = 0;
+  heap_state.gc_min_duration = UINT32_MAX;
+}
+
+void lbm_heap_new_gc_time(uint32_t dur) {
+  heap_state.gc_time_acc += dur;
+  if (dur > heap_state.gc_max_duration)
+    heap_state.gc_max_duration = dur;
+  if (dur < heap_state.gc_min_duration)
+    heap_state.gc_min_duration = dur;
+}
+
+void lbm_heap_new_freelist_length(uint32_t l) {
+  if (l < heap_state.gc_least_free)
+    heap_state.gc_least_free = l;
 }
 
 int lbm_heap_init(lbm_cons_t *addr, unsigned int num_cells) {
@@ -204,7 +221,7 @@ int lbm_heap_init(lbm_cons_t *addr, unsigned int num_cells) {
 
   memset(addr,0, sizeof(lbm_cons_t) * num_cells);
 
-  heap_init_state(addr, num_cells, false);
+  heap_init_state(addr, num_cells);
 
   return generate_freelist(num_cells);
 }
@@ -278,7 +295,6 @@ unsigned int lbm_heap_size_bytes(void) {
 
 void lbm_get_heap_state(lbm_heap_state_t *res) {
   res->heap                = heap_state.heap;
-  res->malloced            = heap_state.malloced;
   res->freelist            = heap_state.freelist;
   res->heap_size           = heap_state.heap_size;
   res->heap_bytes          = heap_state.heap_bytes;
@@ -288,6 +304,10 @@ void lbm_get_heap_state(lbm_heap_state_t *res) {
   res->gc_marked           = heap_state.gc_marked;
   res->gc_recovered        = heap_state.gc_recovered;
   res->gc_recovered_arrays = heap_state.gc_recovered_arrays;
+  res->gc_least_free       = heap_state.gc_least_free;
+  res->gc_time_acc         = heap_state.gc_time_acc;
+  res->gc_max_duration     = heap_state.gc_max_duration;
+  res->gc_min_duration     = heap_state.gc_min_duration;
 }
 
 static lbm_value stack_storage[1024];

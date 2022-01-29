@@ -736,6 +736,13 @@ static int find_match(lbm_value plist, lbm_value elist, lbm_value *e, lbm_value 
 /* Garbage collection                               */
 static int gc(lbm_value remember1, lbm_value remember2) {
 
+  uint32_t tstart = 0;
+  uint32_t tend = 0;
+
+  if (timestamp_us_callback) {
+    tstart = timestamp_us_callback();
+  }
+
   lbm_gc_state_inc();
   lbm_gc_mark_freelist();
   lbm_gc_mark_phase(*lbm_get_env_ptr());
@@ -783,7 +790,23 @@ static int gc(lbm_value remember1, lbm_value remember2) {
   heap_vis_gen_image();
 #endif
 
-  return lbm_gc_sweep_phase();
+  int r = lbm_gc_sweep_phase();
+
+  if (timestamp_us_callback) {
+    tend = timestamp_us_callback();
+  }
+
+  uint32_t dur = 0;
+  if (tend >= tstart) {
+    dur = tend - tstart;
+  }
+
+  lbm_heap_new_gc_time(dur);
+
+  uint32_t num_free = lbm_heap_num_free();
+  lbm_heap_new_freelist_length(num_free);
+
+  return r;
 }
 
 
