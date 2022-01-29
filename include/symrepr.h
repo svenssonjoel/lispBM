@@ -136,6 +136,13 @@
 
 #define SYM_IS_FUNDAMENTAL      0x150
 
+#define SYM_IX                  0x151
+#define SYM_ENCODE_I32          0x152
+#define SYM_ENCODE_U32          0x153
+#define SYM_ENCODE_FLOAT        0x154
+#define SYM_DECODE              0x155
+
+
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200
 

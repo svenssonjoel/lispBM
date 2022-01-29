@@ -24,7 +24,7 @@
 #include "symrepr.h"
 #include "lispbm_memory.h"
 
-#define NUM_SPECIAL_SYMBOLS 88
+#define NUM_SPECIAL_SYMBOLS 93
 
 #define NAME   0
 #define ID     1
@@ -132,6 +132,16 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"u-to-sym"       , SYM_UINT_TO_SYMBOL},
   {"set-car"        , SYM_SET_CAR},
   {"set-cdr"        , SYM_SET_CDR},
+
+  // fast access
+  {"ix"             , SYM_IX},
+
+  // Low-level
+  {"encode-i32"     , SYM_ENCODE_I32},
+  {"encode-u32"     , SYM_ENCODE_U32},
+  {"encode-float"   , SYM_ENCODE_FLOAT},
+  {"decode"         , SYM_DECODE},
+
   {"is-fundamental" , SYM_IS_FUNDAMENTAL}
 };
 

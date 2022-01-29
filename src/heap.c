@@ -62,6 +62,8 @@ lbm_uint lbm_dec_as_u(lbm_value a) {
   lbm_float f_tmp;
 
   switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_CHAR:
+    return (lbm_uint) lbm_dec_char(a);
   case LBM_VAL_TYPE_I:
     return (lbm_uint) lbm_dec_i(a);
   case LBM_VAL_TYPE_U:
@@ -83,6 +85,8 @@ lbm_int lbm_dec_as_i(lbm_value a) {
   lbm_float f_tmp;
 
   switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_CHAR:
+      return (lbm_int) lbm_dec_char(a);
   case LBM_VAL_TYPE_I:
     return lbm_dec_i(a);
   case LBM_VAL_TYPE_U:
@@ -104,6 +108,8 @@ lbm_float lbm_dec_as_f(lbm_value a) {
   lbm_float f_tmp;
 
   switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_CHAR:
+      return (lbm_float) lbm_dec_char(a);
   case LBM_VAL_TYPE_I:
     return (lbm_float) lbm_dec_i(a);
   case LBM_VAL_TYPE_U:

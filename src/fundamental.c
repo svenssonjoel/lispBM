@@ -21,6 +21,7 @@
 #include "heap.h"
 #include "eval_cps.h"
 #include "print.h"
+#include "lispbm_types.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -445,15 +446,18 @@ void array_create(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 }
 
 
-lbm_value index_list(lbm_value l, int n) {
-  /* TODO: error checking */
+lbm_value index_list(lbm_value l, unsigned int n) {
   lbm_value curr = l;
   while ( lbm_type_of(curr) == LBM_PTR_TYPE_CONS &&
           n > 0) {
     curr = lbm_cdr(curr);
     n --;
   }
-  return lbm_car(curr);
+  if (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+    return lbm_car(curr);
+  } else {
+    return lbm_enc_sym(SYM_NIL);
+  }
 }
 
 lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
@@ -462,6 +466,108 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   int cmp_res = -1;
 
   switch (lbm_dec_sym(op)) {
+  case SYM_IX:
+    if (nargs == 2 && lbm_is_number(args[0])) {
+      result = index_list(args[1], lbm_dec_as_u(args[0]));
+    }
+  break;
+  case SYM_DECODE:
+    if (nargs == 1 && (lbm_is_number(args[0]) ||
+                       lbm_is_char(args[0]))) {
+      switch (lbm_type_of(args[0])) {
+      case LBM_VAL_TYPE_CHAR:
+        /*fall through*/
+      case LBM_VAL_TYPE_I:
+        /* fall through */
+      case LBM_VAL_TYPE_U: {
+        lbm_uint v = lbm_dec_as_u(args[0]);
+        result = lbm_cons(lbm_enc_u(v & 0xFF), lbm_enc_sym(SYM_NIL));
+        result = lbm_cons(lbm_enc_u(v >> 8 & 0xFF), result);
+        result = lbm_cons(lbm_enc_u(v >> 16 & 0xFF), result);
+        result = lbm_cons(lbm_enc_u(v >> 24 & 0xF), result);
+      } break;
+      case LBM_PTR_TYPE_BOXED_F: {
+        lbm_float tmp = lbm_dec_F(args[0]);
+        lbm_uint  v;
+        memcpy(&v, &tmp, sizeof(lbm_uint));
+        result = lbm_cons(lbm_enc_u(v & 0xFF), lbm_enc_sym(SYM_NIL));
+        result = lbm_cons(lbm_enc_u(v >> 8 & 0xFF), result);
+        result = lbm_cons(lbm_enc_u(v >> 16 & 0xFF), result);
+        result = lbm_cons(lbm_enc_u(v >> 24 & 0xFF), result);
+      } break;
+      case LBM_PTR_TYPE_BOXED_I:
+        /* fall through */
+      case LBM_PTR_TYPE_BOXED_U: {
+        lbm_uint v = lbm_dec_as_u(args[0]);
+        result = lbm_cons(lbm_enc_u(v & 0xFF), lbm_enc_sym(SYM_NIL));
+        result = lbm_cons(lbm_enc_u(v >> 8 & 0xFF), result);
+        result = lbm_cons(lbm_enc_u(v >> 16 & 0xFF), result);
+        result = lbm_cons(lbm_enc_u(v >> 24 & 0xFF), result);
+      } break;
+      } // close if
+    }break;
+  /// Encode a list of up to 4 bytes as an i32
+  case SYM_ENCODE_I32:
+    if (nargs == 1 && lbm_type_of(args[0]) == LBM_PTR_TYPE_CONS) {
+      lbm_value curr = args[0];
+      lbm_uint r = 0;
+      int n = 4;
+      while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS && n > 0) {
+        if (n < 4) r = r << 8;
+        if (lbm_is_number(lbm_car(curr))) {
+          uint32_t v = lbm_dec_as_u(lbm_car(curr));
+          r |= v;
+          n --;
+          curr = lbm_cdr(curr);
+        } else {
+          break;
+        }
+      }
+      result = lbm_enc_I((lbm_int)r);
+    }
+    break;
+  /// Encode a list of up to 4 bytes as an U32
+  case SYM_ENCODE_U32:
+      if (nargs == 1 && lbm_type_of(args[0]) == LBM_PTR_TYPE_CONS) {
+        lbm_value curr = args[0];
+        lbm_uint r = 0;
+        int n = 4;
+        while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS && n > 0) {
+          if (n < 4) r = r << 8;
+          if (lbm_is_number(lbm_car(curr))) {
+            uint32_t v = lbm_dec_as_u(lbm_car(curr));
+            r |= v;
+            n --;
+            curr = lbm_cdr(curr);
+          } else {
+            break;
+          }
+        }
+        result = lbm_enc_U(r);
+      }
+      break;
+  /// Encode a list of up to 4 bytes as an U32
+  case SYM_ENCODE_FLOAT:
+    if (nargs == 1 && lbm_type_of(args[0]) == LBM_PTR_TYPE_CONS) {
+      lbm_value curr = args[0];
+      lbm_uint r = 0;
+      lbm_float f;
+      int n = 4;
+      while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS && n > 0) {
+        if (n < 4) r = r << 8;
+        if (lbm_is_number(lbm_car(curr))) {
+          uint32_t v = lbm_dec_as_u(lbm_car(curr));
+          r |= v;
+          n --;
+          curr = lbm_cdr(curr);
+        } else {
+          break;
+        }
+      }
+      memcpy(&f,&r, sizeof(lbm_uint));
+      result = lbm_enc_F(f);
+    }
+    break;
   case SYM_IS_FUNDAMENTAL:
     if (nargs < 1 ||
         lbm_type_of(args[0]) != LBM_VAL_TYPE_SYMBOL)
@@ -583,7 +689,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     }
 
     for (int i = n-1; i >= 0; i --) {
-      result = lbm_cons(index_list(a,i), result);
+      result = lbm_cons(index_list(a,(unsigned int)i), result);
       if (lbm_type_of(result) == LBM_VAL_TYPE_SYMBOL)
         break;
     }
