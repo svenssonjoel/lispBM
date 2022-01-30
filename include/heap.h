@@ -249,8 +249,9 @@ typedef struct {
  *  The header portion of an array stored in array and symbol memory.
  */
 typedef struct {
-  lbm_type elt_type;        // Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
-  uint32_t size;            // Number of elements
+  lbm_type elt_type;        /// Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
+  uint32_t size;            /// Number of elements
+  uint32_t *data;           /// pointer to lbm_memory array or C array.
 } lbm_array_header_t;
 
 /** Initialize heap storage.

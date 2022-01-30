@@ -531,7 +531,7 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
     // TODO: Proper error checking here!
     lbm_heap_allocate_array(&res, (unsigned int)(n-2)+1, LBM_VAL_TYPE_CHAR);
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-    char *data = (char *)arr + 8;
+    char *data = (char *)arr->data;
     memset(data, 0, (unsigned int)((n-2)+1) * sizeof(char));
     memcpy(data, sym_str, (unsigned int)(n - 2) * sizeof(char));
     return res;
