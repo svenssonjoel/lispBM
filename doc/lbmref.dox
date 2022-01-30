@@ -444,32 +444,6 @@ has been extended with the binding <code>(apa 1)</code>.
 
 ---
 
-<a name="array-create"> <h3>array-create</h3> </a>
-
----
-
-\section sec_streams Streams
-
- <a name="stream-get"> <h3>stream-get</h3> </a>
-
----
-
- <a name="stream-more"> <h3>stream-more</h3> </a>
-
----
-
- <a name="stream-peek"> <h3>stream-peek</h3> </a>
-
----
-
- <a name="stream-drop"> <h3>stream-drop</h3> </a>
-
---- 
-
- <a name="stream-put"> <h3>stream-put</h3> </a>
-
----
-
 \section sec_pattern Pattern-matching
 
  <a name="match"> <h3>match</h3> </a>
@@ -761,3 +735,34 @@ An example that evaluates to 19.
 
 
 */
+
+
+
+
+
+<a name="array-create"> <h3>array-create</h3> </a>
+
+---
+
+
+\section sec_streams Streams
+
+ <a name="stream-get"> <h3>stream-get</h3> </a>
+
+---
+
+ <a name="stream-more"> <h3>stream-more</h3> </a>
+
+---
+
+ <a name="stream-peek"> <h3>stream-peek</h3> </a>
+
+---
+
+ <a name="stream-drop"> <h3>stream-drop</h3> </a>
+
+--- 
+
+ <a name="stream-put"> <h3>stream-put</h3> </a>
+
+---

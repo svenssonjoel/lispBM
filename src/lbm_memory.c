@@ -227,3 +227,12 @@ int lbm_memory_free(uint32_t *ptr) {
 
   return 0;
 }
+
+int lbm_memory_ptr_inside(uint32_t *ptr) {
+  int r = 0;
+
+  if ((uint32_t)ptr >= (uint32_t)memory &&
+      (uint32_t)ptr < (uint32_t)memory + (memory_size * 4))
+    r = 1;
+  return r;
+}

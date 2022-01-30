@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 98
+#define NUM_SPECIAL_SYMBOLS 92
 
 #define NAME   0
 #define ID     1
@@ -124,7 +124,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"append"         , SYM_APPEND},
   {"array-read"     , SYM_ARRAY_READ},
   {"array-write"    , SYM_ARRAY_WRITE},
-  {"array-create"   , SYM_ARRAY_CREATE},
+//  {"array-create"   , SYM_ARRAY_CREATE},
   {"type-of"        , SYM_TYPE_OF},
   {"sym-to-str"     , SYM_SYMBOL_TO_STRING},
   {"str-to-sym"     , SYM_STRING_TO_SYMBOL},
@@ -134,11 +134,11 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"set-cdr"        , SYM_SET_CDR},
 
   // Streams
-  {"stream-get"     , SYM_STREAM_GET},
-  {"stream-more"    , SYM_STREAM_MORE},
-  {"stream-peek"    , SYM_STREAM_PEEK},
-  {"stream-drop"    , SYM_STREAM_DROP},
-  {"stream-put"     , SYM_STREAM_PUT},
+//  {"stream-get"     , SYM_STREAM_GET},
+//  {"stream-more"    , SYM_STREAM_MORE},
+//  {"stream-peek"    , SYM_STREAM_PEEK},
+//  {"stream-drop"    , SYM_STREAM_DROP},
+//  {"stream-put"     , SYM_STREAM_PUT},
 
   // fast access in list
   {"ix"             , SYM_IX},

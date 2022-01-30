@@ -133,4 +133,11 @@ extern uint32_t *lbm_memory_allocate(uint32_t num_words);
  */
 extern int lbm_memory_free(uint32_t *ptr);
 
+/** Check if a pointer points into the lbm_memory
+ *
+ * \param ptr
+ * \return 1 for yes and 0 for no.
+ */
+extern int lbm_memory_ptr_inside(uint32_t *ptr);
+
 #endif

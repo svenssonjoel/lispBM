@@ -276,34 +276,12 @@ void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 
   // Get array index
   lbm_uint ix;
-  lbm_int  tmp;
 
   *result = lbm_enc_sym(SYM_EERROR);
-  switch (lbm_type_of(index)) {
-  case LBM_VAL_TYPE_U:
-    ix = lbm_dec_u(index);
-    break;
-  case LBM_VAL_TYPE_I:
-    tmp = (lbm_int)lbm_dec_i(index);
-    if (tmp < 0) {
-      *result = lbm_enc_sym(SYM_EERROR);
-      return;
-    }
-    ix = (lbm_uint)tmp;
-    break;
-  case LBM_PTR_TYPE_BOXED_U:
-    ix = lbm_dec_U(index);
-    break;
-  case LBM_PTR_TYPE_BOXED_I:
-    tmp = lbm_dec_I(index);
-    if (tmp < 0) {
-      *result = lbm_enc_sym(SYM_EERROR);
-      return;
-    }
-    ix = (lbm_uint) tmp;
-    break;
-  default:
-    *result = lbm_enc_sym(SYM_NIL);
+
+  if (lbm_is_number(index)) {
+    ix = lbm_dec_as_u(index);
+  } else {
     return;
   }
 
@@ -437,12 +415,12 @@ void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 }
 
 
-void array_create(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
-  (void) args;
-  (void) nargs;
-  (void) result;
-
-}
+//void array_create(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
+//  (void) args;
+//  (void) nargs;
+//  (void) result;
+//
+//}
 
 
 lbm_value index_list(lbm_value l, unsigned int n) {
@@ -828,10 +806,9 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   case SYM_ARRAY_WRITE:
     array_write(args, nargs, &result);
     break;
-  case SYM_ARRAY_CREATE:
-    array_create(args, nargs, &result);
-    break;
-
+//  case SYM_ARRAY_CREATE:
+//    array_create(args, nargs, &result);
+//    break;
   case SYM_TYPE_OF:
     if (nargs != 1) return lbm_enc_sym(SYM_NIL);
     lbm_value val = args[0];
