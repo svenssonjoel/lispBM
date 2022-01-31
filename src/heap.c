@@ -41,7 +41,7 @@ char *lbm_dec_str(lbm_value val) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
 
     if (array->elt_type == LBM_VAL_TYPE_CHAR) {
-      res = (char *)array + 8;
+      res = (char *)array->data;
     }
   }
   return res;

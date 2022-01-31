@@ -244,8 +244,8 @@ lbm_value token_stream_from_string_value(lbm_value s) {
   }
 
   lbm_create_char_stream_from_string(tok_stream_state,
-                                        tok_stream,
-                                        str);
+                                     tok_stream,
+                                     str);
 
   stream->state = (void*)tok_stream;
   stream->more = token_stream_more;
@@ -818,7 +818,7 @@ static inline void eval_symbol(eval_context_t *ctx) {
 
   if (lbm_is_special(ctx->curr_exp) ||
       (lbm_get_extension(lbm_dec_sym(ctx->curr_exp)) != NULL)) {
-    // Special symbols and extension symbols evaluate to themself
+    // Special symbols and extension symbols evaluate to themselves
     value = ctx->curr_exp;
   } else {
     // If not special, check if there is a binding in the environments
