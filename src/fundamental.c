@@ -270,59 +270,88 @@ static int compare(lbm_uint a, lbm_uint b) {
 
 void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
   (void) nargs;
+  if (nargs < 2) return;
   // Args are: array, index
   lbm_value arr = args[0];
   lbm_value index = args[1];
+  lbm_value index_end = index;
+  lbm_value acc = lbm_enc_sym(SYM_NIL);
+  lbm_value curr = lbm_enc_sym(SYM_EERROR);
+  bool read_many = false;
+
+  if (nargs > 2) {
+    index_end = args[2];
+    read_many = true;
+  }
 
   // Get array index
   lbm_uint ix;
-  *result = lbm_enc_sym(SYM_EERROR);
+  lbm_uint ix_end;
 
-
-  if (lbm_is_number(index)) {
+  if (lbm_is_number(index) && lbm_is_number(index_end)) {
     ix = lbm_dec_as_u(index);
+    ix_end = lbm_dec_as_u(index_end);
   } else {
     return;
+  }
+
+  if (ix > ix_end) {
+    lbm_uint tmp = ix;
+    ix = ix_end;
+    ix_end = tmp;
   }
 
   if (lbm_type_of(arr) == LBM_PTR_TYPE_ARRAY) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
     uint32_t* data = array->data;
 
-    if (ix >= array->size){
-      *result = lbm_enc_sym(SYM_NIL);
-      return;
-    }
+    printf("ix: %d, ix_end: %d\n", ix, ix_end);
+    for (lbm_int i = (lbm_int)ix_end; i >= (lbm_int)ix; i--) {
+      printf("%d\n", i);
+      if ((lbm_uint)i >= array->size){
+        printf("hmm %d %d\n", i, array->size);
+        *result = lbm_enc_sym(SYM_NIL);
+        return;
+      }
 
-    switch(array->elt_type) {
-    case LBM_VAL_TYPE_CHAR:
-      *result = lbm_enc_char((lbm_uint) ((char*)data)[ix]);
-      break;
-    case LBM_VAL_TYPE_U:
-      *result = lbm_enc_u(((lbm_uint*)data)[ix]);
-      break;
-    case LBM_VAL_TYPE_I:
-      *result = lbm_enc_i(((lbm_int*)data)[ix]);
-      break;
-    case LBM_PTR_TYPE_BOXED_U:
-      *result = lbm_cons(((lbm_uint*)data)[ix], lbm_enc_sym(SYM_BOXED_U_TYPE));
-      if (lbm_type_of(*result) == LBM_VAL_TYPE_SYMBOL) return;
-      *result = lbm_set_ptr_type(*result, LBM_PTR_TYPE_BOXED_U);
-      break;
-    case LBM_PTR_TYPE_BOXED_I:
-      *result = lbm_cons(((lbm_uint*)data)[ix], lbm_enc_sym(SYM_BOXED_I_TYPE));
-      if (lbm_type_of(*result) == LBM_VAL_TYPE_SYMBOL) return;
-      *result = lbm_set_ptr_type(*result, LBM_PTR_TYPE_BOXED_I);
-      break;
-    case LBM_PTR_TYPE_BOXED_F:
-      *result = lbm_cons(((lbm_uint*)data)[ix], lbm_enc_sym(SYM_BOXED_F_TYPE));
-      if (lbm_type_of(*result) == LBM_VAL_TYPE_SYMBOL) return;
-      *result = lbm_set_ptr_type(*result, LBM_PTR_TYPE_BOXED_F);
-      break;
-    default:
-      *result = lbm_enc_sym(SYM_EERROR);
-      break;
-    }
+      switch(array->elt_type) {
+      case LBM_VAL_TYPE_CHAR:
+        curr = lbm_enc_char((lbm_uint) ((char*)data)[i]);
+        break;
+      case LBM_VAL_TYPE_U:
+        curr = lbm_enc_u(((lbm_uint*)data)[i]);
+        break;
+      case LBM_VAL_TYPE_I:
+         curr = lbm_enc_i(((lbm_int*)data)[i]);
+        break;
+      case LBM_PTR_TYPE_BOXED_U:
+        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_BOXED_U_TYPE));
+        if (lbm_type_of(curr) == LBM_VAL_TYPE_SYMBOL) return;
+        curr = lbm_set_ptr_type(curr, LBM_PTR_TYPE_BOXED_U);
+        break;
+      case LBM_PTR_TYPE_BOXED_I:
+        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_BOXED_I_TYPE));
+        if (lbm_type_of(curr) == LBM_VAL_TYPE_SYMBOL) return;
+        curr = lbm_set_ptr_type(curr, LBM_PTR_TYPE_BOXED_I);
+        break;
+      case LBM_PTR_TYPE_BOXED_F:
+        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_BOXED_F_TYPE));
+        if (lbm_type_of(*result) == LBM_VAL_TYPE_SYMBOL) return;
+        curr = lbm_set_ptr_type(curr, LBM_PTR_TYPE_BOXED_F);
+        break;
+      default:
+        curr = lbm_enc_sym(SYM_EERROR);
+        break;
+      }
+      if (read_many) {
+        acc = lbm_cons(curr, acc);
+      }
+    } /* for i */
+  }
+  if (read_many) {
+    *result = acc;
+  } else {
+    *result = curr;
   }
 }
 

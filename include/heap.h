@@ -560,6 +560,7 @@ static inline bool lbm_is_number(lbm_value x) {
   lbm_uint t = lbm_type_of(x);
   return ((t == LBM_VAL_TYPE_I) ||
           (t == LBM_VAL_TYPE_U) ||
+          (t == LBM_VAL_TYPE_CHAR) ||
           (t == LBM_PTR_TYPE_BOXED_I) ||
           (t == LBM_PTR_TYPE_BOXED_U) ||
           (t == LBM_PTR_TYPE_BOXED_F));
