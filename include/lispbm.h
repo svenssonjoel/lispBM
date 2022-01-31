@@ -31,6 +31,7 @@
 #include "compression.h"
 #include "lbm_memory.h"
 #include "lbm_types.h"
+#include "lbm_c_interop.h"
 
 /** Initialize lispBM. This function initials all subsystems by calling:
  *  - \ref lbm_memory_init

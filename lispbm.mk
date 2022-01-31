@@ -14,7 +14,8 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions.c \
              $(LISPBM)/src/lispbm.c \
              $(LISPBM)/src/eval_cps.c \
-             $(LISPBM)/src/streams.c
+             $(LISPBM)/src/streams.c \
+             $(LISPBM)/src/lbm_c_interop.c
 
 LISPBM_INC = -I$(LISPBM)/include \
              -I$(LISPBM)/src
