@@ -1008,7 +1008,7 @@ static inline void eval_match(eval_context_t *ctx) {
       rest == NIL) {
     /* Someone wrote the program (match) */
     ctx->app_cont = true;
-    ctx->r = lbm_enc_sym(SYM_NIL); /* make up new specific symbol? */
+    ctx->r = lbm_enc_sym(SYM_NIL);
     return;
   } else {
     CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_cdr(rest), lbm_enc_u(MATCH)));
@@ -1064,12 +1064,6 @@ static inline void eval_receive(eval_context_t *ctx) {
         ctx_running = NULL;
         ctx->r = lbm_enc_sym(SYM_NO_MATCH);
       }
-
-      /* Match messages on mailbox against the patterns */
-      /* FATAL_ON_FAIL(ctx->done, push_u32_4(&ctx->K, ctx->curr_exp, car(cdr(pats)), cdr(msgs), enc_u(MATCH_MANY))); */
-      /* FATAL_ON_FAIL(ctx->done, push_u32_2(&ctx->K, car(cdr(pats)), enc_u(MATCH))); */
-      /* ctx->r = car(msgs); */
-      /* ctx->app_cont = true; */
     }
   }
   return;

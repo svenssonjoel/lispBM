@@ -496,7 +496,7 @@ An example that evaluates to 19.
 (match '(orange 17)
        ((green (? n)) (+ n 1))
        ((orange (? n)) (+ n 2))
-       ((blue (?n)) (+ n 3)))
+       ((blue (? n)) (+ n 3)))
 \endcode
 
 ---
