@@ -705,6 +705,18 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
       return false;
     }
     return match (lbm_cdr(p), lbm_cdr(e), env, gc);
+  } else if (lbm_type_of(p) == LBM_PTR_TYPE_BOXED_F &&
+             lbm_type_of(e) == LBM_PTR_TYPE_BOXED_F &&
+             lbm_dec_F(p) == lbm_dec_F(e)) {
+    return true;
+  } else if (lbm_type_of(p) == LBM_PTR_TYPE_BOXED_U &&
+             lbm_type_of(e) == LBM_PTR_TYPE_BOXED_U &&
+             lbm_dec_U(p) == lbm_dec_U(e)) {
+    return true;
+  } else if (lbm_type_of(p) == LBM_PTR_TYPE_BOXED_I &&
+      lbm_type_of(e) == LBM_PTR_TYPE_BOXED_I &&
+      lbm_dec_I(p) == lbm_dec_I(e)) {
+    return true;
   } else if (p == e) {
     return true;
   }
@@ -931,9 +943,9 @@ static inline void eval_lambda(eval_context_t *ctx) {
 static inline void eval_if(eval_context_t *ctx) {
 
   CHECK_STACK(lbm_push_u32_3(&ctx->K,
-                         lbm_car(lbm_cdr(lbm_cdr(lbm_cdr(ctx->curr_exp)))), // Else branch
-                         lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp))),      // Then branch
-                         lbm_enc_u(IF)));
+                             lbm_car(lbm_cdr(lbm_cdr(lbm_cdr(ctx->curr_exp)))), // Else branch
+                             lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp))),      // Then branch
+                             lbm_enc_u(IF)));
   ctx->curr_exp = lbm_car(lbm_cdr(ctx->curr_exp));
 }
 
