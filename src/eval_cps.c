@@ -660,6 +660,25 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
         }
       }
       return false;
+    case SYM_MATCH_I32:
+      if (lbm_type_of(e) == LBM_PTR_TYPE_BOXED_I) {
+        if (lbm_dec_sym(var) == SYM_DONTCARE) {
+          return true;
+        } else {
+          break;
+        }
+      }
+      return false;
+    case SYM_MATCH_U32:
+      if (lbm_type_of(e) == LBM_PTR_TYPE_BOXED_U) {
+        if (lbm_dec_sym(var) == SYM_DONTCARE) {
+          return true;
+        } else {
+          break;
+        }
+      }
+      return false;
+
     case SYM_MATCH_FLOAT:
       if (lbm_type_of(e) == LBM_PTR_TYPE_BOXED_F) {
         if (lbm_dec_sym(var) == SYM_DONTCARE) {
