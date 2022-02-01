@@ -111,6 +111,11 @@ extern void lbm_run_eval(void);
  * return value EVAL_CPS_STATE_PAUSED.
  */
 extern void lbm_pause_eval(void);
+/** Pause the evaluator and perform GC if needed.
+ *
+ * \param num_free Perform GC if there are less than this many elements free on the heap.
+ */
+extern void lbm_pause_eval_with_gc(uint32_t num_free);
 /** Perform a single step of evaluation.
  * The evaluator should be in EVAL_CPS_STATE_PAUSED before running this function.
  * After taking one step of evaluation, the evaluator will return to being in the

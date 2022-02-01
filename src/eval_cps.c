@@ -113,6 +113,7 @@ static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember
 
 static uint32_t eval_cps_run_state = EVAL_CPS_STATE_INIT;
 volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_INIT;
+volatile uint32_t eval_cps_next_state_arg = 0;
 
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
@@ -1883,9 +1884,16 @@ static void evaluation_step(void){
   return;
 }
 
-void lbm_pause_eval(void) {
+void lbm_pause_eval(void ) {
+  eval_cps_next_state_arg = 0;
   eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
 }
+
+void lbm_pause_eval_with_gc(uint32_t num_free) {
+  eval_cps_next_state_arg = num_free;
+  eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
+}
+
 
 void lbm_step_eval(void) {
   eval_cps_next_state = EVAL_CPS_STATE_STEP;
@@ -1911,6 +1919,7 @@ void lbm_run_eval(void){
 
   while (eval_running) {
 
+    uint32_t prev_state = eval_cps_run_state;
     eval_cps_run_state = eval_cps_next_state;
 
     switch (eval_cps_run_state) {
@@ -1921,6 +1930,12 @@ void lbm_run_eval(void){
       eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
       break;
     case EVAL_CPS_STATE_PAUSED:
+      if (prev_state != EVAL_CPS_STATE_PAUSED) {
+        if (lbm_heap_num_free() < eval_cps_next_state_arg) {
+          gc(NIL, NIL);
+        }
+        eval_cps_next_state_arg = 0;
+      }
       eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
       usleep_callback(EVAL_CPS_MIN_SLEEP);
       continue; /* jump back to start of eval_running loop */
