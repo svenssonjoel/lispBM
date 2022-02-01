@@ -72,7 +72,6 @@ extern lbm_cid lbm_eval_defined_expression(char *symbol);
  */
 extern lbm_cid lbm_eval_defined_program(char *symbol);
 
-/* send message from c to LBM process */
 /** Send a message to a process running in the evaluator.
  *
  * \param cid Context id of the process to send a message to.
@@ -80,6 +79,15 @@ extern lbm_cid lbm_eval_defined_program(char *symbol);
  * \return 1 on success or 0 on failure.
  */
 extern int lbm_send_message(lbm_cid cid, lbm_value msg);
+
+/** Add a definition to the global environment
+ *
+ * \param symbol Name to bind the data to.
+ * \param value The data.
+ * \return 1 on success and 0 on failure.
+ */
+extern int lbm_define(char *symbol, lbm_value value);
+
 
 
 #endif

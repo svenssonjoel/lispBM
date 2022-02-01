@@ -160,3 +160,19 @@ int lbm_send_message(lbm_cid cid, lbm_value msg) {
   }
   return res;
 }
+
+int lbm_define(char *symbol, lbm_value value) {
+  int res = 0;
+
+  lbm_uint sym_id;
+  if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
+
+    if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
+      if (!lbm_add_symbol(symbol, &sym_id)) {
+        return 0;
+      }
+    }
+    lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
+  }
+  return res;
+}
