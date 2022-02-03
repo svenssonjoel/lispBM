@@ -1989,9 +1989,6 @@ void lbm_run_eval(void){
       break;
     }
 
-    //if (heap_size() - heap_num_allocated() < PRELIMINARY_GC_MEASURE) {
-    //  gc(NIL, NIL);
-    //}
     /* TODO: Logic for sleeping in case the evaluator has been using a lot of CPU
        should go here */
 

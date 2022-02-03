@@ -24,6 +24,7 @@
 #include "lbm_types.h"
 #include "symrepr.h"
 #include "streams.h"
+#include "stack.h"
 
 /*
 Planning for a more space efficient heap representation.
@@ -222,23 +223,24 @@ typedef struct {
 } lbm_cons_t;
 
 /**
- *  Heap statistics struct.
+ *  Heap state
  */
 typedef struct {
   lbm_cons_t  *heap;
-  lbm_value freelist;           // list of free cons cells.
+  lbm_value freelist;              // list of free cons cells.
+  lbm_stack_t gc_stack;
 
-  unsigned int heap_size;          // In number of cells.
-  unsigned int heap_bytes;         // In bytes.
+  uint32_t heap_size;          // In number of cells.
+  uint32_t heap_bytes;         // In bytes.
 
-  unsigned int num_alloc;          // Number of cells allocated.
-  unsigned int num_alloc_arrays;   // Number of arrays allocated.
+  uint32_t num_alloc;          // Number of cells allocated.
+  uint32_t num_alloc_arrays;   // Number of arrays allocated.
 
-  unsigned int gc_num;             // Number of times gc has been performed.
-  unsigned int gc_marked;          // Number of cells marked by mark phase.
-  unsigned int gc_recovered;       // Number of cells recovered by sweep phase.
-  unsigned int gc_recovered_arrays;// Number of arrays recovered by sweep.
-  unsigned int gc_least_free;      // The smallest length of the freelist.
+  uint32_t gc_num;             // Number of times gc has been performed.
+  uint32_t gc_marked;          // Number of cells marked by mark phase.
+  uint32_t gc_recovered;       // Number of cells recovered by sweep phase.
+  uint32_t gc_recovered_arrays;// Number of arrays recovered by sweep.
+  uint32_t gc_least_free;      // The smallest length of the freelist.
 
   uint64_t     gc_time_acc;
   uint32_t     gc_min_duration;
@@ -255,12 +257,14 @@ typedef struct {
 } lbm_array_header_t;
 
 /** Initialize heap storage.
- *
  * \param addr Pointer to an array of lbm_cons_t elements. This array must at least be aligned 4.
  * \param num_cells Number of lbm_cons_t elements in the array.
+ * \param gc_stack_storage uint32_t pointer to space to use as "recursion" stack for GC
+ * \param gc_stack_size Size of the gc_stack in number of words.
  * \return 1 on success or 0 for failure.
  */
-extern int lbm_heap_init(lbm_cons_t *addr, unsigned int num_cells);
+extern int lbm_heap_init(lbm_cons_t *addr, uint32_t num_cells,
+                         uint32_t *gc_stack_storage, uint32_t gc_stack_size);
 
 /** Add GC time statistics to heap_stats
  *

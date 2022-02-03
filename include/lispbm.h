@@ -50,6 +50,7 @@
  * \return 1 on success and 0 on failure.
  */
 extern int lbm_init(lbm_cons_t *heap_storage, uint32_t heap_size,
+                    uint32_t *gc_stack_storage, uint32_t gc_stack_size,
                     uint32_t *memory, uint32_t memory_size,
                     uint32_t *memory_bitmap, uint32_t bitmap_size);
 
