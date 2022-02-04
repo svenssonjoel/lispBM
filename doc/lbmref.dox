@@ -443,7 +443,7 @@ has been extended with the binding <code>(apa 1)</code>.
 
 ---
 
-\section sec_lists Lists
+\section sec_lists Lists and cons cells
 
 <a name="car"> <h3>car</h3> </a>
 
@@ -454,6 +454,10 @@ has been extended with the binding <code>(apa 1)</code>.
 ---
 
 <a name="cons"> <h3>cons</h3> </a>
+
+---
+
+<a name="."> <h3>.</h3> </a>
 
 ---
 
