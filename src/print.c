@@ -254,7 +254,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(curr);
         switch (array->elt_type){
         case LBM_VAL_TYPE_CHAR:
-          r = snprintf(buf + offset, len - offset, "\"%s\"", (char *)array->data);
+          r = snprintf(buf + offset, len - offset, "\"%.*s\"", array->size, (char *)array->data);
           if ( r > 0) {
             n = (unsigned int) r;
           } else {

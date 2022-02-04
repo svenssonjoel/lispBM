@@ -211,6 +211,7 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_VAL_TYPE_SYMBOL             0x00000000u // 00  0   0
 /// Character or byte.
 #define LBM_VAL_TYPE_CHAR               0x00000004u // 01  0   0
+#define LBM_VAL_TYPE_BYTE               0x00000004u
 #define LBM_VAL_TYPE_U                  0x00000008u // 10  0   0
 #define LBM_VAL_TYPE_I                  0x0000000Cu // 11  0   0
 

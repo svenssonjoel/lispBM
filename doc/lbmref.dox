@@ -49,7 +49,7 @@ Multiplying an arbitrary number of values. The form of a * expression is
 \note
 Example 2pi.
 \code
-(* 2 3.14) 
+(* 2 3.14)
 \endcode
 
 
@@ -79,7 +79,7 @@ Modulo operation. The form of a mod expression is <code>(mode expr1 ... exprN)</
 \note
 Compute 5 % 3, evaluates to 2.
 \code
-(mod 5 3) 
+(mod 5 3)
 \endcode
 
 
@@ -445,15 +445,69 @@ has been extended with the binding <code>(apa 1)</code>.
 
 \section sec_lists Lists and cons cells
 
+Lists are build using cons cells. A cons cell is represented by the \ref lbm_cons_t struct in the
+implementation and consists of two fields named the <code>car</code> and the <code>cdr</code>.
+There is no special meaning associated with the <code>car</code> and the <code>cdr</code> each can hold
+a \ref lbm_value. See <a href="#cons">cons</a> and <a href="#list">list</a> for two ways to create structures of
+cons cells on the heap.
+
 <a name="car"> <h3>car</h3> </a>
+
+Use <code>car</code> to access the <code>car</code> field of a cons cell. A
+<code>car</code> expression has the form <code>(car expr)<code>.
+
+\note
+Taking the <code>car</code> of a number of symbol type is in general a <a href="#type_error">type_error</a>.
+The following program results in <code>type_error</code>.
+\code
+(car 1)
+\endcode
+The next example evaluates to 1.
+\code
+(car (cons 1 2))
+\endcode
+The <code>car</code> operation accesses the head element of a list. The following program evaluates to 9.
+\code
+(car (list 9 8 7))
+\endcode
+
 
 ---
 
 <a name="cdr"> <h3>cdr</h3> </a>
 
+Use <code>cdr</code> to access the <code>cdr</code> field of a cons cell. A
+<code>cdr</code> expression has the form <code>(cdr expr)<code>.
+
+\note
+The example below evaluates to 2.
+\code
+(cdr (cons 1 2))
+\endcode
+The <code>cdr</code> operation gives you the rest of a list. The example below evaluates to the list (8 7).
+\code
+(cdr (list 9 8 7))
+\endcode
+
+
 ---
 
 <a name="cons"> <h3>cons</h3> </a>
+
+The <code>cons</code> operation allocates a cons cell from the heap and populates the
+<code>car</code and the <code>cdr</code> fields of this cell with its two arguments.
+The form of a <code>cons</code> expression is <code>(cons expr1 expr2)</code>.
+
+\note
+Build the list <code>(1 2 3)</cons> using cons. <a href="#nil">nil</a> terminates a proper list. 
+\code
+(cons 1 (cons 2 (cons 3 nil)))
+\endcode
+Construct the pair <code>(+ . 1)</code> using cons.
+\code
+(cons + 1)
+\endcode
+
 
 ---
 
@@ -502,7 +556,7 @@ the shape of an expression to each of the <code>pat1</code> ... <code>patN</code
 and evaluates the expression <code>exprM</code> of the pattern that matches.
 In a pattern you can use a number of match-binders or wildcards: <a href="#_">_</a>,
 <a href="#?">?</a>, <a href="#?i28">?i28</a>, <a href="#?u28">?u28</a>, <a href="#?float">?float</a>, 
-<a href="#?cons">?cons</a>. 
+<a href="#?cons">?cons</a>.
 
 \note
 For example the match expression below evaluates to 2.
@@ -539,7 +593,7 @@ Using the ? pattern is done as <code>(? var)</code> and the part of the expressi
 that matches is bound to <code>var</code>.
 
 \note
-An example that evaluates to 19. 
+An example that evaluates to 19.
 \code
 (match '(orange 17)
        ((green (? n)) (+ n 1))
@@ -809,7 +863,7 @@ An example that evaluates to 19.
 
  <a name="stream-drop"> <h3>stream-drop</h3> </a>
 
---- 
+---
 
  <a name="stream-put"> <h3>stream-put</h3> </a>
 
