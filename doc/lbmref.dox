@@ -69,6 +69,7 @@ The following example evaluates to 1.
 (/ 128 2 2 2 2 2 2 2)
 \endcode
 
+
 ---
 
 <a name="mod"> <h3>mod</h3> </a>
@@ -168,13 +169,56 @@ Example
 
 <a name="and"> <h3>and</h3> </a>
 
+Boolean <code>and</code> operation between n arguments. The form
+of an <code>and</code> expression is <code>(and expr1 ... exprN)</code>.
+This operation treats all non-nil values as true. Boolean <code>and</code>
+is "shirt-circuiting" and only evaluates until a false is encountered.
+
+\note
+The example below evaluates to <code>t</code>
+\code
+(and t t)
+\endcode
+The folowing example evaluates to 3
+\code
+(and t t (+ 1 2))
+\endcode
+And lastly an example that evaluates to nil (for false).
+\code
+(and t (< 5 3))
+\endcode
+
+
 ---
 
 <a name="or"> <h3>or</h3> </a>
 
+Boolean <code>or</code> operation between n arguments. The form
+of an <code>or</code> expression is <code>(or expr1 ... exprN)</code>.
+This operation treats all non-nil values as true. Boolean <code>or</code>
+is "short-circuiting" and only evaluates until a true is encountered.
+
+\note
+The example below evaluates to <code>t</code>.
+\code
+(or t nil)
+\endcode
+
+
 ---
 
 <a name="not"> <h3>not</h3> </a>
+
+Boolean <code>not</code> takes one argument. The form of a <code>not</code>
+expression is <code>(not expr)</code>. All non-nil values are considered
+true.
+
+\note
+The following example evaluates to <code>t</code>
+\code
+(not nil)
+\endcode
+
 
 ---
 
