@@ -29,8 +29,10 @@
 
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
+#define PRINT_STACK_SIZE 256
 
 uint32_t gc_stack_storage[GC_STACK_SIZE];
+uint32_t print_stack_storage[PRINT_STACK_SIZE];
 
 /* Tokenizer state for strings */
 static lbm_tokenizer_string_state_t string_tok_state;
@@ -167,6 +169,15 @@ int main(int argc, char **argv) {
     printf("Error initializing memory!\n");
     return 0;
   }
+
+  res = lbm_print_init(print_stack_storage, PRINT_STACK_SIZE);
+  if (res)
+    printf("Printing initialized.\n");
+  else {
+    printf("Error initializing printing!\n");
+    return 0;
+  }
+  
 
   res = lbm_symrepr_init();
   if (res)

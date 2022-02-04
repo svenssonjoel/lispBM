@@ -432,6 +432,8 @@ extern int lbm_gc_mark_freelist(void);
  * \return 1 on success and 0 if the stack used internally is full.
  */
 extern int lbm_gc_mark_phase(lbm_value v);
+extern int lbm_gc_mark_phase2(lbm_value env);
+
 /** Performs lbm_gc_mark_phase on all the values of an array.
  *
  * \param data Array of roots to traverse from.

@@ -29,8 +29,10 @@
 
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
+#define PRINT_STACK_SIZE 256
 
 uint32_t gc_stack_storage[GC_STACK_SIZE];
+uint32_t print_stack_storage[PRINT_STACK_SIZE];
 
 static volatile bool allow_print = true;
 
@@ -324,7 +326,8 @@ int main(int argc, char **argv) {
   lbm_init(heap_storage, heap_size,
            gc_stack_storage, GC_STACK_SIZE,
            memory, LBM_MEMORY_SIZE_8K,
-           bitmap, LBM_MEMORY_BITMAP_SIZE_8K);
+           bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+           print_stack_storage, PRINT_STACK_SIZE);
 
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
@@ -445,7 +448,8 @@ int main(int argc, char **argv) {
       lbm_init(heap_storage, heap_size,
                gc_stack_storage, GC_STACK_SIZE,
                memory, LBM_MEMORY_SIZE_8K,
-               bitmap, LBM_MEMORY_BITMAP_SIZE_8K);
+               bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+               print_stack_storage, PRINT_STACK_SIZE);
 
       lbm_add_extension("print", ext_print);
     } else if (strncmp(str, ":prelude", 8) == 0) {

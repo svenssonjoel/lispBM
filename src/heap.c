@@ -164,6 +164,22 @@ static inline bool get_gc_mark(lbm_cons_t* cell) {
   return lbm_get_gc_mark(cdr);
 }
 
+static inline void set_gc_flag(lbm_cons_t *cell) {
+  lbm_value v = read_car(cell);
+  set_car_(cell, lbm_set_gc_mark(v));
+}
+
+static inline void clr_gc_flag(lbm_cons_t *cell) {
+  lbm_value v = read_car(cell);
+  set_car_(cell, lbm_clr_gc_mark(v));
+}
+
+static inline bool get_gc_flag(lbm_cons_t* cell) {
+  lbm_value v = read_car(cell);
+  return lbm_get_gc_mark(v);
+}
+
+
 static int generate_freelist(size_t num_cells) {
   size_t i = 0;
 
@@ -263,7 +279,7 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
   if (!lbm_is_ptr(heap_state.freelist)) {
     // Free list not a ptr (should be Symbol NIL)
     if ((lbm_type_of(heap_state.freelist) == LBM_VAL_TYPE_SYMBOL) &&
-        (heap_state.freelist == NIL)) {
+        (lbm_dec_sym(heap_state.freelist) == SYM_NIL)) {
       // all is as it should be (but no free cells)
       return lbm_enc_sym(SYM_MERROR);
     } else {
