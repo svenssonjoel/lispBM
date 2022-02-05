@@ -25,7 +25,6 @@
 #include "symrepr.h"
 
 #define NUM_SPECIAL_SYMBOLS 94
-
 #define NAME   0
 #define ID     1
 #define NEXT   2

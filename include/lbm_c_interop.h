@@ -87,8 +87,8 @@ extern int lbm_send_message(lbm_cid cid, lbm_value msg);
  * \return 1 on success and 0 on failure.
  */
 extern int lbm_define(char *symbol, lbm_value value);
-/** Create a lispbm array from a C array. The array should be created while the evaluater
- * is paused and the array should be bound to something before unpausing. Send the array in
+/** Create a LispBM array from a C array. The array should be created while the evaluator
+ * is paused and the array should be bound to something before un-pausing. Send the array in
  * a message with \ref lbm_send_message or define it in the global with \ref lbm_define.
  * The data is stored in the array as C values (not encoded as lbm values).
  *
