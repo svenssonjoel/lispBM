@@ -223,6 +223,19 @@ The following example evaluates to <code>t</code>
 ---
 
 
+\section sec_bitwise Bit level operations
+
+<a name="shl"><h3>shl</h3></a>
+
+
+---
+
+
+<a name="shr"><h3>shr</h3></a>
+
+
+
+
 \section sec_nil nil and t
 
 <a name="nil"><h3>nil</h3></a>

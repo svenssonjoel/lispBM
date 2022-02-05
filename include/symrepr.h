@@ -150,6 +150,11 @@
 //#define SYM_STREAM_DROP         0x163
 //#define SYM_STREAM_PUT          0x164
 
+#define SYM_SHL                 0x170
+#define SYM_SHR                 0x171
+
+
+
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200
 

@@ -305,6 +305,10 @@ void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
 static uint32_t memory[LBM_MEMORY_SIZE_8K];
 static uint32_t bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
 
+char char_array[1024];
+uint32_t word_array[1024];
+
+
 int main(int argc, char **argv) {
   char str[1024];
   unsigned int len = 1024;
@@ -316,6 +320,11 @@ int main(int argc, char **argv) {
   unsigned int heap_size = 2048;
   lbm_cons_t *heap_storage = NULL;
 
+  for (int i = 0; i < 1024; i ++) {
+    char_array[i] = i;
+    word_array[i] = i;
+  }
+  
   //setup_terminal();
 
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
@@ -504,6 +513,22 @@ int main(int argc, char **argv) {
       int num = atoi(str + 5);
       
       lbm_step_n_eval((uint32_t)num);
+    } else if (strncmp(str, ":array", 6) == 0) {
+      lbm_pause_eval_with_gc(30);
+      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+      printf("Evaluator paused\n");
+
+      lbm_value arr_val;
+      lbm_create_array(&arr_val, char_array, LBM_VAL_TYPE_CHAR,1024);
+      lbm_define("c-arr", arr_val);
+
+      lbm_create_array(&arr_val, (char *)word_array, LBM_PTR_TYPE_BOXED_I,1024);
+      lbm_define("i-arr", arr_val);
+
+      lbm_continue_eval();
+    
     } else {
       /* Get exclusive access to the heap */
       lbm_pause_eval();

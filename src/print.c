@@ -263,10 +263,38 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
           }
           offset += n;
           break;
-          break;
         default:
-          snprintf(buf, len, "Error: Array type not supported\n");
-          return -1;
+          r = snprintf(buf + offset, len - offset, "{");
+          if (r == 1) {
+            offset += 1;
+          } else {
+            snprintf(buf, len, "%s", failed_str);
+            return -1;
+          }
+          for (unsigned int i = 0; i < array->size; i ++) {
+            switch(array->elt_type) {
+            case LBM_PTR_TYPE_BOXED_I:
+              r = snprintf(buf+offset, len - offset, "%d%s", (int32_t)array->data[i], i == array->size - 1 ? "" : ", ");
+              break;
+            case LBM_PTR_TYPE_BOXED_U:
+              r = snprintf(buf+offset, len - offset, "%u%s", (uint32_t)array->data[i], i == array->size - 1 ? "" : ", ");
+              break;
+            case LBM_PTR_TYPE_BOXED_F:
+              r = snprintf(buf+offset, len - offset, "%f%s",(float)array->data[i], i == array->size - 1 ? "" : ", ");
+              break;
+            default:
+              break;
+            }
+            if (r > 0) {
+              offset += (unsigned int)r;
+            } else {
+              snprintf(buf, len, "%s", failed_str);
+              return -1;
+            }
+          }
+          r = snprintf(buf + offset, len - offset, "}");
+          offset ++;
+          break;
         }
         break;
       }

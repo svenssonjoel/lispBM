@@ -172,7 +172,7 @@ int lbm_define(char *symbol, lbm_value value) {
         return 0;
       }
     }
-    lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
+    *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
   }
   return res;
 }

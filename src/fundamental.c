@@ -25,6 +25,41 @@
 #include <stdio.h>
 #include <math.h>
 
+static lbm_uint shl(lbm_uint a, lbm_uint b) {
+
+  lbm_uint retval = lbm_enc_sym(SYM_TERROR);
+
+  if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    return retval;
+  }
+
+  switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_I: retval = lbm_enc_i(lbm_dec_i(a) << lbm_dec_as_u(b)); break;
+  case LBM_VAL_TYPE_U: retval = lbm_enc_u(lbm_dec_u(a) << lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_U: retval = lbm_enc_U(lbm_dec_U(a) << lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_I: retval = lbm_enc_I(lbm_dec_I(a) << lbm_dec_as_u(b)); break;
+  }
+  return retval;
+}
+
+static lbm_uint shr(lbm_uint a, lbm_uint b) {
+
+  lbm_uint retval = lbm_enc_sym(SYM_TERROR);
+
+  if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    return retval;
+  }
+
+  switch (lbm_type_of(a)) {
+  case LBM_VAL_TYPE_I: retval = lbm_enc_i(lbm_dec_i(a) >> lbm_dec_as_u(b)); break;
+  case LBM_VAL_TYPE_U: retval = lbm_enc_u(lbm_dec_u(a) >> lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_U: retval = lbm_enc_U(lbm_dec_U(a) >> lbm_dec_as_u(b)); break;
+  case LBM_PTR_TYPE_BOXED_I: retval = lbm_enc_I(lbm_dec_I(a) >> lbm_dec_as_u(b)); break;
+  }
+  return retval;
+}
+
+
 static lbm_uint add2(lbm_uint a, lbm_uint b) {
 
   lbm_uint retval = lbm_enc_sym(SYM_TERROR);
@@ -840,9 +875,19 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
       return lbm_enc_sym(SYM_TERROR);
     }
     break;
-  default:
-    result = lbm_enc_sym(SYM_EERROR);
-    break;
+    case SYM_SHL:
+      if (nargs == 2) {
+        result = shl(args[0],args[1]);
+      }
+      break;
+    case SYM_SHR:
+      if (nargs == 2) {
+        result = shr(args[0],args[1]);
+      }
+      break;
+    default:
+      result = lbm_enc_sym(SYM_EERROR);
+      break;
   }
 
   return result;
