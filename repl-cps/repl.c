@@ -143,6 +143,9 @@ void done_callback(eval_context_t *ctx) {
   //}
   fflush(stdout);
 
+  // remove the state associated with the context.
+  lbm_wait_ctx(cid);
+
 }
 
 uint32_t timestamp_callback() {

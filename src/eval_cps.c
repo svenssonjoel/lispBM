@@ -2040,12 +2040,7 @@ int lbm_eval_init() {
   NIL = lbm_enc_sym(SYM_NIL);
   NONSENSE = lbm_enc_sym(SYM_NONSENSE);
 
-  lbm_value nil_entry = lbm_cons(NIL, NIL);
-  *lbm_get_env_ptr() = lbm_cons(nil_entry, *lbm_get_env_ptr());
-
-  if (lbm_type_of(nil_entry) == LBM_VAL_TYPE_SYMBOL ||
-      lbm_type_of(*lbm_get_env_ptr()) == LBM_VAL_TYPE_SYMBOL) res = 0;
-
+  *lbm_get_env_ptr() = NIL;
   eval_running = true;
 
   return res;

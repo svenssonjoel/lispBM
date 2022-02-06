@@ -9,11 +9,29 @@ SICP course on youtube </a> and a tiny amount of experimenting with EMACS
 lisp. I strongly recommend that you watch the SICP course, it is a lot of fun!<br>
 
 LispBM does not try to implement any particular Lisp or Scheme standard but may
-be more scheme-like in nature in general.
-
+be more scheme-like in nature.
 
 
 \section sec_repl Using a REPL 
+
+\code
+# :info
+--(LISP HEAP)-----------------------------------------------
+Heap size: 16384 Bytes
+Used cons cells: 11
+Free cons cells: 2037
+GC counter: 0
+Recovered: 0
+Recovered arrays: 0
+Marked: 0
+--(Symbol and Array memory)---------------------------------
+Memory size: 2048 Words
+Memory free: 2024 Words
+Allocated arrays: 0
+Symbol table size: 40 Bytes
+
+\endcode
+
 
 \section sec_program A first program
 
