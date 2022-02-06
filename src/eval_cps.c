@@ -98,9 +98,6 @@ static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember
     return;                                     \
   }
 
-#define ERROR
-//#define ERROR printf("Line: %d\n", __LINE__);
-
 #define DEFAULT_SLEEP_US  1000
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
@@ -883,7 +880,6 @@ static inline void eval_define(eval_context_t *ctx) {
 
   if (lbm_type_of(key) != LBM_VAL_TYPE_SYMBOL ||
       key == NIL) {
-    ERROR
       error_ctx(lbm_enc_sym(SYM_EERROR));
     return;
   }
@@ -904,7 +900,6 @@ static inline void eval_progn(eval_context_t *ctx) {
   }
 
   if (lbm_is_error(exps)) {
-    ERROR
       error_ctx(exps);
     return;
   }
@@ -1132,7 +1127,6 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
   }
 
   if (lbm_is_error(rest)) {
-    ERROR
       error_ctx(rest);
     return;
   }
@@ -1215,7 +1209,6 @@ static inline void cont_application(eval_context_t *ctx) {
     lbm_value clo_env = lbm_car(lbm_cdr(lbm_cdr(lbm_cdr(fun))));
 
     if (lbm_list_length(params) != lbm_list_length(args)) { // programmer error
-      ERROR
         error_ctx(lbm_enc_sym(SYM_EERROR));
       return;
     }
@@ -1293,7 +1286,6 @@ static inline void cont_application(eval_context_t *ctx) {
         ctx->app_cont = true;
         yield_ctx(50000);
       } else {
-        ERROR
         error_ctx(lbm_enc_sym(SYM_EERROR));
       }
       return;
@@ -1339,7 +1331,6 @@ static inline void cont_application(eval_context_t *ctx) {
       WITH_GC(res, lbm_fundamental(&fun_args[1], lbm_dec_u(count), fun), NIL, NIL);
       if (lbm_type_of(res) == LBM_VAL_TYPE_SYMBOL &&
           lbm_dec_sym(res) == SYM_EERROR) {
-        ERROR
           error_ctx(res);
       }  else {
         lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
@@ -1352,7 +1343,6 @@ static inline void cont_application(eval_context_t *ctx) {
   // It may be an extension
   extension_fptr f = lbm_get_extension(lbm_dec_sym(fun));
   if (f == NULL) {
-    ERROR
       error_ctx(lbm_enc_sym(SYM_EERROR));
     return;
   }
@@ -1784,7 +1774,7 @@ static inline void cont_read(eval_context_t *ctx) {
                                  lbm_enc_u(APPEND_CONTINUE)));
           app_cont = false;
           break;
-        case SYM_QUOTE:
+        case SYM_QUOTE_IT:
           CHECK_STACK(lbm_push_u32(&ctx->K,
                                lbm_enc_u(QUOTE_RESULT)));
           app_cont = false;
@@ -1853,7 +1843,6 @@ static void evaluation_step(void){
     case MATCH_MANY:       cont_match_many(ctx); return;
     case READ:             cont_read(ctx); return;
     default:
-      ERROR
       error_ctx(lbm_enc_sym(SYM_EERROR));
       return;
     }
@@ -1908,7 +1897,6 @@ static void evaluation_step(void){
     return;
   default:
     // BUG No applicable case!
-    ERROR
     error_ctx(lbm_enc_sym(SYM_EERROR));
     break;
   }

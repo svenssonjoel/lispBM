@@ -96,6 +96,7 @@
 #define SYM_COMMAAT        0x74
 #define SYM_TOKENIZER_DONE 0x75
 #define SYM_DOT            0x76
+#define SYM_QUOTE_IT       0x77
 
 // Fundamental Operations
 #define FUNDAMENTALS_START      0x100

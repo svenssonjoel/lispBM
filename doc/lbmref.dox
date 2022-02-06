@@ -234,6 +234,48 @@ The following example evaluates to <code>t</code>
 <a name="shr"><h3>shr</h3></a>
 
 
+---
+
+
+<a name="bitwise-and"><h3>bitwise-and</h3></a>
+
+
+---
+
+
+<a name="bitwise-or"><h3>bitwise-or</h3></a>
+
+
+---
+
+
+<a name="bitwise-xor"><h3>bitwise-xor</h3></a>
+
+
+---
+
+
+<a name="bitwise-not"><h3>bitwise-not</h3></a>
+
+
+\section sec_low_level Low level operations
+
+<a name="encode-i32"> <h3>encode-i32</h3> </a>
+
+---
+
+<a name="encode-u32"> <h3>encode-u32</h3> </a>
+
+---
+
+<a name="encode-float"> <h3>encode-float</h3> </a>
+
+---
+
+<a name="decode"> <h3>decode</h3> </a>
+
+---
+
 
 
 \section sec_nil nil and t
@@ -282,14 +324,43 @@ Evaluating the expression <code>(quote (+ 1 2))</code> results in the value <cod
 
 <a name="`"><h3>`</h3></a>
 
+The backwards tick <code>`</code> is called the quasiquote. It is similar to the <code>'</code> but
+allows splicing in results of computations using the <a href="#,">,</a> and the <a href="#commaat">,\@</a> 
+operators. 
+
+\note
+The result of <code>'(+ 1 2)</code> and <code>`(+ 1 2)</code> are similar in 
+effect. Both result in the result value of <code>(+ 1 2)</code>, that is a list containing
++, 1 and 2. <br>
+When <code>`(+ 1 2)</code> is read into the heap it is expanded into the 
+expression <code>(append (quote (+)) (append (quote (1)) (append (quote (2)) (quote nil))))</code>
+which evaluates to the list <code>(+ 1 2)</code>.
+
 
 ---
 
 <a name=","><h3>,</h3></a>
 
+The comma is used to splice the result of a computation into a quasiquotation.
+\note
+The expression <code>`(+ 1 ,(+ 1 1))</code> is expanded by the reader into
+<code>(append (quote (+)) (append (quote (1)) (append (list (+ 1 1)) (quote nil))))</code>.
+Evaluating the expression above results in the list <code>(+ 1 2)</code>.
+
+
 ---
 
 <a name="commaat"><h3>,\@</h3></a>
+
+The comma-at operation is used to splice in the result of a computation (that
+returns a list) into a list.
+\note
+Example:
+\code
+(define mylist (list 1 2 3 4 5)
+`(9 6 5 ,@mylist)
+\endcode
+Evaluates to the list <code>(9 6 5 1 2 3 4 5)</code>.
 
 
 \section sec_forms Special forms
@@ -534,7 +605,7 @@ The <code>cons</code> operation allocates a cons cell from the heap and populate
 The form of a <code>cons</code> expression is <code>(cons expr1 expr2)</code>.
 
 \note
-Build the list <code>(1 2 3)</cons> using cons. <a href="#nil">nil</a> terminates a proper list. 
+Build the list <code>(1 2 3)</code> using cons. <a href="#nil">nil</a> terminates a proper list. 
 \code
 (cons 1 (cons 2 (cons 3 nil)))
 \endcode
@@ -849,24 +920,6 @@ An example that evaluates to 19.
 ---
 
 <a name="sym_nonsense"> <h3>sym_nonsense</h3> </a>
-
----
-
-\section sec_low_level Low level operations
-
-<a name="encode-i32"> <h3>encode-i32</h3> </a>
-
----
-
-<a name="encode-u32"> <h3>encode-u32</h3> </a>
-
----
-
-<a name="encode-float"> <h3>encode-float</h3> </a>
-
----
-
-<a name="decode"> <h3>decode</h3> </a>
 
 ---
 
