@@ -292,7 +292,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
               return -1;
             }
           }
-          r = snprintf(buf + offset, len - offset, "}");
+          snprintf(buf + offset, len - offset, "}");
           offset ++;
           break;
         }

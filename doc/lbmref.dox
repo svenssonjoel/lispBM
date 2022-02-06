@@ -227,11 +227,27 @@ The following example evaluates to <code>t</code>
 
 <a name="shl"><h3>shl</h3></a>
 
+The shift left operation takes two arguments. The first argument is a value to shift and the
+second argument is the number of bit positions to shift the value.
+\note
+The example below evaluates to 4.
+\code
+(shl 1 2)
+\endcode
+
 
 ---
 
 
 <a name="shr"><h3>shr</h3></a>
+
+The shift right operation takes two arguments. The first argument is a value to shift and the
+second argument in the number of bit positions to shift the value.
+\note
+The example below evaluates to 1.
+\code
+(shr 4 2)
+\endcode
 
 
 ---
@@ -239,11 +255,17 @@ The following example evaluates to <code>t</code>
 
 <a name="bitwise-and"><h3>bitwise-and</h3></a>
 
+Performs the bitwise and operation between two values. The type of the result
+is the same type as the first of the arguments. 
+
 
 ---
 
 
 <a name="bitwise-or"><h3>bitwise-or</h3></a>
+
+Performs the bitwise or operation between two values. The type of the result
+is the same type as the first of the arguments. 
 
 
 ---
@@ -251,28 +273,67 @@ The following example evaluates to <code>t</code>
 
 <a name="bitwise-xor"><h3>bitwise-xor</h3></a>
 
+Performs the bitwise xor operation between two values. The type of the result
+is the same type as the first of the arguments.
+
 
 ---
 
-
 <a name="bitwise-not"><h3>bitwise-not</h3></a>
 
+Performs the bitwise not operations on a value. The result is of same type as
+the argument. 
 
 \section sec_low_level Low level operations
 
 <a name="encode-i32"> <h3>encode-i32</h3> </a>
 
+The <code>encode-i32</code> function converts a list of four (byte sized) values 
+into an i32 value.
+\note
+Example that evaluates to the i32 value 1024.
+\code
+(encode-i32 (list 0 0 4 0))
+\endcode
+
+
 ---
 
 <a name="encode-u32"> <h3>encode-u32</h3> </a>
+
+The <code>encode-u32</code> function converts a list of four (byte sized) values
+into an u32 value.
+\note
+Example that evaluates to the u32 value 1024.
+\code
+(encode-u32 (list 0 0 4 0))
+\endcode
+
 
 ---
 
 <a name="encode-float"> <h3>encode-float</h3> </a>
 
+The <code>encode-float</code> function converts a list four (byte sized) values
+into a float value.
+\note
+Example that evaluates to 3.14.
+\code
+(encode-float (list 64 72 245 195))
+\endcode
+
+
 ---
 
 <a name="decode"> <h3>decode</h3> </a>
+
+The <code>decode</code> function decodes a value into a list of four (byte sized) values.
+\note
+Example that decodes float 3.14 into the list (64 72 245 195).
+\code
+(decode 3.14)
+\endcode
+
 
 ---
 
