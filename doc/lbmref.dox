@@ -424,6 +424,42 @@ Example:
 Evaluates to the list <code>(9 6 5 1 2 3 4 5)</code>.
 
 
+\section sec_builtin Built-in operations
+
+
+<a name="eval"> <h3>eval</h3> </a>
+
+---
+
+<a name="eval-program"> <h3>eval-program</h3> </a>
+
+---
+
+<a name="type-of"> <h3>type-of</h3> </a>
+
+---
+
+<a name="sym-to-str"> <h3>sym-to-str</h3> </a>
+
+---
+
+<a name="str-to-sym"> <h3>str-to-sym</h3> </a>
+
+---
+
+<a name="sym-to-u"> <h3>sym-to-u</h3> </a>
+
+---
+
+<a name="u-to-sym"> <h3>u-to-sym</h3> </a>
+
+---
+
+<a name="is-fundamental"> <h3>is-fundamental</h3> </a>
+
+---
+
+
 \section sec_forms Special forms
 
 
@@ -772,17 +808,41 @@ An example that evaluates to 19.
 
 <a name="?i28"> <h3>?i28</h3> </a>
 
+The ?i28 pattern matches any i28 and binds that value to a variable.
+Using the ?i28 pattern is done as <code>(?i28 var)</code> and the part of the expression
+that matches is bound to the <code>var</code>.
+
+\note
+The following example evaluates to <code>not-an-i28</code>. 
+\code
+(match 3.14
+       ( (i28 n) (+ n 1))
+       ( _ 'not-an-i28))
+\endcode
+The example below evaluates to 5.
+\code
+(match 4
+       ( (i28 n) (+ n 1))
+       ( _ 'not-an-i28))
+\endcode
+
+
 ---
 
 <a name="?u28"> <h3>?u28</h3> </a>
+
+The ?u28 pattern matches any u28 and binds that value to a variable.
+Using the ?u28 pattern is done as <code>(?u28 var)</code> and the part of the expression
+that matches is bound to the <code>var</code>.
+
 
 ---
 
 <a name="?float"> <h3>?float</h3> </a>
 
----
-
-<a name="?cons"> <h3>?cons</h3> </a>
+The ?float pattern matches any float and binds that value to a variable.
+Using the ?float pattern is done as <code>(?float var)</code> and the part of the expression
+that matches is bound to the <code>var</code>.
 
 ---
 
@@ -811,75 +871,78 @@ An example that evaluates to 19.
 
 \section sec_unparse Unparsable symbols
 
+Unparsable symbols cannot be written into a program. The unparsable symbols
+signals different kinds of error conditions that may point at something
+being wrong in the code (or that it is exhausting all resources).
+
 <a name="no_match"> <h3>no_match</h3> </a>
+
+The <code>no_match</code> symbol is returned from pattern matching if
+no case matches the expression. 
+
 
 ---
 
 <a name="read_error"> <h3>read_error</h3> </a>
 
+The <code>read_error</code> symbol is returned if the reader cannot
+parse the input code. 
+
+
 ---
 
 <a name="type_error"> <h3>type_error</h3> </a>
+
+The <code>type_error</code> symbol is returned byt built-in functions
+if the values passed in are of incompatible types. 
 
 ---
 
 <a name="eval_error"> <h3>eval_error</h3> </a>
 
+The <code>eval_error</code> symbol is returned if evaluation could
+not proceed to evaluate the expression. This could be because the
+expression is malformed. 
+
 ---
 
 <a name="out_of_memory"> <h3>out_of_memory</h3> </a>
+
+The <code>out_of_memory</code> symbol is returned if the heap is full and running
+the garbage collector was not able to free any memory up. The program
+uses more memory than the size of the heap. Make the heap larger.
 
 ---
 
 <a name="fatal_error"> <h3>fatal_error</h3> </a>
 
+The <code>fatal_error</code> symbol is returned in cases where the
+LispBM runtime system cannot proceed. Something is corrupt and it is
+not safe to continue. 
+
 ---
 
 <a name="out_of_stack"> <h3>out_of_stack</h3> </a>
+
+The <code>out_of_stack</code> symbol is returned if the evaluator
+runs out of continuation stack (this is its runtime-stack). You are
+most likely writing a non-tail-recursive function that is exhausting all
+the resources.
 
 --
 
 <a name="division_by_zero"> <h3>division_by_zero</h3> </a>
 
+The <code>division_by_zero</code> symbol is returned when dividing by zero.
+
 ---
 
 <a name="variable_not_bound"> <h3>variable_not_bound</h3> </a>
 
-\section sec_builtin Built-in operations
+The <code>variable_not_bound</code> symbol is returned when evaluating a
+variable (symbol) that is neighter bound nor special (built-in function).
 
 
-
-<a name="eval"> <h3>eval</h3> </a>
-
----
-
-<a name="eval-program"> <h3>eval-program</h3> </a>
-
----
-
-<a name="type-of"> <h3>type-of</h3> </a>
-
----
-
-<a name="sym-to-str"> <h3>sym-to-str</h3> </a>
-
----
-
-<a name="str-to-sym"> <h3>str-to-sym</h3> </a>
-
----
-
-<a name="sym-to-u"> <h3>sym-to-u</h3> </a>
-
----
-
-<a name="u-to-sym"> <h3>u-to-sym</h3> </a>
-
----
-
-<a name="is-fundamental"> <h3>is-fundamental</h3> </a>
-
----
 
 \section sec_types Types
 
