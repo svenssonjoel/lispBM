@@ -676,9 +676,8 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     if (lbm_heap_allocate_array(&v, len+1, LBM_VAL_TYPE_CHAR)) {
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(v);
       if (!arr) return lbm_enc_sym(SYM_MERROR);
-      char *data = (char *)arr+8;
-      memset(data,0,len+1);
-      memcpy(data,sym_str,len);
+      memset(arr->data,0,len+1);
+      memcpy(arr->data,sym_str,len);
     } else {
       return lbm_enc_sym(SYM_MERROR);
     }
@@ -693,7 +692,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
     if (arr->elt_type != LBM_VAL_TYPE_CHAR)
       break;
-    char *str = (char *)arr+8;
+    char *str = (char *)arr->data;
     lbm_uint sym;
     if (lbm_get_symbol_by_name(str, &sym)) {
       result = lbm_enc_sym(sym);

@@ -429,39 +429,103 @@ Evaluates to the list <code>(9 6 5 1 2 3 4 5)</code>.
 
 <a name="eval"> <h3>eval</h3> </a>
 
+Evaluate data as an expression. The data must represent a valid expression.
+\note
+Example that evaluates to 3.
+\code
+(eval (list + 1 2))
+\endcode
+
+
 ---
 
 <a name="eval-program"> <h3>eval-program</h3> </a>
+
+Evaluate a list of data where each element represents an expression.
+\note
+This function is quite awkward as it replaces the program in the running
+context with the program provided in the list. Avoid using this
+function if possible. 
+
 
 ---
 
 <a name="type-of"> <h3>type-of</h3> </a>
 
+The <code>type-of</code> function returns a symbol that indicates what type the
+argument is. The form of a <code>type-of</code> expression is <code>(type-of expr)</code>.
+
+\note
+Example that evaluates to <code>type-float</code>.
+\code
+(type-of 3.14)
+\endcode
+
+
 ---
 
 <a name="sym-to-str"> <h3>sym-to-str</h3> </a>
+
+The <code>sym-to-str</code> function converts a symbol to its string representation.
+The resulting string is a copy of the original so you cannot destroy built in symbols using
+this function.
+
+\note
+Example that returns the string <code>"lambda"</code>.
+\code
+(sym-to-str 'lambda)
+\endcode
+
 
 ---
 
 <a name="str-to-sym"> <h3>str-to-sym</h3> </a>
 
+The <code>str-to-sym</code> function converts a string to a symbol.
+\note
+Example that returns the symbol <code>hello</code>.
+\code
+(str-to-sym "hello")
+\endcode
+
 ---
 
 <a name="sym-to-u"> <h3>sym-to-u</h3> </a>
+
+The <code>sym-to-u</code> function returns the numerical value used by the runtime system
+for a symbol.
+
+\note
+Example that evaluates to 4.
+\code
+(sym-to-u 'lambda)
+\endcode
+
 
 ---
 
 <a name="u-to-sym"> <h3>u-to-sym</h3> </a>
 
+The <code>u-to-sym</code> function returns the symbol associated with the
+numerical value provided. This symbol may be undefined in which case you
+get as result a unnamed symbol. 
+
 ---
 
 <a name="is-fundamental"> <h3>is-fundamental</h3> </a>
+
+The <code>is-funamental<code> function returns true for built-in functions.
+\note
+Example that returns true.
+\code
+(is-fundamental '+)
+\endcode
+
 
 ---
 
 
 \section sec_forms Special forms
-
 
 
 <a name="if"> <h3>if</h3> </a>
@@ -716,26 +780,95 @@ Construct the pair <code>(+ . 1)</code> using cons.
 
 <a name="."> <h3>.</h3> </a>
 
+The dot, <code>.</code>, operation creates a pair. The form of a dot expression
+is <code>(expr1 . expr2)</code>. By default the evaluator will attempt to evaluate the
+result of <code>(expr1 . expr2)</code> unless it is prefixed with <code>'</code>.
+
+\note
+Example that creates the pair (1 . 2)
+\code
+'(1 . 2)
+\endcode
+
+
 ---
 
 <a name="list"> <h3>list</h3> </a>
+
+The <code>list</code> function is used to create proper lists. The function
+takes n arguments and is of the form <code>(list expr1 ... exprN)</code>.
+
+\note
+Example that creates the list (1 2 3 4).
+\code
+(list 1 2 3 4)
+\endcode
+
 
 ---
 
 <a name="append"> <h3>append</h3> </a>
 
+The <code>append</code> function combines two lists into a longer list.
+An <code>append</code> expression is of the form <code>(append expr1 expr2)</code>.
+
+\note
+Example that combines to lists.
+\code
+(append (list 1 2 3) (list 4 5 6))
+\endcode
+
+
+
 ---
 
 <a name="ix"> <h3>ix</h3> </a>
+
+Index into a list using the <code>ix</code>. the form of an <code>ix</code> expression
+is <code>(ix index-expr list-expr)</code>. Indexing starts from 0 and if you index out of bounds the result is nil.
+
+\note
+Example that evaluates to 2.
+\code
+(ix 1 (list 1 2 3))
+\endcode
+
+
 
 ---
 
 <a name="set-car"> <h3>set-car</h3> </a>
 
+The <code>set-car</code> is a destructive update of the car field
+of a cons-cell.
+
+\note
+Define <code>apa</code> to be the pair <code>(1 . 2)<code>
+\code
+(define apa '(1 . 2))
+\endcode
+Now change the value in the car field of apa to 42.
+\code
+(set-car apa 42)
+\endcode
+The <code>apa</code> pair is now <code>(42 . 2)</code>.
+
 ---
 
 <a name="set-cdr"> <h3>set-cdr</h3> </a>
 
+The <code>set-cdr</code> is a destructive update of the cdr field of a cons-cell.
+
+\note
+Define <code>apa</code> to be the pair <code>(1 . 2)<code>
+\code
+(define apa '(1 . 2))
+\endcode
+Now change the value in the cdr field of apa to 42.
+\code
+(set-cdr apa 42)
+\endcode
+The <code>apa</code> pair is now <code>(1 . 42)</code>.
 
 
 \section sec_arrays Arrays
@@ -743,9 +876,36 @@ Construct the pair <code>(+ . 1)</code> using cons.
 
 <a name="array-read"> <h3>array-read</h3> </a>
 
+Read one or many elements from an array. The form of
+an <code>array-read</code> expression is either <code>(array-read array-expr index-expr)</code>
+of <code>(array-read array-expr start-index-expr end-index-expr)</code> for reading a range
+of values into a list.
+
+\note
+Example that evaluates to the character l.
+\code
+(array-read "hello" 3)
+\endcode
+The next example reads a range values
+\code
+(array-read "hello" 1 3)
+\endcode
+and results in the list <code>(\#e \#l \#l)</code>.
+
+
 ---
 
 <a name="array-write"> <h3>array-write</h3> </a>
+
+The <code>array-write</code> function performs a destructive update
+of an array. 
+
+\note
+Example that turns array "hello" into "heflo"
+\code
+(array-write "hello" 2 \#f)
+\endcode
+
 
 ---
 
@@ -844,19 +1004,39 @@ The ?float pattern matches any float and binds that value to a variable.
 Using the ?float pattern is done as <code>(?float var)</code> and the part of the expression
 that matches is bound to the <code>var</code>.
 
+
 ---
 
 \section sec_concurrency Concurrency
 
 <a name="spawn"> <h3>spawn</h3> </a>
 
+Use <code>spawn</code> to spawn a concurrent task. The concurrency implemented
+by LispBM is called cooperative concurrency and it means that processes must
+sleep using <a href="#yield">yield</a> or they will starve out other processes.
+The form of a spawn expression is <code>(spawn expr1 ... exprN)<code> and
+it spawns one process for each of expr1 ... exprN.
+The return value is a list of process ids. 
+
+
 ---
 
 <a name="wait"> <h3>wait</h3> </a>
 
+Use <code>wait</code> to wait for a spawned process to finish.
+The argument to <code>wait</code> should be a process id.
+The <code>wait</code> blocks until the process with the given process id finishes.
+
+\note
+Be careful to only wait for processes that actually exist and do finish. Otherwise
+you will wait forever. 
+
 ---
 
 <a name="yield"> <h3>yield</h3> </a>
+
+To put a process to sleep, call <code>yield</code>. The argument to <code>yield</code
+is number indicating at least how many microseconds the process should sleep. 
 
 ---
 
@@ -864,9 +1044,26 @@ that matches is bound to the <code>var</code>.
 
 <a name="send"> <h3>send</h3> </a>
 
+Messages can be sent to a process by using <code>send</code>. The form
+of a <code>send</code> expression is <code>(send pid msg)</code>. The message, msg,
+can be any LispBM value.
+
+
 ---
 
 <a name="recv"> <h3>recv</h3> </a>
+
+To receive a message use the <code>recv</code> command. A process
+will block on a <code>recv</code> until there is a matching message in
+the mailbox. <br>
+The <code>recv</code> syntax is very similar to <a href="#match">match</a>.
+
+\note
+Example where a process waits for an i28
+\code
+(recv ( (?i28 n) (+ n 1) ))
+\endcode
+
 
 
 \section sec_unparse Unparsable symbols
@@ -990,6 +1187,11 @@ variable (symbol) that is neighter bound nor special (built-in function).
 
 ---
 
+
+
+*/
+
+
 \section sec_internal Internal symbols
 
 <a name="sym_openpar"> <h3>sym_openpar</h3> </a>
@@ -1046,11 +1248,6 @@ variable (symbol) that is neighter bound nor special (built-in function).
 <a name="sym_nonsense"> <h3>sym_nonsense</h3> </a>
 
 ---
-
-
-*/
-
-
 
 
 
