@@ -514,7 +514,7 @@ get as result a unnamed symbol.
 
 <a name="is-fundamental"> <h3>is-fundamental</h3> </a>
 
-The <code>is-funamental<code> function returns true for built-in functions.
+The <code>is-funamental</code> function returns true for built-in functions.
 \note
 Example that returns true.
 \code
@@ -843,7 +843,7 @@ The <code>set-car</code> is a destructive update of the car field
 of a cons-cell.
 
 \note
-Define <code>apa</code> to be the pair <code>(1 . 2)<code>
+Define <code>apa</code> to be the pair <code>(1 . 2)</code>
 \code
 (define apa '(1 . 2))
 \endcode
@@ -860,7 +860,7 @@ The <code>apa</code> pair is now <code>(42 . 2)</code>.
 The <code>set-cdr</code> is a destructive update of the cdr field of a cons-cell.
 
 \note
-Define <code>apa</code> to be the pair <code>(1 . 2)<code>
+Define <code>apa</code> to be the pair <code>(1 . 2)</code>
 \code
 (define apa '(1 . 2))
 \endcode
@@ -964,6 +964,7 @@ An example that evaluates to 19.
        ((blue (? n)) (+ n 3)))
 \endcode
 
+
 ---
 
 <a name="?i28"> <h3>?i28</h3> </a>
@@ -1014,7 +1015,7 @@ that matches is bound to the <code>var</code>.
 Use <code>spawn</code> to spawn a concurrent task. The concurrency implemented
 by LispBM is called cooperative concurrency and it means that processes must
 sleep using <a href="#yield">yield</a> or they will starve out other processes.
-The form of a spawn expression is <code>(spawn expr1 ... exprN)<code> and
+The form of a spawn expression is <code>(spawn expr1 ... exprN)</code> and
 it spawns one process for each of expr1 ... exprN.
 The return value is a list of process ids. 
 
@@ -1031,11 +1032,12 @@ The <code>wait</code> blocks until the process with the given process id finishe
 Be careful to only wait for processes that actually exist and do finish. Otherwise
 you will wait forever. 
 
+
 ---
 
 <a name="yield"> <h3>yield</h3> </a>
 
-To put a process to sleep, call <code>yield</code>. The argument to <code>yield</code
+To put a process to sleep, call <code>yield</code>. The argument to <code>yield</code>
 is number indicating at least how many microseconds the process should sleep. 
 
 ---
