@@ -152,6 +152,10 @@
 
 #define SYM_SHL                 0x170
 #define SYM_SHR                 0x171
+#define SYM_BITWISE_AND         0x172
+#define SYM_BITWISE_OR          0x173
+#define SYM_BITWISE_XOR         0x174
+#define SYM_BITWISE_NOT         0x175
 
 
 

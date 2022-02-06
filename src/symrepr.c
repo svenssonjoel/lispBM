@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 96
+#define NUM_SPECIAL_SYMBOLS 100
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -136,6 +136,10 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
 
   {"shl"            , SYM_SHL},
   {"shr"            , SYM_SHR},
+  {"bitwise-and"    , SYM_BITWISE_AND},
+  {"bitwise-or"     , SYM_BITWISE_OR},
+  {"bitwise-xor"    , SYM_BITWISE_XOR},
+  {"bitwise-not"    , SYM_BITWISE_NOT},
 
   // Streams
 //  {"stream-get"     , SYM_STREAM_GET},
