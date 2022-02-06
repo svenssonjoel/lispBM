@@ -29,8 +29,41 @@ Memory size: 2048 Words
 Memory free: 2024 Words
 Allocated arrays: 0
 Symbol table size: 40 Bytes
-
 \endcode
+
+
+\code
+# :env
+Environment:
+\endcode
+
+
+\code
+# :ctxs
+****** Running contexts ******
+****** Blocked contexts ******
+****** Done contexts ******
+\endcode
+
+
+\code
+# :pause
+Evaluator paused
+\endcode
+
+\code
+# :step
+\endcode
+
+\code
+# :step 10
+\endcode
+
+\code
+# :continue
+\endcode
+
+
 
 
 \section sec_program A first program
