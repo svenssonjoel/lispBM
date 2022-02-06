@@ -29,8 +29,6 @@ Quasiquotation: \ref qq_expand.h <br>
 \ref lbmdoc <br>
 \ref lbmref <br>
 
-<h2> LispBM integration</h2>
-
 \image html lispbm_llama_small.png
 
 
