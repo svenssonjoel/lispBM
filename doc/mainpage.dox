@@ -7,6 +7,10 @@
 
 https://github.com/svenssonjoel/lispBM
 
+<h2> LispBM Language </h2>
+\ref lbmdoc <br>
+\ref lbmref <br>
+
 <h2> Implementation documentation </h2>
 
 C Interoperation: \ref lbm_c_interop.h <br>
@@ -24,10 +28,6 @@ Symbol and array memory: \ref lbm_memory.h <br>
 Symbol table: \ref symrepr.h <br>
 Types: \ref lbm_types.h <br>
 Quasiquotation: \ref qq_expand.h <br>
-
-<h2> LispBM Language </h2>
-\ref lbmdoc <br>
-\ref lbmref <br>
 
 \image html lispbm_llama_small.png
 
