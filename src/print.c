@@ -58,6 +58,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
   const char *str_ptr;
   int res;
 
+  lbm_stack_clear(&print_stack);
   lbm_push_u32_2(&print_stack, t, PRINT);
 
   while (!lbm_stack_is_empty(&print_stack) && offset <= len - 5) {
