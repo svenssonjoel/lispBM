@@ -45,7 +45,6 @@
 #define AND               8
 #define OR                9
 #define WAIT              10
-#define SPAWN_ALL         11
 #define MATCH             12
 #define MATCH_MANY        13
 #define READ              14
@@ -923,23 +922,6 @@ static inline void eval_progn(eval_context_t *ctx) {
   ctx->curr_env = env;
 }
 
-static inline void eval_spawn(eval_context_t *ctx) {
-  lbm_value prgs = lbm_cdr(ctx->curr_exp);
-  lbm_value env = ctx->curr_env;
-
-  if (lbm_type_of(prgs) == LBM_VAL_TYPE_SYMBOL && prgs == NIL) {
-    ctx->r = NIL;
-    ctx->app_cont = true;
-    return;
-  }
-
-  lbm_value cid_list = NIL;
-  CHECK_STACK(lbm_push_u32_3(&ctx->K, env, prgs, lbm_enc_u(SPAWN_ALL)));
-  ctx->r = cid_list;
-  ctx->app_cont = true;
-}
-
-
 static inline void eval_lambda(eval_context_t *ctx) {
 
   lbm_value env_cpy = lbm_env_copy_shallow(ctx->curr_env);
@@ -1157,30 +1139,6 @@ static inline void cont_progn_rest(eval_context_t *ctx) {
   ctx->curr_env = env;
 }
 
-static inline void cont_spawn_all(eval_context_t *ctx) {
-  lbm_value rest;
-  lbm_value env;
-  lbm_pop_u32_2(&ctx->K, &rest, &env);
-  if (lbm_type_of(rest) == LBM_VAL_TYPE_SYMBOL && rest == NIL) {
-    ctx->app_cont = true;
-    return;
-  }
-
-  lbm_value cid_val = lbm_enc_u((lbm_uint)next_ctx_id); /* CIDS range from 0 - 65535, so this is fine */
-  lbm_value cid_list;
-  WITH_GC(cid_list, lbm_cons(cid_val, ctx->r), rest, env);
-
-  lbm_cid cid = lbm_create_ctx(lbm_car(rest),
-                       env,
-                       EVAL_CPS_DEFAULT_STACK_SIZE);
-  if (!cid) {
-    lbm_set_car(cid_list, lbm_enc_sym(SYM_NIL));
-  }
-  CHECK_STACK(lbm_push_u32_3(&ctx->K, env, lbm_cdr(rest), lbm_enc_u(SPAWN_ALL)));
-  ctx->r = cid_list;
-  ctx->app_cont = true;
-}
-
 static inline void cont_wait(eval_context_t *ctx) {
 
   lbm_value cid_val;
@@ -1268,6 +1226,47 @@ static inline void cont_application(eval_context_t *ctx) {
         ctx->r = NIL;
         ctx->app_cont = true;
         break;
+    case SYM_SPAWN: {
+      if (!lbm_is_closure(fun_args[1]||
+          lbm_dec_u(count) < 1)) {
+        error_ctx(lbm_enc_sym(SYM_EERROR));
+      }
+
+      lbm_value cdr_fun = lbm_cdr(fun_args[1]);
+      lbm_value cddr_fun = lbm_cdr(cdr_fun);
+      lbm_value cdddr_fun = lbm_cdr(cddr_fun);
+      lbm_value params  = lbm_car(cdr_fun);
+      lbm_value exp     = lbm_car(cddr_fun);
+      lbm_value clo_env = lbm_car(cdddr_fun);
+
+      lbm_value curr_param = params;
+      lbm_uint i = 2;
+      while (lbm_type_of(curr_param) == LBM_PTR_TYPE_CONS &&
+          i <= lbm_dec_u(count)) {
+
+        lbm_value entry;
+        WITH_GC(entry,lbm_cons(lbm_car(curr_param),fun_args[i]), clo_env,NIL);
+
+        lbm_value aug_env;
+        WITH_GC(aug_env,lbm_cons(entry, clo_env),clo_env,entry);
+        clo_env = aug_env;
+
+        curr_param = lbm_cdr(curr_param);
+        i ++;
+      }
+
+      lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
+
+      lbm_value program =  NIL;
+      CONS_WITH_GC(program, exp, program, clo_env);
+
+
+      lbm_cid cid = lbm_create_ctx(program,
+                                   clo_env,
+                                   EVAL_CPS_DEFAULT_STACK_SIZE);
+      ctx->r = lbm_enc_i(cid);
+      ctx->app_cont = true;
+    } break;
     case SYM_YIELD:
       if (lbm_dec_u(count) == 1 && lbm_is_number(fun_args[1])) {
         lbm_uint ts = lbm_dec_as_u(fun_args[1]);
@@ -1833,7 +1832,6 @@ static void evaluation_step(void){
     case DONE: advance_ctx(); return;
     case SET_GLOBAL_ENV:   cont_set_global_env(ctx); return;
     case PROGN_REST:       cont_progn_rest(ctx); return;
-    case SPAWN_ALL:        cont_spawn_all(ctx); return;
     case WAIT:             cont_wait(ctx); return;
     case APPLICATION:      cont_application(ctx); return;
     case APPLICATION_ARGS: cont_application_args(ctx); return;
@@ -1876,7 +1874,6 @@ static void evaluation_step(void){
       case SYM_QUOTE:   eval_quote(ctx); return;
       case SYM_DEFINE:  eval_define(ctx); return;
       case SYM_PROGN:   eval_progn(ctx); return;
-      case SYM_SPAWN:   eval_spawn(ctx); return;
       case SYM_LAMBDA:  eval_lambda(ctx); return;
       case SYM_IF:      eval_if(ctx); return;
       case SYM_LET:     eval_let(ctx); return;

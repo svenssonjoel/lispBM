@@ -1015,9 +1015,8 @@ that matches is bound to the <code>var</code>.
 Use <code>spawn</code> to spawn a concurrent task. The concurrency implemented
 by LispBM is called cooperative concurrency and it means that processes must
 sleep using <a href="#yield">yield</a> or they will starve out other processes.
-The form of a spawn expression is <code>(spawn expr1 ... exprN)</code> and
-it spawns one process for each of expr1 ... exprN.
-The return value is a list of process ids. 
+The form of a spawn expression is <code>(spawn closure arg1 ... argN)</code> 
+The return value is a process ID.
 
 
 ---
