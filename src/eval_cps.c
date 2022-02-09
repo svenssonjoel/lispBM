@@ -60,7 +60,7 @@
 #define WITH_GC(y, x, remember1,remember2)      \
   (y) = (x);                                    \
   if (lbm_is_symbol_merror((y))) {                  \
-    gc(remember1, remember2,NIL);                   \
+    gc(remember1, remember2);                   \
     (y) = (x);                                  \
     if (lbm_is_symbol_merror((y))) {                \
       ctx_running->done = true;                 \
@@ -70,23 +70,9 @@
     /* continue executing statements below */   \
   }
 
-#define WITH_GC3(y, x, remember1,remember2,remember3)      \
-  (y) = (x);                                    \
-  if (lbm_is_symbol_merror((y))) {              \
-    gc(remember1, remember2, remember3);        \
-    (y) = (x);                                  \
-    if (lbm_is_symbol_merror((y))) {            \
-      ctx_running->done = true;                 \
-      error_ctx(lbm_enc_sym(SYM_MERROR));       \
-      return;                                   \
-    }                                           \
-    /* continue executing statements below */   \
-  }
-
-
 #define PRELIMINARY_GC_MEASURE 30
 
-static int gc(lbm_value, lbm_value, lbm_value);
+static int gc(lbm_value, lbm_value);
 static lbm_value NIL;
 static lbm_value NONSENSE;
 static void error_ctx(lbm_value);
@@ -95,7 +81,7 @@ static eval_context_t *ctx_running = NULL;
 static inline lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
   lbm_value res = lbm_cons(head, tail);
   if (lbm_is_symbol_merror(res)) {
-    gc(remember, NIL, NIL);
+    gc(remember, NIL);
     res = lbm_cons(head, tail);
     if (lbm_is_symbol_merror(res)) {
         ctx_running->done = true;
@@ -776,7 +762,7 @@ static int find_match(lbm_value plist, lbm_value elist, lbm_value *e, lbm_value 
 
 /****************************************************/
 /* Garbage collection                               */
-static int gc(lbm_value remember1, lbm_value remember2, lbm_value remember3) {
+static int gc(lbm_value remember1, lbm_value remember2) {
 
   uint32_t tstart = 0;
   uint32_t tend = 0;
@@ -790,7 +776,6 @@ static int gc(lbm_value remember1, lbm_value remember2, lbm_value remember3) {
   lbm_gc_mark_phase(*lbm_get_env_ptr());
   lbm_gc_mark_phase(remember1);
   lbm_gc_mark_phase(remember2);
-  lbm_gc_mark_phase(remember3);
 
   eval_context_t *curr = queue.first;
   while (curr) {
@@ -927,7 +912,7 @@ static inline void eval_lambda(eval_context_t *ctx) {
   lbm_value env_cpy = lbm_env_copy_shallow(ctx->curr_env);
 
   if (lbm_is_symbol_merror(env_cpy)) {
-    gc(NIL, NIL,NIL);
+    gc(NIL, NIL);
     env_cpy = lbm_env_copy_shallow(ctx->curr_env);
 
     if (lbm_is_symbol_merror(env_cpy)) {
@@ -1065,7 +1050,7 @@ static inline void eval_receive(eval_context_t *ctx) {
       bool do_gc = false;;
       int n = find_match(lbm_cdr(pats), msgs, &e, &new_env, &do_gc);
       if (do_gc) {
-        gc(NIL, NIL, NIL);
+        gc(NIL, NIL);
         do_gc = false;
         n = find_match(lbm_cdr(pats), msgs, &e, &new_env, &do_gc);
         if (do_gc) {
@@ -1227,8 +1212,8 @@ static inline void cont_application(eval_context_t *ctx) {
         ctx->app_cont = true;
         break;
     case SYM_SPAWN: {
-      if (!lbm_is_closure(fun_args[1]||
-          lbm_dec_u(count) < 1)) {
+      if (!lbm_is_closure(fun_args[1]) ||
+          lbm_dec_u(count) < 1) {
         error_ctx(lbm_enc_sym(SYM_EERROR));
       }
 
@@ -1510,7 +1495,7 @@ static inline void cont_match(eval_context_t *ctx) {
       ctx->curr_env = new_env;
       ctx->curr_exp = body;
     } else if (do_gc) {
-      gc(NIL,NIL,NIL);
+      gc(NIL,NIL);
       do_gc = false;
       match(pattern, e, &new_env, &do_gc);
       if (do_gc) {
@@ -1961,7 +1946,7 @@ void lbm_run_eval(void){
     case EVAL_CPS_STATE_PAUSED:
       if (eval_cps_run_state != EVAL_CPS_STATE_PAUSED) {
         if (lbm_heap_num_free() < eval_cps_next_state_arg) {
-          gc(NIL, NIL,NIL);
+          gc(NIL, NIL);
         }
         eval_cps_next_state_arg = 0;
       }
