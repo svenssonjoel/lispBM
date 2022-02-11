@@ -324,8 +324,8 @@ int main(int argc, char **argv) {
   lbm_cons_t *heap_storage = NULL;
 
   for (int i = 0; i < 1024; i ++) {
-    char_array[i] = i;
-    word_array[i] = i;
+    char_array[i] = (char)i;
+    word_array[i] = (uint32_t)i;
   }
   
   //setup_terminal();

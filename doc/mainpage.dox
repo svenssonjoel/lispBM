@@ -27,6 +27,7 @@ Streams: \ref streams.h <br>
 Symbol and array memory: \ref lbm_memory.h <br>
 Symbol table: \ref symrepr.h <br>
 Types: \ref lbm_types.h <br>
+Version: \ref lbm_version.h <br>
 Quasiquotation: \ref qq_expand.h <br>
 
 \image html lispbm_llama_small.png
