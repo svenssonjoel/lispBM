@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 101
+#define NUM_SPECIAL_SYMBOLS 102
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -52,6 +52,9 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"_"          , SYM_DONTCARE},
   {"send"       , SYM_SEND},
   {"recv"       , SYM_RECEIVE},
+  {"macro"      , SYM_MACRO},
+
+  // pattern matching
   {"?"          , SYM_MATCH_ANY},
   {"?i28"       , SYM_MATCH_I28},
   {"?u28"       , SYM_MATCH_U28},

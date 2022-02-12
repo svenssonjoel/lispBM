@@ -56,6 +56,7 @@
 #define SYM_MATCH         0x13
 #define SYM_SEND          0x14
 #define SYM_RECEIVE       0x15
+#define SYM_MACRO         0x16
 
 #define SYM_ARRAY_TYPE     0x20
 #define SYM_BOXED_I_TYPE   0x21

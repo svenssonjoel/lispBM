@@ -48,6 +48,7 @@
 #define MATCH             12
 #define MATCH_MANY        13
 #define READ              14
+#define APPLICATION_START 15
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
@@ -872,6 +873,12 @@ static inline void eval_quote(eval_context_t *ctx) {
   ctx->r = lbm_car(lbm_cdr(ctx->curr_exp));
   ctx->app_cont = true;
 }
+
+static inline void eval_macro(eval_context_t *ctx) {
+  ctx->r = ctx->curr_exp;
+  ctx->app_cont = true;
+}
+
 
 static inline void eval_define(eval_context_t *ctx) {
   lbm_value key = lbm_car(lbm_cdr(ctx->curr_exp));
@@ -1798,6 +1805,83 @@ static inline void cont_read(eval_context_t *ctx) {
   }
 }
 
+/* The easiest way is a recursive function ... */
+lbm_value expand_macro(lbm_value body, lbm_value env) {
+
+  printf("Expanding MACRO\n");
+
+  if (lbm_type_of(body) == LBM_VAL_TYPE_SYMBOL) {
+    lbm_value res = lbm_env_lookup(body, env);
+    if (lbm_type_of(res) == LBM_VAL_TYPE_SYMBOL &&
+        lbm_dec_sym(res) == SYM_NOT_FOUND) {
+      return body;
+    }
+    return res;
+  }
+
+  if (lbm_type_of(body) == LBM_PTR_TYPE_CONS) {
+    lbm_value res;
+    lbm_value h = expand_macro(lbm_car(body),env);
+    lbm_value t = expand_macro(lbm_cdr(body),env);
+    res = cons_with_gc(h, t, env);
+    return res;
+  }
+  return body;
+}
+
+static inline void cont_application_start(eval_context_t *ctx) {
+
+  lbm_value args;
+  lbm_pop_u32(&ctx->K, &args);
+
+  char output[1024];
+
+  if (lbm_is_macro(ctx->r)) {
+    lbm_value curr_param = (lbm_car(lbm_cdr(ctx->r)));
+    lbm_value curr_arg = args;
+    lbm_value expand_env = NIL;
+    while (lbm_type_of(curr_param) == LBM_PTR_TYPE_CONS &&
+           lbm_type_of(curr_arg)   == LBM_PTR_TYPE_CONS) {
+
+      lbm_value entry;
+      WITH_GC(entry,lbm_cons(lbm_car(curr_param),lbm_car(curr_arg)), expand_env,NIL);
+
+      lbm_value aug_env;
+      WITH_GC(aug_env,lbm_cons(entry, expand_env),expand_env,entry);
+      expand_env = aug_env;
+
+      curr_param = lbm_cdr(curr_param);
+      curr_arg   = lbm_cdr(curr_arg);
+    }
+
+    printf("BEFORE EXPANSION\n");
+    lbm_print_value(output, 1024,lbm_car(lbm_cdr(lbm_cdr(ctx->r))));
+    printf("%s\n", output);
+
+    lbm_value exp = expand_macro(lbm_car(lbm_cdr(lbm_cdr(ctx->r))), expand_env);
+
+    printf("AFTER_EXPANSION");
+    lbm_print_value(output, 1024,exp);
+    printf("%s\n", output);
+
+
+    lbm_value env;
+    lbm_pop_u32(&ctx->K, &env);
+    ctx->curr_exp = exp;
+    ctx->curr_env = env;
+    ctx->app_cont = false;
+
+  } else {
+    CHECK_STACK(lbm_push_u32_3(&ctx->K,
+                               lbm_enc_u(0),
+                               args,
+                               lbm_enc_u(APPLICATION_ARGS)));
+    ctx->app_cont = true;
+  }
+}
+
+
+
 /*********************************************************/
 /* Evaluator step function                               */
 
@@ -1814,19 +1898,20 @@ static void evaluation_step(void){
     ctx->app_cont = false;
 
     switch(lbm_dec_u(k)) {
-    case DONE: advance_ctx(); return;
-    case SET_GLOBAL_ENV:   cont_set_global_env(ctx); return;
-    case PROGN_REST:       cont_progn_rest(ctx); return;
-    case WAIT:             cont_wait(ctx); return;
-    case APPLICATION:      cont_application(ctx); return;
-    case APPLICATION_ARGS: cont_application_args(ctx); return;
-    case AND:              cont_and(ctx); return;
-    case OR:               cont_or(ctx); return;
-    case BIND_TO_KEY_REST: cont_bind_to_key_rest(ctx); return;
-    case IF:               cont_if(ctx); return;
-    case MATCH:            cont_match(ctx); return;
-    case MATCH_MANY:       cont_match_many(ctx); return;
-    case READ:             cont_read(ctx); return;
+    case DONE:              advance_ctx(); return;
+    case SET_GLOBAL_ENV:    cont_set_global_env(ctx); return;
+    case PROGN_REST:        cont_progn_rest(ctx); return;
+    case WAIT:              cont_wait(ctx); return;
+    case APPLICATION:       cont_application(ctx); return;
+    case APPLICATION_ARGS:  cont_application_args(ctx); return;
+    case AND:               cont_and(ctx); return;
+    case OR:                cont_or(ctx); return;
+    case BIND_TO_KEY_REST:  cont_bind_to_key_rest(ctx); return;
+    case IF:                cont_if(ctx); return;
+    case MATCH:             cont_match(ctx); return;
+    case MATCH_MANY:        cont_match_many(ctx); return;
+    case READ:              cont_read(ctx); return;
+    case APPLICATION_START: cont_application_start(ctx); return;
     default:
       error_ctx(lbm_enc_sym(SYM_EERROR));
       return;
@@ -1867,18 +1952,23 @@ static void evaluation_step(void){
       case SYM_MATCH:   eval_match(ctx); return;
         /* message passing primitives */
       case SYM_RECEIVE: eval_receive(ctx); return;
+      case SYM_MACRO:   eval_macro(ctx); return;
 
       default: break; /* May be general application form. Checked below*/
       }
     } // If head is symbol
-    CHECK_STACK(lbm_push_u32_4(&ctx->K,
-                           ctx->curr_env,
-                           lbm_enc_u(0),
-                           lbm_cdr(ctx->curr_exp),
-                           lbm_enc_u(APPLICATION_ARGS)));
+    /*
+     * At this point head can be a closure, fundamental, extension or a macro.
+     * Anything else would be an error.
+     */
+
+    CHECK_STACK(lbm_push_u32_3(&ctx->K,
+                               ctx->curr_env,
+                               lbm_cdr(ctx->curr_exp),
+                               lbm_enc_u(APPLICATION_START)));
 
     ctx->curr_exp = head; // evaluate the function
-    return;
+    break;
   default:
     // BUG No applicable case!
     error_ctx(lbm_enc_sym(SYM_EERROR));
