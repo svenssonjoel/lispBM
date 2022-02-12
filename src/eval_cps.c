@@ -49,6 +49,7 @@
 #define MATCH_MANY        13
 #define READ              14
 #define APPLICATION_START 15
+#define EVAL_R            16
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
@@ -1805,41 +1806,22 @@ static inline void cont_read(eval_context_t *ctx) {
   }
 }
 
-/* The easiest way is a recursive function ... */
-lbm_value expand_macro(lbm_value body, lbm_value env) {
-
-  printf("Expanding MACRO\n");
-
-  if (lbm_type_of(body) == LBM_VAL_TYPE_SYMBOL) {
-    lbm_value res = lbm_env_lookup(body, env);
-    if (lbm_type_of(res) == LBM_VAL_TYPE_SYMBOL &&
-        lbm_dec_sym(res) == SYM_NOT_FOUND) {
-      return body;
-    }
-    return res;
-  }
-
-  if (lbm_type_of(body) == LBM_PTR_TYPE_CONS) {
-    lbm_value res;
-    lbm_value h = expand_macro(lbm_car(body),env);
-    lbm_value t = expand_macro(lbm_cdr(body),env);
-    res = cons_with_gc(h, t, env);
-    return res;
-  }
-  return body;
-}
-
 static inline void cont_application_start(eval_context_t *ctx) {
 
   lbm_value args;
   lbm_pop_u32(&ctx->K, &args);
 
-  char output[1024];
-
   if (lbm_is_macro(ctx->r)) {
+    /*
+     * Perform macro expansion.
+     */
+
+    lbm_value env;
+    lbm_pop_u32(&ctx->K, &env);
+
     lbm_value curr_param = (lbm_car(lbm_cdr(ctx->r)));
     lbm_value curr_arg = args;
-    lbm_value expand_env = NIL;
+    lbm_value expand_env = env;
     while (lbm_type_of(curr_param) == LBM_PTR_TYPE_CONS &&
            lbm_type_of(curr_arg)   == LBM_PTR_TYPE_CONS) {
 
@@ -1854,23 +1836,12 @@ static inline void cont_application_start(eval_context_t *ctx) {
       curr_arg   = lbm_cdr(curr_arg);
     }
 
-    printf("BEFORE EXPANSION\n");
-    lbm_print_value(output, 1024,lbm_car(lbm_cdr(lbm_cdr(ctx->r))));
-    printf("%s\n", output);
-
-    lbm_value exp = expand_macro(lbm_car(lbm_cdr(lbm_cdr(ctx->r))), expand_env);
-
-    printf("AFTER_EXPANSION");
-    lbm_print_value(output, 1024,exp);
-    printf("%s\n", output);
-
-
-    lbm_value env;
-    lbm_pop_u32(&ctx->K, &env);
+    CHECK_STACK(lbm_push_u32(&ctx->K,
+                             lbm_enc_u(EVAL_R)));
+    lbm_value exp = lbm_car(lbm_cdr(lbm_cdr(ctx->r)));
     ctx->curr_exp = exp;
-    ctx->curr_env = env;
+    ctx->curr_env = expand_env;
     ctx->app_cont = false;
-
   } else {
     CHECK_STACK(lbm_push_u32_3(&ctx->K,
                                lbm_enc_u(0),
@@ -1880,6 +1851,11 @@ static inline void cont_application_start(eval_context_t *ctx) {
   }
 }
 
+static inline void cont_eval_r(eval_context_t* ctx) {
+
+  ctx->curr_exp = ctx->r;
+  ctx->app_cont = false;
+}
 
 
 /*********************************************************/
@@ -1912,6 +1888,7 @@ static void evaluation_step(void){
     case MATCH_MANY:        cont_match_many(ctx); return;
     case READ:              cont_read(ctx); return;
     case APPLICATION_START: cont_application_start(ctx); return;
+    case EVAL_R:            cont_eval_r(ctx); return;
     default:
       error_ctx(lbm_enc_sym(SYM_EERROR));
       return;
