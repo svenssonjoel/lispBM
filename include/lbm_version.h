@@ -37,12 +37,16 @@
 
 /* Change log */
 
+
 /* Feb 13 2022: Version (0.2.0)
  * - adds support for macros.
  *   Adding macros made the evaluator a slight bit slower due to the new application form.
  *   See if this can be optimized somewhat.
  * - adds call-cc for escaping and abortive continuations.
  */
+
+/* Feb 13 2022: version 0.1.1 
+   Bug fix in handling of environments in progn. */
 
 /* Feb 11 2022: First state to be given a numbered version (0.1.0)  */
 
