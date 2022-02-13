@@ -37,6 +37,10 @@
 
 /* Change log */
 
+
+/* Feb 13 2022: version 0.1.1 
+   Bug fix in handling of environments in progn. */
+
 /* Feb 11 2022: First state to be given a numbered version (0.1.0)  */
 
 
