@@ -880,6 +880,34 @@ static inline void eval_macro(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static inline void eval_callcc(eval_context_t *ctx) {
+
+  lbm_value continuation = NIL;
+
+  for (int i = (int)ctx->K.sp; i > 0; i --) {
+    CONS_WITH_GC(continuation, ctx->K.data[i-1], continuation, continuation);
+  }
+
+  lbm_value acont = NIL;
+  CONS_WITH_GC(acont, continuation, acont, continuation);
+  CONS_WITH_GC(acont, lbm_enc_sym(SYM_CONT), acont, acont);
+
+
+  /* Create an application */
+  lbm_value fun_arg = lbm_car(lbm_cdr(ctx->curr_exp));
+  lbm_value app = NIL;
+  CONS_WITH_GC(app, acont, app, acont);
+  CONS_WITH_GC(app, fun_arg, app, app);
+
+  //ctx->r = NIL;
+  ctx->curr_exp = app;
+  ctx->app_cont = false;
+}
+
+static inline void eval_continuation(eval_context_t *ctx) {
+  ctx->r = ctx->curr_exp;
+  ctx->app_cont = true;
+}
 
 static inline void eval_define(eval_context_t *ctx) {
   lbm_value key = lbm_car(lbm_cdr(ctx->curr_exp));
@@ -1164,7 +1192,7 @@ static inline void cont_application(eval_context_t *ctx) {
   }
   lbm_value fun = fun_args[0];
 
-  if (lbm_type_of(fun) == LBM_PTR_TYPE_CONS) { // a closure (it better be)
+  if (lbm_is_closure(fun)) { // a closure (it better be)
 
     lbm_value cdr_fun = lbm_cdr(fun);
     lbm_value cddr_fun = lbm_cdr(cdr_fun);
@@ -1192,6 +1220,18 @@ static inline void cont_application(eval_context_t *ctx) {
     lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
     ctx->curr_exp = exp;
     ctx->curr_env = clo_env; // local_env;
+    return;
+  } else if (lbm_is_continuation(fun)) {
+
+    lbm_value c = lbm_car(lbm_cdr(fun)); /* should be the continuation */
+    lbm_value arg = fun_args[1];
+    lbm_stack_clear(&ctx->K);
+    while (lbm_type_of(c) == LBM_PTR_TYPE_CONS) {
+      lbm_push_u32(&ctx->K, lbm_car(c));
+      c = lbm_cdr(c);
+    }
+    ctx->r = arg;
+    ctx->app_cont = true;
     return;
   } else if (lbm_type_of(fun) == LBM_VAL_TYPE_SYMBOL) {
 
@@ -1243,7 +1283,6 @@ static inline void cont_application(eval_context_t *ctx) {
         lbm_value aug_env;
         WITH_GC(aug_env,lbm_cons(entry, clo_env),clo_env,entry);
         clo_env = aug_env;
-
         curr_param = lbm_cdr(curr_param);
         i ++;
       }
@@ -1930,6 +1969,8 @@ static void evaluation_step(void){
         /* message passing primitives */
       case SYM_RECEIVE: eval_receive(ctx); return;
       case SYM_MACRO:   eval_macro(ctx); return;
+      case SYM_CALLCC:  eval_callcc(ctx); return;
+      case SYM_CONT:    eval_continuation(ctx); return;
 
       default: break; /* May be general application form. Checked below*/
       }

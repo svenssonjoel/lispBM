@@ -29,13 +29,20 @@
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 1
+#define LBM_MINOR_VERSION 2
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 
 
 /* Change log */
+
+/* Feb 13 2022: Version (0.2.0)
+ * - adds support for macros.
+ *   Adding macros made the evaluator a slight bit slower due to the new application form.
+ *   See if this can be optimized somewhat.
+ * - adds call-cc for escaping and abortive continuations.
+ */
 
 /* Feb 11 2022: First state to be given a numbered version (0.1.0)  */
 

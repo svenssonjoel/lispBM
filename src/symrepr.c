@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 102
+#define NUM_SPECIAL_SYMBOLS 104
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -48,11 +48,13 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"read-program" , SYM_READ_PROGRAM},
   //{"comma"      , SYM_COMMA},   // should not be accessible to programmer
   //{"splice"     , SYM_COMMAAT},
-  {"match"      , SYM_MATCH},
-  {"_"          , SYM_DONTCARE},
-  {"send"       , SYM_SEND},
-  {"recv"       , SYM_RECEIVE},
-  {"macro"      , SYM_MACRO},
+  {"match"        , SYM_MATCH},
+  {"_"            , SYM_DONTCARE},
+  {"send"         , SYM_SEND},
+  {"recv"         , SYM_RECEIVE},
+  {"macro"        , SYM_MACRO},
+  {"call-cc"      , SYM_CALLCC},
+  {"continuation" , SYM_CONT},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
