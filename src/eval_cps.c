@@ -1876,8 +1876,9 @@ static inline void cont_application_start(eval_context_t *ctx) {
       curr_arg   = lbm_cdr(curr_arg);
     }
 
-    CHECK_STACK(lbm_push_u32(&ctx->K,
-                             lbm_enc_u(EVAL_R)));
+    CHECK_STACK(lbm_push_u32_2(&ctx->K,
+                               env,
+                               lbm_enc_u(EVAL_R)));
     lbm_value exp = lbm_car(lbm_cdr(lbm_cdr(ctx->r)));
     ctx->curr_exp = exp;
     ctx->curr_env = expand_env;
@@ -1893,7 +1894,10 @@ static inline void cont_application_start(eval_context_t *ctx) {
 
 static inline void cont_eval_r(eval_context_t* ctx) {
 
+  lbm_value env;
+  lbm_pop_u32(&ctx->K, &env);
   ctx->curr_exp = ctx->r;
+  ctx->curr_env = env;
   ctx->app_cont = false;
 }
 
