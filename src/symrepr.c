@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 104
+#define NUM_SPECIAL_SYMBOLS 106
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -115,6 +115,8 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"="              , SYM_EQ},
   {"<"              , SYM_LT},
   {">"              , SYM_GT},
+  {"<="             , SYM_LEQ},
+  {">="             , SYM_GEQ},
   {"eval"           , SYM_EVAL},
   {"eval-program"   , SYM_EVAL_PROGRAM},
   {"and"            , SYM_AND},

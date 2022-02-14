@@ -37,6 +37,8 @@
 
 /* Change log */
 
+/* Feb 14 2022: version 0.2.0
+   Added GEQ >= and LEQ <= comparisons.
 
 /* Feb 13 2022: Version (0.2.0)
  * - adds support for macros.
