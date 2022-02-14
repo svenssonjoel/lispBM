@@ -30,7 +30,7 @@ All programming languages need a mascot, so here is the LispBM llama by [PixiLad
 13. Quasiquotation.
 14. Concurrency.
 15. Message-passing.
-16. Pattern-matching
+16. Pattern-matching.
 
 ## Documentation
 
@@ -67,8 +67,8 @@ There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3Ta
 17. [x] Rename files with names that may conflict with common stuff (memory.h, memory.c). 
 18. [x] It should be possible to reset the runtime system.
 19. [x] Add messages to lisp process mailbox from C to unlock blocked proc.
-20. [x]Spawn closures specifically instead of expressions in general.
-21. []Implement some looping structure for speed or just ease of use.
+20. [x] Spawn closures specifically instead of expressions in general.
+21. [ ] Implement some looping structure for speed or just ease of use.
 
 ## Vague or continuosly ongoing todos 
 1. Doxygen?
