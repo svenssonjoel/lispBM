@@ -1854,6 +1854,9 @@ static inline void cont_application_start(eval_context_t *ctx) {
   if (lbm_is_macro(ctx->r)) {
     /*
      * Perform macro expansion.
+     * Macro expansion is really just evaluation in an
+     * environment augmented with the unevaluated expressions passed
+     * as arguments.
      */
 
     lbm_value env;
@@ -1876,6 +1879,10 @@ static inline void cont_application_start(eval_context_t *ctx) {
       curr_arg   = lbm_cdr(curr_arg);
     }
 
+    /* Two rounds of evaluation is performed.
+     * First to instantiate the arguments into the macro body.
+     * Second to evaluate the resulting program.
+     */
     CHECK_STACK(lbm_push_u32_2(&ctx->K,
                                env,
                                lbm_enc_u(EVAL_R)));

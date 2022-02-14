@@ -29,7 +29,7 @@
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 2
+#define LBM_MINOR_VERSION 3
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
@@ -37,15 +37,15 @@
 
 /* Change log */
 
-/* Feb 14 2022: version 0.2.0
-   Added GEQ >= and LEQ <= comparisons.
-
-/* Feb 13 2022: Version (0.2.0)
+/* Feb 14 2022: Version (0.3.0)
  * - adds support for macros.
  *   Adding macros made the evaluator a slight bit slower due to the new application form.
  *   See if this can be optimized somewhat.
  * - adds call-cc for escaping and abortive continuations.
  */
+
+/* Feb 14 2022: version 0.2.0
+   Added GEQ >= and LEQ <= comparisons.
 
 /* Feb 13 2022: version 0.1.1 
    Bug fix in handling of environments in progn. */
