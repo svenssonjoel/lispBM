@@ -371,3 +371,8 @@ unsigned int lbm_get_symbol_table_size(void) {
   }
   return n;
 }
+
+
+int lbm_get_num_variables(void) {
+  return (int)next_variable_symbol_id - VARIABLE_SYMBOLS_START;
+}

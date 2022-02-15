@@ -773,6 +773,14 @@ static int gc(lbm_value remember1, lbm_value remember2) {
   }
 
   lbm_gc_state_inc();
+
+  lbm_value *variables = lbm_get_variable_table();
+  if (variables) {
+    for (int i = 0; i < lbm_get_num_variables(); i ++) {
+      lbm_gc_mark_phase(variables[i]);
+    }
+  }
+
   lbm_gc_mark_freelist();
   lbm_gc_mark_phase(*lbm_get_env_ptr());
   lbm_gc_mark_phase(remember1);
