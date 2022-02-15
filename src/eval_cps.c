@@ -890,7 +890,8 @@ static inline void eval_define(eval_context_t *ctx) {
   lbm_value val_exp = lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp)));
 
   if (lbm_type_of(key) != LBM_VAL_TYPE_SYMBOL ||
-      key == NIL) {
+      (lbm_type_of(key) == LBM_VAL_TYPE_SYMBOL &&
+       lbm_dec_sym(key) < RUNTIME_SYMBOLS_START)) {
     error_ctx(lbm_enc_sym(SYM_EERROR));
     return;
   }
