@@ -28,6 +28,7 @@
 #include "streams.h"
 #include "tokpar.h"
 #include "qq_expand.h"
+#include "lbm_variables.h"
 
 #include "platform_mutex.h"
 
@@ -843,11 +844,15 @@ static int gc(lbm_value remember1, lbm_value remember2) {
 
 static inline void eval_symbol(eval_context_t *ctx) {
   lbm_value value;
-  
-  if (lbm_is_special(ctx->curr_exp) ||
+
+  lbm_uint s = lbm_dec_sym(ctx->curr_exp);
+  if (s < SPECIAL_SYMBOLS_END ||
       (lbm_get_extension(lbm_dec_sym(ctx->curr_exp)) != NULL)) {
     // Special symbols and extension symbols evaluate to themselves
     value = ctx->curr_exp;
+  } else if (s >= VARIABLE_SYMBOLS_START &&
+             s < VARIABLE_SYMBOLS_END) {
+    value = lbm_get_var(s);
   } else {
     // If not special, check if there is a binding in the environments
     value = lbm_env_lookup(ctx->curr_exp, ctx->curr_env);
@@ -857,7 +862,6 @@ static inline void eval_symbol(eval_context_t *ctx) {
       value = lbm_env_lookup(ctx->curr_exp, *lbm_get_env_ptr());
     }
   }
-
   ctx->app_cont = true;
   ctx->r = value;
 }

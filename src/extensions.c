@@ -24,13 +24,9 @@
 
 #include "extensions.h"
 
-static int ext_offset = MAX_SPECIAL_SYMBOLS;
+static int ext_offset = EXTENSION_SYMBOLS_START;
 static int ext_max    = -1;
 static extension_fptr *extension_table = NULL;
-
-#define SYM 0
-#define FPTR 1
-#define NEXT 2
 
 uint32_t* extensions = NULL;
 
