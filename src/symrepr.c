@@ -172,6 +172,7 @@ static lbm_uint next_extension_symbol_id = MAX_SPECIAL_SYMBOLS;
 int lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = RUNTIME_SYMBOLS_START;
+  next_extension_symbol_id = MAX_SPECIAL_SYMBOLS;
   return 1;
 }
 
