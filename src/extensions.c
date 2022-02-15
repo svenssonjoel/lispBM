@@ -35,9 +35,10 @@ static extension_fptr *extension_table = NULL;
 uint32_t* extensions = NULL;
 
 int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size) {
-  if (extension_storage == NULL) return 0;
+  if (extension_storage == NULL || extension_storage_size <= 0) return 0;
 
   extension_table = extension_storage;
+  memset(extension_table, 0, sizeof(extension_fptr) * (unsigned int)extension_storage_size);
 
   ext_max = extension_storage_size;
 
