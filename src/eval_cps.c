@@ -51,6 +51,8 @@
 #define READ              14
 #define APPLICATION_START 15
 #define EVAL_R            16
+#define SET_VARIABLE      17
+
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
@@ -925,14 +927,21 @@ static inline void eval_define(eval_context_t *ctx) {
   lbm_value key = lbm_car(lbm_cdr(ctx->curr_exp));
   lbm_value val_exp = lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp)));
 
-  if ((lbm_type_of(key) == LBM_VAL_TYPE_SYMBOL) &&
-      (lbm_dec_sym(key) >= RUNTIME_SYMBOLS_START)) {
+  if (lbm_type_of(key) == LBM_VAL_TYPE_SYMBOL) {
+    lbm_uint sym_val = lbm_dec_sym(key);
 
-    CHECK_STACK(lbm_push_u32_2(&ctx->K, key, lbm_enc_u(SET_GLOBAL_ENV)));
-    ctx->curr_exp = val_exp;
-  } else {
-    error_ctx(lbm_enc_sym(SYM_EERROR));
+    if ((sym_val >= VARIABLE_SYMBOLS_START) &&
+        (sym_val <  VARIABLE_SYMBOLS_END)) {
+      CHECK_STACK(lbm_push_u32_2(&ctx->K, key, lbm_enc_u(SET_VARIABLE)));
+      ctx->curr_exp = val_exp;
+      return;
+    } else if (sym_val >= RUNTIME_SYMBOLS_START) {
+      CHECK_STACK(lbm_push_u32_2(&ctx->K, key, lbm_enc_u(SET_GLOBAL_ENV)));
+      ctx->curr_exp = val_exp;
+      return;
+    }
   }
+  error_ctx(lbm_enc_sym(SYM_EERROR));
   return;
 }
 
@@ -1142,11 +1151,22 @@ static inline void cont_set_global_env(eval_context_t *ctx){
   *lbm_get_env_ptr() = new_env;
   ctx->r = key;
 
-  if (!ctx->done)
-    ctx->app_cont = true;
+  //if (!ctx->done)
+  ctx->app_cont = true;
 
   return;
 }
+
+static inline void cont_set_var(eval_context_t *ctx) {
+  lbm_value key;
+  lbm_value val = ctx->r;
+  lbm_pop_u32(&ctx->K, &key);
+
+  ctx->r = lbm_set_var(lbm_dec_sym(key), val);
+  ctx->app_cont = true;
+  return;
+}
+
 
 static inline void cont_progn_rest(eval_context_t *ctx) {
   lbm_value rest;
@@ -1932,7 +1952,6 @@ static inline void cont_eval_r(eval_context_t* ctx) {
   ctx->app_cont = false;
 }
 
-
 /*********************************************************/
 /* Evaluator step function                               */
 
@@ -1964,6 +1983,7 @@ static void evaluation_step(void){
     case READ:              cont_read(ctx); return;
     case APPLICATION_START: cont_application_start(ctx); return;
     case EVAL_R:            cont_eval_r(ctx); return;
+    case SET_VARIABLE:     cont_set_var(ctx); return;
     default:
       error_ctx(lbm_enc_sym(SYM_EERROR));
       return;
