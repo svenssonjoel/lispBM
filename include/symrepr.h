@@ -163,12 +163,19 @@
 #define SYM_BITWISE_XOR         0x174
 #define SYM_BITWISE_NOT         0x175
 
-
+#define SYM_SETVAR              0x180
 
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200
 
-#define MAX_SPECIAL_SYMBOLS 4096 // 12bits (highest id allowed is 0xFFFF)
+#define SPECIAL_SYMBOLS_START    0
+#define SPECIAL_SYMBOLS_END      0xFFFF
+#define EXTENSION_SYMBOLS_START  0x10000
+#define EXTENSION_SYMBOLS_END    0x1FFFF
+#define VARIABLE_SYMBOLS_START   0x20000
+#define VARIABLE_SYMBOLS_END     0x2FFFF
+#define RUNTIME_SYMBOLS_START    0x30000
+#define MAX_SYMBOL_VALUE 0x0FFFFFFF
 
 /** Initialize the symbol table.
  *
@@ -182,6 +189,13 @@ extern int lbm_symrepr_init(void);
  * \return 1 for success and 0 for failure.
  */
 extern int lbm_add_symbol(char *name, lbm_uint *id);
+/** Add a variable-symbol to the symbol table. The symbol name string is copied to arrays and symbols memory.
+ *
+ * \param name String representation of the symbol.
+ * \param id Resulting id is returned through this argument.
+ * \return 1 for success and 0 for failure.
+ */
+extern int lbm_add_variable_symbol(char *name, lbm_uint* id);
 /** Add a symbol to the symbol table. The name is assumed to be a statically allocated string.
  *
  * \param name Statically allocated name string.
@@ -189,6 +203,14 @@ extern int lbm_add_symbol(char *name, lbm_uint *id);
  * \return 1 for success and 0 for failure.
  */
 extern int lbm_add_symbol_const(char *name, lbm_uint *id);
+/** Add an extension symbol to the symbol table.
+ *  The name is assumed to be statically allocated.
+ *
+ * \param name Statically allocated name string.
+ * \param id Resulting id is returned through this argument.
+ * \return 1 for success and 0 for failure.
+ */
+extern int lbm_add_extension_symbol_const(char *name, lbm_uint* id);
 /** Look up an id from the symbol table given a name.
  *
  * \param name Name string to look up.
@@ -202,6 +224,8 @@ extern int lbm_get_symbol_by_name(char *name, lbm_uint *id);
  * \return pointer to the name string if success otherwise NULL.
  */
 extern const char* lbm_get_name_by_symbol(lbm_uint id);
+
+extern int lbm_get_num_variables(void);
 
 /**
  *
@@ -217,6 +241,8 @@ static inline bool lbm_is_error(lbm_uint symrep){
           symrep == SYM_EERROR ||
           symrep == SYM_FATAL_ERROR);
 }
+
+
 
 
 #endif

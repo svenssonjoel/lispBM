@@ -28,6 +28,7 @@
 #include "streams.h"
 #include "tokpar.h"
 #include "qq_expand.h"
+#include "lbm_variables.h"
 
 #include "platform_mutex.h"
 
@@ -774,6 +775,14 @@ static int gc(lbm_value remember1, lbm_value remember2) {
   }
 
   lbm_gc_state_inc();
+
+  lbm_value *variables = lbm_get_variable_table();
+  if (variables) {
+    for (int i = 0; i < lbm_get_num_variables(); i ++) {
+      lbm_gc_mark_phase(variables[i]);
+    }
+  }
+
   lbm_gc_mark_freelist();
   lbm_gc_mark_phase(*lbm_get_env_ptr());
   lbm_gc_mark_phase(remember1);
@@ -845,11 +854,15 @@ static int gc(lbm_value remember1, lbm_value remember2) {
 
 static inline void eval_symbol(eval_context_t *ctx) {
   lbm_value value;
-  
-  if (lbm_is_special(ctx->curr_exp) ||
+
+  lbm_uint s = lbm_dec_sym(ctx->curr_exp);
+  if (s < SPECIAL_SYMBOLS_END ||
       (lbm_get_extension(lbm_dec_sym(ctx->curr_exp)) != NULL)) {
     // Special symbols and extension symbols evaluate to themselves
     value = ctx->curr_exp;
+  } else if (s >= VARIABLE_SYMBOLS_START &&
+             s < VARIABLE_SYMBOLS_END) {
+    value = lbm_get_var(s);
   } else {
     // If not special, check if there is a binding in the environments
     value = lbm_env_lookup(ctx->curr_exp, ctx->curr_env);
@@ -859,7 +872,6 @@ static inline void eval_symbol(eval_context_t *ctx) {
       value = lbm_env_lookup(ctx->curr_exp, *lbm_get_env_ptr());
     }
   }
-
   ctx->app_cont = true;
   ctx->r = value;
 }
@@ -913,26 +925,27 @@ static inline void eval_define(eval_context_t *ctx) {
   lbm_value key = lbm_car(lbm_cdr(ctx->curr_exp));
   lbm_value val_exp = lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp)));
 
-  if (lbm_type_of(key) != LBM_VAL_TYPE_SYMBOL ||
-      key == NIL) {
-    error_ctx(lbm_enc_sym(SYM_EERROR));
-    return;
-  }
+  if ((lbm_type_of(key) == LBM_VAL_TYPE_SYMBOL) &&
+      (lbm_dec_sym(key) >= RUNTIME_SYMBOLS_START)) {
 
-  CHECK_STACK(lbm_push_u32_2(&ctx->K, key, lbm_enc_u(SET_GLOBAL_ENV)));
-  ctx->curr_exp = val_exp;
+    CHECK_STACK(lbm_push_u32_2(&ctx->K, key, lbm_enc_u(SET_GLOBAL_ENV)));
+    ctx->curr_exp = val_exp;
+  } else {
+    error_ctx(lbm_enc_sym(SYM_EERROR));
+  }
+  return;
 }
 
 
 static inline void eval_progn(eval_context_t *ctx) {
   lbm_value exps = lbm_cdr(ctx->curr_exp);
   lbm_value env  = ctx->curr_env;
-  
+
   if (lbm_type_of(exps) == LBM_VAL_TYPE_SYMBOL && exps == NIL) {
     ctx->r = NIL;
     ctx->app_cont = true;
     return;
-  }  
+  }
 
   if (lbm_is_error(exps)) {
       error_ctx(exps);
@@ -944,7 +957,7 @@ static inline void eval_progn(eval_context_t *ctx) {
 }
 
 static inline void eval_lambda(eval_context_t *ctx) {
-  
+
   lbm_value env_cpy = lbm_env_copy_shallow(ctx->curr_env);
 
   if (lbm_is_symbol_merror(env_cpy)) {
@@ -1370,7 +1383,7 @@ static inline void cont_application(eval_context_t *ctx) {
         }
         break;
       } else {
-        // It may be an extension  
+        // It may be an extension
         extension_fptr f = lbm_get_extension(lbm_dec_sym(fun));
         if (f == NULL) {
           error_ctx(lbm_enc_sym(SYM_EERROR));

@@ -30,9 +30,13 @@
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
+#define EXTENSION_STORAGE_SIZE 256
+#define VARIABLE_STORAGE_SIZE 256
 
 uint32_t gc_stack_storage[GC_STACK_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
+extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
+lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 
 static volatile bool allow_print = true;
 
@@ -327,7 +331,7 @@ int main(int argc, char **argv) {
     char_array[i] = (char)i;
     word_array[i] = (uint32_t)i;
   }
-  
+
   //setup_terminal();
 
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
@@ -339,11 +343,14 @@ int main(int argc, char **argv) {
            gc_stack_storage, GC_STACK_SIZE,
            memory, LBM_MEMORY_SIZE_8K,
            bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
-           print_stack_storage, PRINT_STACK_SIZE);
+           print_stack_storage, PRINT_STACK_SIZE,
+           extension_storage, EXTENSION_STORAGE_SIZE);
 
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
+
+  lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
   res = lbm_add_extension("print", ext_print);
   if (res)
@@ -461,7 +468,10 @@ int main(int argc, char **argv) {
                gc_stack_storage, GC_STACK_SIZE,
                memory, LBM_MEMORY_SIZE_8K,
                bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
-               print_stack_storage, PRINT_STACK_SIZE);
+               print_stack_storage, PRINT_STACK_SIZE,
+               extension_storage, EXTENSION_STORAGE_SIZE);
+
+      lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
       lbm_add_extension("print", ext_print);
     } else if (strncmp(str, ":prelude", 8) == 0) {

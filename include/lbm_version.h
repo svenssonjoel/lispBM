@@ -20,12 +20,6 @@
 #ifndef LBM_VERSION_H_
 #define LBM_VERSION_H_
 
-/* Approach to versions.
- *  Major version changes when there are interface breaking changes.
- *  Minor Backwards compatible additions.
- *  Patch Backwards compatible bug fixes or tweaks.
- */
-
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
@@ -33,21 +27,23 @@
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
-
-
 /* Change log */
 
-/* Feb 14 2022: Version (0.3.0)
+
+/* Feb 14 2022: Version (0.4.0)
  * - adds support for macros.
  *   Adding macros made the evaluator a slight bit slower due to the new application form.
  *   See if this can be optimized somewhat.
  * - adds call-cc for escaping and abortive continuations.
  */
 
+/* Feb 14 2022: version 0.3.0
+   Extensions are stored in an array and occupy a range of dedicated symbol values. 
+
 /* Feb 14 2022: version 0.2.0
    Added GEQ >= and LEQ <= comparisons.
 
-/* Feb 13 2022: version 0.1.1 
+/* Feb 13 2022: version 0.1.1
    Bug fix in handling of environments in progn. */
 
 /* Feb 11 2022: First state to be given a numbered version (0.1.0)  */
