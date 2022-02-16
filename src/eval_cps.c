@@ -1226,12 +1226,23 @@ static inline void cont_application(eval_context_t *ctx) {
         ctx->app_cont = true;
         break;
     case SYM_SPAWN: {
-      if (!lbm_is_closure(fun_args[1]) ||
+
+      lbm_uint stack_size = EVAL_CPS_DEFAULT_STACK_SIZE;
+      lbm_uint closure_pos = 1;
+
+      if (lbm_dec_u(count) >= 2 &&
+          lbm_is_number(fun_args[1]) &&
+          lbm_is_closure(fun_args[2])) {
+        stack_size = lbm_dec_as_u(fun_args[1]);
+        closure_pos = 2;
+      }
+
+      if (!lbm_is_closure(fun_args[closure_pos]) ||
           lbm_dec_u(count) < 1) {
         error_ctx(lbm_enc_sym(SYM_EERROR));
       }
 
-      lbm_value cdr_fun = lbm_cdr(fun_args[1]);
+      lbm_value cdr_fun = lbm_cdr(fun_args[closure_pos]);
       lbm_value cddr_fun = lbm_cdr(cdr_fun);
       lbm_value cdddr_fun = lbm_cdr(cddr_fun);
       lbm_value params  = lbm_car(cdr_fun);
@@ -1239,9 +1250,9 @@ static inline void cont_application(eval_context_t *ctx) {
       lbm_value clo_env = lbm_car(cdddr_fun);
 
       lbm_value curr_param = params;
-      lbm_uint i = 2;
+      lbm_uint i = closure_pos + 1;
       while (lbm_type_of(curr_param) == LBM_PTR_TYPE_CONS &&
-          i <= lbm_dec_u(count)) {
+             i <= (lbm_dec_u(count) - (closure_pos - 1))) {
 
         lbm_value entry;
         WITH_GC(entry,lbm_cons(lbm_car(curr_param),fun_args[i]), clo_env,NIL);
@@ -1262,7 +1273,7 @@ static inline void cont_application(eval_context_t *ctx) {
 
       lbm_cid cid = lbm_create_ctx(program,
                                    clo_env,
-                                   EVAL_CPS_DEFAULT_STACK_SIZE);
+                                   stack_size);
       ctx->r = lbm_enc_i(cid);
       ctx->app_cont = true;
     } break;
