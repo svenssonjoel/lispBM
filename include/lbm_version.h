@@ -38,6 +38,7 @@
    - Spawn optionally takes a number argument before the closure argument
      to specify stack size.
    - Extensions are stored in an array and occupy a range of dedicated symbol values.
+*/
 
 /* Feb 14 2022: version 0.2.0
    Added GEQ >= and LEQ <= comparisons.
