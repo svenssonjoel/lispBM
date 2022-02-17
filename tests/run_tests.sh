@@ -128,7 +128,7 @@ echo Tests failed: $fail_count
 echo Expected fails: $expected_count
 echo Actual fails: $((fail_count - expected_count))
 
-if [ $fail_count -gt 0 ]
+if [ $((fail_count - expected_count)) -gt 0 ]
 then
     exit 1
 fi
