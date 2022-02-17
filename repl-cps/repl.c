@@ -534,6 +534,15 @@ int main(int argc, char **argv) {
       int num = atoi(str + 5);
 
       lbm_step_n_eval((uint32_t)num);
+    } else if (strncmp(str, ":undef", 6) == 0) {
+      lbm_pause_eval();
+      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+      char *sym = str + 7;
+      printf("undefining: %s\n", sym);
+      printf("%s\n", lbm_undefine(sym) ? "Cleared bindings" : "No definition found");
+      lbm_continue_eval();
     } else if (strncmp(str, ":array", 6) == 0) {
       lbm_pause_eval_with_gc(30);
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
@@ -542,10 +551,10 @@ int main(int argc, char **argv) {
       printf("Evaluator paused\n");
 
       lbm_value arr_val;
-      lbm_create_array(&arr_val, char_array, LBM_VAL_TYPE_CHAR,1024);
+      lbm_share_array(&arr_val, char_array, LBM_VAL_TYPE_CHAR,1024);
       lbm_define("c-arr", arr_val);
 
-      lbm_create_array(&arr_val, (char *)word_array, LBM_PTR_TYPE_BOXED_I,1024);
+      lbm_share_array(&arr_val, (char *)word_array, LBM_PTR_TYPE_BOXED_I,1024);
       lbm_define("i-arr", arr_val);
 
       lbm_continue_eval();

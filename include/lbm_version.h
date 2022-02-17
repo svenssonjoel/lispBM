@@ -29,7 +29,10 @@
 
 /* Change log */
 
-/* Feb 16 2022: version 0.3.0
+/* Feb 17 2022: version 0.3.0
+   - Added lbm_undefine to c_interop.
+   - Added lbm_share_array to c_interop.
+   - Added lbm_create_array to c_interop.
    - #var variables with more efficient storage and lookup.
      variables are set using `setvar`.
    - Spawn optionally takes a number argument before the closure argument
