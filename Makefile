@@ -90,6 +90,8 @@ $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c src/prelude.xxd
 $(BUILD_DIR)/heap_vis.o: $(SOURCE_DIR)/visual/heap_vis.c
 	$(CC) -I$(INCLUDE_DIR) -I$(PLAFORMINC) $(CCFLAGS) -c $< -o $@
 
+test:
+	cd tests && ./run_tests.sh
 
 clean:
 	rm src/prelude.xxd
