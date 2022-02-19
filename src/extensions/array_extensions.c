@@ -78,9 +78,7 @@ lbm_value array_extension_buffer_append_i8(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = lbm_enc_sym(SYM_EERROR);
 
-  switch(argn) {
-
-  case 3:
+  if (argn == 3) {
     if(lbm_type_of(args[0]) != LBM_PTR_TYPE_ARRAY ||
        !lbm_is_number(args[1]) ||
        !lbm_is_number(args[2])) {
@@ -99,9 +97,7 @@ lbm_value array_extension_buffer_append_i8(lbm_value *args, lbm_uint argn) {
 
     uint8_t *data = (uint8_t*)array->data;
     data[index] = (uint8_t) value;
-    break;
-  default:
-    break;
+    res = lbm_enc_sym(SYM_TRUE);
   }
   return res;
 }
@@ -145,6 +141,7 @@ lbm_value array_extension_buffer_append_i16(lbm_value *args, lbm_uint argn) {
       data[index]    = (uint8_t)value;
       data[index +1] = (uint8_t)(value >> 8);
     }
+    res = lbm_enc_sym(SYM_TRUE);
     break;
   default:
     break;
@@ -228,6 +225,7 @@ lbm_value array_extension_buffer_append_u8(lbm_value *args, lbm_uint argn) {
 
     uint8_t *data = (uint8_t*)array->data;
     data[index] = (uint8_t)value;
+    res = lbm_enc_sym(SYM_TRUE);
     break;
   default:
     break;
@@ -274,6 +272,7 @@ lbm_value array_extension_buffer_append_u16(lbm_value *args, lbm_uint argn) {
       data[index]    = (uint8_t)value;
       data[index +1] = (uint8_t)(value >> 8);
     }
+    res = lbm_enc_sym(SYM_TRUE);
     break;
   default:
     break;
