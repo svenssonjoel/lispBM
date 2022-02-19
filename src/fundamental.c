@@ -437,7 +437,7 @@ void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
         break;
       case LBM_PTR_TYPE_BOXED_F:
         curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_BOXED_F_TYPE));
-        if (lbm_type_of(*result) == LBM_VAL_TYPE_SYMBOL) return;
+        if (lbm_type_of(curr) == LBM_VAL_TYPE_SYMBOL) return;
         curr = lbm_set_ptr_type(curr, LBM_PTR_TYPE_BOXED_F);
         break;
       default:

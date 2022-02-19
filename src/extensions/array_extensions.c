@@ -25,6 +25,7 @@ static lbm_uint big_endian = 0;
 
 static lbm_value array_extension_buffer_append_16(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_32(lbm_value *args, lbm_uint argn);
+static lbm_value array_extension_buffer_get(lbm_value *args, lbm_uint argn);
 
 bool array_extensions_init(void) {
 
@@ -41,11 +42,12 @@ bool array_extensions_init(void) {
   bool res = true;
   res = res && lbm_add_extension("buffer-append-16", array_extension_buffer_append_16);
   res = res && lbm_add_extension("buffer-append-32", array_extension_buffer_append_32);
+  res = res && lbm_add_extension("buffer-get", array_extension_buffer_get);
   return res;
 }
 
 
-/* Going to use the naming convention that a buffer is an array of bytes */ 
+/* Going to use the naming convention that a buffer is an array of bytes */
 lbm_value array_extension_buffer_append_16(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = lbm_enc_sym(SYM_EERROR);
@@ -76,14 +78,14 @@ lbm_value array_extension_buffer_append_16(lbm_value *args, lbm_uint argn) {
       return res;
     }
 
-    uint8_t *data = (uint8_t*)array->data;    
+    uint8_t *data = (uint8_t*)array->data;
 
     if (be) {
       data[index+1]  = (uint8_t)value;
-      data[index]    = (uint8_t)(value >> 8);  
+      data[index]    = (uint8_t)(value >> 8);
     } else {
       data[index]    = (uint8_t)value;
-      data[index +1] = (uint8_t)(value >> 8);  
+      data[index +1] = (uint8_t)(value >> 8);
     }
     break;
   default:
@@ -118,22 +120,22 @@ lbm_value array_extension_buffer_append_32(lbm_value *args, lbm_uint argn) {
     lbm_uint value = lbm_dec_as_u(args[1]);
     lbm_uint index = lbm_dec_as_u(args[2]);
 
-    if (index+1 >= array->size) {
+    if (index+3 >= array->size) {
       return res;
     }
 
-    uint8_t *data = (uint8_t*)array->data;    
+    uint8_t *data = (uint8_t*)array->data;
 
     if (be) {
       data[index+3]  = (uint8_t)value;
       data[index+2]  = (uint8_t)(value >> 8);
       data[index+1]  = (uint8_t)(value >> 16);
-      data[index]    = (uint8_t)(value >> 24);  
+      data[index]    = (uint8_t)(value >> 24);
     } else {
       data[index]    = (uint8_t)value;
       data[index+1]  = (uint8_t)(value >> 8);
       data[index+2]  = (uint8_t)(value >> 16);
-      data[index+3]  = (uint8_t)(value >> 24); 
+      data[index+3]  = (uint8_t)(value >> 24);
     }
     break;
   default:
@@ -142,8 +144,82 @@ lbm_value array_extension_buffer_append_32(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+/* (buffer-get buffer type n-bytes index <big-endian | little-endian> ) */
+lbm_value array_extension_buffer_get(lbm_value *args, lbm_uint argn) {
+  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  bool be = false;
 
+  switch(argn) {
 
+  case 5:
+    if (lbm_type_of(args[4]) == LBM_VAL_TYPE_SYMBOL &&
+        lbm_dec_sym(args[4]) == big_endian) {
+      be = true;
+    }
+    /* fall through */
+  case 4:
+    if(lbm_type_of(args[0]) != LBM_PTR_TYPE_ARRAY ||
+       !lbm_is_symbol(args[1]) ||
+       !lbm_is_number(args[2]) ||
+       !lbm_is_number(args[3])) {
+      return res;
+    }
+    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+    if (array->elt_type != LBM_VAL_TYPE_BYTE) {
+      return res;
+    }
+    lbm_uint type  = lbm_dec_sym(args[1]);
+    lbm_uint bytes = lbm_dec_as_u(args[2]);
+    lbm_uint index = lbm_dec_as_u(args[3]);
+    lbm_uint value = 0;
+
+    if (index+bytes >= array->size) {
+      return res;
+    }
+    uint8_t *data = (uint8_t*)array->data;
+
+    if (be) {
+      for (lbm_uint i = 0; i < bytes; i ++) {
+        value = (value << (i * 8)) | data[i];
+      }
+    } else {
+      for (lbm_uint i = 0; i < bytes; i ++) {
+        value = (value << (i * 8)) | data[bytes - 1 - i];
+      }
+    }
+
+    switch(type) {
+    case LBM_VAL_TYPE_BYTE:
+      res = lbm_enc_char(value);
+      break;
+    case LBM_VAL_TYPE_I:
+      res = lbm_enc_i((lbm_int)value);
+      break;
+    case LBM_VAL_TYPE_U:
+      res = lbm_enc_u(value);
+      break;
+    case LBM_PTR_TYPE_BOXED_I:
+      res = lbm_enc_I((lbm_int)value);
+      break;
+    case LBM_PTR_TYPE_BOXED_U:
+      res = lbm_enc_U(value);
+      break;
+    case LBM_PTR_TYPE_BOXED_F: {
+      lbm_value v = lbm_cons(value, lbm_enc_sym(SYM_BOXED_F_TYPE));
+      if (lbm_type_of(v) != LBM_VAL_TYPE_SYMBOL)
+        v = lbm_set_ptr_type(v, LBM_PTR_TYPE_BOXED_F);
+      res = v;
+    } break;
+    default:
+      return res;
+    }
+    break;
+  default:
+    break;
+  }
+  return res;
+
+}
 /*
   void buffer_append_int16(uint8_t* buffer, int16_t number, int32_t *index);
   void buffer_append_uint16(uint8_t* buffer, uint16_t number, int32_t *index);
