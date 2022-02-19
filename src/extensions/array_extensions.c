@@ -27,7 +27,7 @@ static lbm_value array_extension_buffer_append_16(lbm_value *args, lbm_uint argn
 static lbm_value array_extension_buffer_append_32(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_get(lbm_value *args, lbm_uint argn);
 
-bool array_extensions_init(void) {
+bool lbm_array_extensions_init(void) {
 
   if (!lbm_get_symbol_by_name("little-endian", &little_endian)) {
     if (!lbm_add_symbol_const("little-endian", &little_endian)) {
@@ -180,45 +180,46 @@ lbm_value array_extension_buffer_get(lbm_value *args, lbm_uint argn) {
 
     if (be) {
       for (lbm_uint i = 0; i < bytes; i ++) {
-        value = (value << (i * 8)) | data[i];
+        if (i > 0) value = value << 8;
+        value |= data[i];
       }
     } else {
       for (lbm_uint i = 0; i < bytes; i ++) {
-        value = (value << (i * 8)) | data[bytes - 1 - i];
+        if (i > 0) value = value << 8;
+        value |= data[bytes - 1 - i];
       }
     }
 
     switch(type) {
-    case LBM_VAL_TYPE_BYTE:
-      res = lbm_enc_char(value);
+    case SYM_TYPE_CHAR:
+      res = lbm_enc_char((char)value);
       break;
-    case LBM_VAL_TYPE_I:
+    case SYM_TYPE_I28:
       res = lbm_enc_i((lbm_int)value);
       break;
-    case LBM_VAL_TYPE_U:
+    case SYM_TYPE_U28:
       res = lbm_enc_u(value);
       break;
-    case LBM_PTR_TYPE_BOXED_I:
+    case SYM_TYPE_I32:
       res = lbm_enc_I((lbm_int)value);
       break;
-    case LBM_PTR_TYPE_BOXED_U:
+    case SYM_TYPE_U32:
       res = lbm_enc_U(value);
       break;
-    case LBM_PTR_TYPE_BOXED_F: {
+    case SYM_TYPE_FLOAT: {
       lbm_value v = lbm_cons(value, lbm_enc_sym(SYM_BOXED_F_TYPE));
       if (lbm_type_of(v) != LBM_VAL_TYPE_SYMBOL)
         v = lbm_set_ptr_type(v, LBM_PTR_TYPE_BOXED_F);
       res = v;
     } break;
     default:
-      return res;
+      break;
     }
     break;
   default:
     break;
   }
   return res;
-
 }
 /*
   void buffer_append_int16(uint8_t* buffer, int16_t number, int32_t *index);

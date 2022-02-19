@@ -20,6 +20,6 @@
 
 #include <stdbool.h>
 
-extern bool array_extensions_init(void);
+extern bool lbm_array_extensions_init(void);
 
 #endif
