@@ -31,10 +31,12 @@
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
+#define VARIABLE_STORAGE_SIZE 256
 
 uint32_t gc_stack_storage[GC_STACK_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
+lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 
 /* Tokenizer state for strings */
 static lbm_tokenizer_string_state_t string_tok_state;
@@ -46,6 +48,7 @@ static tokenizer_compressed_state_t comp_tok_state;
 static lbm_tokenizer_char_stream_t string_tok;
 
 void *eval_thd_wrapper(void *v) {
+  (void)v;
   lbm_run_eval();
   return NULL;
 }
@@ -244,6 +247,8 @@ int main(int argc, char **argv) {
 
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
+
+  lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
