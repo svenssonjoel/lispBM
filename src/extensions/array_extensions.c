@@ -24,6 +24,7 @@ static lbm_uint little_endian = 0;
 static lbm_uint big_endian = 0;
 
 static lbm_value array_extension_buffer_append_16(lbm_value *args, lbm_uint argn);
+static lbm_value array_extension_buffer_append_32(lbm_value *args, lbm_uint argn);
 
 bool array_extensions_init(void) {
 
@@ -39,6 +40,7 @@ bool array_extensions_init(void) {
   }
   bool res = true;
   res = res && lbm_add_extension("buffer-append-16", array_extension_buffer_append_16);
+  res = res && lbm_add_extension("buffer-append-32", array_extension_buffer_append_32);
   return res;
 }
 
