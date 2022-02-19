@@ -551,7 +551,7 @@ lbm_value array_extension_buffer_get_i32(lbm_value *args, lbm_uint argn) {
         (lbm_uint) data[index+3] << 24;
     }
 
-    res = lbm_enc_i((lbm_int)value);
+    res = lbm_enc_I((lbm_int)value);
     break;
   default:
     break;
@@ -680,7 +680,7 @@ lbm_value array_extension_buffer_get_u32(lbm_value *args, lbm_uint argn) {
         (lbm_uint) data[index+3] << 24;
     }
 
-    res = lbm_enc_u(value);
+    res = lbm_enc_U(value);
     break;
   default:
     break;
