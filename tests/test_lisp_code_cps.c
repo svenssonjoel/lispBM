@@ -26,6 +26,8 @@
 #include <unistd.h>
 
 #include "lispbm.h"
+#include "extensions/array_extensions.h"
+
 
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
@@ -229,6 +231,8 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  lbm_array_extensions_init();
+  
   res = lbm_add_extension("ext-even", ext_even);
   if (res)
     printf("Extension added.\n");
