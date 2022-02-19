@@ -73,13 +73,15 @@ lbm_value array_extension_buffer_append_16(lbm_value *args, lbm_uint argn) {
     if (index+1 >= array->size) {
       return res;
     }
-    
+
+    uint8_t *data = (uint8_t*)array->data;    
+
     if (be) {
-      array->data[index+1]  = (uint8_t)value;
-      array->data[index]    = (uint8_t)(value >> 8);  
+      data[index+1]  = (uint8_t)value;
+      data[index]    = (uint8_t)(value >> 8);  
     } else {
-      array->data[index]    = (uint8_t)value;
-      array->data[index +1] = (uint8_t)(value >> 8);  
+      data[index]    = (uint8_t)value;
+      data[index +1] = (uint8_t)(value >> 8);  
     }
     break;
   default:
@@ -87,6 +89,57 @@ lbm_value array_extension_buffer_append_16(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
+
+lbm_value array_extension_buffer_append_32(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = lbm_enc_sym(SYM_EERROR);
+  bool be = false;
+
+  switch(argn) {
+
+  case 4:
+    if (lbm_type_of(args[3]) == LBM_VAL_TYPE_SYMBOL &&
+        lbm_dec_sym(args[3]) == big_endian) {
+      be = true;
+    }
+    /* fall through */
+  case 3:
+    if(lbm_type_of(args[0]) != LBM_PTR_TYPE_ARRAY ||
+       !lbm_is_number(args[1]) ||
+       !lbm_is_number(args[2])) {
+      return res;
+    }
+    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+    if (array->elt_type != LBM_VAL_TYPE_BYTE) {
+      return res;
+    }
+    lbm_uint value = lbm_dec_as_u(args[1]);
+    lbm_uint index = lbm_dec_as_u(args[2]);
+
+    if (index+1 >= array->size) {
+      return res;
+    }
+
+    uint8_t *data = (uint8_t*)array->data;    
+
+    if (be) {
+      data[index+3]  = (uint8_t)value;
+      data[index+2]  = (uint8_t)(value >> 8);
+      data[index+1]  = (uint8_t)(value >> 16);
+      data[index]    = (uint8_t)(value >> 24);  
+    } else {
+      data[index]    = (uint8_t)value;
+      data[index+1]  = (uint8_t)(value >> 8);
+      data[index+2]  = (uint8_t)(value >> 16);
+      data[index+3]  = (uint8_t)(value >> 24); 
+    }
+    break;
+  default:
+    break;
+  }
+  return res;
+}
+
 
 
 /*

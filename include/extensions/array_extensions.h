@@ -18,6 +18,8 @@
 #ifndef ARRAY_EXTENSIONS_H_
 #define ARRAY_EXTENSIONS_H_
 
+#include <stdbool.h>
+
 extern bool array_extensions_init(void);
 
 #endif
