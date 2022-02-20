@@ -30,11 +30,9 @@
 /* Change log */
 
 
-/* Feb 14 2022: Version (0.4.0)
-  - adds support for macros.
-    Adding macros made the evaluator a slight bit slower due to the new application form.
-    See if this can be optimized somewhat.
-  - adds call-cc for escaping and abortive continuations.
+/* Feb 20 2022: Version (0.4.0)
+  - Adds support for macros.
+  - Adds call-cc for escaping and abortive continuations.
 */
 
 /* Feb 17 2022: version 0.3.0
