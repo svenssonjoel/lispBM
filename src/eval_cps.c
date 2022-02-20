@@ -1447,8 +1447,8 @@ static inline void cont_application_args(eval_context_t *ctx) {
   if (lbm_type_of(rest) == LBM_VAL_TYPE_SYMBOL &&
       rest == NIL) {
     // no arguments
-    CHECK_STACK(lbm_push_u32_2(&ctx->K, count, lbm_enc_u(APPLICATION)));
-    ctx->app_cont = true;
+    CHECK_STACK(lbm_push_u32(&ctx->K, count));
+    cont_application(ctx);
   } else if (lbm_type_of(rest) == LBM_PTR_TYPE_CONS) {
     CHECK_STACK(lbm_push_u32_4(&ctx->K, env, lbm_enc_u(lbm_dec_u(count) + 1), lbm_cdr(rest), lbm_enc_u(APPLICATION_ARGS)));
     ctx->curr_exp = lbm_car(rest);
@@ -1935,11 +1935,10 @@ static inline void cont_application_start(eval_context_t *ctx) {
     ctx->curr_env = expand_env;
     ctx->app_cont = false;
   } else {
-    CHECK_STACK(lbm_push_u32_3(&ctx->K,
+    CHECK_STACK(lbm_push_u32_2(&ctx->K,
                                lbm_enc_u(0),
-                               args,
-                               lbm_enc_u(APPLICATION_ARGS)));
-    ctx->app_cont = true;
+                               args));
+    cont_application_args(ctx); 
   }
 }
 
