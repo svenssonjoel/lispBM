@@ -335,6 +335,7 @@ extern lbm_int lbm_dec_as_i(lbm_value val);
  */
 extern lbm_float lbm_dec_as_f(lbm_value val);
 
+extern lbm_uint lbm_dec_raw(lbm_value v);
 /** Allocates an lbm_cons_t cell from the heap and populates it.
  *
  * \param car The value to put in the car field of the allocated lbm_cons_t.
