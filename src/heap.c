@@ -475,10 +475,10 @@ int lbm_gc_sweep_phase(void) {
           lbm_dec_sym(heap[i].cdr) == SYM_ARRAY_TYPE) {
         lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
         if (lbm_memory_ptr_inside((uint32_t*)arr->data)) {
-          lbm_memory_free((uint32_t *)arr);
           lbm_memory_free((uint32_t *)arr->data);
           heap_state.gc_recovered_arrays++;
         }
+        lbm_memory_free((uint32_t *)arr);
       }
 
       // create pointer to use as new freelist
