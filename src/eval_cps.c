@@ -261,8 +261,7 @@ void print_error_explanation(lbm_value error, char *buf, unsigned int size) {
     case SYM_RERROR:
       printf_callback("\tRead errors are most likely caused by syntactically\n"
                       "\tincorrect input programs.\n"
-                      "\t - Check that all opening parenthesis are properly closed.\n"
-                      "\t - Check that you haven't written, for example, (1 + 2) where it should be (+ 1 2).\n");
+                      "\t - Check that all opening parenthesis are properly closed.\n");
       break;
     case SYM_TERROR:
       printf_callback("\tA type error may be caused by passing a value of incompatible type\n"
@@ -273,7 +272,8 @@ void print_error_explanation(lbm_value error, char *buf, unsigned int size) {
                       "\t(LispBM has a very low bar for what is considered syntactically correct),\n"
                       "\tbut semantically nonsensical.\n"
                       "\t - Check the program for mistakes.\n"
-                      "\t - Are your parenthesis enclosing the correct subterms?\n");
+                      "\t - Are your parenthesis enclosing the correct subterms?\n"
+                      "\t - Check that you haven't written, for example, (1 + 2) where it should be (+ 1 2).\n");
       break;
     case SYM_MERROR:
       printf_callback("\tA memory error happens when the heap is completely full\n"
