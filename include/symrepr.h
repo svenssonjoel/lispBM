@@ -45,21 +45,22 @@
 #define SYM_TERROR        0x8   /* TYPE ERROR */
 #define SYM_EERROR        0x9   /* EVAL ERROR */
 #define SYM_MERROR        0xA
-#define SYM_DIVZERO       0xB
-#define SYM_FATAL_ERROR   0xC  /* Runtime system is corrupt */
-#define SYM_STACK_ERROR   0xD
-#define SYM_DEFINE        0xE
-#define SYM_PROGN         0xF
-#define SYM_READ          0x10
-#define SYM_READ_PROGRAM  0x11
-#define SYM_DONTCARE      0x12
-#define SYM_MATCH         0x13
-#define SYM_SEND          0x14
-#define SYM_RECEIVE       0x15
-#define SYM_MACRO         0x16
-#define SYM_MACRO_EXPAND  0x17
-#define SYM_CALLCC        0x18
-#define SYM_CONT          0x19
+#define SYM_NOT_FOUND     0xB
+#define SYM_DIVZERO       0xC
+#define SYM_FATAL_ERROR   0xD  /* Runtime system is corrupt */
+#define SYM_STACK_ERROR   0xE
+#define SYM_DEFINE        0xF
+#define SYM_PROGN         0x10
+#define SYM_READ          0x11
+#define SYM_READ_PROGRAM  0x12
+#define SYM_DONTCARE      0x13
+#define SYM_MATCH         0x14
+#define SYM_SEND          0x15
+#define SYM_RECEIVE       0x16
+#define SYM_MACRO         0x17
+#define SYM_MACRO_EXPAND  0x18
+#define SYM_CALLCC        0x19
+#define SYM_CONT          0x1A
 
 #define SYM_ARRAY_TYPE     0x20
 #define SYM_BOXED_I_TYPE   0x21
@@ -69,7 +70,7 @@
 #define SYM_RECOVERED      0x26
 #define SYM_BYTECODE_TYPE  0x27
 #define SYM_NONSENSE       0x28
-#define SYM_NOT_FOUND      0x29
+
 #define SYM_NO_MATCH       0x2A
 #define SYM_MATCH_ANY      0x2B
 #define SYM_MATCH_I28      0x2C
@@ -243,17 +244,5 @@ extern int lbm_get_num_variables(void);
  * \return The amount of space occupied by the symbol table in bytes.
  */
 extern unsigned int lbm_get_symbol_table_size(void);
-
-static inline bool lbm_is_error(lbm_uint symrep){
-  return (symrep == SYM_RERROR ||
-          symrep == SYM_TERROR ||
-          symrep == SYM_RERROR ||
-          symrep == SYM_MERROR ||
-          symrep == SYM_EERROR ||
-          symrep == SYM_FATAL_ERROR);
-}
-
-
-
 
 #endif
