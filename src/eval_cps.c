@@ -178,7 +178,6 @@ static inline lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value r
 #define DEFAULT_SLEEP_US  1000
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
-#define EVAL_CPS_DEFAULT_STACK_GROW_POLICY false
 
 /* 768 us -> ~128000 "ticks" at 168MHz I assume this means also roughly 128000 instructions */
 #define EVAL_CPS_QUANTA_US 768
@@ -2415,24 +2414,6 @@ void lbm_run_eval(void){
 
     evaluation_step();
   }
-}
-
-lbm_value evaluate_non_concurrent(void) {
-
-  lbm_cid cid = ctx_running->id;
-
-  while (ctx_running) {
-    evaluation_step();
-  }
-
-  eval_context_t *ctx = lookup_ctx(&done, cid);
-  if (ctx) {
-    drop_ctx(&done, ctx);
-  } else {
-    return lbm_enc_sym(SYM_FATAL_ERROR);
-  }
-
-  return ctx_non_concurrent.r;
 }
 
 lbm_cid lbm_eval_program(lbm_value lisp) {

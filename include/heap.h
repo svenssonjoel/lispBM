@@ -637,16 +637,11 @@ static inline bool lbm_is_symbol_merror(lbm_value exp) {
 }
 
 
+/* all error signaling symbols are in the range 0x20 - 0x2F */
 static inline bool lbm_is_error(lbm_value v){
-  if (lbm_type_of(v) == LBM_VAL_TYPE_SYMBOL) {
-    lbm_uint sr = lbm_dec_sym(v);
-      return (sr == SYM_RERROR ||
-              sr == SYM_TERROR ||
-              sr == SYM_RERROR ||
-              sr == SYM_MERROR ||
-              sr == SYM_EERROR ||
-              sr == SYM_DIVZERO ||
-              sr == SYM_FATAL_ERROR);
+  if (lbm_type_of(v) == LBM_VAL_TYPE_SYMBOL &&
+      ((lbm_dec_sym(v) & 0xFFFFFF20) == 0x20)) {
+    return true;
   }
   return false;
 }
