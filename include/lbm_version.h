@@ -29,8 +29,9 @@
 
 /* Change log */
 
-/* Feb 27 2022: Version (0.4.2)
+/* Feb 28 2022: Version (0.4.2)
    - First go at human-readable error messages.
+   - Finished contexts are immediately and completely removed.
 
 /* Feb 21 2022: Version (0.4.1)
    - Bug fixes in gc related to arrays
