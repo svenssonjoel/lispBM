@@ -218,11 +218,6 @@ static eval_context_queue_t done    = {NULL, NULL};
 /* one mutex for all queue operations */
 mutex_t qmutex;
 
-//static eval_context_t *ctx_done = NULL;
-
-
-static eval_context_t ctx_non_concurrent;
-
 static void (*usleep_callback)(uint32_t) = NULL;
 static uint32_t (*timestamp_us_callback)(void) = NULL;
 static void (*ctx_done_callback)(eval_context_t *) = NULL;
@@ -369,7 +364,7 @@ void print_error_message(lbm_value error) {
   printf_callback("\n\n");
 
   printf_callback("\tStack:\n");
-  for (int i = 0; i < ctx_running->K.sp; i ++) {
+  for (unsigned int i = 0; i < ctx_running->K.sp; i ++) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->K.data[i]);
     printf_callback("\t\t%s\n", buf);
   }
