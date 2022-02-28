@@ -576,48 +576,50 @@ static void finish_ctx(void) {
     return;
   }
 
-  enqueue_ctx(&done, ctx_running);
-
   /* Drop the continuation stack immediately to free up lbm_memory */
   lbm_stack_free(&ctx_running->K);
 
   if (ctx_done_callback) {
     ctx_done_callback(ctx_running);
   }
+
+  lbm_memory_free((uint32_t*)ctx_running);
+
   ctx_running = NULL;
 }
 
-int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v) {
-
-  eval_context_t *ctx = lookup_ctx(&done, cid);
-
-  if (ctx) {
-    drop_ctx(&done, ctx);
-    *v = ctx->r;
-    lbm_memory_free((uint32_t*)ctx);
-    return 1;
+static void context_exists(eval_context_t *ctx, void *cid, void *b) {
+  if (ctx->id == *(lbm_cid*)cid) {
+    printf("%d , %d\n", ctx->id, *(lbm_cid*)cid);
+    *(bool*)b = true;
   }
-  return 0;
 }
 
-/* Dangerous function that will lock up if called
-   with the incorrect cid
-   TODO: replace with less dangerous alternatives
-*/
-lbm_value lbm_wait_ctx(lbm_cid cid) {
+bool lbm_wait_ctx(lbm_cid cid, uint32_t timeout_ms) {
 
-  eval_context_t *ctx = NULL;
-  lbm_value r = lbm_enc_sym(SYM_NIL);
+  bool exists;
+  uint32_t i = 0;
 
-  while (!ctx) {
-    ctx = lookup_ctx(&done, cid);
-    if (ctx) {
-      lbm_remove_done_ctx(cid, &r);
-      return r;
+  do {
+    exists = false;
+    lbm_blocked_iterator(context_exists, &cid, &exists);
+    lbm_running_iterator(context_exists, &cid, &exists);
+
+    if (ctx_running &&
+        ctx_running->id == cid) {
+      exists = true;
     }
-    usleep_callback(1000);
-  }
-  return r;
+
+    if (exists) {
+       if (usleep_callback) {
+         usleep_callback(1000);
+       }
+       if (timeout_ms > 0) i ++;
+    }
+  } while (exists && i < timeout_ms);
+
+  if (exists) return false;
+  return true;
 }
 
 static void error_ctx(lbm_value err_val) {
@@ -1499,18 +1501,24 @@ static inline void cont_wait(eval_context_t *ctx) {
   lbm_pop_u32(&ctx->K, &cid_val);
   lbm_cid cid = (lbm_cid)lbm_dec_u(cid_val);
 
-  lbm_value r;
+  bool exists = false;
 
-  if (lbm_remove_done_ctx(cid, &r)) {
-    ctx->r = r;
-    ctx->app_cont = true;
-  } else {
+  lbm_blocked_iterator(context_exists, &cid, &exists);
+  lbm_running_iterator(context_exists, &cid, &exists);
+
+  if (ctx_running->id == cid) {
+    exists = true;
+  }
+
+  if (exists) {
     CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_enc_u(cid), lbm_enc_u(WAIT)));
     ctx->r = lbm_enc_sym(SYM_TRUE);
     ctx->app_cont = true;
     yield_ctx(50000);
+  } else {
+    ctx->r = lbm_enc_sym(SYM_TRUE);
+    ctx->app_cont = true;
   }
-  return;
 }
 
 static inline void cont_application(eval_context_t *ctx) {
