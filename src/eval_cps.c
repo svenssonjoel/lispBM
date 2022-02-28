@@ -578,6 +578,9 @@ static void finish_ctx(void) {
 
   enqueue_ctx(&done, ctx_running);
 
+  /* Drop the continuation stack immediately to free up lbm_memory */
+  lbm_stack_free(&ctx_running->K);
+
   if (ctx_done_callback) {
     ctx_done_callback(ctx_running);
   }
@@ -590,9 +593,7 @@ int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v) {
 
   if (ctx) {
     drop_ctx(&done, ctx);
-
     *v = ctx->r;
-    lbm_stack_free(&ctx->K);
     lbm_memory_free((uint32_t*)ctx);
     return 1;
   }
