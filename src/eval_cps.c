@@ -1092,7 +1092,6 @@ static inline void eval_symbol(eval_context_t *ctx) {
     } else {
       CHECK_STACK(lbm_push_u32_2(&ctx->K, ctx->curr_exp, lbm_enc_u(RESUME)));
 
-      lbm_value stream = NIL;
       lbm_value cell = lbm_heap_allocate_cell(LBM_PTR_TYPE_CONS);
 
       if (lbm_type_of(cell) == LBM_VAL_TYPE_SYMBOL)
@@ -1118,7 +1117,7 @@ static inline void eval_symbol(eval_context_t *ctx) {
 
       cell = cell | LBM_PTR_TYPE_ARRAY;
 
-      stream = token_stream_from_string_value(cell);
+      lbm_value stream = token_stream_from_string_value(cell);
 
       lbm_value loader = NIL;
       CONS_WITH_GC(loader, stream, loader, stream);
