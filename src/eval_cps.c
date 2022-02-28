@@ -701,13 +701,13 @@ static void yield_ctx(uint32_t sleep_us) {
 
 lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
 
-  if (next_ctx_id == 0) return 0; // overflow of CIDs
-
-  if (lbm_type_of(program) != LBM_PTR_TYPE_CONS) return 0;
+  if (lbm_type_of(program) != LBM_PTR_TYPE_CONS) return -1;
 
   eval_context_t *ctx = NULL;
   ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / 4);
-  if (ctx == NULL) return 0;
+  if (ctx == NULL) return -1;
+
+  lbm_int cid = lbm_memory_address_to_ix((uint32_t*)ctx);
 
   ctx->program = lbm_cdr(program);
   ctx->curr_exp = lbm_car(program);
@@ -719,20 +719,16 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
   ctx->sleep_us = 0;
   ctx->prev = NULL;
   ctx->next = NULL;
-  if (next_ctx_id > CID_MAX) {
-    lbm_memory_free((uint32_t*)ctx);
-    return 0;
-  }
 
-  ctx->id = (uint16_t)next_ctx_id++;
+  ctx->id = cid;
   if (!lbm_stack_allocate(&ctx->K, stack_size)) {
     lbm_memory_free((uint32_t*)ctx);
-    return 0;
+    return -1;
   }
   if (!lbm_push_u32(&ctx->K, lbm_enc_u(DONE))) {
     lbm_stack_free(&ctx->K);
     lbm_memory_free((uint32_t*)ctx);
-    return 0;
+    return -1;
   }
 
   enqueue_ctx(&queue,ctx);
@@ -1499,7 +1495,7 @@ static inline void cont_wait(eval_context_t *ctx) {
 
   lbm_value cid_val;
   lbm_pop_u32(&ctx->K, &cid_val);
-  lbm_cid cid = (lbm_cid)lbm_dec_u(cid_val);
+  lbm_cid cid = (lbm_cid)lbm_dec_i(cid_val);
 
   bool exists = false;
 
@@ -1511,7 +1507,7 @@ static inline void cont_wait(eval_context_t *ctx) {
   }
 
   if (exists) {
-    CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_enc_u(cid), lbm_enc_u(WAIT)));
+    CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_enc_i(cid), lbm_enc_u(WAIT)));
     ctx->r = lbm_enc_sym(SYM_TRUE);
     ctx->app_cont = true;
     yield_ctx(50000);
@@ -1662,9 +1658,9 @@ static inline void cont_application(eval_context_t *ctx) {
       break;
     case SYM_WAIT:
       if (lbm_type_of(fun_args[1]) == LBM_VAL_TYPE_I) {
-        lbm_cid cid = (lbm_cid)lbm_dec_u(fun_args[1]);
+        lbm_cid cid = (lbm_cid)lbm_dec_i(fun_args[1]);
         lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
-        CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_enc_u(cid), lbm_enc_u(WAIT)));
+        CHECK_STACK(lbm_push_u32_2(&ctx->K, lbm_enc_i(cid), lbm_enc_u(WAIT)));
         ctx->r = lbm_enc_sym(SYM_TRUE);
         ctx->app_cont = true;
         yield_ctx(50000);
@@ -1695,7 +1691,7 @@ static inline void cont_application(eval_context_t *ctx) {
       if (lbm_dec_u(count) == 2) {
 
         if (lbm_type_of(fun_args[1]) == LBM_VAL_TYPE_U) { /* CID is of U type */
-          lbm_cid cid = (lbm_cid)lbm_dec_u(fun_args[1]);
+          lbm_cid cid = (lbm_cid)lbm_dec_i(fun_args[1]);
           lbm_value msg = fun_args[2];
 
           WITH_GC(status, lbm_find_receiver_and_send(cid, msg), NIL, NIL);
