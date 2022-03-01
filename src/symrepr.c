@@ -79,7 +79,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"sym_boxed_i"        , SYM_BOXED_I_TYPE},
   {"sym_boxed_u"        , SYM_BOXED_U_TYPE},
   {"sym_boxed_f"        , SYM_BOXED_F_TYPE},
-  {"sym_ref"            , SYM_REF_TYPE},
+  {"sym_stream"         , SYM_STREAM_TYPE},
   {"sym_recovered"      , SYM_RECOVERED},
   {"sym_bytecode"       , SYM_BYTECODE_TYPE},
   {"sym_nonsense"       , SYM_NONSENSE},

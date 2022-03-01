@@ -585,6 +585,7 @@ static void finish_ctx(void) {
     ctx_done_callback(ctx_running);
   }
   ctx_running = NULL;
+  gc(NIL,NIL);
 }
 
 int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v) {
