@@ -1577,10 +1577,14 @@ static inline void cont_application(eval_context_t *ctx) {
 
     switch(dfun) {
     case SYM_SETVAR: {
-      if (lbm_dec_u(count) == 2 && lbm_is_symbol(fun_args[1])) {
+      lbm_uint cnt = lbm_dec_u(count);
+
+      if (cnt == 2 && lbm_is_symbol(fun_args[1])) {
+
         lbm_uint s = lbm_dec_sym(fun_args[1]);
         if (s >= VARIABLE_SYMBOLS_START &&
             s <  VARIABLE_SYMBOLS_END) {
+          /* #var case ignores local/global if present */
           ctx->r = lbm_set_var(s, fun_args[2]);
         } else {
           lbm_value new_env = lbm_env_modify_binding(ctx->curr_env, fun_args[1], fun_args[2]);
@@ -1590,7 +1594,8 @@ static inline void cont_application(eval_context_t *ctx) {
           }
           if (lbm_type_of(new_env) == LBM_VAL_TYPE_SYMBOL &&
               lbm_dec_sym(new_env) == SYM_NOT_FOUND) {
-            ctx->r = NIL;
+            new_env = lbm_env_set(lbm_get_env(),  fun_args[1], fun_args[2]);
+            *lbm_get_env_ptr() = new_env;
           } else {
             ctx->r = fun_args[2];
           }
@@ -1599,6 +1604,7 @@ static inline void cont_application(eval_context_t *ctx) {
         error_ctx(lbm_enc_sym(SYM_EERROR));
         return;
       }
+      ctx->r = fun_args[2];
       lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
       ctx->app_cont = true;
     } break;
