@@ -295,7 +295,6 @@ int main(int argc, char **argv) {
     sleep_callback(1000);
   }
 
-  lbm_value t;
   char *compressed_code;
   if (compress_decompress) {
     uint32_t compressed_size = 0;
