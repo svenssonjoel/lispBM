@@ -53,7 +53,7 @@
 #define SYM_MACRO_EXPAND  0x10
 #define SYM_CALLCC        0x11
 #define SYM_CONT          0x12
-
+#define SYM_SETVAR        0x13
 
 // 0x20 - 0x2F are errors
 #define SYM_RERROR        0x20  /* READ ERROR */
@@ -169,8 +169,6 @@
 #define SYM_BITWISE_OR          0x173
 #define SYM_BITWISE_XOR         0x174
 #define SYM_BITWISE_NOT         0x175
-
-#define SYM_SETVAR              0x180
 
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200

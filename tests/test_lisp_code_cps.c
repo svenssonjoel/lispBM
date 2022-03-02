@@ -28,6 +28,7 @@
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
 
+#define WAIT_TIMEOUT 2500
 
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
@@ -285,8 +286,9 @@ int main(int argc, char **argv) {
 
   prelude_load(&string_tok_state, &string_tok);
   lbm_cid cid = lbm_load_and_eval_program(&string_tok);
-  lbm_wait_ctx(cid);
-
+  if (!lbm_wait_ctx(cid, WAIT_TIMEOUT)) {
+    printf("Waiting for prelude timed out.\n");
+  }
 
   lbm_pause_eval();
   while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {

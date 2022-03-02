@@ -34,6 +34,8 @@
 #define EXTENSION_STORAGE_SIZE 256
 #define VARIABLE_STORAGE_SIZE 256
 
+#define WAIT_TIMEOUT 2500
+
 uint32_t gc_stack_storage[GC_STACK_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
@@ -142,15 +144,14 @@ void done_callback(eval_context_t *ctx) {
   } else {
     printf("<< Context %d finished with value %s >>\n", cid, output);
   }
+  printf("stack max:  %d\n", ctx->K.max_sp);
+  printf("stack size: %u\n", ctx->K.size);
+  printf("stack sp:   %d\n", ctx->K.sp);
 
   //  if (!eval_cps_remove_done_ctx(cid, &t)) {
   //   printf("Error: done context (%d)  not in list\n", cid);
   //}
   fflush(stdout);
-
-  // remove the state associated with the context.
-  lbm_wait_ctx(cid);
-
 }
 
 uint32_t timestamp_callback() {
@@ -499,10 +500,12 @@ int main(int argc, char **argv) {
       bool exists = false;
       lbm_done_iterator(ctx_exists, (void*)&id, (void*)&exists);
       if (exists) {
-        lbm_wait_ctx((lbm_cid)id);
+        if (!lbm_wait_ctx((lbm_cid)id, WAIT_TIMEOUT)) {
+          printf("Timout while waiting for context %d\n", id);
+        }
       }
     } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
-      break;
+            break;
     } else if (strncmp(str, ":symbols", 8) == 0) {
       lbm_symrepr_name_iterator(sym_it);
     } else if (strncmp(str, ":reset", 6) == 0) {
@@ -618,7 +621,7 @@ int main(int argc, char **argv) {
       /* Something better is needed.
          this sleep ís to ensure the string is alive until parsing
          is done */
-      sleep_callback(10000);
+      sleep_callback(250000);
     }
   }
   free(heap_storage);
