@@ -30,7 +30,7 @@
 #include "lbm_llama_ascii.h"
 #include "lbm_version.h"
 
-#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(1024)
+#define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(2048)
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
@@ -335,7 +335,12 @@ int main(void) {
       lbm_cid cid = lbm_load_and_eval_program(&string_tok);
 
       lbm_continue_eval();
-      lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT);
+      if (!lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT)) {
+        chprintf(chp,"Wait for prelude to load timed out.\r\n");
+      } else {
+        chprintf(chp,"Prelude loaded.\r\n");
+      }
+
     } else if (strncmp(str, ":quit", 5) == 0) {
 
       break;
