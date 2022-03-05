@@ -1006,12 +1006,6 @@ static int gc(lbm_value remember1, lbm_value remember2) {
     curr = curr->next;
   }
 
-  /* curr = done.first; */
-  /* while (curr) { */
-  /*   lbm_gc_mark_phase(curr->r); */
-  /*   curr = curr->next; */
-  /* } */
-
   curr = blocked.first;
   while (curr) {
     lbm_gc_mark_phase(curr->curr_env);
