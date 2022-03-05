@@ -1412,7 +1412,6 @@ static inline void cont_set_global_env(eval_context_t *ctx){
   *lbm_get_env_ptr() = new_env;
   ctx->r = key;
 
-  //if (!ctx->done)
   ctx->app_cont = true;
 
   return;
