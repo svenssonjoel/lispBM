@@ -1055,6 +1055,9 @@ static int gc(lbm_value remember1, lbm_value remember2) {
   return r;
 }
 
+int lbm_perform_gc(void) {
+  return gc(NIL,NIL);
+}
 
 /****************************************************/
 /* Evaluation functions                             */
