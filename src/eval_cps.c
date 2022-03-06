@@ -701,9 +701,16 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
 
   if (lbm_type_of(program) != LBM_PTR_TYPE_CONS) return -1;
 
+  if (lbm_memory_num_free() < stack_size + (sizeof(eval_context_t)/4) ) {
+    gc(NIL, NIL);
+  }
+  if (lbm_memory_num_free() < stack_size + (sizeof(eval_context_t)/4) ) {
+    return -1;
+  }
+
   eval_context_t *ctx = NULL;
   ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / 4);
-  if (ctx == NULL) return -1;
+  if (ctx == NULL) return -1; // no more contexts possible!
 
   lbm_int cid = lbm_memory_address_to_ix((uint32_t*)ctx);
 
