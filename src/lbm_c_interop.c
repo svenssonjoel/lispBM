@@ -44,7 +44,7 @@ lbm_cid eval_cps_load_and_eval(lbm_tokenizer_char_stream_t *tokenizer, bool prog
   if (lbm_type_of(launcher) != LBM_PTR_TYPE_CONS ||
       lbm_type_of(evaluator) != LBM_PTR_TYPE_CONS ||
       lbm_type_of(start_prg) != LBM_PTR_TYPE_CONS ) {
-    lbm_memory_free((uint32_t*)stream);
+    lbm_memory_free((lbm_uint*)stream);
     return 0;
   }
   return lbm_create_ctx(start_prg, lbm_enc_sym(SYM_NIL), 256);
@@ -62,7 +62,7 @@ lbm_cid eval_cps_load_and_define(lbm_tokenizer_char_stream_t *tokenizer, char *s
 
   if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
     if (!lbm_add_symbol(symbol, &sym_id)) {
-      lbm_memory_free((uint32_t*)stream);
+      lbm_memory_free((lbm_uint*)stream);
       return 0;
     }
   }
@@ -80,7 +80,7 @@ lbm_cid eval_cps_load_and_define(lbm_tokenizer_char_stream_t *tokenizer, char *s
   if (lbm_type_of(launcher) != LBM_PTR_TYPE_CONS ||
       lbm_type_of(binding) != LBM_PTR_TYPE_CONS ||
       lbm_type_of(definer) != LBM_PTR_TYPE_CONS ) {
-    lbm_memory_free((uint32_t*)stream);
+    lbm_memory_free((lbm_uint*)stream);
     return 0;
   }
   return lbm_create_ctx(definer, lbm_enc_sym(SYM_NIL), 256);
@@ -209,7 +209,7 @@ int lbm_undefine(char *symbol) {
 
 }
 
-int lbm_share_array(lbm_value *value, char *data, lbm_type type, uint32_t num_elt) {
+int lbm_share_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
   lbm_value cell  = lbm_heap_allocate_cell(LBM_PTR_TYPE_CONS);
@@ -223,7 +223,7 @@ int lbm_share_array(lbm_value *value, char *data, lbm_type type, uint32_t num_el
 
   if (array == NULL) return 0;
 
-  array->data = (uint32_t*)data;
+  array->data = (lbm_uint*)data;
   array->elt_type = type;
   array->size = num_elt;
 
@@ -235,6 +235,6 @@ int lbm_share_array(lbm_value *value, char *data, lbm_type type, uint32_t num_el
   return 1;
 }
 
-int lbm_create_array(lbm_value *value, lbm_type type, uint32_t num_elt) {
+int lbm_create_array(lbm_value *value, lbm_type type, lbm_uint num_elt) {
   return lbm_heap_allocate_array(value, num_elt, type);
 }

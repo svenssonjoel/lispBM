@@ -342,7 +342,7 @@ void print_error_message(lbm_value error) {
   if (!printf_callback) return;
 
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
-  uint32_t* buf32 = lbm_memory_allocate(ERROR_MESSAGE_BUFFER_SIZE_BYTES / 4);
+  lbm_uint* buf32 = lbm_memory_allocate(ERROR_MESSAGE_BUFFER_SIZE_BYTES / (sizeof(lbm_uint)));
   if (!buf32) {
     printf_callback("Error: Not enough free memory to create a human readable error message\n");
     return;
@@ -439,14 +439,14 @@ lbm_value token_stream_from_string_value(lbm_value s) {
 
   tok_stream_state = (lbm_tokenizer_string_state_t*)lbm_memory_allocate(1 + (sizeof(lbm_tokenizer_string_state_t) / 4));
   if (tok_stream_state == NULL) {
-    lbm_memory_free((uint32_t*)stream);
+    lbm_memory_free((lbm_uint*)stream);
     return lbm_enc_sym(SYM_MERROR);
   }
 
   tok_stream = (lbm_tokenizer_char_stream_t*)lbm_memory_allocate(sizeof(lbm_tokenizer_char_stream_t) / 4);
   if (tok_stream == NULL) {
-    lbm_memory_free((uint32_t*)stream);
-    lbm_memory_free((uint32_t*)tok_stream_state);
+    lbm_memory_free((lbm_uint*)stream);
+    lbm_memory_free((lbm_uint*)tok_stream_state);
     return lbm_enc_sym(SYM_MERROR);
   }
 
@@ -583,7 +583,7 @@ static void finish_ctx(void) {
     ctx_done_callback(ctx_running);
   }
 
-  lbm_memory_free((uint32_t*)ctx_running);
+  lbm_memory_free((lbm_uint*)ctx_running);
   ctx_running = NULL;
   gc(NIL,NIL);
 }
@@ -594,7 +594,7 @@ static void context_exists(eval_context_t *ctx, void *cid, void *b) {
   }
 }
 
-bool lbm_wait_ctx(lbm_cid cid, uint32_t timeout_ms) {
+bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
 
   bool exists;
   uint32_t i = 0;
@@ -706,7 +706,7 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
   ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / 4);
   if (ctx == NULL) return -1;
 
-  lbm_int cid = lbm_memory_address_to_ix((uint32_t*)ctx);
+  lbm_int cid = lbm_memory_address_to_ix((lbm_uint*)ctx);
 
   ctx->program = lbm_cdr(program);
   ctx->curr_exp = lbm_car(program);
@@ -722,12 +722,12 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
 
   ctx->id = cid;
   if (!lbm_stack_allocate(&ctx->K, stack_size)) {
-    lbm_memory_free((uint32_t*)ctx);
+    lbm_memory_free((lbm_uint*)ctx);
     return -1;
   }
   if (!lbm_push_u32(&ctx->K, lbm_enc_u(DONE))) {
     lbm_stack_free(&ctx->K);
-    lbm_memory_free((uint32_t*)ctx);
+    lbm_memory_free((lbm_uint*)ctx);
     return -1;
   }
 
@@ -1105,7 +1105,7 @@ static inline void eval_symbol(eval_context_t *ctx) {
         return;
       }
 
-      array->data = (uint32_t*)code_str;
+      array->data = (lbm_uint*)code_str;
       array->elt_type = LBM_VAL_TYPE_CHAR;
       array->size = strlen(code_str);
 

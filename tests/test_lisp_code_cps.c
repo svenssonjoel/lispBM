@@ -94,8 +94,8 @@ void context_done_callback(eval_context_t *ctx) {
   experiment_done = true;
 }
 
-lbm_value ext_even(lbm_value *args, lbm_uint argn) {
-
+  //lbm_value ext_even(lbm_value *args, lbm_uint argn) {
+LBM_EXTENSION(ext_even, args, argn){ 
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
   lbm_value v = args[0];
@@ -109,7 +109,8 @@ lbm_value ext_even(lbm_value *args, lbm_uint argn) {
   return lbm_enc_sym(SYM_NIL);
 }
 
-lbm_value ext_odd(lbm_value *args, lbm_uint argn) {
+LBM_EXTENSION(ext_odd, args, argn){
+  //lbm_value ext_odd(lbm_value *args, lbm_uint argn) {
 
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 

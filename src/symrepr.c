@@ -173,7 +173,7 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"is-fundamental" , SYM_IS_FUNDAMENTAL}
 };
 
-static uint32_t *symlist = NULL;
+static lbm_uint *symlist = NULL;
 static lbm_uint next_symbol_id = RUNTIME_SYMBOLS_START;
 static lbm_uint next_extension_symbol_id = EXTENSION_SYMBOLS_START;
 static lbm_uint next_variable_symbol_id = VARIABLE_SYMBOLS_START;
@@ -188,21 +188,21 @@ int lbm_symrepr_init(void) {
 
 void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f) {
 
-  uint32_t *curr = symlist;
+  lbm_uint *curr = symlist;
   while (curr) {
     f((const char *)curr[NAME]);
-    curr = (uint32_t *)curr[NEXT];
+    curr = (lbm_uint *)curr[NEXT];
   }
 }
 
 const char *lookup_symrepr_name_memory(lbm_uint id) {
 
-  uint32_t *curr = symlist;
+  lbm_uint *curr = symlist;
   while (curr) {
     if (id == curr[ID]) {
       return (const char *)curr[NAME];
     }
-    curr = (uint32_t*)curr[NEXT];
+    curr = (lbm_uint*)curr[NEXT];
   }
   return NULL;
 }
@@ -230,14 +230,14 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
     }
   }
 
-  uint32_t *curr = symlist;
+  lbm_uint *curr = symlist;
   while (curr) {
     char *str = (char*)curr[NAME];
     if (strcmp(name, str) == 0) {
       *id = curr[ID];
       return 1;
     }
-    curr = (uint32_t*)curr[NEXT];
+    curr = (lbm_uint*)curr[NEXT];
   }
   return 0;
 }
@@ -248,7 +248,7 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
   n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
@@ -256,9 +256,9 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
 
   char *symbol_name_storage = NULL;;
   if (n % 4 == 0) {
-    symbol_name_storage = (char *)lbm_memory_allocate(n/4);
+    symbol_name_storage = (char *)lbm_memory_allocate(n/sizeof(lbm_uint));
   } else {
-    symbol_name_storage = (char *)lbm_memory_allocate((n/4) + 1);
+    symbol_name_storage = (char *)lbm_memory_allocate((n/sizeof(lbm_uint)) + 1);
   }
 
   if (symbol_name_storage == NULL) {
@@ -268,13 +268,13 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
 
   strcpy(symbol_name_storage, name);
 
-  m[NAME] = (uint32_t)symbol_name_storage;
+  m[NAME] = (lbm_uint)symbol_name_storage;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_symbol_id++;
@@ -290,7 +290,7 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
   n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
@@ -298,9 +298,9 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
 
   char *symbol_name_storage = NULL;;
   if (n % 4 == 0) {
-    symbol_name_storage = (char *)lbm_memory_allocate(n/4);
+    symbol_name_storage = (char *)lbm_memory_allocate(n/sizeof(lbm_uint));
   } else {
-    symbol_name_storage = (char *)lbm_memory_allocate((n/4) + 1);
+    symbol_name_storage = (char *)lbm_memory_allocate((n/sizeof(lbm_uint)) + 1);
   }
 
   if (symbol_name_storage == NULL) {
@@ -310,13 +310,13 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
 
   strcpy(symbol_name_storage, name);
 
-  m[NAME] = (uint32_t)symbol_name_storage;
+  m[NAME] = (lbm_uint)symbol_name_storage;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_variable_symbol_id++;
@@ -328,19 +328,19 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
 int lbm_add_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
   }
 
-  m[NAME] = (uint32_t)name;
+  m[NAME] = (lbm_uint)name;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_symbol_id++;
@@ -352,19 +352,19 @@ int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
   if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;
 
-  uint32_t *m = lbm_memory_allocate(3);
+  lbm_uint *m = lbm_memory_allocate(3);
 
   if (m == NULL) {
     return 0;
   }
 
-  m[NAME] = (uint32_t)name;
+  m[NAME] = (lbm_uint)name;
 
   if (symlist == NULL) {
-    m[NEXT] = (uint32_t) NULL;
+    m[NEXT] = (lbm_uint) NULL;
     symlist = m;
   } else {
-    m[NEXT] = (uint32_t) symlist;
+    m[NEXT] = (lbm_uint) symlist;
     symlist = m;
   }
   m[ID] = next_extension_symbol_id++;
@@ -373,10 +373,10 @@ int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
 }
 
 
-unsigned int lbm_get_symbol_table_size(void) {
+lbm_uint lbm_get_symbol_table_size(void) {
 
-  unsigned int n = 0;
-  uint32_t *curr = symlist;
+  lbm_uint n = 0;
+  lbm_uint *curr = symlist;
 
   while (curr) {
     // up to 3 extra bytes are used for string storage if length is not multiple of 4
@@ -384,7 +384,7 @@ unsigned int lbm_get_symbol_table_size(void) {
     s ++;
     n += s % 4;
     n += 12; // sizeof the node in the linked list
-    curr = (uint32_t *)curr[NEXT];
+    curr = (lbm_uint *)curr[NEXT];
   }
   return n;
 }

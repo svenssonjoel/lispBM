@@ -24,6 +24,9 @@
 #include "heap.h"
 #include "lbm_types.h"
 
+#define LBM_EXTENSION(name, argv, argn)                                 \
+  __attribute__((aligned(LBM_STORABLE_ADDRESS_ALIGNMENT))) lbm_value name(lbm_value *(argv), lbm_uint (argn)) 
+
 /** Type representing an extension function.
  * \param Pointer to array of lbm_values.
  * \param Number of arguments.

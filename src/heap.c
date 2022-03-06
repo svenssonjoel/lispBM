@@ -223,8 +223,8 @@ static int generate_freelist(size_t num_cells) {
   return 1;
 }
 
-static void heap_init_state(lbm_cons_t *addr, unsigned int num_cells,
-                            uint32_t *gc_stack_storage, unsigned int gc_stack_size) {
+static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
+                            lbm_uint *gc_stack_storage, lbm_uint gc_stack_size) {
   heap_state.heap         = addr;
   heap_state.heap_bytes   = (unsigned int)(num_cells * sizeof(lbm_cons_t));
   heap_state.heap_size    = num_cells;
@@ -258,8 +258,8 @@ void lbm_heap_new_freelist_length(uint32_t l) {
     heap_state.gc_least_free = l;
 }
 
-int lbm_heap_init(lbm_cons_t *addr, uint32_t num_cells,
-                  uint32_t *gc_stack_storage, uint32_t gc_stack_size) {
+int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
+                  lbm_uint *gc_stack_storage, lbm_uint gc_stack_size) {
 
   NIL = lbm_enc_sym(SYM_NIL);
   RECOVERED = lbm_enc_sym(SYM_RECOVERED);
@@ -274,7 +274,7 @@ int lbm_heap_init(lbm_cons_t *addr, uint32_t num_cells,
   return generate_freelist(num_cells);
 }
 
-unsigned int lbm_heap_num_free(void) {
+lbm_uint lbm_heap_num_free(void) {
 
   unsigned int count = 0;
   lbm_value curr = heap_state.freelist;
@@ -330,14 +330,14 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
   return res;
 }
 
-unsigned int lbm_heap_num_allocated(void) {
+lbm_uint lbm_heap_num_allocated(void) {
   return heap_state.num_alloc;
 }
-unsigned int lbm_heap_size(void) {
+lbm_uint lbm_heap_size(void) {
   return heap_state.heap_size;
 }
 
-unsigned int lbm_heap_size_bytes(void) {
+lbm_uint lbm_heap_size_bytes(void) {
   return heap_state.heap_bytes;
 }
 
@@ -476,16 +476,16 @@ int lbm_gc_sweep_phase(void) {
 
         case SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
-          if (lbm_memory_ptr_inside((uint32_t*)arr->data)) {
-            lbm_memory_free((uint32_t *)arr->data);
+          if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
+            lbm_memory_free((lbm_uint *)arr->data);
             heap_state.gc_recovered_arrays++;
           }
-          lbm_memory_free((uint32_t *)arr);
+          lbm_memory_free((lbm_uint *)arr);
         } break;
         case SYM_STREAM_TYPE:{
           lbm_stream_t *stream = (lbm_stream_t*)heap[i].car;
-          if (lbm_memory_ptr_inside((uint32_t*)stream)) {
-            lbm_memory_free((uint32_t*)stream);
+          if (lbm_memory_ptr_inside((lbm_uint*)stream)) {
+            lbm_memory_free((lbm_uint*)stream);
           }
         } break;
         default:
@@ -660,25 +660,34 @@ int lbm_heap_allocate_array(lbm_value *res, unsigned int size, lbm_type type){
 
   unsigned int allocate_size = 0;
   if (type == LBM_VAL_TYPE_CHAR) {
-    if ( size % 4 == 0) {
+    if ( size % sizeof(lbm_uint) == 0) {
+      #ifndef LBM64
       allocate_size = size >> 2;
+      #else
+      allocate_size = size >> 3;
+      #endif
     } else {
+      #ifndef LBM64
       allocate_size = (size >> 2) + 1;
+      #else
+      allocate_size = (size >> 3) + 1;
+      #endif
     }
   } else {
     allocate_size = size;
   }
 
-  array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
+  array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / sizeof(lbm_uint));
 
   if (array == NULL) {
     *res = lbm_enc_sym(SYM_MERROR);
     return 0;
   }
 
-  array->data = (uint32_t*)lbm_memory_allocate(allocate_size);
+  array->data = (lbm_uint*)lbm_memory_allocate(allocate_size);
 
   if (array->data == NULL) {
+    lbm_memory_free(array->data);
     *res = lbm_enc_sym(SYM_MERROR);
     return 0;
   }

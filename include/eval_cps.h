@@ -85,7 +85,7 @@ extern int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v);
  * \param timeout_ms timeout in ms or 0 for no timeout.
  * \return Result computed by the program running in the context.
  */
-extern bool lbm_wait_ctx(lbm_cid cid, uint32_t timeout_ms);
+extern bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms);
 
 
 /** Creates a context and initializes it with the provided program. The context

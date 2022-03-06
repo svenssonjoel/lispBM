@@ -183,14 +183,14 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 0000 00XX XXXX XXXX XXXX XXXX XXXX X000   : 0x03FF FFF8
 1111 AA00 0000 0000 0000 0000 0000 0000   : 0xFC00 0000 (AA bits left unused for now, future heap growth?)
  */
+#ifndef LBM64
 
-#define LBM_CONS_CELL_SIZE              8
-#define LBM_ADDRESS_SHIFT               3
+#define LBM_ADDRESS_SHIFT               2
 #define LBM_VAL_SHIFT                   4
 
 #define LBM_PTR_MASK                    0x00000001u
 #define LBM_PTR_BIT                     0x00000001u
-#define LBM_PTR_VAL_MASK                0x03FFFFF8u
+#define LBM_PTR_VAL_MASK                0x03FFFFFCu
 #define LBM_PTR_TYPE_MASK               0xFC000000u
 
 #define LBM_PTR_TYPE_CONS               0x10000000u
@@ -215,6 +215,40 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_VAL_TYPE_U                  0x00000008u // 10  0   0
 #define LBM_VAL_TYPE_I                  0x0000000Cu // 11  0   0
 
+#else 
+
+#define LBM_ADDRESS_SHIFT               2
+#define LBM_VAL_SHIFT                   4
+
+#define LBM_PTR_MASK                    0x1u
+#define LBM_PTR_BIT                     0x1u
+#define LBM_PTR_VAL_MASK                0x03FFFFFFFFFFFFFCu
+#define LBM_PTR_TYPE_MASK               0xFC00000000000000u
+
+#define LBM_PTR_TYPE_CONS               0x1000000000000000u
+#define LBM_PTR_TYPE_BOXED_U            0x2000000000000000u
+#define LBM_PTR_TYPE_BOXED_I            0x3000000000000000u
+#define LBM_PTR_TYPE_BOXED_F            0x4000000000000000u
+
+#define LBM_PTR_TYPE_ARRAY              0xD000000000000000u
+#define LBM_PTR_TYPE_REF                0xE000000000000000u
+#define LBM_PTR_TYPE_STREAM             0xF000000000000000u
+
+#define LBM_GC_MASK                     0x2u
+#define LBM_GC_MARKED                   0x2u
+
+#define LBM_VAL_MASK                    0xFFFFFFFFFFFFFFF0u
+#define LBM_VAL_TYPE_MASK               0xCu
+                                                    //    gc ptr
+#define LBM_VAL_TYPE_SYMBOL             0x0u // 00  0   0
+/// Character or byte.
+#define LBM_VAL_TYPE_CHAR               0x4u // 01  0   0
+#define LBM_VAL_TYPE_BYTE               0x4u
+#define LBM_VAL_TYPE_U                  0x8u // 10  0   0
+#define LBM_VAL_TYPE_I                  0xCu // 11  0   0
+
+#endif
+
 /** Struct representing a heap cons-cell.
  *
  */
@@ -231,21 +265,21 @@ typedef struct {
   lbm_value freelist;              // list of free cons cells.
   lbm_stack_t gc_stack;
 
-  uint32_t heap_size;          // In number of cells.
-  uint32_t heap_bytes;         // In bytes.
+  lbm_uint heap_size;          // In number of cells.
+  lbm_uint heap_bytes;         // In bytes.
 
-  uint32_t num_alloc;          // Number of cells allocated.
-  uint32_t num_alloc_arrays;   // Number of arrays allocated.
+  lbm_uint num_alloc;          // Number of cells allocated.
+  lbm_uint num_alloc_arrays;   // Number of arrays allocated.
 
-  uint32_t gc_num;             // Number of times gc has been performed.
-  uint32_t gc_marked;          // Number of cells marked by mark phase.
-  uint32_t gc_recovered;       // Number of cells recovered by sweep phase.
-  uint32_t gc_recovered_arrays;// Number of arrays recovered by sweep.
-  uint32_t gc_least_free;      // The smallest length of the freelist.
+  lbm_uint gc_num;             // Number of times gc has been performed.
+  lbm_uint gc_marked;          // Number of cells marked by mark phase.
+  lbm_uint gc_recovered;       // Number of cells recovered by sweep phase.
+  lbm_uint gc_recovered_arrays;// Number of arrays recovered by sweep.
+  lbm_uint gc_least_free;      // The smallest length of the freelist.
 
-  uint64_t     gc_time_acc;
-  uint32_t     gc_min_duration;
-  uint32_t     gc_max_duration;
+  lbm_uint     gc_time_acc;
+  lbm_uint     gc_min_duration;
+  lbm_uint     gc_max_duration;
 } lbm_heap_state_t;
 
 /**
@@ -253,8 +287,8 @@ typedef struct {
  */
 typedef struct {
   lbm_type elt_type;        /// Type of elements: VAL_TYPE_FLOAT, U, I or CHAR
-  uint32_t size;            /// Number of elements
-  uint32_t *data;           /// pointer to lbm_memory array or C array.
+  lbm_uint size;            /// Number of elements
+  lbm_uint *data;           /// pointer to lbm_memory array or C array.
 } lbm_array_header_t;
 
 /** Initialize heap storage.
@@ -264,8 +298,8 @@ typedef struct {
  * \param gc_stack_size Size of the gc_stack in number of words.
  * \return 1 on success or 0 for failure.
  */
-extern int lbm_heap_init(lbm_cons_t *addr, uint32_t num_cells,
-                         uint32_t *gc_stack_storage, uint32_t gc_stack_size);
+extern int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
+                         lbm_uint *gc_stack_storage, lbm_uint gc_stack_size);
 
 /** Add GC time statistics to heap_stats
  *
@@ -281,22 +315,22 @@ extern void lbm_heap_new_freelist_length(uint32_t l);
  *
  * \return Number of free lbm_cons_t cells.
  */
-extern unsigned int lbm_heap_num_free(void);
+extern lbm_uint lbm_heap_num_free(void);
 /** Check how many lbm_cons_t cells are allocated.
  *
  * \return  Number of lbm_cons_t cells that are currently allocated.
  */
-extern unsigned int lbm_heap_num_allocated(void);
+extern lbm_uint lbm_heap_num_allocated(void);
 /** Size of the heap in number of lbm_cons_t cells.
  *
  * \return Size of the heap in number of lbm_cons_t cells.
  */
-extern unsigned int lbm_heap_size(void);
+extern lbm_uint lbm_heap_size(void);
 /** Size of the heap in bytes.
  *
  * \return Size of heap in bytes.
  */
-extern unsigned int lbm_heap_size_bytes(void);
+extern lbm_uint lbm_heap_size_bytes(void);
 /** Allocate an lbm_cons_t cell from the heap.
  *
  * \param type A type that can be encoded onto the cell (most often LBM_PTR_TYPE_CONS).
@@ -485,7 +519,7 @@ static inline lbm_value lbm_set_ptr_type(lbm_value p, lbm_type t) {
   return (LBM_PTR_VAL_MASK & p) | t | LBM_PTR_BIT;
 }
 
-static inline lbm_value lbm_enc_sym(uint32_t s) {
+static inline lbm_value lbm_enc_sym(lbm_uint s) {
   return (s << LBM_VAL_SHIFT) | LBM_VAL_TYPE_SYMBOL;
 }
 
@@ -511,7 +545,7 @@ static inline lbm_value lbm_enc_U(lbm_uint x) {
 
 static inline lbm_value lbm_enc_F(lbm_float x) {
   lbm_uint t;
-  memcpy(&t, &x, sizeof(float));
+  memcpy(&t, &x, sizeof(lbm_float));
   lbm_value f = lbm_cons(t, lbm_enc_sym(SYM_BOXED_F_TYPE));
   if (lbm_type_of(f) == LBM_VAL_TYPE_SYMBOL) return f;
   return lbm_set_ptr_type(f, LBM_PTR_TYPE_BOXED_F);

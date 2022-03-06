@@ -89,14 +89,14 @@ lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn) {
   }
   lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
   if (lbm_memory_ptr_inside(array->data)) {
-    lbm_memory_free((uint32_t *)array->data);
+    lbm_memory_free((lbm_uint *)array->data);
     lbm_uint ptr = lbm_dec_ptr(args[0]);
     lbm_value cons_ptr = lbm_enc_cons_ptr(ptr);
     lbm_set_car(cons_ptr,lbm_enc_sym(SYM_NIL));
     lbm_set_cdr(cons_ptr,lbm_enc_sym(SYM_NIL));
     res = lbm_enc_sym(SYM_TRUE);
   }
-  lbm_memory_free((uint32_t *)array);
+  lbm_memory_free((lbm_uint *)array);
   return res;
 }
 

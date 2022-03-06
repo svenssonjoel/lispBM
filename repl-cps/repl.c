@@ -36,8 +36,8 @@
 
 #define WAIT_TIMEOUT 2500
 
-uint32_t gc_stack_storage[GC_STACK_SIZE];
-uint32_t print_stack_storage[PRINT_STACK_SIZE];
+lbm_uint gc_stack_storage[GC_STACK_SIZE];
+lbm_uint print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 
@@ -140,13 +140,13 @@ void done_callback(eval_context_t *ctx) {
   int print_ret = lbm_print_value(output, 1024, t);
 
   if (print_ret >= 0) {
-    printf("<< Context %d finished with value %s >>\n", cid, output);
+    printf("<< Context %"PRI_INT" finished with value %s >>\n", cid, output);
   } else {
-    printf("<< Context %d finished with value %s >>\n", cid, output);
+    printf("<< Context %"PRI_INT" finished with value %s >>\n", cid, output);
   }
-  printf("stack max:  %d\n", ctx->K.max_sp);
-  printf("stack size: %u\n", ctx->K.size);
-  printf("stack sp:   %d\n", ctx->K.sp);
+  printf("stack max:  %"PRI_UINT"\n", ctx->K.max_sp);
+  printf("stack size: %"PRI_UINT"\n", ctx->K.size);
+  printf("stack sp:   %"PRI_INT"\n", ctx->K.sp);
 
   //  if (!eval_cps_remove_done_ctx(cid, &t)) {
   //   printf("Error: done context (%d)  not in list\n", cid);
@@ -316,9 +316,9 @@ void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   int print_ret = lbm_print_value(output, 1024, ctx->r);
 
   printf("--------------------------------\n");
-  printf("ContextID: %u\n", ctx->id);
-  printf("Stack SP: %u\n",  ctx->K.sp);
-  printf("Stack SP max: %u\n", ctx->K.max_sp);
+  printf("ContextID: %"PRI_UINT"\n", ctx->id);
+  printf("Stack SP: %"PRI_UINT"\n",  ctx->K.sp);
+  printf("Stack SP max: %"PRI_UINT"\n", ctx->K.max_sp);
   if (print_ret) {
     printf("Value: %s\n", output);
   } else {
@@ -341,8 +341,8 @@ void sym_it(const char *str) {
   printf("%s\n", str);
 }
 
-static uint32_t memory[LBM_MEMORY_SIZE_8K];
-static uint32_t bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
+static lbm_uint memory[LBM_MEMORY_SIZE_8K];
+static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
 
 char char_array[1024];
 uint32_t word_array[1024];
@@ -387,7 +387,7 @@ int main(int argc, char **argv) {
   lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
   if (!lbm_array_extensions_init()) {
-    printf("error adding array extensions");
+    printf("error adding array extensions\n");
   }
 
   res = lbm_add_extension("print", ext_print);
@@ -435,17 +435,17 @@ int main(int argc, char **argv) {
       printf("--(LISP HEAP)-----------------------------------------------\n");
       lbm_get_heap_state(&heap_state);
       printf("Heap size: %u Bytes\n", heap_size * 8);
-      printf("Used cons cells: %d\n", heap_size - lbm_heap_num_free());
-      printf("Free cons cells: %d\n", lbm_heap_num_free());
-      printf("GC counter: %d\n", heap_state.gc_num);
-      printf("Recovered: %d\n", heap_state.gc_recovered);
-      printf("Recovered arrays: %u\n", heap_state.gc_recovered_arrays);
-      printf("Marked: %d\n", heap_state.gc_marked);
+      printf("Used cons cells: %"PRI_INT"\n", heap_size - lbm_heap_num_free());
+      printf("Free cons cells: %"PRI_INT"\n", lbm_heap_num_free());
+      printf("GC counter: %"PRI_INT"\n", heap_state.gc_num);
+      printf("Recovered: %"PRI_INT"\n", heap_state.gc_recovered);
+      printf("Recovered arrays: %"PRI_UINT"\n", heap_state.gc_recovered_arrays);
+      printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
       printf("--(Symbol and Array memory)---------------------------------\n");
-      printf("Memory size: %u Words\n", lbm_memory_num_words());
-      printf("Memory free: %u Words\n", lbm_memory_num_free());
-      printf("Allocated arrays: %u\n", heap_state.num_alloc_arrays);
-      printf("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
+      printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
+      printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
+      printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
+      printf("Symbol table size: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
     }  else if (strncmp(str, ":env", 4) == 0) {
       lbm_value curr = *lbm_get_env_ptr();
       printf("Environment:\r\n");
@@ -480,7 +480,7 @@ int main(int argc, char **argv) {
 
         lbm_continue_eval();
 
-        printf("started ctx: %u\n", cid);
+        printf("started ctx: %"PRI_UINT"\n", cid);
       }
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
       allow_print = true;
@@ -617,7 +617,7 @@ int main(int argc, char **argv) {
 
       lbm_continue_eval();
 
-      printf("started ctx: %u\n", cid);
+      printf("started ctx: %"PRI_UINT"\n", cid);
       /* Something better is needed.
          this sleep ís to ensure the string is alive until parsing
          is done */

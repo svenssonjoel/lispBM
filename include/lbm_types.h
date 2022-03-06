@@ -23,10 +23,19 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
+/* Addresses that are put into lbm_values or into 
+ * lbm_memory must have this alignment.           */
+#ifndef LBM64
+#define LBM_STORABLE_ADDRESS_ALIGNMENT 4
+#else
+#define LBM_STORABLE_ADDRESS_ALIGNMENT 8
+#endif
+
 /** A lispBM value.
  *  Can represent a character, 28 bit signed or unsigned integer.
  *  A value can also represent a pointer to a heap cell or to boxed 32 bit values such as a float.
  */
+#ifndef LBM64
 typedef uint32_t lbm_value;
 /** A lispBM type. */
 typedef uint32_t lbm_type;
@@ -39,12 +48,34 @@ typedef float    lbm_float;
 #define PRI_TYPE  PRIu32
 #define PRI_UINT  PRIu32
 #define PRI_INT   PRId32
+#define PRI_HEX   PRIx32
 #define PRI_FLOAT "f"
 
+typedef int32_t   lbm_cid;
+
+#else
+
+typedef uint64_t lbm_value;
+/** A lispBM type. */
+typedef uint64_t lbm_type;
+
+typedef uint64_t lbm_uint;
+typedef int64_t  lbm_int;
+typedef double    lbm_float;
+
+#define PRI_VALUE PRIu64
+#define PRI_TYPE  PRIu64
+#define PRI_UINT  PRIu64
+#define PRI_INT   PRId64
+#define PRI_HEX   PRIx64
+#define PRI_FLOAT "f"
+
+typedef int64_t   lbm_cid;
+#endif
 /**
  * Represents a lisp process "context"-id
  */
-typedef int32_t   lbm_cid;
+
 
 /* tokenizer */
 

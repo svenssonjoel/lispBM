@@ -38,7 +38,7 @@ static bool print_has_stack = false;
 
 const char *failed_str = "Error: print failed\n";
 
-int lbm_print_init(uint32_t *print_stack_storage, uint32_t print_stack_size) {
+int lbm_print_init(lbm_uint *print_stack_storage, lbm_uint print_stack_size) {
 
   if (!print_stack_storage || print_stack_size == 0)
     return 0;
@@ -239,7 +239,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       }
 
       case LBM_PTR_TYPE_BOXED_I: {
-        int32_t v = (int32_t)lbm_car(curr);
+        lbm_int v = (lbm_int)lbm_car(curr);
         r = snprintf(buf + offset, len - offset, "{%"PRI_INT"}", v);
         if ( r > 0) {
           n = (unsigned int) r;
@@ -255,7 +255,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(curr);
         switch (array->elt_type){
         case LBM_VAL_TYPE_CHAR:
-          r = snprintf(buf + offset, len - offset, "\"%.*s\"", array->size, (char *)array->data);
+          r = snprintf(buf + offset, len - offset, "\"%.*s\"", (int)array->size, (char *)array->data);
           if ( r > 0) {
             n = (unsigned int) r;
           } else {
@@ -362,7 +362,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
 
       default:
-        snprintf(buf, len, "Error: print does not recognize type of value: %"PRIx32"", curr);
+        snprintf(buf, len, "Error: print does not recognize type of value: %"PRI_HEX"", curr);
         return -1;
         break;
       } // Switch type of curr
