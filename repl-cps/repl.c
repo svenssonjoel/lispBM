@@ -345,7 +345,7 @@ static lbm_uint memory[LBM_MEMORY_SIZE_8K];
 static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
 
 char char_array[1024];
-uint32_t word_array[1024];
+lbm_uint word_array[1024];
 
 
 int main(int argc, char **argv) {
@@ -361,7 +361,7 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < 1024; i ++) {
     char_array[i] = (char)i;
-    word_array[i] = (uint32_t)i;
+    word_array[i] = (lbm_uint)i;
   }
 
   //setup_terminal();
@@ -371,12 +371,15 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  lbm_init(heap_storage, heap_size,
-           gc_stack_storage, GC_STACK_SIZE,
-           memory, LBM_MEMORY_SIZE_8K,
-           bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
-           print_stack_storage, PRINT_STACK_SIZE,
-           extension_storage, EXTENSION_STORAGE_SIZE);
+  if (!lbm_init(heap_storage, heap_size,
+                gc_stack_storage, GC_STACK_SIZE,
+                memory, LBM_MEMORY_SIZE_8K,
+                bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+                print_stack_storage, PRINT_STACK_SIZE,
+                extension_storage, EXTENSION_STORAGE_SIZE)) {
+    printf("Failed to initialize LispBM\n");
+    return 0;
+  }
 
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);

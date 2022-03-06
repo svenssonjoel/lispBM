@@ -671,10 +671,16 @@ static inline bool lbm_is_symbol_merror(lbm_value exp) {
 }
 
 
+#ifndef LBM64
+#define ERROR_SYMBOL_MASK 0xFFFFFF20
+#else
+#define ERROR_SYMBOL_MASK 0xFFFFFFFFFFFFFF20
+#endif
+
 /* all error signaling symbols are in the range 0x20 - 0x2F */
 static inline bool lbm_is_error(lbm_value v){
   if (lbm_type_of(v) == LBM_VAL_TYPE_SYMBOL &&
-      ((lbm_dec_sym(v) & 0xFFFFFF20) == 0x20)) {
+      ((lbm_dec_sym(v) & ERROR_SYMBOL_MASK) == 0x20)) {
     return true;
   }
   return false;

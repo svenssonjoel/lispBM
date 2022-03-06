@@ -45,11 +45,16 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
 
   if (data == NULL || bits == NULL) return 0;
 
-  if (((lbm_uint)data % sizeof(lbm_uint) != 0) || data_size != 16 * bits_size || data_size % 4 != 0 ||
-      ((lbm_uint)bits % sizeof(lbm_uint) != 0) || bits_size < 1 || bits_size % 4 != 0) {
-    // data is not 4 byte aligned
+  if (((lbm_uint)data % sizeof(lbm_uint) != 0) ||
+      (data_size * 2) != (bits_size * sizeof(lbm_uint) * 8) ||
+      data_size % 4 != 0 ||
+      ((lbm_uint)bits % sizeof(lbm_uint) != 0) ||
+      bits_size < 1 ||
+      bits_size % 4 != 0) {
+    // data is not aligned to sizeof lbm_uint
     // size is too small
     // or size is not a multiple of 4
+    printf("memory init failed\n");
     return 0;
   }
 
@@ -67,7 +72,11 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
 }
 
 static inline lbm_uint address_to_bitmap_ix(lbm_uint *ptr) {
+  #ifndef LBM64
   return ((lbm_uint)ptr - memory_base_address) >> 2;
+  #else
+  return ((lbm_uint)ptr - memory_base_address) >> 3;
+  #endif
 }
 
 lbm_int lbm_memory_address_to_ix(lbm_uint *ptr) {
@@ -79,18 +88,18 @@ lbm_int lbm_memory_address_to_ix(lbm_uint *ptr) {
 
 
 static inline lbm_uint *bitmap_ix_to_address(lbm_uint ix) {
-  return (lbm_uint*)(memory_base_address + (ix << 2));
+  return &((lbm_uint*)(memory_base_address))[ix];// + (ix << 2));
 }
 
 #ifndef LBM64
 #define WORD_IX_SHIFT 5
 #define WORD_MOD_MASK 0x1F
-#define BITMAP_SIZE_SHIFT 4
+#define BITMAP_SIZE_SHIFT 4  // 16 statuses per bitmap word
 #else
-#define WORD_IX_SHIFT 6
-#define WORD_MOD_MASK 0x3E
-#define BITMAP_SIZE_SHIFT 4
-#endif 
+#define WORD_IX_SHIFT 6      // divide by 64
+#define WORD_MOD_MASK 0x3F   // mod 64
+#define BITMAP_SIZE_SHIFT 5  // times 32, 32 statuses per bitmap word
+#endif
 
 static inline lbm_uint status(lbm_uint i) {
 
@@ -162,6 +171,7 @@ lbm_uint lbm_memory_num_free(void) {
 lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
 
   if (memory == NULL || bitmap == NULL) {
+    printf("allocate but null\n");
     return NULL;
   }
 
@@ -221,6 +231,7 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
       set_status(start_ix, START);
       set_status(end_ix, END);
     }
+    printf("Allocate ok\n");
     return bitmap_ix_to_address(start_ix);
   }
   return NULL;

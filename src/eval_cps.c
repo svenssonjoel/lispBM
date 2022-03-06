@@ -585,7 +585,6 @@ static void finish_ctx(void) {
 
   lbm_memory_free((lbm_uint*)ctx_running);
   ctx_running = NULL;
-  gc(NIL,NIL);
 }
 
 static void context_exists(eval_context_t *ctx, void *cid, void *b) {
@@ -1593,6 +1592,14 @@ static inline void cont_application(eval_context_t *ctx) {
           if (lbm_type_of(new_env) == LBM_VAL_TYPE_SYMBOL &&
               lbm_dec_sym(new_env) == SYM_NOT_FOUND) {
             new_env = lbm_env_set(lbm_get_env(),  fun_args[1], fun_args[2]);
+            if (lbm_is_error(new_env)) {
+              gc(NIL,NIL);
+              new_env = lbm_env_set(lbm_get_env(),  fun_args[1], fun_args[2]);
+              if (lbm_is_error(new_env)) {
+                error_ctx(new_env);
+                return;
+              }
+            }
             *lbm_get_env_ptr() = new_env;
           } else {
             ctx->r = fun_args[2];
@@ -1641,6 +1648,7 @@ static inline void cont_application(eval_context_t *ctx) {
       if (!lbm_is_closure(fun_args[closure_pos]) ||
           lbm_dec_u(count) < 1) {
         error_ctx(lbm_enc_sym(SYM_EERROR));
+        return;
       }
 
       lbm_value cdr_fun = lbm_cdr(fun_args[closure_pos]);
@@ -1710,7 +1718,7 @@ static inline void cont_application(eval_context_t *ctx) {
 
       if (lbm_type_of(prg) != LBM_PTR_TYPE_CONS) {
         error_ctx(lbm_enc_sym(SYM_EERROR));
-        break;
+        return;
       }
 
       ctx->program = lbm_cdr(prg);

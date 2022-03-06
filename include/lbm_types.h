@@ -55,12 +55,12 @@ typedef int32_t   lbm_cid;
 
 #else
 
-typedef uint64_t lbm_value;
+typedef uint64_t  lbm_value;
 /** A lispBM type. */
-typedef uint64_t lbm_type;
+typedef uint64_t  lbm_type;
 
-typedef uint64_t lbm_uint;
-typedef int64_t  lbm_int;
+typedef uint64_t  lbm_uint;
+typedef int64_t   lbm_int;
 typedef double    lbm_float;
 
 #define PRI_VALUE PRIu64

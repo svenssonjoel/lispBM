@@ -28,7 +28,7 @@ int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
     return 0;
 
   if (lbm_memory_init(memory, memory_size,
-                  memory_bitmap, bitmap_size) == 0)
+                      memory_bitmap, bitmap_size) == 0)
     return 0;
 
   if (lbm_symrepr_init() == 0)
