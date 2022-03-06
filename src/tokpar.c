@@ -239,7 +239,7 @@ int tok_string(lbm_tokenizer_char_stream_t *str) {
   clear_sym_str();
 
   for (i = 0; i < len; i ++) {
-    char c = get(str);
+    c = get(str);
     if (c == '\\') {
       if (i + 1 < len) {
         char escaped = get(str);
