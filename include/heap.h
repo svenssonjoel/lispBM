@@ -493,7 +493,7 @@ extern int lbm_gc_sweep_phase(void);
  * \param type The type information to encode onto the heap cell.
  * \return 1 for success of 0 for failure.
  */
-extern int lbm_heap_allocate_array(lbm_value *res, unsigned int size, lbm_type type);
+extern int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type);
 
 /** Query the type information of a value.
  *

@@ -357,7 +357,7 @@ lbm_value array_extension_buffer_append_u32(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-static lbm_uint float32_to_u32(float number) {
+static lbm_uint float_to_u(float number) {
   // Set subnormal numbers to 0 as they are not handled properly
   // using this method.
   if (fabsf(number) < 1.5e-38) {
@@ -382,7 +382,7 @@ static lbm_uint float32_to_u32(float number) {
   return res;
 }
 
-static float u32_to_float32(uint32_t v) {
+static lbm_float u_to_float(uint32_t v) {
 
   int e = (v >> 23) & 0xFF;
   uint32_t sig_i = v & 0x7FFFFF;
@@ -400,7 +400,6 @@ static float u32_to_float32(uint32_t v) {
 
   return ldexpf(sig, e);
 }
-
 
 lbm_value array_extension_buffer_append_f32(lbm_value *args, lbm_uint argn) {
 
@@ -425,10 +424,10 @@ lbm_value array_extension_buffer_append_f32(lbm_value *args, lbm_uint argn) {
     if (array->elt_type != LBM_VAL_TYPE_BYTE) {
       return res;
     }
-    float f_value = lbm_dec_as_f(args[2]);
-    lbm_value value = float32_to_u32(f_value);
+    float f_value = (float)lbm_dec_as_f(args[2]);
+    lbm_value value = float_to_u(f_value);
     lbm_uint index = lbm_dec_as_u(args[1]);
-
+    
     if (index+3 >= array->size) {
       return res;
     }
@@ -758,7 +757,7 @@ lbm_value array_extension_buffer_get_f32(lbm_value *args, lbm_uint argn) {
         (lbm_uint) data[index+3] << 24;
     }
 
-    res = lbm_enc_F(u32_to_float32(value));
+    res = lbm_enc_F((lbm_float)u_to_float(value));
     break;
   default:
     break;

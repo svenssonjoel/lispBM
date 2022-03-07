@@ -647,7 +647,7 @@ lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
 // Arrays are part of the heap module because their lifespan is managed
 // by the garbage collector. The data in the array is not stored
 // in the "heap of cons cells".
-int lbm_heap_allocate_array(lbm_value *res, unsigned int size, lbm_type type){
+int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
 
   lbm_array_header_t *array = NULL;
   // allocating a cell that will, to start with, be a cons cell.
@@ -658,7 +658,7 @@ int lbm_heap_allocate_array(lbm_value *res, unsigned int size, lbm_type type){
     return 0;
   }
 
-  unsigned int allocate_size = 0;
+  lbm_uint allocate_size = 0;
   if (type == LBM_VAL_TYPE_CHAR) {
     if ( size % sizeof(lbm_uint) == 0) {
       #ifndef LBM64
