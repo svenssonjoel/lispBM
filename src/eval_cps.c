@@ -712,12 +712,12 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
   if (!lbm_stack_allocate(&ctx->K, stack_size)) {
     gc(program,env);
     if (!lbm_stack_allocate(&ctx->K, stack_size)) {
-      lbm_memory_free((uint32_t*)ctx);
+      lbm_memory_free((lbm_uint*)ctx);
       return -1;
     }
   }
 
-  lbm_int cid = lbm_memory_address_to_ix((uint32_t*)ctx);
+  lbm_int cid = lbm_memory_address_to_ix((lbm_uint*)ctx);
 
   ctx->program = lbm_cdr(program);
   ctx->curr_exp = lbm_car(program);
