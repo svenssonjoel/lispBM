@@ -23,7 +23,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-/* Addresses that are put into lbm_values or into 
+/* Addresses that are put into lbm_values or into
  * lbm_memory must have this alignment.           */
 #ifndef LBM64
 #define LBM_STORABLE_ADDRESS_ALIGNMENT 4
@@ -31,11 +31,11 @@
 #define LBM_STORABLE_ADDRESS_ALIGNMENT 8
 #endif
 
+#ifndef LBM64
 /** A lispBM value.
  *  Can represent a character, 28 bit signed or unsigned integer.
  *  A value can also represent a pointer to a heap cell or to boxed 32 bit values such as a float.
  */
-#ifndef LBM64
 typedef uint32_t lbm_value;
 /** A lispBM type. */
 typedef uint32_t lbm_type;
@@ -54,7 +54,9 @@ typedef float    lbm_float;
 typedef int32_t   lbm_cid;
 
 #else
-
+/** A lispBM value.
+ *
+ */
 typedef uint64_t  lbm_value;
 /** A lispBM type. */
 typedef uint64_t  lbm_type;

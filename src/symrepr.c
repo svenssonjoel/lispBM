@@ -229,23 +229,15 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
       return 1;
     }
   }
-  if(symlist == NULL) {
-    printf("NULL\n");
-  } else {
-    printf("not null\n");
-  }
+
   lbm_uint *curr = symlist;
   while (curr) {
-    printf("enter\n");
     char *str = (char*)curr[NAME];
-    printf("looking at: %s\n", str);
     if (strcmp(name, str) == 0) {
       *id = curr[ID];
       return 1;
     }
-    printf("Next\n");
     curr = (lbm_uint*)curr[NEXT];
-    printf("alive\n");
   }
   return 0;
 }

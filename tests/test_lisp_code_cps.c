@@ -36,8 +36,8 @@
 #define EXTENSION_STORAGE_SIZE 256
 #define VARIABLE_STORAGE_SIZE 256
 
-uint32_t gc_stack_storage[GC_STACK_SIZE];
-uint32_t print_stack_storage[PRINT_STACK_SIZE];
+lbm_uint gc_stack_storage[GC_STACK_SIZE];
+lbm_uint print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 
@@ -188,9 +188,9 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  uint32_t *memory = malloc(4 * LBM_MEMORY_SIZE_16K);
+  lbm_uint *memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_16K);
   if (memory == NULL) return 0;
-  uint32_t *bitmap = malloc(4 * LBM_MEMORY_BITMAP_SIZE_16K);
+  lbm_uint *bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_16K);
   if (bitmap == NULL) return 0;
 
 

@@ -54,7 +54,6 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
     // data is not aligned to sizeof lbm_uint
     // size is too small
     // or size is not a multiple of 4
-    printf("memory init failed\n");
     return 0;
   }
 
@@ -171,7 +170,6 @@ lbm_uint lbm_memory_num_free(void) {
 lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
 
   if (memory == NULL || bitmap == NULL) {
-    printf("allocate but null\n");
     return NULL;
   }
 
@@ -231,7 +229,6 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
       set_status(start_ix, START);
       set_status(end_ix, END);
     }
-    printf("Allocate ok\n");
     return bitmap_ix_to_address(start_ix);
   }
   return NULL;

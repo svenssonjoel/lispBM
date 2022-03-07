@@ -215,10 +215,10 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_VAL_TYPE_U                  0x00000008u // 10  0   0
 #define LBM_VAL_TYPE_I                  0x0000000Cu // 11  0   0
 
-#else 
+#else
 
 #define LBM_ADDRESS_SHIFT               2
-#define LBM_VAL_SHIFT                   4
+#define LBM_VAL_SHIFT                   8
 
 #define LBM_PTR_MASK                    0x1u
 #define LBM_PTR_BIT                     0x1u
@@ -237,7 +237,8 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_GC_MASK                     0x2u
 #define LBM_GC_MARKED                   0x2u
 
-#define LBM_VAL_MASK                    0xFFFFFFFFFFFFFFF0u
+/* 8 - 2 free bits to encode type information into */
+#define LBM_VAL_MASK                    0xFFFFFFFFFFFFFF00u
 #define LBM_VAL_TYPE_MASK               0xCu
                                                     //    gc ptr
 #define LBM_VAL_TYPE_SYMBOL             0x0u // 00  0   0
