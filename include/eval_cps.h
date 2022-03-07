@@ -40,8 +40,8 @@ typedef struct eval_context_s{
   bool  app_cont;
   lbm_stack_t K;
   /* Process control */
-  uint32_t timestamp;
-  uint32_t sleep_us;
+  lbm_uint timestamp;
+  lbm_uint sleep_us;
   lbm_cid id;
   /* List structure */
   struct eval_context_s *prev;
@@ -148,7 +148,7 @@ extern uint32_t lbm_get_eval_state(void);
  * \param stack_size Stack size for the context.
  * \return
  */
-extern lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size);
+extern lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size);
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.

@@ -77,8 +77,6 @@
 #include "lbm_types.h"
 #include <stdint.h>
 
-//#define MEMORY_SIZE_64BYTES_TIMES_X(X) (64*(X))
-//#define MEMORY_BITMAP_SIZE(X) (4*(X))
 #define LBM_MEMORY_SIZE_64BYTES_TIMES_X(X) (16*(X))
 #ifndef LBM64
 #define LBM_MEMORY_BITMAP_SIZE(X) (X)
@@ -103,7 +101,7 @@
 #define LBM_MEMORY_BITMAP_SIZE_16K LBM_MEMORY_BITMAP_SIZE(256)
 #define LBM_MEMORY_BITMAP_SIZE_32K LBM_MEMORY_BITMAP_SIZE(512)
 #define LBM_MEMORY_BITMAP_SIZE_1M  LBM_MEMORY_BITMAP_SIZE(16384)
-
+  
 /** Initialize the symbols and arrays memory
  *
  * \param data Pointer to an array of uint32_t for data storage.

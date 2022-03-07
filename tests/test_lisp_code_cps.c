@@ -188,9 +188,9 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  lbm_uint *memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_16K);
+  lbm_uint *memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_32K);
   if (memory == NULL) return 0;
-  lbm_uint *bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_16K);
+  lbm_uint *bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_32K);
   if (bitmap == NULL) return 0;
 
 
@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
 
   res = lbm_heap_init(heap_storage, heap_size, gc_stack_storage, GC_STACK_SIZE);
   if (res)
-    printf("Heap initialized. Heap size: %f MiB. Free cons cells: %d\n", lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
+    printf("Heap initialized. Heap size: %"PRI_FLOAT" MiB. Free cons cells: %"PRI_INT"\n", (double)lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
   else {
     printf("Error initializing heap!\n");
     return 0;

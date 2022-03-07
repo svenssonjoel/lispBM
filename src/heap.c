@@ -245,7 +245,7 @@ static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
   heap_state.gc_min_duration = UINT32_MAX;
 }
 
-void lbm_heap_new_gc_time(uint32_t dur) {
+void lbm_heap_new_gc_time(lbm_uint dur) {
   heap_state.gc_time_acc += dur;
   if (dur > heap_state.gc_max_duration)
     heap_state.gc_max_duration = dur;
@@ -253,7 +253,7 @@ void lbm_heap_new_gc_time(uint32_t dur) {
     heap_state.gc_min_duration = dur;
 }
 
-void lbm_heap_new_freelist_length(uint32_t l) {
+void lbm_heap_new_freelist_length(lbm_uint l) {
   if (l < heap_state.gc_least_free)
     heap_state.gc_least_free = l;
 }
@@ -434,9 +434,9 @@ int lbm_gc_mark_freelist() {
   return 1;
 }
 
-int lbm_gc_mark_aux(lbm_uint *aux_data, unsigned int aux_size) {
+int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
 
-  for (unsigned int i = 0; i < aux_size; i ++) {
+  for (lbm_uint i = 0; i < aux_size; i ++) {
     if (lbm_is_ptr(aux_data[i])) {
 
       lbm_type pt_t = lbm_type_of(aux_data[i]);

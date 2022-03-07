@@ -432,18 +432,18 @@ lbm_value token_stream_from_string_value(lbm_value s) {
   lbm_tokenizer_string_state_t *tok_stream_state = NULL;
   lbm_tokenizer_char_stream_t *tok_stream = NULL;
 
-  stream = (lbm_stream_t*)lbm_memory_allocate(sizeof(lbm_stream_t) / 4);
+  stream = (lbm_stream_t*)lbm_memory_allocate(sizeof(lbm_stream_t) / (sizeof(lbm_uint)));
   if (stream == NULL) {
     return lbm_enc_sym(SYM_MERROR);
   }
 
-  tok_stream_state = (lbm_tokenizer_string_state_t*)lbm_memory_allocate(1 + (sizeof(lbm_tokenizer_string_state_t) / 4));
+  tok_stream_state = (lbm_tokenizer_string_state_t*)lbm_memory_allocate(1 + (sizeof(lbm_tokenizer_string_state_t) / (sizeof(lbm_uint))));
   if (tok_stream_state == NULL) {
     lbm_memory_free((lbm_uint*)stream);
     return lbm_enc_sym(SYM_MERROR);
   }
 
-  tok_stream = (lbm_tokenizer_char_stream_t*)lbm_memory_allocate(sizeof(lbm_tokenizer_char_stream_t) / 4);
+  tok_stream = (lbm_tokenizer_char_stream_t*)lbm_memory_allocate(sizeof(lbm_tokenizer_char_stream_t) / (sizeof(lbm_uint)));
   if (tok_stream == NULL) {
     lbm_memory_free((lbm_uint*)stream);
     lbm_memory_free((lbm_uint*)tok_stream_state);
@@ -627,8 +627,8 @@ static void error_ctx(lbm_value err_val) {
 }
 
 static eval_context_t *dequeue_ctx(uint32_t *us) {
-  uint32_t min_us = DEFAULT_SLEEP_US;
-  uint32_t t_now;
+  lbm_uint min_us = DEFAULT_SLEEP_US;
+  lbm_uint t_now;
 
   mutex_lock(&qmutex);
 
@@ -641,10 +641,14 @@ static eval_context_t *dequeue_ctx(uint32_t *us) {
   eval_context_t *curr = queue.first; //ctx_queue;
 
   while (curr != NULL) {
-    uint32_t t_diff;
+    lbm_uint t_diff;
     if ( curr->timestamp > t_now) {
       /* There was an overflow on the counter */
+      #ifndef LBM64
       t_diff = (0xFFFFFFFF - curr->timestamp) + t_now;
+      #else
+      t_diff = (0xFFFFFFFFFFFFFFFF - curr->timestamp) + t_now;
+      #endif
     } else {
       t_diff = t_now - curr->timestamp;
     }
@@ -683,7 +687,7 @@ static eval_context_t *dequeue_ctx(uint32_t *us) {
   return NULL;
 }
 
-static void yield_ctx(uint32_t sleep_us) {
+static void yield_ctx(lbm_uint sleep_us) {
   if (timestamp_us_callback) {
     ctx_running->timestamp = timestamp_us_callback();
     ctx_running->sleep_us = sleep_us;
@@ -697,15 +701,15 @@ static void yield_ctx(uint32_t sleep_us) {
   ctx_running = NULL;
 }
 
-lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, uint32_t stack_size) {
+lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
 
   if (lbm_type_of(program) != LBM_PTR_TYPE_CONS) return -1;
 
   eval_context_t *ctx = NULL;
-  ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / 4);
+  ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / (sizeof(lbm_uint)));
   if (ctx == NULL) {
     gc(program,env);
-    ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / 4);
+    ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / (sizeof(lbm_uint)));
   }
   if (ctx == NULL) return -1;
 
@@ -982,8 +986,8 @@ static int find_match(lbm_value plist, lbm_value elist, lbm_value *e, lbm_value 
 /* Garbage collection                               */
 static int gc(lbm_value remember1, lbm_value remember2) {
 
-  uint32_t tstart = 0;
-  uint32_t tend = 0;
+  lbm_uint tstart = 0;
+  lbm_uint tend = 0;
 
   if (timestamp_us_callback) {
     tstart = timestamp_us_callback();
@@ -1044,14 +1048,14 @@ static int gc(lbm_value remember1, lbm_value remember2) {
     tend = timestamp_us_callback();
   }
 
-  uint32_t dur = 0;
+  lbm_uint dur = 0;
   if (tend >= tstart) {
     dur = tend - tstart;
   }
 
   lbm_heap_new_gc_time(dur);
 
-  uint32_t num_free = lbm_heap_num_free();
+  lbm_uint num_free = lbm_heap_num_free();
   lbm_heap_new_freelist_length(num_free);
 
   return r;
@@ -1106,7 +1110,7 @@ static inline void eval_symbol(eval_context_t *ctx) {
         return;
       }
 
-      lbm_array_header_t *array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
+      lbm_array_header_t *array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
 
       if (array == NULL) {
         error_ctx(lbm_enc_sym(SYM_MERROR));
@@ -1982,7 +1986,7 @@ static inline void cont_read(eval_context_t *ctx) {
   bool app_cont = false;
   bool program = false;
 
-  unsigned int sp_start = ctx->K.sp;
+  lbm_uint sp_start = ctx->K.sp;
 
   if (lbm_type_of(prg_val) == LBM_VAL_TYPE_SYMBOL) {
     if (lbm_dec_sym(prg_val) == SYM_READ) program = false;

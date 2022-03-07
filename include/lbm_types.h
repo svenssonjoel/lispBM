@@ -70,7 +70,7 @@ typedef double    lbm_float;
 #define PRI_UINT  PRIu64
 #define PRI_INT   PRId64
 #define PRI_HEX   PRIx64
-#define PRI_FLOAT "f"
+#define PRI_FLOAT "lf"
 
 typedef int64_t   lbm_cid;
 #endif

@@ -306,12 +306,12 @@ extern int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
  *
  * \param dur Duration as reported by the timestamp callback.
  */
-extern void lbm_heap_new_gc_time(uint32_t dur);
+extern void lbm_heap_new_gc_time(lbm_uint dur);
 /** Add a new free_list length to the heap_stats.
  *
  * \param l Current length of freelist.
  */
-extern void lbm_heap_new_freelist_length(uint32_t l);
+extern void lbm_heap_new_freelist_length(lbm_uint l);
 /** Check how many lbm_cons_t cells are on the free-list
  *
  * \return Number of free lbm_cons_t cells.
@@ -477,7 +477,7 @@ extern int lbm_gc_mark_phase2(lbm_value env);
  * \param n Number of elements in roots-array.
  * \return 1 on success or 0 for failure.
  */
-extern int lbm_gc_mark_aux(lbm_uint *data, unsigned int n);
+extern int lbm_gc_mark_aux(lbm_uint *data, lbm_uint n);
 
 /** Sweep up all non marked heap cells and place them on the free list.
  *
