@@ -664,7 +664,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     if (nargs == 1 && lbm_type_of(args[0]) == LBM_PTR_TYPE_CONS) {
       lbm_value curr = args[0];
       lbm_uint r = 0;
-      lbm_float f;
+      float f; 
       int n = 4;
       while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS && n > 0) {
         if (n < 4) r = r << 8;
@@ -677,8 +677,8 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
           break;
         }
       }
-      memcpy(&f,&r, sizeof(lbm_uint));
-      result = lbm_enc_F(f);
+      memcpy(&f,&r, sizeof(float)); // float result
+      result = lbm_enc_F((lbm_float)f);
     }
     break;
   case SYM_IS_FUNDAMENTAL:
