@@ -3,4 +3,4 @@
 #LispBM Programming Documentation
 
 
-[Language reference](./lbmref.mb)
+[Language reference](./lbmref.md)
