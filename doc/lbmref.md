@@ -231,13 +231,13 @@ If you know you are comparing numbers, it will be more efficient to use
 An important difference between `eq` and `=` is
 that equals compare the numerical values of the arguments. A 3 is a 3
 independent of them being different types. `eq` on the other
-hands compares the representations of the arguments exactly and they must
+hand compares the representations of the arguments exactly and they must
 match in structure, type and value to be considered equal. 
 
 
 Example of `=` comparison.
 ```clj
-(num-eq (+ 2 3) (+ 1 4))
+(= (+ 2 3) (+ 1 4))
 ```
 
 
