@@ -5,7 +5,7 @@
       * [-](#-)
       * [*](#-1)
       * [/](#-2)
-   * [mod](#mod)
+      * [mod](#mod)
    * [Comparisons](#comparisons)
       * [eq](#eq)
       * [=](#-3)
@@ -173,7 +173,7 @@ The following example evaluates to 1.
 
 ---
 
-## mod
+### mod
 
 Modulo operation. The form of a mod expression is `(mod expr1 ... exprN)`.
 
