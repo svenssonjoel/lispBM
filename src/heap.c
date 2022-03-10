@@ -610,9 +610,6 @@ lbm_value lbm_list_destructive_reverse(lbm_value list) {
   if (lbm_type_of(list) == LBM_VAL_TYPE_SYMBOL) {
     return list;
   }
-
-  char output[1024];
-
   lbm_value curr = list;
   lbm_value last_cell = lbm_enc_sym(SYM_NIL);
 
