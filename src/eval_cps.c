@@ -350,7 +350,12 @@ void print_error_message(lbm_value error) {
   char *buf = (char*)buf32;
 
   lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
-  printf_callback("***\tError: %s\n", buf);
+  printf_callback("***\tError: %s\n\n", buf);
+
+  if (ctx_running->error_reason) {
+    printf_callback("Reason:\n%s\n\n", ctx_running->error_reason);
+  }
+
   lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
   printf_callback("\tWhile evaluating: %s\n", buf);
   printf_callback("\tIn context: %d\n", ctx_running->id);
@@ -582,6 +587,9 @@ static void finish_ctx(void) {
   if (ctx_done_callback) {
     ctx_done_callback(ctx_running);
   }
+  if (lbm_memory_ptr_inside((lbm_uint*)ctx_running->error_reason)) {
+    lbm_memory_free((lbm_uint*)ctx_running->error_reason);
+  }
 
   lbm_memory_free((lbm_uint*)ctx_running);
   ctx_running = NULL;
@@ -618,6 +626,15 @@ bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
 
   if (exists) return false;
   return true;
+}
+
+int lbm_set_error_reason(char *error_str) {
+  int r = 0;
+  if (ctx_running) {
+    ctx_running->error_reason = error_str;
+    r = 1;
+  }
+  return r;
 }
 
 static void error_ctx(lbm_value err_val) {
@@ -727,6 +744,7 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
   ctx->curr_exp = lbm_car(program);
   ctx->curr_env = env;
   ctx->r = lbm_enc_sym(SYM_NIL);
+  ctx->error_reason = NULL;
   ctx->mailbox = lbm_enc_sym(SYM_NIL);
   ctx->done = false;
   ctx->app_cont = false;
