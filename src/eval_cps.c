@@ -1776,23 +1776,26 @@ static inline void cont_application(eval_context_t *ctx) {
         WITH_GC(res, lbm_fundamental(&fun_args[1], lbm_dec_u(count), fun), NIL, NIL);
         if (lbm_is_error(res)) {
           error_ctx(res);
-        }  else {
-          lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
-          ctx->app_cont = true;
-          ctx->r = res;
+          return;
         }
+        lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
+        ctx->app_cont = true;
+        ctx->r = res;
         break;
       } else {
         // It may be an extension
         extension_fptr f = lbm_get_extension(lbm_dec_sym(fun));
         if (f == NULL) {
           error_ctx(lbm_enc_sym(SYM_EERROR));
-          break;
+          return;
         }
 
         lbm_value ext_res;
         WITH_GC(ext_res, f(&fun_args[1] , lbm_dec_u(count)), NIL, NIL);
-
+        if (lbm_is_error(ext_res)) {
+          error_ctx(ext_res);
+          return;
+        }
         lbm_stack_drop(&ctx->K, lbm_dec_u(count) + 1);
 
         ctx->app_cont = true;
