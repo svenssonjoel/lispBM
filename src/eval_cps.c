@@ -410,8 +410,7 @@ static lbm_value token_stream_put(lbm_stream_t *str, lbm_value v){
 lbm_value lbm_create_token_stream(lbm_tokenizer_char_stream_t *str) {
 
   lbm_stream_t *stream;
-
-  stream = (lbm_stream_t*)lbm_memory_allocate(sizeof(lbm_stream_t) / 4);
+  stream = (lbm_stream_t*)lbm_memory_allocate(sizeof(lbm_stream_t) / (sizeof(lbm_uint)));
 
   if (stream == NULL) {
     return lbm_enc_sym(SYM_MERROR);

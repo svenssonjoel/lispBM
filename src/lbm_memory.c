@@ -107,6 +107,9 @@ static inline lbm_uint status(lbm_uint i) {
   lbm_uint bit_ix  = ix & WORD_MOD_MASK;              // % 32
 
   lbm_uint mask = ((lbm_uint)3) << bit_ix;       // 000110..0
+  if (word_ix > bitmap_size) {
+    return (lbm_uint)NULL;
+  }
   return (bitmap[word_ix] & mask) >> bit_ix;
 }
 
@@ -117,6 +120,11 @@ static inline void set_status(lbm_uint i, lbm_uint status) {
 
   lbm_uint clr_mask = ~(((lbm_uint)3) << bit_ix);
   lbm_uint mask = status << bit_ix;
+
+  if (word_ix > bitmap_size) {
+    return (lbm_uint)NULL;
+  }
+
   bitmap[word_ix] &= clr_mask;
   bitmap[word_ix] |= mask;
 }
@@ -229,13 +237,16 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
       set_status(start_ix, START);
       set_status(end_ix, END);
     }
-    return bitmap_ix_to_address(start_ix);
+
+    return (lbm_uint)bitmap_ix_to_address(start_ix);
   }
   return NULL;
 }
 
 int lbm_memory_free(lbm_uint *ptr) {
+
   lbm_uint ix = address_to_bitmap_ix(ptr);
+
   switch(status(ix)) {
   case START:
     set_status(ix, FREE_OR_USED);

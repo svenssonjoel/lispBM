@@ -297,7 +297,7 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
   }
 
   char *symbol_name_storage = NULL;;
-  if (n % 4 == 0) {
+  if (n % sizeof(lbm_uint) == 0) {
     symbol_name_storage = (char *)lbm_memory_allocate(n/sizeof(lbm_uint));
   } else {
     symbol_name_storage = (char *)lbm_memory_allocate((n/sizeof(lbm_uint)) + 1);
@@ -382,7 +382,7 @@ lbm_uint lbm_get_symbol_table_size(void) {
     // up to 3 extra bytes are used for string storage if length is not multiple of 4
     size_t s = strlen((char *)curr[NAME]);
     s ++;
-    n += s % 4;
+    n += s % sizeof(lbm_uint);
     n += 12; // sizeof the node in the linked list
     curr = (lbm_uint *)curr[NEXT];
   }

@@ -367,10 +367,10 @@ int lbm_gc_mark_phase(lbm_value env) {
   }
 
   lbm_push_u32(s, env);
+  int res = 1;
 
   while (!lbm_stack_is_empty(s)) {
     lbm_value curr;
-    int res = 1;
     lbm_pop_u32(s, &curr);
 
     if (!lbm_is_ptr(curr)) {
@@ -399,10 +399,10 @@ int lbm_gc_mark_phase(lbm_value env) {
     res &= lbm_push_u32(s, lbm_cdr(curr));
     res &= lbm_push_u32(s, lbm_car(curr));
 
-    if (!res) return 0;
+    if (!res) break;
   }
 
-  return 1;
+  return res;
 }
 
 // The free list should be a "proper list"
@@ -500,7 +500,6 @@ int lbm_gc_sweep_phase(void) {
       heap[i].car = RECOVERED;
       heap[i].cdr = heap_state.freelist;
       heap_state.freelist = addr;
-
       heap_state.num_alloc --;
       heap_state.gc_recovered ++;
     }

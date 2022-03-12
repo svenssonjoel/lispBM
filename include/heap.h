@@ -215,38 +215,38 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_VAL_TYPE_U                  0x00000008u // 10  0   0
 #define LBM_VAL_TYPE_I                  0x0000000Cu // 11  0   0
 
-#else
+#else /* 64 bit Version */
 
 #define LBM_ADDRESS_SHIFT               2
 #define LBM_VAL_SHIFT                   8
 
-#define LBM_PTR_MASK                    0x1u
-#define LBM_PTR_BIT                     0x1u
-#define LBM_PTR_VAL_MASK                0x03FFFFFFFFFFFFFCu
-#define LBM_PTR_TYPE_MASK               0xFC00000000000000u
+#define LBM_PTR_MASK                    0x1
+#define LBM_PTR_BIT                     0x1
+#define LBM_PTR_VAL_MASK                0x03FFFFFFFFFFFFFC
+#define LBM_PTR_TYPE_MASK               0xFC00000000000000
 
-#define LBM_PTR_TYPE_CONS               0x1000000000000000u
-#define LBM_PTR_TYPE_BOXED_U            0x2000000000000000u
-#define LBM_PTR_TYPE_BOXED_I            0x3000000000000000u
-#define LBM_PTR_TYPE_BOXED_F            0x4000000000000000u
+#define LBM_PTR_TYPE_CONS               0x1000000000000000
+#define LBM_PTR_TYPE_BOXED_U            0x2000000000000000
+#define LBM_PTR_TYPE_BOXED_I            0x3000000000000000
+#define LBM_PTR_TYPE_BOXED_F            0x4000000000000000
 
-#define LBM_PTR_TYPE_ARRAY              0xD000000000000000u
-#define LBM_PTR_TYPE_REF                0xE000000000000000u
-#define LBM_PTR_TYPE_STREAM             0xF000000000000000u
+#define LBM_PTR_TYPE_ARRAY              0xD000000000000000
+#define LBM_PTR_TYPE_REF                0xE000000000000000
+#define LBM_PTR_TYPE_STREAM             0xF000000000000000
 
-#define LBM_GC_MASK                     0x2u
-#define LBM_GC_MARKED                   0x2u
+#define LBM_GC_MASK                     0x2
+#define LBM_GC_MARKED                   0x2
 
 /* 8 - 2 free bits to encode type information into */
-#define LBM_VAL_MASK                    0xFFFFFFFFFFFFFF00u
-#define LBM_VAL_TYPE_MASK               0xCu
-                                                    //    gc ptr
-#define LBM_VAL_TYPE_SYMBOL             0x0u // 00  0   0
+#define LBM_VAL_MASK                    0xFFFFFFFFFFFFFF00
+#define LBM_VAL_TYPE_MASK               0xC
+//    gc ptr
+#define LBM_VAL_TYPE_SYMBOL             0x0 // 00  0   0
 /// Character or byte.
-#define LBM_VAL_TYPE_CHAR               0x4u // 01  0   0
-#define LBM_VAL_TYPE_BYTE               0x4u
-#define LBM_VAL_TYPE_U                  0x8u // 10  0   0
-#define LBM_VAL_TYPE_I                  0xCu // 11  0   0
+#define LBM_VAL_TYPE_CHAR               0x4 // 01  0   0
+#define LBM_VAL_TYPE_BYTE               0x4
+#define LBM_VAL_TYPE_U                  0x8 // 10  0   0
+#define LBM_VAL_TYPE_I                  0xC // 11  0   0
 
 #endif
 
@@ -262,7 +262,7 @@ typedef struct {
  *  Heap state
  */
 typedef struct {
-  lbm_cons_t  *heap;
+  lbm_cons_t *heap;
   lbm_value freelist;              // list of free cons cells.
   lbm_stack_t gc_stack;
 
@@ -278,9 +278,9 @@ typedef struct {
   lbm_uint gc_recovered_arrays;// Number of arrays recovered by sweep.
   lbm_uint gc_least_free;      // The smallest length of the freelist.
 
-  lbm_uint     gc_time_acc;
-  lbm_uint     gc_min_duration;
-  lbm_uint     gc_max_duration;
+  lbm_uint gc_time_acc;
+  lbm_uint gc_min_duration;
+  lbm_uint gc_max_duration;
 } lbm_heap_state_t;
 
 /**
