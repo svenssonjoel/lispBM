@@ -212,8 +212,8 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
 
       case LBM_PTR_TYPE_BOXED_F: {
         lbm_value uv = lbm_car(curr);
-        float v;
-        memcpy(&v, &uv, sizeof(float)); // = *(float*)(&uv);
+        lbm_float v;
+        memcpy(&v, &uv, sizeof(lbm_float)); // = *(float*)(&uv);
         r = snprintf(buf + offset, len - offset, "{%"PRI_FLOAT"}", (double)v);
         if ( r > 0) {
           n = (unsigned int) r;
@@ -281,7 +281,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
               r = snprintf(buf+offset, len - offset, "%u%s", (uint32_t)array->data[i], i == array->size - 1 ? "" : ", ");
               break;
             case LBM_PTR_TYPE_BOXED_F:
-              r = snprintf(buf+offset, len - offset, "%f%s",(float)array->data[i], i == array->size - 1 ? "" : ", ");
+              r = snprintf(buf+offset, len - offset, "%"PRI_FLOAT"%s",(lbm_float)array->data[i], i == array->size - 1 ? "" : ", ");
               break;
             default:
               break;

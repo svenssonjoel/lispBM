@@ -600,9 +600,9 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
         result = lbm_cons(lbm_enc_u(v >> 24 & 0xF), result);
       } break;
       case LBM_PTR_TYPE_BOXED_F: {
-        lbm_float tmp = lbm_dec_F(args[0]);
-        lbm_uint  v;
-        memcpy(&v, &tmp, sizeof(lbm_uint));
+        float tmp = (float)lbm_dec_F(args[0]);
+        uint32_t  v;
+        memcpy(&v, &tmp, sizeof(uint32_t));
         result = lbm_cons(lbm_enc_u(v & 0xFF), lbm_enc_sym(SYM_NIL));
         result = lbm_cons(lbm_enc_u(v >> 8 & 0xFF), result);
         result = lbm_cons(lbm_enc_u(v >> 16 & 0xFF), result);
@@ -659,17 +659,17 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
         result = lbm_enc_U(r);
       }
       break;
-  /// Encode a list of up to 4 bytes as an U32
+  /// Encode a list of up to 4 bytes as a float
   case SYM_ENCODE_FLOAT:
     if (nargs == 1 && lbm_type_of(args[0]) == LBM_PTR_TYPE_CONS) {
       lbm_value curr = args[0];
-      lbm_uint r = 0;
+      uint32_t r = 0;
       float f; 
       int n = 4;
       while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS && n > 0) {
         if (n < 4) r = r << 8;
         if (lbm_is_number(lbm_car(curr))) {
-          uint32_t v = lbm_dec_as_u(lbm_car(curr));
+          uint32_t v = (uint32_t)lbm_dec_as_u(lbm_car(curr));
           r |= v;
           n --;
           curr = lbm_cdr(curr);
