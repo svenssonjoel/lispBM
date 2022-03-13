@@ -306,10 +306,8 @@ int tok_i(lbm_tokenizer_char_stream_t *str, lbm_int *res) {
       peek(str,n) == 'I') return 0;
 
   unsigned int ndrop = n;
-  if (peek(str,n) == 'i' &&
-      peek(str,n+1) != '2' &&
-      peek(str,n+2) == '8' ) {
-    ndrop += 3;
+  if (peek(str,n) == 'i' ) {
+    ndrop += 1;
   }
   if (valid_num) {
     drop(str,ndrop);
@@ -366,12 +364,9 @@ int tok_u(lbm_tokenizer_char_stream_t *str, lbm_uint *res) {
   if ((negative && n > 1) ||
       (!negative && n > 0)) valid_num = true;
 
-  if (peek(str,n) == 'u' &&
-      peek(str,n+1) == '2' &&
-      peek(str,n+2) == '8' &&
-      valid_num) {
+  if (peek(str,n) == 'u' && valid_num) {
     *res = negative ? -acc : acc;
-    drop(str,n+3);
+    drop(str,n+1);
     return (int)(n+3);
   }
   return 0;
