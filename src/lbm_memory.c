@@ -121,10 +121,6 @@ static inline void set_status(lbm_uint i, lbm_uint status) {
   lbm_uint clr_mask = ~(((lbm_uint)3) << bit_ix);
   lbm_uint mask = status << bit_ix;
 
-  if (word_ix > bitmap_size) {
-    return (lbm_uint)NULL;
-  }
-
   bitmap[word_ix] &= clr_mask;
   bitmap[word_ix] |= mask;
 }
@@ -238,7 +234,7 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
       set_status(end_ix, END);
     }
 
-    return (lbm_uint)bitmap_ix_to_address(start_ix);
+    return bitmap_ix_to_address(start_ix);
   }
   return NULL;
 }
