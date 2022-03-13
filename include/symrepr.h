@@ -77,8 +77,8 @@
 
 #define SYM_NO_MATCH       0x39
 #define SYM_MATCH_ANY      0x3A
-#define SYM_MATCH_I28      0x3B
-#define SYM_MATCH_U28      0x3C
+#define SYM_MATCH_I        0x3B
+#define SYM_MATCH_U        0x3C
 #define SYM_MATCH_U32      0x3D
 #define SYM_MATCH_I32      0x3E
 #define SYM_MATCH_FLOAT    0x3F
@@ -86,8 +86,8 @@
 
 // Type identifying symbols
 #define SYM_TYPE_LIST      0x50
-#define SYM_TYPE_I28       0x51
-#define SYM_TYPE_U28       0x52
+#define SYM_TYPE_I         0x51
+#define SYM_TYPE_U         0x52
 #define SYM_TYPE_FLOAT     0x53
 #define SYM_TYPE_I32       0x54
 #define SYM_TYPE_U32       0x55

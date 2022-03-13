@@ -1,7 +1,7 @@
 (define is-number
   (lambda (x)
-    (or (eq (type-of x) type-i28)
-	(eq (type-of x) type-u28)
+    (or (eq (type-of x) type-i)
+	(eq (type-of x) type-u)
 	(eq (type-of x) type-float)
 	(eq (type-of x) type-i32)
 	(eq (type-of x) type-u32))

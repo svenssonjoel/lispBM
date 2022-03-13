@@ -26,7 +26,7 @@ lbm_cid eval_cps_load_and_eval(lbm_tokenizer_char_stream_t *tokenizer, bool prog
 
   lbm_value stream = lbm_create_token_stream(tokenizer);
 
-  if (lbm_type_of(stream) == LBM_VAL_TYPE_SYMBOL) {
+  if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
     // TODO: Check what should be done.
     return 0;
   }
@@ -41,9 +41,9 @@ lbm_cid eval_cps_load_and_eval(lbm_tokenizer_char_stream_t *tokenizer, bool prog
 
   /* LISP ZONE ENDS */
 
-  if (lbm_type_of(launcher) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(evaluator) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(start_prg) != LBM_PTR_TYPE_CONS ) {
+  if (lbm_type_of(launcher) != LBM_TYPE_CONS ||
+      lbm_type_of(evaluator) != LBM_TYPE_CONS ||
+      lbm_type_of(start_prg) != LBM_TYPE_CONS ) {
     lbm_memory_free((lbm_uint*)stream);
     return 0;
   }
@@ -54,7 +54,7 @@ lbm_cid eval_cps_load_and_define(lbm_tokenizer_char_stream_t *tokenizer, char *s
 
   lbm_value stream = lbm_create_token_stream(tokenizer);
 
-  if (lbm_type_of(stream) == LBM_VAL_TYPE_SYMBOL) {
+  if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
     return 0;
   }
 
@@ -77,9 +77,9 @@ lbm_cid eval_cps_load_and_define(lbm_tokenizer_char_stream_t *tokenizer, char *s
   definer  = lbm_cons(definer, lbm_enc_sym(SYM_NIL));
   /* LISP ZONE ENDS */
 
-  if (lbm_type_of(launcher) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(binding) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(definer) != LBM_PTR_TYPE_CONS ) {
+  if (lbm_type_of(launcher) != LBM_TYPE_CONS ||
+      lbm_type_of(binding) != LBM_TYPE_CONS ||
+      lbm_type_of(definer) != LBM_TYPE_CONS ) {
     lbm_memory_free((lbm_uint*)stream);
     return 0;
   }
@@ -97,7 +97,7 @@ lbm_cid lbm_eval_defined(char *symbol, bool program) {
 
   lbm_value binding = lbm_env_lookup(lbm_enc_sym(sym_id), *lbm_get_env_ptr());
 
-  if (lbm_type_of(binding) == LBM_VAL_TYPE_SYMBOL &&
+  if (lbm_type_of(binding) == LBM_TYPE_SYMBOL &&
       lbm_dec_sym(binding) == SYM_NOT_FOUND) {
     return 0;
   }
@@ -111,9 +111,9 @@ lbm_cid lbm_eval_defined(char *symbol, bool program) {
 
   /* LISP ZONE ENDS */
 
-  if (lbm_type_of(launcher) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(evaluator) != LBM_PTR_TYPE_CONS ||
-      lbm_type_of(start_prg) != LBM_PTR_TYPE_CONS ) {
+  if (lbm_type_of(launcher) != LBM_TYPE_CONS ||
+      lbm_type_of(evaluator) != LBM_TYPE_CONS ||
+      lbm_type_of(start_prg) != LBM_TYPE_CONS ) {
     return 0;
   }
   return lbm_create_ctx(start_prg, lbm_enc_sym(SYM_NIL), 256);
@@ -152,7 +152,7 @@ int lbm_send_message(lbm_cid cid, lbm_value msg) {
 
     lbm_value v = lbm_find_receiver_and_send(cid, msg);
 
-    if (lbm_type_of(v) == LBM_VAL_TYPE_SYMBOL &&
+    if (lbm_type_of(v) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(v) == SYM_TRUE) {
       res = 1;
     }
@@ -195,7 +195,7 @@ int lbm_undefine(char *symbol) {
 
   curr = lbm_cdr(prev);
 
-  while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
     if (lbm_dec_sym(lbm_car(lbm_car(curr))) == sym_id) {
 
       /* drop the curr mapping from the env */
@@ -212,9 +212,9 @@ int lbm_undefine(char *symbol) {
 int lbm_share_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
-  lbm_value cell  = lbm_heap_allocate_cell(LBM_PTR_TYPE_CONS);
+  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS);
 
-  if (lbm_type_of(cell) == LBM_VAL_TYPE_SYMBOL) { // Out of heap memory
+  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
     *value = cell;
     return 0;
   }
@@ -230,7 +230,7 @@ int lbm_share_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_el
   lbm_set_car(cell, (lbm_uint)array);
   lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
 
-  cell = cell | LBM_PTR_TYPE_ARRAY;
+  cell = cell | LBM_TYPE_ARRAY;
   *value = cell;
   return 1;
 }

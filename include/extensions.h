@@ -59,7 +59,7 @@ extern bool lbm_add_extension(char *sym_str, extension_fptr ext);
  * \return true if the lbm_value respresents an extension otherwise false.
  */
 static inline bool lbm_is_extension(lbm_value exp) {
-  return ((lbm_type_of(exp) == LBM_VAL_TYPE_SYMBOL) &&
+  return ((lbm_type_of(exp) == LBM_TYPE_SYMBOL) &&
           (lbm_get_extension(lbm_dec_sym(exp)) != NULL));
 }
 #endif

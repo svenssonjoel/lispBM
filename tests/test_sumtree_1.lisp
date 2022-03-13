@@ -1,8 +1,8 @@
 (define is-number
   (lambda (x)
-    (if (eq (type-of x) type-i28)
+    (if (eq (type-of x) type-i)
 	't
-      (if (eq (type-of x) type-u28)
+      (if (eq (type-of x) type-u)
 	  't
 	(if (eq (type-of x) type-float)
 	    't

@@ -62,8 +62,8 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
-  {"?i28"       , SYM_MATCH_I28},
-  {"?u28"       , SYM_MATCH_U28},
+  {"?i"         , SYM_MATCH_I},
+  {"?u"         , SYM_MATCH_U},
   {"?u32"       , SYM_MATCH_U32},
   {"?i32"       , SYM_MATCH_I32},
   {"?float"     , SYM_MATCH_FLOAT},
@@ -100,8 +100,8 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
-  {"type-i28"         , SYM_TYPE_I28},
-  {"type-u28"         , SYM_TYPE_U28},
+  {"type-i"           , SYM_TYPE_I},
+  {"type-u"           , SYM_TYPE_U},
   {"type-float"       , SYM_TYPE_FLOAT},
   {"type-i32"         , SYM_TYPE_I32},
   {"type-u32"         , SYM_TYPE_U32},

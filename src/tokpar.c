@@ -98,10 +98,10 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"`", TOKBACKQUOTE, 1},
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
-  {"?i28", TOKMATCHI28, 4},
-  {"?u28", TOKMATCHU28, 4},
-  {"?u32", TOKMATCHU32, 4},
-  {"?i32", TOKMATCHI32, 4},
+  {"?i", TOKMATCHI28, 4},
+  {"?u", TOKMATCHU28, 4},
+  {"?uword", TOKMATCHU32, 4},
+  {"?iword", TOKMATCHI32, 4},
   {"?float", TOKMATCHFLOAT, 6},
   {"?cons", TOKMATCHCONS, 5},
   {"?", TOKMATCHANY, 1}
@@ -307,7 +307,7 @@ int tok_i(lbm_tokenizer_char_stream_t *str, lbm_int *res) {
 
   unsigned int ndrop = n;
   if (peek(str,n) == 'i' &&
-      peek(str,n+1) == '2' &&
+      peek(str,n+1) != '2' &&
       peek(str,n+2) == '8' ) {
     ndrop += 3;
   }
@@ -319,8 +319,8 @@ int tok_i(lbm_tokenizer_char_stream_t *str, lbm_int *res) {
   return 0;
 }
 
-int tok_I(lbm_tokenizer_char_stream_t *str, lbm_int *res) {
-  lbm_int acc = 0;
+int tok_i32(lbm_tokenizer_char_stream_t *str, lbm_int *res) {
+  int32_t acc = 0;
   unsigned int n = 0;
   bool negative = false;
   bool valid_num = false;
@@ -377,8 +377,8 @@ int tok_u(lbm_tokenizer_char_stream_t *str, lbm_uint *res) {
   return 0;
 }
 
-int tok_U(lbm_tokenizer_char_stream_t *str, lbm_uint *res) {
-  lbm_uint acc = 0;
+int tok_u32(lbm_tokenizer_char_stream_t *str, lbm_uint *res) {
+  uint32_t acc = 0;
   unsigned int n = 0;
   bool negative = false;
   bool valid_num = false;
@@ -395,13 +395,13 @@ int tok_U(lbm_tokenizer_char_stream_t *str, lbm_uint *res) {
     while ( (peek(str,n) >= '0' && peek(str,n) <= '9') ||
             (peek(str,n) >= 'a' && peek(str,n) <= 'f') ||
             (peek(str,n) >= 'A' && peek(str,n) <= 'F')){
-      lbm_uint val;
+      uint32_t val;
       if (peek(str,n) >= 'a' && peek(str,n) <= 'f') {
-        val = 10 + (lbm_uint)(peek(str,n) - 'a');
+        val = 10 + (uint32_t)(peek(str,n) - 'a');
       } else if (peek(str,n) >= 'A' && peek(str,n) <= 'F') {
-        val = 10 + (lbm_uint)(peek(str,n) - 'A');
+        val = 10 + (uint32_t)(peek(str,n) - 'A');
       } else {
-        val = (lbm_uint)peek(str,n) - '0';
+        val = (uint32_t)peek(str,n) - '0';
       }
       acc = (acc * 0x10) + val;
       n++;
@@ -418,7 +418,7 @@ int tok_U(lbm_tokenizer_char_stream_t *str, lbm_uint *res) {
 
   // check if nonhex
   while ( peek(str,n) >= '0' && peek(str,n) <= '9' ){
-    acc = (acc*10) + (lbm_uint)(peek(str,n) - '0');
+    acc = (acc*10) + (uint32_t)(peek(str,n) - '0');
     n++;
   }
   if ((negative && n > 1) ||
@@ -536,10 +536,10 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
       res = lbm_enc_sym(SYM_COMMA);
       break;
     case TOKMATCHI28:
-      res = lbm_enc_sym(SYM_MATCH_I28);
+      res = lbm_enc_sym(SYM_MATCH_I);
       break;
     case TOKMATCHU28:
-      res = lbm_enc_sym(SYM_MATCH_U28);
+      res = lbm_enc_sym(SYM_MATCH_U);
       break;
     case TOKMATCHI32:
       res = lbm_enc_sym(SYM_MATCH_I32);
@@ -566,7 +566,7 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
   if (n >= 2) {
     // TODO: Proper error checking here!
     // TODO: Check if anything has to be allocated for the empty string
-    lbm_heap_allocate_array(&res, (unsigned int)(n-2)+1, LBM_VAL_TYPE_CHAR);
+    lbm_heap_allocate_array(&res, (unsigned int)(n-2)+1, LBM_TYPE_CHAR);
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
     char *data = (char *)arr->data;
     memset(data, 0, (unsigned int)((n-2)+1) * sizeof(char));
@@ -579,20 +579,20 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
 
   if (tok_F(str, &f_val)) {
     // Will be SYM_MERROR in case of full heap
-    return lbm_enc_F(f_val);
+    return lbm_enc_float(f_val);
   }
 
-  if (tok_U(str, &u_val)) {
+  if (tok_u32(str, &u_val)) {
     // Will be SYM_MERROR in case of full heap
-    return lbm_enc_U(u_val);
+    return lbm_enc_u32(u_val);
   }
 
   if (tok_u(str, &u_val)) {
     return lbm_enc_u(u_val);
   }
 
-  if (tok_I(str, &i_val)) {
-    return lbm_enc_I(i_val);
+  if (tok_i32(str, &i_val)) {
+    return lbm_enc_i32(i_val);
   }
 
   // Shortest form of integer match. Move to last in chain of numerical tokens.

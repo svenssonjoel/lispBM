@@ -204,10 +204,10 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   for (int i = 0; i < argn; i ++) {
     lbm_value t = args[i];
 
-    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_PTR_TYPE_ARRAY) {
+    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
       switch (array->elt_type){
-      case LBM_VAL_TYPE_CHAR: {
+      case LBM_TYPE_CHAR: {
         char *data = (char*)array->data;
         printf("%s", data);
         break;
@@ -216,7 +216,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
         return lbm_enc_sym(SYM_NIL);
         break;
       }
-    } else if (lbm_type_of(t) == LBM_VAL_TYPE_CHAR) {
+    } else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
       printf("%c", lbm_dec_char(t));
     } else {
       lbm_print_value(output, 1024, t);
@@ -229,7 +229,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 char output[128];
 
 static lbm_value ext_range(lbm_value *args, lbm_uint argn) {
-        if (argn != 2 || lbm_type_of(args[0]) != LBM_VAL_TYPE_I || lbm_type_of(args[1]) != LBM_VAL_TYPE_I) {
+        if (argn != 2 || lbm_type_of(args[0]) != LBM_TYPE_I || lbm_type_of(args[1]) != LBM_TYPE_I) {
                 return lbm_enc_sym(SYM_EERROR);
         }
 
@@ -452,7 +452,7 @@ int main(int argc, char **argv) {
     }  else if (strncmp(str, ":env", 4) == 0) {
       lbm_value curr = *lbm_get_env_ptr();
       printf("Environment:\r\n");
-      while (lbm_type_of(curr) == LBM_PTR_TYPE_CONS) {
+      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
         res = lbm_print_value(output,1024, lbm_car(curr));
         curr = lbm_cdr(curr);
         printf("  %s\r\n",output);
@@ -598,10 +598,10 @@ int main(int argc, char **argv) {
       printf("Evaluator paused\n");
 
       lbm_value arr_val;
-      lbm_share_array(&arr_val, char_array, LBM_VAL_TYPE_CHAR,1024);
+      lbm_share_array(&arr_val, char_array, LBM_TYPE_CHAR,1024);
       lbm_define("c-arr", arr_val);
 
-      lbm_share_array(&arr_val, (char *)word_array, LBM_PTR_TYPE_BOXED_I,1024);
+      lbm_share_array(&arr_val, (char *)word_array, LBM_TYPE_I32,1024);
       lbm_define("i-arr", arr_val);
 
       lbm_continue_eval();

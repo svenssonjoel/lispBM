@@ -84,7 +84,7 @@ void context_done_callback(eval_context_t *ctx) {
     printf("%s\n", output);
   }
 
-  if (res && lbm_type_of(t) == LBM_VAL_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
+  if (res && lbm_type_of(t) == LBM_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
     experiment_success = true;
     printf("Test: OK!\n");
   } else {
@@ -100,8 +100,8 @@ LBM_EXTENSION(ext_even, args, argn){
 
   lbm_value v = args[0];
 
-  if (lbm_type_of(v) == LBM_VAL_TYPE_I ||
-      lbm_type_of(v) == LBM_VAL_TYPE_U) {
+  if (lbm_type_of(v) == LBM_TYPE_I ||
+      lbm_type_of(v) == LBM_TYPE_U) {
     if (lbm_dec_i(v) % 2 == 0)
       return lbm_enc_sym(SYM_TRUE);
   }
@@ -116,8 +116,8 @@ LBM_EXTENSION(ext_odd, args, argn){
 
   lbm_value v = args[0];
 
-  if (lbm_type_of(v) == LBM_VAL_TYPE_I ||
-      lbm_type_of(v) == LBM_VAL_TYPE_U) {
+  if (lbm_type_of(v) == LBM_TYPE_I ||
+      lbm_type_of(v) == LBM_TYPE_U) {
     if (lbm_dec_i(v) % 2 == 1)
       return lbm_enc_sym(SYM_TRUE);
   }
