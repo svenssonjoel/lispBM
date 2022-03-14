@@ -542,7 +542,7 @@ static inline lbm_value lbm_enc_i32(int32_t x) {
   if (lbm_type_of(i) == LBM_TYPE_SYMBOL) return i;
   return lbm_set_ptr_type(i, LBM_TYPE_I32);
 #else
-  return (((lbm_int)x) << LBM_VAL_SHIFT) | LBM_TYPE_I32;
+  return (((lbm_uint)x) << LBM_VAL_SHIFT) | LBM_TYPE_I32;
 #endif
 }
 
@@ -571,18 +571,35 @@ static inline lbm_value lbm_enc_float(float x) {
 }
 
 static inline lbm_value lbm_enc_i64(int64_t x) {
-  // TODO
-  return 0;
+#ifndef LBM64
+
+#else
+  lbm_value u = lbm_cons((uint64_t)x, lbm_enc_sym(SYM_BOXED_I_TYPE));
+  if (lbm_type_of(u) == LBM_TYPE_SYMBOL) return u;
+  return lbm_set_ptr_type(u, LBM_TYPE_I64);
+#endif
 }
 
-static inline lbm_value lbm_enc_u64(int64_t x) {
-  // TODO
-  return 0;
+static inline lbm_value lbm_enc_u64(uint64_t x) {
+#ifndef LBM64
+
+#else
+  lbm_value u = lbm_cons(x, lbm_enc_sym(SYM_BOXED_U_TYPE));
+  if (lbm_type_of(u) == LBM_TYPE_SYMBOL) return u;
+  return lbm_set_ptr_type(u, LBM_TYPE_U64);
+#endif
 }
 
-static inline lbm_value lbm_enc_double(int64_t x) {
-  // TODO
-  return 0;
+static inline lbm_value lbm_enc_double(double x) {
+#ifndef LBM64
+
+#else
+  lbm_uint t;
+  memcpy(&t, &x, sizeof(lbm_float));
+  lbm_value f = lbm_cons(t, lbm_enc_sym(SYM_BOXED_F_TYPE));
+  if (lbm_type_of(f) == LBM_TYPE_SYMBOL) return f;
+  return lbm_set_ptr_type(f, LBM_TYPE_DOUBLE);
+#endif
 }
 
 
