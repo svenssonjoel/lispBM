@@ -377,6 +377,9 @@ int lbm_gc_mark_phase(lbm_value env) {
     if (t_ptr == LBM_TYPE_I32 ||
         t_ptr == LBM_TYPE_U32 ||
         t_ptr == LBM_TYPE_FLOAT ||
+        t_ptr == LBM_TYPE_I64 ||
+        t_ptr == LBM_TYPE_U64 ||
+        t_ptr == LBM_TYPE_DOUBLE ||
         t_ptr == LBM_TYPE_ARRAY   ||
         t_ptr == LBM_TYPE_STREAM) {
       continue;
@@ -431,6 +434,9 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
             pt_t == LBM_TYPE_I32 ||
             pt_t == LBM_TYPE_U32 ||
             pt_t == LBM_TYPE_FLOAT ||
+            pt_t == LBM_TYPE_I64 ||
+            pt_t == LBM_TYPE_U64 ||
+            pt_t == LBM_TYPE_DOUBLE ||
             pt_t == LBM_TYPE_ARRAY ||
             pt_t == LBM_TYPE_REF ||
             pt_t == LBM_TYPE_STREAM) &&
@@ -458,6 +464,12 @@ int lbm_gc_sweep_phase(void) {
       // and free it.
       if (lbm_type_of(heap[i].cdr) == LBM_TYPE_SYMBOL) {
         switch(lbm_dec_sym(heap[i].cdr)) {
+
+        case SYM_IND_I_TYPE: /* fall through */
+        case SYM_IND_U_TYPE:
+        case SYM_IND_F_TYPE:
+          lbm_memory_free((lbm_uint*)heap[i].car);
+          break;
 
         case SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
