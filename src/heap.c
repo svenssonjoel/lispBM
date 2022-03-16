@@ -58,9 +58,6 @@ lbm_stream_t *lbm_dec_stream(lbm_value val) {
 
 
 lbm_uint lbm_dec_as_u(lbm_value a) {
-  lbm_uint tmp;
-  lbm_float f_tmp;
-
   switch (lbm_type_of(a)) {
   case LBM_TYPE_CHAR:
     return (lbm_uint) lbm_dec_char(a);
@@ -72,18 +69,12 @@ lbm_uint lbm_dec_as_u(lbm_value a) {
   case LBM_TYPE_U32:
     return (lbm_uint) lbm_dec_u32(a);
   case LBM_TYPE_FLOAT:
-    tmp = lbm_car(a);
-    memcpy(&f_tmp, &tmp, sizeof(lbm_float));
-    return (lbm_uint)f_tmp;
+    return (lbm_uint)lbm_dec_float(a);
   }
   return 0;
 }
 
 lbm_int lbm_dec_as_i(lbm_value a) {
-
-  lbm_uint tmp;
-  lbm_float f_tmp;
-
   switch (lbm_type_of(a)) {
   case LBM_TYPE_CHAR:
       return (lbm_int) lbm_dec_char(a);
@@ -95,17 +86,12 @@ lbm_int lbm_dec_as_i(lbm_value a) {
   case LBM_TYPE_U32:
     return (lbm_int) lbm_dec_i32(a);
   case LBM_TYPE_FLOAT:
-    tmp = lbm_car(a);
-    memcpy(&f_tmp, &tmp, sizeof(lbm_float));
-    return (lbm_int)f_tmp;
+    return (lbm_int) lbm_dec_float(a);
   }
   return 0;
 }
 
 lbm_float lbm_dec_as_f(lbm_value a) {
-
-  lbm_uint tmp;
-  lbm_float f_tmp;
 
   switch (lbm_type_of(a)) {
   case LBM_TYPE_CHAR:

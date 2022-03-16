@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 111
+#define NUM_SPECIAL_SYMBOLS 114
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -79,9 +79,12 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"out_of_stack"       , SYM_STACK_ERROR},
   {"division_by_zero"   , SYM_DIVZERO},
   {"sym_array"          , SYM_ARRAY_TYPE},
-  {"sym_boxed_i"        , SYM_BOXED_I_TYPE},
-  {"sym_boxed_u"        , SYM_BOXED_U_TYPE},
-  {"sym_boxed_f"        , SYM_BOXED_F_TYPE},
+  {"sym_raw_i"          , SYM_RAW_I_TYPE},
+  {"sym_raw_u"          , SYM_RAW_U_TYPE},
+  {"sym_raw_f"          , SYM_RAW_F_TYPE},
+  {"sym_ind_i"          , SYM_IND_I_TYPE},
+  {"sym_ind_u"          , SYM_IND_U_TYPE},
+  {"sym_ind_f"          , SYM_IND_F_TYPE},
   {"sym_stream"         , SYM_STREAM_TYPE},
   {"sym_recovered"      , SYM_RECOVERED},
   {"sym_bytecode"       , SYM_BYTECODE_TYPE},

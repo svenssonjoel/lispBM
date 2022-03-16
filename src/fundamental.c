@@ -414,17 +414,17 @@ void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
          curr = lbm_enc_i(((lbm_int*)data)[i]);
         break;
       case LBM_TYPE_U32:
-        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_BOXED_U_TYPE));
+        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_RAW_U_TYPE));
         if (lbm_type_of(curr) == LBM_TYPE_SYMBOL) return;
         curr = lbm_set_ptr_type(curr, LBM_TYPE_U32);
         break;
       case LBM_TYPE_I32:
-        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_BOXED_I_TYPE));
+        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_RAW_I_TYPE));
         if (lbm_type_of(curr) == LBM_TYPE_SYMBOL) return;
         curr = lbm_set_ptr_type(curr, LBM_TYPE_I32);
         break;
       case LBM_TYPE_FLOAT:
-        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_BOXED_F_TYPE));
+        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_RAW_F_TYPE));
         if (lbm_type_of(curr) == LBM_TYPE_SYMBOL) return;
         curr = lbm_set_ptr_type(curr, LBM_TYPE_FLOAT);
         break;

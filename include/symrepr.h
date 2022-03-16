@@ -68,21 +68,24 @@
 
 
 #define SYM_ARRAY_TYPE     0x30
-#define SYM_BOXED_I_TYPE   0x31
-#define SYM_BOXED_U_TYPE   0x32
-#define SYM_BOXED_F_TYPE   0x33
-#define SYM_STREAM_TYPE    0x34
-#define SYM_BYTECODE_TYPE  0x37
-#define SYM_NONSENSE       0x38
+#define SYM_RAW_I_TYPE     0x31
+#define SYM_RAW_U_TYPE     0x32
+#define SYM_RAW_F_TYPE     0x33
+#define SYM_IND_I_TYPE     0x34
+#define SYM_IND_U_TYPE     0x35
+#define SYM_IND_F_TYPE     0x36
+#define SYM_STREAM_TYPE    0x37
+#define SYM_BYTECODE_TYPE  0x38
+#define SYM_NONSENSE       0x39
 
-#define SYM_NO_MATCH       0x39
-#define SYM_MATCH_ANY      0x3A
-#define SYM_MATCH_I        0x3B
-#define SYM_MATCH_U        0x3C
-#define SYM_MATCH_U32      0x3D
-#define SYM_MATCH_I32      0x3E
-#define SYM_MATCH_FLOAT    0x3F
-#define SYM_MATCH_CONS     0x40
+#define SYM_NO_MATCH       0x3A
+#define SYM_MATCH_ANY      0x3B
+#define SYM_MATCH_I        0x3C
+#define SYM_MATCH_U        0x3D
+#define SYM_MATCH_U32      0x3E
+#define SYM_MATCH_I32      0x3F
+#define SYM_MATCH_FLOAT    0x40
+#define SYM_MATCH_CONS     0x41
 
 // Type identifying symbols
 #define SYM_TYPE_LIST      0x50
