@@ -585,7 +585,7 @@ static inline lbm_value lbm_enc_i64(int64_t x) {
   if (storage) {
     res = lbm_cons((lbm_uint)storage, lbm_enc_sym(SYM_IND_I_TYPE));
     if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
-      //memcpy(storage,&x, 8);
+      memcpy(storage,&x, 8);
       res = lbm_set_ptr_type(res, LBM_TYPE_I64);
     }
   }
@@ -672,11 +672,36 @@ static inline float lbm_dec_float(lbm_value x) {
 #endif
 }
 
+static inline double lbm_dec_double(lbm_value x) {
+#ifndef LBM64
+  double d;
+  uint32_t *data = (uint32_t*)lbm_car(x);
+  memcpy(&d, data, 8);
+  return d;
+#else
+  double f_tmp;
+  lbm_uint tmp = lbm_car(x);
+  memcpy(&f_tmp, &tmp, sizeof(float));
+  return f_tmp;
+#endif
+}
+
 static inline uint32_t lbm_dec_u32(lbm_value x) {
 #ifndef LBM64
   return (uint32_t)lbm_car(x);
 #else
    return (uint32_t)(x >> LBM_VAL_SHIFT);
+#endif
+}
+
+static inline uint64_t lbm_dec_u64(lbm_value x) {
+#ifndef LBM64
+  uint64_t u;
+  uint32_t *data = (uint32_t*)lbm_car(x);
+  memcpy(&u, data, 8);
+  return u;
+#else
+  return (uint64_t)lbm_car(x);
 #endif
 }
 
@@ -687,6 +712,18 @@ static inline int32_t lbm_dec_i32(lbm_value x) {
   return (int32_t)(x >> LBM_VAL_SHIFT);
 #endif
 }
+
+static inline int64_t lbm_dec_i64(lbm_value x) {
+#ifndef LBM64
+  int64_t i;
+  uint32_t *data = (uint32_t*)lbm_car(x);
+  memcpy(&i, data, 8);
+  return i;
+#else
+  return (uint64_t)lbm_car(x);
+#endif
+}
+
 
 static inline lbm_value lbm_set_gc_mark(lbm_value x) {
   return x | LBM_GC_MARKED;

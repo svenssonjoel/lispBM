@@ -223,6 +223,19 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
       }
 
+      case LBM_TYPE_DOUBLE: {
+        double v = lbm_dec_double(curr);
+        r = snprintf(buf + offset, len - offset, "{%"PRI_FLOAT"}", (double)v);
+        if ( r > 0) {
+          n = (unsigned int) r;
+        } else {
+          snprintf(buf, len, "%s", failed_str);
+          return -1;
+        }
+        offset += n;
+        break;
+      }
+
       case LBM_TYPE_U32: {
         uint32_t v = lbm_dec_u32(curr);
         r = snprintf(buf + offset, len - offset, "{%"PRIu32"}", v);
@@ -236,9 +249,35 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
       }
 
+      case LBM_TYPE_U64: {
+        uint64_t v = lbm_dec_u64(curr);
+        r = snprintf(buf + offset, len - offset, "{%"PRIu64"}", v);
+        if ( r > 0) {
+          n = (unsigned int) r;
+        } else {
+          snprintf(buf, len, "%s", failed_str);
+          return -1;
+        }
+        offset += n;
+        break;
+      }
+
       case LBM_TYPE_I32: {
         int32_t v = lbm_dec_i32(curr);
         r = snprintf(buf + offset, len - offset, "{%"PRId32"}", v);
+        if ( r > 0) {
+          n = (unsigned int) r;
+        } else {
+          snprintf(buf, len, "%s", failed_str);
+          return -1;
+        }
+        offset += n;
+        break;
+      }
+
+      case LBM_TYPE_I64: {
+        int64_t v = lbm_dec_i64(curr);
+        r = snprintf(buf + offset, len - offset, "{%"PRId64"}", v);
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
