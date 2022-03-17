@@ -67,6 +67,7 @@
 #define SYM_RECOVERED     0x28
 
 
+#define TYPE_CLASSIFIER_STARTS 0x30
 #define SYM_ARRAY_TYPE     0x30
 #define SYM_RAW_I_TYPE     0x31
 #define SYM_RAW_U_TYPE     0x32
@@ -76,6 +77,7 @@
 #define SYM_IND_F_TYPE     0x36
 #define SYM_STREAM_TYPE    0x37
 #define SYM_BYTECODE_TYPE  0x38
+#define TYPE_CLASSIFIER_ENDS 0x38
 #define SYM_NONSENSE       0x39
 
 #define SYM_NO_MATCH       0x3A

@@ -374,16 +374,9 @@ int lbm_gc_mark_phase(lbm_value env) {
 
     lbm_value t_ptr = lbm_type_of(curr);
 
-    if (t_ptr == LBM_TYPE_I32 ||
-        t_ptr == LBM_TYPE_U32 ||
-        t_ptr == LBM_TYPE_FLOAT ||
-        t_ptr == LBM_TYPE_I64 ||
-        t_ptr == LBM_TYPE_U64 ||
-        t_ptr == LBM_TYPE_DOUBLE ||
-        t_ptr == LBM_TYPE_ARRAY   ||
-        t_ptr == LBM_TYPE_STREAM) {
-      continue;
-    }
+    if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
+        t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
+
     res &= lbm_push_u32(s, lbm_cdr(curr));
     res &= lbm_push_u32(s, lbm_car(curr));
 
@@ -430,23 +423,13 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
       lbm_type pt_t = lbm_type_of(aux_data[i]);
       lbm_uint pt_v = lbm_dec_ptr(aux_data[i]);
 
-      if ( (pt_t == LBM_TYPE_CONS ||
-            pt_t == LBM_TYPE_I32 ||
-            pt_t == LBM_TYPE_U32 ||
-            pt_t == LBM_TYPE_FLOAT ||
-            pt_t == LBM_TYPE_I64 ||
-            pt_t == LBM_TYPE_U64 ||
-            pt_t == LBM_TYPE_DOUBLE ||
-            pt_t == LBM_TYPE_ARRAY ||
-            pt_t == LBM_TYPE_REF ||
-            pt_t == LBM_TYPE_STREAM) &&
-           pt_v < heap_state.heap_size) {
-
+      if( pt_t >= LBM_POINTER_TYPE_FIRST &&
+          pt_t <= LBM_POINTER_TYPE_LAST &&
+          pt_v < heap_state.heap_size) {
         lbm_gc_mark_phase(aux_data[i]);
       }
     }
   }
-
   return 1;
 }
 

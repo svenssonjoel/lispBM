@@ -189,53 +189,63 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_ADDRESS_SHIFT               2
 #define LBM_VAL_SHIFT                   4
 
-#define LBM_PTR_MASK                    0x00000001u
-#define LBM_PTR_BIT                     0x00000001u
-#define LBM_PTR_VAL_MASK                0x03FFFFFCu
-#define LBM_PTR_TYPE_MASK               0xFC000000u
+#define LBM_PTR_MASK                     0x00000001u
+#define LBM_PTR_BIT                      0x00000001u
+#define LBM_PTR_VAL_MASK                 0x03FFFFFCu
+#define LBM_PTR_TYPE_MASK                0xFC000000u
 
-#define LBM_TYPE_CONS                   0x10000000u
-#define LBM_TYPE_U32                    0x20000000u
-#define LBM_TYPE_I32                    0x30000000u
-#define LBM_TYPE_I64                    0x40000000u
-#define LBM_TYPE_U64                    0x50000000u
-#define LBM_TYPE_FLOAT                  0x60000000u
-#define LBM_TYPE_DOUBLE                 0x70000000u
+#define LBM_POINTER_TYPE_FIRST           0x10000000u
+#define LBM_TYPE_CONS                    0x10000000u
+#define LBM_NON_CONS_POINTER_TYPE_FIRST  0x20000000u
+#define LBM_TYPE_U32                     0x20000000u
+#define LBM_TYPE_I32                     0x30000000u
+#define LBM_TYPE_I64                     0x40000000u
+#define LBM_TYPE_U64                     0x50000000u
+#define LBM_TYPE_FLOAT                   0x60000000u
+#define LBM_TYPE_DOUBLE                  0x70000000u
+#define LBM_NON_CONS_POINTER_TYPE_LAST   0x70000000u
+#define LBM_POINTER_TYPE_LAST            0x70000000u
 
-#define LBM_TYPE_ARRAY                  0xD0000000u
-#define LBM_TYPE_REF                    0xE0000000u
-#define LBM_TYPE_STREAM                 0xF0000000u
+#define LBM_TYPE_ARRAY                   0xD0000000u
+#define LBM_TYPE_REF                     0xE0000000u
+#define LBM_TYPE_STREAM                  0xF0000000u
 
-#define LBM_GC_MASK                     0x00000002u
-#define LBM_GC_MARKED                   0x00000002u
+#define LBM_GC_MASK                      0x00000002u
+#define LBM_GC_MARKED                    0x00000002u
 
-#define LBM_VAL_MASK                    0xFFFFFFF0u
-#define LBM_VAL_TYPE_MASK               0x0000000Cu
+#define LBM_VAL_MASK                     0xFFFFFFF0u
+#define LBM_VAL_TYPE_MASK                0x0000000Cu
                                                     //    gc ptr
-#define LBM_TYPE_SYMBOL                 0x00000000u // 00  0   0
-#define LBM_TYPE_CHAR                   0x00000004u // 01  0   0
-#define LBM_TYPE_BYTE                   0x00000004u
-#define LBM_TYPE_U                      0x00000008u // 10  0   0
-#define LBM_TYPE_I                      0x0000000Cu // 11  0   0
+#define LBM_TYPE_SYMBOL                  0x00000000u // 00  0   0
+#define LBM_TYPE_CHAR                    0x00000004u // 01  0   0
+#define LBM_TYPE_BYTE                    0x00000004u
+#define LBM_TYPE_U                       0x00000008u // 10  0   0
+#define LBM_TYPE_I                       0x0000000Cu // 11  0   0
 
 #else /* 64 bit Version */
 
-#define LBM_ADDRESS_SHIFT               2
-#define LBM_VAL_SHIFT                   8
+#define LBM_ADDRESS_SHIFT                2
+#define LBM_VAL_SHIFT                    8
 
-#define LBM_PTR_MASK                    (lbm_uint)0x1
-#define LBM_PTR_BIT                     (lbm_uint)0x1
-#define LBM_PTR_VAL_MASK                (lbm_uint)0x03FFFFFFFFFFFFFC
-#define LBM_PTR_TYPE_MASK               (lbm_uint)0xFC00000000000000
+#define LBM_PTR_MASK                     (lbm_uint)0x1
+#define LBM_PTR_BIT                      (lbm_uint)0x1
+#define LBM_PTR_VAL_MASK                 (lbm_uint)0x03FFFFFFFFFFFFFC
+#define LBM_PTR_TYPE_MASK                (lbm_uint)0xFC00000000000000
 
-#define LBM_TYPE_CONS                   (lbm_uint)0x1000000000000000
+#define LBM_POINTER_TYPE_FIRST           (lbm_uint)0x1000000000000000
+#define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0xA000000000000000
+#define LBM_TYPE_U64                     (lbm_uint)0xA000000000000000
+#define LBM_TYPE_I64                     (lbm_uint)0xB000000000000000
+#define LBM_TYPE_DOUBLE                  (lbm_uint)0xC000000000000000
+#define LBM_TYPE_ARRAY                   (lbm_uint)0xD000000000000000
+#define LBM_TYPE_REF                     (lbm_uint)0xE000000000000000
+#define LBM_TYPE_STREAM                  (lbm_uint)0xF000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0xF000000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0xF000000000000000
 
-#define LBM_TYPE_ARRAY                  (lbm_uint)0xD000000000000000
-#define LBM_TYPE_REF                    (lbm_uint)0xE000000000000000
-#define LBM_TYPE_STREAM                 (lbm_uint)0xF000000000000000
-
-#define LBM_GC_MASK                     (lbm_uint)0x2
-#define LBM_GC_MARKED                   (lbm_uint)0x2
+#define LBM_GC_MASK                      (lbm_uint)0x2
+#define LBM_GC_MARKED                    (lbm_uint)0x2
 
 /* 8 - 2 free bits to encode type information into */
 #define LBM_VAL_MASK                    (lbm_uint)0xFFFFFFFFFFFFFF00
@@ -249,9 +259,6 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_TYPE_U32                    (lbm_uint)0x14// 00 01 01  0   0
 #define LBM_TYPE_I32                    (lbm_uint)0x18// 00 01 10  0   0
 #define LBM_TYPE_FLOAT                  (lbm_uint)0x1C// 00 01 11  0   0
-#define LBM_TYPE_U64                    (lbm_uint)0x24// 00 10 01  0   0
-#define LBM_TYPE_I64                    (lbm_uint)0x28// 00 10 01  0   0
-#define LBM_TYPE_DOUBLE                 (lbm_uint)0x4C// 00 10 11  0   0
 
 #endif
 
@@ -522,7 +529,7 @@ static inline lbm_uint lbm_dec_ptr(lbm_value p) {
 }
 
 static inline lbm_value lbm_set_ptr_type(lbm_value p, lbm_type t) {
-  return (LBM_PTR_VAL_MASK & p) | t | LBM_PTR_BIT;
+  return ((LBM_PTR_VAL_MASK & p) | t | LBM_PTR_BIT);
 }
 
 static inline lbm_value lbm_enc_sym(lbm_uint s) {
@@ -578,8 +585,8 @@ static inline lbm_value lbm_enc_i64(int64_t x) {
   if (storage) {
     res = lbm_cons((lbm_uint)storage, lbm_enc_sym(SYM_IND_I_TYPE));
     if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
-      memcpy(storage,&x, 8);
-      lbm_set_ptr_type(res, LBM_TYPE_I64);
+      //memcpy(storage,&x, 8);
+      res = lbm_set_ptr_type(res, LBM_TYPE_I64);
     }
   }
   return res;
@@ -598,7 +605,7 @@ static inline lbm_value lbm_enc_u64(uint64_t x) {
     res = lbm_cons((lbm_uint)storage, lbm_enc_sym(SYM_IND_U_TYPE));
     if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
       memcpy(storage,&x, 8);
-      lbm_set_ptr_type(res, LBM_TYPE_U64);
+      res = lbm_set_ptr_type(res, LBM_TYPE_U64);
     }
   }
   return res;
@@ -617,7 +624,7 @@ static inline lbm_value lbm_enc_double(double x) {
     res = lbm_cons((lbm_uint)storage, lbm_enc_sym(SYM_IND_F_TYPE));
     if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
       memcpy(storage,&x, 8);
-      lbm_set_ptr_type(res, LBM_TYPE_DOUBLE);
+      res = lbm_set_ptr_type(res, LBM_TYPE_DOUBLE);
     }
   }
   return res;

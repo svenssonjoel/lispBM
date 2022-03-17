@@ -2140,7 +2140,6 @@ static inline void cont_read(eval_context_t *ctx) {
       } break;
       }
     } else {
-      app_cont = false;
       tok = token_stream_get(str);
 
       if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
@@ -2343,8 +2342,11 @@ static void evaluation_step(void){
 
   case LBM_TYPE_SYMBOL: eval_symbol(ctx); return;
   case LBM_TYPE_FLOAT: /* fall through */
+  case LBM_TYPE_DOUBLE:
   case LBM_TYPE_U32:
+  case LBM_TYPE_U64:
   case LBM_TYPE_I32:
+  case LBM_TYPE_I64:
   case LBM_TYPE_I:
   case LBM_TYPE_U:
   case LBM_TYPE_CHAR:
