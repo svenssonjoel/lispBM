@@ -1673,7 +1673,7 @@ static inline void cont_application(eval_context_t *ctx) {
       if (lbm_dec_u(count) >= 2 &&
           lbm_is_number(fun_args[1]) &&
           lbm_is_closure(fun_args[2])) {
-        stack_size = lbm_dec_as_u(fun_args[1]);
+        stack_size = lbm_dec_as_u32(fun_args[1]);
         closure_pos = 2;
       }
 
@@ -1719,7 +1719,7 @@ static inline void cont_application(eval_context_t *ctx) {
     } break;
     case SYM_YIELD:
       if (lbm_dec_u(count) == 1 && lbm_is_number(fun_args[1])) {
-        lbm_uint ts = lbm_dec_as_u(fun_args[1]);
+        lbm_uint ts = lbm_dec_as_u32(fun_args[1]);
         lbm_stack_drop(&ctx->K, lbm_dec_u(count)+1);
         yield_ctx(ts);
       } else {

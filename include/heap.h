@@ -368,19 +368,37 @@ extern lbm_stream_t *lbm_dec_stream(lbm_value val);
  * \param val Value to decode
  * \return The value encoded in val casted to an unsigned int. Returns 0 if val does not encode a number.
  */
-extern lbm_uint lbm_dec_as_u(lbm_value val);
+extern uint32_t lbm_dec_as_u32(lbm_value val);
 /** Decode a numerical value as a signed integer.
  *
  * \param val Value to decode
  * \return The value encoded in val casted to a signed int. Returns 0 if val does not encode a number.
  */
-extern lbm_int lbm_dec_as_i(lbm_value val);
+extern int32_t lbm_dec_as_i32(lbm_value val);
 /** Decode a numerical value as a float.
  *
  * \param val Value to decode.
  * \return The value encoded in val casted to a float. Returns 0 if val does not encode a number.
  */
-extern lbm_float lbm_dec_as_f(lbm_value val);
+extern float lbm_dec_as_float(lbm_value val);
+/** Decode a numerical value as if it is a 64bit unsigned
+ *
+ * \param val Value to decode
+ * \return The value encoded in val casted to an unsigned int. Returns 0 if val does not encode a number.
+ */
+extern uint64_t lbm_dec_as_u64(lbm_value val);
+/** Decode a numerical value as a 64bit signed integer.
+ *
+ * \param val Value to decode
+ * \return The value encoded in val casted to a signed int. Returns 0 if val does not encode a number.
+ */
+extern int64_t lbm_dec_as_i64(lbm_value val);
+/** Decode a numerical value as a float.
+ *
+ * \param val Value to decode.
+ * \return The value encoded in val casted to a float. Returns 0 if val does not encode a number.
+ */
+extern double lbm_dec_as_double(lbm_value val);
 
 extern lbm_uint lbm_dec_raw(lbm_value v);
 /** Allocates an lbm_cons_t cell from the heap and populates it.
@@ -744,7 +762,10 @@ static inline bool lbm_is_number(lbm_value x) {
           (t == LBM_TYPE_CHAR) ||
           (t == LBM_TYPE_I32) ||
           (t == LBM_TYPE_U32) ||
-          (t == LBM_TYPE_FLOAT));
+          (t == LBM_TYPE_I64) ||
+          (t == LBM_TYPE_U64) ||
+          (t == LBM_TYPE_FLOAT) ||
+          (t == LBM_TYPE_DOUBLE));
 }
 
 static inline bool lbm_is_char(lbm_value x) {
