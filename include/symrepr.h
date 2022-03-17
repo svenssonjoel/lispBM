@@ -96,12 +96,15 @@
 #define SYM_TYPE_FLOAT     0x53
 #define SYM_TYPE_I32       0x54
 #define SYM_TYPE_U32       0x55
-#define SYM_TYPE_ARRAY     0x56
-#define SYM_TYPE_SYMBOL    0x57
-#define SYM_TYPE_CHAR      0x58
-#define SYM_TYPE_BYTE      0x59
-#define SYM_TYPE_REF       0x5A
-#define SYM_TYPE_STREAM    0x5B
+#define SYM_TYPE_DOUBLE    0x56
+#define SYM_TYPE_I64       0x57
+#define SYM_TYPE_U64       0x58
+#define SYM_TYPE_ARRAY     0x59
+#define SYM_TYPE_SYMBOL    0x5A
+#define SYM_TYPE_CHAR      0x5B
+#define SYM_TYPE_BYTE      0x5C
+#define SYM_TYPE_REF       0x5D
+#define SYM_TYPE_STREAM    0x5E
 
 //Relevant for the tokenizer
 #define SYM_OPENPAR        0x70

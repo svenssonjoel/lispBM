@@ -1026,26 +1026,19 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     if (nargs != 1) return lbm_enc_sym(SYM_NIL);
     lbm_value val = args[0];
     switch(lbm_type_of(val)) {
-    case LBM_TYPE_CONS:
-      return lbm_enc_sym(SYM_TYPE_LIST);
-    case LBM_TYPE_ARRAY:
-      return lbm_enc_sym(SYM_TYPE_ARRAY);
-    case LBM_TYPE_I32:
-      return lbm_enc_sym(SYM_TYPE_I32);
-    case LBM_TYPE_U32:
-      return lbm_enc_sym(SYM_TYPE_U32);
-    case LBM_TYPE_FLOAT:
-      return lbm_enc_sym(SYM_TYPE_FLOAT);
-    case LBM_TYPE_I:
-      return lbm_enc_sym(SYM_TYPE_I);
-    case LBM_TYPE_U:
-      return lbm_enc_sym(SYM_TYPE_U);
-    case LBM_TYPE_CHAR:
-      return lbm_enc_sym(SYM_TYPE_CHAR);
-    case LBM_TYPE_SYMBOL:
-      return lbm_enc_sym(SYM_TYPE_SYMBOL);
-    default:
-      return lbm_enc_sym(SYM_TERROR);
+    case LBM_TYPE_CONS: return lbm_enc_sym(SYM_TYPE_LIST);
+    case LBM_TYPE_ARRAY: return lbm_enc_sym(SYM_TYPE_ARRAY);
+    case LBM_TYPE_I32: return lbm_enc_sym(SYM_TYPE_I32);
+    case LBM_TYPE_U32: return lbm_enc_sym(SYM_TYPE_U32);
+    case LBM_TYPE_FLOAT: return lbm_enc_sym(SYM_TYPE_FLOAT);
+    case LBM_TYPE_I64: return lbm_enc_sym(SYM_TYPE_I64);
+    case LBM_TYPE_U64: return lbm_enc_sym(SYM_TYPE_U64);
+    case LBM_TYPE_DOUBLE: return lbm_enc_sym(SYM_TYPE_DOUBLE);
+    case LBM_TYPE_I: return lbm_enc_sym(SYM_TYPE_I);
+    case LBM_TYPE_U: return lbm_enc_sym(SYM_TYPE_U);
+    case LBM_TYPE_CHAR: return lbm_enc_sym(SYM_TYPE_CHAR);
+    case LBM_TYPE_SYMBOL: return lbm_enc_sym(SYM_TYPE_SYMBOL);
+    default: return lbm_enc_sym(SYM_TERROR);
     }
     break;
     case SYM_SHL:

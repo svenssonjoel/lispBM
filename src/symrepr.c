@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 114
+#define NUM_SPECIAL_SYMBOLS 117
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -108,6 +108,9 @@ special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
   {"type-float"       , SYM_TYPE_FLOAT},
   {"type-i32"         , SYM_TYPE_I32},
   {"type-u32"         , SYM_TYPE_U32},
+  {"type-double"      , SYM_TYPE_DOUBLE},
+  {"type-i64"         , SYM_TYPE_I64},
+  {"type-u64"         , SYM_TYPE_U64},
   {"type-array"       , SYM_TYPE_ARRAY},
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},

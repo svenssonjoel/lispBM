@@ -723,7 +723,15 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
       allocate_size = (size >> 3) + 1;
       #endif
     }
-  } else {
+  }
+#ifndef LBM64
+  else if (type == LBM_TYPE_I64 ||
+             type == LBM_TYPE_U64 ||
+             type == LBM_TYPE_DOUBLE) {
+    allocate_size = 2*allocate_size;
+  }
+#endif
+  else {
     allocate_size = size;
   }
 

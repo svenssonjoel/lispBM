@@ -585,7 +585,7 @@ int tok_D(lbm_tokenizer_char_stream_t *str, double *res) {
       fbuf[i] = get(str);
     }
 
-    drop(str,n+3);
+    drop(str,3);
     fbuf[i] = 0;
     *res = (double)strtod(fbuf, NULL);
     return (int)n;
