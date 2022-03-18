@@ -643,33 +643,33 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   case SYM_ENCODE_I32:
     if (nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_CONS) {
       lbm_value curr = args[0];
-      lbm_uint r = 0;
+      uint32_t r = 0;
       int n = 4;
       while (lbm_type_of(curr) == LBM_TYPE_CONS && n > 0) {
         if (n < 4) r = r << 8;
         if (lbm_is_number(lbm_car(curr))) {
           uint32_t v = lbm_dec_as_u32(lbm_car(curr));
-          r |= v;
+          r |= (0xF & v);
           n --;
           curr = lbm_cdr(curr);
         } else {
           break;
         }
       }
-      result = lbm_enc_i32((lbm_int)r);
+      result = lbm_enc_i32((int32_t)r);
     }
     break;
   /// Encode a list of up to 4 bytes as an U32
   case SYM_ENCODE_U32:
       if (nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_CONS) {
         lbm_value curr = args[0];
-        lbm_uint r = 0;
+        uint32_t r = 0;
         int n = 4;
         while (lbm_type_of(curr) == LBM_TYPE_CONS && n > 0) {
           if (n < 4) r = r << 8;
           if (lbm_is_number(lbm_car(curr))) {
             uint32_t v = lbm_dec_as_u32(lbm_car(curr));
-            r |= v;
+            r |= (0xF & v);
             n --;
             curr = lbm_cdr(curr);
           } else {
@@ -690,7 +690,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
         if (n < 4) r = r << 8;
         if (lbm_is_number(lbm_car(curr))) {
           uint32_t v = (uint32_t)lbm_dec_as_u32(lbm_car(curr));
-          r |= v;
+          r |= (0xF & v);
           n --;
           curr = lbm_cdr(curr);
         } else {
@@ -698,7 +698,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
         }
       }
       memcpy(&f,&r, sizeof(float)); // float result
-      result = lbm_enc_float((lbm_float)f);
+      result = lbm_enc_float(f);
     }
     break;
   case SYM_IS_FUNDAMENTAL:

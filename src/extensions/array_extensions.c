@@ -555,7 +555,7 @@ lbm_value array_extension_buffer_get_i32(lbm_value *args, lbm_uint argn) {
     }
 
     lbm_uint index = lbm_dec_as_u32(args[1]);
-    lbm_uint value = 0;
+    uint32_t value = 0;
 
     if (index+3 >= array->size) {
       return res;
@@ -564,19 +564,19 @@ lbm_value array_extension_buffer_get_i32(lbm_value *args, lbm_uint argn) {
 
     if (be) {
       value =
-        (lbm_uint) data[index+3] |
-        (lbm_uint) data[index+2] << 8 |
-        (lbm_uint) data[index+1] << 16 |
-        (lbm_uint) data[index] << 24;
+        (uint32_t) data[index+3] |
+        (uint32_t) data[index+2] << 8 |
+        (uint32_t) data[index+1] << 16 |
+        (uint32_t) data[index] << 24;
     } else {
       value =
-        (lbm_uint) data[index] |
-        (lbm_uint) data[index+1] << 8 |
-        (lbm_uint) data[index+2] << 16 |
-        (lbm_uint) data[index+3] << 24;
+        (uint32_t) data[index] |
+        (uint32_t) data[index+1] << 8 |
+        (uint32_t) data[index+2] << 16 |
+        (uint32_t) data[index+3] << 24;
     }
 
-    res = lbm_enc_i32((lbm_int)value);
+    res = lbm_enc_i32((int32_t)value);
     break;
   default:
     break;
@@ -684,7 +684,7 @@ lbm_value array_extension_buffer_get_u32(lbm_value *args, lbm_uint argn) {
     }
 
     lbm_uint index = lbm_dec_as_u32(args[1]);
-    lbm_uint value = 0;
+    uint32_t value = 0;
 
     if (index+3 >= array->size) {
       return res;
@@ -693,16 +693,16 @@ lbm_value array_extension_buffer_get_u32(lbm_value *args, lbm_uint argn) {
 
     if (be) {
       value =
-        (lbm_uint) data[index+3] |
-        (lbm_uint) data[index+2] << 8 |
-        (lbm_uint) data[index+1] << 16 |
-        (lbm_uint) data[index] << 24;
+        (uint32_t) data[index+3] |
+        (uint32_t) data[index+2] << 8 |
+        (uint32_t) data[index+1] << 16 |
+        (uint32_t) data[index] << 24;
     } else {
       value =
-        (lbm_uint) data[index] |
-        (lbm_uint) data[index+1] << 8 |
-        (lbm_uint) data[index+2] << 16 |
-        (lbm_uint) data[index+3] << 24;
+        (uint32_t) data[index] |
+        (uint32_t) data[index+1] << 8 |
+        (uint32_t) data[index+2] << 16 |
+        (uint32_t) data[index+3] << 24;
     }
 
     res = lbm_enc_u32(value);
@@ -757,7 +757,7 @@ lbm_value array_extension_buffer_get_f32(lbm_value *args, lbm_uint argn) {
         (uint32_t) data[index+3] << 24;
     }
 
-    res = lbm_enc_float((lbm_float)u_to_float(value));
+    res = lbm_enc_float((float)u_to_float(value));
     break;
   default:
     break;

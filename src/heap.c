@@ -63,7 +63,7 @@ uint32_t lbm_dec_as_u32(lbm_value a) {
   case LBM_TYPE_I:
     return (uint32_t) lbm_dec_i(a);
   case LBM_TYPE_U:
-    return lbm_dec_u(a);
+    return (uint32_t) lbm_dec_u(a);
   case LBM_TYPE_I32: /* fall through */
   case LBM_TYPE_U32:
     return (uint32_t) lbm_dec_u32(a);
@@ -101,7 +101,7 @@ int32_t lbm_dec_as_i32(lbm_value a) {
   case LBM_TYPE_CHAR:
       return (int32_t) lbm_dec_char(a);
   case LBM_TYPE_I:
-    return lbm_dec_i(a);
+    return (int32_t) lbm_dec_i(a);
   case LBM_TYPE_U:
     return (int32_t) lbm_dec_u(a);
   case LBM_TYPE_I32:

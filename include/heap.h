@@ -738,7 +738,7 @@ static inline int64_t lbm_dec_i64(lbm_value x) {
   memcpy(&i, data, 8);
   return i;
 #else
-  return (uint64_t)lbm_car(x);
+  return (int64_t)lbm_car(x);
 #endif
 }
 
