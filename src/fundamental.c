@@ -649,7 +649,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
         if (n < 4) r = r << 8;
         if (lbm_is_number(lbm_car(curr))) {
           uint32_t v = lbm_dec_as_u32(lbm_car(curr));
-          r |= (0xF & v);
+          r |= (0xFF & v);
           n --;
           curr = lbm_cdr(curr);
         } else {
@@ -669,7 +669,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
           if (n < 4) r = r << 8;
           if (lbm_is_number(lbm_car(curr))) {
             uint32_t v = lbm_dec_as_u32(lbm_car(curr));
-            r |= (0xF & v);
+            r |= (0xFF & v);
             n --;
             curr = lbm_cdr(curr);
           } else {
@@ -690,7 +690,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
         if (n < 4) r = r << 8;
         if (lbm_is_number(lbm_car(curr))) {
           uint32_t v = (uint32_t)lbm_dec_as_u32(lbm_car(curr));
-          r |= (0xF & v);
+          r |= (0xFF & v);
           n --;
           curr = lbm_cdr(curr);
         } else {
