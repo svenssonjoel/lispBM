@@ -27,6 +27,7 @@
 
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
+#include "extensions/string_extensions.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
@@ -389,10 +390,18 @@ int main(int argc, char **argv) {
 
   lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
-  if (!lbm_array_extensions_init()) {
-    printf("error adding array extensions\n");
+  if (lbm_array_extensions_init()) {
+    printf("Array extensions loaded\n");
+  } else {
+    printf("Loading array extensions failed\n");
   }
-
+  
+  if (lbm_string_extensions_init()) {
+    printf("String extensions loaded\n");
+  } else {
+    printf("Loading string extensions failed\n");
+  }
+  
   res = lbm_add_extension("print", ext_print);
   if (res)
     printf("Extension added.\n");
@@ -526,8 +535,18 @@ int main(int argc, char **argv) {
 
       lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
-      lbm_array_extensions_init();
+      if (lbm_array_extensions_init()) {
+        printf("Array extensions loaded\n");
+      } else {
+        printf("Loading array extensions failed\n");
+      }
 
+      if (lbm_string_extensions_init()) {
+        printf("String extensions loaded\n");
+      } else {
+        printf("Loading string extensions failed\n");
+      }
+      
       lbm_add_extension("print", ext_print);
     } else if (strncmp(str, ":prelude", 8) == 0) {
 
