@@ -23,7 +23,6 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-
 #define DEG2RAD_f(deg) ((deg) * (float)(M_PI / 180.0))
 #define RAD2DEG_f(rad) ((rad) * (float)(180.0 / M_PI))
 
@@ -34,5 +33,6 @@
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
+#define CMP(a,b) (((a) > (b)) - ((a) < (b)));
 
 #endif

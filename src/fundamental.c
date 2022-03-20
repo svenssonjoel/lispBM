@@ -24,6 +24,7 @@
 #include "print.h"
 #include "lbm_variables.h"
 #include "env.h"
+#include "lbm_utils.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -283,17 +284,13 @@ static bool array_equality(lbm_value a, lbm_value b) {
       switch(a_->elt_type) {
       case LBM_TYPE_U:
       case LBM_TYPE_U32:
-        if (memcmp((char*)a_->data, (char*)b_->data, a_->size * sizeof(lbm_uint)) == 0) return true;
-        break;
       case LBM_TYPE_I:
       case LBM_TYPE_I32:
+      case LBM_TYPE_FLOAT:
         if (memcmp((char*)a_->data, (char*)b_->data, a_->size * sizeof(lbm_int)) == 0) return true;
         break;
       case LBM_TYPE_CHAR:
         if (memcmp((char*)a_->data, (char*)b_->data, a_->size) == 0) return true;
-        break;
-      case LBM_TYPE_FLOAT:
-        if (memcmp((char*)a_->data, (char*)b_->data, a_->size * sizeof(lbm_float)) == 0) return true;
         break;
       default:
         break;
@@ -339,56 +336,25 @@ static bool struct_eq(lbm_value a, lbm_value b) {
   return res;
 }
 
-static int cmpi32(int32_t a, int32_t b) {
-  int res = (a > b) - (a < b);
-  return res;
-}
-
-static int cmpu32(uint32_t a, uint32_t b) {
-  int res = (a > b) - (a < b);
-  return res;
-}
-
-static int cmpfloat(float a, float b) {
-  int res = (a > b) - (a < b);
-  return  res;
-}
-
-static int cmpi64(int64_t a, int64_t b) {
-  int res = (a > b) - (a < b);
-  return res;
-}
-
-static int cmpu64(uint64_t a, uint64_t b) {
-  int res = (a > b) - (a < b);
-  return res;
-}
-
-static int cmpdouble(double a, double b) {
-  int res = (a > b) - (a < b);
-  return  res;
-}
-
-
 /* returns -1 if a < b; 0 if a = b; 1 if a > b */
 static int compare(lbm_uint a, lbm_uint b) {
 
   int retval = 0;
 
   if (!(lbm_is_number(a) && lbm_is_number(b))) {
-    return retval;
+    return retval; // result is nonsense if arguments are not numbers.
   }
 
   lbm_uint t = (lbm_type_of(a) < lbm_type_of(b)) ? lbm_type_of(b) : lbm_type_of(a);
   switch (t) {
-  case LBM_TYPE_I: retval = cmpi32(lbm_dec_as_i32(a), lbm_dec_as_i32(b)); break;
-  case LBM_TYPE_U: retval = cmpu32(lbm_dec_as_u32(a), lbm_dec_as_u32(b)); break;
-  case LBM_TYPE_U32: retval = cmpu32(lbm_dec_as_u32(a), lbm_dec_as_u32(b)); break;
-  case LBM_TYPE_I32: retval = cmpi32(lbm_dec_as_i32(a), lbm_dec_as_i32(b)); break;
-  case LBM_TYPE_FLOAT: retval = cmpfloat(lbm_dec_as_float(a), lbm_dec_as_float(b)); break;
-  case LBM_TYPE_U64: retval = cmpu64(lbm_dec_as_u64(a), lbm_dec_as_u64(b)); break;
-  case LBM_TYPE_I64: retval = cmpi64(lbm_dec_as_i64(a), lbm_dec_as_i64(b)); break;
-  case LBM_TYPE_DOUBLE: retval = cmpdouble(lbm_dec_as_double(a), lbm_dec_as_double(b)); break;
+  case LBM_TYPE_I: retval = CMP(lbm_dec_as_i32(a), lbm_dec_as_i32(b)); break;
+  case LBM_TYPE_U: retval = CMP(lbm_dec_as_u32(a), lbm_dec_as_u32(b)); break;
+  case LBM_TYPE_U32: retval = CMP(lbm_dec_as_u32(a), lbm_dec_as_u32(b)); break;
+  case LBM_TYPE_I32: retval = CMP(lbm_dec_as_i32(a), lbm_dec_as_i32(b)); break;
+  case LBM_TYPE_FLOAT: retval = CMP(lbm_dec_as_float(a), lbm_dec_as_float(b)); break;
+  case LBM_TYPE_U64: retval = CMP(lbm_dec_as_u64(a), lbm_dec_as_u64(b)); break;
+  case LBM_TYPE_I64: retval = CMP(lbm_dec_as_i64(a), lbm_dec_as_i64(b)); break;
+  case LBM_TYPE_DOUBLE: retval = CMP(lbm_dec_as_double(a), lbm_dec_as_double(b)); break;
   }
   return retval;
 }
