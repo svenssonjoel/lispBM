@@ -28,6 +28,7 @@
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
 #include "extensions/string_extensions.h"
+#include "extensions/math_extensions.h"
 
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
@@ -401,6 +402,13 @@ int main(int argc, char **argv) {
   } else {
     printf("Loading string extensions failed\n");
   }
+
+  if (lbm_math_extensions_init()) {
+    printf("Math extensions loaded\n");
+  } else {
+    printf("Loading math extensions failed\n");
+  }
+  
   
   res = lbm_add_extension("print", ext_print);
   if (res)
@@ -546,6 +554,13 @@ int main(int argc, char **argv) {
       } else {
         printf("Loading string extensions failed\n");
       }
+
+      if (lbm_math_extensions_init()) {
+        printf("Math extensions loaded\n");
+      } else {
+        printf("Loading math extensions failed\n");
+      }
+  
       
       lbm_add_extension("print", ext_print);
     } else if (strncmp(str, ":prelude", 8) == 0) {
