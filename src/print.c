@@ -225,7 +225,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
 
       case LBM_TYPE_DOUBLE: {
         double v = lbm_dec_double(curr);
-        r = snprintf(buf + offset, len - offset, "{%"PRI_FLOAT"}", (double)v);
+        r = snprintf(buf + offset, len - offset, "{%lf}", (double)v);
         if ( r > 0) {
           n = (unsigned int) r;
         } else {

@@ -56,6 +56,24 @@ lbm_stream_t *lbm_dec_stream(lbm_value val) {
   return res;
 }
 
+char lbm_dec_as_char(lbm_value a) {
+  switch (lbm_type_of(a)) {
+  case LBM_TYPE_CHAR:
+    return (char) lbm_dec_char(a);
+  case LBM_TYPE_I:
+    return (char) lbm_dec_i(a);
+  case LBM_TYPE_U:
+    return (char) lbm_dec_u(a);
+  case LBM_TYPE_I32:
+    return (char) lbm_dec_i32(a);
+  case LBM_TYPE_U32:
+    return (char) lbm_dec_u32(a);
+  case LBM_TYPE_FLOAT:
+    return (char)lbm_dec_float(a);
+  }
+  return 0;
+}
+
 uint32_t lbm_dec_as_u32(lbm_value a) {
   switch (lbm_type_of(a)) {
   case LBM_TYPE_CHAR:
@@ -742,9 +760,9 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
   }
 #ifndef LBM64
   else if (type == LBM_TYPE_I64 ||
-             type == LBM_TYPE_U64 ||
-             type == LBM_TYPE_DOUBLE) {
-    allocate_size = 2*allocate_size;
+           type == LBM_TYPE_U64 ||
+           type == LBM_TYPE_DOUBLE) {
+    allocate_size = 2*size;
   }
 #endif
   else {

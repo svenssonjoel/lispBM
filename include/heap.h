@@ -363,6 +363,12 @@ extern char *lbm_dec_str(lbm_value val);
  * \return A pointer to an lbm_stream_t or NULL if the value does not encode a stream.
  */
 extern lbm_stream_t *lbm_dec_stream(lbm_value val);
+/** Decode a numerical value as if it is char
+ *
+ * \param val Value to decode
+ * \return The value encoded in val casted to a char. Returns 0 if val does not encode a number.
+ */
+extern char lbm_dec_as_char(lbm_value a);
 /** Decode a numerical value as if it is unsigned
  *
  * \param val Value to decode
@@ -702,12 +708,12 @@ static inline double lbm_dec_double(lbm_value x) {
 #ifndef LBM64
   double d;
   uint32_t *data = (uint32_t*)lbm_car(x);
-  memcpy(&d, data, 8);
+  memcpy(&d, data, sizeof(double));
   return d;
 #else
   double f_tmp;
   lbm_uint tmp = lbm_car(x);
-  memcpy(&f_tmp, &tmp, sizeof(float));
+  memcpy(&f_tmp, &tmp, sizeof(double));
   return f_tmp;
 #endif
 }

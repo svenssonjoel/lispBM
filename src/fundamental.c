@@ -405,29 +405,56 @@ void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 
       switch(array->elt_type) {
       case LBM_TYPE_CHAR:
-        curr = lbm_enc_char((lbm_uint) ((char*)data)[i]);
+        curr = lbm_enc_char((char)data[i]);
         break;
       case LBM_TYPE_U:
-        curr = lbm_enc_u(((lbm_uint*)data)[i]);
+        curr = lbm_enc_u((uint32_t)data[i]);
         break;
       case LBM_TYPE_I:
-         curr = lbm_enc_i(((lbm_int*)data)[i]);
+        curr = lbm_enc_i((int32_t)data[i]);
         break;
       case LBM_TYPE_U32:
-        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_RAW_U_TYPE));
-        if (lbm_type_of(curr) == LBM_TYPE_SYMBOL) return;
-        curr = lbm_set_ptr_type(curr, LBM_TYPE_U32);
+        curr = lbm_enc_u32((uint32_t)data[i]);
         break;
       case LBM_TYPE_I32:
-        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_RAW_I_TYPE));
-        if (lbm_type_of(curr) == LBM_TYPE_SYMBOL) return;
-        curr = lbm_set_ptr_type(curr, LBM_TYPE_I32);
+        curr = lbm_enc_i32((int32_t)data[i]);
         break;
-      case LBM_TYPE_FLOAT:
-        curr = lbm_cons(((lbm_uint*)data)[i], lbm_enc_sym(SYM_RAW_F_TYPE));
-        if (lbm_type_of(curr) == LBM_TYPE_SYMBOL) return;
-        curr = lbm_set_ptr_type(curr, LBM_TYPE_FLOAT);
+      case LBM_TYPE_FLOAT: {
+        float v;
+        memcpy(&v, &data[i], sizeof(float));
+        curr = lbm_enc_float(v);
+      } break;
+#ifndef LBM64
+      case LBM_TYPE_U64: {
+        uint64_t v = 0;
+        v |= (uint64_t)data[i*2];
+        v |= ((uint64_t)data[i*2+1]) << 32;
+        curr = lbm_enc_u64(v);
+      } break;
+      case LBM_TYPE_I64: {
+        uint64_t v = 0;
+        v |= (uint64_t)data[i*2];
+        v |= ((uint64_t)data[i*2+1]) << 32;
+        curr = lbm_enc_i64((int64_t)v);
+      } break;
+      case LBM_TYPE_DOUBLE: {
+        double v;
+        memcpy(&v, &data[i*2], sizeof(double));
+        curr = lbm_enc_double(v);
+      } break;
+#else
+      case LBM_TYPE_U64:
+        curr = lbm_enc_u64(data[i]);
         break;
+      case LBM_TYPE_I64:
+        curr = lbm_enc_i64((int64_t)data[i]);
+        break;
+      case LBM_TYPE_DOUBLE: {
+        double v;
+        memcpy(&v, &data[i], sizeof(double));
+        curr = lbm_enc_double(v);
+      } break;
+#endif
       default:
         curr = lbm_enc_sym(SYM_EERROR);
         break;
@@ -462,9 +489,7 @@ void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
   if (lbm_type_of(arr) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
 
-
-    if (lbm_type_of(val) != array->elt_type ||
-        ix >= array->size) {
+    if (ix >= array->size) {
       *result =  lbm_enc_sym(SYM_NIL);
       return;
     }
@@ -472,36 +497,72 @@ void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
     switch(array->elt_type) {
     case LBM_TYPE_CHAR: {
       char * data = (char *)array->data;
-      data[ix] = lbm_dec_char(val);
+      data[ix] = lbm_dec_as_char(val);
       break;
     }
-    case LBM_TYPE_U: {
-      lbm_uint* data = (lbm_uint*)array->data;
-      data[ix] = lbm_dec_u(val);
-      break;
-    }
-    case LBM_TYPE_I: {
-      lbm_int *data = (lbm_int*)array->data;
-      data[ix] = lbm_dec_i(val);
-      break;
-    }
+    case LBM_TYPE_U:
+      /* fall through */
     case LBM_TYPE_U32: {
       lbm_uint *data = (lbm_uint*)array->data;
-      data[ix] = lbm_dec_u32(val);
+      data[ix] = lbm_dec_as_u32(val);
       break;
     }
+    case LBM_TYPE_I:
+      /* fall through */
     case LBM_TYPE_I32: {
       lbm_int *data = (lbm_int*)array->data;
-      data[ix] = lbm_dec_i32(val);
+      data[ix] = lbm_dec_as_i32(val);
       break;
     }
     case LBM_TYPE_FLOAT: {
-      //uv = car(val);
-      //memcpy(&v, &uv, sizeof(FLOAT));
       lbm_uint *data = (lbm_uint*)array->data;
-      data[ix] = lbm_car(val);
+      float v = lbm_dec_as_float(val);
+      uint32_t t;
+      memcpy(&t,&v,sizeof(uint32_t));
+      data[ix] = t;
       break;
     }
+#ifndef LBM64
+    case LBM_TYPE_U64: {
+      uint64_t v = lbm_dec_as_u64(val);
+      lbm_uint *data = (lbm_uint*)array->data;
+      data[ix*2] = (uint32_t)v;
+      data[ix*2+1] = (uint32_t)(v >> 32);
+      break;
+    }
+    case LBM_TYPE_I64: {
+      int64_t v = lbm_dec_as_i64(val);
+      lbm_uint *data = (lbm_uint*)array->data;
+      data[ix*2] = (uint32_t)v;
+      data[ix*2+1] = (uint32_t)(v >> 32);
+      break;
+    }
+    case LBM_TYPE_DOUBLE: {
+      double v = lbm_dec_as_double(val);
+      uint64_t v2;
+      memcpy(&v2,&v,sizeof(uint64_t));
+      lbm_uint *data = (lbm_uint*)array->data;
+      data[ix*2] = (uint32_t)v2;
+      data[ix*2+1] = (uint32_t)(v2 >> 32);
+      break;
+    }
+#else
+    case LBM_TYPE_U64: {
+      lbm_uint *data = (lbm_uint*)array->data;
+      data[ix] = lbm_dec_as_u64(val);
+      break;
+    }
+    case LBM_TYPE_I64: {
+      lbm_int *data = (lbm_int*)array->data;
+      data[ix] = lbm_dec_as_i64(val);
+      break;
+    }
+    case LBM_TYPE_DOUBLE: {
+      lbm_float *data = (lbm_float*)array->data;
+      data[ix] = lbm_dec_as_double(val);
+      break;
+    }
+#endif
     default:
       // Maybe result should be something else than arr here.
       break;
@@ -533,6 +594,15 @@ void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
         break;
       case SYM_TYPE_FLOAT:
         lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_FLOAT);
+        break;
+      case SYM_TYPE_I64:
+        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_I64);
+        break;
+      case SYM_TYPE_U64:
+        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_U64);
+        break;
+      case SYM_TYPE_DOUBLE:
+        lbm_heap_allocate_array(result, lbm_dec_as_u32(args[1]), LBM_TYPE_DOUBLE);
         break;
       default:
         break;
@@ -650,7 +720,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     if (nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_CONS) {
       lbm_value curr = args[0];
       uint32_t r = 0;
-      float f; 
+      float f;
       int n = 4;
       while (lbm_type_of(curr) == LBM_TYPE_CONS && n > 0) {
         if (n < 4) r = r << 8;
