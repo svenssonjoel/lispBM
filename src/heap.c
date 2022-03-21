@@ -305,7 +305,6 @@ static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
 
   lbm_stack_create(&heap_state.gc_stack, gc_stack_storage, gc_stack_size);
 
-
   heap_state.num_alloc           = 0;
   heap_state.num_alloc_arrays    = 0;
   heap_state.gc_num              = 0;
@@ -416,20 +415,7 @@ lbm_uint lbm_heap_size_bytes(void) {
 }
 
 void lbm_get_heap_state(lbm_heap_state_t *res) {
-  res->heap                = heap_state.heap;
-  res->freelist            = heap_state.freelist;
-  res->heap_size           = heap_state.heap_size;
-  res->heap_bytes          = heap_state.heap_bytes;
-  res->num_alloc           = heap_state.num_alloc;
-  res->num_alloc_arrays    = heap_state.num_alloc_arrays;
-  res->gc_num              = heap_state.gc_num;
-  res->gc_marked           = heap_state.gc_marked;
-  res->gc_recovered        = heap_state.gc_recovered;
-  res->gc_recovered_arrays = heap_state.gc_recovered_arrays;
-  res->gc_least_free       = heap_state.gc_least_free;
-  res->gc_time_acc         = heap_state.gc_time_acc;
-  res->gc_max_duration     = heap_state.gc_max_duration;
-  res->gc_min_duration     = heap_state.gc_min_duration;
+  *res = heap_state;
 }
 
 int lbm_gc_mark_phase(lbm_value env) {

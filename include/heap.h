@@ -275,7 +275,7 @@ typedef struct {
  */
 typedef struct {
   lbm_cons_t *heap;
-  lbm_value freelist;              // list of free cons cells.
+  lbm_value freelist;          // list of free cons cells.
   lbm_stack_t gc_stack;
 
   lbm_uint heap_size;          // In number of cells.
