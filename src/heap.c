@@ -312,6 +312,7 @@ static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
   heap_state.gc_recovered        = 0;
   heap_state.gc_recovered_arrays = 0;
   heap_state.gc_least_free       = num_cells;
+  heap_state.gc_last_free        = num_cells;
 
   heap_state.gc_time_acc = 0;
   heap_state.gc_max_duration = 0;
@@ -326,7 +327,9 @@ void lbm_heap_new_gc_time(lbm_uint dur) {
     heap_state.gc_min_duration = dur;
 }
 
-void lbm_heap_new_freelist_length(lbm_uint l) {
+void lbm_heap_new_freelist_length(void) {
+  lbm_uint l = heap_state.heap_size - heap_state.num_alloc;
+  heap_state.gc_last_free = l;
   if (l < heap_state.gc_least_free)
     heap_state.gc_least_free = l;
 }
@@ -348,22 +351,8 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
 }
 
 lbm_uint lbm_heap_num_free(void) {
-
-  unsigned int count = 0;
-  lbm_value curr = heap_state.freelist;
-
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-    curr = read_cdr(ref_cell(curr));
-    count++;
-  }
-  // Prudence.
-  if (!(lbm_type_of(curr) == LBM_TYPE_SYMBOL) &&
-      curr == NIL){
-    return 0;
-  }
-  return count;
+  return heap_state.heap_size - heap_state.num_alloc;
 }
-
 
 lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
 

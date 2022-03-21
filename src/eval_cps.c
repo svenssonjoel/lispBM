@@ -1072,8 +1072,7 @@ static int gc(lbm_value remember1, lbm_value remember2) {
 
   lbm_heap_new_gc_time(dur);
 
-  lbm_uint num_free = lbm_heap_num_free();
-  lbm_heap_new_freelist_length(num_free);
+  lbm_heap_new_freelist_length();
 
   return r;
 }

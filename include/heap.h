@@ -289,6 +289,8 @@ typedef struct {
   lbm_uint gc_recovered;       // Number of cells recovered by sweep phase.
   lbm_uint gc_recovered_arrays;// Number of arrays recovered by sweep.
   lbm_uint gc_least_free;      // The smallest length of the freelist.
+  lbm_uint gc_last_free;       // Number of elements on the freelist
+                               // after most recent GC.
 
   lbm_uint gc_time_acc;
   lbm_uint gc_min_duration;
@@ -320,10 +322,10 @@ extern int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
  */
 extern void lbm_heap_new_gc_time(lbm_uint dur);
 /** Add a new free_list length to the heap_stats.
- *
- * \param l Current length of freelist.
+ *  Calculates a new freelist length and updates
+ *  the GC statistics.
  */
-extern void lbm_heap_new_freelist_length(lbm_uint l);
+extern void lbm_heap_new_freelist_length(void);
 /** Check how many lbm_cons_t cells are on the free-list
  *
  * \return Number of free lbm_cons_t cells.
