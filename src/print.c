@@ -312,13 +312,13 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
           for (unsigned int i = 0; i < array->size; i ++) {
             switch(array->elt_type) {
             case LBM_TYPE_I32:
-              r = snprintf(buf+offset, len - offset, "%d%s", (int32_t)array->data[i], i == array->size - 1 ? "" : ", ");
+              r = snprintf(buf+offset, len - offset, "%"PRIi32"%s", (int32_t)array->data[i], i == array->size - 1 ? "" : ", ");
               break;
             case LBM_TYPE_U32:
-              r = snprintf(buf+offset, len - offset, "%u%s", (uint32_t)array->data[i], i == array->size - 1 ? "" : ", ");
+              r = snprintf(buf+offset, len - offset, "%"PRIi32"%s", (uint32_t)array->data[i], i == array->size - 1 ? "" : ", ");
               break;
             case LBM_TYPE_FLOAT:
-              r = snprintf(buf+offset, len - offset, "%"PRI_FLOAT"%s",(lbm_float)array->data[i], i == array->size - 1 ? "" : ", ");
+              r = snprintf(buf+offset, len - offset, "%"PRI_FLOAT"%s",(double)(lbm_float)array->data[i], i == array->size - 1 ? "" : ", ");
               break;
             default:
               break;

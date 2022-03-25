@@ -2230,20 +2230,38 @@ static inline void cont_read(eval_context_t *ctx) {
   }
 }
 
+#define OTHER_APPLY   0
+#define MACRO_APPLY   1
+#define MACRO_EXPAND  2
+#define CLOSURE_APPLY 3
+
+static inline int application_kind(lbm_value v) {
+  if (lbm_type_of(v) == LBM_TYPE_CONS) {
+    lbm_value fun_kind_identifier = lbm_car(v);
+    if (lbm_type_of(fun_kind_identifier) == LBM_TYPE_SYMBOL) {
+      if (lbm_dec_sym(fun_kind_identifier) == SYM_CLOSURE) return CLOSURE_APPLY;
+      if (lbm_dec_sym(fun_kind_identifier) == SYM_MACRO) return MACRO_APPLY;
+      if (lbm_dec_sym(fun_kind_identifier) == SYM_MACRO_EXPAND) return MACRO_EXPAND;
+    }
+  }
+  return OTHER_APPLY;
+}
+
 static inline void cont_application_start(eval_context_t *ctx) {
 
   lbm_value args;
   lbm_pop_u32(&ctx->K, &args);
-  if (lbm_is_symbol(ctx->r) &&
-      lbm_dec_sym(ctx->r) == SYM_MACRO_EXPAND) {
 
+  switch (application_kind(ctx->r)) {
+  case MACRO_EXPAND:
     /* (macro-expand (args + (list 1 2 3))) */
 
     CHECK_STACK(lbm_push_u32_2(&ctx->K,
                                lbm_cdr(lbm_car(args)),
                                lbm_enc_u(EXPAND_MACRO)));
     ctx->curr_exp = lbm_car(lbm_car(args));
-  } else if (lbm_is_macro(ctx->r)) {
+    break;
+  case MACRO_APPLY:{
     /*
      * Perform macro expansion.
      * Macro expansion is really just evaluation in an
@@ -2281,11 +2299,19 @@ static inline void cont_application_start(eval_context_t *ctx) {
     ctx->curr_exp = exp;
     ctx->curr_env = expand_env;
     ctx->app_cont = false;
-  } else {
+  } break;
+  case CLOSURE_APPLY:
+    /* CHECK_STACK(lbm_push_u32(&ctx->K, */
+    /*                          NIL, */
+    /*                          args)); */
+    /* cont_closure_application_args(ctx); */
+    /* break; */
+  default:
     CHECK_STACK(lbm_push_u32_2(&ctx->K,
                                lbm_enc_u(0),
                                args));
     cont_application_args(ctx);
+    break;
   }
 }
 
