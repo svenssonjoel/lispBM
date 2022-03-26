@@ -1115,19 +1115,24 @@ static inline void eval_symbol(eval_context_t *ctx) {
 
       lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
 
-      if (lbm_type_of(cell) == LBM_TYPE_SYMBOL)
-        gc(NIL,NIL);
-      cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
       if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
-        error_ctx(cell);
-        return;
+        gc(NIL,NIL);
+        cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+        if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
+          error_ctx(cell);
+          return;
+        }
       }
 
       lbm_array_header_t *array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
 
       if (array == NULL) {
-        error_ctx(lbm_enc_sym(SYM_MERROR));
-        return;
+        gc(cell,NIL);
+        array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
+        if (array == NULL) {
+          error_ctx(lbm_enc_sym(SYM_MERROR));
+          return;
+        }
       }
 
       array->data = (lbm_uint*)code_str;
