@@ -409,7 +409,6 @@ lbm_value lbm_create_token_stream(lbm_tokenizer_char_stream_t *str) {
   lbm_stream_t *stream;
   stream = (lbm_stream_t*)lbm_memory_allocate(sizeof(lbm_stream_t) / (sizeof(lbm_uint)));
 
-  printf("Created stream at: %u\n", (uint32_t) stream);
   if (stream == NULL) {
     return lbm_enc_sym(SYM_MERROR);
   }
