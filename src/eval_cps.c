@@ -1811,6 +1811,10 @@ static inline void cont_application(eval_context_t *ctx) {
 
 static inline void cont_closure_application_args(eval_context_t *ctx) {
   lbm_uint* sptr = lbm_get_stack_ptr(&ctx->K, 5);
+  if (sptr == NULL) {
+    error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+    return;
+  }
   lbm_value arg_env = (lbm_value)sptr[0];
   lbm_value clo_env = (lbm_value)sptr[2];
   lbm_value params  = (lbm_value)sptr[3];
@@ -1938,12 +1942,12 @@ static inline void cont_if(eval_context_t *ctx) {
 
   lbm_pop_u32_3(&ctx->K, &env, &then_branch, &else_branch);
 
-  if (lbm_type_of(arg) == LBM_TYPE_SYMBOL && lbm_dec_sym(arg) == SYM_TRUE) {
-    ctx->curr_env = env;
-    ctx->curr_exp = then_branch;
-  } else {
+  if (lbm_is_symbol_nil(arg)) {
     ctx->curr_env = env;
     ctx->curr_exp = else_branch;
+  } else {
+    ctx->curr_env = env;
+    ctx->curr_exp = then_branch;
   }
 }
 
