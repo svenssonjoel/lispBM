@@ -1317,8 +1317,8 @@ static inline void eval_let(eval_context_t *ctx) {
     lbm_value key = lbm_car(lbm_car(curr));
     lbm_value val = NIL;
     lbm_value binding;
-    CONS_WITH_GC(binding, key, val, NIL);
-    CONS_WITH_GC(new_env, binding, new_env, new_env);
+    WITH_GC(binding, lbm_cons(key, val), new_env, NIL);
+    WITH_GC(new_env, lbm_cons(binding, new_env), new_env, binding);
 
     curr = lbm_cdr(curr);
   }
