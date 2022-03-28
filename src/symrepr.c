@@ -176,7 +176,14 @@ special_sym const special_symbols[] =  {
   {"encode-float"   , SYM_ENCODE_FLOAT},
   {"decode"         , SYM_DECODE},
 
-  {"is-fundamental" , SYM_IS_FUNDAMENTAL}
+  {"is-fundamental" , SYM_IS_FUNDAMENTAL},
+
+  // aliases
+  {"first"          , SYM_CAR},
+  {"rest"           , SYM_CDR},
+  {"fn"             , SYM_LAMBDA},
+  {"def"            , SYM_DEFINE}
+
 };
 
 static lbm_uint *symlist = NULL;
