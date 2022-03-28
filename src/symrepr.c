@@ -24,7 +24,7 @@
 
 #include "symrepr.h"
 
-#define NUM_SPECIAL_SYMBOLS 117
+#define NUM_SPECIAL_SYMBOLS (sizeof(special_symbols) / sizeof(special_sym))
 #define NAME   0
 #define ID     1
 #define NEXT   2
@@ -34,7 +34,7 @@ typedef struct {
   const lbm_uint id;
 } special_sym;
 
-special_sym const special_symbols[NUM_SPECIAL_SYMBOLS] =  {
+special_sym const special_symbols[] =  {
   {"nil"        , SYM_NIL},
   {"quote"      , SYM_QUOTE},
   {"t"          , SYM_TRUE},
