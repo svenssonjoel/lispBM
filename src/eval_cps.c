@@ -1579,7 +1579,9 @@ static inline void cont_application(eval_context_t *ctx) {
   lbm_value count;
   lbm_pop(&ctx->K, &count);
 
-  lbm_uint *fun_args = lbm_get_stack_ptr(&ctx->K, lbm_dec_u(count)+1);
+  lbm_uint arg_count = lbm_dec_u(count);
+
+  lbm_uint *fun_args = lbm_get_stack_ptr(&ctx->K, arg_count+1);
 
   if (fun_args == NULL) {
     ctx->r = lbm_enc_sym(SYM_FATAL_ERROR);
@@ -1594,7 +1596,15 @@ static inline void cont_application(eval_context_t *ctx) {
       error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
       return;
     }
-    lbm_value arg = fun_args[1];
+
+    lbm_value arg = NIL;
+    if (arg_count == 1) {
+      arg = fun_args[1];
+    } else if (arg_count > 1) {
+      lbm_set_error_reason("A continuation created by call-cc was applied to too many arguments (>1)");
+      error_ctx(lbm_enc_sym(SYM_EERROR));
+      return;
+    }
     lbm_stack_clear(&ctx->K);
 
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(c);
