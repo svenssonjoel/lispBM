@@ -1323,11 +1323,15 @@ static inline void eval_lambda(eval_context_t *ctx) {
 
 static inline void eval_if(eval_context_t *ctx) {
 
+  lbm_value cddr = lbm_cdr(lbm_cdr(ctx->curr_exp));
+  lbm_value then_branch = lbm_car(cddr);
+  lbm_value else_branch = lbm_car(lbm_cdr(cddr));
+
   CHECK_STACK(lbm_push_4(&ctx->K,
-                             lbm_car(lbm_cdr(lbm_cdr(lbm_cdr(ctx->curr_exp)))), // Else branch
-                             lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp))),      // Then branch
-                             ctx->curr_env,
-                             lbm_enc_u(IF)));
+                         else_branch,
+                         then_branch,
+                         ctx->curr_env,
+                         lbm_enc_u(IF)));
   ctx->curr_exp = lbm_car(lbm_cdr(ctx->curr_exp));
 }
 
