@@ -480,6 +480,9 @@ int main(int argc, char **argv) {
 
         printf("started ctx: %"PRI_UINT"\n", cid);
       }
+    } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
+      lbm_toggle_verbose();
+      continue;
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
       allow_print = true;
       continue;

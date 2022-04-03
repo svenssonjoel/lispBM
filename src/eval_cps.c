@@ -221,6 +221,16 @@ static void (*ctx_done_callback)(eval_context_t *) = NULL;
 static int (*printf_callback)(const char *, ...) = NULL;
 static bool (*dynamic_load_callback)(const char *, const char **) = NULL;
 
+static bool lbm_verbose = false;
+
+void lbm_toggle_verbose(void) {
+  lbm_verbose = !lbm_verbose;
+}
+
+void lbm_set_verbose(bool verbose) {
+  lbm_verbose = verbose;
+}
+
 void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
   usleep_callback = fptr;
 }
@@ -350,27 +360,27 @@ void print_error_message(lbm_value error) {
   printf_callback("***\tError: %s\n\n", buf);
 
   if (ctx_running->error_reason) {
-    printf_callback("Reason:\n%s\n\n", ctx_running->error_reason);
+    printf_callback("Reason:\n\t%s\n\n", ctx_running->error_reason);
   }
+  if (lbm_verbose) {
+    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+    printf_callback("\tWhile evaluating: %s\n", buf);
+    printf_callback("\tIn context: %d\n", ctx_running->id);
+    printf_callback("\tCurrent intermediate result: %s\n\n", buf);
 
-  lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-  printf_callback("\tWhile evaluating: %s\n", buf);
-  printf_callback("\tIn context: %d\n", ctx_running->id);
-  printf_callback("\tCurrent intermediate result: %s\n\n", buf);
+    print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
+    printf_callback("\n\n");
 
-  print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
-  printf_callback("\n\n");
+    printf_callback("\tError explanation:\n");
+    print_error_explanation(error, buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
+    printf_callback("\n\n");
 
-  printf_callback("\tError explanation:\n");
-  print_error_explanation(error, buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
-  printf_callback("\n\n");
-
-  printf_callback("\tStack:\n");
-  for (unsigned int i = 0; i < ctx_running->K.sp; i ++) {
-    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->K.data[i]);
-    printf_callback("\t\t%s\n", buf);
+    printf_callback("\tStack:\n");
+    for (unsigned int i = 0; i < ctx_running->K.sp; i ++) {
+      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->K.data[i]);
+      printf_callback("\t\t%s\n", buf);
+    }
   }
-
   lbm_memory_free(buf32);
 }
 
