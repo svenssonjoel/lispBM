@@ -1225,9 +1225,16 @@ variable (symbol) that is neighter bound nor special (built-in function).
 
 ### type-i
 
+A value with type `type-i` occupy 28bits on the 32 bit version of LBM and
+56bits on the 64bit version.
+
 ---
 
 ### type-u
+
+A value with type `type-u` occupy 28bits on the 32 bit version of LBM and
+56bits on the 64bit version.
+
 
 ---
 
@@ -1240,6 +1247,18 @@ variable (symbol) that is neighter bound nor special (built-in function).
 ---
 
 ### type-u32
+
+---
+
+### type-i64
+
+---
+
+### type-u64
+
+---
+
+### type-double
 
 ---
 
