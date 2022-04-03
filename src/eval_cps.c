@@ -2324,6 +2324,7 @@ static inline void cont_application_start(eval_context_t *ctx) {
   lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 2);
   if (sptr == NULL) {
     error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+    return;
   }
   lbm_value args = (lbm_value)sptr[1];
 
