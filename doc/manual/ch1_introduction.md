@@ -4,7 +4,7 @@
 LispBM (from now on called LBM) is a lisp dialect that was implemented
 to be run on small resource constrained systems. The look-and-feel of
 lispbm has been very much influenced by the series of videos based on
-the SICP bool (Structure and Interpretation of Computer Programs) by
+the SICP book (Structure and Interpretation of Computer Programs) by
 Harold Abelsson, Gerald Jay Sussman and Julie Sussman. The awesome
 series of videos about lisp programming can be found
 [here](https://www.youtube.com/playlist?list=PL8FE88AA54363BC46). Note
