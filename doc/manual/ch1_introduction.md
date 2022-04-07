@@ -42,7 +42,7 @@ cd repl-cps
 Now you have the choice of compiling the REPL either a 32bit application 
 or a 64bit one. To compile as a 32bit application just type `make`, this 
 requires that you have 32bit libraries installed on you linux system. The 
-other alternate is to compile as 64bit using `make all64`. 
+other alternative is to compile as 64bit using `make all64`. 
 
 ``` 
 make 
