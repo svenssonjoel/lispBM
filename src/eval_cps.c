@@ -255,70 +255,6 @@ void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
 
 #define ERROR_MESSAGE_BUFFER_SIZE_BYTES 256
 
-void print_error_explanation(lbm_value error, char *buf, unsigned int size) {
-
-  if (lbm_type_of(error) == LBM_TYPE_SYMBOL) {
-    switch(lbm_dec_sym(error)){
-    case SYM_RERROR:
-      printf_callback("\tRead errors are most likely caused by syntactically\n"
-                      "\tincorrect input programs.\n"
-                      "\t - Check that all opening parenthesis are properly closed.\n");
-      break;
-    case SYM_TERROR:
-      printf_callback("\tA type error may be caused by passing a value of incompatible type\n"
-                      "\tto a built-in \"fundamental\" operation or an extension\n");
-      break;
-    case SYM_EERROR:
-      printf_callback("\tEvaluation error happens on programs that may be syntactically correct\n"
-                      "\t(LispBM has a very low bar for what is considered syntactically correct),\n"
-                      "\tbut semantically nonsensical.\n"
-                      "\t - Check the program for mistakes.\n"
-                      "\t - Are your parenthesis enclosing the correct subterms?\n"
-                      "\t - Check that you haven't written, for example, (1 + 2) where it should be (+ 1 2).\n");
-      break;
-    case SYM_MERROR:
-      printf_callback("\tA memory error happens when the heap is completely full\n"
-                    "\tand that no memory can be freed up by running the garbage collector.\n"
-                    "\tThe program you have written requires more memory.\n"
-                    "\t - Increase the heap size.\n"
-                    "\t - Rewrite the application to use less memory.\n");
-    break;
-    case SYM_NOT_FOUND:
-      printf_callback("\tYou are trying to use a variable that is not present in the global\n"
-                      "\tor the local environment. Neither could a binding for the variable be\n"
-                      "\tdynamically loaded.\n"
-                      "\t - Check code for a misspelled variable.\n"
-                      "\t - Check if you are creating the bindings you should (let, define).\n");
-      break;
-    case SYM_DIVZERO:
-      printf_callback("\tA division by zero occured.\n"
-                      "\t - Check your math.\n"
-                      "\t - Add 0-checks into your code at a strategic position.\n");
-      break;
-    case SYM_FATAL_ERROR:
-      printf_callback("\tA fatal error occurs when the runtime system has been irrecoverably\n"
-                      "\tcorrupt.\n"
-                      "\t - If this happens please send the program and the full error message\n"
-                      "\t   to blog.joel.svensson@gmail.com. It will be much appreciated\n");
-      break;
-    case SYM_STACK_ERROR:
-      printf_callback("\tYour program is using up all the stack space available to it.\n"
-                      "\t - Check your program for recursive functions that are not tail-recursive\n"
-                      "\t   Rewrite these in tail-recursive form.\n"
-                      "\t - If you spawned this process in a small stack. For example (spawn 10 prg),\n"
-                      "\t   try to spawn it with a larger stack");
-      break;
-    default:
-      printf_callback("\tNo further explanation available\n");
-      break;
-    }
-  } else {
-    lbm_print_value(buf, size, error);
-    printf_callback("\tThe error value is not a symbol: %s\n", buf);
-    printf_callback("\tThis is most likely a bug in the LispBM implementation\n");
-  }
-}
-
 void print_environments(char *buf, unsigned int size) {
 
   lbm_value curr_g = lbm_get_env();
@@ -369,10 +305,6 @@ void print_error_message(lbm_value error) {
     printf_callback("\tCurrent intermediate result: %s\n\n", buf);
 
     print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
-    printf_callback("\n\n");
-
-    printf_callback("\tError explanation:\n");
-    print_error_explanation(error, buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
     printf_callback("\n\n");
 
     printf_callback("\tStack:\n");
