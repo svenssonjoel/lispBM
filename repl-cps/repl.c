@@ -81,7 +81,7 @@ void restore_terminal(void) {
 
 
 int inputline(char *buffer, unsigned int size) {
-  int n = 0;
+  unsigned int n = 0;
   int c;
   for (n = 0; n < size - 1; n++) {
 
@@ -205,7 +205,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
   char output[1024];
 
-  for (int i = 0; i < argn; i ++) {
+  for (unsigned int i = 0; i < argn; i ++) {
     lbm_value t = args[i];
 
     if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
