@@ -468,47 +468,47 @@ Example that evaluates to `type-float`.
 
 ---
 
-### sym-to-str
+### sym2str
 
-The `sym-to-str` function converts a symbol to its string representation.
+The `sym2str` function converts a symbol to its string representation.
 The resulting string is a copy of the original so you cannot destroy built in symbols using
 this function.
 
 
 Example that returns the string `"lambda"`.
 ```clj
-(sym-to-str 'lambda)
+(sym2str 'lambda)
 ```
 
 ---
 
-### str-to-sym
+### str2sym
 
-The `str-to-sym` function converts a string to a symbol.
+The `str2sym` function converts a string to a symbol.
 
 Example that returns the symbol `hello`.
 ```clj
-(str-to-sym "hello")
+(str2sym "hello")
 ```
 
 ---
 
-### sym-to-u
+### sym2u
 
-The `sym-to-u` function returns the numerical value used by the runtime system
+The `sym2u` function returns the numerical value used by the runtime system
 for a symbol.
 
 
 Example that evaluates to 4.
 ```clj
-(sym-to-u 'lambda)
+(sym2u 'lambda)
 ```
 
 ---
 
-### u-to-sym
+### u2sym
 
-The `u-to-sym` function returns the symbol associated with the
+The `u2sym` function returns the symbol associated with the
 numerical value provided. This symbol may be undefined in which case you
 get as result a unnamed symbol.
 
