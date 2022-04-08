@@ -96,9 +96,8 @@ Allocated arrays: 0
 Symbol table size: 676 Bytes
 ```
 
-There is a set of LBM functions mostly for basic operations on lists
-called the "prelude". These functions can be loaded into the heap by
-issuing the command `:prelude`
+There is a set of LBM functions mostly for basic operations on lists that 
+the REPL will load dynamically when first used. 
 
 ```
 # :prelude
@@ -113,29 +112,11 @@ stack sp:   0
 ``` 
 
 If the `:info` command is run again we can see that the "prelude" library 
-occupies some amount of heap memory.
+occupies some amount of heap memory. One of these functions is called `iota`
+and it creates a list enumerating numbers from 0 up to the argument provided. 
 
-``` 
-# :info
---(LISP HEAP)-----------------------------------------------
-Heap size: 16384 Bytes
-Used cons cells: 416
-Free cons cells: 1632
-GC counter: 1
-Recovered: 5
-Recovered arrays: 0
-Marked: 2043
---(Symbol and Array memory)---------------------------------
-Memory size: 2048 Words
-Memory free: 1821 Words
-Allocated arrays: 0
-Symbol table size: 1027 Bytes
-```
-
-To test that this really worked we can try to run one of the prelude 
-functions in the REPL. The code below runs the `iota` function which 
-takes one argument, a number, and creates a list enumerating all the values 
-from 0 to that number. 
+To test if this dynamic loading of the library function works type `(iota 1024)`
+and press enter. 
 
 ``` 
 # (iota 1024)
