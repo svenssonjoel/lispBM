@@ -32,7 +32,7 @@ Clone the LispBM repository from [GitHub](https://github.com/svenssonjoel/lispBM
 ```
 git clone https://github.com/svenssonjoel/lispBM.git
 ``` 
-Then go into the lispBM directory and the repl-cps subdirectory.
+Then go into the `lispBM` directory and the repl-cps subdirectory.
 
 ``` 
 cd lispBM
@@ -41,7 +41,7 @@ cd repl-cps
 
 Now you have the choice of compiling the REPL either a 32bit application 
 or a 64bit one. To compile as a 32bit application just type `make`, this 
-requires that you have 32bit libraries installed on you linux system. The 
+requires that you have 32bit libraries installed on you Linux system. The 
 other alternative is to compile as 64bit using `make all64`. 
 
 ``` 
@@ -178,18 +178,19 @@ stack size: 256
 stack sp:   0
 ```
 
-The REPL informs us that it is loading `(+ 1 2)`, starting a context
-with ID 144.  When then context then finishes execution the REPL
-presents `<< Context 144 finished with value 3 >>` which means that
-the result of `(+ 1 2)` was computed to be `3`. While computing this
-the evaluator used 11 elements of the stack and after finishing the
-stack pointer is back at position 0. 
+The REPL informs us that it is loading `(+ 1 2)`, and that it started
+a context with ID 144 to evaluate the expression in.  When then
+context then finishes execution the REPL presents `<< Context 144
+finished with value 3 >>` which means that the result of `(+ 1 2)` was
+computed to be `3`. While computing this the evaluator used 11
+elements of the stack and after finishing the stack pointer is back at
+position 0.
 
 The context that is being created and that evaluates the expression is 
 related to the concurrent nature of LBM and will be explored in more 
 detail later. 
 
-The example REPL provides a way to print strings: 
+The example REPL provides an extension for printing things, for example strings:
 
 ```
 # (print "hello world!\n")
