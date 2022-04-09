@@ -589,7 +589,7 @@ to memorize.
 
 We have already seen the special forms `define` and `quote`
 
-**DEFINE** 
+#### DEFINE
 
 `define` takes two arguments, a symbol and a value. `define` 
 does not evaluate the first argument, because if it did that could 
