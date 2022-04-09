@@ -1577,7 +1577,7 @@ static inline void cont_application(eval_context_t *ctx) {
             s <  VARIABLE_SYMBOLS_END) {
           /* #var case ignores local/global if present */
           ctx->r = lbm_set_var(s, fun_args[2]);
-        } else {
+        } else if (s >= RUNTIME_SYMBOLS_START) {
           lbm_value new_env = lbm_env_modify_binding(ctx->curr_env, fun_args[1], fun_args[2]);
           if (lbm_type_of(new_env) == LBM_TYPE_SYMBOL &&
               lbm_dec_sym(new_env) == SYM_NOT_FOUND) {
@@ -1598,6 +1598,9 @@ static inline void cont_application(eval_context_t *ctx) {
           } else {
             ctx->r = fun_args[2];
           }
+        } else {
+          error_ctx(lbm_enc_sym(SYM_EERROR));
+          return;
         }
       } else {
         error_ctx(lbm_enc_sym(SYM_EERROR));
