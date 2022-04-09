@@ -570,10 +570,35 @@ fits the familiar pattern very well. Still, `quote` is not quite a
 function and this is because when quoting something we want the thing
 we quote to be returned to us unevaluated! In a function application
 the arguments are evaluated.  So `quote` falls into a small set of
-operations called **special forms** which are the topic of the next
-subsection.
+operations called **special forms**. All special forms are listed 
+in a section at the end of this chapter.
 
-### Special forms
+### Quasiquote 
+
+There is a close relative of quote `'` called quasiquote `` ` `` that
+allows you to mix between not evaluating within an expression. The
+quasiquote back-tick is then used together with the `,` operation, back-tick 
+to "not-evaluate" and comma to "do-evaluate-this-part". 
+
+For example in `` `(+ 1 ,(+ 2 3))``, the subexpression `(+ 2 3)` will be 
+evaluated because it has the comma sign prepended. The result of this expression
+is: 
+
+```
+# `(+ 1 ,(+ 2 3))
+loading: `(+ 1 ,(+ 2 3))
+started ctx: 172
+<< Context 172 finished with value (+ 1 5) >>
+stack max:  29
+stack size: 256
+stack sp:   0
+```
+
+
+
+# Some built in functions
+
+# Special forms
 
 The special forms of LBM are a bit like the set of keywords you find
 in many languages. The special forms are each identified via a symbol
@@ -587,9 +612,7 @@ whats special about each of the LBM special forms below. There aren't
 many of them, only 12, so fortunately not a lot of "special" behavior 
 to memorize. 
 
-We have already seen the special forms `define` and `quote`
-
-#### define
+## define
 
 `define` takes two arguments, a symbol and a value. `define` 
 does not evaluate the first argument, because if it did that could 
@@ -614,5 +637,14 @@ The second argument to `define` is evaluated so if you write
 `(define a (+ 1 2))`, `a` will be associated with the value 3, 
 not the expression `(+ 1 2)`.
 
-#### quote
+## quote
 
+Quote is a special form precisely because it should result in the argument
+unevaluated.
+
+`'a` is syntax for `(quote a)` and is expanded to the `(quote a)` form 
+by the parser.
+
+## progn 
+
+The `progn` special form 
