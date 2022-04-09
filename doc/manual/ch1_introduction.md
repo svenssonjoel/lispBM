@@ -514,16 +514,79 @@ stack size: 256
 stack sp:   0
 ```
 
+Any LBM expression can be quoted and essentially then viewed as a
+datastructure rather than as code. For example you can quote any
+symbol:
+
+```
+# `i-am-a-symbol
+loading: `i-am-a-symbol
+started ctx: 148
+<< Context 148 finished with value i-am-a-symbol >>
+stack max:  11
+stack size: 256
+stack sp:   0
+```
+
+Quoted symbols is very common to see when writing programs that use
+symbols not as variables but as data in themself. A symbol can for
+example be used as a tag or label. For example if you want to keep
+track of your apples and bananas, you could create a datastructure
+like this `(list (list 'apples 10) (list 'bananas 15))`.
+
+```
+# (list (list 'apples 10) (list 'bananas 15))
+loading: (list (list 'apples 10) (list 'bananas 15))
+started ctx: 151
+<< Context 151 finished with value ((apples 10) (bananas 15)) >>
+stack max:  14
+stack size: 256
+stack sp:   0
+```
+
+Another example is that you can quote an addition expression such as
+`(+ 1 2)`:
+
+```
+# '(+ 1 2)
+loading: '(+ 1 2)
+started ctx: 151
+<< Context 151 finished with value (+ 1 2) >>
+stack max:  11
+stack size: 256
+stack sp:   0
+```
+
+the result of this quoted addition is a list with the elements `+`,`1`
+and `2`. 
+
 Quote is a bit interesting as it does not follow the pattern of a
 function application, which is a list where the first element is
 assumed to be function.  The quote mark, `'` is placed before the
 thing it "operates" on and it is not not enclosed in parenthesis! Now,
-this is just syntax and as the LBM code is read by the parser all things
-of the form `'a` is expanded into `(quote a)` and `(quote a)` fits the
-familiar pattern very well. Still, `quote` is not quite a function and this 
-is because when quoting something we want the thing we quote to be returned 
-to us unevaluated! In a function application the arguments are evaluated. 
-So `quote` falls into a small set of operations called **special forms**
-which are the topic of the next subsection. 
+this is just syntax and as the LBM code is read by the parser all
+things of the form `'a` is expanded into `(quote a)` and `(quote a)`
+fits the familiar pattern very well. Still, `quote` is not quite a
+function and this is because when quoting something we want the thing
+we quote to be returned to us unevaluated! In a function application
+the arguments are evaluated.  So `quote` falls into a small set of
+operations called **special forms** which are the topic of the next
+subsection.
 
 ### Special forms
+
+The special forms of LBM are a bit like the set of keywords you find
+in many languages. The special forms are each identified via a symbol
+and they are "applied" in a similar way to functions. That is, if you
+want to apply a special form, that special form symbol will be first
+in a list. The special part of a special form is that an application
+of a special form does **not** need to follow the same behavior as a
+function application (where all arguments are evaluated before the
+application). Why this is needed will become clear as we go through 
+whats special about each of the LBM special forms below. 
+
+We have already seen the special forms `define` and `quote`
+
+**DEFINE** 
+
+
