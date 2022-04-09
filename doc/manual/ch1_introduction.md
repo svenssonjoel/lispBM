@@ -609,3 +609,10 @@ with the symbol `a`, in that case we get an error because `a` could not
 be evaluated.
 
 ---
+
+The second argument to `define` is evaluated so if you write 
+`(define a (+ 1 2))`, `a` will be associated with the value 3, 
+not the expression `(+ 1 2)`.
+
+**QUOTE**
+
