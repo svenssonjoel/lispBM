@@ -455,6 +455,9 @@ stack size: 256
 stack sp:   0
 ```
 
+In a function application the arguments are evaluated before the function 
+at the head of the list is applied to them.
+
 ### Symbols
 
 Symbols are very fundamental building blocks of LBM programs
@@ -492,3 +495,35 @@ stack size: 256
 stack sp:   0
 ```
 
+### An important concept with an unremarkable name: Quote 
+
+The `quote` operation is very important as it will turn up a lot as 
+we move ahead. Quote is written as `'` in code and it tells the evaluator 
+to **not** evaluate the following expression. As we saw earlier, anything we 
+enter into the REPL will be evaluated, and because of that we could not type 
+in `(1 2 3)` without getting an error. Typing in `'(1 2 3)` is perfectly 
+fine and results in the list `(1 2 3)`. 
+
+```
+# '(1 2 3)
+loading: '(1 2 3)
+started ctx: 148
+<< Context 148 finished with value (1 2 3) >>
+stack max:  11
+stack size: 256
+stack sp:   0
+```
+
+Quote is a bit interesting as it does not follow the pattern of a
+function application, which is a list where the first element is
+assumed to be function.  The quote mark, `'` is placed before the
+thing it "operates" on and it is not not enclosed in parenthesis! Now,
+this is just syntax and as the LBM code is read by the parser all things
+of the form `'a` is expanded into `(quote a)` and `(quote a)` fits the
+familiar pattern very well. Still, `quote` is not quite a function and this 
+is because when quoting something we want the thing we quote to be returned 
+to us unevaluated! In a function application the arguments are evaluated. 
+So `quote` falls into a small set of operations called **special forms**
+which are the topic of the next subsection. 
+
+### Special forms
