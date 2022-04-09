@@ -795,4 +795,4 @@ The `progn` special form
 
 
 
-@copy;
+    &copy; 2022 Bo Joel Svensson
