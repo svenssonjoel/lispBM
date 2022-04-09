@@ -583,10 +583,27 @@ in a list. The special part of a special form is that an application
 of a special form does **not** need to follow the same behavior as a
 function application (where all arguments are evaluated before the
 application). Why this is needed will become clear as we go through 
-whats special about each of the LBM special forms below. 
+whats special about each of the LBM special forms below. There aren't
+many of them, only 12, so fortunately not a lot of "special" behavior 
+to memorize. 
 
 We have already seen the special forms `define` and `quote`
 
 **DEFINE** 
 
+`define` takes two arguments, a symbol and a value. `define` 
+does not evaluate the first argument, because if it did that could 
+potentially result in something that is not a symbol anymore. Also, 
+if we imagine that define did evaluate the first argument, the result 
+would be that it ends up being impossible to associate any value with 
+any symbol! 
+
+
+    Imagine for a second that in the expression `(define a 10)`, the a
+    would be evaluated. Evaluating a symbol should result in a value if
+    there is a value associated with the symbol (symbols are also values,
+    so it could be another symbol) say the value is 5. Defining 5 to be 10 
+    doesn't make sense. The other option is that there is no value associated 
+    with the symbol `a`, in that case we get an error because `a` could not 
+    be evaluated.
 
