@@ -3,9 +3,9 @@
 
 LispBM (from now on called LBM) is a lisp dialect that was implemented
 to be run on small resource constrained systems. The look-and-feel of
-lispbm has been very much influenced by the series of videos based on
+LispBM has been very much influenced by the series of videos based on
 the SICP book (Structure and Interpretation of Computer Programs) by
-Harold Abelsson, Gerald Jay Sussman and Julie Sussman. The awesome
+Harold Abelson, Gerald Jay Sussman and Julie Sussman. The awesome
 series of videos about lisp programming can be found
 [here](https://www.youtube.com/playlist?list=PL8FE88AA54363BC46). Note
 that LBM is not 100% compatible with all code you see in the video series 
@@ -287,7 +287,7 @@ stack size: 256
 stack sp:   0
 ``` 
 Now, if the computer's guess is wrong we can help it by saying `(bigger)` or `(smaller)`. 
-Let't implement these functions. 
+Let's implement these functions. 
 
 ```
 (define smaller (lambda () (define big (- (guess-my-number) 1))))
@@ -385,3 +385,110 @@ Yay! Go computer!
 
 
 ## LBM Syntax and Semantics
+
+Languages in the Lisp family use the same data structure to represent
+programs as they do to organize data. This data structure is the *list*. 
+As a result the syntax relating to lists is very important get down early. 
+Languages that use the same representation for data and code, are said to 
+have a property called homoiconicity. The homoiconicity property is valuable 
+in situations where you are doing "meta-programming", writing programs 
+that result in programs, as for example when writing macros. In the very 
+beginning it can, however, be a bit confusing! But hang in there and 
+the benefits will become clear over time. 
+
+
+### Lists 
+
+Lists in LBM are enclosed in parentheses and can be arbitrarily nested. 
+So `(1 2 3)` is a list and `(1 (2 3) 4)` is a list where the second element 
+is again a list. Now, if we try to write `(1 2 3)` into the REPL and hit enter, 
+the REPL wont be happy with us!
+
+``` 
+# (1 2 3)
+loading: (1 2 3)
+started ctx: 144
+***	Error: eval_error
+
+<< Context 144 finished with value eval_error >>
+stack max:  11
+stack size: 256
+stack sp:   4
+```
+
+Typing `(1 2 3)` into the REPL resulted in an eval error. This is because 
+the default way in which lists are understood by LBM is as code. And 
+`(1 2 3)` is not a valid LBM program. 
+
+When a list such as `(a b c)` (for any a,b,c) is entered into the REPL
+the LBM evaluator will assume that this is an application of the function 
+`a` to the arguments `b` and `c`. The list `(+ 1 2)` on the other hand 
+is a valid program as the first element of the list is the addition function
+and it can be applied to the arguments `1` and `2`. 
+
+```
+# (+ 1 2)
+loading: (+ 1 2)
+started ctx: 144
+<< Context 144 finished with value 3 >>
+stack max:  11
+stack size: 256
+stack sp:   0
+```
+
+So, if lists that we give to the evaluator are assumed to be code, how
+do we create a list of data? We will see many answers to this
+questions throughout this manual but to begin with we will use a
+function application to create a list of data. LBM provides a function
+called `list` that takes an arbitrary number of arguments and returns
+a list containing those values. Now the list `(list 1 2 3)` is
+something that makes sense to the LBM evaluator, because the first
+element is the function `list`.
+
+```
+# (list 1 2 3)
+loading: (list 1 2 3)
+started ctx: 144
+<< Context 144 finished with value (1 2 3) >>
+stack max:  11
+stack size: 256
+stack sp:   0
+```
+
+### Symbols
+
+Symbols are very fundamental building blocks of LBM programs
+and data. A symbol is made up from a number of characters and we have
+seen some examples already, for example `list` or `guess-my-number`
+from the dive-in-intro. Symbols are used to name data or functions 
+but can also be used as values in themselves. For this introduction 
+to symbols we will focus on their usefulness for giving names to things. 
+
+To associate a value with a symbol, we use `define`. In this use-case 
+of symbols, you can think of them as basically variables. To define a 
+variable give, for example, the list `(define a 10)` to the REPL. 
+
+```
+# (define a 10)
+loading: (define a 10)
+started ctx: 144
+<< Context 144 finished with value a >>
+stack max:  11
+stack size: 256
+stack sp:   0
+```
+
+This sets up an association between the symbol `a` and the value 10. And 
+now if we enter `a` into the REPL and press enter, the REPL will reply 
+with `10`. 
+
+```
+# a
+loading: a
+started ctx: 148
+<< Context 148 finished with value 10 >>
+stack max:  11
+stack size: 256
+stack sp:   0
+```
+
