@@ -700,11 +700,11 @@ meta-programming capabilities. With macros you can define new language
 constructs to use within your programs. Macros is where a lot of 
 the power of lisp-like languages comes from. 
 
-Creating macro is done in a way that is on the surface very similar to
+Creating macro is done in a way that is, on the surface, very similar to
 creating a function. Here it is `(macro parameter-list macro-body)`
 compared to `(lambda parameter-list function-body)` for a function.
 
-The `macro-body` in an LBM program should be an expression that
+The `macro-body`, in an LBM program, should be an expression that
 evaluates into a program (this is where quasiqoutation becomes really
 useful). 
 
@@ -712,7 +712,7 @@ A big difference between a function application and a macro
 application is that when you apply a macro to arguments, those
 arguments are not evaluated. The arguments are available to the 
 `macro-body` in unevaluated form and you, the macro implementor, 
-decide what to do with those arguments (evaluate or not).
+decides what to do with those arguments (evaluate or not).
 
 Let's look at a basic macro here and then spend some entire 
 later chapter on the topic. 
@@ -722,6 +722,22 @@ later chapter on the topic.
     `(define ,name (lambda ,args ,body))))
 ``` 
 
+The above LBM code defines a macro and gives it the name `defun` (for
+define function). The macro itself takes 3 arguments, `name`, `args`
+and `body`. The `macro-body` is the expression `` `(define ,name
+(lambda ,args ,body))``. 
+
+The purpose of the `defun` macro is to let you define a function with
+a bit less typing on the keyboard. Instead of writing `(define f
+(lambda (x) (+ 100 x)))` you would write `(defun f (x) (+ 100 x))`. 
+
+In the macro application `(defun f (x) (+ 100 x))` we see that `defun`
+is applied to `f`, `(x)` and `(+ 100 x)`. Because `defun` is a macro,
+the arguments are passed into the macro body unevaluated and will be
+spliced into the expression `` `(define ,name (lambda ,args ,body))``, 
+which results in `(define f (lambda (x) (+ 100 x)))`. After splicing 
+in the unevaluated arguments into the macro-body, the resulting program is 
+evaluated and, in this case, the defininition of `f` takes place.
 
 
 # Built in functions
