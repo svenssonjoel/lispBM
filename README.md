@@ -7,6 +7,14 @@ pattern-matching implemented in C for 32 bit and 64 bit platforms.
 
 All programming languages need a mascot, so here is the LispBM llama by [PixiLady](https://www.instagram.com/pixiladyart/).
 
+## Documentation
+ - Work in progress [LispBM language reference](./doc/lbmref.md).
+ - Work in progress [LispBM programming manual](./doc/manual)
+ - C code documentation can be found [here](http://svenssonjoel.github.io/lispbm.html).
+ - LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).
+ - There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3TaqZoDOQqZcB9Yj-R1zS2DWDZ9q9).
+
+
 ## Purpose
 1. Have fun.
 2. Learn about lisp.
@@ -31,14 +39,6 @@ All programming languages need a mascot, so here is the LispBM llama by [PixiLad
 14. Concurrency.
 15. Message-passing.
 16. Pattern-matching.
-
-## Documentation
-
- - Work in progress [LispBM language reference](./doc/lbmref.md).
- - Work in progress [LispBM programming manual](./doc/manual)
- - C code documentation can be found [here](http://svenssonjoel.github.io/lispbm.html).
- - LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).
- - There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3TaqZoDOQqZcB9Yj-R1zS2DWDZ9q9).
 
 ## Want to get involved and help out?
 1. Are you interested in microcontrollers and programming languages?
