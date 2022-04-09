@@ -739,6 +739,14 @@ which results in `(define f (lambda (x) (+ 100 x)))`. After splicing
 in the unevaluated arguments into the macro-body, the resulting program is 
 evaluated and, in this case, the defininition of `f` takes place.
 
+--- 
+**NOTE**
+
+A macro body can execute arbitrary LBM code as long as the result 
+in the end is a program. 
+
+---
+
 
 # Built in functions
 
