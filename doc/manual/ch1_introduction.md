@@ -594,9 +594,108 @@ stack size: 256
 stack sp:   0
 ```
 
+To insert the result of evaluating an expression into a datastructure 
+using `,` is called to "splice". There is another splicing operator 
+that can be used together with the quasiquote and it is the `,@`. 
+This `,@` operation should be followed by some expression that 
+evaluates into a list, then all the element of that resulting list 
+is spliced into the datastructure. For example `` `(+ 1 ,@(list 2 3 4))``
+which results in the list `(+ 1 2 3 4)`.
+
+```
+# `(+ 1 ,@(list 2 3 4))
+loading: `(+ 1 ,@(list 2 3 4))
+started ctx: 172
+<< Context 172 finished with value (+ 1 2 3 4) >>
+stack max:  25
+stack size: 256
+stack sp:   0
+```
+
+Usages of `` ` ``, `,` and `,@` are also expanded by the parser 
+when the program is read into applications of `quote` and different 
+list appending functions. So just as with `'` the back-tick and comma-at
+is just surface syntax. 
+
+### Functions 
+
+In LBM you create functions using the special-form (keyword) `lambda`.
+The `lambda` creates an unnamed function, that can if you want to 
+be bound to a variable (symbol) using `define`.
+
+A function has the form `(lambda parameter-list function-body)` where
+the `parameter-list` could be for a two argument function `(x y)`, any
+list of "non-special" symbols is fine. The function body is an
+expression which can refer to the symbols in the parameter list. A
+concrete example of a function is `(lambda (x y) (+ (* 2 x) y))` which 
+takes two arguments `x` and `y` and computes `2x + y`.
+
+LBM supports higher-order-functions which means that functions can be
+used as input to other functions, or be returned from a function as a
+result. To enable this, an expression of the `(lambda parameter-list
+function-body` form is evaluated into a function object called a
+closure. This closure contains an environment containing bindings for
+all the variables in the `function-body` that is not in the parameter
+list. More about this over time in later chapters!
+
+Application of function is, as we know, done by writing down a list 
+where the first element is function and the rest of the list are arguments. 
+In the case of the `2x + y` anonymous function an application would look like. 
+
+```
+((lambda (x y) (+ (* 2 x) y)) 2 1) 
+```
+
+The above expression is a list, the first element in this list is `(lambda (x y) (+ (* 2 x) y))` 
+and the rest of the list is `2` `1`. So the evaluator will treat this as 
+an application and apply the function at the heap of the list to the arguments. 
 
 
-# Some built in functions
+```
+# ((lambda (x y) (+ (* 2 x) y)) 2 1)
+loading: ((lambda (x y) (+ (* 2 x) y)) 2 1)
+started ctx: 172
+<< Context 172 finished with value 5 >>
+stack max:  19
+stack size: 256
+stack sp:   0
+```
+
+---
+**NOTE** 
+
+Actually, the function application form of an expression `(f a b c)` 
+the `f` is also evaluated and should result in an applicable function form. 
+lambdas evaluate into closures which are the function objects that in the 
+end are applied to the arguments. 
+
+---
+
+To give a function a name, use `define`. Let's give a name to the 
+function above: 
+
+```
+(define twoxplusy (lambda (x y) (+ (* 2 x) y)))
+``` 
+
+Now it is possible to apply the function by placing the symbol `twoxplusy`
+at the head of an application form, for example `(twoxplusy 2 1)`:
+
+``` 
+# (twoxplusy 2 1)
+loading: (twoxplusy 2 1)
+started ctx: 178
+<< Context 178 finished with value 5 >>
+stack max:  12
+stack size: 256
+stack sp:   0
+```
+
+### Macros
+
+
+
+# Built in functions
 
 # Special forms
 
