@@ -599,6 +599,7 @@ would be that it ends up being impossible to associate any value with
 any symbol! 
 
 ---
+
 Imagine for a second that in the expression `(define a 10)`, the a
 would be evaluated. Evaluating a symbol should result in a value if
 there is a value associated with the symbol (symbols are also values,
@@ -606,4 +607,5 @@ so it could be another symbol) say the value is 5. Defining 5 to be 10
 doesn't make sense. The other option is that there is no value associated 
 with the symbol `a`, in that case we get an error because `a` could not 
 be evaluated.
+
 ---
