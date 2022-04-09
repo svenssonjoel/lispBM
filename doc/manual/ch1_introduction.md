@@ -620,14 +620,14 @@ is just surface syntax.
 ### Functions 
 
 In LBM you create functions using the special-form (keyword) `lambda`.
-The `lambda` creates an unnamed function, that can if you want to 
-be bound to a variable (symbol) using `define`.
+The `lambda` creates an unnamed function, that can be bound to a
+variable (symbol) using `define` if you wish.
 
 A function has the form `(lambda parameter-list function-body)` where
 the `parameter-list` could be for a two argument function `(x y)`, any
 list of "non-special" symbols is fine. The function body is an
 expression which can refer to the symbols in the parameter list. A
-concrete example of a function is `(lambda (x y) (+ (* 2 x) y))` which 
+concrete example of a function is `(lambda (x y) (+ (* 2 x) y))` which
 takes two arguments `x` and `y` and computes `2x + y`.
 
 LBM supports higher-order-functions which means that functions can be
@@ -638,17 +638,19 @@ closure. This closure contains an environment containing bindings for
 all the variables in the `function-body` that is not in the parameter
 list. More about this over time in later chapters!
 
-Application of function is, as we know, done by writing down a list 
-where the first element is function and the rest of the list are arguments. 
-In the case of the `2x + y` anonymous function an application would look like. 
+Application of function is, as we know, done by writing down a list
+where the first element is function and the rest of the list are
+arguments.  In the case of the `2x + y` anonymous function an
+application would look like.
 
 ```
 ((lambda (x y) (+ (* 2 x) y)) 2 1) 
 ```
 
-The above expression is a list, the first element in this list is `(lambda (x y) (+ (* 2 x) y))` 
-and the rest of the list is `2` `1`. So the evaluator will treat this as 
-an application and apply the function at the heap of the list to the arguments. 
+The above expression is a list, the first element in this list is
+`(lambda (x y) (+ (* 2 x) y))` and the rest of the list is `2` `1`. So
+the evaluator will treat this as an application and apply the function
+at the heap of the list to the arguments.
 
 
 ```
@@ -692,6 +694,33 @@ stack sp:   0
 ```
 
 ### Macros
+
+Together with quote and quasiquote, macros give powerful
+meta-programming capabilities. With macros you can define new language 
+constructs to use within your programs. Macros is where a lot of 
+the power of lisp-like languages comes from. 
+
+Creating macro is done in a way that is on the surface very similar to
+creating a function. Here it is `(macro parameter-list macro-body)`
+compared to `(lambda parameter-list function-body)` for a function.
+
+The `macro-body` in an LBM program should be an expression that
+evaluates into a program (this is where quasiqoutation becomes really
+useful). 
+
+A big difference between a function application and a macro
+application is that when you apply a macro to arguments, those
+arguments are not evaluated. The arguments are available to the 
+`macro-body` in unevaluated form and you, the macro implementor, 
+decide what to do with those arguments (evaluate or not).
+
+Let's look at a basic macro here and then spend some entire 
+later chapter on the topic. 
+
+``` lisp
+(define defun (macro (name args body) 
+    `(define ,name (lambda ,args ,body))))
+``` 
 
 
 
