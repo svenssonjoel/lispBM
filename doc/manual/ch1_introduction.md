@@ -32,11 +32,11 @@ Clone the LispBM repository from [GitHub](https://github.com/svenssonjoel/lispBM
 ```
 git clone https://github.com/svenssonjoel/lispBM.git
 ``` 
-Then go into the `lispBM` directory and the repl-cps subdirectory.
+Then go into the `lispBM` directory and the `repl` subdirectory.
 
 ``` 
 cd lispBM
-cd repl-cps
+cd repl
 ``` 
 
 Now you have the choice of compiling the REPL either a 32bit application 

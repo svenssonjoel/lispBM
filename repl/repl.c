@@ -591,24 +591,6 @@ int main(int argc, char **argv) {
   
       
       lbm_add_extension("print", ext_print);
-    } else if (strncmp(str, ":prelude", 8) == 0) {
-
-      lbm_pause_eval();
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        sleep_callback(10);
-      }
-
-      prelude_load(&string_tok_state,
-                   &string_tok);
-
-
-      lbm_load_and_eval_program(&string_tok);
-
-      lbm_continue_eval();
-      /* Something better is needed.
-         this sleep ís to ensure the string is alive until parsing
-         is done */
-      sleep_callback(10000);
     } else if (strncmp(str, ":send", 5) == 0) {
 
       int id;
