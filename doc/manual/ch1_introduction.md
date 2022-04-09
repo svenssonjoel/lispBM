@@ -747,8 +747,15 @@ in the end is a program.
 
 ---
 
+### Conditionals and truth
 
-# Built in functions
+### Local Environments
+
+### Values and types
+
+### Sequences of operations
+
+### Pattern matching
 
 # Special forms
 
