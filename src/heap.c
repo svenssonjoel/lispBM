@@ -587,6 +587,24 @@ lbm_value lbm_car(lbm_value c){
   return lbm_enc_sym(SYM_TERROR);
 }
 
+lbm_value lbm_cadr(lbm_value c) {
+
+  lbm_value tmp;
+
+  if (lbm_is_ptr(c)) {
+    tmp = ref_cell(c)->cdr;
+
+    if (lbm_is_ptr(tmp)) {
+      return ref_cell(tmp)->car;
+    } else if (lbm_is_symbol(tmp) && lbm_dec_sym(tmp) == SYM_NIL) {
+      return tmp;
+    }
+  } else if (lbm_is_symbol(c) && lbm_dec_sym(c) == SYM_NIL) {
+    return c;
+  }
+  return lbm_enc_sym(SYM_TERROR);
+}
+
 lbm_value lbm_cdr(lbm_value c){
 
   if (lbm_type_of(c) == LBM_TYPE_SYMBOL &&

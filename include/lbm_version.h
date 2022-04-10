@@ -25,11 +25,15 @@
 /** LBM minor version */
 #define LBM_MINOR_VERSION 5
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 1
+#define LBM_PATCH_VERSION 2
 
 /*! \page changelog Changelog
 
 
+Apr 10 2022: Version 0.5.2 
+
+- Added lbm_cadr and replaced lbm_car(lbm_cdr(x)) with lbm_cadr(x) in
+  the evaluator.
 
 Apr 10 2022: Version 0.5.1
  - Removed the prelude.lisp, prelude.xxd step of building LBM.

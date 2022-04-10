@@ -803,7 +803,7 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
   lbm_value binding;
 
   if (lbm_is_match_binder(p)) {
-    lbm_value var = lbm_car(lbm_cdr(p));
+    lbm_value var = lbm_cadr(p);
     lbm_value bindertype = lbm_car(p);
 
     if (!lbm_is_symbol(var)) return false;
@@ -812,10 +812,8 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
     case SYM_MATCH_ANY:
       if (lbm_dec_sym(var) == SYM_DONTCARE) {
         return true;
-      } else {
-        break;
       }
-      return false;
+      break;
     case SYM_MATCH_I:
       if (lbm_type_of(e) == LBM_TYPE_I) {
         if (lbm_dec_sym(var) == SYM_DONTCARE) {
@@ -925,7 +923,7 @@ static int find_match(lbm_value plist, lbm_value elist, lbm_value *e, lbm_value 
     while (lbm_type_of(curr_p) == LBM_TYPE_CONS) {
       if (match(lbm_car(lbm_car(curr_p)), lbm_car(curr_e), env, gc)) {
         if (*gc) return -1;
-        *e = lbm_car(lbm_cdr(lbm_car(curr_p)));
+        *e = lbm_cadr(lbm_car(curr_p));
         return n;
       }
       curr_p = lbm_cdr(curr_p);
@@ -1121,7 +1119,7 @@ static inline void eval_selfevaluating(eval_context_t *ctx) {
 }
 
 static inline void eval_quote(eval_context_t *ctx) {
-  ctx->r = lbm_car(lbm_cdr(ctx->curr_exp));
+  ctx->r = lbm_cadr(ctx->curr_exp);
   ctx->app_cont = true;
 }
 
@@ -1165,7 +1163,7 @@ static inline void eval_callcc(eval_context_t *ctx) {
   CONS_WITH_GC(acont, lbm_enc_sym(SYM_CONT), cont_array, cont_array);
 
   /* Create an application */
-  lbm_value fun_arg = lbm_car(lbm_cdr(ctx->curr_exp));
+  lbm_value fun_arg = lbm_cadr(ctx->curr_exp);
   lbm_value app = NIL;
   CONS_WITH_GC(app, acont, app, acont);
   CONS_WITH_GC(app, fun_arg, app, app);
@@ -1254,8 +1252,8 @@ static inline void eval_lambda(eval_context_t *ctx) {
   lbm_value params;
   lbm_value closure;
   CONS_WITH_GC(env_end, env_cpy, NIL, env_cpy);
-  CONS_WITH_GC(body, lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp))), env_end, env_end);
-  CONS_WITH_GC(params, lbm_car(lbm_cdr(ctx->curr_exp)), body, body);
+  CONS_WITH_GC(body, lbm_cadr(lbm_cdr(ctx->curr_exp)), env_end, env_end);
+  CONS_WITH_GC(params, lbm_cadr(ctx->curr_exp), body, body);
   CONS_WITH_GC(closure, lbm_enc_sym(SYM_CLOSURE), params, params);
 
   ctx->app_cont = true;
@@ -1267,20 +1265,20 @@ static inline void eval_if(eval_context_t *ctx) {
 
   lbm_value cddr = lbm_cdr(lbm_cdr(ctx->curr_exp));
   lbm_value then_branch = lbm_car(cddr);
-  lbm_value else_branch = lbm_car(lbm_cdr(cddr));
+  lbm_value else_branch = lbm_cadr(cddr);
 
   CHECK_STACK(lbm_push_4(&ctx->K,
                          else_branch,
                          then_branch,
                          ctx->curr_env,
                          lbm_enc_u(IF)));
-  ctx->curr_exp = lbm_car(lbm_cdr(ctx->curr_exp));
+  ctx->curr_exp = lbm_cadr(ctx->curr_exp);
 }
 
 static inline void eval_let(eval_context_t *ctx) {
   lbm_value orig_env = ctx->curr_env;
-  lbm_value binds    = lbm_car(lbm_cdr(ctx->curr_exp)); // key value pairs.
-  lbm_value exp      = lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp))); // exp to evaluate in the new env.
+  lbm_value binds    = lbm_cadr(ctx->curr_exp); // key value pairs.
+  lbm_value exp      = lbm_cadr(lbm_cdr(ctx->curr_exp)); // exp to evaluate in the new env.
 
   lbm_value curr = binds;
   lbm_value new_env = orig_env;
@@ -1304,7 +1302,7 @@ static inline void eval_let(eval_context_t *ctx) {
   }
 
   lbm_value key0 = lbm_car(lbm_car(binds));
-  lbm_value val0_exp = lbm_car(lbm_cdr(lbm_car(binds)));
+  lbm_value val0_exp = lbm_cadr(lbm_car(binds));
 
   CHECK_STACK(lbm_push_5(&ctx->K, exp, lbm_cdr(binds), new_env,
                          key0, lbm_enc_u(BIND_TO_KEY_REST)));
@@ -1451,7 +1449,7 @@ static inline void cont_expand_macro(eval_context_t *ctx) {
   if (lbm_is_macro(ctx->r)) {
 
     lbm_value m = ctx->r;
-    lbm_value curr_param = lbm_car(lbm_cdr(m));
+    lbm_value curr_param = lbm_cadr(m);
     lbm_value curr_arg = args;
     lbm_value expand_env = env;
     while (lbm_type_of(curr_param) == LBM_TYPE_CONS &&
@@ -1468,7 +1466,7 @@ static inline void cont_expand_macro(eval_context_t *ctx) {
       curr_arg   = lbm_cdr(curr_arg);
     }
     lbm_stack_drop(&ctx->K, 2);
-    ctx->curr_exp = lbm_car(lbm_cdr(lbm_cdr(m)));
+    ctx->curr_exp = lbm_cadr(lbm_cdr(m));
     ctx->curr_env = expand_env;
     ctx->app_cont = false;
     return;
@@ -1891,7 +1889,7 @@ static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
 
   if (lbm_is_list(rest)) {
     lbm_value keyn = lbm_car(lbm_car(rest));
-    lbm_value valn_exp = lbm_car(lbm_cdr(lbm_car(rest)));
+    lbm_value valn_exp = lbm_cadr(lbm_car(rest));
 
     CHECK_STACK(lbm_push_4(&ctx->K, lbm_cdr(rest), env, keyn, lbm_enc_u(BIND_TO_KEY_REST)));
 
@@ -1970,7 +1968,7 @@ static inline void cont_match(eval_context_t *ctx) {
     ctx->app_cont = true;
   } else if (lbm_is_list(patterns)) {
     lbm_value pattern = lbm_car(lbm_car(patterns));
-    lbm_value body    = lbm_car(lbm_cdr(lbm_car(patterns)));
+    lbm_value body    = lbm_cadr(lbm_car(patterns));
 
     if (match(pattern, e, &new_env, &do_gc)) {
       ctx->curr_env = new_env;
@@ -2280,7 +2278,7 @@ static inline void cont_application_start(eval_context_t *ctx) {
      */
     lbm_value env = (lbm_value)sptr[0];
 
-    lbm_value curr_param = (lbm_car(lbm_cdr(ctx->r)));
+    lbm_value curr_param = lbm_cadr(ctx->r);
     lbm_value curr_arg = args;
     lbm_value expand_env = env;
     while (lbm_type_of(curr_param) == LBM_TYPE_CONS &&
@@ -2305,7 +2303,7 @@ static inline void cont_application_start(eval_context_t *ctx) {
     /* CHECK_STACK(lbm_push_u32_2(&ctx->K, */
     /*                            env, */
     /*                            lbm_enc_u(EVAL_R))); */
-    lbm_value exp = lbm_car(lbm_cdr(lbm_cdr(ctx->r)));
+    lbm_value exp = lbm_cadr(lbm_cdr(ctx->r));
     ctx->curr_exp = exp;
     ctx->curr_env = expand_env;
     ctx->app_cont = false;
