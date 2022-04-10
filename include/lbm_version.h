@@ -30,10 +30,13 @@
 /*! \page changelog Changelog
 
 
-Apr 10 2022: Version 0.5.2 
-
-- Added lbm_cadr and replaced lbm_car(lbm_cdr(x)) with lbm_cadr(x) in
-  the evaluator.
+Apr 10 2022: Version 0.5.2
+ - Rewrite progn to update stack in place when possible.
+ - Removed a bunch of convertion back and forth from C and LBM representation
+   of continuation identifiers in eval_cps. They are now compared in encoded
+   form in the evaluator.
+ - Added lbm_cadr and replaced lbm_car(lbm_cdr(x)) with lbm_cadr(x) in
+   the evaluator.
 
 Apr 10 2022: Version 0.5.1
  - Removed the prelude.lisp, prelude.xxd step of building LBM.
