@@ -29,7 +29,10 @@
 
 /*! \page changelog Changelog
 
-Apr 02 2022: Version 0.5.1
+
+
+Apr 10 2022: Version 0.5.1
+ - Removed the prelude.lisp, prelude.xxd step of building LBM.
  - A continuation created by call-cc can be applied to 0 or 1 argument.
    If there are 0 arguments an implicit application to nil takes place.
 
