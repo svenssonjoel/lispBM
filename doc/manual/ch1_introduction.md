@@ -513,7 +513,7 @@ Characters that are ok as the first character in a symbol:
 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>#
 ```
 
-Characters that are ok on any other position withing a symbol name string: 
+Characters that are ok on any other position within a symbol name string: 
 ```
 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!?
 ```
@@ -550,7 +550,7 @@ stack sp:   0
 ```
 
 Any LBM expression can be quoted and essentially then viewed as a
-datastructure rather than as code. For example you can quote any
+data-structure rather than as code. For example you can quote any
 symbol:
 
 ```
@@ -564,9 +564,9 @@ stack sp:   0
 ```
 
 Quoted symbols is very common to see when writing programs that use
-symbols not as variables but as data in themself. A symbol can for
+symbols not as variables but as data in them self. A symbol can for
 example be used as a tag or label. For example if you want to keep
-track of your apples and bananas, you could create a datastructure
+track of your apples and bananas, you could create a data-structure
 like this `(list (list 'apples 10) (list 'bananas 15))`.
 
 ```
@@ -629,12 +629,12 @@ stack size: 256
 stack sp:   0
 ```
 
-To insert the result of evaluating an expression into a datastructure 
+To insert the result of evaluating an expression into a data-structure 
 using `,` is called to "splice". There is another splicing operator 
 that can be used together with the quasiquote and it is the `,@`. 
 This `,@` operation should be followed by some expression that 
 evaluates into a list, then all the element of that resulting list 
-is spliced into the datastructure. For example `` `(+ 1 ,@(list 2 3 4))``
+is spliced into the data-structure. For example `` `(+ 1 ,@(list 2 3 4))``
 which results in the list `(+ 1 2 3 4)`.
 
 ```
@@ -772,7 +772,7 @@ the arguments are passed into the macro body unevaluated and will be
 spliced into the expression `` `(define ,name (lambda ,args ,body))``, 
 which results in `(define f (lambda (x) (+ 100 x)))`. After splicing 
 in the unevaluated arguments into the macro-body, the resulting program is 
-evaluated and, in this case, the defininition of `f` takes place.
+evaluated and, in this case, the definition of `f` takes place.
 
 --- 
 **NOTE**
@@ -794,8 +794,73 @@ on. This macro is available to you in the REPL.
 ### Conditionals and truth
 
 in LBM, only the symbol `nil` is considered to be false, any 
-other value is considered true. 
+other value is considered true. If you want to explicitly express 
+"true" there is a symbol specifically for this purpose, `t`. 
 
+So `(if t 1 2)` evaluates to `1`. `t` is a special symbol that cannot
+be redefined (using `define` to any new value), by default the symbol
+`t` evaluates to `t`. 
+
+The syntax for a conditional is `(if condition-expr then-expr else-expr)`
+and if `condition-expr` evaluates to something that is considered true, 
+the `then-expr` is evaluated. If `condition-expr` evaluates to nil, 
+the `else-expr` is evaluated. 
+
+LBM has two different equality checking functions, one is called `eq` and 
+it can be used to compare any LBM value to any other and utilizes what is
+called structural equality. The other equality operation is `=` and 
+it is specifically for comparing numerical values to each other. For example 
+`(= 'monkey 'ostrich)` will result in a `type-error` but the following 
+are all valid expressions: `(eq 'monkey 'ostrich)`, `(eq 1 1)` and 
+`(= 1 2)`. 
+
+let's define a function that recognizes monkeys. 
+
+``` lisp
+(defun monkey? (animal) (eq animal 'monkey))
+```
+
+The `monkey?` function returns `t` for monkeys
+
+``` lisp
+# (monkey? 'monkey)
+loading: (monkey? 'monkey)
+started ctx: 195
+<< Context 195 finished with value t >>
+stack max:  11
+stack size: 256
+stack sp:   0
+```
+and it returns false (`nil`) for anything else. 
+
+``` lisp
+# (monkey? 'ostrich)
+loading: (monkey? 'ostrich)
+started ctx: 195
+<< Context 195 finished with value nil >>
+stack max:  11
+stack size: 256
+stack sp:   0
+``` 
+
+---
+**NOTE**
+
+In this section we have used quoted symbols quite a bit. For example
+we checked for equality between a monkey and an ostrich by doing `(eq
+'monkey 'ostrich)`. quoting symbol arguments like this is quite normal 
+when we are interested in the symbol itself as the value, and not what 
+it would happen to be bound to. 
+
+---
+
+You can combine truth values using the boolean operations `and`, `or`
+and negate a condition using `not`. The `and` and `or` operations
+takes an arbitrary number of arguments and are short-circuiting, that
+is, they terminate as soon as the resulting value can be known. For an
+`and` operation that means it can return false (`nil`) as soon as it
+sees that one of its arguments are false. For `or` it can return true as 
+soon as it sees a non-nil value.
 
 ### Environments: global and local
 
