@@ -797,7 +797,7 @@ in LBM, only the symbol `nil` is considered to be false, any
 other value is considered true. 
 
 
-### Local Environments
+### Environments: global and local
 
 ### Values and types
 
