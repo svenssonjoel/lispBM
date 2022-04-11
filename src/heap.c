@@ -444,8 +444,8 @@ int lbm_gc_mark_phase(lbm_value env) {
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
 
-    res &= lbm_push(s, lbm_cdr(curr));
-    res &= lbm_push(s, lbm_car(curr));
+    res &= lbm_push(s, ref_cell(curr)->cdr);
+    res &= lbm_push(s, ref_cell(curr)->car);
 
     if (!res) break;
   }
@@ -474,7 +474,7 @@ int lbm_gc_mark_freelist() {
   while (lbm_is_ptr(curr)){
     t = ref_cell(curr);
     set_gc_mark(t);
-    curr = lbm_cdr(curr);
+    curr = t->cdr;
 
     heap_state.gc_marked ++;
   }
