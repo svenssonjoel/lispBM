@@ -782,6 +782,15 @@ in the end is a program.
 
 ---
 
+---
+**NOTE** 
+
+The `defun` macro is quite useful, so we will be using it from now 
+on. This macro is available to you in the REPL. 
+
+---
+
+
 ### Conditionals and truth
 
 
