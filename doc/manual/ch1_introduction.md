@@ -793,6 +793,8 @@ on. This macro is available to you in the REPL.
 
 ### Conditionals and truth
 
+in LBM, only the symbol `nil` is considered to be false, any 
+other value is considered true. 
 
 
 ### Local Environments
@@ -803,8 +805,8 @@ on. This macro is available to you in the REPL.
 
 ### Pattern matching
 
-# Special forms
-
+# The special forms (or keywords) of LispBM
+ 
 The special forms of LBM are a bit like the set of keywords you find
 in many languages. The special forms are each identified via a symbol
 and they are "applied" in a similar way to functions. That is, if you
