@@ -96,27 +96,13 @@ Allocated arrays: 0
 Symbol table size: 676 Bytes
 ```
 
-There is a set of LBM functions mostly for basic operations on lists that 
-the REPL will load dynamically when first used. 
+There is a set of LBM functions mostly for basic operations on lists
+that the REPL will load dynamically when first used. One of these
+functions is called `iota` and it creates a list enumerating numbers
+from 0 up to the argument provided.
 
-```
-# :prelude
-``` 
-The LBM repl will answer something like this: 
-
-``` 
-<< Context 138 finished with value foldl >>
-stack max:  40
-stack size: 256
-stack sp:   0
-``` 
-
-If the `:info` command is run again we can see that the "prelude" library 
-occupies some amount of heap memory. One of these functions is called `iota`
-and it creates a list enumerating numbers from 0 up to the argument provided. 
-
-To test if this dynamic loading of the library function works type `(iota 1024)`
-and press enter. 
+To test if this dynamic loading of the library function works type
+`(iota 1024)` and press enter.
 
 ``` 
 # (iota 1024)
