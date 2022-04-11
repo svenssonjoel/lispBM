@@ -458,6 +458,16 @@ stack sp:   0
 In a function application the arguments are evaluated before the function 
 at the head of the list is applied to them.
 
+LBM lists are constructed from so-called cons-cells. Each cons-cell
+has two fields and in each field, any LBM value can be stored. The
+list we constructed earlier using `(list 1 2 3)` takes up three cons
+cells.  The first of these cons-cells has the value `1` in the first
+(called `car` for historical reasons) fields of the cons-cell, the 
+second field (called `cdr`) holds a pointer to the "rest of the list". 
+In other words, lists are linked-lists. The very last and unused `cdr` field 
+holds the symbol `nil` terminating the linked-list. `nil` is considered 
+an "empty-list".
+
 ### Symbols
 
 Symbols are very fundamental building blocks of LBM programs
@@ -773,6 +783,8 @@ in the end is a program.
 ---
 
 ### Conditionals and truth
+
+
 
 ### Local Environments
 
