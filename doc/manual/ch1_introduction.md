@@ -850,6 +850,76 @@ soon as it sees a non-nil value.
 
 ### Environments: global and local
 
+We have already touched upon environments earlier when we used `define` to
+globally associate a value with a symbol. You can define an association between
+a value and a symbol anywhere and as soon as that definition has evaluated 
+the association is visible everywhere. You can also redefine a symbol to be 
+associated with another value. 
+
+Type `(define a 10)` into the REPL and press enter. 
+
+If you now enter `a` into the repl and press enter, the REPL will reply as: 
+
+```
+# a
+loading: a
+started ctx: 141
+<< Context 141 finished with value 10 >>
+stack max:  11
+stack size: 256
+stack sp:   0
+```
+
+The REPL also supports a command `:env` that shows information about current 
+global bindings: 
+
+```
+# :env
+Environment:
+  (a . 10)
+Variables:
+``` 
+
+The output above shows that there is one binding present in the global 
+environment and that is the binding of `10` to the symbol `a`. The output 
+also shows that there are no "Variable"-bindings currently. 
+
+These "Variables" are a different kind of global variable supported by LBM. 
+A variable is created whenever you define a symbol starting with the character
+`#`, and the value is stored in a way that is more efficient to look up. 
+There is a limited number of these variables (specifyable by the programmer 
+that integrates LBM into a system) so use them only where performance matter 
+the most. 
+
+For example type `(define #a 100)` into the REPL and press enter. Then
+execute the `:env` command again. The output should now read: 
+
+```
+# :env
+Environment:
+  (a . 10)
+Variables:
+  #a = 100
+```
+
+Local environments are created using the `let` special form in LBM and 
+a let expression takes the following form: 
+
+```
+(let ((binder1 value1-exp)
+      (binder2 value2-exp)
+      ... 
+      (binderN valueN-exp)) 
+  body-expr)
+``` 
+The binders `binder1` to `binderN` are all symbols and the bindings are 
+only visible inside of the `body-expr`. If a local binding shares the same 
+name as a global one, inside of the `body-expr`, the local binding shadows 
+the global one. 
+
+Variables, `#`-symbols cannot be bound locally using `let`. Evaluating a
+`#`-symbol will always yield the globally defined value.
+
 ### Values and types
 
 ### Sequences of operations
