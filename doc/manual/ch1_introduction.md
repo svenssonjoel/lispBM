@@ -495,6 +495,31 @@ stack size: 256
 stack sp:   0
 ```
 
+LBM is case-insensitive when it comes to symbols, so `a` and `A` is the 
+considered to be the same symbol. 
+
+Characters that are ok as the first character in a symbol:
+``` 
+abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/=<>#
+```
+
+Characters that are ok on any other position withing a symbol name string: 
+```
+abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-*/=<>!?
+```
+
+---
+**NOTE**
+
+Symbols starting with the character `#` are allocated by the LBM 
+system in a special way in order to make value lookup (if a value 
+is bound to that symbol) more efficient. So, symbols should not start with 
+`#` unless you specifically want to use that symbol as a binding of a value 
+that you are going to use a lot and where efficiency will matter a lot.
+
+---
+
+
 ### An important concept with an unremarkable name: Quote 
 
 The `quote` operation is very important as it will turn up a lot as 
