@@ -923,9 +923,11 @@ Variables, `#`-symbols cannot be bound locally using `let`. Evaluating a
 ### Values and types
 
 
-| Type     | Description  | Example | 
-| ---      | ---          |  ---    |
-| type-i   | 28Bit integer on 32bit platforms, 56bit integer on 64 bit platform | 
+| Type     | Description                                                                           | Example       | 
+| ---      | ---                                                                                   |  ---          |
+| type-i   | 28bit integer on 32bit platforms, 56bit integer on 64bit platforms.                   | `1`, `-5`     |
+| type-u   | 28bit unsigned integer on 32bit platforms, 56bit unsigned integer on 64bit platforms. | `1u`, `5u`    |
+| type-i32 | 32bit integer.                                                                        | `1u32`, `5u32`|          
 
 ### Sequences of operations
 
