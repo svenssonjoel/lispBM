@@ -887,7 +887,7 @@ also shows that there are no "Variable"-bindings currently.
 These "Variables" are a different kind of global variable supported by LBM. 
 A variable is created whenever you define a symbol starting with the character
 `#`, and the value is stored in a way that is more efficient to look up. 
-There is a limited number of these variables (specifyable by the programmer 
+There is a limited number of these variables (specifiable by the programmer 
 that integrates LBM into a system) so use them only where performance matter 
 the most. 
 
@@ -1034,7 +1034,7 @@ a lot of "special" behavior to memorize.
 If we look at `(if cond-expr then-expr else-expr)` and `(define a 10)`
 they look very similar to a function application `(f a b)`. In a
 function application the arguments `a` and `b` will be evaluated
-before the function is applied. This behaviour would be very strange
+before the function is applied. This behavior would be very strange
 in the case of `if` where it would mean that the `then-expr` and
 `else-expr` are both evaluated. In a definition it would be strange to
 evaluate the symbol `a` before creating the binding.
