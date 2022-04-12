@@ -922,6 +922,11 @@ Variables, `#`-symbols cannot be bound locally using `let`. Evaluating a
 
 ### Values and types
 
+
+| Type  | Example values |
+| ---   | ---            | 
+
+
 ### Sequences of operations
 
 ### Pattern matching
