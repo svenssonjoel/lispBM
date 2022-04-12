@@ -923,9 +923,9 @@ Variables, `#`-symbols cannot be bound locally using `let`. Evaluating a
 ### Values and types
 
 
-| Type  | Example values |
-| ---   | ---            | 
-
+| Type     | Description  | Example | 
+| ---      | ---          |  ---    |
+| type-i   | 28Bit integer on 32bit platforms, 56bit integer on 64 bit platform | 
 
 ### Sequences of operations
 
