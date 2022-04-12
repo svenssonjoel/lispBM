@@ -1021,97 +1021,91 @@ int lbm_perform_gc(void) {
 /****************************************************/
 /* Evaluation functions                             */
 
-static inline void eval_symbol(eval_context_t *ctx) {
-  lbm_value value;
+static inline bool eval_symbol(eval_context_t *ctx, lbm_value *value) {
 
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
   if (s < SPECIAL_SYMBOLS_END ||
       (lbm_get_extension(lbm_dec_sym(ctx->curr_exp)) != NULL)) {
     // Special symbols and extension symbols evaluate to themselves
-    value = ctx->curr_exp;
-  } else if (s >= VARIABLE_SYMBOLS_START &&
+    *value = ctx->curr_exp;
+    return true;
+  }
+
+  if (s >= VARIABLE_SYMBOLS_START &&
              s < VARIABLE_SYMBOLS_END) {
-    value = lbm_get_var(s);
-  } else {
-    // If not special, check if there is a binding in the environments
-    value = lbm_env_lookup(ctx->curr_exp, ctx->curr_env);
-    if (lbm_type_of(value) == LBM_TYPE_SYMBOL &&
-        lbm_dec_sym(value) == SYM_NOT_FOUND) {
-
-      value = lbm_env_lookup(ctx->curr_exp, *lbm_get_env_ptr());
-    }
+    *value = lbm_get_var(s);
+    return true;
   }
 
-  if (dynamic_load_callback &&
-      lbm_type_of(value) == LBM_TYPE_SYMBOL &&
-      lbm_dec_sym(value) == SYM_NOT_FOUND ) {
-    const char *sym_str = lbm_get_name_by_symbol(lbm_dec_sym(ctx->curr_exp));
-    const char *code_str = NULL;
-    if (! dynamic_load_callback(sym_str, &code_str)) {
-      error_ctx(lbm_enc_sym(SYM_NOT_FOUND));
-      return;
-    } else {
-      CHECK_STACK(lbm_push_2(&ctx->K, ctx->curr_exp, RESUME));
-
-      lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
-
-      if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
-        gc(NIL,NIL);
-        cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
-        if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
-          error_ctx(cell);
-          return;
-        }
-      }
-
-      lbm_array_header_t *array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
-
-      if (array == NULL) {
-        gc(cell,NIL);
-        array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
-        if (array == NULL) {
-          error_ctx(lbm_enc_sym(SYM_MERROR));
-          return;
-        }
-      }
-
-      array->data = (lbm_uint*)code_str;
-      array->elt_type = LBM_TYPE_CHAR;
-      array->size = strlen(code_str);
-
-      lbm_set_car(cell, (lbm_uint)array);
-      lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
-
-      cell = cell | LBM_TYPE_ARRAY;
-
-      lbm_value stream = token_stream_from_string_value(cell);
-      if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
-        gc(cell,NIL);
-        stream = token_stream_from_string_value(cell);
-        if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
-          error_ctx(stream);
-          return;
-        }
-      }
-
-      lbm_value loader = NIL;
-      CONS_WITH_GC(loader, stream, loader, stream);
-      CONS_WITH_GC(loader, lbm_enc_sym(SYM_READ), loader, loader);
-      lbm_value evaluator = NIL;
-      CONS_WITH_GC(evaluator, loader, evaluator, loader);
-      CONS_WITH_GC(evaluator, lbm_enc_sym(SYM_EVAL), evaluator, evaluator);
-      ctx->curr_exp = evaluator;
-      return;
-    }
+  if (lbm_env_lookup_b(value, ctx->curr_exp, ctx->curr_env)) {
+    return true;
+  } else if (lbm_env_lookup_b(value, ctx->curr_exp, *lbm_get_env_ptr())) {
+    return true;
   }
-  if (lbm_is_error(value)) {
-    error_ctx(value);
-  } else {
-    ctx->app_cont = true;
-    ctx->r = value;
-  }
+  return false;
 }
 
+static inline void dynamic_load(eval_context_t *ctx) {
+
+  const char *sym_str = lbm_get_name_by_symbol(lbm_dec_sym(ctx->curr_exp));
+  const char *code_str = NULL;
+  if (! dynamic_load_callback(sym_str, &code_str)) {
+    error_ctx(lbm_enc_sym(SYM_NOT_FOUND));
+    return;
+  } else {
+    CHECK_STACK(lbm_push_2(&ctx->K, ctx->curr_exp, RESUME));
+
+    lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+
+    if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
+      gc(NIL,NIL);
+      cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+      if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
+        error_ctx(cell);
+        return;
+      }
+    }
+
+    lbm_array_header_t *array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
+
+    if (array == NULL) {
+      gc(cell,NIL);
+      array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / (sizeof(lbm_uint)));
+      if (array == NULL) {
+        error_ctx(lbm_enc_sym(SYM_MERROR));
+        return;
+      }
+    }
+
+    array->data = (lbm_uint*)code_str;
+    array->elt_type = LBM_TYPE_CHAR;
+    array->size = strlen(code_str);
+
+    lbm_set_car(cell, (lbm_uint)array);
+    lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
+
+    cell = cell | LBM_TYPE_ARRAY;
+
+    lbm_value stream = token_stream_from_string_value(cell);
+    if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
+      gc(cell,NIL);
+      stream = token_stream_from_string_value(cell);
+      if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
+        error_ctx(stream);
+        return;
+      }
+    }
+
+    lbm_value loader = NIL;
+    CONS_WITH_GC(loader, stream, loader, stream);
+    CONS_WITH_GC(loader, lbm_enc_sym(SYM_READ), loader, loader);
+    lbm_value evaluator = NIL;
+    CONS_WITH_GC(evaluator, loader, evaluator, loader);
+    CONS_WITH_GC(evaluator, lbm_enc_sym(SYM_EVAL), evaluator, evaluator);
+    ctx->curr_exp = evaluator;
+    return;
+  }
+}
 
 static inline void eval_selfevaluating(eval_context_t *ctx) {
   ctx->r = ctx->curr_exp;
@@ -2400,7 +2394,25 @@ static void evaluation_step(void){
 
   switch (lbm_type_of(ctx->curr_exp)) {
 
-  case LBM_TYPE_SYMBOL: eval_symbol(ctx); return;
+  case LBM_TYPE_SYMBOL: {
+    lbm_value s;
+    if (ctx->curr_exp == NIL) {
+      ctx->app_cont = true;
+      ctx->r = NIL;
+      return;
+    }
+
+    if (eval_symbol(ctx, &s)) {
+      ctx->app_cont = true;
+      ctx->r = s;
+      return;
+    }
+
+    if (dynamic_load_callback) {
+      dynamic_load(ctx);
+    }
+    return;
+  }
   case LBM_TYPE_FLOAT: /* fall through */
   case LBM_TYPE_DOUBLE:
   case LBM_TYPE_U32:

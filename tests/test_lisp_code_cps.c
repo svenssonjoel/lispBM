@@ -167,7 +167,7 @@ bool dyn_load(const char *str, const char **code) {
 }
 
   //lbm_value ext_even(lbm_value *args, lbm_uint argn) {
-LBM_EXTENSION(ext_even, args, argn){ 
+LBM_EXTENSION(ext_even, args, argn){
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
   lbm_value v = args[0];
@@ -353,6 +353,8 @@ int main(int argc, char **argv) {
 
   lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
+  lbm_set_verbose(true);
+
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 1;
@@ -401,7 +403,7 @@ int main(int argc, char **argv) {
     printf("Failed to load and evaluate the test program\n");
     return 0;
   }
-  
+
   lbm_continue_eval();
 
 

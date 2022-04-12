@@ -30,7 +30,8 @@
 /*! \page changelog Changelog
 
 
-Apr 10 2022: Version 0.5.2
+Apr 12 2022: Version 0.5.2
+ - Restructure symbol evaluation for efficiency and readability.
  - Rewrite progn to update stack in place when possible.
  - Removed a bunch of convertion back and forth from C and LBM representation
    of continuation identifiers in eval_cps. They are now compared in encoded
