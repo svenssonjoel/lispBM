@@ -1923,7 +1923,7 @@ static inline void cont_if(eval_context_t *ctx) {
   if (lbm_is_symbol_nil(arg)) {
     ctx->curr_exp = sptr[0]; // else branch
   } else {
-    ctx->curr_exp = sptr[1];
+    ctx->curr_exp = sptr[1]; // then branch
   }
   lbm_stack_drop(&ctx->K, 3);
 }
