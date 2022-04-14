@@ -1093,7 +1093,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     break;
   case SYM_TO_I:
     if (nargs == 1) {
-      result = lbm_enc_i(lbm_dec_as_i64(args[0]));
+      result = lbm_enc_i((lbm_int)lbm_dec_as_i64(args[0]));
     }
     break;
   case SYM_TO_I32:
@@ -1103,7 +1103,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     break;
   case SYM_TO_U:
     if (nargs == 1) {
-      result = lbm_enc_u(lbm_dec_as_u64(args[0]));
+      result = lbm_enc_u((lbm_uint)lbm_dec_as_u64(args[0]));
     }
     break;
   case SYM_TO_U32:
