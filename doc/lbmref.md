@@ -1314,3 +1314,68 @@ A value with type `type-u` occupy 28bits on the 32 bit version of LBM and
 
 ---
 
+## Type convertion functions 
+
+### to-byte
+
+Convert any numerical value to a byte. 
+If the input is not a number the output of this function will be 0.
+
+---
+
+### to-i
+
+Convert a value of any numerical type to an integer. 
+The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-u 
+
+Convert a value of any numerical type to an unsigned integer. 
+The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-i32
+
+Convert any numerical value to a 32bit int.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-u32 
+
+Convert any numerical value to a 32bit unsigned int.
+
+--- 
+
+### to-float
+
+Convert any numerical value to a single precision floating point value.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-i64
+
+Convert any numerical value to a 64bit int.
+If the input is not a number the output of this function will be 0.
+
+--- 
+
+### to-u64
+
+Convert any numerical value to a 64bit unsigned int.
+If the input is not a number the output of this function will be 0.
+
+---
+
+### to-double
+
+Convert any numerical value to a double precision floating point value.
+If the input is not a number the output of this function will be 0.
+
+---
