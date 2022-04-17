@@ -2,7 +2,7 @@
 # Chapter 2: List processing
 
 This chapter is all about getting familiar with lists. Lists are
-of course a very important concept to get quite well familiarised with
+of course a very important concept to get quite well familiarized with
 as in Lisp we express our code and data using this construct.
 
 In this chapter the programs will start to become slightly larger and
@@ -31,13 +31,16 @@ Example:
 ```lisp
 (cons 1 nil)
 ```
-Creates a one element list with the value 1 in it.
+Creates a one element list with the value 1 in it by allocating a cons-cell
+and sticking `1` in the `car` field and `nil` in the `cdr` field.
 
 Example:
 ```lisp
 (cons 1 (cons 2 nil))
 ```
-Creates a two element list with the values 1 and 2.
+Creates a two element list with the values 1 and 2. Here we are creating a
+cons-cell with `1` in the `car` and in the `cdr` there is another cons-cell
+holding `2` in `car` and `nil` in its `cdr`.
 
 The expression `(cons 1 (cons 2 nil))` has the same result as the
 expression `(list 1 2)` but the first form is more telling about exactly how
@@ -45,6 +48,85 @@ lists are constructed and in the case of LBM also how they are represented
 on the heap as two cons-cells. There are other expressions that result
 in the same list as well, `'(1 2)` and ```(1 2)``.
 
+There are built in functions to access the first element of a list
+and the "rest" of the list. These functions are traditionally called
+`car` and `cdr` in lisps as what they do is exactly accessing these fields
+of a cons-cell. In LBM we have the `car` and `cdr` functions but also
+names which are a bit more telling and not carrying the same historical baggage.
+These equivalent functions are called `first` and `rest`.
+
+Example of taking the first element from a list:
+```
+# (first (list 1 2 3))
+loading: (first (list 1 2 3))
+started ctx: 144
+<< Context 144 finished with value 1 >>
+stack max:  13
+stack size: 256
+stack sp:   0
+```
+
+Example of taking the rest of a list:
+```
+# (rest (list 1 2 3))
+loading: (rest (list 1 2 3))
+started ctx: 144
+<< Context 144 finished with value (2 3) >>
+stack max:  13
+stack size: 256
+stack sp:   0
+```
+
+So applying `first` (or equivalently `car`) to the list `(list 1 2 3)` gives
+back the result 1. Applying `rest` (or if you prefer `cdr`) to the same list
+produces a result that the REPL prints as `(2 3)`.
+
+LBM provides one more built in function on lists, called `ix` for accessing
+an arbitrary element of a list. `ix` takes one list and one index as arguments
+and returns the value at that position in the list. if the index is too large
+(outside of the list), the result will be `nil`.
+
+Example of indexing into a list:
+```
+# (ix (list 1 2 3) 2)
+loading: (ix (list 1 2 3) 2)
+started ctx: 156
+<< Context 156 finished with value 3 >>
+stack max:  13
+stack size: 256
+stack sp:   0
+```
+
+And if you index out of bounds you get the following
+```
+# (ix (list 1 2 3) 5)
+loading: (ix (list 1 2 3) 5)
+started ctx: 156
+<< Context 156 finished with value nil >>
+stack max:  13
+stack size: 256
+stack sp:   0
+```
+
+The REPL contains a small library of list functions that will be loaded
+dynamically if you try to use them. The list below shows what functionality
+these provide.
+
+| Function   | Description                         |
+| ---        | ---                                 |
+| `reverse`  | Reverses a list.                    |
+| `iota`     | Creates a list enumerating a range. |
+| `length`   | Calculates the length of a list.    |
+| `take`     | Creates a list containing some number of elements taken from the input list. |
+| `drop`     | Creates a list by removing some number of elements from a list. |
+| `zip`      | Produces a list of two-element lists from two input lists. |
+| `map`      | Produces a list that contains the results of applying a function to all elements in an input list. |
+| `lookup`   | Looks up a value in a list of key-value bindings. |
+| `foldr`    | Reduces a list to a single element by application of two-input one output function (from the right). |
+| `foldl`    | Similar to above but from the left (beginning). |
+
+We are being a bit vague about the inner workings of these functions here
+as the plan is to implement each of them in the next section.
 
 ## Writing functions on lists
 
