@@ -886,6 +886,35 @@ The `apa` pair is now `(1 . 42)`.
 
 ## Arrays
 
+### array-create
+
+Create an array of a given type, default is an array of bytes. The 
+form of an `array-create` expression is either `(array-create type size-expr)`
+or `(array-create size-expr)`. If no type is specified, the default is 
+to create an array of bytes. 
+
+Currently the following types can be used for the type field:
+
+| Type | 
+| ---  | 
+| type-char | 
+| type-byte | 
+| type-i32  |
+| type-u32  | 
+| type-float |
+| type-i64 | 
+| type-u64 |
+| type-double | 
+
+---
+
+### array-size
+
+Returns the size of an array in number of elements. The form 
+of an `array-size` expression is `(array-size arr-expr)` where 
+arr-expr has to evaluate into an array. 
+
+---
 
 ### array-read
 
@@ -914,6 +943,40 @@ of an array.
 Example that turns array "hello" into "heflo"
 ```clj
 (array-write "hello" 2 \#f)
+```
+
+---
+
+### Array literal syntax
+
+Array literals can be created using the `[` and `]` syntax to enclose 
+values to initialize the array with. The `[` and `]` syntax is complete
+resolved in the parser and thus cannot contain arbitrary lisp terms. 
+the values listed between the `[` and the `]` must be literals! 
+
+The form of the `[` and `]` syntax is `[ type-qualifier val1 ... valN ]`
+or `[ val1 ... valN]`. If no type-qualifier is specified the default is 
+to create an array with byte values. 
+
+The currently valid type qualifiers are:
+
+| Type qualifier | 
+| ---            | 
+| type-byte      |
+| type-i32       | 
+| type-u32       | 
+| type-float     | 
+
+(The rest of the numerical types will be supported in the future) 
+
+Example that creates a byte array 
+```lisp
+[ 1 2 3 4 5 6 7 8 9 10 ]
+```
+
+Example that create an array of i32 values
+```lisp
+[ type-i32 1 2 3 4 5 6 7 8 9 10 ]
 ```
 
 ---
