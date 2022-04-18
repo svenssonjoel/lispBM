@@ -45,8 +45,8 @@ holding `2` in `car` and `nil` in its `cdr`.
 The expression `(cons 1 (cons 2 nil))` has the same result as the
 expression `(list 1 2)` but the first form is more telling about exactly how
 lists are constructed and in the case of LBM also how they are represented
-on the heap as two cons-cells. There are other expressions that result
-in the same list as well, `'(1 2)` and ```(1 2)``.
+on the heap as cons-cells. There are other expressions that result
+in the same list as well, `'(1 2)` and `` `(1 2)``.
 
 There are built in functions to access the first element of a list
 and the "rest" of the list. These functions are traditionally called
