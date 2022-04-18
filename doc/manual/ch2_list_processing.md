@@ -169,7 +169,17 @@ we can return the value we search for as the result.
           e
           (elem (rest ls) e))))
 ``` 
+The code above implements the `elem` function using conditionals. 
+The first conditional checks if the list is empty `(eq ls 'nil)`. If 
+this condition is true we have searched through the entire list and found 
+no matching value. If the list is not empty, we check if the first element
+in the list, `first ls` is the value we are looking for and if it is 
+we return it (meaning true). If the first element is not the value we look 
+for, we recursively check if the value is in the rest of the list. 
 
+Many nested conditionals make code a bit right-leaning and the above 
+program would be better expressed using some kind of case-splitting. 
+In LBM the case-splitting construct is called `match`. 
 
 ```lisp
 (defun elem-pm (ls e)
@@ -179,19 +189,45 @@ we can return the value we search for as the result.
            (if (eq x e) e (elem-pm xs e)) )))
 ```
 
+The code above case splits on `ls` into two different checks, 
+The first for the empty list `( nil nil )`. The `(nil nil)` 
+is a pattern matching expression of the form `( pattern expr )` 
+and if the value matched upon (in this case `ls`) "matches" the `pattern`,
+the `expr` is executed. If the value does not match, the next pattern is checkend 
+and if there is no pattern that matches LBM stops evaluating the program and 
+returns a `no_match` error. This means that pattern matches must be 
+in some sense "complete", there must be a pattern to catch each possible
+value you apply the function to. 
+
+The next pattern is `((? x) . (? xs))` and this pattern matches 
+any cons-cell and names the first `x` and the rest `xs`. The syntax `(? x)`
+means "match any value and bind that value to the name `x`". So this pattern 
+will match on any list with 1 or more elements and the `x` will be bound to the 
+first element of the list while `xs` is bound to the rest of the list.
+The `expr` in this pattern case is `(if (eq x e) e (elem-pm xs e))`
+and it checks if the `x` is the value we look for, then we are done, or 
+if we should do recursion over `xs`. 
+
+You can express the same thing a bit more compactly by splitting up 
+into three patterns instead and being a bit more precise in each. 
 
 ```lisp
 (defun elem-pm2 (ls e)
   (match ls
          ( nil nil )
-         ( (e . (? xs)) e )
+         ( (e . _) e )
          ( (_ . (? xs)) (elem-pm xs e) )))
 ```
+The code above has the same `( nil nil )` base-case but then it 
+checks for a list with a first element that is exactly `e` (the value we look for) 
+`( (e . _) e)`. The underscore, `_`, "anything" and does not bind that anything to 
+any name. We can use the underscore in this case because if the first element in the 
+list is `e`, then we are done and dont need to search through the rest. 
 
-
-
-
-
+The last case, `( (_ . (? xs)) (elem-pm xs e) )` binds the rest of the
+list and performs the recursion. The pattern matching cases are tested 
+in order from the top, so in this last case we know that the first element
+cannot possibly be `e`.
 
 
 

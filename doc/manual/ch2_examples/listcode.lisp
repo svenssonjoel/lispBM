@@ -15,5 +15,5 @@
 (defun elem-pm2 (ls e)
   (match ls
          ( nil nil )
-         ( (e . (? xs)) e )
+         ( (e . _) e )
          ( (_ . (? xs)) (elem-pm xs e) )))
