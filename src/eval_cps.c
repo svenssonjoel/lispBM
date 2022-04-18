@@ -1440,6 +1440,10 @@ static inline void cont_resume(eval_context_t *ctx) {
 static inline void cont_expand_macro(eval_context_t *ctx) {
 
   lbm_uint* sptr = lbm_get_stack_ptr(&ctx->K, 2);
+  if (!sptr) {
+    error_ctx(lbm_enc_sym(SYM_TERROR));
+    return;
+  }
   lbm_value env = (lbm_value)sptr[0];
   lbm_value args = (lbm_value)sptr[1];
 
