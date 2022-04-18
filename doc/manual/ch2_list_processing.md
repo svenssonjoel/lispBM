@@ -128,7 +128,69 @@ these provide.
 We are being a bit vague about the inner workings of these functions here
 as the plan is to implement each of them in the next section.
 
+---
+**NOTE** 
+
+The `nil` at the end of a list is a convention. There is nothing 
+in LBM that enforce that you put `nil` as a termination of a list 
+and you could just as well put for example `'cactus` at the end of 
+your lists. All your functions on these `'cactus` lists would have to 
+be written with that in mind though. So let's stick to convention. 
+
+Another thing to note about cons-cells is that you do not need 
+to arrange then into rightwards-nested lists. You could do the oposite. 
+You can also build trees by allowing cons-cells in both the `car` and 
+`cdr` fields. This is entirely up to the programmer. 
+
+---
+
 ## Writing functions on lists
+
+The linked-lists used in LBM are an example of a recursive data-structure, 
+that is, all lists of 1 or more elements are built up from smaller lists. 
+Operating on such a structure is often very cleanly expressible as a 
+recursive function, which is something we will implement lots of in 
+this section. When writing recursive programs on list these will follow 
+a general pattern, there will be one terminating base-case for the empty list `nil`
+and there will be one case for a list composed of an element and a smaller 
+list.
+
+The first example is a function that finds out if a particular value 
+occurs in a list. We call this function `elem` and it takes one list 
+and one value as input, if the value is in the list the result is some "true"
+value and otherwise it is `nil`. Since any value other than `nil` is "true" 
+we can return the value we search for as the result. 
+
+```lisp
+(defun elem (ls e)
+  (if (eq ls 'nil)
+      'nil
+      (if (eq (first ls) e)
+          e
+          (elem (rest ls) e))))
+``` 
+
+
+```lisp
+(defun elem-pm (ls e)
+  (match ls
+         ( nil nil )
+         ( ((? x) . (? xs))
+           (if (eq x e) e (elem-pm xs e)) )))
+```
+
+
+```lisp
+(defun elem-pm2 (ls e)
+  (match ls
+         ( nil nil )
+         ( (e . (? xs)) e )
+         ( (_ . (? xs)) (elem-pm xs e) )))
+```
+
+
+
+
 
 
 
