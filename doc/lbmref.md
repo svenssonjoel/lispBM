@@ -632,12 +632,12 @@ Example
 ```
 ---
 
-### set!
+### setvar
 
-The `set!` form is used to change the value of some variable in an environment.
-You can use `set!` to change the value of a global definition, a local definition
-or a variable defintion (`#var`). An application of the `set!` form looks like
-`(set! var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
+The `setvar` form is used to change the value of some variable in an environment.
+You can use `setvar` to change the value of a global definition, a local definition
+or a variable defintion (`#var`). An application of the `setvar` form looks like
+`(setvar var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
 rebinding the variable.
 
 Examples:
@@ -646,16 +646,16 @@ Examples:
 ```
 The variable `a` is now `10` in the global environment.
 ```clj
-(set! 'a 20)
+(setvar 'a 20)
 ```
-Now, the value of `a` will be 20. Note that `a` is quoted in the `set!` form application
+Now, the value of `a` will be 20. Note that `a` is quoted in the `setvar` form application
 while it is not in the `define` form. This is because `define` requires the first
-argument to be a symbol while the `set!` form requires the first argument to evaluate
+argument to be a symbol while the `setvar` form requires the first argument to evaluate
 into a symbol. 
 
 You can also set the value of a let bound variable.
 ```clj
-(let ((a 10)) (set! 'a 20))
+(let ((a 10)) (setvar 'a 20))
 ```
 
 And you can change the value of a `#var`.
