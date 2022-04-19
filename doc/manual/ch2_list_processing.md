@@ -213,10 +213,11 @@ into three patterns instead and being a bit more precise in each.
 
 ```lisp
 (defun elem-pm2 (ls e)
-  (match ls
-         ( nil nil )
-         ( (e . _) e )
-         ( (_ . (? xs)) (elem-pm xs e) )))
+  (progn
+    (match ls
+           ( nil nil )
+           ( (e . _) e )
+           ( (_ . (? xs)) (elem-pm2 xs e) )))))
 ```
 The code above has the same `( nil nil )` base-case but then it 
 checks for a list with a first element that is exactly `e` (the value we look for) 

@@ -13,7 +13,9 @@
            (if (eq x e) e (elem-pm xs e)) )))
 
 (defun elem-pm2 (ls e)
-  (match ls
-         ( nil nil )
-         ( (e . _) e )
-         ( (_ . (? xs)) (elem-pm xs e) )))
+  (progn
+    (match ls
+           ( nil nil )
+           ( (,e . _) e )
+           ( (_ . (? xs)) (elem-pm2 xs e) )))))
+  
