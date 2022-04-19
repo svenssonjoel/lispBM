@@ -138,7 +138,7 @@ your lists. All your functions on these `'cactus` lists would have to
 be written with that in mind though. So let's stick to convention. 
 
 Another thing to note about cons-cells is that you do not need 
-to arrange then into rightwards-nested lists. You could do the oposite. 
+to arrange then into rightwards-nested lists. You could do the opposite. 
 You can also build trees by allowing cons-cells in both the `car` and 
 `cdr` fields. This is entirely up to the programmer. 
 
@@ -193,7 +193,7 @@ The code above case splits on `ls` into two different checks,
 The first for the empty list `( nil nil )`. The `(nil nil)` 
 is a pattern matching expression of the form `( pattern expr )` 
 and if the value matched upon (in this case `ls`) "matches" the `pattern`,
-the `expr` is executed. If the value does not match, the next pattern is checkend 
+the `expr` is executed. If the value does not match, the next pattern is checked 
 and if there is no pattern that matches LBM stops evaluating the program and 
 returns a `no_match` error. This means that pattern matches must be 
 in some sense "complete", there must be a pattern to catch each possible
@@ -222,7 +222,7 @@ The code above has the same `( nil nil )` base-case but then it
 checks for a list with a first element that is exactly `e` (the value we look for) 
 `( (e . _) e)`. The underscore, `_`, "anything" and does not bind that anything to 
 any name. We can use the underscore in this case because if the first element in the 
-list is `e`, then we are done and dont need to search through the rest. 
+list is `e`, then we are done and don't need to search through the rest. 
 
 The last case, `( (_ . (? xs)) (elem-pm xs e) )` binds the rest of the
 list and performs the recursion. The pattern matching cases are tested 
