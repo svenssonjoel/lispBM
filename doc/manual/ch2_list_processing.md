@@ -58,23 +58,14 @@ These equivalent functions are called `first` and `rest`.
 Example of taking the first element from a list:
 ```
 # (first (list 1 2 3))
-loading: (first (list 1 2 3))
-started ctx: 144
-<< Context 144 finished with value 1 >>
-stack max:  13
-stack size: 256
-stack sp:   0
+> 1
 ```
 
 Example of taking the rest of a list:
+
 ```
 # (rest (list 1 2 3))
-loading: (rest (list 1 2 3))
-started ctx: 144
-<< Context 144 finished with value (2 3) >>
-stack max:  13
-stack size: 256
-stack sp:   0
+> (2 3)
 ```
 
 So applying `first` (or equivalently `car`) to the list `(list 1 2 3)` gives
@@ -89,23 +80,13 @@ and returns the value at that position in the list. if the index is too large
 Example of indexing into a list:
 ```
 # (ix (list 1 2 3) 2)
-loading: (ix (list 1 2 3) 2)
-started ctx: 156
-<< Context 156 finished with value 3 >>
-stack max:  13
-stack size: 256
-stack sp:   0
+> 3
 ```
 
 And if you index out of bounds you get the following
 ```
 # (ix (list 1 2 3) 5)
-loading: (ix (list 1 2 3) 5)
-started ctx: 156
-<< Context 156 finished with value nil >>
-stack max:  13
-stack size: 256
-stack sp:   0
+> nil
 ```
 
 The REPL contains a small library of list functions that will be loaded
@@ -159,6 +140,26 @@ occurs in a list. We call this function `elem` and it takes one list
 and one value as input, if the value is in the list the result is some "true"
 value and otherwise it is `nil`. Since any value other than `nil` is "true"
 we can return the value we search for as the result.
+
+---
+**NOTE**
+
+The REPL currently does not support entering multi-line programs.
+Write the programs here into a file and load that file into the
+REPL using the `:load` command.
+
+The examples here are available in `listcode.lisp` in the
+`ch2_examples` directory ([here](./ch2_examples/listcode.lisp)).
+
+if you start the REPL from the `ch2_examples` directory, you
+can load the list examples using the command:
+
+```
+# :load listcode.lisp
+```
+
+---
+
 
 ```lisp
 (defun elem (ls e)
@@ -254,14 +255,8 @@ Running this program on a list produces the following:
 
 ```
 # (length-notail (list 1 2 3 4 5))
-loading: (length-notail (list 1 2 3 4 5))
-started ctx: 169
-reading source finishes in context 169
-<< Context 169 finished with value 5 >>
-stack max:  42
-stack size: 256
-stack sp:   0
-``` 
+> 5
+```
 
 So, what is the problem? The problem is this expression containing the recursive call
 `( + 1 (length-notail (cdr ls)))`. There is a `+ 1` on the "outside" of the recursive
@@ -273,15 +268,9 @@ proportional to the length of the list. That is very bad:
 
 ```
 # (length-notail (iota 1024))
-loading: (length-notail (iota 1024))
-started ctx: 169
-reading source finishes in context 169
 ***	Error: out_of_stack
 
-<< Context 169 finished with value out_of_stack >>
-stack max:  256
-stack size: 256
-stack sp:   256
+> out_of_stack
 ```
 
 The list `(iota 1024)` is a 1025 elements long! And while recurring over it, we exhaust
@@ -314,14 +303,8 @@ Now its no problem to compute the length of `(iota 1024)`:
 
 ```
 # (length-tail (iota 1024))
-loading: (length-tail (iota 1024))
-started ctx: 140
-reading source finishes in context 140
-<< Context 140 finished with value 1025 >>
-stack max:  45
-stack size: 256
-stack sp:   0
-``` 
+> 1025
+```
 
 ### Iota and Reverse
 
