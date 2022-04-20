@@ -207,18 +207,8 @@ void done_callback(eval_context_t *ctx) {
 
   int print_ret = lbm_print_value(output, 1024, t);
 
-  if (print_ret >= 0) {
-    printf("<< Context %"PRI_INT" finished with value %s >>\n", cid, output);
-  } else {
-    printf("<< Context %"PRI_INT" finished with value %s >>\n", cid, output);
-  }
-  printf("stack max:  %"PRI_UINT"\n", ctx->K.max_sp);
-  printf("stack size: %"PRI_UINT"\n", ctx->K.size);
-  printf("stack sp:   %"PRI_INT"\n", ctx->K.sp);
+  printf("> %s\n", output);
 
-  //  if (!eval_cps_remove_done_ctx(cid, &t)) {
-  //   printf("Error: done context (%d)  not in list\n", cid);
-  //}
   fflush(stdout);
   new_prompt();
 }
@@ -231,7 +221,6 @@ void read_done_callback(lbm_cid cid) {
   if (r == NULL) {
     // This case happens if the lisp code executes "read"
   } else {
-    printf("reading source finishes in context %d\n", cid);
     free_reading(r);
   }
   fflush(stdout);
@@ -335,6 +324,7 @@ bool dyn_load(const char *str, const char **code) {
 
 
 lbm_value ext_print(lbm_value *args, lbm_uint argn) {
+  erase();
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
   if (!allow_print) return lbm_enc_sym(SYM_TRUE);
@@ -363,6 +353,8 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
       printf("%s", output);
     }
   }
+  printf("\n");
+  new_prompt();
   return lbm_enc_sym(SYM_TRUE);
 }
 
@@ -625,7 +617,7 @@ int main(int argc, char **argv) {
 
         lbm_continue_eval();
 
-        printf("started ctx: %"PRI_UINT"\n", cid);
+        //printf("started ctx: %"PRI_UINT"\n", cid);
       }
       free(str);
     } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
@@ -795,7 +787,7 @@ int main(int argc, char **argv) {
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
-      printf("loading: %s\n", str);
+      //printf("loading: %s\n", str);
       lbm_create_char_stream_from_string(&string_tok_state,
                                          &string_tok,
                                          str);
@@ -805,7 +797,7 @@ int main(int argc, char **argv) {
       add_reading(r);
       lbm_continue_eval();
 
-      printf("started ctx: %"PRI_UINT"\n", cid);
+      //printf("started ctx: %"PRI_UINT"\n", cid);
     }
   }
   free(heap_storage);
