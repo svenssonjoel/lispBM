@@ -121,7 +121,6 @@ these provide.
 | `drop`     | Creates a list by removing some number of elements from a list. |
 | `zip`      | Produces a list of two-element lists from two input lists. |
 | `map`      | Produces a list that contains the results of applying a function to all elements in an input list. |
-| `lookup`   | Looks up a value in a list of key-value bindings. |
 | `foldr`    | Reduces a list to a single element by application of two-input one output function (from the right). |
 | `foldl`    | Similar to above but from the left (beginning). |
 
@@ -216,7 +215,7 @@ into three patterns instead and being a bit more precise in each.
     (match ls
            ( nil nil )
            ( (,e . _) e )
-           ( (_ . (? xs)) (elem-pm2 xs e) ))))
+           ( (_ . (? xs)) (elem-pm2 xs e) )))
 ```
 
 The code above has the
@@ -233,6 +232,103 @@ list and performs the recursion. The pattern matching cases are tested
 in order from the top, so in this last case we know that the first element
 cannot possibly be `e`.
 
+### The importance of tail-recursion
+
+What tail-recursion and non-tail-recursion looks like is best illustrated by
+examples. The example below implements the `length` function on a list
+and does so in a non-tail-recursive manner:
+
+```lisp
+(defun length-notail (ls)
+  (if (eq ls nil)
+      0
+    ( + 1 (length-notail (cdr ls)))))
+```
+
+The `length-notail` function expects that the input is a proper list and splits
+into two cases, one for the empty list and one for a list containing at least 1
+element. The empty list is of length 0, a list longer than 0 elements is 1 + the length
+of the rest of the list.
+
+Running this program on a list produces the following:
+
+```
+# (length-notail (list 1 2 3 4 5))
+loading: (length-notail (list 1 2 3 4 5))
+started ctx: 169
+reading source finishes in context 169
+<< Context 169 finished with value 5 >>
+stack max:  42
+stack size: 256
+stack sp:   0
+``` 
+
+So, what is the problem? The problem is this expression containing the recursive call
+`( + 1 (length-notail (cdr ls)))`. There is a `+ 1` on the "outside" of the recursive
+call. If `(a (b ..))` then `a` is supposed to be applied to the result of `b` which means
+that we must remember that until the `b` returns. In the LBM implementation `a` is
+turned into a so-called "continuation" that occupies some amount of space on the runtime stack.
+If the recursion is "deep", the list we count is long, then this stack space usage will grow
+proportional to the length of the list. That is very bad:
+
+```
+# (length-notail (iota 1024))
+loading: (length-notail (iota 1024))
+started ctx: 169
+reading source finishes in context 169
+***	Error: out_of_stack
+
+<< Context 169 finished with value out_of_stack >>
+stack max:  256
+stack size: 256
+stack sp:   256
+```
+
+The list `(iota 1024)` is a 1025 elements long! And while recurring over it, we exhaust
+all stack!
+
+A common pattern to apply that removes the "outside" function application around the
+recursive call is to have the recursive function take an extra argument that accumulates
+partial results throughout the recursion. This is usually accomplished using a small
+helper function taking that extra argument:
+
+```lisp
+(defun length-tail (ls)
+  (let ((len-helper (lambda (acc ls)
+                      (if (eq ls nil)
+                          acc
+                        (len-helper (+ 1 acc) (rest ls))))))
+    (len-helper 0 ls)))
+```
+
+The `length-tail` function is implemented using a helper called `len-helper`.
+`len-helper` takes two arguments, a number and a list. The idea is that we
+use the number argument to accumulate the length we have seen so far through
+the recursion. In each recursive call we add 1 to the accumulator.
+
+The key here is again the then-branch `(len-helper (+ 1 acc) (rest ls))`. Note that
+here is nothing on the "outside" of the recursive call that we need to remember while
+executing `len-helper`.
+
+Now its no problem to compute the length of `(iota 1024)`:
+
+```
+# (length-tail (iota 1024))
+loading: (length-tail (iota 1024))
+started ctx: 140
+reading source finishes in context 140
+<< Context 140 finished with value 1025 >>
+stack max:  45
+stack size: 256
+stack sp:   0
+``` 
+
+### Iota and Reverse
+
+
+
+
+## Association lists
 
 
 ## Conclusion

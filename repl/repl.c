@@ -664,6 +664,49 @@ int main(int argc, char **argv) {
     } else if (strncmp(str, ":symbols", 8) == 0) {
       lbm_symrepr_name_iterator(sym_it);
       free(str);
+    } else if (strncmp(str, ":heap", 5) == 0) {
+      int size = atoi(str + 5);
+      if (size > 0) {
+        heap_size = size;
+
+        free(heap_storage);
+        heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
+
+        lbm_pause_eval();
+        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+
+        lbm_init(heap_storage, heap_size,
+                 gc_stack_storage, GC_STACK_SIZE,
+                 memory, LBM_MEMORY_SIZE_8K,
+                 bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+                 print_stack_storage, PRINT_STACK_SIZE,
+                 extension_storage, EXTENSION_STORAGE_SIZE);
+
+        lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
+
+        if (lbm_array_extensions_init()) {
+          printf("Array extensions loaded\n");
+        } else {
+          printf("Loading array extensions failed\n");
+        }
+
+        if (lbm_string_extensions_init()) {
+        printf("String extensions loaded\n");
+        } else {
+          printf("Loading string extensions failed\n");
+        }
+
+        if (lbm_math_extensions_init()) {
+          printf("Math extensions loaded\n");
+        } else {
+          printf("Loading math extensions failed\n");
+        }
+
+        lbm_add_extension("print", ext_print);
+        free(str);
+      }
     } else if (strncmp(str, ":reset", 6) == 0) {
       lbm_pause_eval();
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
