@@ -308,7 +308,23 @@ Now its no problem to compute the length of `(iota 1024)`:
 
 ### Iota and Reverse
 
+```lisp
+(defun iota (n)
+  (let ((iacc (lambda (acc i)
+                (if (< i 0) acc
+                    (iacc (cons i acc) (- i 1))))))
+    (iacc nil n)))
 
+```
+
+
+```lisp
+(defun reverse (xs)
+  (let ((revacc (lambda (acc xs)
+                  (if (eq nil xs) acc
+                      (revacc (cons (car xs) acc) (cdr xs))))))
+    (revacc nil xs)))
+```
 
 
 ## Association lists

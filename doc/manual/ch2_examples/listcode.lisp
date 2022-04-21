@@ -30,3 +30,17 @@
                           acc
                         (len-helper (+ 1 acc) (rest ls))))))
     (len-helper 0 ls)))
+
+
+(defun iota (n)
+  (let ((iacc (lambda (acc i)
+                (if (< i 0) acc
+                    (iacc (cons i acc) (- i 1))))))
+    (iacc nil n)))
+
+
+(defun reverse (xs)
+  (let ((revacc (lambda (acc xs)
+                  (if (eq nil xs) acc
+                      (revacc (cons (car xs) acc) (cdr xs))))))
+    (revacc nil xs)))
