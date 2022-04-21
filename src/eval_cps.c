@@ -1848,8 +1848,11 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
     ctx->curr_env = clo_env;
     ctx->curr_exp = exp;
     ctx->app_cont = false;
-  } else if (a_nil || p_nil) {
+  } else if (!a_nil && p_nil) {
     lbm_set_error_reason("Too many arguments.");
+    error_ctx(lbm_enc_sym(SYM_EERROR));
+  } else if (a_nil && !p_nil) {
+    lbm_set_error_reason("Too few arguments.");
     error_ctx(lbm_enc_sym(SYM_EERROR));
   } else {
    sptr[2] = clo_env;

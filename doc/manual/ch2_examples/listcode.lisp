@@ -42,5 +42,5 @@
 (defun reverse (xs)
   (let ((revacc (lambda (acc xs)
                   (if (eq nil xs) acc
-                      (revacc (cons (car xs) acc) (cdr xs))))))
+                      (revacc (cons (first xs) acc) (rest xs))))))
     (revacc nil xs)))
