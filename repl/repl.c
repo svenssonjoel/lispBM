@@ -269,7 +269,7 @@ bool dyn_load(const char *str, const char **code) {
             "(let ((iacc (lambda (acc i)"
             "(if (< i 0) acc"
             "(iacc (cons i acc) (- i 1))))))"
-            "(iacc nil n))))";
+            "(iacc nil (- n 1)))))";
     res = true;
   } else if (strlen(str) == 6 && strncmp(str, "length", 6) == 0) {
     *code = "(define length (lambda (xs)"

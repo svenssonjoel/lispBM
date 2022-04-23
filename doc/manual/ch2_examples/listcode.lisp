@@ -36,7 +36,7 @@
   (let ((iacc (lambda (acc i)
                 (if (< i 0) acc
                     (iacc (cons i acc) (- i 1))))))
-    (iacc nil n)))
+    (iacc nil (- n 1))))
 
 
 (defun reverse (xs)
@@ -44,3 +44,26 @@
                   (if (eq nil xs) acc
                       (revacc (cons (first xs) acc) (rest xs))))))
     (revacc nil xs)))
+
+(defun take-n (n xs)
+  (if ( = 0 n)
+      nil
+      (cons (first xs) (take-n (- n 1) (rest xs) ))))
+
+(defun take-t (n xs)
+  (let ((takeacc (lambda (acc n xs)
+                   (if (= n 0) acc
+                       (takeacc (cons (first xs) acc) (- n 1) (rest xs))))))
+    (takeacc nil n xs)))
+
+(defun take-t2 (n xs)
+  (let ((takeacc (lambda (acc n xs)
+                   (if (= n 0) acc
+                       (takeacc (cons (first xs) acc) (- n 1) (rest xs))))))
+    (reverse (takeacc nil n xs))))
+
+
+(defun drop-n (n xs)
+  (if ( = 0 n)
+      xs
+      (drop-n (- n 1) (rest xs))))
