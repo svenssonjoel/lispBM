@@ -308,14 +308,57 @@ Now its no problem to compute the length of `(iota 1024)`:
 
 ### Iota and Reverse
 
+The `iota` and the `reverse` functions are both examples building a 
+list. `iota` builds a list based an input argument and enumerates all 
+numbers from 0 up to and including the number providided as argument. 
+`reverse` takes a list as input, deconstructs it and creates a new 
+list in the reversed order. 
+
+Examples: 
+```
+# (iota 10)
+> (0 1 2 3 4 5 6 7 8 9 10)
+``` 
+
+``` 
+# (reverse (iota 10))
+> (10 9 8 7 6 5 4 3 2 1 0)
+``` 
+
+Note that the result of `reverse` is a new list as expected in functional 
+programming. So if you bind the result of `iota` to a name and then run reverse 
+on that "variable", future references to that name will result in the original 
+list. 
+
+Example: 
+```
+# (define my-list (iota 10))
+> my-list
+# my-list
+> (0 1 2 3 4 5 6 7 8 9 10)
+# (reverse my-list)
+> (10 9 8 7 6 5 4 3 2 1 0)
+# my-list
+> (0 1 2 3 4 5 6 7 8 9 10)
+``` 
+Note that calling `(reverse my-list)` returns a new, reversed lists, while 
+`my-list` remains intact. 
+
+`iota` is implemented using the same tail-recursion "trick" as we have 
+seen earlier. The helper function with the extra argument is called `iacc`
+here, for iota-accumulate. 
+
 ```lisp
 (defun iota (n)
   (let ((iacc (lambda (acc i)
                 (if (< i 0) acc
                     (iacc (cons i acc) (- i 1))))))
     (iacc nil n)))
-
 ```
+
+`iacc` takes an `acc` parameter in which the result list is accumulated 
+and a number `i` which should be 0 or larger. Applied on a negative 
+number `iota` returns  `nil`. 
 
 
 ```lisp
