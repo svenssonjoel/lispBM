@@ -99,3 +99,5 @@
 (defun foldr (f i xs)
   (if (eq xs nil) i
       (f (first xs) (foldr f i (rest xs)))))
+
+
