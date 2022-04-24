@@ -660,11 +660,81 @@ in the `i` parameter and it naturally ends up a tail-recursive function.
 
 `foldr` above is more awkward with its application of `f` 
 to `(first xs)` and to the result of `(foldr f i (rest xs))` 
-which menas that there will be a build-up of continuations on the 
+which means that there will be a build-up of continuations on the 
 stack.
 
 
 ## Association lists
 
+Association lists are meant for maintaining a key-value lookup 
+structure. `(list '(1 . horse) '(2 . donkey) '(3 . shark))` 
+is an example of an association list that associates keys 1, 2, 3 with 
+the animals horse, donkey and shark. You can look up the 
+value associated with a key by using the function `assoc`
 
-## Conclusion
+Example: 
+``` 
+# (assoc (list '(1 . horse) '(2 . donkey) '(3 . shark)) 2)
+> donkey
+``` 
+
+So, an association list is just a regular list, you can create it with
+`list` but each element in the list must be a pair. Pairs can be
+created either as in the example using `.` or they could be created
+using cons. `(cons 1 2)` is equivalent to `'(1 . 2)` note the `'`
+mark!
+
+there is a three argument version of `cons` called `acons` that is 
+meant to make adding associations to an association list (alist) easier. 
+
+``` 
+# (acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+> ((4 . lemur) (1 . horse) (2 . donkey) (3 . shark))
+``` 
+`acons` takes the key as first argument, then the value and last the alist 
+to append the key-value pair to. Note that `acons` just adds, it doesn't check 
+if the association already exists, it will gladly add a new copy of it anyway. 
+
+
+There is a built in function for destructively updating an alist 
+that you have bound to a name, called `setassoc` 
+
+Example: 
+
+```
+# (define my-alist (list '(1 . blue) '(2 . orange) '(3 . green)))
+> my-alist
+# (setassoc my-alist 2 'purple)
+> ((1 . blue) (2 . purple) (3 . green))
+```
+
+Any future references to `my-alist` will reflect that change. 
+
+```
+# my-alist
+> ((1 . blue) (2 . purple) (3 . green))
+```
+
+There are a bunch of functions like `setassoc` that perform destructive 
+updates in LBM. 
+
+If you want a more functional-programming style way to re-associate, that 
+is by returning a fresh new alist with the updated field then that is 
+quite easy using `map`. 
+
+``` 
+(defun replace-assoc (x y)
+  (if (eq (first x) (first y))
+      x
+      y))
+
+(defun reassoc (x xs) 
+    (map (lambda (y) (replace-assoc x y)) xs))
+``` 
+
+Example 
+
+``` 
+# (reassoc '(2 . dung-beetle) (acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark))))
+> ((4 . lemur) (1 . horse) (2 . dung-beetle) (3 . shark))
+```

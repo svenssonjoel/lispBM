@@ -101,3 +101,11 @@
       (f (first xs) (foldr f i (rest xs)))))
 
 
+(defun replace-assoc (x y)
+  (if (eq (first x) (first y))
+      x
+      y))
+
+
+(defun reassoc (x xs) 
+    (map (lambda (y) (replace-assoc x y)) xs))
