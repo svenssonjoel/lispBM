@@ -238,7 +238,7 @@ cannot possibly be `e`.
 ### The importance of tail-recursion
 
 When writing recursive functions one must be careful not to exhaust 
-all stack. It is possible to write recusive functions that evaluate 
+all stack. It is possible to write reclusive functions that evaluate 
 in constant space (not growing linear with number of calls) and these
 recursive functions are called tail-recursive.
 
@@ -321,7 +321,7 @@ Now its no problem to compute the length of `(iota 1024)`:
 
 The `iota` and the `reverse` functions are both examples building a 
 list. `iota` builds a list based an input argument and enumerates all 
-numbers from 0 up to and including the number providided as argument. 
+numbers from 0 up to and including the number provided as argument. 
 `reverse` takes a list as input, deconstructs it and creates a new 
 list in the reversed order. 
 
@@ -418,7 +418,7 @@ up being longer than there are available heap cells.
 The REPL starts up with 2048 heap-cells, so it is clearly impossible
 to make a list that is 4096 elements long! 
 
-There is a REPL command to increate the size of the heap. For example type
+There is a REPL command to increase the size of the heap. For example type
 `:heap 8192` and press enter. 
 
 ```
@@ -509,7 +509,33 @@ The `drop` function is, however, very easy to get right.
       (drop-n (- n 1) (rest xs))))
 ``` 
 
+The REPL contains functions with names `drop` and `take` with the 
+functionality implemented above. 
 
+The zip function takes two lists and creates a list of pairs of 
+elements from the two input arrays. 
+
+Example: 
+
+``` 
+# (zip (list 1 2 3 ) (list 'monkey 'zebra 'elephant))
+> ((1 . monkey) (2 . zebra) (3 . elephant))
+```
+
+The implementation of zip is very similar to take, just that 
+here we take all elements and from two arrays at once. Implementing 
+`zip` in a non-tail-recursive looks like this: 
+
+```lisp
+(defun zip (xs ys)
+  (if (or (eq xs nil) (eq ys nil)) nil
+      (cons (cons (first xs) (first ys)) (zip (rest xs) (rest ys)))))
+```
+
+The tail-recursive version of `zip` is included in the
+[listcode.lisp](./ch2_examples/listcode.lisp) file if you are curious.
+Otherwise the implementation of tail-recursive `zip` is left as 
+an exercise.
 
 ### Map, Foldr and Foldl
 

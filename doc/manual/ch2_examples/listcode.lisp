@@ -67,3 +67,14 @@
   (if ( = 0 n)
       xs
       (drop-n (- n 1) (rest xs))))
+
+(defun zip (xs ys)
+  (if (or (eq xs nil) (eq ys nil)) nil
+      (cons (cons (first xs) (first ys)) (zip (rest xs) (rest ys)))))
+          
+(defun zip-t (xs ys)
+  (let ((zipacc (lambda (acc xs ys)
+                  (if (or (eq xs nil) (eq ys nil)) acc
+                      (zipacc (cons (cons (first xs) (first ys)) acc) (rest xs) (rest ys)
+                              )))))
+    (reverse (zipacc nil xs ys))))
