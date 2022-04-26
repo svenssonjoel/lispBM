@@ -295,17 +295,18 @@ int tok_char(lbm_tokenizer_char_stream_t *str, char *res) {
   return count;
 }
 
-int tok_F(lbm_tokenizer_char_stream_t *str, float *res) {
+int tok_D(lbm_tokenizer_char_stream_t *str, token_float *result) {
 
   unsigned int n = 0;
   unsigned int m = 0;
   char fbuf[128];
-  bool negative = false;
   bool valid_num = false;
+
+  result->type = TOK_TYPE_FLOAT;
 
   if (peek(str, 0) == '-') {
     n = 1;
-    negative = true;
+    result->negative = true;
   }
 
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
@@ -316,53 +317,16 @@ int tok_F(lbm_tokenizer_char_stream_t *str, float *res) {
   if ( !(peek(str,n) >= '0' && peek(str,n) <= '9')) return 0;
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
 
-  if ((negative && n > 1) ||
-      (!negative && n > 0)) valid_num = true;
-
-  if (n > 127) m = 127;
-  else m = n;
-  if(valid_num) {
-    unsigned int i;
-    for (i = 0; i < m; i ++) {
-      fbuf[i] = get(str);
-    }
-
-    fbuf[i] = 0;
-    *res = (float)strtod(fbuf, NULL);
-    return (int)n;
-  }
-  return 0;
-}
-
-int tok_D(lbm_tokenizer_char_stream_t *str, double *res) {
-
-  unsigned int n = 0;
-  unsigned int m = 0;
-  char fbuf[128];
-  bool negative = false;
-  bool valid_num = false;
-
-  if (peek(str, 0) == '-') {
-    n = 1;
-    negative = true;
+  int drop_extra = 0;
+  if ((peek(str,n) == 'f' &&
+       peek(str,n+1) == '6' &&
+       peek(str,n+2) == '4')) {
+    result->type = TOK_TYPE_DOUBLE;
+    drop_extra = 3;
   }
 
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
-
-  if ( peek(str,n) == '.') n++;
-  else return 0;
-
-  if ( !(peek(str,n) >= '0' && peek(str,n) <= '9')) return 0;
-  while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
-
-  if (!(peek(str,n) == 'f' &&
-        peek(str,n+1) == '6' &&
-        peek(str,n+2) == '4')) {
-    return 0;
-  }
-
-  if ((negative && n > 1) ||
-      (!negative && n > 0)) valid_num = true;
+  if ((result->negative && n > 1) ||
+      (!result->negative && n > 0)) valid_num = true;
 
   if (n > 127) return 0;
   else m = n;
@@ -372,14 +336,13 @@ int tok_D(lbm_tokenizer_char_stream_t *str, double *res) {
       fbuf[i] = get(str);
     }
 
-    drop(str,3);
+    drop(str,drop_extra);
     fbuf[i] = 0;
-    *res = (double)strtod(fbuf, NULL);
+    result->value = (double)strtod(fbuf, NULL);
     return (int)n;
   }
   return 0;
 }
-
 
 void clean_whitespace(lbm_tokenizer_char_stream_t *str) {
 
@@ -537,9 +500,10 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
     }
 
     n = 0;
-    float f_val;
+    //float f_val;
 
     token_int i_val;
+    token_float f_val;
 
     if (!done) {
       switch (t) {
@@ -556,10 +520,11 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
         n = tok_integer(str, &i_val);
         if (n) arr->data[ix] = (uint32_t)(i_val.negative ? -i_val.value : i_val.value);
         break;
-      case LBM_TYPE_FLOAT:
-        n = tok_F(str, &f_val);
-        if (n) memcpy(&arr->data[ix], (uint32_t*)&f_val, sizeof(float));
-        break;
+      case LBM_TYPE_FLOAT: {
+        n = tok_D(str, &f_val);
+        float f = (float)f_val.value;
+        if (n) memcpy(&arr->data[ix], (uint32_t*)&f, sizeof(float));
+      }break;
       }
       if (n == 0) {
         lbm_memory_free((lbm_uint*)arr->data);
@@ -589,9 +554,7 @@ bool parse_array(lbm_tokenizer_char_stream_t *str, lbm_uint initial_size, lbm_va
 
 lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
 
-  double d_val;
   char c_val;
-  float f_val;
   int n = 0;
 
   if (!more(str)) {
@@ -695,13 +658,15 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
     return res;
   }
 
-  if (tok_D(str, &d_val)) {
-    return lbm_enc_double(d_val);
-  }
+  token_float f_val;
 
-  if (tok_F(str, &f_val)) {
-    // Will be SYM_MERROR in case of full heap
-    return lbm_enc_float(f_val);
+  if (tok_D(str, &f_val)) {
+    switch (f_val.type) {
+    case TOK_TYPE_FLOAT:
+      return lbm_enc_float((float)f_val.value);
+    case TOK_TYPE_DOUBLE:
+      return lbm_enc_double(f_val.value);
+    }
   }
 
   token_int int_result;
