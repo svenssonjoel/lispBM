@@ -317,7 +317,7 @@ int tok_D(lbm_tokenizer_char_stream_t *str, token_float *result) {
   if ( !(peek(str,n) >= '0' && peek(str,n) <= '9')) return 0;
   while ( peek(str,n) >= '0' && peek(str,n) <= '9') n++;
 
-  int drop_extra = 0;
+  unsigned int drop_extra = 0;
   if ((peek(str,n) == 'f' &&
        peek(str,n+1) == '6' &&
        peek(str,n+2) == '4')) {
