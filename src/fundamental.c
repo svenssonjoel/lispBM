@@ -870,11 +870,9 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
       lbm_value r = assoc_lookup(args[1], args[0]);
       if (lbm_is_symbol(r) &&
           lbm_dec_sym(r) == SYM_NOT_FOUND) {
-        printf("assoc then branch\n");
         result = lbm_enc_sym(SYM_NIL);
       }
       else {
-        printf("assoc else branch\n");
         result = r;
       }
     }
