@@ -2477,11 +2477,14 @@ static void evaluation_step(void){
      * At this point head can be a closure, fundamental, extension or a macro.
      * Anything else would be an error.
      */
-
-    CHECK_STACK(lbm_push_3(&ctx->K,
-                               ctx->curr_env,
-                               lbm_cdr(ctx->curr_exp),
-                               APPLICATION_START));
+    lbm_value *reserved = lbm_stack_reserve(&ctx->K, 3);
+    if (!reserved) {
+      error_ctx(lbm_enc_sym(SYM_STACK_ERROR));
+      return;
+    }
+    reserved[0] = ctx->curr_env;
+    reserved[1] = lbm_cdr(ctx->curr_exp);
+    reserved[2] = APPLICATION_START;
 
     ctx->curr_exp = head; // evaluate the function
     break;
