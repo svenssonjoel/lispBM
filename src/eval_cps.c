@@ -2338,11 +2338,15 @@ static inline void cont_application_start(eval_context_t *ctx) {
     lbm_value clo_env = lbm_car(cdddr_fun);
     lbm_value arg_env = (lbm_value)sptr[0];
     sptr[1] = exp;
-    CHECK_STACK(lbm_push_4(&ctx->K,
-                           clo_env,
-                           params,
-                           lbm_cdr(args),
-                           CLOSURE_ARGS));
+    lbm_value *reserved = lbm_stack_reserve(&ctx->K, 4);
+    if (!reserved) {
+      error_ctx(lbm_enc_sym(SYM_STACK_ERROR));
+      return;
+    }
+    reserved[0] = clo_env;
+    reserved[1] = params;
+    reserved[2] = lbm_cdr(args);
+    reserved[3] = CLOSURE_ARGS;
     ctx->curr_exp = lbm_car(args);
     ctx->curr_env = arg_env;
     ctx->app_cont = false;
