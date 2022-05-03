@@ -141,6 +141,8 @@ volatile uint32_t eval_cps_next_state_arg = 0;
 static bool     eval_running = false;
 static uint32_t next_ctx_id = 1;
 
+static volatile bool     blocking_extension = false;
+
 typedef struct {
   eval_context_t *first;
   eval_context_t *last;
@@ -194,6 +196,13 @@ void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
 
 void lbm_set_reader_done_callback(void (*fptr)(lbm_cid)) {
   reader_done_callback = fptr;
+}
+
+lbm_cid lbm_get_current_cid(void) {
+  if (ctx_running)
+    return ctx_running->id;
+  else
+    return -1;
 }
 
 void done_reading(lbm_cid cid) {
@@ -687,6 +696,24 @@ static void advance_ctx(void) {
     ctx_running->done = true;
     finish_ctx();
   }
+}
+
+bool lbm_unblock_ctx(lbm_cid cid, lbm_value result) {
+ eval_context_t *found = NULL;
+
+  found = lookup_ctx(&blocked, cid);
+
+  if (found == NULL)
+    return false;
+
+  drop_ctx(&blocked,found);
+  found->r = result;
+  enqueue_ctx(&queue,found);
+  return true;
+}
+
+void lbm_block_ctx_from_extension(void) {
+  blocking_extension = true;
 }
 
 lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
@@ -1765,6 +1792,15 @@ static inline void cont_application(eval_context_t *ctx) {
         }
         lbm_stack_drop(&ctx->K, lbm_dec_u(count) + 1);
 
+        if (blocking_extension) {
+          blocking_extension = false;
+          ctx->timestamp = timestamp_us_callback();
+          ctx->sleep_us = 0;
+          ctx->app_cont = true;
+          enqueue_ctx(&blocked,ctx);
+          ctx_running = NULL;
+          break;
+        }
         ctx->app_cont = true;
         ctx->r = ext_res;
         break;
