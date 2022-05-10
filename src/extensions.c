@@ -63,8 +63,8 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext) {
 
   if (lbm_get_symbol_by_name(sym_str, &symbol)) {
     // symbol already exists and may or may not be an extension.
-    if (lbm_is_extension(symbol)) {
-      ext_ix = lbm_dec_sym(symbol) - ext_offset;
+    if (lbm_is_extension(lbm_enc_sym(symbol))) {
+      ext_ix = symbol - ext_offset;
     } else return false;
   } else {
     int res = lbm_add_extension_symbol_const(sym_str, &symbol);
