@@ -40,7 +40,7 @@ extensions that will be bound at runtime.
 Examples of symbols used as data are `nil` and `t`. `nil` is used the
 represent nothing, the empty list or other similar things and `t`
 represents true.  But any symbol can be used as data by quoting it
-`'`, see <a href="#Quotes_and_Quasiquotation"> Quotes and
+`'`, see <a href="#quotes-and-quasiquotation"> Quotes and
 Quasiquotation </a>.
 
 
