@@ -1134,29 +1134,18 @@ static inline void dynamic_load(eval_context_t *ctx) {
   }
 }
 
-static inline void eval_selfevaluating(eval_context_t *ctx) {
-  ctx->r = ctx->curr_exp;
-  ctx->app_cont = true;
-}
 
 static inline void eval_quote(eval_context_t *ctx) {
   ctx->r = lbm_cadr(ctx->curr_exp);
   ctx->app_cont = true;
 }
 
-static inline void eval_macro(eval_context_t *ctx) {
-  ctx->r = ctx->curr_exp;
-  ctx->app_cont = true;
-}
-
-static inline void eval_closure(eval_context_t *ctx) {
+static inline void eval_selfevaluating(eval_context_t *ctx) {
   ctx->r = ctx->curr_exp;
   ctx->app_cont = true;
 }
 
 static inline void eval_callcc(eval_context_t *ctx) {
-
-  //lbm_value continuation = NIL;
 
   lbm_value cont_array;
 #ifndef LBM64
@@ -1189,14 +1178,8 @@ static inline void eval_callcc(eval_context_t *ctx) {
   CONS_WITH_GC(app, acont, app, acont);
   CONS_WITH_GC(app, fun_arg, app, app);
 
-  //ctx->r = NIL;
   ctx->curr_exp = app;
   ctx->app_cont = false;
-}
-
-static inline void eval_continuation(eval_context_t *ctx) {
-  ctx->r = ctx->curr_exp;
-  ctx->app_cont = true;
 }
 
 static inline void eval_define(eval_context_t *ctx) {
@@ -2519,17 +2502,17 @@ static void evaluation_step(void){
       case SYM_DEFINE:  eval_define(ctx); return;
       case SYM_PROGN:   eval_progn(ctx); return;
       case SYM_LAMBDA:  eval_lambda(ctx); return;
-      case SYM_CLOSURE: eval_closure(ctx); return;
       case SYM_IF:      eval_if(ctx); return;
       case SYM_LET:     eval_let(ctx); return;
       case SYM_AND:     eval_and(ctx); return;
       case SYM_OR:      eval_or(ctx); return;
       case SYM_MATCH:   eval_match(ctx); return;
-        /* message passing primitives */
       case SYM_RECEIVE: eval_receive(ctx); return;
-      case SYM_MACRO:   eval_macro(ctx); return;
       case SYM_CALLCC:  eval_callcc(ctx); return;
-      case SYM_CONT:    eval_continuation(ctx); return;
+
+      case SYM_MACRO:   /* fall through */
+      case SYM_CONT:
+      case SYM_CLOSURE: eval_selfevaluating(ctx); return;
 
       default: break; /* May be general application form. Checked below*/
       }
