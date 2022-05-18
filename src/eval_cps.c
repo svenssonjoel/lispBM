@@ -1214,7 +1214,6 @@ static inline void eval_define(eval_context_t *ctx) {
   return;
 }
 
-
 static inline void eval_progn(eval_context_t *ctx) {
   lbm_value exps = lbm_cdr(ctx->curr_exp);
   lbm_value env  = ctx->curr_env;

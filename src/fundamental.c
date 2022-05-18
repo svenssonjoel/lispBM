@@ -639,7 +639,6 @@ lbm_value index_list(lbm_value l, unsigned int n) {
 
 lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
-
   while (lbm_type_of(curr) == LBM_TYPE_CONS) {
     lbm_value c = lbm_ref_cell(curr)->car;
     if (struct_eq(lbm_ref_cell(c)->car, key)) {
@@ -647,7 +646,7 @@ lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
     }
     curr = lbm_ref_cell(curr)->cdr;
   }
-  return lbm_enc_sym(SYM_NOT_FOUND);
+  return lbm_enc_sym(SYM_NO_MATCH);
 }
 
 lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
@@ -866,15 +865,19 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     }
   }break;
   case SYM_ASSOC: {
-    if (nargs == 2 && lbm_is_list(args[0])) {
-      lbm_value r = assoc_lookup(args[1], args[0]);
-      if (lbm_is_symbol(r) &&
-          lbm_dec_sym(r) == SYM_NOT_FOUND) {
-        result = lbm_enc_sym(SYM_NIL);
-      }
-      else {
-        result = r;
-      }
+    if (nargs == 2) {
+      if (lbm_is_list(args[0])) {
+        lbm_value r = assoc_lookup(args[1], args[0]);
+        if (lbm_is_symbol(r) &&
+            lbm_dec_sym(r) == SYM_NO_MATCH) {
+          result = lbm_enc_sym(SYM_NIL);
+        } else {
+          result = r;
+        }
+      } else if (lbm_is_symbol(args[0]) &&
+                 lbm_dec_sym(args[0]) == SYM_NIL) {
+        result = args[0]; /* nil */
+      } /* else error */
     }
   } break;
   case SYM_ACONS: {
