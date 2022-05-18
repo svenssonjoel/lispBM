@@ -2432,7 +2432,6 @@ static void evaluation_step(void){
     case SET_GLOBAL_ENV:    cont_set_global_env(ctx); return;
     case PROGN_REST:        cont_progn_rest(ctx); return;
     case WAIT:              cont_wait(ctx); return;
-      //    case APPLICATION:       cont_application(ctx); return;
     case APPLICATION_ARGS:  cont_application_args(ctx); return;
     case AND:               cont_and(ctx); return;
     case OR:                cont_or(ctx); return;
