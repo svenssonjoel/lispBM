@@ -1,0 +1,103 @@
+
+(define global-env 'nil)
+
+(defun is-number (e)
+  (or (eq (type-of e) type-i)
+      (eq (type-of e) type-u)))
+
+(defun is-symbol (e)
+  (eq (type-of e) type-symbol))
+
+(defun is-operator (e)
+  (or (eq e '+)
+      (eq e '-)
+      ))
+
+(defun is-closure (e)
+  (and (eq (type-of e) type-list)
+       (eq (car e) 'closure)))
+
+(defun done (e)
+  e)
+
+(defun eval-progn (env args k)
+  (match args
+         (nil (k nil))
+         (((? l) . nil) (evalk env l k))
+         (((? l) . (? ls))
+          (evalk env l
+                 (lambda (x)
+                   (eval-progn env ls k)))))
+  )
+
+(defun eval-define (env args k)
+  (let ((key (car args))
+        (val (car (cdr args))))
+    (evalk env val
+           (lambda (x)
+             (progn 
+               (setvar 'global-env
+                       (acons key x global-env))
+               (k val))))))
+
+(defun eval-lambda (env args k)
+  (k (append (cons 'closure args) (list env))))
+
+(defun eval-list (env ls acc k)
+  (if (eq ls nil)
+      (k acc)
+      (let (( l (car ls))
+            ( r (cdr ls)))
+        (evalk env l
+               (lambda (x)
+                 (eval-list env r (append acc (list x)) k))))))
+
+
+(defun apply-closure (env ls k)
+  (let ((clo  (car ls))
+        (args (cdr ls))
+        (ps (car (cdr clo)))
+        (body (car (cdr (cdr clo))))
+        (env1 (car (cdr (cdr (cdr clo)))))
+        (arg-env (zip ps args))
+        (new-env (append arg-env (append env1 env))))
+    (evalk new-env body k)))
+    
+
+(defun apply (env ls k)
+  (let ((f (car ls)))
+    (if (is-operator f)
+        (k (eval ls))
+        (if (is-closure f)
+            (apply-closure env ls k)
+            'error))))
+
+(defun evalk (env exp k)
+  (progn
+    (if (is-operator exp)
+        (k exp)
+        (if (is-symbol exp)
+            (let ((res (assoc env exp)))
+              (if (eq res nil)
+                  (assoc global-env exp)
+                  (k res)))
+            (if (is-number exp)
+                (k exp)
+                (match exp
+                       ((progn  . (? ls)) (eval-progn  env ls k))
+                       ((define . (? ls)) (eval-define env ls k))
+                       ((lambda . (? ls)) (eval-lambda env ls k))
+                       ((?cons ls)        (eval-list env ls nil
+                                                     (lambda
+                                                         (rs)
+                                                       (apply env rs k))))
+                       ))))))
+ 
+(define test1 '(define apa 1))
+
+(define test2 '(progn (define apa 1) (define bepa 2) (define cepa 3)))
+
+(define test3 '((lambda (x) (+ x 10)) 1))
+
+
+
