@@ -50,6 +50,12 @@
         (evald env l
                (list 'list-cont env r acc k)))))
 
+(defun add-bindings (env binds)
+  (match binds
+         (nil env)
+         (((? b) . (? rs))
+          (add-bindings (setassoc env b) rs))))
+
 (defun apply-closure (env ls k)
   (let ((clo  (car ls))
         (args (cdr ls))
@@ -57,9 +63,8 @@
         (body (car (cdr (cdr clo))))
         (env1 (car (cdr (cdr (cdr clo)))))
         (arg-env (zip ps args))
-        (new-env (append arg-env (append env1 env))))
+        (new-env (add-bindings (append env1 env) arg-env)))
     (evald new-env body k)))
-    
 
 (defun apply (env ls k)
    (let ((f (car ls)))
@@ -86,9 +91,6 @@
               (evald env then-branch k1)
             (evald env else-branch k1)))))
                    
-
-
-
 (defun evald (env exp k)
   (if (is-operator exp)
       (apply-cont k exp)
@@ -118,5 +120,6 @@
 
 (define test4 '(progn (define f (lambda (x) (if (= x 0) 0 (f (- x 1))))) (f 10)))
 
+(define test5 '(progn (define g (lambda (acc x) (if (= x 0) acc (g (+ acc x) (- x 1))))) (g 0 10)))
 
 

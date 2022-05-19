@@ -63,6 +63,12 @@
                (eval-list env r (append acc (list x)) k))))))
 
 
+(defun add-bindings (env binds)
+  (match binds
+         (nil env)
+         (((? b) . (? rs))
+          (add-bindings (setassoc env b) rs))))
+
 (defun apply-closure (env ls k)
   (let ((clo  (car ls))
         (args (cdr ls))
@@ -70,7 +76,7 @@
         (body (car (cdr (cdr clo))))
         (env1 (car (cdr (cdr (cdr clo)))))
         (arg-env (zip ps args))
-        (new-env (append arg-env (append env1 env))))
+        (new-env (add-bindings (append env1 env) arg-env)))
     (evalk new-env body k)))
     
 
@@ -83,25 +89,25 @@
         'error))))
 
 (defun evalk (env exp k)
-    (if (is-operator exp)
-        (k exp)
-      (if (is-symbol exp)
-          (let ((res (assoc env exp)))
-            (if (eq res nil)
-                (k (assoc global-env exp))
-              (k res)))
-        (if (is-number exp)
-            (k exp)
-          (match exp
-                 ((progn  . (? ls)) (eval-progn  env ls k))
-                 ((define . (? ls)) (eval-define env ls k))
-                 ((lambda . (? ls)) (eval-lambda env ls k))
-                 ((if . (? ls))     (eval-if env ls k))
-                 ((?cons ls)        (eval-list env ls nil
-                                               (lambda
-                                                 (rs)
-                                                   (apply env rs k))))
-                 )))))
+  (if (is-operator exp)
+      (k exp)
+    (if (is-symbol exp)
+        (let ((res (assoc env exp)))
+          (if (eq res nil)
+              (k (assoc global-env exp))
+            (k res)))
+      (if (is-number exp)
+          (k exp)
+        (match exp
+               ((progn  . (? ls)) (eval-progn  env ls k))
+               ((define . (? ls)) (eval-define env ls k))
+               ((lambda . (? ls)) (eval-lambda env ls k))
+               ((if . (? ls))     (eval-if env ls k))
+               ((?cons ls)        (eval-list env ls nil
+                                             (lambda
+                                               (rs)
+                                               (apply env rs k))))
+               )))))
 
 (define test1 '(define apa 1))
 
@@ -110,3 +116,5 @@
 (define test3 '((lambda (x) (+ x 10)) 1))
 
 (define test4 '(progn (define f (lambda (x) (if (= x 0) 0 (f (- x 1))))) (f 10)))
+
+(define test5 '(progn (define g (lambda (acc x) (if (= x 0) acc (g (+ acc x) (- x 1))))) (g 0 10)))
