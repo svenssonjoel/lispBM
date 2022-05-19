@@ -12,11 +12,18 @@
   (or (eq e '+)
       (eq e '-)
       (eq e '=)
+      (eq e '*)
       ))
 
 (defun is-closure (e)
   (and (eq (type-of e) type-list)
        (eq (car e) 'closure)))
+
+(defun add-bindings (env binds)
+  (match binds
+         (nil env)
+         (((? b) . (? rs))
+          (add-bindings (setassoc env b) rs))))
 
 (defun done (e)
   e)
@@ -36,7 +43,7 @@
         (val (car (cdr args))))
     (evalk env val
            (lambda (x)
-             (progn 
+             (progn
                (setvar 'global-env
                        (acons key x global-env))
                (k val))))))
@@ -62,13 +69,6 @@
              (lambda (x)
                (eval-list env r (append acc (list x)) k))))))
 
-
-(defun add-bindings (env binds)
-  (match binds
-         (nil env)
-         (((? b) . (? rs))
-          (add-bindings (setassoc env b) rs))))
-
 (defun apply-closure (env ls k)
   (let ((clo  (car ls))
         (args (cdr ls))
@@ -78,7 +78,6 @@
         (arg-env (zip ps args))
         (new-env (add-bindings (append env1 env) arg-env)))
     (evalk new-env body k)))
-    
 
 (defun apply (env ls k)
   (let ((f (car ls)))
@@ -118,3 +117,12 @@
 (define test4 '(progn (define f (lambda (x) (if (= x 0) 0 (f (- x 1))))) (f 10)))
 
 (define test5 '(progn (define g (lambda (acc x) (if (= x 0) acc (g (+ acc x) (- x 1))))) (g 0 10)))
+
+
+(define test6 '(progn (define f (lambda (x) (+ x 10)))
+                      (define g (lambda (x) (* x 5)))
+                      (f (g 10))))
+
+(define test7 '(progn (define f (lambda (x) (+ x 10)))
+                      (define g (lambda (x) (* x 5)))
+                      (g (f 10))))

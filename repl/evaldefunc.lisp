@@ -12,11 +12,18 @@
   (or (eq e '+)
       (eq e '-)
       (eq e '=)
+      (eq e '*)
       ))
 
 (defun is-closure (e)
   (and (eq (type-of e) type-list)
        (eq (car e) 'closure)))
+
+(defun add-bindings (env binds)
+  (match binds
+         (nil env)
+         (((? b) . (? rs))
+          (add-bindings (setassoc env b) rs))))
 
 (defun eval-progn (env args k)
   (match args
@@ -31,7 +38,7 @@
         (val (car (cdr args))))
     (evald env val
            (list 'define-cont key k))))
-          
+
 (defun eval-lambda (env args k)
   (apply-cont k (append (cons 'closure args) (list env))))
 
@@ -49,12 +56,6 @@
             ( r (cdr ls)))
         (evald env l
                (list 'list-cont env r acc k)))))
-
-(defun add-bindings (env binds)
-  (match binds
-         (nil env)
-         (((? b) . (? rs))
-          (add-bindings (setassoc env b) rs))))
 
 (defun apply-closure (env ls k)
   (let ((clo  (car ls))
@@ -90,7 +91,7 @@
           (if exp
               (evald env then-branch k1)
             (evald env else-branch k1)))))
-                   
+
 (defun evald (env exp k)
   (if (is-operator exp)
       (apply-cont k exp)
@@ -109,8 +110,6 @@
                ((?cons ls)        (eval-list env ls nil
                                              (list 'application-cont env k)))
                )))))
-            
-  
 
 (define test1 '(define apa 1))
 
@@ -122,4 +121,10 @@
 
 (define test5 '(progn (define g (lambda (acc x) (if (= x 0) acc (g (+ acc x) (- x 1))))) (g 0 10)))
 
+(define test6 '(progn (define f (lambda (x) (+ x 10)))
+                      (define g (lambda (x) (* x 5)))
+                      (f (g 10))))
 
+(define test7 '(progn (define f (lambda (x) (+ x 10)))
+                      (define g (lambda (x) (* x 5)))
+                      (g (f 10))))
