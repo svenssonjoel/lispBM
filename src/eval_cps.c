@@ -1229,6 +1229,8 @@ static inline void eval_progn(eval_context_t *ctx) {
     sptr[2] = PROGN_REST;
     ctx->curr_exp = lbm_car(exps);
     ctx->curr_env = env;
+    if (lbm_is_symbol(sptr[1])) /* The only symbol it can be is nil */
+      lbm_stack_drop(&ctx->K, 3);
   } else if (lbm_is_symbol_nil(exps)) {
     ctx->r = NIL;
     ctx->app_cont = true;

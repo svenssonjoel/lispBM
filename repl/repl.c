@@ -478,7 +478,7 @@ int main(int argc, char **argv) {
   pthread_mutex_init(&mut, NULL);
 
   lbm_heap_state_t heap_state;
-  unsigned int heap_size = 2048;
+  unsigned int heap_size = 8192;
   lbm_cons_t *heap_storage = NULL;
 
   for (int i = 0; i < 1024; i ++) {

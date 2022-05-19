@@ -11,6 +11,7 @@
 (defun is-operator (e)
   (or (eq e '+)
       (eq e '-)
+      (eq e '=)
       ))
 
 (defun is-closure (e)
@@ -34,6 +35,13 @@
 (defun eval-lambda (env args k)
   (apply-cont k (append (cons 'closure args) (list env))))
 
+(defun eval-if (env args k)
+  (let ((cond-exp  (car args))
+        (then-branch (car (cdr args)))
+        (else-branch (car (cdr (cdr args)))))
+    (evald env cond-exp
+           (list 'if-cont env then-branch else-branch k))))
+
 (defun eval-list (env ls acc k)
   (if (eq ls nil)
       (apply-cont k acc)
@@ -41,7 +49,6 @@
             ( r (cdr ls)))
         (evald env l
                (list 'list-cont env r acc k)))))
-
 
 (defun apply-closure (env ls k)
   (let ((clo  (car ls))
@@ -73,27 +80,33 @@
          ((list-cont (? env) (? r) (? acc) (? k1))
           (eval-list env r (append acc (list exp)) k1))
          ((application-cont (? env) (? k1))
-          (apply env exp k1))))
+          (apply env exp k1))
+         ((if-cont (? env) (? then-branch) (? else-branch) (? k1))
+          (if exp
+              (evald env then-branch k1)
+            (evald env else-branch k1)))))
+                   
+
 
 
 (defun evald (env exp k)
-  (progn
-    (if (is-operator exp)
-        (apply-cont k exp)
-        (if (is-symbol exp)
-            (let ((res (assoc env exp)))
-              (if (eq res nil)
-                  (assoc global-env exp)
-                  (apply-cont k res)))
-            (if (is-number exp)
-                (apply-cont k exp)
-                (match exp
-                       ((progn  . (? ls)) (eval-progn  env ls k))
-                       ((define . (? ls)) (eval-define env ls k))
-                       ((lambda . (? ls)) (eval-lambda env ls k))
-                       ((?cons ls)        (eval-list env ls nil
-                                                     (list 'application-cont env k)))
-                       ))))))
+  (if (is-operator exp)
+      (apply-cont k exp)
+    (if (is-symbol exp)
+        (let ((res (assoc env exp)))
+          (if (eq res nil)
+              (apply-cont k (assoc global-env exp))
+            (apply-cont k res)))
+      (if (is-number exp)
+          (apply-cont k exp)
+        (match exp
+               ((progn  . (? ls)) (eval-progn  env ls k))
+               ((define . (? ls)) (eval-define env ls k))
+               ((lambda . (? ls)) (eval-lambda env ls k))
+               ((if . (? ls))     (eval-if env ls k))
+               ((?cons ls)        (eval-list env ls nil
+                                             (list 'application-cont env k)))
+               )))))
             
   
 
@@ -102,6 +115,8 @@
 (define test2 '(progn (define apa 1) (define bepa 2) (define cepa 3)))
 
 (define test3 '((lambda (x) (+ x 10)) 1))
+
+(define test4 '(progn (define f (lambda (x) (if (= x 0) 0 (f (- x 1))))) (f 10)))
 
 
 
