@@ -1159,7 +1159,7 @@ static inline void eval_callcc(eval_context_t *ctx) {
 #else
   if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U64)) {
     gc(NIL,NIL);
-    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U32)) {
+    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U64)) {
       error_ctx(lbm_enc_sym(SYM_MERROR));
       return;
     }
