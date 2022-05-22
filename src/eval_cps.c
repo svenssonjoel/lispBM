@@ -1923,11 +1923,16 @@ static inline void cont_or(eval_context_t *ctx) {
 }
 
 static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
-  lbm_value key;
-  lbm_value env;
-  lbm_value rest;
   lbm_value arg = ctx->r;
-  lbm_pop_3(&ctx->K, &key, &env, &rest);
+
+  lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 4);
+  if (!sptr) {
+    error_ctx(lbm_enc_sym(SYM_FATAL_ERROR));
+    return;
+  }
+  lbm_value rest = sptr[1];
+  lbm_value env  = sptr[2];
+  lbm_value key  = sptr[3];
 
   lbm_env_modify_binding(env, key, arg);
 
@@ -1935,16 +1940,16 @@ static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
     lbm_value keyn = lbm_car(lbm_car(rest));
     lbm_value valn_exp = lbm_cadr(lbm_car(rest));
 
-    CHECK_STACK(lbm_push_4(&ctx->K, lbm_cdr(rest), env, keyn, BIND_TO_KEY_REST));
-
+    sptr[1] = lbm_cdr(rest);
+    sptr[3] = keyn;
+    CHECK_STACK(lbm_push(&ctx->K, BIND_TO_KEY_REST));
     ctx->curr_exp = valn_exp;
     ctx->curr_env = env;
   } else {
     // Otherwise evaluate the expression in the populated env
-    lbm_value exp;
-    lbm_pop(&ctx->K, &exp);
-    ctx->curr_exp = exp;
+    ctx->curr_exp = sptr[0];
     ctx->curr_env = env;
+    lbm_stack_drop(&ctx->K, 4);
   }
 }
 
