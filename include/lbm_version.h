@@ -28,6 +28,10 @@
 #define LBM_PATCH_VERSION 3
 
 /*! \page changelog Changelog
+
+May 24 2022: Version 0.5.3
+  - Fixed bug related to float-array literals not accepting whole numbers unless containing a decimal (0).
+
 May 22 2022: Version 0.5.3
   - Fixed bug that could cause problems with call-cc on 64bit platforms.
   - bind_to_key_rest continuation refactoring to use indexing into stack.
