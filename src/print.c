@@ -401,7 +401,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
 
       default:
-        snprintf(buf, len, "Error: print does not recognize type of value: %"PRI_HEX"", curr);
+        snprintf(buf, len, "Error: print does not recognize type %"PRI_HEX" of value: %"PRI_HEX"", lbm_type_of(curr), curr);
         return -1;
         break;
       } // Switch type of curr

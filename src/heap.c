@@ -763,7 +763,7 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
   lbm_set_car(cell, (lbm_uint)array);
   lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
 
-  cell = cell | LBM_TYPE_ARRAY;
+  cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
 
   *res = cell;
 

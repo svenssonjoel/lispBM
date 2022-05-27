@@ -1111,7 +1111,7 @@ static inline void dynamic_load(eval_context_t *ctx) {
     lbm_set_car(cell, (lbm_uint)array);
     lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
 
-    cell = cell | LBM_TYPE_ARRAY;
+    cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
 
     lbm_value stream = token_stream_from_string_value(cell);
     if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
