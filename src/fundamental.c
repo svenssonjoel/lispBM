@@ -910,11 +910,25 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     break;
   }
   case SYM_CAR: {
-    result = lbm_car(args[0]);
+    if (nargs == 1) {
+      if (lbm_type_of(args[0]) == LBM_TYPE_CONS) {
+        lbm_cons_t *cell = lbm_ref_cell(args[0]);
+        result = cell->car;
+      } else {
+        result = lbm_enc_sym(SYM_NIL);
+      }
+    }
     break;
   }
   case SYM_CDR: {
-    result = lbm_cdr(args[0]);
+    if (nargs == 1) {
+      if (lbm_type_of(args[0]) == LBM_TYPE_CONS) {
+        lbm_cons_t *cell = lbm_ref_cell(args[0]);
+        result = cell->cdr;
+      } else {
+        result = lbm_enc_sym(SYM_NIL);
+      }
+    }
     break;
   }
   case SYM_LIST: {
