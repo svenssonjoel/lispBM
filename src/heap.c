@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <lbm_memory.h>
+#include <lbm_custom_type.h>
 
 #include "heap.h"
 #include "symrepr.h"
@@ -510,6 +511,10 @@ int lbm_gc_sweep_phase(void) {
           if (lbm_memory_ptr_inside((lbm_uint*)stream)) {
             lbm_memory_free((lbm_uint*)stream);
           }
+        } break;
+        case SYM_CUSTOM_TYPE: {
+          lbm_uint *t = (lbm_uint*)heap[i].car;
+          lbm_custom_type_destroy(t);
         } break;
         default:
           break;

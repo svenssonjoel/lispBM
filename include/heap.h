@@ -206,8 +206,9 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_TYPE_ARRAY                   0x80000000u
 #define LBM_TYPE_REF                     0x90000000u
 #define LBM_TYPE_STREAM                  0xA0000000u
-#define LBM_NON_CONS_POINTER_TYPE_LAST   0xA0000000u
-#define LBM_POINTER_TYPE_LAST            0xA0000000u
+#define LBM_TYPE_CUSTOM                  0xB0000000u
+#define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
+#define LBM_POINTER_TYPE_LAST            0xB0000000u
 
 
 #define LBM_GC_MASK                      0x00000002u
@@ -234,15 +235,16 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 
 #define LBM_POINTER_TYPE_FIRST           (lbm_uint)0x1000000000000000
 #define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
-#define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0xA000000000000000
-#define LBM_TYPE_U64                     (lbm_uint)0xA000000000000000
-#define LBM_TYPE_I64                     (lbm_uint)0xB000000000000000
-#define LBM_TYPE_DOUBLE                  (lbm_uint)0xC000000000000000
-#define LBM_TYPE_ARRAY                   (lbm_uint)0xD000000000000000
-#define LBM_TYPE_REF                     (lbm_uint)0xE000000000000000
-#define LBM_TYPE_STREAM                  (lbm_uint)0xF000000000000000
-#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0xF000000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0xF000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0x2000000000000000
+#define LBM_TYPE_U64                     (lbm_uint)0x2000000000000000
+#define LBM_TYPE_I64                     (lbm_uint)0x3000000000000000
+#define LBM_TYPE_DOUBLE                  (lbm_uint)0x4000000000000000
+#define LBM_TYPE_ARRAY                   (lbm_uint)0x5000000000000000
+#define LBM_TYPE_REF                     (lbm_uint)0x6000000000000000
+#define LBM_TYPE_STREAM                  (lbm_uint)0x7000000000000000
+#define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
 
 #define LBM_GC_MASK                      (lbm_uint)0x2
 #define LBM_GC_MARKED                    (lbm_uint)0x2

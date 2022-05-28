@@ -88,6 +88,7 @@ special_sym const special_symbols[] =  {
   {"sym_stream"         , SYM_STREAM_TYPE},
   {"sym_recovered"      , SYM_RECOVERED},
   {"sym_bytecode"       , SYM_BYTECODE_TYPE},
+  {"sym_custom"         , SYM_CUSTOM_TYPE},
   {"sym_nonsense"       , SYM_NONSENSE},
   {"variable_not_bound" , SYM_NOT_FOUND},
 

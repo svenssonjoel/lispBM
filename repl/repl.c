@@ -31,6 +31,8 @@
 #include "extensions/string_extensions.h"
 #include "extensions/math_extensions.h"
 
+#include "lbm_custom_type.h"
+
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
@@ -387,6 +389,20 @@ static lbm_value ext_range(lbm_value *args, lbm_uint argn) {
         return res;
 }
 
+static bool test_destruct(lbm_uint value) {
+  printf("destroying custom value\n");
+  free((lbm_uint*)value);
+}
+
+static lbm_value ext_custom(lbm_value *args, lbm_uint argn) {
+
+  lbm_uint *mem = (lbm_uint*)malloc(1000*sizeof(lbm_uint));
+
+  lbm_value res;
+
+  lbm_custom_type_create((lbm_uint)mem, test_destruct, "custom_type", &res);
+  return res;
+}
 
 
 /* load a file, caller is responsible for freeing the returned string */
@@ -543,6 +559,12 @@ int main(int argc, char **argv) {
     printf("Error adding extension.\n");
 
   res = lbm_add_extension("range", ext_range);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
+  res = lbm_add_extension("custom", ext_custom);
   if (res)
     printf("Extension added.\n");
   else
