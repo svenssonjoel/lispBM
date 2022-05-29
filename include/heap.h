@@ -367,6 +367,12 @@ extern char *lbm_dec_str(lbm_value val);
  * \return A pointer to an lbm_stream_t or NULL if the value does not encode a stream.
  */
 extern lbm_stream_t *lbm_dec_stream(lbm_value val);
+/** Decode an lbm_value representing a custom type into a lbm_uint value.
+ * 
+ * \param val Value.
+ * \return The custom type payload.
+ */
+extern lbm_uint lbm_dec_custom(lbm_value val);
 /** Decode a numerical value as if it is char
  *
  * \param val Value to decode

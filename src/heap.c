@@ -57,6 +57,14 @@ lbm_stream_t *lbm_dec_stream(lbm_value val) {
   return res;
 }
 
+lbm_uint lbm_dec_custom(lbm_value val) {
+  lbm_uint res = 0;
+  if (lbm_type_of(val) == LBM_TYPE_CUSTOM) {
+    res = (lbm_uint)lbm_car(val);
+  }
+  return res;
+}
+
 char lbm_dec_as_char(lbm_value a) {
   switch (lbm_type_of(a)) {
   case LBM_TYPE_CHAR:
