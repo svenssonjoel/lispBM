@@ -65,11 +65,8 @@ static lbm_value ext_sdl_init(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-static bool sdl_window_destructor(lbm_uint lbm_mem_ptr) {
-
-  lbm_uint *m = (lbm_uint *)lbm_mem_ptr;
-  lbm_uint win = m[CUSTOM_TYPE_VALUE];
-  SDL_DestroyWindow((SDL_Window*)win);
+static bool sdl_window_destructor(lbm_uint value) {
+  SDL_DestroyWindow((SDL_Window*)value);
   return true;
 }
 
@@ -94,11 +91,8 @@ static lbm_value ext_sdl_create_window(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-static bool sdl_renderer_destructor(lbm_uint lbm_mem_ptr) {
-
-  lbm_uint *m = (lbm_uint *)lbm_mem_ptr;
-  lbm_uint rend = m[CUSTOM_TYPE_VALUE];
-  SDL_DestroyRenderer((SDL_Renderer*)rend);
+static bool sdl_renderer_destructor(lbm_uint value) {
+  SDL_DestroyRenderer((SDL_Renderer*)value);
   return true;
 }
 

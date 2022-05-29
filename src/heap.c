@@ -523,6 +523,7 @@ int lbm_gc_sweep_phase(void) {
         case SYM_CUSTOM_TYPE: {
           lbm_uint *t = (lbm_uint*)heap[i].car;
           lbm_custom_type_destroy(t);
+          lbm_memory_free(t);
         } break;
         default:
           break;
