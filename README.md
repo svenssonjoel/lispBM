@@ -1,4 +1,4 @@
-# lispBM (Lisp Black Magic)
+# lispBM (LBM)
 
 A concurrent lisp-like language with message-passing and
 pattern-matching implemented in C for 32 bit and 64 bit platforms.
