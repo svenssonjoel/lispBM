@@ -196,6 +196,8 @@
 #define SYM_BITWISE_XOR         0x174
 #define SYM_BITWISE_NOT         0x175
 
+#define SYM_CUSTOM_DESTRUCT     0x180 /* run the destructor of a custom type */
+
 #define SYM_TYPE_OF             0x200
 #define FUNDAMENTALS_END        0x200
 

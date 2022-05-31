@@ -25,6 +25,7 @@
 #include "lbm_variables.h"
 #include "env.h"
 #include "lbm_utils.h"
+#include "lbm_custom_type.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -1253,6 +1254,16 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
       result = bitwise_not(args[0]);
     }
     break;
+  case SYM_CUSTOM_DESTRUCT:
+    if (nargs == 1 && (lbm_type_of(args[0]) == LBM_TYPE_CUSTOM)) {
+      lbm_uint *mem_ptr = lbm_dec_custom(args[0]);
+      lbm_custom_type_destroy(mem_ptr);
+      lbm_value tmp = lbm_set_ptr_type(args[0], LBM_TYPE_CONS);
+      lbm_set_car(tmp, lbm_enc_sym(SYM_NIL));
+      lbm_set_cdr(tmp, lbm_enc_sym(SYM_NIL));
+      /* The original value will still be of type custom_ptr */
+      result = lbm_enc_sym(SYM_TRUE);
+    } break;
   default:
     result = lbm_enc_sym(SYM_EERROR);
     break;

@@ -167,6 +167,8 @@ special_sym const special_symbols[] =  {
   {"bitwise-xor"    , SYM_BITWISE_XOR},
   {"bitwise-not"    , SYM_BITWISE_NOT},
 
+  {"custom-destruct", SYM_CUSTOM_DESTRUCT},
+
   {"to-i"           , SYM_TO_I},
   {"to-i32"         , SYM_TO_I32},
   {"to-u"           , SYM_TO_U},

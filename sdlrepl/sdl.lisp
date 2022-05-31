@@ -27,7 +27,7 @@
 (defun event-loop (w)
   (let ((event (sdl-poll-event)))
     (if (eq event 'sdl-quit-event)
-        nil
+        (custom-destruct w)
         (progn  
           (yield 50000)
           (event-loop w)))))
