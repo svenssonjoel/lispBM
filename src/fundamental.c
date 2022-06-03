@@ -1256,7 +1256,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     break;
   case SYM_CUSTOM_DESTRUCT:
     if (nargs == 1 && (lbm_type_of(args[0]) == LBM_TYPE_CUSTOM)) {
-      lbm_uint *mem_ptr = lbm_dec_custom(args[0]);
+      lbm_uint *mem_ptr = (lbm_uint*)lbm_dec_custom(args[0]);
       lbm_custom_type_destroy(mem_ptr);
       lbm_value tmp = lbm_set_ptr_type(args[0], LBM_TYPE_CONS);
       lbm_set_car(tmp, lbm_enc_sym(SYM_NIL));
