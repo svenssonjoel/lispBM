@@ -29,7 +29,7 @@
     (if (eq event 'sdl-quit-event)
         (custom-destruct w)
         (progn  
-          (yield 50000)
+          (yield 5000)
           (event-loop w)))))
 
 (defun line (rend p1 p2)
@@ -58,6 +58,7 @@
       (draw-figure rend '(250 . 400) 0 25)
 
       (sdl-present rend)
+      (custom-destruct rend)
       'done
       )))
 
