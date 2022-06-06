@@ -18,10 +18,11 @@
 #ifndef PLATFORM_MUTEX_H_
 #define PLATFORM_MUTEX_H_
 
-#include <semphr.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 #include <stdbool.h>
 
-typedef struct SemaphoreHandle_t mutex_t;
+typedef SemaphoreHandle_t mutex_t;
 
 extern bool mutex_init(mutex_t *m);
 extern void mutex_lock(mutex_t *m);
