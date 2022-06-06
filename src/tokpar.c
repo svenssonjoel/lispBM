@@ -812,7 +812,3 @@ void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
   char_stream->column = column_string;
 }
 
-/* VALUE tokpar_parse(tokenizer_char_stream_t *char_stream) { */
-
-/*   return tokpar_parse_program(char_stream); */
-/* } */

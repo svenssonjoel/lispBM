@@ -109,3 +109,14 @@ make pirepl
 
 Then start it up using `./repl`
 Building the library is not a prerequisite for building the repl anymore.
+
+## SDL and LispBM
+
+In the `sdlrepl` directory there is a start of a set of SDL bindings for LispBM.
+
+To build this repl you need the following dependencies:
+
+1. libsdl2-dev - `sudo apt-get install libsdl2-dev`
+2. libsdl2-image-dev - `sudo apt-get install libsdl2-image-dev`
+
+Then compile the repl using the command `make`
