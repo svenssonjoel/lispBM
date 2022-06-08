@@ -16,6 +16,7 @@
 */
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
@@ -25,6 +26,9 @@
 #include "driver/uart.h"
 
 #include "lispbm.h"
+#include "lbm_llama_ascii.h"
+#include "lbm_version.h"
+
 
 #include "extensions/array_extensions.h"
 #include "extensions/string_extensions.h"
@@ -57,10 +61,22 @@ int getChar(void) {
 	uint8_t buf[1];
 	int r = 0;
 	do {
+		printf("looping\n");
 		r = uart_read_bytes(UART_NUM, buf, 1, portMAX_DELAY);
 		if (r < 0) return -1;
 	} while (r < 1);
 	return (int)buf[0];
+}
+
+void uart_printf(const char* fmt, ...) {
+	char buffer[256];
+	va_list args;
+	va_start (args, fmt);
+	int n = vsnprintf (buffer,256,fmt, args);
+	va_end (args);
+	if (n > 0) {
+		uart_write_bytes(UART_NUM, buffer, n);
+	}
 }
 
 int inputline(char *buffer, unsigned int size) {
@@ -71,12 +87,7 @@ int inputline(char *buffer, unsigned int size) {
 		c = getchar(); // busy waiting.
 
 		if (c < 0) {
-			n--;
-			struct timespec s;
-			struct timespec r;
-			s.tv_sec = 0;
-			s.tv_nsec = (long)1000 * 1000;
-			nanosleep(&s, &r);
+			vTaskDelay(1000);
 			continue;
 		}
 		switch (c) {
@@ -119,11 +130,15 @@ int inputline(char *buffer, unsigned int size) {
 #define VARIABLE_STORAGE_SIZE 256
 #define WAIT_TIMEOUT 2500
 #define STR_SIZE 1024
+#define HEAP_SIZE 2048
+#define PRINT_SIZE 1024
 
 lbm_uint gc_stack_storage[GC_STACK_SIZE];
 lbm_uint print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
+
+static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
 static lbm_uint memory[LBM_MEMORY_SIZE_8K];
 static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
@@ -131,29 +146,144 @@ static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_8K];
 static lbm_tokenizer_string_state_t string_tok_state;
 static lbm_tokenizer_char_stream_t string_tok;
 
+static char print_output[PRINT_SIZE];
+
+void eval_thd_wrapper(void *v) {
+  lbm_run_eval();
+}
+
+void done_callback(eval_context_t *ctx) {
+
+	char *output = print_output;
+
+	lbm_cid cid = ctx->id;
+	lbm_value t = ctx->r;
+
+	int print_ret = lbm_print_value(output, PRINT_SIZE, t);
+
+	if (print_ret >= 0) {
+		uart_printf("<< Context %d finished with value %s >>\r\n# ", cid, output);
+	} else {
+		uart_printf("<< Context %d finished with value %s >>\r\n# ", cid, output);
+	}
+}
+
+uint32_t timestamp_callback(void) {
+	TickType_t t = xTaskGetTickCount();
+	return (uint32_t) (100 * t);
+}
+
+void sleep_callback(uint32_t us) {
+	vTaskDelay(us / 100);
+}
+
+lbm_value ext_print(lbm_value *args, lbm_uint argn) {
+
+  char *output = print_output;
+
+  for (lbm_uint i = 0; i < argn; i ++) {
+    lbm_value t = args[i];
+
+    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
+      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
+      switch (array->elt_type){
+      case LBM_TYPE_CHAR:
+        uart_printf("%s", (char*)array->data);
+        break;
+      default:
+        return lbm_enc_sym(SYM_NIL);
+        break;
+      }
+    } else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
+      if (lbm_dec_char(t) =='\n') {
+        uart_printf("\r\n");
+      } else {
+        uart_printf("%c", lbm_dec_char(t));
+      }
+    }  else {
+      lbm_print_value(output, 1024, t);
+      uart_printf("%s", output);
+    }
+  }
+  return lbm_enc_sym(SYM_TRUE);
+}
+
+static char str[1024];
+static char outbuf[1024];
+
 void app_main(void)
 {
-    /* Print chip information */
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    printf("This is %s chip with %d CPU core(s), WiFi%s%s, ",
-           CONFIG_IDF_TARGET,
-           chip_info.cores,
-           (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
-           (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
 
-    printf("silicon revision %d, ", chip_info.revision);
+	int res = 0;
+	lbm_heap_state_t heap_state;
 
-    printf("%uMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
-           (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
 
-    printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
+	vTaskDelay(1000);
+	uart_init();
 
-    for (int i = 10; i >= 0; i--) {
-        printf("Restarting in %d seconds...\n", i);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-    printf("Restarting now.\n");
-    fflush(stdout);
-    esp_restart();
+	if (!lbm_init(heap, HEAP_SIZE,
+			gc_stack_storage, GC_STACK_SIZE,
+			memory, LBM_MEMORY_SIZE_8K,
+			bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
+			print_stack_storage, PRINT_STACK_SIZE,
+			extension_storage, EXTENSION_STORAGE_SIZE)) {
+		uart_printf("LispBM Init failed.\r\n");
+		return;
+	}
+	uart_printf("LispBM Initialized\n");
+
+	lbm_set_ctx_done_callback(done_callback);
+	lbm_set_timestamp_us_callback(timestamp_callback);
+	lbm_set_usleep_callback(sleep_callback);
+
+	res = lbm_add_extension("print", ext_print);
+	if (res)
+		uart_printf("Extension added.\r\n");
+	else
+		uart_printf("Error adding extension.\r\n");
+
+
+	TaskHandle_t eval_thd = NULL;
+	BaseType_t status = xTaskCreate(eval_thd_wrapper,
+			"eval",
+			1024,
+			NULL,
+			4,
+			&eval_thd
+	);
+
+	if( status == pdPASS ) {
+		uart_printf("Evaluator thread started\n");
+		//vTaskDelete( xHandle );
+	}
+
+
+	uart_printf("%s\n", llama_ascii);
+	uart_printf("LispBM Version %d.%d.%d\r\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
+	uart_printf("Lisp REPL started (ESP32C3)\r\n");
+
+
+	while (1) {
+		uart_printf("# ");
+		memset(str,0,1024);
+		memset(outbuf,0, 1024);
+		inputline(str, 1024);
+		uart_printf("\r\n");
+
+		if (strncmp(str, ":info", 5) == 0) {
+			uart_printf("------------------------------------------------------------\r\n");
+			uart_printf("Used cons cells: %lu \r\n", HEAP_SIZE - lbm_heap_num_free());
+			uart_printf("Free cons cells: %lu\r\n", lbm_heap_num_free());
+			lbm_get_heap_state(&heap_state);
+			uart_printf("GC counter: %lu\r\n", heap_state.gc_num);
+			uart_printf("Recovered: %lu\r\n", heap_state.gc_recovered);
+			uart_printf("Marked: %lu\r\n", heap_state.gc_marked);
+
+			uart_printf("Array and symbol string memory:\r\n");
+			uart_printf("  Size: %u 32Bit words\r\n", lbm_memory_num_words());
+			uart_printf("  Free: %u 32Bit words\r\n", lbm_memory_num_free());
+			uart_printf("------------------------------------------------------------\r\n");
+			memset(outbuf,0, 1024);
+		}
+	}
 }
