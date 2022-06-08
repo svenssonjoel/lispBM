@@ -57,15 +57,13 @@ void uart_init(void) {
 	uart_set_pin(UART_NUM, UART_TX, UART_RX, -1, -1);
 }
 
-int getChar(void) {
-	uint8_t buf[1];
+int get_char(void) {
+	uint8_t c;
 	int r = 0;
 	do {
-		printf("looping\n");
-		r = uart_read_bytes(UART_NUM, buf, 1, portMAX_DELAY);
-		if (r < 0) return -1;
-	} while (r < 1);
-	return (int)buf[0];
+		r = uart_read_bytes(UART_NUM, &c, 1, portMAX_DELAY);
+	} while (r == 0);
+	return (int)c;
 }
 
 void uart_printf(const char* fmt, ...) {
@@ -79,49 +77,45 @@ void uart_printf(const char* fmt, ...) {
 	}
 }
 
-int inputline(char *buffer, unsigned int size) {
-	unsigned int n = 0;
-	int c;
-	for (n = 0; n < size - 1; n++) {
-
-		c = getchar(); // busy waiting.
-
-		if (c < 0) {
-			vTaskDelay(1000);
-			continue;
-		}
-		switch (c) {
-		case 27:
-			break;
-		case 127: /* fall through to below */
-		case '\b': /* backspace character received */
-			if (n > 0)
-				n--;
-			buffer[n] = 0;
-			//putchar(0x8); /* output backspace character */
-			//putchar(' ');
-			//putchar(0x8);
-			n--; /* set up next iteration to deal with preceding char location */
-			break;
-		case '\n': /* fall through to \r */
-		case '\r':
-			buffer[n] = 0;
-			return n;
-		default:
-			if (isprint(c)) { /* ignore non-printable characters */
-				//putchar(c);
-				buffer[n] = (char)c;
-			} else {
-				n -= 1;
-			}
-			break;
-		}
-	}
-	buffer[size - 1] = 0;
-	return 0; // Filled up buffer without reading a linebreak
+void put_char(char c) {
+   uart_write_bytes(UART_NUM, &c, 1);
 }
 
+int inputline(char *buffer, int size) {
+  int n = 0;
+  unsigned char c;
 
+  for (n = 0; n < size - 1; n++) {
+
+    c = get_char();
+    switch (c) {
+    case 127: /* fall through to below */
+    case '\b': /* backspace character received */
+      if (n > 0)
+        n--;
+      buffer[n] = 0;
+      put_char(0x8); /* output backspace character */
+      put_char(' ');
+      put_char(0x8);
+      n--; /* set up next iteration to deal with preceding char location */
+      break;
+    case '\n': /* fall through to \r */
+    case '\r':
+      buffer[n] = 0;
+      return n;
+    default:
+      if (isprint(c)) { /* ignore non-printable characters */
+        put_char(c);
+        buffer[n] = c;
+      } else {
+        n -= 1;
+      }
+      break;
+    }
+  }
+  buffer[size - 1] = 0;
+  return 0; // Filled up buffer without reading a linebreak
+}
 
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
@@ -221,6 +215,7 @@ void app_main(void)
 	vTaskDelay(1000);
 	uart_init();
 
+
 	if (!lbm_init(heap, HEAP_SIZE,
 			gc_stack_storage, GC_STACK_SIZE,
 			memory, LBM_MEMORY_SIZE_8K,
@@ -246,9 +241,9 @@ void app_main(void)
 	TaskHandle_t eval_thd = NULL;
 	BaseType_t status = xTaskCreate(eval_thd_wrapper,
 			"eval",
-			1024,
+			4096,
 			NULL,
-			4,
+			2,
 			&eval_thd
 	);
 
@@ -257,11 +252,8 @@ void app_main(void)
 		//vTaskDelete( xHandle );
 	}
 
-
-	uart_printf("%s\n", llama_ascii);
 	uart_printf("LispBM Version %d.%d.%d\r\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
 	uart_printf("Lisp REPL started (ESP32C3)\r\n");
-
 
 	while (1) {
 		uart_printf("# ");
@@ -269,7 +261,6 @@ void app_main(void)
 		memset(outbuf,0, 1024);
 		inputline(str, 1024);
 		uart_printf("\r\n");
-
 		if (strncmp(str, ":info", 5) == 0) {
 			uart_printf("------------------------------------------------------------\r\n");
 			uart_printf("Used cons cells: %lu \r\n", HEAP_SIZE - lbm_heap_num_free());
