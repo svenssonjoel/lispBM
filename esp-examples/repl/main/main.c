@@ -162,13 +162,17 @@ void done_callback(eval_context_t *ctx) {
 	}
 }
 
+// On FreeRTOS the systick freq can be set to at most 1KHz.
+// At 1KHz, 1 tick is 1000 us.
 uint32_t timestamp_callback(void) {
 	TickType_t t = xTaskGetTickCount();
-	return (uint32_t) (100 * t);
+	return (uint32_t) (1000 * t);
 }
 
 void sleep_callback(uint32_t us) {
-	vTaskDelay(us / 100);
+	uint32_t ticks = us / 1000;
+	if (ticks == 0) vTaskDelay(1);//taskYIELD();
+	else vTaskDelay(ticks);
 }
 
 lbm_value ext_print(lbm_value *args, lbm_uint argn) {
