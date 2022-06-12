@@ -47,7 +47,7 @@
           (draw-figure rend p1 (+ ang 27) (/ s 2))))))
 
 (defun main ()
-  (let ((win (sdl-create-window 500 500))
+  (let ((win (sdl-create-window "LISP-GFX" 500 500))
         (rend (sdl-create-soft-renderer win)))
     (progn
       (spawn 100 event-loop win)
