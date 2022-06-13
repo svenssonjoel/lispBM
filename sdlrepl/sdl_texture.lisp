@@ -26,7 +26,7 @@
 	(sdl-clear rend)
 	(sdl-blit rend tex x y 80 80)
 	(sdl-present rend)
-	(yield 10000) 
+	(yield 8000)
 	(draw-loop rend tex (+ x dx-new) (+ y dy-new) dx-new dy-new)
 	)
       )

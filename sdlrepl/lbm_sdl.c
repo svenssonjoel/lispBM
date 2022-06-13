@@ -34,7 +34,9 @@ typedef struct {
 
 sdl_symbol_t lbm_sdl_events[] = {
   {0       , "sdl-no-event", 0},
-  {SDL_QUIT, "sdl-quit-event", 0}
+  {SDL_QUIT, "sdl-quit-event", 0},
+  {SDL_KEYDOWN, "sdl-key-down-event", 0},
+  {SDL_KEYUP, "sdl-key-up-event", 0}
 };
 
 
