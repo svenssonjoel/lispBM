@@ -1934,6 +1934,15 @@ static inline void cont_bind_to_key_rest(eval_context_t *ctx) {
   lbm_value env  = sptr[2];
   lbm_value key  = sptr[3];
 
+  lbm_type keyt = lbm_type_of(key);
+
+  if ((keyt != LBM_TYPE_SYMBOL) ||
+      ((keyt == LBM_TYPE_SYMBOL) && lbm_dec_sym(key) < RUNTIME_SYMBOLS_START)) {
+    lbm_set_error_reason("Incorrect type of name/key in let-binding");
+    error_ctx(lbm_enc_sym(SYM_EERROR));
+    return;
+  }
+
   lbm_env_modify_binding(env, key, arg);
 
   if (lbm_is_list(rest)) {
