@@ -474,6 +474,21 @@ void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
   }
 }
 
+void lookup_local(eval_context_t *ctx, void *arg1, void *arg2) {
+
+
+  char output[1024];
+  lbm_value res;
+  if (lbm_env_lookup_b(&res, (lbm_value)arg1, ctx->curr_env)) {
+
+    lbm_print_value(output, 1024, res);
+    printf("CTX %d: %s = %s\n", ctx->id, (char *)arg2, output);
+  } else {
+    printf("not found\n");
+  }
+  
+}
+
 
 void sym_it(const char *str) {
   printf("%s\n", str);
@@ -815,6 +830,21 @@ int main(int argc, char **argv) {
 
       lbm_step_n_eval((uint32_t)num);
       free(str);
+    } else if (strncmp(str, ":inspect", 8) == 0) {
+
+      int i = 8;
+      if (strlen(str) >= 8) {
+	while (str[i] == ' ') i++;
+      }
+      char *sym = str + i;
+      lbm_uint sym_id = 0;
+      if (lbm_get_symbol_by_name(sym, &sym_id)) {
+	lbm_running_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+	lbm_blocked_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+			     lbm_done_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+      } else {
+	printf("symbol does not exist\n");
+      }
     } else if (strncmp(str, ":undef", 6) == 0) {
       lbm_pause_eval();
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
