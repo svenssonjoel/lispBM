@@ -145,8 +145,8 @@ void erase() {
   fflush(stdout);
 }
 
-int inputline(char *buffer, unsigned int size) {
-  unsigned int n = 0;
+int inputline(char *buffer, int size) {
+  int n = 0;
   int c;
   for (n = 0; n < size - 1; n++) {
 
@@ -204,10 +204,9 @@ void done_callback(eval_context_t *ctx) {
   erase();
   char output[1024];
 
-  lbm_cid cid = ctx->id;
   lbm_value t = ctx->r;
 
-  int print_ret = lbm_print_value(output, 1024, t);
+  lbm_print_value(output, 1024, t);
 
   printf("> %s\n", output);
 
@@ -233,9 +232,10 @@ int error_print(const char *format, ...) {
   erase();
   va_list args;
   va_start (args, format);
-  vprintf(format, args);
+  int n = vprintf(format, args);
   va_end(args);
   new_prompt();
+  return n;
 }
 
 uint32_t timestamp_callback() {
@@ -392,6 +392,7 @@ static lbm_value ext_range(lbm_value *args, lbm_uint argn) {
 static bool test_destruct(lbm_uint value) {
   printf("destroying custom value\n");
   free((lbm_uint*)value);
+  return true;
 }
 
 static lbm_value ext_custom(lbm_value *args, lbm_uint argn) {
@@ -486,7 +487,6 @@ lbm_uint word_array[1024];
 
 
 int main(int argc, char **argv) {
-  unsigned int len = 1024;
   int res = 0;
 
   pthread_t lispbm_thd;
@@ -698,7 +698,7 @@ int main(int argc, char **argv) {
     } else if (strncmp(str, ":heap", 5) == 0) {
       int size = atoi(str + 5);
       if (size > 0) {
-        heap_size = size;
+        heap_size = (unsigned int)size;
 
         free(heap_storage);
         heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
