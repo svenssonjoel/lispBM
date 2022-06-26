@@ -46,7 +46,7 @@
              (progn
                (setvar 'global-env
                        (acons key x global-env))
-               (k val))))))
+               (k x))))))
 
 (defun eval-lambda (env args k)
   (k (append (cons 'closure args) (list env))))
@@ -114,10 +114,20 @@
 
 (define test3 '((lambda (x) (+ x 10)) 1))
 
-(define test4 '(progn (define f (lambda (x) (if (= x 0) 0 (f (- x 1))))) (f 10)))
+(define test4 '(progn
+		 (define f (lambda (x)
+			     (if (= x 0)
+				 0
+			       (f (- x 1)))))
+		 (f 10)))
 
-(define test5 '(progn (define g (lambda (acc x) (if (= x 0) acc (g (+ acc x) (- x 1))))) (g 0 10)))
-
+(define test5 '(progn
+		 (define g (lambda (acc x)
+			     (if (= x 0)
+				 acc
+			       (g (+ acc x)
+				  (- x 1)))))
+		 (g 0 10)))
 
 (define test6 '(progn (define f (lambda (x) (+ x 10)))
                       (define g (lambda (x) (* x 5)))
@@ -126,3 +136,8 @@
 (define test7 '(progn (define f (lambda (x) (+ x 10)))
                       (define g (lambda (x) (* x 5)))
                       (g (f 10))))
+
+(define test8 '((lambda (x) ((lambda (x) (+ x 1)) 7)) 1))
+
+(define test9 '(+ (define apa 1) 2))
+
