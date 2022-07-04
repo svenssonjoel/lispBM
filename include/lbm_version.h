@@ -25,9 +25,13 @@
 /** LBM minor version */
 #define LBM_MINOR_VERSION 5
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 3
+#define LBM_PATCH_VERSION 4
 
 /*! \page changelog Changelog
+
+Jul 4 2022: Version 0.5.4
+  - Added possibility to partially apply closures. A partially applied closure
+    is again a closure.
 
 May 24 2022: Version 0.5.3
   - Fixed bug related to float-array literals not accepting whole numbers unless containing a decimal (0).

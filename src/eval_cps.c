@@ -1239,18 +1239,15 @@ static inline void eval_progn(eval_context_t *ctx) {
   }
 }
 
+static inline lbm_value mk_closure(lbm_value env, lbm_value body, lbm_value params) {
+  lbm_value env_end = cons_with_gc( env, NIL, env);
+  lbm_value exp = cons_with_gc(body, env_end, env_end);
+  lbm_value par = cons_with_gc(params, exp, exp);
+  return cons_with_gc(lbm_enc_sym(SYM_CLOSURE), par, par);
+}
+
 static inline void eval_lambda(eval_context_t *ctx) {
-
-  lbm_value env_cpy = ctx->curr_env;
-  lbm_value env_end;
-  lbm_value body;
-  lbm_value params;
-  lbm_value closure;
-  CONS_WITH_GC(env_end, env_cpy, NIL, env_cpy);
-  CONS_WITH_GC(body, lbm_cadr(lbm_cdr(ctx->curr_exp)), env_end, env_end);
-  CONS_WITH_GC(params, lbm_cadr(ctx->curr_exp), body, body);
-  CONS_WITH_GC(closure, lbm_enc_sym(SYM_CLOSURE), params, params);
-
+  lbm_value closure = mk_closure(ctx->curr_env, lbm_cadr(lbm_cdr(ctx->curr_exp)),  lbm_cadr(ctx->curr_exp));
   ctx->app_cont = true;
   ctx->r = closure;
   return;
@@ -1849,8 +1846,13 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
     lbm_set_error_reason("Too many arguments.");
     error_ctx(lbm_enc_sym(SYM_EERROR));
   } else if (a_nil && !p_nil) {
-    lbm_set_error_reason("Too few arguments.");
-    error_ctx(lbm_enc_sym(SYM_EERROR));
+    lbm_value new_env = lbm_list_append(arg_env,clo_env);
+    lbm_value closure = mk_closure(new_env, exp, lbm_cdr(params));
+    lbm_stack_drop(&ctx->K, 5);
+    ctx->app_cont = true;
+    ctx->r = closure;
+    //lbm_set_error_reason("Too few arguments.");
+    //error_ctx(lbm_enc_sym(SYM_EERROR));
   } else {
    sptr[2] = clo_env;
    sptr[3] = lbm_cdr(params);
