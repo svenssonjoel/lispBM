@@ -792,6 +792,9 @@ There is no special meaning associated with the `car` and the `cdr` each can hol
 a \ref lbm_value. See <a href="#cons">cons</a> and <a href="#list">list</a> for two ways to create structures of
 cons cells on the heap.
 
+![cons cell](/images/cons_cell.png?raw=true "cons cell")
+
+
 ### car
 
 Use `car` to access the `car` field of a cons cell. A
