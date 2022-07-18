@@ -802,7 +802,7 @@ sticking a value in both the car and cdr field of a cons cell using either `'(1 
 
 A list is a number of cons cells linked together where the car fields hold values
 and the cdr fields hold pointers (the last cdr field is nil). The list below
-can be created either a `'(1 2 3)` or as `(list 1 2 3)`.
+can be created either as `'(1 2 3)` or as `(list 1 2 3)`.
 
 ![list](images/list.png?raw=true "pair")
 
