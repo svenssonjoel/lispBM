@@ -814,6 +814,19 @@ The `car` operation accesses the head element of a list. The following program e
 
 ---
 
+### first
+
+`first` is an alternative (and one that makes some sense) name for the `car` operation.
+
+Use `first` to access the first element of a list or pair. A `first` expression  has the form `(first expr)`.
+
+```lisp
+# (first (list 1 2 3 4))
+> 1
+```
+
+---
+
 ### cdr
 
 Use `cdr` to access the `cdr` field of a cons cell. A
@@ -826,6 +839,19 @@ The example below evaluates to 2.
 The `cdr` operation gives you the rest of a list. The example below evaluates to the list (8 7).
 ```clj
 (cdr (list 9 8 7))
+```
+
+---
+
+### rest
+
+`rest` is an alternative name for the `cdr` operation.
+
+Use `rest` to access all elements except the first one of a list, or to access the second element in a pair. A `rest` expression has the form `(rest expr)`.
+
+```lisp
+# (rest (list 1 2 3 4))
+> (2 3 4)
 ```
 
 ---
