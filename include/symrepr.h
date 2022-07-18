@@ -89,6 +89,9 @@
 #define SYM_MATCH_I32      0x45
 #define SYM_MATCH_FLOAT    0x46
 #define SYM_MATCH_CONS     0x47
+#define SYM_MATCH_U64      0x48
+#define SYM_MATCH_I64      0x49
+#define SYM_MATCH_DOUBLE   0x4A
 
 // Type identifying symbols
 #define SYM_TYPE_LIST      0x50

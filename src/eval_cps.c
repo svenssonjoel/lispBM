@@ -910,6 +910,33 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
         }
       }
       return false;
+    case SYM_MATCH_U64:
+      if (lbm_type_of(e) == LBM_TYPE_U64) {
+	if (lbm_dec_sym(var) == SYM_DONTCARE) {
+	  return true;
+	} else {
+	  break;
+	}
+      }
+      return false;
+    case SYM_MATCH_I64:
+      if (lbm_type_of(e) == LBM_TYPE_I64) {
+	if (lbm_dec_sym(var) == SYM_DONTCARE) {
+	  return true;
+	} else {
+	  break;
+	}
+      }
+      return false;
+    case SYM_MATCH_DOUBLE:
+      if (lbm_type_of(e) == LBM_TYPE_DOUBLE) {
+	if (lbm_dec_sym(var) == SYM_DONTCARE) {
+	  return true;
+	} else {
+	  break;
+	}
+      }
+      return false;
     case SYM_MATCH_CONS:
       if (lbm_type_of(e) == LBM_TYPE_CONS) {
         if (lbm_dec_sym(var) == SYM_DONTCARE) {
@@ -963,13 +990,25 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
              lbm_type_of(e) == LBM_TYPE_FLOAT &&
              lbm_dec_float(p) == lbm_dec_float(e)) {
     return true;
+  } else if (lbm_type_of(p) == LBM_TYPE_DOUBLE &&
+	     lbm_type_of(e) == LBM_TYPE_DOUBLE &&
+	     lbm_dec_double(p) == lbm_dec_double(e)) {
+    return true;
   } else if (lbm_type_of(p) == LBM_TYPE_U32 &&
              lbm_type_of(e) == LBM_TYPE_U32 &&
              lbm_dec_u32(p) == lbm_dec_u32(e)) {
     return true;
+  } else if (lbm_type_of(p) == LBM_TYPE_U64 &&
+	     lbm_type_of(e) == LBM_TYPE_U64 &&
+	     lbm_dec_u64(p) == lbm_dec_u64(e)) {
+    return true;
   } else if (lbm_type_of(p) == LBM_TYPE_I32 &&
-      lbm_type_of(e) == LBM_TYPE_I32 &&
-      lbm_dec_i32(p) == lbm_dec_i32(e)) {
+	     lbm_type_of(e) == LBM_TYPE_I32 &&
+	     lbm_dec_i32(p) == lbm_dec_i32(e)) {
+    return true;
+  } else if (lbm_type_of(p) == LBM_TYPE_I64 &&
+	     lbm_type_of(e) == LBM_TYPE_I64 &&
+	     lbm_dec_i64(p) == lbm_dec_i64(e)) {
     return true;
   } else if (p == e) {
     return true;
