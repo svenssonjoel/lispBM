@@ -2536,6 +2536,8 @@ static void evaluation_step(void){
 
     if (dynamic_load_callback) {
       dynamic_load(ctx);
+    } else {
+      error_ctx(ENC_SYM_NOT_FOUND);
     }
     return;
   }
