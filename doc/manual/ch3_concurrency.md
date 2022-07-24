@@ -53,7 +53,7 @@ You can write a function that prints "hello" ten seconds from now as:
     (print "hello")))
 ``` 
 
-This program is stored in the file [hello.lisp](../ch3_examples/hello.lisp)
+This program is stored in the file [hello.lisp](ch3_examples/hello.lisp)
 and you can load it into the repl if you launched the repl from the same directory as:
 
 ```
