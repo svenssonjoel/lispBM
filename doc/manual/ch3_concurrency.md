@@ -222,6 +222,13 @@ The context that really, currently, is running at the exact same time as
 the `:ctxs` command is issued is not pressent on any queue and thus not listed
 by the `:ctxs` command.
 
+The information printed by the `:ctxs` commands consists of a ContextID which
+is assigned to a context upon creation (this value is also the result returned
+by `spawn` when first spawning the process). Next is the current stack pointer
+of the context and the maximum stack pointer value ever occured. The "Value" refers
+to the last value computed by that context. If the context is in the running queue,
+the `Value` should be `t` for true, the return value of `yield` when successful. 
+
 ## Message passing
 
 
