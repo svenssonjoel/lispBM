@@ -7,20 +7,28 @@ use of multiple cores, if present. Concurrency abstractions are very useful
 even with there being any actual parallelism. Each operation performed by an
 LBM process can be considered atomic in relationship to any other LBM process.
 
-One use-case is to run LBM in parallel with some larger embedded application
-written in C. The operations performed by LBM processes are not atomic in
-relation to operations performed on the C side. This is only a problem if the
-C program is accessing data that is stored in the LBM runtime system (such
-as on the LBM heap, stack or process queues). This is something an LBM integrator
-must consider when writing the interface between the C application and the LBM
-runtime system. This is a topic for a future chapter of this manual. 
+One use-case is to run LBM in parallel with some larger embedded
+application written in C. The operations performed by LBM processes
+are not atomic in relation to operations performed on the C side. This
+is only a problem if the C program is accessing data that is stored in
+the LBM runtime system (such as on the LBM heap, stack or process
+queues). This is something an LBM integrator must consider when
+writing the interface between the C application and the LBM runtime
+system. Extensions to LBM that are written in C are executed
+synchronously by the runtime system and pose no trouble. There is
+however the possibility to implement asynchronous LBM extensions in C
+as well and then one needs to be quite careful. All of these more advanced
+use-cases will be explained in a future chapter. 
 
 LBM implements so-called cooperative concurrency which means that processes
-run uninterrupted until the time that the process itself executes a `yield`.
-So no LBM process will ever preempt any other.
+run uninterrupted until the time that the process itself executes an operation
+that yields usage of the RTS (such as the `yield` operation). Another example
+of an operation that yeilds is the message passing `recv` (receive) operation.
+No LBM process will ever preempt any other LBM process.
 
 
 ## Getting started with concurrent LBM
+
 
 
 
