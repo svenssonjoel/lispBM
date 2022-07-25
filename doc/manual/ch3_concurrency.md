@@ -1,5 +1,7 @@
 
-# Chapter 3: Concurrency LispBM (LBM) supports concurrently executing
+# Chapter 3: Concurrency
+
+LispBM (LBM) supports concurrently executing
 processes and let's processes communicate with eachother via message
 passing. Currently the runtime system that execute LBM programs is
 entirely sequential and does not make use of multiple cores, if
