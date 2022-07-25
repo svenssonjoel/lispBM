@@ -59,6 +59,7 @@ special_sym const special_symbols[] =  {
 
   {"setvar"         , SYM_SETVAR},
   {"gc"           , SYM_PERFORM_GC},
+  {"namespace"    , SYM_NAMESPACE},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
@@ -104,6 +105,7 @@ special_sym const special_symbols[] =  {
   {"sym_dot"            , SYM_DOT},
   {"sym_tok_done"       , SYM_TOKENIZER_DONE},
   {"sym_quote_it"       , SYM_QUOTE_IT},
+  {"sym_colon"          , SYM_COLON},
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
@@ -364,6 +366,36 @@ int lbm_add_variable_symbol(char *name, lbm_uint* id) {
   strcpy(symbol_name_storage, name);
 
   m[NAME] = (lbm_uint)symbol_name_storage;
+
+  if (symlist == NULL) {
+    m[NEXT] = (lbm_uint) NULL;
+    symlist = m;
+  } else {
+    m[NEXT] = (lbm_uint) symlist;
+    symlist = m;
+  }
+  m[ID] = next_variable_symbol_id++;
+  *id = m[ID];
+  return 1;
+}
+
+int lbm_add_variable_symbol_const(char *name, lbm_uint* id) {
+  if (strlen(name) == 0) return 0; // failure if empty symbol
+  if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
+  size_t  n = 0;
+
+  n = strlen(name) + 1;
+  if (n == 1) return 0; // failure if empty symbol
+
+  lbm_uint *m = lbm_memory_allocate(3);
+
+  if (m == NULL) {
+    return 0;
+  }
+
+  symbol_table_size_list += 3;
+
+  m[NAME] = (lbm_uint)name;
 
   if (symlist == NULL) {
     m[NEXT] = (lbm_uint) NULL;

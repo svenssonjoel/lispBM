@@ -54,6 +54,7 @@
 #define SYM_CALLCC        0x11
 #define SYM_CONT          0x12
 #define SYM_SETVAR        0x13
+#define SYM_NAMESPACE     0x14
 
 // 0x20 - 0x2F are errors
 #define SYM_RERROR        0x20  /* READ ERROR */
@@ -119,6 +120,7 @@
 #define SYM_TOKENIZER_DONE 0x75
 #define SYM_DOT            0x76
 #define SYM_QUOTE_IT       0x77
+#define SYM_COLON          0x78
 
 // Fundamental Operations
 #define FUNDAMENTALS_START      0x100
@@ -266,6 +268,9 @@
 #define ENC_SYM_TYPE_CHAR   ((SYM_TYPE_CHAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_TYPE_SYMBOL ((SYM_TYPE_SYMBOL << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
+#define ENC_SYM_COLON       ((SYM_COLON << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_NAMESPACE   ((SYM_NAMESPACE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+
 typedef void (*symrepr_name_iterator_fun)(const char *);
 
 
@@ -293,6 +298,13 @@ extern int lbm_add_symbol(char *name, lbm_uint *id);
  * \return 1 for success and 0 for failure.
  */
 extern int lbm_add_variable_symbol(char *name, lbm_uint* id);
+/** Add a variable-symbol to the symbol table. The symbol name is
+ *  considered to be a statically allocated constant.
+ * \param name String representation of the symbol.
+ * \param id Resulting id is returned through this argument.
+ * \return 1 for success and 0 for failure.
+ */
+extern int lbm_add_variable_symbol_const(char *name, lbm_uint* id);
 /** Add a symbol to the symbol table. The name is assumed to be a statically allocated string.
  *
  * \param name Statically allocated name string.
@@ -301,7 +313,7 @@ extern int lbm_add_variable_symbol(char *name, lbm_uint* id);
  */
 extern int lbm_add_symbol_const(char *name, lbm_uint *id);
 /** Add an extension symbol to the symbol table.
- *  The name is assumed is dynamically allocated on lbm_memory
+ *  The name is assumed to be a statically allocated constant.
  *
  * \param name Name of the symbol.
  * \param id Resulting id is returned through this argument.

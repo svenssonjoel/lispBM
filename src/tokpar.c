@@ -63,6 +63,8 @@
 #define TOKOPENBRACK    30u     // "["
 #define TOKCLOSEBRACK   31u     // "]"
 
+#define TOKCOLON        32u
+
 #define TOKENIZER_ERROR 1024u
 #define TOKENIZER_END   2048u
 
@@ -103,7 +105,7 @@ typedef struct {
   uint32_t len;
 } matcher;
 
-#define NUM_FIXED_SIZE_TOKENS 20
+#define NUM_FIXED_SIZE_TOKENS 21
 const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
@@ -115,6 +117,7 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"`", TOKBACKQUOTE, 1},
   {",@", TOKCOMMAAT, 2},
   {",", TOKCOMMA, 1},
+  {":", TOKCOLON, 1},
   {"?double" , TOKMATCHDOUBLE, 7},
   {"?float", TOKMATCHFLOAT, 6},
   {"?cons", TOKMATCHCONS, 5},
@@ -607,6 +610,9 @@ lbm_value lbm_get_next_token(lbm_tokenizer_char_stream_t *str) {
       break;
     case TOKCOMMA:
       res = lbm_enc_sym(SYM_COMMA);
+      break;
+    case TOKCOLON:
+      res = lbm_enc_sym(SYM_COLON);
       break;
     case TOKMATCHI28:
       res = lbm_enc_sym(SYM_MATCH_I);

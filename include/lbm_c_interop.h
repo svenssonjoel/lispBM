@@ -1,4 +1,4 @@
-/*
+ /*
     Copyright 2018, 2020, 2021, 2022 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@
 #include "streams.h"
 #include "tokpar.h"
 #include "lbm_memory.h"
+#include "lbm_variables.h"
 #include "heap.h"
 #include "lbm_types.h"
 

@@ -29,9 +29,14 @@
 
 /*! \page changelog Changelog
 
+Jul 25 2022: Version 0.5.4
+  - lbm_define can now create variables (#var) in variable memory from
+    the C side of things.
+  - Simple namespaces.
+
 Jul 18 2022: Version 0.5.4
-  - Added pattern matching support for i64, u64 and double. 
-  - Fixed issue with pattern matching on i32, u32. 
+  - Added pattern matching support for i64, u64 and double.
+  - Fixed issue with pattern matching on i32, u32.
 
 Jul 17 2022: Version 0.5.4
   - Refactoring with readability in focus.

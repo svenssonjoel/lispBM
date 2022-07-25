@@ -65,6 +65,8 @@
 #define READ_DONE         ((26 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define CLOSURE_ARGS      ((27 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define CLOSURE_APP       ((28 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define NAMESPACE_POP     ((29 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define TERMINATE_COLON   ((30 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 
 static const char* parse_error_eof = "End of parse stream";
 static const char* parse_error_token = "Malformed token";
@@ -291,19 +293,30 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
 /****************************************************/
 /* Tokenizing and parsing                           */
 
+static lbm_value token_stream_peeker = ENC_SYM_NIL;
+static bool token_stream_peeked = false;
+
 static lbm_value token_stream_more(lbm_stream_t *str) {
   (void) str;
   return ENC_SYM_NIL;
 }
 
 static lbm_value token_stream_get(lbm_stream_t *str){
+  if (token_stream_peeked) {
+    token_stream_peeked = false;
+    return token_stream_peeker;
+  }
   return lbm_get_next_token((lbm_tokenizer_char_stream_t*)str->state);
 }
 
 static lbm_value token_stream_peek(lbm_stream_t *str, lbm_value n){
-  (void) str;
-  (void) n;
-  return ENC_SYM_NIL;
+  if (token_stream_peeked) {
+    return token_stream_peeker;
+  } else {
+    token_stream_peeker = lbm_get_next_token((lbm_tokenizer_char_stream_t*)str->state);
+    token_stream_peeked = true;
+  }
+  return token_stream_peeker;
 }
 
 static lbm_value token_stream_drop(lbm_stream_t *str, lbm_value n){
@@ -1219,6 +1232,32 @@ static inline void eval_callcc(eval_context_t *ctx) {
   ctx->app_cont = false;
 }
 
+static inline void eval_namespace(eval_context_t *ctx) {
+
+  lbm_value arg = lbm_cadr(ctx->curr_exp);
+  lbm_value body = lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp)));
+
+  if (lbm_is_symbol(arg) && !lbm_is_symbol_nil(arg)) {
+    lbm_value namespace_env = ENC_SYM_NIL;
+    if (lbm_env_lookup_b(&namespace_env, arg, lbm_get_env())) {
+      /* namespace exists, enter it */
+    } else {
+      lbm_value new_env;
+      WITH_GC(new_env, lbm_env_set(*lbm_get_env_ptr(),arg,namespace_env), ENC_SYM_NIL, ENC_SYM_NIL);
+      *lbm_get_env_ptr() = new_env;
+    }
+
+    CHECK_STACK(lbm_push_3(&ctx->K, arg, lbm_get_env(), NAMESPACE_POP));
+
+    *lbm_get_env_ptr() = namespace_env;
+
+    ctx->curr_exp = body;
+    ctx->app_cont = false;
+  } else {
+    error_ctx(ENC_SYM_EERROR);
+  }
+}
+
 static inline void eval_define(eval_context_t *ctx) {
   lbm_value args = lbm_cdr(ctx->curr_exp);
   lbm_value key = lbm_car(args);
@@ -2113,6 +2152,20 @@ static inline void cont_match(eval_context_t *ctx) {
   }
 }
 
+
+static inline void cont_namespace_pop(eval_context_t *ctx) {
+
+  lbm_value env;
+  lbm_value leaving_space;
+  lbm_pop_2(&ctx->K, &env, &leaving_space);
+  lbm_value leaving_env = lbm_get_env();
+  *lbm_get_env_ptr() = env;
+  lbm_value new_env;
+  WITH_GC(new_env, lbm_env_set(*lbm_get_env_ptr(),leaving_space,leaving_env), leaving_space, leaving_env);
+  ctx->app_cont = true;
+}
+
+
 /****************************************************/
 /*   READER                                         */
 
@@ -2272,6 +2325,19 @@ static inline void cont_read(eval_context_t *ctx) {
         ctx->r = cell1;
         app_cont = true;
       } break;
+      case TERMINATE_COLON: {
+	lbm_value sym;
+	lbm_value term = ENC_SYM_NIL;
+	lbm_value t1;
+	lbm_value t2;
+	lbm_value t3;
+	lbm_pop(&ctx->K, &sym);
+	CONS_WITH_GC(t1, ctx->r, term, sym);
+	CONS_WITH_GC(t2, sym, t1, t1);
+	CONS_WITH_GC(t3, ENC_SYM_NAMESPACE, t2, t2);
+	ctx->r = t3;
+	app_cont = true;
+      } break;
       }
     } else {
       tok = token_stream_get(str);
@@ -2353,9 +2419,15 @@ static inline void cont_read(eval_context_t *ctx) {
                                COMMA_RESULT));
           app_cont = false;
           break;
-        default:
-          ctx->r = tok;
-          app_cont = true;
+        default: // arbitrary symbol form
+	  if (token_stream_peek(str, 1) == ENC_SYM_COLON) {
+	    token_stream_get(str); // drop the colon
+	    CHECK_STACK(lbm_push_2(&ctx->K, tok, TERMINATE_COLON));
+	    app_cont = false;
+	  } else {
+	    ctx->r = tok;
+	    app_cont = true;
+	  }
           break;
         }
       } else { // arbitrary value form
@@ -2416,7 +2488,6 @@ static inline void cont_application_start(eval_context_t *ctx) {
         curr_param = lbm_cdr(curr_param);
         curr_arg   = lbm_cdr(curr_arg);
       }
-
       /* Two rounds of evaluation is performed.
        * First to instantiate the arguments into the macro body.
        * Second to evaluate the resulting program.
@@ -2510,6 +2581,7 @@ static void evaluation_step(void){
     case RESUME:            cont_resume(ctx); return;
     case EXPAND_MACRO:      cont_expand_macro(ctx); return;
     case CLOSURE_ARGS:      cont_closure_application_args(ctx); return;
+    case NAMESPACE_POP:     cont_namespace_pop(ctx); return;
     default:
       error_ctx(ENC_SYM_EERROR);
       return;
@@ -2573,6 +2645,7 @@ static void evaluation_step(void){
       case SYM_MATCH:   eval_match(ctx); return;
       case SYM_RECEIVE: eval_receive(ctx); return;
       case SYM_CALLCC:  eval_callcc(ctx); return;
+      case SYM_NAMESPACE: eval_namespace(ctx); return;
 
       case SYM_MACRO:   /* fall through */
       case SYM_CONT:
