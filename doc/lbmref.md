@@ -808,7 +808,18 @@ as symbols separated by `:`
 ```
 # myspace:a
 > 1000
-``` 
+```
+
+Multiple definitions can be added to a namespace in one go by using `progn`
+
+```lisp
+(namespace loads-a-stuff
+	   (progn
+		(define a 1)
+		(define b 2)
+		(define c 3)
+		(define f (lambda (x) (+ x 10)))))
+```
 
 Namespaces can be nested as:
 ```lisp
@@ -834,7 +845,28 @@ the namespace identified by the path.
 > 1042
 ```
 
-Namespaces has no influence on #variables which all remain accessible from
+The syntax using symbols separated by `:` (as `n1:n2:a`) expands
+into applications of the `namespace` form. For example `n1:n2:a`
+expands into `(namespace n1 (namespace n2 a))` upon parsing.
+So the following two programs do the same thing:
+
+```lisp
+(namespace space (define stars 1000))
+```
+
+and
+
+```lisp
+space:(define stars 1000)
+```
+
+Both of the programs above defines `stars` to 1000 in the namespace `space`.
+Both of the programs above also create the `space` namespace if it does not
+already exist.
+
+
+
+Note: Namespaces has no influence on #variables which all remain accessible from
 any space. 
 
 
