@@ -784,6 +784,61 @@ has been extended with the binding `(apa 1)`.
 
 ---
 
+
+### namespace
+
+Creates a new namespace to reduce the effect and likelyhood of colliding
+names for things. 
+
+Namespaces in LBM form a multiply branching tree of subnamespaces. There is
+a root namespace that is unnamed. Namespaces can only be reached by a parent
+namespace, not by siblings or children.
+
+The example below creates a namespace as a child to the current namespace
+and defines a to be 1000 within the `myspace`.
+```lisp
+(namespace myspace
+	   (define a 1000))
+```
+
+To access `a` from the parent namespace you use a namespace "path" expressed
+as symbols separated by `:`
+
+```
+# myspace:a
+> 1000
+``` 
+
+Namespaces can be nested as:
+```lisp
+(namespace n1
+	   (namespace n2
+	   	      (define a 42)))
+
+```
+
+and to access `a` under n1 and n2 is done by:
+
+```
+# n1:n2:a
+> 42
+```
+
+The last thing to occur in an `n1:n2: ...` sequence does not have to
+be a symbols. It can be an arbitrary expression that will be evaluated in
+the namespace identified by the path.
+
+```
+# n1:n2:(+ a 1000)
+> 1042
+```
+
+Namespaces has no influence on #variables which all remain accessible from
+any space. 
+
+
+---
+
 ## Lists and cons cells
 
 Lists are build using cons cells. A cons cell is represented by the lbm_cons_t struct in the
