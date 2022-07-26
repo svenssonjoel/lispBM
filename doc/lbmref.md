@@ -788,11 +788,12 @@ has been extended with the binding `(apa 1)`.
 ### namespace
 
 Creates a new namespace to reduce the effect and likelyhood of colliding
-names for things. 
+names for things. Use a namespace to hold definitions that are related
+to eachother. 
 
 Namespaces in LBM form a multiply branching tree of subnamespaces. There is
-a root namespace that is unnamed. Namespaces can only be reached by a parent
-namespace, not by siblings or children.
+a root namespace that is unnamed. Definitions in a namespaces can only be reached from a parent
+namespace, not by siblings or children of that namespace. 
 
 The example below creates a namespace as a child to the current namespace
 and defines a to be 1000 within the `myspace`.
