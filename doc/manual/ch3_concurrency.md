@@ -4,39 +4,42 @@
 LispBM (LBM) supports concurrently executing
 processes and let's processes communicate with eachother via message
 passing. Currently the runtime system that execute LBM programs is
-entirely sequential and does not make use of multiple cores, if
-present. Concurrency abstractions are very useful even with there
+entirely sequential and does not make use of multiple cores.
+Concurrency abstractions are very useful even with there not
 being any actual parallelism. Each operation performed by an LBM
 process can be considered atomic in relationship to any other LBM
 process.
 
-One use-case is to run LBM in parallel with some larger embedded
-application written in C. The operations performed by LBM processes
-are not atomic in relation to operations performed on the C side. This
-is only a problem if the C program is accessing data that is stored in
-the LBM runtime system (such as on the LBM heap, stack or process
+One use-case of LBM is to run ir in parallel with some larger embedded
+application written in C to provide scripting capabilities of that
+larger application. The operations performed by LBM processes are not
+atomic in relation to operations performed on the C side. This is only
+a problem if the C program is accessing data that is stored in the LBM
+runtime system (such as on the LBM heap, stack or process
 queues). This is something the person integrating LBM into a system
 must consider when writing the interface between the C application and
 the LBM runtime system. Extensions to LBM that are written in C are
 executed synchronously by the runtime system and pose no
 trouble. There is however the possibility to implement asynchronous
 LBM extensions in C as well, and then one needs to be quite
-careful. All of these more advanced use-cases will be explained in a
+careful. However, these more advanced use-cases will be explained in a
 future chapter.
 
 LBM implements so-called cooperative concurrency which means that
 processes run uninterrupted until the time that the process itself
-executes an operation that yields usage of the RTS (such as the
-`yield` operation). Another example of an operation that yeilds is the
-message passing `recv` (receive) operation.  No LBM process will ever
-preempt any other LBM process.
+executes an operation that yields usage of the runtime system (such as
+the `yield` operation). Another example of an operation that yeilds is
+the message passing `recv` (receive) operation.  No LBM process will
+ever preempt any other LBM process.
 
 
 ## Getting started with concurrent programming in LBM
 
 The `yield` function is used in a process to give up the runtime system
 and free it up for doing other work. `yield` takes one argument which is the
-number of microseconds for which the process wishes to sleep.
+number of microseconds for which the process wishes to sleep and the runtime
+system will not consider waking the process up again until that much time has
+passed.
 
 We can define a `sleep` function that puts a process to sleep for a number of
 seconds instead.
@@ -56,7 +59,7 @@ You can write a function that prints "hello" ten seconds from now as:
 ``` 
 
 This program is stored in the file [hello.lisp](ch3_examples/hello.lisp)
-and you can load it into the REPL if you launched the REPL from the same directory as:
+and you can load it into the REPL if you launched the REPL from the directory where the file is stored:
 
 ```
 # :load hello.lisp
@@ -78,8 +81,8 @@ That it took 10 seconds for the string "hello" to appear is hard to
 show off here ;).
 
 
-We can make the hello program call itself recursively to repeatedly print hello
-every 10 seconds:
+We can make the hello program call itself recursively to repeatedly
+print hello every 10 seconds:
 
 ```lisp
 (defun hello ()
@@ -129,7 +132,7 @@ When we start evaluation of some expression, such as `(hello)` or `(+ 1 2)`,
 from the REPL an evaluation context for that expression is created
 in the runtime system. An evaluation context is a datastructure maintaining
 the evaluation stack and other important data related to the evaluation
-of an expression. So, everything launched from the REPL is in essense "spawned"
+of a program. So, everything launched from the REPL is in essense "spawned"
 as a separate process running concurrently with anything else. 
 
 Processes can also be spawned from within programs using the `spawn` operation.
@@ -212,7 +215,7 @@ Value: t
 
 There are two context in the queue of runnable (running) contexts. This queue
 holds all contexts that are waiting to be executed and they end up
-on this list when they are started or when they evaluated a `yield` (sleep).
+on this list when they are started or when they evaluate a `yield` (sleep).
 
 There is a queue of blocked contexts that processes will end up on
 if they are blocked waiting for messages (see Message passing).
@@ -221,7 +224,7 @@ The REPL actually removes contexts from the done queue as soon as it has
 printed the final result of that context to the user. 
 
 The context that really, currently, is running at the exact same time as
-the `:ctxs` command is issued is not pressent on any queue and thus not listed
+the `:ctxs` command is issued is not present on any queue and thus not listed
 by the `:ctxs` command.
 
 The information printed by the `:ctxs` commands consists of a ContextID which
@@ -250,7 +253,7 @@ the example the process itself computes the value 2.
 
 To send a message the `send` function is used. This function takes a
 context ID and a msg as argument. The message can be any LispBM value
-(lists, number, a function).
+(lists, number, a function and so on).
 
 If you send a message to a process, ideally that process should try to
 receive messages and this is done using the `recv` form which is very similar
@@ -270,13 +273,16 @@ that matches the pattern.
 (spawn f)
 ```
 
-The program above can be found in [recv_message.lisp](ch3_examples/recv_message.lisp).
-The `f` function loops forever due to the recursive call `(f)` at the end.
-The process blocks at the `recv`, this means that if the mailbox does not
-contain any message that fits the patterns, the process goes to sleep until
-a new message arrives. In this case, the recv is waiting for a message consisting
-of the symbol `monkey` or the symbol `cat` and the last case `_` matches any
-other message.
+The program above can be found in
+[recv_message.lisp](ch3_examples/recv_message.lisp).  The `f` function
+loops forever due to the recursive call `(f)` at the end.  The process
+blocks at the `recv`, this means that if the mailbox does not contain
+any message that fits the patterns, the process goes to sleep until a
+new message arrives. While the process is waiting for another message
+it will reside in the blocked queue in the runtime system. In this
+case, the recv is waiting for a message consisting of the symbol
+`monkey` or the symbol `cat` and the last case `_` matches any other
+message.
 
 Let's load the program and try to send some messages to the `f` process.
 
@@ -296,7 +302,7 @@ That's an ape!
 ```
 
 we can see that send was successful, `t`,  and that the recv form in `f`
-correctly choose the "that's an ape!" path.
+correctly chose the "that's an ape!" path.
 
 Trying again with another message:
 
@@ -343,19 +349,18 @@ That's an ape!
 ```
 ---
 
----
 ***NOTE***
 
-If you send a message to a process and that process has no `recv` the
+If you send a message to a process and that process has no `recv`, the
 message will forever remain in that process' mailbox. Messages that
-just sit unused in some mailbox is very wasteful as they cannot be
+just sit unused in some mailbox are very wasteful as they cannot be
 garbage collected.
 
 The same thing happens if you send messages to a process that HAS a
 recv but no case that matches the message format you sent. This can
 be helped by always having a catch-all case in your `recv`.
 An example of a catch-all is the `( _ (print "I dont know what that is!")))` case
-in the example used above. Another catch all would be the pattern `(? x)`
+in the example used above. Another catch-all would be the pattern `(? x)`
 as in [recv_message2.lisp](ch3_examples/recv_message2.lisp):
 
 ```
