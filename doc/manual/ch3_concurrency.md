@@ -233,5 +233,156 @@ the `Value` should be `t` for true, the return value of `yield` when successful.
 
 ## Message passing
 
+All LispBM processes have a mailbox for reception of messages. To send
+a message to a process you need to know its ContextID as this is used
+as the "address" for that process.
+
+If we spawn a process,for example:
+
+```
+# (spawn (lambda (x) (+ x 1)) 1)
+> 421
+> 2
+```
+
+the `spawn` operation will return the context ID, in this case 421. In
+the example the process itself computes the value 2.
+
+To send a message the `send` function is used. This function takes a
+context ID and a msg as argument. The message can be any LispBM value
+(lists, number, a function).
+
+If you send a message to a process, ideally that process should try to
+receive messages and this is done using the `recv` form which is very similar
+to a `match`. It uses pattern matching to fetch a message from the mailbox
+that matches the pattern.
+
+```lisp
+
+(defun f ()
+  (progn
+    (recv
+     ( monkey (print "That's an ape!"))
+     ( cat    (print "What a cute cat!"))
+     ( _      (print "I dont know what that is!")))
+    (f))) 
+  
+(spawn f)
+```
+
+The program above can be found in [recv_message.lisp](ch3_examples/recv_message.lisp).
+The `f` function loops forever due to the recursive call `(f)` at the end.
+The process blocks at the `recv`, this means that if the mailbox does not
+contain any message that fits the patterns, the process goes to sleep until
+a new message arrives. In this case, the recv is waiting for a message consisting
+of the symbol `monkey` or the symbol `cat` and the last case `_` matches any
+other message.
+
+Let's load the program and try to send some messages to the `f` process.
+
+```
+# :load recv_message.lisp
+filename: recv_message.lisp
+> 193
+```
+
+This loaded and evaluated the file. The result `193` is the context ID of the
+context that is running the `f` function. To send a message to the process:
+
+```
+# (send 193 'monkey) 
+> t
+That's an ape!
+```
+
+we can see that send was successful, `t`,  and that the recv form in `f`
+correctly choose the "that's an ape!" path.
+
+Trying again with another message:
+
+```
+# (send 193 'cat)
+> t
+What a cute cat!
+```
+
+If we send any message that is not a cat or monkey to the process
+we should get the last case:
+
+```
+# (send 193 1)
+> t
+I dont know what that is!
+```
+
+or
+
+```
+# (send 193 (lambda (x) (+ x 1)))
+> t
+I dont know what that is!
+```
+
+---
+**NOTE**
+
+Ideally you should bind the result of `spawn` to a name and then use
+that name for all interaction with the process.
+
+Example:
+
+```
+# (define knower-of-animals (spawn f))
+> knower-of-animals
+```
+
+```
+# (send knower-of-animals 'monkey)
+> t
+That's an ape!
+```
+---
+
+---
+***NOTE***
+
+If you send a message to a process and that process has no `recv` the
+message will forever remain in that process' mailbox. Messages that
+just sit unused in some mailbox is very wasteful as they cannot be
+garbage collected.
+
+The same thing happens if you send messages to a process that HAS a
+recv but no case that matches the message format you sent. This can
+be helped by always having a catch-all case in your `recv`.
+An example of a catch-all is the `( _ (print "I dont know what that is!")))` case
+in the example used above. Another catch all would be the pattern `(? x)`
+as in [recv_message2.lisp](ch3_examples/recv_message2.lisp):
+
+```
+(defun f ()
+  (progn
+    (recv
+     ( monkey (print "That's an ape!"))
+     ( cat    (print "What a cute cat!"))
+     ( (? x)  (print "I dont know kind of animal a " x " is!")))
+    (f))) 
+  
+(spawn f)
+```
+
+The `(? x)` pattern also matches anything, just like `_` but it binds the
+anything to the name x.
+
+``` 
+# :load recv_message2.lisp
+filename: recv_message2.lisp
+> 496
+# (send 496 'horse)
+> t
+I dont know kind of animal a horse is!
+```
+---
+
+## Example with concurrency and message passing
 
 
