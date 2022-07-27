@@ -865,10 +865,15 @@ Both of the programs above also create the `space` namespace if it does not
 already exist.
 
 
+---
+**NOTE**
+Namespaces has no influence on #variables which all remain accessible from
+any space.
 
-Note: Namespaces has no influence on #variables which all remain accessible from
-any space. 
+The same is true for extensions. Extensions and #variables can be considered to
+be part of some other globally available namespace.
 
+---
 
 ---
 
