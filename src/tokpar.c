@@ -312,7 +312,8 @@ int tok_D(lbm_tokenizer_char_stream_t *str, token_float *result) {
   bool valid_num = false;
 
   result->type = TOK_TYPE_FLOAT;
-
+  result->negative = false;
+  
   if (peek(str, 0) == '-') {
     n = 1;
     result->negative = true;

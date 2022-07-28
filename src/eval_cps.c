@@ -310,6 +310,7 @@ static lbm_value token_stream_get(lbm_stream_t *str){
 }
 
 static lbm_value token_stream_peek(lbm_stream_t *str, lbm_value n){
+  (void)n; 
   if (token_stream_peeked) {
     return token_stream_peeker;
   } else {

@@ -224,6 +224,13 @@ static lbm_value ext_str_split(lbm_value *args, lbm_uint argn) {
     }
 
     return res;
+  } else if (!split) {
+    // This case is here to make static analysis happy.
+    // The SA tools does not seem to understand that there
+    // is a relationship between the split and step variables
+    // such that if split is null step will be greater than zero and if
+    // step is zero, split will be non-nil.
+    return ENC_SYM_MERROR;
   } else {
     lbm_value res = ENC_SYM_NIL;
     const char *s = str;
@@ -271,7 +278,7 @@ static lbm_value ext_str_replace(lbm_value *args, lbm_uint argn) {
   }
 
   // See https://stackoverflow.com/questions/779875/what-function-is-to-replace-a-substring-from-a-string-in-c
-  char *result; // the return string
+  //char *result; // the return string
   char *ins;    // the next insert point
   char *tmp;    // varies
   int len_rep;  // length of rep (the string to remove)
@@ -296,7 +303,8 @@ static lbm_value ext_str_replace(lbm_value *args, lbm_uint argn) {
   lbm_value lbm_res;
   if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, len_res)) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
-    tmp = result = (char*)arr->data;
+    //tmp = result = (char*)arr->data;
+    tmp = (char*)arr->data; // result is never accessed so should not be needed.
   } else {
     return ENC_SYM_MERROR;
   }
