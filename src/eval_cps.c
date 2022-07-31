@@ -2627,7 +2627,7 @@ static void evaluation_step(void){
   case LBM_TYPE_REF:
   case LBM_TYPE_STREAM: eval_selfevaluating(ctx);  return;
 
-  case LBM_TYPE_CONS:
+  case LBM_TYPE_CONS: {
     head = lbm_car(ctx->curr_exp);
 
     if (lbm_type_of(head) == LBM_TYPE_SYMBOL) {
@@ -2669,7 +2669,7 @@ static void evaluation_step(void){
     reserved[2] = APPLICATION_START;
 
     ctx->curr_exp = head; // evaluate the function
-    break;
+  } break;
   default:
     // BUG No applicable case!
     error_ctx(ENC_SYM_EERROR);

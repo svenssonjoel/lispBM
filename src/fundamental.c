@@ -1189,7 +1189,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
   case SYM_ARRAY_SIZE:
     array_size(args, nargs, &result);
     break;
-  case SYM_TYPE_OF:
+  case SYM_TYPE_OF: {
     if (nargs != 1) return ENC_SYM_NIL;
     lbm_value val = args[0];
     switch(lbm_type_of(val)) {
@@ -1207,7 +1207,7 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
     case LBM_TYPE_SYMBOL: return ENC_SYM_TYPE_SYMBOL;
     default: return ENC_SYM_TERROR;
     }
-    break;
+  } break;
   case SYM_TO_I:
     if (nargs == 1) {
       result = lbm_enc_i((lbm_int)lbm_dec_as_i64(args[0]));

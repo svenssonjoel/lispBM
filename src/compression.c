@@ -303,7 +303,7 @@ char *lbm_compress(char *string, uint32_t *res_size) {
 
   if (header_value == 0) return NULL;
 
-  char *compressed = malloc(c_size_bytes);
+  char *compressed = (char*)malloc(c_size_bytes);
   if (!compressed) return NULL;
   memset(compressed, 0, c_size_bytes);
   *res_size = c_size_bytes;
