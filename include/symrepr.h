@@ -33,6 +33,10 @@
 
 #include "lbm_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Default and fixed symbol ids
 #define SYM_NIL           0x0
 #define SYM_QUOTE         0x1
@@ -278,40 +282,40 @@ typedef void (*symrepr_name_iterator_fun)(const char *);
  *
  * \return 1
  */
-extern int lbm_symrepr_init(void);
+int lbm_symrepr_init(void);
 /** Iterate over all symbol names as strings
  *
  * \param symrepr_name_iterator_fun function taking a string
  */
-extern void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f);
+void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f);
 /** Add a symbol to the symbol table. The symbol name string is copied to arrays and symbols memory.
  *
  * \param name String representation of the symbol.
  * \param id Resulting id is returned through this argument.
  * \return 1 for success and 0 for failure.
  */
-extern int lbm_add_symbol(char *name, lbm_uint *id);
+int lbm_add_symbol(char *name, lbm_uint *id);
 /** Add a variable-symbol to the symbol table. The symbol name string is copied to arrays and symbols memory.
  *
  * \param name String representation of the symbol.
  * \param id Resulting id is returned through this argument.
  * \return 1 for success and 0 for failure.
  */
-extern int lbm_add_variable_symbol(char *name, lbm_uint* id);
+int lbm_add_variable_symbol(char *name, lbm_uint* id);
 /** Add a variable-symbol to the symbol table. The symbol name is
  *  considered to be a statically allocated constant.
  * \param name String representation of the symbol.
  * \param id Resulting id is returned through this argument.
  * \return 1 for success and 0 for failure.
  */
-extern int lbm_add_variable_symbol_const(char *name, lbm_uint* id);
+int lbm_add_variable_symbol_const(char *name, lbm_uint* id);
 /** Add a symbol to the symbol table. The name is assumed to be a statically allocated string.
  *
  * \param name Statically allocated name string.
  * \param id Resulting id is returned through this argument.
  * \return 1 for success and 0 for failure.
  */
-extern int lbm_add_symbol_const(char *name, lbm_uint *id);
+int lbm_add_symbol_const(char *name, lbm_uint *id);
 /** Add an extension symbol to the symbol table.
  *  The name is assumed to be a statically allocated constant.
  *
@@ -319,7 +323,7 @@ extern int lbm_add_symbol_const(char *name, lbm_uint *id);
  * \param id Resulting id is returned through this argument.
  * \return 1 for success and 0 for failure.
  */
-extern int lbm_add_extension_symbol(char *name, lbm_uint* id);
+int lbm_add_extension_symbol(char *name, lbm_uint* id);
 /** Add an extension symbol to the symbol table.
  *  The name is assumed to be statically allocated.
  *
@@ -327,30 +331,34 @@ extern int lbm_add_extension_symbol(char *name, lbm_uint* id);
  * \param id Resulting id is returned through this argument.
  * \return 1 for success and 0 for failure.
  */
-extern int lbm_add_extension_symbol_const(char *name, lbm_uint* id);
+int lbm_add_extension_symbol_const(char *name, lbm_uint* id);
 /** Look up an id from the symbol table given a name.
  *
  * \param name Name string to look up.
  * \param id Resulting id is returned through this argument.
  * \return 1 on success (name was found) and 0 for failure.
  */
-extern int lbm_get_symbol_by_name(char *name, lbm_uint *id);
+int lbm_get_symbol_by_name(char *name, lbm_uint *id);
 /** Look up a symbol name from the symbol table given an id.
  *
  * \param id The id to look up in the symbol table.
  * \return pointer to the name string if success otherwise NULL.
  */
-extern const char* lbm_get_name_by_symbol(lbm_uint id);
+const char* lbm_get_name_by_symbol(lbm_uint id);
 
-extern int lbm_get_num_variables(void);
+int lbm_get_num_variables(void);
 
 /**
  *
  * \return The total amount of space occupied by the symbol table in bytes.
  */
-extern lbm_uint lbm_get_symbol_table_size(void);
+lbm_uint lbm_get_symbol_table_size(void);
 /**
  * \return The size in bytes of all symbol strings stored in the symbol table.
  */
-extern lbm_uint lbm_get_symbol_table_size_names(void);
+lbm_uint lbm_get_symbol_table_size_names(void);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

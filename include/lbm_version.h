@@ -20,6 +20,10 @@
 #ifndef LBM_VERSION_H_
 #define LBM_VERSION_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
@@ -28,6 +32,9 @@
 #define LBM_PATCH_VERSION 4
 
 /*! \page changelog Changelog
+
+Aug 1 2022: Version 0.5.4
+  - Easing use of the LBM library from C++ code.
 
 Jul 25 2022: Version 0.5.4
   - lbm_define can now create variables (#var) in variable memory from
@@ -143,5 +150,7 @@ Feb 11 2022: version 0.1.0
 */
 
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif

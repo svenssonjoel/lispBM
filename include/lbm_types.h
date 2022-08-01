@@ -23,6 +23,10 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Addresses that are put into lbm_values or into
  * lbm_memory must have this alignment.           */
 #ifndef LBM64
@@ -94,6 +98,7 @@ struct lbm_tcs{
 /** Tokenizer character stream */
 typedef struct lbm_tcs lbm_tokenizer_char_stream_t;
 
-
-
+#ifdef __cplusplus
+}
+#endif
 #endif
