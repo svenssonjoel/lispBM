@@ -139,7 +139,8 @@ LBMSRC = ../../src/compression.c \
          ../../src/lbm_c_interop.c \
          ../../src/lbm_variables.c \
 	 ../../src/lbm_custom_type.c \
-         ../../platform/chibios/src/platform_mutex.c
+         ../../platform/chibios/src/platform_mutex.c\
+         ../../platform/chibios/src/platform_uart.c
 
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \

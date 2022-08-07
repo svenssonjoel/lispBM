@@ -55,6 +55,10 @@ static lbm_tokenizer_char_stream_t string_tok;
 
 BaseSequentialStream *chp = NULL;
 
+static SerialConfig uart_cfg = {
+		115200, 0, 0, 0
+};
+
 int inputline(BaseSequentialStream *chp, char *buffer, int size) {
   int n = 0;
   unsigned char c;
@@ -192,6 +196,12 @@ int main(void) {
 
   chp = (BaseSequentialStream*)&SDU1;
 
+  // uart experiment 
+  palSetPadMode(GPIOA, 0, PAL_MODE_ALTERNATE(8));
+  palSetPadMode(GPIOA, 1, PAL_MODE_ALTERNATE(8));
+
+  sdStart(&SD4, &uart_cfg);
+
   size_t len = 1024;
 
   int res = 0;
@@ -236,6 +246,18 @@ int main(void) {
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
 
   while (1) {
+
+    sdWrite(&SD4, "HELLO\r\n", 7);
+    
+    chprintf(chp,"Reading uart:\n");
+    msg_t res = sdGetTimeout(&SD4, TIME_IMMEDIATE);
+    while (res != MSG_TIMEOUT) {
+      chprintf(chp, "%c\n", (uint8_t)res);
+      res = sdGetTimeout(&SD4, TIME_IMMEDIATE);
+    }
+    chprintf(chp, "Done\n");
+    
+    
     chprintf(chp,"# ");
     memset(str,0,len);
     memset(outbuf,0, 1024);
