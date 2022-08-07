@@ -30,6 +30,9 @@
 #include "lbm_llama_ascii.h"
 #include "lbm_version.h"
 
+#include "platform_uart.h"
+
+
 #define EVAL_WA_SIZE THD_WORKING_AREA_SIZE(2048)
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
@@ -54,10 +57,6 @@ static lbm_tokenizer_string_state_t string_tok_state;
 static lbm_tokenizer_char_stream_t string_tok;
 
 BaseSequentialStream *chp = NULL;
-
-static SerialConfig uart_cfg = {
-		115200, 0, 0, 0
-};
 
 int inputline(BaseSequentialStream *chp, char *buffer, int size) {
   int n = 0;
@@ -196,12 +195,6 @@ int main(void) {
 
   chp = (BaseSequentialStream*)&SDU1;
 
-  // uart experiment 
-  palSetPadMode(GPIOA, 0, PAL_MODE_ALTERNATE(8));
-  palSetPadMode(GPIOA, 1, PAL_MODE_ALTERNATE(8));
-
-  sdStart(&SD4, &uart_cfg);
-
   size_t len = 1024;
 
   int res = 0;
@@ -232,6 +225,12 @@ int main(void) {
   else
     chprintf(chp,"Error adding extension.\r\n");
 
+  if (platform_uart_init()) {
+    chprintf(chp,"UART extensions added.\r\n");
+  } else {
+    chprintf(chp,"Error adding UART extensions.\r\n");
+  }
+
   thread_t *t = chThdCreateFromHeap(NULL, EVAL_WA_SIZE,
                                     "eval", NORMALPRIO+1,
                                     eval, (void *)NULL);
@@ -245,19 +244,7 @@ int main(void) {
   chprintf(chp,"LispBM Version %d.%d.%d\r\n\r\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
 
-  while (1) {
-
-    sdWrite(&SD4, "HELLO\r\n", 7);
-    
-    chprintf(chp,"Reading uart:\n");
-    msg_t res = sdGetTimeout(&SD4, TIME_IMMEDIATE);
-    while (res != MSG_TIMEOUT) {
-      chprintf(chp, "%c\n", (uint8_t)res);
-      res = sdGetTimeout(&SD4, TIME_IMMEDIATE);
-    }
-    chprintf(chp, "Done\n");
-    
-    
+  while (1) {    
     chprintf(chp,"# ");
     memset(str,0,len);
     memset(outbuf,0, 1024);
