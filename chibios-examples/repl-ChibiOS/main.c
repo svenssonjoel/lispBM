@@ -396,7 +396,7 @@ int main(void) {
 
       lbm_continue_eval();
 
-      printf("started ctx: %u\n", cid);
+      chprintf(chp,"started ctx: %u\r\n", cid);
       lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT);
     }
   }

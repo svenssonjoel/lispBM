@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifdef PLATFORM_CHIBIOS_CONF_H_
+#ifndef PLATFORM_CHIBIOS_CONF_H_
 #define PLATFORM_CHBIOS_CONF_H_
 
 #warning "Default chibios configuration used"

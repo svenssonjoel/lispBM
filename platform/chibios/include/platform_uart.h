@@ -22,7 +22,7 @@
 #include <hal.h>
 #include <stdbool.h>
 
-#include <platform_chibios_conf.h>
+#include "platform_chibios_conf.h"
 
 bool platform_uart_init(void);
 

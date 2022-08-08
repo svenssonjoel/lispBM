@@ -23,6 +23,12 @@
 #include "extensions.h"
 #include <string.h>
 
+#include "platform_chibios_conf.h"
+
+#if !defined(LBM_UART_0) && !defined(LBM_UART_1) && !defined(LBM_UART_2) && !defined(LBM_UART_3)
+#warning No UART configured
+#endif
+
 // 4 uarts made available
 #ifdef LBM_UART_0
 static SerialConfig uart_cfg0 = {
@@ -223,8 +229,8 @@ lbm_value ext_uart_init(lbm_value *args, lbm_uint argn){
 static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 
   if (argn != 2 || (!lbm_is_number(args[0]) ||
-		    lbm_type_of(args[0]) != LBM_TYPE_CONS &&
-		    lbm_type_of(args[0]) != LBM_TYPE_ARRAY)) {
+		    (lbm_type_of(args[1]) != LBM_TYPE_CONS &&
+		     lbm_type_of(args[1]) != LBM_TYPE_ARRAY))) {
     return ENC_SYM_TERROR;
   }
 

@@ -194,7 +194,7 @@ UDEFS = -D_32_BIT_ -D_PRELUDE
 UADEFS =
 
 # List all user directories here
-UINCDIR = ../../include ../../platform/chibios/include
+UINCDIR = ./ ../../include ../../platform/chibios/include
 
 # List the user directory to look for the libraries here
 ULIBDIR =
