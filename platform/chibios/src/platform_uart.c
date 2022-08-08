@@ -45,7 +45,7 @@ static SerialConfig uart_cfg2 = {
   115200, 0, 0, 0
 };
 #endif
-#ifdef LBM_UART3
+#ifdef LBM_UART_3
 static SerialConfig uart_cfg3 = {
   115200, 0, 0, 0
 };
