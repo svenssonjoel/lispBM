@@ -56,7 +56,7 @@ static SerialConfig *get_uart_config(int uart) {
   #ifdef LBM_UART_0
   case 0: return &uart_cfg0;
   #endif
-  #ifdef LBM_UART_1  
+  #ifdef LBM_UART_1
   case 1: return &uart_cfg1;
   #endif
   #ifdef LBM_UART_2
@@ -74,7 +74,7 @@ static SerialDriver *get_uart_driver(int uart) {
   #ifdef LBM_UART_0
   case 0: return &LBM_UART_0;
   #endif
-  #ifdef LBM_UART_1  
+  #ifdef LBM_UART_1
   case 1: return &LBM_UART_1;
   #endif
   #ifdef LBM_UART_2
@@ -92,7 +92,7 @@ static ioportid_t get_uart_tx_gpio(int uart) {
   #ifdef LBM_UART_0
   case 0: return LBM_UART_0_TX_GPIO;
   #endif
-  #ifdef LBM_UART_1  
+  #ifdef LBM_UART_1
   case 1: return LBM_UART_1_TX_GPIO;
   #endif
   #ifdef LBM_UART_2
@@ -110,7 +110,7 @@ static ioportid_t get_uart_rx_gpio(int uart) {
   #ifdef LBM_UART_0
   case 0: return LBM_UART_0_RX_GPIO;
   #endif
-  #ifdef LBM_UART_1  
+  #ifdef LBM_UART_1
   case 1: return LBM_UART_1_RX_GPIO;
   #endif
   #ifdef LBM_UART_2
@@ -128,7 +128,7 @@ static int get_uart_tx_pin(int uart) {
   #ifdef LBM_UART_0
   case 0: return LBM_UART_0_TX_PIN;
   #endif
-  #ifdef LBM_UART_1  
+  #ifdef LBM_UART_1
   case 1: return LBM_UART_1_TX_PIN;
   #endif
   #ifdef LBM_UART_2
@@ -146,7 +146,7 @@ static int get_uart_rx_pin(int uart) {
   #ifdef LBM_UART_0
   case 0: return LBM_UART_0_RX_PIN;
   #endif
-  #ifdef LBM_UART_1  
+  #ifdef LBM_UART_1
   case 1: return LBM_UART_1_RX_PIN;
   #endif
   #ifdef LBM_UART_2
@@ -164,7 +164,7 @@ static int get_uart_tx_pin_mode(int uart) {
   #ifdef LBM_UART_0
   case 0: return LBM_UART_0_TX_PIN_MODE;
   #endif
-  #ifdef LBM_UART_1  
+  #ifdef LBM_UART_1
   case 1: return LBM_UART_1_TX_PIN_MODE;
   #endif
   #ifdef LBM_UART_2
@@ -182,7 +182,7 @@ static int get_uart_rx_pin_mode(int uart) {
   #ifdef LBM_UART_0
   case 0: return LBM_UART_0_RX_PIN_MODE;
   #endif
-  #ifdef LBM_UART_1  
+  #ifdef LBM_UART_1
   case 1: return LBM_UART_1_RX_PIN_MODE;
   #endif
   #ifdef LBM_UART_2
@@ -198,7 +198,7 @@ static int get_uart_rx_pin_mode(int uart) {
 
 lbm_value ext_uart_init(lbm_value *args, lbm_uint argn){
 
-  if (argn != 2) 
+  if (argn != 2)
     return ENC_SYM_NIL;
 
   if (!lbm_is_number(args[0]) || !lbm_is_number(args[1]))
@@ -214,11 +214,11 @@ lbm_value ext_uart_init(lbm_value *args, lbm_uint argn){
     memset(cfg, 0 , sizeof(SerialConfig));
     cfg->speed = baud;
     palSetPadMode(get_uart_tx_gpio(uart),
-		  get_uart_tx_pin(uart),
-		  get_uart_tx_pin_mode(uart));
+                  get_uart_tx_pin(uart),
+                  get_uart_tx_pin_mode(uart));
     palSetPadMode(get_uart_rx_gpio(uart),
-		  get_uart_rx_pin(uart),
-		  get_uart_rx_pin_mode(uart));
+                  get_uart_rx_pin(uart),
+                  get_uart_rx_pin_mode(uart));
     sdStart(get_uart_driver(uart), cfg);
     return ENC_SYM_TRUE;
   }
@@ -229,8 +229,8 @@ lbm_value ext_uart_init(lbm_value *args, lbm_uint argn){
 static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 
   if (argn != 2 || (!lbm_is_number(args[0]) ||
-		    (lbm_type_of(args[1]) != LBM_TYPE_CONS &&
-		     lbm_type_of(args[1]) != LBM_TYPE_ARRAY))) {
+                    (lbm_type_of(args[1]) != LBM_TYPE_CONS &&
+                     lbm_type_of(args[1]) != LBM_TYPE_ARRAY))) {
     return ENC_SYM_TERROR;
   }
 
@@ -255,13 +255,13 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
       lbm_value  arg = lbm_car(curr);
 
       if (lbm_is_number(arg)) {
-	to_send[ind++] = lbm_dec_as_u32(arg);
+        to_send[ind++] = lbm_dec_as_u32(arg);
       } else {
-	return lbm_enc_sym(SYM_EERROR);
+        return lbm_enc_sym(SYM_EERROR);
       }
 
       if (ind == max_len) {
-	break;
+        break;
       }
 
       curr = lbm_cdr(curr);
@@ -269,7 +269,7 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
   }
 
   SerialDriver *drv = get_uart_driver(uart);
-  if (drv) { 
+  if (drv) {
     sdWrite(drv, to_send_ptr, ind);
     return ENC_SYM_TRUE;
   }
@@ -289,7 +289,7 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
   if (!drv) {
     return lbm_enc_sym(SYM_EERROR);
   }
-  
+
   unsigned int num = lbm_dec_as_u32(args[2]);
   if (num > 512) {
     return lbm_enc_sym(SYM_TERROR);
@@ -334,7 +334,6 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
   return lbm_enc_i(count);
 }
 
-
 bool platform_uart_init(void) {
   int res = 1;
 
@@ -342,5 +341,5 @@ bool platform_uart_init(void) {
   res = res && lbm_add_extension("uart-write", ext_uart_write);
   res = res && lbm_add_extension("uart-read", ext_uart_read);
 
-  return res; 
+  return res;
 }

@@ -76,11 +76,12 @@ typedef double    lbm_float;
 #define PRI_HEX   PRIx64
 #define PRI_FLOAT "lf"
 
-typedef int64_t   lbm_cid;
-#endif
 /**
  * Represents a lisp process "context"-id
  */
+typedef int64_t   lbm_cid;
+#endif
+
 
 
 /* tokenizer */
