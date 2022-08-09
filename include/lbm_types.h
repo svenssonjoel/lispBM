@@ -90,6 +90,7 @@ struct lbm_tcs{
   void *state;
   bool (*more)(struct lbm_tcs*);
   char (*get)(struct lbm_tcs*);
+  bool (*put)(struct lbm_tcs*, char c);
   char (*peek)(struct lbm_tcs*, unsigned int);
   void (*drop)(struct lbm_tcs*, unsigned int);
   unsigned int (*row)(struct lbm_tcs*);

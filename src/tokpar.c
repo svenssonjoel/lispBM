@@ -782,6 +782,12 @@ char get_string(lbm_tokenizer_char_stream_t *str) {
   return c;
 }
 
+bool put_string(lbm_tokenizer_char_stream_t *str, char c) {
+  (void) str;
+  (void) c;
+  return false;
+}
+
 char peek_string(lbm_tokenizer_char_stream_t *str, unsigned int n) {
   lbm_tokenizer_string_state_t *s =
     (lbm_tokenizer_string_state_t *)str->state;
@@ -830,6 +836,7 @@ void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
   char_stream->peek  = peek_string;
   char_stream->drop  = drop_string;
   char_stream->get   = get_string;
+  char_stream->put   = put_string;
   char_stream->row   = row_string;
   char_stream->column = column_string;
 }

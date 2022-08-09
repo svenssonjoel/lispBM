@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-/**
+/**to
  * State struct for the string tokenizer.
  */
 typedef struct {
