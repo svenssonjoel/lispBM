@@ -193,11 +193,11 @@ extern "C" {
 #define SYM_TO_DOUBLE           0x167
 #define SYM_TO_BYTE             0x168
 
-/* #define SYM_STREAM_GET          0x169 */
-/* #define SYM_STREAM_MORE         0x16A */
-/* #define SYM_STREAM_PEEK         0x16B */
-/* #define SYM_STREAM_DROP         0x16C */
-/* #define SYM_STREAM_PUT          0x16D */
+#define SYM_STREAM_GET          0x169
+#define SYM_STREAM_MORE         0x16A
+#define SYM_STREAM_PEEK         0x16B
+#define SYM_STREAM_DROP         0x16C
+#define SYM_STREAM_PUT          0x16D
 
 #define SYM_SHL                 0x170
 #define SYM_SHR                 0x171

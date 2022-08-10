@@ -21,6 +21,7 @@
 #include "symrepr.h"
 #include "heap.h"
 #include "extensions.h"
+#include "streams.h"
 #include <string.h>
 
 #include "platform_chibios_conf.h"
@@ -334,12 +335,203 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
   return lbm_enc_i(count);
 }
 
+
+// Uart low-level character stream interface
+typedef struct {
+  char *buffer;
+  int  read;
+  int  write;
+  int  size;
+  int  uart;
+  bool more;
+  int  row;
+  int  column;
+} uart_char_stream_state;
+
+static bool buffer_empty(uart_char_stream_state *s) {
+  return (s->write == s->read);
+}
+
+static bool buffer_full(uart_char_stream_state *s) {
+  return (s->write == s->read - 1 ||
+	  (s->read == 0 && s->write == s->size - 1));
+}
+
+static bool buffer_put(uart_char_stream_state *s, char c) {
+
+  if (buffer_full(s)) return false;
+
+  s->buffer[s->write] = c;
+  s->write = (s->write + 1) % s->size;
+
+  return true;
+}
+
+static bool buffer_get(uart_char_stream_state *s, char *c) {
+
+  if (s->read == s->write) return false;
+
+  *c = s->buffer[s->read];
+  s->read = (s->read + 1) % s->size;
+}
+
+static bool buffer_peek(uart_char_stream_state *s, int n, char *c) {
+
+  if (s->read + n < s->write) {
+    c = s->buffer[s->read + n];
+    return true;
+  }
+  return false;
+}
+
+
+static bool uart_stream_more(lbm_tokenizer_char_stream_t *t) {
+  uart_char_stream_state *state;
+  state = (uart_char_stream_state*)t->state;
+  return state->more;
+}
+
+static char uart_stream_get(lbm_tokenizer_char_stream_t *t) {
+
+  char c;
+  uart_char_stream_state *s = (uart_char_stream_state *)t->state;
+  if (!buffer_empty(s)) {
+    buffer_get(s, &c);
+    return c;
+  } else {
+
+    SerialDriver *drv = get_uart_driver(s->uart);
+    if (!drv) {
+      return lbm_enc_sym(SYM_EERROR);
+    }
+
+    int num_read = 0;
+
+    msg_t res;
+    do {
+      res = sdGetTimeout(drv, TIME_IMMEDIATE);
+      if (res != MSG_TIMEOUT && res != 0x1A) {
+	buffer_put(t, res);
+	num_read ++;
+      }
+    } while (!buffer_full(t) && res != MSG_TIMEOUT && res != 0x1A);
+
+    if (res == 0x1A) s->more = false;
+
+    // This blocking behaviour is unfortunate.
+    // Doing it the right way may be a big pain though.
+    if (num_read == 0) {
+      c = sdGet(drv);
+      if (c == 0x1A ) s->more = false;
+      return c;
+    } else {
+      buffer_get(s, &c);
+      return c;
+    }
+  }
+}
+
+static bool uart_stream_put(lbm_tokenizer_char_stream_t *t, char c) {
+  uart_char_stream_state *state;
+  state = (uart_char_stream_state*)t->state;
+
+  SerialDriver *drv = get_uart_driver(state->uart);
+  if (drv) {
+    sdWrite(drv, &c, 1);
+    return true;
+  }
+  return false;
+}
+
+static char uart_stream_peek(lbm_tokenizer_char_stream_t *t, unsigned int n) {
+  return 'p';
+}
+
+static void uart_stream_drop(lbm_tokenizer_char_stream_t *t, unsigned int n) {
+  for (int i = 0; i < n; i ++) {
+    uart_stream_get(t);
+  }
+}
+
+static unsigned int uart_stream_row(lbm_tokenizer_char_stream_t *t) {
+  (void)t;
+  return 0;
+}
+
+static unsigned int uart_stream_column(lbm_tokenizer_char_stream_t *t) {
+  (void) t;
+  return 0;
+}
+
+
+static lbm_tokenizer_char_stream_t *create_uart_char_stream(int uart, int buffer_size) {
+
+  lbm_tokenizer_char_stream_t *str = NULL;
+  uart_char_stream_state *state = NULL;
+  char *buffer = NULL;
+
+  buffer = (char *)lbm_memory_allocate(1 + buffer_size / sizeof(lbm_uint));
+  if (!buffer) {
+    return NULL;
+  }
+  str = (lbm_tokenizer_char_stream_t *)lbm_memory_allocate(1 + sizeof(lbm_tokenizer_char_stream_t) / sizeof(lbm_uint));
+  if (!str) {
+    lbm_memory_free((lbm_uint*)buffer);
+    return NULL;
+  }
+  state = (uart_char_stream_state *)lbm_memory_allocate(1 + sizeof(uart_char_stream_state) / sizeof(lbm_uint));
+  if (!state) {
+    lbm_memory_free((lbm_uint*)str);
+    lbm_memory_free((lbm_uint*)buffer);
+    return NULL;
+  }
+
+  state->buffer = buffer;
+  state->size   = buffer_size;
+  state->write  = 0;
+  state->read   = 0;
+  state->uart   = uart;
+  state->more   = true; // will remain true until an EOF arrives on stream
+
+  str->state = (void*)state;
+  str->more  = uart_stream_more;
+  str->get   = uart_stream_get;
+  str->put   = uart_stream_put;
+  str->peek  = uart_stream_peek;
+  str->drop  = uart_stream_drop;
+  str->row   = uart_stream_row;
+  str->column = uart_stream_column;
+
+  return str;
+}
+
+// Stream extension
+
+static lbm_value ext_uart_stream(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_number(args[0]) || !lbm_is_number(args[1])) {
+    return ENC_SYM_TERROR;
+  }
+
+  int uart = lbm_dec_as_i32(args[0]);
+  int buffer_size = lbm_dec_as_i32(args[1]);
+
+  lbm_tokenizer_char_stream_t *tstr = create_uart_char_stream(uart, buffer_size);
+  if (tstr == NULL)
+    return ENC_SYM_MERROR;
+
+  return lbm_stream_lift(tstr);
+}
+
+
+// Interface
+
 bool platform_uart_init(void) {
   int res = 1;
 
   res = res && lbm_add_extension("uart-init", ext_uart_init);
   res = res && lbm_add_extension("uart-write", ext_uart_write);
   res = res && lbm_add_extension("uart-read", ext_uart_read);
+  res = res && lbm_add_extension("uart-stream", ext_uart_stream);
 
   return res;
 }

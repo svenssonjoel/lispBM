@@ -186,11 +186,11 @@ special_sym const special_symbols[] =  {
   {"to-byte"        , SYM_TO_BYTE},
 
   // Streams
-  /* {"stream-get"     , SYM_STREAM_GET}, */
-  /* {"stream-more"    , SYM_STREAM_MORE}, */
-  /* {"stream-peek"    , SYM_STREAM_PEEK}, */
-  /* {"stream-drop"    , SYM_STREAM_DROP}, */
-  /* {"stream-put"     , SYM_STREAM_PUT}, */
+  {"stream-get"     , SYM_STREAM_GET},
+  {"stream-more"    , SYM_STREAM_MORE},
+  {"stream-peek"    , SYM_STREAM_PEEK},
+  {"stream-drop"    , SYM_STREAM_DROP},
+  {"stream-put"     , SYM_STREAM_PUT},
 
   // fast access in list
   {"ix"             , SYM_IX},

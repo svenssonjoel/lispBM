@@ -82,7 +82,7 @@ static lbm_value lift_drop(lbm_stream_t *str, lbm_value n) {
 
 lbm_value lbm_stream_lift(lbm_tokenizer_char_stream_t *char_stream) {
   lbm_stream_t *stream = NULL;
-  stream = (lbm_stream_t *)lbm_memory_allocate(1 + sizeof(lbm_stream_t) / sizeof(lbm_stream_t));
+  stream = (lbm_stream_t *)lbm_memory_allocate(1 + sizeof(lbm_stream_t) / sizeof(lbm_uint));
   if (stream == NULL) {
     return ENC_SYM_MERROR;
   }
@@ -94,5 +94,5 @@ lbm_value lbm_stream_lift(lbm_tokenizer_char_stream_t *char_stream) {
   stream->peek  = lift_peek;
   stream->drop  = lift_drop;
 
-  return stream;
+  return lbm_stream_create(stream);
 }
