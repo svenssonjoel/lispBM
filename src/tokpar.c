@@ -822,7 +822,6 @@ unsigned int column_string(lbm_tokenizer_char_stream_t *str) {
   return s->column;
 }
 
-
 void lbm_create_char_stream_from_string(lbm_tokenizer_string_state_t *state,
                                         lbm_tokenizer_char_stream_t *char_stream,
                                         const char *string){
