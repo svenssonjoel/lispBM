@@ -357,6 +357,13 @@ static bool buffer_full(uart_char_stream_state *s) {
 	  (s->read == 0 && s->write == s->size - 1));
 }
 
+static int buffer_elems(uart_char_stream_state *s) {
+
+  if (s->write >= s->read) return (s->write - s->read);
+
+  return (s->size - (s->read - s->write));
+}
+
 static bool buffer_put(uart_char_stream_state *s, char c) {
 
   if (buffer_full(s)) return false;
@@ -373,15 +380,43 @@ static bool buffer_get(uart_char_stream_state *s, char *c) {
 
   *c = s->buffer[s->read];
   s->read = (s->read + 1) % s->size;
+  return true;
 }
 
 static bool buffer_peek(uart_char_stream_state *s, int n, char *c) {
 
-  if (s->read + n < s->write) {
-    c = s->buffer[s->read + n];
+  if ((s->read + n) % s->size < s->write) {
+    *c = s->buffer[s->read + n];
     return true;
   }
   return false;
+}
+
+
+static int buffer_up(uart_char_stream_state *s, SerialDriver *drv, int n) {
+
+  int num = buffer_elems(s);
+
+  if (n < num) return n;
+  if (n > s->size) return -1;
+
+  int to_read = n - num;
+  int num_read = 0;
+
+  msg_t res;
+  do {
+    res = sdGetTimeout(drv, TIME_IMMEDIATE);
+    if (res != MSG_TIMEOUT && res != 0x1A) {
+      buffer_put(s, res);
+      num_read ++;
+    }
+  } while (num_read < to_read &&
+	   res != MSG_TIMEOUT &&
+	   res != 0x1A);
+
+  if (num_read) return num_read + num ;
+  if (res == MSG_TIMEOUT) return -2;
+  return 0;
 }
 
 
@@ -397,37 +432,34 @@ static char uart_stream_get(lbm_tokenizer_char_stream_t *t) {
   uart_char_stream_state *s = (uart_char_stream_state *)t->state;
   if (!buffer_empty(s)) {
     buffer_get(s, &c);
+    s->column ++;
+    if (c == '\n') {
+      s->row++;
+      s->column = 0;
+    }
     return c;
   } else {
 
     SerialDriver *drv = get_uart_driver(s->uart);
-    if (!drv) {
-      return lbm_enc_sym(SYM_EERROR);
-    }
 
     int num_read = 0;
 
-    msg_t res;
-    do {
-      res = sdGetTimeout(drv, TIME_IMMEDIATE);
-      if (res != MSG_TIMEOUT && res != 0x1A) {
-	buffer_put(t, res);
-	num_read ++;
-      }
-    } while (!buffer_full(t) && res != MSG_TIMEOUT && res != 0x1A);
-
-    if (res == 0x1A) s->more = false;
+    num_read = buffer_up(s, drv, 1);
 
     // This blocking behaviour is unfortunate.
     // Doing it the right way may be a big pain though.
-    if (num_read == 0) {
+    if (num_read < 1) {
       c = sdGet(drv);
       if (c == 0x1A ) s->more = false;
-      return c;
     } else {
       buffer_get(s, &c);
-      return c;
+      s->column ++;
+      if (c == '\n') {
+	s->row++;
+	s->column = 0;
+      }
     }
+    return c;
   }
 }
 
@@ -436,19 +468,29 @@ static bool uart_stream_put(lbm_tokenizer_char_stream_t *t, char c) {
   state = (uart_char_stream_state*)t->state;
 
   SerialDriver *drv = get_uart_driver(state->uart);
-  if (drv) {
-    sdWrite(drv, &c, 1);
-    return true;
-  }
+
   return false;
 }
 
 static char uart_stream_peek(lbm_tokenizer_char_stream_t *t, unsigned int n) {
-  return 'p';
+
+  uart_char_stream_state *s = (uart_char_stream_state *)t->state;
+  SerialDriver *drv = get_uart_driver(s->uart);
+
+  int num_read = 0;
+
+  num_read = buffer_up(s, drv, n);
+
+  // This error case should be signaled upwards.
+  if (num_read < n) {
+    return '0' + num_read;
+  } else {
+    return s->buffer[(s->read + n) % s->size];
+  }
 }
 
 static void uart_stream_drop(lbm_tokenizer_char_stream_t *t, unsigned int n) {
-  for (int i = 0; i < n; i ++) {
+  for (unsigned int i = 0; i < n; i ++) {
     uart_stream_get(t);
   }
 }
@@ -462,7 +504,6 @@ static unsigned int uart_stream_column(lbm_tokenizer_char_stream_t *t) {
   (void) t;
   return 0;
 }
-
 
 static lbm_tokenizer_char_stream_t *create_uart_char_stream(int uart, int buffer_size) {
 
@@ -492,6 +533,8 @@ static lbm_tokenizer_char_stream_t *create_uart_char_stream(int uart, int buffer
   state->read   = 0;
   state->uart   = uart;
   state->more   = true; // will remain true until an EOF arrives on stream
+  state->row    = 0;
+  state->column = 0;
 
   str->state = (void*)state;
   str->more  = uart_stream_more;

@@ -80,6 +80,16 @@ lbm_value lbm_stream_put(lbm_stream_t *str, lbm_value v);
  */
 lbm_value lbm_stream_create(lbm_stream_t *str);
 
+
+
+/** Convert an lbm_tokenizer_char_stream_t to an lbm_stream.
+ *
+ * \param char_stream The character stream to lift into an a lispbm stream.
+ * \return The lispbm stream.
+ */
+lbm_value lbm_stream_lift(lbm_tokenizer_char_stream_t *char_stream);
+
+
 #ifdef __cplusplus
 }
 #endif
