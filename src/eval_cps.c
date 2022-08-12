@@ -55,18 +55,11 @@
 #define SET_VARIABLE      ((16 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define RESUME            ((17 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define EXPAND_MACRO      ((18 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-/* #define QUOTE_RESULT      ((19 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
-/* #define BACKQUOTE_RESULT  ((20 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
-/* #define COMMAAT_RESULT    ((21 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
-/* #define COMMA_RESULT      ((22 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
-/* #define DOT_TERMINATE     ((23 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
-/* #define EXPECT_CLOSEPAR   ((24 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
-/* #define APPEND_CONTINUE   ((25 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
-/* #define READ_DONE         ((26 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
-#define CLOSURE_ARGS      ((27 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define CLOSURE_APP       ((28 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define NAMESPACE_POP     ((29 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define TERMINATE_COLON   ((30 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define CLOSURE_ARGS      ((19 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define CLOSURE_APP       ((20 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define NAMESPACE_POP     ((21 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define TERMINATE_COLON   ((22 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+
 #define READ_NEXT_TOKEN       ((31 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define READ_APPEND_CONTINUE  ((32 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define READ_EXPECT_CLOSEPAR  ((33 << LBM_VAL_SHIFT) | LBM_TYPE_U)
@@ -2202,7 +2195,9 @@ static inline void cont_read(eval_context_t *ctx) {
     return;
   }
 
-  CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_DONE));
+  lbm_value prg_tag = lbm_enc_u(program ? 1 : 0);
+  
+  CHECK_STACK(lbm_push_3(&ctx->K, prg_tag, stream, READ_DONE));
 
   if (program) {
     CHECK_STACK(lbm_push_4(&ctx->K, ENC_SYM_NIL, ENC_SYM_NIL, stream, READ_APPEND_CONTINUE));
@@ -2219,7 +2214,7 @@ static inline void cont_read_next_token(eval_context_t *ctx) {
 
   lbm_stream_t *str = lbm_dec_stream(stream);
   lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
-  
+
   lbm_value tok = token_stream_get(str);
   
   if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
@@ -2241,21 +2236,23 @@ static inline void cont_read_next_token(eval_context_t *ctx) {
 	 Three cases
 	 1. The program / expression is malformed and the context should die.
 	 2. We are finished reading a program and should close off the 
-            internal representation with a closing parenthesis. Then 
+            internl representation with a closing parenthesis. Then 
             apply continuation. 
          3. We are finished reading an expression and should 
             apply the continuation. 
 	    
 	 
-	 In case 3, we should find the READ_DONE at sp.
-         In case 2, we should find the READ_DONE at sp - 4.
+	 In case 3, we should find the READ_DONE at sp - 1.
+         In case 2, we should find the READ_DONE at sp - 5.
 
       */
 
-      if (ctx->K.data[ctx->K.sp-1] == READ_DONE) {
+      if (ctx->K.data[ctx->K.sp-1] == READ_DONE &&
+	  lbm_dec_u(ctx->K.data[ctx->K.sp-3]) == 0) {
 	/* successfully finished reading an expression  (CASE 3) */
 	ctx->app_cont = true;
-      } else if (ctx->K.sp > 5 && ctx->K.data[ctx->K.sp - 5] == READ_DONE) {
+      } else if (ctx->K.sp > 5 && ctx->K.data[ctx->K.sp - 5] == READ_DONE &&
+		 lbm_dec_u(ctx->K.data[ctx->K.sp-7]) == 1) {
 	/* successfully finished reading a program  (CASE 2) */
 	ctx->r = ENC_SYM_CLOSEPAR;
 	ctx->app_cont = true;
@@ -2328,36 +2325,43 @@ static inline void cont_read_append_continue(eval_context_t *ctx) {
   lbm_value last_cell  = sptr[1];
   lbm_value stream     = sptr[2];
 
-  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-      lbm_dec_sym(ctx->r) == SYM_CLOSEPAR) {
-    if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
-      lbm_set_cdr(last_cell, ENC_SYM_NIL); // terminate the list
-      ctx->r = first_cell;
-    } else {
-      // empty list case
-      ctx->r = ENC_SYM_NIL;
-    }
-    lbm_stack_drop(&ctx->K, 3);
-  } else if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-	     lbm_dec_sym(ctx->r) == SYM_DOT) {
+  lbm_stream_t *str = lbm_dec_stream(stream);
+  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
 
-    CHECK_STACK(lbm_push(&ctx->K, READ_DOT_TERMINATE));
-    CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
-  } else {
-    lbm_value new_cell; 
-    CONS_WITH_GC(new_cell, ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
-    if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
-      lbm_set_cdr(last_cell, new_cell);
-      last_cell = new_cell;
-    } else {
-      first_cell = last_cell = new_cell;
+  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
+
+    switch(lbm_dec_sym(ctx->r)) {
+    case SYM_CLOSEPAR:
+      if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
+	lbm_set_cdr(last_cell, ENC_SYM_NIL); // terminate the list
+	ctx->r = first_cell;
+      } else {
+	ctx->r = ENC_SYM_NIL;
+      }
+      lbm_stack_drop(&ctx->K, 3);
+      /* Skip reading another token and apply the continuation */
+      ctx->app_cont = true;
+      return;
+    case SYM_DOT:
+      CHECK_STACK(lbm_push(&ctx->K, READ_DOT_TERMINATE));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      ctx->app_cont = true;
+      return;
     }
-    sptr[0] = first_cell;
-    sptr[1] = last_cell;
-    CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_CONTINUE));
-    CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
   }
-  ctx->app_cont = true; 
+  lbm_value new_cell; 
+  CONS_WITH_GC(new_cell, ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+  if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
+    lbm_set_cdr(last_cell, new_cell);
+    last_cell = new_cell;
+  } else {
+    first_cell = last_cell = new_cell;
+  }
+  sptr[0] = first_cell;
+  sptr[1] = last_cell;
+  CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_CONTINUE));
+  CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
 }
 
 static inline void cont_read_expect_closepar(eval_context_t *ctx) {
@@ -2366,7 +2370,7 @@ static inline void cont_read_expect_closepar(eval_context_t *ctx) {
   lbm_value stream;
 
   lbm_pop_2(&ctx->K, &res, &stream);
-  
+
   lbm_stream_t *str = lbm_dec_stream(stream);
   lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
 
@@ -2426,8 +2430,9 @@ static inline void cont_read_dot_terminate(eval_context_t *ctx) {
 static inline void cont_read_done(eval_context_t *ctx) {
   
   lbm_value stream;
-
-  lbm_pop(&ctx->K, &stream);
+  lbm_value prg_tag;
+  
+  lbm_pop_2(&ctx->K, &stream, &prg_tag);
 
   lbm_stream_t *str = lbm_dec_stream(stream);
   lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
