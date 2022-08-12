@@ -55,18 +55,31 @@
 #define SET_VARIABLE      ((16 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define RESUME            ((17 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define EXPAND_MACRO      ((18 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define QUOTE_RESULT      ((19 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define BACKQUOTE_RESULT  ((20 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define COMMAAT_RESULT    ((21 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define COMMA_RESULT      ((22 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define DOT_TERMINATE     ((23 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define EXPECT_CLOSEPAR   ((24 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define APPEND_CONTINUE   ((25 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_DONE         ((26 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+/* #define QUOTE_RESULT      ((19 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
+/* #define BACKQUOTE_RESULT  ((20 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
+/* #define COMMAAT_RESULT    ((21 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
+/* #define COMMA_RESULT      ((22 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
+/* #define DOT_TERMINATE     ((23 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
+/* #define EXPECT_CLOSEPAR   ((24 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
+/* #define APPEND_CONTINUE   ((25 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
+/* #define READ_DONE         ((26 << LBM_VAL_SHIFT) | LBM_TYPE_U) */
 #define CLOSURE_ARGS      ((27 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define CLOSURE_APP       ((28 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define NAMESPACE_POP     ((29 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define TERMINATE_COLON   ((30 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_NEXT_TOKEN       ((31 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_APPEND_CONTINUE  ((32 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_EXPECT_CLOSEPAR  ((33 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_DOT_TERMINATE    ((34 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_DONE             ((36 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_QUOTE_RESULT     ((37 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_BACKQUOTE_RESULT ((38 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_COMMAAT_RESULT   ((39 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_COMMA_RESULT     ((40 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_TERMINATE_COLON  ((41 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+
+
+
 
 static const char* parse_error_eof = "End of parse stream";
 static const char* parse_error_token = "Malformed token";
@@ -2177,274 +2190,306 @@ static inline void cont_read(eval_context_t *ctx) {
   lbm_value stream = ENC_SYM_NIL;
   lbm_value prg_val = ENC_SYM_NIL;
   lbm_pop_2(&ctx->K, &prg_val, &stream);
-
-  lbm_stream_t *str = lbm_dec_stream(stream);
-  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
-  lbm_value tok;
-  bool read_done = false;
-  bool app_cont = false;
+  
   bool program = false;
-
-  lbm_uint sp_start = ctx->K.sp;
-  lbm_cid cid = ctx->id;
 
   if (lbm_type_of(prg_val) == LBM_TYPE_SYMBOL) {
     if (lbm_dec_sym(prg_val) == SYM_READ) program = false;
     else if (lbm_dec_sym(prg_val) == SYM_READ_PROGRAM) program = true;
   } else {
     error_ctx(ENC_SYM_FATAL_ERROR);
-    done_reading(cid);
+    done_reading(ctx->id);
     return;
   }
 
-  CHECK_STACK(lbm_push(&ctx->K, READ_DONE));
+  CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_DONE));
 
   if (program) {
-    CHECK_STACK(lbm_push_3(&ctx->K, ENC_SYM_NIL, ENC_SYM_NIL, APPEND_CONTINUE));
+    CHECK_STACK(lbm_push_4(&ctx->K, ENC_SYM_NIL, ENC_SYM_NIL, stream, READ_APPEND_CONTINUE));
+  }
+  CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+  
+  ctx->app_cont = true;
+}
+
+static inline void cont_read_next_token(eval_context_t *ctx) {
+  
+  lbm_value stream;
+  lbm_pop(&ctx->K, &stream);
+
+  lbm_stream_t *str = lbm_dec_stream(stream);
+  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
+  
+  lbm_value tok = token_stream_get(str);
+  
+  if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
+    switch (lbm_dec_sym(tok)) {
+    case SYM_RERROR:
+      lbm_set_error_reason((char*)parse_error_token);
+      read_error_ctx(s->row(s), s->column(s));
+      done_reading(ctx->id);
+      return;
+    case SYM_MERROR:
+      error_ctx(ENC_SYM_MERROR);
+      done_reading(ctx->id);
+      return;
+    case SYM_TOKENIZER_DONE:
+      /* Tokenizer reached "end of file" 
+         The parser could be in a state where it needs 
+         more tokens to correctly finish an expression. 
+
+	 Three cases
+	 1. The program / expression is malformed and the context should die.
+	 2. We are finished reading a program and should close off the 
+            internal representation with a closing parenthesis. Then 
+            apply continuation. 
+         3. We are finished reading an expression and should 
+            apply the continuation. 
+	    
+	 
+	 In case 3, we should find the READ_DONE at sp.
+         In case 2, we should find the READ_DONE at sp - 4.
+
+      */
+
+      if (ctx->K.data[ctx->K.sp-1] == READ_DONE) {
+	/* successfully finished reading an expression  (CASE 3) */
+	ctx->app_cont = true;
+      } else if (ctx->K.sp > 5 && ctx->K.data[ctx->K.sp - 5] == READ_DONE) {
+	/* successfully finished reading a program  (CASE 2) */
+	ctx->r = ENC_SYM_CLOSEPAR;
+	ctx->app_cont = true;
+      } else {
+	/* Parsing failed */
+	lbm_set_error_reason((char*)parse_error_eof);
+	read_error_ctx(s->row(s), s->column(s));
+	done_reading(ctx->id);
+      }
+      break;
+    case SYM_CLOSEPAR:
+      ctx->r = tok;
+      ctx->app_cont = true;
+      break;
+    case SYM_OPENPAR:
+      CHECK_STACK(lbm_push_4(&ctx->K,
+			     ENC_SYM_NIL, ENC_SYM_NIL,
+			     stream,
+			     READ_APPEND_CONTINUE));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      break;
+    case SYM_QUOTE_IT:
+      CHECK_STACK(lbm_push(&ctx->K, READ_QUOTE_RESULT));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      break;
+    case SYM_BACKQUOTE:
+      CHECK_STACK(lbm_push(&ctx->K, READ_BACKQUOTE_RESULT));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      break;
+    case SYM_COMMAAT:
+      CHECK_STACK(lbm_push(&ctx->K, READ_COMMAAT_RESULT));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      break;
+    case SYM_COMMA:
+      CHECK_STACK(lbm_push(&ctx->K, READ_COMMA_RESULT));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      break;
+    default: // arbitrary symbol form
+      if (token_stream_peek(str, 1) == ENC_SYM_COLON) {
+	token_stream_get(str); // drop the colon
+	CHECK_STACK(lbm_push_2(&ctx->K, tok, READ_TERMINATE_COLON));
+	CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+	ctx->app_cont = true;
+      } else {
+	ctx->r = tok;
+	ctx->app_cont = true;
+      }
+      break;
+    }
+  } else { // arbitrary value form
+    ctx->r = tok;
+    ctx->app_cont = true;
+  }
+}
+
+static inline void cont_read_append_continue(eval_context_t *ctx) {
+
+  lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 3);
+  if (!sptr) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
   }
 
-  while (!read_done) {
+  lbm_value first_cell = sptr[0];
+  lbm_value last_cell  = sptr[1];
+  lbm_value stream     = sptr[2];
 
-    if (app_cont) {
-      lbm_value cont = ENC_SYM_NIL;
-      lbm_pop(&ctx->K, &cont);
-      app_cont = false; // false unless explicitly set
-
-      switch(cont) {
-
-      case APPEND_CONTINUE: {
-        lbm_value first_cell = ENC_SYM_NIL;
-        lbm_value last_cell  = ENC_SYM_NIL;
-        lbm_pop_2(&ctx->K, &last_cell, &first_cell);
-
-        if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-            lbm_dec_sym(ctx->r) == SYM_CLOSEPAR) {
-          if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
-            lbm_set_cdr(last_cell, ENC_SYM_NIL); // terminate the list
-            ctx->r = first_cell;
-          } else {
-            // empty list case
-            ctx->r = ENC_SYM_NIL;
-          }
-          app_cont = true;
-        } else if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-                   lbm_dec_sym(ctx->r) == SYM_DOT) {
-          CHECK_STACK(lbm_push_3(&ctx->K,
-                                 first_cell, last_cell,
-                                 DOT_TERMINATE));
-        } else {
-          lbm_value new_cell;
-          CONS_WITH_GC(new_cell, ctx->r, ENC_SYM_NIL, stream);
-          if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
-            lbm_set_cdr(last_cell, new_cell);
-            last_cell = new_cell;
-          } else {
-            first_cell = last_cell = new_cell;
-          }
-          CHECK_STACK(lbm_push_3(&ctx->K,
-                                 first_cell, last_cell,
-                                 APPEND_CONTINUE));
-        }
-      } break;
-      case EXPECT_CLOSEPAR: {
-        if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-            lbm_dec_sym(ctx->r) == SYM_CLOSEPAR) {
-          lbm_value res = ENC_SYM_NIL;
-          lbm_pop(&ctx->K, &res);
-          ctx->r = res;
-          app_cont = true;
-        } else {
-          lbm_set_error_reason((char*)parse_error_close);
-          read_error_ctx(s->row(s), s->column(s));
-          done_reading(cid);
-          return;
-        }
-      } break;
-      case DOT_TERMINATE: {
-        lbm_value first_cell = ENC_SYM_NIL;
-        lbm_value last_cell  = ENC_SYM_NIL;
-        lbm_pop_2(&ctx->K, &last_cell, &first_cell);
-
-        if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-            (lbm_dec_sym(ctx->r) == SYM_CLOSEPAR ||
-             lbm_dec_sym(ctx->r) == SYM_DOT)) {
-          lbm_set_error_reason((char*)parse_error_dot);
-          read_error_ctx(s->row(s), s->column(s));
-          return;
-        } else {
-          if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
-            lbm_set_cdr(last_cell, ctx->r);
-            ctx->r = first_cell;
-            CHECK_STACK(lbm_push_2(&ctx->K,
-                                   ctx->r,
-                                   EXPECT_CLOSEPAR));
-          } else {
-            lbm_set_error_reason((char*)parse_error_dot);
-            read_error_ctx(s->row(s), s->column(s));
-            done_reading(cid);
-            return;
-          }
-        }
-      } break;
-      case READ_DONE:
-        tok = token_stream_get(str);
-        if (tok != ENC_SYM_TOKENIZER_DONE) {
-          lbm_set_error_reason((char*)parse_error_eof);
-          read_error_ctx(s->row(s), s->column(s));
-          return;
-        }
-        /* Go back to outer eval loop and apply continuation */
-        ctx->app_cont = true;
-        read_done = true;
-        continue;
-      case QUOTE_RESULT: {
-        lbm_value cell1;
-        lbm_value cell2;
-        CONS_WITH_GC(cell2, ctx->r, ENC_SYM_NIL, stream);
-        CONS_WITH_GC(cell1, ENC_SYM_QUOTE, cell2, stream);
-        ctx->r = cell1;
-        app_cont = true;
-      } break;
-      case BACKQUOTE_RESULT: {
-        lbm_value expanded = lbm_qq_expand(ctx->r);
-        ctx->r = expanded;
-        app_cont = true;
-      } break;
-      case COMMAAT_RESULT: {
-        lbm_value cell1;
-        lbm_value cell2;
-        CONS_WITH_GC(cell2, ctx->r,ENC_SYM_NIL, stream);
-        CONS_WITH_GC(cell1, ENC_SYM_COMMAAT, cell2, stream);
-        ctx->r = cell1;
-        app_cont = true;
-      } break;
-      case COMMA_RESULT: {
-        lbm_value cell1;
-        lbm_value cell2;
-        CONS_WITH_GC(cell2, ctx->r,ENC_SYM_NIL, stream);
-        CONS_WITH_GC(cell1, ENC_SYM_COMMA, cell2, stream);
-        ctx->r = cell1;
-        app_cont = true;
-      } break;
-      case TERMINATE_COLON: {
-	lbm_value sym;
-	lbm_value term = ENC_SYM_NIL;
-	lbm_value t1;
-	lbm_value t2;
-	lbm_value t3;
-	lbm_pop(&ctx->K, &sym);
-	CONS_WITH_GC(t1, ctx->r, term, sym);
-	CONS_WITH_GC(t2, sym, t1, t1);
-	CONS_WITH_GC(t3, ENC_SYM_NAMESPACE, t2, t2);
-	ctx->r = t3;
-	app_cont = true;
-      } break;
-      }
+  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
+      lbm_dec_sym(ctx->r) == SYM_CLOSEPAR) {
+    if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
+      lbm_set_cdr(last_cell, ENC_SYM_NIL); // terminate the list
+      ctx->r = first_cell;
     } else {
-      tok = token_stream_get(str);
+      // empty list case
+      ctx->r = ENC_SYM_NIL;
+    }
+    lbm_stack_drop(&ctx->K, 3);
+  } else if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
+	     lbm_dec_sym(ctx->r) == SYM_DOT) {
 
-      if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
-        switch (lbm_dec_sym(tok)) {
-        case SYM_RERROR:
-          lbm_set_error_reason((char*)parse_error_token);
-          read_error_ctx(s->row(s), s->column(s));
-          done_reading(cid);
-          return;
-        case SYM_MERROR:
-          error_ctx(ENC_SYM_MERROR);
-          done_reading(cid);
-          return;
-        case SYM_TOKENIZER_DONE:
-          if (program) {
+    CHECK_STACK(lbm_push(&ctx->K, READ_DOT_TERMINATE));
+    CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+  } else {
+    lbm_value new_cell; 
+    CONS_WITH_GC(new_cell, ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+    if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
+      lbm_set_cdr(last_cell, new_cell);
+      last_cell = new_cell;
+    } else {
+      first_cell = last_cell = new_cell;
+    }
+    sptr[0] = first_cell;
+    sptr[1] = last_cell;
+    CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_CONTINUE));
+    CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+  }
+  ctx->app_cont = true; 
+}
 
-            if (ctx->K.sp == sp_start + 4) {
-              ctx->r = ENC_SYM_CLOSEPAR;
-              app_cont = true;
-            } else if (ctx->K.data[sp_start] == READ_DONE &&
-                       ctx->K.data[sp_start+3] == APPEND_CONTINUE) {
-              // Parsing failed but stack seems to not be corrupted.
-              lbm_set_error_reason((char*)parse_error_eof);
-              read_error_ctx(s->row(s), s->column(s));
-              done_reading(cid);
-              return;
-            } else {
-              // parsing failed and left a corrupted stack.
-              error_ctx(ENC_SYM_FATAL_ERROR);
-              done_reading(cid);
-              return; // there is no context to keep working in so return.
-            }
-          } else {
-            if (ctx->K.sp > sp_start &&
-                ctx->K.data[sp_start] == READ_DONE) {
-              lbm_set_error_reason((char*)parse_error_eof);
-              read_error_ctx(s->row(s), s->column(s));
-              done_reading(cid);
-              return;
-            } else if (ctx->K.sp < sp_start) {
-              /*the stack is broken */
-              error_ctx(ENC_SYM_FATAL_ERROR);
-              done_reading(cid);
-              return; // there is no context to keep working in so return.
-            } else {
-              app_cont = true;
-            }
-          }
-          break;
-        case SYM_CLOSEPAR:
-          ctx->r = tok;
-          app_cont = true;
-          break;
-        case SYM_OPENPAR:
-          CHECK_STACK(lbm_push_3(&ctx->K,
-                                 ENC_SYM_NIL, ENC_SYM_NIL,
-                                 APPEND_CONTINUE));
-          app_cont = false;
-          break;
-        case SYM_QUOTE_IT:
-          CHECK_STACK(lbm_push(&ctx->K,
-                               QUOTE_RESULT));
-          app_cont = false;
-          break;
-        case SYM_BACKQUOTE:
-          CHECK_STACK(lbm_push(&ctx->K,
-                               BACKQUOTE_RESULT));
-          app_cont = false;
-          break;
-        case SYM_COMMAAT:
-          CHECK_STACK(lbm_push(&ctx->K,
-                               COMMAAT_RESULT));
-          app_cont = false;
-          break;
-        case SYM_COMMA:
-          CHECK_STACK(lbm_push(&ctx->K,
-                               COMMA_RESULT));
-          app_cont = false;
-          break;
-        default: // arbitrary symbol form
-	  if (token_stream_peek(str, 1) == ENC_SYM_COLON) {
-	    token_stream_get(str); // drop the colon
-	    CHECK_STACK(lbm_push_2(&ctx->K, tok, TERMINATE_COLON));
-	    app_cont = false;
-	  } else {
-	    ctx->r = tok;
-	    app_cont = true;
-	  }
-          break;
-        }
-      } else { // arbitrary value form
-        ctx->r = tok;
-        app_cont = true;
-      }
+static inline void cont_read_expect_closepar(eval_context_t *ctx) {
+
+  lbm_value res;
+  lbm_value stream;
+
+  lbm_pop_2(&ctx->K, &res, &stream);
+  
+  lbm_stream_t *str = lbm_dec_stream(stream);
+  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
+
+  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
+      lbm_dec_sym(ctx->r) == SYM_CLOSEPAR) {
+    ctx->r = res;
+    ctx->app_cont = true;
+  } else {
+    lbm_set_error_reason((char*)parse_error_close);
+    read_error_ctx(s->row(s), s->column(s));
+    done_reading(ctx->id);
+  }
+}
+
+static inline void cont_read_dot_terminate(eval_context_t *ctx) {
+
+  lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 3);
+  if (!sptr) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
+
+  lbm_value first_cell = sptr[0];
+  lbm_value last_cell  = sptr[1];
+  lbm_value stream = sptr[2];
+  
+  lbm_stream_t *str = lbm_dec_stream(stream);
+  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
+
+  lbm_stack_drop(&ctx->K ,3);
+  
+  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
+      (lbm_dec_sym(ctx->r) == SYM_CLOSEPAR ||
+       lbm_dec_sym(ctx->r) == SYM_DOT)) {
+    lbm_set_error_reason((char*)parse_error_dot);
+    read_error_ctx(s->row(s), s->column(s));
+    return;
+  } else {
+    if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
+      lbm_set_cdr(last_cell, ctx->r);
+      ctx->r = first_cell;
+      CHECK_STACK(lbm_push_3(&ctx->K,
+			     stream,
+			     ctx->r,
+			     READ_EXPECT_CLOSEPAR));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+    } else {
+      lbm_set_error_reason((char*)parse_error_dot);
+      read_error_ctx(s->row(s), s->column(s));
+      done_reading(ctx->id);
+      return;
     }
   }
-
-  // TODO: See if there are better things to do here.
-  if (ctx->K.sp != sp_start) {
-    error_ctx(ENC_SYM_EERROR);
-  }
-
-  done_reading(cid);
 }
+  
+static inline void cont_read_done(eval_context_t *ctx) {
+  
+  lbm_value stream;
+
+  lbm_pop(&ctx->K, &stream);
+
+  lbm_stream_t *str = lbm_dec_stream(stream);
+  lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
+  
+  lbm_value tok = token_stream_get(str);
+  /* May not be absolutely required that we check to 
+     see if the tokenizer feels it is done here. */
+  if (tok != ENC_SYM_TOKENIZER_DONE) {
+    lbm_set_error_reason((char*)parse_error_eof);
+    read_error_ctx(s->row(s), s->column(s));
+  } else {
+    ctx->app_cont = true; 
+  }
+}
+
+static inline void cont_read_quote_result(eval_context_t *ctx) {
+  lbm_value cell1;
+  lbm_value cell2;
+  CONS_WITH_GC(cell2, ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+  CONS_WITH_GC(cell1, ENC_SYM_QUOTE, cell2, ENC_SYM_NIL);
+  ctx->r = cell1;
+  ctx->app_cont = true;
+}
+
+static inline void cont_read_backquote_result(eval_context_t *ctx) {
+  lbm_value expanded = lbm_qq_expand(ctx->r);
+  ctx->r = expanded;
+  ctx->app_cont = true;
+}
+
+static inline void cont_read_commaat_result(eval_context_t *ctx) {
+  lbm_value cell1;
+  lbm_value cell2;
+  CONS_WITH_GC(cell2, ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
+  CONS_WITH_GC(cell1, ENC_SYM_COMMAAT, cell2, ENC_SYM_NIL);
+  ctx->r = cell1;
+  ctx->app_cont = true;
+}
+
+static inline void cont_read_comma_result(eval_context_t *ctx) {
+  lbm_value cell1;
+  lbm_value cell2;
+  CONS_WITH_GC(cell2, ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
+  CONS_WITH_GC(cell1, ENC_SYM_COMMA, cell2, ENC_SYM_NIL);
+  ctx->r = cell1;
+  ctx->app_cont = true;
+}
+
+static inline void cont_read_terminate_colon(eval_context_t *ctx) {
+  lbm_value sym;
+  lbm_value term = ENC_SYM_NIL;
+  lbm_value t1;
+  lbm_value t2;
+  lbm_value t3;
+  lbm_pop(&ctx->K, &sym);
+  CONS_WITH_GC(t1, ctx->r, term, sym);
+  CONS_WITH_GC(t2, sym, t1, t1);
+  CONS_WITH_GC(t3, ENC_SYM_NAMESPACE, t2, t2);
+  ctx->r = t3;
+  ctx->app_cont = true;
+}
+
 
 static inline void cont_application_start(eval_context_t *ctx) {
 
@@ -2583,9 +2628,19 @@ static void evaluation_step(void){
     case EXPAND_MACRO:      cont_expand_macro(ctx); return;
     case CLOSURE_ARGS:      cont_closure_application_args(ctx); return;
     case NAMESPACE_POP:     cont_namespace_pop(ctx); return;
+    case READ_NEXT_TOKEN:       cont_read_next_token(ctx); return;
+    case READ_APPEND_CONTINUE:  cont_read_append_continue(ctx); return;
+    case READ_EXPECT_CLOSEPAR:  cont_read_expect_closepar(ctx); return;
+    case READ_DOT_TERMINATE:    cont_read_dot_terminate(ctx); return;
+    case READ_DONE:             cont_read_done(ctx); return;
+    case READ_QUOTE_RESULT:     cont_read_quote_result(ctx); return;
+    case READ_BACKQUOTE_RESULT: cont_read_backquote_result(ctx); return;
+    case READ_COMMAAT_RESULT:   cont_read_commaat_result(ctx); return;
+    case READ_COMMA_RESULT:     cont_read_comma_result(ctx); return;
+    case READ_TERMINATE_COLON:  cont_read_terminate_colon(ctx); return;
     default:
       error_ctx(ENC_SYM_EERROR);
-      return;
+       return;
     }
   }
 
