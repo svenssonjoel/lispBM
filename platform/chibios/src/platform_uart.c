@@ -288,7 +288,7 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
 
   SerialDriver *drv = get_uart_driver(uart);
   if (!drv) {
-    return lbm_enc_sym(SYM_EERROR);
+    return lbm_enc_sym(SYM_FATAL_ERROR);
   }
 
   unsigned int num = lbm_dec_as_u32(args[2]);
@@ -305,7 +305,7 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
     if (!lbm_is_number(args[3])) {
       return lbm_enc_sym(SYM_TERROR);
     }
-    offset = lbm_dec_as_u32(args[2]);
+    offset = lbm_dec_as_u32(args[3]);
   }
 
   int stop_at = -1;

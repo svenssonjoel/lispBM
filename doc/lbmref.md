@@ -1201,6 +1201,19 @@ Example that turns array "hello" into "heflo"
 
 ---
 
+### array-clear
+
+Clears an array by writing zeroes to all locations.
+
+Example:
+
+```lisp
+(array-clear arr)
+```
+
+---
+
+
 ### Array literal syntax
 
 Array literals can be created using the `[` and `]` syntax to enclose 
