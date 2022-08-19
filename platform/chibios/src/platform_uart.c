@@ -336,6 +336,34 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
 }
 
 
+static lbm_value ext_uart_in_avail(lbm_value *args, lbm_uint argn) {
+
+  if (argn != 1 || (!lbm_is_number(args[0]))) {
+    return ENC_SYM_TERROR;
+  }
+
+  int uart = lbm_dec_as_i32(args[0]);
+
+  SerialDriver *drv = get_uart_driver(uart);
+
+  int avail = qSpaceI(&drv->iqueue);
+  return lbm_enc_i(avail);
+}
+
+static lbm_value ext_uart_out_avail(lbm_value *args, lbm_uint argn) {
+
+  if (argn != 1 || (!lbm_is_number(args[0]))) {
+    return ENC_SYM_TERROR;
+  }
+
+  int uart = lbm_dec_as_i32(args[0]);
+
+  SerialDriver *drv = get_uart_driver(uart);
+
+  int avail = qSpaceI(&drv->oqueue);
+  return lbm_enc_i(avail);
+}
+
 // Uart low-level character stream interface
 typedef struct {
   char *buffer;
@@ -574,6 +602,8 @@ bool platform_uart_init(void) {
   res = res && lbm_add_extension("uart-init", ext_uart_init);
   res = res && lbm_add_extension("uart-write", ext_uart_write);
   res = res && lbm_add_extension("uart-read", ext_uart_read);
+  res = res && lbm_add_extension("uart-in-avail", ext_uart_in_avail);
+  res = res && lbm_add_extension("uart-out-avail", ext_uart_out_avail);
   res = res && lbm_add_extension("uart-stream", ext_uart_stream);
 
   return res;
