@@ -30,197 +30,133 @@
 #warning No UART configured
 #endif
 
+typedef struct {
+  SerialConfig *cfg;
+  SerialDriver *drv;
+  ioportid_t   tx_gpio;
+  ioportid_t   rx_gpio;
+  int          tx_pin;
+  int          rx_pin;
+  int          tx_pin_mode;
+  int          rx_pin_mode;
+} lbm_uart_if_t;
+
+
 // 4 uarts made available
 #ifdef LBM_UART_0
 static SerialConfig uart_cfg0 = {
   115200, 0, 0, 0
 };
+static lbm_uart_if_t lbm_uart_0 =
+  {
+   &uart_cfg0,
+   &LBM_UART_0,
+   LBM_UART_0_TX_GPIO,
+   LBM_UART_0_RX_GPIO,
+   LBM_UART_0_TX_PIN,
+   LBM_UART_0_RX_PIN,
+   LBM_UART_0_TX_PIN_MODE,
+   LBM_UART_0_TX_PIN_MODE
+  };
+static lbm_value uart_0_sym = 0;
 #endif
 #ifdef LBM_UART_1
 static SerialConfig uart_cfg1 = {
   115200, 0, 0, 0
 };
+static lbm_uart_if_t lbm_uart_1 =
+  {
+   &uart_cfg1,
+   &LBM_UART_1,
+   LBM_UART_1_TX_GPIO,
+   LBM_UART_1_RX_GPIO,
+   LBM_UART_1_TX_PIN,
+   LBM_UART_1_RX_PIN,
+   LBM_UART_1_TX_PIN_MODE,
+   LBM_UART_1_TX_PIN_MODE
+  };
+static lbm_value uart_1_sym = 0;
 #endif
 #ifdef LBM_UART_2
 static SerialConfig uart_cfg2 = {
   115200, 0, 0, 0
 };
+static lbm_uart_if_t lbm_uart_2 =
+  {
+   &uart_cfg2,
+   &LBM_UART_2,
+   LBM_UART_2_TX_GPIO,
+   LBM_UART_2_RX_GPIO,
+   LBM_UART_2_TX_PIN,
+   LBM_UART_2_RX_PIN,
+   LBM_UART_2_TX_PIN_MODE,
+   LBM_UART_2_TX_PIN_MODE
+  };
+static lbm_value uart_2_sym = 0;
 #endif
 #ifdef LBM_UART_3
 static SerialConfig uart_cfg3 = {
   115200, 0, 0, 0
 };
+static lbm_uart_if_t lbm_uart_3 =
+  {
+   &uart_cfg3,
+   &LBM_UART_3,
+   LBM_UART_3_TX_GPIO,
+   LBM_UART_3_RX_GPIO,
+   LBM_UART_3_TX_PIN,
+   LBM_UART_3_RX_PIN,
+   LBM_UART_3_TX_PIN_MODE,
+   LBM_UART_3_TX_PIN_MODE
+  };
+static lbm_value uart_3_sym = 0;
 #endif
 
-static SerialConfig *get_uart_config(int uart) {
-  switch(uart) {
+static lbm_uart_if_t *get_uart_if(lbm_value uart) {
   #ifdef LBM_UART_0
-  case 0: return &uart_cfg0;
+  if (uart == uart_0_sym)
+    return &lbm_uart_0;
   #endif
   #ifdef LBM_UART_1
-  case 1: return &uart_cfg1;
+  if (uart == uart_1_sym)
+    return &lbm_uart_1;
   #endif
   #ifdef LBM_UART_2
-  case 2: return &uart_cfg2;
+  if (uart == uart_1_sym)
+    return &lbm_uart_0;
   #endif
   #ifdef LBM_UART_3
-  case 3: return &uart_cfg3;
+  if (uart == uart_1_sym)
+    return &lbm_uart_1;
   #endif
-  }
   return NULL;
 }
-
-static SerialDriver *get_uart_driver(int uart) {
-  switch(uart) {
-  #ifdef LBM_UART_0
-  case 0: return &LBM_UART_0;
-  #endif
-  #ifdef LBM_UART_1
-  case 1: return &LBM_UART_1;
-  #endif
-  #ifdef LBM_UART_2
-  case 2: return &LBM_UART_2;
-  #endif
-  #ifdef LBM_UART_3
-  case 3: return &LBM_UART_3;
-  #endif
-  }
-  return NULL;
-}
-
-static ioportid_t get_uart_tx_gpio(int uart) {
-  switch(uart) {
-  #ifdef LBM_UART_0
-  case 0: return LBM_UART_0_TX_GPIO;
-  #endif
-  #ifdef LBM_UART_1
-  case 1: return LBM_UART_1_TX_GPIO;
-  #endif
-  #ifdef LBM_UART_2
-  case 2: return LBM_UART_2_TX_GPIO;
-  #endif
-  #ifdef LBM_UART_3
-  case 3: return LBM_UART_3_TX_GPIO;
-  #endif
-  }
-  return NULL;
-}
-
-static ioportid_t get_uart_rx_gpio(int uart) {
-  switch(uart) {
-  #ifdef LBM_UART_0
-  case 0: return LBM_UART_0_RX_GPIO;
-  #endif
-  #ifdef LBM_UART_1
-  case 1: return LBM_UART_1_RX_GPIO;
-  #endif
-  #ifdef LBM_UART_2
-  case 2: return LBM_UART_2_RX_GPIO;
-  #endif
-  #ifdef LBM_UART_3
-  case 3: return LBM_UART_3_RX_GPIO;
-  #endif
-  }
-  return NULL;
-}
-
-static int get_uart_tx_pin(int uart) {
-  switch(uart) {
-  #ifdef LBM_UART_0
-  case 0: return LBM_UART_0_TX_PIN;
-  #endif
-  #ifdef LBM_UART_1
-  case 1: return LBM_UART_1_TX_PIN;
-  #endif
-  #ifdef LBM_UART_2
-  case 2: return LBM_UART_2_TX_PIN;
-  #endif
-  #ifdef LBM_UART_3
-  case 3: return LBM_UART_3_TX_PIN;
-  #endif
-  }
-  return -1;
-}
-
-static int get_uart_rx_pin(int uart) {
-  switch(uart) {
-  #ifdef LBM_UART_0
-  case 0: return LBM_UART_0_RX_PIN;
-  #endif
-  #ifdef LBM_UART_1
-  case 1: return LBM_UART_1_RX_PIN;
-  #endif
-  #ifdef LBM_UART_2
-  case 2: return LBM_UART_2_RX_PIN;
-  #endif
-  #ifdef LBM_UART_3
-  case 3: return LBM_UART_3_RX_PIN;
-  #endif
-  }
-  return -1;
-}
-
-static int get_uart_tx_pin_mode(int uart) {
-  switch(uart) {
-  #ifdef LBM_UART_0
-  case 0: return LBM_UART_0_TX_PIN_MODE;
-  #endif
-  #ifdef LBM_UART_1
-  case 1: return LBM_UART_1_TX_PIN_MODE;
-  #endif
-  #ifdef LBM_UART_2
-  case 2: return LBM_UART_2_TX_PIN_MODE;
-  #endif
-  #ifdef LBM_UART_3
-  case 3: return LBM_UART_3_TX_PIN_MODE;
-  #endif
-  }
-  return -1;
-}
-
-static int get_uart_rx_pin_mode(int uart) {
-  switch(uart) {
-  #ifdef LBM_UART_0
-  case 0: return LBM_UART_0_RX_PIN_MODE;
-  #endif
-  #ifdef LBM_UART_1
-  case 1: return LBM_UART_1_RX_PIN_MODE;
-  #endif
-  #ifdef LBM_UART_2
-  case 2: return LBM_UART_2_RX_PIN_MODE;
-  #endif
-  #ifdef LBM_UART_3
-  case 3: return LBM_UART_3_RX_PIN_MODE;
-  #endif
-  }
-  return -1;
-}
-
 
 lbm_value ext_uart_init(lbm_value *args, lbm_uint argn){
 
   if (argn != 2)
     return ENC_SYM_NIL;
 
-  if (!lbm_is_number(args[0]) || !lbm_is_number(args[1]))
+  if (!lbm_is_symbol(args[0]) || !lbm_is_number(args[1]))
     return ENC_SYM_TERROR;
 
   lbm_uint baud = lbm_dec_as_u32(args[1]);
   lbm_uint uart = lbm_dec_as_u32(args[0]);
 
-  SerialConfig *cfg = get_uart_config(uart);
-  SerialDriver *drv = get_uart_driver(uart);
-  if (cfg && drv) {
+  lbm_uart_if_t  *lbmu = get_uart_if(uart);
+  if (lbmu) {
+    SerialConfig *cfg = lbmu->cfg;
+    SerialDriver *drv = lbmu->drv;
 
     memset(cfg, 0 , sizeof(SerialConfig));
     cfg->speed = baud;
-    palSetPadMode(get_uart_tx_gpio(uart),
-                  get_uart_tx_pin(uart),
-                  get_uart_tx_pin_mode(uart));
-    palSetPadMode(get_uart_rx_gpio(uart),
-                  get_uart_rx_pin(uart),
-                  get_uart_rx_pin_mode(uart));
-    sdStart(get_uart_driver(uart), cfg);
+    palSetPadMode(lbmu->tx_gpio,
+                  lbmu->tx_pin,
+                  lbmu->tx_pin_mode);
+    palSetPadMode(lbmu->rx_gpio,
+                  lbmu->rx_pin,
+                  lbmu->rx_pin_mode);
+    sdStart(drv, cfg);
     return ENC_SYM_TRUE;
   }
   return ENC_SYM_NIL;
@@ -229,7 +165,7 @@ lbm_value ext_uart_init(lbm_value *args, lbm_uint argn){
 
 static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 
-  if (argn != 2 || (!lbm_is_number(args[0]) ||
+  if (argn != 2 || (!lbm_is_symbol(args[0]) ||
                     (lbm_type_of(args[1]) != LBM_TYPE_CONS &&
                      lbm_type_of(args[1]) != LBM_TYPE_ARRAY))) {
     return ENC_SYM_TERROR;
@@ -269,8 +205,9 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
     }
   }
 
-  SerialDriver *drv = get_uart_driver(uart);
-  if (drv) {
+  lbm_uart_if_t *lbmu = get_uart_if(uart);
+  if (lbmu) {
+    SerialDriver *drv = lbmu->drv;
     sdWrite(drv, to_send_ptr, ind);
     return ENC_SYM_TRUE;
   }
@@ -279,17 +216,18 @@ static lbm_value ext_uart_write(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
   if ((argn != 3 && argn != 4 && argn != 5) ||
-      !lbm_is_number(args[0]) ||
+      !lbm_is_symbol(args[0]) ||
       lbm_type_of(args[1]) != LBM_TYPE_ARRAY || !lbm_is_number(args[2])) {
     return lbm_enc_sym(SYM_TERROR);
   }
 
   int uart = lbm_dec_as_i32(args[0]);
 
-  SerialDriver *drv = get_uart_driver(uart);
-  if (!drv) {
+  lbm_uart_if_t *lbmu = get_uart_if(uart);
+  if (!lbmu) {
     return lbm_enc_sym(SYM_FATAL_ERROR);
   }
+  SerialDriver *drv = lbmu->drv;
 
   unsigned int num = lbm_dec_as_u32(args[2]);
   if (num > 512) {
@@ -338,13 +276,16 @@ static lbm_value ext_uart_read(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_uart_in_avail(lbm_value *args, lbm_uint argn) {
 
-  if (argn != 1 || (!lbm_is_number(args[0]))) {
+  if (argn != 1 || (!lbm_is_symbol(args[0]))) {
     return ENC_SYM_TERROR;
   }
 
   int uart = lbm_dec_as_i32(args[0]);
+  lbm_uart_if_t *lbmu = get_uart_if(uart);
+  if (!lbmu)
+    return ENC_SYM_FATAL_ERROR;
 
-  SerialDriver *drv = get_uart_driver(uart);
+  SerialDriver *drv = lbmu->drv;
 
   int avail = qSpaceI(&drv->iqueue);
   return lbm_enc_i(avail);
@@ -352,13 +293,17 @@ static lbm_value ext_uart_in_avail(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_uart_out_avail(lbm_value *args, lbm_uint argn) {
 
-  if (argn != 1 || (!lbm_is_number(args[0]))) {
+  if (argn != 1 || (!lbm_is_symbol(args[0]))) {
     return ENC_SYM_TERROR;
   }
 
   int uart = lbm_dec_as_i32(args[0]);
 
-  SerialDriver *drv = get_uart_driver(uart);
+  lbm_uart_if_t *lbmu = get_uart_if(uart);
+  if (!lbmu)
+    return ENC_SYM_FATAL_ERROR;
+
+  SerialDriver *drv = lbmu->drv;
 
   int avail = qSpaceI(&drv->oqueue);
   return lbm_enc_i(avail);
@@ -366,11 +311,11 @@ static lbm_value ext_uart_out_avail(lbm_value *args, lbm_uint argn) {
 
 // Uart low-level character stream interface
 typedef struct {
+  lbm_uart_if_t *uart;
   char *buffer;
   int  read;
   int  write;
   int  size;
-  int  uart;
   bool more;
   int  row;
   int  column;
@@ -468,7 +413,7 @@ static char uart_stream_get(lbm_tokenizer_char_stream_t *t) {
     return c;
   } else {
 
-    SerialDriver *drv = get_uart_driver(s->uart);
+    SerialDriver *drv = s->uart->drv;
 
     int num_read = 0;
 
@@ -495,7 +440,7 @@ static bool uart_stream_put(lbm_tokenizer_char_stream_t *t, char c) {
   uart_char_stream_state *state;
   state = (uart_char_stream_state*)t->state;
 
-  SerialDriver *drv = get_uart_driver(state->uart);
+  SerialDriver *drv = state->uart->drv;
 
   return false;
 }
@@ -503,7 +448,7 @@ static bool uart_stream_put(lbm_tokenizer_char_stream_t *t, char c) {
 static char uart_stream_peek(lbm_tokenizer_char_stream_t *t, unsigned int n) {
 
   uart_char_stream_state *s = (uart_char_stream_state *)t->state;
-  SerialDriver *drv = get_uart_driver(s->uart);
+  SerialDriver *drv = s->uart->drv;
 
   int num_read = 0;
 
@@ -533,7 +478,7 @@ static unsigned int uart_stream_column(lbm_tokenizer_char_stream_t *t) {
   return 0;
 }
 
-static lbm_tokenizer_char_stream_t *create_uart_char_stream(int uart, int buffer_size) {
+static lbm_tokenizer_char_stream_t *create_uart_char_stream(lbm_value uart, int buffer_size) {
 
   lbm_tokenizer_char_stream_t *str = NULL;
   uart_char_stream_state *state = NULL;
@@ -555,11 +500,15 @@ static lbm_tokenizer_char_stream_t *create_uart_char_stream(int uart, int buffer
     return NULL;
   }
 
+  lbm_uart_if_t *lbmu = get_uart_if(uart);
+  if (!lbmu)
+    return ENC_SYM_FATAL_ERROR;
+
   state->buffer = buffer;
   state->size   = buffer_size;
   state->write  = 0;
   state->read   = 0;
-  state->uart   = uart;
+  state->uart   = lbmu;
   state->more   = true; // will remain true until an EOF arrives on stream
   state->row    = 0;
   state->column = 0;
@@ -579,7 +528,7 @@ static lbm_tokenizer_char_stream_t *create_uart_char_stream(int uart, int buffer
 // Stream extension
 
 static lbm_value ext_uart_stream(lbm_value *args, lbm_uint argn) {
-  if (argn != 2 || !lbm_is_number(args[0]) || !lbm_is_number(args[1])) {
+  if (argn != 2 || !lbm_is_symbol(args[0]) || !lbm_is_number(args[1])) {
     return ENC_SYM_TERROR;
   }
 
@@ -606,5 +555,17 @@ bool platform_uart_init(void) {
   res = res && lbm_add_extension("uart-out-avail", ext_uart_out_avail);
   res = res && lbm_add_extension("uart-stream", ext_uart_stream);
 
+#ifdef LBM_UART_0
+  res = res && lbm_str_to_symbol("uart-0", &uart_0_sym);
+#endif
+#ifdef LBM_UART_1
+  res = res && lbm_str_to_symbol("uart-1", &uart_1_sym);
+#endif
+#ifdef LBM_UART_2
+  res = res && lbm_str_to_symbol("uart-2", &uart_2_sym);
+#endif
+#ifdef LBM_UART_3
+  res = res && lbm_str_to_symbol("uart-3", &uart_3_sym);
+#endif
   return res;
 }

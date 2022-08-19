@@ -332,6 +332,14 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
   return 1;
 }
 
+int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
+  if (lbm_get_symbol_by_name(name, &sym_id))
+    return 1;
+  else if (lbm_add_symbol(name, &sym_id))
+    return 1;
+  return 0;
+}
+
 int lbm_add_variable_symbol(char *name, lbm_uint* id) {
   if (strlen(name) == 0) return 0; // failure if empty symbol
   if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
