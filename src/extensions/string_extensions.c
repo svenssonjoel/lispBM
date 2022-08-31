@@ -298,7 +298,7 @@ static lbm_value ext_str_replace(lbm_value *args, lbm_uint argn) {
   for (count = 0; (tmp = strstr(ins, rep)); ++count) {
     ins = tmp + len_rep;
   }
-  
+
   size_t len_res = strlen(orig) + (size_t)((len_with - len_rep) * count + 1);
   lbm_value lbm_res;
   if (lbm_create_array(&lbm_res, LBM_TYPE_CHAR, len_res)) {
@@ -392,6 +392,31 @@ static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
   return lbm_enc_i(strcmp(str1, str2));
 }
 
+static lbm_value ext_str_n_cmp(lbm_value *args, lbm_uint argn) {
+  if (argn != 3) {
+    return ENC_SYM_EERROR;
+  }
+
+  char *str1 = lbm_dec_str(args[0]);
+  if (!str1) {
+    return ENC_SYM_EERROR;
+  }
+
+  char *str2 = lbm_dec_str(args[1]);
+  if (!str2) {
+    return ENC_SYM_EERROR;
+  }
+
+  if (lbm_is_number(args[2])) {
+    int n = lbm_dec_as_i32(args[2]);
+
+    return lbm_enc_i(strncmp(str1, str2, n));
+  }
+  return ENC_SYM_TERROR;
+}
+
+
+
 bool lbm_string_extensions_init(void) {
 
   bool res = true;
@@ -405,5 +430,6 @@ bool lbm_string_extensions_init(void) {
   res = res && lbm_add_extension("str-to-lower", ext_str_to_lower);
   res = res && lbm_add_extension("str-to-upper", ext_str_to_upper);
   res = res && lbm_add_extension("str-cmp", ext_str_cmp);
+  res = res && lbm_add_extension("str-n-cmp", ext_str_n_cmp);
   return res;
 }

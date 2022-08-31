@@ -152,6 +152,7 @@ special_sym const special_symbols[] =  {
   {"array-write"    , SYM_ARRAY_WRITE},
   {"array-create"   , SYM_ARRAY_CREATE},
   {"array-size"     , SYM_ARRAY_SIZE},
+  {"array-clear"    , SYM_ARRAY_CLEAR},
   {"type-of"        , SYM_TYPE_OF},
   {"sym2str"        , SYM_SYMBOL_TO_STRING},
   {"str2sym"        , SYM_STRING_TO_SYMBOL},
@@ -329,6 +330,14 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
   m[ID] = next_symbol_id++;
   *id = m[ID];
   return 1;
+}
+
+int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
+  if (lbm_get_symbol_by_name(name, &sym_id))
+    return 1;
+  else if (lbm_add_symbol(name, &sym_id))
+    return 1;
+  return 0;
 }
 
 int lbm_add_variable_symbol(char *name, lbm_uint* id) {
