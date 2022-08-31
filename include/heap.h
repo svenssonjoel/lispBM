@@ -26,6 +26,7 @@
 #include "streams.h"
 #include "stack.h"
 #include "lbm_memory.h"
+#include "lbm_defines.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -198,35 +199,6 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_PTR_VAL_MASK                 0x03FFFFFCu
 #define LBM_PTR_TYPE_MASK                0xFC000000u
 
-#define LBM_POINTER_TYPE_FIRST           0x10000000u
-#define LBM_TYPE_CONS                    0x10000000u
-#define LBM_NON_CONS_POINTER_TYPE_FIRST  0x20000000u
-#define LBM_TYPE_U32                     0x20000000u
-#define LBM_TYPE_I32                     0x30000000u
-#define LBM_TYPE_I64                     0x40000000u
-#define LBM_TYPE_U64                     0x50000000u
-#define LBM_TYPE_FLOAT                   0x60000000u
-#define LBM_TYPE_DOUBLE                  0x70000000u
-#define LBM_TYPE_ARRAY                   0x80000000u
-#define LBM_TYPE_REF                     0x90000000u
-#define LBM_TYPE_STREAM                  0xA0000000u
-#define LBM_TYPE_CUSTOM                  0xB0000000u
-#define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
-#define LBM_POINTER_TYPE_LAST            0xB0000000u
-
-
-#define LBM_GC_MASK                      0x00000002u
-#define LBM_GC_MARKED                    0x00000002u
-
-#define LBM_VAL_MASK                     0xFFFFFFF0u
-#define LBM_VAL_TYPE_MASK                0x0000000Cu
-                                                     //    gc ptr
-#define LBM_TYPE_SYMBOL                  0x00000000u // 00  0   0
-#define LBM_TYPE_CHAR                    0x00000004u // 01  0   0
-#define LBM_TYPE_BYTE                    0x00000004u
-#define LBM_TYPE_U                       0x00000008u // 10  0   0
-#define LBM_TYPE_I                       0x0000000Cu // 11  0   0
-
 #else /* 64 bit Version */
 
 #define LBM_ADDRESS_SHIFT                2
@@ -236,35 +208,6 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 #define LBM_PTR_BIT                      (lbm_uint)0x1
 #define LBM_PTR_VAL_MASK                 (lbm_uint)0x03FFFFFFFFFFFFFC
 #define LBM_PTR_TYPE_MASK                (lbm_uint)0xFC00000000000000
-
-#define LBM_POINTER_TYPE_FIRST           (lbm_uint)0x1000000000000000
-#define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
-#define LBM_NON_CONS_POINTER_TYPE_FIRST  (lbm_uint)0x2000000000000000
-#define LBM_TYPE_U64                     (lbm_uint)0x2000000000000000
-#define LBM_TYPE_I64                     (lbm_uint)0x3000000000000000
-#define LBM_TYPE_DOUBLE                  (lbm_uint)0x4000000000000000
-#define LBM_TYPE_ARRAY                   (lbm_uint)0x5000000000000000
-#define LBM_TYPE_REF                     (lbm_uint)0x6000000000000000
-#define LBM_TYPE_STREAM                  (lbm_uint)0x7000000000000000
-#define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
-#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
-
-#define LBM_GC_MASK                      (lbm_uint)0x2
-#define LBM_GC_MARKED                    (lbm_uint)0x2
-
-/* 8 - 2 free bits to encode type information into */
-#define LBM_VAL_MASK                    (lbm_uint)0xFFFFFFFFFFFFFF00
-#define LBM_VAL_TYPE_MASK               (lbm_uint)0xFC
-//    gc ptr
-#define LBM_TYPE_SYMBOL                 (lbm_uint)0x0 // 00 00 00  0   0
-#define LBM_TYPE_CHAR                   (lbm_uint)0x4 // 00 00 01  0   0
-#define LBM_TYPE_BYTE                   (lbm_uint)0x4
-#define LBM_TYPE_U                      (lbm_uint)0x8 // 00 00 10  0   0
-#define LBM_TYPE_I                      (lbm_uint)0xC // 00 00 11  0   0
-#define LBM_TYPE_U32                    (lbm_uint)0x14// 00 01 01  0   0
-#define LBM_TYPE_I32                    (lbm_uint)0x18// 00 01 10  0   0
-#define LBM_TYPE_FLOAT                  (lbm_uint)0x1C// 00 01 11  0   0
 
 #endif
 

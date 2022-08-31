@@ -463,21 +463,22 @@ static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
 static eval_context_t *enqueue_dequeue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   mutex_lock(&qmutex);
   if (q->last == NULL) { // queue is empty, dequeue the enqueue
+    mutex_unlock(&qmutex);
     return ctx;
-  } else if (ctx != NULL) {
-    ctx->prev = q->last;
-    ctx->next = NULL;
-    q->last->next = ctx;
-    q->last = ctx;
   }
 
-  eval_context_t *res = NULL;
+  eval_context_t *res = q->first;
 
-  res = q->first;
-  q->first = q->first->next;
-  if (q->first) q->first->prev = NULL;
+  if (q->first == q->last) {
+    q->first = NULL;
+    q->last  = NULL;
+  } else {
+    q->first = q->first->next;
+    if (q->first) q->first->prev = NULL;
+  }
+  res->prev = NULL;
   res->next = NULL;
-  res->prev = NULL; 
+  mutex_unlock(&qmutex);
   return res;
 }
 
@@ -617,7 +618,7 @@ static void read_error_ctx(unsigned int row, unsigned int column) {
   finish_ctx();
 }
 
-static eval_context_t *dequeue_ctx(uint32_t *us) {
+static eval_context_t *dequeue_ctx(eval_context_queue_t *q, uint32_t *us) {
   lbm_uint min_us = DEFAULT_SLEEP_US;
   lbm_uint t_now;
 
@@ -629,7 +630,7 @@ static eval_context_t *dequeue_ctx(uint32_t *us) {
     t_now = 0;
   }
 
-  eval_context_t *curr = queue.first; //ctx_queue;
+  eval_context_t *curr = q->first; //ctx_queue;
 
   while (curr != NULL) {
     lbm_uint t_diff;
@@ -646,18 +647,18 @@ static eval_context_t *dequeue_ctx(uint32_t *us) {
 
     if (t_diff >= curr->sleep_us) {
       eval_context_t *result = curr;
-      if (curr == queue.last) {
+      if (curr == q->last) {
         if (curr->prev) {
-          queue.last = curr->prev;
-          queue.last->next = NULL;
+          q->last = curr->prev;
+          q->last->next = NULL;
         } else {
-          queue.first = NULL;
-          queue.last = NULL;
+          q->first = NULL;
+          q->last = NULL;
         }
       } else if (curr->prev == NULL) {
-        queue.first = curr->next;
-        if (queue.first) {
-          queue.first->prev = NULL;
+        q->first = curr->next;
+        if (q->first) {
+          q->first->prev = NULL;
         }
       } else {
         curr->prev->next = curr->next;
@@ -688,7 +689,7 @@ static void yield_ctx(lbm_uint sleep_us) {
   }
   ctx_running->r = ENC_SYM_TRUE;
   ctx_running->app_cont = true;
-  enqueue_ctx(&queue,ctx_running);
+  enqueue_ctx(&sleeping,ctx_running);
   ctx_running = NULL;
 }
 
@@ -1068,6 +1069,17 @@ static int gc(lbm_value remember1, lbm_value remember2) {
   lbm_gc_mark_phase(remember2);
 
   eval_context_t *curr = queue.first;
+  while (curr) {
+    lbm_gc_mark_phase(curr->curr_env);
+    lbm_gc_mark_phase(curr->curr_exp);
+    lbm_gc_mark_phase(curr->program);
+    lbm_gc_mark_phase(curr->r);
+    lbm_gc_mark_phase(curr->mailbox);
+    lbm_gc_mark_aux(curr->K.data, curr->K.sp);
+    curr = curr->next;
+  }
+
+  curr = sleeping.first;
   while (curr) {
     lbm_gc_mark_phase(curr->curr_env);
     lbm_gc_mark_phase(curr->curr_exp);
@@ -2834,9 +2846,11 @@ void lbm_run_eval(void){
     /* TODO: Logic for sleeping in case the evaluator has been using a lot of CPU
        should go here */
 
+    ctx_running = enqueue_dequeue_ctx(&queue, ctx_running);
+
     if (!ctx_running) {
       uint32_t us;
-      ctx_running = dequeue_ctx(&us);
+      ctx_running = dequeue_ctx(&sleeping, &us);
       if (!ctx_running) {
         if (usleep_callback) {
           usleep_callback(us);
