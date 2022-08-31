@@ -469,12 +469,17 @@ static eval_context_t *enqueue_dequeue_ctx(eval_context_queue_t *q, eval_context
 
   eval_context_t *res = q->first;
 
-  if (q->first == q->last) {
-    q->first = NULL;
-    q->last  = NULL;
+  if (q->first == q->last) { // nothing in q or 1 thing
+    q->first = ctx;
+    q->last  = ctx;
   } else {
     q->first = q->first->next;
-    if (q->first) q->first->prev = NULL;
+    q->first->prev = NULL;
+    if (ctx != NULL) {
+      q->last->next = ctx;
+      ctx->prev = q->last;
+      q->last = ctx;
+    }
   }
   res->prev = NULL;
   res->next = NULL;
