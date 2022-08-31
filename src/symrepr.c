@@ -333,9 +333,9 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
 }
 
 int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
-  if (lbm_get_symbol_by_name(name, &sym_id))
+  if (lbm_get_symbol_by_name(name, sym_id))
     return 1;
-  else if (lbm_add_symbol(name, &sym_id))
+  else if (lbm_add_symbol(name, sym_id))
     return 1;
   return 0;
 }
