@@ -161,9 +161,10 @@ typedef struct {
 
 
 /* Callbacks and task queue */
-static eval_context_queue_t blocked = {NULL, NULL};
-static eval_context_queue_t queue   = {NULL, NULL};
-static eval_context_queue_t done    = {NULL, NULL};
+static eval_context_queue_t blocked  = {NULL, NULL};
+static eval_context_queue_t sleeping = {NULL, NULL};
+static eval_context_queue_t queue    = {NULL, NULL};
+static eval_context_queue_t done     = {NULL, NULL};
 
 /* one mutex for all queue operations */
 mutex_t qmutex;
@@ -457,6 +458,27 @@ static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
     q->last = ctx;
   }
   mutex_unlock(&qmutex);
+}
+
+static eval_context_t *enqueue_dequeue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
+  mutex_lock(&qmutex);
+  if (q->last == NULL) { // queue is empty, dequeue the enqueue
+    return ctx;
+  } else if (ctx != NULL) {
+    ctx->prev = q->last;
+    ctx->next = NULL;
+    q->last->next = ctx;
+    q->last = ctx;
+  }
+
+  eval_context_t *res = NULL;
+
+  res = q->first;
+  q->first = q->first->next;
+  if (q->first) q->first->prev = NULL;
+  res->next = NULL;
+  res->prev = NULL; 
+  return res;
 }
 
 static eval_context_t *lookup_ctx(eval_context_queue_t *q, lbm_cid cid) {
