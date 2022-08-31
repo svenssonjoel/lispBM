@@ -132,6 +132,10 @@ static inline lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value r
 #define EVAL_CPS_WAIT_US   1536
 #define EVAL_CPS_MIN_SLEEP 200
 
+
+#define EVAL_STEPS_QUOTA   100
+static uint32_t eval_steps_quota = EVAL_STEPS_QUOTA;
+
 static uint32_t eval_cps_run_state = EVAL_CPS_STATE_INIT;
 volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_INIT;
 volatile uint32_t eval_cps_next_state_arg = 0;
@@ -169,7 +173,11 @@ static eval_context_queue_t done     = {NULL, NULL};
 /* one mutex for all queue operations */
 mutex_t qmutex;
 
-static void (*usleep_callback)(uint32_t) = NULL;
+static void usleep_nonsense(uint32_t us) {
+  (void) us;
+}
+
+static void (*usleep_callback)(uint32_t) = usleep_nonsense;
 static uint32_t (*timestamp_us_callback)(void) = NULL;
 static void (*ctx_done_callback)(eval_context_t *) = NULL;
 static int (*printf_callback)(const char *, ...) = NULL;
@@ -2851,19 +2859,22 @@ void lbm_run_eval(void){
     /* TODO: Logic for sleeping in case the evaluator has been using a lot of CPU
        should go here */
 
-    ctx_running = enqueue_dequeue_ctx(&queue, ctx_running);
-
+    if (!ctx_running || eval_steps_quota <= 0) { 
+      ctx_running = enqueue_dequeue_ctx(&queue, ctx_running);
+      eval_steps_quota = EVAL_STEPS_QUOTA;
+    }
+      
     if (!ctx_running) {
       uint32_t us;
       ctx_running = dequeue_ctx(&sleeping, &us);
       if (!ctx_running) {
-        if (usleep_callback) {
           usleep_callback(us);
-        }
         continue;
       }
+      eval_steps_quota = EVAL_STEPS_QUOTA;
     }
 
+    eval_steps_quota--;
     evaluation_step();
   }
 }
