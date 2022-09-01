@@ -2856,22 +2856,22 @@ void lbm_run_eval(void){
       break;
     }
 
-    /* TODO: Logic for sleeping in case the evaluator has been using a lot of CPU
-       should go here */
-
-    if (!ctx_running || eval_steps_quota <= 0) { 
-      ctx_running = enqueue_dequeue_ctx(&queue, ctx_running);
-      eval_steps_quota = EVAL_STEPS_QUOTA;
-    }
-      
-    if (!ctx_running) {
-      uint32_t us;
-      ctx_running = dequeue_ctx(&sleeping, &us);
-      if (!ctx_running) {
-          usleep_callback(us);
-        continue;
+    uint32_t us;
+    eval_context_t *next_to_run = NULL;
+    if (eval_steps_quota <= 0 || !ctx_running) {
+      next_to_run = dequeue_ctx(&sleeping, &us);
+      if (!next_to_run) {
+        next_to_run = enqueue_dequeue_ctx(&queue, ctx_running);
+      } else if (ctx_running) {
+        enqueue_ctx(&queue, ctx_running);
       }
       eval_steps_quota = EVAL_STEPS_QUOTA;
+      ctx_running = next_to_run;
+    }
+
+    if (!ctx_running) {
+      usleep_callback(us);
+      continue;
     }
 
     eval_steps_quota--;
