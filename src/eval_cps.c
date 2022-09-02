@@ -59,6 +59,7 @@
 #define CLOSURE_APP       ((20 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define NAMESPACE_POP     ((21 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define TERMINATE_COLON   ((22 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define EXIT_ATOMIC       ((23 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 
 #define READ_NEXT_TOKEN       ((31 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define READ_APPEND_CONTINUE  ((32 << LBM_VAL_SHIFT) | LBM_TYPE_U)
@@ -156,7 +157,8 @@ volatile uint32_t eval_cps_next_state_arg = 0;
 static bool     eval_running = false;
 static uint32_t next_ctx_id = 1;
 
-static volatile bool     blocking_extension = false;
+static volatile bool blocking_extension = false;
+static bool          is_atomic = false;
 
 typedef struct {
   eval_context_t *first;
@@ -1249,6 +1251,20 @@ static inline void eval_selfevaluating(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+
+static inline void eval_atomic(eval_context_t *ctx) {
+  if (is_atomic) {
+    lbm_set_error_reason("Atomic blocks cannot be nested!");
+    error_ctx(ENC_SYM_EERROR);
+    return;
+  }
+  CHECK_STACK(lbm_push(&ctx->K, EXIT_ATOMIC));
+  is_atomic = true;
+  ctx->curr_exp = lbm_cadr(ctx->curr_exp);
+  /*NOTE:  ctx->app_cont = false; */
+}
+
+
 static inline void eval_callcc(eval_context_t *ctx) {
 
   lbm_value cont_array;
@@ -1488,6 +1504,12 @@ static inline void eval_match(eval_context_t *ctx) {
 }
 
 static inline void eval_receive(eval_context_t *ctx) {
+
+  if (is_atomic) {
+    lbm_set_error_reason("Cannot receive inside of an atomic block");
+    error_ctx(ENC_SYM_EERROR);
+    return;
+  }
 
   if (lbm_is_symbol_nil(ctx->mailbox)) {
     /*nothing in the mailbox: block the context*/
@@ -1794,6 +1816,11 @@ static inline void apply_spawn(lbm_value *args, lbm_uint nargs, eval_context_t *
 }
 
 static inline void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if (is_atomic) {
+    lbm_set_error_reason("Cannot yield inside of an atomic block");
+    error_ctx(ENC_SYM_EERROR);
+    return;
+  }
   if (nargs == 1 && lbm_is_number(args[1])) {
     lbm_uint ts = lbm_dec_as_u32(args[1]);
     lbm_stack_drop(&ctx->K, nargs+1);
@@ -2006,7 +2033,7 @@ static inline void cont_closure_application_args(eval_context_t *ctx) {
    sptr[2] = clo_env;
    sptr[3] = lbm_cdr(params);
    sptr[4] = lbm_cdr(args);
-   lbm_push(&ctx->K, CLOSURE_ARGS);
+   CHECK_STACK(lbm_push(&ctx->K, CLOSURE_ARGS));
    ctx->curr_exp = lbm_car(args);
    ctx->curr_env = arg_env;
   }
@@ -2216,6 +2243,11 @@ static inline void cont_namespace_pop(eval_context_t *ctx) {
   *lbm_get_env_ptr() = env;
   lbm_value new_env;
   WITH_GC(new_env, lbm_env_set(*lbm_get_env_ptr(),leaving_space,leaving_env), leaving_space, leaving_env);
+  ctx->app_cont = true;
+}
+
+static inline void cont_exit_atomic(eval_context_t *ctx) {
+  is_atomic = false;
   ctx->app_cont = true;
 }
 
@@ -2680,6 +2712,7 @@ static void evaluation_step(void){
     case EXPAND_MACRO:      cont_expand_macro(ctx); return;
     case CLOSURE_ARGS:      cont_closure_application_args(ctx); return;
     case NAMESPACE_POP:     cont_namespace_pop(ctx); return;
+    case EXIT_ATOMIC:       cont_exit_atomic; return;
     case READ_NEXT_TOKEN:       cont_read_next_token(ctx); return;
     case READ_APPEND_CONTINUE:  cont_read_append_continue(ctx); return;
     case READ_EXPECT_CLOSEPAR:  cont_read_expect_closepar(ctx); return;
@@ -2754,6 +2787,7 @@ static void evaluation_step(void){
       case SYM_RECEIVE: eval_receive(ctx); return;
       case SYM_CALLCC:  eval_callcc(ctx); return;
       case SYM_NAMESPACE: eval_namespace(ctx); return;
+      case SYM_ATOMIC:  eval_atomic(ctx); return;
 
       case SYM_MACRO:   /* fall through */
       case SYM_CONT:
@@ -2856,22 +2890,38 @@ void lbm_run_eval(void){
       break;
     }
 
-    uint32_t us;
     eval_context_t *next_to_run = NULL;
     if (eval_steps_quota <= 0 || !ctx_running) {
-      next_to_run = dequeue_ctx(&sleeping, &us);
+      uint32_t us;
+
+      if (is_atomic) {
+        if (ctx_running) {
+          eval_steps_quota = 5;
+          next_to_run = ctx_running;
+          ctx_running = NULL;
+        } else {
+          is_atomic = false;
+          // This is not right!
+          // but there is no context available to
+          // report an error in.
+        }
+      } else {
+        next_to_run = dequeue_ctx(&sleeping, &us);
+      }
+
       if (!next_to_run) {
         next_to_run = enqueue_dequeue_ctx(&queue, ctx_running);
       } else if (ctx_running) {
         enqueue_ctx(&queue, ctx_running);
       }
+
       eval_steps_quota = EVAL_STEPS_QUOTA;
       ctx_running = next_to_run;
-    }
 
-    if (!ctx_running) {
-      usleep_callback(us);
-      continue;
+      if (!ctx_running) {
+        usleep_callback(us);
+        continue;
+      }
     }
 
     eval_steps_quota--;

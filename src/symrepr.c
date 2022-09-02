@@ -142,6 +142,7 @@ special_sym const special_symbols[] =  {
   {"yield"          , SYM_YIELD},
   {"wait"           , SYM_WAIT},
   {"spawn"          , SYM_SPAWN},
+  {"atomic"         , SYM_ATOMIC},
   {"eq"             , SYM_EQ},
   {"car"            , SYM_CAR},
   {"cdr"            , SYM_CDR},
