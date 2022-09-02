@@ -1258,6 +1258,7 @@ static inline void eval_atomic(eval_context_t *ctx) {
     error_ctx(ENC_SYM_EERROR);
     return;
   }
+
   CHECK_STACK(lbm_push(&ctx->K, EXIT_ATOMIC));
   is_atomic = true;
   ctx->curr_exp = lbm_cadr(ctx->curr_exp);
@@ -2712,7 +2713,7 @@ static void evaluation_step(void){
     case EXPAND_MACRO:      cont_expand_macro(ctx); return;
     case CLOSURE_ARGS:      cont_closure_application_args(ctx); return;
     case NAMESPACE_POP:     cont_namespace_pop(ctx); return;
-    case EXIT_ATOMIC:       cont_exit_atomic; return;
+    case EXIT_ATOMIC:       cont_exit_atomic(ctx); return;
     case READ_NEXT_TOKEN:       cont_read_next_token(ctx); return;
     case READ_APPEND_CONTINUE:  cont_read_append_continue(ctx); return;
     case READ_EXPECT_CLOSEPAR:  cont_read_expect_closepar(ctx); return;
