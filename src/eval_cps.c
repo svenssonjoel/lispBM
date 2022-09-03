@@ -134,8 +134,13 @@ static inline lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value r
 #define EVAL_CPS_MIN_SLEEP 200
 
 
-#define EVAL_STEPS_QUOTA   100
+#define EVAL_STEPS_QUOTA   10
+static volatile uint32_t eval_steps_refill = EVAL_STEPS_QUOTA;
 static uint32_t eval_steps_quota = EVAL_STEPS_QUOTA;
+
+void lbm_set_eval_step_quota(uint32_t quota) {
+  eval_steps_refill = quota;
+}
 
 static uint32_t eval_cps_run_state = EVAL_CPS_STATE_INIT;
 volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_INIT;
@@ -2897,7 +2902,7 @@ void lbm_run_eval(void){
 
       if (is_atomic) {
         if (ctx_running) {
-          eval_steps_quota = 5;
+          eval_steps_quota = eval_steps_refill;
           next_to_run = ctx_running;
           ctx_running = NULL;
         } else {
@@ -2916,7 +2921,7 @@ void lbm_run_eval(void){
         enqueue_ctx(&queue, ctx_running);
       }
 
-      eval_steps_quota = EVAL_STEPS_QUOTA;
+      eval_steps_quota = eval_steps_refill;
       ctx_running = next_to_run;
 
       if (!ctx_running) {

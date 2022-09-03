@@ -74,6 +74,12 @@ lbm_value eval_cps_get_env(void);
  * \return 1 on success and 0 on failure.
  */
 int lbm_eval_init(void);
+/**  Set a new value to use as step quota.
+ *   This changes the scheduling interval.
+ *   \param quota The new quota.
+ */
+void lbm_set_eval_step_quota(uint32_t quota);
+
 /** Remove a context that has finished executing and free up its associated memory.
  *
  * \param cid Context id of context to free.
@@ -91,8 +97,6 @@ int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v);
  * \return Result computed by the program running in the context.
  */
 bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms);
-
-
 /** Creates a context and initializes it with the provided program. The context
  * is added to the ready queue and will start executing when the evaluator is free.
  *

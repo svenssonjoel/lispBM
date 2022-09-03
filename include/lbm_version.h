@@ -27,11 +27,14 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 5
+#define LBM_MINOR_VERSION 6
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 4
+#define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+Sep 3 2022: Version 0.6.0
+  - Round-robin scheduling + Addition of an Atomic construct to use with care.
 
 Aug 1 2022: Version 0.5.4
   - Easing use of the LBM library from C++ code.
