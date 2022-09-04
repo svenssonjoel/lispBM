@@ -7,6 +7,12 @@ pattern-matching implemented in C for 32 bit and 64 bit platforms.
 
 All programming languages need a mascot, so here is the LispBM llama by [PixiLady](https://www.instagram.com/pixiladyart/).
 
+## Information
+
+From version 0.6.0 LispBM implements round-robin scheduling and is no-longer cooperatively concurrent.
+The documentation is not yet updated to reflect this change. If it turns out that the new
+approach to scheduling makes sense over time, the documentation will be updated. 
+
 ## Documentation
  - Work in progress [LispBM language reference](./doc/lbmref.md).
  - Work in progress [LispBM programming manual](./doc/manual)
