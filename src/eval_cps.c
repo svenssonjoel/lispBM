@@ -2428,7 +2428,6 @@ static inline void cont_read_append_continue(eval_context_t *ctx) {
       CHECK_STACK(lbm_push(&ctx->K, READ_DOT_TERMINATE));
       CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
       ctx->app_cont = true;
-      ctx->app_cont = true;
       return;
     }
   }
