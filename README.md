@@ -19,7 +19,7 @@ This is not a semantics preserving update. Using the cooperative
 scheduler one could assume totally exclusive access to the runtime
 system until a process yields. Between yields one could assume that
 all reads and writes to globals were not interspersed by reads and
-writes of other tasts, this is now false. An atomic operation has been
+writes of other tasks, this is now false. An atomic operation has been
 added in case one wants to be sure that evaluation of an expression is
 done in one go, with no interruption.
 
