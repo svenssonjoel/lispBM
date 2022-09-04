@@ -9,9 +9,37 @@ All programming languages need a mascot, so here is the LispBM llama by [PixiLad
 
 ## Information
 
-From version 0.6.0 LispBM implements round-robin scheduling and is no-longer cooperatively concurrent.
-The documentation is not yet updated to reflect this change. If it turns out that the new
-approach to scheduling makes sense over time, the documentation will be updated. 
+From version 0.6.0 LispBM implements round-robin scheduling and is
+no-longer cooperatively concurrent.  The documentation is not yet
+updated to reflect this change. If it turns out that the new approach
+to scheduling makes sense over time, the documentation will be
+updated.
+
+This is not a semantics preserving update. Using the cooperative
+scheduler one could assume totally exclusive access to the runtime
+system until a process yields. Between yields one could assume that
+all reads and writes to globals were not interspersed by reads and
+writes of other tasts, this is now false. An atomic operation has been
+added in case one wants to be sure that evaluation of an expression is
+done in one go, with no interruption.
+
+For example: 
+```lisp
+(atomic
+  (progn
+     a
+     b
+     c))
+```
+<!-- HTML generated using hilite.me --><div style="background: #f8f8f8; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%">(<span style="color: #00A000">atomic</span>
+   (<span style="color: #00A000">progn</span>
+       <span style="color: #B8860B">a</span>
+       <span style="color: #B8860B">b</span> 
+       <span style="color: #B8860B">c</span>
+   )
+)
+</pre></div>
+
 
 ## Documentation
  - Work in progress [LispBM language reference](./doc/lbmref.md).
