@@ -31,15 +31,6 @@ For example:
      b
      c))
 ```
-<!-- HTML generated using hilite.me --><div style="background: #f8f8f8; overflow:auto;width:auto;border:solid gray;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%">(<span style="color: #00A000">atomic</span>
-   (<span style="color: #00A000">progn</span>
-       <span style="color: #B8860B">a</span>
-       <span style="color: #B8860B">b</span> 
-       <span style="color: #B8860B">c</span>
-   )
-)
-</pre></div>
-
 
 ## Documentation
  - Work in progress [LispBM language reference](./doc/lbmref.md).
