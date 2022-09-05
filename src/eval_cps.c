@@ -1936,7 +1936,7 @@ static inline void cont_application(eval_context_t *ctx) {
   lbm_uint *fun_args = lbm_get_stack_ptr(&ctx->K, arg_count+1);
 
   if (fun_args == NULL) {
-    ctx->r = ENC_SYM_FATAL_ERROR;
+    error_ctx(ENC_SYM_FATAL_ERROR);
     return;
   }
   lbm_value fun = fun_args[0];
@@ -2298,6 +2298,10 @@ static inline void cont_read_next_token(eval_context_t *ctx) {
   lbm_pop(&ctx->K, &stream);
 
   lbm_stream_t *str = lbm_dec_stream(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
   lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
 
   lbm_value tok = token_stream_get(str);
@@ -2453,6 +2457,10 @@ static inline void cont_read_expect_closepar(eval_context_t *ctx) {
   lbm_pop_2(&ctx->K, &res, &stream);
 
   lbm_stream_t *str = lbm_dec_stream(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
   lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
 
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
@@ -2479,6 +2487,10 @@ static inline void cont_read_dot_terminate(eval_context_t *ctx) {
   lbm_value stream = sptr[2];
 
   lbm_stream_t *str = lbm_dec_stream(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
   lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
 
   lbm_stack_drop(&ctx->K ,3);
@@ -2516,6 +2528,10 @@ static inline void cont_read_done(eval_context_t *ctx) {
   lbm_pop_2(&ctx->K, &stream, &prg_tag);
 
   lbm_stream_t *str = lbm_dec_stream(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
   lbm_tokenizer_char_stream_t *s = (lbm_tokenizer_char_stream_t*)str->state;
 
   lbm_value tok = token_stream_get(str);
@@ -2894,7 +2910,7 @@ void lbm_run_eval(void){
 
     eval_context_t *next_to_run = NULL;
     if (eval_steps_quota <= 0 || !ctx_running) {
-      uint32_t us;
+      uint32_t us = EVAL_CPS_MIN_SLEEP;
 
       if (is_atomic) {
         if (ctx_running) {
