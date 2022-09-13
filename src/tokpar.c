@@ -16,7 +16,7 @@
 */
 
 #include <stdbool.h>
-#include <stdio.h>
+//#include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
@@ -66,6 +66,19 @@
 
 #define TOKCOLON        32u
 
+#define TOKTYPEBYTE     34u
+#define TOKTYPEI        35u
+#define TOKTYPEU        36u
+#define TOKTYPEI32      37u
+#define TOKTYPEU32      38u
+#define TOKTYPEI64      39u
+#define TOKTYPEU64      40u
+#define TOKTYPEF32      41u
+#define TOKTYPEF64      42u
+
+#define TOKNEEDMORE     1000u
+
+
 #define TOKENIZER_ERROR 1024u
 #define TOKENIZER_END   2048u
 
@@ -77,16 +90,6 @@ static void clear_sym_str(void) {
   memset(sym_str,0,TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH);
 }
 
-#define TOK_TYPE_NONE 0
-#define TOK_TYPE_BYTE 1
-#define TOK_TYPE_I    2
-#define TOK_TYPE_U    3
-#define TOK_TYPE_I32  4
-#define TOK_TYPE_U32  5
-#define TOK_TYPE_I64  6
-#define TOK_TYPE_U64  7
-#define TOK_TYPE_FLOAT  8
-#define TOK_TYPE_DOUBLE 9
 
 typedef struct {
   int type;
@@ -107,7 +110,7 @@ typedef struct {
 } matcher;
 
 #define NUM_FIXED_SIZE_TOKENS 21
-const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
+const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
   {"[", TOKOPENBRACK, 1},
@@ -131,27 +134,55 @@ const matcher match_table[NUM_FIXED_SIZE_TOKENS] = {
   {"?", TOKMATCHANY, 1}
 };
 
-uint32_t tok_match_fixed_size_tokens(lbm_char_channel_t *ch) {
+#define NUM_TYPE_QUALIFIERS 9
+const matcher type_qual_table[NUM_TYPE_QUALIFIERS] = {
+  {"f64", TOKTYPEF64,  3},
+  {"f32", TOKTYPEF32,  3},
+  {"i64", TOKTYPEI64,  3},
+  {"u64", TOKTYPEU64,  3},
+  {"i32", TOKTYPEI32,  3},
+  {"u32", TOKTYPEU32,  3},
+  {"i"  , TOKTYPEI,    1},
+  {"u"  , TOKTYPEU,    1},
+  {"b"  , TOKTYPEBYTE, 1}
+};
 
-  for (int i = 0; i < NUM_FIXED_SIZE_TOKENS; i ++) {
-    uint32_t tok_len = match_table[i].len;
-    const char *match_str = match_table[i].str;
-    uint32_t tok = match_table[i].token;
+bool peek_match(lbm_char_channel_t *ch, unsigned int n, char *match, unsigned int size, bool *matches) {
+  char c;
+  bool m = true;
+  for (unsigned int i = 0; i < size; i ++) {
+    if (!lbm_channel_peek(ch, n+i, &c)) return false;
+    if (c != match[i]) {
+      m = false;
+      break;
+    }
+  }
+  *matches = m;
+  return true;
+}
+
+unsigned int tok_match_fixed_size_tokens(lbm_char_channel_t *ch, const matcher *m, unsigned int start_pos, unsigned int num, uint32_t *res) {
+
+  for (unsigned int i = 0; i < num; i ++) {
+    uint32_t tok_len = m[i].len;
+    const char *match_str = m[i].str;
+    uint32_t tok = m[i].token;
     char c;
     uint32_t char_pos;
     for (char_pos = 0; char_pos < tok_len; char_pos ++) {
-      if (peek(ch,char_pos, &c)) {
-	if (c != match_str[char_pos]) break;
-      } else {
-	break;
+      if (lbm_channel_peek(ch,char_pos + start_pos, &c)) {
+        if (c != match_str[char_pos]) break;
+      } else if (char_pos < (tok_len - 1) && lbm_channel_more(ch)) {
+        *res =TOKNEEDMORE;
+        return 0;
       }
     }
     if (char_pos == tok_len) { //match
-      drop(ch,tok_len);
-      return tok;
+      *res = tok;
+      return tok_len;
     }
   }
-  return NOTOKEN;
+  return 0;
 }
 
 bool symchar0(char c) {
@@ -178,40 +209,24 @@ int tok_symbol(lbm_char_channel_t *ch) {
 
   char c;
 
-  if (!peek(ch, 0, &c) || !symchar0(c)) return 0;
-
-  unsigned int i = 0;
-  unsigned int len = 1;
-  int n = 0;
-  bool r = true;
-  bool s = true;
-
-  do {
-    r = peek(ch, len, &c);
-    s = symchar(c);
-    if (s) len ++;
-  } while (r && symchar(c));
-
-  if (!r && s && more(ch)) {
-    // Character symbols all the way to the end
-    // and there is more comming on the channel.
-    // This means the symbol may continue past what
-    // is read into the buffer at this point.
-    return 0;
-  }
-
-  if (len > TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH)
-    return -1; /* TODO: specific error code that can be presented to user */
-
+  if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS || !symchar0(c)) return 0;
   clear_sym_str();
+  sym_str[0] = (char)tolower(c);
 
-  for (i = 0; i < len; i ++) {
-    read(ch, &c);
+  unsigned int len = 1;
+  int r = 0;
+
+  r = lbm_channel_peek(ch,len, &c);
+  while (r == CHANNEL_SUCCESS && symchar(c)) {
     c = (char)tolower(c);
-    sym_str[i] = (char)c;
-    n++;
+    if (len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
+      sym_str[len] = (char)c;
+    }
+    len ++;
+    r = lbm_channel_peek(ch,len, &c);
   }
-  return (int)n;
+  if (r == CHANNEL_MORE) return 0;
+  return len;
 }
 
 static char translate_escape_char(char c) {
@@ -225,438 +240,573 @@ static char translate_escape_char(char c) {
   }
 }
 
-/* int tok_string(lbm_char_channel_t *ch) { */
+int tok_string(lbm_char_channel_t *ch) {
 
-/*   unsigned int i = 0; */
-/*   int n = 0; */
-/*   unsigned int len = 0; */
-/*   if (!(peek(ch,0) == '\"')) return 0; */
+  int n = 0;
+  unsigned int len = 0;
+  char c;
+  int r = 0;
+  bool encode = false;
 
-/*   get(ch); // remove the " char */
-/*   n++; */
+  if (lbm_channel_peek(ch,0,&c) != CHANNEL_SUCCESS) return 0;
+  if (c != '\"') return 0;
 
-/*   // compute length of string */
+  n++;
 
-/*   char c; */
-/*   do { */
-/*     c = peek(ch,len); */
-/*     if (c == '\\') { */
-/*       len +=2; */
-/*     } else { */
-/*       len ++; */
-/*     } */
-/*   } while (c != 0 && */
-/*            c != '\"'); */
-/*   len = len -1; */
+  memset(sym_str, 0 , TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH);
 
-/*   if (len > TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) */
-/*     return -1; /\* TODO: specific error code that can be presented to user *\/ */
+  // read string into buffer
+  r = lbm_channel_peek(ch,n,&c);
+  while (r == CHANNEL_SUCCESS && c != '\"' &&
+         len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
+    if (c == '\\') encode = true;
+    else {
+      sym_str[len] = encode ? translate_escape_char(c) : c ;
+      len++;
+      encode = false;
+    }
+    n ++;
+    r = lbm_channel_peek(ch, n, &c);
+  }
 
-/*   // str ends before tokenized string is closed. */
-/*   if ((peek(ch,len)) != '\"') { */
-/*     return 0; */
-/*   } */
+  if (r == CHANNEL_MORE) return 0;
 
-/*   clear_sym_str(); */
+  if (c != '\"') {
+    return -1;
+  }
+  n ++;
+  return (int)n;
+}
 
-/*   for (i = 0; i < len; i ++) { */
-/*     c = get(ch); */
-/*     if (c == '\\') { */
-/*       if (i + 1 < len) { */
-/*         char escaped = get(ch); */
-/*         c = translate_escape_char(escaped); */
-/*         len-=1; */
-/*       } */
-/*     } */
-/*     sym_str[i] = c; */
-/*     n++; */
-/*   } */
+int tok_char(lbm_char_channel_t *ch, char *res) {
 
-/*   get(ch);  // throw away the " */
-/*   return (int)(n+1); */
-/* } */
+  char c;
+  int r;
 
-/* int tok_char(lbm_char_channel_t *ch, char *res) { */
+  r = lbm_channel_peek(ch, 0, &c);
+  if (r != CHANNEL_SUCCESS) {
+      return 0;
+  }
+  if (c != '\\') return 0;
 
-/*   int count = 0; */
-/*   if (peek(ch,0) == '\\' && */
-/*       peek(ch,1) == '#' && */
-/*       peek(ch,2) == 'n' && */
-/*       peek(ch,3) == 'e' && */
-/*       peek(ch,4) == 'w' && */
-/*       peek(ch,5) == 'l' && */
-/*       peek(ch,6) == 'i' && */
-/*       peek(ch,7) == 'n' && */
-/*       peek(ch,8) == 'e') { */
-/*     *res = '\n'; */
-/*     drop(ch,9); */
-/*     count = 9; */
-/*   } else if (peek(ch,0) == '\\' && */
-/*              peek(ch,1) == '#' && */
-/*              isgraph(peek(ch,2))) { */
-/*     *res = peek(ch,2); */
-/*     drop(ch,3); */
-/*     count = 3; */
-/*   } */
-/*   return count; */
-/* } */
+  r = lbm_channel_peek(ch, 1, &c);
+  if (r != CHANNEL_SUCCESS) {
+    return 0;
+  }
+  if (c != '#') return 0;
 
-/* int tok_D(lbm_char_channel_t *ch, token_float *result) { */
+  r = lbm_channel_peek(ch, 2, &c);
+  if (r != CHANNEL_SUCCESS) {
+    return 0;
+  }
+  *res = c;
 
-/*   unsigned int n = 0; */
-/*   unsigned int m = 0; */
-/*   char fbuf[128]; */
-/*   bool valid_num = false; */
+  return 3;
+ 
+  /* int count = 0; */
+  /* if (peek(ch,0) == '\\' && */
+  /*     peek(ch,1) == '#' && */
+  /*     peek(ch,2) == 'n' && */
+  /*     peek(ch,3) == 'e' && */
+  /*     peek(ch,4) == 'w' && */
+  /*     peek(ch,5) == 'l' && */
+  /*     peek(ch,6) == 'i' && */
+  /*     peek(ch,7) == 'n' && */
+  /*     peek(ch,8) == 'e') { */
+  /*   *res = '\n'; */
+  /*   drop(ch,9); */
+  /*   count = 9; */
+  /* } else if (peek(ch,0) == '\\' && */
+  /*            peek(ch,1) == '#' && */
+  /*            isgraph(peek(ch,2))) { */
+  /*   *res = peek(ch,2); */
+  /*   drop(ch,3); */
+  /*   count = 3; */
+  /* } */
+  /* return count; */
+}
 
-/*   result->type = TOK_TYPE_FLOAT; */
-/*   result->negative = false; */
-  
-/*   if (peek(ch, 0) == '-') { */
-/*     n = 1; */
-/*     result->negative = true; */
-/*   } */
+int tok_D(lbm_char_channel_t *ch, token_float *result) {
 
-/*   while ( peek(ch,n) >= '0' && peek(ch,n) <= '9') n++; */
+  unsigned int n = 0;
+  char fbuf[128];
+  char c;
+  bool valid_num = false;
+  int res;
 
-/*   if ( peek(ch,n) == '.') n++; */
-/*   else return 0; */
+  memset(fbuf, 0, 128);
 
-/*   if ( !(peek(ch,n) >= '0' && peek(ch,n) <= '9')) return 0; */
-/*   while ( peek(ch,n) >= '0' && peek(ch,n) <= '9') n++; */
+  result->type = TOKTYPEF32;
+  result->negative = false;
 
-/*   unsigned int drop_extra = 0; */
-/*   if ((peek(ch,n) == 'f' && */
-/*        peek(ch,n+1) == '6' && */
-/*        peek(ch,n+2) == '4')) { */
-/*     result->type = TOK_TYPE_DOUBLE; */
-/*     drop_extra = 3; */
-/*   } */
+  if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS) return 0;
+  if (c == '-') {
+    n = 1;
+    fbuf[0] = 0;
+    result->negative = true;
+  }
 
-/*   if ((result->negative && n > 1) || */
-/*       (!result->negative && n > 0)) valid_num = true; */
+  res = lbm_channel_peek(ch, n, &c);
+  if (res == CHANNEL_MORE) return 0;
+  while (c >= '0' && c <= '9') {
+    fbuf[n] = c;
+    n++;
+    res = lbm_channel_peek(ch, n, &c);
+    if (res == CHANNEL_MORE) return 0;
+    if (res == CHANNEL_END) break;
+  }
 
-/*   if (n > 127) return 0; */
-/*   else m = n; */
-/*   if(valid_num) { */
-/*     unsigned int i; */
-/*     for (i = 0; i < m; i ++) { */
-/*       fbuf[i] = get(ch); */
-/*     } */
+  if (c == '.') {
+    fbuf[n] = c;
+    n ++;
+  }
+  else return 0;
 
-/*     drop(ch,drop_extra); */
-/*     fbuf[i] = 0; */
-/*     result->value = (double)strtod(fbuf, NULL); */
-/*     return (int)n; */
-/*   } */
-/*   return 0; */
-/* } */
+  res = lbm_channel_peek(ch,n, &c);
+  if (res == CHANNEL_MORE) return 0;
+  if (!(c >= '0' && c <= '9')) return 0;
+
+  while (c >= '0' && c <= '9') {
+    fbuf[n] = c;
+    n++;
+    res = lbm_channel_peek(ch, n, &c);
+    if (res == CHANNEL_MORE) return 0;
+    if (res == CHANNEL_END) break;
+  }
+
+  unsigned int drop_extra = 0;
+  int tok_res = NOTOKEN;
+  int type_len = tok_match_fixed_size_tokens(ch, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
+
+  switch(tok_res) {
+  case TOKTYPEF32:
+    drop_extra = 3;
+    result->type = TOKTYPEF32;
+    break;
+  case TOKTYPEF64:
+    drop_extra = 3;
+    result->type = TOKTYPEF64;
+    break;
+  case NOTOKEN:
+    drop_extra = 0;
+    result->type = TOKTYPEF32;
+    break;
+  default:
+    return 0;
+  }
+
+  if ((result->negative && n > 1) ||
+      (!result->negative && n > 0)) valid_num = true;
+
+  if (n > 127) {
+    return 0;
+  }
+
+  if(valid_num) {
+    result->value = (double)strtod(fbuf,NULL);
+    return (int)n + drop_extra;
+  }
+  return 0;
+}
 
 bool clean_whitespace(lbm_char_channel_t *ch) {
 
+  bool cleaning_whitespace = true;
   char c;
-  bool r;
-  if (comment(ch)) {
-    while (true) {
-      r = peek(ch, 0, &c);
-      if (c == `\n`) {
-	set_comment(ch, false);
-	break;
-      }
-      if (!r) return false;
-      drop(ch, 1);
-    }
-  } 
+  int r;
+  
+  while (cleaning_whitespace) {
 
-  while (true) {
-    r = peek(
-	     
-    }
-  }
-
-  char c;
-  bool clean_whitespace = true;
-  while ( clean_whitespace ){
-    if (! peek(ch, 0, &c) ) {
-      return false;
-    }
-    if (c == ';' ) {
-      
-      while ( peek(ch, 0, &c) != '\n') {
-        drop(ch,1);
+    if (lbm_channel_comment(ch)) {
+      printf("entering comment loop\n");
+      while (true) {
+        r = lbm_channel_peek(ch, 0, &c);
+        if (r == CHANNEL_END) {
+          printf("leaving comment mode\n");
+          lbm_channel_set_comment(ch, false);
+          cleaning_whitespace = false;
+          break;
+        }
+        if (r == CHANNEL_MORE) {
+          return false;
+        }
+        lbm_channel_drop(ch,1);
+        if (c == '\n') {
+          printf("leaving comment mode\n");
+          lbm_channel_set_comment(ch, false);
+          break;
+        }
       }
-    } else if ( isspace(c)) {
-      drop(ch,1);
-    } else {
-      clean_whitespace = false;
     }
+
+    do {
+      if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS) {
+        return false;
+      }
+      if (c == ';') {
+        printf("entering comment mode\n");
+        lbm_channel_set_comment(ch, true);
+        break;
+      }
+      if (isspace(c)) {
+        printf("dropping: %c\n", c);
+        lbm_channel_drop(ch,1);
+      } else {
+        cleaning_whitespace = false;
+      }
+
+    } while (cleaning_whitespace);
   }
+  return true;
 }
 
-/* int tok_integer(lbm_char_channel_t *ch, token_int *result ) { */
+int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
+  uint64_t acc = 0;
+  unsigned int n = 0;
+  bool valid_num = false;
+  char c;
 
-/*   uint64_t acc = 0; */
-/*   unsigned int n = 0; */
-/*   bool valid_num = false; */
+  result->negative = false;
+  if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS) {
+    return 0;
+  }
+  if (c == '-') {
+    n = 1;
+    result->negative = true;
+  }
 
-/*   result->negative = false; */
-/*   if (peek(ch, 0) == '-') { */
-/*     n = 1; */
-/*     result->negative = true; */
-/*   } */
+  bool hex = false;
+  int res = lbm_channel_peek(ch, n, &c);
+  if (res == CHANNEL_SUCCESS && c == '0') {
+    res = lbm_channel_peek(ch, n + 1, &c);
+    if ( res == CHANNEL_SUCCESS && (c == 'x' || c == 'X')) {
+      hex = true;
+    } else if (res == CHANNEL_MORE) {
+      return 0;
+    }
+  } else if (res == CHANNEL_MORE) {
+    return 0;
+  }
 
-/*    // Check if hex notation is used */
-/*   if (peek(ch,n) == '0' && */
-/*       (peek(ch,n+1) == 'x' || peek(ch,n+1) == 'X')) { */
-/*     n+= 2; */
-/*     while ( (peek(ch,n) >= '0' && peek(ch,n) <= '9') || */
-/*             (peek(ch,n) >= 'a' && peek(ch,n) <= 'f') || */
-/*             (peek(ch,n) >= 'A' && peek(ch,n) <= 'F')){ */
-/*       uint32_t val; /\* values between 0 and 16 *\/ */
-/*       if (peek(ch,n) >= 'a' && peek(ch,n) <= 'f') { */
-/*         val = 10 + (uint32_t)(peek(ch,n) - 'a'); */
-/*       } else if (peek(ch,n) >= 'A' && peek(ch,n) <= 'F') { */
-/*         val = 10 + (uint32_t)(peek(ch,n) - 'A'); */
-/*       } else { */
-/*         val = (uint32_t)peek(ch,n) - '0'; */
-/*       } */
-/*       acc = (acc * 0x10) + val; */
-/*       n++; */
-/*     } */
-/*   } else { */
-/*     while ( peek(ch,n) >= '0' && peek(ch,n) <= '9' ){ */
-/*       acc = (acc*10) + (uint32_t)(peek(ch,n) - '0'); */
-/*       n++; */
-/*     } */
-/*   } */
+  if (hex) {
+    n += 2;
 
-/*   unsigned int drop_type_str = 0; */
-/*   if (peek(ch,n) == 'u' && */
-/*       peek(ch,n+1) == '6' && */
-/*       peek(ch,n+2) == '4') { */
-/*     drop_type_str = 3; */
-/*     result->type = TOK_TYPE_U64; */
-/*   } else if (peek(ch,n) == 'i' && */
-/*              peek(ch,n+1) == '6' && */
-/*              peek(ch,n+2) == '4') { */
-/*     drop_type_str = 3; */
-/*     result->type = TOK_TYPE_I64; */
-/*   } else if (peek(ch,n) == 'u' && */
-/*              peek(ch,n+1) == '3' && */
-/*              peek(ch,n+2) == '2') { */
-/*     drop_type_str = 3; */
-/*     result->type = TOK_TYPE_U32; */
-/*   } else if (peek(ch,n) == 'i' && */
-/*              peek(ch,n+1) == '3' && */
-/*              peek(ch,n+2) == '2') { */
-/*     drop_type_str = 3; */
-/*     result->type = TOK_TYPE_I32; */
-/*   } else if (peek(ch,n) == 'i') { */
-/*     drop_type_str = 1; */
-/*     result->type = TOK_TYPE_I; */
-/*   } else if (peek(ch,n) == 'u') { */
-/*     drop_type_str = 1; */
-/*     result->type = TOK_TYPE_U; */
-/*   } else if (peek(ch,n) == 'b') { */
-/*     drop_type_str = 1; */
-/*     result->type = TOK_TYPE_BYTE; */
-/*   } else { */
-/*     result->type = TOK_TYPE_I; */
-/*   } */
+    if (lbm_channel_peek(ch, n, &c) != CHANNEL_SUCCESS) return 0;
+    while ((c >= '0' && c <= '9') ||
+           (c >= 'a' && c <= 'f') ||
+           (c >= 'A' && c <= 'F')) {
+      uint32_t val; /* values between 0 and 16 */
+      if (c >= 'a' && c <= 'f') {
+        val = 10 + (uint32_t)c - 'a';
+      } else if (c >= 'A' && c <= 'F') {
+        val = 10 + (uint32_t)(c - 'A');
+      } else {
+        val = (uint32_t)c - '0';
+      }
+      acc = (acc * 0x10) + val;
+      n++;
+      res = lbm_channel_peek(ch, n, &c);
+      if (res == CHANNEL_MORE) return 0;
+      if (res == CHANNEL_END) break;
 
-/*   if ((result->negative && n > 1) || */
-/*       (!result->negative && n > 0)) valid_num = true; */
+    }
+  } else {
+    res = lbm_channel_peek(ch, n, &c);
+    if (res == CHANNEL_MORE) return 0;
+    while (c >= '0' && c <= '9') {
+      acc = (acc*10) + (uint32_t)(c - '0');
+      n++;
+      res = lbm_channel_peek(ch, n, &c);
+      if (res == CHANNEL_MORE) return 0;
+      if (res == CHANNEL_END)  break;
+    }
+  }
 
-/*   if (valid_num) { */
-/*     drop(ch,n + drop_type_str); */
-/*     result->value = acc; */
-/*     return (int)n; /\*check that isnt so high that it becomes a negative number when casted *\/ */
-/*   } */
-/*   return 0; */
-/* } */
+  if (n == 0) return 0;
 
-/* lbm_value lbm_get_next_token(lbm_char_channel_t *ch) { */
+  result->type = TOKTYPEI;
+  unsigned int drop_type_str = 0;
+  bool match = false;
 
-/*   char c_val; */
-/*   int n = 0; */
+  int tok_res = NOTOKEN;
+  int type_len = tok_match_fixed_size_tokens(ch, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
 
-/*   if (!more(ch)) { */
-/*     return lbm_enc_sym(SYM_TOKENIZER_DONE); */
-/*   } */
+  switch (tok_res) {
+  case TOKTYPEF64:
+    drop_type_str = 3;
+    result->type = TOKTYPEF64;
+    break;
+  case TOKTYPEF32:
+    drop_type_str = 3;
+    result->type = TOKTYPEF32;
+    break;
+  case TOKTYPEU64:
+    drop_type_str = 3;
+    result->type = TOKTYPEU64;
+    break;
+  case TOKTYPEI64:
+    drop_type_str = 3;
+    result->type = TOKTYPEI64;
+    break;
+  case TOKTYPEU32:
+    drop_type_str = 3;
+    result->type = TOKTYPEU32;
+    break;
+  case TOKTYPEI32:
+    drop_type_str = 3;
+    result->type = TOKTYPEI32;
+    break;
+  case TOKTYPEI:
+    drop_type_str = 1;
+    result->type = TOKTYPEI;
+    break;
+  case TOKTYPEU:
+    drop_type_str = 1;
+    result->type = TOKTYPEU;
+    break;
+  case TOKTYPEBYTE:
+    drop_type_str = 1;
+    result->type = TOKTYPEBYTE;
+    break;
+  case TOKNEEDMORE:
+    return 0;
+  case NOTOKEN:
+    drop_type_str = 0;
+    result->type = TOKTYPEI;
+    break;
+  }
 
-/*   // Eat whitespace and comments. */
-/*   clean_whitespace(ch); */
+  if ((result->negative && n > 1) ||
+      (!result->negative && n > 0)) valid_num = true;
 
-/*   // Check for end of string again */
-/*   if (!more(ch)) { */
-/*     return lbm_enc_sym(SYM_TOKENIZER_DONE); */
-/*   } */
+  if (valid_num) {
+    //lbm_channel_drop(ch,n + drop_type_str);
+    result->value = acc;
+    return (int)n + type_len;
+  }
+  return 0;
+}
 
-/*   lbm_value res = lbm_enc_sym(SYM_RERROR); */
-/*   uint32_t match; */
-/*   match = tok_match_fixed_size_tokens(ch); */
-/*   if (match > 0) { */
-/*     switch (match) { */
-/*     case TOKOPENPAR: */
-/*       res = lbm_enc_sym(SYM_OPENPAR); */
-/*       break; */
-/*     case TOKCLOSEPAR: */
-/*       res = lbm_enc_sym(SYM_CLOSEPAR); */
-/*       break; */
-/*     case TOKDOT: */
-/*       res = lbm_enc_sym(SYM_DOT); */
-/*       break; */
-/*     case TOKDONTCARE: */
-/*       res = lbm_enc_sym(SYM_DONTCARE); */
-/*       break; */
-/*     case TOKQUOTE: */
-/*       res = lbm_enc_sym(SYM_QUOTE_IT); */
-/*       break; */
-/*     case TOKBACKQUOTE: */
-/*       res = lbm_enc_sym(SYM_BACKQUOTE); */
-/*       break; */
-/*     case TOKCOMMAAT: */
-/*       res = lbm_enc_sym(SYM_COMMAAT); */
-/*       break; */
-/*     case TOKCOMMA: */
-/*       res = lbm_enc_sym(SYM_COMMA); */
-/*       break; */
-/*     case TOKCOLON: */
-/*       res = lbm_enc_sym(SYM_COLON); */
-/*       break; */
-/*     case TOKMATCHI28: */
-/*       res = lbm_enc_sym(SYM_MATCH_I); */
-/*       break; */
-/*     case TOKMATCHU28: */
-/*       res = lbm_enc_sym(SYM_MATCH_U); */
-/*       break; */
-/*     case TOKMATCHI32: */
-/*       res = lbm_enc_sym(SYM_MATCH_I32); */
-/*       break; */
-/*     case TOKMATCHU32: */
-/*       res = lbm_enc_sym(SYM_MATCH_U32); */
-/*       break; */
-/*     case TOKMATCHFLOAT: */
-/*       res = lbm_enc_sym(SYM_MATCH_FLOAT); */
-/*       break; */
-/*     case TOKMATCHU64: */
-/*       res = lbm_enc_sym(SYM_MATCH_U64); */
-/*       break; */
-/*     case TOKMATCHI64: */
-/*       res = lbm_enc_sym(SYM_MATCH_I64); */
-/*       break; */
-/*     case TOKMATCHDOUBLE: */
-/*       res = lbm_enc_sym(SYM_MATCH_DOUBLE); */
-/*       break; */
-/*     case TOKMATCHCONS: */
-/*       res = lbm_enc_sym(SYM_MATCH_CONS); */
-/*       break; */
-/*     case TOKMATCHANY: */
-/*       res = lbm_enc_sym(SYM_MATCH_ANY); */
-/*       break; */
-/*     case TOKOPENBRACK: */
-/*       res = lbm_enc_sym(SYM_OPENBRACK); */
-/*       break; */
-/*     case TOKCLOSEBRACK: */
-/*       res = lbm_enc_sym(SYM_CLOSEBRACK); */
-/*       break; */
-/*       //res = lbm_enc_sym(SYM_RERROR); // a closing bracket without matching open. */
-/*     default: */
-/*       break; */
-/*     } */
-/*     return res; */
-/*   } */
+lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
 
-/*   n = tok_string(ch); */
-/*   if (n >= 2) { */
-/*     // TODO: Proper error checking here! */
-/*     // TODO: Check if anything has to be allocated for the empty string */
-/*     lbm_heap_allocate_array(&res, (unsigned int)(n-2)+1, LBM_TYPE_CHAR); */
-/*     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res); */
-/*     char *data = (char *)arr->data; */
-/*     memset(data, 0, (unsigned int)((n-2)+1) * sizeof(char)); */
-/*     memcpy(data, sym_str, (unsigned int)(n - 2) * sizeof(char)); */
-/*     return res; */
-/*   } else if (n < 0) { */
-/*     // The string is too long error */
-/*     return res; */
-/*   } */
+  char c_val;
+  int n = 0;
 
-/*   token_float f_val; */
+  if (!lbm_channel_more(ch) && lbm_channel_is_empty(ch)) {
+    return lbm_enc_sym(SYM_TOKENIZER_DONE);
+  }
 
-/*   if (tok_D(ch, &f_val)) { */
-/*     switch (f_val.type) { */
-/*     case TOK_TYPE_FLOAT: */
-/*       return lbm_enc_float((float)f_val.value); */
-/*     case TOK_TYPE_DOUBLE: */
-/*       return lbm_enc_double(f_val.value); */
-/*     } */
-/*   } */
+  // Eat whitespace and comments.
+  printf("cleaning_whitespace\n");
+  if (!clean_whitespace(ch)) {
+    printf("clean whitespace false\n");
+  }
 
-/*   token_int int_result; */
+  // Check for end of string again
+  if (!lbm_channel_more(ch) && lbm_channel_is_empty(ch)) {
+    return lbm_enc_sym(SYM_TOKENIZER_DONE);
+  }
 
-/*   if (tok_integer(ch, &int_result)) { */
+  lbm_value res = lbm_enc_sym(SYM_RERROR);
+  int match;
+  printf("fixed size tokens\n");
+  n = tok_match_fixed_size_tokens(ch,
+                                  fixed_size_tokens,
+                                  0,
+                                  NUM_FIXED_SIZE_TOKENS,
+                                  &match);
+  if (n > 0) {
 
-/*     switch (int_result.type) { */
-/*     case TOK_TYPE_BYTE: */
-/*       return lbm_enc_char((char)(int_result.negative ? -int_result.value : int_result.value)); */
-/*       break; */
-/*     case TOK_TYPE_I: */
-/*       return lbm_enc_i((lbm_int)(int_result.negative ? -int_result.value : int_result.value)); */
-/*       break; */
-/*     case TOK_TYPE_U: */
-/*       return lbm_enc_u((lbm_uint)(int_result.negative ? -int_result.value : int_result.value)); */
-/*       break; */
-/*     case TOK_TYPE_I32: */
-/*       return lbm_enc_i32((lbm_int)(int_result.negative ? -int_result.value : int_result.value)); */
-/*       break; */
-/*     case TOK_TYPE_U32: */
-/*       return lbm_enc_u32((lbm_uint)(int_result.negative ? -int_result.value : int_result.value)); */
-/*       break; */
-/*     case TOK_TYPE_I64: */
-/*       return lbm_enc_i64((int64_t)(int_result.negative ? -int_result.value : int_result.value)); */
-/*       break; */
-/*     case TOK_TYPE_U64: */
-/*       return lbm_enc_u64((uint64_t)(int_result.negative ? -int_result.value : int_result.value)); */
-/*       break; */
-/*     default: */
-/*       return lbm_enc_sym(SYM_RERROR); */
-/*       break; */
-/*     } */
-/*   } */
+    if (!peek) {
+      printf("dropping: %d\n", n);
+      lbm_channel_drop(ch, n);
+    }
+    switch (match) {
+    case TOKOPENPAR:
+      printf("TOKOPENPAR %d \n", n);
+      res = lbm_enc_sym(SYM_OPENPAR);
+      break;
+    case TOKCLOSEPAR:
+      printf("TOKCLOSEPAR\n");
+      res = lbm_enc_sym(SYM_CLOSEPAR);
+      break;
+    case TOKDOT:
+      res = lbm_enc_sym(SYM_DOT);
+      break;
+    case TOKDONTCARE:
+      res = lbm_enc_sym(SYM_DONTCARE);
+      break;
+    case TOKQUOTE:
+      res = lbm_enc_sym(SYM_QUOTE_IT);
+      break;
+    case TOKBACKQUOTE:
+      res = lbm_enc_sym(SYM_BACKQUOTE);
+      break;
+    case TOKCOMMAAT:
+      res = lbm_enc_sym(SYM_COMMAAT);
+      break;
+    case TOKCOMMA:
+      res = lbm_enc_sym(SYM_COMMA);
+      break;
+    case TOKCOLON:
+      res = lbm_enc_sym(SYM_COLON);
+      break;
+    case TOKMATCHI28:
+      res = lbm_enc_sym(SYM_MATCH_I);
+      break;
+    case TOKMATCHU28:
+      res = lbm_enc_sym(SYM_MATCH_U);
+      break;
+    case TOKMATCHI32:
+      res = lbm_enc_sym(SYM_MATCH_I32);
+      break;
+    case TOKMATCHU32:
+      res = lbm_enc_sym(SYM_MATCH_U32);
+      break;
+    case TOKMATCHFLOAT:
+      res = lbm_enc_sym(SYM_MATCH_FLOAT);
+      break;
+    case TOKMATCHU64:
+      res = lbm_enc_sym(SYM_MATCH_U64);
+      break;
+    case TOKMATCHI64:
+      res = lbm_enc_sym(SYM_MATCH_I64);
+      break;
+    case TOKMATCHDOUBLE:
+      res = lbm_enc_sym(SYM_MATCH_DOUBLE);
+      break;
+    case TOKMATCHCONS:
+      res = lbm_enc_sym(SYM_MATCH_CONS);
+      break;
+    case TOKMATCHANY:
+      res = lbm_enc_sym(SYM_MATCH_ANY);
+      break;
+    case TOKOPENBRACK:
+      res = lbm_enc_sym(SYM_OPENBRACK);
+      break;
+    case TOKCLOSEBRACK:
+      res = lbm_enc_sym(SYM_CLOSEBRACK);
+      break;
+      //res = lbm_enc_sym(SYM_RERROR); // a closing bracket without matching open.
+    default:
+      break;
+    }
+    return res;
+  }
 
-/*   n = tok_symbol(ch); */
-/*   if (n > 0) { */
+  printf("tok_string\n");
+  n = tok_string(ch);
+  if (n >= 2) {
+    if (!peek) lbm_channel_drop(ch, n);
+    printf("string: %d, %s\n", n, sym_str);
+    // TODO: Proper error checking here!
+    // TODO: Check if anything has to be allocated for the empty string
+    lbm_heap_allocate_array(&res, (unsigned int)(n-2)+1, LBM_TYPE_CHAR);
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
+    char *data = (char *)arr->data;
+    memset(data, 0, (unsigned int)((n-2)+1) * sizeof(char));
+    memcpy(data, sym_str, (unsigned int)(n - 2) * sizeof(char));
+    return res;
+  } else if (n < 0) {
+    // The string is too long error
+    return res;
+  }
 
-/*     lbm_uint symbol_id; */
+  token_float f_val;
 
-/*     if (lbm_get_symbol_by_name(sym_str, &symbol_id)) { */
-/*       res = lbm_enc_sym(symbol_id); */
-/*     } */
-/*     else { */
-/*       int r = 0; */
-/*       if (strncmp(sym_str,"ext-",4) == 0) { */
-/*         r = lbm_add_extension_symbol(sym_str, &symbol_id); */
-/*       } else if (sym_str[0] == '#') { */
-/*         r = lbm_add_variable_symbol(sym_str, &symbol_id); */
-/*       } else { */
-/*         r = lbm_add_symbol(sym_str, &symbol_id); */
-/*       } */
-/*       if (r) { */
-/*         res = lbm_enc_sym(symbol_id); */
-/*       } else { */
-/*         res = lbm_enc_sym(SYM_RERROR); */
-/*       } */
-/*     } */
-/*     return res; */
-/*   } else if (n < 0) { */
-/*     // Symbol string is too long error */
-/*     return res; */
-/*   } */
+  printf("tok_D\n");
+  n = tok_D(ch, &f_val);
+  if (n) {
+    if (!peek) lbm_channel_drop(ch, n);
+    switch (f_val.type) {
+    case TOKTYPEF32:
+      return lbm_enc_float((float)f_val.value);
+    case TOKTYPEF64:
+      return lbm_enc_double(f_val.value);
+    }
+  }
 
-/*   if (tok_char(ch, &c_val)) { */
-/*     return lbm_enc_char(c_val); */
-/*   } */
+  token_int int_result;
 
-/*   return res; */
-/* } */
+  printf("tok_integer\n");
+  n = tok_integer(ch, &int_result);
+  if (n > 0) {
+    printf("TOKENIZER: %d\n", int_result);
+    if (!peek) lbm_channel_drop(ch, n);
+
+    switch (int_result.type) {
+    case TOKTYPEBYTE:
+      return lbm_enc_char((char)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOKTYPEI:
+      return lbm_enc_i((lbm_int)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOKTYPEU:
+      return lbm_enc_u((lbm_uint)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOKTYPEI32:
+      return lbm_enc_i32((lbm_int)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOKTYPEU32:
+      return lbm_enc_u32((lbm_uint)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOKTYPEI64:
+      return lbm_enc_i64((int64_t)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    case TOKTYPEU64:
+      return lbm_enc_u64((uint64_t)(int_result.negative ? -int_result.value : int_result.value));
+      break;
+    default:
+      return lbm_enc_sym(SYM_RERROR);
+      break;
+    }
+  }
+
+  printf("tok_symbol\n");
+  n = tok_symbol(ch);
+  if (n > 0) {
+
+    if (!peek) lbm_channel_drop(ch,n);
+
+    lbm_uint symbol_id;
+
+    if (lbm_get_symbol_by_name(sym_str, &symbol_id)) {
+      res = lbm_enc_sym(symbol_id);
+    }
+    else {
+      int r = 0;
+      if (strncmp(sym_str,"ext-",4) == 0) {
+        r = lbm_add_extension_symbol(sym_str, &symbol_id);
+      } else if (sym_str[0] == '#') {
+        r = lbm_add_variable_symbol(sym_str, &symbol_id);
+      } else {
+        r = lbm_add_symbol(sym_str, &symbol_id);
+      }
+      if (r) {
+        res = lbm_enc_sym(symbol_id);
+      } else {
+        res = lbm_enc_sym(SYM_RERROR);
+      }
+    }
+    return res;
+  } else if (n < 0) {
+    // Symbol string is too long error
+    return res;
+  }
+
+  printf("tok_char\n");
+  n = tok_char(ch, &c_val);
+  if (n) {
+    if (!peek) lbm_channel_drop(ch,n);
+    return lbm_enc_char(c_val);
+  }
+
+  if (lbm_channel_more(ch)) {
+    return lbm_enc_sym(SYM_TOKENIZER_WAIT);
+  } else if (lbm_channel_is_empty(ch)) {
+    return lbm_enc_sym(SYM_TOKENIZER_DONE);
+  }
+  
+  return res;
+}
 
