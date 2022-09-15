@@ -446,7 +446,8 @@ int main(int argc, char **argv) {
   }
 
   lbm_continue_eval();
-
+  int stalls = 0;
+  
   if (stream_source) {
     int i = 0;
     while (true) {
@@ -457,20 +458,22 @@ int main(int argc, char **argv) {
       if (lbm_channel_write(&string_tok, code_buffer[i])) {
         //printf("wrote: %c\n", code_buffer[i]);
         i ++;
+        stalls = 0;
       } else {
+        stalls ++;
         printf("stalling\n");
-        break;
+        if (stalls == 100) {
+          sleep_callback(100);
+          break;
+        }
       }
       sleep_callback(2);
     }
   }
 
-  
-
   while (!experiment_done) {
     sleep_callback(1000);
   }
-
 
   lbm_pause_eval();
   while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED);

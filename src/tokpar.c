@@ -90,7 +90,6 @@ static void clear_sym_str(void) {
   memset(sym_str,0,TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH);
 }
 
-
 typedef struct {
   int type;
   uint64_t value;
@@ -146,20 +145,6 @@ const matcher type_qual_table[NUM_TYPE_QUALIFIERS] = {
   {"u"  , TOKTYPEU,    1},
   {"b"  , TOKTYPEBYTE, 1}
 };
-
-bool peek_match(lbm_char_channel_t *ch, unsigned int n, char *match, unsigned int size, bool *matches) {
-  char c;
-  bool m = true;
-  for (unsigned int i = 0; i < size; i ++) {
-    if (!lbm_channel_peek(ch, n+i, &c)) return false;
-    if (c != match[i]) {
-      m = false;
-      break;
-    }
-  }
-  *matches = m;
-  return true;
-}
 
 unsigned int tok_match_fixed_size_tokens(lbm_char_channel_t *ch, const matcher *m, unsigned int start_pos, unsigned int num, uint32_t *res) {
 
@@ -443,9 +428,12 @@ bool clean_whitespace(lbm_char_channel_t *ch) {
     }
 
     do {
-      if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS) {
+      r = lbm_channel_peek(ch, 0, &c);
+      if (r == CHANNEL_MORE) {
         return false;
-      }
+      } else if (r == CHANNEL_END) {
+        return true;
+      } 
       if (c == ';') {
         //printf("entering comment mode\n");
         lbm_channel_set_comment(ch, true);
@@ -573,6 +561,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
   // Eat whitespace and comments.
   //printf("cleaning_whitespace\n");
   if (!clean_whitespace(ch)) {
+    return lbm_enc_sym(SYM_TOKENIZER_WAIT);
     //printf("clean whitespace false\n");
   }
 
@@ -733,6 +722,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
       return lbm_enc_u64((uint64_t)(int_result.negative ? -int_result.value : int_result.value));
       break;
     default:
+      printf("tok_integer wrong type\n");
       return lbm_enc_sym(SYM_RERROR);
       break;
     }
@@ -761,6 +751,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
       if (r) {
         res = lbm_enc_sym(symbol_id);
       } else {
+        printf("tok_symbol read error\n");
         res = lbm_enc_sym(SYM_RERROR);
       }
     }
@@ -782,10 +773,13 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
   
   if (lbm_channel_more(ch)) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
-  } else if (lbm_channel_is_empty(ch)) {
-    return lbm_enc_sym(SYM_TOKENIZER_DONE);
+  } else {
+    if (lbm_channel_is_empty(ch)) {
+      return lbm_enc_sym(SYM_TOKENIZER_DONE);
+    } else {
+      return lbm_enc_sym(SYM_TOKENIZER_WAIT);
+    }
   }
-  
   return res;
 }
 
