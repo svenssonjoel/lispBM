@@ -2205,12 +2205,14 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
       done_reading(ctx->id);
       return;
     case SYM_TOKENIZER_WAIT:
-      printf_callback("TOKENIZER_WAIT\n");
+      // printf_callback("TOKENIZER_WAIT\n");
       CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
-      ctx->app_cont = true;
       yield_ctx(EVAL_CPS_MIN_SLEEP);
       return;
-    case SYM_TOKENIZER_DONE:
+    case SYM_TOKENIZER_DONE: {
+      char buf[1024];
+      lbm_print_value(buf,1024, ctx->r);
+      printf_callback("PROCESS => parsed: %s\n", buf);
       /* Tokenizer reached "end of file"
          The parser could be in a state where it needs
          more tokens to correctly finish an expression.
@@ -2244,7 +2246,7 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
         read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
         done_reading(ctx->id);
       }
-      break;
+    } break;
     case SYM_CLOSEPAR:
       ctx->r = tok;
       ctx->app_cont = true;
@@ -2307,7 +2309,7 @@ static inline void cont_read_next_token(eval_context_t *ctx) {
     error_ctx(ENC_SYM_FATAL_ERROR);
     return;
   }
- 
+
   lbm_value tok = lbm_get_next_token(str, false);
 
   read_process_token(ctx, stream, tok);
@@ -2575,6 +2577,9 @@ static inline void cont_read_done(eval_context_t *ctx) {
     lbm_set_error_reason((char*)parse_error_eof);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
   } else {
+    char buf[1024];
+    lbm_print_value(buf,1024, ctx->r);
+    printf_callback("READ_DONE => parsed: %s\n", buf);
     ctx->app_cont = true;
   }
 }

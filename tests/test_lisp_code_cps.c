@@ -250,6 +250,7 @@ int main(int argc, char **argv) {
   }
   printf("------------------------------------------------------------\n");
   printf("Heap size: %u\n", heap_size);
+  printf("Streaming source: %s\n", stream_source ? "yes" : "no");
   //  printf("Compression: %s\n", compress_decompress ? "yes" : "no");
   printf("------------------------------------------------------------\n");
 
@@ -454,12 +455,13 @@ int main(int argc, char **argv) {
         break;
       }
       if (lbm_channel_write(&string_tok, code_buffer[i])) {
-        printf("wrote: %c\n", code_buffer[i]);
+        //printf("wrote: %c\n", code_buffer[i]);
         i ++;
       } else {
         printf("stalling\n");
+        break;
       }
-      sleep_callback(2500);
+      sleep_callback(2);
     }
   }
 

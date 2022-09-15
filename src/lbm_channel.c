@@ -91,6 +91,7 @@ int buffered_peek(lbm_char_channel_t *ch, unsigned int n, char *res) {
   mutex_lock(&st->lock);
   unsigned int peek_pos = (st->read_pos + n) % TOKENIZER_BUFFER_SIZE;
   bool in_data;
+
   if (st->write_pos >= st->read_pos) {
     in_data = peek_pos < st->write_pos && peek_pos >= st->read_pos;
   } else {
@@ -102,6 +103,8 @@ int buffered_peek(lbm_char_channel_t *ch, unsigned int n, char *res) {
     ret = CHANNEL_SUCCESS;
   } else if (!buffered_more(ch)) {
     ret = CHANNEL_END;
+  } else if (buffered_more(ch)) {
+    ret = CHANNEL_MORE;
   }
   mutex_unlock(&st->lock);
   return ret;
