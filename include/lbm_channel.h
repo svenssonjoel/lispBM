@@ -27,6 +27,10 @@
 #define CHANNEL_SUCCESS    1 
 #define CHANNEL_MORE       2
 #define CHANNEL_END        3
+#define CHANNEL_FULL       4
+
+#define CHANNEL_READER_CLOSED 1000
+
 
 typedef struct {
   char buffer[TOKENIZER_BUFFER_SIZE];
@@ -34,8 +38,8 @@ typedef struct {
   unsigned int read_pos;
   bool more;
   bool comment;
+  bool reader_closed; 
   mutex_t lock;
-
   // statistics
   unsigned int row;
   unsigned int column;
@@ -47,7 +51,7 @@ typedef struct {
   unsigned int read_pos;
   bool more;
   bool comment;
-
+  bool reader_closed;
   unsigned int row;
   unsigned int column;
 } lbm_string_channel_state_t; 
@@ -61,14 +65,15 @@ typedef struct lbm_char_channel_s {
   bool (*drop)(struct lbm_char_channel_s *ch, unsigned int n);
   bool (*comment)(struct lbm_char_channel_s *ch);
   void (*set_comment)(struct lbm_char_channel_s *ch, bool comment);
+  void (*reader_close)(struct lbm_char_channel_s *ch);
   
   /* Either side */
   bool (*channel_is_empty)(struct lbm_char_channel_s *ch);
   bool (*channel_is_full)(struct lbm_char_channel_s *ch);
   
   /* Write side */
-  bool (*write)(struct lbm_char_channel_s *ch, char c);
-  bool (*close)(struct lbm_char_channel_s *ch);
+  int (*write)(struct lbm_char_channel_s *ch, char c);
+  void (*writer_close)(struct lbm_char_channel_s *ch);
   
   /* Statistics */
   unsigned int (*row)(struct lbm_char_channel_s *ch);
@@ -84,14 +89,15 @@ bool lbm_channel_read(lbm_char_channel_t *ch, char *res);
 bool lbm_channel_drop(lbm_char_channel_t *ch, unsigned int n);
 bool lbm_channel_comment(lbm_char_channel_t *ch);
 void lbm_channel_set_comment(lbm_char_channel_t *ch, bool comment);
+void lbm_channel_reader_close(lbm_char_channel_t *ch);
 
 /* Either side */
 bool lbm_channel_is_empty(lbm_char_channel_t *ch);
 bool lbm_channel_is_full(lbm_char_channel_t *ch);
 
 /* Write side */
-bool lbm_channel_write(lbm_char_channel_t *ch, char c);
-bool lbm_channel_close(lbm_char_channel_t *ch);
+int  lbm_channel_write(lbm_char_channel_t *ch, char c);
+void lbm_channel_writer_close(lbm_char_channel_t *ch);
 
 /* Statistics */
 unsigned int lbm_channel_row(lbm_char_channel_t *ch);

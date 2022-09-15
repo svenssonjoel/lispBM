@@ -84,6 +84,16 @@
 
 #define TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH 256
 
+
+// Tokenizer return values
+// > 0 : successfully found token
+// = 0 : tokenizer can definitely not create a token 
+// < 0 : tokenizer does not know if it can or cannot create a token yet.
+
+#define TOKENIZER_NO_TOKEN   0
+#define TOKENIZER_NEED_MORE -1
+
+
 static char sym_str[TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH];
 
 static void clear_sym_str(void) {
@@ -199,7 +209,9 @@ int tok_symbol(lbm_char_channel_t *ch) {
 
   char c;
 
-  if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS || !symchar0(c)) return 0;
+  if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS || !symchar0(c)) {
+    return TOKENIZER_NO_TOKEN;
+  }
   clear_sym_str();
   sym_str[0] = (char)tolower(c);
 
@@ -215,7 +227,7 @@ int tok_symbol(lbm_char_channel_t *ch) {
     len ++;
     r = lbm_channel_peek(ch,len, &c);
   }
-  if (r == CHANNEL_MORE) return 0;
+  if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   return len;
 }
 
@@ -456,9 +468,12 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
   unsigned int n = 0;
   bool valid_num = false;
   char c;
-
+  int res;
   result->negative = false;
-  if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS) {
+  res = lbm_channel_peek(ch, 0, &c);
+  if (res == CHANNEL_MORE) {
+    return TOKENIZER_NEED_MORE;
+  } else if (res == CHANNEL_END) {
     return 0;
   }
   if (c == '-') {
@@ -467,22 +482,25 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
   }
 
   bool hex = false;
-  int res = lbm_channel_peek(ch, n, &c);
+  res = lbm_channel_peek(ch, n, &c);
   if (res == CHANNEL_SUCCESS && c == '0') {
     res = lbm_channel_peek(ch, n + 1, &c);
     if ( res == CHANNEL_SUCCESS && (c == 'x' || c == 'X')) {
       hex = true;
     } else if (res == CHANNEL_MORE) {
-      return 0;
+      return TOKENIZER_NEED_MORE;
     }
   } else if (res == CHANNEL_MORE) {
-    return 0;
+    return TOKENIZER_NEED_MORE;
   }
 
   if (hex) {
     n += 2;
 
-    if (lbm_channel_peek(ch, n, &c) != CHANNEL_SUCCESS) return 0;
+    res = lbm_channel_peek(ch,n, &c);
+ 
+    if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+    else if (res == CHANNEL_END) return 0;
 
     while ((c >= '0' && c <= '9') ||
            (c >= 'a' && c <= 'f') ||
@@ -498,18 +516,18 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
       acc = (acc * 0x10) + val;
       n++;
       res = lbm_channel_peek(ch, n, &c);
-      if (res == CHANNEL_MORE) return 0;
+      if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
       if (res == CHANNEL_END) break;
 
     }
   } else {
     res = lbm_channel_peek(ch, n, &c);
-    if (res == CHANNEL_MORE) return 0;
+    if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     while (c >= '0' && c <= '9') {
       acc = (acc*10) + (uint32_t)(c - '0');
       n++;
       res = lbm_channel_peek(ch, n, &c);
-      if (res == CHANNEL_MORE) return 0;
+      if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
       if (res == CHANNEL_END)  break;
     }
   }
@@ -525,7 +543,7 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
 
   switch (tok_res) {
   case TOKNEEDMORE:
-    return 0;
+    return TOKENIZER_NEED_MORE;
   case NOTOKEN:
     if ( res == CHANNEL_END || c == ')' || c == ']' || c == '\n' || c == ' ' ) {  
       result->type = TOKTYPEI;
@@ -726,6 +744,8 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
       return lbm_enc_sym(SYM_RERROR);
       break;
     }
+  } else if (n < 0 ) {
+     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
   //printf("tok_symbol\n");
@@ -751,14 +771,12 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
       if (r) {
         res = lbm_enc_sym(symbol_id);
       } else {
-        printf("tok_symbol read error\n");
         res = lbm_enc_sym(SYM_RERROR);
       }
     }
     return res;
   } else if (n < 0) {
-    // Symbol string is too long error
-    return res;
+    return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
   //printf("tok_char\n");

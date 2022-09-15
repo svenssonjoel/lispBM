@@ -2195,6 +2195,7 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
   if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
     switch (lbm_dec_sym(tok)) {
     case SYM_RERROR:
+      lbm_channel_reader_close(str);
       printf_callback("read error on token\n");
       lbm_set_error_reason((char*)parse_error_token);
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
@@ -2210,9 +2211,6 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
       yield_ctx(EVAL_CPS_MIN_SLEEP);
       return;
     case SYM_TOKENIZER_DONE: {
-      char buf[1024];
-      lbm_print_value(buf,1024, ctx->r);
-      printf_callback("PROCESS => parsed: %s\n", buf);
       /* Tokenizer reached "end of file"
          The parser could be in a state where it needs
          more tokens to correctly finish an expression.
@@ -2375,6 +2373,7 @@ static inline void cont_read_start_array(eval_context_t *ctx) {
     CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_ARRAY));
     ctx->app_cont = true;
   } else {
+    lbm_channel_reader_close(lbm_dec_channel(stream));
     error_ctx(ENC_SYM_RERROR);
   }
 }
@@ -2577,9 +2576,6 @@ static inline void cont_read_done(eval_context_t *ctx) {
     lbm_set_error_reason((char*)parse_error_eof);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
   } else {
-    char buf[1024];
-    lbm_print_value(buf,1024, ctx->r);
-    printf_callback("READ_DONE => parsed: %s\n", buf);
     ctx->app_cont = true;
   }
 }

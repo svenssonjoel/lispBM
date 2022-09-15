@@ -452,21 +452,18 @@ int main(int argc, char **argv) {
     int i = 0;
     while (true) {
       if (code_buffer[i] == 0) {
-        lbm_channel_close(&string_tok);
+        lbm_channel_writer_close(&string_tok);
         break;
       }
-      if (lbm_channel_write(&string_tok, code_buffer[i])) {
+      int ch_res = lbm_channel_write(&string_tok, code_buffer[i]);
+      
+      if (ch_res == CHANNEL_SUCCESS) {
         //printf("wrote: %c\n", code_buffer[i]);
         i ++;
         stalls = 0;
-      } else {
-        stalls ++;
-        printf("stalling\n");
-        if (stalls == 100) {
-          sleep_callback(100);
-          break;
-        }
-      }
+      } if (ch_res == CHANNEL_READER_CLOSED) {
+        break;
+      } 
       sleep_callback(2);
     }
   }
