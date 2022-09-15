@@ -446,8 +446,7 @@ int main(int argc, char **argv) {
   }
 
   lbm_continue_eval();
-  int stalls = 0;
-  
+
   if (stream_source) {
     int i = 0;
     while (true) {
@@ -460,7 +459,6 @@ int main(int argc, char **argv) {
       if (ch_res == CHANNEL_SUCCESS) {
         //printf("wrote: %c\n", code_buffer[i]);
         i ++;
-        stalls = 0;
       } if (ch_res == CHANNEL_READER_CLOSED) {
         break;
       } 

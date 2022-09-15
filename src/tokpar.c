@@ -92,7 +92,7 @@
 
 #define TOKENIZER_NO_TOKEN   0
 #define TOKENIZER_NEED_MORE -1
-
+#define TOKENIZER_STRING_ERROR -2
 
 static char sym_str[TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH];
 
@@ -101,20 +101,20 @@ static void clear_sym_str(void) {
 }
 
 typedef struct {
-  int type;
+  uint32_t type;
   uint64_t value;
   bool negative;
 } token_int;
 
 typedef struct token_float {
-  int type;
+  uint32_t type;
   double value;
   bool negative;
 } token_float;
 
 typedef struct {
   const char *str;
-  uint32_t  token;
+  uint32_t token;
   uint32_t len;
 } matcher;
 
@@ -156,33 +156,33 @@ const matcher type_qual_table[NUM_TYPE_QUALIFIERS] = {
   {"b"  , TOKTYPEBYTE, 1}
 };
 
-unsigned int tok_match_fixed_size_tokens(lbm_char_channel_t *ch, const matcher *m, unsigned int start_pos, unsigned int num, uint32_t *res) {
+int tok_match_fixed_size_tokens(lbm_char_channel_t *ch, const matcher *m, unsigned int start_pos, unsigned int num, uint32_t *res) {
 
   for (unsigned int i = 0; i < num; i ++) {
     uint32_t tok_len = m[i].len;
     const char *match_str = m[i].str;
     uint32_t tok = m[i].token;
     char c;
-    uint32_t char_pos;
+    int char_pos;
     int r;
-    for (char_pos = 0; char_pos < tok_len; char_pos ++) {
-      r = lbm_channel_peek(ch,char_pos + start_pos, &c);
+    for (char_pos = 0; char_pos < (int)tok_len; char_pos ++) {
+      r = lbm_channel_peek(ch,(unsigned int)char_pos + start_pos, &c);
       if (r == CHANNEL_SUCCESS) {
         if (c != match_str[char_pos]) break;
       } else if (r == CHANNEL_MORE ) {
         *res = TOKNEEDMORE;
-        return 0;
+        return TOKENIZER_NEED_MORE;
       } else {
         break;
       }
     }
 
-    if (char_pos == tok_len) { //match
+    if (char_pos == (int)tok_len) { //match
       *res = tok;
-      return tok_len;
+      return (int)tok_len;
     }
   }
-  return 0;
+  return TOKENIZER_NO_TOKEN;
 }
 
 bool symchar0(char c) {
@@ -215,17 +215,17 @@ int tok_symbol(lbm_char_channel_t *ch) {
   clear_sym_str();
   sym_str[0] = (char)tolower(c);
 
-  unsigned int len = 1;
+  int len = 1;
   int r = 0;
 
-  r = lbm_channel_peek(ch,len, &c);
+  r = lbm_channel_peek(ch,(unsigned int)len, &c);
   while (r == CHANNEL_SUCCESS && symchar(c)) {
     c = (char)tolower(c);
     if (len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
       sym_str[len] = (char)c;
     }
     len ++;
-    r = lbm_channel_peek(ch,len, &c);
+    r = lbm_channel_peek(ch,(unsigned int)len, &c);
   }
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   return len;
@@ -244,14 +244,17 @@ static char translate_escape_char(char c) {
 
 int tok_string(lbm_char_channel_t *ch) {
 
-  int n = 0;
+  unsigned int n = 0;
   unsigned int len = 0;
   char c;
   int r = 0;
   bool encode = false;
 
-  if (lbm_channel_peek(ch,0,&c) != CHANNEL_SUCCESS) return 0;
-  if (c != '\"') return 0;
+  r = lbm_channel_peek(ch,0,&c);
+  if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  else if (r == CHANNEL_END) return TOKENIZER_NO_TOKEN;
+ 
+  if (c != '\"') return TOKENIZER_NO_TOKEN;;
 
   n++;
 
@@ -271,11 +274,9 @@ int tok_string(lbm_char_channel_t *ch) {
     r = lbm_channel_peek(ch, n, &c);
   }
 
-  if (r == CHANNEL_MORE) return 0;
+  if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  if (c != '\"') return TOKENIZER_STRING_ERROR;
 
-  if (c != '\"') {
-    return -1;
-  }
   n ++;
   return (int)n;
 }
@@ -285,22 +286,22 @@ int tok_char(lbm_char_channel_t *ch, char *res) {
   char c;
   int r;
 
-  r = lbm_channel_peek(ch, 0, &c);
-  if (r != CHANNEL_SUCCESS) {
-      return 0;
-  }
-  if (c != '\\') return 0;
+  r = lbm_channel_peek(ch, 0, &c); 
+  if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
+ 
+  if (c != '\\') return TOKENIZER_NO_TOKEN;
 
   r = lbm_channel_peek(ch, 1, &c);
-  if (r != CHANNEL_SUCCESS) {
-    return 0;
-  }
-  if (c != '#') return 0;
+  if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
+
+  if (c != '#') return TOKENIZER_NO_TOKEN;
 
   r = lbm_channel_peek(ch, 2, &c);
-  if (r != CHANNEL_SUCCESS) {
-    return 0;
-  }
+  if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
+
   *res = c;
 
   return 3;
@@ -341,7 +342,9 @@ int tok_D(lbm_char_channel_t *ch, token_float *result) {
   result->type = TOKTYPEF32;
   result->negative = false;
 
-  if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS) return 0;
+  res = lbm_channel_peek(ch, 0, &c);
+  if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  else if (res == CHANNEL_END) return 0;
   if (c == '-') {
     n = 1;
     fbuf[0] = 0;
@@ -349,12 +352,13 @@ int tok_D(lbm_char_channel_t *ch, token_float *result) {
   }
 
   res = lbm_channel_peek(ch, n, &c);
-  if (res == CHANNEL_MORE) return 0;
+  if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  else if (res == CHANNEL_END) return 0;
   while (c >= '0' && c <= '9') {
     fbuf[n] = c;
     n++;
     res = lbm_channel_peek(ch, n, &c);
-    if (res == CHANNEL_MORE) return 0;
+    if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     if (res == CHANNEL_END) break;
   }
 
@@ -365,24 +369,26 @@ int tok_D(lbm_char_channel_t *ch, token_float *result) {
   else return 0;
 
   res = lbm_channel_peek(ch,n, &c);
-  if (res == CHANNEL_MORE) return 0;
+  if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  else if (res == CHANNEL_END) return 0;
   if (!(c >= '0' && c <= '9')) return 0;
 
   while (c >= '0' && c <= '9') {
     fbuf[n] = c;
     n++;
     res = lbm_channel_peek(ch, n, &c);
-    if (res == CHANNEL_MORE) return 0;
+    if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     if (res == CHANNEL_END) break;
   }
 
-  unsigned int drop_extra = 0;
-  int tok_res = NOTOKEN;
+  uint32_t tok_res = NOTOKEN;
   int type_len = tok_match_fixed_size_tokens(ch, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
-  
+
+  if (type_len == TOKENIZER_NEED_MORE) return type_len;
+
   switch (tok_res) {
   case TOKNEEDMORE:
-    return 0;
+    return TOKENIZER_NEED_MORE;
   case NOTOKEN:
     if ( res == CHANNEL_END || c == ')' || c == ']' || c == '\n' || c == ' ' ) {  
       result->type = TOKTYPEF32;
@@ -469,7 +475,7 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
   bool valid_num = false;
   char c;
   int res;
-  result->negative = false;
+  result-> negative = false;
   res = lbm_channel_peek(ch, 0, &c);
   if (res == CHANNEL_MORE) {
     return TOKENIZER_NEED_MORE;
@@ -535,11 +541,11 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
   if (n == 0) return 0;
 
   result->type = TOKTYPEI;
-  unsigned int drop_type_str = 0;
-  bool match = false;
 
-  int tok_res = NOTOKEN;
+  uint32_t tok_res = NOTOKEN;
   int type_len = tok_match_fixed_size_tokens(ch, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
+
+  if (type_len == TOKENIZER_NEED_MORE) return type_len;
 
   switch (tok_res) {
   case TOKNEEDMORE:
@@ -589,7 +595,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
   }
 
   lbm_value res = lbm_enc_sym(SYM_RERROR);
-  int match;
+  uint32_t match;
   //printf("fixed size tokens\n");
   n = tok_match_fixed_size_tokens(ch,
                                   fixed_size_tokens,
@@ -600,7 +606,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
 
     if (!peek) {
       //printf("dropping: %d\n", n);
-      if (!lbm_channel_drop(ch, n)) {
+      if (!lbm_channel_drop(ch, (unsigned int)n)) {
         printf("unable to drop %d\n", n);
       }
     }
@@ -675,12 +681,14 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
       break;
     }
     return res;
+  } else if (n < 0) {
+    return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
   //printf("tok_string\n");
   n = tok_string(ch);
   if (n >= 2) {
-    if (!peek) lbm_channel_drop(ch, n);
+    if (!peek) lbm_channel_drop(ch, (unsigned int)n);
     //printf("string: %d, %s\n", n, sym_str);
     // TODO: Proper error checking here!
     // TODO: Check if anything has to be allocated for the empty string
@@ -690,23 +698,26 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
     memset(data, 0, (unsigned int)((n-2)+1) * sizeof(char));
     memcpy(data, sym_str, (unsigned int)(n - 2) * sizeof(char));
     return res;
-  } else if (n < 0) {
-    // The string is too long error
-    return res;
+  } else if (n == TOKENIZER_NEED_MORE) {
+    return lbm_enc_sym(SYM_TOKENIZER_WAIT);
+  } else if (n == TOKENIZER_STRING_ERROR) {
+    return lbm_enc_sym(SYM_RERROR);
   }
 
   token_float f_val;
 
   //printf("tok_D\n");
   n = tok_D(ch, &f_val);
-  if (n) {
-    if (!peek) lbm_channel_drop(ch, n);
+  if (n > 0) {
+    if (!peek) lbm_channel_drop(ch, (unsigned int)n);
     switch (f_val.type) {
     case TOKTYPEF32:
       return lbm_enc_float((float)f_val.value);
     case TOKTYPEF64:
       return lbm_enc_double(f_val.value);
     }
+  } else if ( n < 0) {
+     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
   token_int int_result;
@@ -715,7 +726,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
   n = tok_integer(ch, &int_result);
   if (n > 0) {
     //printf("TOKENIZER: %d\n", int_result);
-    if (!peek) lbm_channel_drop(ch, n);
+    if (!peek) lbm_channel_drop(ch, (unsigned int)n);
 
     switch (int_result.type) {
     case TOKTYPEBYTE:
@@ -752,7 +763,7 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
   n = tok_symbol(ch);
   if (n > 0) {
 
-    if (!peek) lbm_channel_drop(ch,n);
+    if (!peek) lbm_channel_drop(ch,(unsigned int)n);
 
     lbm_uint symbol_id;
 
@@ -781,10 +792,12 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
 
   //printf("tok_char\n");
   n = tok_char(ch, &c_val);
-  if (n) {
-    if (!peek) lbm_channel_drop(ch,n);
+  if (n > 0) {
+    if (!peek) lbm_channel_drop(ch,(unsigned int)n);
     return lbm_enc_char(c_val);
-  }
+  } else if (n < 0) {
+    return lbm_enc_sym(SYM_TOKENIZER_WAIT);
+  } 
 
   // Status of "more" can have changed between
   // the start of this function and this location.
