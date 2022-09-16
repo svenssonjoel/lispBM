@@ -2641,15 +2641,19 @@ static inline void cont_read_check_colon(eval_context_t *ctx) {
   }
 
   lbm_value tok = lbm_get_next_token(str, true);
-
-  switch (lbm_dec_sym(tok)) {
-  case SYM_COLON:
-    lbm_get_next_token(str,false); //drop the colon;
-    CHECK_STACK(lbm_push_2(&ctx->K, r, READ_TERMINATE_COLON));
-    CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
-    ctx->app_cont = true;
-    break;
-  default:
+  if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
+    switch (lbm_dec_sym(tok)) {
+    case SYM_COLON:
+      lbm_get_next_token(str,false); //drop the colon;
+      CHECK_STACK(lbm_push_2(&ctx->K, r, READ_TERMINATE_COLON));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      break;
+    default:
+      ctx->r = r;
+      ctx->app_cont = true;
+    }
+  } else {
     ctx->r = r;
     ctx->app_cont = true;
   }
