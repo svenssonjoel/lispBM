@@ -65,6 +65,10 @@ void lbm_channel_reader_close(lbm_char_channel_t *chan) {
   chan->reader_close(chan);
 }
 
+bool lbm_channel_reader_is_closed(lbm_char_channel_t *chan) {
+  chan->reader_is_closed(chan);
+}
+
 unsigned int lbm_channel_row(lbm_char_channel_t *chan) {
   return chan->row(chan);
 }
@@ -90,6 +94,11 @@ void buffered_writer_close(lbm_char_channel_t *chan) {
 void buffered_reader_close(lbm_char_channel_t *chan) {
   lbm_buffered_channel_state_t *st = (lbm_buffered_channel_state_t*)chan->state;
   st->reader_closed = true;
+}
+
+bool buffered_reader_is_closed(lbm_char_channel_t *chan) {
+  lbm_buffered_channel_state_t *st = (lbm_buffered_channel_state_t*)chan->state;
+  return st->reader_closed;
 }
 
 int buffered_peek(lbm_char_channel_t *chan, unsigned int n, char *res) {
@@ -221,6 +230,7 @@ void lbm_create_buffered_char_channel(lbm_buffered_channel_state_t *st,
   chan->write = buffered_write;
   chan->writer_close = buffered_writer_close;
   chan->reader_close = buffered_reader_close;
+  chan->reader_is_closed = buffered_reader_is_closed;
   chan->row = buffered_row;
   chan->column = buffered_column;
 }
@@ -242,6 +252,11 @@ void string_writer_close(lbm_char_channel_t *chan) {
 void string_reader_close(lbm_char_channel_t *chan) {
   lbm_string_channel_state_t *st = (lbm_string_channel_state_t*)chan->state;
   st->reader_closed = true;
+}
+
+bool string_reader_is_closed(lbm_char_channel_t *chan) {
+  lbm_string_channel_state_t *st = (lbm_string_channel_state_t*)chan->state;
+  return st->reader_closed;
 }
 
 int string_peek(lbm_char_channel_t *chan, unsigned int n, char *res) {
@@ -354,6 +369,7 @@ void lbm_create_string_char_channel(lbm_string_channel_state_t *st,
   chan->write = string_write;
   chan->writer_close = string_writer_close;
   chan->reader_close = string_reader_close;
+  chan->reader_is_closed = string_reader_is_closed;
   chan->row = string_row;
   chan->column = string_column;
 }

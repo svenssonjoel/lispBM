@@ -305,30 +305,7 @@ int tok_char(lbm_char_channel_t *ch, char *res) {
   if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
 
   *res = c;
-
   return 3;
-
-  /* int count = 0; */
-  /* if (peek(ch,0) == '\\' && */
-  /*     peek(ch,1) == '#' && */
-  /*     peek(ch,2) == 'n' && */
-  /*     peek(ch,3) == 'e' && */
-  /*     peek(ch,4) == 'w' && */
-  /*     peek(ch,5) == 'l' && */
-  /*     peek(ch,6) == 'i' && */
-  /*     peek(ch,7) == 'n' && */
-  /*     peek(ch,8) == 'e') { */
-  /*   *res = '\n'; */
-  /*   drop(ch,9); */
-  /*   count = 9; */
-  /* } else if (peek(ch,0) == '\\' && */
-  /*            peek(ch,1) == '#' && */
-  /*            isgraph(peek(ch,2))) { */
-  /*   *res = peek(ch,2); */
-  /*   drop(ch,3); */
-  /*   count = 3; */
-  /* } */
-  /* return count; */
 }
 
 int tok_D(lbm_char_channel_t *ch, token_float *result) {

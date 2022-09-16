@@ -70,6 +70,7 @@ typedef struct lbm_char_channel_s {
   /* Either side */
   bool (*channel_is_empty)(struct lbm_char_channel_s *chan);
   bool (*channel_is_full)(struct lbm_char_channel_s *chan);
+  bool (*reader_is_closed)(struct lbm_char_channel_s *chan);
   
   /* Write side */
   int (*write)(struct lbm_char_channel_s *chan, char c);
@@ -90,6 +91,7 @@ bool lbm_channel_drop(lbm_char_channel_t *chan, unsigned int n);
 bool lbm_channel_comment(lbm_char_channel_t *chan);
 void lbm_channel_set_comment(lbm_char_channel_t *chan, bool comment);
 void lbm_channel_reader_close(lbm_char_channel_t *chan);
+bool lbm_channel_reader_is_closed(lbm_char_channel_t *chan);
 
 /* Either side */
 bool lbm_channel_is_empty(lbm_char_channel_t *chan);
