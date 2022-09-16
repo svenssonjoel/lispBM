@@ -27,4 +27,5 @@
 
 (and (= (array-read font 0) 0x00)
      (= (array-read font 7) 0x5F)
+     (= (array-read font 19) 0x14) 
      (= (array-read font 474) 0x02))
