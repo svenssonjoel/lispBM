@@ -2197,7 +2197,6 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
     switch (lbm_dec_sym(tok)) {
     case SYM_RERROR:
       lbm_channel_reader_close(str);
-      printf_callback("read error on token\n");
       lbm_set_error_reason((char*)parse_error_token);
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
       done_reading(ctx->id);
@@ -2207,7 +2206,6 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
       done_reading(ctx->id);
       return;
     case SYM_TOKENIZER_WAIT:
-      // printf_callback("TOKENIZER_WAIT\n");
       CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
       yield_ctx(EVAL_CPS_MIN_SLEEP);
       return;

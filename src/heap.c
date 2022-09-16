@@ -514,7 +514,6 @@ int lbm_gc_sweep_phase(void) {
           lbm_memory_free((lbm_uint *)arr);
         } break;
         case SYM_CHANNEL_TYPE:{
-          printf("GC CHANNEL\n");
           lbm_char_channel_t *chan = (lbm_char_channel_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)chan)) {
             lbm_memory_free((lbm_uint*)chan);

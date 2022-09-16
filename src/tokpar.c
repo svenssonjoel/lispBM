@@ -423,11 +423,9 @@ bool clean_whitespace(lbm_char_channel_t *ch) {
   while (cleaning_whitespace) {
 
     if (lbm_channel_comment(ch)) {
-      //printf("entering comment loop\n");
       while (true) {
         r = lbm_channel_peek(ch, 0, &c);
         if (r == CHANNEL_END) {
-          //printf("leaving comment mode\n");
           lbm_channel_set_comment(ch, false);
           cleaning_whitespace = false;
           break;
@@ -437,7 +435,6 @@ bool clean_whitespace(lbm_char_channel_t *ch) {
         }
         lbm_channel_drop(ch,1);
         if (c == '\n') {
-          //printf("leaving comment mode\n");
           lbm_channel_set_comment(ch, false);
           break;
         }
@@ -452,12 +449,10 @@ bool clean_whitespace(lbm_char_channel_t *ch) {
         return true;
       }
       if (c == ';') {
-        //printf("entering comment mode\n");
         lbm_channel_set_comment(ch, true);
         break;
       }
       if (isspace(c)) {
-        //printf("dropping: %c\n", c);
         lbm_channel_drop(ch,1);
       } else {
         cleaning_whitespace = false;
@@ -582,10 +577,8 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
   }
 
   // Eat whitespace and comments.
-  //printf("cleaning_whitespace\n");
   if (!clean_whitespace(ch)) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
-    //printf("clean whitespace false\n");
   }
 
   // Check for end of string again
@@ -595,7 +588,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
 
   lbm_value res = lbm_enc_sym(SYM_RERROR);
   uint32_t match;
-  //printf("fixed size tokens\n");
   n = tok_match_fixed_size_tokens(ch,
                                   fixed_size_tokens,
                                   0,
@@ -604,18 +596,15 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
   if (n > 0) {
 
     if (!peek) {
-      //printf("dropping: %d\n", n);
       if (!lbm_channel_drop(ch, (unsigned int)n)) {
-        printf("unable to drop %d\n", n);
+        // Really should not happen (bug in channel implementation)
       }
     }
     switch (match) {
     case TOKOPENPAR:
-      //printf("TOKOPENPAR %d \n", n);
       res = lbm_enc_sym(SYM_OPENPAR);
       break;
     case TOKCLOSEPAR:
-      //printf("TOKCLOSEPAR\n");
       res = lbm_enc_sym(SYM_CLOSEPAR);
       break;
     case TOKDOT:
@@ -684,11 +673,9 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
-  //printf("tok_string\n");
   n = tok_string(ch);
   if (n >= 2) {
     if (!peek) lbm_channel_drop(ch, (unsigned int)n);
-    //printf("string: %d, %s\n", n, sym_str);
     // TODO: Proper error checking here!
     // TODO: Check if anything has to be allocated for the empty string
     lbm_heap_allocate_array(&res, (unsigned int)(n-2)+1, LBM_TYPE_CHAR);
@@ -705,7 +692,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
 
   token_float f_val;
 
-  //printf("tok_D\n");
   n = tok_D(ch, &f_val);
   if (n > 0) {
     if (!peek) lbm_channel_drop(ch, (unsigned int)n);
@@ -721,10 +707,8 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
 
   token_int int_result;
 
-  //printf("tok_integer\n");
   n = tok_integer(ch, &int_result);
   if (n > 0) {
-    //printf("TOKENIZER: %d\n", int_result);
     if (!peek) lbm_channel_drop(ch, (unsigned int)n);
 
     switch (int_result.type) {
@@ -750,7 +734,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
       return lbm_enc_u64((uint64_t)(int_result.negative ? -int_result.value : int_result.value));
       break;
     default:
-      printf("tok_integer wrong type\n");
       return lbm_enc_sym(SYM_RERROR);
       break;
     }
@@ -758,7 +741,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
      return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
-  //printf("tok_symbol\n");
   n = tok_symbol(ch);
   if (n > 0) {
 
@@ -789,7 +771,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   }
 
-  //printf("tok_char\n");
   n = tok_char(ch, &c_val);
   if (n > 0) {
     if (!peek) lbm_channel_drop(ch,(unsigned int)n);
