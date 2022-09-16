@@ -27,7 +27,6 @@
 #include "tokpar.h"
 #include "symrepr.h"
 #include "heap.h"
-#include "compression.h"
 #include "qq_expand.h"
 #include "env.h"
 
@@ -87,7 +86,7 @@
 
 // Tokenizer return values
 // > 0 : successfully found token
-// = 0 : tokenizer can definitely not create a token 
+// = 0 : tokenizer can definitely not create a token
 // < 0 : tokenizer does not know if it can or cannot create a token yet.
 
 #define TOKENIZER_NO_TOKEN   0
@@ -253,7 +252,7 @@ int tok_string(lbm_char_channel_t *ch) {
   r = lbm_channel_peek(ch,0,&c);
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   else if (r == CHANNEL_END) return TOKENIZER_NO_TOKEN;
- 
+
   if (c != '\"') return TOKENIZER_NO_TOKEN;;
 
   n++;
@@ -286,10 +285,10 @@ int tok_char(lbm_char_channel_t *ch, char *res) {
   char c;
   int r;
 
-  r = lbm_channel_peek(ch, 0, &c); 
+  r = lbm_channel_peek(ch, 0, &c);
   if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
- 
+
   if (c != '\\') return TOKENIZER_NO_TOKEN;
 
   r = lbm_channel_peek(ch, 1, &c);
@@ -305,7 +304,7 @@ int tok_char(lbm_char_channel_t *ch, char *res) {
   *res = c;
 
   return 3;
- 
+
   /* int count = 0; */
   /* if (peek(ch,0) == '\\' && */
   /*     peek(ch,1) == '#' && */
@@ -420,7 +419,7 @@ bool clean_whitespace(lbm_char_channel_t *ch) {
   bool cleaning_whitespace = true;
   char c;
   int r;
-  
+
   while (cleaning_whitespace) {
 
     if (lbm_channel_comment(ch)) {
@@ -451,7 +450,7 @@ bool clean_whitespace(lbm_char_channel_t *ch) {
         return false;
       } else if (r == CHANNEL_END) {
         return true;
-      } 
+      }
       if (c == ';') {
         //printf("entering comment mode\n");
         lbm_channel_set_comment(ch, true);
@@ -504,7 +503,7 @@ int tok_integer(lbm_char_channel_t *ch, token_int *result ) {
     n += 2;
 
     res = lbm_channel_peek(ch,n, &c);
- 
+
     if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     else if (res == CHANNEL_END) return 0;
 
@@ -797,11 +796,11 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *ch, bool peek) {
     return lbm_enc_char(c_val);
   } else if (n < 0) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
-  } 
+  }
 
   // Status of "more" can have changed between
   // the start of this function and this location.
-  
+
   if (lbm_channel_more(ch)) {
     return lbm_enc_sym(SYM_TOKENIZER_WAIT);
   } else {

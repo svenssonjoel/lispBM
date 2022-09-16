@@ -19,7 +19,7 @@
 #include <string.h>
 
 /* ------------------------------------------------------------
-   Interface 
+   Interface
    ------------------------------------------------------------ */
 bool lbm_channel_more(lbm_char_channel_t *ch) {
   return ch->more(ch);
@@ -56,7 +56,7 @@ bool lbm_channel_is_full(lbm_char_channel_t *ch) {
 int lbm_channel_write(lbm_char_channel_t *ch, char c) {
   return ch->write(ch, c);
 }
-  
+
 void lbm_channel_writer_close(lbm_char_channel_t *ch) {
   ch->writer_close(ch);
 }
@@ -74,7 +74,7 @@ unsigned int lbm_channel_column(lbm_char_channel_t *ch) {
 }
 
 /* ------------------------------------------------------------
-   Implementation buffered channel 
+   Implementation buffered channel
    ------------------------------------------------------------ */
 
 bool buffered_more(lbm_char_channel_t *ch) {
@@ -104,8 +104,8 @@ int buffered_peek(lbm_char_channel_t *ch, unsigned int n, char *res) {
     in_data = peek_pos < st->write_pos && peek_pos >= st->read_pos;
   } else {
     in_data = !(peek_pos >= st->write_pos && peek_pos < st->read_pos);
-  }    
-  
+  }
+
   if (in_data) {
     *res = buffer[peek_pos];
     ret = CHANNEL_SUCCESS;
@@ -208,7 +208,7 @@ void lbm_create_buffered_char_channel(lbm_buffered_channel_state_t *st,
   st->column = 0;
 
   mutex_init(&st->lock);
-  
+
   ch->state = st;
   ch->more = buffered_more;
   ch->peek = buffered_peek;
@@ -226,7 +226,7 @@ void lbm_create_buffered_char_channel(lbm_buffered_channel_state_t *st,
 }
 
 /* ------------------------------------------------------------
-   Implementation string channel 
+   Implementation string channel
    ------------------------------------------------------------ */
 
 bool string_more(lbm_char_channel_t *ch) {
@@ -253,7 +253,7 @@ int string_peek(lbm_char_channel_t *ch, unsigned int n, char *res) {
   if (peek_pos < strlen(str)) {
     *res = str[peek_pos];
     return CHANNEL_SUCCESS;
-  } 
+  }
   return CHANNEL_END;
 }
 
@@ -289,13 +289,13 @@ bool string_read(lbm_char_channel_t *ch, char *res) {
   } else {
     st->more = false;
   }
-  return true; 
+  return true;
 }
 
 bool string_drop(lbm_char_channel_t *ch, unsigned int n) {
   bool r = true;
   char c;
-  
+
   if (n > 0) {
     do {
       r = string_read(ch, &c);

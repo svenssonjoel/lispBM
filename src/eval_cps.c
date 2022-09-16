@@ -1129,6 +1129,7 @@ static inline void dynamic_load(eval_context_t *ctx) {
       gc(ENC_SYM_NIL, ENC_SYM_NIL);
       if (!create_string_channel((char *)code_str, &chan)) {
         error_ctx(ENC_SYM_MERROR);
+        return;
       }
     }
     lbm_value loader = ENC_SYM_NIL;

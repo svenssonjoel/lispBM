@@ -28,7 +28,7 @@ lbm_cid eval_cps_load_and_eval(lbm_char_channel_t *tokenizer, bool program) {
   if (!lift_char_channel(tokenizer, &stream)) {
     return 0;
   }
-  
+
   if (lbm_type_of(stream) == LBM_TYPE_SYMBOL) {
     // TODO: Check what should be done.
     return 0;
@@ -175,16 +175,16 @@ int lbm_define(char *symbol, lbm_value value) {
 
     if (strncmp(symbol, "#",1) == 0) {
       if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
-	if (!lbm_add_variable_symbol_const(symbol, &sym_id)) {
-	  return 0;
-	}
+        if (!lbm_add_variable_symbol_const(symbol, &sym_id)) {
+          return 0;
+        }
       }
       lbm_set_var(sym_id, value);
     } else {
       if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
-	if (!lbm_add_symbol_const(symbol, &sym_id)) {
-	  return 0;
-	}
+        if (!lbm_add_symbol_const(symbol, &sym_id)) {
+          return 0;
+        }
       }
       *lbm_get_env_ptr() = lbm_env_set(lbm_get_env(), lbm_enc_sym(sym_id), value);
     }
