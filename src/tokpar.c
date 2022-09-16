@@ -207,15 +207,18 @@ bool symchar(char c) {
 int tok_symbol(lbm_char_channel_t *ch) {
 
   char c;
+  int r = 0;
 
-  if (lbm_channel_peek(ch, 0, &c) != CHANNEL_SUCCESS || !symchar0(c)) {
+  r = lbm_channel_peek(ch, 0, &c);
+  if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+  if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
+  if (r == CHANNEL_SUCCESS && !symchar0(c)) {
     return TOKENIZER_NO_TOKEN;
   }
   clear_sym_str();
   sym_str[0] = (char)tolower(c);
 
   int len = 1;
-  int r = 0;
 
   r = lbm_channel_peek(ch,(unsigned int)len, &c);
   while (r == CHANNEL_SUCCESS && symchar(c)) {
