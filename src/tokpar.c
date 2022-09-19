@@ -30,8 +30,6 @@
 #include "qq_expand.h"
 #include "env.h"
 
-#define NOTOKEN         0u
-
 #define TOKOPENPAR      1u      // "("
 #define TOKCLOSEPAR     2u      // ")"
 #define TOKQUOTE        3u      // "'"
@@ -357,7 +355,7 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
     if (res == CHANNEL_END) break;
   }
 
-  uint32_t tok_res = NOTOKEN;
+  uint32_t tok_res;
   int type_len = tok_match_fixed_size_tokens(chan, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
 
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
