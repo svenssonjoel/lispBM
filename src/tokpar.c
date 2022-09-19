@@ -320,7 +320,7 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
 
   res = lbm_channel_peek(chan, 0, &c);
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
-  else if (res == CHANNEL_END) return 0;
+  else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
   if (c == '-') {
     n = 1;
     fbuf[0] = 0;
@@ -329,7 +329,7 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
 
   res = lbm_channel_peek(chan, n, &c);
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
-  else if (res == CHANNEL_END) return 0;
+  else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
   while (c >= '0' && c <= '9') {
     fbuf[n] = c;
     n++;
@@ -342,12 +342,12 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
     fbuf[n] = c;
     n ++;
   }
-  else return 0;
+  else return TOKENIZER_NO_TOKEN;
 
   res = lbm_channel_peek(chan,n, &c);
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
-  else if (res == CHANNEL_END) return 0;
-  if (!(c >= '0' && c <= '9')) return 0;
+  else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
+  if (!(c >= '0' && c <= '9')) return TOKENIZER_NO_TOKEN;
 
   while (c >= '0' && c <= '9') {
     fbuf[n] = c;
@@ -361,20 +361,12 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
   int type_len = tok_match_fixed_size_tokens(chan, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
 
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
-
-  switch (tok_res) {
-  case NOTOKEN:
-    if ( res == CHANNEL_END || c == ')' || c == ']' || c == '\n' || c == ' ' ) {  
-      result->type = TOKTYPEF32;
-      break;
-    } else {
-      return 0;
-    }
-  default:
+  if (type_len == TOKENIZER_NO_TOKEN) {
+    result->type = TOKTYPEF32; 
+  } else {
     result->type = tok_res;
-    break;
   }
-
+ 
   if ((result->negative && n > 1) ||
       (!result->negative && n > 0)) valid_num = true;
 
@@ -511,22 +503,14 @@ int tok_integer(lbm_char_channel_t *chan, token_int *result ) {
 
   result->type = TOKTYPEI;
 
-  uint32_t tok_res = NOTOKEN;
+  uint32_t tok_res;
   int type_len = tok_match_fixed_size_tokens(chan, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
 
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
-
-  switch (tok_res) {
-  case NOTOKEN:
-    if ( res == CHANNEL_END || c == ')' || c == ']' || c == '\n' || c == ' ' ) {  
-      result->type = TOKTYPEI;
-      break;
-    } else {
-      return 0;
-    }
-  default:
+  if (type_len == TOKENIZER_NO_TOKEN) {
+    result->type = TOKTYPEI;
+  } else {
     result->type = tok_res;
-    break;
   }
 
   if ((result->negative && n > 1) ||
