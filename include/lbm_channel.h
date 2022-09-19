@@ -25,7 +25,7 @@
 
 #define TOKENIZER_BUFFER_SIZE 257
 
-#define CHANNEL_SUCCESS    1 
+#define CHANNEL_SUCCESS    1
 #define CHANNEL_MORE       2
 #define CHANNEL_END        3
 #define CHANNEL_FULL       4
@@ -40,15 +40,15 @@ typedef struct {
   unsigned int read_pos;
   bool more;
   bool comment;
-  bool reader_closed; 
+  bool reader_closed;
   mutex_t lock;
   // statistics
   unsigned int row;
   unsigned int column;
 } lbm_buffered_channel_state_t;
 
-/** Struct holding the state of a character channel 
- *  backed by a string. 
+/** Struct holding the state of a character channel
+ *  backed by a string.
  */
 typedef struct {
   char *str;
@@ -59,9 +59,9 @@ typedef struct {
   bool reader_closed;
   unsigned int row;
   unsigned int column;
-} lbm_string_channel_state_t; 
+} lbm_string_channel_state_t;
 
-/** Struct describing the interface to a character channel. 
+/** Struct describing the interface to a character channel.
  */
 typedef struct lbm_char_channel_s {
 
@@ -73,26 +73,26 @@ typedef struct lbm_char_channel_s {
   bool (*comment)(struct lbm_char_channel_s *chan);
   void (*set_comment)(struct lbm_char_channel_s *chan, bool comment);
   void (*reader_close)(struct lbm_char_channel_s *chan);
-  
+
   /* Either side */
   bool (*channel_is_empty)(struct lbm_char_channel_s *chan);
   bool (*channel_is_full)(struct lbm_char_channel_s *chan);
   bool (*reader_is_closed)(struct lbm_char_channel_s *chan);
-  
+
   /* Write side */
   int (*write)(struct lbm_char_channel_s *chan, char c);
   void (*writer_close)(struct lbm_char_channel_s *chan);
-  
+
   /* Statistics */
   unsigned int (*row)(struct lbm_char_channel_s *chan);
   unsigned int (*column)(struct lbm_char_channel_s *chan);
-  
+
 } lbm_char_channel_t;
 
 
 /* Read side */
 /** Check if there are more characters comming on a character channel.
- *  This returns false if the sender has closed the send side of the 
+ *  This returns false if the sender has closed the send side of the
  *  channel.
  * \param chan The channel.
  * \return True if sender end is still open false if closed.
