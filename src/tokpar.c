@@ -80,10 +80,11 @@
 
 
 // Tokenizer return values
-// > 0 : successfully found token
-// = 0 : tokenizer can definitely not create a token
-// = -1 : tokenizer does not know if it can or cannot create a token yet.
-// = -2 : tokenizer was reading a string but ran out of space (for example).
+// > 0 : Successfully found token
+// = 0 : Tokenizer can definitely not create a token
+// = -1 : Tokenizer does not know if it can or cannot create a token yet.
+// = -2 : Tokenizer was reading a string but ran out of space (for example).
+//        This is an error!
 
 #define TOKENIZER_NO_TOKEN   0
 #define TOKENIZER_NEED_MORE -1
@@ -360,11 +361,11 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
 
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
   if (type_len == TOKENIZER_NO_TOKEN) {
-    result->type = TOKTYPEF32; 
+    result->type = TOKTYPEF32;
   } else {
     result->type = tok_res;
   }
- 
+
   if ((result->negative && n > 1) ||
       (!result->negative && n > 0)) valid_num = true;
 
