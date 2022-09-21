@@ -160,9 +160,7 @@ volatile uint32_t eval_cps_next_state_arg = 0;
    sleep duration possible is 2 * 100us = 200us.
 */
 
-static bool     eval_running = false;
-static uint32_t next_ctx_id = 1;
-
+static bool          eval_running = false;
 static volatile bool blocking_extension = false;
 static bool          is_atomic = false;
 
@@ -2921,7 +2919,6 @@ void lbm_pause_eval_with_gc(uint32_t num_free) {
   eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
 }
 
-
 void lbm_step_eval(void) {
   eval_cps_next_state_arg = 1;
   eval_cps_next_state = EVAL_CPS_STATE_STEP;
@@ -3040,7 +3037,6 @@ int lbm_eval_init() {
   done.first = NULL;
   done.last = NULL;
   ctx_running = NULL;
-  next_ctx_id = 1;
 
   eval_cps_run_state = EVAL_CPS_STATE_INIT;
 
