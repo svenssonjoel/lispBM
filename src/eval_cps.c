@@ -531,6 +531,7 @@ bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
     exists = false;
     lbm_blocked_iterator(context_exists, &cid, &exists);
     lbm_running_iterator(context_exists, &cid, &exists);
+    lbm_sleeping_iterator(context_exists, &cid, &exists);
 
     if (ctx_running &&
         ctx_running->id == cid) {
