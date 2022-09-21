@@ -363,9 +363,9 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
     res = lbm_channel_peek(chan,n, &c);
     if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
-    if (!(c >= '0' && c <= '9')) return TOKENIZER_NO_TOKEN;
+    if (!((c >= '0' && c <= '9') || c == '-')) return TOKENIZER_NO_TOKEN;
 
-    while (c >= '0' && c <= '9') {
+    while ((c >= '0' && c <= '9') || c == '-') {
       fbuf[n] = c;
       n++;
       res = lbm_channel_peek(chan, n, &c);
