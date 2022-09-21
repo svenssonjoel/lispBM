@@ -134,7 +134,6 @@ static inline lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value r
 #define EVAL_CPS_WAIT_US   1536
 #define EVAL_CPS_MIN_SLEEP 200
 
-
 #define EVAL_STEPS_QUOTA   10
 static volatile uint32_t eval_steps_refill = EVAL_STEPS_QUOTA;
 static uint32_t eval_steps_quota = EVAL_STEPS_QUOTA;
@@ -144,8 +143,8 @@ void lbm_set_eval_step_quota(uint32_t quota) {
 }
 
 static uint32_t eval_cps_run_state = EVAL_CPS_STATE_INIT;
-volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_INIT;
-volatile uint32_t eval_cps_next_state_arg = 0;
+static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_INIT;
+static volatile uint32_t eval_cps_next_state_arg = 0;
 
 /*
    On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
@@ -731,11 +730,17 @@ void lbm_block_ctx_from_extension(void) {
 
 lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   eval_context_t *found = NULL;
+  bool found_sleeping = false;
 
   found = lookup_ctx(&blocked, cid);
 
   if (found == NULL) {
     found = lookup_ctx(&queue, cid);
+  }
+
+  if (found == NULL) {
+    found = lookup_ctx(&sleeping, cid);
+    found_sleeping = true;
   }
 
   if (found) {
@@ -747,10 +752,12 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
 
     found->mailbox = new_mailbox;
 
-    drop_ctx(&blocked,found);
-    drop_ctx(&queue,found);
+    if (!found_sleeping){
+      drop_ctx(&blocked,found);
+      drop_ctx(&queue,found);
 
-    enqueue_ctx(&queue,found);
+      enqueue_ctx(&queue,found);
+    }
     return ENC_SYM_TRUE;
   }
 
