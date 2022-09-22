@@ -1118,10 +1118,9 @@ static inline bool eval_symbol(eval_context_t *ctx, lbm_value *value) {
 
   if (lbm_env_lookup_b(value, ctx->curr_exp, ctx->curr_env)) {
     return true;
-  } else if (lbm_env_lookup_b(value, ctx->curr_exp, *lbm_get_env_ptr())) {
-    return true;
+  } else {
+    return lbm_env_lookup_b(value, ctx->curr_exp, *lbm_get_env_ptr());
   }
-  return false;
 }
 
 static inline void dynamic_load(eval_context_t *ctx) {
