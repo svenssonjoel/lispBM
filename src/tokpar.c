@@ -322,7 +322,7 @@ int tok_D(lbm_char_channel_t *chan, token_float *result) {
   else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
   if (c == '-') {
     n = 1;
-    fbuf[0] = 0;
+    fbuf[0] = '-';
     result->negative = true;
   }
 
