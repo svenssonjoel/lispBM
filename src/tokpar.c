@@ -483,7 +483,6 @@ int tok_integer(lbm_char_channel_t *chan, token_int *result ) {
   if (hex) {
     n += 2;
 
-    result->type = TOKTYPEU32;
     res = lbm_channel_peek(chan,n, &c);
 
     if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
