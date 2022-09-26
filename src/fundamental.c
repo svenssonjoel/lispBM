@@ -280,6 +280,8 @@ static bool array_equality(lbm_value a, lbm_value b) {
     lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
     lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
 
+    if (a_ == NULL || b_ == NULL) return false; // Not possible to properly report error from here.
+
     if (a_->elt_type == b_->elt_type &&
         a_->size == b_->size) {
       switch(a_->elt_type) {
@@ -488,6 +490,10 @@ void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
 
   if (lbm_type_of(arr) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
+    if (array == NULL) {
+      *result = ENC_SYM_FATAL_ERROR;
+      return;
+    }
 
     if (ix >= array->size) {
       *result =  ENC_SYM_NIL;
@@ -617,7 +623,10 @@ void array_size(lbm_value *args, lbm_uint nargs, lbm_value *result) {
 
   if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
-
+    if (array == NULL) {
+      *result = ENC_SYM_FATAL_ERROR;
+      return;
+    }
     *result =  lbm_enc_u(array->size);
   }
   return;
@@ -648,7 +657,10 @@ void array_clear(lbm_value *args, lbm_uint nargs, lbm_value *result) {
 
   if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
-
+    if (array == NULL) {
+      *result = ENC_SYM_FATAL_ERROR;
+      return;
+    }
     int es = elt_size(array->elt_type);
 
     if (es < 0) return;
