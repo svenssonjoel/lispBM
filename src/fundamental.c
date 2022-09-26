@@ -659,8 +659,6 @@ void array_clear(lbm_value *args, lbm_uint nargs, lbm_value *result) {
   return;
 }
 
-
-
 lbm_value index_list(lbm_value l, unsigned int n) {
   lbm_value curr = l;
   while ( lbm_type_of(curr) == LBM_TYPE_CONS &&
@@ -699,7 +697,6 @@ lbm_value cossa_lookup(lbm_value key, lbm_value assoc) {
   return ENC_SYM_NO_MATCH;
 }
 
-
 lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
 
   lbm_uint result = ENC_SYM_EERROR;
@@ -716,6 +713,21 @@ lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op) {
         result = ENC_SYM_TRUE;
       }
     }  break;
+  case SYM_UNDEFINE: {
+    lbm_value env = lbm_get_env();
+    if (nargs == 1 && lbm_is_symbol(args[0])) {
+      result = lbm_env_drop_binding(env, args[0]);
+      *lbm_get_env_ptr() = result;
+    } else if (nargs == 1 && lbm_is_list(args[0])) {
+      lbm_value curr = args[0];
+      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+        lbm_value key = lbm_car(curr);
+        result = lbm_env_drop_binding(env, key);
+        curr = lbm_cdr(curr);
+      }
+      *lbm_get_env_ptr() = result;
+    }
+  } break;
   case SYM_PERFORM_GC:
     lbm_perform_gc();
     result = ENC_SYM_TRUE;
