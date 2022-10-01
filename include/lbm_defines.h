@@ -111,6 +111,9 @@
 #define SYM_CALLCC        0x11
 #define SYM_CONT          0x12
 #define SYM_SETVAR        0x13
+#define SYM_EXIT_OK       0x14
+#define SYM_EXIT_ERROR    0x15
+
 
 // 0x20 - 0x2F are errors
 #define SYM_RERROR        0x20  /* READ ERROR */
@@ -208,6 +211,7 @@
 #define SYM_ATOMIC              0x116
 #define SYM_SELF                0x117
 #define SYM_SET_MAILBOX_SIZE    0x118
+#define SYM_SPAWN_TRAP          0x119
 
 #define SYM_CONS                0x120
 #define SYM_CAR                 0x121
@@ -305,10 +309,14 @@
 #define ENC_SYM_MACRO       ((SYM_MACRO << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_MACRO_EXPAND ((SYM_MACRO_EXPAND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_SETVAR      ((SYM_SETVAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_EXIT_OK     ((SYM_EXIT_OK << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_EXIT_ERROR  ((SYM_EXIT_ERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+
 #define ENC_SYM_SPAWN       ((SYM_SPAWN << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_YIELD       ((SYM_YIELD << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_WAIT        ((SYM_WAIT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_SEND        ((SYM_SEND << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_SPAWN_TRAP  ((SYM_SPAWN_TRAP << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
 #define ENC_SYM_CONS        ((SYM_CONS << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_CAR         ((SYM_CAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)

@@ -57,7 +57,9 @@ special_sym const special_symbols[] =  {
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
 
-  {"setvar"         , SYM_SETVAR},
+  {"setvar"       , SYM_SETVAR},
+  {"exit-ok"      , SYM_EXIT_OK},
+  {"exit-error"   , SYM_EXIT_ERROR},
   {"gc"           , SYM_PERFORM_GC},
 
   // pattern matching
@@ -146,6 +148,7 @@ special_sym const special_symbols[] =  {
   {"spawn"            , SYM_SPAWN},
   {"atomic"           , SYM_ATOMIC},
   {"self"             , SYM_SELF},
+  {"spawn-trap"       , SYM_SPAWN_TRAP},
   {"set-mailbox-size" , SYM_SET_MAILBOX_SIZE},
   {"eq"               , SYM_EQ},
   {"car"              , SYM_CAR},

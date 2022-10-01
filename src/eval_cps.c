@@ -513,8 +513,7 @@ static void finish_ctx(void) {
   if (lbm_memory_ptr_inside((lbm_uint*)ctx_running->error_reason)) {
     lbm_memory_free((lbm_uint*)ctx_running->error_reason);
   }
-
-  lbm_memory_free((lbm_uint*) ctx_running->mailbox);
+  lbm_memory_free((lbm_uint*)ctx_running->mailbox);
   lbm_memory_free((lbm_uint*)ctx_running);
   ctx_running = NULL;
 }
@@ -563,14 +562,47 @@ int lbm_set_error_reason(char *error_str) {
 }
 
 static void error_ctx(lbm_value err_val) {
-  print_error_message(err_val, 0, 0);
   ctx_running->r = err_val;
+  if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
+    lbm_value msg = lbm_cons(err_val, ENC_SYM_NIL);
+    msg = lbm_cons(lbm_enc_i(ctx_running->id), msg);
+    msg = lbm_cons(ENC_SYM_EXIT_ERROR, msg);
+    if (lbm_is_symbol_merror(msg)) {
+      msg = err_val;
+    }
+    lbm_find_receiver_and_send(ctx_running->parent, msg);
+  } else {
+    print_error_message(err_val, 0, 0);
+  }
   finish_ctx();
 }
 
 static void read_error_ctx(unsigned int row, unsigned int column) {
-  print_error_message(ENC_SYM_RERROR, row, column);
-  ctx_running->r = ENC_SYM_RERROR;
+  lbm_value err_val = ENC_SYM_RERROR;
+  ctx_running->r = err_val;
+  if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
+    lbm_value msg = lbm_cons(err_val, ENC_SYM_NIL);
+    msg = lbm_cons(lbm_enc_i(ctx_running->id), msg);
+    msg = lbm_cons(ENC_SYM_EXIT_ERROR, msg);
+    if (lbm_is_symbol_merror(msg)) {
+      msg = err_val;
+    }
+    lbm_find_receiver_and_send(ctx_running->parent, msg);
+  } else {
+    print_error_message(err_val, row, column);
+  }
+  finish_ctx();
+}
+
+// successfully finish a context
+static void ok_ctx(void) {
+  if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
+    lbm_value msg;
+    CONS_WITH_GC(msg, ctx_running->r, ENC_SYM_NIL, ENC_SYM_NIL);
+    CONS_WITH_GC(msg, lbm_enc_i(ctx_running->id), msg, msg);
+    CONS_WITH_GC(msg, ENC_SYM_EXIT_OK, msg, msg);
+    lbm_find_receiver_and_send(ctx_running->parent, msg);
+  }
   finish_ctx();
 }
 
@@ -649,7 +681,7 @@ static void yield_ctx(lbm_uint sleep_us) {
   ctx_running = NULL;
 }
 
-lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
+static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint stack_size, lbm_cid parent, uint32_t context_flags) {
 
   if (lbm_type_of(program) != LBM_TYPE_CONS) return -1;
 
@@ -696,6 +728,7 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
   ctx->error_reason = NULL;
   ctx->mailbox = mailbox;
   ctx->mailbox_size = EVAL_CPS_DEFAULT_MAILBOX_SIZE;
+  ctx->flags = context_flags;
   ctx->num_mail = 0;
   ctx->done = false;
   ctx->app_cont = false;
@@ -705,6 +738,7 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
   ctx->next = NULL;
 
   ctx->id = cid;
+  ctx->parent = parent;
 
   if (!lbm_push(&ctx->K, DONE)) {
     lbm_memory_free((lbm_uint*)ctx->mailbox);
@@ -716,6 +750,15 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
   enqueue_ctx(&queue,ctx);
 
   return ctx->id;
+}
+
+lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
+  // Creates a parentless context.
+  return lbm_create_ctx_parent(program,
+                               env,
+                               stack_size,
+                               -1,
+                               EVAL_CPS_CONTEXT_FLAG_NOTHING);
 }
 
 bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size) {
@@ -769,7 +812,7 @@ static void advance_ctx(void) {
 
   } else {
     ctx_running->done = true;
-    finish_ctx();
+    ok_ctx();
   }
 }
 
@@ -1661,7 +1704,7 @@ static inline void apply_read_program(lbm_value *args, lbm_uint nargs, eval_cont
   }
 }
 
-static inline void apply_spawn(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static inline void apply_spawn(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, uint32_t context_flags) {
 
   lbm_uint stack_size = EVAL_CPS_DEFAULT_STACK_SIZE;
   lbm_uint closure_pos = 1;
@@ -1707,9 +1750,11 @@ static inline void apply_spawn(lbm_value *args, lbm_uint nargs, eval_context_t *
   CONS_WITH_GC(program, exp, program, clo_env);
 
 
-  lbm_cid cid = lbm_create_ctx(program,
-                               clo_env,
-                               stack_size);
+  lbm_cid cid = lbm_create_ctx_parent(program,
+                                      clo_env,
+                                      stack_size,
+                                      lbm_get_current_cid(),
+                                      context_flags);
   ctx->r = lbm_enc_i(cid);
   ctx->app_cont = true;
 }
@@ -1778,6 +1823,23 @@ static inline void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *c
   lbm_stack_drop(&ctx->K, nargs+1);
   ctx->r = status;
   ctx->app_cont = true;
+}
+
+static inline void apply_ok(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  lbm_value ok_val = ENC_SYM_TRUE;
+  if (nargs >= 1) {
+    ok_val = args[1];
+  }
+  ctx->r = ok_val;
+  ok_ctx();
+}
+
+static inline void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  lbm_value err_val = ENC_SYM_EERROR;
+  if (nargs >= 1) {
+    err_val = args[1];
+  }
+  error_ctx(err_val);
 }
 
 static inline void apply_fundamental(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -1863,18 +1925,20 @@ static inline void cont_application(eval_context_t *ctx) {
   } else if (lbm_type_of(fun) == LBM_TYPE_SYMBOL) {
 
     /* eval_cps specific operations */
-    //lbm_uint dfun = lbm_dec_sym(fun);
 
     switch(fun) {
     case ENC_SYM_SETVAR: apply_setvar(fun_args, lbm_dec_u(count), ctx); break;
     case ENC_SYM_READ: /* fall through */
     case ENC_SYM_READ_PROGRAM: apply_read_program(fun_args, lbm_dec_u(count), ctx); break;
-    case ENC_SYM_SPAWN: apply_spawn(fun_args, lbm_dec_u(count), ctx); break;
+    case ENC_SYM_SPAWN: apply_spawn(fun_args, lbm_dec_u(count), ctx, EVAL_CPS_CONTEXT_FLAG_NOTHING); break;
+    case ENC_SYM_SPAWN_TRAP: apply_spawn(fun_args, lbm_dec_u(count), ctx, EVAL_CPS_CONTEXT_FLAG_TRAP); break;
     case ENC_SYM_YIELD: apply_yield(fun_args, lbm_dec_u(count), ctx); break;
     case ENC_SYM_WAIT: apply_wait(fun_args, lbm_dec_u(count), ctx); break;
     case ENC_SYM_EVAL: apply_eval(fun_args, lbm_dec_u(count), ctx); break;
     case ENC_SYM_EVAL_PROGRAM: apply_eval_program(fun_args, lbm_dec_u(count), ctx); break;
     case ENC_SYM_SEND: apply_send(fun_args, lbm_dec_u(count), ctx); break;
+    case ENC_SYM_EXIT_OK: apply_ok(fun_args, lbm_dec_u(count), ctx); break;
+    case ENC_SYM_EXIT_ERROR: apply_error(fun_args, lbm_dec_u(count), ctx); break;
     default:
       if (lbm_is_fundamental(fun)) {
         // If it is not a eval_cps specific function, it may be a fundamental operation
