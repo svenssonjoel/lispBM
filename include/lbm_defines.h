@@ -171,18 +171,19 @@
 #define SYM_TYPE_CHANNEL   0x5E
 
 //Relevant for the tokenizer
-#define SYM_OPENPAR        0x70
-#define SYM_CLOSEPAR       0x71
-#define SYM_BACKQUOTE      0x72
-#define SYM_COMMA          0x73
-#define SYM_COMMAAT        0x74
-#define SYM_TOKENIZER_DONE 0x75
-#define SYM_DOT            0x76
-#define SYM_QUOTE_IT       0x77
-#define SYM_COLON          0x78
-#define SYM_TOKENIZER_WAIT 0x79
-#define SYM_OPENBRACK      0x80
-#define SYM_CLOSEBRACK     0x81
+#define SYM_OPENPAR          0x70
+#define SYM_CLOSEPAR         0x71
+#define SYM_BACKQUOTE        0x72
+#define SYM_COMMA            0x73
+#define SYM_COMMAAT          0x74
+#define SYM_TOKENIZER_DONE   0x75
+#define SYM_DOT              0x76
+#define SYM_QUOTE_IT         0x77
+#define SYM_COLON            0x78
+#define SYM_TOKENIZER_WAIT   0x79
+#define SYM_OPENBRACK        0x80
+#define SYM_CLOSEBRACK       0x81
+#define SYM_TOKENIZER_RERROR 0x82
 
 // Fundamental Operations
 #define FUNDAMENTALS_START      0x100
@@ -329,6 +330,7 @@
 #define ENC_SYM_COMMAAT     ((SYM_COMMAAT << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_CLOSEPAR    ((SYM_CLOSEPAR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_TOKENIZER_DONE ((SYM_TOKENIZER_DONE << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+#define ENC_SYM_TOKENIZER_RERROR ((SYM_TOKENIZER_RERROR << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
 #define ENC_SYM_TYPE_LIST   ((SYM_TYPE_LIST << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 #define ENC_SYM_TYPE_ARRAY  ((SYM_TYPE_ARRAY << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)

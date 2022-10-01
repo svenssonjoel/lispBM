@@ -561,37 +561,38 @@ int lbm_set_error_reason(char *error_str) {
   return r;
 }
 
-static void error_ctx(lbm_value err_val) {
+// Not possible to CONS_WITH_GC ins error_ctx_base (potential loop)
+static void error_ctx_base(lbm_value err_val, unsigned int row, unsigned int column) {
   ctx_running->r = err_val;
-  if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
-    lbm_value msg = lbm_cons(err_val, ENC_SYM_NIL);
-    msg = lbm_cons(lbm_enc_i(ctx_running->id), msg);
-    msg = lbm_cons(ENC_SYM_EXIT_ERROR, msg);
-    if (lbm_is_symbol_merror(msg)) {
-      msg = err_val;
-    }
-    lbm_find_receiver_and_send(ctx_running->parent, msg);
-  } else {
-    print_error_message(err_val, 0, 0);
-  }
-  finish_ctx();
-}
 
-static void read_error_ctx(unsigned int row, unsigned int column) {
-  lbm_value err_val = ENC_SYM_RERROR;
-  ctx_running->r = err_val;
   if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
-    lbm_value msg = lbm_cons(err_val, ENC_SYM_NIL);
-    msg = lbm_cons(lbm_enc_i(ctx_running->id), msg);
-    msg = lbm_cons(ENC_SYM_EXIT_ERROR, msg);
-    if (lbm_is_symbol_merror(msg)) {
-      msg = err_val;
+    if (lbm_heap_num_free() < 3) {
+      gc();
     }
-    lbm_find_receiver_and_send(ctx_running->parent, msg);
+
+    if (lbm_heap_num_free() >= 3) {
+      lbm_value msg = lbm_cons(err_val, ENC_SYM_NIL);
+      msg = lbm_cons(lbm_enc_i(ctx_running->id), msg);
+      msg = lbm_cons(ENC_SYM_EXIT_ERROR, msg);
+      if (lbm_is_symbol_merror(msg)) {
+        // If this happens something is pretty seriously wrong.
+        print_error_message(err_val, row, column);
+      } else {
+        lbm_find_receiver_and_send(ctx_running->parent, msg);
+      }
+    }
   } else {
     print_error_message(err_val, row, column);
   }
   finish_ctx();
+}
+
+static void error_ctx(lbm_value err_val) {
+  error_ctx_base(err_val, 0, 0);
+}
+
+static void read_error_ctx(unsigned int row, unsigned int column) {
+  error_ctx_base(ENC_SYM_RERROR, row, column);
 }
 
 // successfully finish a context
@@ -2248,14 +2249,10 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
 
   if (lbm_type_of(tok) == LBM_TYPE_SYMBOL) {
     switch (lbm_dec_sym(tok)) {
-    case SYM_RERROR:
+    case SYM_TOKENIZER_RERROR:
       lbm_channel_reader_close(str);
       lbm_set_error_reason((char*)parse_error_token);
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
-      done_reading(ctx->id);
-      return;
-    case SYM_MERROR:
-      error_ctx(ENC_SYM_MERROR);
       done_reading(ctx->id);
       return;
     case SYM_TOKENIZER_WAIT:
@@ -2281,7 +2278,6 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
          In case 2, we should find the READ_DONE at sp - 5.
 
       */
-
       if (ctx->K.data[ctx->K.sp-1] == READ_DONE &&
           lbm_dec_u(ctx->K.data[ctx->K.sp-3]) == 0) {
         /* successfully finished reading an expression  (CASE 3) */
