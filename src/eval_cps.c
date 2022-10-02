@@ -36,38 +36,37 @@
 #include "heap_vis.h"
 #endif
 
-#define DONE              ((0 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define SET_GLOBAL_ENV    ((1 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define BIND_TO_KEY_REST  ((2 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define IF                ((3 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define PROGN_REST        ((4 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define APPLICATION       ((5 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define APPLICATION_ARGS  ((6 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define AND               ((7 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define OR                ((8 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define WAIT              ((9 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define MATCH             ((10 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define MATCH_MANY        ((11 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ              ((12 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define APPLICATION_START ((13 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define EVAL_R            ((14 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define SET_VARIABLE      ((15 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define RESUME            ((16 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define EXPAND_MACRO      ((17 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define CLOSURE_ARGS      ((18 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define EXIT_ATOMIC       ((19 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_NEXT_TOKEN       ((20 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_APPEND_CONTINUE  ((21 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_EXPECT_CLOSEPAR  ((22 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_DOT_TERMINATE    ((23 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_DONE             ((24 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_QUOTE_RESULT     ((25 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_BACKQUOTE_RESULT ((26 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_COMMAAT_RESULT   ((27 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_COMMA_RESULT     ((28 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_START_ARRAY      ((29 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define READ_APPEND_ARRAY     ((30 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define NUM_CONTINUATIONS     31
+#define DONE                  ((0 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define SET_GLOBAL_ENV        ((1 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define BIND_TO_KEY_REST      ((2 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define IF                    ((3 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define PROGN_REST            ((4 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define APPLICATION           ((5 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define APPLICATION_ARGS      ((6 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define AND                   ((7 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define OR                    ((8 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define WAIT                  ((9 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define MATCH                 ((10 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define MATCH_MANY            ((11 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ                  ((12 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define APPLICATION_START     ((13 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define EVAL_R                ((14 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define SET_VARIABLE          ((15 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define RESUME                ((16 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define CLOSURE_ARGS          ((17 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define EXIT_ATOMIC           ((18 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_NEXT_TOKEN       ((19 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_APPEND_CONTINUE  ((20 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_EXPECT_CLOSEPAR  ((21 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_DOT_TERMINATE    ((22 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_DONE             ((23 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_QUOTE_RESULT     ((24 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_BACKQUOTE_RESULT ((25 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_COMMAAT_RESULT   ((26 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_COMMA_RESULT     ((27 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_START_ARRAY      ((28 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READ_APPEND_ARRAY     ((29 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define NUM_CONTINUATIONS     30
 
 static const char* parse_error_eof = "End of parse stream";
 static const char* parse_error_token = "Malformed token";
@@ -1541,44 +1540,6 @@ static void cont_resume(eval_context_t *ctx) {
   ctx->curr_exp = exp;
 }
 
-static void cont_expand_macro(eval_context_t *ctx) {
-
-  lbm_uint* sptr = lbm_get_stack_ptr(&ctx->K, 2);
-  if (!sptr) {
-    error_ctx(ENC_SYM_FATAL_ERROR);
-    return;
-  }
-  lbm_value env = (lbm_value)sptr[0];
-  lbm_value args = (lbm_value)sptr[1];
-
-  if (lbm_is_macro(ctx->r)) {
-
-    lbm_value m = ctx->r;
-    lbm_value curr_param = lbm_cadr(m);
-    lbm_value curr_arg = args;
-    lbm_value expand_env = env;
-    while (lbm_type_of(curr_param) == LBM_TYPE_CONS &&
-           lbm_type_of(curr_arg)   == LBM_TYPE_CONS) {
-
-      lbm_value entry;
-      WITH_GC(entry,lbm_cons(lbm_car(curr_param),lbm_car(curr_arg)), expand_env,ENC_SYM_NIL);
-
-      lbm_value aug_env;
-      WITH_GC(aug_env,lbm_cons(entry, expand_env),expand_env,entry);
-      expand_env = aug_env;
-
-      curr_param = lbm_cdr(curr_param);
-      curr_arg   = lbm_cdr(curr_arg);
-    }
-    lbm_stack_drop(&ctx->K, 2);
-    ctx->curr_exp = lbm_cadr(lbm_cdr(m));
-    ctx->curr_env = expand_env;
-    ctx->app_cont = false;
-    return;
-  }
-  error_ctx(ENC_SYM_EERROR);
-}
-
 static void cont_progn_rest(eval_context_t *ctx) {
   lbm_value rest;
   lbm_value env;
@@ -1968,6 +1929,8 @@ static void cont_application(eval_context_t *ctx) {
   }
 }
 
+// Caveat: Application of a closure to 0 arguments if
+// the same as applying it to NIL.
 static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_uint* sptr = lbm_get_stack_ptr(&ctx->K, 5);
 
@@ -2695,13 +2658,6 @@ static void cont_application_start(eval_context_t *ctx) {
 
   if (lbm_type_of(ctx->r) == LBM_TYPE_CONS) {
     switch (lbm_car(ctx->r)) {
-    case ENC_SYM_MACRO_EXPAND:
-      /* (macro-expand (args + (list 1 2 3))) */
-      sptr[1] = lbm_cdr(args);
-      CHECK_STACK(lbm_push(&ctx->K,
-                           EXPAND_MACRO));
-      ctx->curr_exp = lbm_car(lbm_car(args));
-      break;
     case ENC_SYM_MACRO:{
       /*
        * Perform macro expansion.
@@ -2732,9 +2688,6 @@ static void cont_application_start(eval_context_t *ctx) {
        * Second to evaluate the resulting program.
        */
       sptr[1] = EVAL_R;
-      /* CHECK_STACK(lbm_push_u32_2(&ctx->K, */
-      /*                            env, */
-      /*                            EVAL_R)); */
       lbm_value exp = lbm_cadr(lbm_cdr(ctx->r));
       ctx->curr_exp = exp;
       ctx->curr_env = expand_env;
@@ -2808,7 +2761,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_eval_r,
     cont_set_var,
     cont_resume,
-    cont_expand_macro,
     cont_closure_application_args,
     cont_exit_atomic,
     cont_read_next_token,
