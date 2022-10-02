@@ -101,7 +101,7 @@ static int gc(void);
 static void error_ctx(lbm_value);
 static eval_context_t *ctx_running = NULL;
 
-static inline lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
+static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
   lbm_value res = lbm_cons(head, tail);
   if (lbm_is_symbol_merror(res)) {
     lbm_gc_mark_phase(remember);
@@ -1160,7 +1160,7 @@ int lbm_perform_gc(void) {
 /****************************************************/
 /* Evaluation functions                             */
 
-static inline bool eval_symbol(eval_context_t *ctx, lbm_value *value) {
+static bool eval_symbol(eval_context_t *ctx, lbm_value *value) {
 
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
   if (s < SPECIAL_SYMBOLS_END ||
@@ -1183,7 +1183,7 @@ static inline bool eval_symbol(eval_context_t *ctx, lbm_value *value) {
   }
 }
 
-static inline void dynamic_load(eval_context_t *ctx) {
+static void dynamic_load(eval_context_t *ctx) {
 
   const char *sym_str = lbm_get_name_by_symbol(lbm_dec_sym(ctx->curr_exp));
   const char *code_str = NULL;
@@ -1213,18 +1213,18 @@ static inline void dynamic_load(eval_context_t *ctx) {
 }
 
 
-static inline void eval_quote(eval_context_t *ctx) {
+static void eval_quote(eval_context_t *ctx) {
   ctx->r = lbm_cadr(ctx->curr_exp);
   ctx->app_cont = true;
 }
 
-static inline void eval_selfevaluating(eval_context_t *ctx) {
+static void eval_selfevaluating(eval_context_t *ctx) {
   ctx->r = ctx->curr_exp;
   ctx->app_cont = true;
 }
 
 
-static inline void eval_atomic(eval_context_t *ctx) {
+static void eval_atomic(eval_context_t *ctx) {
   if (is_atomic) {
     lbm_set_error_reason("Atomic blocks cannot be nested!");
     error_ctx(ENC_SYM_EERROR);
@@ -1238,7 +1238,7 @@ static inline void eval_atomic(eval_context_t *ctx) {
 }
 
 
-static inline void eval_callcc(eval_context_t *ctx) {
+static void eval_callcc(eval_context_t *ctx) {
 
   lbm_value cont_array;
 #ifndef LBM64
@@ -1275,7 +1275,7 @@ static inline void eval_callcc(eval_context_t *ctx) {
   ctx->app_cont = false;
 }
 
-static inline void eval_define(eval_context_t *ctx) {
+static void eval_define(eval_context_t *ctx) {
   lbm_value args = lbm_cdr(ctx->curr_exp);
   lbm_value key = lbm_car(args);
   lbm_value rest_args = lbm_cdr(args);
@@ -1307,7 +1307,7 @@ static inline void eval_define(eval_context_t *ctx) {
   return;
 }
 
-static inline void eval_progn(eval_context_t *ctx) {
+static void eval_progn(eval_context_t *ctx) {
   lbm_value exps = lbm_cdr(ctx->curr_exp);
   lbm_value env  = ctx->curr_env;
 
@@ -1332,21 +1332,21 @@ static inline void eval_progn(eval_context_t *ctx) {
   }
 }
 
-static inline lbm_value mk_closure(lbm_value env, lbm_value body, lbm_value params) {
+static lbm_value mk_closure(lbm_value env, lbm_value body, lbm_value params) {
   lbm_value env_end = cons_with_gc( env, ENC_SYM_NIL, env);
   lbm_value exp = cons_with_gc(body, env_end, env_end);
   lbm_value par = cons_with_gc(params, exp, exp);
   return cons_with_gc(ENC_SYM_CLOSURE, par, par);
 }
 
-static inline void eval_lambda(eval_context_t *ctx) {
+static void eval_lambda(eval_context_t *ctx) {
   lbm_value closure = mk_closure(ctx->curr_env, lbm_cadr(lbm_cdr(ctx->curr_exp)),  lbm_cadr(ctx->curr_exp));
   ctx->app_cont = true;
   ctx->r = closure;
   return;
 }
 
-static inline void eval_if(eval_context_t *ctx) {
+static void eval_if(eval_context_t *ctx) {
 
   lbm_value cddr = lbm_cdr(lbm_cdr(ctx->curr_exp));
   lbm_value then_branch = lbm_car(cddr);
@@ -1364,7 +1364,7 @@ static inline void eval_if(eval_context_t *ctx) {
   ctx->curr_exp = lbm_cadr(ctx->curr_exp);
 }
 
-static inline void eval_let(eval_context_t *ctx) {
+static void eval_let(eval_context_t *ctx) {
   lbm_value orig_env = ctx->curr_env;
   lbm_value binds    = lbm_cadr(ctx->curr_exp); // key value pairs.
   lbm_value exp      = lbm_cadr(lbm_cdr(ctx->curr_exp)); // exp to evaluate in the new env.
@@ -1408,7 +1408,7 @@ static inline void eval_let(eval_context_t *ctx) {
   return;
 }
 
-static inline void eval_and(eval_context_t *ctx) {
+static void eval_and(eval_context_t *ctx) {
   lbm_value rest = lbm_cdr(ctx->curr_exp);
   if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
@@ -1419,7 +1419,7 @@ static inline void eval_and(eval_context_t *ctx) {
   }
 }
 
-static inline void eval_or(eval_context_t *ctx) {
+static void eval_or(eval_context_t *ctx) {
   lbm_value rest = lbm_cdr(ctx->curr_exp);
   if (lbm_is_symbol_nil(rest)) {
     ctx->app_cont = true;
@@ -1435,7 +1435,7 @@ static inline void eval_or(eval_context_t *ctx) {
 /* (match e (pattern body)     */
 /*          (pattern body)     */
 /*          ...  )             */
-static inline void eval_match(eval_context_t *ctx) {
+static void eval_match(eval_context_t *ctx) {
 
   lbm_value rest = lbm_cdr(ctx->curr_exp);
   if (lbm_type_of(rest) == LBM_TYPE_SYMBOL &&
@@ -1450,7 +1450,7 @@ static inline void eval_match(eval_context_t *ctx) {
   }
 }
 
-static inline void eval_receive(eval_context_t *ctx) {
+static void eval_receive(eval_context_t *ctx) {
 
   if (is_atomic) {
     lbm_set_error_reason("Cannot receive inside of an atomic block");
@@ -1637,7 +1637,7 @@ static void cont_wait(eval_context_t *ctx) {
   }
 }
 
-static inline void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
  if (nargs == 2 && lbm_is_symbol(args[1])) {
    lbm_uint s = lbm_dec_sym(args[1]);
    if (s >= VARIABLE_SYMBOLS_START &&
@@ -1678,7 +1678,7 @@ static inline void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t 
  ctx->app_cont = true;
 }
 
-static inline void apply_read_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static void apply_read_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 1) {
     lbm_value chan = ENC_SYM_NIL;
     if (lbm_type_of(args[1]) == LBM_TYPE_ARRAY) {
@@ -1766,7 +1766,7 @@ static void apply_spawn_trap(lbm_value *args, lbm_uint nargs, eval_context_t *ct
   apply_spawn_base(args,nargs,ctx, EVAL_CPS_CONTEXT_FLAG_TRAP);
 }
 
-static inline void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (is_atomic) {
     lbm_set_error_reason("Cannot yield inside of an atomic block");
     error_ctx(ENC_SYM_EERROR);
@@ -1781,7 +1781,7 @@ static inline void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *
   }
 }
 
-static inline void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (lbm_type_of(args[1]) == LBM_TYPE_I) {
     lbm_cid cid = (lbm_cid)lbm_dec_i(args[1]);
     lbm_stack_drop(&ctx->K, nargs+1);
@@ -1794,12 +1794,12 @@ static inline void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *c
   }
 }
 
-static inline void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   ctx->curr_exp = args[1];
   lbm_stack_drop(&ctx->K, nargs+1);
 }
 
-static inline void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
   lbm_value prg = args[1];
   prg = lbm_list_append(prg, ctx->program);
@@ -1815,7 +1815,7 @@ static inline void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_cont
   ctx->curr_exp = lbm_car(prg);
 }
 
-static inline void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   lbm_value status = ENC_SYM_EERROR;
   if (nargs == 2) {
 
@@ -1832,7 +1832,7 @@ static inline void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *c
   ctx->app_cont = true;
 }
 
-static inline void apply_ok(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static void apply_ok(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   lbm_value ok_val = ENC_SYM_TRUE;
   if (nargs >= 1) {
     ok_val = args[1];
@@ -1841,7 +1841,7 @@ static inline void apply_ok(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
   ok_ctx();
 }
 
-static inline void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value err_val = ENC_SYM_EERROR;
   if (nargs >= 1) {
@@ -1850,7 +1850,7 @@ static inline void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *
   error_ctx(err_val);
 }
 
-static inline void apply_extension(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+static void apply_extension(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   extension_fptr f = lbm_get_extension(lbm_dec_sym(args[0]));
   if (f == NULL) {
     error_ctx(ENC_SYM_EERROR);
@@ -2777,7 +2777,7 @@ static void cont_application_start(eval_context_t *ctx) {
   }
 }
 
-static inline void cont_eval_r(eval_context_t* ctx) {
+static void cont_eval_r(eval_context_t* ctx) {
 
   lbm_value env;
   lbm_pop(&ctx->K, &env);
