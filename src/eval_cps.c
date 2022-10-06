@@ -2894,18 +2894,6 @@ void lbm_pause_eval_with_gc(uint32_t num_free) {
   if (eval_cps_next_state != eval_cps_run_state) eval_cps_state_changed = true;
 }
 
-void lbm_step_eval(void) {
-  eval_cps_next_state_arg = 1;
-  eval_cps_next_state = EVAL_CPS_STATE_STEP;
-  if (eval_cps_next_state != eval_cps_run_state) eval_cps_state_changed = true;
-}
-
-void lbm_step_n_eval(uint32_t n) {
-  eval_cps_next_state_arg = n;
-  eval_cps_next_state = EVAL_CPS_STATE_STEP;
-  if (eval_cps_next_state != eval_cps_run_state) eval_cps_state_changed = true;
-}
-
 void lbm_continue_eval(void) {
   eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
   if (eval_cps_next_state != eval_cps_run_state) eval_cps_state_changed = true;
