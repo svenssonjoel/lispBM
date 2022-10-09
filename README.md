@@ -25,10 +25,6 @@ LispBM runtime system.
 3. Then join in the fun. Lots to do, so little time!
 4. Poke me by mail bo(dot)joel(dot)svensson(whirly-a)gmail(dot)com
 
-## Bus factor
-
-1
-
 ## Documentation
  - Work in progress [LispBM language reference](./doc/lbmref.md).
  - Work in progress [LispBM programming manual](./doc/manual)
