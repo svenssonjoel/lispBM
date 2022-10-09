@@ -515,18 +515,6 @@ get as result a unnamed symbol.
 
 ---
 
-### is-fundamental
-
-The `is-funamental` function returns true for built-in functions.
-
-Example that returns true.
-```clj
-(is-fundamental '+)
-```
-
----
-
-
 ## Special forms
 
 
@@ -1343,6 +1331,17 @@ Example where a process waits for an integer `?i`.
 (recv ( (?i n) (+ n 1) ))
 ```
 
+---
+
+### set-mailbox-size
+
+Change the size of the mailbox in the current process.
+Standard mailbox size is 10 elements.
+
+Example that changes mailbox size to 100 elements.
+```clj
+(set-mailbox-size 100)
+```
 
 ---
 
