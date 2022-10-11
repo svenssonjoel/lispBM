@@ -513,6 +513,7 @@ static void finish_ctx(void) {
   lbm_memory_free((lbm_uint*)ctx_running->mailbox);
   lbm_memory_free((lbm_uint*)ctx_running);
   ctx_running = NULL;
+  gc();
 }
 
 static void context_exists(eval_context_t *ctx, void *cid, void *b) {
