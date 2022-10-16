@@ -1087,8 +1087,8 @@ static int gc(void) {
       lbm_gc_mark_phase(variables[i]);
     }
   }
-
-  lbm_gc_mark_freelist();
+  // The freelist should generally be NIL when GC runs.
+  lbm_nil_freelist();
   lbm_gc_mark_phase(*lbm_get_env_ptr());
 
   eval_context_t *curr = queue.first;
