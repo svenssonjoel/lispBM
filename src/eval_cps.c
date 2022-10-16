@@ -1355,15 +1355,15 @@ static void eval_if(eval_context_t *ctx) {
   lbm_value else_branch = lbm_cadr(cddr);
 
   lbm_uint *sptr = lbm_stack_reserve(&ctx->K, 4);
-  if (!sptr) {
+  if (sptr) {
+    sptr[0] = else_branch;
+    sptr[1] = then_branch;
+    sptr[2] = ctx->curr_env;
+    sptr[3] = IF;
+    ctx->curr_exp = lbm_cadr(ctx->curr_exp);
+  } else {
     error_ctx(ENC_SYM_STACK_ERROR);
-    return;
   }
-  sptr[0] = else_branch;
-  sptr[1] = then_branch;
-  sptr[2] = ctx->curr_env;
-  sptr[3] = IF;
-  ctx->curr_exp = lbm_cadr(ctx->curr_exp);
 }
 
 static void eval_let(eval_context_t *ctx) {

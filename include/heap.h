@@ -470,7 +470,7 @@ void lbm_gc_state_inc(void);
 /** Set the freelist to NIL. Means that no memory will be available
  *  until after a garbage collection.
  */
-void nil_freelist(void);
+void lbm_nil_freelist(void);
 /** Mark all heap cells that are on the free-list.
  *
  * \return 1 on success or 0 if the free-list is corrupted.

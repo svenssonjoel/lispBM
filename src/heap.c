@@ -777,6 +777,7 @@ lbm_value lbm_cdr(lbm_value c){
   return ENC_SYM_TERROR;
 }
 
+
 int lbm_set_car(lbm_value c, lbm_value v) {
   int r = 0;
   if (lbm_type_of(c) == LBM_TYPE_CONS) {
