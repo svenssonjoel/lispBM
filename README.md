@@ -65,17 +65,23 @@ LispBM runtime system.
 5. More built in comparisons.
 6. Make uniform how to return success or failure. It is sometimes bool and sometimes int right now. 
 
-## Compile a 32bit binary for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
-
-1. Build the repl: `cd repl-cps` and then `make`
-
-2. Run the repl: `./repl`
+---
 
 ## Compile a 64bit binary for linux
 
-1. Build the repl: `cd repl-cps` and then `make all64`
+1. Build the repl: `cd repl` and then `make all64`
 
 2. Run the repl: `./repl`
+
+---
+
+## Compile a 32bit binary for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
+
+1. Build the repl: `cd repl` and then `make`
+
+2. Run the repl: `./repl`
+
+---
 
 ## Compile on Raspberry Pi
 
@@ -85,15 +91,17 @@ To build the library exeute the following command in the lispbm folder:
 PLATFORM=pi make
 ```
 
-To build the `repl-cps` example repl do:
+To build the `repl` example repl do:
 
 ```
-cd repl-cps
+cd repl
 make pirepl
 ```
 
 Then start it up using `./repl`
 Building the library is not a prerequisite for building the repl anymore.
+
+---
 
 ## SDL and LispBM
 
