@@ -32,40 +32,22 @@ LispBM runtime system.
  - LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).
  - There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3TaqZoDOQqZcB9Yj-R1zS2DWDZ9q9).
 
-## Purpose
-1. Have fun.
-2. Learn about lisp.
-3. Learn about microcontrollers.
-4. An interactive REPL for devboards.
-5. ...
-
 ## Features
 1. heap consisting of cons-cells with mark and sweep garbage collection.
 2. Built-in functions: cons, car, cdr, eval, list, +, -, >, <, = and more.
 3. Some special forms: Lambdas, closures, lets (letrecs), define and quote.
 4. 28-Bit signed/unsigned integers and boxed 32-Bit Float, 32-Bit signed/unsigned values.
 5. Arrays (in progress), string is an array.
-6. Compiles for, and runs on linux-x86.
-7. Compiles for, and runs on Zynq 7000.
-8. Compiles for, and runs on STM32f4.
-9. Compiles for, and runs on NRF52840.
-10. Compiles for, and runs on ESP32 (ARM - WROOM).
-11. Compiles for, and runs on ESP32C3 (RISC-V).
-12. Compiles for, and runs on Raspberry PI (Tested on 32bit Raspbian OS)
-13. Quasiquotation.
-14. Concurrency.
-15. Message-passing.
-16. Pattern-matching.
+6. Quasiquotation.
+7. Concurrency.
+8. Message-passing.
+9. Pattern-matching.
 
 ## Vague or continuosly ongoing todos
 1. Doxygen?
 2. Tutorials?
 3. Be much more stringent on checking of error conditions etc.
-4. More built in arithmetic.
-5. More built in comparisons.
-6. Make uniform how to return success or failure. It is sometimes bool and sometimes int right now. 
-
----
+4. Make uniform how to return success or failure. It is sometimes bool and sometimes int right now. 
 
 ## Compile a 64bit binary for linux
 
@@ -73,15 +55,11 @@ LispBM runtime system.
 
 2. Run the repl: `./repl`
 
----
-
 ## Compile a 32bit binary for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 
 1. Build the repl: `cd repl` and then `make`
 
 2. Run the repl: `./repl`
-
----
 
 ## Compile on Raspberry Pi
 
@@ -100,8 +78,6 @@ make pirepl
 
 Then start it up using `./repl`
 Building the library is not a prerequisite for building the repl anymore.
-
----
 
 ## SDL and LispBM
 
