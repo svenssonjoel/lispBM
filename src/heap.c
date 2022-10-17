@@ -455,6 +455,7 @@ static int generate_freelist(size_t num_cells) {
 
 void lbm_nil_freelist(void) {
   lbm_heap_state.freelist = ENC_SYM_NIL;
+  lbm_heap_state.num_alloc = lbm_heap_state.heap_size;
 }
 
 static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
