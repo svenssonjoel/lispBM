@@ -540,7 +540,7 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
   lbm_heap_state.num_alloc++;
 
   // set some ok initial values (nil . nil)
-  lbm_ref_cell(res)->car =  ENC_SYM_NIL;
+  lbm_ref_cell(res)->car = ENC_SYM_NIL;
   lbm_ref_cell(res)->cdr = ENC_SYM_NIL;
 
   // clear GC bit on allocated cell
