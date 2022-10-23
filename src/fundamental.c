@@ -518,8 +518,15 @@ static int elt_size(lbm_type t) {
   }
 }
 
-static lbm_value index_list(lbm_value l, unsigned int n) {
+static lbm_value index_list(lbm_value l, int32_t n) {
   lbm_value curr = l;
+
+  if (n < 0) {
+    int32_t len = (int32_t)lbm_list_length(l);
+    n = len + n;
+    if (n < 0) return ENC_SYM_NIL;
+  }
+
   while ( lbm_type_of(curr) == LBM_TYPE_CONS &&
           n > 0) {
     curr = lbm_cdr(curr);
@@ -893,7 +900,7 @@ static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_contex
   }
 
   for (int i = n-1; i >= 0; i --) {
-    result = lbm_cons(index_list(a,(unsigned int)i), result);
+    result = lbm_cons(index_list(a,i), result);
     if (lbm_type_of(result) == LBM_TYPE_SYMBOL)
       break;
   }
@@ -1162,7 +1169,7 @@ static lbm_value fundamental_ix(lbm_value *args, lbm_uint nargs, eval_context_t 
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 2 && lbm_is_number(args[1])) {
-    result = index_list(args[0], lbm_dec_as_u32(args[1]));
+    result = index_list(args[0], lbm_dec_as_i32(args[1]));
   }
   return result;
 }
