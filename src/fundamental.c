@@ -1427,6 +1427,7 @@ static lbm_value fundamental_range(lbm_value *args, lbm_uint nargs, eval_context
 
   int32_t start;
   int32_t end;
+  bool rev = false;
 
   if (nargs == 1 && lbm_is_number(args[0])) {
     start = 0;
@@ -1445,6 +1446,7 @@ static lbm_value fundamental_range(lbm_value *args, lbm_uint nargs, eval_context
     int32_t tmp = end;
     end = start;
     start = tmp;
+    rev = true;
   }
 
   int num = end - start;
@@ -1457,7 +1459,7 @@ static lbm_value fundamental_range(lbm_value *args, lbm_uint nargs, eval_context
   for (int i = end - 1; i >= start; i --) {
     r_list = lbm_cons(lbm_enc_i(i), r_list);
   }
-  return r_list;
+  return rev ? lbm_list_destructive_reverse(r_list) : r_list;
 }
 
 const fundamental_fun fundamental_table[] =
