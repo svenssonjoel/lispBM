@@ -1411,6 +1411,17 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   return ENC_SYM_TERROR;
 }
 
+static lbm_value fundamental_list_length(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value result = ENC_SYM_EERROR;
+  if (nargs == 1 && lbm_is_list(args[0])) {
+    int32_t len = (int32_t)lbm_list_length(args[0]);
+    result = lbm_enc_i(len);
+  }
+  return result;
+}
+
+
 const fundamental_fun fundamental_table[] =
   { fundamental_add,
     fundamental_sub,
@@ -1466,5 +1477,6 @@ const fundamental_fun fundamental_table[] =
     fundamental_bitwise_xor,
     fundamental_bitwise_not,
     fundamental_custom_destruct,
-    fundamental_type_of
+    fundamental_type_of,
+    fundamental_list_length,
   };
