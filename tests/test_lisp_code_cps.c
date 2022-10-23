@@ -115,10 +115,7 @@ bool dyn_load(const char *str, const char **code) {
     res = true;
   } else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
     *code = "(define iota (lambda (n)"
-            "(let ((iacc (lambda (acc i)"
-            "(if (< i 0) acc"
-            "(iacc (cons i acc) (- i 1))))))"
-            "(iacc nil n))))";
+            "(range 0 n)))";
     res = true;
   } else if (strlen(str) == 4 && strncmp(str, "take", 4) == 0) {
     *code = "(define take (lambda (n xs)"

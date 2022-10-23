@@ -1421,6 +1421,44 @@ static lbm_value fundamental_list_length(lbm_value *args, lbm_uint nargs, eval_c
   return result;
 }
 
+static lbm_value fundamental_range(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value result = ENC_SYM_EERROR;
+
+  int32_t start;
+  int32_t end;
+
+  if (nargs == 1 && lbm_is_number(args[0])) {
+    start = 0;
+    end = lbm_dec_as_i32(args[0]);
+  } else if (nargs == 2 &&
+             lbm_is_number(args[0]) &&
+             lbm_is_number(args[1])) {
+    start = lbm_dec_as_i32(args[0]);
+    end = lbm_dec_as_i32(args[1]);
+  } else {
+    return result;
+  }
+
+  if (end == start) return ENC_SYM_NIL;
+  else if (end < start) {
+    int32_t tmp = end;
+    end = start;
+    start = tmp;
+  }
+
+  int num = end - start;
+
+  if ((unsigned int)num > lbm_heap_num_free()) {
+    return ENC_SYM_MERROR;
+  }
+
+  lbm_value r_list = ENC_SYM_NIL;
+  for (int i = end - 1; i >= start; i --) {
+    r_list = lbm_cons(lbm_enc_i(i), r_list);
+  }
+  return r_list;
+}
 
 const fundamental_fun fundamental_table[] =
   { fundamental_add,
@@ -1479,4 +1517,5 @@ const fundamental_fun fundamental_table[] =
     fundamental_custom_destruct,
     fundamental_type_of,
     fundamental_list_length,
+    fundamental_range
   };
