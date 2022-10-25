@@ -1141,6 +1141,30 @@ static void eval_selfevaluating(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static void eval_progn(eval_context_t *ctx) {
+  lbm_value exps = lbm_cdr(ctx->curr_exp);
+  lbm_value env  = ctx->curr_env;
+
+  if (lbm_is_cons(exps)) {
+    lbm_uint *sptr = lbm_stack_reserve(&ctx->K, 3);
+    if (!sptr) {
+      error_ctx(ENC_SYM_STACK_ERROR);
+      return;
+    }
+    sptr[0] = env;
+    sptr[1] = lbm_cdr(exps);
+    sptr[2] = PROGN_REST;
+    ctx->curr_exp = lbm_car(exps);
+    ctx->curr_env = env;
+    if (lbm_is_symbol(sptr[1])) /* The only symbol it can be is nil */
+      lbm_stack_drop(&ctx->K, 3);
+  } else if (lbm_is_symbol_nil(exps)) {
+    ctx->r = ENC_SYM_NIL;
+    ctx->app_cont = true;
+  } else {
+    error_ctx(ENC_SYM_EERROR);
+  }
+}
 
 static void eval_atomic(eval_context_t *ctx) {
   if (is_atomic) {
@@ -1151,8 +1175,7 @@ static void eval_atomic(eval_context_t *ctx) {
 
   CHECK_STACK(lbm_push(&ctx->K, EXIT_ATOMIC));
   is_atomic = true;
-  ctx->curr_exp = lbm_cadr(ctx->curr_exp);
-  /*NOTE:  ctx->app_cont = false; */
+  eval_progn(ctx);
 }
 
 
@@ -1223,31 +1246,6 @@ static void eval_define(eval_context_t *ctx) {
   }
   error_ctx(ENC_SYM_EERROR);
   return;
-}
-
-static void eval_progn(eval_context_t *ctx) {
-  lbm_value exps = lbm_cdr(ctx->curr_exp);
-  lbm_value env  = ctx->curr_env;
-
-  if (lbm_is_cons(exps)) {
-    lbm_uint *sptr = lbm_stack_reserve(&ctx->K, 3);
-    if (!sptr) {
-      error_ctx(ENC_SYM_STACK_ERROR);
-      return;
-    }
-    sptr[0] = env;
-    sptr[1] = lbm_cdr(exps);
-    sptr[2] = PROGN_REST;
-    ctx->curr_exp = lbm_car(exps);
-    ctx->curr_env = env;
-    if (lbm_is_symbol(sptr[1])) /* The only symbol it can be is nil */
-      lbm_stack_drop(&ctx->K, 3);
-  } else if (lbm_is_symbol_nil(exps)) {
-    ctx->r = ENC_SYM_NIL;
-    ctx->app_cont = true;
-  } else {
-    error_ctx(ENC_SYM_EERROR);
-  }
 }
 
 // (closure params body env)
