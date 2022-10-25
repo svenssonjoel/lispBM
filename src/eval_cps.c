@@ -305,6 +305,11 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
 
   lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
   printf_callback("***\tError:\t%s\n", buf);
+  if (lbm_is_symbol(error) &&
+      error == ENC_SYM_NOT_FOUND) {
+    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+    printf_callback("***\t\t%s\n",buf);
+  }
 
   if (lbm_is_symbol(error) &&
       error == ENC_SYM_RERROR) {

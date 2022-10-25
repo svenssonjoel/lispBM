@@ -1279,17 +1279,16 @@ is number indicating at least how many microseconds the process should sleep.
 
 ### atomic
 
-`atomic` can be used to execute a LispBM expression without allowing
-the runtime system to switch task during the time that takes.
+`atomic` can be used to execute a LispBM one or more expression without allowing
+the runtime system to switch task during that time.
 
 An example that atomically perfoms operations a,b and c.
 
 ```clj
 (atomic
-   (progn
      a
      b
-     c))
+     c)
 ```
 ---
 
