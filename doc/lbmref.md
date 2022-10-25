@@ -1209,45 +1209,6 @@ An example that evaluates to 19.
 
 ---
 
-### ?i
-
-The `?i` pattern matches an integer (28bit integer on 32bit platforms
-and a 56bit integer on 64bit platforms) and binds that value to a
-variable.  Using the ?i pattern is done as `(?i var)` and the part
-of the expression that matches is bound to the `var`.
-
-The following example evaluates to `not-an-i`.
-```clj
-(match 3.14
-       ( (?i n) (+ n 1))
-       ( _ 'not-an-i))
-```
-The example below evaluates to 5.
-```clj
-(match 4
-       ( (?i n) (+ n 1))
-       ( _ 'not-an-i))
-```
-
-
----
-
-### ?u
-
-The `?u` pattern matches any unsigned and binds that value to a variable.
-Using the ?u pattern is done as `(?u var)` and the part of the expression
-that matches is bound to the `var`.
-
----
-
-### ?float
-
-The `?float` pattern matches any float and binds that value to a
-variable.  Using the `?float` pattern is done as `(?float var)` and
-the part of the expression that matches is bound to the `var`.
-
----
-
 ## Concurrency
 
 The concurrency support in LispBM is provided by the set of functions,
