@@ -1799,7 +1799,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
   } else {
-    lbm_set_error_reason("Map requires at least one argument");
+    lbm_set_error_reason("Map requires at one or two arguments");
     error_ctx(ENC_SYM_EERROR);
   }
 }
