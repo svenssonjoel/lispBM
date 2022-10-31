@@ -22,8 +22,8 @@
                (progn
                  (print "FRED!")
                  (print "fred iteration\n" )
-                 (recv ( (apa (? x) 107)  (print "fred received apa " x "\n"))
-                       ( (bepa (? x))  (print "fred received bepa " x "\n"))
+                 (recv ( (apa (? x) 107) (print "fred received apa " x "\n"))
+                       ( (bepa (? x))  (print "fred received bepa " x "\n")))
                  (fred))))
 
 (let ((apa 1000))

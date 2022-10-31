@@ -71,6 +71,10 @@
 #define MATCH_GUARD           ((32 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define NUM_CONTINUATIONS     33
 
+#define FM_NEED_GC       -1
+#define FM_NO_MATCH      -2
+#define FM_PATTERN_ERROR -3
+
 static const char* parse_error_eof = "End of parse stream";
 static const char* parse_error_token = "Malformed token";
 static const char* parse_error_dot = "Incorrect usage of '.'";
@@ -971,16 +975,22 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
   return struct_eq(p, e);
 }
 
-static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value *e, lbm_value *env, bool *gc) {
+static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value *e, lbm_value *env) {
 
   lbm_value curr_p = plist;
   int n = 0;
+  bool gc = false;
   for (int i = 0; i < (int)num; i ++ ) {
     lbm_value curr_e = earr[i];
     while (lbm_type_of(curr_p) == LBM_TYPE_CONS) {
-      if (match(lbm_car(lbm_car(curr_p)), curr_e, env, gc)) {
-        if (*gc) return -1;
-        *e = lbm_cadr(lbm_car(curr_p));
+      lbm_value me = lbm_car(curr_p);
+      if (match(lbm_car(me), curr_e, env, &gc)) {
+        if (gc) return FM_NEED_GC;
+        *e = lbm_cadr(me);
+
+        if (!lbm_is_symbol_nil(lbm_cadr(lbm_cdr(me)))) {
+          return FM_PATTERN_ERROR;
+        }
         return n;
       }
       curr_p = lbm_cdr(curr_p);
@@ -989,7 +999,7 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
     n ++;
   }
 
-  return -1;
+  return FM_NO_MATCH;
 }
 
 /****************************************************/
@@ -1412,18 +1422,20 @@ static void eval_receive(eval_context_t *ctx) {
       lbm_value e;
       lbm_value new_env = ctx->curr_env;
       bool do_gc = false;
-      int n = find_match(lbm_cdr(pats), msgs, num, &e, &new_env, &do_gc);
-      if (do_gc) {
+      int n = find_match(lbm_cdr(pats), msgs, num, &e, &new_env);
+      if (n == FM_NEED_GC) {
         gc();
         do_gc = false;
-        n = find_match(lbm_cdr(pats), msgs, num, &e, &new_env, &do_gc);
+        n = find_match(lbm_cdr(pats), msgs, num, &e, &new_env);
         if (do_gc) {
           ctx_running->done = true;
           error_ctx(ENC_SYM_MERROR);
           return;
         }
-      }
-      if (n >= 0 ) { /* Match */
+      } else if (n == FM_PATTERN_ERROR) {
+        lbm_set_error_reason("Incorrect pattern format for recv");
+        error_ctx(ENC_SYM_EERROR);
+      } else if (n >= 0 ) { /* Match */
         mailbox_remove_mail(ctx, (lbm_uint)n);
         ctx->curr_env = new_env;
         ctx->curr_exp = e;
