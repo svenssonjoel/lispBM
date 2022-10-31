@@ -68,7 +68,8 @@
 #define READ_APPEND_ARRAY     ((29 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define MAP_FIRST             ((30 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define MAP_REST              ((31 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define NUM_CONTINUATIONS     32
+#define MATCH_GUARD           ((32 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define NUM_CONTINUATIONS     33
 
 static const char* parse_error_eof = "End of parse stream";
 static const char* parse_error_token = "Malformed token";
@@ -1424,7 +1425,6 @@ static void eval_receive(eval_context_t *ctx) {
       }
       if (n >= 0 ) { /* Match */
         mailbox_remove_mail(ctx, (lbm_uint)n);
-
         ctx->curr_env = new_env;
         ctx->curr_exp = e;
       } else { /* No match  go back to sleep */
@@ -2161,12 +2161,28 @@ static void cont_match(eval_context_t *ctx) {
     ctx->r = ENC_SYM_NO_MATCH;
     ctx->app_cont = true;
   } else if (lbm_is_cons(patterns)) {
-    lbm_value pattern = lbm_car(lbm_car(patterns));
-    lbm_value body    = lbm_cadr(lbm_car(patterns));
-
+    lbm_value match_case = lbm_car(patterns);
+    lbm_value pattern = lbm_car(match_case);
+    lbm_value n1      = lbm_cadr(match_case);
+    lbm_value n2      = lbm_cadr(lbm_cdr(match_case));
+    lbm_value body;
+    bool check_guard = false;
+    if (lbm_is_symbol_nil(n2)) {
+      body = n1;
+    } else {
+      body = n2;
+      check_guard = true;
+    }
     if (match(pattern, e, &new_env, &do_gc)) {
-      ctx->curr_env = new_env;
-      ctx->curr_exp = body;
+      if (check_guard) {
+        CHECK_STACK(lbm_push_3(&ctx->K, lbm_cdr(patterns), ctx->curr_env, MATCH));
+        CHECK_STACK(lbm_push_3(&ctx->K, body, e, MATCH_GUARD));
+        ctx->curr_env = new_env;
+        ctx->curr_exp = n1; // The guard
+      } else {
+        ctx->curr_env = new_env;
+        ctx->curr_exp = body;
+      }
     } else if (do_gc) {
       lbm_gc_mark_phase(patterns);
       lbm_gc_mark_phase(e);
@@ -2179,8 +2195,15 @@ static void cont_match(eval_context_t *ctx) {
         error_ctx(ENC_SYM_MERROR);
         return;
       }
-      ctx->curr_env = new_env;
-      ctx->curr_exp = body;
+      if (check_guard) {
+        CHECK_STACK(lbm_push_3(&ctx->K, lbm_cdr(patterns), ctx->curr_env, MATCH));
+        CHECK_STACK(lbm_push_3(&ctx->K, body, e, MATCH_GUARD));
+        ctx->curr_env = new_env;
+        ctx->curr_exp = n1; // The guard
+      } else {
+        ctx->curr_env = new_env;
+        ctx->curr_exp = body;
+      }
     } else {
       /* set up for checking of next pattern */
       CHECK_STACK(lbm_push_3(&ctx->K, lbm_cdr(patterns),ctx->curr_env, MATCH));
@@ -2256,6 +2279,23 @@ static void cont_map_rest(eval_context_t *ctx) {
     ctx->app_cont = true;
   }
 }
+
+static void cont_match_guard(eval_context_t *ctx) {
+  if (lbm_is_symbol_nil(ctx->r)) {
+    lbm_value e;
+    lbm_pop(&ctx->K, &e);
+    lbm_stack_drop(&ctx->K, 1);
+    ctx->r = e;
+    ctx->app_cont = true;
+  } else {
+    lbm_value body;
+    lbm_stack_drop(&ctx->K, 1);
+    lbm_pop(&ctx->K, &body);
+    lbm_stack_drop(&ctx->K, 3);
+    ctx->curr_exp = body;
+  }
+}
+
 
 /****************************************************/
 /*   READER                                         */
@@ -2849,7 +2889,8 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_read_start_array,
     cont_read_append_array,
     cont_map_first,
-    cont_map_rest
+    cont_map_rest,
+    cont_match_guard,
   };
 
 /*********************************************************/

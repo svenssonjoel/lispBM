@@ -23,7 +23,7 @@
                  (print "FRED!")
                  (print "fred iteration\n" )
                  (recv ( (apa (? x) 107)  (print "fred received apa " x "\n"))
-                       ( (bepa (?i x))  (print "fred received bepa " x "\n")))
+                       ( (bepa (? x))  (print "fred received bepa " x "\n"))
                  (fred))))
 
 (let ((apa 1000))
@@ -58,10 +58,6 @@
 ;;                        (yield 2500000)
 ;;                        (space)))))
 ;;          space))
-
-
-(define f (lambda (x y z)
-            (+ x y z)))
 
 ;;(spawn 20 f 1 2 3)
 
