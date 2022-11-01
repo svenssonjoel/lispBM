@@ -540,6 +540,9 @@ based on boolean expression. The form of a `cond` expression is:
 The conditions are checked from first to last and for the first `cond-exprN`
 that evaluates to true, the corresponding `exprN` is evaluated.
 
+If no `cond-exprN` evaluates to true, the result of the entire conditional
+is `nil`. 
+
 Example that prints "Hello world":
 ```clj
 (define a 0)
@@ -548,7 +551,15 @@ Example that prints "Hello world":
       ( (> a 0) (print "llama"))
       ( (= a 0) (print "Hello world")))
 ```
-      
+
+Example that evaluates to `nil` as none of the conditions evaluate to true.
+```clj
+(define a 5)
+
+(cond ( (= a 1)  'doughnut )
+      ( (= a 7)  'apple-strudel )
+      ( (= a 10) 'baklava))
+```
 ---
 
 ### lambda
