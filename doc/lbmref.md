@@ -536,8 +536,8 @@ The example below evaluates to 0 if a is less than or equal to 4. Otherwise it e
 
 `cond` is a generalization of `if` to discern between n different cases
 based on boolean expression. The form of a `cond` expression is:
-`(cond ( cond-expr1 expr1) (cond-expr2 expr2) ... (cond-expr3 expr3))`.
-The conditions are checked from first to last and the for the first `cond-exprN`
+`(cond ( cond-expr1 expr1) (cond-expr2 expr2) ... (cond-exprN exprN))`.
+The conditions are checked from first to last and for the first `cond-exprN`
 that evaluates to true, the corresponding `exprN` is evaluated.
 
 Example that prints "Hello world":
@@ -547,6 +547,7 @@ Example that prints "Hello world":
 (cond ( (< a 0) (print "abrakadabra"))
       ( (> a 0) (print "llama"))
       ( (= a 0) (print "Hello world")))
+```
       
 ---
 
