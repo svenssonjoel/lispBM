@@ -458,13 +458,18 @@ Example that evaluates to 3.
 
 Evaluate a list of data where each element represents an expression.
 
-This function interacts with the continuation passing style
-of the evaluator in a slightly non-intuitive way and should
-be avoided in programs. It is used internally by the c-interoperation
-code to start evaluation of newly loaded program.
+Example that results in the value 15:
+```
+(define prg '( (+ 1 2) (+ 3 4) (+ 10 5)))
+(eval-program prg)
+```
 
-If you want to evaluate a program you can always use `eval` and
-put the program you wish to evaluate in a `progn` form.
+Example that prints the strings "apa", "bepa" and "cepa":
+```
+(define prg '( (print "apa") (print "bepa") (print "cepa")))
+(eval-program prg)
+```
+
 
 ---
 
