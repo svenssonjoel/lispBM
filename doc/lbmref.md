@@ -552,7 +552,7 @@ The example below evaluates to 0 if a is less than or equal to 4. Otherwise it e
 ### cond
 
 `cond` is a generalization of `if` to discern between n different cases
-based on boolean expression. The form of a `cond` expression is:
+based on boolean expressions. The form of a `cond` expression is:
 `(cond ( cond-expr1 expr1) (cond-expr2 expr2) ... (cond-exprN exprN))`.
 The conditions are checked from first to last and for the first `cond-exprN`
 that evaluates to true, the corresponding `exprN` is evaluated.
