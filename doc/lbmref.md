@@ -347,11 +347,9 @@ is the same type as the first of the arguments.
 Performs the bitwise not operations on a value. The result is of same type as
 the argument.
 
-## Low level operations
-
 ---
 
-## nil and t
+## nil and t, true and false
 
 ### nil
 
