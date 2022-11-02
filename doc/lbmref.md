@@ -381,7 +381,7 @@ explicit true makes sense.
 
 ### false
 
-`false is an alias for `nil`.
+`false` is an alias for `nil`.
 
 ---
 
