@@ -15,11 +15,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "lbm_memory.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "lbm_memory.h"
+#include "platform_mutex.h"
 
 /* Status bit patterns */
 #define FREE_OR_USED  0  //00b
@@ -39,6 +40,7 @@ static lbm_uint *memory = NULL;
 static lbm_uint memory_size;  // in 4 or 8 byte words depending on 32 or 64 bit platform
 static lbm_uint bitmap_size;  // in 4 or 8 byte words
 static lbm_uint memory_base_address = 0;
+static mutex_t lbm_mem_mutex;
 
 int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
                     lbm_uint *bits, lbm_uint bits_size) {
@@ -67,6 +69,8 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
   memory = data;
   memory_base_address = (lbm_uint)data;
   memory_size = data_size;
+
+  mutex_init(&lbm_mem_mutex);
   return 1;
 }
 
@@ -223,6 +227,8 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
     return NULL;
   }
 
+  mutex_lock(&lbm_mem_mutex);
+
   lbm_uint start_ix = 0;
   lbm_uint end_ix = 0;
   lbm_uint free_length = 0;
@@ -266,8 +272,7 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
     case START_END:
       state = INIT;
       break;
-    default:
-      return NULL;
+    default: // error case
       break;
     }
   }
@@ -279,14 +284,16 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
       set_status(start_ix, START);
       set_status(end_ix, END);
     }
-
+    mutex_unlock(&lbm_mem_mutex);
     return bitmap_ix_to_address(start_ix);
   }
+  mutex_unlock(&lbm_mem_mutex);
   return NULL;
 }
 
 int lbm_memory_free(lbm_uint *ptr) {
 
+  mutex_lock(&lbm_mem_mutex);
   lbm_uint ix = address_to_bitmap_ix(ptr);
 
   switch(status(ix)) {
@@ -295,15 +302,17 @@ int lbm_memory_free(lbm_uint *ptr) {
     for (lbm_uint i = ix; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
       if (status(i) == END) {
         set_status(i, FREE_OR_USED);
+        mutex_unlock(&lbm_mem_mutex);
         return 1;
       }
     }
     return 0;
   case START_END:
     set_status(ix, FREE_OR_USED);
+    mutex_unlock(&lbm_mem_mutex);
     return 1;
   }
-
+  mutex_unlock(&lbm_mem_mutex);
   return 0;
 }
 
