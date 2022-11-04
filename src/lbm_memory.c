@@ -137,7 +137,7 @@ lbm_uint lbm_memory_num_free(void) {
   if (memory == NULL || bitmap == NULL) {
     return 0;
   }
-
+  mutex_lock(&lbm_mem_mutex);
   unsigned int state = INIT;
   lbm_uint sum_length = 0;
 
@@ -168,10 +168,12 @@ lbm_uint lbm_memory_num_free(void) {
       state = INIT;
       break;
     default:
+      mutex_unlock(&lbm_mem_mutex);
       return 0;
       break;
     }
   }
+  mutex_unlock(&lbm_mem_mutex);
   return sum_length;
 }
 
@@ -179,7 +181,7 @@ lbm_uint lbm_memory_longest_free(void) {
   if (memory == NULL || bitmap == NULL) {
     return 0;
   }
-
+  mutex_lock(&lbm_mem_mutex);
   unsigned int state = INIT;
   lbm_uint max_length = 0;
 
@@ -213,10 +215,12 @@ lbm_uint lbm_memory_longest_free(void) {
       state = INIT;
       break;
     default:
+      mutex_unlock(&lbm_mem_mutex);
       return 0;
       break;
     }
   }
+  mutex_unlock(&lbm_mem_mutex);
   return max_length;
 }
 
@@ -273,7 +277,8 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
       state = INIT;
       break;
     default: // error case
-      break;
+      mutex_unlock(&lbm_mem_mutex);
+      return NULL;
     }
   }
 
@@ -319,11 +324,13 @@ int lbm_memory_free(lbm_uint *ptr) {
 int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
   lbm_uint ix = address_to_bitmap_ix(ptr);
 
+  mutex_lock(&lbm_mem_mutex);
   if (status(ix) != START) {
+    mutex_unlock(&lbm_mem_mutex);
     return 0; // ptr does not point to the start of an allocated range.
   }
-
   if (status(ix) == START_END) {
+    mutex_unlock(&lbm_mem_mutex);
     return 0; // Cannot shrink a 1 element allocation
   }
 
@@ -331,6 +338,7 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
   unsigned int i = 0;
   for (i = 0; i < ((bitmap_size << BITMAP_SIZE_SHIFT) - ix); i ++) {
     if (status(ix+i) == END && i < n) {
+      mutex_unlock(&lbm_mem_mutex);
       return 0; // cannot shrink allocation to a larger size
     }
     switch(status(ix+i)) {
@@ -369,6 +377,7 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
         break;
       }
   }
+  mutex_unlock(&lbm_mem_mutex);
   return 1;
 }
 
