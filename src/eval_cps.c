@@ -1492,7 +1492,8 @@ static void cont_set_global_env(eval_context_t *ctx){
 
   lbm_pop(&ctx->K, &key);
   lbm_value new_env;
-  WITH_GC_1(new_env, lbm_env_set(*lbm_get_env_ptr(),key,val), key);
+  // A key is a symbol and should not need to be remembered.
+  WITH_GC(new_env, lbm_env_set(*lbm_get_env_ptr(),key,val));
 
   *lbm_get_env_ptr() = new_env;
   ctx->r = key;
@@ -1734,8 +1735,14 @@ static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  ctx->curr_exp = args[1];
-  lbm_stack_drop(&ctx->K, nargs+1);
+  if (nargs == 0) {
+    lbm_stack_drop(&ctx->K, 1);
+    ctx->r = ENC_SYM_NIL;
+    ctx->app_cont = true;
+  } else {
+    ctx->curr_exp = args[1];
+    lbm_stack_drop(&ctx->K, nargs+1);
+  }
 }
 
 static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
