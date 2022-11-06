@@ -310,6 +310,7 @@ int lbm_memory_free(lbm_uint *ptr) {
         if (status(i) == END) {
           set_status(i, FREE_OR_USED);
           r = 1;
+          break;
         }
       }
       break;
@@ -320,8 +321,8 @@ int lbm_memory_free(lbm_uint *ptr) {
     default:
       break;
     }
+    mutex_unlock(&lbm_mem_mutex);
   }
-  mutex_unlock(&lbm_mem_mutex);
   return r;
 }
 

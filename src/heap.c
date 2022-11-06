@@ -778,6 +778,20 @@ lbm_value lbm_cdr(lbm_value c){
   return ENC_SYM_TERROR;
 }
 
+lbm_value lbm_cddr(lbm_value c) {
+
+  lbm_value tmp = ENC_SYM_NIL;
+  if (lbm_is_ptr(c)) {
+    tmp = lbm_ref_cell(c)->cdr;
+    if (lbm_is_ptr(tmp)) {
+      return lbm_ref_cell(tmp)->cdr;
+    }
+  }
+  if (lbm_is_symbol(c) && lbm_dec_sym(c) == SYM_NIL) {
+    return ENC_SYM_NIL;
+  }
+  return ENC_SYM_TERROR;
+}
 
 int lbm_set_car(lbm_value c, lbm_value v) {
   int r = 0;

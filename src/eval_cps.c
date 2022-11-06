@@ -1290,7 +1290,7 @@ static void eval_lambda(eval_context_t *ctx) {
 
 static void eval_if(eval_context_t *ctx) {
 
-  lbm_value cddr = lbm_cdr(lbm_cdr(ctx->curr_exp));
+  lbm_value cddr = lbm_cddr(ctx->curr_exp);
   lbm_value then_branch = lbm_car(cddr);
   lbm_value else_branch = lbm_cadr(cddr);
 
