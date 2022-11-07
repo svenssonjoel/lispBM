@@ -651,6 +651,7 @@ static lbm_value fundamental_eq(lbm_value *args, lbm_uint nargs, eval_context_t 
   for (lbm_uint i = 1; i < nargs; i ++) {
     b = args[i];
     r = r && struct_eq(a, b);
+    if (!r) break;
   }
   if (r) {
     return ENC_SYM_TRUE;
@@ -659,19 +660,11 @@ static lbm_value fundamental_eq(lbm_value *args, lbm_uint nargs, eval_context_t 
 }
 
 static lbm_value fundamental_not_eq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-
-  lbm_uint a = args[0];
-  lbm_uint b;
-  bool r = false;
-
-  for (lbm_uint i = 1; i < nargs; i ++) {
-    b = args[i];
-    r = r || !struct_eq(a, b);
-    if (r) break;
-  }
-  if (r) {
+   lbm_value r = fundamental_eq(args, nargs, ctx);
+  if (r == ENC_SYM_NIL) {
     return ENC_SYM_TRUE;
+  } else if (r == ENC_SYM_TERROR) {
+    return ENC_SYM_TERROR;
   }
   return ENC_SYM_NIL;
 }
@@ -695,6 +688,7 @@ static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context
       break;
     }
     r = r && (compare(a, b) == 0);
+    if (!r) break;
   }
   if (ok) {
     if (r) {
@@ -707,33 +701,13 @@ static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context
 }
 
 static lbm_value fundamental_num_not_eq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-
-  lbm_uint a = args[0];
-  lbm_uint b;
-  bool r = false;
-  bool ok = true;
-
-  if (!lbm_is_number(a)) {
+  lbm_value r = fundamental_numeq(args, nargs, ctx);
+  if (r == ENC_SYM_NIL) {
+    return ENC_SYM_TRUE;
+  } else if (r == ENC_SYM_TERROR) {
     return ENC_SYM_TERROR;
   }
-  for (lbm_uint i = 1; i < nargs; i ++) {
-    b = args[i];
-    if (!lbm_is_number(b)) {
-      ok = false;
-      break;
-    }
-    r = r || (compare(a, b) != 0);
-    if (r) break;
-  }
-  if (ok) {
-    if (r) {
-      return ENC_SYM_TRUE;
-    } else {
-      return ENC_SYM_NIL;
-    }
-  }
-  return ENC_SYM_TERROR;
+  return ENC_SYM_NIL;
 }
 
 
