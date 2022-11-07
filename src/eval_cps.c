@@ -1264,28 +1264,39 @@ static void eval_define(eval_context_t *ctx) {
 }
 
 // (closure params body env)
-static lbm_value mk_closure(lbm_value env, lbm_value body, lbm_value params) {
-  if (lbm_heap_num_free() < 4) {
+static bool mk_closure(lbm_value *res, lbm_value env, lbm_value body, lbm_value params) {
+  lbm_value clo;
+  clo = lbm_heap_allocate_list(4);
+  if (lbm_is_symbol_merror(clo)) {
     lbm_gc_mark_phase(env);
     lbm_gc_mark_phase(body);
     lbm_gc_mark_phase(params);
     gc();
+    clo = lbm_heap_allocate_list(4);
+    if (lbm_is_symbol_merror(clo)) {
+      return false;
+    }
   }
-  if (lbm_heap_num_free() >= 4) {
-    lbm_value env_end = lbm_cons(env, ENC_SYM_NIL);
-    lbm_value exp = lbm_cons(body, env_end);
-    lbm_value par = lbm_cons(params, exp);
-    lbm_value clo = lbm_cons(ENC_SYM_CLOSURE, par);
-    return clo;
-  }
-  return ENC_SYM_MERROR;
+
+  lbm_value clo1 = lbm_cdr(clo);
+  lbm_value clo2 = lbm_cdr(clo1);
+  lbm_value clo3 = lbm_cdr(clo2);
+  lbm_set_car(clo, ENC_SYM_CLOSURE);
+  lbm_set_car(clo1, params);
+  lbm_set_car(clo2, body);
+  lbm_set_car(clo3, env);
+  *res = clo;
+  return true;
 }
 
 static void eval_lambda(eval_context_t *ctx) {
-  lbm_value closure = mk_closure(ctx->curr_env, lbm_cadr(lbm_cdr(ctx->curr_exp)),  lbm_cadr(ctx->curr_exp));
-  ctx->app_cont = true;
-  ctx->r = closure;
-  return;
+  lbm_value closure;
+  if (mk_closure(&closure, ctx->curr_env, lbm_cadr(lbm_cdr(ctx->curr_exp)),  lbm_cadr(ctx->curr_exp))) {
+    ctx->app_cont = true;
+    ctx->r = closure;
+  } else {
+    error_ctx(ENC_SYM_MERROR);
+  }
 }
 
 static void eval_if(eval_context_t *ctx) {
@@ -1855,9 +1866,14 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       WITH_GC_1(body_1, lbm_cons(args[1], body_0),body_0);
       lbm_value body;
       WITH_GC_1(body, lbm_cons(args[0], body_1), body_0);
-      ctx->r = mk_closure(ENC_SYM_NIL,body, params);
-      lbm_stack_drop(&ctx->K, 2);
-      ctx->app_cont = true;
+      lbm_value closure;
+      if (mk_closure(&closure, ENC_SYM_NIL, body, params)) {
+        ctx->r = closure;
+        lbm_stack_drop(&ctx->K, 2);
+        ctx->app_cont = true;
+      } else {
+        error_ctx(ENC_SYM_MERROR);
+      }
     } else {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
@@ -2031,10 +2047,14 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     error_ctx(ENC_SYM_EERROR);
   } else if (a_nil && !p_nil) {
     lbm_value new_env = lbm_list_append(arg_env,clo_env);
-    lbm_value closure = mk_closure(new_env, exp, lbm_cdr(params));
-    lbm_stack_drop(&ctx->K, 5);
-    ctx->app_cont = true;
-    ctx->r = closure;
+    lbm_value closure;
+    if (mk_closure(&closure, new_env, exp, lbm_cdr(params))) {
+      lbm_stack_drop(&ctx->K, 5);
+      ctx->app_cont = true;
+      ctx->r = closure;
+    } else {
+      error_ctx(ENC_SYM_MERROR);
+    }
   } else {
    sptr[2] = clo_env;
    sptr[3] = lbm_cdr(params);
