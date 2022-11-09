@@ -33,6 +33,16 @@ extern "C" {
 
 /*! \page changelog Changelog
 
+Nov 9: Version 0.7.1
+  - not-eq and != added.
+  - Corrected behaviour for eval when applied to no argument.
+  - lbm_memory operations are protected by mutex.
+  - Fixes to eval-program.
+  - Added multiple condition conditional function called cond.
+  - Pattern matching (match ..) now supports optional boolean guards.
+  - map has been built-in as a primitive.
+  - reverse has been built-in as a primitive
+
 Oct 31: Version 0.7.1
   - Added optional boolean guards to pattern matches.
   - Built in map and reverse.
