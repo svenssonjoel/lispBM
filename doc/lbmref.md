@@ -1688,7 +1688,7 @@ A value with type `type-u` occupy 28bits on the 32 bit version of LBM and
 
 ---
 
-### type-stream
+### type-channel
 
 ---
 
