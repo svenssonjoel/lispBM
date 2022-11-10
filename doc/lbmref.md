@@ -1538,7 +1538,7 @@ or to take some other action.
 
 ---
 
-### Error Symbols
+## Error Symbols
 
 ### read_error
 
