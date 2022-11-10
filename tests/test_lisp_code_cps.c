@@ -77,28 +77,29 @@ void sleep_callback(uint32_t us) {
 volatile bool experiment_success = false;
 volatile bool experiment_done = false;
 
+lbm_cid test_cid = -1;
+
 void context_done_callback(eval_context_t *ctx) {
   char output[128];
   lbm_value t = ctx->r;
 
   int res = lbm_print_value(output, 128, t);
 
-  if ( res >= 0) {
-    printf("O: %s\n", output);
+  if (ctx->id == test_cid) {
+    if (res && lbm_type_of(t) == LBM_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
+      experiment_success = true;
+      printf("Test: OK!\n");
+      printf("Result: %s\n", output);
+    } else {
+      printf("Test: Failed!\n");
+      printf("Result: %s\n", output);
+    }
   } else {
-    printf("%s\n", output);
-  }
-
-  if (res && lbm_type_of(t) == LBM_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
-    experiment_success = true;
-    printf("Test: OK!\n");
-  } else {
-    printf("Test: Failed!\n");
+    printf("Thread %d finished: %s\n", ctx->id, output);
   }
 
   experiment_done = true;
 }
-
 
 bool dyn_load(const char *str, const char **code) {
 
@@ -427,6 +428,8 @@ int main(int argc, char **argv) {
     printf("Failed to load and evaluate the test program\n");
     return 0;
   }
+
+  test_cid = cid; // the result which is important for success or failure of test.
 
   lbm_continue_eval();
 
