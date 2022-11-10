@@ -1239,6 +1239,15 @@ For example the match expression below evaluates to 2.
 
 ---
 
+### no_match
+
+The `no_match` symbol is returned from pattern matching if
+no case matches the expression.
+
+    - Add a catch-all case to your pattern-matching. `_`.
+
+---
+
 ### _
 
 The underscore pattern matches anything.
@@ -1253,14 +1262,6 @@ An example that evaluates to `i-dont-know`
 ```
 
 ---
-
-### no_match
-
-The `no_match` symbol is returned from pattern matching if
-no case matches the expression.
-
-    - Add a catch-all case to your pattern-matching. `_`.
-
 
 ### ?
 
