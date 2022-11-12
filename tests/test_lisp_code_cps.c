@@ -86,6 +86,7 @@ void context_done_callback(eval_context_t *ctx) {
   int res = lbm_print_value(output, 128, t);
 
   if (ctx->id == test_cid) {
+    experiment_done = true;
     if (res && lbm_type_of(t) == LBM_TYPE_SYMBOL && lbm_dec_sym(t) == SYM_TRUE){ // structural_equality(car(rest),car(cdr(rest)))) {
       experiment_success = true;
       printf("Test: OK!\n");
@@ -97,8 +98,6 @@ void context_done_callback(eval_context_t *ctx) {
   } else {
     printf("Thread %d finished: %s\n", ctx->id, output);
   }
-
-  experiment_done = true;
 }
 
 bool dyn_load(const char *str, const char **code) {
@@ -453,8 +452,16 @@ int main(int argc, char **argv) {
     }
   }
 
+  int i = 0;
   while (!experiment_done) {
+    if (i == 1000000) break;
     sleep_callback(1000);
+    i ++;
+  }
+
+  if (i == 1000000) {
+    printf ("experiment failed due to taking longer than 10 seconds\n");
+    experiment_success = false;
   }
 
   lbm_pause_eval();
