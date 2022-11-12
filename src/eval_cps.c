@@ -1770,7 +1770,7 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
   } else {
     new_prg = lbm_list_append(prg_copy, ctx->program);
   }
-  if (lbm_type_of(new_prg) != LBM_TYPE_CONS) {
+  if (!lbm_is_list(new_prg)) {
     error_ctx(ENC_SYM_EERROR);
     return;
   }
