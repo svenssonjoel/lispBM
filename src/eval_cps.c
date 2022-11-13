@@ -1752,31 +1752,37 @@ static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
 static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
-  lbm_value prg = args[1];
-  lbm_value app_cont;
-  lbm_value app_cont_prg;
-  lbm_value new_prg;
-
-  lbm_value prg_copy;
-
-  WITH_GC(prg_copy, lbm_list_copy(prg));
-  lbm_stack_drop(&ctx->K, nargs+1);
-
-  if (ctx->K.sp > nargs+2) { // if there is a continuation
-    WITH_GC_1(app_cont, lbm_cons(ENC_SYM_APP_CONT, ENC_SYM_NIL), prg_copy);
-    WITH_GC_2(app_cont_prg, lbm_cons(app_cont, ENC_SYM_NIL), app_cont, prg_copy);
-    new_prg = lbm_list_append(app_cont_prg, ctx->program);
-    new_prg = lbm_list_append(prg_copy, new_prg);
+  if (nargs < 1) {
+    ctx->r = ENC_SYM_NIL;
+    ctx->app_cont = true;
+    lbm_stack_drop(&ctx->K, nargs+1);
   } else {
-    new_prg = lbm_list_append(prg_copy, ctx->program);
+    lbm_value prg = args[1];
+    lbm_value app_cont;
+    lbm_value app_cont_prg;
+    lbm_value new_prg;
+
+    lbm_value prg_copy;
+
+    WITH_GC(prg_copy, lbm_list_copy(prg));
+    lbm_stack_drop(&ctx->K, nargs+1);
+
+    if (ctx->K.sp > nargs+2) { // if there is a continuation
+      WITH_GC_1(app_cont, lbm_cons(ENC_SYM_APP_CONT, ENC_SYM_NIL), prg_copy);
+      WITH_GC_2(app_cont_prg, lbm_cons(app_cont, ENC_SYM_NIL), app_cont, prg_copy);
+      new_prg = lbm_list_append(app_cont_prg, ctx->program);
+      new_prg = lbm_list_append(prg_copy, new_prg);
+    } else {
+      new_prg = lbm_list_append(prg_copy, ctx->program);
+    }
+    if (!lbm_is_list(new_prg)) {
+      error_ctx(ENC_SYM_EERROR);
+      return;
+    }
+    CHECK_STACK(lbm_push(&ctx->K, DONE));
+    ctx->program = lbm_cdr(new_prg);
+    ctx->curr_exp = lbm_car(new_prg);
   }
-  if (!lbm_is_list(new_prg)) {
-    error_ctx(ENC_SYM_EERROR);
-    return;
-  }
-  CHECK_STACK(lbm_push(&ctx->K, DONE));
-  ctx->program = lbm_cdr(new_prg);
-  ctx->curr_exp = lbm_car(new_prg);
 }
 
 static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
