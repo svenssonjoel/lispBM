@@ -1,2 +1,0 @@
-
-(eq (eval-program) nil)

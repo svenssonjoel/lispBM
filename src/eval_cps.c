@@ -78,6 +78,7 @@ static const char* parse_error_eof = "End of parse stream";
 static const char* parse_error_token = "Malformed token";
 static const char* parse_error_dot = "Incorrect usage of '.'";
 static const char* parse_error_close = "Expected closing parenthesis";
+static const char* num_args_error = "Too many or too few arguments";
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
@@ -315,6 +316,9 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
       error == ENC_SYM_NOT_FOUND) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
     printf_callback("***\t\t%s\n",buf);
+  } else {
+    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+    printf_callback("***\tAt:\t%s\n",buf);
   }
 
   if (lbm_is_symbol(error) &&
@@ -330,7 +334,6 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
   }
   if (lbm_verbose) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("\tWhile evaluating: %s\n", buf);
     printf_callback("\tIn context: %d\n", ctx_running->id);
     printf_callback("\tCurrent intermediate result: %s\n\n", buf);
 
@@ -1645,6 +1648,9 @@ static void apply_read_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     CHECK_STACK(lbm_push_3(&ctx->K, chan, fun, READ));
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
+  } else {
+    lbm_set_error_reason((char*)num_args_error);
+    error_ctx(ENC_SYM_EERROR);
   }
 }
 
@@ -1740,23 +1746,17 @@ static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (nargs == 0) {
-    lbm_stack_drop(&ctx->K, 1);
-    ctx->r = ENC_SYM_NIL;
-    ctx->app_cont = true;
-  } else {
+  if ( nargs == 1) {
     ctx->curr_exp = args[1];
     lbm_stack_drop(&ctx->K, nargs+1);
+  } else {
+    lbm_set_error_reason((char*)num_args_error);
+    error_ctx(ENC_SYM_EERROR);
   }
 }
 
 static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-
-  if (nargs < 1) {
-    ctx->r = ENC_SYM_NIL;
-    ctx->app_cont = true;
-    lbm_stack_drop(&ctx->K, nargs+1);
-  } else {
+  if (nargs == 1) {
     lbm_value prg = args[1];
     lbm_value app_cont;
     lbm_value app_cont_prg;
@@ -1782,6 +1782,9 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     CHECK_STACK(lbm_push(&ctx->K, DONE));
     ctx->program = lbm_cdr(new_prg);
     ctx->curr_exp = lbm_car(new_prg);
+  } else {
+    lbm_set_error_reason((char*)num_args_error);
+    error_ctx(ENC_SYM_EERROR);
   }
 }
 
