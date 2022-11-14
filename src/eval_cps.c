@@ -1829,7 +1829,7 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2 && lbm_is_list(args[2])) {
     if (lbm_is_symbol_nil(args[2])) {
-      lbm_stack_drop(&ctx->K, 3;
+      lbm_stack_drop(&ctx->K, 3);
       ctx->r = ENC_SYM_NIL;
       ctx->app_cont = true;
       return;
