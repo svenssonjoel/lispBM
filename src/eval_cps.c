@@ -2361,7 +2361,7 @@ static void cont_map_rest(eval_context_t *ctx) {
     ctx->curr_exp = sptr[4];
     ctx->curr_env = env;
   } else {
-    ctx->r = sptr[2]; //heap of result list
+    ctx->r = sptr[2]; //head of result list
     ctx->curr_env = env;
     lbm_stack_drop(&ctx->K, 6);
     ctx->app_cont = true;
@@ -2392,7 +2392,7 @@ static void cont_match_guard(eval_context_t *ctx) {
 
 static void cont_read(eval_context_t *ctx) {
 
-  gc();
+  gc(); // TODO: This should not be necessary
 
   lbm_value stream = ENC_SYM_NIL;
   lbm_value prg_val = ENC_SYM_NIL;
