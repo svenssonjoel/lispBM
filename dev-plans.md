@@ -124,8 +124,10 @@ will have to be a conditional differentiating between them.
 
 ## Quasiquotation: space inneficient
 
-# `(1 2 ,(+ 1 2))
-# (append (quote (1)) (append (quote (2)) (append (list (+ 1 2)) (quote nil))))
+```
+`(1 2 ,(+ 1 2))
+(append (quote (1)) (append (quote (2)) (append (list (+ 1 2)) (quote nil))))
+```
 
 When it could expand to:
 
