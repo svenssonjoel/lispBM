@@ -2840,6 +2840,9 @@ static void cont_read_backquote_result(eval_context_t *ctx) {
     error_ctx(expanded);
     return;
   }
+  char buf[1024];
+  lbm_print_value(buf,1024, expanded);
+  printf("%s\n", buf);
   ctx->r = expanded;
   ctx->app_cont = true;
 }

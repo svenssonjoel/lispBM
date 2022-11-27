@@ -1,5 +1,5 @@
 /*
-    Copyright 2020, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2020, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -30,14 +30,55 @@
 #include "stack.h"
 #include "qq_expand.h"
 
-
 lbm_value gen_cons(lbm_value a, lbm_value b) {
   return lbm_cons(ENC_SYM_CONS,
                    lbm_cons(a,
                         lbm_cons(b, ENC_SYM_NIL)));
 }
 
+lbm_value quote_it(lbm_value qquoted) {
+  if (lbm_is_symbol(qquoted) &&
+      (lbm_is_special(qquoted) ||
+       lbm_is_fundamental(qquoted))) return qquoted;
+  return lbm_cons(ENC_SYM_QUOTE, lbm_cons(qquoted, ENC_SYM_NIL));
+}
+
+
+bool is_append(lbm_value a) {
+  return (lbm_is_cons(a) &&
+          lbm_is_symbol(lbm_car(a)) &&
+          (lbm_dec_sym(lbm_car(a)) == SYM_APPEND));
+}
+
 lbm_value append(lbm_value front, lbm_value back) {
+  if (lbm_is_symbol_nil(front)) return back;
+  if (lbm_is_symbol_nil(back)) return front;
+
+  if (lbm_is_quoted_list(front) &&
+      lbm_is_quoted_list(back)) {
+    lbm_value f = lbm_car(lbm_cdr(front));
+    lbm_value b = lbm_car(lbm_cdr(back));
+    return quote_it(lbm_list_append(f, b));
+  }
+
+  if (is_append(back) &&
+      lbm_is_quoted_list(lbm_car(lbm_cdr(back))) &&
+      lbm_is_quoted_list(front)) {
+    lbm_value ql = lbm_car(lbm_cdr(back));
+    lbm_value f = lbm_car(lbm_cdr(front));
+    lbm_value b = lbm_car(lbm_cdr(ql));
+
+    lbm_value v = lbm_list_append(f, b);
+    lbm_set_car(lbm_cdr(ql), v);
+    return back;
+  }
+
+  if (is_append(back)) {
+    back  = lbm_cdr(back);
+    lbm_value new = lbm_cons(front, back);
+    return lbm_cons(ENC_SYM_APPEND, new);
+  }
+
   return lbm_cons (ENC_SYM_APPEND,
                lbm_cons(front,
                     lbm_cons(back, ENC_SYM_NIL)));
@@ -131,7 +172,7 @@ lbm_value lbm_qq_expand(lbm_value qquoted) {
     }
     break;
   default:
-    res = lbm_cons(ENC_SYM_QUOTE, lbm_cons(qquoted, ENC_SYM_NIL));
+    res = quote_it(qquoted);
     break;
   }
   return res;
