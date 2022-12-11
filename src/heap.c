@@ -517,38 +517,32 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
 
   lbm_value res;
 
-  if (!lbm_is_ptr(lbm_heap_state.freelist)) {
-    // Free list not a ptr (should be Symbol NIL)
-    if ((lbm_type_of(lbm_heap_state.freelist) == LBM_TYPE_SYMBOL) &&
-        (lbm_dec_sym(lbm_heap_state.freelist) == SYM_NIL)) {
-      // all is as it should be (but no free cells)
-      return ENC_SYM_MERROR;
-    } else {
-      // something is most likely very wrong
-      return ENC_SYM_FATAL_ERROR;
-    }
-  }
-
   // it is a ptr replace freelist with cdr of freelist;
   res = lbm_heap_state.freelist;
 
-  if (lbm_type_of(res) != LBM_TYPE_CONS) {
+  if (lbm_type_of(res) == LBM_TYPE_CONS) {
+    lbm_heap_state.freelist = lbm_cdr(lbm_heap_state.freelist);
+
+    lbm_heap_state.num_alloc++;
+
+    // set some ok initial values (nil . nil)
+    lbm_ref_cell(res)->car = ENC_SYM_NIL;
+    lbm_ref_cell(res)->cdr = ENC_SYM_NIL;
+
+    // clear GC bit on allocated cell
+    clr_gc_mark(lbm_ref_cell(res));
+
+    res = res | ptr_type;
+    return res;
+  }
+  else if ((lbm_type_of(lbm_heap_state.freelist) == LBM_TYPE_SYMBOL) &&
+           (lbm_dec_sym(lbm_heap_state.freelist) == SYM_NIL)) {
+    // all is as it should be (but no free cells)
+    return ENC_SYM_MERROR;
+  }
+  else {
     return ENC_SYM_FATAL_ERROR;
   }
-
-  lbm_heap_state.freelist = lbm_cdr(lbm_heap_state.freelist);
-
-  lbm_heap_state.num_alloc++;
-
-  // set some ok initial values (nil . nil)
-  lbm_ref_cell(res)->car = ENC_SYM_NIL;
-  lbm_ref_cell(res)->cdr = ENC_SYM_NIL;
-
-  // clear GC bit on allocated cell
-  clr_gc_mark(lbm_ref_cell(res));
-
-  res = res | ptr_type;
-  return res;
 }
 
 lbm_uint lbm_heap_num_allocated(void) {
