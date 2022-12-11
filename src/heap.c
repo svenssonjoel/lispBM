@@ -545,6 +545,29 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
   }
 }
 
+lbm_value lbm_heap_allocate_list(unsigned int n) {
+  if (lbm_heap_num_free() < n) return ENC_SYM_MERROR;
+
+  lbm_value res = lbm_heap_state.freelist;
+  if (lbm_type_of(res) == LBM_TYPE_CONS) {
+
+    lbm_value curr = res;
+    unsigned int count = 0;
+    while (lbm_type_of(curr) == LBM_TYPE_CONS && count < (n - 1)) {
+      lbm_ref_cell(curr)->car = ENC_SYM_NIL;
+      clr_gc_mark(lbm_ref_cell(curr));
+      curr = lbm_cdr(curr);
+      count ++;
+    }
+    lbm_heap_state.freelist = lbm_cdr(curr);
+    lbm_set_cdr(curr, ENC_SYM_NIL);
+    lbm_heap_state.num_alloc+=count;
+    return res;
+  } else {
+    return ENC_SYM_FATAL_ERROR;
+  }
+}
+
 lbm_uint lbm_heap_num_allocated(void) {
   return lbm_heap_state.num_alloc;
 }

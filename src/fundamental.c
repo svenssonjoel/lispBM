@@ -913,13 +913,15 @@ static lbm_value fundamental_cdr(lbm_value *args, lbm_uint nargs, eval_context_t
 
 static lbm_value fundamental_list(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  lbm_value result = ENC_SYM_NIL;
-  for (lbm_uint i = 1; i <= nargs; i ++) {
-    result = lbm_cons(args[nargs-i], result);
-    if (lbm_type_of(result) == LBM_TYPE_SYMBOL)
-      break;
+  lbm_value result = lbm_heap_allocate_list(nargs);
+  if (lbm_is_cons(result)) {
+    lbm_value curr = result;
+    for (lbm_uint i = 0; i < nargs; i ++) {
+      lbm_set_car(curr, args[i]);
+      curr = lbm_cdr(curr);
+    }
   }
-  return result;
+  return result; // likely merror
 }
 
 static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
