@@ -921,7 +921,7 @@ static lbm_value fundamental_list(lbm_value *args, lbm_uint nargs, eval_context_
       curr = lbm_cdr(curr);
     }
   }
-  return result; // likely merror
+  return result;
 }
 
 static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -1491,25 +1491,31 @@ static lbm_value fundamental_range(lbm_value *args, lbm_uint nargs, eval_context
     return result;
   }
 
+  int num;
   if (end == start) return ENC_SYM_NIL;
   else if (end < start) {
-    int32_t tmp = end;
-    end = start;
-    start = tmp;
     rev = true;
+    num = start - end;
+  } else {
+    num = end - start;
   }
 
-  int num = end - start;
-
-  if ((unsigned int)num > lbm_heap_num_free()) {
-    return ENC_SYM_MERROR;
+  lbm_value r_list = lbm_heap_allocate_list((unsigned int)num);
+  if (lbm_is_cons(r_list)) {
+    lbm_value curr = r_list;
+    if (rev) {
+      for (int i = start-1; i >= end; i --) {
+        lbm_set_car(curr, lbm_enc_i(i));
+        curr = lbm_cdr(curr);
+      }
+    } else {
+      for (int i = start; i < end; i ++) {
+        lbm_set_car(curr, lbm_enc_i(i));
+        curr = lbm_cdr(curr);
+      }
+    }
   }
-
-  lbm_value r_list = ENC_SYM_NIL;
-  for (int i = end - 1; i >= start; i --) {
-    r_list = lbm_cons(lbm_enc_i(i), r_list);
-  }
-  return rev ? lbm_list_destructive_reverse(r_list) : r_list;
+  return r_list;
 }
 
 const fundamental_fun fundamental_table[] =

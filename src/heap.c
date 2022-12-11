@@ -559,6 +559,7 @@ lbm_value lbm_heap_allocate_list(unsigned int n) {
       curr = lbm_cdr(curr);
       count ++;
     }
+    lbm_set_car(curr, ENC_SYM_NIL);
     lbm_heap_state.freelist = lbm_cdr(curr);
     lbm_set_cdr(curr, ENC_SYM_NIL);
     lbm_heap_state.num_alloc+=count;
