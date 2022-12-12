@@ -546,6 +546,7 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
 }
 
 lbm_value lbm_heap_allocate_list(unsigned int n) {
+  if (n == 0) return ENC_SYM_NIL;
   if (lbm_heap_num_free() < n) return ENC_SYM_MERROR;
 
   lbm_value res = lbm_heap_state.freelist;
