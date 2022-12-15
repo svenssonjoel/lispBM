@@ -529,9 +529,6 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type) {
     lbm_ref_cell(res)->car = ENC_SYM_NIL;
     lbm_ref_cell(res)->cdr = ENC_SYM_NIL;
 
-    // clear GC bit on allocated cell
-    clr_gc_mark(lbm_ref_cell(res));
-
     res = res | ptr_type;
     return res;
   }
@@ -556,7 +553,6 @@ lbm_value lbm_heap_allocate_list(unsigned int n) {
     unsigned int count = 0;
     while (lbm_type_of(curr) == LBM_TYPE_CONS && count < (n - 1)) {
       lbm_ref_cell(curr)->car = ENC_SYM_NIL;
-      clr_gc_mark(lbm_ref_cell(curr));
       curr = lbm_cdr(curr);
       count ++;
     }
@@ -724,7 +720,7 @@ int lbm_gc_sweep_phase(void) {
         default:
           break;
         }
-        }
+      }
       // create pointer to use as new freelist
       lbm_uint addr = lbm_enc_cons_ptr(i);
 

@@ -187,7 +187,7 @@ typedef struct {
 } eval_context_queue_t;
 
 
-/* Callbacks and task queue */
+/* Process queues */
 static eval_context_queue_t blocked  = {NULL, NULL};
 static eval_context_queue_t sleeping = {NULL, NULL};
 static eval_context_queue_t queue    = {NULL, NULL};
@@ -587,7 +587,7 @@ int lbm_set_error_reason(char *error_str) {
   return r;
 }
 
-// Not possible to CONS_WITH_GC ins error_ctx_base (potential loop)
+// Not possible to CONS_WITH_GC in error_ctx_base (potential loop)
 static void error_ctx_base(lbm_value err_val, unsigned int row, unsigned int column) {
   ctx_running->r = err_val;
 
