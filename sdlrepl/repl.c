@@ -559,12 +559,6 @@ int main(int argc, char **argv) {
   else
     printf("Error adding extension.\n");
 
-  res = lbm_add_extension("range", ext_range);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
   res = lbm_add_extension("custom", ext_custom);
   if (res)
     printf("Extension added.\n");
@@ -814,12 +808,6 @@ int main(int argc, char **argv) {
       free(str);
     } else if (strncmp(str, ":continue", 9) == 0) {
       lbm_continue_eval();
-      free(str);
-    } else if (strncmp(str, ":step", 5) == 0) {
-
-      int num = atoi(str + 5);
-
-      lbm_step_n_eval((uint32_t)num);
       free(str);
     } else if (strncmp(str, ":undef", 6) == 0) {
       lbm_pause_eval();
