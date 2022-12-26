@@ -1467,6 +1467,7 @@ static void eval_receive(eval_context_t *ctx) {
       int n = find_match(lbm_cdr(pats), msgs, num, &e, &new_env);
       if (n == FM_NEED_GC) {
         gc();
+        new_env = ctx->curr_env;
         n = find_match(lbm_cdr(pats), msgs, num, &e, &new_env);
         if (n == FM_NEED_GC) {
           ctx_running->done = true;
