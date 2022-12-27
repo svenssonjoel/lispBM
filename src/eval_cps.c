@@ -191,7 +191,6 @@ typedef struct {
 static eval_context_queue_t blocked  = {NULL, NULL};
 static eval_context_queue_t sleeping = {NULL, NULL};
 static eval_context_queue_t queue    = {NULL, NULL};
-static eval_context_queue_t done     = {NULL, NULL};
 
 /* one mutex for all queue operations */
 mutex_t qmutex;
@@ -410,10 +409,6 @@ void lbm_running_iterator(ctx_fun f, void *arg1, void *arg2){
 
 void lbm_blocked_iterator(ctx_fun f, void *arg1, void *arg2){
   queue_iterator(&blocked, f, arg1, arg2);
-}
-
-void lbm_done_iterator(ctx_fun f, void *arg1, void *arg2){
-  queue_iterator(&done, f, arg1, arg2);
 }
 
 void lbm_sleeping_iterator(ctx_fun f, void *arg1, void *arg2){
@@ -3216,8 +3211,6 @@ int lbm_eval_init() {
   sleeping.last = NULL;
   queue.first = NULL;
   queue.last = NULL;
-  done.first = NULL;
-  done.last = NULL;
   ctx_running = NULL;
 
   eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
