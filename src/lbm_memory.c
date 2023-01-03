@@ -325,6 +325,21 @@ int lbm_memory_free(lbm_uint *ptr) {
   }
   return r;
 }
+//Malloc/free like interface
+void* lbm_malloc(size_t size) {
+  lbm_uint alloc_size;
+  if (size % sizeof(lbm_uint) == 0) {
+    alloc_size = size / (sizeof(lbm_uint));
+  } else {
+    alloc_size = (size / (sizeof(lbm_uint))) + 1;
+  }
+
+  return lbm_memory_allocate(alloc_size);
+}
+
+void lbm_free(void *ptr) {
+  lbm_memory_free(ptr);
+}
 
 int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
   lbm_uint ix = address_to_bitmap_ix(ptr);
