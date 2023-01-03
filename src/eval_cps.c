@@ -386,8 +386,6 @@ bool lift_char_channel(lbm_char_channel_t *chan , lbm_value *res) {
 }
 
 
-
-
 /****************************************************/
 /* Queue functions                                  */
 
