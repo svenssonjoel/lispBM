@@ -1,6 +1,6 @@
 /*
-    Copyright 2022 Joel Svensson        svenssonjoel@yahoo.se
-    Copyright 2022 Benjamin Vedder
+    Copyright 2022, 2023 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2023 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@
 
 static char print_val_buffer[256];
 
-size_t strnlen(const char *s, size_t maxlen) {
+static size_t strlen_max(const char *s, size_t maxlen) {
   size_t i;
   for (i = 0; i < maxlen; i ++) {
     if (s[i] == 0) break;
@@ -510,7 +510,7 @@ static lbm_value ext_str_len(lbm_value *args, lbm_uint argn) {
 
   lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
 
-  return lbm_enc_i((int)strnlen(str, array->size));
+  return lbm_enc_i((int)strlen_max(str, array->size));
 }
 
 
