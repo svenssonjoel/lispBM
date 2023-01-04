@@ -27,6 +27,9 @@
 
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
+#include "extensions/math_extensions.h"
+#include "extensions/string_extensions.h"
+#include "extensions/runtime_extensions.h"
 #include "lbm_channel.h"
 
 #define WAIT_TIMEOUT 2500
@@ -331,7 +334,33 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  lbm_array_extensions_init();
+  if (lbm_array_extensions_init()) {
+    printf("Array extensions initialized.\n");
+  } else {
+    printf("Array extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_math_extensions_init()) {
+    printf("Math extensions initialized.\n");
+  } else {
+    printf("Math extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_string_extensions_init()) {
+    printf("String extensions initialized.\n");
+  } else {
+    printf("String extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_runtime_extensions_init()) {
+    printf("Runtime extensions initialized.\n");
+  } else {
+    printf("Runtime extensions failed.\n");
+    return 0;
+  }
 
   res = lbm_add_extension("ext-even", ext_even);
   if (res)
