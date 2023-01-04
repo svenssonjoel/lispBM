@@ -30,6 +30,7 @@
 #include "extensions/math_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/runtime_extensions.h"
+#include "extensions/blas_extensions.h"
 #include "lbm_channel.h"
 
 #define WAIT_TIMEOUT 2500
@@ -359,6 +360,13 @@ int main(int argc, char **argv) {
     printf("Runtime extensions initialized.\n");
   } else {
     printf("Runtime extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_blas_extensions_init()) {
+    printf("Blas extensions initialized.\n");
+  } else {
+    printf("Blas extensions failed.\n");
     return 0;
   }
 
