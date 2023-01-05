@@ -617,7 +617,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
       // Needs some thinking on how to do that.
       return lbm_enc_sym(TOKENIZER_ERROR);
     }
-    printf("array allocated\n");
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
     char *data = (char *)arr->data;
     memset(data, 0, (string_len+1) * sizeof(char));
