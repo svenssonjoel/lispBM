@@ -36,7 +36,7 @@
   (sdl-draw-line rend (car p1) (cdr p1) (car p2) (cdr p2)))
 
 (defun point (rend p)
-  (print (sdl-draw-point rend (car p) (cdr p))))
+  (sdl-draw-point rend (car p) (cdr p)))
 
 ;; (defun draw-figure (rend p ang s)
 ;;   (if (<= s 1)
