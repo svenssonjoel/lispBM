@@ -31,6 +31,7 @@
 #include "extensions/string_extensions.h"
 #include "extensions/runtime_extensions.h"
 #include "extensions/blas_extensions.h"
+#include "extensions/random_extensions.h"
 #include "lbm_channel.h"
 
 #define WAIT_TIMEOUT 2500
@@ -367,6 +368,13 @@ int main(int argc, char **argv) {
     printf("Blas extensions initialized.\n");
   } else {
     printf("Blas extensions failed.\n");
+    return 0;
+  }
+
+  if (lbm_random_extensions_init()) {
+    printf("Random extensions initialized.\n");
+  } else {
+    printf("Random extensions failed.\n");
     return 0;
   }
 
