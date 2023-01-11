@@ -18,9 +18,9 @@
 #include <extensions.h>
 #include <lbm_utils.h>
 
-#define M (1 << 28)
-#define A 9991021
-#define C 123456
+#define M 268435183 //(1 << 28)
+#define A 268435043
+#define C 268434949
 
 
 static lbm_uint random_seed = 177739;
