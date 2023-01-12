@@ -182,7 +182,7 @@ void lbm_set_event_handler_pid(lbm_cid pid) {
 
 bool lbm_event(lbm_event_t event, uint8_t* opt_array, int opt_array_len) {
   mutex_lock(&lbm_events_mutex);
-  if (!lbm_events || lbm_events_full) {
+  if (lbm_event_handler_pid == -1 || !lbm_events || lbm_events_full) {
     mutex_unlock(&lbm_events_mutex);
     return false;
   }
@@ -3388,5 +3388,6 @@ bool lbm_eval_init_events(unsigned int num_events) {
   lbm_events_head = 0;
   lbm_events_tail = 0;
   lbm_events_full = false;
+  lbm_event_handler_pid = -1;
   return true;
 }
