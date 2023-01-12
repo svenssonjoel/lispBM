@@ -77,7 +77,7 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
     res = 1;
   }
   mutex_unlock(&lbm_mem_mutex);
-  return 1;
+  return res;
 }
 
 static inline lbm_uint address_to_bitmap_ix(lbm_uint *ptr) {
