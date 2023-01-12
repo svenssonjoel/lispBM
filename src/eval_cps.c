@@ -3209,7 +3209,7 @@ static void process_events(void) {
           msg = lbm_cons(lbm_enc_sym(e.sym), lbm_enc_i(e.i));
         }
         if (lbm_is_ptr(msg)) {
-          lbm_send_message(lbm_event_handler_pid, msg);
+          lbm_find_receiver_and_send(lbm_event_handler_pid, msg);
         }
       } else if (e.type == LBM_EVENT_SYM_INT_INT) {
         lbm_value ints = lbm_cons(lbm_enc_i(e.i), lbm_enc_i(e.i2));
@@ -3224,7 +3224,7 @@ static void process_events(void) {
           msg = lbm_cons(lbm_enc_sym(e.sym), ints);
         }
         if (lbm_is_ptr(ints) && lbm_is_ptr(msg)) {
-          lbm_send_message(lbm_event_handler_pid, msg);
+          lbm_find_receiver_and_send(lbm_event_handler_pid, msg);
         }
       } else if (e.type == LBM_EVENT_SYM_ARRAY) {
         lbm_value val;
