@@ -533,6 +533,15 @@ int lbm_gc_sweep_phase(void);
  * \return 1 for success of 0 for failure.
  */
 int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type);
+/** Convert a C array into an lbm array. If the C array is allocated in LBM MEMORY
+ *  the lifetime of the array will be managed by GC.
+ * \param res lbm_value result pointer for storage of the result array.
+ * \param data C array.
+ * \param type The type tag to assign to the resulting LBM array.
+ * \param num_elt Number of elements in the array.
+ * \return 1 for success and 0 for failure.
+ */
+int lbm_lift_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt);
 /** Explicitly free an array.
  *  This function needs to be used with care and knowledge.
  * \param arr Array value.

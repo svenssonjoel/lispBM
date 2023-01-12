@@ -1,5 +1,5 @@
 /*
-    Copyright 2018,2020 Joel Svensson   svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2023 Joel Svensson   svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -199,6 +199,30 @@ LBM_EXTENSION(ext_numbers, args, argn) {
 }
 
 
+LBM_EXTENSION(ext_event_sym, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_symbol(args[0])) {
+    lbm_event_t e;
+    e.type = LBM_EVENT_SYM;
+    e.sym  = lbm_dec_sym(args[0]);
+    lbm_event(e, NULL, 0);
+    res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
+LBM_EXTENSION(ext_event_array, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_symbol(args[0])) {
+    lbm_event_t e;
+    e.type = LBM_EVENT_SYM_ARRAY;
+    e.sym = lbm_dec_sym(args[0]);
+    lbm_event(e, "Hello world", 12);
+    res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
 
 int main(int argc, char **argv) {
 
@@ -328,6 +352,14 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  res = lbm_eval_init_events(20);
+  if (res)
+    printf("Events initialized.\n");
+  else {
+    printf("Error initializing events.\n");
+    return 0;
+  }
+
   res = lbm_extensions_init(extension_storage, EXTENSION_STORAGE_SIZE);
   if (res)
     printf("Extensions initialized.\n");
@@ -395,6 +427,22 @@ int main(int argc, char **argv) {
   }
 
   res = lbm_add_extension("ext-numbers", ext_numbers);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("event-sym", ext_event_sym);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("event-array", ext_event_array);
   if (res)
     printf("Extension added.\n");
   else {
