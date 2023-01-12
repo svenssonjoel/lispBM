@@ -41,10 +41,16 @@ static lbm_uint memory_size;  // in 4 or 8 byte words depending on 32 or 64 bit 
 static lbm_uint bitmap_size;  // in 4 or 8 byte words
 static lbm_uint memory_base_address = 0;
 static mutex_t lbm_mem_mutex;
+static bool    lbm_mem_mutex_initialized;
 
 int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
                     lbm_uint *bits, lbm_uint bits_size) {
 
+  if (!lbm_mem_mutex_initialized) {
+    mutex_init(&lbm_mem_mutex);
+  }
+  mutex_lock(&lbm_mem_mutex);
+  int res = 0;
   if (data == NULL || bits == NULL) return 0;
 
   if (((lbm_uint)data % sizeof(lbm_uint) != 0) ||
@@ -56,21 +62,21 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
     // data is not aligned to sizeof lbm_uint
     // size is too small
     // or size is not a multiple of 4
-    return 0;
+  } else {
+
+    bitmap = bits;
+    bitmap_size = bits_size;
+
+    for (lbm_uint i = 0; i < bitmap_size; i ++) {
+      bitmap[i] = 0;
+    }
+
+    memory = data;
+    memory_base_address = (lbm_uint)data;
+    memory_size = data_size;
+    res = 1;
   }
-
-  bitmap = bits;
-  bitmap_size = bits_size;
-
-  for (lbm_uint i = 0; i < bitmap_size; i ++) {
-    bitmap[i] = 0;
-  }
-
-  memory = data;
-  memory_base_address = (lbm_uint)data;
-  memory_size = data_size;
-
-  mutex_init(&lbm_mem_mutex);
+  mutex_unlock(&lbm_mem_mutex);
   return 1;
 }
 

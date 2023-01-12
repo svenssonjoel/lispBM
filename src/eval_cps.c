@@ -170,6 +170,7 @@ static unsigned int lbm_events_tail = 0;
 static unsigned int lbm_events_max  = 0;
 static bool         lbm_events_full = false;
 static mutex_t      lbm_events_mutex;
+static bool         lbm_events_mutex_initialized = false;
 static volatile lbm_cid  lbm_event_handler_pid = -1;
 
 lbm_cid lbm_get_event_handler_pid(void) {
@@ -181,11 +182,12 @@ void lbm_set_event_handler_pid(lbm_cid pid) {
 }
 
 bool lbm_event(lbm_event_t event, uint8_t* opt_array, int opt_array_len) {
-  mutex_lock(&lbm_events_mutex);
-  if (lbm_event_handler_pid == -1 || !lbm_events || lbm_events_full) {
-    mutex_unlock(&lbm_events_mutex);
+
+  if (lbm_event_handler_pid == -1 || !lbm_events) {
     return false;
   }
+  mutex_lock(&lbm_events_mutex);
+  if (lbm_events_full) return false;
   if (opt_array != NULL) {
     event.array = lbm_malloc((size_t)opt_array_len);
     event.array_len = opt_array_len;
@@ -253,6 +255,7 @@ static eval_context_queue_t queue    = {NULL, NULL};
 
 /* one mutex for all queue operations */
 mutex_t qmutex;
+bool    qmutex_initialized = false;
 
 static void usleep_nonsense(uint32_t us) {
   (void) us;
@@ -3360,6 +3363,16 @@ lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size) {
 int lbm_eval_init() {
   int res = 1;
 
+  if (!qmutex_initialized) {
+    mutex_init(&qmutex);
+  }
+  if (!lbm_events_mutex_initialized) {
+    mutex_init(&lbm_events_mutex);
+  }
+
+  mutex_lock(&qmutex);
+  mutex_lock(&lbm_events_mutex);
+
   blocked.first = NULL;
   blocked.last = NULL;
   sleeping.first = NULL;
@@ -3370,8 +3383,8 @@ int lbm_eval_init() {
 
   eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
 
-  mutex_init(&qmutex);
-  mutex_init(&lbm_events_mutex);
+  mutex_unlock(&qmutex);
+  mutex_unlock(&lbm_events_mutex);
 
   *lbm_get_env_ptr() = ENC_SYM_NIL;
   eval_running = true;
@@ -3381,6 +3394,7 @@ int lbm_eval_init() {
 
 bool lbm_eval_init_events(unsigned int num_events) {
 
+  mutex_lock(&lbm_events_mutex);
   lbm_events = (lbm_event_t*)lbm_malloc(num_events * sizeof(lbm_event_t));
 
   if (!lbm_events) return false;
@@ -3389,5 +3403,6 @@ bool lbm_eval_init_events(unsigned int num_events) {
   lbm_events_tail = 0;
   lbm_events_full = false;
   lbm_event_handler_pid = -1;
+  mutex_unlock(&lbm_events_mutex);
   return true;
 }
