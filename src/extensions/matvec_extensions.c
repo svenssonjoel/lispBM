@@ -174,7 +174,7 @@ static lbm_value ext_sdot(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-bool lbm_blas_extensions_init(void) {
+bool lbm_matvec_extensions_init(void) {
   bool res = true;
 
   // Vectors

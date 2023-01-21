@@ -15,8 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef BLAS_EXTENSIONS_H_
-#define BLAS_EXTENSIONS_H_
+#ifndef MATVEC_EXTENSIONS_H_
+#define MATVEC_EXTENSIONS_H_
 
 #include <stdbool.h>
 
@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-bool lbm_blas_extensions_init(void);
+bool lbm_matvec_extensions_init(void);
 
 #ifdef __cplusplus
 }

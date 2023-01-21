@@ -20,7 +20,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/string_extensions.c \
              $(LISPBM)/src/extensions/math_extensions.c \
              $(LISPBM)/src/extensions/runtime_extensions.c \
-             $(LISPBM)/src/extensions/blas_extensions.c \
+             $(LISPBM)/src/extensions/matvec_extensions.c \
              $(LISPBM)/src/extensions/random_extensions.c
 
 

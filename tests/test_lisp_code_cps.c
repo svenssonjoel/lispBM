@@ -30,7 +30,7 @@
 #include "extensions/math_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/runtime_extensions.h"
-#include "extensions/blas_extensions.h"
+#include "extensions/matvec_extensions.h"
 #include "extensions/random_extensions.h"
 #include "lbm_channel.h"
 
@@ -396,10 +396,10 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (lbm_blas_extensions_init()) {
-    printf("Blas extensions initialized.\n");
+  if (lbm_matvec_extensions_init()) {
+    printf("Matvec extensions initialized.\n");
   } else {
-    printf("Blas extensions failed.\n");
+    printf("Matvec extensions failed.\n");
     return 0;
   }
 
