@@ -19,6 +19,8 @@
 #include "lbm_utils.h"
 #include "lbm_custom_type.h"
 
+#include <math.h>
+
 static const char *vector_float_desc = "Vector-Float";
 //static const char *matrix_float_desc = "Matrix-Float";
 
@@ -147,7 +149,7 @@ static lbm_value ext_vector_to_list(lbm_value *args, lbm_uint argn) {
   return result;
 }
 
-static lbm_value ext_saxpy(lbm_value *args, lbm_uint argn ) {
+static lbm_value ext_axpy(lbm_value *args, lbm_uint argn ) {
 
   lbm_value res = ENC_SYM_TERROR;
 
@@ -180,7 +182,7 @@ static lbm_value ext_saxpy(lbm_value *args, lbm_uint argn ) {
   return res;
 }
 
-static lbm_value ext_sdot(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_dot(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = ENC_SYM_TERROR;
 
@@ -206,6 +208,47 @@ static lbm_value ext_sdot(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+static float vector_float_mag(vector_float_t *v) {
+    float mag = 0.0;
+    for (unsigned int i = 0; i < v->size; i ++) {
+      mag += (v->data[i] * v->data[i]);
+    }
+    mag = sqrtf(mag);
+    return mag;
+}
+
+static lbm_value ext_mag(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+
+  if (argn == 1 &&
+      is_vector_float(args[0])) {
+    vector_float_t *v = (vector_float_t *)lbm_get_custom_value(args[0]);
+    float mag = vector_float_mag(v);
+    res = lbm_enc_float(mag);
+  }
+  return res;
+}
+
+static lbm_value ext_vmult(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      lbm_is_number(args[0]) &&
+      is_vector_float(args[1])) {
+
+    float alpha = lbm_dec_as_float(args[0]);
+    vector_float_t *x = (vector_float_t *)lbm_get_custom_value(args[1]);
+    lbm_value y = vector_float_allocate(x->size);
+    res = y;
+    if (!lbm_is_error(y)) {
+      vector_float_t *y_vec = (vector_float_t *)lbm_get_custom_value(y);
+      for (unsigned int i = 0; i < x->size; i ++) {
+        y_vec->data[i] = alpha * x->data[i];
+      }
+    }
+  }
+  return res;
+}
+
 bool lbm_matvec_extensions_init(void) {
   bool res = true;
 
@@ -213,8 +256,10 @@ bool lbm_matvec_extensions_init(void) {
   res = res && lbm_add_extension("vector", ext_vector);
   res = res && lbm_add_extension("list-to-vector", ext_list_to_vector);
   res = res && lbm_add_extension("vector-to-list", ext_vector_to_list);
-  res = res && lbm_add_extension("saxpy", ext_saxpy);
-  res = res && lbm_add_extension("sdot", ext_sdot);
+  res = res && lbm_add_extension("axpy", ext_axpy);
+  res = res && lbm_add_extension("dot", ext_dot);
+  res = res && lbm_add_extension("mag", ext_mag);
+  res = res && lbm_add_extension("vmult", ext_vmult);
 
   // Matrices
 
