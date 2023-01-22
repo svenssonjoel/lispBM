@@ -22,7 +22,7 @@
 #include <math.h>
 
 static const char *vector_float_desc = "Vector-Float";
-//static const char *matrix_float_desc = "Matrix-Float";
+static const char *matrix_float_desc = "Matrix-Float";
 
 typedef struct {
   unsigned int size;
@@ -51,30 +51,34 @@ static bool is_vector_float(lbm_value v) {
   return ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)vector_float_desc);
 }
 
-/* typedef struct { */
-/*   lbm_uint width; */
-/*   lbm_uint height; */
-/*   float data[1]; */
-/* } matrix_float_t; */
+/* **************************************************
+ * Matrices stored in row-major form
+ */
 
-/* static lbm_value matrix_float_allocate(unsigned int width, unsigned int height) { */
-/*   matrix_float_t *mem = lbm_malloc(1 * sizeof(lbm_uint) + */
-/*                                    1 * sizeof(lbm_uint) + */
-/*                                    width * height * sizeof(float)); */
-/*   if (!mem) return ENC_SYM_MERROR; */
-/*   mem->width  = width; */
-/*   mem->height = height; */
-/*   lbm_value res; */
-/*   lbm_custom_type_create((lbm_uint)mem, */
-/*                          common_destructor, */
-/*                          matrix_float_desc, */
-/*                          &res); */
-/*   return res; */
-/* } */
+typedef struct {
+  lbm_uint rows;
+  lbm_uint cols;
+  float data[1];
+} matrix_float_t;
 
-/* static bool is_matrix_float(lbm_value m) { */
-/*   return ((lbm_uint)lbm_get_custom_descriptor(m) == (lbm_uint)matrix_float_desc); */
-/* } */
+static lbm_value matrix_float_allocate(unsigned int rows, unsigned int cols) {
+  matrix_float_t *mem = lbm_malloc(1 * sizeof(lbm_uint) +
+                                   1 * sizeof(lbm_uint) +
+                                   rows * cols * sizeof(float));
+  if (!mem) return ENC_SYM_MERROR;
+  mem->rows = rows;
+  mem->cols = cols;
+  lbm_value res;
+  lbm_custom_type_create((lbm_uint)mem,
+                         common_destructor,
+                         matrix_float_desc,
+                         &res);
+  return res;
+}
+
+static bool is_matrix_float(lbm_value m) {
+  return ((lbm_uint)lbm_get_custom_descriptor(m) == (lbm_uint)matrix_float_desc);
+}
 
 /* **************************************************
  * Extension implementations
@@ -109,6 +113,7 @@ static lbm_value ext_list_to_vector(lbm_value *args, lbm_uint argn) {
 
     if (len > 0 && nums) {
       lbm_value vec = vector_float_allocate(len);
+      if (lbm_is_error(vec)) return vec;
       vector_float_t *lvec = (vector_float_t*)lbm_get_custom_value(vec);
 
       lbm_value curr = args[0];
@@ -126,27 +131,40 @@ static lbm_value ext_list_to_vector(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_vector_to_list(lbm_value *args, lbm_uint argn) {
 
-  if (argn != 1 || !is_vector_float(args[0])) {
-    return ENC_SYM_EERROR;
-  }
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 && is_vector_float(args[0])) {
+    vector_float_t *lvec = (vector_float_t*)lbm_get_custom_value(args[0]);
 
-  vector_float_t *lvec = (vector_float_t*)lbm_get_custom_value(args[0]);
-
-  lbm_value result = lbm_heap_allocate_list(lvec->size);
-  if (lbm_is_cons(result)) {
-    lbm_value curr = result;
-    for (lbm_uint i = 0; i < lvec->size; i ++) {
-      lbm_value f_val = lbm_enc_float(lvec->data[i]);
-      if (lbm_is_error(f_val)) {
-        result = f_val;
-        break;
+    lbm_value result = lbm_heap_allocate_list(lvec->size);
+    if (lbm_is_cons(result)) {
+      lbm_value curr = result;
+      for (lbm_uint i = 0; i < lvec->size; i ++) {
+        lbm_value f_val = lbm_enc_float(lvec->data[i]);
+        if (lbm_is_error(f_val)) {
+          result = f_val;
+          break;
+        }
+        lbm_set_car(curr, f_val);
+        curr = lbm_cdr(curr);
       }
-      lbm_set_car(curr, f_val);
-      curr = lbm_cdr(curr);
+      res = result;
     }
   }
+  return res;
+}
 
-  return result;
+static lbm_value ext_vproj(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      is_vector_float(args[0]) &&
+      lbm_is_number(args[1])) {
+    vector_float_t *vec = (vector_float_t*)lbm_get_custom_value(args[0]);
+    uint32_t i = lbm_dec_as_u32(args[1]);
+    if (i < vec->size) {
+      res = lbm_enc_float(vec->data[i]);
+    }
+  }
+  return res;
 }
 
 static lbm_value ext_axpy(lbm_value *args, lbm_uint argn ) {
@@ -249,6 +267,71 @@ static lbm_value ext_vmult(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+static lbm_value ext_list_to_matrix(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+
+  if (argn == 2 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_list(args[1])) {
+
+    bool nums = true;
+    unsigned int len = lbm_list_length_pred(args[1], &nums, lbm_is_number);
+
+    if (len > 0 && nums) {
+      uint32_t cols = lbm_dec_as_u32(args[0]);
+      uint32_t rows = len / cols;
+
+      if (len % cols == 0) {
+        lbm_value mat = matrix_float_allocate(rows, cols);
+        if (lbm_is_error(mat)) return mat;
+        matrix_float_t *lmat = (matrix_float_t*)lbm_get_custom_value(mat);
+
+        lbm_value curr = args[1];
+        unsigned int i = 0;
+        while (lbm_is_cons(curr)) {
+          float f = lbm_dec_as_float(lbm_car(curr));
+          lmat->data[i] = lbm_dec_as_float(lbm_car(curr));
+          i ++;
+          curr = lbm_cdr(curr);
+        }
+        res = mat;
+      }
+    }
+  }
+  return res;
+}
+
+static lbm_value ext_matrix_to_list(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 && is_matrix_float(args[0])) {
+    matrix_float_t *lmat = (matrix_float_t*)lbm_get_custom_value(args[0]);
+    unsigned int size = lmat->rows * lmat->cols;
+
+    res = lbm_heap_allocate_list(size);
+    if (lbm_is_cons(res)) {
+      lbm_value curr = res;
+      for (unsigned int i = 0; i < size; i ++) {
+        lbm_value f_val = lbm_enc_float(lmat->data[i]);
+        if (lbm_is_error(f_val)) {
+          res = f_val;
+          break;
+        }
+        lbm_set_car(curr, f_val);
+        curr = lbm_cdr(curr);
+      }
+    }
+  }
+  return res;
+}
+
+
+
+/* **************************************************
+ * Initialization
+ */
+
 bool lbm_matvec_extensions_init(void) {
   bool res = true;
 
@@ -256,12 +339,16 @@ bool lbm_matvec_extensions_init(void) {
   res = res && lbm_add_extension("vector", ext_vector);
   res = res && lbm_add_extension("list-to-vector", ext_list_to_vector);
   res = res && lbm_add_extension("vector-to-list", ext_vector_to_list);
+  res = res && lbm_add_extension("vproj", ext_vproj);
   res = res && lbm_add_extension("axpy", ext_axpy);
   res = res && lbm_add_extension("dot", ext_dot);
   res = res && lbm_add_extension("mag", ext_mag);
   res = res && lbm_add_extension("vmult", ext_vmult);
 
   // Matrices
+  res = res && lbm_add_extension("list-to-matrix", ext_list_to_matrix);
+  res = res && lbm_add_extension("matrix-to-list", ext_matrix_to_list);
 
   return res;
 }
+
