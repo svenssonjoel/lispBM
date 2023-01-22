@@ -446,6 +446,16 @@ int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val);
  * \return The length of the list. Unless the value is a cyclic structure on the heap, this function will terminate.
  */
 unsigned int lbm_list_length(lbm_value c);
+
+/** Calculate the length of a proper list and evaluate a predicate for each element.
+ * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
+ * may lead to the function not terminating.
+ *
+ * \param c A list
+ * \param pres Boolean result of predicate, false if predicate is false for any of the elements in the list, otherwise true.
+ * \param pred Predicate to evaluate for each element of the list.
+ */
+unsigned int lbm_list_length_pred(lbm_value c, bool *pres, bool (*pred)(lbm_value));
 /** Reverse a proper list
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
  * may lead to the function not terminating.

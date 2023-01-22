@@ -50,18 +50,18 @@ static bool is_vector_float(lbm_value v) {
 }
 
 /* typedef struct { */
-/*   unsigned int size1; */
-/*   unsigned int size2; */
+/*   lbm_uint width; */
+/*   lbm_uint height; */
 /*   float data[1]; */
 /* } matrix_float_t; */
 
-/* static lbm_value matrix_float_allocate(unsigned int size1, unsigned int size2) { */
+/* static lbm_value matrix_float_allocate(unsigned int width, unsigned int height) { */
 /*   matrix_float_t *mem = lbm_malloc(1 * sizeof(lbm_uint) + */
 /*                                    1 * sizeof(lbm_uint) + */
-/*                                    size1 * size2 * sizeof(float)); */
+/*                                    width * height * sizeof(float)); */
 /*   if (!mem) return ENC_SYM_MERROR; */
-/*   mem->size1 = size1; */
-/*   mem->size2 = size2; */
+/*   mem->width  = width; */
+/*   mem->height = height; */
 /*   lbm_value res; */
 /*   lbm_custom_type_create((lbm_uint)mem, */
 /*                          common_destructor, */
@@ -82,7 +82,7 @@ static lbm_value ext_vector(lbm_value *args, lbm_uint argn) {
 
   LBM_CHECK_NUMBER_ALL();
 
-  if (argn < 1) return ENC_SYM_EERROR;
+  if (argn < 1) return ENC_SYM_TERROR;
 
   lbm_value vec = vector_float_allocate(argn);
   if (lbm_is_error(vec)) return vec;
@@ -93,6 +93,33 @@ static lbm_value ext_vector(lbm_value *args, lbm_uint argn) {
     lvec->data[i] = lbm_dec_as_float(args[i]);
   }
   return vec;
+}
+
+static lbm_value ext_list_to_vector(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+
+  if (argn == 1 &&
+      lbm_is_list(args[0])) {
+
+    bool nums = true;
+    unsigned int len = lbm_list_length_pred(args[0], &nums, lbm_is_number);
+
+    if (len > 0 && nums) {
+      lbm_value vec = vector_float_allocate(len);
+      vector_float_t *lvec = (vector_float_t*)lbm_get_custom_value(vec);
+
+      lbm_value curr = args[0];
+      unsigned int i = 0;
+      while (lbm_is_cons(curr)) {
+        lvec->data[i] = lbm_dec_as_float(lbm_car(curr));
+        i ++;
+        curr = lbm_cdr(curr);
+      }
+      res = vec;
+    }
+  }
+  return res;
 }
 
 static lbm_value ext_vector_to_list(lbm_value *args, lbm_uint argn) {
@@ -135,15 +162,18 @@ static lbm_value ext_saxpy(lbm_value *args, lbm_uint argn ) {
     vector_float_t *X = (vector_float_t*)lbm_get_custom_value(x);
     vector_float_t *Y = (vector_float_t*)lbm_get_custom_value(y);
 
-    unsigned int res_size = MIN(X->size, Y->size);
+    if (X->size == Y->size) {
 
-    res = vector_float_allocate(res_size);
-    if (!lbm_is_symbol_merror(res)) {
+      unsigned int res_size = X->size;
 
-      vector_float_t *R = (vector_float_t*)lbm_get_custom_value(res);
+      res = vector_float_allocate(res_size);
+      if (!lbm_is_symbol_merror(res)) {
 
-      for (unsigned i = 0; i < res_size; i ++) {
-        R->data[i] = alpha * X->data[i] + Y->data[i];
+        vector_float_t *R = (vector_float_t*)lbm_get_custom_value(res);
+
+        for (unsigned i = 0; i < res_size; i ++) {
+          R->data[i] = alpha * X->data[i] + Y->data[i];
+        }
       }
     }
   }
@@ -163,13 +193,15 @@ static lbm_value ext_sdot(lbm_value *args, lbm_uint argn) {
     vector_float_t *X = (vector_float_t*)lbm_get_custom_value(x);
     vector_float_t *Y = (vector_float_t*)lbm_get_custom_value(y);
 
-    unsigned int res_size = MIN(X->size, Y->size);
+    if (X->size == Y->size) {
+      unsigned int res_size = X->size;
 
-    float f_res = 0;
-    for (unsigned i = 0; i < res_size; i ++) {
-      f_res +=  X->data[i] * Y->data[i];
+      float f_res = 0;
+      for (unsigned i = 0; i < res_size; i ++) {
+        f_res +=  X->data[i] * Y->data[i];
+      }
+      res = lbm_enc_float(f_res);
     }
-    res = lbm_enc_float(f_res);
   }
   return res;
 }
@@ -179,6 +211,7 @@ bool lbm_matvec_extensions_init(void) {
 
   // Vectors
   res = res && lbm_add_extension("vector", ext_vector);
+  res = res && lbm_add_extension("list-to-vector", ext_list_to_vector);
   res = res && lbm_add_extension("vector-to-list", ext_vector_to_list);
   res = res && lbm_add_extension("saxpy", ext_saxpy);
   res = res && lbm_add_extension("sdot", ext_sdot);
