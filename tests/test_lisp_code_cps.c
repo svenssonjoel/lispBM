@@ -32,6 +32,7 @@
 #include "extensions/runtime_extensions.h"
 #include "extensions/matvec_extensions.h"
 #include "extensions/random_extensions.h"
+#include "extensions/loop_extensions.h"
 #include "lbm_channel.h"
 
 #define WAIT_TIMEOUT 2500
@@ -107,50 +108,61 @@ void context_done_callback(eval_context_t *ctx) {
 
 bool dyn_load(const char *str, const char **code) {
 
+  size_t len = strlen(str);
   bool res = false;
-  if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
+  if (len == 5 && strncmp(str, "defun", 5) == 0) {
     *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
     res = true;
-  }  else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
+  }  else if (len == 4 && strncmp(str, "iota", 4) == 0) {
     *code = "(define iota (lambda (n)"
             "(range 0 n)))";
     res = true;
-  } else if (strlen(str) == 4 && strncmp(str, "take", 4) == 0) {
+  } else if (len == 4 && strncmp(str, "take", 4) == 0) {
     *code = "(define take (lambda (n xs)"
             "(let ((take-tail (lambda (acc n xs)"
             "(if (= n 0) acc"
             "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
             "(reverse (take-tail nil n xs)))))";
     res = true;
-  } else if (strlen(str) == 4 && strncmp(str, "drop", 4) == 0) {
+  } else if (len == 4 && strncmp(str, "drop", 4) == 0) {
     *code = "(define drop (lambda (n xs)"
             "(if (= n 0) xs"
             "(if (eq xs nil) nil"
             "(drop (- n 1) (cdr xs))))))";
     res = true;
-  } else if (strlen(str) == 3 && strncmp(str, "zip", 3) == 0) {
+  } else if (len == 3 && strncmp(str, "zip", 3) == 0) {
     *code = "(define zip (lambda (xs ys)"
             "(if (eq xs nil) nil"
             "(if (eq ys nil) nil"
             "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
     res = true;
-  } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
+  } else if (len == 6 && strncmp(str, "lookup", 6) == 0) {
     *code = "(define lookup (lambda (x xs)"
             "(if (eq xs nil) nil"
             "(if (eq (car (car xs)) x)"
             "(car (cdr (car xs)))"
             "(lookup x (cdr xs))))))";
     res = true;
-  } else if (strlen(str) == 5 && strncmp(str, "foldr", 5) == 0) {
+  } else if (len == 5 && strncmp(str, "foldr", 5) == 0) {
     *code = "(define foldr (lambda (f i xs)"
             "(if (eq xs nil) i"
             "(f (car xs) (foldr f i (cdr xs))))))";
     res = true;
-  } else if (strlen(str) == 5 && strncmp(str, "foldl", 5) == 0) {
+  } else if (len == 5 && strncmp(str, "foldl", 5) == 0) {
     *code = "(define foldl (lambda (f i xs)"
             "(if (eq xs nil) i (foldl f (f i (car xs)) (cdr xs)))))";
     res = true;
   }
+
+
+  for (unsigned int i = 0; i < (sizeof(loop_extensions_dyn_load) / sizeof(loop_extensions_dyn_load[0])); i ++) {
+    if (strncmp (str, loop_extensions_dyn_load[i]+8, len)  == 0) {
+      *code = loop_extensions_dyn_load[i];
+      res = true;
+      break;
+    }
+  }
+
   return res;
 }
 
