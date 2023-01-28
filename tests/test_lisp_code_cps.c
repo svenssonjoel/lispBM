@@ -422,6 +422,13 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  if (lbm_loop_extensions_init()) {
+    printf("Loop extensions initialized.\n");
+  } else {
+    printf("Loop extensions failed.\n");
+    return 0;
+  }
+
   res = lbm_add_extension("ext-even", ext_even);
   if (res)
     printf("Extension added.\n");

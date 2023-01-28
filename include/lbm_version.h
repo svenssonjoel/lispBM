@@ -27,11 +27,17 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 7
+#define LBM_MINOR_VERSION 8
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 1
+#define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+Jan 28 2023: Version 0.8.0
+  - Changed return value of define from being the bound symbol to
+    being the value.
+  - Many of the more general extensions from Benjamin's BLDC repository
+    has moved into the LispBM source code.
 
 Dec 11: Version 0.7.1
   - Changes to heap_allocate_cell for readability and perhaps performance.
