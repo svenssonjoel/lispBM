@@ -355,4 +355,6 @@
 
 #define ENC_SYM_COLON       ((SYM_COLON << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
 
+#define ENC_SYM_MAP         ((SYM_MAP << LBM_VAL_SHIFT) | LBM_TYPE_SYMBOL)
+
 #endif
