@@ -30,6 +30,7 @@
 #include "extensions/array_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/math_extensions.h"
+#include "extensions/runtime_extensions.h"
 
 #include "lbm_custom_type.h"
 #include "lbm_channel.h"
@@ -563,6 +564,12 @@ int main(int argc, char **argv) {
     printf("Math extensions loaded\n");
   } else {
     printf("Loading math extensions failed\n");
+  }
+
+  if (lbm_runtime_extensions_init()) {
+    printf("Runtime extensions loaded\n");
+  } else {
+    printf("Loading runtime extensions failed\n");
   }
 
   res = lbm_add_extension("block", ext_block);

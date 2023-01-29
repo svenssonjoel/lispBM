@@ -20,6 +20,7 @@
 #include <eval_cps.h>
 #include <extensions.h>
 #include <lbm_utils.h>
+#include <lbm_version.h>
 
 lbm_value ext_eval_set_quota(lbm_value *args, lbm_uint argn) {
   LBM_CHECK_ARGN_NUMBER(1);
@@ -55,6 +56,17 @@ lbm_value ext_memory_word_size(lbm_value *args, lbm_uint argn) {
   return lbm_enc_i((lbm_int)sizeof(lbm_uint));
 }
 
+lbm_value ext_lispbm_version(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  lbm_value version;
+  lbm_heap_allocate_list_init(&version, 3,
+                              lbm_enc_i(LBM_MAJOR_VERSION),
+                              lbm_enc_i(LBM_MINOR_VERSION),
+                              lbm_enc_i(LBM_PATCH_VERSION));
+  return version;
+}
+
 bool lbm_runtime_extensions_init(void) {
 
   bool res = true;
@@ -63,5 +75,6 @@ bool lbm_runtime_extensions_init(void) {
   res = res && lbm_add_extension("mem-longest-free", ext_memory_longest_free);
   res = res && lbm_add_extension("mem-size", ext_memory_size);
   res = res && lbm_add_extension("word-size", ext_memory_word_size);
+  res = res && lbm_add_extension("lbm-version", ext_lispbm_version);
   return res;
 }

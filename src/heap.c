@@ -570,7 +570,10 @@ bool lbm_heap_allocate_list_init_va(lbm_value *ls, unsigned int n, va_list valis
     *ls = ENC_SYM_NIL;
     return true;
   }
-  if (lbm_heap_num_free() < n) return false;
+  if (lbm_heap_num_free() < n) {
+    *ls = ENC_SYM_MERROR;
+    return false;
+  }
 
   lbm_value res = lbm_heap_state.freelist;
   if (lbm_type_of(res) == LBM_TYPE_CONS) {
