@@ -748,12 +748,6 @@ static inline bool lbm_is_special(lbm_value symrep) {
           (lbm_dec_sym(symrep) < SPECIAL_SYMBOLS_END));
 }
 
-static inline bool lbm_is_fundamental(lbm_value symrep) {
-  return ((lbm_type_of(symrep) == LBM_TYPE_SYMBOL)  &&
-          (lbm_dec_sym(symrep) >= FUNDAMENTALS_START) &&
-          (lbm_dec_sym(symrep) <= FUNDAMENTALS_END));
-}
-
 static inline bool lbm_is_closure(lbm_value exp) {
   return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&

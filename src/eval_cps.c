@@ -119,8 +119,8 @@ const char* lbm_error_str_incorrect_arg = "Incorrect argument.";
 #define PRELIMINARY_GC_MEASURE 30
 
 static int gc(void);
-static void error_ctx(lbm_value);
-static eval_context_t *ctx_running = NULL;
+void error_ctx(lbm_value);
+eval_context_t *ctx_running = NULL;
 
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
   lbm_value res = lbm_cons(head, tail);
@@ -668,7 +668,7 @@ static void error_ctx_base(lbm_value err_val, unsigned int row, unsigned int col
   finish_ctx();
 }
 
-static void error_ctx(lbm_value err_val) {
+void error_ctx(lbm_value err_val) {
   error_ctx_base(err_val, 0, 0);
 }
 
@@ -1996,7 +1996,67 @@ static const apply_fun fun_table[] =
    apply_ok,
    apply_error,
    apply_map,
-   apply_reverse
+   apply_reverse,
+   fundamental_add,
+   fundamental_sub,
+   fundamental_mul,
+   fundamental_div,
+   fundamental_mod,
+   fundamental_eq,
+   fundamental_not_eq,
+   fundamental_numeq,
+   fundamental_num_not_eq,
+   fundamental_lt,
+   fundamental_gt,
+   fundamental_leq,
+   fundamental_geq,
+   fundamental_not,
+   fundamental_gc,
+   fundamental_self,
+   fundamental_set_mailbox_size,
+   fundamental_cons,
+   fundamental_car,
+   fundamental_cdr,
+   fundamental_list,
+   fundamental_append,
+   fundamental_undefine,
+   fundamental_array_read,
+   fundamental_array_write,
+   fundamental_array_create,
+   fundamental_array_size,
+   fundamental_array_clear,
+   fundamental_symbol_to_string,
+   fundamental_string_to_symbol,
+   fundamental_symbol_to_uint,
+   fundamental_uint_to_symbol,
+   fundamental_set_car,
+   fundamental_set_cdr,
+   fundamental_set_ix,
+   fundamental_assoc,
+   fundamental_acons,
+   fundamental_set_assoc,
+   fundamental_cossa,
+   fundamental_ix,
+   fundamental_to_i,
+   fundamental_to_i32,
+   fundamental_to_u,
+   fundamental_to_u32,
+   fundamental_to_float,
+   fundamental_to_i64,
+   fundamental_to_u64,
+   fundamental_to_double,
+   fundamental_to_byte,
+   fundamental_shl,
+   fundamental_shr,
+   fundamental_bitwise_and,
+   fundamental_bitwise_or,
+   fundamental_bitwise_xor,
+   fundamental_bitwise_not,
+   fundamental_custom_destruct,
+   fundamental_type_of,
+   fundamental_list_length,
+   fundamental_range,
+   fundamental_reg_event_handler
   };
 
 /***************************************************/
@@ -2036,21 +2096,9 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     /* eval_cps specific operations */
     lbm_uint sym_val = lbm_dec_sym(fun) - APPLY_FUNS_START;
 
-    if (sym_val <= APPLY_FUNS_END) {
+    if (sym_val <= (APPLY_FUNS_END - APPLY_FUNS_START)) {
       fun_table[sym_val](&fun_args[1], arg_count, ctx);
-    } else if (lbm_is_fundamental(fun)) {
-      lbm_uint fund_ix = lbm_dec_sym(fun) -  FUNDAMENTALS_START;
-
-      lbm_value res;
-      WITH_GC(res, fundamental_table[fund_ix](&fun_args[1], arg_count, ctx));
-      if (lbm_is_error(res)) { //Error other than merror.
-        error_ctx(res);
-        return;
-      }
-      lbm_stack_drop(&ctx->K, arg_count+1);
-      ctx->app_cont = true;
-      ctx->r = res;
-    } else {
+    }  else {
       // It may be an extension
       extension_fptr f = lbm_get_extension(lbm_dec_sym(fun));
       if (f == NULL) {
