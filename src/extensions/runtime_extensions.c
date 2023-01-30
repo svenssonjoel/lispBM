@@ -56,7 +56,7 @@ lbm_value ext_memory_word_size(lbm_value *args, lbm_uint argn) {
   return lbm_enc_i((lbm_int)sizeof(lbm_uint));
 }
 
-lbm_value ext_lispbm_version(lbm_value *args, lbm_uint argn) {
+lbm_value ext_lbm_version(lbm_value *args, lbm_uint argn) {
   (void) args;
   (void) argn;
   lbm_value version;
@@ -67,6 +67,15 @@ lbm_value ext_lispbm_version(lbm_value *args, lbm_uint argn) {
   return version;
 }
 
+lbm_value ext_lbm_num_gc(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  lbm_heap_state_t state;
+  lbm_get_heap_state(&state);
+  return lbm_enc_i(state.gc_num);
+}
+
+
 bool lbm_runtime_extensions_init(void) {
 
   bool res = true;
@@ -75,6 +84,7 @@ bool lbm_runtime_extensions_init(void) {
   res = res && lbm_add_extension("mem-longest-free", ext_memory_longest_free);
   res = res && lbm_add_extension("mem-size", ext_memory_size);
   res = res && lbm_add_extension("word-size", ext_memory_word_size);
-  res = res && lbm_add_extension("lbm-version", ext_lispbm_version);
+  res = res && lbm_add_extension("lbm-version", ext_lbm_version);
+  res = res && lbm_add_extension("lbm-num-gc", ext_lbm_num_gc);
   return res;
 }
