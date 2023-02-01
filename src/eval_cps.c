@@ -2098,7 +2098,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     if (sym_val <= (APPLY_FUNS_END - APPLY_FUNS_START)) {
       fun_table[sym_val](&fun_args[1], arg_count, ctx);
-    }  else {
+    } else {
       // It may be an extension
       extension_fptr f = lbm_get_extension(lbm_dec_sym(fun));
       if (f == NULL) {

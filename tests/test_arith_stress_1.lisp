@@ -14,10 +14,12 @@
 (defun arith (a b c d e f g h i j)
   (+ a b c d e f g h i j))
 
-;(def n-gc1 (lbm-num-gc))
+;(def n-gc1 (lbm-heap-state 'get-gc-num))
 
 (def res (test-it 10000 arith '(1 2 3 4 5 6 7 8 9 10) 55 t))
 
-;(def n-gc2 (lbm-num-gc))
+;(def n-gc2 (lbm-heap-state 'get-gc-num))
 
 res
+
+;(list n-gc1 n-gc2)

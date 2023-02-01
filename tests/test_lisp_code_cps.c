@@ -401,7 +401,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (lbm_runtime_extensions_init()) {
+  if (lbm_runtime_extensions_init(false)) {
     printf("Runtime extensions initialized.\n");
   } else {
     printf("Runtime extensions failed.\n");

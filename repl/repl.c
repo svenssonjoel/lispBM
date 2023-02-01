@@ -566,7 +566,7 @@ int main(int argc, char **argv) {
     printf("Loading math extensions failed\n");
   }
 
-  if (lbm_runtime_extensions_init()) {
+  if (lbm_runtime_extensions_init(false)) {
     printf("Runtime extensions loaded\n");
   } else {
     printf("Loading runtime extensions failed\n");
