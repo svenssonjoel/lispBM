@@ -68,6 +68,7 @@ typedef enum {
   LBM_EVENT_SYM_INT_INT,
   LBM_EVENT_SYM_ARRAY,
   LBM_EVENT_SYM_INT_ARRAY,
+  LBM_EVENT_UNBLOCK_CTX,
 } lbm_event_type_t;
 
 typedef struct {
@@ -217,9 +218,9 @@ void lbm_block_ctx_from_extension(void);
  *  Trying to unblock a context that is waiting on a message
  *  in a mailbox is not encouraged
  * \param cid Lisp process to wake up.
- * \param result Value passed to the lisp process as the result from the blocking function.
+ * \param result True or False that on the lisp side becomes t or nil
  */
-bool lbm_unblock_ctx(lbm_cid cid, lbm_value result);
+bool lbm_unblock_ctx(lbm_cid cid, bool result);
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.

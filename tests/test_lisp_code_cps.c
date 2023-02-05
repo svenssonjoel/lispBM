@@ -235,6 +235,24 @@ LBM_EXTENSION(ext_event_array, args, argn) {
   return res;
 }
 
+LBM_EXTENSION(ext_block, args, argn) {
+  (void) args;
+  (void) argn;
+
+  lbm_block_ctx_from_extension();
+  return ENC_SYM_NIL; //ignored
+}
+
+LBM_EXTENSION(ext_unblock, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_cid c = lbm_dec_as_i32(args[0]);
+    lbm_unblock_ctx(c,true);
+    res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
 
 int main(int argc, char **argv) {
 
@@ -462,6 +480,22 @@ int main(int argc, char **argv) {
   }
 
   res = lbm_add_extension("event-array", ext_event_array);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("block", ext_block);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("unblock", ext_unblock);
   if (res)
     printf("Extension added.\n");
   else {

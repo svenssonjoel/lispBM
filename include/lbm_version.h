@@ -29,9 +29,13 @@ extern "C" {
 /** LBM minor version */
 #define LBM_MINOR_VERSION 8
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 0
+#define LBM_PATCH_VERSION 1
 
 /*! \page changelog Changelog
+
+Feb 5 2023: Version 0.8.1
+  - Added queue locking to GC 
+  - As an experiment blocked contexts are unblocked by the evaluator in a safe state.
 
 Jan 28 2023: Version 0.8.0
   - Changed return value of define from being the bound symbol to
