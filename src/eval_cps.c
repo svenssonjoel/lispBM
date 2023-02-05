@@ -31,6 +31,7 @@
 #include "lbm_channel.h"
 #include "print.h"
 #include "platform_mutex.h"
+#include "lbm_flat_value.h"
 
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
@@ -181,11 +182,8 @@ void lbm_set_event_handler_pid(lbm_cid pid) {
   lbm_event_handler_pid = pid;
 }
 
-bool lbm_event(lbm_event_t event, uint8_t* opt_array, int opt_array_len) {
-
-  if (!lbm_events) {
-    return false;
-  }
+static bool event_internal(lbm_event_t event, uint8_t* opt_array, int opt_array_len) {
+  if (!lbm_events) return false;
   mutex_lock(&lbm_events_mutex);
   if (lbm_events_full) return false;
   if (opt_array != NULL) {
@@ -195,10 +193,16 @@ bool lbm_event(lbm_event_t event, uint8_t* opt_array, int opt_array_len) {
     memcpy(event.array, opt_array, (size_t)opt_array_len);
   }
   lbm_events[lbm_events_head] = event;
-
   lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
   mutex_unlock(&lbm_events_mutex);
   return true;
+}
+
+bool lbm_event(lbm_event_t event, uint8_t* opt_array, int opt_array_len) {
+  if (lbm_event_handler_pid > 0) {
+    return event_internal(event, opt_array, opt_array_len);
+  }
+  return false;
 }
 
 static bool lbm_event_pop(lbm_event_t *event) {
@@ -920,7 +924,7 @@ bool lbm_unblock_ctx(lbm_cid cid, bool result) {
   event.i    = cid;
   event.i2  = (int32_t)result; // cannot be an arbitrary LBM value any more.
                                // Really it could not safely be an arbitrary LBM value before either.
-  return lbm_event(event, NULL, 0);
+  return event_internal(event, NULL, 0);
 }
 
 void lbm_block_ctx_from_extension(void) {
@@ -3334,18 +3338,48 @@ static void handle_event_sym_int_array(lbm_uint sym, int32_t i, char *array, int
   }
 }
 
+// Experimental proof of concept
+bool lbm_unflatten_value(lbm_value *res, lbm_flatten_t *v) {
+  if (v->buf_size == v->buf_pos) return false;
+  uint8_t curr = v->buf[v->buf_pos++];
 
+  switch(curr) {
+  case S_CONS: {
+    bool r = false;
+    lbm_value a;
+    if (lbm_unflatten_value(&a, v)) {
+      lbm_value b;
+      if ( lbm_unflatten_value(&b, v)) {
+        lbm_value tmp;
+        tmp = cons_with_gc(a, b, ENC_SYM_NIL);
+        *res = tmp;
+        r = true;
+      }
+    }
+    return r;
+  }
+  case S_BASE_VALUE: {
+    if (v->buf_size > v->buf_pos + 4) {
+      lbm_value tmp = 0;
+      tmp |= (lbm_value)v->buf[v->buf_pos++];
+      tmp = tmp << 8 | (lbm_value)v->buf[v->buf_pos++];
+      tmp = tmp << 8 | (lbm_value)v->buf[v->buf_pos++];
+      tmp = tmp << 8 | (lbm_value)v->buf[v->buf_pos++];
+      *res = tmp;
+      return true;
+    }
+  }
+  return false;
+  case S_LBM_ARRAY:
+    return false;
+  default:
+    return false;
+  }
+}
 
 static void process_events(void) {
 
   if (!lbm_events) return;
-
-  //if (lbm_event_handler_pid < 0) {
-  //  lbm_events_head = 0;
-  //  lbm_events_tail = 0;
-  //  lbm_events_full = false;
-  //  return;
-  //}
 
   unsigned int event_cnt = lbm_event_num();
   lbm_event_t e;

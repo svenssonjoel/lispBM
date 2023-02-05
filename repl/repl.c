@@ -27,6 +27,7 @@
 #include <ctype.h>
 
 #include "lispbm.h"
+#include "lbm_flat_value.h"
 #include "extensions/array_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/math_extensions.h"
@@ -355,6 +356,27 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   return lbm_enc_sym(SYM_TRUE);
 }
 
+lbm_value ext_unflatten(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+
+  lbm_flatten_t v;
+  uint8_t *data = lbm_malloc(100);
+  v.buf = data;
+  v.buf_size = 100;
+  v.buf_pos = 0;
+  if (data) {
+    F_CONS(&v, F_BASE_VALUE(&v, lbm_enc_i(1000)), F_BASE_VALUE(&v, ENC_SYM_TRUE));
+  } else {
+    return ENC_SYM_NIL;
+  }
+  v.buf_pos = 0;
+  lbm_value res;
+  lbm_unflatten_value(&res, &v);
+  lbm_free(data);
+  return res;
+}
+
 char output[128];
 
 static lbm_value ext_range(lbm_value *args, lbm_uint argn) {
@@ -597,6 +619,12 @@ int main(int argc, char **argv) {
     printf("Error adding extension.\n");
 
   res = lbm_add_extension("event", ext_event);
+  if (res)
+    printf("Extension added.\n");
+  else
+    printf("Error adding extension.\n");
+
+  res = lbm_add_extension("unflatten", ext_unflatten);
   if (res)
     printf("Extension added.\n");
   else

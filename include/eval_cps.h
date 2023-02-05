@@ -21,6 +21,7 @@
 #include "lbm_types.h"
 #include "stack.h"
 #include "lbm_channel.h"
+#include "lbm_flat_value.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -318,6 +319,7 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg);
  */
 int lbm_perform_gc(void);
 
+bool lbm_unflatten_value(lbm_value *res, lbm_flatten_t *v);
 #ifdef __cplusplus
 }
 #endif
