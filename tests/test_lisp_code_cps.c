@@ -34,6 +34,7 @@
 #include "extensions/random_extensions.h"
 #include "extensions/loop_extensions.h"
 #include "lbm_channel.h"
+#include "lbm_flat_value.h"
 
 #define WAIT_TIMEOUT 2500
 
@@ -214,11 +215,13 @@ LBM_EXTENSION(ext_numbers, args, argn) {
 LBM_EXTENSION(ext_event_sym, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
-    lbm_event_t e;
-    e.type = LBM_EVENT_SYM;
-    e.sym  = lbm_dec_sym(args[0]);
-    lbm_event(e, NULL, 0);
-    res = ENC_SYM_TRUE;
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8)) {
+      f_sym(&v, lbm_dec_sym(args[0]));
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
   }
   return res;
 }
@@ -226,11 +229,28 @@ LBM_EXTENSION(ext_event_sym, args, argn) {
 LBM_EXTENSION(ext_event_array, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
-    lbm_event_t e;
-    e.type = LBM_EVENT_SYM_ARRAY;
-    e.sym = lbm_dec_sym(args[0]);
-    lbm_event(e, "Hello world", 12);
-    res = ENC_SYM_TRUE;
+    char *array = lbm_malloc(12);
+    array[0] = 'h';
+    array[1] = 'e';
+    array[2] = 'l';
+    array[3] = 'l';
+    array[4] = 'o';
+    array[5] = ' ';
+    array[6] = 'w';
+    array[7] = 'o';
+    array[8] = 'r';
+    array[9] = 'l';
+    array[10] = 'd';
+    array[11] = 0;
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 25)) {
+      f_cons(&v);
+      f_sym(&v,lbm_dec_sym(args[0]));
+      f_lbm_array(&v, 12, LBM_TYPE_CHAR, (uint8_t*)array);
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
   }
   return res;
 }
@@ -247,8 +267,13 @@ LBM_EXTENSION(ext_unblock, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_number(args[0])) {
     lbm_cid c = lbm_dec_as_i32(args[0]);
-    lbm_unblock_ctx(c,true);
-    res = ENC_SYM_TRUE;
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8)) {
+      f_sym(&v, SYM_TRUE);
+      lbm_finish_flatten(&v);
+      lbm_unblock_ctx(c,&v);
+      res = ENC_SYM_TRUE;
+    }
   }
   return res;
 }

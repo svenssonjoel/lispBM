@@ -94,11 +94,11 @@ lbm_value lbm_enc_i64(int64_t x) {
 lbm_value lbm_enc_u64(uint64_t x) {
 #ifndef LBM64
   lbm_value res = lbm_enc_sym(SYM_MERROR);
-  lbm_uint* storage = lbm_memory_allocate(2);
+  uint8_t* storage = lbm_malloc(sizeof(uint64_t));
   if (storage) {
     res = lbm_cons((lbm_uint)storage, lbm_enc_sym(SYM_IND_U_TYPE));
     if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
-      memcpy(storage,&x, 8);
+      memcpy(storage,&x, sizeof(uint64_t));
       res = lbm_set_ptr_type(res, LBM_TYPE_U64);
     }
   }

@@ -360,21 +360,50 @@ lbm_value ext_unflatten(lbm_value *args, lbm_uint argn) {
   (void) args;
   (void) argn;
 
-  lbm_flatten_t v;
-  uint8_t *data = lbm_malloc(100);
-  v.buf = data;
-  v.buf_size = 100;
-  v.buf_pos = 0;
-  if (data) {
-    F_CONS(&v, F_BASE_VALUE(&v, lbm_enc_i(1000)), F_BASE_VALUE(&v, ENC_SYM_TRUE));
+  char *array = lbm_malloc(12);
+  array[0] = 'h';
+  array[1] = 'e';
+  array[2] = 'l';
+  array[3] = 'l';
+  array[4] = 'o';
+  array[5] = ' ';
+  array[6] = 'w';
+  array[7] = 'o';
+  array[8] = 'r';
+  array[9] = 'l';
+  array[10] = 'd';
+  array[11] = 0;
+    
+  
+  lbm_flat_value_t v;
+  
+  if (lbm_start_flatten(&v, 100)) {
+    //  ((1 2 3 {3.000000} {51539607556} "hello world") . t)    
+    f_cons(&v);
+    f_cons(&v); 
+    f_i(&v, 1);
+    f_cons(&v); 
+    f_i(&v, 2);
+    f_cons(&v); 
+    f_i(&v, 3);
+    f_cons(&v); 
+    f_float(&v, 3.14f);
+    f_cons(&v); 
+    f_u64(&v, 0xFFFF0000FFFF0000);
+    f_cons(&v);
+    f_lbm_array(&v, 12, LBM_TYPE_CHAR, (uint8_t*)array);
+    f_sym(&v, SYM_NIL);
+    f_sym(&v, SYM_TRUE);
+    lbm_finish_flatten(&v);
+    
+    
+    v.buf_pos = 0;
+    lbm_value res;
+    lbm_unflatten_value(&v, &res);
+    return res; 
   } else {
     return ENC_SYM_NIL;
   }
-  v.buf_pos = 0;
-  lbm_value res;
-  lbm_unflatten_value(&res, &v);
-  lbm_free(data);
-  return res;
 }
 
 char output[128];
@@ -419,10 +448,12 @@ static lbm_value ext_custom(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_event(lbm_value *args, lbm_uint argn) {
 
   if (argn != 1 || !lbm_is_symbol(args[0])) return ENC_SYM_EERROR;
-  lbm_event_t e;
-  e.type = LBM_EVENT_SYM;
-  e.sym = lbm_dec_sym(args[0]);
-  if (lbm_event(e, NULL, 0)) {
+
+  lbm_flat_value_t v;
+  if (lbm_start_flatten(&v,5)) {
+    f_sym(&v, lbm_dec_sym(args[0]));
+    lbm_finish_flatten(&v);
+    lbm_event(&v);
     return ENC_SYM_TRUE;
   }
   return ENC_SYM_NIL;
@@ -737,12 +768,7 @@ int main(int argc, char **argv) {
       printf("****** Sleeping contexts *****\n");
       lbm_sleeping_iterator(print_ctx_info, NULL, NULL);
       free(str);
-    } else if (strncmp(str, ":unblock", 8) == 0) {
-      int id = atoi(str + 8);
-      printf("Unblocking: %d\n", id);
-      lbm_unblock_ctx(id, lbm_enc_i(42));
-      free(str);
-    } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
+    }  else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
       free(str);
       break;
     } else if (strncmp(str, ":symbols", 8) == 0) {

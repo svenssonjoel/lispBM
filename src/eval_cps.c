@@ -32,6 +32,7 @@
 #include "print.h"
 #include "platform_mutex.h"
 #include "lbm_flat_value.h"
+#include "lbm_flags.h"
 
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
@@ -182,25 +183,24 @@ void lbm_set_event_handler_pid(lbm_cid pid) {
   lbm_event_handler_pid = pid;
 }
 
-static bool event_internal(lbm_event_t event, uint8_t* opt_array, int opt_array_len) {
+static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_uint buf_ptr, uint32_t buf_len) {
   if (!lbm_events) return false;
   mutex_lock(&lbm_events_mutex);
   if (lbm_events_full) return false;
-  if (opt_array != NULL) {
-    event.array = lbm_malloc((size_t)opt_array_len);
-    event.array_len = opt_array_len;
-    if (event.array == NULL) return false;
-    memcpy(event.array, opt_array, (size_t)opt_array_len);
-  }
+  lbm_event_t event;
+  event.type = event_type;
+  event.parameter = parameter;
+  event.buf_ptr = buf_ptr;
+  event.buf_len = buf_len;
   lbm_events[lbm_events_head] = event;
   lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
   mutex_unlock(&lbm_events_mutex);
   return true;
 }
 
-bool lbm_event(lbm_event_t event, uint8_t* opt_array, int opt_array_len) {
+bool lbm_event(lbm_flat_value_t *fv) {
   if (lbm_event_handler_pid > 0) {
-    return event_internal(event, opt_array, opt_array_len);
+    return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
   }
   return false;
 }
@@ -917,14 +917,8 @@ static void advance_ctx(eval_context_t *ctx) {
   }
 }
 
-bool lbm_unblock_ctx(lbm_cid cid, bool result) {
-  lbm_event_t event;
-
-  event.type = LBM_EVENT_UNBLOCK_CTX;
-  event.i    = cid;
-  event.i2  = (int32_t)result; // cannot be an arbitrary LBM value any more.
-                               // Really it could not safely be an arbitrary LBM value before either.
-  return event_internal(event, NULL, 0);
+bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
+  return event_internal(LBM_EVENT_UNBLOCK_CTX, (lbm_uint)cid, (lbm_uint)fv->buf, fv->buf_size);
 }
 
 void lbm_block_ctx_from_extension(void) {
@@ -3243,177 +3237,53 @@ uint32_t lbm_get_eval_state(void) {
   return eval_cps_run_state;
 }
 
-static void handle_event_unblock_ctx(lbm_cid cid, bool result) {
+static void handle_event_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
   eval_context_t *found = NULL;
+
+  lbm_value v;
+  bool b = lbm_unflatten_value(fv, &v);
+
   found = lookup_ctx(&blocked, cid);
-  if (found) {
+  if (found) {    
     drop_ctx(&blocked,found);
-    found->r = result ? ENC_SYM_TRUE : ENC_SYM_NIL;
+    found->r = v;
     enqueue_ctx(&queue,found);
+    return;
   }
+  if (!b)
+    lbm_set_flags(LBM_FLAG_UNFLATTENING_FAILED);
 }
 
-static void handle_event_sym(lbm_uint sym) {
-  lbm_find_receiver_and_send(lbm_event_handler_pid, lbm_enc_sym(sym));
-}
+static void handle_event_for_handler(lbm_flat_value_t *fv) {
 
-static void handle_event_sym_int(lbm_uint sym, int32_t i) {
-  lbm_value msg = lbm_cons(lbm_enc_sym(sym), lbm_enc_i(i));
-  if (lbm_is_symbol_merror(msg)) {
-    gc();
-    msg = lbm_cons(lbm_enc_sym(sym), lbm_enc_i(i));
-  }
-  if (lbm_is_ptr(msg)) {
-    lbm_find_receiver_and_send(lbm_event_handler_pid, msg);
-  }
-}
-
-static void handle_event_sym_int_int(lbm_uint sym, int32_t i, int32_t i2) {
-  lbm_value ints = lbm_cons(lbm_enc_i(i), lbm_enc_i(i2));
-  if (lbm_is_symbol_merror(ints)) {
-    gc();
-    ints = lbm_cons(lbm_enc_i(i), lbm_enc_i(i2));
-  }
-  lbm_value msg = lbm_cons(lbm_enc_sym(sym), ints);
-  if (lbm_is_symbol_merror(msg)) {
-    lbm_gc_mark_phase(1,ints);
-    gc();
-    msg = lbm_cons(lbm_enc_sym(sym), ints);
-  }
-  if (lbm_is_ptr(ints) && lbm_is_ptr(msg)) {
-    lbm_find_receiver_and_send(lbm_event_handler_pid, msg);
-  }
-}
-
-static void handle_event_sym_array(lbm_uint sym, char *array, int32_t array_len) {
-  lbm_value val;
-  if (!lbm_lift_array(&val, array, LBM_TYPE_BYTE, (size_t)array_len)) {
-    gc();
-    lbm_lift_array(&val, array, LBM_TYPE_BYTE, (size_t)array_len);
-  }
-  if (lbm_is_array(val)) {
-    lbm_value msg;
-    msg = lbm_cons(lbm_enc_sym(sym), val);
-    if (lbm_is_symbol_merror(msg)) {
-      lbm_gc_mark_phase(1, val);
-      gc();
-      msg = lbm_cons(lbm_enc_sym(sym), val);
-    }
-    if (!lbm_is_symbol_merror(msg)) {
-      lbm_find_receiver_and_send(lbm_event_handler_pid, msg);
-    } else {
-      lbm_heap_explicit_free_array(val);
-    }
-  }
-}
-
-static void handle_event_sym_int_array(lbm_uint sym, int32_t i, char *array, int32_t array_len) {
-  lbm_value val;
-  if (!lbm_lift_array(&val, array,  LBM_TYPE_BYTE, (size_t)array_len)) {
-    gc();
-    lbm_lift_array(&val, array,  LBM_TYPE_BYTE, (size_t)array_len);
-  }
-  if (lbm_is_array(val)) {
-    lbm_value msg_data;
-    msg_data = lbm_cons(lbm_enc_i32(i),val);
-    if (lbm_is_symbol_merror(msg_data)) {
-      lbm_gc_mark_phase(1,val);
-      gc();
-      msg_data = lbm_cons(lbm_enc_i32(i), val);
-    }
-    if (!lbm_is_symbol_merror(msg_data)) {
-      lbm_value msg;
-      msg = lbm_cons(lbm_enc_sym(sym), msg_data);
-      if (lbm_is_symbol_merror(msg)) {
-        lbm_gc_mark_phase(1, msg_data);
-        gc();
-        msg = lbm_cons(lbm_enc_sym(sym), msg_data);
-      }
-      if (!lbm_is_symbol_merror(msg)) {
-        lbm_find_receiver_and_send(lbm_event_handler_pid, msg);
-      } else {
-        lbm_heap_explicit_free_array(val);
-      }
-    }
-  }
-}
-
-// Experimental proof of concept
-bool lbm_unflatten_value(lbm_value *res, lbm_flatten_t *v) {
-  if (v->buf_size == v->buf_pos) return false;
-  uint8_t curr = v->buf[v->buf_pos++];
-
-  switch(curr) {
-  case S_CONS: {
-    bool r = false;
-    lbm_value a;
-    if (lbm_unflatten_value(&a, v)) {
-      lbm_value b;
-      if ( lbm_unflatten_value(&b, v)) {
-        lbm_value tmp;
-        tmp = cons_with_gc(a, b, ENC_SYM_NIL);
-        *res = tmp;
-        r = true;
-      }
-    }
-    return r;
-  }
-  case S_BASE_VALUE: {
-    if (v->buf_size > v->buf_pos + 4) {
-      lbm_value tmp = 0;
-      tmp |= (lbm_value)v->buf[v->buf_pos++];
-      tmp = tmp << 8 | (lbm_value)v->buf[v->buf_pos++];
-      tmp = tmp << 8 | (lbm_value)v->buf[v->buf_pos++];
-      tmp = tmp << 8 | (lbm_value)v->buf[v->buf_pos++];
-      *res = tmp;
-      return true;
-    }
-  }
-  return false;
-  case S_LBM_ARRAY:
-    return false;
-  default:
-    return false;
+  lbm_value v;
+  if (lbm_unflatten_value(fv, &v)) {
+    lbm_find_receiver_and_send(lbm_event_handler_pid, v);
+  } else {
+    lbm_set_flags(LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED);
   }
 }
 
 static void process_events(void) {
 
   if (!lbm_events) return;
-
-  unsigned int event_cnt = lbm_event_num();
   lbm_event_t e;
 
-  if (event_cnt > 0) {
-    while (lbm_event_pop(&e)) {
-      switch(e.type) {
-      case LBM_EVENT_UNBLOCK_CTX:
-        handle_event_unblock_ctx(e.i ,(bool)e.i2);
-        break;
-      default:
-        if (lbm_event_handler_pid >= 0) {
-          switch(e.type) {
-          case LBM_EVENT_SYM:
-            handle_event_sym(e.sym);
-            break;
-          case LBM_EVENT_SYM_INT:
-            handle_event_sym_int(e.sym, e.i);
-            break;
-          case LBM_EVENT_SYM_INT_INT:
-            handle_event_sym_int_int(e.sym, e.i, e.i2);
-            break;
-          case LBM_EVENT_SYM_ARRAY:
-            handle_event_sym_array(e.sym, e.array, e.array_len);
-            break;
-          case LBM_EVENT_SYM_INT_ARRAY:
-            handle_event_sym_int_array(e.sym, e.i, e.array, e.array_len);
-            break;
-          default:
-            break;
-          }
-        }
-        break;
+  while (lbm_event_pop(&e)) {
+    lbm_flat_value_t fv;
+    fv.buf = (uint8_t*)e.buf_ptr;
+    fv.buf_size = e.buf_len;
+    fv.buf_pos = 0;
+
+    switch(e.type) {
+    case LBM_EVENT_UNBLOCK_CTX:
+      handle_event_unblock_ctx((lbm_cid)e.parameter,&fv);
+      break;
+    case LBM_EVENT_FOR_HANDLER:
+      if (lbm_event_handler_pid >= 0) {
+        handle_event_for_handler(&fv);
       }
+      break;
     }
   }
 }
@@ -3459,10 +3329,8 @@ void lbm_run_eval(void){
             next_to_run = ctx_running;
             ctx_running = NULL;
           } else {
+            lbm_set_flags(LBM_FLAG_ATOMIC_MALFUNCTION);
             is_atomic = false;
-            // This is not right!
-            // but there is no context available to
-            // report an error in.
           }
         } else {
           process_events();
@@ -3500,9 +3368,11 @@ int lbm_eval_init() {
 
   if (!qmutex_initialized) {
     mutex_init(&qmutex);
+    qmutex_initialized = true;
   }
   if (!lbm_events_mutex_initialized) {
     mutex_init(&lbm_events_mutex);
+    lbm_events_mutex_initialized = true;
   }
 
   mutex_lock(&qmutex);
@@ -3518,9 +3388,9 @@ int lbm_eval_init() {
 
   eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
 
-  mutex_unlock(&qmutex);
   mutex_unlock(&lbm_events_mutex);
-
+  mutex_unlock(&qmutex);
+  
   *lbm_get_env_ptr() = ENC_SYM_NIL;
   eval_running = true;
 
