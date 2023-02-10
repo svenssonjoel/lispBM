@@ -226,6 +226,41 @@ LBM_EXTENSION(ext_event_sym, args, argn) {
   return res;
 }
 
+LBM_EXTENSION(ext_event_float, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    float f = lbm_dec_as_float(args[0]);
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8)) {
+      f_float(&v, f);
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res;
+}
+
+LBM_EXTENSION(ext_event_list_of_float, args, argn) {
+  LBM_CHECK_NUMBER_ALL();
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn >= 2) {
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8 + 5 * argn + 5)) {
+      for (int i = 0; i < argn; i ++) {
+        f_cons(&v);
+        float f = lbm_dec_as_float(args[i]);
+        f_float(&v, f);
+      }
+      f_sym(&v, SYM_NIL);
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res;
+}
+
 LBM_EXTENSION(ext_event_array, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
@@ -503,6 +538,23 @@ int main(int argc, char **argv) {
     printf("Error adding extension.\n");
     return 0;
   }
+
+  res = lbm_add_extension("event-float", ext_event_float);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("event-list-of-float", ext_event_list_of_float);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+  
 
   res = lbm_add_extension("event-array", ext_event_array);
   if (res)
