@@ -50,7 +50,7 @@ bool lbm_finish_flatten(lbm_flat_value_t *v) {
   return ( lbm_memory_shrink((lbm_uint*)v->buf, size_words) >= 0);
 }
 
-bool write_byte(lbm_flat_value_t *v, uint8_t b) {
+static bool write_byte(lbm_flat_value_t *v, uint8_t b) {
   if (v->buf_size > v->buf_pos + 1) {
     v->buf[v->buf_pos++] = b;
     return true;
@@ -203,33 +203,6 @@ static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
   return false;
 }
 
-
-#define WITH_GC(y, x)                           \
-  (y) = (x);                                    \
-  if (lbm_is_symbol_merror((y))) {              \
-    lbm_perform_gc();                           \
-    (y) = (x);                                  \
-    if (lbm_is_symbol_merror((y))) {            \
-      return false;                             \
-    }                                           \
-    /* continue executing statements below */   \
-  }
-#define WITH_GC_RMBR(y, x, n, ...)              \
-  (y) = (x);                                    \
-  if (lbm_is_symbol_merror((y))) {              \
-    lbm_gc_mark_phase((n), __VA_ARGS__);        \
-    lbm_perform_gc();                           \
-    (y) = (x);                                  \
-    if (lbm_is_symbol_merror((y))) {            \
-      return false;                             \
-    }                                           \
-    /* continue executing statements below */   \
-  }
-
-
-/* Recursive and potentially stack hungry for large flat values */
-
-
 #define UNFLATTEN_MALFORMED     -3
 #define UNFLATTEN_OUT_OF_MEMORY -2
 #define UNFLATTEN_GC_RETRY      -1
@@ -242,6 +215,7 @@ static void flat_value_rewind(lbm_flat_value_t *v, unsigned int n) {
   }
 }
 
+/* Recursive and potentially stack hungry for large flat values */
 static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   if (v->buf_size == v->buf_pos) return false;
   uint8_t curr = v->buf[v->buf_pos++];
@@ -263,7 +237,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     if (r == UNFLATTEN_GC_RETRY) {
       lbm_gc_mark_phase(1, a);
       lbm_perform_gc();
-      r = lbm_unflatten_value_internal(v, &a);
+      r = lbm_unflatten_value_internal(v, &b);
       if (r == UNFLATTEN_GC_RETRY) return UNFLATTEN_OUT_OF_MEMORY;
     } else if (r < UNFLATTEN_GC_RETRY) {
       return r;
