@@ -202,6 +202,7 @@ bool lbm_event(lbm_flat_value_t *fv) {
   if (lbm_event_handler_pid > 0) {
     return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
   }
+  lbm_free(fv->buf);
   return false;
 }
 
@@ -3231,13 +3232,17 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
 
   lbm_value v;
   bool b = lbm_unflatten_value(fv, &v);
-
+  if (!b) {
+    v = ENC_SYM_MERROR;
+  }
   found = lookup_ctx(&blocked, cid);
   if (found) {    
     drop_ctx(&blocked,found);
     found->r = v;
     enqueue_ctx(&queue,found);
     return;
+  } else {
+    lbm_set_flags(LBM_FLAG_BLOCKED_NOT_FOUND);
   }
   if (!b)
     lbm_set_flags(LBM_FLAG_UNFLATTENING_FAILED);
@@ -3271,6 +3276,8 @@ static void process_events(void) {
     case LBM_EVENT_FOR_HANDLER:
       if (lbm_event_handler_pid >= 0) {
         handle_event_for_handler(&fv);
+      } else {
+        lbm_free(fv.buf);
       }
       break;
     }
