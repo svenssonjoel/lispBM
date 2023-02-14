@@ -65,12 +65,12 @@ typedef struct eval_context_s{
 
 typedef enum {
   LBM_EVENT_FOR_HANDLER = 0,
-  LBM_EVENT_UNBLOCK_CTX,
+  LBM_EVENT_FOR_HANDLER_UNBOXED,
 } lbm_event_type_t;
 
 typedef struct {
   lbm_event_type_t type;
-  lbm_uint parameter; 
+  lbm_uint parameter;
   lbm_uint buf_ptr;
   uint32_t buf_len;
 } lbm_event_t;
@@ -126,6 +126,11 @@ void lbm_set_event_handler_pid(lbm_cid pid);
  * \return true if the event was successfully enqueued to be sent, false otherwise.
  */
 bool lbm_event(lbm_flat_value_t *fv);
+/** Send an unboxed value as an event to the event handler.
+ * \param unboxed. An lbm_value (encoded) such as a symbol. int, uint, character.
+ * \return true on success.
+ */
+bool lbm_event_unboxed(lbm_value unboxed);
 /** Remove a context that has finished executing and free up its associated memory.
  *
  * \param cid Context id of context to free.
