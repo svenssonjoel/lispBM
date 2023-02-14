@@ -65,14 +65,14 @@ typedef struct eval_context_s{
 
 typedef enum {
   LBM_EVENT_FOR_HANDLER = 0,
-  LBM_EVENT_FOR_HANDLER_UNBOXED,
+  LBM_EVENT_UNBLOCK_CTX,
 } lbm_event_type_t;
 
 typedef struct {
   lbm_event_type_t type;
   lbm_uint parameter;
   lbm_uint buf_ptr;
-  uint32_t buf_len;
+  uint32_t  buf_len;
 } lbm_event_t;
 
 /** Fundamental operation type */
@@ -221,6 +221,14 @@ void lbm_block_ctx_from_extension(void);
  * \param fv lbm_flat_value to give return as result from the unblocket process.
  */
 bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv);
+/** Unblock a context bypassing the event-queue.
+ *  Since the context will be unblocked in a separate tread it cannot
+ *  take a composite return value. True or Nil  are allowed.
+ * \param cid Lisp process to inblock.
+ * \param r_val If true the process unblocks with value t otherwise nil.
+ * \return True on successfully unblocking. False otherwise.
+ */
+bool lbm_force_unblock(lbm_cid cid, bool r_val);
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.

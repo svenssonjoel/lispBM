@@ -369,10 +369,6 @@ void* lbm_malloc(size_t size) {
   alloc_size = size >> 3;
   if (size & 7) alloc_size ++;
 #endif
-  if (memory_num_free < alloc_size) {
-    lbm_request_gc();
-    return NULL;
-  }
   if (memory_num_free - alloc_size < memory_reserve_level) {
     lbm_request_gc();
     return NULL;
@@ -389,10 +385,6 @@ void* lbm_malloc_reserve(size_t size) {
   alloc_size = size >> 3;
   if (size & 7) alloc_size ++;
 #endif
-  if (memory_num_free - alloc_size < memory_reserve_level) {
-    lbm_request_gc();
-    return NULL;
-  }
   return lbm_memory_allocate_internal(alloc_size);
 }
 

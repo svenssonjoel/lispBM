@@ -246,7 +246,7 @@ bool lbm_event_unboxed(lbm_value unboxed) {
       t == LBM_TYPE_U ||
       t == LBM_TYPE_CHAR) {
     if (lbm_event_handler_pid > 0) {
-      return event_internal(LBM_EVENT_FOR_HANDLER_UNBOXED, unboxed, 0, 0);
+      return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)unboxed, 0);
     }
   }
   return false;
@@ -926,26 +926,23 @@ static void advance_ctx(eval_context_t *ctx) {
 }
 
 bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
+  return event_internal(LBM_EVENT_UNBLOCK_CTX, (lbm_uint)cid, (lbm_uint)fv->buf, fv->buf_size);
+}
+
+bool lbm_force_unblock(lbm_cid cid, bool r_val) {
+  bool r = false;
+  lbm_value v = r_val ? ENC_SYM_TRUE : ENC_SYM_NIL;
   eval_context_t *found = NULL;
-  bool res = false;
-  lbm_value v;
-  bool b = lbm_unflatten_value(fv, &v);
-  if (!b) {
-    lbm_set_flags(LBM_FLAG_UNFLATTENING_FAILED);
-    v = ENC_SYM_MERROR;
-  }
   mutex_lock(&qmutex);
   found = lookup_ctx_nm(&blocked, cid);
   if (found) {
     drop_ctx_nm(&blocked,found);
     found->r = v;
     enqueue_ctx_nm(&queue,found);
-    res = true;
-  } else {
-    lbm_set_flags(LBM_FLAG_BLOCKED_NOT_FOUND);
+    r = true;
   }
   mutex_unlock(&qmutex);
-  return res;
+  return r;
 }
 
 void lbm_block_ctx_from_extension(void) {
@@ -3267,22 +3264,34 @@ uint32_t lbm_get_eval_state(void) {
   return eval_cps_run_state;
 }
 
-static void handle_event_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
+static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
+  eval_context_t *found = NULL;
 
-}
-
-static void handle_event_for_handler(lbm_flat_value_t *fv) {
-
-  lbm_value v;
-  if (lbm_unflatten_value(fv, &v)) {
-    lbm_find_receiver_and_send(lbm_event_handler_pid, v);
-  } else {
-    lbm_set_flags(LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED);
+  found = lookup_ctx(&blocked, cid);
+  if (found) {
+    drop_ctx(&blocked,found);
+    found->r = v;
+    enqueue_ctx(&queue,found);
+    return;
   }
 }
 
-static void handle_event_for_handler_unboxed(lbm_uint param) {
-  lbm_find_receiver_and_send(lbm_event_handler_pid, param);
+static lbm_value get_event_value(lbm_event_t *e) {
+ lbm_value v;
+  if (e->buf_len > 0) {
+    lbm_flat_value_t fv;
+    fv.buf = (uint8_t*)e->buf_ptr;
+    fv.buf_size = e->buf_len;
+    fv.buf_pos = 0;
+    if (!lbm_unflatten_value(&fv, &v)) {
+      lbm_set_flags(LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED);
+      v = ENC_SYM_EERROR;
+    }
+    lbm_free(fv.buf);
+  } else {
+    v = (lbm_value)e->buf_ptr;
+  }
+  return v;
 }
 
 static void process_events(void) {
@@ -3291,23 +3300,19 @@ static void process_events(void) {
   lbm_event_t e;
 
   while (lbm_event_pop(&e)) {
-    lbm_flat_value_t fv;
-    fv.buf = (uint8_t*)e.buf_ptr;
-    fv.buf_size = e.buf_len;
-    fv.buf_pos = 0;
 
+    lbm_value event_val = get_event_value(&e);
     switch(e.type) {
+    case LBM_EVENT_UNBLOCK_CTX:
+      handle_event_unblock_ctx((lbm_cid)e.parameter, event_val);
+      break;
     case LBM_EVENT_FOR_HANDLER:
       if (lbm_event_handler_pid >= 0) {
-        handle_event_for_handler(&fv);
+        lbm_find_receiver_and_send(lbm_event_handler_pid, event_val);
       } else {
-        lbm_free(fv.buf);
+
       }
       break;
-    case LBM_EVENT_FOR_HANDLER_UNBOXED:
-      if (lbm_event_handler_pid >= 0) {
-        handle_event_for_handler_unboxed(e.parameter);
-      }
     }
   }
 }
@@ -3417,7 +3422,7 @@ int lbm_eval_init() {
 
   mutex_unlock(&lbm_events_mutex);
   mutex_unlock(&qmutex);
-  
+
   *lbm_get_env_ptr() = ENC_SYM_NIL;
   eval_running = true;
 
