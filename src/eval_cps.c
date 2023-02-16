@@ -225,21 +225,23 @@ void lbm_set_event_handler_pid(lbm_cid pid) {
 }
 
 static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_uint buf_ptr, uint32_t buf_len) {
-  if (!lbm_events) return false;
   bool r = false;
-  mutex_lock(&lbm_events_mutex);
-  if (!lbm_events_full) {
-    lbm_event_t event;
-    event.type = event_type;
-    event.parameter = parameter;
-    event.buf_ptr = buf_ptr;
-    event.buf_len = buf_len;
-    lbm_events[lbm_events_head] = event;
-    lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
-    lbm_events_full = lbm_events_head == lbm_events_tail;
+  if (lbm_events) {
+    mutex_lock(&lbm_events_mutex);
+    if (!lbm_events_full) {
+      lbm_event_t event;
+      event.type = event_type;
+      event.parameter = parameter;
+      event.buf_ptr = buf_ptr;
+      event.buf_len = buf_len;
+      lbm_events[lbm_events_head] = event;
+      lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
+      lbm_events_full = lbm_events_head == lbm_events_tail;
+      r = true;
+    }
+    mutex_unlock(&lbm_events_mutex);
   }
-  mutex_unlock(&lbm_events_mutex);
-  return true;
+  return r;
 }
 
 bool lbm_event_unboxed(lbm_value unboxed) {
