@@ -625,7 +625,6 @@ static void finish_ctx(void) {
   }
   /* Drop the continuation stack immediately to free up lbm_memory */
   lbm_stack_free(&ctx_running->K);
-
   if (ctx_done_callback) {
     ctx_done_callback(ctx_running);
   }
@@ -966,6 +965,11 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
 void lbm_block_ctx_from_extension(void) {
   mutex_lock(&blocking_extension_mutex);
   blocking_extension = true;
+}
+
+void lbm_undo_block_ctx_from_extension(void) {
+  blocking_extension = false;
+  mutex_unlock(&blocking_extension_mutex);
 }
 
 lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {

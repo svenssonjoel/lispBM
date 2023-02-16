@@ -88,7 +88,7 @@ value 4: 0000 0018
 
 Means bits 0,1,2 will always be empty in a valid address.
 
-Cons cells also need to be have room for 2 pointers. So each allocated cell from
+Cons cells also need to be have room for 2 pointers. So each ted cell from
 memory should be 8bytes.
 
 Things that needs to be represented within these bits:
