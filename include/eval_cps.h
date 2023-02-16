@@ -223,12 +223,12 @@ void lbm_block_ctx_from_extension(void);
 bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv);
 /** Unblock a context bypassing the event-queue.
  *  Since the context will be unblocked in a separate tread it cannot
- *  take a composite return value. True or Nil  are allowed.
+ *  take a composite return value. Only unboxed lbm_values are allowed.
  * \param cid Lisp process to inblock.
- * \param r_val If true the process unblocks with value t otherwise nil.
+ * \param unboxed An unboxed lbm_value: char, i, u or symbol type.
  * \return True on successfully unblocking. False otherwise.
  */
-bool lbm_force_unblock(lbm_cid cid, bool r_val);
+bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed);
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.

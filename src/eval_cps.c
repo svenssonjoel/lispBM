@@ -930,19 +930,25 @@ bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
   return event_internal(LBM_EVENT_UNBLOCK_CTX, (lbm_uint)cid, (lbm_uint)fv->buf, fv->buf_size);
 }
 
-bool lbm_force_unblock(lbm_cid cid, bool r_val) {
+bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
   bool r = false;
-  lbm_value v = r_val ? ENC_SYM_TRUE : ENC_SYM_NIL;
-  eval_context_t *found = NULL;
-  mutex_lock(&qmutex);
-  found = lookup_ctx_nm(&blocked, cid);
-  if (found) {
-    drop_ctx_nm(&blocked,found);
-    found->r = v;
-    enqueue_ctx_nm(&queue,found);
-    r = true;
+  lbm_uint t = lbm_type_of(unboxed);
+  if (t == LBM_TYPE_SYMBOL ||
+      t == LBM_TYPE_I ||
+      t == LBM_TYPE_U ||
+      t == LBM_TYPE_CHAR) {
+
+    eval_context_t *found = NULL;
+    mutex_lock(&qmutex);
+    found = lookup_ctx_nm(&blocked, cid);
+    if (found) {
+      drop_ctx_nm(&blocked,found);
+      found->r = unboxed;
+      enqueue_ctx_nm(&queue,found);
+      r = true;
+    }
+    mutex_unlock(&qmutex);
   }
-  mutex_unlock(&qmutex);
   return r;
 }
 
