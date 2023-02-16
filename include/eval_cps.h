@@ -119,7 +119,15 @@ lbm_cid lbm_get_event_handler_pid(void);
  * \param pid The ID of the process to which events should be sent
  */
 void lbm_set_event_handler_pid(lbm_cid pid);
+/** Check if an event handler is registerd.
+ * \return True if event handler exists, otherwise false.
+ */
+bool lbm_event_handler_exists(void);
 /** Send an event to the registered event handler process.
+ * If lbm_event returns false the C code will still be responsible for
+ * the flat_value passed into lbm_event. If lbm_event returns true,
+ * the LBM runtime system will take responsibility for the freeing
+ * of the memory allocated in the flat_value.
  * \param event The event to send to the registered handler.
  * \param opt_array An optional array to pass to the event handler.
  * \param opt_array_len Length of array mandatory if array is passed in.

@@ -226,16 +226,18 @@ void lbm_set_event_handler_pid(lbm_cid pid) {
 
 static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_uint buf_ptr, uint32_t buf_len) {
   if (!lbm_events) return false;
+  bool r = false;
   mutex_lock(&lbm_events_mutex);
-  if (lbm_events_full) return false;
-  lbm_event_t event;
-  event.type = event_type;
-  event.parameter = parameter;
-  event.buf_ptr = buf_ptr;
-  event.buf_len = buf_len;
-  lbm_events[lbm_events_head] = event;
-  lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
-  lbm_events_full = lbm_events_head == lbm_events_tail;
+  if (!lbm_events_full) {
+    lbm_event_t event;
+    event.type = event_type;
+    event.parameter = parameter;
+    event.buf_ptr = buf_ptr;
+    event.buf_len = buf_len;
+    lbm_events[lbm_events_head] = event;
+    lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
+    lbm_events_full = lbm_events_head == lbm_events_tail;
+  }
   mutex_unlock(&lbm_events_mutex);
   return true;
 }
@@ -257,8 +259,11 @@ bool lbm_event(lbm_flat_value_t *fv) {
   if (lbm_event_handler_pid > 0) {
     return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
   }
-  lbm_free(fv->buf);
   return false;
+}
+
+bool lbm_event_handler_exists(void) {
+  return(lbm_event_handler_pid > 0);
 }
 
 static bool lbm_event_pop(lbm_event_t *event) {
