@@ -560,12 +560,12 @@ static eval_context_t *lookup_ctx_nm(eval_context_queue_t *q, lbm_cid cid) {
   return NULL;
 }
 
-static eval_context_t *lookup_ctx(eval_context_queue_t *q, lbm_cid cid) {
-  mutex_lock(&qmutex);
-  eval_context_t *res = lookup_ctx_nm(q,cid);
-  mutex_unlock(&qmutex);
-  return res;
-}
+/* static eval_context_t *lookup_ctx(eval_context_queue_t *q, lbm_cid cid) { */
+/*   mutex_lock(&qmutex); */
+/*   eval_context_t *res = lookup_ctx_nm(q,cid); */
+/*   mutex_unlock(&qmutex); */
+/*   return res; */
+/* } */
 
 static bool drop_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
 
@@ -804,12 +804,19 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
 
   if (lbm_type_of(program) != LBM_TYPE_CONS) return -1;
 
+  lbm_uint ctx_alloc_size = sizeof(eval_context_t);
+  if (ctx_alloc_size % sizeof(lbm_uint) > 0) {
+    ctx_alloc_size = ctx_alloc_size / sizeof(lbm_uint) + 1;
+  } else {
+    ctx_alloc_size = ctx_alloc_size / sizeof(lbm_uint);
+  }
+
   eval_context_t *ctx = NULL;
-  ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / (sizeof(lbm_uint)));
+  ctx = (eval_context_t*)lbm_memory_allocate(ctx_alloc_size);
   if (ctx == NULL) {
     lbm_gc_mark_phase(2, program, env);
     gc();
-    ctx = (eval_context_t*)lbm_memory_allocate(sizeof(eval_context_t) / (sizeof(lbm_uint)));
+    ctx = (eval_context_t*)lbm_memory_allocate(ctx_alloc_size);
   }
   if (ctx == NULL) return -1;
 
