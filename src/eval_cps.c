@@ -609,12 +609,12 @@ static bool drop_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
 }
 
 /* Returns true if the context was dropped from the queue */
-static bool drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
-  mutex_lock(&qmutex);
-  bool res = drop_ctx_nm(q,ctx);
-  mutex_unlock(&qmutex);
-  return res;
-}
+/* static bool drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) { */
+/*   mutex_lock(&qmutex); */
+/*   bool res = drop_ctx_nm(q,ctx); */
+/*   mutex_unlock(&qmutex); */
+/*   return res; */
+/* } */
 
 /* End execution of the running context and add it to the
    list of finished contexts. */
@@ -973,18 +973,19 @@ void lbm_undo_block_ctx_from_extension(void) {
 }
 
 lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
+  mutex_lock(&qmutex);
   eval_context_t *found = NULL;
   bool found_blocked = false;
 
-  found = lookup_ctx(&blocked, cid);
+  found = lookup_ctx_nm(&blocked, cid);
   if (found) found_blocked = true;
 
   if (found == NULL) {
-    found = lookup_ctx(&queue, cid);
+    found = lookup_ctx_nm(&queue, cid);
   }
 
   if (found == NULL) {
-    found = lookup_ctx(&sleeping, cid);
+    found = lookup_ctx_nm(&sleeping, cid);
   }
 
   if (found) {
@@ -993,22 +994,25 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
     }
 
     if (found_blocked){
-      drop_ctx(&blocked,found);
-      drop_ctx(&queue,found);
+      drop_ctx_nm(&blocked,found);
+      drop_ctx_nm(&queue,found);
 
-      enqueue_ctx(&queue,found);
+      enqueue_ctx_nm(&queue,found);
     }
+    mutex_unlock(&qmutex);
     return ENC_SYM_TRUE;
   }
 
   /* check the current context */
   if (ctx_running && ctx_running->id == cid) {
     if (!mailbox_add_mail(ctx_running, msg)) {
+      mutex_unlock(&qmutex);
       return ENC_SYM_NIL;
     }
+    mutex_unlock(&qmutex);
     return ENC_SYM_TRUE;
   }
-
+  mutex_unlock(&qmutex);
   return ENC_SYM_NIL;
 }
 
@@ -3242,14 +3246,15 @@ uint32_t lbm_get_eval_state(void) {
 
 static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   eval_context_t *found = NULL;
+  mutex_lock(&qmutex);
 
-  found = lookup_ctx(&blocked, cid);
+  found = lookup_ctx_nm(&blocked, cid);
   if (found) {
-    drop_ctx(&blocked,found);
+    drop_ctx_nm(&blocked,found);
     found->r = v;
-    enqueue_ctx(&queue,found);
-    return;
+    enqueue_ctx_nm(&queue,found);
   }
+  mutex_unlock(&qmutex);
 }
 
 static lbm_value get_event_value(lbm_event_t *e) {
