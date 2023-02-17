@@ -3268,7 +3268,6 @@ static lbm_value get_event_value(lbm_event_t *e) {
       lbm_set_flags(LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED);
       v = ENC_SYM_EERROR;
     }
-    lbm_free(fv.buf);
   } else {
     v = (lbm_value)e->buf_ptr;
   }
