@@ -1067,7 +1067,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt
     return 0;
   }
 
-  array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / 4);
+  array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
 
   if (array == NULL) return 0;
 
