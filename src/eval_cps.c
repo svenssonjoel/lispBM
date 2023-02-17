@@ -804,19 +804,12 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
 
   if (lbm_type_of(program) != LBM_TYPE_CONS) return -1;
 
-  lbm_uint ctx_alloc_size = sizeof(eval_context_t);
-  if (ctx_alloc_size % sizeof(lbm_uint) > 0) {
-    ctx_alloc_size = ctx_alloc_size / sizeof(lbm_uint) + 1;
-  } else {
-    ctx_alloc_size = ctx_alloc_size / sizeof(lbm_uint);
-  }
-
   eval_context_t *ctx = NULL;
-  ctx = (eval_context_t*)lbm_memory_allocate(ctx_alloc_size);
+  ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   if (ctx == NULL) {
     lbm_gc_mark_phase(2, program, env);
     gc();
-    ctx = (eval_context_t*)lbm_memory_allocate(ctx_alloc_size);
+    ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   }
   if (ctx == NULL) return -1;
 
