@@ -990,12 +990,13 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
 
   if (found) {
     if (!mailbox_add_mail(found, msg)) {
+      mutex_unlock(&qmutex);
       return ENC_SYM_NIL;
     }
 
     if (found_blocked){
       drop_ctx_nm(&blocked,found);
-      drop_ctx_nm(&queue,found);
+      //drop_ctx_nm(&queue,found);  ????
 
       enqueue_ctx_nm(&queue,found);
     }
@@ -3415,13 +3416,15 @@ bool lbm_eval_init_events(unsigned int num_events) {
 
   mutex_lock(&lbm_events_mutex);
   lbm_events = (lbm_event_t*)lbm_malloc(num_events * sizeof(lbm_event_t));
-
-  if (!lbm_events) return false;
-  lbm_events_max = num_events;
-  lbm_events_head = 0;
-  lbm_events_tail = 0;
-  lbm_events_full = false;
-  lbm_event_handler_pid = -1;
+  bool r = false;
+  if (lbm_events) {
+    lbm_events_max = num_events;
+    lbm_events_head = 0;
+    lbm_events_tail = 0;
+    lbm_events_full = false;
+    lbm_event_handler_pid = -1;
+    r = true;
+  }
   mutex_unlock(&lbm_events_mutex);
-  return true;
+  return r;
 }
