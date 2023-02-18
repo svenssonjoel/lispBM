@@ -264,24 +264,12 @@ LBM_EXTENSION(ext_event_list_of_float, args, argn) {
 LBM_EXTENSION(ext_event_array, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
-    char *array = lbm_malloc(12);
-    array[0] = 'h';
-    array[1] = 'e';
-    array[2] = 'l';
-    array[3] = 'l';
-    array[4] = 'o';
-    array[5] = ' ';
-    array[6] = 'w';
-    array[7] = 'o';
-    array[8] = 'r';
-    array[9] = 'l';
-    array[10] = 'd';
-    array[11] = 0;
+    char *hello = "hello world";
     lbm_flat_value_t v;
     if (lbm_start_flatten(&v, 100)) {
       f_cons(&v);
       f_sym(&v,lbm_dec_sym(args[0]));
-      f_lbm_array(&v, 12, LBM_TYPE_CHAR, (uint8_t*)array);
+      f_lbm_array(&v, 12, LBM_TYPE_CHAR, (uint8_t*)hello);
       lbm_finish_flatten(&v);
       lbm_event(&v);
       res = ENC_SYM_TRUE;
