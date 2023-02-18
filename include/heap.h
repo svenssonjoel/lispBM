@@ -565,6 +565,11 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt
  * \param arr Array value.
  */
 int lbm_heap_explicit_free_array(lbm_value arr);
+/** Query the size in bytes of an lbm_type.
+ * \param t Type
+ * \return Size in bytes of type or 0 if the type represents a composite.
+ */
+lbm_uint lbm_size_of(lbm_type t);
 
 /** Query the type information of a value.
  *

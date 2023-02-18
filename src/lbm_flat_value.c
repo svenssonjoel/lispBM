@@ -168,7 +168,7 @@ bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_elts, lbm_uint t, uint8_t *da
   res = res && write_dword(v, t);
 #endif
   uint32_t num_bytes = num_elts;
-  if (t != LBM_TYPE_CHAR) num_bytes *= 4;
+  num_bytes *= lbm_size_of(t);
   if (res && v->buf_size >= v->buf_pos + num_bytes) {
     memcpy(v->buf + v->buf_pos, data, num_bytes);
     v->buf_pos += num_bytes;
@@ -355,7 +355,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
         if (lbm_heap_allocate_array(res, num_elt, t)) {
           lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(*res);
           lbm_uint num_bytes = num_elt;
-          if (t != LBM_TYPE_CHAR) num_bytes *= 4;
+          num_bytes *= lbm_size_of(t);
           memcpy(arr->data, v->buf + v->buf_pos, num_bytes);
           v->buf_pos += num_bytes;
         } else {
