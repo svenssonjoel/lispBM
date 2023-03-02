@@ -70,7 +70,8 @@
 #define MAP_FIRST             ((29 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define MAP_REST              ((30 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define MATCH_GUARD           ((31 << LBM_VAL_SHIFT) | LBM_TYPE_U)
-#define NUM_CONTINUATIONS     32
+#define TERMINATE             ((32 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define NUM_CONTINUATIONS     33
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -560,13 +561,6 @@ static eval_context_t *lookup_ctx_nm(eval_context_queue_t *q, lbm_cid cid) {
   return NULL;
 }
 
-/* static eval_context_t *lookup_ctx(eval_context_queue_t *q, lbm_cid cid) { */
-/*   mutex_lock(&qmutex); */
-/*   eval_context_t *res = lookup_ctx_nm(q,cid); */
-/*   mutex_unlock(&qmutex); */
-/*   return res; */
-/* } */
-
 static bool drop_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
 
   bool res = false;
@@ -607,14 +601,6 @@ static bool drop_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
   }
   return res;
 }
-
-/* Returns true if the context was dropped from the queue */
-/* static bool drop_ctx(eval_context_queue_t *q, eval_context_t *ctx) { */
-/*   mutex_lock(&qmutex); */
-/*   bool res = drop_ctx_nm(q,ctx); */
-/*   mutex_unlock(&qmutex); */
-/*   return res; */
-/* } */
 
 /* End execution of the running context and add it to the
    list of finished contexts. */
@@ -2499,6 +2485,9 @@ static void cont_match_guard(eval_context_t *ctx) {
   }
 }
 
+static void cont_terminate(eval_context_t *ctx) {
+  error_ctx(ctx->r);
+}
 
 /****************************************************/
 /*   READER                                         */
@@ -3120,6 +3109,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_map_first,
     cont_map_rest,
     cont_match_guard,
+    cont_terminate,
   };
 
 /*********************************************************/
@@ -3252,6 +3242,12 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   found = lookup_ctx_nm(&blocked, cid);
   if (found) {
     drop_ctx_nm(&blocked,found);
+    if (lbm_is_error(v)) {
+      lbm_uint trash; 
+      lbm_pop(&found->K, &trash);
+      lbm_push(&found->K, TERMINATE);
+      found->app_cont = true;
+    }
     found->r = v;
     enqueue_ctx_nm(&queue,found);
   }
