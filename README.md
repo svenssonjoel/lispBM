@@ -28,10 +28,10 @@ LispBM runtime system.
 ## Getting started 
 
 The easiest way to get started with LispBM programming is to use
-the [VESC-Tool](https://vesc-project.com/vesc_tool) together with the
+[VESC-Tool](https://vesc-project.com/vesc_tool) together with the
 [VESC EXPRESS Firmware](https://github.com/vedderb/vesc_express) on an [esp32c3](https://docs.espressif.com/projects/esp-idf/en/latest/esp32c3/hw-reference/esp32c3/user-guide-devkitm-1.html).
 
-The VESC-Tool gives you access to a very capable [IDE](https://vesc-project.com/sites/default/files/lisp%20overview.png) for lisp programming on embedded systems
+VESC-Tool gives you access to a very capable [IDE](https://vesc-project.com/sites/default/files/lisp%20overview.png) for lisp programming on embedded systems
 and the VESC Express firmware provides built in functionality to interface with CAN, WIFI, BLE and UART
 as well as GPIO and display drivers.
 
