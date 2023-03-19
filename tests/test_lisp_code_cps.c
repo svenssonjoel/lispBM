@@ -34,6 +34,7 @@
 #include "extensions/random_extensions.h"
 #include "extensions/loop_extensions.h"
 #include "lbm_channel.h"
+#include "lbm_flat_value.h"
 
 #define WAIT_TIMEOUT 2500
 
@@ -214,11 +215,48 @@ LBM_EXTENSION(ext_numbers, args, argn) {
 LBM_EXTENSION(ext_event_sym, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
-    lbm_event_t e;
-    e.type = LBM_EVENT_SYM;
-    e.sym  = lbm_dec_sym(args[0]);
-    lbm_event(e, NULL, 0);
-    res = ENC_SYM_TRUE;
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 1 + sizeof(lbm_uint))) {
+      f_sym(&v, lbm_dec_sym(args[0]));
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res;
+}
+
+LBM_EXTENSION(ext_event_float, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    float f = lbm_dec_as_float(args[0]);
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 1 + sizeof(float))) {
+      f_float(&v, f);
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res;
+}
+
+LBM_EXTENSION(ext_event_list_of_float, args, argn) {
+  LBM_CHECK_NUMBER_ALL();
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn >= 2) {
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8 + ((1 + sizeof(lbm_uint) * argn) + (1 + sizeof(lbm_uint))))) {
+      for (int i = 0; i < argn; i ++) {
+        f_cons(&v);
+        float f = lbm_dec_as_float(args[i]);
+        f_float(&v, f);
+      }
+      f_sym(&v, SYM_NIL);
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
   }
   return res;
 }
@@ -226,14 +264,58 @@ LBM_EXTENSION(ext_event_sym, args, argn) {
 LBM_EXTENSION(ext_event_array, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
-    lbm_event_t e;
-    e.type = LBM_EVENT_SYM_ARRAY;
-    e.sym = lbm_dec_sym(args[0]);
-    lbm_event(e, "Hello world", 12);
-    res = ENC_SYM_TRUE;
+    char *hello = "hello world";
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 100)) {
+      f_cons(&v);
+      f_sym(&v,lbm_dec_sym(args[0]));
+      f_lbm_array(&v, 12, LBM_TYPE_CHAR, (uint8_t*)hello);
+      lbm_finish_flatten(&v);
+      lbm_event(&v);
+      res = ENC_SYM_TRUE;
+    }
   }
   return res;
 }
+
+LBM_EXTENSION(ext_block, args, argn) {
+  (void) args;
+  (void) argn;
+
+  lbm_block_ctx_from_extension();
+  return ENC_SYM_NIL; //ignored
+}
+
+LBM_EXTENSION(ext_unblock, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_cid c = lbm_dec_as_i32(args[0]);
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8)) {
+      f_sym(&v, SYM_TRUE);
+      lbm_finish_flatten(&v);
+      lbm_unblock_ctx(c,&v);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res;
+}
+
+LBM_EXTENSION(ext_unblock_error, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_cid c = lbm_dec_as_i32(args[0]);
+    lbm_flat_value_t v;
+    if (lbm_start_flatten(&v, 8)) {
+      f_sym(&v, SYM_EERROR);
+      lbm_finish_flatten(&v);
+      lbm_unblock_ctx(c,&v);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res;
+}
+
 
 
 int main(int argc, char **argv) {
@@ -304,14 +386,24 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  lbm_uint *memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_14K);
-  if (memory == NULL) return 0;
-  lbm_uint *bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_14K);
-  if (bitmap == NULL) return 0;
+  lbm_uint *memory = NULL;
+  lbm_uint *bitmap = NULL;
+  if (sizeof(lbm_uint) == 4) { 
+    memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_14K);
+    if (memory == NULL) return 0;
+    bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_14K);
+    if (bitmap == NULL) return 0;
+    res = lbm_memory_init(memory, LBM_MEMORY_SIZE_14K,
+                          bitmap, LBM_MEMORY_BITMAP_SIZE_14K);
+  } else {
+    memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_1M);
+    if (memory == NULL) return 0;
+    bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_1M);
+    if (bitmap == NULL) return 0;
+    res = lbm_memory_init(memory, LBM_MEMORY_SIZE_1M,
+                          bitmap, LBM_MEMORY_BITMAP_SIZE_1M);
+  }
 
-
-  res = lbm_memory_init(memory, LBM_MEMORY_SIZE_14K,
-                        bitmap, LBM_MEMORY_BITMAP_SIZE_14K);
   if (res)
     printf("Memory initialized.\n");
   else {
@@ -401,7 +493,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (lbm_runtime_extensions_init()) {
+  if (lbm_runtime_extensions_init(false)) {
     printf("Runtime extensions initialized.\n");
   } else {
     printf("Runtime extensions failed.\n");
@@ -461,6 +553,23 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  res = lbm_add_extension("event-float", ext_event_float);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("event-list-of-float", ext_event_list_of_float);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+  
+
   res = lbm_add_extension("event-array", ext_event_array);
   if (res)
     printf("Extension added.\n");
@@ -469,6 +578,30 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  res = lbm_add_extension("block", ext_block);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("unblock", ext_unblock);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+
+  res = lbm_add_extension("unblock-error", ext_unblock_error);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return 0;
+  }
+  
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);

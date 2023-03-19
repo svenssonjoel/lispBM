@@ -1,5 +1,5 @@
 /*
-    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2023 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,25 +14,19 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/** \file fundamental.h
- *
- *  Implementation of the built in functions of the lispbm language (such as +, -, ... ).
- *
- */
 
-#ifndef _FUNDAMENTAL_H_
-#define _FUNDAMENTAL_H_
+#include <lbm_flags.h>
 
-#include <eval_cps.h>
+static volatile uint32_t lbm_flags;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-  extern const fundamental_fun fundamental_table[];
-  bool struct_eq(lbm_value a, lbm_value b);
-#ifdef __cplusplus
+uint32_t lbm_get_flags(void) {
+  return lbm_flags;
 }
-#endif
-#endif
 
+void lbm_set_flags(uint32_t flags) {
+  lbm_flags |= flags;
+}
 
+void lbm_clr_flags(uint32_t flags) {
+  lbm_flags &= ~flags;
+}

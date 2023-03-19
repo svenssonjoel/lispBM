@@ -21,6 +21,7 @@
 #include "lbm_types.h"
 #include "stack.h"
 #include "lbm_channel.h"
+#include "lbm_flat_value.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,7 +37,7 @@ extern "C" {
 
 #define EVAL_CPS_CONTEXT_FLAG_NOTHING       (uint32_t)0x0
 #define EVAL_CPS_CONTEXT_FLAG_TRAP          (uint32_t)0x1
-
+  
 /** The eval_context_t struct represents a lispbm process.
  *
  */
@@ -63,20 +64,15 @@ typedef struct eval_context_s{
 } eval_context_t;
 
 typedef enum {
-  LBM_EVENT_SYM = 0,
-  LBM_EVENT_SYM_INT,
-  LBM_EVENT_SYM_INT_INT,
-  LBM_EVENT_SYM_ARRAY,
-  LBM_EVENT_SYM_INT_ARRAY,
+  LBM_EVENT_FOR_HANDLER = 0,
+  LBM_EVENT_UNBLOCK_CTX,
 } lbm_event_type_t;
 
 typedef struct {
   lbm_event_type_t type;
-  lbm_uint sym;
-  int32_t i;
-  int32_t i2;
-  char *array;
-  int32_t array_len;
+  lbm_uint parameter;
+  lbm_uint buf_ptr;
+  uint32_t  buf_len;
 } lbm_event_t;
 
 /** Fundamental operation type */
@@ -123,13 +119,26 @@ lbm_cid lbm_get_event_handler_pid(void);
  * \param pid The ID of the process to which events should be sent
  */
 void lbm_set_event_handler_pid(lbm_cid pid);
+/** Check if an event handler is registerd.
+ * \return True if event handler exists, otherwise false.
+ */
+bool lbm_event_handler_exists(void);
 /** Send an event to the registered event handler process.
+ * If lbm_event returns false the C code will still be responsible for
+ * the flat_value passed into lbm_event. If lbm_event returns true,
+ * the LBM runtime system will take responsibility for the freeing
+ * of the memory allocated in the flat_value.
  * \param event The event to send to the registered handler.
  * \param opt_array An optional array to pass to the event handler.
  * \param opt_array_len Length of array mandatory if array is passed in.
  * \return true if the event was successfully enqueued to be sent, false otherwise.
  */
-bool lbm_event(lbm_event_t event, uint8_t* opt_array, int opt_array_len);
+bool lbm_event(lbm_flat_value_t *fv);
+/** Send an unboxed value as an event to the event handler.
+ * \param unboxed. An lbm_value (encoded) such as a symbol. int, uint, character.
+ * \return true on success.
+ */
+bool lbm_event_unboxed(lbm_value unboxed);
 /** Remove a context that has finished executing and free up its associated memory.
  *
  * \param cid Context id of context to free.
@@ -213,13 +222,24 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size);
 /** Block a context from an extension
  */
 void lbm_block_ctx_from_extension(void);
+  /** Undo a previous call to lbm_block_ctx_from_extension.
+   */
+  void lbm_undo_block_ctx_from_extension(void);
 /** Unblock a context that has been blocked by a C extension
  *  Trying to unblock a context that is waiting on a message
  *  in a mailbox is not encouraged
  * \param cid Lisp process to wake up.
- * \param result Value passed to the lisp process as the result from the blocking function.
+ * \param fv lbm_flat_value to give return as result from the unblocket process.
  */
-bool lbm_unblock_ctx(lbm_cid cid, lbm_value result);
+bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv);
+/** Unblock a context bypassing the event-queue.
+ *  Since the context will be unblocked in a separate tread it cannot
+ *  take a composite return value. Only unboxed lbm_values are allowed.
+ * \param cid Lisp process to inblock.
+ * \param unboxed An unboxed lbm_value: char, i, u or symbol type.
+ * \return True on successfully unblocking. False otherwise.
+ */
+bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed);
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.
