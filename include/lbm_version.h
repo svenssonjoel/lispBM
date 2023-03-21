@@ -36,6 +36,7 @@ extern "C" {
 Mar 19 2023: Version 0.10.0
   - Added deconstructive let bindings with optional dont-care fields.
   - Added (var x (....)) for local bindings in progn.
+  - Added setq
 
 Feb 18 2023: Version 0.9.0
   - Arrays in flat_value are stored verbatim, not as ptr.

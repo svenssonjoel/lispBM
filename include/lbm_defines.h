@@ -184,7 +184,8 @@
 #define SYM_COND                0x10F
 #define SYM_APP_CONT            0x110
 #define SYM_PROGN_VAR           0x111
-#define SPECIAL_FORMS_END       0x111
+#define SYM_SETQ                0x112
+#define SPECIAL_FORMS_END       0x112
 
 // Apply funs:
 // Get their arguments in evaluated form.
