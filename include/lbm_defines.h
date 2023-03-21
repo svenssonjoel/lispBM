@@ -41,7 +41,7 @@
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
 #define LBM_POINTER_TYPE_LAST            0xB0000000u
 
-#define LBM_CONTINUATION_INTERNAL        0xFC000000u
+#define LBM_CONTINUATION_INTERNAL        0xFC000001u // PTR bit set
 
 #define LBM_GC_MASK                      0x00000002u
 #define LBM_GC_MARKED                    0x00000002u
