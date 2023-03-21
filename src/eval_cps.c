@@ -2670,6 +2670,14 @@ static void read_process_token(eval_context_t *ctx, lbm_value stream, lbm_value 
       CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
       ctx->app_cont = true;
       break;
+    case SYM_OPENCURL:
+      CHECK_STACK(lbm_push_4(&ctx->K,
+                             ENC_SYM_NIL, ENC_SYM_NIL,
+                             stream,
+                             READ_APPEND_CONTINUE));
+      ctx->r = ENC_SYM_PROGN;
+      ctx->app_cont = true;
+      break;
     case SYM_CLOSEBRACK:
       ctx->r = tok;
       ctx->app_cont = true;
