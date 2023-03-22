@@ -565,14 +565,12 @@ lbm_value lbm_heap_allocate_list(unsigned int n) {
   }
 }
 
-bool lbm_heap_allocate_list_init_va(lbm_value *ls, unsigned int n, va_list valist) {
+lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist) {
   if (n == 0) {
-    *ls = ENC_SYM_NIL;
-    return true;
+    return ENC_SYM_NIL;
   }
   if (lbm_heap_num_free() < n) {
-    *ls = ENC_SYM_MERROR;
-    return false;
+    return ENC_SYM_MERROR;
   }
 
   lbm_value res = lbm_heap_state.freelist;
@@ -590,16 +588,15 @@ bool lbm_heap_allocate_list_init_va(lbm_value *ls, unsigned int n, va_list valis
     lbm_set_cdr(curr, ENC_SYM_NIL);
     lbm_heap_state.num_alloc+=count;
     va_end(valist);
-    *ls = res;
-    return true;
+    return res;
   }
-  return false;
+  return ENC_SYM_FATAL_ERROR;
 }
 
-bool lbm_heap_allocate_list_init(lbm_value *ls, unsigned int n, ...) {
+lbm_value lbm_heap_allocate_list_init(unsigned int n, ...) {
     va_list valist;
     va_start(valist, n);
-    bool r = lbm_heap_allocate_list_init_va(ls, n, valist);
+    lbm_value r = lbm_heap_allocate_list_init_va(n, valist);
     va_end(valist);
     return r;
 }

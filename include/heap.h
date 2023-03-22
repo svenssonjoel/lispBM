@@ -315,18 +315,17 @@ lbm_value lbm_heap_allocate_list(unsigned int n);
  * \param valist The values in a va_list to initialize the list with.
  * \return True of False depending on success of allocation.
  */
-bool lbm_heap_allocate_list_init_va(lbm_value *ls, unsigned int n, va_list valist);
+lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist);
 /** Allocate a list of n heap-cells and initialize the values.
- * \pram ls The result list is passed through this ptr.
  * \param n The length of list to allocate.
  * \param ... The values to initialize the list with.
- * \return True of False depending on success of allocation.
+ * \return allocated list or error symbol.
  */
-bool lbm_heap_allocate_list_init(lbm_value *ls, unsigned int n, ...);
+lbm_value lbm_heap_allocate_list_init(unsigned int n, ...);
 /** Decode an lbm_value representing a string into a C string
  *
  * \param val Value
- * \return String or NULL if the value does not encode a string.
+ * \return allocated list or error symbol
  */
 char *lbm_dec_str(lbm_value val);
 /** Decode an lbm_value representing a char channel into an lbm_char_channel_t pointer.

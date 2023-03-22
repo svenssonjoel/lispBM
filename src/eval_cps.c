@@ -1117,8 +1117,8 @@ static void mark_context(eval_context_t *ctx, void *arg1, void *arg2) {
                     ctx->curr_exp,
                     ctx->program,
                     ctx->r);
-    lbm_gc_mark_aux(ctx->mailbox, ctx->num_mail);
-    lbm_gc_mark_aux(ctx->K.data, ctx->K.sp);
+  lbm_gc_mark_aux(ctx->mailbox, ctx->num_mail);
+  lbm_gc_mark_aux(ctx->K.data, ctx->K.sp);
 }
 
 static int gc(void) {
@@ -1367,40 +1367,16 @@ static void eval_define(eval_context_t *ctx) {
   return;
 }
 
-// (closure params body env)
-static bool mk_closure(lbm_value *closure, lbm_value env, lbm_value body, lbm_value params) {
-
-  bool ret = lbm_heap_allocate_list_init(closure,
-                                         4,
-                                         ENC_SYM_CLOSURE,
-                                         params,
-                                         body,
-                                         env);
-  if (!ret) {
-    lbm_gc_mark_phase(3, env, body, params);
-    gc();
-    ret = lbm_heap_allocate_list_init(closure,
-                                      4,
-                                      ENC_SYM_CLOSURE,
-                                      params,
-                                      body,
-                                      env);
-  }
-  return ret;
-}
-
 static void eval_lambda(eval_context_t *ctx) {
   lbm_value closure;
 
-  if (mk_closure(&closure,
-                  ctx->curr_env,
-                  lbm_cadr(lbm_cdr(ctx->curr_exp)),
-                  lbm_cadr(ctx->curr_exp))) {
-    ctx->app_cont = true;
-    ctx->r = closure;
-  } else {
-    error_ctx(ENC_SYM_MERROR);
-  }
+  WITH_GC(closure, lbm_heap_allocate_list_init(4,
+                                               ENC_SYM_CLOSURE,
+                                               lbm_cadr(ctx->curr_exp),
+                                               lbm_cadr(lbm_cdr(ctx->curr_exp)),
+                                               ctx->curr_env));
+  ctx->app_cont = true;
+  ctx->r = closure;
 }
 
 static void eval_if(eval_context_t *ctx) {
@@ -2016,18 +1992,20 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value h = lbm_car(args[1]);
     lbm_value t = lbm_cdr(args[1]);
 
-    CHECK_STACK(lbm_push(&ctx->K, ENC_SYM_NIL));
-    lbm_value appli_0;
-    WITH_GC(appli_0, lbm_cons(h, ENC_SYM_NIL));
     lbm_value appli_1;
-    WITH_GC_RMBR(appli_1, lbm_cons(ENC_SYM_QUOTE, appli_0), 1, appli_0);
-    lbm_value appli_2;
-    WITH_GC_RMBR(appli_2, lbm_cons(appli_1,ENC_SYM_NIL), 1, appli_1);
     lbm_value appli;
-    WITH_GC_RMBR(appli, lbm_cons(f, appli_2), 1, appli_2);
-    // cache the function application on the stack for faster
-    // successive calls.
-    CHECK_STACK(lbm_push_3(&ctx->K, appli, appli_0, MAP_FIRST));
+    WITH_GC(appli_1, lbm_heap_allocate_list(2));
+    WITH_GC(appli, lbm_heap_allocate_list(2));
+
+    lbm_value appli_0 = lbm_cdr(appli_1);
+
+    lbm_set_car_and_cdr(appli_0, h, ENC_SYM_NIL);
+    lbm_set_car(appli_1, ENC_SYM_QUOTE);
+
+    lbm_set_car_and_cdr(lbm_cdr(appli), appli_1, ENC_SYM_NIL);
+    lbm_set_car(appli, f);
+
+    CHECK_STACK(lbm_push_4(&ctx->K, ENC_SYM_NIL, appli, appli_0, MAP_FIRST));
     sptr[0] = t;     // reuse stack space
     sptr[1] = ctx->curr_env;
     sptr[2] = ENC_SYM_NIL;
@@ -2037,21 +2015,24 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_uint sym;
     if (lbm_str_to_symbol("x", &sym)) {
       lbm_value params;
-      WITH_GC(params, lbm_cons(lbm_enc_sym(sym), ENC_SYM_NIL));
-      lbm_value body_0;
-      WITH_GC(body_0, lbm_cons(lbm_enc_sym(sym), ENC_SYM_NIL));
-      lbm_value body_1;
-      WITH_GC_RMBR(body_1, lbm_cons(args[0], body_0), 1, body_0);
       lbm_value body;
-      WITH_GC_RMBR(body, lbm_cons(ENC_SYM_MAP, body_1), 1, body_0);
-      lbm_value closure; ;
-      if (mk_closure(&closure, ENC_SYM_NIL, body, params)) {
-        ctx->r = closure;
-        lbm_stack_drop(&ctx->K, 2);
-        ctx->app_cont = true;
-      } else {
-        error_ctx(ENC_SYM_MERROR);
-      }
+
+      WITH_GC(params, lbm_cons(lbm_enc_sym(sym), ENC_SYM_NIL));
+      WITH_GC(body, lbm_heap_allocate_list_init(3,
+                                                ENC_SYM_MAP,
+                                                args[0],
+                                                lbm_enc_sym(sym)));
+      lbm_value closure;
+      WITH_GC_RMBR(closure, lbm_heap_allocate_list_init(4,
+                                                        ENC_SYM_CLOSURE,
+                                                        params,
+                                                        body,
+                                                        ENC_SYM_NIL),
+                   2,body,params);
+
+      ctx->r = closure;
+      lbm_stack_drop(&ctx->K, 2);
+      ctx->app_cont = true;
     } else {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
@@ -2229,13 +2210,15 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     // Ran out of arguments, but there are still parameters.
     lbm_value new_env = lbm_list_append(arg_env,clo_env);
     lbm_value closure;
-    if (mk_closure(&closure, new_env, exp, lbm_cdr(params))) {
-      lbm_stack_drop(&ctx->K, 5);
-      ctx->app_cont = true;
-      ctx->r = closure;
-    } else {
-      error_ctx(ENC_SYM_MERROR);
-    }
+    WITH_GC_RMBR(closure, lbm_heap_allocate_list_init(4,
+                                                      ENC_SYM_CLOSURE,
+                                                      lbm_cdr(params),
+                                                      exp,
+                                                      new_env),
+                 3, new_env,exp,lbm_cdr(params));
+    lbm_stack_drop(&ctx->K, 5);
+    ctx->app_cont = true;
+    ctx->r = closure;
   } else {
     // evaluate the next argument.
     sptr[2] = clo_env;
