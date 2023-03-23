@@ -2189,15 +2189,26 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     WITH_GC(ls, lbm_heap_allocate_list(2));
     lbm_value entry = ls;
     lbm_value aug_env = lbm_cdr(ls);
-    lbm_set_car_and_cdr(entry, lbm_car(params), ctx->r);
-    lbm_set_car_and_cdr(aug_env, entry, clo_env);
+    lbm_cons_t *c1 = lbm_ref_cell(entry);
+    c1->car = lbm_car(params);
+    c1->cdr = ctx->r;
+    lbm_cons_t *c2 = lbm_ref_cell(aug_env);
+    c2->car = entry;
+    c2->cdr = clo_env;
     clo_env = aug_env;
   }
-
   bool a_nil = lbm_is_symbol_nil(args);
   bool p_nil = lbm_is_symbol_nil(lbm_cdr(params));
 
-  if (a_nil && p_nil) {
+  if (!a_nil && !p_nil) {
+    // evaluate the next argument.
+    sptr[2] = clo_env;
+    sptr[3] = lbm_cdr(params);
+    sptr[4] = lbm_cdr(args);
+    CHECK_STACK(lbm_push(&ctx->K, CLOSURE_ARGS));
+    ctx->curr_exp = lbm_car(args);
+    ctx->curr_env = arg_env;
+  } else if (a_nil && p_nil) {
     // Arguments and parameters match up in number
     lbm_stack_drop(&ctx->K, 5);
     ctx->curr_env = clo_env;
@@ -2207,7 +2218,7 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     // Application with extra arguments
     lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_ctx(ENC_SYM_EERROR);
-  } else if (a_nil && !p_nil) {
+  } else {
     // Ran out of arguments, but there are still parameters.
     lbm_value new_env = lbm_list_append(arg_env,clo_env);
     lbm_value closure;
@@ -2220,14 +2231,6 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     lbm_stack_drop(&ctx->K, 5);
     ctx->app_cont = true;
     ctx->r = closure;
-  } else {
-    // evaluate the next argument.
-    sptr[2] = clo_env;
-    sptr[3] = lbm_cdr(params);
-    sptr[4] = lbm_cdr(args);
-    CHECK_STACK(lbm_push(&ctx->K, CLOSURE_ARGS));
-    ctx->curr_exp = lbm_car(args);
-    ctx->curr_env = arg_env;
   }
 }
 
