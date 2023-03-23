@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <inttypes.h>
 #include <lbm_types.h>
 #include <lbm_custom_type.h>
@@ -292,16 +293,54 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
       case LBM_TYPE_ARRAY: {
         lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(curr);
         switch (array->elt_type){
-        case LBM_TYPE_CHAR:
-          r = snprintf(buf + offset, len - offset, "\"%.*s\"", (int)array->size, (char *)array->data);
-          if ( r > 0) {
-            n = (unsigned int) r;
-          } else {
-            snprintf(buf, len, "%s", failed_str);
-            return -1;
+        case LBM_TYPE_CHAR: {
+          bool is_a_string = true;
+          char *c_data = (char *)array->data;
+          unsigned int i;
+          for (i = 0; i < array->size; i ++) {
+            if (c_data[i] == 0 && i > 0) break;
+            if (!isprint(c_data[i])) {
+              is_a_string = false;
+              break;
+            }
           }
-          offset += n;
+          if (i == array->size) i--;
+          // check 0 termination
+          if (i > 0 && c_data[i] != 0) is_a_string = false;
+          if (is_a_string) {
+            r = snprintf(buf + offset, len - offset, "\"%.*s\"", (int)array->size, (char *)array->data);
+            if ( r > 0) {
+              n = (unsigned int) r;
+            } else {
+              snprintf(buf, len, "%s", failed_str);
+              return -1;
+            }
+            offset += n;
+          } else {
+            r = snprintf(buf + offset, len - offset, "{");
+            if (r == 1) {
+              offset += 1;
+            } else {
+              snprintf(buf, len, "%s", failed_str);
+              return -1;
+            }
+            for (i = 0; i < array->size; i ++) {
+              r = 0;
+              if (offset < len) {
+                r = snprintf(buf+offset, len - offset, "%d%s", c_data[i], i == array->size - 1 ? "" : ", ");
+              }
+              if (r > 0) {
+                offset += (unsigned int)r;
+              } else {
+                snprintf(buf, len, "%s", failed_str);
+                return -1;
+              }
+              snprintf(buf + offset, len - offset, "}");
+              offset ++;
+            }
+          }
           break;
+        }
         default:
           r = snprintf(buf + offset, len - offset, "{");
           if (r == 1) {
@@ -405,7 +444,7 @@ int lbm_print_value(char *buf,unsigned int len, lbm_value t) {
         break;
 
       case LBM_TYPE_CHAR:
-        r = snprintf(buf + offset, len - offset, "\\#%c", lbm_dec_char(curr));
+        r = snprintf(buf + offset, len - offset, "%d", lbm_dec_char(curr));
         if ( r > 0) {
           n = (unsigned int) r;
         } else {
