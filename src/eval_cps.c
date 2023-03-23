@@ -1054,7 +1054,7 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
 
   /* Comma-qualification experiment. */
   if (lbm_is_comma_qualified_symbol(p)) {
-    lbm_value sym = lbm_car(lbm_cdr(p));
+    lbm_value sym = lbm_cadr(p);
     lbm_value val = lbm_env_lookup(sym, *env);
     if (lbm_is_symbol(SYM_NOT_FOUND)) {
       return false;
@@ -2185,11 +2185,12 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_value args    = (lbm_value)sptr[4];
 
   if (lbm_is_cons(params)) {
-    lbm_value entry;
-    WITH_GC(entry,lbm_cons(lbm_car(params),ctx->r));
-
-    lbm_value aug_env;
-    WITH_GC_RMBR(aug_env,lbm_cons(entry, clo_env), 1, entry);
+    lbm_value ls;
+    WITH_GC(ls, lbm_heap_allocate_list(2));
+    lbm_value entry = ls;
+    lbm_value aug_env = lbm_cdr(ls);
+    lbm_set_car_and_cdr(entry, lbm_car(params), ctx->r);
+    lbm_set_car_and_cdr(aug_env, entry, clo_env);
     clo_env = aug_env;
   }
 
@@ -2386,8 +2387,17 @@ static void cont_match_many(eval_context_t *ctx) {
 
     } else {
       /* try match the next one */
-      CHECK_STACK(lbm_push_4(&ctx->K, exp, pats, lbm_cdr(rest_msgs), MATCH_MANY));
-      CHECK_STACK(lbm_push_2(&ctx->K, lbm_car(pats), MATCH));
+      lbm_uint *sptr = lbm_stack_reserve(&ctx->K, 6);
+      if (!sptr) {
+        error_ctx(ENC_SYM_STACK_ERROR);
+        return;
+      }
+      sptr[0] = exp;
+      sptr[1] = pats;
+      sptr[2] = lbm_cdr(rest_msgs);
+      sptr[3] = MATCH_MANY;
+      sptr[4] = lbm_cdr(pats);
+      sptr[5] = MATCH;
       ctx->r = lbm_car(rest_msgs);
       ctx->app_cont = true;
     }
