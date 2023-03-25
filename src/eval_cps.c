@@ -1784,9 +1784,15 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
       error_ctx(SYM_EERROR);
       return;
     }
+    lbm_value *sptr = (lbm_value*)lbm_get_stack_ptr(&ctx->K, 2);
+    if (sptr == NULL) {
+      error_ctx(ENC_SYM_FATAL_ERROR);
+      return;
+    }
     lbm_value fun = program ? ENC_SYM_READ_PROGRAM : ENC_SYM_READ; //args[0];
-    lbm_stack_drop(&ctx->K, nargs+1);
-    CHECK_STACK(lbm_push_3(&ctx->K, chan, fun, READ));
+    sptr[0] = sptr[1]; // Remember the string we are reading from.
+    sptr[1] = chan;
+    CHECK_STACK(lbm_push_2(&ctx->K, fun, READ));
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
   } else {
@@ -3005,6 +3011,7 @@ static void cont_read_done(eval_context_t *ctx) {
   lbm_value prg_tag;
 
   lbm_pop_2(&ctx->K, &stream, &prg_tag);
+  lbm_stack_drop(&ctx->K, 1);
 
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {

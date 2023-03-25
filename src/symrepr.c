@@ -124,7 +124,6 @@ special_sym const special_symbols[] =  {
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
-  {"type-ref"         , SYM_TYPE_REF},
   {"type-channel"     , SYM_TYPE_CHANNEL},
   // Fundamental operations
   {"+"                , SYM_ADD},
@@ -211,6 +210,8 @@ special_sym const special_symbols[] =  {
   {"true"           , SYM_TRUE},
   {"false"          , SYM_NIL},
   {"setvar"         , SYM_SETVAR},
+  {"type-f32"       , SYM_TYPE_FLOAT},
+  {"type-f64"       , SYM_TYPE_DOUBLE},
 };
 
 static lbm_uint *symlist = NULL;

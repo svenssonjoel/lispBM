@@ -229,6 +229,7 @@ static char translate_escape_char(char c) {
   case 'n': return '\n';
   case 'r': return '\r';
   case 't': return '\t';
+  case '0': return '\0';
   case '\"': return '\"';
   default: return '\\';
   }
@@ -247,7 +248,6 @@ int tok_string(lbm_char_channel_t *chan, unsigned int *string_len) {
   else if (r == CHANNEL_END) return TOKENIZER_NO_TOKEN;
 
   if (c != '\"') return TOKENIZER_NO_TOKEN;;
-
   n++;
 
   memset(sym_str, 0 , TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH);
@@ -256,8 +256,9 @@ int tok_string(lbm_char_channel_t *chan, unsigned int *string_len) {
   r = lbm_channel_peek(chan,n,&c);
   while (r == CHANNEL_SUCCESS && (c != '\"' || (c == '\"' && encode)) &&
          len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
-    if (c == '\\') encode = true;
-    else {
+    if (c == '\\' && !encode) {
+      encode = true;
+    } else {
       sym_str[len] = encode ? translate_escape_char(c) : c ;
       len++;
       encode = false;
@@ -561,7 +562,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
                                   NUM_FIXED_SIZE_TOKENS,
                                   &match);
   if (n > 0) {
-
     if (!peek) {
       if (!lbm_channel_drop(chan, (unsigned int)n)) {
         // Really should not happen (bug in channel implementation)
@@ -657,7 +657,6 @@ lbm_value lbm_get_next_token(lbm_char_channel_t *chan, bool peek) {
   n = tok_integer(chan, &int_result);
   if (n > 0) {
     if (!peek) lbm_channel_drop(chan, (unsigned int)n);
-
     switch (int_result.type) {
     case TOKTYPEBYTE:
       return lbm_enc_char((char)(int_result.negative ? -int_result.value : int_result.value));

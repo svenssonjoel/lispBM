@@ -35,7 +35,6 @@
 #define LBM_TYPE_FLOAT                   0x68000000u
 #define LBM_TYPE_DOUBLE                  0x78000000u
 #define LBM_TYPE_ARRAY                   0x80000000u
-#define LBM_TYPE_REF                     0x90000000u
 #define LBM_TYPE_CHANNEL                 0xA0000000u
 #define LBM_TYPE_CUSTOM                  0xB0000000u
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xB0000000u
@@ -143,7 +142,6 @@
 #define SYM_TYPE_SYMBOL    0x5A
 #define SYM_TYPE_CHAR      0x5B
 #define SYM_TYPE_BYTE      0x5C
-#define SYM_TYPE_REF       0x5D
 #define SYM_TYPE_CHANNEL   0x5E
 
 //Relevant for the tokenizer
