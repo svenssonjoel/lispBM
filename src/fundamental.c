@@ -922,21 +922,25 @@ static lbm_value fundamental_list(lbm_value *args, lbm_uint nargs, eval_context_
 
 static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  if (nargs < 2) return(ENC_SYM_TERROR);
-  lbm_value res = args[nargs-1];
-  for (int i = (int)nargs -2; i >= 0; i --) {
-    lbm_value curr = args[i];
-    int n = 0;
-    while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-      n++;
-      curr = lbm_cdr(curr);
+  if (nargs == 0) return ENC_SYM_NIL;
+  if (nargs == 1 && !lbm_is_list(args[0])) return ENC_SYM_TERROR;
+  if (nargs > 0) {
+    lbm_value res = args[nargs-1];
+    for (int i = (int)nargs -2; i >= 0; i --) {
+      lbm_value curr = args[i];
+      if (!lbm_is_list(curr)) return ENC_SYM_TERROR;
+      int n = 0;
+      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+        n++;
+        curr = lbm_cdr(curr);
+      }
+      curr = args[i];
+      for (int j = n-1; j >= 0; j --) {
+        res = lbm_cons(index_list(curr,j),res);
+      }
     }
-    curr = args[i];
-    for (int j = n-1; j >= 0; j --) {
-      res = lbm_cons(index_list(curr,j),res);
-    }
+    return(res);
   }
-  return(res);
 }
 
 static lbm_value fundamental_undefine(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
