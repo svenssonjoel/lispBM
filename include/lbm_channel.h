@@ -68,6 +68,7 @@ typedef struct {
 typedef struct lbm_char_channel_s {
 
   void *state;
+  bool constant; //relevant to reader.
   bool (*more)(struct lbm_char_channel_s *chan);
   int  (*peek)(struct lbm_char_channel_s *chan, unsigned int n, char *res);
   bool (*read)(struct lbm_char_channel_s *chan, char *res);

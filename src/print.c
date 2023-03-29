@@ -309,7 +309,8 @@ int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       lbm_value car_val = lbm_car(curr);
       lbm_value cdr_val = lbm_cdr(curr);
       int res = 1;
-      if (lbm_type_of(cdr_val) == LBM_TYPE_CONS) {
+      if (lbm_type_of(cdr_val) == LBM_TYPE_CONS ||
+          lbm_type_of(cdr_val) == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT)) {
         res &= lbm_push(&print_stack, cdr_val);
         res &= lbm_push(&print_stack, CONTINUE_LIST);
       } else if (lbm_type_of(cdr_val) == LBM_TYPE_SYMBOL &&
@@ -344,7 +345,8 @@ int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       if (r != EMIT_OK) {
         return r;
       }
-      if (lbm_type_of(cdr_val) == LBM_TYPE_CONS) {
+      if (lbm_type_of(cdr_val) == LBM_TYPE_CONS ||
+          lbm_type_of(cdr_val) == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT)) {
         res &= lbm_push(&print_stack, cdr_val);
         res &= lbm_push(&print_stack, CONTINUE_LIST);
       } else if (lbm_type_of(cdr_val) == LBM_TYPE_SYMBOL &&
@@ -377,7 +379,13 @@ int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       break;
     case PRINT:
       lbm_pop(&print_stack, &curr);
-      switch(lbm_type_of(curr)) {
+
+      lbm_type t = lbm_type_of(curr);
+      if (lbm_is_ptr(curr))
+          t = t & LBM_PTR_TO_CONSTANT_MASK; // print constants normally
+      
+      switch(t) {
+        //case LBM_TYPE_CONS_CONST: /* fall through */
       case LBM_TYPE_CONS: {
         int res = lbm_push_2(&print_stack, curr, START_LIST);
         if (!res) {

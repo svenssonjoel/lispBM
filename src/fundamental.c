@@ -190,8 +190,15 @@ static bool array_equality(lbm_value a, lbm_value b) {
 bool struct_eq(lbm_value a, lbm_value b) {
 
   bool res = false;
-
-  if (lbm_type_of(a) == lbm_type_of(b)) {
+  lbm_type ta = lbm_type_of(a);
+  lbm_type tb = lbm_type_of(b);
+  
+  if (lbm_is_ptr(a) && lbm_is_ptr(b)) {
+    ta &= LBM_PTR_TO_CONSTANT_MASK;
+    tb &= LBM_PTR_TO_CONSTANT_MASK;
+  }
+  
+  if (ta == tb) {
     switch(lbm_type_of(a)){
     case LBM_TYPE_SYMBOL:
       return (lbm_dec_sym(a) == lbm_dec_sym(b));
@@ -890,7 +897,7 @@ static lbm_value fundamental_cons(lbm_value *args, lbm_uint nargs, eval_context_
 static lbm_value fundamental_car(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   if (nargs == 1) {
-    if (lbm_type_of(args[0]) == LBM_TYPE_CONS) {
+    if (lbm_is_cons_general(args[0])) {
       lbm_cons_t *cell = lbm_ref_cell(args[0]);
       return cell->car;
     }
@@ -901,7 +908,7 @@ static lbm_value fundamental_car(lbm_value *args, lbm_uint nargs, eval_context_t
 static lbm_value fundamental_cdr(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   if (nargs == 1) {
-    if (lbm_type_of(args[0]) == LBM_TYPE_CONS) {
+    if (lbm_is_cons_general(args[0])) {
       lbm_cons_t *cell = lbm_ref_cell(args[0]);
       return cell->cdr;
     }

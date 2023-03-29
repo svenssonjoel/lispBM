@@ -79,6 +79,7 @@ special_sym const special_symbols[] =  {
   {"out_of_stack"       , SYM_STACK_ERROR},
   {"division_by_zero"   , SYM_DIVZERO},
   {"variable_not_bound" , SYM_NOT_FOUND},
+  {"flash_full"         , SYM_ERROR_FLASH_HEAP_FULL},
 
   // Special symbols with unparsable names
   {"$array"          , SYM_ARRAY_TYPE},
@@ -90,7 +91,6 @@ special_sym const special_symbols[] =  {
   {"$ind_f"          , SYM_IND_F_TYPE},
   {"$channel"        , SYM_CHANNEL_TYPE},
   {"$recovered"      , SYM_RECOVERED},
-  {"$bytecode"       , SYM_BYTECODE_TYPE},
   {"$custom"         , SYM_CUSTOM_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
 
