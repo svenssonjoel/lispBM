@@ -20,7 +20,6 @@
 #include "stack.h"
 #include "heap.h"
 #include "eval_cps.h"
-#include "print.h"
 #include "lbm_variables.h"
 #include "env.h"
 #include "lbm_utils.h"
@@ -197,9 +196,9 @@ bool struct_eq(lbm_value a, lbm_value b) {
     ta &= LBM_PTR_TO_CONSTANT_MASK;
     tb &= LBM_PTR_TO_CONSTANT_MASK;
   }
-  
+
   if (ta == tb) {
-    switch(lbm_type_of(a)){
+    switch(ta){
     case LBM_TYPE_SYMBOL:
       return (lbm_dec_sym(a) == lbm_dec_sym(b));
     case LBM_TYPE_I:
@@ -533,12 +532,12 @@ static lbm_value index_list(lbm_value l, int32_t n) {
     if (n < 0) return ENC_SYM_NIL;
   }
 
-  while ( lbm_type_of(curr) == LBM_TYPE_CONS &&
+  while (lbm_is_cons_general(curr) &&
           n > 0) {
     curr = lbm_cdr(curr);
     n --;
   }
-  if (lbm_type_of(curr) == LBM_TYPE_CONS) {
+  if (lbm_is_cons_general(curr)) {
     return lbm_car(curr);
   } else {
     return ENC_SYM_NIL;
@@ -547,7 +546,7 @@ static lbm_value index_list(lbm_value l, int32_t n) {
 
 static lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+  while (lbm_is_cons_general(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
     if (struct_eq(lbm_ref_cell(c)->car, key)) {
       return lbm_ref_cell(c)->cdr;
@@ -559,7 +558,7 @@ static lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
 
 static lbm_value cossa_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+  while (lbm_is_cons_general(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
     if (struct_eq(lbm_ref_cell(c)->cdr, key)) {
       return lbm_ref_cell(c)->car;
@@ -934,7 +933,7 @@ static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs, eval_contex
   for (int i = (int)nargs -2; i >= 0; i --) {
     lbm_value curr = args[i];
     int n = 0;
-    while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+    while (lbm_is_cons_general(curr)) {
       n++;
       curr = lbm_cdr(curr);
     }
@@ -1435,7 +1434,11 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   (void) ctx;
   if (nargs != 1) return ENC_SYM_NIL;
   lbm_value val = args[0];
-  switch(lbm_type_of(val)) {
+  lbm_type t = lbm_type_of(val);
+  if (lbm_is_ptr(val)) {
+    t &= LBM_PTR_TO_CONSTANT_MASK;
+  }
+  switch(t) {
   case LBM_TYPE_CONS: return ENC_SYM_TYPE_LIST;
   case LBM_TYPE_ARRAY: return ENC_SYM_TYPE_ARRAY;
   case LBM_TYPE_I32: return ENC_SYM_TYPE_I32;

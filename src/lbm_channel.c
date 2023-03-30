@@ -228,6 +228,7 @@ void lbm_create_buffered_char_channel(lbm_buffered_channel_state_t *st,
 
   chan->state = st;
   chan->constant = false;
+  chan->backquotes = 0;
   chan->more = buffered_more;
   chan->peek = buffered_peek;
   chan->read = buffered_read;
@@ -380,6 +381,7 @@ void lbm_create_string_char_channel(lbm_string_channel_state_t *st,
 
   chan->state = st;
   chan->constant = false;
+  chan->backquotes = 0;
   chan->more = string_more;
   chan->peek = string_peek;
   chan->read = string_read;
@@ -411,6 +413,7 @@ void lbm_create_string_char_channel_size(lbm_string_channel_state_t *st,
 
   chan->state = st;
   chan->constant = false;
+  chan->backquotes = 0;
   chan->more = string_more;
   chan->peek = string_peek;
   chan->read = string_read;

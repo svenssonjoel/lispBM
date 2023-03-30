@@ -71,13 +71,14 @@
 #define READ_COMMA_RESULT     CONTINUATION(26)
 #define READ_START_ARRAY      CONTINUATION(27)
 #define READ_APPEND_ARRAY     CONTINUATION(28)
-#define MAP_FIRST             CONTINUATION(29)
-#define MAP_REST              CONTINUATION(30)
-#define MATCH_GUARD           CONTINUATION(31)
-#define TERMINATE             CONTINUATION(32)
-#define PROGN_VAR             CONTINUATION(33)
-#define SETQ                  CONTINUATION(34)
-#define NUM_CONTINUATIONS     35
+#define READ_CONST_CLOSE      CONTINUATION(29)
+#define MAP_FIRST             CONTINUATION(30)
+#define MAP_REST              CONTINUATION(31)
+#define MATCH_GUARD           CONTINUATION(32)
+#define TERMINATE             CONTINUATION(33)
+#define PROGN_VAR             CONTINUATION(34)
+#define SETQ                  CONTINUATION(35)
+#define NUM_CONTINUATIONS     36
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -919,13 +920,19 @@ static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
 
 /* Advance execution to the next expression in the program */
 static void advance_ctx(eval_context_t *ctx) {
-
+  /* char buf[1024]; */
+  /* lbm_print_value(buf, 1024, ctx->program); */
+  /* printf("ADVANCE:\n%s\n",buf); */
   if (lbm_is_cons_general(ctx->program)) {
     lbm_push(&ctx->K, DONE);
     ctx->curr_exp = lbm_car(ctx->program);
     ctx->curr_env = ENC_SYM_NIL;
     ctx->program = lbm_cdr(ctx->program);
     ctx->app_cont = false;
+    /* lbm_print_value(buf, 1024, ctx->program); */
+    /* printf("rest:\n%s\n",buf); */
+    /* lbm_print_value(buf, 1024, ctx->curr_exp); */
+    /* printf("exp:\n%s\n",buf); */
   } else {
     ctx->done = true;
     if (ctx_running == ctx) {  // This should always be the case because of odd historical reasons.
@@ -1918,7 +1925,7 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     lbm_value new_prg;
 
     lbm_value prg_copy;
-    
+
     WITH_GC(prg_copy, lbm_list_copy(prg));
     lbm_stack_drop(&ctx->K, nargs+1);
 
@@ -1934,7 +1941,6 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
       error_ctx(ENC_SYM_EERROR);
       return;
     }
-
     CHECK_STACK(lbm_push(&ctx->K, DONE));
     ctx->program = lbm_cdr(new_prg);
     ctx->curr_exp = lbm_car(new_prg);
@@ -2652,7 +2658,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
     error_ctx(ENC_SYM_FATAL_ERROR);
     return;
   }
-  
+
   if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
     read_finish(chan, ctx);
     return;
@@ -2676,7 +2682,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
   lbm_value res;
 
   bool constant = chan->constant;
-  
+
   /*
    * SYNTAX
    */
@@ -2717,8 +2723,11 @@ static void cont_read_next_token(eval_context_t *ctx) {
       do_next = READ_QUOTE_RESULT;
       break;
     case TOKBACKQUOTE:
-      do_next = READ_BACKQUOTE_RESULT;
-      break;
+      chan->backquotes++;
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_BACKQUOTE_RESULT));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      return;
     case TOKCOMMAAT:
       do_next = READ_COMMAAT_RESULT;
       break;
@@ -2738,6 +2747,16 @@ static void cont_read_next_token(eval_context_t *ctx) {
     case TOKCLOSECURL:
       ctx->r = ENC_SYM_CLOSEPAR;
       return;
+    case TOKCONST:
+      if (lbm_heaps[1] == NULL) {
+        error_ctx(ENC_SYM_FATAL_ERROR);
+        return;
+      }
+      chan->constant = true;
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_CONST_CLOSE));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      return;
     case TOKCONSTSTART:
       if (lbm_heaps[1] == NULL) {
         error_ctx(ENC_SYM_FATAL_ERROR); // Should be a no const-memory error
@@ -2753,7 +2772,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
       ctx->app_cont = true;
       return;
     default:
-      ctx->app_cont = false;
       error_ctx(ENC_SYM_RERROR);
       return;
     }
@@ -3053,6 +3071,23 @@ static void cont_read_append_array(eval_context_t *ctx) {
   }
 }
 
+static void cont_read_const_close(eval_context_t *ctx) {
+
+  lbm_value stream;
+
+  lbm_pop(&ctx->K, &stream);
+
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
+
+  str->constant = false;
+  ctx->app_cont = true;
+  return;
+}
+
 static void cont_read_append_continue(eval_context_t *ctx) {
 
   lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 3);
@@ -3071,8 +3106,8 @@ static void cont_read_append_continue(eval_context_t *ctx) {
     return;
   }
 
-  bool constant = str->constant;
-  
+  bool constant = str->constant && (str->backquotes == 0);
+
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
 
     switch(lbm_dec_sym(ctx->r)) {
@@ -3105,7 +3140,7 @@ static void cont_read_append_continue(eval_context_t *ctx) {
       return;
     }
     write_const_car(new_cell, ctx->r);
-    
+
     if (lbm_type_of(last_cell) == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT)) {
       write_const_cdr(last_cell, new_cell);
       last_cell = new_cell;
@@ -3126,7 +3161,7 @@ static void cont_read_append_continue(eval_context_t *ctx) {
       last_cell = new_cell;
     } else if (lbm_type_of(last_cell) == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT)) {
       write_const_cdr(last_cell, new_cell);
-      last_cell = new_cell;      
+      last_cell = new_cell;
     } else {
       first_cell = last_cell = new_cell;
     }
@@ -3180,8 +3215,8 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
     return;
   }
 
-  bool constant = str->constant;
-  
+  bool constant = str->constant && (str->backquotes == 0);
+
   lbm_stack_drop(&ctx->K ,3);
 
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
@@ -3254,6 +3289,18 @@ static void cont_read_quote_result(eval_context_t *ctx) {
 }
 
 static void cont_read_backquote_result(eval_context_t *ctx) {
+  lbm_value stream;
+
+  lbm_pop(&ctx->K, &stream);
+
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
+
+  str->backquotes--;
+
   // The entire expression is in ctx->r
   // and is thus protected from GC
   lbm_value expanded = lbm_qq_expand(ctx->r);
@@ -3306,7 +3353,6 @@ static void cont_application_start(eval_context_t *ctx) {
       lbm_value curr_param = lbm_cadr(ctx->r);
       lbm_value curr_arg = args;
       lbm_value expand_env = env;
-      // TODO: Where should it be general and where not. 
       while (lbm_is_cons_general(curr_param) &&
              lbm_is_cons_general(curr_arg)) {
 
@@ -3328,6 +3374,7 @@ static void cont_application_start(eval_context_t *ctx) {
       lbm_value exp = lbm_cadr(lbm_cdr(ctx->r));
       ctx->curr_exp = exp;
       ctx->curr_env = expand_env;
+
       ctx->app_cont = false;
     } break;
     case ENC_SYM_CLOSURE: {
@@ -3419,7 +3466,7 @@ static void cont_setq(eval_context_t *ctx) {
 typedef void (*cont_fun)(eval_context_t *);
 
 static const cont_fun continuations[NUM_CONTINUATIONS] =
-  { advance_ctx,  // CONT_DONE 
+  { advance_ctx,  // CONT_DONE
     cont_set_global_env,
     cont_bind_to_key_rest,
     cont_if,
@@ -3448,6 +3495,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_read_comma_result,
     cont_read_start_array,
     cont_read_append_array,
+    cont_read_const_close,
     cont_map_first,
     cont_map_rest,
     cont_match_guard,

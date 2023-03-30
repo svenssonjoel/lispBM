@@ -744,18 +744,6 @@ static inline int32_t lbm_dec_i32(lbm_value x) {
  */
 extern int64_t lbm_dec_i64(lbm_value x);
 
-static inline lbm_value lbm_set_gc_mark(lbm_value x) {
-  return x | LBM_GC_MARKED;
-}
-
-static inline lbm_value lbm_clr_gc_mark(lbm_value x) {
-  return x & ~LBM_GC_MASK;
-}
-
-static inline bool lbm_get_gc_mark(lbm_value x) {
-  return x & LBM_GC_MASK;
-}
-
 static inline bool lbm_is_ptr(lbm_value x) {
   return (x & LBM_PTR_MASK);
 }

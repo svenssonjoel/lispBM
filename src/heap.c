@@ -32,12 +32,27 @@
 #include "heap_vis.h"
 #endif
 
+
+static inline lbm_value lbm_set_gc_mark(lbm_value x) {
+  return x | LBM_GC_MARKED;
+}
+
+static inline lbm_value lbm_clr_gc_mark(lbm_value x) {
+  return x & ~LBM_GC_MASK;
+}
+
+static inline bool lbm_get_gc_mark(lbm_value x) {
+  return x & LBM_GC_MASK;
+}
+
+
+
 lbm_heap_state_t lbm_heap_state;
 
 lbm_const_heap_t *lbm_const_heap_state;
 
 lbm_cons_t *lbm_heaps[2] = {NULL, NULL};
-  
+
 /****************************************************/
 /* ENCODERS DECODERS                                */
 
@@ -418,21 +433,6 @@ bool lbm_is_byte_array(lbm_value x) {
 /****************************************************/
 /* HEAP MANAGEMENT                                  */
 
-static inline void set_gc_mark(lbm_cons_t *cell) {
-  lbm_value cdr = cell->cdr;
-  cell->cdr =  lbm_set_gc_mark(cdr);
-}
-
-static inline void clr_gc_mark(lbm_cons_t *cell) {
-  lbm_value cdr = cell->cdr;
-  cell->cdr = lbm_clr_gc_mark(cdr);
-}
-
-static inline bool get_gc_mark(lbm_cons_t* cell) {
-  lbm_value cdr = cell->cdr;
-  return lbm_get_gc_mark(cdr);
-}
-
 static int generate_freelist(size_t num_cells) {
   size_t i = 0;
 
@@ -509,7 +509,7 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
                   gc_stack_storage, gc_stack_size);
 
   lbm_heaps[0] = addr;
-  
+
   return generate_freelist(num_cells);
 }
 
@@ -645,20 +645,15 @@ int lbm_gc_mark_phase(int num, ... ) { //lbm_value env) {
       continue;
     }
 
-    if (lbm_is_ptr(curr) && (curr & LBM_PTR_TO_CONSTANT_BIT)) {
-      printf("GC ignoring ptr to constant\n");
-      continue;
-    }
-    
-    // Circular object on heap, or visited..
-    if (get_gc_mark(lbm_ref_cell(curr))) {
-      continue;
-    }
+    bool not_constant = (curr & LBM_PTR_TO_CONSTANT_BIT) == 0;
+    lbm_cons_t *cell = lbm_ref_cell(curr);
 
-    // There is at least a pointer to one cell here. Mark it and add children to stack
-    lbm_heap_state.gc_marked ++;
-
-    set_gc_mark(lbm_ref_cell(curr));
+    if (not_constant) {
+      lbm_uint gc_mark = lbm_get_gc_mark(cell->cdr);
+      if (gc_mark) continue;
+      lbm_heap_state.gc_marked ++;
+      cell->cdr = lbm_set_gc_mark(cell->cdr);
+    }
 
     lbm_value t_ptr = lbm_type_of(curr);
 
@@ -694,7 +689,7 @@ int lbm_gc_mark_freelist() {
   curr = fl;
   while (lbm_is_ptr(curr)){
     t = lbm_ref_cell(curr);
-    set_gc_mark(t);
+    t->cdr = lbm_set_gc_mark(t->cdr);
     curr = t->cdr;
 
     lbm_heap_state.gc_marked ++;
@@ -710,7 +705,7 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
       lbm_uint pt_v = lbm_dec_ptr(aux_data[i]);
       if( pt_t >= LBM_POINTER_TYPE_FIRST &&
           pt_t <= LBM_POINTER_TYPE_LAST &&
-          pt_v < lbm_heap_state.heap_size) { 
+          pt_v < lbm_heap_state.heap_size) {
         lbm_gc_mark_phase(1,aux_data[i]);
       }
     }
@@ -725,8 +720,8 @@ int lbm_gc_sweep_phase(void) {
   lbm_cons_t *heap = (lbm_cons_t *)lbm_heap_state.heap;
 
   for (i = 0; i < lbm_heap_state.heap_size; i ++) {
-    if ( get_gc_mark(&heap[i])) {
-      clr_gc_mark(&heap[i]);
+    if ( lbm_get_gc_mark(heap[i].cdr)) {
+      heap[i].cdr = lbm_clr_gc_mark(heap[i].cdr);
     } else {
       // Check if this cell is a pointer to an array
       // and free it.
@@ -859,6 +854,7 @@ lbm_value lbm_cddr(lbm_value c) {
 
 int lbm_set_car(lbm_value c, lbm_value v) {
   int r = 0;
+
   if (lbm_type_of(c) == LBM_TYPE_CONS) {
     lbm_cons_t *cell = lbm_ref_cell(c);
     cell->car = v;
@@ -1183,7 +1179,7 @@ int lbm_const_heap_init(const_heap_write_byte_fun wb_fun,
 
 lbm_value lbm_allocate_const_cell(void) {
   lbm_uint res = ENC_SYM_ERROR_FLASH_HEAP_FULL;
-  
+
   if (lbm_const_heap_state &&
       (lbm_const_heap_state->next+1) < lbm_const_heap_state->size) {
     // A cons cell uses two words.
@@ -1207,19 +1203,17 @@ lbm_value lbm_cons_const(lbm_value car, lbm_value cdr) {
 
 void write_const_cdr(lbm_value cell, lbm_value val) {
   lbm_uint addr = lbm_dec_ptr(cell);
-  lbm_uint p_val = val;
-  //if (lbm_is_ptr(val)) 
-  //  p_val = lbm_dec_ptr(val);
-  //printf("cdr addr: %x (%u)   <- %u\n", cell, addr+1, p_val);
+  /* char buf[1024]; */
+  /* lbm_print_value(buf,1024, val); */
+  /* printf("cdr addr: %x (%u)   <- %s\n", cell, addr+1, buf); */
   const_heap_write(addr+1, val);
 }
 
 void write_const_car(lbm_value cell, lbm_value val) {
   lbm_uint addr = lbm_dec_ptr(cell);
-  lbm_uint p_val = val;
-  //if (lbm_is_ptr(val)) 
-  //  p_val = lbm_dec_ptr(val);
-  //printf("car addr: %x (%u)   <- %x\n", cell, addr, p_val);
+  /* char buf[1024]; */
+  /* lbm_print_value(buf,1024, val); */
+  /* printf("car addr: %x (%u)   <- %s\n", cell, addr, buf); */
   const_heap_write(addr, val);
 }
 
