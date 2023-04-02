@@ -1826,7 +1826,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 
   if (nargs >= 2 &&
       lbm_is_number(args[0]) &&
-      lbm_is_closure(args[1])) {
+      lbm_is_closure_general(args[1])) {
     stack_size = lbm_dec_as_u32(args[0]);
     closure_pos = 1;
   }
