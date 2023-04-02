@@ -258,7 +258,6 @@ typedef struct {
 
 extern lbm_heap_state_t lbm_heap_state;
 
-typedef bool (*const_heap_write_byte_fun)(lbm_uint ix, uint8_t *bytes, lbm_uint n);
 typedef bool (*const_heap_write_fun)(lbm_uint ix, lbm_uint w);
   
 typedef struct {
@@ -588,8 +587,7 @@ int lbm_heap_explicit_free_array(lbm_value arr);
  */
 lbm_uint lbm_size_of(lbm_type t);
 
-int lbm_const_heap_init(const_heap_write_byte_fun wb_fun,
-                        const_heap_write_fun w_fun,
+int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,
                         lbm_uint *addr,
                         lbm_uint num_words);

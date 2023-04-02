@@ -1153,18 +1153,15 @@ lbm_uint lbm_size_of(lbm_type t) {
   return s;
 }
 
-static const_heap_write_byte_fun const_heap_write_byte = NULL;
 static const_heap_write_fun const_heap_write = NULL;
 
-int lbm_const_heap_init(const_heap_write_byte_fun wb_fun,
-                        const_heap_write_fun w_fun,
+int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,
                         lbm_uint *addr,
                         lbm_uint  num_words) {
   if (((uintptr_t)addr % 4) != 0) return 0;
   if ((num_words % 2) != 0) return 0;
 
-  const_heap_write_byte = wb_fun;
   const_heap_write = w_fun;
 
   heap->heap = addr;

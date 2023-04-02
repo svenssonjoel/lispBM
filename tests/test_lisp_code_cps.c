@@ -51,13 +51,6 @@ extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
-bool const_heap_write_byte(lbm_uint ix, uint8_t *bytes, lbm_uint n) {
-  // there are checks for bounds of constants memory outside of this function.
-  for (int i = 0; i < n; i ++) {
-    ((uint8_t*)constants_memory)[ix * 4 + 1] = bytes[i];
-  }
-}
-
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
   constants_memory[ix] = w;
 }
@@ -456,8 +449,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (!lbm_const_heap_init(const_heap_write_byte,
-                           const_heap_write,
+  if (!lbm_const_heap_init(const_heap_write,
                            &const_heap,constants_memory,
                            CONSTANT_MEMORY_SIZE)) {
     return 0;
