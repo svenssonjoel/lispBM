@@ -949,7 +949,7 @@ lbm_value array_extension_buffer_get_f32(lbm_value *args, lbm_uint argn) {
 lbm_value array_extension_buffer_length(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 &&
-      lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
+      lbm_is_array_r(args[0])) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
     if (array == NULL) return ENC_SYM_FATAL_ERROR;
     switch(array->elt_type) {
