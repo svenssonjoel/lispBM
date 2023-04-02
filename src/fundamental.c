@@ -285,7 +285,7 @@ static void array_read(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
     ix_end = tmp;
   }
 
-  if (lbm_type_of(arr) == LBM_TYPE_ARRAY) {
+  if (lbm_is_array_r(arr)) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
     lbm_uint* data = array->data;
 
@@ -378,7 +378,7 @@ static void array_write(lbm_value *args, lbm_uint nargs, lbm_uint *result) {
     return;
   }
 
-  if (lbm_type_of(arr) == LBM_TYPE_ARRAY) {
+  if (lbm_is_array_rw(arr)) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(arr);
     if (array == NULL) {
       *result = ENC_SYM_FATAL_ERROR;
@@ -1435,7 +1435,9 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   if (nargs != 1) return ENC_SYM_NIL;
   lbm_value val = args[0];
   lbm_type t = lbm_type_of(val);
+
   if (lbm_is_ptr(val)) {
+    // Ignore constant or not constant.
     t &= LBM_PTR_TO_CONSTANT_MASK;
   }
   switch(t) {

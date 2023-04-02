@@ -43,7 +43,7 @@ typedef struct {
 } matcher;
 
 
-#define NUM_FIXED_SIZE_TOKENS 16
+#define NUM_FIXED_SIZE_TOKENS 13
 const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
@@ -58,9 +58,6 @@ const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"?", TOKMATCHANY, 1},
   {"{", TOKOPENCURL, 1},
   {"}", TOKCLOSECURL, 1},
-  {"@const-start", TOKCONSTSTART, 12},
-  {"@const-end"  , TOKCONSTEND,   10},
-  {"@const"      , TOKCONST,      6},
 };
 
 #define NUM_TYPE_QUALIFIERS 9

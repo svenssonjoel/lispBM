@@ -595,12 +595,10 @@ int lbm_const_heap_init(const_heap_write_byte_fun wb_fun,
                         lbm_uint num_words);
 
 lbm_value lbm_allocate_const_cell(void);
-lbm_value lbm_cons_const(lbm_value car, lbm_value cdr);
+bool lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res);
 void write_const_cdr(lbm_value cell, lbm_value val);
 void write_const_car(lbm_value cell, lbm_value val);
-lbm_value lbm_enc_const_i32(int32_t x);
-lbm_value lbm_enc_const_u32(uint32_t x);
-lbm_value lbm_enc_const_float(float x);
+lbm_uint lbm_flash_memory_usage(void);
 
 /** Query the type information of a value.
  *
@@ -625,7 +623,7 @@ static inline lbm_uint lbm_dec_cons_cell_ptr(lbm_value p) {
   lbm_uint h = (p & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT;
   return lbm_dec_ptr(p) >> h;
 }
-  
+
 static inline lbm_cons_t *lbm_dec_heap(lbm_value p) {
   lbm_uint h = (p & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT;
   return lbm_heaps[h];
@@ -768,6 +766,15 @@ static inline bool lbm_is_array(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_ARRAY &&
           lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
           lbm_dec_sym(lbm_cdr(x)) == SYM_ARRAY_TYPE);
+}
+
+static inline bool lbm_is_array_r(lbm_value x) {
+  lbm_type t = lbm_type_of(x);
+  return ((t & LBM_PTR_TO_CONSTANT_MASK) == LBM_TYPE_ARRAY);
+}
+
+static inline bool lbm_is_array_rw(lbm_value x) {
+  return(lbm_is_array_r(x) && !(x & LBM_PTR_TO_CONSTANT_BIT));
 }
 
 /** Check if a value represents a byte array.

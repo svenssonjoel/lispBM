@@ -43,7 +43,7 @@ const char *failed_str = "Error: print failed\n";
 
 bool lbm_value_is_printable_string(lbm_value v, char **str) {
   bool is_a_string = false;
-  if (lbm_type_of(v) == LBM_TYPE_ARRAY) {
+  if (lbm_is_array_r(v)) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
     if (array->elt_type == LBM_TYPE_CHAR) {
       is_a_string = true;

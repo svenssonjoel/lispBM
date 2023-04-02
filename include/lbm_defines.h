@@ -38,7 +38,7 @@
 #define LBM_TYPE_ARRAY                   0x80000000u
 #define LBM_TYPE_CHANNEL                 0x90000000u
 #define LBM_TYPE_CUSTOM                  0xA0000000u
-#define LBM_NON_CONS_POINTER_TYPE_LAST   0xA0000000u
+#define LBM_NON_CONS_POINTER_TYPE_LAST   0xBC000000u
 #define LBM_POINTER_TYPE_LAST            0xBC000000u
 
 #define LBM_CONTINUATION_INTERNAL        0xF8000001u // PTR bit set
@@ -186,7 +186,8 @@
 #define SYM_APP_CONT            0x110
 #define SYM_PROGN_VAR           0x111
 #define SYM_SETQ                0x112
-#define SPECIAL_FORMS_END       0x112
+#define SYM_MOVE_TO_FLASH       0x113
+#define SPECIAL_FORMS_END       0x113
 
 // Apply funs:
 // Get their arguments in evaluated form.
@@ -367,6 +368,7 @@
 #define ENC_SYM_APP_CONT            ENC_SYM(SYM_APP_CONT)
 #define ENC_SYM_PROGN_VAR           ENC_SYM(SYM_PROGN_VAR)
 #define ENC_SYM_SETQ                ENC_SYM(SYM_SETQ)
+#define ENC_SYM_MOVE_TO_FLASH       ENC_SYM(SYM_MOVE_TO_FLASH)
 
 #define ENC_SYM_SETVAR        ENC_SYM(SYM_SETVAR)
 #define ENC_SYM_READ          ENC_SYM(SYM_READ)
