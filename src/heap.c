@@ -207,9 +207,7 @@ char *lbm_dec_str(lbm_value val) {
   if (lbm_type_of(val) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
     if (array) {
-      if (array->elt_type == LBM_TYPE_CHAR) {
         res = (char *)array->data;
-      }
     }
   }
   return res;
@@ -418,17 +416,6 @@ bool lbm_is_number(lbm_value x) {
           (t == LBM_TYPE_DOUBLE));
 #endif
 }
-
-
-bool lbm_is_byte_array(lbm_value x) {
-  if (lbm_is_array(x)) {
-    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(x);
-    return (header != NULL && header->elt_type == LBM_TYPE_BYTE);
-  }
-  return false;
-}
-
-
 
 /****************************************************/
 /* HEAP MANAGEMENT                                  */
@@ -986,7 +973,7 @@ lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
 // Arrays are part of the heap module because their lifespan is managed
 // by the garbage collector. The data in the array is not stored
 // in the "heap of cons cells".
-int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
+int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
 
   lbm_array_header_t *array = NULL;
   // allocating a cell that will, to start with, be a cons cell.
@@ -997,36 +984,6 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
     return 0;
   }
 
-  lbm_uint allocate_size = 0;
-  if (type == LBM_TYPE_CHAR) {
-    if ( size % sizeof(lbm_uint) == 0) {
-      #ifndef LBM64
-      allocate_size = size >> 2;
-      #else
-      allocate_size = size >> 3;
-      #endif
-    } else {
-      #ifndef LBM64
-      allocate_size = (size >> 2) + 1;
-      #else
-      allocate_size = (size >> 3) + 1;
-      #endif
-    }
-  }
-#ifndef LBM64
-  else if (type == LBM_TYPE_I64 ||
-           type == LBM_TYPE_U64 ||
-           type == LBM_TYPE_DOUBLE) {
-    allocate_size = 2*size;
-  }
-#endif
-  else {
-    allocate_size = size;
-  }
-
-  /* lbm_uint header_size = sizeof(lbm_array_header_t); */
-  /* lbm_uint header_allocate_size = 0; */
-
   array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / sizeof(lbm_uint));
 
   if (array == NULL) {
@@ -1034,16 +991,15 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
     return 0;
   }
 
-  array->data = (lbm_uint*)lbm_memory_allocate(allocate_size);
+  array->data = (uint8_t*)lbm_malloc(size);
 
   if (array->data == NULL) {
     lbm_memory_free((lbm_uint*)array);
     *res = ENC_SYM_MERROR;
     return 0;
   }
-  memset(array->data, 0, allocate_size * sizeof(lbm_uint));
+  memset(array->data, 0, size);
 
-  array->elt_type = type;
   array->size = size;
 
   lbm_set_car(cell, (lbm_uint)array);
@@ -1060,7 +1016,7 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size, lbm_type type){
 
 // Convert a C array into an lbm_array.
 // if the array is in LBM_MEMORY, the lifetime will be managed by the GC.
-int lbm_lift_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt) {
+int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
   lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS);
@@ -1075,7 +1031,6 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt
   if (array == NULL) return 0;
 
   array->data = (lbm_uint*)data;
-  array->elt_type = type;
   array->size = num_elt;
 
   lbm_set_car(cell, (lbm_uint)array);
@@ -1106,7 +1061,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_type type, lbm_uint num_elt
 int lbm_heap_explicit_free_array(lbm_value arr) {
 
   int r = 0;
-  if (lbm_is_array(arr)) {
+  if (lbm_is_array_rw(arr)) {
 
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
     if (header == NULL) {

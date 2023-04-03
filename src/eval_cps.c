@@ -62,26 +62,27 @@
 #define EXIT_ATOMIC           CONTINUATION(17)
 #define READ_NEXT_TOKEN       CONTINUATION(18)
 #define READ_APPEND_CONTINUE  CONTINUATION(19)
-#define READ_EXPECT_CLOSEPAR  CONTINUATION(20)
-#define READ_DOT_TERMINATE    CONTINUATION(21)
-#define READ_DONE             CONTINUATION(22)
-#define READ_QUOTE_RESULT     CONTINUATION(23)
-#define READ_BACKQUOTE_RESULT CONTINUATION(24)
-#define READ_COMMAAT_RESULT   CONTINUATION(25)
-#define READ_COMMA_RESULT     CONTINUATION(26)
-#define READ_START_ARRAY      CONTINUATION(27)
-#define READ_APPEND_ARRAY     CONTINUATION(28)
-#define MAP_FIRST             CONTINUATION(29)
-#define MAP_REST              CONTINUATION(30)
-#define MATCH_GUARD           CONTINUATION(31)
-#define TERMINATE             CONTINUATION(32)
-#define PROGN_VAR             CONTINUATION(33)
-#define SETQ                  CONTINUATION(34)
-#define MOVE_TO_FLASH         CONTINUATION(35)
-#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(36)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(37)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(38)
-#define NUM_CONTINUATIONS     39
+#define READ_EVAL_CONTINUE    CONTINUATION(20)
+#define READ_EXPECT_CLOSEPAR  CONTINUATION(21)
+#define READ_DOT_TERMINATE    CONTINUATION(22)
+#define READ_DONE             CONTINUATION(23)
+#define READ_QUOTE_RESULT     CONTINUATION(24)
+#define READ_BACKQUOTE_RESULT CONTINUATION(25)
+#define READ_COMMAAT_RESULT   CONTINUATION(26)
+#define READ_COMMA_RESULT     CONTINUATION(27)
+#define READ_START_ARRAY      CONTINUATION(28)
+#define READ_APPEND_ARRAY     CONTINUATION(29)
+#define MAP_FIRST             CONTINUATION(30)
+#define MAP_REST              CONTINUATION(31)
+#define MATCH_GUARD           CONTINUATION(32)
+#define TERMINATE             CONTINUATION(33)
+#define PROGN_VAR             CONTINUATION(34)
+#define SETQ                  CONTINUATION(35)
+#define MOVE_TO_FLASH         CONTINUATION(36)
+#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(37)
+#define MOVE_LIST_TO_FLASH    CONTINUATION(38)
+#define CLOSE_LIST_IN_FLASH   CONTINUATION(39)
+#define NUM_CONTINUATIONS     40
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -335,7 +336,10 @@ static eval_context_queue_t queue    = {NULL, NULL};
 mutex_t qmutex;
 bool    qmutex_initialized = false;
 
+
+// MODES
 static bool lbm_verbose = false;
+static bool incremental_read = false;
 
 void lbm_toggle_verbose(void) {
   lbm_verbose = !lbm_verbose;
@@ -343,6 +347,10 @@ void lbm_toggle_verbose(void) {
 
 void lbm_set_verbose(bool verbose) {
   lbm_verbose = verbose;
+}
+
+void lbm_set_incremental_read(bool on_off) {
+  incremental_read = on_off;
 }
 
 lbm_cid lbm_get_current_cid(void) {
@@ -1305,23 +1313,13 @@ static void eval_atomic(eval_context_t *ctx) {
 static void eval_callcc(eval_context_t *ctx) {
 
   lbm_value cont_array;
-#ifndef LBM64
-  if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U32)) {
+  if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp * sizeof(lbm_uint))) {
     gc();
-    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U32)) {
+    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp * sizeof(lbm_uint))) {
       error_ctx(ENC_SYM_MERROR);
       return;
     }
   }
-#else
-  if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U64)) {
-    gc();
-    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp, LBM_TYPE_U64)) {
-      error_ctx(ENC_SYM_MERROR);
-      return;
-    }
-  }
-#endif
 
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cont_array);
   memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
@@ -1431,8 +1429,7 @@ static void eval_cond(eval_context_t *ctx) {
 }
 
 static void eval_app_cont(eval_context_t *ctx) {
-  lbm_value tmp;
-  lbm_pop(&ctx->K, &tmp);
+  lbm_stack_drop(&ctx->K, 1);
   ctx->app_cont = true;
 }
 
@@ -2110,7 +2107,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     lbm_value c = lbm_cdr(fun); /* should be the continuation */
 
-    if (!lbm_is_array(c)) {
+    if (!lbm_is_array_r(c)) {
       error_ctx(ENC_SYM_FATAL_ERROR);
       return;
     }
@@ -2128,8 +2125,8 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(c);
 
-    ctx->K.sp = arr->size;
-    memcpy(ctx->K.data, arr->data, arr->size * sizeof(lbm_uint));
+    ctx->K.sp = arr->size >> 2;
+    memcpy(ctx->K.data, arr->data, arr->size);
 
     ctx->r = arg;
     ctx->app_cont = true;
@@ -2608,7 +2605,11 @@ static void cont_read(eval_context_t *ctx) {
   CHECK_STACK(lbm_push_3(&ctx->K, prg_tag, stream, READ_DONE));
 
   if (program) {
-    CHECK_STACK(lbm_push_4(&ctx->K, ENC_SYM_NIL, ENC_SYM_NIL, stream, READ_APPEND_CONTINUE));
+    if (incremental_read) {
+      CHECK_STACK(lbm_push_3(&ctx->K, stream, ctx->curr_env, READ_EVAL_CONTINUE));
+    } else {
+      CHECK_STACK(lbm_push_4(&ctx->K, ENC_SYM_NIL, ENC_SYM_NIL, stream, READ_APPEND_CONTINUE));
+    }
   }
   CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
 
@@ -2637,7 +2638,10 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
       lbm_dec_u(ctx->K.data[ctx->K.sp-3]) == 0) {
     /* successfully finished reading an expression  (CASE 3) */
     ctx->app_cont = true;
-  } else if (ctx->K.sp > 5 && ctx->K.data[ctx->K.sp - 5] == READ_DONE &&
+  } else if (ctx->K.sp > 4  && ctx->K.data[ctx->K.sp - 4] == READ_DONE) {
+    lbm_stack_drop(&ctx->K, 3);
+    ctx->app_cont = true;
+  } else if (ctx->K.sp > 7 && ctx->K.data[ctx->K.sp - 5] == READ_DONE &&
              lbm_dec_u(ctx->K.data[ctx->K.sp-7]) == 1) {
     /* successfully finished reading a program  (CASE 2) */
     ctx->r = ENC_SYM_CLOSEPAR;
@@ -2683,6 +2687,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
   /* Attempt to extract tokens from the character stream */
   int n = 0;
   lbm_value res;
+  unsigned int string_len = 0;
 
   /*
    * SYNTAX
@@ -2760,13 +2765,12 @@ static void cont_read_next_token(eval_context_t *ctx) {
   /*
    *  STRING
    */
-  unsigned int string_len = 0;
   n = tok_string(chan, &string_len);
   if (n >= 2) {
     lbm_channel_drop(chan, (unsigned int)n);
-    if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1),LBM_TYPE_CHAR)) {
+    if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1))) {
       gc();
-      if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1),LBM_TYPE_CHAR)) {
+      if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1))) {
         error_ctx(ENC_SYM_MERROR);
       }
     }
@@ -2921,50 +2925,18 @@ static void cont_read_start_array(eval_context_t *ctx) {
     }
   }
 
-  if ((lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) &&
-      ((ctx->r == ENC_SYM_TYPE_I32) ||
-       (ctx->r == ENC_SYM_TYPE_U32) ||
-       (ctx->r == ENC_SYM_TYPE_FLOAT) ||
-       (ctx->r == ENC_SYM_TYPE_CHAR))) {
-
-    lbm_type t;
-    switch (ctx->r) {
-    case ENC_SYM_TYPE_I32: t = LBM_TYPE_I32; break;
-    case ENC_SYM_TYPE_U32: t = LBM_TYPE_U32; break;
-    case ENC_SYM_TYPE_FLOAT: t = LBM_TYPE_FLOAT; break;
-    case ENC_SYM_TYPE_CHAR: t = LBM_TYPE_CHAR; break;
-    default:
-      lbm_channel_reader_close(str);
-      error_ctx(ENC_SYM_TERROR);
-      return;
-    }
-
-    if (ctx->r == ENC_SYM_TYPE_CHAR) {
-      initial_size = sizeof(lbm_uint) * initial_size;
-    }
-
-    lbm_value array;
-    if (!lbm_heap_allocate_array(&array, initial_size, t)) {
-      lbm_set_error_reason("Out of memory while reading.");
-      lbm_channel_reader_close(str);
-      error_ctx(ENC_SYM_FATAL_ERROR);
-      return;
-    }
-
-    CHECK_STACK(lbm_push_5(&ctx->K, array, lbm_enc_u(initial_size), lbm_enc_u(0), ctx->r, stream));
-    CHECK_STACK(lbm_push_3(&ctx->K, READ_APPEND_ARRAY, stream, READ_NEXT_TOKEN));
-    ctx->app_cont = true;
-  } else if (lbm_is_number(ctx->r)) {
+  if (lbm_is_number(ctx->r)) {
     lbm_value array;
     initial_size = sizeof(lbm_uint) * initial_size;
-    if (!lbm_heap_allocate_array(&array, initial_size, LBM_TYPE_CHAR)) {
+
+    if (!lbm_heap_allocate_array(&array, initial_size)) {
       lbm_set_error_reason("Out of memory while reading.");
       lbm_channel_reader_close(str);
       error_ctx(ENC_SYM_FATAL_ERROR);
       return;
     }
 
-    CHECK_STACK(lbm_push_5(&ctx->K, array, lbm_enc_u(initial_size), lbm_enc_u(0), ENC_SYM_TYPE_CHAR, stream));
+    CHECK_STACK(lbm_push_4(&ctx->K, array, lbm_enc_u(initial_size), lbm_enc_u(0), stream));
     CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_ARRAY));
     ctx->app_cont = true;
   } else {
@@ -2975,7 +2947,7 @@ static void cont_read_start_array(eval_context_t *ctx) {
 
 static void cont_read_append_array(eval_context_t *ctx) {
 
-  lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 5);
+  lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 4);
   if (!sptr) {
     error_ctx(ENC_SYM_FATAL_ERROR);
     return;
@@ -2984,8 +2956,7 @@ static void cont_read_append_array(eval_context_t *ctx) {
   lbm_value array  = sptr[0];
   lbm_value size   = lbm_dec_as_u32(sptr[1]);
   lbm_value ix     = lbm_dec_as_u32(sptr[2]);
-  lbm_value type   = sptr[3];
-  lbm_value stream = sptr[4];
+  lbm_value stream = sptr[3];
 
   if (ix >= (size - 1)) {
     error_ctx(ENC_SYM_MERROR);
@@ -2995,39 +2966,20 @@ static void cont_read_append_array(eval_context_t *ctx) {
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(array); // TODO: Check
 
   if (lbm_is_number(ctx->r)) {
-    switch(type) {
-    case ENC_SYM_TYPE_CHAR:
-      ((uint8_t*)arr->data)[ix] = (uint8_t)lbm_dec_as_u32(ctx->r);
-      break;
-    case ENC_SYM_TYPE_I32:
-      ((lbm_int*)arr->data)[ix] = lbm_dec_as_i32(ctx->r);
-      break;
-    case ENC_SYM_TYPE_U32:
-      ((lbm_uint*)arr->data)[ix] = lbm_dec_as_u32(ctx->r);
-      break;
-    case ENC_SYM_TYPE_FLOAT: {
-      float f = lbm_dec_as_float(ctx->r);
-      memcpy(&arr->data[ix], (uint32_t*)&f, sizeof(float));
-    } break;
-    default:
-      error_ctx(ENC_SYM_TERROR);
-      return;
-    }
+    ((uint8_t*)arr->data)[ix] = (uint8_t)lbm_dec_as_u32(ctx->r);
+
     sptr[2] = lbm_enc_u(ix + 1);
     CHECK_STACK(lbm_push_3(&ctx->K, READ_APPEND_ARRAY, stream, READ_NEXT_TOKEN));
     ctx->app_cont = true;
   } else if (lbm_is_symbol(ctx->r) && lbm_dec_sym(ctx->r) == SYM_CLOSEBRACK) {
-    lbm_uint array_size = ix;
-    if (type == ENC_SYM_TYPE_CHAR) {
-      if (array_size % 4) {
-        array_size = (array_size / 4) + 1;
-      } else {
-        array_size = array_size / 4;
-      }
+    lbm_uint array_size = ix / sizeof(lbm_uint);
+
+    if (ix % sizeof(lbm_uint) != 0) {
+      array_size = array_size + 1;
     }
     lbm_memory_shrink((lbm_uint*)arr->data, array_size);
     arr->size = ix;
-    lbm_stack_drop(&ctx->K, 5);
+    lbm_stack_drop(&ctx->K, 4);
     ctx->r = array;
     ctx->app_cont = true;
   } else {
@@ -3093,6 +3045,41 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   sptr[1] = last_cell;
   CHECK_STACK(lbm_push(&ctx->K, READ_APPEND_CONTINUE));
   CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+  ctx->app_cont = true;
+}
+
+static void cont_read_eval_continue(eval_context_t *ctx) {
+
+  lbm_value env;
+  lbm_value stream;
+  lbm_pop_2(&ctx->K, &env, &stream);
+
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
+
+  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
+
+    switch(lbm_dec_sym(ctx->r)) {
+    case SYM_CLOSEPAR:
+      ctx->app_cont = true;
+      return;
+    case SYM_DOT:
+      CHECK_STACK(lbm_push(&ctx->K, READ_DOT_TERMINATE));
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      return;
+    }
+  }
+
+  CHECK_STACK(lbm_push_3(&ctx->K, stream, env, READ_EVAL_CONTINUE));
+  CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+
+  ctx->app_cont = false;
+  ctx->curr_env = env;
+  ctx->curr_exp = ctx->r;
 }
 
 static void cont_read_expect_closepar(eval_context_t *ctx) {
@@ -3484,14 +3471,14 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
           header_size = (header_size / sizeof(lbm_uint));
         }
 
-        lbm_uint size = arr->size;
-        if (arr->elt_type == LBM_TYPE_CHAR) {
-          if (size % (sizeof(lbm_uint)) != 0) {
-            size = (size / sizeof(lbm_uint) + 1);
-          } else {
-            size = size / sizeof(lbm_uint);
-          }
+        lbm_uint size = arr->size; // array size always in bytes
+
+        if (size % (sizeof(lbm_uint)) != 0) {
+          size = (size / sizeof(lbm_uint) + 1);
+        } else {
+          size = size / sizeof(lbm_uint);
         }
+
         lbm_value flash_arr;
         if (!lbm_write_const_raw(arr->data, size, &flash_arr)) {
           error_ctx(flash_arr);
@@ -3602,6 +3589,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_exit_atomic,
     cont_read_next_token,
     cont_read_append_continue,
+    cont_read_eval_continue,
     cont_read_expect_closepar,
     cont_read_dot_terminate,
     cont_read_done,
