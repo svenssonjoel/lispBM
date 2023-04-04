@@ -1268,27 +1268,41 @@ The `setassoc` function destructively updates a key-value mapping in an
 alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. 
 
 
-## Arrays
+## Arrays (byte-buffers)
+ 
+### bufcreate
 
-### array-create
+Create an array of bytes. The
+form of an `bufcreate` expression is `(bufcreate size-expr)`
 
-Create an array of a given type, default is an array of bytes. The
-form of an `array-create` expression is either `(array-create type size-expr)`
-or `(array-create size-expr)`. If no type is specified, the default is
-to create an array of bytes.
+Example that creates a 10 element buffer caled data:
 
-Currently the following types can be used for the type field:
+```clj
+(define data (bufcreate 10))
+```
 
-| Type |
-| ---  |
-| type-char |
-| type-byte |
-| type-i32  |
-| type-u32  |
-| type-float |
-| type-i64 |
-| type-u64 |
-| type-double |
+Use the buffer extensions to operate `data`.
+
+- `bufset-i8`
+- `bufset-i16`
+- `bufset-i24`
+- `bufset-i32`
+- `bufset-u8`
+- `bufset-u16`
+- `bufset-u24`
+- `bufset-u32`
+- `bufget-i8`
+- `bufget-i16`
+- `bufget-i24`
+- `bufget-i32`
+- `bufget-u8`
+- `bufget-u16`
+- `bufget-u24`
+- `bufget-u32`
+- `buflen`
+- `bufclear`
+- `bufcpy`
+- `bufset-bit`
 
 ---
 

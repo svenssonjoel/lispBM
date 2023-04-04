@@ -338,8 +338,8 @@ bool    qmutex_initialized = false;
 
 
 // MODES
-static bool lbm_verbose = false;
-static bool incremental_read = false;
+static volatile bool lbm_verbose = false;
+static volatile bool incremental_read = false;
 
 void lbm_toggle_verbose(void) {
   lbm_verbose = !lbm_verbose;
