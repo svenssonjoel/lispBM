@@ -1282,6 +1282,54 @@ Example that creates a 10 element buffer caled data:
 ```
 
 Use the buffer extensions to operate `data`.
+See the (VESC)[https://github.com/vedderb/bldc/tree/master/lispBM#byte-arrays]
+lbm documentation for details on operations on buffers.
+
+---
+
+### buflen
+
+Returns the size of a buffer in number of bytes. The form
+of an `buflen` expression is `(buflen buf-expr)` where
+buf-expr has to evaluate into a buffer.
+
+---
+
+### bufget-X
+
+Read a value from a buffer. The contents of a buffer can be read
+as a sized integer or unsigned value using as many bytes from the buffer
+as the X portion of the function name implies. 
+The form of a bufget expression is `(bufget-X buf-expr ix-expr)` where
+`ix-expr` evaluates to a number indicating the byte position to start
+reading from.
+
+- `bufget-i8`
+- `bufget-i16`
+- `bufget-i24`
+- `bufget-i32`
+- `bufget-u8`
+- `bufget-u16`
+- `bufget-u24`
+- `bufget-u32`
+
+Example that reads an u8 from a buffer at position 1:
+
+```clj
+(define buf [1 2 3 4])
+
+(bufget-u8 buf 1)
+```
+
+---
+
+### bufset-X
+
+The `bufset` functions performs a destructive updates to a buffer.
+The form of a `bufset` expression is `(bufset-X buf-expr ix-expr val-expr)`
+where `ix-expr` evaluates to a number indicating where in the buffer to
+start writing and `val-expr` is the value to write.
+
 
 - `bufset-i8`
 - `bufset-i16`
@@ -1291,72 +1339,36 @@ Use the buffer extensions to operate `data`.
 - `bufset-u16`
 - `bufset-u24`
 - `bufset-u32`
-- `bufget-i8`
-- `bufget-i16`
-- `bufget-i24`
-- `bufget-i32`
-- `bufget-u8`
-- `bufget-u16`
-- `bufget-u24`
-- `bufget-u32`
-- `buflen`
-- `bufclear`
-- `bufcpy`
-- `bufset-bit`
 
----
+Example that updates position 1 in a buffer:
 
-### array-size
-
-Returns the size of an array in number of elements. The form
-of an `array-size` expression is `(array-size arr-expr)` where
-arr-expr has to evaluate into an array.
-
----
-
-### array-read
-
-Read one or many elements from an array. The form of
-an `array-read` expression is either `(array-read array-expr index-expr)`
-of `(array-read array-expr start-index-expr end-index-expr)` for reading a range
-of values into a list.
-
-Example that evaluates to the character l.
 ```clj
-(array-read "hello" 3)
-```
-The next example reads a range values
-```clj
-(array-read "hello" 1 3)
-```
-and results in the list `(\#e \#l \#l)`.
 
----
+(define buf [1 2 3 4])
 
-### array-write
-
-The `array-write` function performs a destructive update
-of an array.
-
-Example that turns array "hello" into "heflo"
-```clj
-(array-write "hello" 2 \#f)
+(bufset-u8 buf 1 100)
 ```
 
 ---
 
-### array-clear
+### bufclear
 
-Clears an array by writing zeroes to all locations.
+Clears an array by writing zeroes (or a value of choice) to all locations.
+The form of a `bufclear` expression is `(bufclear buf-expr opt-val-expr)`.
 
-Example:
+Example that clears a buffer:
 
 ```clj
-(array-clear arr)
+(bufclear buf)
+```
+
+Example that clears a buffer to all ones:
+
+```clj
+(bufclear buf 1)
 ```
 
 ---
-
 
 ### Array literal syntax
 
