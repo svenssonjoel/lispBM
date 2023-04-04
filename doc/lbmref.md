@@ -1295,12 +1295,12 @@ buf-expr has to evaluate into a buffer.
 
 ---
 
-### bufget-X
+### bufget-[X]
 
 Read a value from a buffer. The contents of a buffer can be read
 as a sized integer or unsigned value using as many bytes from the buffer
 as the X portion of the function name implies. 
-The form of a bufget expression is `(bufget-X buf-expr ix-expr)` where
+The form of a bufget expression is `(bufget-[X] buf-expr ix-expr)` where
 `ix-expr` evaluates to a number indicating the byte position to start
 reading from.
 
@@ -1323,10 +1323,10 @@ Example that reads an u8 from a buffer at position 1:
 
 ---
 
-### bufset-X
+### bufset-[X]
 
 The `bufset` functions performs a destructive updates to a buffer.
-The form of a `bufset` expression is `(bufset-X buf-expr ix-expr val-expr)`
+The form of a `bufset` expression is `(bufset-[X] buf-expr ix-expr val-expr)`
 where `ix-expr` evaluates to a number indicating where in the buffer to
 start writing and `val-expr` is the value to write.
 
@@ -1370,36 +1370,18 @@ Example that clears a buffer to all ones:
 
 ---
 
-### Array literal syntax
+### Byte-array literal syntax
 
-Array literals can be created using the `[` and `]` syntax to enclose
+Byte-array (buffer) literals can be created using the `[` and `]` syntax to enclose
 values to initialize the array with. The `[` and `]` syntax is complete
 resolved in the parser and thus cannot contain arbitrary lisp terms.
 the values listed between the `[` and the `]` must be literals!
 
-The form of the `[` and `]` syntax is `[ type-qualifier val1 ... valN ]`
-or `[ val1 ... valN]`. If no type-qualifier is specified the default is
-to create an array with byte values.
-
-The currently valid type qualifiers are:
-
-| Type qualifier |
-| ---            |
-| type-byte      |
-| type-i32       |
-| type-u32       |
-| type-float     |
-
-(The rest of the numerical types will be supported in the future)
+The form of the `[` and `]` syntax is `[ val1 ... valN ]`.
 
 Example that creates a byte array
 ```clj
 [ 1 2 3 4 5 6 7 8 9 10 ]
-```
-
-Example that create an array of i32 values
-```clj
-[ type-i32 1 2 3 4 5 6 7 8 9 10 ]
 ```
 
 ---
