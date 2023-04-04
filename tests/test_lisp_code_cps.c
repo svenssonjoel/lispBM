@@ -52,7 +52,9 @@ lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
+  if (ix >= CONSTANT_MEMORY_SIZE) return false;
   constants_memory[ix] = w;
+  return true;
 }
 
 

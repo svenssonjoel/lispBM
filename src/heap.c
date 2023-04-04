@@ -991,7 +991,7 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
     return 0;
   }
 
-  array->data = (uint8_t*)lbm_malloc(size);
+  array->data = (lbm_uint*)lbm_malloc(size);
 
   if (array->data == NULL) {
     lbm_memory_free((lbm_uint*)array);
@@ -1108,7 +1108,13 @@ lbm_uint lbm_size_of(lbm_type t) {
   return s;
 }
 
-static const_heap_write_fun const_heap_write = NULL;
+static bool dummy_flash_write(lbm_uint ix, lbm_uint val) {
+  (void)ix;
+  (void)val;
+  return false;
+}
+
+static const_heap_write_fun const_heap_write = dummy_flash_write;
 
 int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,
@@ -1129,8 +1135,8 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
   return 1;
 }
 
-lbm_value lbm_allocate_const_cell(void) {
-  lbm_uint res = ENC_SYM_ERROR_FLASH_HEAP_FULL;
+lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
+  lbm_flash_status r = LBM_FLASH_FULL;
 
   // waste a cell if we have ended up unaligned after writing an array to flash.
   if (lbm_const_heap_state->next % 2 == 1) {
@@ -1140,39 +1146,45 @@ lbm_value lbm_allocate_const_cell(void) {
   if (lbm_const_heap_state &&
       (lbm_const_heap_state->next+1) < lbm_const_heap_state->size) {
     // A cons cell uses two words.
-    res = lbm_const_heap_state->next;
+    lbm_value cell = lbm_const_heap_state->next;
     lbm_const_heap_state->next += 2;
-    res = (res << LBM_ADDRESS_SHIFT) | LBM_PTR_BIT | LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT;
+    *res = (cell << LBM_ADDRESS_SHIFT) | LBM_PTR_BIT | LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT;
+    r = LBM_FLASH_WRITE_OK;
   }
-  return res;
+  return r;
 }
 
-bool lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res) {
+lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res) {
 
-  bool r = false;
+  lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
       (lbm_const_heap_state->next + n) < lbm_const_heap_state->size) {
     lbm_uint ix = lbm_const_heap_state->next;
 
     for (unsigned int i = 0; i < n; i ++) {
-      const_heap_write(ix + i, ((lbm_uint*)data)[i]);
+      if (!const_heap_write(ix + i, ((lbm_uint*)data)[i]))
+        return LBM_FLASH_WRITE_ERROR;
     }
     lbm_const_heap_state->next += n;
     *res = (lbm_uint)&lbm_const_heap_state->heap[ix];
-    r = true;
+    r = LBM_FLASH_WRITE_OK;
   }
   return r;
 }
 
-void write_const_cdr(lbm_value cell, lbm_value val) {
+lbm_flash_status write_const_cdr(lbm_value cell, lbm_value val) {
   lbm_uint addr = lbm_dec_ptr(cell);
-  const_heap_write(addr+1, val);
+  if (const_heap_write(addr+1, val))
+    return LBM_FLASH_WRITE_OK;
+  return LBM_FLASH_WRITE_ERROR;
 }
 
-void write_const_car(lbm_value cell, lbm_value val) {
+lbm_flash_status write_const_car(lbm_value cell, lbm_value val) {
   lbm_uint addr = lbm_dec_ptr(cell);
-  const_heap_write(addr, val);
+  if (const_heap_write(addr, val))
+    return LBM_FLASH_WRITE_OK;
+  return LBM_FLASH_WRITE_ERROR;
 }
 
 lbm_uint lbm_flash_memory_usage(void) {

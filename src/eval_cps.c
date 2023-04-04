@@ -106,6 +106,8 @@ const char* lbm_error_str_not_a_boolean = "Argument must be t or nil (true or fa
 const char* lbm_error_str_incorrect_arg = "Incorrect argument.";
 const char* lbm_error_str_var_outside_progn = "Usage of var outside of progn.";
 const char* lbm_error_str_flash_not_possible = "Value cannot be written to flash.";
+const char* lbm_error_str_flash_error = "Error writing to flash";
+const char* lbm_error_str_flash_full = "Flash memory is full";
 
 #define CHECK_STACK(x)                          \
   if (!(x)) {                                   \
@@ -720,6 +722,24 @@ static void error_ctx_base(lbm_value err_val, unsigned int row, unsigned int col
 
 void error_ctx(lbm_value err_val) {
   error_ctx_base(err_val, 0, 0);
+}
+
+bool handle_flash_status(lbm_flash_status s) {
+  bool r = false;
+  switch(s) {
+  case LBM_FLASH_WRITE_OK:
+    r = true;
+    break;
+  case LBM_FLASH_FULL:
+    lbm_set_error_reason((char*)lbm_error_str_flash_full);
+    error_ctx(ENC_SYM_EERROR);
+    break;
+  case LBM_FLASH_WRITE_ERROR:
+    lbm_set_error_reason((char*)lbm_error_str_flash_error);
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    break;
+  }
+  return r;
 }
 
 static void read_error_ctx(unsigned int row, unsigned int column) {
@@ -3035,9 +3055,6 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
     lbm_set_cdr(last_cell, new_cell);
     last_cell = new_cell;
-  } else if (lbm_type_of(last_cell) == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT)) {
-    write_const_cdr(last_cell, new_cell);
-    last_cell = new_cell;
   } else {
     first_cell = last_cell = new_cell;
   }
@@ -3363,16 +3380,18 @@ static void cont_setq(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static lbm_value request_flash_storage_cell(lbm_value val) {
-  lbm_value flash_cell = lbm_allocate_const_cell();
-  if (lbm_is_symbol(flash_cell)) {
-    return flash_cell;
-  }
+static lbm_flash_status request_flash_storage_cell(lbm_value val, lbm_value *res) {
+
+  lbm_value flash_cell;
+  lbm_flash_status s = lbm_allocate_const_cell(&flash_cell);
+  if (s != LBM_FLASH_WRITE_OK)
+    return s;
   lbm_value new_val = val;
   new_val &= ~LBM_PTR_VAL_MASK; // clear the value part of the ptr
   new_val |= (flash_cell & LBM_PTR_VAL_MASK);
   new_val |= LBM_PTR_TO_CONSTANT_BIT;
-  return new_val;
+  *res = new_val;
+  return s;
 }
 
 static void cont_move_to_flash(eval_context_t *ctx) {
@@ -3411,12 +3430,9 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
   lbm_pop(&ctx->K, &val);
 
   if (lbm_is_cons(val)) {
-    // Request a flash storage cell.
-    lbm_value flash_cell = request_flash_storage_cell(val);
-    if (lbm_is_symbol(flash_cell)) {
-      error_ctx(flash_cell);
+    lbm_value flash_cell;
+    if (!handle_flash_status(request_flash_storage_cell(val, &flash_cell)))
       return;
-    }
     CHECK_STACK(lbm_push_4(&ctx->K, flash_cell, flash_cell, lbm_cdr(val), MOVE_LIST_TO_FLASH));
     CHECK_STACK(lbm_push_2(&ctx->K, lbm_car(val), MOVE_VAL_TO_FLASH_DISPATCH));
     ctx->app_cont = true;
@@ -3431,11 +3447,9 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
 
   if (lbm_is_ptr(val)) {
     // Request a flash storage cell.
-    lbm_value flash_cell = request_flash_storage_cell(val);
-    if (lbm_is_symbol(flash_cell)) {
-      error_ctx(flash_cell);
+    lbm_value flash_cell;
+    if (!handle_flash_status(request_flash_storage_cell(val, &flash_cell)))
       return;
-    }
     ctx->r = flash_cell;
     lbm_cons_t *ref = lbm_ref_cell(val);
     if (lbm_type_of(ref->cdr) == LBM_TYPE_SYMBOL) {
@@ -3443,8 +3457,9 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
       case SYM_RAW_I_TYPE: /* fall through */
       case SYM_RAW_U_TYPE:
       case SYM_RAW_F_TYPE:
-        write_const_car(flash_cell, ref->car);
-        write_const_cdr(flash_cell, ref->cdr);
+        if (!handle_flash_status(write_const_car(flash_cell, ref->car)) ||
+            !handle_flash_status(write_const_cdr(flash_cell, ref->cdr)))
+          return;
         break;
       case SYM_IND_I_TYPE: /* fall through */
       case SYM_IND_U_TYPE:
@@ -3453,10 +3468,13 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
         /* 64 bit values are in lbm mem on 32bit platforms. */
         lbm_uint *lbm_mem_ptr = (lbm_uint*)ref->car;
         lbm_uint flash_ptr;
-        if (lbm_write_const_raw(lbm_mem_ptr, 2, &flash_ptr)) {
-          write_const_car(flash_cell, flash_ptr);
-          write_const_cdr(flash_cell, ref->cdr);
-        }
+
+        if (!handle_flash_status(lbm_write_const_raw(lbm_mem_ptr, 2, &flash_ptr)))
+          return;
+
+        if (!handle_flash_status(write_const_car(flash_cell, flash_ptr)) ||
+            !handle_flash_status(write_const_cdr(flash_cell, ref->cdr)))
+          return;
 #else
         error_ctx(ENC_SYM_FATAL_ERROR);
         return;
@@ -3471,33 +3489,28 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
           header_size = (header_size / sizeof(lbm_uint));
         }
 
-        lbm_uint size = arr->size; // array size always in bytes
-
-        if (size % (sizeof(lbm_uint)) != 0) {
-          size = (size / sizeof(lbm_uint) + 1);
-        } else {
-          size = size / sizeof(lbm_uint);
+        lbm_uint size = arr->size / sizeof(lbm_uint); // array size always in bytes
+        if (arr->size % (sizeof(lbm_uint)) != 0) {
+          size++;
         }
 
         lbm_value flash_arr;
-        if (!lbm_write_const_raw(arr->data, size, &flash_arr)) {
-          error_ctx(flash_arr);
+        if (!handle_flash_status(lbm_write_const_raw(arr->data, size, &flash_arr)))
           return;
-        }
 
         lbm_uint *data_old = arr->data;
         arr->data = (lbm_uint*)flash_arr; // update pointer field
 
         lbm_uint flash_array_header;
-        if (!lbm_write_const_raw((lbm_uint*)ref->car, header_size, &flash_array_header)) {
-          error_ctx(ENC_SYM_ERROR_FLASH_HEAP_FULL);
+        if (!handle_flash_status(lbm_write_const_raw((lbm_uint*)ref->car, header_size, &flash_array_header)))
           return;
-        }
 
         arr->data = data_old; // so gc can remove it.
 
-        write_const_car(flash_cell, flash_array_header);
-        write_const_cdr(flash_cell, ref->cdr);
+        if (!handle_flash_status(write_const_car(flash_cell, flash_array_header)) ||
+            !handle_flash_status(write_const_cdr(flash_cell, ref->cdr)))
+          return;
+
       } break;
       case SYM_CHANNEL_TYPE: /* fall through */
       case SYM_CUSTOM_TYPE:
@@ -3531,16 +3544,16 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
   lbm_value lst = sptr[1];
   lbm_value val = sptr[2];
 
-  write_const_car(lst, ctx->r);
+  if (!handle_flash_status(write_const_car(lst, ctx->r)))
+    return;
 
   if (lbm_is_cons(val)) {
     // prepare cell for rest of list
-    lbm_value rest_cell = request_flash_storage_cell(val);
-    if (lbm_is_symbol(rest_cell)) {
-      error_ctx(rest_cell);
+    lbm_value rest_cell;
+    if (!handle_flash_status(request_flash_storage_cell(val, &rest_cell)))
       return;
-    }
-    write_const_cdr(lst, rest_cell);
+    if (!handle_flash_status(write_const_cdr(lst, rest_cell)))
+      return;
     sptr[1] = rest_cell;
     sptr[2] = lbm_cdr(val);
     CHECK_STACK(lbm_push(&ctx->K, MOVE_LIST_TO_FLASH));
@@ -3559,7 +3572,8 @@ static void cont_close_list_in_flash(eval_context_t *ctx) {
   lbm_value lst;
   lbm_pop_2(&ctx->K, &lst, &fst);
   lbm_value val = ctx->r;
-  write_const_cdr(lst, val);
+  if (!handle_flash_status(write_const_cdr(lst, val)))
+    return;
   ctx->r = fst;
   ctx->app_cont = true;
 }

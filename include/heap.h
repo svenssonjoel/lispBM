@@ -221,6 +221,15 @@ Aux bits could be used for storing vector size. Up to 30bits should be available
 
 #endif
 
+
+typedef enum {
+  LBM_FLASH_WRITE_OK,
+  LBM_FLASH_FULL,
+  LBM_FLASH_WRITE_ERROR
+} lbm_flash_status;
+
+
+
 /** Struct representing a heap cons-cell.
  *
  */
@@ -593,10 +602,10 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_uint *addr,
                         lbm_uint num_words);
 
-lbm_value lbm_allocate_const_cell(void);
-bool lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res);
-void write_const_cdr(lbm_value cell, lbm_value val);
-void write_const_car(lbm_value cell, lbm_value val);
+lbm_flash_status lbm_allocate_const_cell(lbm_value *res);
+lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res);
+lbm_flash_status write_const_cdr(lbm_value cell, lbm_value val);
+lbm_flash_status write_const_car(lbm_value cell, lbm_value val);
 lbm_uint lbm_flash_memory_usage(void);
 
 /** Query the type information of a value.
