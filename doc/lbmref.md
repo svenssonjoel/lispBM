@@ -1282,7 +1282,7 @@ Example that creates a 10 element buffer caled data:
 ```
 
 Use the buffer extensions to operate `data`.
-See the (VESC)[https://github.com/vedderb/bldc/tree/master/lispBM#byte-arrays]
+See the [VESC](https://github.com/vedderb/bldc/tree/master/lispBM#byte-arrays)
 lbm documentation for details on operations on buffers.
 
 ---
