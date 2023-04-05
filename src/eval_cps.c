@@ -2747,6 +2747,16 @@ static void cont_read_next_token(eval_context_t *ctx) {
     case TOKCLOSECURL:
       ctx->r = ENC_SYM_CLOSEPAR;
       return;
+    case TOKCONSTSTART:
+      ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      return;
+    case TOKCONSTEND:
+      ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
+      CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+      ctx->app_cont = true;
+      return;
     default:
       error_ctx(ENC_SYM_RERROR);
       return;
