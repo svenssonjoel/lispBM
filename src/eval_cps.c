@@ -3447,6 +3447,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
             !handle_flash_status(write_const_cdr(flash_cell, ref->cdr)))
           return;
 #else
+        // There are no indirect types in LBM64
         error_ctx(ENC_SYM_FATAL_ERROR);
         return;
 #endif
