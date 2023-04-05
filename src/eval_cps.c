@@ -1376,6 +1376,9 @@ static void eval_define(eval_context_t *ctx) {
       return;
     } else if (sym_val >= RUNTIME_SYMBOLS_START) {
       sptr[1] = SET_GLOBAL_ENV;
+      if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST) {
+        CHECK_STACK(lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH));
+      }
       ctx->curr_exp = val_exp;
       return;
     }
@@ -3387,7 +3390,8 @@ static void cont_move_to_flash(eval_context_t *ctx) {
     if (lbm_is_ptr(val) &&
         (!(val & LBM_PTR_TO_CONSTANT_BIT))) {
       CHECK_STACK(lbm_push_2(&ctx->K, first_arg, SET_GLOBAL_ENV));
-      CHECK_STACK(lbm_push_2(&ctx->K, val, MOVE_VAL_TO_FLASH_DISPATCH));
+      CHECK_STACK(lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH));
+      ctx->r = val;
     }
     ctx->app_cont = true;
     return;
@@ -3397,15 +3401,15 @@ static void cont_move_to_flash(eval_context_t *ctx) {
 
 static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
 
-  lbm_value val;
-  lbm_pop(&ctx->K, &val);
+  lbm_value val = ctx->r;
 
   if (lbm_is_cons(val)) {
     lbm_value flash_cell = ENC_SYM_NIL;
     if (!handle_flash_status(request_flash_storage_cell(val, &flash_cell)))
       return;
     CHECK_STACK(lbm_push_4(&ctx->K, flash_cell, flash_cell, lbm_cdr(val), MOVE_LIST_TO_FLASH));
-    CHECK_STACK(lbm_push_2(&ctx->K, lbm_car(val), MOVE_VAL_TO_FLASH_DISPATCH));
+    CHECK_STACK(lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH));
+    ctx->r = lbm_car(val);
     ctx->app_cont = true;
     return;
   }
@@ -3497,7 +3501,6 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
     ctx->app_cont = true;
     return;
   }
-
   ctx->r = val;
   ctx->app_cont = true;
 }
@@ -3529,12 +3532,14 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
     sptr[1] = rest_cell;
     sptr[2] = lbm_cdr(val);
     CHECK_STACK(lbm_push(&ctx->K, MOVE_LIST_TO_FLASH));
-    CHECK_STACK(lbm_push_2(&ctx->K, lbm_car(val), MOVE_VAL_TO_FLASH_DISPATCH));
+    CHECK_STACK(lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH));
+    ctx->r = lbm_car(val);
   } else {
     sptr[0] = fst;
     sptr[1] = lst;
     sptr[2] = CLOSE_LIST_IN_FLASH;
-    CHECK_STACK(lbm_push_2(&ctx->K, val, MOVE_VAL_TO_FLASH_DISPATCH));
+    CHECK_STACK(lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH));
+    ctx->r =  val;
   }
   ctx->app_cont = true;
 }
