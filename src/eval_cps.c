@@ -53,7 +53,6 @@
 #define WAIT                  CONTINUATION(8)
 #define MATCH                 CONTINUATION(9)
 #define MATCH_MANY            CONTINUATION(10)
-//#define READ                  CONTINUATION(11)
 #define APPLICATION_START     CONTINUATION(11)
 #define EVAL_R                CONTINUATION(12)
 #define SET_VARIABLE          CONTINUATION(13)
@@ -380,7 +379,7 @@ void print_environments(char *buf, unsigned int size) {
   printf_callback("\tCurrent local environment:\n");
   while (lbm_type_of(curr_l) == LBM_TYPE_CONS) {
 
-    lbm_print_value(buf, (size/2) - 1,lbm_car(lbm_car(curr_l)));
+    lbm_print_value(buf, (size/2) - 1, lbm_caar(curr_l));
     lbm_print_value(buf + (size/2),size/2, lbm_cdr(lbm_car(curr_l)));
     printf_callback("\t%s = %s\n", buf, buf+(size/2));
     curr_l = lbm_cdr(curr_l);
@@ -390,7 +389,7 @@ void print_environments(char *buf, unsigned int size) {
   printf_callback("\tCurrent global environment:\n");
   while (lbm_type_of(curr_g) == LBM_TYPE_CONS) {
 
-    lbm_print_value(buf, (size/2) - 1,lbm_car(lbm_car(curr_g)));
+    lbm_print_value(buf, (size/2) - 1, lbm_caar(curr_g));
     lbm_print_value(buf + (size/2),size/2, lbm_cdr(lbm_car(curr_g)));
     printf_callback("\t%s = %s\n", buf, buf+(size/2));
     curr_g = lbm_cdr(curr_g);
@@ -745,9 +744,10 @@ static void read_error_ctx(unsigned int row, unsigned int column) {
 static void ok_ctx(void) {
   if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
     lbm_value msg;
-    CONS_WITH_GC(msg, ctx_running->r, ENC_SYM_NIL, ENC_SYM_NIL);
-    CONS_WITH_GC(msg, lbm_enc_i(ctx_running->id), msg, msg);
-    CONS_WITH_GC(msg, ENC_SYM_EXIT_OK, msg, msg);
+    WITH_GC(msg, lbm_heap_allocate_list_init(3,
+                                             ENC_SYM_EXIT_OK,
+                                             lbm_enc_i(ctx_running->id),
+                                             ctx_running->r));
     lbm_find_receiver_and_send(ctx_running->parent, msg);
   }
   finish_ctx();
@@ -1263,12 +1263,15 @@ static void dynamic_load(eval_context_t *ctx) {
         return;
       }
     }
+
     lbm_value loader = ENC_SYM_NIL;
-    CONS_WITH_GC(loader, chan, loader, chan);
-    CONS_WITH_GC(loader, ENC_SYM_READ, loader, loader);
+    WITH_GC(loader, lbm_heap_allocate_list_init(2,
+                                                ENC_SYM_READ,
+                                                chan));
     lbm_value evaluator = ENC_SYM_NIL;
-    CONS_WITH_GC(evaluator, loader, evaluator, loader);
-    CONS_WITH_GC(evaluator, ENC_SYM_EVAL, evaluator, evaluator);
+    WITH_GC_RMBR(evaluator, lbm_heap_allocate_list_init(2,
+                                                        ENC_SYM_EVAL,
+                                                        loader),1 ,loader);
     ctx->curr_exp = evaluator;
     ctx->curr_env = ENC_SYM_NIL; // dynamics should be evaluable in empty local env
     return;
@@ -1297,7 +1300,7 @@ static void eval_progn(eval_context_t *ctx) {
       return;
     }
     sptr[0] = env; // env to restore between expressions in progn
-    sptr[1] = lbm_enc_u(0);   // Has env been copied
+    sptr[1] = lbm_enc_u(0);   // Has env been copied (needed for progn local bindings)
     sptr[2] = lbm_cdr(exps);
     sptr[3] = PROGN_REST;
     ctx->curr_exp = lbm_car(exps);
@@ -1345,8 +1348,9 @@ static void eval_callcc(eval_context_t *ctx) {
   /* Create an application */
   lbm_value fun_arg = lbm_cadr(ctx->curr_exp);
   lbm_value app = ENC_SYM_NIL;
-  CONS_WITH_GC(app, acont, app, acont);
-  CONS_WITH_GC(app, fun_arg, app, app);
+  WITH_GC_RMBR(app, lbm_heap_allocate_list_init(2,
+                                                fun_arg,
+                                                acont), 1, acont);
 
   ctx->curr_exp = app;
   ctx->app_cont = false;
@@ -1519,7 +1523,7 @@ static void eval_let(eval_context_t *ctx) {
   // Implements letrec by "preallocating" the key parts
   while (lbm_is_cons_general(curr)) {
     lbm_value new_env_tmp = new_env;
-    lbm_value key = lbm_car(lbm_car(curr));
+    lbm_value key = lbm_caar(curr);
     int r = create_binding_location(key, &new_env_tmp);
     if (r < 0) {
       if (r == BL_NO_MEMORY) {
@@ -1542,7 +1546,7 @@ static void eval_let(eval_context_t *ctx) {
     curr = lbm_cdr(curr);
   }
 
-  lbm_value key0 = lbm_car(lbm_car(binds));
+  lbm_value key0 = lbm_caar(binds);
   lbm_value val0_exp = lbm_cadr(lbm_car(binds));
 
   lbm_uint *sptr = lbm_stack_reserve(&ctx->K, 5);
@@ -2379,7 +2383,7 @@ static void cont_bind_to_key_rest(eval_context_t *ctx) {
   }
 
   if (lbm_is_cons_general(rest)) {
-    lbm_value keyn = lbm_car(lbm_car(rest));
+    lbm_value keyn = lbm_caar(rest);
     lbm_value valn_exp = lbm_cadr(lbm_car(rest));
 
     sptr[1] = lbm_cdr(rest);
@@ -3185,11 +3189,11 @@ static void cont_read_done(eval_context_t *ctx) {
 }
 
 static void cont_read_quote_result(eval_context_t *ctx) {
-  lbm_value cell1;
-  lbm_value cell2;
-  CONS_WITH_GC(cell2, ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
-  CONS_WITH_GC(cell1, ENC_SYM_QUOTE, cell2, ENC_SYM_NIL);
-  ctx->r = cell1;
+  lbm_value cell;
+  WITH_GC(cell, lbm_heap_allocate_list_init(2,
+                                            ENC_SYM_QUOTE,
+                                            ctx->r));
+  ctx->r = cell;
   ctx->app_cont = true;
 }
 
@@ -3581,7 +3585,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_wait,
     cont_match,
     cont_match_many,
-    //    cont_read,
     cont_application_start,
     cont_eval_r,
     cont_set_var,

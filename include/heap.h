@@ -427,6 +427,12 @@ lbm_value lbm_cons(lbm_value car, lbm_value cdr);
  * is not cons or nil, the return value is enc_sym(SYM_TERROR) for type error.
  */
 lbm_value lbm_car(lbm_value cons);
+/** Accesses the car field the car field of an lbm_cons_t.
+ *
+ * \param cons Value
+ * \return The car of car field or nil. 
+ */
+lbm_value lbm_caar(lbm_value c);
 /** Accesses the car of the cdr of an cons cell
  *
  * \param c Value
