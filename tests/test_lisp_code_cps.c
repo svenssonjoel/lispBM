@@ -51,8 +51,19 @@ extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
+
+void const_heap_init(void) {
+  for (int i = 0; i < CONSTANT_MEMORY_SIZE; i ++) {
+    constants_memory[i] = 0xFFFFFFFF;
+  }
+}
+
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
   if (ix >= CONSTANT_MEMORY_SIZE) return false;
+  if (constants_memory[ix] != 0xFFFFFFFF) {
+    printf("Writing to same flash location more than once\n");
+    return false;
+  }
   constants_memory[ix] = w;
   return true;
 }
@@ -354,6 +365,8 @@ int main(int argc, char **argv) {
   lbm_cons_t *heap_storage = NULL;
 
   lbm_const_heap_t const_heap;
+
+  const_heap_init();
 
   int c;
   opterr = 1;
