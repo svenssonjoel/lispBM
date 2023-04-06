@@ -623,6 +623,13 @@ static inline lbm_type lbm_type_of(lbm_value x) {
   return (x & LBM_PTR_MASK) ? (x & LBM_PTR_TYPE_MASK) : (x & LBM_VAL_TYPE_MASK);
 }
 
+// type-of check that is safe in functional code
+static inline lbm_type lbm_type_of_functional(lbm_value x) {
+  return (x & LBM_PTR_MASK) ?
+    (x & (LBM_PTR_TO_CONSTANT_MASK & LBM_PTR_TYPE_MASK)) :
+     (x & LBM_VAL_TYPE_MASK);
+}
+
 static inline lbm_value lbm_enc_cons_ptr(lbm_uint x) {
   return ((x << LBM_ADDRESS_SHIFT) | LBM_TYPE_CONS | LBM_PTR_BIT);
 }

@@ -231,7 +231,7 @@ lbm_uint lbm_dec_custom(lbm_value val) {
 }
 
 char lbm_dec_as_char(lbm_value a) {
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
     return (char) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -255,7 +255,7 @@ char lbm_dec_as_char(lbm_value a) {
 }
 
 uint32_t lbm_dec_as_u32(lbm_value a) {
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
     return (uint32_t) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -278,7 +278,7 @@ uint32_t lbm_dec_as_u32(lbm_value a) {
 }
 
 uint64_t lbm_dec_as_u64(lbm_value a) {
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
     return (uint64_t) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -301,7 +301,7 @@ uint64_t lbm_dec_as_u64(lbm_value a) {
 
 
 int32_t lbm_dec_as_i32(lbm_value a) {
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
       return (int32_t) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -325,7 +325,7 @@ int32_t lbm_dec_as_i32(lbm_value a) {
 }
 
 int64_t lbm_dec_as_i64(lbm_value a) {
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
       return (int64_t) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -349,7 +349,7 @@ int64_t lbm_dec_as_i64(lbm_value a) {
 
 float lbm_dec_as_float(lbm_value a) {
 
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
       return (float) lbm_dec_char(a);
   case LBM_TYPE_I:
@@ -374,7 +374,7 @@ float lbm_dec_as_float(lbm_value a) {
 
 double lbm_dec_as_double(lbm_value a) {
 
-  switch (lbm_type_of(a)) {
+  switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
       return (double) lbm_dec_char(a);
   case LBM_TYPE_I:
