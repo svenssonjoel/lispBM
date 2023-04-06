@@ -894,7 +894,7 @@ int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
 unsigned int lbm_list_length(lbm_value c) {
   unsigned int len = 0;
 
-  while (lbm_type_of(c) == LBM_TYPE_CONS){
+  while (lbm_is_cons_general(c)){
     len ++;
     c = lbm_cdr(c);
   }
@@ -925,7 +925,7 @@ lbm_value lbm_list_reverse(lbm_value list) {
   lbm_value curr = list;
 
   lbm_value new_list = ENC_SYM_NIL;
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+  while (lbm_is_cons_general(curr)) {
 
     new_list = lbm_cons(lbm_car(curr), new_list);
     if (lbm_type_of(new_list) == LBM_TYPE_SYMBOL) {

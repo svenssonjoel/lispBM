@@ -759,14 +759,15 @@ int main(int argc, char **argv) {
 
   int i = 0;
   while (!experiment_done) {
-    if (i == 1000000) break;
+    if (i == 10000) break;
     sleep_callback(1000);
     i ++;
   }
 
-  if (i == 1000000) {
+  if (i == 10000) {
     printf ("experiment failed due to taking longer than 10 seconds\n");
     experiment_success = false;
+    return 0;
   }
 
   lbm_pause_eval();
