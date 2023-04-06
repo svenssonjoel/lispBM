@@ -974,19 +974,18 @@ lbm_value lbm_list_copy(lbm_value list) {
 // Destructive update of list1.
 lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
 
-  if (lbm_type_of(list1) != LBM_TYPE_CONS) {
-    return list2;
-  }
-  if (lbm_type_of(list1) != LBM_TYPE_CONS) {
+  if(lbm_is_list(list1) &&
+     lbm_is_list_general(list2)) {
+
+    lbm_value curr = list1;
+    while(lbm_type_of(lbm_cdr(curr)) == LBM_TYPE_CONS) {
+      curr = lbm_cdr(curr);
+    }
+    if (lbm_is_symbol_nil(curr)) return list2;
+    lbm_set_cdr(curr, list2);
     return list1;
   }
-
-  lbm_value curr = list1;
-  while(lbm_type_of(lbm_cdr(curr)) == LBM_TYPE_CONS) {
-    curr = lbm_cdr(curr);
-  }
-  lbm_set_cdr(curr, list2);
-  return list1;
+  return ENC_SYM_EERROR;
 }
 
 // Arrays are part of the heap module because their lifespan is managed

@@ -2090,7 +2090,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (nargs == 1 && lbm_is_list(args[0])) {
+  if (nargs == 1 && lbm_is_list_general(args[0])) {
     lbm_value curr = args[0];
 
     lbm_value new_list = ENC_SYM_NIL;
