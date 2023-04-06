@@ -2639,8 +2639,13 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
     /* successfully finished reading an expression  (CASE 3) */
     ctx->app_cont = true;
   } else if (ctx->K.sp > 4  && ctx->K.data[ctx->K.sp - 4] == READ_DONE) {
-    lbm_stack_drop(&ctx->K, 3);
-    ctx->app_cont = true;
+    lbm_value env;
+    lbm_value s;
+    lbm_value sym;
+    lbm_pop_3(&ctx->K, &sym, &env, &s);
+    ctx->curr_env = env;
+    ctx->curr_exp = ctx->r;
+    ctx->app_cont = false;
   } else if (ctx->K.sp > 7 && ctx->K.data[ctx->K.sp - 5] == READ_DONE) {
     /* successfully finished reading a program  (CASE 2) */
     ctx->r = ENC_SYM_CLOSEPAR;
@@ -3174,15 +3179,8 @@ static void cont_read_done(eval_context_t *ctx) {
     return;
   }
 
-  /* lbm_value tok = lbm_get_next_token(str, false); */
-  /* /\* May not be absolutely required that we check to */
-  /*    see if the tokenizer feels it is done here. *\/ */
-  /* lbm_channel_reader_close(str); */
-  /* if (tok != ENC_SYM_TOKENIZER_DONE) { */
-  /*   lbm_channel_reader_close(str); */
-  /*   lbm_set_error_reason((char*)lbm_error_str_parse_eof); */
-  /*   read_error_ctx(lbm_channel_row(str), lbm_channel_column(str)); */
-  /* } else { */
+  lbm_channel_reader_close(str);
+  
   ctx->app_cont = true;
     //}
   done_reading(ctx->id);
