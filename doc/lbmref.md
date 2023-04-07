@@ -982,7 +982,7 @@ Example:
 ### move-to-flash
 
 A value can be moved to flash storage to save space on the normal evaluation heap or lbm memory.
-A `move-to-flash` expression is of the form (move-to-flash sym opt-sym1 ... opt-symN).
+A `move-to-flash` expression is of the form `(move-to-flash sym opt-sym1 ... opt-symN)`.
 The symbols `sym`, `opt-sym1 ... opt-symN` should be globally bound to the values you want moved
 to flash. After the value has been moved, the environment binding is updated to point into flash
 memory. **CAUTION** This function should be used carefully. Ideally a value should be moved
