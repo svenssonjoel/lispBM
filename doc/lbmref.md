@@ -1990,8 +1990,6 @@ If the input is not a number the output of this function will be 0.
 ---
 
 
-## Extensions reference
-
 
 
 
