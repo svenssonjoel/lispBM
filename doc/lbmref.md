@@ -1015,7 +1015,7 @@ Functions can be moved to flash storage as well:
 
 ## Lists and cons cells
 
-Lists are build using cons cells. A cons cell is represented by the lbm_cons_t struct in the
+Lists are built using cons cells. A cons cell is represented by the lbm_cons_t struct in the
 implementation and consists of two fields named the `car` and the `cdr`.
 There is no special meaning associated with the `car` and the `cdr` each can hold
 a lbm_value. See <a href="#cons">cons</a> and <a href="#list">list</a> for two ways to create structures of
