@@ -120,7 +120,6 @@ const char* lbm_error_str_flash_full = "Flash memory is full";
     gc();                                       \
     (y) = (x);                                  \
     if (lbm_is_symbol_merror((y))) {            \
-      ctx_running->done = true;                 \
       error_ctx(ENC_SYM_MERROR);                \
       return;                                   \
     }                                           \
@@ -133,7 +132,6 @@ const char* lbm_error_str_flash_full = "Flash memory is full";
     gc();                                       \
     (y) = (x);                                  \
     if (lbm_is_symbol_merror((y))) {            \
-      ctx_running->done = true;                 \
       error_ctx(ENC_SYM_MERROR);                \
       return;                                   \
     }                                           \
@@ -158,7 +156,6 @@ static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember
     gc();
     res = lbm_cons(head, tail);
     if (lbm_is_symbol_merror(res)) {
-        ctx_running->done = true;
         error_ctx(ENC_SYM_MERROR);
     }
   }
@@ -874,7 +871,6 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   ctx->mailbox_size = EVAL_CPS_DEFAULT_MAILBOX_SIZE;
   ctx->flags = context_flags;
   ctx->num_mail = 0;
-  ctx->done = false;
   ctx->app_cont = false;
   ctx->timestamp = 0;
   ctx->sleep_us = 0;
@@ -954,7 +950,6 @@ static void advance_ctx(eval_context_t *ctx) {
     ctx->program = lbm_cdr(ctx->program);
     ctx->app_cont = false;
   } else {
-    ctx->done = true;
     if (ctx_running == ctx) {  // This should always be the case because of odd historical reasons.
       ok_ctx();
     }
@@ -1637,7 +1632,6 @@ static void eval_receive(eval_context_t *ctx) {
         new_env = ctx->curr_env;
         n = find_match(lbm_cdr(pats), msgs, num, &e, &new_env);
         if (n == FM_NEED_GC) {
-          ctx_running->done = true;
           error_ctx(ENC_SYM_MERROR);
           return;
         }
@@ -2502,7 +2496,6 @@ static void cont_match(eval_context_t *ctx) {
       new_env = ctx->curr_env;
       match(pattern, e, &new_env, &do_gc);
       if (do_gc) {
-        ctx_running->done = true;
         error_ctx(ENC_SYM_MERROR);
         return;
       }

@@ -52,7 +52,6 @@ typedef struct eval_context_s{
   uint32_t  flags;
   lbm_value r;
   char *error_reason;
-  bool  done;
   bool  app_cont;
   lbm_stack_t K;
   lbm_uint timestamp;
