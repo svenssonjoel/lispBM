@@ -3664,8 +3664,7 @@ static void evaluation_step(void){
     return;
   }
 
-  lbm_uint exp_type = lbm_type_of(ctx->curr_exp);
-  if (exp_type & LBM_PTR_BIT) exp_type &= LBM_PTR_TO_CONSTANT_MASK;
+  lbm_uint exp_type = lbm_type_of_functional(ctx->curr_exp);
   if (exp_type == LBM_TYPE_SYMBOL) {
      lbm_value s;
 
@@ -3679,8 +3678,7 @@ static void evaluation_step(void){
     }
     return;
   }
-  if (exp_type == LBM_TYPE_CONS ||
-      exp_type == (LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT)) {
+  if (exp_type == LBM_TYPE_CONS) {
     lbm_value head = lbm_ref_cell(ctx->curr_exp)->car;
 
     if (lbm_type_of(head) == LBM_TYPE_SYMBOL) {
