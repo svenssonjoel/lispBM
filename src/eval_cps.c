@@ -81,7 +81,7 @@
 #define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(36)
 #define MOVE_LIST_TO_FLASH    CONTINUATION(37)
 #define CLOSE_LIST_IN_FLASH   CONTINUATION(38)
-#define NUM_CONTINUATIONS     40
+#define NUM_CONTINUATIONS     39
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -2135,6 +2135,7 @@ static const apply_fun fun_table[] =
 /* Application of function that takes arguments    */
 /* passed over the stack.                          */
 
+
 static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_count) {
   lbm_value fun = fun_args[0];
   if (lbm_is_continuation(fun)) {
@@ -2310,7 +2311,7 @@ static void cont_application_args(eval_context_t *ctx) {
     }
   } else if (lbm_is_cons(rest)) {
     sptr[1] = env;
-    sptr[2] = lbm_enc_u(lbm_dec_u(count) + 1);
+    sptr[2] = count + (1 << LBM_VAL_SHIFT); // Increment on encoded uint
     CHECK_STACK(lbm_push_2(&ctx->K,lbm_cdr(rest), APPLICATION_ARGS));
     ctx->curr_exp = lbm_car(rest);
   } else {
@@ -3235,6 +3236,11 @@ static void cont_read_comma_result(eval_context_t *ctx) {
 }
 
 static void cont_application_start(eval_context_t *ctx) {
+
+  /* sptr[0] = env
+   * sptr[1] = args
+   * ctx->r  = function
+   */
 
   lbm_uint *sptr = lbm_get_stack_ptr(&ctx->K, 2);
   if (sptr == NULL) {
