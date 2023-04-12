@@ -322,6 +322,9 @@ bool create_string_channel(char *str, lbm_value *res);
 
 bool lift_char_channel(lbm_char_channel_t *ch, lbm_value *res);
 
+lbm_flash_status request_flash_storage_cell(lbm_value val, lbm_value *res);
+bool lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt);
+
 /** deliver a message
  *
  * \param cid Process to deliver to.

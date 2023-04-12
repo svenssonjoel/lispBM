@@ -3364,7 +3364,24 @@ static void cont_setq(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static lbm_flash_status request_flash_storage_cell(lbm_value val, lbm_value *res) {
+bool lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt) {
+
+  lbm_array_header_t flash_array_header;
+  flash_array_header.size = num_elt;
+  flash_array_header.data = (lbm_uint*)data;
+  lbm_uint flash_array_header_ptr;
+  if (!handle_flash_status(lbm_write_const_raw((lbm_uint*)&flash_array_header,
+                                               sizeof(lbm_array_header_t),
+                                               &flash_array_header_ptr)))
+    return false;
+  if (!handle_flash_status(write_const_car(flash_cell, flash_array_header_ptr)) ||
+      !handle_flash_status(write_const_cdr(flash_cell, ENC_SYM_ARRAY_TYPE)))
+    return false;
+  return true;
+}
+
+
+lbm_flash_status request_flash_storage_cell(lbm_value val, lbm_value *res) {
 
   lbm_value flash_cell;
   lbm_flash_status s = lbm_allocate_const_cell(&flash_cell);
@@ -3480,23 +3497,15 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
           size++;
         }
 
-        lbm_value flash_arr;
+        // arbitrary address: flash_arr.
+        lbm_uint flash_arr;
         if (!handle_flash_status(lbm_write_const_raw(arr->data, size, &flash_arr)))
           return;
 
-        lbm_uint *data_old = arr->data;
-        arr->data = (lbm_uint*)flash_arr; // update pointer field
-
-        lbm_uint flash_array_header;
-        if (!handle_flash_status(lbm_write_const_raw((lbm_uint*)ref->car, header_size, &flash_array_header)))
+        if(!lift_array_flash(flash_cell,
+                             (char *)flash_arr,
+                             arr->size))
           return;
-
-        arr->data = data_old; // so gc can remove it.
-
-        if (!handle_flash_status(write_const_car(flash_cell, flash_array_header)) ||
-            !handle_flash_status(write_const_cdr(flash_cell, ref->cdr)))
-          return;
-
       } break;
       case SYM_CHANNEL_TYPE: /* fall through */
       case SYM_CUSTOM_TYPE:
