@@ -81,7 +81,8 @@
 #define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(36)
 #define MOVE_LIST_TO_FLASH    CONTINUATION(37)
 #define CLOSE_LIST_IN_FLASH   CONTINUATION(38)
-#define NUM_CONTINUATIONS     39
+#define READ_GRAB_ROW0        CONTINUATION(39)
+#define NUM_CONTINUATIONS     40
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -394,7 +395,7 @@ void print_environments(char *buf, unsigned int size) {
 }
 
 
-void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
+void print_error_message(lbm_value error, unsigned int row, unsigned int col, lbm_int row0, lbm_int row1) {
   if (!printf_callback) return;
 
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
@@ -415,10 +416,16 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col) {
     printf_callback("***\tAt:\t%s\n",buf);
   }
 
+  printf_callback("\n");
+
   if (lbm_is_symbol(error) &&
       error == ENC_SYM_RERROR) {
     printf_callback("***\t\tLine: %u\n", row);
     printf_callback("***\t\tColumn: %u\n", col);
+  } else {
+    printf_callback("***\tBetween rows: (-1 unknown) \n");
+    printf_callback("***\t\tStart: %u\n", (uint32_t)row0);
+    printf_callback("***\t\tEnd:   %u\n", (uint32_t)row1);
   }
 
   printf_callback("\n");
@@ -700,13 +707,13 @@ static void error_ctx_base(lbm_value err_val, unsigned int row, unsigned int col
       msg = lbm_cons(ENC_SYM_EXIT_ERROR, msg);
       if (lbm_is_symbol_merror(msg)) {
         // If this happens something is pretty seriously wrong.
-        print_error_message(err_val, row, column);
+        print_error_message(err_val, row, column, ctx_running->row0, ctx_running->row1);
       } else {
         lbm_find_receiver_and_send(ctx_running->parent, msg);
       }
     }
   } else {
-    print_error_message(err_val, row, column);
+    print_error_message(err_val, row, column, ctx_running->row0, ctx_running->row1);
   }
   finish_ctx();
 }
@@ -876,6 +883,9 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   ctx->sleep_us = 0;
   ctx->prev = NULL;
   ctx->next = NULL;
+
+  ctx->row0 = -1;
+  ctx->row1 = -1;
 
   ctx->id = cid;
   ctx->parent = parent;
@@ -3064,6 +3074,8 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
     return;
   }
 
+  ctx->row1 = (lbm_int)str->row(str);
+
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
 
     switch(lbm_dec_sym(ctx->r)) {
@@ -3079,7 +3091,7 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
   }
 
   CHECK_STACK(lbm_push_3(&ctx->K, stream, env, READ_EVAL_CONTINUE));
-  CHECK_STACK(lbm_push_2(&ctx->K, stream, READ_NEXT_TOKEN));
+  CHECK_STACK(lbm_push_3(&ctx->K, stream, READ_NEXT_TOKEN, READ_GRAB_ROW0));
 
   ctx->app_cont = false;
   ctx->curr_env = env;
@@ -3164,7 +3176,6 @@ static void cont_read_done(eval_context_t *ctx) {
   lbm_value stream;
 
   lbm_pop(&ctx->K, &stream);
-  //lbm_stack_drop(&ctx->K, 1);
 
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
@@ -3173,9 +3184,10 @@ static void cont_read_done(eval_context_t *ctx) {
   }
 
   lbm_channel_reader_close(str);
-  
+
+  ctx->row0 = -1;
+  ctx->row1 = -1;
   ctx->app_cont = true;
-    //}
   done_reading(ctx->id);
 }
 
@@ -3574,6 +3586,28 @@ static void cont_close_list_in_flash(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+/* Expects there to be a read_next_token continuation below */
+static void cont_read_grab_row0(eval_context_t *ctx) {
+
+  lbm_value *sptr = lbm_get_stack_ptr(&ctx->K, 2);
+  if (!sptr) {
+    error_ctx(ENC_SYM_STACK_ERROR);
+    return;
+  }
+
+  lbm_value stream = sptr[0];
+
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return;
+  }
+  ctx->row0 = (lbm_int)str->row(str);
+  ctx->row1 = -1;
+  ctx->app_cont = true;
+}
+
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -3618,6 +3652,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_move_val_to_flash_dispatch,
     cont_move_list_to_flash,
     cont_close_list_in_flash,
+    cont_read_grab_row0,
   };
 
 /*********************************************************/

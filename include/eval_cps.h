@@ -58,6 +58,9 @@ typedef struct eval_context_s{
   lbm_uint sleep_us;
   lbm_cid id;
   lbm_cid parent;
+  /* while reading */
+  lbm_int row0;
+  lbm_int row1;
   /* List structure */
   struct eval_context_s *prev;
   struct eval_context_s *next;
