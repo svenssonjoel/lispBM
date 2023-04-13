@@ -447,8 +447,8 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col, lb
     printf_callback("***\t\tColumn: %u\n", col);
   } else {
     printf_callback("***\tBetween rows: (-1 unknown) \n");
-    printf_callback("***\t\tStart: %u\n", (uint32_t)row0);
-    printf_callback("***\t\tEnd:   %u\n", (uint32_t)row1);
+    printf_callback("***\t\tStart: %d\n", (int32_t)row0);
+    printf_callback("***\t\tEnd:   %d\n", (int32_t)row1);
   }
 
   printf_callback("\n");
