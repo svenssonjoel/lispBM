@@ -218,7 +218,7 @@ void lbm_create_buffered_char_channel(lbm_buffered_channel_state_t *st,
   st->more = true;
   st->reader_closed = false;
   st->comment = false;
-  st->row = 0;
+  st->row = 1;
   st->column = 0;
 
   if (!st->mutex_initialized) {
@@ -310,7 +310,6 @@ bool string_read(lbm_char_channel_t *chan, char *res) {
     } else {
       st->column++;
     }
-
     st->read_pos = st->read_pos + 1;
   } else {
     st->more = false;
@@ -374,7 +373,7 @@ void lbm_create_string_char_channel(lbm_string_channel_state_t *st,
   st->write_pos = 0;
   st->more = false;
   st->comment = false;
-  st->row = 0;
+  st->row = 1;
   st->column = 0;
 
   chan->state = st;
@@ -404,7 +403,7 @@ void lbm_create_string_char_channel_size(lbm_string_channel_state_t *st,
   st->write_pos = 0;
   st->more = false;
   st->comment = false;
-  st->row = 0;
+  st->row = 1;
   st->column = 0;
 
   chan->state = st;
