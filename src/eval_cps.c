@@ -145,25 +145,6 @@ void lbm_request_gc(void) {
   gc_requested = true;
 }
 
-static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
-  lbm_value res = lbm_cons(head, tail);
-  if (lbm_is_symbol_merror(res)) {
-    lbm_gc_mark_phase(1, remember);
-    gc();
-    res = lbm_cons(head, tail);
-    if (lbm_is_symbol_merror(res)) {
-        error_ctx(ENC_SYM_MERROR);
-    }
-  }
-  return res;
-}
-
-#define CONS_WITH_GC(res, h, t, r)              \
-  (res) = cons_with_gc(h,t,r);                  \
-  if (lbm_is_symbol_merror(res)) {              \
-    return;                                     \
-  }
-
 #define DEFAULT_SLEEP_US  1000
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
@@ -191,11 +172,17 @@ static void usleep_nonsense(uint32_t us) {
   (void) us;
 }
 
+static bool dynamic_load_nonsense(const char *sym, const char **code) {
+  (void) sym;
+  (void) code;
+  return false;
+}
+
 static void (*usleep_callback)(uint32_t) = usleep_nonsense;
 static uint32_t (*timestamp_us_callback)(void) = NULL;
 static void (*ctx_done_callback)(eval_context_t *) = NULL;
 static int (*printf_callback)(const char *, ...) = NULL;
-static bool (*dynamic_load_callback)(const char *, const char **) = NULL;
+static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
 static void (*reader_done_callback)(lbm_cid cid) = NULL;
 
 void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
@@ -359,7 +346,20 @@ void done_reading(lbm_cid cid) {
   }
 }
 /****************************************************/
-/* Utilities                                        */
+/* Utilities used locally in this file              */
+
+static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
+  lbm_value res = lbm_cons(head, tail);
+  if (lbm_is_symbol_merror(res)) {
+    lbm_gc_mark_phase(1, remember);
+    gc();
+    res = lbm_cons(head, tail);
+    if (lbm_is_symbol_merror(res)) {
+        error_ctx(ENC_SYM_MERROR);
+    }
+  }
+  return res;
+}
 
 static void get_stack_ptr(eval_context_t *ctx, unsigned int n, lbm_uint **res) {
   if (n > ctx->K.sp) {
@@ -1413,8 +1413,7 @@ static void eval_callcc(eval_context_t *ctx) {
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cont_array);
   memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
 
-  lbm_value acont;
-  CONS_WITH_GC(acont, ENC_SYM_CONT, cont_array, cont_array);
+  lbm_value acont = cons_with_gc(ENC_SYM_CONT, cont_array, cont_array);
 
   /* Create an application */
   lbm_value fun_arg = lbm_cadr(ctx->curr_exp);
@@ -1940,9 +1939,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 
   lbm_stack_drop(&ctx->K, nargs+1);
 
-  lbm_value program =  ENC_SYM_NIL;
-  CONS_WITH_GC(program, exp, program, clo_env);
-
+  lbm_value program = cons_with_gc(exp, ENC_SYM_NIL, clo_env);
 
   lbm_cid cid = lbm_create_ctx_parent(program,
                                       clo_env,
@@ -2448,14 +2445,13 @@ static void cont_match_many(eval_context_t *ctx) {
 
   lbm_value r = ctx->r;
 
-  lbm_value rest_msgs;
-  lbm_value pats;
-  lbm_value exp;
-
-  lbm_pop_3(&ctx->K, &rest_msgs, &pats, &exp);
-
   if (lbm_type_of(r) == LBM_TYPE_SYMBOL &&
       (lbm_dec_sym(r) == SYM_NO_MATCH)) {
+    lbm_value *old_stack;
+    get_stack_ptr(ctx, 3, &old_stack);
+    lbm_value rest_msgs = old_stack[2];
+    lbm_value pats = old_stack[1];
+    lbm_value exp = old_stack[0];
 
     if (lbm_type_of(rest_msgs) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(rest_msgs) == SYM_NIL) {
@@ -2464,20 +2460,22 @@ static void cont_match_many(eval_context_t *ctx) {
 
     } else {
       /* try match the next one */
+      lbm_value car_rest_msgs;
+      lbm_value cdr_rest_msgs;
+      get_car_and_cdr(rest_msgs, &car_rest_msgs, &cdr_rest_msgs);
       lbm_uint *sptr = NULL;
-      stack_reserve(ctx, 6, &sptr);
-      sptr[0] = exp;
-      sptr[1] = pats;
-      sptr[2] = lbm_cdr(rest_msgs);
-      sptr[3] = MATCH_MANY;
-      sptr[4] = lbm_cdr(pats);
-      sptr[5] = MATCH;
-      ctx->r = lbm_car(rest_msgs);
+      stack_reserve(ctx, 3, &sptr);
+      old_stack[2] = cdr_rest_msgs;
+      sptr[0] = MATCH_MANY;
+      sptr[1] = lbm_cdr(pats);
+      sptr[2] = MATCH;
+      ctx->r = car_rest_msgs;
       ctx->app_cont = true;
     }
   } else {
   /* I think the else branch will be "do nothing" here. */
   /* We should just continue executing with the result in ctx->r already*/
+    lbm_stack_drop(&ctx->K, 3);
     ctx->app_cont = true;
   }
 }
@@ -2487,8 +2485,7 @@ static void cont_match(eval_context_t *ctx) {
   lbm_value patterns;
   lbm_value new_env;
   bool  do_gc = false;
-  lbm_pop(&ctx->K, &new_env); // restore enclosing environment
-  lbm_pop(&ctx->K, &patterns);
+  lbm_pop_2(&ctx->K, &new_env, &patterns); // restore enclosing environment
   ctx->curr_env = new_env;
 
   if (lbm_is_symbol_nil(patterns)) {
@@ -2508,28 +2505,28 @@ static void cont_match(eval_context_t *ctx) {
       body = n2;
       check_guard = true;
     }
-    if (match(pattern, e, &new_env, &do_gc)) {
-      if (check_guard) {
-        stack_push_3(&ctx->K, lbm_cdr(patterns), ctx->curr_env, MATCH);
-        stack_push_4(&ctx->K, new_env, body, e, MATCH_GUARD);
-        ctx->curr_env = new_env;
-        ctx->curr_exp = n1; // The guard
-      } else {
-        ctx->curr_env = new_env;
-        ctx->curr_exp = body;
-      }
-    } else if (do_gc) {
+    bool is_match = match(pattern, e, &new_env, &do_gc);
+    if (do_gc) {
       lbm_gc_mark_phase(2, patterns, e);
       gc();
       do_gc = false;
       new_env = ctx->curr_env;
-      match(pattern, e, &new_env, &do_gc);
+      is_match = match(pattern, e, &new_env, &do_gc);
       if (do_gc) {
         error_ctx(ENC_SYM_MERROR);
       }
+    }
+    if (is_match) {
       if (check_guard) {
-        stack_push_3(&ctx->K, lbm_cdr(patterns), ctx->curr_env, MATCH);
-        stack_push_4(&ctx->K, new_env, body, e, MATCH_GUARD);
+        lbm_value *sptr;
+        stack_reserve(ctx,7,&sptr);
+        sptr[0] = lbm_cdr(patterns);
+        sptr[1] = ctx->curr_env;
+        sptr[2] = MATCH;
+        sptr[3] = new_env;
+        sptr[4] = body;
+        sptr[5] = e;
+        sptr[6] = MATCH_GUARD;
         ctx->curr_env = new_env;
         ctx->curr_exp = n1; // The guard
       } else {
@@ -2560,8 +2557,7 @@ static void cont_map_first(eval_context_t *ctx) {
   lbm_value ls  = sptr[0];
   lbm_value env = sptr[1];
 
-  lbm_value elt;
-  CONS_WITH_GC(elt, ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
   sptr[2] = elt; // head of result list
   sptr[3] = elt; // tail of result list
   if (lbm_is_cons(ls)) {
@@ -2588,8 +2584,7 @@ static void cont_map_rest(eval_context_t *ctx) {
   lbm_value env = sptr[1];
   lbm_value t   = sptr[3];
 
-  lbm_value elt;
-  CONS_WITH_GC(elt, ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
   lbm_set_cdr(t, elt);
   sptr[3] = elt; // update tail of result list.
   if (lbm_is_cons(ls)) {
@@ -3048,8 +3043,7 @@ static void cont_read_append_continue(eval_context_t *ctx) {
       return;
     }
   }
-  lbm_value new_cell;
-  new_cell = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value new_cell = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
   if (lbm_is_symbol_merror(new_cell)) {
     lbm_channel_reader_close(str);
     return;
@@ -3214,19 +3208,15 @@ static void cont_read_backquote_result(eval_context_t *ctx) {
 }
 
 static void cont_read_commaat_result(eval_context_t *ctx) {
-  lbm_value cell1;
-  lbm_value cell2;
-  CONS_WITH_GC(cell2, ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
-  CONS_WITH_GC(cell1, ENC_SYM_COMMAAT, cell2, ENC_SYM_NIL);
+  lbm_value cell2 = cons_with_gc(ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value cell1 = cons_with_gc(ENC_SYM_COMMAAT, cell2, ENC_SYM_NIL);
   ctx->r = cell1;
   ctx->app_cont = true;
 }
 
 static void cont_read_comma_result(eval_context_t *ctx) {
-  lbm_value cell1;
-  lbm_value cell2;
-  CONS_WITH_GC(cell2, ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
-  CONS_WITH_GC(cell1, ENC_SYM_COMMA, cell2, ENC_SYM_NIL);
+  lbm_value cell2 = cons_with_gc(ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value cell1 = cons_with_gc(ENC_SYM_COMMA, cell2, ENC_SYM_NIL);
   ctx->r = cell1;
   ctx->app_cont = true;
 }
@@ -3647,10 +3637,8 @@ static void evaluation_step(void){
     if (eval_symbol(ctx, &s)) {
       ctx->app_cont = true;
       ctx->r = s;
-    } else if (dynamic_load_callback) {
-      dynamic_load(ctx);
     } else {
-      error_ctx(ENC_SYM_NOT_FOUND);
+      dynamic_load(ctx);
     }
     return;
   }
