@@ -372,18 +372,20 @@ void done_reading(lbm_cid cid) {
 static void get_stack_ptr(eval_context_t *ctx, unsigned int n, lbm_uint **res) {
   if (n > ctx->K.sp) {
     error_ctx(ENC_SYM_STACK_ERROR);
+  } else {
+    lbm_uint index = ctx->K.sp - n;
+    *res = &ctx->K.data[index];
   }
-  lbm_uint index = ctx->K.sp - n;
-  *res = &ctx->K.data[index];
 }
 
 static void stack_reserve(eval_context_t *ctx, unsigned int n, lbm_uint **res) {
   if (ctx->K.sp + n >= ctx->K.size) {
     error_ctx(ENC_SYM_STACK_ERROR);
+  } else {
+    lbm_uint *ptr = &ctx->K.data[ctx->K.sp];
+    ctx->K.sp += n;
+    *res = ptr;
   }
-  lbm_uint *ptr = &ctx->K.data[ctx->K.sp];
-  ctx->K.sp += n;
-  *res = ptr;
 }
 
 static void handle_flash_status(lbm_flash_status s) {
@@ -457,7 +459,7 @@ static void get_car_and_cdr(lbm_value a, lbm_value *a_car, lbm_value *a_cdr) {
     lbm_cons_t *cell = lbm_ref_cell(a);
     *a_car = cell->car;
     *a_cdr = cell->cdr;
-  } else  if (lbm_is_symbol_nil(a)) {
+  } else if (lbm_is_symbol_nil(a)) {
     *a_car = *a_cdr = ENC_SYM_NIL;
   } else {
     error_ctx(ENC_SYM_TERROR);
@@ -1462,7 +1464,7 @@ static void eval_define(eval_context_t *ctx) {
     } else if (sym_val >= RUNTIME_SYMBOLS_START) {
       sptr[1] = SET_GLOBAL_ENV;
       if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST) {
-        lbm_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH);
+        stack_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH);
       }
       ctx->curr_exp = val_exp;
       return;
@@ -2738,7 +2740,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
   }
 
   if (lbm_dec_u(grab_row0)) {
-    ctx->row0 = lbm_channel_row(chan);
+    ctx->row0 = (int32_t)lbm_channel_row(chan);
   }
 
   /* Attempt to extract tokens from the character stream */
