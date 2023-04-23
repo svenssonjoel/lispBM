@@ -298,10 +298,6 @@ void lbm_set_printf_callback(int (*prnt)(const char*, ...));
  * an undefined symbol
  */
 void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **));
-/** Set a callback that is run when reading source is finishes
- *  within a context
- */
-void lbm_set_reader_done_callback(void (*fptr)(lbm_cid));
 /** Get the CID of the currently executing context.
  *  Should be called from an extension where there is
  *  a guarantee that a context is running

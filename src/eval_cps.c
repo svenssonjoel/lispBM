@@ -178,35 +178,48 @@ static bool dynamic_load_nonsense(const char *sym, const char **code) {
   return false;
 }
 
+static uint32_t timestamp_nonsense(void) {
+  return 0;
+}
+
+static int printf_nonsense(const char *fmt, ...) {
+  (void) fmt;
+  return 0;
+}
+
+static void ctx_done_nonsense(eval_context_t *ctx) {
+  (void) ctx;
+}
+
 static void (*usleep_callback)(uint32_t) = usleep_nonsense;
-static uint32_t (*timestamp_us_callback)(void) = NULL;
-static void (*ctx_done_callback)(eval_context_t *) = NULL;
-static int (*printf_callback)(const char *, ...) = NULL;
+static uint32_t (*timestamp_us_callback)(void) = timestamp_nonsense;
+static void (*ctx_done_callback)(eval_context_t *) = ctx_done_nonsense;
+static int (*printf_callback)(const char *, ...) = printf_nonsense;;
 static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
-static void (*reader_done_callback)(lbm_cid cid) = NULL;
 
 void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
-  usleep_callback = fptr;
+  if (fptr == NULL) usleep_callback = usleep_nonsense;
+  else usleep_callback = fptr;
 }
 
 void lbm_set_timestamp_us_callback(uint32_t (*fptr)(void)) {
-  timestamp_us_callback = fptr;
+  if (fptr == NULL) timestamp_us_callback = timestamp_nonsense;
+  else timestamp_us_callback = fptr;
 }
 
 void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
-  ctx_done_callback = fptr;
+  if (fptr == NULL) ctx_done_callback = ctx_done_nonsense;
+  else ctx_done_callback = fptr;
 }
 
 void lbm_set_printf_callback(int (*fptr)(const char*, ...)){
-  printf_callback = fptr;
+  if (fptr == NULL) printf_callback = printf_nonsense;
+  else printf_callback = fptr;
 }
 
 void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
-  dynamic_load_callback = fptr;
-}
-
-void lbm_set_reader_done_callback(void (*fptr)(lbm_cid)) {
-  reader_done_callback = fptr;
+  if (fptr == NULL) dynamic_load_callback = dynamic_load_nonsense;
+  else  dynamic_load_callback = fptr;
 }
 
 static volatile lbm_event_t *lbm_events = NULL;
@@ -340,11 +353,6 @@ eval_context_t *lbm_get_current_context(void) {
   return ctx_running;
 }
 
-void done_reading(lbm_cid cid) {
-  if (reader_done_callback != NULL) {
-    reader_done_callback(cid);
-  }
-}
 /****************************************************/
 /* Utilities used locally in this file              */
 
@@ -730,9 +738,7 @@ static void finish_ctx(void) {
   }
   /* Drop the continuation stack immediately to free up lbm_memory */
   lbm_stack_free(&ctx_running->K);
-  if (ctx_done_callback) {
-    ctx_done_callback(ctx_running);
-  }
+  ctx_done_callback(ctx_running);
   if (lbm_memory_ptr_inside((lbm_uint*)ctx_running->error_reason)) {
     lbm_memory_free((lbm_uint*)ctx_running->error_reason);
   }
@@ -1234,9 +1240,7 @@ static int gc(void) {
   lbm_uint tstart = 0;
   lbm_uint tend = 0;
 
-  if (timestamp_us_callback) {
-    tstart = timestamp_us_callback();
-  }
+  tstart = timestamp_us_callback();
 
   gc_requested = false;
   lbm_gc_state_inc();
@@ -1275,19 +1279,15 @@ static int gc(void) {
 
   int r = lbm_gc_sweep_phase();
 
-  if (timestamp_us_callback) {
-    tend = timestamp_us_callback();
-  }
-
-  lbm_uint dur = 0;
-  if (tend >= tstart) {
-    dur = tend - tstart;
-  }
-
-  lbm_heap_new_gc_time(dur);
-
   lbm_heap_new_freelist_length();
 
+  tend = timestamp_us_callback();
+
+  lbm_uint dur = 0;
+  if (tend > tstart) {
+    dur = tend - tstart;
+    lbm_heap_new_gc_time(dur); // 0us is not a valid GC time.
+  }
   return r;
 }
 
@@ -1653,10 +1653,10 @@ static void eval_match(eval_context_t *ctx) {
     /* Someone wrote the program (match) */
     ctx->app_cont = true;
     ctx->r = ENC_SYM_NIL;
-    return;
   } else {
-    stack_push_3(&ctx->K, lbm_cdr(rest), ctx->curr_env, MATCH);
-    ctx->curr_exp = lbm_car(rest); /* Evaluate e next*/
+    lbm_value cdr_rest;
+    get_car_and_cdr(rest, &ctx->curr_exp, &cdr_rest);
+    stack_push_3(&ctx->K, cdr_rest, ctx->curr_env, MATCH);
   }
 }
 
@@ -2482,7 +2482,7 @@ static void cont_match(eval_context_t *ctx) {
     lbm_value n2      = lbm_cadr(lbm_cdr(match_case));
     lbm_value body;
     bool check_guard = false;
-    if (lbm_is_symbol_nil(n2)) {
+    if (lbm_is_symbol_nil(n2)) { // TODO: Not a very robust check.
       body = n1;
     } else {
       body = n2;
@@ -2654,7 +2654,6 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
     }
     lbm_channel_reader_close(str);
-    done_reading(ctx->id);
   }
 }
 
@@ -3094,7 +3093,6 @@ static void cont_read_expect_closepar(eval_context_t *ctx) {
     lbm_channel_reader_close(str);
     lbm_set_error_reason((char*)lbm_error_str_parse_close);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
-    done_reading(ctx->id);
   }
 }
 
@@ -3152,7 +3150,6 @@ static void cont_read_done(eval_context_t *ctx) {
   ctx->row0 = -1;
   ctx->row1 = -1;
   ctx->app_cont = true;
-  done_reading(ctx->id);
 }
 
 static void cont_read_quote_result(eval_context_t *ctx) {
