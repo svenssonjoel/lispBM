@@ -134,8 +134,6 @@ const char* lbm_error_str_flash_full = "Flash memory is full";
     /* continue executing statements below */   \
   }
 
-#define PRELIMINARY_GC_MEASURE 30
-
 static int gc(void);
 void error_ctx(lbm_value);
 eval_context_t *ctx_running = NULL;
@@ -1498,7 +1496,7 @@ static void eval_cond(eval_context_t *ctx) {
     lbm_value condition = lbm_car(cond1);
     lbm_value body = lbm_cadr(cond1);
     lbm_value rest;
-    WITH_GC(rest, lbm_cons(ENC_SYM_COND, lbm_cddr(ctx->curr_exp)));
+    rest = cons_with_gc(ENC_SYM_COND, lbm_cddr(ctx->curr_exp), ENC_SYM_NIL);
     lbm_uint *sptr = stack_reserve(ctx, 4);
     sptr[0] = rest;
     sptr[1] = body;
