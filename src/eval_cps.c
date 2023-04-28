@@ -194,7 +194,7 @@ static void ctx_done_nonsense(eval_context_t *ctx) {
 static void (*usleep_callback)(uint32_t) = usleep_nonsense;
 static uint32_t (*timestamp_us_callback)(void) = timestamp_nonsense;
 static void (*ctx_done_callback)(eval_context_t *) = ctx_done_nonsense;
-static int (*printf_callback)(const char *, ...) = printf_nonsense;;
+static int (*printf_callback)(const char *, ...) = printf_nonsense;
 static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
 
 void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
