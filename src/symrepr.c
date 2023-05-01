@@ -62,6 +62,8 @@ special_sym const special_symbols[] =  {
   {"set"          , SYM_SETVAR},
   {"setq"         , SYM_SETQ},
   {"move-to-flash", SYM_MOVE_TO_FLASH},
+  {"in-env"       , SYM_IN_ENV},
+  {"make-env"     , SYM_MAKE_ENV},
   {"exit-ok"      , SYM_EXIT_OK},
   {"exit-error"   , SYM_EXIT_ERROR},
   {"map"          , SYM_MAP},

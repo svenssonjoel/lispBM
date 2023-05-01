@@ -85,7 +85,9 @@ static jmp_buf error_jmp_buf;
 #define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(36)
 #define MOVE_LIST_TO_FLASH    CONTINUATION(37)
 #define CLOSE_LIST_IN_FLASH   CONTINUATION(38)
-#define NUM_CONTINUATIONS     39
+#define EVAL_IN_ENV           CONTINUATION(39)
+#define MAKE_ENV              CONTINUATION(40)
+#define NUM_CONTINUATIONS     41
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -311,7 +313,7 @@ static bool          eval_running = false;
 static volatile bool blocking_extension = false;
 mutex_t              blocking_extension_mutex;
 bool                 blocking_extension_mutex_initialized = false;
-static bool          is_atomic = false;
+static uint32_t      is_atomic = 0;
 
 typedef struct {
   eval_context_t *first;
@@ -1392,7 +1394,7 @@ static void eval_atomic(eval_context_t *ctx) {
   }
 
   stack_push(&ctx->K, EXIT_ATOMIC);
-  is_atomic = true;
+  is_atomic ++;
   eval_progn(ctx);
 }
 
@@ -1533,6 +1535,25 @@ static void eval_move_to_flash(eval_context_t *ctx) {
   lbm_value args = lbm_cdr(ctx->curr_exp);
   stack_push_2(&ctx->K, args, MOVE_TO_FLASH);
   ctx->app_cont = true;
+}
+
+// augment the local environment with the provided environment
+static void eval_in_env(eval_context_t *ctx) {
+  lbm_value args = lbm_cdr(ctx->curr_exp);
+  lbm_value env_exp = lbm_car(args);
+  lbm_value exp = lbm_cadr(args);
+
+  stack_push_2(&ctx->K, exp, EVAL_IN_ENV);
+  ctx->curr_exp = env_exp;
+}
+
+static void eval_make_env(eval_context_t *ctx) {
+  is_atomic ++;
+  lbm_value args = lbm_cdr(ctx->curr_exp);
+  lbm_value exp  = lbm_car(args);
+
+  stack_push_2(&ctx->K, lbm_get_env(), MAKE_ENV);
+  ctx->curr_exp = exp;
 }
 
 // Create a named location in an environment to later receive a value.
@@ -2525,7 +2546,7 @@ static void cont_match(eval_context_t *ctx) {
 }
 
 static void cont_exit_atomic(eval_context_t *ctx) {
-  is_atomic = false;
+  is_atomic --;
   ctx->app_cont = true;
 }
 
@@ -3494,6 +3515,24 @@ static void cont_close_list_in_flash(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static void cont_eval_in_env(eval_context_t *ctx) {
+  lbm_value exp;
+  lbm_pop(&ctx->K, &exp);
+  lbm_value new_env;
+  WITH_GC(new_env, lbm_list_copy(ctx->r));
+  lbm_list_append(new_env, ctx->curr_env);
+  ctx->curr_env = new_env;
+  ctx->curr_exp = exp;
+}
+
+static void cont_make_env(eval_context_t *ctx) {
+  lbm_value env;
+  lbm_pop(&ctx->K, &env);
+  ctx->r = lbm_get_env();
+  *lbm_get_env_ptr() = env;
+  ctx->app_cont = true;
+}
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -3538,6 +3577,8 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_move_val_to_flash_dispatch,
     cont_move_list_to_flash,
     cont_close_list_in_flash,
+    cont_eval_in_env,
+    cont_make_env,
   };
 
 /*********************************************************/
@@ -3566,6 +3607,8 @@ static const evaluator_fun evaluators[] =
    eval_var,
    eval_setq,
    eval_move_to_flash,
+   eval_in_env,
+   eval_make_env,
   };
 
 
@@ -3754,7 +3797,7 @@ void lbm_run_eval(void){
             ctx_running = NULL;
           } else {
             lbm_set_flags(LBM_FLAG_ATOMIC_MALFUNCTION);
-            is_atomic = false;
+            is_atomic = 0;
           }
         } else {
           if (gc_requested) {

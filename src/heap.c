@@ -948,20 +948,20 @@ lbm_value lbm_list_destructive_reverse(lbm_value list) {
 
 
 lbm_value lbm_list_copy(lbm_value list) {
-  lbm_value res = ENC_SYM_NIL;
-
   lbm_value curr = list;
+  lbm_uint n = lbm_list_length(list);
+  lbm_uint new_list = lbm_heap_allocate_list(n);
+  if (lbm_is_symbol(new_list)) return new_list;
+  lbm_value curr_targ = new_list;
 
   while (lbm_is_cons(curr)) {
-    lbm_value c = lbm_cons (lbm_car(curr), res);
-    if (lbm_type_of(c) == LBM_TYPE_SYMBOL) {
-      return ENC_SYM_MERROR;
-    }
-    res = c;
+    lbm_value v = lbm_car(curr);
+    lbm_set_car(curr_targ, v);
+    curr_targ = lbm_cdr(curr_targ);
     curr = lbm_cdr(curr);
   }
 
-  return lbm_list_destructive_reverse(res);
+  return new_list;
 }
 
 // Append for proper lists only

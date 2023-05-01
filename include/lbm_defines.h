@@ -187,7 +187,9 @@
 #define SYM_PROGN_VAR           0x111
 #define SYM_SETQ                0x112
 #define SYM_MOVE_TO_FLASH       0x113
-#define SPECIAL_FORMS_END       0x113
+#define SYM_IN_ENV              0x114
+#define SYM_MAKE_ENV            0x115
+#define SPECIAL_FORMS_END       0x115
 
 // Apply funs:
 // Get their arguments in evaluated form.
@@ -366,6 +368,7 @@
 #define ENC_SYM_PROGN_VAR           ENC_SYM(SYM_PROGN_VAR)
 #define ENC_SYM_SETQ                ENC_SYM(SYM_SETQ)
 #define ENC_SYM_MOVE_TO_FLASH       ENC_SYM(SYM_MOVE_TO_FLASH)
+#define ENC_SYM_IN_ENV              ENC_SYM(SYM_IN_ENV)
 
 #define ENC_SYM_SETVAR        ENC_SYM(SYM_SETVAR)
 #define ENC_SYM_READ          ENC_SYM(SYM_READ)
@@ -382,6 +385,9 @@
 #define ENC_SYM_EXIT_ERROR    ENC_SYM(SYM_EXIT_ERROR)
 #define ENC_SYM_MAP           ENC_SYM(SYM_MAP)
 #define ENC_SYM_REVERSE       ENC_SYM(SYM_REVERSE)
+#define ENC_SYM_GET_ENV       ENC_SYM(SYM_GET_ENV)
+#define ENC_SYM_SET_ENV       ENC_SYM(SYM_SET_ENV)
+
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)
 #define ENC_SYM_SUB           ENC_SYM(SYM_SUB)
