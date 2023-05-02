@@ -729,8 +729,7 @@ static bool drop_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
   return res;
 }
 
-/* End execution of the running context and add it to the
-   list of finished contexts. */
+/* End execution of the running context. */
 static void finish_ctx(void) {
 
   if (!ctx_running) {

@@ -1057,6 +1057,19 @@ The example above evaluates to 30.
 
 Example combining `in-env` and `make-env`:
 
+```clj
+(define lib
+  (make-env {
+   (define a 10)
+   (define b 20)
+   (define c 30)
+   }))
+
+
+(in-env lib (+ a b))
+```
+
+
 
 ---
 
