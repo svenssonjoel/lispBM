@@ -1013,6 +1013,53 @@ Functions can be moved to flash storage as well:
 (move-to-flash f)
 ```
 
+### make-env
+
+The `make-env` form allows you to create an environment as a value.
+The form of an `make-env` expression is `(make-env exp)`. When
+The result of running `(make-env exp)` is the resulting environment after
+evaluating the expression `exp`. The resulting environment is an association list.
+
+`make-env` can be used to encapsulate a set of bindings under a name.
+
+Example:
+
+```clj
+(define my-env (make-env {
+        (defun f (x) (+ x 1))
+        (defun g (x y) (+ x y))
+        }))
+```
+
+See `in-env` for how to evaluate expressions inside of a provided environment.
+
+---
+
+
+### in-env
+
+The `in-env` form allows the evaluation in an environment that has
+been augmented by an environment (association list) provided.
+The form of an `in-env` expression is `(in-env env-expr expr)`. Here the
+expression `expr` is evaluated with the local environemnt augmented with
+the result of `env-expr`. The resulting environment of a `make-env` application
+is compatible with the `env-expr` of `in-env` but any association list is ok.
+
+Example:
+
+```clj
+(define my-env '( (a . 10) (b . 20)))
+
+(in-env my-env (+ a b))
+```
+
+The example above evaluates to 30.
+
+Example combining `in-env` and `make-env`:
+
+
+---
+
 ## Lists and cons cells
 
 Lists are built using cons cells. A cons cell is represented by the lbm_cons_t struct in the
