@@ -269,7 +269,9 @@
 #define SYM_LIST_LENGTH         0x243
 #define SYM_RANGE               0x244
 #define SYM_REG_EVENT_HANDLER   0x245
-#define FUNDAMENTALS_END         0x245
+#define SYM_TAKE                0x246
+#define SYM_DROP                0x247
+#define FUNDAMENTALS_END         0x247
 
 
 
@@ -445,6 +447,9 @@
 #define ENC_SYM_LIST_LENGTH         ENC_SYM(SYM_LIST_LENGTH)
 #define ENC_SYM_RANGE               ENC_SYM(SYM_RANGE)
 #define ENC_SYM_REG_EVENT_HANDLER   ENC_SYM(SYM_REG_EVENT_HANDLER)
+#define ENC_SYM_TAKE                ENC_SYM(SYM_TAKE)
+#define ENC_SYM_DROP                ENC_SYM(SYM_DROP)
+
 
 
 #endif

@@ -947,18 +947,23 @@ lbm_value lbm_list_destructive_reverse(lbm_value list) {
 }
 
 
-lbm_value lbm_list_copy(lbm_value list) {
+lbm_value lbm_list_copy(int m, lbm_value list) {
   lbm_value curr = list;
   lbm_uint n = lbm_list_length(list);
-  lbm_uint new_list = lbm_heap_allocate_list(n);
+  lbm_uint copy_n = n;
+  if (m >= 0 && (lbm_uint)m < n) {
+    copy_n = (lbm_uint)m;
+  }
+  lbm_uint new_list = lbm_heap_allocate_list(copy_n);
   if (lbm_is_symbol(new_list)) return new_list;
   lbm_value curr_targ = new_list;
 
-  while (lbm_is_cons(curr)) {
+  while (lbm_is_cons(curr) && copy_n > 0) {
     lbm_value v = lbm_car(curr);
     lbm_set_car(curr_targ, v);
     curr_targ = lbm_cdr(curr_targ);
     curr = lbm_cdr(curr);
+    copy_n --;
   }
 
   return new_list;
@@ -981,6 +986,17 @@ lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
   }
   return ENC_SYM_EERROR;
 }
+
+lbm_value lbm_list_drop(unsigned int n, lbm_value ls) {
+  lbm_value curr = ls;
+  while (lbm_type_of_functional(curr) == LBM_TYPE_CONS &&
+         n > 0) {
+    curr = lbm_cdr(curr);
+    n --;
+  }
+  return curr;
+}
+
 
 // Arrays are part of the heap module because their lifespan is managed
 // by the garbage collector. The data in the array is not stored

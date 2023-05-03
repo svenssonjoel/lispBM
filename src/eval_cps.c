@@ -2013,7 +2013,7 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
 
     lbm_value prg_copy;
 
-    WITH_GC(prg_copy, lbm_list_copy(prg));
+    WITH_GC(prg_copy, lbm_list_copy(-1, prg));
     lbm_stack_drop(&ctx->K, nargs+1);
 
     if (ctx->K.sp > nargs+2) { // if there is a continuation
@@ -3518,7 +3518,7 @@ static void cont_eval_in_env(eval_context_t *ctx) {
   lbm_value exp;
   lbm_pop(&ctx->K, &exp);
   lbm_value new_env;
-  WITH_GC(new_env, lbm_list_copy(ctx->r));
+  WITH_GC(new_env, lbm_list_copy(-1,ctx->r));
   lbm_list_append(new_env, ctx->curr_env);
   ctx->curr_env = new_env;
   ctx->curr_exp = exp;
@@ -3527,8 +3527,14 @@ static void cont_eval_in_env(eval_context_t *ctx) {
 static void cont_make_env(eval_context_t *ctx) {
   lbm_value env;
   lbm_pop(&ctx->K, &env);
-  ctx->r = lbm_get_env();
+  lbm_value augmented_env = lbm_get_env();
+  unsigned int augmented_len = lbm_list_length(augmented_env);
+  unsigned int env_len = lbm_list_length(env);
+  unsigned int diff = augmented_len - env_len;
+  lbm_value res;
+  WITH_GC(res, lbm_list_copy((int)diff, augmented_env));
   *lbm_get_env_ptr() = env;
+  ctx->r = res;
   ctx->app_cont = true;
 }
 

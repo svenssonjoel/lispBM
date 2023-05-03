@@ -694,13 +694,19 @@ int main(int argc, char **argv) {
     printf("Error creating evaluation thread\n");
     return 1;
   }
-
+  sleep_callback(50);
   lbm_cid cid;
 
   lbm_pause_eval_with_gc(20);
+  int wait_count = 0;
   while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-    printf("wait for pause init\n");
-    sleep_callback(1000);
+    if (wait_count >= 10) {
+      printf("Could not pause the evaluator\n");
+      return 1;
+    }
+    printf("Wait for pause init\n");
+    sleep_callback(100);
+    wait_count++;
   }
   if (stream_source) {
     lbm_create_buffered_char_channel(&buffered_tok_state,
