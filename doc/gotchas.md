@@ -99,7 +99,7 @@ the value `a` in its body. However:
 #
 ```
 
-This happens because at the time when we define f, a is the global
+This happens because at the time when we define `f`, `a` is in the global
 environment and thus not captured into the closure. But when we try to
 execute `f` in the env `e1`, `a` is in the local environment which at the
 time of evaluation of a function is ignored. The evaluator assumes that
