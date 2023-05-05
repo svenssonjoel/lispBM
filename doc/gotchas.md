@@ -14,7 +14,7 @@ expressions. This local environment is also an association list `(symbol . value
 
 ### Closure Gotcha!
 
-When a closure is created the a reference to the local environment is stored in the closure.
+When a closure is created, a reference to the local environment is stored in the closure object.
 This is for efficiency reasons as traversing the expression and pulling in all free variables
 would be a somewhat costly operation (order of the size of the expression) while saving a reference
 to the local environment is an O(1) operation. This essentially trades some space (as it potentially
