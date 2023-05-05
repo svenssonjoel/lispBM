@@ -2654,8 +2654,7 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
     lbm_value sym;
     lbm_pop_3(&ctx->K, &sym, &env, &s);
     ctx->curr_env = env;
-    ctx->curr_exp = ctx->r;
-    ctx->app_cont = false;
+    ctx->app_cont = true; // Program evaluated and result is in ctx->r.
   } else if (ctx->K.sp > 5 && ctx->K.data[ctx->K.sp - 5] == READ_DONE) {
     /* successfully finished reading a program  (CASE 2) */
     ctx->r = ENC_SYM_CLOSEPAR;
