@@ -3276,14 +3276,26 @@ static void cont_application_start(eval_context_t *ctx) {
       lbm_value arg0, arg_rest;
       get_car_and_cdr(args, &arg0, &arg_rest);
       sptr[1] = exp;
-      lbm_value *reserved = stack_reserve(ctx, 4);
-      reserved[0] = clo_env;
-      reserved[1] = params;
-      reserved[2] = arg_rest;
-      reserved[3] = CLOSURE_ARGS;
-      ctx->curr_exp = arg0;
-      ctx->curr_env = arg_env;
-      ctx->app_cont = false;
+      if (lbm_is_symbol_nil(args)) {
+        if (lbm_is_symbol_nil(params)) {
+          // No param closure
+          ctx->curr_exp = exp;
+          ctx->curr_env = clo_env; // empty
+          ctx->app_cont = false;
+        } else {
+          ctx->app_cont = true;
+        }
+        lbm_stack_drop(&ctx->K, 2);
+      } else {
+        lbm_value *reserved = stack_reserve(ctx, 4);
+        reserved[0] = clo_env;
+        reserved[1] = params;
+        reserved[2] = arg_rest;
+        reserved[3] = CLOSURE_ARGS;
+        ctx->curr_exp = arg0;
+        ctx->curr_env = arg_env;
+        ctx->app_cont = false;
+      }
     } break;
     default:
       sptr[1] = lbm_enc_u(0);
