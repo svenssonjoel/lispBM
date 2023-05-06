@@ -1,4 +1,4 @@
-De# LBM Gotchas and Caveats
+# LBM Gotchas and Caveats
 
 This document collects caveats and gotchas as they are discovered. Hopefully these will
 also be given efficient solutions at some points in which case the solution to that gotcha
