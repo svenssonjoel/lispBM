@@ -1,7 +1,7 @@
-# LBM Gotchas and Caveats
+De# LBM Gotchas and Caveats
 
 This document collects caveats and gotchas as they are discovered. Hopefully these will
-also be given efficient solutions at some points in which case the sollution to that gotcha
+also be given efficient solutions at some points in which case the solution to that gotcha
 will also be documented here.
 
 If you find any more gotchas, please let me know how to trigger them! Would be much appreciated.
