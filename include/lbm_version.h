@@ -27,11 +27,15 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 12
+#define LBM_MINOR_VERSION 13
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+MAJ 5 2023: Version 0.13.0
+  - Changed behavior of closure application to zero args. Used to be equivalent
+    to application to nil.
 
 APR 30 2023: Version 0.12.0
   - added make-env and in-env for a kind of namespace management.
