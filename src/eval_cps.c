@@ -85,9 +85,7 @@ static jmp_buf error_jmp_buf;
 #define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(36)
 #define MOVE_LIST_TO_FLASH    CONTINUATION(37)
 #define CLOSE_LIST_IN_FLASH   CONTINUATION(38)
-#define EVAL_IN_ENV           CONTINUATION(39)
-#define MAKE_ENV              CONTINUATION(40)
-#define NUM_CONTINUATIONS     41
+#define NUM_CONTINUATIONS     39
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -1557,25 +1555,6 @@ static void eval_move_to_flash(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-// augment the local environment with the provided environment
-static void eval_in_env(eval_context_t *ctx) {
-  lbm_value args = lbm_cdr(ctx->curr_exp);
-  lbm_value env_exp = lbm_car(args);
-  lbm_value exp = lbm_cadr(args);
-
-  stack_push_2(&ctx->K, exp, EVAL_IN_ENV);
-  ctx->curr_exp = env_exp;
-}
-
-static void eval_make_env(eval_context_t *ctx) {
-  is_atomic ++;
-  lbm_value args = lbm_cdr(ctx->curr_exp);
-  lbm_value exp  = lbm_car(args);
-
-  stack_push_2(&ctx->K, lbm_get_env(), MAKE_ENV);
-  ctx->curr_exp = exp;
-}
-
 // Create a named location in an environment to later receive a value.
 static int create_binding_location(lbm_value key, lbm_value *env) {
 
@@ -2031,7 +2010,6 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     lbm_value app_cont;
     lbm_value app_cont_prg;
     lbm_value new_prg;
-
     lbm_value prg_copy;
 
     WITH_GC(prg_copy, lbm_list_copy(-1, prg));
@@ -3531,30 +3509,6 @@ static void cont_close_list_in_flash(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static void cont_eval_in_env(eval_context_t *ctx) {
-  lbm_value exp;
-  lbm_pop(&ctx->K, &exp);
-  lbm_value new_env;
-  WITH_GC(new_env, lbm_list_copy(-1,ctx->r));
-  lbm_list_append(new_env, ctx->curr_env);
-  ctx->curr_env = new_env;
-  ctx->curr_exp = exp;
-}
-
-static void cont_make_env(eval_context_t *ctx) {
-  lbm_value env;
-  lbm_pop(&ctx->K, &env);
-  lbm_value augmented_env = lbm_get_env();
-  unsigned int augmented_len = lbm_list_length(augmented_env);
-  unsigned int env_len = lbm_list_length(env);
-  unsigned int diff = augmented_len - env_len;
-  lbm_value res;
-  WITH_GC(res, lbm_list_copy((int)diff, augmented_env));
-  *lbm_get_env_ptr() = env;
-  ctx->r = res;
-  ctx->app_cont = true;
-}
-
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -3599,8 +3553,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_move_val_to_flash_dispatch,
     cont_move_list_to_flash,
     cont_close_list_in_flash,
-    cont_eval_in_env,
-    cont_make_env,
   };
 
 /*********************************************************/
@@ -3629,8 +3581,6 @@ static const evaluator_fun evaluators[] =
    eval_var,
    eval_setq,
    eval_move_to_flash,
-   eval_in_env,
-   eval_make_env,
   };
 
 
