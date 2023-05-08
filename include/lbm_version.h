@@ -37,6 +37,7 @@ MAJ 5 2023: Version 0.13.0
   - Changed behavior of closure application to zero args. Used to be equivalent
     to application to nil.
   - Removed make-env and in-env.
+  - Refactoring for readability. allocate_closure in eval_cps.
 
 APR 30 2023: Version 0.12.0
   - added make-env and in-env for a kind of namespace management.
