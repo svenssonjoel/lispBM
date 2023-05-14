@@ -354,6 +354,21 @@ eval_context_t *lbm_get_current_context(void) {
 /****************************************************/
 /* Utilities used locally in this file              */
 
+// cons and cons_with_gc could add head, tail to mark list by default.
+// potential imrpovement in readability at some application points.
+
+static lbm_value cons(lbm_value head, lbm_value tail) {
+  lbm_value res = lbm_cons(head, tail);
+  if (lbm_is_symbol_merror(res)) {
+    gc();
+    res = lbm_cons(head,tail);
+    if (lbm_is_symbol_merror(res)) {
+      error_ctx(ENC_SYM_MERROR);
+    }
+  }
+  return res;
+}
+
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
   lbm_value res = lbm_cons(head, tail);
   if (lbm_is_symbol_merror(res)) {
@@ -592,31 +607,23 @@ bool create_string_channel(char *str, lbm_value *res) {
     return false;
   }
 
-  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+  lbm_create_string_char_channel(st, chan, str);
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE);
   if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
     lbm_memory_free((lbm_uint*)st);
     lbm_memory_free((lbm_uint*)chan);
     return false;
   }
 
-  lbm_create_string_char_channel(st, chan, str);
-
-  lbm_set_car(cell, (lbm_uint)chan);
-  lbm_set_cdr(cell, lbm_enc_sym(SYM_CHANNEL_TYPE));
-  cell = lbm_set_ptr_type(cell, LBM_TYPE_CHANNEL);
   *res = cell;
   return true;
 }
 
 bool lift_char_channel(lbm_char_channel_t *chan , lbm_value *res) {
- lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS);
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE);
   if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
     return false;
   }
-
-  lbm_set_car(cell, (lbm_uint)chan);
-  lbm_set_cdr(cell, lbm_enc_sym(SYM_CHANNEL_TYPE));
-  cell = lbm_set_ptr_type(cell, LBM_TYPE_CHANNEL);
   *res = cell;
   return true;
 }
@@ -1516,7 +1523,7 @@ static void eval_cond(eval_context_t *ctx) {
     lbm_value condition = lbm_car(cond1);
     lbm_value body = lbm_cadr(cond1);
     lbm_value rest;
-    rest = cons_with_gc(ENC_SYM_COND, lbm_cddr(ctx->curr_exp), ENC_SYM_NIL);
+    rest = cons(ENC_SYM_COND, lbm_cddr(ctx->curr_exp));
     lbm_uint *sptr = stack_reserve(ctx, 4);
     sptr[0] = rest;
     sptr[1] = body;
@@ -1936,8 +1943,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
   while (lbm_is_cons(curr_param) &&
          i <= nargs) {
 
-    lbm_value entry;
-    WITH_GC_RMBR(entry,lbm_cons(lbm_car(curr_param),args[i]), 1, clo_env);
+    lbm_value entry = cons_with_gc(lbm_car(curr_param), args[1], clo_env);
 
     lbm_value aug_env;
     WITH_GC_RMBR(aug_env,lbm_cons(entry, clo_env),2, clo_env,entry);
@@ -2016,7 +2022,7 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     lbm_stack_drop(&ctx->K, nargs+1);
 
     if (ctx->K.sp > nargs+2) { // if there is a continuation
-      WITH_GC_RMBR(app_cont, lbm_cons(ENC_SYM_APP_CONT, ENC_SYM_NIL), 1, prg_copy);
+      app_cont = cons_with_gc(ENC_SYM_APP_CONT, ENC_SYM_NIL, prg_copy);
       WITH_GC_RMBR(app_cont_prg, lbm_cons(app_cont, ENC_SYM_NIL), 2, app_cont, prg_copy);
       new_prg = lbm_list_append(app_cont_prg, ctx->program);
       new_prg = lbm_list_append(prg_copy, new_prg);
@@ -2110,7 +2116,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     if (lbm_str_to_symbol("x", &sym)) {
       lbm_value *sptr = get_stack_ptr(ctx, 2);
       // Store params and body on stack temporarily to keep them safe from gc.
-      WITH_GC(sptr[0], lbm_cons(lbm_enc_sym(sym), ENC_SYM_NIL));
+      sptr[0] = cons(lbm_enc_sym(sym), ENC_SYM_NIL);
       WITH_GC(sptr[1], lbm_heap_allocate_list_init(3,
                                                 ENC_SYM_MAP,
                                                 args[0],
@@ -2133,8 +2139,7 @@ static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
 
     lbm_value new_list = ENC_SYM_NIL;
     while (lbm_is_cons(curr)) {
-      lbm_value tmp;
-      WITH_GC_RMBR(tmp, lbm_cons(lbm_car(curr), new_list), 1, new_list);
+      lbm_value tmp = cons_with_gc(lbm_car(curr), new_list, new_list);
       new_list = tmp;
       curr = lbm_cdr(curr);
     }
@@ -2540,7 +2545,7 @@ static void cont_map_first(eval_context_t *ctx) {
   lbm_value ls  = sptr[0];
   lbm_value env = sptr[1];
 
-  lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value elt = cons(ctx->r, ENC_SYM_NIL);
   sptr[2] = elt; // head of result list
   sptr[3] = elt; // tail of result list
   if (lbm_is_cons(ls)) {
@@ -2566,7 +2571,7 @@ static void cont_map_rest(eval_context_t *ctx) {
   lbm_value env = sptr[1];
   lbm_value t   = sptr[3];
 
-  lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value elt = cons(ctx->r, ENC_SYM_NIL);
   lbm_set_cdr(t, elt);
   sptr[3] = elt; // update tail of result list.
   if (lbm_is_cons(ls)) {
@@ -3021,7 +3026,7 @@ static void cont_read_append_continue(eval_context_t *ctx) {
       return;
     }
   }
-  lbm_value new_cell = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value new_cell = cons(ctx->r, ENC_SYM_NIL);
   if (lbm_is_symbol_merror(new_cell)) {
     lbm_channel_reader_close(str);
     return;
@@ -3183,15 +3188,15 @@ static void cont_read_backquote_result(eval_context_t *ctx) {
 }
 
 static void cont_read_commaat_result(eval_context_t *ctx) {
-  lbm_value cell2 = cons_with_gc(ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
-  lbm_value cell1 = cons_with_gc(ENC_SYM_COMMAAT, cell2, ENC_SYM_NIL);
+  lbm_value cell2 = cons(ctx->r,ENC_SYM_NIL);
+  lbm_value cell1 = cons_with_gc(ENC_SYM_COMMAAT, cell2, cell2);
   ctx->r = cell1;
   ctx->app_cont = true;
 }
 
 static void cont_read_comma_result(eval_context_t *ctx) {
-  lbm_value cell2 = cons_with_gc(ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
-  lbm_value cell1 = cons_with_gc(ENC_SYM_COMMA, cell2, ENC_SYM_NIL);
+  lbm_value cell2 = cons(ctx->r,ENC_SYM_NIL);
+  lbm_value cell1 = cons_with_gc(ENC_SYM_COMMA, cell2, cell2);
   ctx->r = cell1;
   ctx->app_cont = true;
 }
@@ -3228,8 +3233,7 @@ static void cont_application_start(eval_context_t *ctx) {
         get_car_and_cdr(curr_param, &car_curr_param, &cdr_curr_param);
         get_car_and_cdr(curr_arg, &car_curr_arg, &cdr_curr_arg);
 
-        lbm_value entry;
-        WITH_GC_RMBR(entry,lbm_cons(car_curr_param,car_curr_arg), 1, expand_env);
+        lbm_value entry = cons_with_gc(car_curr_param, car_curr_arg, expand_env);
 
         lbm_value aug_env;
         WITH_GC_RMBR(aug_env,lbm_cons(entry, expand_env), 2, expand_env, entry);
