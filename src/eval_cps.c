@@ -358,10 +358,10 @@ eval_context_t *lbm_get_current_context(void) {
 // potential imrpovement in readability at some application points.
 
 static lbm_value cons(lbm_value head, lbm_value tail) {
-  lbm_value res = lbm_cons(head, tail);
+  lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
   if (lbm_is_symbol_merror(res)) {
     gc();
-    res = lbm_cons(head,tail);
+    res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head,tail);
     if (lbm_is_symbol_merror(res)) {
       error_ctx(ENC_SYM_MERROR);
     }
@@ -370,11 +370,11 @@ static lbm_value cons(lbm_value head, lbm_value tail) {
 }
 
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
-  lbm_value res = lbm_cons(head, tail);
+  lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
   if (lbm_is_symbol_merror(res)) {
     lbm_gc_mark_phase(1, remember);
     gc();
-    res = lbm_cons(head, tail);
+    res = lbm_heap_allocate_cell(LBM_TYPE_CONS,head, tail);
     if (lbm_is_symbol_merror(res)) {
         error_ctx(ENC_SYM_MERROR);
     }
@@ -2181,78 +2181,52 @@ static const apply_fun fun_table[] =
 
 
 static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_count) {
+  /* If arriving here, we know that the fun is a symbol.
+   *  and can be a built in operation or an extension.
+   */
   lbm_value fun = fun_args[0];
-  if (lbm_is_continuation(fun)) {
 
-    lbm_value c = lbm_cdr(fun); /* should be the continuation */
+  lbm_uint fun_val = lbm_dec_sym(fun);
+  lbm_uint apply_val = fun_val - APPLY_FUNS_START;
+  lbm_uint fund_val  = fun_val - FUNDAMENTALS_START;
 
-    if (!lbm_is_array_r(c)) {
-      error_ctx(ENC_SYM_FATAL_ERROR);
+  if (apply_val <= (APPLY_FUNS_END - APPLY_FUNS_START)) {
+    fun_table[apply_val](&fun_args[1], arg_count, ctx);
+  } else if (fund_val <= (FUNDAMENTALS_END - FUNDAMENTALS_START)) {
+    lbm_value res;
+    WITH_GC(res, fundamental_table[fund_val](&fun_args[1], arg_count, ctx));
+    if (lbm_is_error(res)) {
+      error_ctx(res);
     }
-
-    lbm_value arg = ENC_SYM_NIL;
-    if (arg_count == 1) {
-      arg = fun_args[1];
-    } else if (arg_count > 1) {
-      lbm_set_error_reason((char*)lbm_error_str_num_args);
+    lbm_stack_drop(&ctx->K, arg_count+1);
+    ctx->app_cont = true;
+    ctx->r = res;
+  } else {
+    // It may be an extension
+    extension_fptr f = lbm_get_extension(fun_val);
+    if (f == NULL) {
       error_ctx(ENC_SYM_EERROR);
     }
-    // zero argument continuation application is fine! (defaults to a nil arg)
-    lbm_stack_clear(&ctx->K);
 
-    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(c);
-
-    ctx->K.sp = arr->size / sizeof(lbm_uint);
-    memcpy(ctx->K.data, arr->data, arr->size);
-
-    ctx->r = arg;
-    ctx->app_cont = true;
-  } else if (lbm_type_of(fun) == LBM_TYPE_SYMBOL) {
-    /* eval_cps specific operations */
-    lbm_uint fun_val = lbm_dec_sym(fun);
-    lbm_uint apply_val = fun_val - APPLY_FUNS_START;
-    lbm_uint fund_val  = fun_val - FUNDAMENTALS_START;
-
-    if (apply_val <= (APPLY_FUNS_END - APPLY_FUNS_START)) {
-      fun_table[apply_val](&fun_args[1], arg_count, ctx);
-    } else if (fund_val <= (FUNDAMENTALS_END - FUNDAMENTALS_START)) {
-      lbm_value res;
-      WITH_GC(res, fundamental_table[fund_val](&fun_args[1], arg_count, ctx));
-      if (lbm_is_error(res)) {
-        error_ctx(res);
-      }
-      lbm_stack_drop(&ctx->K, arg_count+1);
-      ctx->app_cont = true;
-      ctx->r = res;
-    } else {
-      // It may be an extension
-      extension_fptr f = lbm_get_extension(fun_val);
-      if (f == NULL) {
-        error_ctx(ENC_SYM_EERROR);
-      }
-
-      lbm_value ext_res;
-      WITH_GC(ext_res, f(&fun_args[1], arg_count));
-      if (lbm_is_error(ext_res)) { //Error other than merror
-        error_ctx(ext_res);
-      }
-      lbm_stack_drop(&ctx->K, arg_count + 1);
-
-      if (blocking_extension) {
-        blocking_extension = false;
-        ctx->timestamp = timestamp_us_callback();
-        ctx->sleep_us = 0;
-        ctx->app_cont = true;
-        enqueue_ctx(&blocked,ctx);
-        ctx_running = NULL;
-        mutex_unlock(&blocking_extension_mutex);
-      } else {
-        ctx->app_cont = true;
-        ctx->r = ext_res;
-      }
+    lbm_value ext_res;
+    WITH_GC(ext_res, f(&fun_args[1], arg_count));
+    if (lbm_is_error(ext_res)) { //Error other than merror
+      error_ctx(ext_res);
     }
-  } else {
-    error_ctx(ENC_SYM_EERROR);
+    lbm_stack_drop(&ctx->K, arg_count + 1);
+
+    if (blocking_extension) {
+      blocking_extension = false;
+      ctx->timestamp = timestamp_us_callback();
+      ctx->sleep_us = 0;
+      ctx->app_cont = true;
+      enqueue_ctx(&blocked,ctx);
+      ctx_running = NULL;
+      mutex_unlock(&blocking_extension_mutex);
+    } else {
+      ctx->app_cont = true;
+      ctx->r = ext_res;
+    }
   }
 }
 
@@ -3214,6 +3188,40 @@ static void cont_application_start(eval_context_t *ctx) {
 
   if (lbm_is_cons(ctx->r)) {
     switch (lbm_car(ctx->r)) {
+    case ENC_SYM_CONT:{
+      /* Continuation created using call-cc.
+       * ((SYM_CONT . cont-array) arg0 )
+       */
+      lbm_value c = lbm_cdr(ctx->r); /* should be the continuation array*/
+
+      if (!lbm_is_array_r(c)) {
+        error_ctx(ENC_SYM_FATAL_ERROR);
+      }
+
+      lbm_uint arg_count = lbm_list_length(args);
+      lbm_value arg = ENC_SYM_NIL;
+      switch (arg_count) {
+      case 0:
+        arg = ENC_SYM_NIL;
+        break;
+      case 1:
+        arg = lbm_car(args);
+        break;
+      default:
+        lbm_set_error_reason((char*)lbm_error_str_num_args);
+        error_ctx(ENC_SYM_EERROR);
+      }
+      lbm_stack_clear(&ctx->K);
+
+      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(c);
+
+      ctx->K.sp = arr->size / sizeof(lbm_uint);
+      memcpy(ctx->K.data, arr->data, arr->size);
+
+      ctx->curr_exp = arg;
+      ctx->app_cont = false;
+      break;
+    }
     case ENC_SYM_MACRO:{
       /*
        * Perform macro expansion.
@@ -3286,15 +3294,14 @@ static void cont_application_start(eval_context_t *ctx) {
       }
     } break;
     default:
-      sptr[1] = lbm_enc_u(0);
-      stack_push(&ctx->K, args);
-      cont_application_args(ctx);
-      break;
+      error_ctx(ENC_SYM_EERROR);
     }
-  } else {
+  } else if (lbm_is_symbol(ctx->r)) {
     sptr[1] = lbm_enc_u(0);
     stack_push(&ctx->K, args);
     cont_application_args(ctx);
+  } else {
+    error_ctx(ENC_SYM_EERROR);
   }
 }
 
