@@ -2230,8 +2230,6 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
   }
 }
 
-// Caveat: Application of a closure to 0 arguments if
-// the same as applying it to NIL.
 static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_uint* sptr = get_stack_ptr(ctx, 5);
 
@@ -2294,8 +2292,8 @@ static void cont_application_args(eval_context_t *ctx) {
   lbm_uint *sptr = get_stack_ptr(ctx, 3);
 
   lbm_value env = sptr[0];
-  lbm_value count = sptr[1];
-  lbm_value rest = sptr[2];
+  lbm_value rest = sptr[1];
+  lbm_value count = sptr[2];
   lbm_value arg = ctx->r;
 
   ctx->curr_env = env;
@@ -2310,8 +2308,8 @@ static void cont_application_args(eval_context_t *ctx) {
     lbm_value car_rest, cdr_rest;
     get_car_and_cdr(rest, &car_rest, &cdr_rest);
     sptr[1] = env;
-    sptr[2] = count + (1 << LBM_VAL_SHIFT); // Increment on encoded uint
-    stack_push_2(&ctx->K,cdr_rest, APPLICATION_ARGS);
+    sptr[2] = cdr_rest;
+    stack_push_2(&ctx->K, count + (1 << LBM_VAL_SHIFT), APPLICATION_ARGS);
     ctx->curr_exp = car_rest;
   }
 }
@@ -3182,12 +3180,45 @@ static void cont_application_start(eval_context_t *ctx) {
    * ctx->r  = function
    */
 
-  lbm_uint *sptr = get_stack_ptr(ctx, 2);
-
-  lbm_value args = (lbm_value)sptr[1];
-
-  if (lbm_is_cons(ctx->r)) {
+  if (lbm_is_symbol(ctx->r)) {
+    stack_push(&ctx->K, lbm_enc_u(0));
+    cont_application_args(ctx);
+  } else if (lbm_is_cons(ctx->r)) {
+    lbm_uint *sptr = get_stack_ptr(ctx, 2);
+    lbm_value args = (lbm_value)sptr[1];
     switch (lbm_car(ctx->r)) {
+    case ENC_SYM_CLOSURE: {
+      lbm_value cdr_fun = lbm_cdr(ctx->r);
+      lbm_value params, cddr_fun;
+      get_car_and_cdr(cdr_fun, &params, &cddr_fun);
+      lbm_value exp, cdddr_fun = lbm_cdr(cddr_fun);
+      get_car_and_cdr(cddr_fun, &exp, &cdddr_fun);
+      lbm_value clo_env = lbm_car(cdddr_fun);
+      lbm_value arg_env = (lbm_value)sptr[0];
+      lbm_value arg0, arg_rest;
+      get_car_and_cdr(args, &arg0, &arg_rest);
+      sptr[1] = exp;
+      if (lbm_is_symbol_nil(args)) {
+        if (lbm_is_symbol_nil(params)) {
+          // No param closure
+          ctx->curr_exp = exp;
+          ctx->curr_env = clo_env; // empty
+          ctx->app_cont = false;
+        } else {
+          ctx->app_cont = true;
+        }
+        lbm_stack_drop(&ctx->K, 2);
+      } else {
+        lbm_value *reserved = stack_reserve(ctx, 4);
+        reserved[0] = clo_env;
+        reserved[1] = params;
+        reserved[2] = arg_rest;
+        reserved[3] = CLOSURE_ARGS;
+        ctx->curr_exp = arg0;
+        ctx->curr_env = arg_env;
+        ctx->app_cont = false;
+      }
+    } break;
     case ENC_SYM_CONT:{
       /* Continuation created using call-cc.
        * ((SYM_CONT . cont-array) arg0 )
@@ -3261,45 +3292,9 @@ static void cont_application_start(eval_context_t *ctx) {
 
       ctx->app_cont = false;
     } break;
-    case ENC_SYM_CLOSURE: {
-      lbm_value cdr_fun = lbm_cdr(ctx->r);
-      lbm_value params, cddr_fun;
-      get_car_and_cdr(cdr_fun, &params, &cddr_fun);
-      lbm_value exp, cdddr_fun = lbm_cdr(cddr_fun);
-      get_car_and_cdr(cddr_fun, &exp, &cdddr_fun);
-      lbm_value clo_env = lbm_car(cdddr_fun);
-      lbm_value arg_env = (lbm_value)sptr[0];
-      lbm_value arg0, arg_rest;
-      get_car_and_cdr(args, &arg0, &arg_rest);
-      sptr[1] = exp;
-      if (lbm_is_symbol_nil(args)) {
-        if (lbm_is_symbol_nil(params)) {
-          // No param closure
-          ctx->curr_exp = exp;
-          ctx->curr_env = clo_env; // empty
-          ctx->app_cont = false;
-        } else {
-          ctx->app_cont = true;
-        }
-        lbm_stack_drop(&ctx->K, 2);
-      } else {
-        lbm_value *reserved = stack_reserve(ctx, 4);
-        reserved[0] = clo_env;
-        reserved[1] = params;
-        reserved[2] = arg_rest;
-        reserved[3] = CLOSURE_ARGS;
-        ctx->curr_exp = arg0;
-        ctx->curr_env = arg_env;
-        ctx->app_cont = false;
-      }
-    } break;
     default:
       error_ctx(ENC_SYM_EERROR);
     }
-  } else if (lbm_is_symbol(ctx->r)) {
-    sptr[1] = lbm_enc_u(0);
-    stack_push(&ctx->K, args);
-    cont_application_args(ctx);
   } else {
     error_ctx(ENC_SYM_EERROR);
   }

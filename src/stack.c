@@ -46,9 +46,8 @@ void lbm_stack_free(lbm_stack_t *s) {
   }
 }
 
-int lbm_stack_clear(lbm_stack_t *s) {
+void lbm_stack_clear(lbm_stack_t *s) {
   s->sp = 0;
-  return 1;
 }
 
 lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n) {
