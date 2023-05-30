@@ -361,7 +361,7 @@ static lbm_value cons(lbm_value head, lbm_value tail) {
   lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
   if (lbm_is_symbol_merror(res)) {
     gc();
-    res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head,tail);
+    res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
     if (lbm_is_symbol_merror(res)) {
       error_ctx(ENC_SYM_MERROR);
     }
@@ -374,7 +374,7 @@ static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember
   if (lbm_is_symbol_merror(res)) {
     lbm_gc_mark_phase(1, remember);
     gc();
-    res = lbm_heap_allocate_cell(LBM_TYPE_CONS,head, tail);
+    res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
     if (lbm_is_symbol_merror(res)) {
         error_ctx(ENC_SYM_MERROR);
     }
@@ -1795,15 +1795,17 @@ static void cont_progn_rest(eval_context_t *ctx) {
   rest = sptr[2];
   env  = sptr[0];
 
-  // allow for tail recursion
-  if (lbm_is_symbol_nil(lbm_cdr(rest))) {
-    ctx->curr_exp = lbm_car(rest);
+  lbm_value rest_car, rest_cdr;
+  get_car_and_cdr(rest, &rest_car, &rest_cdr);
+  if (lbm_is_symbol_nil(rest_cdr)) {
+    // allow for tail recursion
+    ctx->curr_exp = rest_car;
     ctx->curr_env = env;
     lbm_stack_drop(&ctx->K, 3);
   } else {
-    sptr[2] = lbm_cdr(rest);
+    sptr[2] = rest_cdr;
     stack_push(&ctx->K, PROGN_REST);
-    ctx->curr_exp = lbm_car(rest);
+    ctx->curr_exp = rest_car;
     ctx->curr_env = env;
   }
 }
