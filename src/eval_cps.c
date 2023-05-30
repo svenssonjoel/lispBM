@@ -390,6 +390,16 @@ static lbm_uint *get_stack_ptr(eval_context_t *ctx, unsigned int n) {
   return &ctx->K.data[index];
 }
 
+// pop_stack_ptr is safe when no GC is performed and
+// the values of the stack will be dropped.
+static lbm_uint *pop_stack_ptr(eval_context_t *ctx, unsigned int n) {
+  if (n > ctx->K.sp) {
+    error_ctx(ENC_SYM_STACK_ERROR);
+  }
+  ctx->K.sp -= n;
+  return &ctx->K.data[ctx->K.sp];
+}
+
 static lbm_uint *stack_reserve(eval_context_t *ctx, unsigned int n) {
   if (ctx->K.sp + n >= ctx->K.size) {
     error_ctx(ENC_SYM_STACK_ERROR);
@@ -1785,11 +1795,6 @@ static void cont_progn_rest(eval_context_t *ctx) {
   rest = sptr[2];
   env  = sptr[0];
 
-  if (lbm_is_symbol_nil(rest)) {
-    lbm_stack_drop(&ctx->K, 2);
-    ctx->app_cont = true;
-    return;
-  }
   // allow for tail recursion
   if (lbm_is_symbol_nil(lbm_cdr(rest))) {
     ctx->curr_exp = lbm_car(rest);
@@ -2394,7 +2399,7 @@ static void cont_if(eval_context_t *ctx) {
 
   lbm_value arg = ctx->r;
 
-  lbm_value *sptr = get_stack_ptr(ctx, 3);
+  lbm_value *sptr = pop_stack_ptr(ctx, 3);
 
   ctx->curr_env = sptr[2];
   if (lbm_is_symbol_nil(arg)) {
@@ -2402,7 +2407,6 @@ static void cont_if(eval_context_t *ctx) {
   } else {
     ctx->curr_exp = sptr[1]; // then branch
   }
-  lbm_stack_drop(&ctx->K, 3);
 }
 
 static void cont_match_many(eval_context_t *ctx) {
@@ -3632,8 +3636,8 @@ static void evaluation_step(void){
       }
     }
     /*
-     * At this point head can be a closure, fundamental, extension or a macro.
-     * Anything else would be an error.
+     * At this point head can be anything. It should evaluate
+     * into a form that can be applied (closure, symbol, ...) though.
      */
     lbm_value *reserved = stack_reserve(ctx, 3);
     reserved[0] = ctx->curr_env;
