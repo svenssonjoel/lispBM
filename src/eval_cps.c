@@ -498,6 +498,17 @@ static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value en
   return res;
 }
 
+#define CLO_PARAMS 0
+#define CLO_BODY   1
+#define CLO_ENV    2
+// (closure params exp env) -> [params, exp, env])
+static void extract_closure(lbm_value closure, lbm_value *res) {
+  lbm_value curr = lbm_cdr(closure);
+  for (int i = 0; i < 3; i ++) {
+    get_car_and_cdr(curr,&res[i],&curr);
+  }
+}
+
 static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg_count, eval_context_t *ctx) {
   lbm_value res;
   res = fundamental_table[fundamental](args, arg_count, ctx);
@@ -1226,7 +1237,8 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
     lbm_value headp, tailp;
     lbm_value heade, taile;
     get_car_and_cdr(p, &headp, &tailp);
-    get_car_and_cdr(e, &heade, &taile);
+    get_car_and_cdr(e, &heade, &taile); // Static analysis warns, but execution does not
+                                        // pass this point unless head and tail get initialized.
     if (!match(headp, heade, env, gc)) {
       return false;
     }
@@ -1940,17 +1952,12 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
     error_ctx(ENC_SYM_EERROR);
   }
 
-  lbm_value cdr_fun = lbm_cdr(args[closure_pos]);
-  lbm_value cddr_fun = lbm_cdr(cdr_fun);
-  lbm_value cdddr_fun = lbm_cdr(cddr_fun);
-  lbm_value params  = lbm_car(cdr_fun);
-  lbm_value exp     = lbm_car(cddr_fun);
-  lbm_value clo_env = lbm_car(cdddr_fun);
-
-  lbm_value curr_param = params;
+  lbm_value cl[3];
+  extract_closure(args[closure_pos], cl);
+  lbm_value curr_param = cl[CLO_PARAMS];
+  lbm_value clo_env    = cl[CLO_ENV];
   lbm_uint i = closure_pos + 1;
-  while (lbm_is_cons(curr_param) &&
-         i <= nargs) {
+  while (lbm_is_cons(curr_param) && i <= nargs) {
     lbm_value entry = cons_with_gc(lbm_car(curr_param), args[i], clo_env);
     lbm_value aug_env = cons_with_gc(entry, clo_env,ENC_SYM_NIL);
     clo_env = aug_env;
@@ -1960,7 +1967,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 
   lbm_stack_drop(&ctx->K, nargs+1);
 
-  lbm_value program = cons_with_gc(exp, ENC_SYM_NIL, clo_env);
+  lbm_value program = cons_with_gc(cl[CLO_BODY], ENC_SYM_NIL, clo_env);
 
   lbm_cid cid = lbm_create_ctx_parent(program,
                                       clo_env,
@@ -3186,21 +3193,17 @@ static void cont_application_start(eval_context_t *ctx) {
     lbm_value args = (lbm_value)sptr[1];
     switch (lbm_car(ctx->r)) {
     case ENC_SYM_CLOSURE: {
-      lbm_value cdr_fun = lbm_cdr(ctx->r);
-      lbm_value params, cddr_fun;
-      get_car_and_cdr(cdr_fun, &params, &cddr_fun);
-      lbm_value exp, cdddr_fun = lbm_cdr(cddr_fun);
-      get_car_and_cdr(cddr_fun, &exp, &cdddr_fun);
-      lbm_value clo_env = lbm_car(cdddr_fun);
+      lbm_value cl[3];
+      extract_closure(ctx->r, cl);
       lbm_value arg_env = (lbm_value)sptr[0];
       lbm_value arg0, arg_rest;
       get_car_and_cdr(args, &arg0, &arg_rest);
-      sptr[1] = exp;
+      sptr[1] = cl[CLO_BODY];
       if (lbm_is_symbol_nil(args)) {
-        if (lbm_is_symbol_nil(params)) {
+        if (lbm_is_symbol_nil(cl[CLO_PARAMS])) {
           // No param closure
-          ctx->curr_exp = exp;
-          ctx->curr_env = clo_env; // empty
+          ctx->curr_exp = cl[CLO_BODY];
+          ctx->curr_env = cl[CLO_ENV];
           ctx->app_cont = false;
         } else {
           ctx->app_cont = true;
@@ -3208,8 +3211,8 @@ static void cont_application_start(eval_context_t *ctx) {
         lbm_stack_drop(&ctx->K, 2);
       } else {
         lbm_value *reserved = stack_reserve(ctx, 4);
-        reserved[0] = clo_env;
-        reserved[1] = params;
+        reserved[0] = cl[CLO_ENV];
+        reserved[1] = cl[CLO_PARAMS];
         reserved[2] = arg_rest;
         reserved[3] = CLOSURE_ARGS;
         ctx->curr_exp = arg0;
