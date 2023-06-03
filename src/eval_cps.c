@@ -2304,19 +2304,18 @@ static void cont_application_args(eval_context_t *ctx) {
 
   ctx->curr_env = env;
   sptr[0] = arg;
-  if (lbm_is_symbol_nil(rest)) {
+  if (lbm_is_cons(rest)) {
+    lbm_cons_t *cell = lbm_ref_cell(rest);
+    sptr[1] = env;
+    sptr[2] = cell->cdr;
+    stack_push_2(&ctx->K, count + (1 << LBM_VAL_SHIFT), APPLICATION_ARGS);
+    ctx->curr_exp = cell->car;
+  } else {
     // No more arguments
     lbm_stack_drop(&ctx->K, 2);
     lbm_uint nargs = lbm_dec_u(count);
     lbm_value *args = get_stack_ptr(ctx, nargs + 1);
     application(ctx,args, nargs);
-  } else {
-    lbm_value car_rest, cdr_rest;
-    get_car_and_cdr(rest, &car_rest, &cdr_rest);
-    sptr[1] = env;
-    sptr[2] = cdr_rest;
-    stack_push_2(&ctx->K, count + (1 << LBM_VAL_SHIFT), APPLICATION_ARGS);
-    ctx->curr_exp = car_rest;
   }
 }
 
