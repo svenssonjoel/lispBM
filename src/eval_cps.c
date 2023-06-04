@@ -134,8 +134,17 @@ const char* lbm_error_str_flash_full = "Flash memory is full";
     /* continue executing statements below */   \
   }
 
+typedef struct {
+  eval_context_t *first;
+  eval_context_t *last;
+} eval_context_queue_t;
+
+
 static int gc(void);
 void error_ctx(lbm_value);
+static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx);
+
+// The currently executing context.
 eval_context_t *ctx_running = NULL;
 
 static volatile bool gc_requested = false;
@@ -307,17 +316,12 @@ static bool lbm_event_pop(lbm_event_t *event) {
    sleep duration possible is 2 * 100us = 200us.
 */
 
-static bool          eval_running = false;
-static volatile bool blocking_extension = false;
-mutex_t              blocking_extension_mutex;
-bool                 blocking_extension_mutex_initialized = false;
-static uint32_t      is_atomic = 0;
-
-typedef struct {
-  eval_context_t *first;
-  eval_context_t *last;
-} eval_context_queue_t;
-
+static bool              eval_running = false;
+static volatile bool     blocking_extension = false;
+mutex_t                  blocking_extension_mutex;
+bool                     blocking_extension_mutex_initialized = false;
+static uint32_t          is_atomic = 0;
+static volatile uint32_t wait_for = 0; // wake-up mask
 
 /* Process queues */
 static eval_context_queue_t blocked  = {NULL, NULL};
@@ -524,6 +528,15 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
   lbm_stack_drop(&ctx->K, arg_count+1);
   ctx->app_cont = true;
   ctx->r = res;
+}
+
+static void block_current_ctx(lbm_uint sleep_us, uint32_t wait_mask, bool do_cont) {
+  ctx_running->timestamp = timestamp_us_callback();
+  ctx_running->sleep_us = sleep_us;
+  ctx_running->wait_mask = wait_mask;
+  ctx_running->app_cont = do_cont;
+  enqueue_ctx(&blocked, ctx_running);
+  ctx_running = NULL;
 }
 
 /****************************************************/
@@ -1023,6 +1036,7 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
 
   ctx->id = cid;
   ctx->parent = parent;
+  ctx->wait_mask = 0;
 
   if (!lbm_push(&ctx->K, DONE)) {
     lbm_memory_free((lbm_uint*)ctx->mailbox);
@@ -1717,10 +1731,7 @@ static void eval_receive(eval_context_t *ctx) {
   }
 
   if (ctx->num_mail == 0) {
-    ctx->timestamp = timestamp_us_callback();
-    ctx->sleep_us = 0;
-    enqueue_ctx(&blocked,ctx);
-    ctx_running = NULL;
+    block_current_ctx(0,0,false);
   } else {
     lbm_value pats = ctx->curr_exp;
     lbm_value *msgs = ctx->mailbox;
@@ -1751,11 +1762,8 @@ static void eval_receive(eval_context_t *ctx) {
         ctx->curr_env = new_env;
         ctx->curr_exp = e;
       } else { /* No match  go back to sleep */
-        ctx->timestamp = timestamp_us_callback();
-        ctx->sleep_us = 0;
-        enqueue_ctx(&blocked,ctx);
-        ctx_running = NULL;
         ctx->r = ENC_SYM_NO_MATCH;
+        block_current_ctx(0,0, false);
       }
     }
   }
@@ -2223,11 +2231,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     if (blocking_extension) {
       blocking_extension = false;
-      ctx->timestamp = timestamp_us_callback();
-      ctx->sleep_us = 0;
-      ctx->app_cont = true;
-      enqueue_ctx(&blocked,ctx);
-      ctx_running = NULL;
+      block_current_ctx(0,0,true);
       mutex_unlock(&blocking_extension_mutex);
     } else {
       ctx->app_cont = true;
@@ -3729,6 +3733,45 @@ static void process_events(void) {
   }
 }
 
+static void process_waiting(void) {
+
+  uint32_t wait_flags = wait_for;   // Should ideally be atomic
+  wait_for = wait_flags ^ wait_for; //
+
+  eval_context_queue_t *q = &blocked;
+
+  mutex_lock(&qmutex);
+  eval_context_t *curr = q->first;
+  while (curr != NULL) {
+    if (curr->wait_mask & wait_flags) {
+      eval_context_t *ctx = curr;
+      if (curr == q->last) {
+        if (curr->prev) {
+          q->last = curr->prev;
+          q->last->next = NULL;
+        } else {
+          q->first = NULL;
+          q->last = NULL;
+        }
+      } else if (curr->prev == NULL) {
+        q->first = curr->next;
+        if (q->first) {
+          q->first->prev = NULL;
+        }
+      } else {
+        curr->prev->next = curr->next;
+        if (curr->next) {
+          curr->next->prev = curr->prev;
+        }
+      }
+      ctx->wait_mask = 0;
+      ctx->r = ENC_SYM_TRUE; // woken up task receives true.
+      enqueue_ctx_nm(&queue, ctx);
+    }
+  }
+  mutex_unlock(&qmutex);
+}
+
 /* eval_cps_run can be paused
    I think it would be better use a mailbox for
    communication between other threads and the run_eval
@@ -3778,6 +3821,9 @@ void lbm_run_eval(void){
         } else {
           if (gc_requested) {
             gc();
+          }
+          if (wait_for) {
+            process_waiting();
           }
           process_events();
           next_to_run = dequeue_ctx(&sleeping, &us);
