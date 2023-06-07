@@ -323,6 +323,10 @@ bool                     blocking_extension_mutex_initialized = false;
 static uint32_t          is_atomic = 0;
 static volatile uint32_t wait_for = 0; // wake-up mask
 
+void lbm_trigger_flags(uint32_t wait_for_flags) {
+  wait_for |= wait_for_flags;
+}
+
 /* Process queues */
 static eval_context_queue_t blocked  = {NULL, NULL};
 static eval_context_queue_t sleeping = {NULL, NULL};
@@ -2009,13 +2013,28 @@ static void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (lbm_type_of(args[0]) == LBM_TYPE_I) {
+  if (nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_I) {
     lbm_cid cid = (lbm_cid)lbm_dec_i(args[0]);
     lbm_stack_drop(&ctx->K, nargs+1);
     stack_push_2(&ctx->K, lbm_enc_i(cid), WAIT);
     ctx->r = ENC_SYM_TRUE;
     ctx->app_cont = true;
     yield_ctx(50000);
+  } else {
+    error_ctx(ENC_SYM_EERROR);
+  }
+}
+
+static void apply_wait_for(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if (nargs == 1 && lbm_is_number(args[0])) {
+    uint32_t w = lbm_dec_as_u32(args[0]);
+    lbm_stack_drop(&ctx->K, nargs+1);
+    if (w != 0) {
+      block_current_ctx(0, w, true);
+    } else {
+      ctx->r = ENC_SYM_NIL;
+      ctx->app_cont = true;
+    }
   } else {
     error_ctx(ENC_SYM_EERROR);
   }
@@ -2194,6 +2213,7 @@ static const apply_fun fun_table[] =
    apply_error,
    apply_map,
    apply_reverse,
+   apply_wait_for,
   };
 
 /***************************************************/
@@ -3764,6 +3784,7 @@ static void process_waiting(void) {
           curr->next->prev = curr->prev;
         }
       }
+      curr = ctx->next;
       ctx->wait_mask = 0;
       ctx->r = ENC_SYM_TRUE; // woken up task receives true.
       enqueue_ctx_nm(&queue, ctx);
