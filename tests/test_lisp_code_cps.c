@@ -113,7 +113,7 @@ void context_done_callback(eval_context_t *ctx) {
   if (test_cid == ctx->id)
     experiment_done = true;
 
-  int res = lbm_print_value(output, 128, t);
+  (void)lbm_print_value(output, 128, t);
 
   printf("Thread %d finished: %s\n", ctx->id, output);
 }
@@ -347,7 +347,7 @@ LBM_EXTENSION(ext_check, args, argn) {
     printf("Test: Failed!\n");
     printf("Result: %s\n", output);
   }
-  return res;
+  return ENC_SYM_TRUE;
 }
 
 char *const_prg = "(define a 10) (+ a 1)";
@@ -356,8 +356,6 @@ LBM_EXTENSION(ext_const_prg, args, argn) {
   (void) args;
   (void) argn;
   lbm_value v = ENC_SYM_NIL;
-
-  char *str = const_prg;
 
   if (!lbm_share_const_array(&v, const_prg, strlen(const_prg)+1))
     return ENC_SYM_NIL;

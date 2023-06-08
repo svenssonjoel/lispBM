@@ -527,7 +527,7 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr
   }
 }
 
-lbm_value lbm_heap_allocate_list(unsigned int n) {
+lbm_value lbm_heap_allocate_list(lbm_uint n) {
   if (n == 0) return ENC_SYM_NIL;
   if (lbm_heap_num_free() < n) return ENC_SYM_MERROR;
 
@@ -536,7 +536,7 @@ lbm_value lbm_heap_allocate_list(unsigned int n) {
   if (lbm_type_of(curr) == LBM_TYPE_CONS) {
 
     lbm_cons_t *c_cell = NULL;
-    unsigned int count = 0;
+    lbm_uint count = 0;
     do {
       c_cell = lbm_ref_cell(curr);
       c_cell->car = ENC_SYM_NIL;
@@ -874,8 +874,8 @@ int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
 }
 
 /* calculate length of a proper list */
-unsigned int lbm_list_length(lbm_value c) {
-  unsigned int len = 0;
+lbm_uint lbm_list_length(lbm_value c) {
+  lbm_uint len = 0;
 
   while (lbm_is_cons(c)){
     len ++;
