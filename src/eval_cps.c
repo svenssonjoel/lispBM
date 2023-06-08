@@ -246,7 +246,7 @@ void lbm_set_event_handler_pid(lbm_cid pid) {
   lbm_event_handler_pid = pid;
 }
 
-static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_uint buf_ptr, uint32_t buf_len) {
+static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_uint buf_ptr, lbm_uint buf_len) {
   bool r = false;
   if (lbm_events) {
     mutex_lock(&lbm_events_mutex);
@@ -1080,7 +1080,7 @@ bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size) {
   }
   lbm_memory_free(ctx->mailbox);
   ctx->mailbox = mailbox;
-  ctx->mailbox_size = new_size;
+  ctx->mailbox_size = (uint32_t)new_size;
   return true;
 }
 
@@ -1557,7 +1557,7 @@ static void eval_cond(eval_context_t *ctx) {
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
   } else {
-    uint32_t len = lbm_list_length(cond1);
+    lbm_uint len = lbm_list_length(cond1);
     if (len != 2) {
       lbm_set_error_reason("Incorrect syntax in cond");
       error_ctx(ENC_SYM_EERROR);
@@ -2338,7 +2338,7 @@ static void cont_application_args(eval_context_t *ctx) {
     // No more arguments
     lbm_stack_drop(&ctx->K, 2);
     lbm_uint nargs = lbm_dec_u(count);
-    lbm_value *args = get_stack_ptr(ctx, nargs + 1);
+    lbm_value *args = get_stack_ptr(ctx, (uint32_t)(nargs + 1));
     application(ctx,args, nargs);
   }
 }
@@ -2840,10 +2840,10 @@ static void cont_read_next_token(eval_context_t *ctx) {
       res = lbm_enc_u((lbm_uint)(int_result.negative ? -int_result.value : int_result.value));
       break;
     case TOKTYPEI32:
-      WITH_GC(res, lbm_enc_i32((lbm_int)(int_result.negative ? -int_result.value : int_result.value)));
+      WITH_GC(res, lbm_enc_i32((int32_t)(int_result.negative ? -int_result.value : int_result.value)));
       break;
     case TOKTYPEU32:
-      WITH_GC(res,lbm_enc_u32((lbm_uint)(int_result.negative ? -int_result.value : int_result.value)));
+      WITH_GC(res,lbm_enc_u32((uint32_t)(int_result.negative ? -int_result.value : int_result.value)));
       break;
     case TOKTYPEI64:
       WITH_GC(res,lbm_enc_i64((int64_t)(int_result.negative ? -int_result.value : int_result.value)));

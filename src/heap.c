@@ -79,7 +79,7 @@ lbm_value lbm_enc_u32(uint32_t x) {
 #endif
 }
 
-lbm_value lbm_enc_float(float x) {
+lbm_value lbm_enc_float(lbm_float x) {
 #ifndef LBM64
   lbm_uint t;
   memcpy(&t, &x, sizeof(lbm_float));

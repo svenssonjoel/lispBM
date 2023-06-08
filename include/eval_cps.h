@@ -76,7 +76,7 @@ typedef struct {
   lbm_event_type_t type;
   lbm_uint parameter;
   lbm_uint buf_ptr;
-  uint32_t  buf_len;
+  lbm_uint buf_len;
 } lbm_event_t;
 
 /** Fundamental operation type */
