@@ -260,7 +260,7 @@ bool dyn_load(const char *str, const char **code) {
 
 lbm_value ext_block(lbm_value *args, lbm_uint argn) {
 
-  printf("blocking CID: %d\n", lbm_get_current_cid());
+  printf("blocking CID: %d\n", (int32_t)lbm_get_current_cid());
   lbm_block_ctx_from_extension();
   return lbm_enc_sym(SYM_TRUE);
 }
@@ -457,7 +457,7 @@ void lookup_local(eval_context_t *ctx, void *arg1, void *arg2) {
   if (lbm_env_lookup_b(&res, (lbm_value)arg1, ctx->curr_env)) {
 
     lbm_print_value(output, 1024, res);
-    printf("CTX %d: %s = %s\n", ctx->id, (char *)arg2, output);
+    printf("CTX %d: %s = %s\n", (int32_t)ctx->id, (char *)arg2, output);
   } else {
     printf("not found\n");
   }

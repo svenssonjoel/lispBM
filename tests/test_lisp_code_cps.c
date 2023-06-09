@@ -115,7 +115,7 @@ void context_done_callback(eval_context_t *ctx) {
 
   (void)lbm_print_value(output, 128, t);
 
-  printf("Thread %d finished: %s\n", ctx->id, output);
+  printf("Thread %d finished: %s\n", (int32_t)ctx->id, output);
 }
 
 bool dyn_load(const char *str, const char **code) {
