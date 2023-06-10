@@ -2088,7 +2088,7 @@ static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       lbm_cid cid = (lbm_cid)lbm_dec_i(args[0]);
       lbm_value msg = args[1];
 
-      WITH_GC(status, lbm_find_receiver_and_send(cid, msg));
+      status = lbm_find_receiver_and_send(cid, msg);
     }
     /* return the status */
     lbm_stack_drop(&ctx->K, nargs+1);
