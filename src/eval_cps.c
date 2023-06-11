@@ -3763,6 +3763,7 @@ static void process_waiting(void) {
   mutex_lock(&qmutex);
   eval_context_t *curr = q->first;
   while (curr != NULL) {
+    eval_context_t *next = curr->next; // grab here
     if (curr->wait_mask & wait_flags) {
       eval_context_t *ctx = curr;
       if (curr == q->last) {
@@ -3784,11 +3785,11 @@ static void process_waiting(void) {
           curr->next->prev = curr->prev;
         }
       }
-      curr = ctx->next;
       ctx->wait_mask = 0;
       ctx->r = ENC_SYM_TRUE; // woken up task receives true.
-      enqueue_ctx_nm(&queue, ctx);
+      enqueue_ctx_nm(&queue, ctx); // changes meaing of curr->next.
     }
+    curr = next;
   }
   mutex_unlock(&qmutex);
 }
