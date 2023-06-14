@@ -2205,7 +2205,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value appli_1;
     lbm_value appli;
     WITH_GC(appli_1, lbm_heap_allocate_list(2));
-    WITH_GC(appli, lbm_heap_allocate_list(2));
+    WITH_GC_RMBR(appli, lbm_heap_allocate_list(2),1,appli_1);
 
     lbm_value appli_0 = get_cdr(appli_1);
 
@@ -3400,6 +3400,13 @@ static void cont_eval_r(eval_context_t* ctx) {
   ctx->app_cont = false;
 }
 
+/* progn + var stack
+   sp-5 : env
+   sp-4 : 0
+   sp-3 : rest
+   sp-2 : PROGN_REST
+   sp-1 : symbol
+ */
 static void cont_progn_var(eval_context_t* ctx) {
 
   lbm_value sym;
