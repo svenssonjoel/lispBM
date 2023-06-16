@@ -3547,19 +3547,15 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
       case SYM_ARRAY_TYPE: {
         lbm_array_header_t *arr = (lbm_array_header_t*)ref->car;
 
-        lbm_uint size = arr->size / sizeof(lbm_uint); // array size always in bytes
-        lbm_uint full_words = size;
-        if (arr->size % (sizeof(lbm_uint)) != 0) {
-          size++;
-        }
-        
+        lbm_uint full_words = arr->size / sizeof(lbm_uint); // array size always in bytes
+
         // arbitrary address: flash_arr.
         lbm_uint flash_arr;
-        if ( full_words == size) { 
-          handle_flash_status(lbm_write_const_raw(arr->data, size, &flash_arr));
+        if ( arr->size % sizeof(lbm_uint) == 0) {
+          handle_flash_status(lbm_write_const_raw(arr->data, full_words, &flash_arr));
         } else {
           lbm_uint last_word = 0;
-          memcpy(&last_word, &arr->data[full_words * sizeof(lbm_uint)],arr->size % sizeof(lbm_uint));
+          memcpy(&last_word, &arr->data[full_words],arr->size % sizeof(lbm_uint));
 
           if (full_words >= 1) {
             handle_flash_status(lbm_write_const_raw(arr->data, full_words, &flash_arr));
@@ -3569,7 +3565,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
             handle_flash_status(lbm_write_const_raw(&last_word, 1, &flash_arr));
           }
         }
-          
+
         lift_array_flash(flash_cell,
                          (char *)flash_arr,
                          arr->size);
