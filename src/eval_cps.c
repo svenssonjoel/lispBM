@@ -578,6 +578,22 @@ static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value en
   return res;
 }
 
+static void allocate_cells(lbm_uint n, lbm_value *cell_buff) {
+  if (lbm_heap_num_free() < n) {
+    gc();
+    if (lbm_heap_num_free() < n) {
+      error_ctx(ENC_SYM_MERROR);
+    }
+  }
+  lbm_value curr = lbm_heap_state.freelist;
+  for (lbm_uint i = 0; i < n; i ++) {
+    cell_buff[i] = curr;
+    curr = lbm_ref_cell(curr)->cdr;
+  }
+  lbm_heap_state.freelist = lbm_ref_cell(curr)->cdr;
+  lbm_heap_state.num_alloc+=n;
+}
+
 #define CLO_PARAMS 0
 #define CLO_BODY   1
 #define CLO_ENV    2
@@ -1847,6 +1863,9 @@ static void eval_receive(eval_context_t *ctx) {
 /*********************************************************/
 /*  Continuation functions                               */
 
+/* cont_set_global_env 
+   sp-1 : Key-symbol
+ */
 static void cont_set_global_env(eval_context_t *ctx){
 
   lbm_value key;
@@ -2202,24 +2221,19 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value h = get_car(args[1]);
     lbm_value t = get_cdr(args[1]);
 
-    lbm_value appli_1;
-    lbm_value appli;
-    WITH_GC(appli_1, lbm_heap_allocate_list(2));
-    WITH_GC_RMBR(appli, lbm_heap_allocate_list(2),1,appli_1);
+    lbm_value cell[4];
+    allocate_cells(4, cell);
+    // construct (f (quote h)) 
+    lbm_set_car_and_cdr(cell[3], h, ENC_SYM_NIL);
+    lbm_set_car        (cell[2], ENC_SYM_QUOTE);
+    lbm_set_car_and_cdr(cell[1], cell[2], ENC_SYM_NIL);
+    lbm_set_car        (cell[0], f);
 
-    lbm_value appli_0 = get_cdr(appli_1);
-
-    lbm_set_car_and_cdr(appli_0, h, ENC_SYM_NIL);
-    lbm_set_car(appli_1, ENC_SYM_QUOTE);
-
-    lbm_set_car_and_cdr(get_cdr(appli), appli_1, ENC_SYM_NIL);
-    lbm_set_car(appli, f);
-
-    stack_push_4(&ctx->K, ENC_SYM_NIL, appli, appli_0, MAP_FIRST);
+    stack_push_4(&ctx->K, ENC_SYM_NIL, cell[0], cell[3], MAP_FIRST);
     sptr[0] = t;     // reuse stack space
     sptr[1] = ctx->curr_env;
     sptr[2] = ENC_SYM_NIL;
-    ctx->curr_exp = appli;
+    ctx->curr_exp = cell[0];
   } else if (nargs == 1) {
     // Partial application, create a closure.
     lbm_uint sym;
@@ -3545,13 +3559,27 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
         lbm_array_header_t *arr = (lbm_array_header_t*)ref->car;
 
         lbm_uint size = arr->size / sizeof(lbm_uint); // array size always in bytes
+        lbm_uint full_words = size;
         if (arr->size % (sizeof(lbm_uint)) != 0) {
           size++;
         }
-
+        
         // arbitrary address: flash_arr.
         lbm_uint flash_arr;
-        handle_flash_status(lbm_write_const_raw(arr->data, size, &flash_arr));
+        if ( full_words == size) { 
+          handle_flash_status(lbm_write_const_raw(arr->data, size, &flash_arr));
+        } else {
+          if (full_words >= 1) {
+            handle_flash_status(lbm_write_const_raw(arr->data, full_words, &flash_arr));
+          }
+          lbm_uint last_word = 0;
+          for (lbm_uint i = 0; i < arr->size % sizeof(lbm_uint); i ++) {
+            last_word |= ((lbm_uint)arr->data[full_words * sizeof(lbm_uint) + i]) << (sizeof(lbm_uint) - i); 
+          }
+          lbm_uint dummy;
+          handle_flash_status(lbm_write_const_raw(&last_word, 1, &dummy));
+        }
+          
         lift_array_flash(flash_cell,
                          (char *)flash_arr,
                          arr->size);
