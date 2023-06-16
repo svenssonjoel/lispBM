@@ -111,7 +111,36 @@ const char* lbm_error_str_var_outside_progn = "Usage of var outside of progn.";
 const char* lbm_error_str_flash_not_possible = "Value cannot be written to flash.";
 const char* lbm_error_str_flash_error = "Error writing to flash";
 const char* lbm_error_str_flash_full = "Flash memory is full";
-
+#ifdef LBM_ALWAYS_GC
+#define WITH_GC(y, x)                           \
+  #ifdef LBM_ALWAYS_GC                          \
+  gc();                                         \
+  #endif                                        \
+  (y) = (x);                                    \
+  if (lbm_is_symbol_merror((y))) {              \
+    gc();                                       \
+    (y) = (x);                                  \
+    if (lbm_is_symbol_merror((y))) {            \
+      error_ctx(ENC_SYM_MERROR);                \
+    }                                           \
+    /* continue executing statements below */   \
+  }
+#define WITH_GC_RMBR(y, x, n, ...)              \
+  #ifdef LBM_ALWAYS_GC                          \
+  lbm_gc_mark_phase((n), __VA_ARGS__);          \
+  gc();                                         \
+  #endif                                        \
+  (y) = (x);                                    \
+  if (lbm_is_symbol_merror((y))) {              \
+    lbm_gc_mark_phase((n), __VA_ARGS__);        \
+    gc();                                       \
+    (y) = (x);                                  \
+    if (lbm_is_symbol_merror((y))) {            \
+      error_ctx(ENC_SYM_MERROR);                \
+    }                                           \
+    /* continue executing statements below */   \
+  }
+#else
 #define WITH_GC(y, x)                           \
   (y) = (x);                                    \
   if (lbm_is_symbol_merror((y))) {              \
@@ -133,7 +162,7 @@ const char* lbm_error_str_flash_full = "Flash memory is full";
     }                                           \
     /* continue executing statements below */   \
   }
-
+#endif
 typedef struct {
   eval_context_t *first;
   eval_context_t *last;
@@ -363,6 +392,11 @@ eval_context_t *lbm_get_current_context(void) {
 /* Utilities used locally in this file              */
 
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
+  #ifdef LBM_ALWAYS_GC
+  lbm_gc_mark_phase(3, head, tail,remember);
+  gc();
+  #endif
+
   lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
   if (lbm_is_symbol_merror(res)) {
     lbm_gc_mark_phase(3, head, tail,remember);
@@ -553,6 +587,10 @@ static lbm_value get_cddr(lbm_value a) {
 
 
 static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value env) {
+  #ifdef LBM_ALWAYS_GC
+  gc();
+  #endif
+
   if (lbm_heap_num_free() < 4) {
     gc();
     if (lbm_heap_num_free() < 4) {
@@ -578,6 +616,26 @@ static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value en
   return res;
 }
 
+static void allocate_cells(lbm_uint n, lbm_value *cell_buff) {
+  #ifdef LBM_ALWAYS_GC
+  gc();
+  #endif
+
+  if (lbm_heap_num_free() < n) {
+    gc();
+    if (lbm_heap_num_free() < n) {
+      error_ctx(ENC_SYM_MERROR);
+    }
+  }
+  lbm_value curr = lbm_heap_state.freelist;
+  for (lbm_uint i = 0; i < n; i ++) {
+    cell_buff[i] = curr;
+    curr = lbm_ref_cell(curr)->cdr;
+  }
+  lbm_heap_state.freelist = lbm_ref_cell(curr)->cdr;
+  lbm_heap_state.num_alloc+=n;
+}
+
 #define CLO_PARAMS 0
 #define CLO_BODY   1
 #define CLO_ENV    2
@@ -590,6 +648,10 @@ static void extract_closure(lbm_value closure, lbm_value *res) {
 }
 
 static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg_count, eval_context_t *ctx) {
+  #ifdef LBM_ALWAYS_GC
+  gc();
+  #endif
+
   lbm_value res;
   res = fundamental_table[fundamental](args, arg_count, ctx);
   if (lbm_is_error(res)) {
@@ -1060,6 +1122,12 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   if (!lbm_is_cons(program)) return -1;
 
   eval_context_t *ctx = NULL;
+
+#ifdef LBM_ALWAYS_GC
+  lbm_gc_mark_phase(2, program, env);
+  gc();
+#endif
+
   ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   if (ctx == NULL) {
     lbm_gc_mark_phase(2, program, env);
@@ -1067,6 +1135,11 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
     ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   }
   if (ctx == NULL) return -1;
+
+#ifdef LBM_ALWAYS_GC
+  lbm_gc_mark_phase(2, program, env);
+  gc();
+#endif
 
   if (!lbm_stack_allocate(&ctx->K, stack_size)) {
     lbm_gc_mark_phase(2, program, env);
@@ -1077,6 +1150,11 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
     }
   }
 
+#ifdef LBM_ALWAYS_GC
+  lbm_gc_mark_phase(2, program, env);
+  gc();
+#endif
+  
   lbm_value *mailbox = NULL;
   mailbox = (lbm_value*)lbm_memory_allocate(EVAL_CPS_DEFAULT_MAILBOX_SIZE);
   if (mailbox == NULL) {
@@ -1137,6 +1215,9 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
 
 bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size) {
 
+#ifdef LBM_ALWAYS_GC
+  gc();
+#endif
   lbm_value *mailbox = NULL;
   mailbox = (lbm_value*)lbm_memory_allocate(new_size);
   if (mailbox == NULL) {
@@ -1479,6 +1560,9 @@ static void eval_symbol(eval_context_t *ctx) {
   } else {
     stack_push_3(&ctx->K, ctx->curr_env, ctx->curr_exp, RESUME);
 
+#ifdef LBM_ALWAYS_GC
+    gc();
+#endif
     lbm_value chan;
     if (!create_string_channel((char *)code_str, &chan)) {
       gc();
@@ -1542,7 +1626,9 @@ static void eval_atomic(eval_context_t *ctx) {
 
 
 static void eval_callcc(eval_context_t *ctx) {
-
+#ifdef LBM_ALWAYS_GC
+  gc();
+#endif
   lbm_value cont_array;
   if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp * sizeof(lbm_uint))) {
     gc();
@@ -1719,6 +1805,10 @@ static void eval_let(eval_context_t *ctx) {
   while (lbm_is_cons(curr)) {
     lbm_value new_env_tmp = new_env;
     lbm_value key = get_caar(curr);
+#ifdef LBM_ALWAYS_GC
+    lbm_gc_mark_phase(1, new_env);
+    gc();
+#endif
     int r = create_binding_location(key, &new_env_tmp);
     if (r < 0) {
       if (r == BL_NO_MEMORY) {
@@ -1819,6 +1909,9 @@ static void eval_receive(eval_context_t *ctx) {
       /* The common case */
       lbm_value e;
       lbm_value new_env = ctx->curr_env;
+#ifdef LBM_ALWAYS_GC
+      gc();
+#endif      
       int n = find_match(get_cdr(pats), msgs, num, &e, &new_env);
       if (n == FM_NEED_GC) {
         gc();
@@ -1977,6 +2070,9 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
   if (nargs == 1) {
     lbm_value chan = ENC_SYM_NIL;
     if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
+#ifdef LBM_ALWAYS_GC
+      gc();
+#endif
       if (!create_string_channel(lbm_dec_str(args[0]), &chan)) {
         gc();
         if (!create_string_channel(lbm_dec_str(args[0]), &chan)) {
@@ -2568,6 +2664,11 @@ static void cont_match(eval_context_t *ctx) {
       body = n2;
       check_guard = true;
     }
+#ifdef LBM_ALWAYS_GC
+    lbm_gc_mark_phase(2, patterns, e);
+    gc();
+#endif
+
     bool is_match = match(pattern, e, &new_env, &do_gc);
     if (do_gc) {
       lbm_gc_mark_phase(2, patterns, e);
@@ -2857,6 +2958,9 @@ static void cont_read_next_token(eval_context_t *ctx) {
    */
   n = tok_string(chan, &string_len);
   if (n >= 2) {
+#ifdef LBM_ALWAYS_GC
+    gc();
+#endif
     lbm_channel_drop(chan, (unsigned int)n);
     if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1))) {
       gc();
@@ -2997,6 +3101,9 @@ static void cont_read_start_array(eval_context_t *ctx) {
     error_ctx(ENC_SYM_FATAL_ERROR);
   }
 
+#ifdef LBM_ALWAYS_GC
+  gc();
+#endif
   lbm_uint num_free = lbm_memory_longest_free();
   lbm_uint initial_size = (lbm_uint)((float)num_free * 0.9);
   if (initial_size == 0) {
