@@ -3206,7 +3206,6 @@ static void cont_read_append_continue(eval_context_t *ctx) {
       stack_push(&ctx->K, READ_DOT_TERMINATE);
       stack_push_3(&ctx->K, stream, lbm_enc_u(0), READ_NEXT_TOKEN);
       ctx->app_cont = true;
-      ctx->app_cont = true;
       return;
     }
   }
