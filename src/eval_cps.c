@@ -70,27 +70,26 @@ static jmp_buf error_jmp_buf;
 #define READ_DOT_TERMINATE    CONTINUATION(21)
 #define READ_DONE             CONTINUATION(22)
 #define READ_QUOTE_RESULT     CONTINUATION(23)
-#define READ_BACKQUOTE_RESULT CONTINUATION(24)
-#define READ_COMMAAT_RESULT   CONTINUATION(25)
-#define READ_COMMA_RESULT     CONTINUATION(26)
-#define READ_START_ARRAY      CONTINUATION(27)
-#define READ_APPEND_ARRAY     CONTINUATION(28)
-#define MAP_FIRST             CONTINUATION(29)
-#define MAP_REST              CONTINUATION(30)
-#define MATCH_GUARD           CONTINUATION(31)
-#define TERMINATE             CONTINUATION(32)
-#define PROGN_VAR             CONTINUATION(33)
-#define SETQ                  CONTINUATION(34)
-#define MOVE_TO_FLASH         CONTINUATION(35)
-#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(36)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(37)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(38)
-#define QQ_EXPAND_START       CONTINUATION(39)
-#define QQ_EXPAND             CONTINUATION(40)
-#define QQ_APPEND             CONTINUATION(41)
-#define QQ_EXPAND_LIST        CONTINUATION(42)
-#define QQ_LIST               CONTINUATION(43)
-#define NUM_CONTINUATIONS     44
+#define READ_COMMAAT_RESULT   CONTINUATION(24)
+#define READ_COMMA_RESULT     CONTINUATION(25)
+#define READ_START_ARRAY      CONTINUATION(26)
+#define READ_APPEND_ARRAY     CONTINUATION(27)
+#define MAP_FIRST             CONTINUATION(28)
+#define MAP_REST              CONTINUATION(29)
+#define MATCH_GUARD           CONTINUATION(30)
+#define TERMINATE             CONTINUATION(31)
+#define PROGN_VAR             CONTINUATION(32)
+#define SETQ                  CONTINUATION(33)
+#define MOVE_TO_FLASH         CONTINUATION(34)
+#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(35)
+#define MOVE_LIST_TO_FLASH    CONTINUATION(36)
+#define CLOSE_LIST_IN_FLASH   CONTINUATION(37)
+#define QQ_EXPAND_START       CONTINUATION(38)
+#define QQ_EXPAND             CONTINUATION(39)
+#define QQ_APPEND             CONTINUATION(40)
+#define QQ_EXPAND_LIST        CONTINUATION(41)
+#define QQ_LIST               CONTINUATION(42)
+#define NUM_CONTINUATIONS     43
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -3353,18 +3352,6 @@ static void cont_read_quote_result(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static void cont_read_backquote_result(eval_context_t *ctx) {
-
-  /* lbm_stack_push(&ctx->K, QQ_EXPAND); */
-  /* lbm_value expanded = lbm_qq_expand(ctx->r); */
-  /* if (lbm_is_error(expanded)) { */
-  /*   error_ctx(expanded); */
-  /* } */
-  /* ctx->r = expanded; */
-  /* ctx->app_cont = true; */
-  error_ctx(ENC_SYM_FATAL_ERROR);
-}
-
 static void cont_read_commaat_result(eval_context_t *ctx) {
   lbm_value cell2 = cons_with_gc(ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
   lbm_value cell1 = cons_with_gc(ENC_SYM_COMMAAT, cell2, ENC_SYM_NIL);
@@ -3734,7 +3721,6 @@ static void cont_close_list_in_flash(eval_context_t *ctx) {
 }
 
 static void cont_qq_expand_start(eval_context_t *ctx) {
-  printf("start qq_expand\n");
   stack_push_2(&ctx->K, ctx->r, QQ_EXPAND);
   ctx->r = ENC_SYM_NIL;
   ctx->app_cont = true;
@@ -3953,7 +3939,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_read_dot_terminate,
     cont_read_done,
     cont_read_quote_result,
-    cont_read_backquote_result,
     cont_read_commaat_result,
     cont_read_comma_result,
     cont_read_start_array,
