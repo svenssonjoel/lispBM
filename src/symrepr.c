@@ -347,6 +347,8 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
 
   *id = next_symbol_id ++;
 
+  printf("adding symbol: %s as %u\n", name, *id);
+
   return 1;
 }
 
