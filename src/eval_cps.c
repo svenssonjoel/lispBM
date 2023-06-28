@@ -2786,6 +2786,15 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
      In case 2, we should find the READ_DONE at sp - 5.
 
   */
+
+    if (lbm_is_symbol(ctx->r)) {
+    lbm_uint sym_val = lbm_dec_sym(ctx->r);
+    if (sym_val >= TOKENIZER_SYMBOLS_START &&
+        sym_val <= TOKENIZER_SYMBOLS_END) {
+      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+    }
+  }
+
   if (ctx->K.data[ctx->K.sp-1] == READ_DONE &&
       lbm_dec_u(ctx->K.data[ctx->K.sp-3]) == 0) {
     /* successfully finished reading an expression  (CASE 3) */
@@ -2878,6 +2887,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
                    stream,
                    READ_APPEND_CONTINUE);
       stack_push_3(&ctx->K, stream, lbm_enc_u(0), READ_NEXT_TOKEN);
+      ctx->r = ENC_SYM_OPENPAR;
       return;
     case TOKCLOSEPAR: {
       lbm_stack_drop(&ctx->K, 2);
@@ -2888,6 +2898,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
       sptr[1] = READ_START_ARRAY;
       //stack_push_2(&ctx->K, stream, READ_START_ARRAY);
       stack_push_3(&ctx->K, stream, lbm_enc_u(0), READ_NEXT_TOKEN);
+      ctx->r = ENC_SYM_OPENBRACK;
       return;
     case TOKCLOSEBRACK:
       lbm_stack_drop(&ctx->K, 2);
@@ -3337,7 +3348,14 @@ static void cont_read_done(eval_context_t *ctx) {
   }
 
   lbm_channel_reader_close(str);
-
+  if (lbm_is_symbol(ctx->r)) {
+    lbm_uint sym_val = lbm_dec_sym(ctx->r);
+    if (sym_val >= TOKENIZER_SYMBOLS_START &&
+        sym_val <= TOKENIZER_SYMBOLS_END) {
+      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+    }
+  }
+  
   ctx->row0 = -1;
   ctx->row1 = -1;
   ctx->app_cont = true;
