@@ -2787,7 +2787,7 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
 
   */
 
-    if (lbm_is_symbol(ctx->r)) {
+  if (lbm_is_symbol(ctx->r)) {
     lbm_uint sym_val = lbm_dec_sym(ctx->r);
     if (sym_val >= TOKENIZER_SYMBOLS_START &&
         sym_val <= TOKENIZER_SYMBOLS_END) {
