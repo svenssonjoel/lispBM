@@ -233,6 +233,7 @@ int lbm_symrepr_init(void) {
   next_variable_symbol_id = VARIABLE_SYMBOLS_START;
   symbol_table_size_list = 0;
   symbol_table_size_strings = 0;
+  symbol_table_size_strings_flash = 0;
   return 1;
 }
 
