@@ -127,9 +127,14 @@ int lbm_get_num_variables(void);
 
 /**
  *
- * \return The total amount of space occupied by the symbol table in bytes.
+ * \return The total amount of lbm_memory space occupied by the symbol table in bytes.
  */
 lbm_uint lbm_get_symbol_table_size(void);
+/**
+ *
+ * \return The total amount of flash space occupied by the symbol table in bytes.
+ */
+lbm_uint lbm_get_symbol_table_size_flash(void);
 /**
  * \return The size in bytes of all symbol strings stored in the symbol table.
  */

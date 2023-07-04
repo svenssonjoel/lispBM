@@ -223,6 +223,7 @@ static lbm_uint next_extension_symbol_id = EXTENSION_SYMBOLS_START;
 static lbm_uint next_variable_symbol_id = VARIABLE_SYMBOLS_START;
 
 static lbm_uint symbol_table_size_list = 0;
+static lbm_uint symbol_table_size_list_flash = 0;
 static lbm_uint symbol_table_size_strings = 0;
 static lbm_uint symbol_table_size_strings_flash = 0;
 
@@ -232,6 +233,7 @@ int lbm_symrepr_init(void) {
   next_extension_symbol_id = EXTENSION_SYMBOLS_START;
   next_variable_symbol_id = VARIABLE_SYMBOLS_START;
   symbol_table_size_list = 0;
+  symbol_table_size_list_flash = 0;
   symbol_table_size_strings = 0;
   symbol_table_size_strings_flash = 0;
   return 1;
@@ -340,33 +342,38 @@ static bool add_symbol_to_symtab(lbm_uint name, lbm_uint id) {
 
   symbol_table_size_list += 3;
   m[NAME] = name;
-
-  if (symlist == NULL) {
-    m[NEXT] = (lbm_uint) NULL;
-    symlist = m;
-  } else {
-    m[NEXT] = (lbm_uint) symlist;
-    symlist = m;
-  }
+  m[NEXT] = (lbm_uint) symlist;
+  symlist = m;
   m[ID] =id;
   return true;
+}
+
+static bool add_symbol_to_symtab_flash(lbm_uint name, lbm_uint id) {
+  lbm_uint entry[3];
+  entry[NAME] = name;
+  entry[NEXT] = (lbm_uint) symlist;
+  entry[ID]   = id;
+  lbm_uint entry_addr = 0;
+  if (lbm_write_const_raw(entry,3, &entry_addr) == LBM_FLASH_WRITE_OK) {
+    symlist = (lbm_uint*)entry_addr;
+    symbol_table_size_list_flash += 3;
+    return true;
+  }
+  return false;
 }
 
 static int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash) {
   lbm_uint symbol_name_storage;
   if (flash) {
     if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
+    if (!add_symbol_to_symtab_flash(symbol_name_storage, next_symbol_id)) return 0;
   } else {
     if (!store_symbol_name(name, &symbol_name_storage)) return 0;
-  }
-
-  if (!add_symbol_to_symtab(symbol_name_storage, next_symbol_id)) {
-    if (!flash) {
+    if (!add_symbol_to_symtab(symbol_name_storage, next_symbol_id)) {
       lbm_memory_free((lbm_uint*)symbol_name_storage);
+      return 0;
     }
-    return 0;
   }
-
   *id = next_symbol_id ++;
   return 1;
 }
@@ -459,6 +466,11 @@ int lbm_add_extension_symbol_const(char *name, lbm_uint* id) {
 lbm_uint lbm_get_symbol_table_size(void) {
   return (symbol_table_size_list +
           symbol_table_size_strings) * sizeof(lbm_uint);
+}
+
+lbm_uint lbm_get_symbol_table_size_flash(void) {
+  return (symbol_table_size_list_flash +
+          symbol_table_size_strings_flash) * sizeof(lbm_uint);
 }
 
 lbm_uint lbm_get_symbol_table_size_names(void) {
