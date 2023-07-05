@@ -1440,7 +1440,7 @@ To clear a byte array the function bufclear can be used:
 
 ```clj
 (bufclear arr optByte optStart optLen)
-```clj
+```
 
 Where arr is the byte array to clear, optByte is the optional argument
 of what to clear with (default 0), optStart is the optional argument
