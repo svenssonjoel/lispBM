@@ -1842,10 +1842,14 @@ Things can be moved to flash explicitly using the `move-to-flash` function
 or as part of the reading procedure. To move things automatically to flash during
 reading, there are `@`directives.
 
+---
+
 ### @const-symbol-strings
 
 if `@const-symbol-strings` directive is placed in a file, symbols will be created
 in flash memory instead of the arrays memory.
+
+---
 
 ### @const-start
 
@@ -1868,10 +1872,13 @@ Example:
 (+ f 2)
 ```
 
+---
+
 ### @const-end
 
 `@const-end` closes an block opened by `@const-start`.
 
+---
 
 ### move-to-flash
 
