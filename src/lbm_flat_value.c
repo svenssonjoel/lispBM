@@ -107,6 +107,27 @@ bool f_sym(lbm_flat_value_t *v, lbm_uint sym) {
   return res;
 }
 
+bool f_sym_string(lbm_flat_value_t *v, lbm_uint sym) {
+  bool res = true;
+  char *sym_str;
+  if (lbm_is_symbol(sym)) {
+    lbm_uint s = lbm_dec_sym(sym);
+    sym_str = (char*)lbm_get_name_by_symbol(s);
+    if (sym_str) {
+      lbm_uint sym_bytes = strlen(sym_str) + 1;
+      res = res && write_byte(v, S_SYM_STRING);
+      if (res && v->buf_size >= v->buf_pos + sym_bytes) {
+        for (lbm_uint i = 0; i < sym_bytes; i ++ ) {
+          res = res && write_byte(v, (uint8_t)sym_str[i]);
+        }
+        res = res && write_byte(v, 0);
+        return res;
+      }
+    }
+  }
+  return false;
+}
+
 bool f_i(lbm_flat_value_t *v, lbm_int i) {
   bool res = true;
   res = res && write_byte(v,S_I_VALUE);
@@ -351,6 +372,18 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
       } else {
         return UNFLATTEN_GC_RETRY;
       }
+      return UNFLATTEN_OK;
+    }
+    return UNFLATTEN_MALFORMED;
+  }
+  case S_SYM_STRING: {
+    lbm_uint sym_id;
+    int r = lbm_get_symbol_by_name((char *)(v->buf + v->buf_pos), &sym_id);
+    if (!r) {
+      r = lbm_add_symbol((char *)(v->buf + v->buf_pos), &sym_id);
+    }
+    if (r) {
+      *res = lbm_enc_sym(sym_id);
       return UNFLATTEN_OK;
     }
     return UNFLATTEN_MALFORMED;
