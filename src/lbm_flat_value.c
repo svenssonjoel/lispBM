@@ -49,6 +49,7 @@ bool lbm_finish_flatten(lbm_flat_value_t *v) {
   } else {
     size_words = (v->buf_pos / sizeof(lbm_uint)) + 1;
   }
+  v->buf_size = size_words * sizeof(lbm_uint);
 
   return (lbm_memory_shrink((lbm_uint*)v->buf, size_words) >= 0);
 }
@@ -120,7 +121,6 @@ bool f_sym_string(lbm_flat_value_t *v, lbm_uint sym) {
         for (lbm_uint i = 0; i < sym_bytes; i ++ ) {
           res = res && write_byte(v, (uint8_t)sym_str[i]);
         }
-        res = res && write_byte(v, 0);
         return res;
       }
     }
@@ -132,6 +132,13 @@ bool f_i(lbm_flat_value_t *v, lbm_int i) {
   bool res = true;
   res = res && write_byte(v,S_I_VALUE);
   res = res && write_word(v,(uint32_t)i);
+  return res;
+}
+
+bool f_u(lbm_flat_value_t *v, lbm_uint u) {
+  bool res = true;
+  res = res && write_byte(v,S_U_VALUE);
+  res = res && write_word(v,(uint32_t)u);
   return res;
 }
 
@@ -165,6 +172,15 @@ bool f_float(lbm_flat_value_t *v, float f) {
   return res;
 }
 
+bool f_double(lbm_flat_value_t *v, double d) {
+  bool res = true;
+  res = res && write_byte(v, S_DOUBLE_VALUE);
+  uint64_t u;
+  memcpy(&u, &d, sizeof(uint64_t));
+  res = res && write_dword(v, u);
+  return res;
+}
+
 bool f_i64(lbm_flat_value_t *v, int64_t w) {
   bool res = true;
   res = res && write_byte(v, S_I64_VALUE);
@@ -193,8 +209,98 @@ bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_bytes, uint8_t *data) {
 }
 
 
+int flatten_value(lbm_flat_value_t *fv, lbm_value v) {
+  switch (lbm_type_of(v)) {
+  case LBM_TYPE_CONS: /* fall through */
+  case LBM_TYPE_CONS_CONST: {
+    bool res = true;
+    res = res && f_cons(fv);
+    if (res) {
+      int fv_r = flatten_value(fv, lbm_car(v));
+      if (fv_r == FLATTEN_VALUE_OK) {
+        fv_r = flatten_value(fv, lbm_cdr(v));
+      }
+      return fv_r;
+    }
+  }break;
+  case LBM_TYPE_BYTE:
+    if (f_b(fv, (uint8_t)lbm_dec_as_char(v))) {
+      return FLATTEN_VALUE_OK;
+    }
+    break;
+  case LBM_TYPE_U:
+    if (f_u(fv, lbm_dec_u(v))) {
+      return FLATTEN_VALUE_OK;
+    }
+    break;
+  case LBM_TYPE_I:
+    if (f_i(fv, lbm_dec_i(v))) {
+      return FLATTEN_VALUE_OK;
+    }
+    break;
+  case LBM_TYPE_U32:
+    if (f_u32(fv, lbm_dec_as_u32(v))) {
+      return FLATTEN_VALUE_OK;
+    }
+    break;
+  case LBM_TYPE_I32:
+    if (f_i32(fv, lbm_dec_as_i32(v))) {
+      return FLATTEN_VALUE_OK;
+    }
+    break;
+  case LBM_TYPE_U64:
+    if (f_u64(fv, lbm_dec_as_u64(v))) {
+      return FLATTEN_VALUE_OK;
+    }
+    break;
+  case LBM_TYPE_I64:
+    if (f_i64(fv, lbm_dec_as_i64(v))) {
+      return FLATTEN_VALUE_OK;
+    }
+    break;
+  case LBM_TYPE_FLOAT:
+    if (f_float(fv, lbm_dec_as_float(v))) {
+      return FLATTEN_VALUE_OK;
+    }
+    break;
+  case LBM_TYPE_DOUBLE:
+    if (f_double(fv, lbm_dec_as_double(v))) {
+      return FLATTEN_VALUE_OK;
+    }
+    break;
+  case LBM_TYPE_SYMBOL:
+    if (f_sym_string(fv, v)) {
+      return FLATTEN_VALUE_OK;
+    }
+    break;
+  case LBM_TYPE_ARRAY: {
+    lbm_int s = lbm_heap_array_get_size(v);
+    uint8_t *d = lbm_heap_array_get_data(v);
+    if (s > 0 && d != NULL) {
+      if (f_lbm_array(fv, (lbm_uint)s, d)) {
+        return FLATTEN_VALUE_OK;
+      }
+    } else {
+      return FLATTEN_VALUE_ARRAY_ERROR;
+    }
+  }break;
+  default:
+    return FLATTEN_VALUE_CANNOT_BE_FLATTENED;
+  }
+  return FLATTEN_VALUE_BUFFER_TOO_SMALL;
+}
+
+
 // ------------------------------------------------------------
 // Unflattening
+static bool extract_byte(lbm_flat_value_t *v, uint8_t *r) {
+  if (v->buf_size >= v->buf_pos + 1) {
+    *r = v->buf[v->buf_pos++];
+    return true;
+  }
+  return false;
+}
+
 static bool extract_word(lbm_flat_value_t *v, uint32_t *r) {
   if (v->buf_size >= v->buf_pos + 4) {
     uint32_t tmp = 0;
@@ -265,6 +371,15 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     }
     return UNFLATTEN_MALFORMED;
   }
+  case S_BYTE_VALUE: {
+    uint8_t tmp;
+    bool b = extract_byte(v, &tmp);
+    if (b) {
+      *res = lbm_enc_char((char)tmp);
+      return UNFLATTEN_OK;
+    }
+    return UNFLATTEN_MALFORMED;
+  }
   case S_I_VALUE: {
     lbm_uint tmp;
     bool b;
@@ -305,6 +420,22 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
       lbm_float f;
       memcpy(&f, &tmp, sizeof(lbm_float));
       lbm_value im  = lbm_enc_float(f);
+      if (lbm_is_symbol_merror(im)) {
+        return UNFLATTEN_GC_RETRY;
+      }
+      *res = im;
+      return UNFLATTEN_OK;
+    }
+    return UNFLATTEN_MALFORMED;
+  }
+  case S_DOUBLE_VALUE: {
+    uint64_t tmp;
+    bool b;
+    b = extract_dword(v, &tmp);
+    if (b) {
+      double f;
+      memcpy(&f, &tmp, sizeof(uint64_t));
+      lbm_value im  = lbm_enc_double(f);
       if (lbm_is_symbol_merror(im)) {
         return UNFLATTEN_GC_RETRY;
       }
@@ -383,6 +514,8 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
       r = lbm_add_symbol((char *)(v->buf + v->buf_pos), &sym_id);
     }
     if (r) {
+      lbm_uint num_bytes = strlen((char*)(v->buf + v->buf_pos)) + 1;
+      v->buf_pos += num_bytes;
       *res = lbm_enc_sym(sym_id);
       return UNFLATTEN_OK;
     }

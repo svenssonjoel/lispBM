@@ -598,6 +598,16 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size);
  * \return 1 for success and 0 for failure.
  */
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt);
+/** Get the size of an array value.
+ * \param arr lbm_value array to get size of.
+ * \return -1 for failure or length of array.
+ */
+lbm_int lbm_heap_array_get_size(lbm_value arr);
+/** Get a pointer to the data of an array.
+ * \param arr lbm_value array to get pointer from.
+ * \return NULL or valid pointer.
+ */
+uint8_t *lbm_heap_array_get_data(lbm_value arr);
 /** Explicitly free an array.
  *  This function needs to be used with care and knowledge.
  * \param arr Array value.

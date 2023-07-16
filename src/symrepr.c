@@ -68,6 +68,9 @@ special_sym const special_symbols[] =  {
   {"map"          , SYM_MAP},
   {"reverse"      , SYM_REVERSE},
   {"wait-for"     , SYM_WAIT_FOR},
+  {"flatten"      , SYM_FLATTEN},
+  {"unflatten"    , SYM_UNFLATTEN},
+  {"kill"         , SYM_KILL},
   {"gc"           , SYM_PERFORM_GC},
 
   // pattern matching
@@ -96,6 +99,7 @@ special_sym const special_symbols[] =  {
   {"$channel"        , SYM_CHANNEL_TYPE},
   {"$recovered"      , SYM_RECOVERED},
   {"$custom"         , SYM_CUSTOM_TYPE},
+  {"$flatval"        , SYM_FLATVAL_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
 
   // tokenizer symbols with unparsable names
@@ -129,6 +133,8 @@ special_sym const special_symbols[] =  {
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
   {"type-channel"     , SYM_TYPE_CHANNEL},
+  {"type-flatval"     , SYM_TYPE_FLATVAL},
+
   // Fundamental operations
   {"+"                , SYM_ADD},
   {"-"                , SYM_SUB},

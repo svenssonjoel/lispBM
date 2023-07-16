@@ -27,11 +27,15 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 15
+#define LBM_MINOR_VERSION 16
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+JUL 16 2023: Version 0.16.0
+  - Addition of flat values as a type in the language.
+  - Addition of kill function for termination of threads.
 
 JUN 29 2023: version 0.15.0
   - Bug fix in lift_array_flash.

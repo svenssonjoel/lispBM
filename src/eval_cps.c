@@ -89,7 +89,8 @@ static jmp_buf error_jmp_buf;
 #define QQ_APPEND             CONTINUATION(40)
 #define QQ_EXPAND_LIST        CONTINUATION(41)
 #define QQ_LIST               CONTINUATION(42)
-#define NUM_CONTINUATIONS     43
+#define KILL                  CONTINUATION(43)
+#define NUM_CONTINUATIONS     44
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -2361,6 +2362,132 @@ static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
   }
 }
 
+static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if (nargs == 2 && lbm_is_number(args[0])) {
+    lbm_uint bytes = lbm_dec_as_u32(args[0]);
+
+    lbm_array_header_t *array = NULL;
+    lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_FLATVAL_TYPE);
+    if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) { // Out of heap.
+      gc();
+      array_cell = lbm_heap_allocate_cell(LBM_TYPE_FLATVAL, ENC_SYM_NIL, ENC_SYM_FLATVAL_TYPE);
+      if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) {
+        error_ctx(ENC_SYM_MERROR);
+      }
+    }
+
+    array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
+    if (array == NULL) {
+      lbm_gc_mark_phase(1, array_cell);
+      gc();
+      array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
+      if (array == NULL) {
+        error_ctx(ENC_SYM_MERROR);
+      }
+    }
+
+    lbm_flat_value_t v;
+    bool r = lbm_start_flatten(&v, bytes);
+    if (!r) {
+      // array header is not yet registered with a cell
+      // and does not need to be protected from GC.
+      lbm_gc_mark_phase(1, array_cell);
+      gc();
+      r = lbm_start_flatten(&v, bytes);
+    }
+
+    if (!r) error_ctx(ENC_SYM_MERROR);
+
+    if (r && flatten_value(&v, args[1]) == FLATTEN_VALUE_OK) {
+      r = lbm_finish_flatten(&v);
+    } else if (r) {
+      lbm_free(v.buf);
+      error_ctx(ENC_SYM_EERROR);
+    }
+
+    if (r) {
+      // lift flat_value
+      array->data = (lbm_uint*)v.buf;
+      array->size = v.buf_size;
+      lbm_set_car(array_cell, (lbm_uint)array);
+      array_cell = lbm_set_ptr_type(array_cell, LBM_TYPE_FLATVAL);
+      lbm_stack_drop(&ctx->K, 3);
+      ctx->r = array_cell;
+      ctx->app_cont = true;
+    } else {
+      ctx->r = ENC_SYM_NIL;
+      ctx->app_cont = true;
+    }
+    return;
+  }
+  error_ctx(ENC_SYM_TERROR);
+}
+
+static void apply_unflatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if(nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_FLATVAL) {
+    lbm_array_header_t *array;
+    array = (lbm_array_header_t *)lbm_car(args[0]);
+
+    lbm_flat_value_t fv;
+    fv.buf = (uint8_t*)array->data;
+    fv.buf_size = array->size;
+    fv.buf_pos = 0;
+
+    lbm_value res;
+
+    ctx->r = ENC_SYM_NIL;
+    if (lbm_unflatten_value(&fv, &res)) {
+      ctx->r =  res;
+    } else {
+      printf("unflatten failed\n");
+    }
+    lbm_stack_drop(&ctx->K, 2);
+    ctx->app_cont = true;
+    return;
+  }
+  error_ctx(ENC_SYM_TERROR);
+}
+
+static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if (nargs == 2 && lbm_is_number(args[0])) {
+    lbm_cid cid = lbm_dec_as_i32(args[0]);
+
+    if (ctx->id == cid) {
+      ctx->r = args[1];
+      finish_ctx();
+      return;
+    }
+    mutex_lock(&qmutex);
+    eval_context_t *found = NULL;
+    found = lookup_ctx_nm(&blocked, cid);
+    if (found)
+      drop_ctx_nm(&blocked, found);
+    else
+      found = lookup_ctx_nm(&queue, cid);
+    if (found)
+      drop_ctx_nm(&queue, found);
+    else
+      found = lookup_ctx_nm(&sleeping, cid);
+    if (found)
+      drop_ctx_nm(&sleeping, found);
+
+    if (found) {
+      found->K.data[found->K.sp - 1] = KILL;
+      found->r = args[1];
+      found->app_cont = true;
+      enqueue_ctx_nm(&queue,found);
+      ctx->r = ENC_SYM_TRUE;
+    } else {
+      ctx->r = ENC_SYM_NIL;
+    }
+    lbm_stack_drop(&ctx->K, 3);
+    ctx->app_cont = true;
+    mutex_unlock(&qmutex);
+    return;
+  }
+  error_ctx(ENC_SYM_TERROR);
+}
+
 /***************************************************/
 /* Application lookup table                        */
 
@@ -2383,6 +2510,9 @@ static const apply_fun fun_table[] =
    apply_map,
    apply_reverse,
    apply_wait_for,
+   apply_flatten,
+   apply_unflatten,
+   apply_kill,
   };
 
 /***************************************************/
@@ -3933,6 +4063,10 @@ static void cont_qq_list(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static void cont_kill(eval_context_t *ctx) {
+  finish_ctx();
+}
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -3981,6 +4115,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_qq_append,
     cont_qq_expand_list,
     cont_qq_list,
+    cont_kill,
   };
 
 /*********************************************************/

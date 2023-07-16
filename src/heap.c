@@ -710,7 +710,7 @@ int lbm_gc_sweep_phase(void) {
         case SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
-
+        case SYM_FLATVAL_TYPE:
         case SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
@@ -1054,6 +1054,32 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
   *value = cell;
   return 1;
 }
+
+lbm_int lbm_heap_array_get_size(lbm_value arr) {
+
+  int r = -1;
+  if (lbm_is_array_rw(arr)) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+    if (header == NULL) {
+      return r;
+    }
+    r = (lbm_int)header->size;
+  }
+  return r;
+}
+
+uint8_t *lbm_heap_array_get_data(lbm_value arr) {
+  uint8_t *r = NULL;
+  if (lbm_is_array_rw(arr)) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+    if (header == NULL) {
+      return r;
+    }
+    r = (uint8_t*)header->data;
+  }
+  return r;
+}
+
 
 /* Explicitly freeing an array.
 

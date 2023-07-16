@@ -37,7 +37,8 @@
 #define LBM_TYPE_DOUBLE                  0x78000000u
 #define LBM_TYPE_ARRAY                   0x80000000u
 #define LBM_TYPE_CHANNEL                 0x90000000u
-#define LBM_TYPE_CUSTOM                  0xA0000000u
+#define LBM_TYPE_FLATVAL                 0xA0000000u
+#define LBM_TYPE_CUSTOM                  0xB0000000u
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xBC000000u
 #define LBM_POINTER_TYPE_LAST            0xBC000000u
 
@@ -67,8 +68,9 @@
 #define LBM_TYPE_ARRAY                   (lbm_uint)0x5000000000000000
 #define LBM_TYPE_CHANNEL                 (lbm_uint)0x7000000000000000
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
-#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
+#define LBM_TYPE_FLATVAL                 (lbm_uint)0x9000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x9000000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x9000000000000000
 
 #define LBM_CONTINUATION_INTERNAL        (lbm_uint)0xF800000000000001
 #define LBM_CONTINUATION_INTERNAL_TYPE   (lbm_uint)0xF800000000000000
@@ -122,7 +124,8 @@
 #define SYM_IND_F_TYPE     0x36
 #define SYM_CHANNEL_TYPE   0x37
 #define SYM_CUSTOM_TYPE    0x38
-#define TYPE_CLASSIFIER_ENDS 0x38
+#define SYM_FLATVAL_TYPE   0x39
+#define TYPE_CLASSIFIER_ENDS 0x39
 #define SYM_NONSENSE       0x3A
 
 #define SYM_NO_MATCH       0x40
@@ -143,6 +146,7 @@
 #define SYM_TYPE_CHAR      0x5B
 #define SYM_TYPE_BYTE      0x5C
 #define SYM_TYPE_CHANNEL   0x5E
+#define SYM_TYPE_FLATVAL   0x5F
 
 //Relevant for the tokenizer and reader
 #define TOKENIZER_SYMBOLS_START 0x70
@@ -211,7 +215,10 @@
 #define SYM_MAP           0x15D
 #define SYM_REVERSE       0x15E
 #define SYM_WAIT_FOR      0x15F
-#define APPLY_FUNS_END    0x15F
+#define SYM_FLATTEN       0x160
+#define SYM_UNFLATTEN     0x161
+#define SYM_KILL          0x162
+#define APPLY_FUNS_END    0x162
 
 #define FUNDAMENTALS_START 0x20E
 #define SYM_ADD           0x20E
@@ -315,6 +322,7 @@
 #define ENC_SYM_IND_F_TYPE     ENC_SYM(SYM_IND_F_TYPE)
 #define ENC_SYM_CHANNEL_TYPE   ENC_SYM(SYM_CHANNEL_TYPE)
 #define ENC_SYM_CUSTOM_TYPE    ENC_SYM(SYM_CUSTOM_TYPE)
+#define ENC_SYM_FLATVAL_TYPE   ENC_SYM(SYM_FLATVAL_TYPE)
 #define ENC_SYM_NONSENSE       ENC_SYM(SYM_NONSENSE)
 
 #define ENC_SYM_NO_MATCH       ENC_SYM(SYM_NO_MATCH)
@@ -334,6 +342,7 @@
 #define ENC_SYM_TYPE_CHAR      ENC_SYM(SYM_TYPE_CHAR)
 #define ENC_SYM_TYPE_BYTE      ENC_SYM(SYM_TYPE_BYTE)
 #define ENC_SYM_TYPE_CHANNEL   ENC_SYM(SYM_TYPE_CHANNEL)
+#define ENC_SYM_TYPE_FLATVAL   ENC_SYM(SYM_TYPE_FLATVAL)
 
 #define ENC_SYM_OPENPAR          ENC_SYM(SYM_OPENPAR)
 #define ENC_SYM_CLOSEPAR         ENC_SYM(SYM_CLOSEPAR)
@@ -389,9 +398,9 @@
 #define ENC_SYM_MAP           ENC_SYM(SYM_MAP)
 #define ENC_SYM_REVERSE       ENC_SYM(SYM_REVERSE)
 #define ENC_SYM_WAIT_FOR      ENC_SYM(SYM_WAIT_FOR)
-#define ENC_SYM_GET_ENV       ENC_SYM(SYM_GET_ENV)
-#define ENC_SYM_SET_ENV       ENC_SYM(SYM_SET_ENV)
-
+#define ENC_SYM_FLATTEN       ENC_SYM(SYM_FLATTEN)
+#define ENC_SYM_UNFLATTEN     ENC_SYM(SYM_UNFLATTEN)
+#define ENC_SYM_KILL          ENC_SYM(SYM_KILL)
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)
 #define ENC_SYM_SUB           ENC_SYM(SYM_SUB)
