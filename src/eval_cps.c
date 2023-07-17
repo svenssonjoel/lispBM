@@ -2396,7 +2396,10 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
       r = lbm_start_flatten(&v, bytes);
     }
 
-    if (!r) error_ctx(ENC_SYM_MERROR);
+    if (!r) {
+      error_ctx(ENC_SYM_MERROR);
+      lbm_free(v.buf);
+    }
 
     if (r && flatten_value(&v, args[1]) == FLATTEN_VALUE_OK) {
       r = lbm_finish_flatten(&v);
@@ -2415,6 +2418,7 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
       ctx->r = array_cell;
       ctx->app_cont = true;
     } else {
+      lbm_free(v.buf);
       ctx->r = ENC_SYM_NIL;
       ctx->app_cont = true;
     }
@@ -2438,8 +2442,6 @@ static void apply_unflatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     ctx->r = ENC_SYM_NIL;
     if (lbm_unflatten_value(&fv, &res)) {
       ctx->r =  res;
-    } else {
-      printf("unflatten failed\n");
     }
     lbm_stack_drop(&ctx->K, 2);
     ctx->app_cont = true;
