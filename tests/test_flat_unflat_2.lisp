@@ -1,4 +1,4 @@
 
-(define a (flatten 10 1))
+(define a (flatten 1))
 
 (check (= (unflatten a) 1))

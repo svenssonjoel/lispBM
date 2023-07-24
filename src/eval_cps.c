@@ -2288,6 +2288,7 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   error_ctx(err_val);
 }
 
+// (map f arg-list)
 static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2 && lbm_is_list(args[1])) {
     if (lbm_is_symbol_nil(args[1])) {
@@ -2363,63 +2364,19 @@ static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
 }
 
 static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (nargs == 2 && lbm_is_number(args[0])) {
-    lbm_uint bytes = lbm_dec_as_u32(args[0]);
+  if (nargs == 1) {
 
-    lbm_array_header_t *array = NULL;
-    lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_FLATVAL_TYPE);
-    if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) { // Out of heap.
+    lbm_value v = flatten_value(args[0]);
+    if ( v == ENC_SYM_MERROR) {
       gc();
-      array_cell = lbm_heap_allocate_cell(LBM_TYPE_FLATVAL, ENC_SYM_NIL, ENC_SYM_FLATVAL_TYPE);
-      if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) {
-        error_ctx(ENC_SYM_MERROR);
-      }
+      v = flatten_value(args[0]);
     }
 
-    array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
-    if (array == NULL) {
-      lbm_gc_mark_phase(1, array_cell);
-      gc();
-      array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
-      if (array == NULL) {
-        error_ctx(ENC_SYM_MERROR);
-      }
-    }
-
-    lbm_flat_value_t v;
-    bool r = lbm_start_flatten(&v, bytes);
-    if (!r) {
-      // array header is not yet registered with a cell
-      // and does not need to be protected from GC.
-      lbm_gc_mark_phase(1, array_cell);
-      gc();
-      r = lbm_start_flatten(&v, bytes);
-    }
-
-    if (!r) {
-      error_ctx(ENC_SYM_MERROR);
-      lbm_free(v.buf);
-    }
-
-    if (r && flatten_value(&v, args[1]) == FLATTEN_VALUE_OK) {
-      r = lbm_finish_flatten(&v);
-    } else if (r) {
-      lbm_free(v.buf);
-      error_ctx(ENC_SYM_EERROR);
-    }
-
-    if (r) {
-      // lift flat_value
-      array->data = (lbm_uint*)v.buf;
-      array->size = v.buf_size;
-      lbm_set_car(array_cell, (lbm_uint)array);
-      array_cell = lbm_set_ptr_type(array_cell, LBM_TYPE_FLATVAL);
-      lbm_stack_drop(&ctx->K, 3);
-      ctx->r = array_cell;
-      ctx->app_cont = true;
+    if (lbm_is_symbol(v)) {
+      error_ctx(v);
     } else {
-      lbm_free(v.buf);
-      ctx->r = ENC_SYM_NIL;
+      lbm_stack_drop(&ctx->K, 2);
+      ctx->r = v;
       ctx->app_cont = true;
     }
     return;
@@ -2850,7 +2807,7 @@ static void cont_map_first(eval_context_t *ctx) {
   lbm_value ls  = sptr[0];
   lbm_value env = sptr[1];
 
-  lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL,ENC_SYM_NIL);
+  lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
   sptr[2] = elt; // head of result list
   sptr[3] = elt; // tail of result list
   if (lbm_is_cons(ls)) {
@@ -2875,9 +2832,9 @@ static void cont_map_rest(eval_context_t *ctx) {
   lbm_value ls  = sptr[0];
   lbm_value env = sptr[1];
   lbm_value t   = sptr[3];
-
   lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
   lbm_set_cdr(t, elt);
+
   sptr[3] = elt; // update tail of result list.
   if (lbm_is_cons(ls)) {
     lbm_value next, rest;
@@ -2885,6 +2842,7 @@ static void cont_map_rest(eval_context_t *ctx) {
     sptr[0] = rest;
     stack_push(&ctx->K, MAP_REST);
     lbm_set_car(sptr[5], next); // new arguments
+
     ctx->curr_exp = sptr[4];
     ctx->curr_env = env;
   } else {
@@ -3522,7 +3480,7 @@ static void cont_read_done(eval_context_t *ctx) {
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
     }
   }
-  
+
   ctx->row0 = -1;
   ctx->row1 = -1;
   ctx->app_cont = true;
@@ -3960,9 +3918,9 @@ lbm_value append(lbm_value front, lbm_value back) {
         (else `',x)))
  */
 static void cont_qq_expand(eval_context_t *ctx) {
-  lbm_value qquoted; 
+  lbm_value qquoted;
   lbm_pop(&ctx->K, &qquoted);
-  
+
   switch(lbm_type_of(qquoted)) {
   case LBM_TYPE_CONS: {
     lbm_value car_val = lbm_car(qquoted);
@@ -4038,14 +3996,14 @@ static void cont_qq_expand_list(eval_context_t* ctx) {
       ctx->app_cont = true;
       return;
     } else {
-      stack_push(&ctx->K, QQ_LIST); 
+      stack_push(&ctx->K, QQ_LIST);
       stack_push_2(&ctx->K, ctx->r,  QQ_APPEND);
       stack_push_2(&ctx->K, cdr_val, QQ_EXPAND);
       stack_push_2(&ctx->K, car_val, QQ_EXPAND_LIST);
       ctx->app_cont = true;
       ctx->r = ENC_SYM_NIL;
     }
-    
+
   } break;
   default: {
     lbm_value a_list = cons_with_gc(l, ENC_SYM_NIL, ENC_SYM_NIL);
@@ -4066,6 +4024,7 @@ static void cont_qq_list(eval_context_t *ctx) {
 }
 
 static void cont_kill(eval_context_t *ctx) {
+  (void) ctx;
   finish_ctx();
 }
 

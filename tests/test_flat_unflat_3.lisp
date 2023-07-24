@@ -1,4 +1,4 @@
 
-(define a (flatten 10 "hej"))
+(define a (flatten "hej"))
 
 (check (eq (unflatten a) "hej"))

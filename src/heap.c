@@ -1233,4 +1233,3 @@ lbm_flash_status write_const_car(lbm_value cell, lbm_value val) {
 lbm_uint lbm_flash_memory_usage(void) {
   return lbm_const_heap_state->next;
 }
-
