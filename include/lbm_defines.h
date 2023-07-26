@@ -100,6 +100,7 @@
 #define SYM_NIL           0x0
 #define SYM_TRUE          0x2
 #define SYM_DONTCARE      0x9
+#define SYM_TIMEOUT       0xA
 
 // 0x20 - 0x2F are errors
 #define SYM_RERROR                0x20  /* READ ERROR */
@@ -183,17 +184,18 @@
 #define SYM_OR                  0x107
 #define SYM_MATCH               0x108
 #define SYM_RECEIVE             0x109
-#define SYM_CALLCC              0x10A
-#define SYM_ATOMIC              0x10B
-#define SYM_MACRO               0x10C
-#define SYM_CONT                0x10D
-#define SYM_CLOSURE             0x10E
-#define SYM_COND                0x10F
-#define SYM_APP_CONT            0x110
-#define SYM_PROGN_VAR           0x111
-#define SYM_SETQ                0x112
-#define SYM_MOVE_TO_FLASH       0x113
-#define SPECIAL_FORMS_END       0x113
+#define SYM_RECEIVE_TIMEOUT     0x10A
+#define SYM_CALLCC              0x10B
+#define SYM_ATOMIC              0x10C
+#define SYM_MACRO               0x10D
+#define SYM_CONT                0x10E
+#define SYM_CLOSURE             0x10F
+#define SYM_COND                0x110
+#define SYM_APP_CONT            0x111
+#define SYM_PROGN_VAR           0x112
+#define SYM_SETQ                0x113
+#define SYM_MOVE_TO_FLASH       0x114
+#define SPECIAL_FORMS_END       0x114
 
 // Apply funs:
 // Get their arguments in evaluated form.
@@ -301,6 +303,7 @@
 #define ENC_SYM_NIL           ENC_SYM(SYM_NIL)
 #define ENC_SYM_TRUE          ENC_SYM(SYM_TRUE)
 #define ENC_SYM_DONTCARE      ENC_SYM(SYM_DONTCARE)
+#define ENC_SYM_TIMEOUT       ENC_SYM(SYM_TIMEOUT)
 
 #define ENC_SYM_RERROR                ENC_SYM(SYM_RERROR)
 #define ENC_SYM_TERROR                ENC_SYM(SYM_TERROR)
@@ -370,6 +373,7 @@
 #define ENC_SYM_OR                  ENC_SYM(SYM_OR)
 #define ENC_SYM_MATCH               ENC_SYM(SYM_MATCH)
 #define ENC_SYM_RECEIVE             ENC_SYM(SYM_RECEIVE)
+#define ENC_SYM_RECEIVE_TIMEOUT     ENC_SYM(SYM_RECEIVE_TIMEOUT)
 #define ENC_SYM_CALLCC              ENC_SYM(SYM_CALLCC)
 #define ENC_SYM_ATOMIC              ENC_SYM(SYM_ATOMIC)
 #define ENC_SYM_MACRO               ENC_SYM(SYM_MACRO)

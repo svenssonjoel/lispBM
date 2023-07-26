@@ -57,6 +57,7 @@ typedef struct eval_context_s{
   lbm_stack_t K;
   lbm_uint timestamp;
   lbm_uint sleep_us;
+  bool timeout;
   lbm_cid id;
   lbm_cid parent;
   lbm_uint wait_mask;
@@ -233,9 +234,13 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size);
 /** Block a context from an extension
  */
 void lbm_block_ctx_from_extension(void);
-  /** Undo a previous call to lbm_block_ctx_from_extension.
-   */
-  void lbm_undo_block_ctx_from_extension(void);
+/** Block a context from an extension with a timeout.
+ * \param s Timeout in seconds.
+ */
+void lbm_block_ctx_from_extension_timeout(float s);
+/** Undo a previous call to lbm_block_ctx_from_extension.
+ */
+void lbm_undo_block_ctx_from_extension(void);
 /** Unblock a context that has been blocked by a C extension
  *  Trying to unblock a context that is waiting on a message
  *  in a mailbox is not encouraged

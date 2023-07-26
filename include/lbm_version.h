@@ -27,11 +27,16 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 16
+#define LBM_MINOR_VERSION 17
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
 /*! \page changelog Changelog
+
+JUL 26 2023: Version 0.17.0
+  - Addition of a timeout functionality to blocked contexts.
+  - recv-to special form added.
+  - block_context_from_extension_timeout function added.
 
 JUL 16 2023: Version 0.16.0
   - Addition of flat values as a type in the language.
