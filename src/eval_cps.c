@@ -366,7 +366,6 @@ void lbm_trigger_flags(uint32_t wait_for_flags) {
 
 /* Process queues */
 static eval_context_queue_t blocked  = {NULL, NULL};
-static eval_context_queue_t sleeping = {NULL, NULL};
 static eval_context_queue_t queue    = {NULL, NULL};
 
 /* one mutex for all queue operations */
@@ -657,10 +656,10 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
 
 // block_current_ctx blocks a context until it is
 // woken up externally of a timeout period of time passes.
-static void block_current_ctx(lbm_uint sleep_us, uint32_t wait_mask, bool timeout, bool do_cont) {
+static void block_current_ctx(uint32_t state, lbm_uint sleep_us, uint32_t wait_mask, bool do_cont) {
   ctx_running->timestamp = timestamp_us_callback();
   ctx_running->sleep_us = sleep_us;
-  ctx_running->timeout  = timeout;
+  ctx_running->state  = state;
   ctx_running->wait_mask = wait_mask;
   ctx_running->app_cont = do_cont;
   enqueue_ctx(&blocked, ctx_running);
@@ -840,12 +839,6 @@ void lbm_blocked_iterator(ctx_fun f, void *arg1, void *arg2){
   mutex_unlock(&qmutex);
 }
 
-void lbm_sleeping_iterator(ctx_fun f, void *arg1, void *arg2){
-  mutex_lock(&qmutex);
-  queue_iterator_nm(&sleeping, f, arg1, arg2);
-  mutex_unlock(&qmutex);
-}
-
 static void enqueue_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
   if (q->last == NULL) {
     ctx->prev = NULL;
@@ -928,6 +921,9 @@ static void finish_ctx(void) {
   /* Drop the continuation stack immediately to free up lbm_memory */
   lbm_stack_free(&ctx_running->K);
   ctx_done_callback(ctx_running);
+  if (lbm_memory_ptr_inside((lbm_uint*)ctx_running->name)) {
+    lbm_free(ctx_running->name);
+  }
   if (lbm_memory_ptr_inside((lbm_uint*)ctx_running->error_reason)) {
     lbm_memory_free((lbm_uint*)ctx_running->error_reason);
   }
@@ -951,7 +947,6 @@ bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
     exists = false;
     lbm_blocked_iterator(context_exists, &cid, &exists);
     lbm_running_iterator(context_exists, &cid, &exists);
-    lbm_sleeping_iterator(context_exists, &cid, &exists);
 
     if (ctx_running &&
         ctx_running->id == cid) {
@@ -1060,15 +1055,13 @@ static void wake_up_ctxs() {
     t_now = 0;
   }
 
-  eval_context_queue_t *queues[2] = {&sleeping, &blocked};
+  eval_context_queue_t *q = &blocked;
+  eval_context_t *curr = q->first;
 
-  for (int i = 0; i < 2; i ++) {
-    eval_context_queue_t *q = queues[i];
-    eval_context_t *curr = q->first;
-
-    while (curr != NULL) {
-      lbm_uint t_diff;
-      eval_context_t *next = curr->next;
+  while (curr != NULL) {
+    lbm_uint t_diff;
+    eval_context_t *next = curr->next;
+    if (curr->state != LBM_THREAD_STATE_BLOCKED) {
       if ( curr->timestamp > t_now) {
         /* There was an overflow on the counter */
 #ifndef LBM64
@@ -1080,37 +1073,36 @@ static void wake_up_ctxs() {
         t_diff = t_now - curr->timestamp;
       }
 
-      if (i == 0 || curr->timeout) {
-        if (t_diff >= curr->sleep_us) {
-          eval_context_t *wake_ctx = curr;
-          if (curr == q->last) {
-            if (curr->prev) {
-              q->last = curr->prev;
-              q->last->next = NULL;
-            } else {
-              q->first = NULL;
-              q->last = NULL;
-            }
-          } else if (curr->prev == NULL) {
-            q->first = curr->next;
-            q->first->prev = NULL;
+      if (t_diff >= curr->sleep_us) {
+        eval_context_t *wake_ctx = curr;
+        if (curr == q->last) {
+          if (curr->prev) {
+            q->last = curr->prev;
+            q->last->next = NULL;
           } else {
-            curr->prev->next = curr->next;
-            if (curr->next) {
-              curr->next->prev = curr->prev;
-            }
+            q->first = NULL;
+            q->last = NULL;
           }
-          wake_ctx->next = NULL;
-          wake_ctx->prev = NULL;
-          if (curr->timeout) {
-            mailbox_add_mail(wake_ctx, ENC_SYM_TIMEOUT);
-            wake_ctx->r = ENC_SYM_TIMEOUT;
+        } else if (curr->prev == NULL) {
+          q->first = curr->next;
+          q->first->prev = NULL;
+        } else {
+          curr->prev->next = curr->next;
+          if (curr->next) {
+            curr->next->prev = curr->prev;
           }
-          enqueue_ctx_nm(&queue, wake_ctx);
         }
+        wake_ctx->next = NULL;
+        wake_ctx->prev = NULL;
+        if (curr->state == LBM_THREAD_STATE_TIMEOUT) {
+          mailbox_add_mail(wake_ctx, ENC_SYM_TIMEOUT);
+          wake_ctx->r = ENC_SYM_TIMEOUT;
+        }
+        wake_ctx->state = LBM_THREAD_STATE_READY;
+        enqueue_ctx_nm(&queue, wake_ctx);
       }
-      curr = next;
     }
+    curr = next;
   }
   mutex_unlock(&qmutex);
 }
@@ -1119,17 +1111,19 @@ static void wake_up_ctxs() {
   if (timestamp_us_callback) {
     ctx_running->timestamp = timestamp_us_callback();
     ctx_running->sleep_us = sleep_us;
+    ctx_running->state = LBM_THREAD_STATE_SLEEPING;
   } else {
     ctx_running->timestamp = 0;
     ctx_running->sleep_us = 0;
+    ctx_running->state = LBM_THREAD_STATE_SLEEPING;
   }
   ctx_running->r = ENC_SYM_TRUE;
   ctx_running->app_cont = true;
-  enqueue_ctx(&sleeping,ctx_running);
+  enqueue_ctx(&blocked,ctx_running);
   ctx_running = NULL;
 }
 
-static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint stack_size, lbm_cid parent, uint32_t context_flags) {
+static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint stack_size, lbm_cid parent, uint32_t context_flags, char *name) {
 
   if (!lbm_is_cons(program)) return -1;
 
@@ -1180,6 +1174,26 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
     return -1;
   }
 
+  // TODO: Limit names to 19 chars + 1 char for 0? (or something similar).
+  if (name) {
+    lbm_uint name_len = strlen(name) + 1;
+    ctx->name = lbm_malloc(strlen(name) + 1);
+    if (ctx->name == NULL) {
+      lbm_gc_mark_phase(2, program, env);
+      gc();
+      ctx->name = lbm_malloc(strlen(name) + 1);
+    }
+    if (ctx->name == NULL) {
+      lbm_stack_free(&ctx->K);
+      lbm_memory_free((lbm_uint*)mailbox);
+      lbm_memory_free((lbm_uint*)ctx);
+      return -1;
+    }
+    memcpy(ctx->name, name, name_len+1);
+  } else {
+     ctx->name = NULL;
+  }
+
   lbm_int cid = lbm_memory_address_to_ix((lbm_uint*)ctx);
 
   ctx->program = lbm_cdr(program);
@@ -1194,7 +1208,7 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   ctx->app_cont = false;
   ctx->timestamp = 0;
   ctx->sleep_us = 0;
-  ctx->timeout = false;
+  ctx->state = LBM_THREAD_STATE_READY;
   ctx->prev = NULL;
   ctx->next = NULL;
 
@@ -1223,7 +1237,8 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
                                env,
                                stack_size,
                                -1,
-                               EVAL_CPS_CONTEXT_FLAG_NOTHING);
+                               EVAL_CPS_CONTEXT_FLAG_NOTHING,
+                               NULL);
 }
 
 bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size) {
@@ -1343,10 +1358,6 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
     found = lookup_ctx_nm(&queue, cid);
   }
 
-  if (found == NULL) {
-    found = lookup_ctx_nm(&sleeping, cid);
-  }
-
   if (found) {
     if (!mailbox_add_mail(found, msg)) {
       mutex_unlock(&qmutex);
@@ -1355,8 +1366,6 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
 
     if (found_blocked){
       drop_ctx_nm(&blocked,found);
-      //drop_ctx_nm(&queue,found);  ????
-
       enqueue_ctx_nm(&queue,found);
     }
     mutex_unlock(&qmutex);
@@ -1507,7 +1516,6 @@ static int gc(void) {
                        // Any concurrent messing with the queues
                        // while doing GC cannot possibly be good.
   queue_iterator_nm(&queue, mark_context, NULL, NULL);
-  queue_iterator_nm(&sleeping, mark_context, NULL, NULL);
   queue_iterator_nm(&blocked, mark_context, NULL, NULL);
 
   if (ctx_running) {
@@ -1912,7 +1920,11 @@ static void eval_match(eval_context_t *ctx) {
 
 static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time, bool timeout) {
    if (ctx->num_mail == 0) {
-    block_current_ctx(S_TO_US(timeout_time), 0, timeout, false);
+     if (timeout) {
+       block_current_ctx(LBM_THREAD_STATE_TIMEOUT, S_TO_US(timeout_time), 0, false);
+     } else {
+       block_current_ctx(LBM_THREAD_STATE_BLOCKED,0,0, false);
+     }
   } else {
     lbm_value *msgs = ctx->mailbox;
     lbm_uint  num   = ctx->num_mail;
@@ -1946,7 +1958,11 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
         ctx->curr_exp = e;
       } else { /* No match  go back to sleep */
         ctx->r = ENC_SYM_NO_MATCH;
-        block_current_ctx(S_TO_US(timeout_time),0,timeout,false);
+        if (timeout) {
+          block_current_ctx(LBM_THREAD_STATE_TIMEOUT,S_TO_US(timeout_time),0,false);
+        } else {
+          block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0, 0, false);
+        }
       }
     }
   }
@@ -2050,7 +2066,6 @@ static void cont_wait(eval_context_t *ctx) {
 
   lbm_blocked_iterator(context_exists, &cid, &exists);
   lbm_running_iterator(context_exists, &cid, &exists);
-  lbm_sleeping_iterator(context_exists, &cid, &exists);
 
   if (ctx_running->id == cid) {
     exists = true;
@@ -2158,12 +2173,25 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 
   lbm_uint stack_size = EVAL_CPS_DEFAULT_STACK_SIZE;
   lbm_uint closure_pos = 0;
+  char *name = NULL;
 
   if (nargs >= 2 &&
       lbm_is_number(args[0]) &&
       lbm_is_closure(args[1])) {
     stack_size = lbm_dec_as_u32(args[0]);
     closure_pos = 1;
+  } else if (nargs >= 2 &&
+             lbm_is_array_r(args[0]) &&
+             lbm_is_closure(args[1])) {
+    name = lbm_dec_str(args[0]);
+    closure_pos = 1;
+  }else if (nargs >= 3 &&
+             lbm_is_array_r(args[0]) &&
+             lbm_is_number(args[1]) &&
+             lbm_is_closure(args[2])) {
+    stack_size = lbm_dec_as_u32(args[1]);
+    closure_pos = 2;
+    name = lbm_dec_str(args[0]);
   }
 
   if (!lbm_is_closure(args[closure_pos]) ||
@@ -2192,7 +2220,8 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
                                       clo_env,
                                       stack_size,
                                       lbm_get_current_cid(),
-                                      context_flags);
+                                      context_flags,
+                                      name);
   ctx->r = lbm_enc_i(cid);
   ctx->app_cont = true;
 }
@@ -2237,7 +2266,7 @@ static void apply_wait_for(lbm_value *args, lbm_uint nargs, eval_context_t *ctx)
     uint32_t w = lbm_dec_as_u32(args[0]);
     lbm_stack_drop(&ctx->K, nargs+1);
     if (w != 0) {
-      block_current_ctx(0, w, false, true);
+      block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0, w, true);
     } else {
       ctx->r = ENC_SYM_NIL;
       ctx->app_cont = true;
@@ -2462,10 +2491,6 @@ static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       found = lookup_ctx_nm(&queue, cid);
     if (found)
       drop_ctx_nm(&queue, found);
-    else
-      found = lookup_ctx_nm(&sleeping, cid);
-    if (found)
-      drop_ctx_nm(&sleeping, found);
 
     if (found) {
       found->K.data[found->K.sp - 1] = KILL;
@@ -2546,7 +2571,11 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     if (blocking_extension) {
       blocking_extension = false;
-      block_current_ctx(blocking_extension_timeout, 0, blocking_extension_timeout, true);
+      if (blocking_extension_timeout) {
+        block_current_ctx(LBM_THREAD_STATE_TIMEOUT, blocking_extension_timeout_us, 0, true);
+      } else {
+        block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0, 0, true);
+      }
       mutex_unlock(&blocking_extension_mutex);
     } else {
       ctx->app_cont = true;
@@ -4230,6 +4259,8 @@ uint32_t lbm_get_eval_state(void) {
   return eval_cps_run_state;
 }
 
+// Will wake up thread that is sleeping as well.
+// Not sure this is good behavior.
 static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   eval_context_t *found = NULL;
   mutex_lock(&qmutex);
@@ -4321,7 +4352,7 @@ static void process_waiting(void) {
       }
       ctx->wait_mask = 0;
       ctx->r = ENC_SYM_TRUE; // woken up task receives true.
-      enqueue_ctx_nm(&queue, ctx); // changes meaing of curr->next.
+      enqueue_ctx_nm(&queue, ctx); // changes meaning of curr->next.
     }
     curr = next;
   }
@@ -4421,8 +4452,6 @@ int lbm_eval_init() {
 
   blocked.first = NULL;
   blocked.last = NULL;
-  sleeping.first = NULL;
-  sleeping.last = NULL;
   queue.first = NULL;
   queue.last = NULL;
   ctx_running = NULL;

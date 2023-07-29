@@ -43,6 +43,11 @@ extern "C" {
 /** The eval_context_t struct represents a lispbm process.
  *
  */
+#define LBM_THREAD_STATE_READY    0
+#define LBM_THREAD_STATE_BLOCKED  1
+#define LBM_THREAD_STATE_TIMEOUT  2
+#define LBM_THREAD_STATE_SLEEPING 3
+  
 typedef struct eval_context_s{
   lbm_value program;
   lbm_value curr_exp;
@@ -57,7 +62,8 @@ typedef struct eval_context_s{
   lbm_stack_t K;
   lbm_uint timestamp;
   lbm_uint sleep_us;
-  bool timeout;
+  uint32_t state;
+  char *name;
   lbm_cid id;
   lbm_cid parent;
   lbm_uint wait_mask;
@@ -270,13 +276,6 @@ void lbm_running_iterator(ctx_fun f, void*, void*);
  * \param arg2 Same as above
  */
 void lbm_blocked_iterator(ctx_fun f, void*, void*);
-/** Iterate over all done contexts and apply function on each context.
- *
- * \param f Function to apply to each context.
- * \param arg1 Pointer argument that can be used to convey information back to user.
- * \param arg2 Same as above
- */
-void lbm_sleeping_iterator(ctx_fun f, void *, void *);
 /** toggle verbosity level of error messages
  */
 void lbm_toggle_verbose(void);

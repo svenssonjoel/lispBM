@@ -33,10 +33,13 @@ extern "C" {
 
 /*! \page changelog Changelog
 
-JUL 26 2023: Version 0.17.0
+JUL 29 2023: Version 0.17.0
   - Addition of a timeout functionality to blocked contexts.
   - recv-to special form added.
   - block_context_from_extension_timeout function added.
+  - Unified sleeping and blocked queues.
+  - Added a set-thd-name function to associate a string identifier with a thread.
+  - Added profiler functionality.
 
 JUL 16 2023: Version 0.16.0
   - Addition of flat values as a type in the language.
