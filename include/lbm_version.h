@@ -35,10 +35,10 @@ extern "C" {
 
 JUL 29 2023: Version 0.17.0
   - Addition of a timeout functionality to blocked contexts.
-  - recv-to special form added.
+  - recv-to special form added for receives with a timeout.
   - block_context_from_extension_timeout function added.
   - Unified sleeping and blocked queues.
-  - Added a set-thd-name function to associate a string identifier with a thread.
+  - Added a new optional argument to spawn and spawn-trap that can be used to provide a name for the thread.
   - Added profiler functionality.
 
 JUL 16 2023: Version 0.16.0
