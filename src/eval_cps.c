@@ -1015,10 +1015,8 @@ static void ok_ctx(void) {
   finish_ctx();
 }
 
-static eval_context_t *dequeue_ctx(eval_context_queue_t *q) {
-  mutex_lock(&qmutex);
-  if (q->last == NULL) { // queue is empty, dequeue the enqueue
-    mutex_unlock(&qmutex);
+static eval_context_t *dequeue_ctx_nm(eval_context_queue_t *q) {
+  if (q->last == NULL) {
     return NULL;
   }
   // q->first should only be NULL if q->last is.
@@ -1033,14 +1031,11 @@ static eval_context_t *dequeue_ctx(eval_context_queue_t *q) {
   }
   res->prev = NULL;
   res->next = NULL;
-  mutex_unlock(&qmutex);
   return res;
 }
 
-static void wake_up_ctxs() {
+static void wake_up_ctxs_nm(void) {
   lbm_uint t_now;
-
-  mutex_lock(&qmutex);
 
   if (timestamp_us_callback) {
     t_now = timestamp_us_callback();
@@ -1097,7 +1092,6 @@ static void wake_up_ctxs() {
     }
     curr = next;
   }
-  mutex_unlock(&qmutex);
 }
 
 static void yield_ctx(lbm_uint sleep_us) {
@@ -4298,14 +4292,13 @@ static void process_events(void) {
   }
 }
 
-static void process_waiting(void) {
+static void process_waiting_nm(void) {
 
   uint32_t wait_flags = wait_for;   // Should ideally be atomic
   wait_for = wait_flags ^ wait_for; //
 
   eval_context_queue_t *q = &blocked;
 
-  mutex_lock(&qmutex);
   eval_context_t *curr = q->first;
   while (curr != NULL) {
     eval_context_t *next = curr->next; // grab here
@@ -4336,7 +4329,6 @@ static void process_waiting(void) {
     }
     curr = next;
   }
-  mutex_unlock(&qmutex);
 }
 
 /* eval_cps_run can be paused
@@ -4380,19 +4372,21 @@ void lbm_run_eval(void){
             is_atomic = 0;
           }
         } else {
-          if (ctx_running) {
-            enqueue_ctx(&queue, ctx_running);
-            ctx_running = NULL;
-          }
           if (gc_requested) {
             gc();
           }
-          if (wait_for) {
-            process_waiting();
-          }
           process_events();
-          wake_up_ctxs();
-          ctx_running = dequeue_ctx(&queue);
+          mutex_lock(&qmutex);
+          if (wait_for) {
+            process_waiting_nm();
+          }
+          if (ctx_running) {
+            enqueue_ctx_nm(&queue, ctx_running);
+            ctx_running = NULL;
+          }
+          wake_up_ctxs_nm();
+          ctx_running = dequeue_ctx_nm(&queue);
+          mutex_unlock(&qmutex);
           if (!ctx_running) {
             //Fixed sleep interval to poll events regularly.
             usleep_callback(EVAL_CPS_MIN_SLEEP);
