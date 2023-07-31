@@ -43,10 +43,11 @@ extern "C" {
 /** The eval_context_t struct represents a lispbm process.
  *
  */
-#define LBM_THREAD_STATE_READY    0
-#define LBM_THREAD_STATE_BLOCKED  1
-#define LBM_THREAD_STATE_TIMEOUT  2
-#define LBM_THREAD_STATE_SLEEPING 3
+#define LBM_THREAD_STATE_READY     (uint32_t)0
+#define LBM_THREAD_STATE_BLOCKED   (uint32_t)1
+#define LBM_THREAD_STATE_TIMEOUT   (uint32_t)2
+#define LBM_THREAD_STATE_SLEEPING  (uint32_t)3
+#define LBM_THREAD_STATE_GC_BIT    (uint32_t)(1 << 31)
   
 typedef struct eval_context_s{
   lbm_value program;

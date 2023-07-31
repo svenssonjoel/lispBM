@@ -666,16 +666,20 @@ int main(int argc, char **argv) {
     } else if (strncmp(str, ":prof report", 12) == 0) {
       lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
       lbm_uint tot_samples = lbm_prof_get_num_samples();
-      printf("CID\tName\tSamples\t%%Load\n");
+      lbm_uint tot_gc = 0;
+      printf("CID\tName\tSamples\t%%Load\t%%GC\n");
       for (int i = 0; i < PROF_DATA_NUM; i ++) {
         if (prof_data[i].cid == -1) break;
-        printf("%d\t%s\t%u\t%f%%\n",
+        tot_gc += prof_data[i].gc_count;
+        printf("%d\t%s\t%u\t%f\t%f\n",
                prof_data[i].cid,
                prof_data[i].name,
                prof_data[i].count,
-               100.0 * ((float)prof_data[i].count) / (float) tot_samples);
+               100.0 * ((float)prof_data[i].count) / (float) tot_samples,
+               100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count);
       }
       printf("\n");
+      printf("GC:\t%u\t%f%%\n", tot_gc, 100.0 * (float)tot_gc/(float)tot_samples);
       printf("sleep:\t%u\t%f%%\n", num_sleep, 100.0 * (float)num_sleep/(float)tot_samples);
       printf("total:\t%u samples\n", tot_samples);
       free(str);

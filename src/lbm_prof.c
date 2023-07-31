@@ -87,12 +87,17 @@ void lbm_prof_run(void) {
       lbm_cid id = curr->id;
       char *name = curr->name;
       lbm_uint name_len = 0;
+      bool doing_gc = false;
+      if (curr->state & LBM_THREAD_STATE_GC_BIT) {
+        doing_gc = true;
+      }
       if (name) name_len = strlen(name) + 1;
       for (lbm_uint i = 0; i < prof_data_num; i ++) {
         if (prof_data[i].cid == -1) {
           // add new sample:
           prof_data[i].cid = id;
           prof_data[i].count = 1;
+          prof_data[i].gc_count = doing_gc ? 1 : 0;
           if (name) {
             memcpy(&prof_data[i].name, name, TRUNC_SIZE(name_len));
             prof_data[i].name[LBM_PROF_MAX_NAME_SIZE - 1] = 0;
@@ -106,12 +111,14 @@ void lbm_prof_run(void) {
             strncmp(prof_data[i].name, name, TRUNC_SIZE(name_len)) == 0) {
           // found a named existing measurement.
           prof_data[i].count ++;
+          prof_data[i].gc_count += doing_gc ? 1 : 0;
           break;
         }
         if (prof_data[i].cid == id &&
             !prof_data[i].has_name &&
             name == NULL) {
           prof_data[i].count ++;
+          prof_data[i].gc_count += doing_gc ? 1 : 0;
           break;
         }
       }

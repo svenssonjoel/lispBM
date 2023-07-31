@@ -28,6 +28,7 @@ typedef struct {
   bool has_name;
   char name[LBM_PROF_MAX_NAME_SIZE];
   lbm_uint count;
+  lbm_uint gc_count;
 } lbm_prof_t;
 
 bool lbm_prof_init(void (*usleep_fptr)(uint32_t),

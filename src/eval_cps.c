@@ -186,15 +186,21 @@ void lbm_request_gc(void) {
   gc_requested = true;
 }
 
-#define DEFAULT_SLEEP_US  1000
+/*
+   On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
+   resolution of the timer used for sleep operations.  If this is set
+   to 10KHz the resolution is 100us.
+
+   The CH_CFG_ST_TIMEDELTA specifies the minimum number of ticks that
+   can be safely specified in a timeout directive (wonder if that
+   means sleep-period). The timedelta is set to 2.
+
+   If I have understood these correctly it means that the minimum
+   sleep duration possible is 2 * 100us = 200us.
+*/
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
-
-/* 768 us -> ~128000 "ticks" at 168MHz I assume this means also roughly 128000 instructions */
-#define EVAL_CPS_QUANTA_US 768
-#define EVAL_CPS_WAIT_US   1536
 #define EVAL_CPS_MIN_SLEEP 200
-
 #define EVAL_STEPS_QUOTA   10
 
 static volatile uint32_t eval_steps_refill = EVAL_STEPS_QUOTA;
@@ -336,19 +342,6 @@ static bool lbm_event_pop(lbm_event_t *event) {
   mutex_unlock(&lbm_events_mutex);
   return true;
 }
-
-/*
-   On ChibiOs the CH_CFG_ST_FREQUENCY setting in chconf.h sets the
-   resolution of the timer used for sleep operations.  If this is set
-   to 10KHz the resolution is 100us.
-
-   The CH_CFG_ST_TIMEDELTA specifies the minimum number of ticks that
-   can be safely specified in a timeout directive (wonder if that
-   means sleep-period). The timedelta is set to 2.
-
-   If I have understood these correctly it means that the minimum
-   sleep duration possible is 2 * 100us = 200us.
-*/
 
 static bool              eval_running = false;
 static volatile bool     blocking_extension = false;
@@ -1107,7 +1100,7 @@ static void wake_up_ctxs() {
   mutex_unlock(&qmutex);
 }
 
-  static void yield_ctx(lbm_uint sleep_us) {
+static void yield_ctx(lbm_uint sleep_us) {
   if (timestamp_us_callback) {
     ctx_running->timestamp = timestamp_us_callback();
     ctx_running->sleep_us = sleep_us;
@@ -1483,21 +1476,16 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
 static void mark_context(eval_context_t *ctx, void *arg1, void *arg2) {
   (void) arg1;
   (void) arg2;
-  lbm_gc_mark_phase(4,
-                    ctx->curr_env,
-                    ctx->curr_exp,
-                    ctx->program,
-                    ctx->r);
+  lbm_value roots[4] = { ctx->curr_env, ctx->curr_exp, ctx->program, ctx->r };
+  lbm_gc_mark_aux(roots, 4);
   lbm_gc_mark_aux(ctx->mailbox, ctx->num_mail);
   lbm_gc_mark_aux(ctx->K.data, ctx->K.sp);
 }
 
 static int gc(void) {
-
-  lbm_uint tstart = 0;
-  lbm_uint tend = 0;
-
-  tstart = timestamp_us_callback();
+  if (ctx_running) {
+    ctx_running->state = ctx_running->state | LBM_THREAD_STATE_GC_BIT;
+  }
 
   gc_requested = false;
   lbm_gc_state_inc();
@@ -1519,11 +1507,8 @@ static int gc(void) {
   queue_iterator_nm(&blocked, mark_context, NULL, NULL);
 
   if (ctx_running) {
-    lbm_gc_mark_phase(4,
-                      ctx_running->curr_env,
-                      ctx_running->curr_exp,
-                      ctx_running->program,
-                      ctx_running->r);
+    lbm_value roots[4] = { ctx_running->curr_env, ctx_running->curr_exp, ctx_running->program, ctx_running->r };
+    lbm_gc_mark_aux(roots, 4);
     lbm_gc_mark_aux(ctx_running->mailbox, ctx_running->num_mail);
     lbm_gc_mark_aux(ctx_running->K.data, ctx_running->K.sp);
   }
@@ -1534,15 +1519,10 @@ static int gc(void) {
 #endif
 
   int r = lbm_gc_sweep_phase();
-
   lbm_heap_new_freelist_length();
 
-  tend = timestamp_us_callback();
-
-  lbm_uint dur = 0;
-  if (tend > tstart) {
-    dur = tend - tstart;
-    lbm_heap_new_gc_time(dur); // 0us is not a valid GC time.
+  if (ctx_running) {
+    ctx_running->state = ctx_running->state & ~LBM_THREAD_STATE_GC_BIT;
   }
   return r;
 }
