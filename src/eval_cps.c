@@ -1530,32 +1530,35 @@ int lbm_perform_gc(void) {
 
 static void eval_symbol(eval_context_t *ctx) {
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
-  if (s < SPECIAL_SYMBOLS_END) {
-    ctx->r = ctx->curr_exp;
-    ctx->app_cont = true;
-    return;
-  }
-  if (s >= EXTENSION_SYMBOLS_START &&
-      s <  EXTENSION_SYMBOLS_END) {
-    if (lbm_get_extension(s) != NULL) {
+  if (s >= RUNTIME_SYMBOLS_START) {
+    lbm_value res;
+    if (lbm_env_lookup_b(&res, ctx->curr_exp, ctx->curr_env) ||
+        lbm_env_lookup_b(&res, ctx->curr_exp, *lbm_get_env_ptr())) {
+      ctx->r =  res;
+      ctx->app_cont = true;
+      return;
+    }
+  } else {
+    if (s < SPECIAL_SYMBOLS_END) {
       ctx->r = ctx->curr_exp;
       ctx->app_cont = true;
       return;
     }
-    error_ctx(ENC_SYM_NOT_FOUND);
-  }
-  if (s >= VARIABLE_SYMBOLS_START &&
-      s < VARIABLE_SYMBOLS_END) {
-    ctx->r = lbm_get_var(s);
-    ctx->app_cont = true;
-    return;
-  }
-  lbm_value res;
-  if (lbm_env_lookup_b(&res, ctx->curr_exp, ctx->curr_env) ||
-      lbm_env_lookup_b(&res, ctx->curr_exp, *lbm_get_env_ptr())) {
-    ctx->r =  res;
-    ctx->app_cont = true;
-    return;
+    if (s >= EXTENSION_SYMBOLS_START &&
+        s <  EXTENSION_SYMBOLS_END) {
+      if (lbm_get_extension(s) != NULL) {
+        ctx->r = ctx->curr_exp;
+        ctx->app_cont = true;
+        return;
+      }
+      error_ctx(ENC_SYM_NOT_FOUND);
+    }
+    if (s >= VARIABLE_SYMBOLS_START &&
+        s < VARIABLE_SYMBOLS_END) {
+      ctx->r = lbm_get_var(s);
+      ctx->app_cont = true;
+      return;
+    }
   }
   // Dynamic load attempt
   const char *sym_str = lbm_get_name_by_symbol(s);

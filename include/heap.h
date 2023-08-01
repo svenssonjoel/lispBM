@@ -256,10 +256,6 @@ typedef struct {
   lbm_uint gc_least_free;      // The smallest length of the freelist.
   lbm_uint gc_last_free;       // Number of elements on the freelist
                                // after most recent GC.
-
-  lbm_uint gc_time_acc;
-  lbm_uint gc_min_duration;
-  lbm_uint gc_max_duration;
 } lbm_heap_state_t;
 
 extern lbm_heap_state_t lbm_heap_state;

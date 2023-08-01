@@ -458,18 +458,6 @@ static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
   lbm_heap_state.gc_recovered_arrays = 0;
   lbm_heap_state.gc_least_free       = num_cells;
   lbm_heap_state.gc_last_free        = num_cells;
-
-  lbm_heap_state.gc_time_acc = 0;
-  lbm_heap_state.gc_max_duration = 0;
-  lbm_heap_state.gc_min_duration = UINT32_MAX;
-}
-
-void lbm_heap_new_gc_time(lbm_uint dur) {
-  lbm_heap_state.gc_time_acc += dur;
-  if (dur > lbm_heap_state.gc_max_duration)
-    lbm_heap_state.gc_max_duration = dur;
-  if (dur < lbm_heap_state.gc_min_duration)
-    lbm_heap_state.gc_min_duration = dur;
 }
 
 void lbm_heap_new_freelist_length(void) {
