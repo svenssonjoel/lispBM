@@ -1469,10 +1469,7 @@ static int gc(void) {
   queue_iterator_nm(&blocked, mark_context, NULL, NULL);
 
   if (ctx_running) {
-    lbm_value roots[4] = { ctx_running->curr_env, ctx_running->curr_exp, ctx_running->program, ctx_running->r };
-    lbm_gc_mark_aux(roots, 4);
-    lbm_gc_mark_aux(ctx_running->mailbox, ctx_running->num_mail);
-    lbm_gc_mark_aux(ctx_running->K.data, ctx_running->K.sp);
+    mark_context(ctx_running, NULL, NULL);
   }
   mutex_unlock(&qmutex);
 
@@ -1501,28 +1498,19 @@ static void eval_symbol(eval_context_t *ctx) {
   if (s >= RUNTIME_SYMBOLS_START) {
     lbm_value res;
     if (lbm_env_lookup_b(&res, ctx->curr_exp, ctx->curr_env) ||
-        lbm_env_lookup_b(&res, ctx->curr_exp, *lbm_get_env_ptr())) {
+        lbm_env_lookup_b(&res, ctx->curr_exp, lbm_get_env())) {
       ctx->r =  res;
       ctx->app_cont = true;
       return;
     }
   } else {
-    if (s < SPECIAL_SYMBOLS_END) {
+    //special symbols and extensions can be handled the same way.
+    if (s <= EXTENSION_SYMBOLS_END) {
       ctx->r = ctx->curr_exp;
       ctx->app_cont = true;
       return;
     }
-    if (s >= EXTENSION_SYMBOLS_START &&
-        s <  EXTENSION_SYMBOLS_END) {
-      if (lbm_get_extension(s) != NULL) {
-        ctx->r = ctx->curr_exp;
-        ctx->app_cont = true;
-        return;
-      }
-      error_ctx(ENC_SYM_NOT_FOUND);
-    }
-    if (s >= VARIABLE_SYMBOLS_START &&
-        s < VARIABLE_SYMBOLS_END) {
+    if (s <= VARIABLE_SYMBOLS_END) {
       ctx->r = lbm_get_var(s);
       ctx->app_cont = true;
       return;
@@ -2577,10 +2565,9 @@ static void cont_application_args(eval_context_t *ctx) {
   lbm_value env = sptr[0];
   lbm_value rest = sptr[1];
   lbm_value count = sptr[2];
-  lbm_value arg = ctx->r;
 
   ctx->curr_env = env;
-  sptr[0] = arg;
+  sptr[0] = ctx->r; // Function 1st then Arguments
   if (lbm_is_cons(rest)) {
     lbm_cons_t *cell = lbm_ref_cell(rest);
     sptr[1] = env;

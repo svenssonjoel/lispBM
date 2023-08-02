@@ -283,8 +283,6 @@
 #define SYM_DROP                0x247
 #define FUNDAMENTALS_END         0x247
 
-
-
 #define SPECIAL_SYMBOLS_START    0
 #define SPECIAL_SYMBOLS_END      0xFFFF
 #define EXTENSION_SYMBOLS_START  0x10000
