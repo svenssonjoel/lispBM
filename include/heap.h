@@ -556,12 +556,9 @@ void lbm_nil_freelist(void);
 int lbm_gc_mark_freelist(void);
 /** Mark heap cells reachable from the lbm_value v.
  *
- * \param m Number of Root nodes to start marking from.
- * \param ... list of root nodes.
  * \return 1 on success and 0 if the stack used internally is full.
  */
-//int lbm_gc_mark_phase(lbm_value v);
-int lbm_gc_mark_phase(int num, ... );
+int lbm_gc_mark_phase(void);
 /** Performs lbm_gc_mark_phase on all the values of an array.
  *
  * \param data Array of roots to traverse from.

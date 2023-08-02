@@ -586,20 +586,9 @@ void lbm_get_heap_state(lbm_heap_state_t *res) {
   *res = lbm_heap_state;
 }
 
-int lbm_gc_mark_phase(int num, ... ) { //lbm_value env) {
+int lbm_gc_mark_phase() {
 
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
-
-  va_list valist;
-  va_start(valist, num);
-  lbm_value root;
-  for (int i = 0; i < num; i++) {
-      root = va_arg(valist, lbm_value);
-      if (lbm_is_ptr(root)) {
-        lbm_push(s, root);
-      }
-  }
-  va_end(valist);
   int res = 1;
 
   while (!lbm_stack_is_empty(s)) {
@@ -671,7 +660,8 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
       if( pt_t >= LBM_POINTER_TYPE_FIRST &&
           pt_t <= LBM_POINTER_TYPE_LAST &&
           pt_v < lbm_heap_state.heap_size) {
-        lbm_gc_mark_phase(1,aux_data[i]);
+        lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = aux_data[i];
+        lbm_gc_mark_phase();
       }
     }
   }
