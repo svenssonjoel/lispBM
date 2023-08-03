@@ -661,7 +661,7 @@ int lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
           pt_t <= LBM_POINTER_TYPE_LAST &&
           pt_v < lbm_heap_state.heap_size) {
         lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = aux_data[i];
-        lbm_gc_mark_phase(1,aux_data[i]);
+        lbm_gc_mark_phase();
       }
     }
   }
