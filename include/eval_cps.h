@@ -154,11 +154,6 @@ bool lbm_event(lbm_flat_value_t *fv);
  */
 bool lbm_event_unboxed(lbm_value unboxed);
 
-/** Trigger a flag to wake up all tasks waiting on that flag.
- * \param wait_for_flags Flags to trigger.
- */
-void lbm_trigger_flags(uint32_t wait_for_flags);
-
 /** Remove a context that has finished executing and free up its associated memory.
  *
  * \param cid Context id of context to free.

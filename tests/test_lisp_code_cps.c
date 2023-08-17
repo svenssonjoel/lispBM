@@ -372,15 +372,6 @@ LBM_EXTENSION(ext_const_prg, args, argn) {
   return v;
 }
 
-LBM_EXTENSION(ext_trigger, args, argn) {
-  if (argn == 1 && lbm_is_number(args[0])) {
-    lbm_trigger_flags(lbm_dec_as_u32(args[0]));
-    return ENC_SYM_TRUE;
-  }
-  return ENC_SYM_NIL;
-}
-
-
 int main(int argc, char **argv) {
 
   int res = 0;
@@ -691,14 +682,6 @@ int main(int argc, char **argv) {
   res = lbm_add_extension("check", ext_check);
   if (res)
     printf("Result check extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("trigger", ext_trigger);
-  if (res)
-    printf("Extension added.\n");
   else {
     printf("Error adding extension.\n");
     return FAIL;
