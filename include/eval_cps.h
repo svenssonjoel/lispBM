@@ -231,9 +231,10 @@ int lbm_set_error_reason(char *error_str);
  * \param program The program to evaluate in the context.
  * \param env An initial environment.
  * \param stack_size Stack size for the context.
+ * \param name Name of thread or NULL.
  * \return
  */
-lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size);
+lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size, char *name);
 /** Block a context from an extension
  */
 void lbm_block_ctx_from_extension(void);

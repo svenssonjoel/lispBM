@@ -1183,14 +1183,14 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   return ctx->id;
 }
 
-lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size) {
+lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size, char *name) {
   // Creates a parentless context.
   return lbm_create_ctx_parent(program,
                                env,
                                stack_size,
                                -1,
                                EVAL_CPS_CONTEXT_FLAG_NOTHING,
-                               NULL);
+                               name);
 }
 
 bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size) {
@@ -4275,11 +4275,11 @@ void lbm_run_eval(void){
 }
 
 lbm_cid lbm_eval_program(lbm_value lisp) {
-  return lbm_create_ctx(lisp, ENC_SYM_NIL, 256);
+  return lbm_create_ctx(lisp, ENC_SYM_NIL, 256, NULL);
 }
 
 lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size) {
-  return lbm_create_ctx(lisp, ENC_SYM_NIL, stack_size);
+  return lbm_create_ctx(lisp, ENC_SYM_NIL, stack_size, NULL);
 }
 
 int lbm_eval_init() {

@@ -726,9 +726,9 @@ int main(int argc, char **argv) {
 
   lbm_set_ctx_done_callback(context_done_callback);
   if (incremental) {
-    cid = lbm_load_and_eval_program_incremental(&string_tok);
+    cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
   } else {
-    cid = lbm_load_and_eval_program(&string_tok);
+    cid = lbm_load_and_eval_program(&string_tok, NULL);
   }
 
   if (cid == -1) {
