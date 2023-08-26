@@ -33,8 +33,9 @@ extern "C" {
 
 /*! \page changelog Changelog
 
-AUG 17 2023: Version 0.18.0
+AUG 26 2023: Version 0.18.0
   - Removed wait-for flags
+  - Fix bug in unblock_unboxed when unblocking with error value.
 
 JUL 29 2023: Version 0.17.0
   - Addition of a timeout functionality to blocked contexts.

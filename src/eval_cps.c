@@ -1266,6 +1266,12 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
     if (found) {
       drop_ctx_nm(&blocked,found);
       found->r = unboxed;
+      if (lbm_is_error(unboxed)) {
+        lbm_value trash;
+        lbm_pop(&found->K, &trash);     // Destructively make sure there is room on stack.
+        lbm_push(&found->K, TERMINATE);
+        found->app_cont = true;
+      }
       enqueue_ctx_nm(&queue,found);
       r = true;
     }
