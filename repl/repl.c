@@ -695,12 +695,6 @@ int main(int argc, char **argv) {
   else
     printf("Error adding extension.\n");
 
-  res = lbm_add_extension("trigger", ext_trigger);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
   res = lbm_add_extension("me-loopforeach", ext_me_loopforeach);
   if (res)
     printf("Extension added.\n");
