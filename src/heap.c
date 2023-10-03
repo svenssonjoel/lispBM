@@ -595,6 +595,7 @@ int lbm_gc_mark_phase() {
     lbm_value curr;
     lbm_pop(s, &curr);
 
+  mark_shortcut:
     if (!lbm_is_ptr(curr)) {
       continue;
     }
@@ -613,12 +614,13 @@ int lbm_gc_mark_phase() {
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
 
-    res &= lbm_push(s, cell->cdr);
-    res &= lbm_push(s, cell->car);
-
+    if (lbm_is_ptr(cell->cdr)) {
+      res &= lbm_push(s, cell->cdr);
+    }
     if (!res) break;
+    curr = cell->car;
+    goto mark_shortcut; // Skip a push/pop
   }
-
   return res;
 }
 
