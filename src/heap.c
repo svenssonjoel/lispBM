@@ -607,8 +607,7 @@ int lbm_gc_mark_phase() {
       if (gc_mark) continue;
       lbm_heap_state.gc_marked ++;
       cell->cdr = lbm_set_gc_mark(cell->cdr);
-    }
-
+    } 
     lbm_value t_ptr = lbm_type_of(curr);
 
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
