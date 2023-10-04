@@ -195,6 +195,11 @@ void *eval_thd_wrapper(void *v) {
   return NULL;
 }
 
+void critical(void) {
+  printf("CRITICAL ERROR\n");
+  exit(0);
+}
+
 void done_callback(eval_context_t *ctx) {
 
   erase();
@@ -639,6 +644,7 @@ int main(int argc, char **argv) {
     printf("Constants memory initialized\n");
   }
 
+  lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);

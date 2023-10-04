@@ -29,6 +29,7 @@
 #include "stack.h"
 #include "lbm_channel.h"
 #include "platform_mutex.h"
+#include "eval_cps.h"
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
 #endif
@@ -617,7 +618,10 @@ int lbm_gc_mark_phase() {
     if (lbm_is_ptr(cell->cdr)) {
       res &= lbm_push(s, cell->cdr);
     }
-    if (!res) break;
+    if (!res) {
+      lbm_critical_error();
+      break;
+    }
     curr = cell->car;
     goto mark_shortcut; // Skip a push/pop
   }

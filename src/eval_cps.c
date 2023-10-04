@@ -41,6 +41,7 @@
 #include <setjmp.h>
 
 static jmp_buf error_jmp_buf;
+static jmp_buf critical_error_jmp_buf;
 
 #define S_TO_US(X) (lbm_uint)((X) * 1000000)
 
@@ -213,11 +214,21 @@ static void ctx_done_nonsense(eval_context_t *ctx) {
   (void) ctx;
 }
 
+static void critical_nonsense(void) {
+  return;
+}
+
+static void (*critical_error_callback)(void) = critical_nonsense;
 static void (*usleep_callback)(uint32_t) = usleep_nonsense;
 static uint32_t (*timestamp_us_callback)(void) = timestamp_nonsense;
 static void (*ctx_done_callback)(eval_context_t *) = ctx_done_nonsense;
 static int (*printf_callback)(const char *, ...) = printf_nonsense;
 static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
+
+void lbm_set_critical_error_callback(void (*fptr)(void)) {
+  if (fptr == NULL) critical_error_callback = critical_nonsense;
+  else critical_error_callback = fptr;
+}
 
 void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
   if (fptr == NULL) usleep_callback = usleep_nonsense;
@@ -975,6 +986,10 @@ void error_ctx(lbm_value err_val) {
 
 static void read_error_ctx(unsigned int row, unsigned int column) {
   error_ctx_base(ENC_SYM_RERROR, row, column);
+}
+
+void lbm_critical_error(void) {
+  longjmp(critical_error_jmp_buf, 1);
 }
 
 // successfully finish a context
@@ -4211,6 +4226,12 @@ static void process_events(void) {
    but for now a set of variables will be used. */
 void lbm_run_eval(void){
 
+  if (setjmp(critical_error_jmp_buf) > 0) {
+    critical_error_callback();
+    // terminate evaluation thread. 
+    return;
+  }
+  
   setjmp(error_jmp_buf);
 
   while (eval_running) {
