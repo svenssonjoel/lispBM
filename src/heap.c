@@ -587,6 +587,10 @@ void lbm_get_heap_state(lbm_heap_state_t *res) {
   *res = lbm_heap_state;
 }
 
+lbm_uint lbm_get_gc_stack_max(void) {
+  return lbm_heap_state.gc_stack.max_sp;
+}
+
 int lbm_gc_mark_phase() {
 
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
@@ -693,7 +697,6 @@ int lbm_gc_sweep_phase(void) {
         case SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
-        //case SYM_FLATVAL_TYPE:
         case SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {

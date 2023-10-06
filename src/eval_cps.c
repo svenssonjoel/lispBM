@@ -4227,6 +4227,7 @@ static void process_events(void) {
 void lbm_run_eval(void){
 
   if (setjmp(critical_error_jmp_buf) > 0) {
+    printf_callback("GC stack overflow!\n");
     critical_error_callback();
     // terminate evaluation thread. 
     return;

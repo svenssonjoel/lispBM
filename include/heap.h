@@ -539,7 +539,10 @@ lbm_value lbm_list_drop(unsigned int n, lbm_value ls);
  * with the current statistics.
  */
 void lbm_get_heap_state(lbm_heap_state_t *);
-
+/** Get the maximum stack level of the GC stack
+ * \return maximum value the gc stack sp reached so far.
+ */
+lbm_uint lbm_get_gc_stack_max(void);
 // Garbage collection
 /** Increment the counter that is counting the number of times GC ran
  *
