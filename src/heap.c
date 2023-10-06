@@ -594,6 +594,10 @@ lbm_uint lbm_get_gc_stack_max(void) {
   return lbm_heap_state.gc_stack.max_sp;
 }
 
+lbm_uint lbm_get_gc_stack_size(void) {
+  return lbm_heap_state.gc_stack.size;
+}
+
 int lbm_gc_mark_phase() {
 
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
