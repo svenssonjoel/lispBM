@@ -444,7 +444,7 @@ void lbm_nil_freelist(void) {
 }
 
 static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
-                            lbm_uint *gc_stack_storage, lbm_uint gc_stack_size) {
+                            lbm_uint* gc_stack_storage, lbm_uint gc_stack_size) {
   lbm_heap_state.heap         = addr;
   lbm_heap_state.heap_bytes   = (unsigned int)(num_cells * sizeof(lbm_cons_t));
   lbm_heap_state.heap_size    = num_cells;
@@ -469,12 +469,15 @@ void lbm_heap_new_freelist_length(void) {
 }
 
 int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
-                  lbm_uint *gc_stack_storage, lbm_uint gc_stack_size) {
+                  lbm_uint gc_stack_size) {
 
   if (((uintptr_t)addr % 8) != 0) return 0;
 
   memset(addr,0, sizeof(lbm_cons_t) * num_cells);
 
+  lbm_uint *gc_stack_storage = (lbm_uint*)lbm_malloc(gc_stack_size * sizeof(lbm_uint));
+  if (gc_stack_storage == NULL) return 0;
+  
   heap_init_state(addr, num_cells,
                   gc_stack_storage, gc_stack_size);
 
@@ -613,7 +616,7 @@ int lbm_gc_mark_phase() {
       if (gc_mark) continue;
       lbm_heap_state.gc_marked ++;
       cell->cdr = lbm_set_gc_mark(cell->cdr);
-    } 
+    }
     lbm_value t_ptr = lbm_type_of(curr);
 
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&

@@ -281,12 +281,11 @@ typedef struct {
 /** Initialize heap storage.
  * \param addr Pointer to an array of lbm_cons_t elements. This array must at least be aligned 4.
  * \param num_cells Number of lbm_cons_t elements in the array.
- * \param gc_stack_storage uint32_t pointer to space to use as "recursion" stack for GC
  * \param gc_stack_size Size of the gc_stack in number of words.
  * \return 1 on success or 0 for failure.
  */
 int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
-                         lbm_uint *gc_stack_storage, lbm_uint gc_stack_size);
+                  lbm_uint gc_stack_size);
 
 /** Add GC time statistics to heap_stats
  *

@@ -48,7 +48,6 @@
 #define CONSTANT_MEMORY_SIZE 32*1024
 #define PROF_DATA_NUM 100
 
-lbm_uint gc_stack_storage[GC_STACK_SIZE];
 lbm_uint print_stack_storage[PRINT_STACK_SIZE];
 extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
@@ -621,7 +620,7 @@ int main(int argc, char **argv) {
   }
 
   if (!lbm_init(heap_storage, heap_size,
-                gc_stack_storage, GC_STACK_SIZE,
+                GC_STACK_SIZE,
                 memory, LBM_MEMORY_SIZE_8K,
                 bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
                 print_stack_storage, PRINT_STACK_SIZE,
@@ -753,6 +752,7 @@ int main(int argc, char **argv) {
       printf("Recovered: %"PRI_INT"\n", heap_state.gc_recovered);
       printf("Recovered arrays: %"PRI_UINT"\n", heap_state.gc_recovered_arrays);
       printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
+      printf("GC SP max: %"PRI_UINT"\n", lbm_get_gc_stack_max());
       printf("--(Symbol and Array memory)---------------------------------\n");
       printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
       printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
@@ -878,7 +878,7 @@ int main(int argc, char **argv) {
         }
 
         lbm_init(heap_storage, heap_size,
-                 gc_stack_storage, GC_STACK_SIZE,
+                 GC_STACK_SIZE,
                  memory, LBM_MEMORY_SIZE_8K,
                  bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
                  print_stack_storage, PRINT_STACK_SIZE,
@@ -928,7 +928,7 @@ int main(int argc, char **argv) {
       }
 
       lbm_init(heap_storage, heap_size,
-               gc_stack_storage, GC_STACK_SIZE,
+               GC_STACK_SIZE,
                memory, LBM_MEMORY_SIZE_8K,
                bitmap, LBM_MEMORY_BITMAP_SIZE_8K,
                print_stack_storage, PRINT_STACK_SIZE,
