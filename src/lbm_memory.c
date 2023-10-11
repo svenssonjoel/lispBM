@@ -365,6 +365,7 @@ int lbm_memory_free(lbm_uint *ptr) {
 }
 //Malloc/free like interface
 void* lbm_malloc(size_t size) {
+  if (size == 0) return NULL;
   lbm_uint alloc_size;
 
   alloc_size = size / sizeof(lbm_uint);
@@ -378,6 +379,7 @@ void* lbm_malloc(size_t size) {
 }
 
 void* lbm_malloc_reserve(size_t size) {
+  if (size == 0) return NULL;
   lbm_uint alloc_size;
 
   alloc_size = size / sizeof(lbm_uint);
