@@ -416,7 +416,8 @@ lbm_value flatten_value( lbm_value v) {
     }
 
     if (flatten_value_internal(&fv, v) == FLATTEN_VALUE_OK) {
-      r = lbm_finish_flatten(&fv);
+      // it would be wasteful to run finish_flatten here.
+      r = true;
     }
 
     if (r)  {
