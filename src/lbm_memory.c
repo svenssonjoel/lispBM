@@ -403,10 +403,6 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
     mutex_unlock(&lbm_mem_mutex);
     return 0; // ptr does not point to the start of an allocated range.
   }
-  if (status(ix) == START_END) {
-    mutex_unlock(&lbm_mem_mutex);
-    return 0; // Cannot shrink a 1 element allocation
-  }
 
   bool done = false;
   unsigned int i = 0;

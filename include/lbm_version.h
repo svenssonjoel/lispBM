@@ -31,6 +31,8 @@ extern "C" {
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
+#define LBM_VERSION_STRING "0.19.0"
+
 /*! \page changelog Changelog
 OCT 8 2024: Version 0.19.0
   - Error message and callback on GC stack overflow.

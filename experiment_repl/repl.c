@@ -38,7 +38,6 @@
 #include "lbm_channel.h"
 #include "lbm_version.h"
 
-#define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
