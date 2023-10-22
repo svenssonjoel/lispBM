@@ -484,6 +484,7 @@ static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
 /* Recursive and potentially stack hungry for large flat values */
 static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   if (v->buf_size == v->buf_pos) return UNFLATTEN_MALFORMED;
+
   uint8_t curr = v->buf[v->buf_pos++];
 
   switch(curr) {
@@ -687,6 +688,5 @@ bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
   } else {
     b = true;
   }
-  lbm_free(v->buf);
   return b;
 }
