@@ -634,11 +634,10 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
 
 // block_current_ctx blocks a context until it is
 // woken up externally of a timeout period of time passes.
-static void block_current_ctx(uint32_t state, lbm_uint sleep_us, uint32_t wait_mask, bool do_cont) {
+static void block_current_ctx(uint32_t state, lbm_uint sleep_us,  bool do_cont) {
   ctx_running->timestamp = timestamp_us_callback();
   ctx_running->sleep_us = sleep_us;
   ctx_running->state  = state;
-  ctx_running->wait_mask = wait_mask;
   ctx_running->app_cont = do_cont;
   enqueue_ctx(&blocked, ctx_running);
   ctx_running = NULL;
@@ -1182,7 +1181,6 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
 
   ctx->id = cid;
   ctx->parent = parent;
-  ctx->wait_mask = 0;
 
   if (!lbm_push(&ctx->K, DONE)) {
     lbm_memory_free((lbm_uint*)ctx->mailbox);
@@ -1858,9 +1856,9 @@ static void eval_match(eval_context_t *ctx) {
 static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time, bool timeout) {
    if (ctx->num_mail == 0) {
      if (timeout) {
-       block_current_ctx(LBM_THREAD_STATE_TIMEOUT, S_TO_US(timeout_time), 0, false);
+       block_current_ctx(LBM_THREAD_STATE_TIMEOUT, S_TO_US(timeout_time), false);
      } else {
-       block_current_ctx(LBM_THREAD_STATE_BLOCKED,0,0, false);
+       block_current_ctx(LBM_THREAD_STATE_BLOCKED,0,false);
      }
   } else {
     lbm_value *msgs = ctx->mailbox;
@@ -1893,9 +1891,9 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
       } else { /* No match  go back to sleep */
         ctx->r = ENC_SYM_NO_MATCH;
         if (timeout) {
-          block_current_ctx(LBM_THREAD_STATE_TIMEOUT,S_TO_US(timeout_time),0,false);
+          block_current_ctx(LBM_THREAD_STATE_TIMEOUT,S_TO_US(timeout_time),false);
         } else {
-          block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0, 0, false);
+          block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,false);
         }
       }
     }
@@ -2488,9 +2486,10 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     if (blocking_extension) {
       blocking_extension = false;
       if (blocking_extension_timeout) {
-        block_current_ctx(LBM_THREAD_STATE_TIMEOUT, blocking_extension_timeout_us, 0, true);
+        blocking_extension_timeout = false;
+        block_current_ctx(LBM_THREAD_STATE_TIMEOUT, blocking_extension_timeout_us,true);
       } else {
-        block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0, 0, true);
+        block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,true);
       }
       mutex_unlock(&blocking_extension_mutex);
     } else {
@@ -4144,7 +4143,7 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
 }
 
 static lbm_value get_event_value(lbm_event_t *e) {
- lbm_value v;
+  lbm_value v;
   if (e->buf_len > 0) {
     lbm_flat_value_t fv;
     fv.buf = (uint8_t*)e->buf_ptr;
