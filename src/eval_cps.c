@@ -116,8 +116,9 @@ const char* lbm_error_str_not_a_boolean = "Argument must be t or nil (true or fa
 const char* lbm_error_str_incorrect_arg = "Incorrect argument.";
 const char* lbm_error_str_var_outside_progn = "Usage of var outside of progn.";
 const char* lbm_error_str_flash_not_possible = "Value cannot be written to flash.";
-const char* lbm_error_str_flash_error = "Error writing to flash";
-const char* lbm_error_str_flash_full = "Flash memory is full";
+const char* lbm_error_str_flash_error = "Error writing to flash.";
+const char* lbm_error_str_flash_full = "Flash memory is full.";
+const char* lbm_error_str_variable_not_bound = "Variable not bound.";
 
 #define WITH_GC(y, x)                           \
   (y) = (x);                                    \
@@ -2014,6 +2015,7 @@ static void cont_wait(eval_context_t *ctx) {
   }
 }
 
+// Maybe do not create a global but instead raise an error.
 static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
 
   lbm_uint s = lbm_dec_sym(key);
@@ -2028,12 +2030,8 @@ static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
       new_env = lbm_env_modify_binding(lbm_get_env(), key, val);
     }
     if (lbm_is_symbol(new_env) && new_env == ENC_SYM_NOT_FOUND) {
-      new_env = lbm_env_set(lbm_get_env(), key, val);
-      if (!lbm_is_symbol(new_env)) {
-        *lbm_get_env_ptr() = new_env;
-      } else {
-        res = new_env;
-      }
+      lbm_set_error_reason((char*)lbm_error_str_variable_not_bound);
+      error_ctx(ENC_SYM_NOT_FOUND);
     }
   }
   return res;
