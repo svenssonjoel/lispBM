@@ -149,7 +149,8 @@ typedef struct {
 } eval_context_queue_t;
 
 static int gc(void);
-void error_ctx(lbm_value);
+static void error_ctx(lbm_value);
+static void error_at_ctx(lbm_value err_val, lbm_value at);
 static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx);
 static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
 
@@ -625,7 +626,7 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
       res = fundamental_table[fundamental](args, arg_count, ctx);
     }
     if (lbm_is_error(res)) {
-      error_ctx(res);
+      error_at_ctx(res, lbm_enc_sym(fundamental+FUNDAMENTALS_START));
     }
   }
   lbm_stack_drop(&ctx->K, arg_count+1);
@@ -697,7 +698,7 @@ void print_environments(char *buf, unsigned int size) {
 }
 
 
-void print_error_message(lbm_value error, unsigned int row, unsigned int col, lbm_int row0, lbm_int row1) {
+void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned int row, unsigned int col, lbm_int row0, lbm_int row1) {
   if (!printf_callback) return;
 
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
@@ -708,45 +709,46 @@ void print_error_message(lbm_value error, unsigned int row, unsigned int col, lb
   }
 
   lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
-  printf_callback("***\tError:\t%s\n", buf);
-  if (lbm_is_symbol(error) &&
-      error == ENC_SYM_NOT_FOUND) {
+  printf_callback(  "***   Error: %s\n", buf);
+  if (has_at) {
+    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, at);
+    printf_callback("***   At:    %s\n",buf);
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("***\t\t%s\n",buf);
+    printf_callback("***   After: %s\n",buf);
   } else {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("***\tAt:\t%s\n",buf);
+    printf_callback("***   Near:  %s\n",buf);
   }
 
   printf_callback("\n");
 
   if (lbm_is_symbol(error) &&
       error == ENC_SYM_RERROR) {
-    printf_callback("***\t\tLine: %u\n", row);
-    printf_callback("***\t\tColumn: %u\n", col);
-  } else {
-    printf_callback("***\tBetween rows: (-1 unknown) \n");
-    printf_callback("***\t\tStart: %d\n", (int32_t)row0);
-    printf_callback("***\t\tEnd:   %d\n", (int32_t)row1);
+    printf_callback("***   Line:   %u\n", row);
+    printf_callback("***   Column: %u\n", col);
+  } else if (row0 != -1 || row1 != -1 ) {
+    printf_callback("***   Between rows: (-1 unknown) \n");
+    printf_callback("***     Start: %d\n", (int32_t)row0);
+    printf_callback("***     End:   %d\n", (int32_t)row1);
   }
 
   printf_callback("\n");
 
   if (ctx_running->error_reason) {
-    printf_callback("Reason:\n\t%s\n\n", ctx_running->error_reason);
+    printf_callback("Reason:\n   %s\n\n", ctx_running->error_reason);
   }
   if (lbm_verbose) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("\tIn context: %d\n", ctx_running->id);
-    printf_callback("\tCurrent intermediate result: %s\n\n", buf);
+    printf_callback("   In context: %d\n", ctx_running->id);
+    printf_callback("   Current intermediate result: %s\n\n", buf);
 
     print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
     printf_callback("\n\n");
 
-    printf_callback("\tStack:\n");
+    printf_callback("   Stack:\n");
     for (unsigned int i = 0; i < ctx_running->K.sp; i ++) {
       lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->K.data[i]);
-      printf_callback("\t\t%s\n", buf);
+      printf_callback("     %s\n", buf);
     }
   }
   lbm_free(buf);
@@ -953,8 +955,7 @@ int lbm_set_error_reason(char *error_str) {
 }
 
 // Not possible to CONS_WITH_GC in error_ctx_base (potential loop)
-static void error_ctx_base(lbm_value err_val, unsigned int row, unsigned int column) {
-  ctx_running->r = err_val;
+static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column) {
 
   if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
     if (lbm_heap_num_free() < 3) {
@@ -967,24 +968,41 @@ static void error_ctx_base(lbm_value err_val, unsigned int row, unsigned int col
       msg = lbm_cons(ENC_SYM_EXIT_ERROR, msg);
       if (lbm_is_symbol_merror(msg)) {
         // If this happens something is pretty seriously wrong.
-        print_error_message(err_val, row, column, ctx_running->row0, ctx_running->row1);
+        print_error_message(err_val,
+                            has_at,
+                            at,
+                            row,
+                            column,
+                            ctx_running->row0,
+                            ctx_running->row1);
       } else {
         lbm_find_receiver_and_send(ctx_running->parent, msg);
       }
     }
   } else {
-    print_error_message(err_val, row, column, ctx_running->row0, ctx_running->row1);
+    print_error_message(err_val,
+                        has_at,
+                        at,
+                        row,
+                        column,
+                        ctx_running->row0,
+                        ctx_running->row1);
   }
+  ctx_running->r = err_val;
   finish_ctx();
   longjmp(error_jmp_buf, 1);
 }
 
-void error_ctx(lbm_value err_val) {
-  error_ctx_base(err_val, 0, 0);
+static void error_at_ctx(lbm_value err_val, lbm_value at) {
+  error_ctx_base(err_val, true, at, 0, 0);
+}
+
+static void error_ctx(lbm_value err_val) {
+  error_ctx_base(err_val, false, 0, 0, 0);
 }
 
 static void read_error_ctx(unsigned int row, unsigned int column) {
-  error_ctx_base(ENC_SYM_RERROR, row, column);
+  error_ctx_base(ENC_SYM_RERROR, false, 0, row, column);
 }
 
 void lbm_critical_error(void) {
@@ -1533,7 +1551,7 @@ static void eval_symbol(eval_context_t *ctx) {
   const char *sym_str = lbm_get_name_by_symbol(s);
   const char *code_str = NULL;
   if (!dynamic_load_callback(sym_str, &code_str)) {
-    error_ctx(ENC_SYM_NOT_FOUND);
+    error_at_ctx(ENC_SYM_NOT_FOUND, ctx->curr_exp);
   } else {
     stack_push_3(&ctx->K, ctx->curr_env, ctx->curr_exp, RESUME);
 
@@ -2031,7 +2049,7 @@ static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
     }
     if (lbm_is_symbol(new_env) && new_env == ENC_SYM_NOT_FOUND) {
       lbm_set_error_reason((char*)lbm_error_str_variable_not_bound);
-      error_ctx(ENC_SYM_NOT_FOUND);
+      error_at_ctx(ENC_SYM_NOT_FOUND, key);
     }
   }
   return res;
@@ -2045,7 +2063,9 @@ static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_stack_drop(&ctx->K, nargs+1);
     ctx->app_cont = true;
   } else {
-    error_ctx(ENC_SYM_EERROR);
+    if (nargs == 2) lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+    else lbm_set_error_reason((char*)lbm_error_str_num_args);
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_SETVAR);
   }
 }
 
@@ -2165,14 +2185,15 @@ static void apply_spawn_trap(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 static void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (is_atomic) {
     lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_ctx(ENC_SYM_EERROR);
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_YIELD);
   }
   if (nargs == 1 && lbm_is_number(args[0])) {
     lbm_uint ts = lbm_dec_as_u32(args[0]);
     lbm_stack_drop(&ctx->K, nargs+1);
     yield_ctx(ts);
   } else {
-    error_ctx(ENC_SYM_EERROR);
+    lbm_set_error_reason((char*)lbm_error_str_no_number);
+    error_at_ctx(ENC_SYM_TERROR, ENC_SYM_YIELD);
   }
 }
 
@@ -2185,7 +2206,7 @@ static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     ctx->app_cont = true;
     yield_ctx(50000);
   } else {
-    error_ctx(ENC_SYM_EERROR);
+    error_at_ctx(ENC_SYM_TERROR, ENC_SYM_WAIT);
   }
 }
 
