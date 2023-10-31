@@ -1434,6 +1434,9 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
   return struct_eq(p, e);
 }
 
+// Find match is not very picky about syntax.
+// A completely malformed recv form is most likely to
+// just return no_match.
 static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value *e, lbm_value *env) {
 
   lbm_value curr_p = plist;
@@ -1668,7 +1671,7 @@ static void eval_define(eval_context_t *ctx) {
       return;
     }
   }
-  error_ctx(ENC_SYM_EERROR);
+  error_at_ctx(ENC_SYM_EERROR, ctx->curr_exp);
 }
 
 // (lambda param-list body-exp) -> (closure param-list body-exp env)
@@ -1902,7 +1905,7 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
       }
       if (n == FM_PATTERN_ERROR) {
         lbm_set_error_reason("Incorrect pattern format for recv");
-        error_ctx(ENC_SYM_EERROR);
+        error_at_ctx(ENC_SYM_EERROR,pats);
       } else if (n >= 0 ) { /* Match */
         mailbox_remove_mail(ctx, (lbm_uint)n);
         ctx->curr_env = new_env;
@@ -1938,7 +1941,7 @@ static void eval_receive(eval_context_t *ctx) {
 
   if (is_atomic) {
     lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_ctx(ENC_SYM_EERROR);
+    error_at_ctx(ENC_SYM_EERROR, ctx->curr_exp);
   }
   lbm_value pats = get_cdr(ctx->curr_exp);
   receive_base(ctx, pats, 0, false);
@@ -2123,7 +2126,10 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
   lbm_uint closure_pos = 0;
   char *name = NULL;
 
-  if (nargs >= 2 &&
+  if (nargs >= 1 &&
+      lbm_is_closure(args[0])) {
+    closure_pos = 0;
+  } else if (nargs >= 2 &&
       lbm_is_number(args[0]) &&
       lbm_is_closure(args[1])) {
     stack_size = lbm_dec_as_u32(args[0]);
@@ -2140,11 +2146,11 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
     stack_size = lbm_dec_as_u32(args[1]);
     closure_pos = 2;
     name = lbm_dec_str(args[0]);
-  }
-
-  if (!lbm_is_closure(args[closure_pos]) ||
-      nargs < 1) {
-    error_ctx(ENC_SYM_EERROR);
+  } else {
+    if (context_flags & EVAL_CPS_CONTEXT_FLAG_TRAP)
+      error_at_ctx(ENC_SYM_TERROR,ENC_SYM_SPAWN_TRAP);
+    else
+      error_at_ctx(ENC_SYM_TERROR,ENC_SYM_SPAWN);
   }
 
   lbm_value cl[3];
@@ -2216,7 +2222,7 @@ static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_stack_drop(&ctx->K, nargs+1);
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
-    error_ctx(ENC_SYM_EERROR);
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_EVAL);
   }
 }
 
@@ -2240,14 +2246,14 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
       new_prg = lbm_list_append(prg_copy, ctx->program);
     }
     if (!lbm_is_list(new_prg)) {
-      error_ctx(ENC_SYM_EERROR);
+      error_at_ctx(ENC_SYM_EERROR, ENC_SYM_EVAL_PROGRAM);
     }
     stack_push(&ctx->K, DONE);
     ctx->program = get_cdr(new_prg);
     ctx->curr_exp = get_car(new_prg);
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
-    error_ctx(ENC_SYM_EERROR);
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_EVAL_PROGRAM);
   }
 }
 
@@ -2262,11 +2268,11 @@ static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       ctx->r = status;
       ctx->app_cont = true;
     } else {
-      error_ctx(ENC_SYM_TERROR);
+      error_at_ctx(ENC_SYM_TERROR, ENC_SYM_SEND);
     }
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
-    error_ctx(ENC_SYM_EERROR);
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_SEND);
   }
 }
 
@@ -2285,7 +2291,7 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs >= 1) {
     err_val = args[0];
   }
-  error_ctx(err_val);
+  error_at_ctx(err_val, ENC_SYM_EXIT_ERROR);
 }
 
 // (map f arg-list)
@@ -2340,7 +2346,7 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     }
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
-    error_ctx(ENC_SYM_EERROR);
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_MAP);
   }
 }
 
@@ -2359,7 +2365,7 @@ static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
     ctx->app_cont = true;
   } else {
     lbm_set_error_reason("Reverse requires a list argument");
-    error_ctx(ENC_SYM_EERROR);
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_REVERSE);
   }
 }
 
@@ -2373,7 +2379,7 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
     }
 
     if (lbm_is_symbol(v)) {
-      error_ctx(v);
+      error_at_ctx(v, ENC_SYM_FLATTEN);
     } else {
       lbm_stack_drop(&ctx->K, 2);
       ctx->r = v;
@@ -2381,7 +2387,7 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
     }
     return;
   }
-  error_ctx(ENC_SYM_TERROR);
+  error_at_ctx(ENC_SYM_TERROR, ENC_SYM_FLATTEN);
 }
 
 static void apply_unflatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -2404,7 +2410,7 @@ static void apply_unflatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     ctx->app_cont = true;
     return;
   }
-  error_ctx(ENC_SYM_TERROR);
+  error_at_ctx(ENC_SYM_TERROR, ENC_SYM_UNFLATTEN);
 }
 
 static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -2440,7 +2446,7 @@ static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     mutex_unlock(&qmutex);
     return;
   }
-  error_ctx(ENC_SYM_TERROR);
+  error_at_ctx(ENC_SYM_TERROR, ENC_SYM_KILL);
 }
 
 /***************************************************/
@@ -2492,13 +2498,13 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     // It may be an extension
     extension_fptr f = lbm_get_extension(fun_val);
     if (f == NULL) {
-      error_ctx(ENC_SYM_EERROR);
+      error_at_ctx(ENC_SYM_EERROR,fun);
     }
 
     lbm_value ext_res;
     WITH_GC(ext_res, f(&fun_args[1], arg_count));
     if (lbm_is_error(ext_res)) { //Error other than merror
-      error_ctx(ext_res);
+      error_at_ctx(ext_res, fun);
     }
     lbm_stack_drop(&ctx->K, arg_count + 1);
 
@@ -2654,7 +2660,7 @@ static void cont_bind_to_key_rest(eval_context_t *ctx) {
 
   if (fill_binding_location(key, ctx->r, env) < 0) {
     lbm_set_error_reason("Incorrect type of name/key in let-binding");
-    error_ctx(ENC_SYM_TERROR);
+    error_at_ctx(ENC_SYM_TERROR, key);
   }
 
   if (lbm_is_cons(rest)) {
@@ -2749,7 +2755,7 @@ static void cont_match(eval_context_t *ctx) {
       ctx->app_cont = true;
     }
   } else {
-    error_ctx(ENC_SYM_TERROR);
+    error_at_ctx(ENC_SYM_TERROR, ENC_SYM_MATCH);
   }
 }
 
