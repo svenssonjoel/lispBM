@@ -120,6 +120,10 @@ const char* lbm_error_str_flash_error = "Error writing to flash.";
 const char* lbm_error_str_flash_full = "Flash memory is full.";
 const char* lbm_error_str_variable_not_bound = "Variable not bound.";
 
+static char *lbm_error_reason = NULL;
+static lbm_value lbm_error_suspect;
+static bool lbm_error_has_suspect = false;
+
 #define WITH_GC(y, x)                           \
   (y) = (x);                                    \
   if (lbm_is_symbol_merror((y))) {              \
@@ -712,9 +716,15 @@ void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned in
   printf_callback(  "***   Error: %s\n", buf);
   if (has_at) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, at);
-    printf_callback("***   At:    %s\n",buf);
-    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("***   After: %s\n",buf);
+    printf_callback("***   In:    %s\n",buf);
+    if (lbm_error_has_suspect) {
+      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, lbm_error_suspect);
+      lbm_error_has_suspect = false;
+      printf_callback("***   At:    %s\n", buf);
+    } else {
+      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+      printf_callback("***   After: %s\n",buf);
+    }
   } else {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
     printf_callback("***   Near:  %s\n",buf);
@@ -734,8 +744,9 @@ void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned in
 
   printf_callback("\n");
 
-  if (ctx_running->error_reason) {
+  if (lbm_error_reason) {
     printf_callback("Reason:\n   %s\n\n", ctx_running->error_reason);
+    lbm_error_reason = NULL;
   }
   if (lbm_verbose) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
@@ -945,13 +956,13 @@ bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
   return true;
 }
 
-int lbm_set_error_reason(char *error_str) {
-  int r = 0;
-  if (ctx_running) {
-    ctx_running->error_reason = error_str;
-    r = 1;
-  }
-  return r;
+void lbm_set_error_suspect(lbm_value suspect) {
+  lbm_error_suspect = suspect;
+  lbm_error_has_suspect = true;
+}
+
+void lbm_set_error_reason(char *error_str) {
+  lbm_error_reason = error_str;
 }
 
 // Not possible to CONS_WITH_GC in error_ctx_base (potential loop)
@@ -1439,12 +1450,14 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
 // just return no_match.
 static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value *e, lbm_value *env) {
 
+  // A pattern list is a list of pattern, expression lists.
+  // ( (p1 e1) (p2 e2) ... (pn en))
   lbm_value curr_p = plist;
   int n = 0;
   bool gc = false;
   for (int i = 0; i < (int)num; i ++ ) {
     lbm_value curr_e = earr[i];
-    while (lbm_is_cons(curr_p)) {
+    while (!lbm_is_symbol_nil(curr_p)) {
       lbm_value me = get_car(curr_p);
       if (match(get_car(me), curr_e, env, &gc)) {
         if (gc) return FM_NEED_GC;
@@ -1855,17 +1868,25 @@ static void eval_or(eval_context_t *ctx) {
   }
 }
 
-/* pattern matching experiment */
-/* format:                     */
-/* (match e (pattern body)     */
-/*          (pattern body)     */
-/*          ...  )             */
+// Pattern matching
+// format:
+// (match e (pattern body)
+//          (pattern body)
+//          ...  )
+//
+// There can be an optional pattern guard:
+// (match e (pattern guard body)
+//          ... )
+// a guard is a boolean expression.
+// Guards make match, pattern matching more complicated
+// than the recv pattern matching and requires staged execution
+// via the continuation system rather than a while loop over a list.
 static void eval_match(eval_context_t *ctx) {
 
   lbm_value rest = get_cdr(ctx->curr_exp);
   if (lbm_type_of(rest) == LBM_TYPE_SYMBOL &&
       rest == ENC_SYM_NIL) {
-    /* Someone wrote the program (match) */
+    // Someone wrote the program (match)
     ctx->app_cont = true;
     ctx->r = ENC_SYM_NIL;
   } else {
@@ -1937,6 +1958,9 @@ static void eval_receive_timeout(eval_context_t *ctx) {
   receive_base(ctx, pats, timeout_time, true);
 }
 
+// Receive
+// (recv (pattern expr)
+//       (pattern expr))
 static void eval_receive(eval_context_t *ctx) {
 
   if (is_atomic) {
@@ -2036,7 +2060,6 @@ static void cont_wait(eval_context_t *ctx) {
   }
 }
 
-// Maybe do not create a global but instead raise an error.
 static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
 
   lbm_uint s = lbm_dec_sym(key);

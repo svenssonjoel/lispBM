@@ -33,6 +33,7 @@ static lbm_uint add2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
 
   if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    lbm_set_error_suspect(lbm_is_number(a) ? b : a);
     return retval;
   }
 
@@ -55,6 +56,7 @@ static lbm_uint mul2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
 
   if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    lbm_set_error_suspect(lbm_is_number(a) ? b : a);
     return retval;
   }
 
@@ -77,6 +79,7 @@ static lbm_uint div2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
 
   if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    lbm_set_error_suspect(lbm_is_number(a) ? b : a);
     return retval;
   }
 
@@ -99,6 +102,7 @@ static lbm_uint mod2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
 
   if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    lbm_set_error_suspect(lbm_is_number(a) ? b : a);
     return retval;
   }
 
@@ -120,6 +124,11 @@ static lbm_uint negate(lbm_uint a) {
 
   lbm_uint retval = ENC_SYM_TERROR;
 
+  if (!lbm_is_number(a)) {
+    lbm_set_error_suspect(a);
+    return retval;
+  }
+
   if (lbm_type_of_functional(a) > LBM_TYPE_CHAR) {
     switch (lbm_type_of_functional(a)) {
     case LBM_TYPE_I: retval = lbm_enc_i(- lbm_dec_i(a)); break;
@@ -140,6 +149,7 @@ static lbm_uint sub2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
 
   if (!(lbm_is_number(a) && lbm_is_number(b))) {
+    lbm_set_error_suspect(lbm_is_number(a) ? b : a);
     return retval;
   }
 
