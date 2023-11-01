@@ -120,7 +120,6 @@ const char* lbm_error_str_flash_error = "Error writing to flash.";
 const char* lbm_error_str_flash_full = "Flash memory is full.";
 const char* lbm_error_str_variable_not_bound = "Variable not bound.";
 
-static char *lbm_error_reason = NULL;
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
 
@@ -744,9 +743,8 @@ void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned in
 
   printf_callback("\n");
 
-  if (lbm_error_reason) {
+  if (ctx_running->error_reason) {
     printf_callback("Reason:\n   %s\n\n", ctx_running->error_reason);
-    lbm_error_reason = NULL;
   }
   if (lbm_verbose) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
@@ -962,7 +960,9 @@ void lbm_set_error_suspect(lbm_value suspect) {
 }
 
 void lbm_set_error_reason(char *error_str) {
-  lbm_error_reason = error_str;
+  if (ctx_running != NULL) {
+    ctx_running->error_reason = error_str;
+  }
 }
 
 // Not possible to CONS_WITH_GC in error_ctx_base (potential loop)
