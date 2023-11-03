@@ -2574,7 +2574,10 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   bool a_nil = lbm_is_symbol_nil(args);
   bool p_nil = lbm_is_symbol_nil(cdr_params);
 
-  if (!a_nil && !p_nil) {
+  int ap = (a_nil ? 1 : 0) | ((p_nil ? 1 : 0) << 1);
+
+  switch (ap) {
+  case 0: {
     // evaluate the next argument.
     lbm_value car_args, cdr_args;
     get_car_and_cdr(args, &car_args, &cdr_args);
@@ -2584,22 +2587,29 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     stack_push(&ctx->K, CLOSURE_ARGS);
     ctx->curr_exp = car_args;
     ctx->curr_env = arg_env;
-  } else if (a_nil && p_nil) {
-    // Arguments and parameters match up in number
-    lbm_stack_drop(&ctx->K, 5);
-    ctx->curr_env = clo_env;
-    ctx->curr_exp = exp;
-  } else if (!a_nil && p_nil) {
-    // Application with extra arguments
-    lbm_set_error_reason((char*)lbm_error_str_num_args);
-    error_ctx(ENC_SYM_EERROR);
-  } else {
-    // Ran out of arguments, but there are still parameters.
+  } break;
+  case 1: {
     lbm_value new_env = lbm_list_append(arg_env,clo_env);
     sptr[0] = new_env; // keep safe from GC. Overwriting arg_env (safe as subset).
     ctx->r = allocate_closure(cdr_params, exp, new_env);
     lbm_stack_drop(&ctx->K, 5);
     ctx->app_cont = true;
+  } break;
+  case 2:
+    // Application with extra arguments
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    error_ctx(ENC_SYM_EERROR);
+    // Ran out of arguments, but there are still parameters.
+    break;
+  case 3:
+    // Arguments and parameters match up in number
+    lbm_stack_drop(&ctx->K, 5);
+    ctx->curr_env = clo_env;
+    ctx->curr_exp = exp;
+    break;
+  default:
+    // impossible:
+    error_ctx(ENC_SYM_FATAL_ERROR);
   }
 }
 
