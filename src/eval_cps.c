@@ -136,8 +136,7 @@ static bool lbm_error_has_suspect = false;
 #define WITH_GC_RMBR_1(y, x, r)                 \
   (y) = (x);                                    \
   if (lbm_is_symbol_merror((y))) {              \
-    add_roots_1(r);                             \
-    lbm_gc_mark_phase();                        \
+    lbm_gc_mark_phase(r);                       \
     gc();                                       \
     (y) = (x);                                  \
     if (lbm_is_symbol_merror((y))) {            \
@@ -376,26 +375,11 @@ eval_context_t *lbm_get_current_context(void) {
 /****************************************************/
 /* Utilities used locally in this file              */
 
-static void add_roots_1(lbm_value r1) {
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r1;
-}
-
-static void add_roots_2(lbm_value r1, lbm_value r2) {
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r1;
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r2;
-}
-
-static void add_roots_3(lbm_value r1, lbm_value r2, lbm_value r3) {
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r1;
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r2;
-  lbm_heap_state.gc_stack.data[lbm_heap_state.gc_stack.sp ++] = r3;
-}
-
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
   lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
   if (lbm_is_symbol_merror(res)) {
-    add_roots_3(head, tail, remember);
-    lbm_gc_mark_phase();
+    lbm_value roots[3] = {head, tail, remember};
+    lbm_gc_mark_roots(roots,3);
     gc();
     res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
     if (lbm_is_symbol_merror(res)) {
@@ -1136,16 +1120,16 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
 
   ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   if (ctx == NULL) {
-    add_roots_2(program, env);
-    lbm_gc_mark_phase();
+    lbm_uint roots[2] = {program, env};
+    lbm_gc_mark_roots(roots, 2);
     gc();
     ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   }
   if (ctx == NULL) return -1;
 
   if (!lbm_stack_allocate(&ctx->K, stack_size)) {
-    add_roots_2(program, env);
-    lbm_gc_mark_phase();
+    lbm_uint roots[2] = {program, env};
+    lbm_gc_mark_roots(roots, 2);
     gc();
     if (!lbm_stack_allocate(&ctx->K, stack_size)) {
       lbm_memory_free((lbm_uint*)ctx);
@@ -1156,8 +1140,8 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   lbm_value *mailbox = NULL;
   mailbox = (lbm_value*)lbm_memory_allocate(EVAL_CPS_DEFAULT_MAILBOX_SIZE);
   if (mailbox == NULL) {
-    add_roots_2(program, env);
-    lbm_gc_mark_phase();
+    lbm_value roots[2] = {program, env};
+    lbm_gc_mark_roots(roots,2);
     gc();
     mailbox = (lbm_value *)lbm_memory_allocate(EVAL_CPS_DEFAULT_MAILBOX_SIZE);
   }
@@ -1172,8 +1156,8 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
     lbm_uint name_len = strlen(name) + 1;
     ctx->name = lbm_malloc(strlen(name) + 1);
     if (ctx->name == NULL) {
-      add_roots_2(program, env);
-      lbm_gc_mark_phase();
+      lbm_value roots[2] = {program, env};
+      lbm_gc_mark_roots(roots, 2);
       gc();
       ctx->name = lbm_malloc(strlen(name) + 1);
     }
@@ -1484,8 +1468,8 @@ static void mark_context(eval_context_t *ctx, void *arg1, void *arg2) {
   (void) arg1;
   (void) arg2;
   lbm_value roots[4] = { ctx->curr_env, ctx->curr_exp, ctx->program, ctx->r };
-  lbm_gc_mark_aux(roots, 4);
-  lbm_gc_mark_aux(ctx->mailbox, ctx->num_mail);
+  lbm_gc_mark_roots(roots, 4);
+  lbm_gc_mark_roots(ctx->mailbox, ctx->num_mail);
   lbm_gc_mark_aux(ctx->K.data, ctx->K.sp);
 }
 
@@ -1500,14 +1484,12 @@ static int gc(void) {
   lbm_value *variables = lbm_get_variable_table();
   if (variables) {
     for (int i = 0; i < lbm_get_num_variables(); i ++) {
-      add_roots_1(variables[i]);
-      lbm_gc_mark_phase();
+      lbm_gc_mark_phase(variables[i]);
     }
   }
   // The freelist should generally be NIL when GC runs.
   lbm_nil_freelist();
-  add_roots_1(lbm_get_env());
-  lbm_gc_mark_phase();
+  lbm_gc_mark_phase(lbm_get_env());
 
   mutex_lock(&qmutex); // Lock the queues.
                        // Any concurrent messing with the queues
@@ -1813,8 +1795,7 @@ static void eval_let(eval_context_t *ctx) {
     if (r < 0) {
       if (r == BL_NO_MEMORY) {
         new_env_tmp = new_env;
-        add_roots_1(new_env);
-        lbm_gc_mark_phase();
+        lbm_gc_mark_phase(new_env);
         gc();
         r = create_binding_location(key, &new_env_tmp);
       }
@@ -2756,7 +2737,8 @@ static void cont_match(eval_context_t *ctx) {
 
     bool is_match = match(pattern, e, &new_env, &do_gc);
     if (do_gc) {
-      add_roots_3(orig_env, patterns, e);
+      lbm_uint roots[3] = {orig_env, patterns, e};
+      lbm_gc_mark_roots(roots, 3);
       gc();
       do_gc = false;
       new_env = orig_env;
