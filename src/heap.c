@@ -668,8 +668,6 @@ void lbm_gc_mark_phase(lbm_value root) {
       value_assign(&cell->car, curr);
       value_assign(&curr, cell->cdr);
       value_assign(&cell->cdr, next);
-    } else {
-      // This should not really happen..
     }
   }
 }
