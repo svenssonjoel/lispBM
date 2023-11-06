@@ -613,7 +613,8 @@ lbm_uint lbm_get_gc_stack_size(void) {
 }
 
 #ifdef USE_GC_PTR_REV
-void value_assign(lbm_value *a, lbm_value b) {
+#warning "USING POINTER REVERSAL GC"
+static inline void value_assign(lbm_value *a, lbm_value b) {
   lbm_value a_old = *a & LBM_GC_MASK;
   *a = a_old | (b & ~LBM_GC_MASK);
 }
