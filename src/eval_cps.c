@@ -2690,7 +2690,6 @@ static void cont_bind_to_key_rest(eval_context_t *ctx) {
     // Otherwise evaluate the expression in the populated env
     ctx->curr_exp = sptr[0];
     ctx->curr_env = env;
-    ctx->app_cont = true;
     lbm_stack_drop(&ctx->K, 4);
   }
 }
