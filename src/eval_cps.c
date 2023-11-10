@@ -76,23 +76,22 @@ static jmp_buf critical_error_jmp_buf;
 #define READ_COMMA_RESULT     CONTINUATION(24)
 #define READ_START_ARRAY      CONTINUATION(25)
 #define READ_APPEND_ARRAY     CONTINUATION(26)
-#define MAP_FIRST             CONTINUATION(27)
-#define MAP_REST              CONTINUATION(28)
-#define MATCH_GUARD           CONTINUATION(29)
-#define TERMINATE             CONTINUATION(30)
-#define PROGN_VAR             CONTINUATION(31)
-#define SETQ                  CONTINUATION(32)
-#define MOVE_TO_FLASH         CONTINUATION(33)
-#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(34)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(35)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(36)
-#define QQ_EXPAND_START       CONTINUATION(37)
-#define QQ_EXPAND             CONTINUATION(38)
-#define QQ_APPEND             CONTINUATION(39)
-#define QQ_EXPAND_LIST        CONTINUATION(40)
-#define QQ_LIST               CONTINUATION(41)
-#define KILL                  CONTINUATION(42)
-#define NUM_CONTINUATIONS     43
+#define MAP                   CONTINUATION(27)
+#define MATCH_GUARD           CONTINUATION(28)
+#define TERMINATE             CONTINUATION(29)
+#define PROGN_VAR             CONTINUATION(30)
+#define SETQ                  CONTINUATION(31)
+#define MOVE_TO_FLASH         CONTINUATION(32)
+#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(33)
+#define MOVE_LIST_TO_FLASH    CONTINUATION(34)
+#define CLOSE_LIST_IN_FLASH   CONTINUATION(35)
+#define QQ_EXPAND_START       CONTINUATION(36)
+#define QQ_EXPAND             CONTINUATION(37)
+#define QQ_APPEND             CONTINUATION(38)
+#define QQ_EXPAND_LIST        CONTINUATION(39)
+#define QQ_LIST               CONTINUATION(40)
+#define KILL                  CONTINUATION(41)
+#define NUM_CONTINUATIONS     42
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -1552,7 +1551,7 @@ static void eval_symbol(eval_context_t *ctx) {
   if (!dynamic_load_callback(sym_str, &code_str)) {
     error_at_ctx(ENC_SYM_NOT_FOUND, ctx->curr_exp);
   } else {
-    stack_push_3(&ctx->K, ctx->curr_env, ctx->curr_exp, RESUME);
+    stack_push_3(&ctx->K, ctx->curr_exp, ctx->curr_env, RESUME);
 
     lbm_value chan;
     if (!create_string_channel((char *)code_str, &chan)) {
@@ -1990,7 +1989,7 @@ static void cont_set_var(eval_context_t *ctx) {
 static void cont_resume(eval_context_t *ctx) {
   lbm_value exp;
   lbm_value env;
-  lbm_pop_2(&ctx->K, &exp, &env);
+  lbm_pop_2(&ctx->K, &env, &exp);
   ctx->curr_exp = exp;
   ctx->curr_env = env;
 }
@@ -2301,13 +2300,7 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
 // (map f arg-list)
 static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (nargs == 2 && lbm_is_list(args[1])) {
-    if (lbm_is_symbol_nil(args[1])) {
-      lbm_stack_drop(&ctx->K, 3);
-      ctx->r = ENC_SYM_NIL;
-      ctx->app_cont = true;
-      return;
-    }
+  if (nargs == 2 && lbm_is_cons(args[1])) {
     lbm_value *sptr = get_stack_ptr(ctx, 3);
 
     lbm_value f = args[0];
@@ -2327,10 +2320,11 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_set_car_and_cdr(get_cdr(appli), appli_1, ENC_SYM_NIL);
     lbm_set_car(appli, f);
 
-    stack_push_4(&ctx->K, ENC_SYM_NIL, appli, appli_0, MAP_FIRST);
+    lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+    stack_push_4(&ctx->K, elt, appli, appli_0, MAP);
     sptr[0] = t;     // reuse stack space
     sptr[1] = ctx->curr_env;
-    sptr[2] = ENC_SYM_NIL;
+    sptr[2] = elt;
     ctx->curr_exp = appli;
   } else if (nargs == 1) {
     // Partial application, create a closure.
@@ -2349,6 +2343,11 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     } else {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
+  } else if (nargs == 2 && lbm_is_symbol_nil(args[1])) {
+      lbm_stack_drop(&ctx->K, 3);
+      ctx->r = ENC_SYM_NIL;
+      ctx->app_cont = true;
+      return;
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_at_ctx(ENC_SYM_EERROR, ENC_SYM_MAP);
@@ -2691,6 +2690,7 @@ static void cont_bind_to_key_rest(eval_context_t *ctx) {
     // Otherwise evaluate the expression in the populated env
     ctx->curr_exp = sptr[0];
     ctx->curr_env = env;
+    ctx->app_cont = true;
     lbm_stack_drop(&ctx->K, 4);
   }
 }
@@ -2780,49 +2780,23 @@ static void cont_exit_atomic(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static void cont_map_first(eval_context_t *ctx) {
-
-  lbm_value *sptr = get_stack_ptr(ctx, 6);
-
-  lbm_value ls  = sptr[0];
-  lbm_value env = sptr[1];
-
-  lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
-  sptr[2] = elt; // head of result list
-  sptr[3] = elt; // tail of result list
-  if (lbm_is_cons(ls)) {
-    lbm_value next, rest;
-    get_car_and_cdr(ls, &next, &rest);
-    sptr[0] = rest;
-    stack_push(&ctx->K, MAP_REST);
-    lbm_set_car(sptr[5], next); // new arguments
-    ctx->curr_exp = sptr[4];
-    ctx->curr_env = env;
-  } else {
-    ctx->r = sptr[2];
-    ctx->curr_env = env;
-    lbm_stack_drop(&ctx->K, 6);
-    ctx->app_cont = true;
-  }
-}
-
-static void cont_map_rest(eval_context_t *ctx) {
+static void cont_map(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 6);
 
   lbm_value ls  = sptr[0];
   lbm_value env = sptr[1];
   lbm_value t   = sptr[3];
-  lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
-  lbm_set_cdr(t, elt);
-
-  sptr[3] = elt; // update tail of result list.
+  lbm_set_car(t, ctx->r); // update car field tailmost position.
   if (lbm_is_cons(ls)) {
     lbm_value next, rest;
     get_car_and_cdr(ls, &next, &rest);
     sptr[0] = rest;
-    stack_push(&ctx->K, MAP_REST);
+    stack_push(&ctx->K, MAP);
     lbm_set_car(sptr[5], next); // new arguments
 
+    lbm_value elt = cons_with_gc(ENC_SYM_NIL, ENC_SYM_NIL, ENC_SYM_NIL);
+    lbm_set_cdr(t, elt);
+    sptr[3] = elt;  // (r1 ... rN . (nil . nil))
     ctx->curr_exp = sptr[4];
     ctx->curr_env = env;
   } else {
@@ -4030,8 +4004,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_read_comma_result,
     cont_read_start_array,
     cont_read_append_array,
-    cont_map_first,
-    cont_map_rest,
+    cont_map,
     cont_match_guard,
     cont_terminate,
     cont_progn_var,
