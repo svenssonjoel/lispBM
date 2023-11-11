@@ -192,7 +192,8 @@
 #define SYM_PROGN_VAR           0x112
 #define SYM_SETQ                0x113
 #define SYM_MOVE_TO_FLASH       0x114
-#define SPECIAL_FORMS_END       0x114
+#define SYM_LOOP                0x115
+#define SPECIAL_FORMS_END       0x115
 
 // Apply funs:
 // Get their arguments in evaluated form.
