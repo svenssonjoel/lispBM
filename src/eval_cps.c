@@ -274,6 +274,11 @@ void lbm_set_event_handler_pid(lbm_cid pid) {
   lbm_event_handler_pid = pid;
 }
 
+bool lbm_event_handler_exists(void) {
+  return(lbm_event_handler_pid > 0);
+}
+
+
 static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_uint buf_ptr, lbm_uint buf_len) {
   bool r = false;
   if (lbm_events) {
@@ -312,10 +317,6 @@ bool lbm_event(lbm_flat_value_t *fv) {
     return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
   }
   return false;
-}
-
-bool lbm_event_handler_exists(void) {
-  return(lbm_event_handler_pid > 0);
 }
 
 static bool lbm_event_pop(lbm_event_t *event) {
@@ -1419,7 +1420,7 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
     lbm_value heade, taile;
     get_car_and_cdr(p, &headp, &tailp);
     get_car_and_cdr(e, &heade, &taile); // Static analysis warns, but execution does not
-                                        // pass this point unless head and tail get initialized.
+                                        // past this point unless head and tail get initialized.
     if (!match(headp, heade, env, gc)) {
       return false;
     }
