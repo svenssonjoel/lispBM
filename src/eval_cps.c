@@ -1776,18 +1776,24 @@ static int create_binding_location(lbm_value key, lbm_value *env) {
   return BL_OK;
 }
 
+static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, eval_context_t *ctx) {
 
-static void pre_allocate_bindings(lbm_value binds, lbm_value *env) {
-  // Implements letrec by "preallocating" the key parts
+  if (!lbm_is_cons(binds)) {
+    // binds better be nil or there is a programmer error.
+    ctx->curr_exp = exp;
+    return;
+  }
+
+  // Preallocate binding locations.
   lbm_value curr = binds;
   while (lbm_is_cons(curr)) {
-    lbm_value new_env_tmp = *env;
+    lbm_value new_env_tmp = env;
     lbm_value key = get_caar(curr);
     int r = create_binding_location(key, &new_env_tmp);
     if (r < 0) {
       if (r == BL_NO_MEMORY) {
-        new_env_tmp = *env;
-        lbm_gc_mark_phase(*env);
+        new_env_tmp = env;
+        lbm_gc_mark_phase(env);
         gc();
         r = create_binding_location(key, &new_env_tmp);
       }
@@ -1801,9 +1807,21 @@ static void pre_allocate_bindings(lbm_value binds, lbm_value *env) {
         return;
       }
     }
-    *env = new_env_tmp;
+    env = new_env_tmp;
     curr = get_cdr(curr);
   }
+
+  lbm_value key0 = get_caar(binds);
+  lbm_value val0_exp = get_cadr(get_car(binds));
+
+  lbm_uint *sptr = stack_reserve(ctx, 5);
+  sptr[0] = exp;
+  sptr[1] = get_cdr(binds);
+  sptr[2] = env;
+  sptr[3] = key0;
+  sptr[4] = BIND_TO_KEY_REST;
+  ctx->curr_exp = val0_exp;
+  ctx->curr_env = env;
 }
 
 // (loop list-of-local-bindings
@@ -1811,66 +1829,23 @@ static void pre_allocate_bindings(lbm_value binds, lbm_value *env) {
 //       body-exp)
 static void eval_loop(eval_context_t *ctx) {
 
-  lbm_value orig_env         = ctx->curr_env;
+  lbm_value env              = ctx->curr_env;
   lbm_value curr_exp_cdr     = get_cdr(ctx->curr_exp);
   lbm_value binds            = get_car(curr_exp_cdr); // key value pairs.
   lbm_value curr_exp_cdr_cdr = get_cdr(curr_exp_cdr);
   lbm_value cond             = get_car(curr_exp_cdr_cdr); // loop condition
   lbm_value body_exp         = get_cadr(curr_exp_cdr_cdr); // loop body
-
-  lbm_value new_env = orig_env; // to be augmented
-
-  if (!lbm_is_cons(binds)) {
-    // binds better be nil or there is a programmer error.
-    stack_push_3(&ctx->K, body_exp, cond, LOOP_CONDITION);
-    ctx->curr_exp = cond;
-    return;
-  }
-
-  pre_allocate_bindings(binds, &new_env);
-  lbm_value key0 = get_caar(binds);
-  lbm_value val0_exp = get_cadr(get_car(binds));
-
   stack_push_3(&ctx->K, body_exp, cond, LOOP_CONDITION);
-
-  lbm_uint *sptr = stack_reserve(ctx, 5);
-  sptr[0] = cond;
-  sptr[1] = get_cdr(binds);
-  sptr[2] = new_env;
-  sptr[3] = key0;
-  sptr[4] = BIND_TO_KEY_REST;
-  ctx->curr_exp = val0_exp;
-  ctx->curr_env = new_env;
-  return;
+  let_bind_values_eval(binds, cond, env, ctx);
 }
 
 // (let list-of-bindings
 //      body-exp)
 static void eval_let(eval_context_t *ctx) {
-  lbm_value orig_env = ctx->curr_env;
+  lbm_value env      = ctx->curr_env;
   lbm_value binds    = get_cadr(ctx->curr_exp); // key value pairs.
   lbm_value exp      = get_cadr(get_cdr(ctx->curr_exp)); // exp to evaluate in the new env.
-  lbm_value new_env  = orig_env;  // to be augmented
-
-  if (!lbm_is_cons(binds)) {
-    // binds better be nil or there is a programmer error.
-    ctx->curr_exp = exp;
-    return;
-  }
-
-  pre_allocate_bindings(binds, &new_env);
-  lbm_value key0 = get_caar(binds);
-  lbm_value val0_exp = get_cadr(get_car(binds));
-
-  lbm_uint *sptr = stack_reserve(ctx, 5);
-  sptr[0] = exp;
-  sptr[1] = get_cdr(binds);
-  sptr[2] = new_env;
-  sptr[3] = key0;
-  sptr[4] = BIND_TO_KEY_REST;
-  ctx->curr_exp = val0_exp;
-  ctx->curr_env = new_env;
-  return;
+  let_bind_values_eval(binds, exp, env, ctx);
 }
 
 // (and exp0 ... expN)
