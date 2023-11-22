@@ -1679,22 +1679,24 @@ static void eval_lambda(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+// (if cond-expr then-expr else-expr)
 static void eval_if(eval_context_t *ctx) {
 
   lbm_value cdr = get_cdr(ctx->curr_exp);
   lbm_value exp, cddr;
   get_car_and_cdr(cdr, &exp, &cddr);
-  lbm_value then_branch = get_car(cddr);
-  lbm_value else_branch = get_cadr(cddr);
 
   lbm_uint *sptr = stack_reserve(ctx, 4);
-  sptr[0] = else_branch;
-  sptr[1] = then_branch;
+  sptr[0] = get_cadr(cddr); // else_branch
+  sptr[1] = get_car(cddr); // then_branch
   sptr[2] = ctx->curr_env;
   sptr[3] = IF;
   ctx->curr_exp = exp;
 }
 
+// (cond (cond-expr-1 expr-1)
+//         ...
+//       (cond-expr-N expr-N))
 static void eval_cond(eval_context_t *ctx) {
   lbm_value cond1 = get_cadr(ctx->curr_exp);
 
@@ -2230,6 +2232,21 @@ static void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   }
 }
 
+static void apply_sleep(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if (is_atomic) {
+    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_SLEEP);
+  }
+  if (nargs == 1 && lbm_is_number(args[0])) {
+    lbm_uint ts = (lbm_uint)(1000000.0f * lbm_dec_as_float(args[0]));
+    lbm_stack_drop(&ctx->K, nargs+1);
+    yield_ctx(ts);
+  } else {
+    lbm_set_error_reason((char*)lbm_error_str_no_number);
+    error_at_ctx(ENC_SYM_TERROR, ENC_SYM_SLEEP);
+  }
+}
+
 static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_I) {
     lbm_cid cid = (lbm_cid)lbm_dec_i(args[0]);
@@ -2500,6 +2517,7 @@ static const apply_fun fun_table[] =
    apply_flatten,
    apply_unflatten,
    apply_kill,
+   apply_sleep,
   };
 
 /***************************************************/

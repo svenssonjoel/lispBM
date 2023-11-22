@@ -72,6 +72,7 @@ special_sym const special_symbols[] =  {
   {"flatten"      , SYM_FLATTEN},
   {"unflatten"    , SYM_UNFLATTEN},
   {"kill"         , SYM_KILL},
+  {"sleep"        , SYM_SLEEP},
   {"gc"           , SYM_PERFORM_GC},
   {"loop"         , SYM_LOOP},
 
