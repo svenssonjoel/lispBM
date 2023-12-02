@@ -283,8 +283,11 @@ int tok_char(lbm_char_channel_t *chan, char *res) {
         ok = true;
       }
     }
-    if (ok)
+    if (ok) {
       return 4;
+    } else {
+      return TOKENIZER_CHAR_ERROR;
+    }
   }
   *res = c;
   return 3;
