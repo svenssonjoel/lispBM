@@ -396,6 +396,8 @@ void lbm_free(void *ptr) {
 }
 
 int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
+  if (!lbm_memory_ptr_inside(ptr)) return 0;
+
   lbm_uint ix = address_to_bitmap_ix(ptr);
 
   mutex_lock(&lbm_mem_mutex);
