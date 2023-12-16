@@ -221,7 +221,8 @@
 #define SYM_UNFLATTEN             0x160
 #define SYM_KILL                  0x161
 #define SYM_SLEEP                 0x162
-#define APPLY_FUNS_END            0x162
+#define SYM_MERGE                 0x163
+#define APPLY_FUNS_END            0x163
 
 #define FUNDAMENTALS_START 0x20E
 #define SYM_ADD           0x20E
@@ -402,6 +403,7 @@
 #define ENC_SYM_UNFLATTEN             ENC_SYM(SYM_UNFLATTEN)
 #define ENC_SYM_KILL                  ENC_SYM(SYM_KILL)
 #define ENC_SYM_SLEEP                 ENC_SYM(SYM_SLEEP)
+#define ENC_SYM_MERGE                 ENC_SYM(SYM_MERGE)
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)
 #define ENC_SYM_SUB           ENC_SYM(SYM_SUB)

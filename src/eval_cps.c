@@ -93,7 +93,8 @@ static jmp_buf critical_error_jmp_buf;
 #define KILL                  CONTINUATION(41)
 #define LOOP                  CONTINUATION(42)
 #define LOOP_CONDITION        CONTINUATION(43)
-#define NUM_CONTINUATIONS     44
+#define MERGE_REST            CONTINUATION(44)
+#define NUM_CONTINUATIONS     45
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -2482,6 +2483,74 @@ static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   error_at_ctx(ENC_SYM_TERROR, ENC_SYM_KILL);
 }
 
+static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if (nargs == 3 && lbm_is_list(args[1]) && lbm_is_list(args[2])) {
+    // Copy input lists for functional behaviour at top-level
+    // merge itself is in-place in the copied lists.
+    lbm_value a;
+    lbm_value b;
+    WITH_GC(a, lbm_list_copy(-1, args[1]));
+    WITH_GC_RMBR_1(b, lbm_list_copy(-1, args[2]), a);
+
+    args[1] = a; // keep safe by replacing the original on stack.
+    args[2] = b;
+
+    lbm_value a_1 = a;
+    lbm_value a_rest = lbm_cdr(a);
+    lbm_value b_1 = b;
+    lbm_value b_rest = lbm_cdr(b);
+
+    if (a == ENC_SYM_NIL) {
+      ctx->r = b;
+      lbm_stack_drop(&ctx->K, 4);
+      ctx->app_cont = true;
+      return;
+    }
+    if (b == ENC_SYM_NIL) {
+      ctx->r = a;
+      lbm_stack_drop(&ctx->K, 4);
+      ctx->app_cont = true;
+      return;
+    }
+
+    lbm_value cl[3]; // Comparator closure
+    extract_n(lbm_cdr(args[0]), cl, 3);
+    lbm_value cmp_env = cl[CLO_ENV];
+    lbm_value par1 = ENC_SYM_NIL;
+    lbm_value par2 = ENC_SYM_NIL;
+    lbm_uint len = lbm_list_length(cl[CLO_PARAMS]);
+    if (len == 2) {
+      par1 = get_car(cl[CLO_PARAMS]);
+      par2 = get_car(get_cdr(cl[CLO_PARAMS]));
+      WITH_GC(cmp_env, lbm_env_set(cmp_env, par1, lbm_car(a_1)));
+      WITH_GC(cmp_env, lbm_env_set(cmp_env, par2, lbm_car(b_1)));
+    } else {
+      error_at_ctx(ENC_SYM_TERROR, args[0]);
+    }
+    lbm_set_cdr(a_1, b_1);
+    lbm_set_cdr(b_1, ENC_SYM_NIL);
+    //lbm_value cmp_app = cons_with_gc(args[0], a_1, ENC_SYM_NIL);
+    lbm_value cmp = cl[CLO_BODY];
+
+    lbm_stack_drop(&ctx->K, 4); // TODO: Optimize drop 4 alloc 10 into alloc 6
+    lbm_uint *sptr = stack_reserve(ctx, 10);
+    sptr[0] = ENC_SYM_NIL; // head of merged list
+    sptr[1] = ENC_SYM_NIL; // last of merged list
+    sptr[2] = a_1;
+    sptr[3] = a_rest;
+    sptr[4] = b_rest;
+    sptr[5] = cmp;
+    sptr[6] = cmp_env;
+    sptr[7] = par1;
+    sptr[8] = par2;
+    sptr[9] = MERGE_REST;
+    ctx->curr_exp = cl[CLO_BODY];
+    ctx->curr_env = cmp_env;
+    return;
+  }
+  error_at_ctx(ENC_SYM_TERROR, ENC_SYM_MERGE);
+}
+
 /***************************************************/
 /* Application lookup table                        */
 
@@ -2507,6 +2576,7 @@ static const apply_fun fun_table[] =
    apply_unflatten,
    apply_kill,
    apply_sleep,
+   apply_merge,
   };
 
 /***************************************************/
@@ -2863,6 +2933,84 @@ static void cont_loop_condition(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 2);
   stack_push(&ctx->K, LOOP);
   ctx->curr_exp = sptr[0];
+}
+
+static void cont_merge_rest(eval_context_t *ctx) {
+
+  lbm_uint *sptr = get_stack_ptr(ctx, 9);
+
+  // If comparator returns true:
+  //   "a" should be moved to the last element position in merged list.
+  //   A new element from "a_rest" should be moved into comparator argument 1 pos.
+  // else
+  //   "b" should be moved to last element position in merged list.
+  //   A new element from "b_rest" should be moved into comparator argument 2 pos.
+  //
+  // If a_rest or b_rest is NIL:
+  //   we are done, the remaining elements of
+  //   non_nil list should be appended to merged list.
+  // else
+  //   Set up for a new comparator evaluation and recurse.
+  lbm_value a = sptr[2];
+  lbm_value b = lbm_cdr(a);
+  lbm_set_cdr(a, ENC_SYM_NIL); // terminate 1 element list
+
+  if (ctx->r == ENC_SYM_NIL) { // Comparison false
+
+    if (sptr[0] == ENC_SYM_NIL) {
+      sptr[0] = b;
+      sptr[1] = b;
+    } else {
+      lbm_set_cdr(sptr[1], b);
+      sptr[1] = b;
+    }
+    if (sptr[4] == ENC_SYM_NIL) {
+      lbm_set_cdr(a, sptr[3]);
+      lbm_set_cdr(sptr[1], a);
+      ctx->r = sptr[0];
+      lbm_stack_drop(&ctx->K, 9);
+      ctx->app_cont = true;
+      return;
+    } else {
+      b = sptr[4];
+      sptr[4] = lbm_cdr(sptr[4]);
+      lbm_set_cdr(b, ENC_SYM_NIL);
+    }
+  } else {
+    if (sptr[0] == ENC_SYM_NIL) {
+      sptr[0] = a;
+      sptr[1] = a;
+    } else {
+      lbm_set_cdr(sptr[1], a);
+      sptr[1] = a;
+    }
+
+    if (sptr[3] == ENC_SYM_NIL) {
+      lbm_set_cdr(b, sptr[4]);
+      lbm_set_cdr(sptr[1], b);
+      ctx->r = sptr[0];
+      lbm_stack_drop(&ctx->K, 9);
+      ctx->app_cont = true;
+      return;
+    } else {
+      a = sptr[3];
+      sptr[3] = lbm_cdr(sptr[3]);
+      lbm_set_cdr(a, ENC_SYM_NIL);
+    }
+  }
+  lbm_set_cdr(a, b);
+  sptr[2] = a;
+
+  lbm_value par1 = sptr[7];
+  lbm_value par2 = sptr[8];
+  lbm_value cmp_body = sptr[5];
+  lbm_value cmp_env = sptr[6];
+  WITH_GC(cmp_env, lbm_env_set(cmp_env, par1, lbm_car(a)));
+  WITH_GC(cmp_env, lbm_env_set(cmp_env, par2, lbm_car(b)));
+
+  stack_push(&ctx->K, MERGE_REST);
+  ctx->curr_exp = cmp_body;
+  ctx->curr_env = cmp_env;
 }
 
 
@@ -4059,6 +4207,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_kill,
     cont_loop,
     cont_loop_condition,
+    cont_merge_rest,
   };
 
 /*********************************************************/
