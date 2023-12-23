@@ -1272,7 +1272,7 @@ Here `(merge < a b)` evaluates to the list `(1 2 3 4 5 6 8 10 12)`.
 
 `sort` orders a list of values according to a comparator. The sorting
 algorithm used is an in-place merge-sort. A copy of the input list is created
-at the beginning of the sort to provide a function interface from the user's
+at the beginning of the sort to provide a functional interface from the user's
 point of view. The form of a sort expression is `(sort comparator-exp list-exp)`
 
 Example:
