@@ -26,7 +26,6 @@
 #include "extensions.h"
 #include "exp_kind.h"
 #include "tokpar.h"
-#include "qq_expand.h"
 #include "lbm_variables.h"
 #include "lbm_channel.h"
 #include "print.h"
