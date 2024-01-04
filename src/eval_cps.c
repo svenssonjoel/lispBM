@@ -636,7 +636,7 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
 }
 
 // block_current_ctx blocks a context until it is
-// woken up externally of a timeout period of time passes.
+// woken up externally or a timeout period of time passes.
 static void block_current_ctx(uint32_t state, lbm_uint sleep_us,  bool do_cont) {
   ctx_running->timestamp = timestamp_us_callback();
   ctx_running->sleep_us = sleep_us;
