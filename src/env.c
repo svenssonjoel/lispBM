@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2021 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2021, 2024 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -61,11 +61,6 @@ bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
 
   lbm_value curr = env;
 
-  if (lbm_is_symbol_nil(sym)) {
-    *res = sym;
-    return true;
-  }
-
   while (lbm_is_ptr(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
     if ((lbm_ref_cell(c)->car) == sym) {
@@ -79,10 +74,6 @@ bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
 
 lbm_value lbm_env_lookup(lbm_value sym, lbm_value env) {
   lbm_value curr = env;
-
-  if(lbm_dec_sym(sym) == SYM_NIL) {
-    return sym;
-  }
 
   while (lbm_type_of(curr) == LBM_TYPE_CONS) {
     if (lbm_car(lbm_car(curr)) == sym) {
