@@ -253,13 +253,16 @@ int main(void) {
       chprintf(chp,"------------------------------------------------------------\r\n");
       memset(outbuf,0, 1024);
     } else if (strncmp(str, ":env", 4) == 0) {
-      lbm_value curr = *lbm_get_env_ptr();
-      chprintf(chp,"Environment:\r\n");
-      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-        res = lbm_print_value(outbuf,1024, lbm_car(curr));
-        curr = lbm_cdr(curr);
+      lbm_value *glob_env = lbm_get_global_env();
+      for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+        lbm_value curr = glob_env[i];
+        chprintf(chp,"Global Environment [%d]:\r\n", i);
+        while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+          res = lbm_print_value(outbuf,1024, lbm_car(curr));
+          curr = lbm_cdr(curr);
 
-        chprintf(chp,"  %s \r\n", outbuf);
+          chprintf(chp,"  %s \r\n", outbuf);
+        }
       }
     } else if (strncmp(str, ":threads", 8) == 0) {
       thread_t *tp;
