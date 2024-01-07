@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2022, 2024 Joel Svensson  svenssonjoel@yahoo.se
                           2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -36,13 +36,16 @@ lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_EERROR;
 }
 
-int lbm_extensions_init(extension_fptr *extension_storage, int extension_storage_size) {
-  if (extension_storage == NULL || extension_storage_size <= 0) return 0;
+int lbm_extensions_init(lbm_uint extension_storage_size) {
+  if (extension_storage_size == 0) return 0;
+  printf("allocating %d Bytes of extension storage\n", sizeof(extension_fptr) * extension_storage_size);
+  extension_fptr *extension_storage = (extension_fptr*)lbm_malloc(sizeof(extension_fptr) * extension_storage_size);
+  if (!extension_storage) return 0;
 
   extension_table = extension_storage;
-  memset(extension_table, 0, sizeof(extension_fptr) * (unsigned int)extension_storage_size);
+  memset(extension_table, 0, sizeof(extension_fptr) * extension_storage_size);
 
-  for (int i = 0; i < extension_storage_size; i ++) {
+  for (lbm_uint i = 0; i < extension_storage_size; i ++) {
     extension_storage[i] = lbm_extensions_default;
   }
 

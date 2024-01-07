@@ -45,7 +45,6 @@
 
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
-extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 
 static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
@@ -203,7 +202,7 @@ int main(void) {
                 memory_array, LBM_MEMORY_SIZE_8K,
                 bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
                 print_stack_storage, PRINT_STACK_SIZE,
-                extension_storage, EXTENSION_STORAGE_SIZE)) {
+                EXTENSION_STORAGE_SIZE)) {
 
     chprintf(chp,"LispBM Init failed.\r\n");
     return 0;
@@ -308,7 +307,7 @@ int main(void) {
                memory_array, LBM_MEMORY_SIZE_8K,
                bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
                print_stack_storage, PRINT_STACK_SIZE,
-               extension_storage, EXTENSION_STORAGE_SIZE);
+               EXTENSION_STORAGE_SIZE);
 
       lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 

@@ -47,8 +47,6 @@
 #define FAIL 0
 #define SUCCESS 1
 
-lbm_uint print_stack_storage[PRINT_STACK_SIZE];
-extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
@@ -447,12 +445,12 @@ int main(int argc, char **argv) {
   lbm_uint *memory = NULL;
   lbm_uint *bitmap = NULL;
   if (sizeof(lbm_uint) == 4) {
-    memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_14K);
+    memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_16K);
     if (memory == NULL) return 0;
-    bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_14K);
+    bitmap = malloc(sizeof(lbm_uint) * LBM_MEMORY_BITMAP_SIZE_16K);
     if (bitmap == NULL) return 0;
-    res = lbm_memory_init(memory, LBM_MEMORY_SIZE_14K,
-                          bitmap, LBM_MEMORY_BITMAP_SIZE_14K);
+    res = lbm_memory_init(memory, LBM_MEMORY_SIZE_16K,
+                          bitmap, LBM_MEMORY_BITMAP_SIZE_16K);
   } else {
     memory = malloc(sizeof(lbm_uint) * LBM_MEMORY_SIZE_1M);
     if (memory == NULL) return 0;
@@ -469,34 +467,24 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
-  res = lbm_print_init(print_stack_storage, PRINT_STACK_SIZE);
-  if (res)
-    printf("Printing initialized.\n");
-  else {
-    printf("Error initializing printing!\n");
-    return FAIL;
-  }
-
-  res = lbm_symrepr_init();
-  if (res)
-    printf("Symrepr initialized.\n");
-  else {
-    printf("Error initializing symrepr!\n");
-    return FAIL;
-  }
-
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
   if (heap_storage == NULL) {
     return FAIL;
   }
 
-  res = lbm_heap_init(heap_storage, heap_size, GC_STACK_SIZE);
-  if (res)
-    printf("Heap initialized. Heap size: %"PRI_FLOAT" MiB. Free cons cells: %"PRI_INT"\n", (double)lbm_heap_size_bytes() / 1024.0 / 1024.0, lbm_heap_num_free());
-  else {
-    printf("Error initializing heap!\n");
+  if (lbm_init(heap_storage, heap_size,
+               memory, LBM_MEMORY_SIZE_16K,
+               bitmap, LBM_MEMORY_BITMAP_SIZE_16K,
+               GC_STACK_SIZE,
+               PRINT_STACK_SIZE,
+               EXTENSION_STORAGE_SIZE)) {
+    printf ("LBM Initialized\n");
+  } else {
+    printf ("FAILED to initialize LBM\n");
     return FAIL;
   }
+
+  lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
   if (!lbm_const_heap_init(const_heap_write,
                            &const_heap,constants_memory,
@@ -506,35 +494,11 @@ int main(int argc, char **argv) {
     printf("Constants memory initialized\n");
   }
 
-  res = lbm_eval_init();
-  if (res)
-    printf("Evaluator initialized.\n");
-  else {
-    printf("Error initializing evaluator.\n");
-    return FAIL;
-  }
-
-  /* res = lbm_init_env(); */
-  /* if (res) */
-  /*   printf("Environment initialized.\n"); */
-  /* else { */
-  /*   printf("Error initializing environment.\n"); */
-  /*   return FAIL; */
-  /* } */
-
   res = lbm_eval_init_events(20);
   if (res)
     printf("Events initialized.\n");
   else {
     printf("Error initializing events.\n");
-    return FAIL;
-  }
-
-  res = lbm_extensions_init(extension_storage, EXTENSION_STORAGE_SIZE);
-  if (res)
-    printf("Extensions initialized.\n");
-  else {
-    printf("Error initializing extensions.\n");
     return FAIL;
   }
 
@@ -688,9 +652,9 @@ int main(int argc, char **argv) {
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_printf_callback(printf);
 
-  lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
-
   lbm_set_verbose(true);
+
+  printf("LBM memory free: %u words, %u bytes \n", lbm_memory_num_free(), lbm_memory_num_free() * sizeof(lbm_uint));
 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
@@ -739,6 +703,7 @@ int main(int argc, char **argv) {
   uint32_t stream_i = 0;
 
   if (stream_source) {
+    int stuck_count = 0;
     int i = 0;
     while (true) {
       if (code_buffer[i] == 0) {
@@ -755,6 +720,8 @@ int main(int argc, char **argv) {
       } else {
         if ((stream_i % 100) == 99) {
           printf("stuck streaming\n");
+          stuck_count ++;
+          if (stuck_count == 10) return 0;
         }
         stream_i ++;
         sleep_callback(2);

@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022, 2024Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -47,8 +47,6 @@
 #define CONSTANT_MEMORY_SIZE 32*1024
 #define PROF_DATA_NUM 100
 
-lbm_uint print_stack_storage[PRINT_STACK_SIZE];
-extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 lbm_prof_t prof_data[100];
@@ -627,11 +625,11 @@ int main(int argc, char **argv) {
   }
 
   if (!lbm_init(heap_storage, heap_size,
-                GC_STACK_SIZE,
                 memory, LBM_MEMORY_SIZE_1M,
                 bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
-                print_stack_storage, PRINT_STACK_SIZE,
-                extension_storage, EXTENSION_STORAGE_SIZE)) {
+                GC_STACK_SIZE,
+                PRINT_STACK_SIZE,
+                EXTENSION_STORAGE_SIZE)) {
     printf("Failed to initialize LispBM\n");
     return 0;
   }
@@ -895,11 +893,11 @@ int main(int argc, char **argv) {
         }
 
         lbm_init(heap_storage, heap_size,
-                 GC_STACK_SIZE,
                  memory, LBM_MEMORY_SIZE_1M,
                  bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
-                 print_stack_storage, PRINT_STACK_SIZE,
-                 extension_storage, EXTENSION_STORAGE_SIZE);
+                 GC_STACK_SIZE,
+                 PRINT_STACK_SIZE,
+                 EXTENSION_STORAGE_SIZE);
 
         if (!lbm_const_heap_init(const_heap_write,
                            &const_heap,constants_memory,
@@ -945,11 +943,11 @@ int main(int argc, char **argv) {
       }
 
       lbm_init(heap_storage, heap_size,
-               GC_STACK_SIZE,
                memory, LBM_MEMORY_SIZE_1M,
                bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
-               print_stack_storage, PRINT_STACK_SIZE,
-               extension_storage, EXTENSION_STORAGE_SIZE);
+               GC_STACK_SIZE,
+               PRINT_STACK_SIZE,
+               EXTENSION_STORAGE_SIZE);
 
       if (!lbm_const_heap_init(const_heap_write,
                                &const_heap,constants_memory,

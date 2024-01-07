@@ -1543,7 +1543,6 @@ int lbm_perform_gc(void) {
 /* Evaluation functions                             */
 
 
-
 static void eval_symbol(eval_context_t *ctx) {
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
   if (s >= RUNTIME_SYMBOLS_START) {
