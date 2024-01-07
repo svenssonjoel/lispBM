@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Joel Svensson   svenssonjoel@yahoo.se
+    Copyright 2022, 2024 Joel Svensson   svenssonjoel@yahoo.se
     Copyright 2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -21,16 +21,19 @@
 #include "heap.h"
 
 lbm_value *variable_table = NULL;
-int variable_table_size = 0;
+lbm_uint variable_table_size = 0;
 
-int lbm_variables_init(lbm_value *variable_storage, int variable_storage_size) {
+int lbm_variables_init(lbm_uint variables_storage_size) {
 
-  if (variable_storage == NULL || variable_storage_size <= 0)
+  if (variables_storage_size == 0)
     return 0;
 
-  variable_table = variable_storage;
-  variable_table_size = variable_storage_size;
-  for (int i = 0; i < variable_table_size; i ++) {
+  lbm_value *variables_storage = (lbm_value *)lbm_malloc(sizeof(lbm_value) * variables_storage_size);
+  if (!variables_storage) return 0;
+
+  variable_table = variables_storage;
+  variable_table_size = variables_storage_size;
+  for (lbm_uint i = 0; i < variable_table_size; i ++) {
     variable_table[i] = ENC_SYM_NIL;
   }
   return 1;
@@ -42,13 +45,12 @@ lbm_value *lbm_get_variable_table(void) {
 
 lbm_value lbm_get_var(lbm_uint sym_val) {
 
-  int i = (int)sym_val - VARIABLE_SYMBOLS_START;
+  lbm_uint i = sym_val - VARIABLE_SYMBOLS_START;
   return lbm_get_variable_by_index(i);
 }
 
-lbm_value lbm_get_variable_by_index(int i) {
+lbm_value lbm_get_variable_by_index(lbm_uint i) {
   if (variable_table &&
-      i >= 0 &&
       i < variable_table_size) {
     return variable_table[i];
   } else {
@@ -56,9 +58,8 @@ lbm_value lbm_get_variable_by_index(int i) {
   }
 }
 
-const char *lbm_get_variable_name_by_index(int index) {
-  if (index < 0 ||
-      index >= lbm_get_num_variables()) return NULL;
+const char *lbm_get_variable_name_by_index(lbm_uint index) {
+  if (index >= lbm_get_num_variables()) return NULL;
 
   lbm_uint sym_id = (lbm_uint)index + VARIABLE_SYMBOLS_START;
   return lbm_get_name_by_symbol(sym_id);
@@ -66,10 +67,9 @@ const char *lbm_get_variable_name_by_index(int index) {
 
 lbm_value lbm_set_var(lbm_uint index, lbm_value value) {
 
-  int i = (int)index - VARIABLE_SYMBOLS_START;
+  lbm_uint i = index - VARIABLE_SYMBOLS_START;
 
   if (variable_table &&
-      i >= 0 &&
       i < variable_table_size) {
     variable_table[i] = value;
   } else {

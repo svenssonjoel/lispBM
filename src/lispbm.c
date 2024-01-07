@@ -22,7 +22,8 @@ int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
              lbm_uint *memory_bitmap, lbm_uint bitmap_size,
              lbm_uint gc_stack_size,
              lbm_uint print_stack_size,
-             lbm_uint extension_storage_size ) {
+             lbm_uint extension_storage_size,
+             lbm_uint variable_storage_size) {
 
   if (lbm_memory_init(memory, memory_size,
                       memory_bitmap, bitmap_size) == 0)
@@ -32,6 +33,9 @@ int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
     return 0;
 
   if (lbm_heap_init(heap_storage, heap_size, gc_stack_size) == 0)
+    return 0;
+
+  if (lbm_variables_init(variable_storage_size) == 0)
     return 0;
 
   if (lbm_print_init(print_stack_size) == 0)

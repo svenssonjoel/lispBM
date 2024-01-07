@@ -500,6 +500,6 @@ lbm_uint lbm_get_symbol_table_size_names_flash(void) {
   return symbol_table_size_strings_flash * sizeof(lbm_uint);
 }
 
-int lbm_get_num_variables(void) {
-  return (int)next_variable_symbol_id - VARIABLE_SYMBOLS_START;
+lbm_uint lbm_get_num_variables(void) {
+  return next_variable_symbol_id - VARIABLE_SYMBOLS_START;
 }

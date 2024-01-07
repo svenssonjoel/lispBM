@@ -1500,7 +1500,7 @@ static int gc(void) {
 
   lbm_value *variables = lbm_get_variable_table();
   if (variables) {
-    for (int i = 0; i < lbm_get_num_variables(); i ++) {
+    for (lbm_uint i = 0; i < lbm_get_num_variables(); i ++) {
       lbm_gc_mark_phase(variables[i]);
     }
   }

@@ -37,17 +37,16 @@
 
 #define WAIT_TIMEOUT 2500
 
-#define GC_STACK_SIZE 256
+#define GC_STACK_SIZE 96
 #define PRINT_STACK_SIZE 256
-#define EXTENSION_STORAGE_SIZE 256
-#define VARIABLE_STORAGE_SIZE 256
+#define EXTENSION_STORAGE_SIZE 100
+#define VARIABLE_STORAGE_SIZE 100
 #define CONSTANT_MEMORY_SIZE 32*1024
 
 
 #define FAIL 0
 #define SUCCESS 1
 
-lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
 
@@ -477,14 +476,13 @@ int main(int argc, char **argv) {
                bitmap, LBM_MEMORY_BITMAP_SIZE_16K,
                GC_STACK_SIZE,
                PRINT_STACK_SIZE,
-               EXTENSION_STORAGE_SIZE)) {
+               EXTENSION_STORAGE_SIZE,
+               VARIABLE_STORAGE_SIZE)) {
     printf ("LBM Initialized\n");
   } else {
     printf ("FAILED to initialize LBM\n");
     return FAIL;
   }
-
-  lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
   if (!lbm_const_heap_init(const_heap_write,
                            &const_heap,constants_memory,

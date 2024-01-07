@@ -28,11 +28,10 @@ extern "C" {
 
 /** Initialize the variable storage area
  *
- * \param variable_storage Pointer to array where variables are stored.
  * \param variable_storage_size Number of variables that can be stored in the array.
  * \return 1 on success and 0 on failure.
  */
-int lbm_variables_init(lbm_value *variable_storage, int variable_storage_size);
+int lbm_variables_init(lbm_uint variable_storage_size);
 /** Get a pointer to the variable storage area.
  *
  * \return Pointer to storage area or NULL on failure.
@@ -43,14 +42,14 @@ lbm_value *lbm_get_variable_table(void);
  * \param i Index of variable to access.
  * \return Value of variable at index.
  */
-lbm_value lbm_get_variable_by_index(int i);
+lbm_value lbm_get_variable_by_index(lbm_uint i);
 /** Lookup what the name of the variable associated with a specific
  *  index in the variable storage is.
  *
- * \param index Index of variable of interes.
+ * \param index Index of variable of interest.
  * \return Pointer to a string on success or null if no variable is associated with that index.
  */
-const char *lbm_get_variable_name_by_index(int index);
+const char *lbm_get_variable_name_by_index(lbm_uint index);
 
 
 /* internal use  by evaluator (mostly)*/
