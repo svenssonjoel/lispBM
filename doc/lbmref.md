@@ -738,9 +738,9 @@ Example
 ### setvar
 
 The `setvar` form is used to change the value of some variable in an environment.
-You can use `setvar` to change the value of a global definition, a local definition
-or a variable defintion (`#var`). An application of the `setvar` form looks like
-`(setvar var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
+You can use `setvar` to change the value of a global definition or a local definition.
+An application of the `setvar` form looks like `(setvar var-expr val-expr)` where
+`var-expr` should evaluate to a symbol. The `val-expr` is evaluated before
 rebinding the variable. `setvar` returns the value that `val-expr` evaluates to.
 
 Examples:
@@ -760,15 +760,6 @@ You can also set the value of a let bound variable.
 ```clj
 (let ((a 10)) (setvar 'a 20))
 ```
-
-And you can change the value of a `#var`.
-
-```clj
-(define #a 10)
-
-(setvar '#a 20)
-```
-`#a` is now 20.
 
 ---
 
