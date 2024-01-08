@@ -30,7 +30,6 @@
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
-#define VARIABLE_STORAGE_SIZE 256
 
 #define WAIT_TIMEOUT 2500
 
@@ -222,7 +221,6 @@ int main(int argc, char **argv) {
            bitmap, LBM_MEMORY_BITMAP_SIZE_16K,
            GC_STACK_SIZE,
            PRINT_STACK_SIZE,
-           VARIABLE_STORAGE_SIZE,
            extension_storage, EXTENSION_STORAGE_SIZE);
 
   lbm_set_ctx_done_callback(done_callback);

@@ -41,14 +41,12 @@
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
-#define VARIABLE_STORAGE_SIZE 256
 #define WAIT_TIMEOUT 2500
 #define STR_SIZE 1024
 #define CONSTANT_MEMORY_SIZE 32*1024
 #define PROF_DATA_NUM 100
 
 extension_fptr extensions[EXTENSION_STORAGE_SIZE];
-lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 lbm_prof_t prof_data[100];
 
@@ -630,7 +628,6 @@ int main(int argc, char **argv) {
                 bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
                 GC_STACK_SIZE,
                 PRINT_STACK_SIZE,
-                VARIABLE_STORAGE_SIZE,
                 extensions,
                 EXTENSION_STORAGE_SIZE)) {
     printf("Failed to initialize LispBM\n");
@@ -824,13 +821,6 @@ int main(int argc, char **argv) {
           printf("  %s\r\n",output);
         }
       }
-      printf("Variables:\r\n");
-      for (lbm_uint i = 0; i < lbm_get_num_variables(); i ++) {
-
-        const char *name = lbm_get_variable_name_by_index(i);
-        lbm_print_value(output,1024, lbm_get_variable_by_index(i));
-        printf("  %s = %s\r\n", name ? name : "error", output);
-      }
       free(str);
     }else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
 
@@ -898,7 +888,6 @@ int main(int argc, char **argv) {
                  bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
                  GC_STACK_SIZE,
                  PRINT_STACK_SIZE,
-                 VARIABLE_STORAGE_SIZE,
                  extensions,
                  EXTENSION_STORAGE_SIZE);
 
@@ -948,7 +937,6 @@ int main(int argc, char **argv) {
                bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
                GC_STACK_SIZE,
                PRINT_STACK_SIZE,
-               VARIABLE_STORAGE_SIZE,
                extensions,
                EXTENSION_STORAGE_SIZE);
 

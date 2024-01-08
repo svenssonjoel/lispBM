@@ -424,35 +424,6 @@ int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
   return 0;
 }
 
-int lbm_add_variable_symbol(char *name, lbm_uint* id) {
-
-  if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
-  lbm_uint symbol_name_storage;
-  if (!store_symbol_name(name, &symbol_name_storage)) return 0;
-
-  if (!add_symbol_to_symtab(symbol_name_storage, next_variable_symbol_id)) {
-    lbm_memory_free((lbm_uint*)symbol_name_storage);
-    return 0;
-  }
-
-  *id = next_variable_symbol_id ++;
-
-  return 1;
-}
-
-int lbm_add_variable_symbol_const(char *name, lbm_uint* id) {
-
-  if (next_variable_symbol_id >= VARIABLE_SYMBOLS_END) return 0;
-
-  if (!add_symbol_to_symtab((lbm_uint)name, next_variable_symbol_id)) {
-    return 0;
-  }
-
-  *id = next_variable_symbol_id ++;
-
-  return 1;
-}
-
 int lbm_add_extension_symbol(char *name, lbm_uint* id) {
 
   if (next_extension_symbol_id >= EXTENSION_SYMBOLS_END) return 0;

@@ -40,12 +40,10 @@
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define HEAP_SIZE 4096
-#define VARIABLE_STORAGE_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
 
 extension_fptr extensions[EXTENSION_STORAGE_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
-lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
 
 static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
@@ -203,7 +201,6 @@ int main(void) {
                 bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
                 GC_STACK_SIZE,
                 PRINT_STACK_SIZE,
-                VARIABLE_STORAGE_SIZE,
                 extensions,
                 EXTENSION_STORAGE_SIZE)) {
 
@@ -308,7 +305,6 @@ int main(void) {
                bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
                GC_STACK_SIZE,
                PRINT_STACK_SIZE,
-               VARIABLE_STORAGE_SIZE,
                extensions,
                EXTENSION_STORAGE_SIZE);
 

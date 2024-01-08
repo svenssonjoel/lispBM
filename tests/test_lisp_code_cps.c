@@ -40,7 +40,6 @@
 #define GC_STACK_SIZE 96
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 100
-#define VARIABLE_STORAGE_SIZE 100
 #define CONSTANT_MEMORY_SIZE 32*1024
 
 
@@ -477,7 +476,6 @@ int main(int argc, char **argv) {
                bitmap, LBM_MEMORY_BITMAP_SIZE_16K,
                GC_STACK_SIZE,
                PRINT_STACK_SIZE,
-               VARIABLE_STORAGE_SIZE,
                extensions,
                EXTENSION_STORAGE_SIZE)
               ) {
