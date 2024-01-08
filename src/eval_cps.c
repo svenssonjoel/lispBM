@@ -678,7 +678,6 @@ void print_environments(char *buf, unsigned int size) {
   lbm_value curr_l = ctx_running->curr_env;
   printf_callback("\tCurrent local environment:\n");
   while (lbm_type_of(curr_l) == LBM_TYPE_CONS) {
-
     lbm_print_value(buf, (size/2) - 1, lbm_caar(curr_l));
     lbm_print_value(buf + (size/2),size/2, lbm_cdr(lbm_car(curr_l)));
     printf_callback("\t%s = %s\n", buf, buf+(size/2));
@@ -689,7 +688,6 @@ void print_environments(char *buf, unsigned int size) {
   lbm_value *glob_env = lbm_get_global_env();
 
   for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
-    printf("Global Environment Ix: %d\n", i);
     lbm_value curr_g = glob_env[i];;
     while (lbm_type_of(curr_g) == LBM_TYPE_CONS) {
 
@@ -4626,6 +4624,9 @@ static lbm_value get_event_value(lbm_event_t *e) {
       lbm_set_flags(LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED);
       v = ENC_SYM_EERROR;
     }
+    char buf[1024];
+    lbm_print_value(buf, 1024, v);
+    printf("unflattened: %s\n", buf);
     // Free the flat value buffer. GC is unaware of its existence.
     lbm_free(fv.buf);
   } else {
