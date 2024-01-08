@@ -36,11 +36,8 @@ lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_EERROR;
 }
 
-int lbm_extensions_init(lbm_uint extension_storage_size) {
-  if (extension_storage_size == 0) return 0;
-  printf("allocating %d Bytes of extension storage\n", sizeof(extension_fptr) * extension_storage_size);
-  extension_fptr *extension_storage = (extension_fptr*)lbm_malloc(sizeof(extension_fptr) * extension_storage_size);
-  if (!extension_storage) return 0;
+int lbm_extensions_init(extension_fptr *extension_storage, lbm_uint extension_storage_size) {
+  if (extension_storage == NULL || extension_storage_size == 0) return 0;
 
   extension_table = extension_storage;
   memset(extension_table, 0, sizeof(extension_fptr) * extension_storage_size);

@@ -47,6 +47,7 @@
 #define FAIL 0
 #define SUCCESS 1
 
+extension_fptr extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
 
@@ -476,8 +477,10 @@ int main(int argc, char **argv) {
                bitmap, LBM_MEMORY_BITMAP_SIZE_16K,
                GC_STACK_SIZE,
                PRINT_STACK_SIZE,
-               EXTENSION_STORAGE_SIZE,
-               VARIABLE_STORAGE_SIZE)) {
+               VARIABLE_STORAGE_SIZE,
+               extensions,
+               EXTENSION_STORAGE_SIZE)
+              ) {
     printf ("LBM Initialized\n");
   } else {
     printf ("FAILED to initialize LBM\n");

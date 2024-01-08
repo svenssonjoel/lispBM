@@ -55,17 +55,20 @@ extern "C" {
  * \param bitmap_size Size of the memory meta-data array.
  * \param gc_stack_size Size in number of lbm_uint values to use for the GC stack.
  * \param print_stack_size Size in number of lbm_uint values of the print stack.
- * \param extension_storage_size Size of extension array.
  * \param variables_storage_size Number of # variables to allow.
+ * \param extension_storage Array of extension function pointers.
+ * \param extension_storage_size Size of extension array.
  * \return 1 on success and 0 on failure.
  */
+
 int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
-	     lbm_uint *memory, lbm_uint memory_size,
-	     lbm_uint *memory_bitmap, lbm_uint bitmap_size,
+             lbm_uint *memory, lbm_uint memory_size,
+             lbm_uint *memory_bitmap, lbm_uint bitmap_size,
              lbm_uint gc_stack_size,
              lbm_uint print_stack_size,
-	     lbm_uint extension_storage_size,
-             lbm_uint variables_storage_size);
+             lbm_uint variable_storage_size,
+             extension_fptr *extension_storage,
+             lbm_uint extension_storage_size);
 
 #ifdef __cplusplus
 }

@@ -44,7 +44,7 @@ typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
  * \param extension_storage_size Size of function pointer array.
  * \return 1 on success and 0 for failure
  */
-int lbm_extensions_init(lbm_uint extension_storage_size);
+  int lbm_extensions_init(extension_fptr *extension_storage, lbm_uint extension_storage_size);
 /** The number of extensions that can be allocated.
  * \return The maximum number of extensions that can be added.
  */
