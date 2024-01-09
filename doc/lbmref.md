@@ -28,7 +28,7 @@ all integer comparisons.
 
 You associate values with symbols using, <a href="#define">define</a>,
 <a href="#let">let</a> and you can change the value bound to a "variable"
-using <a href="#setvar">setvar</a>
+using <a href="#set">set</a>, <a href="#setvar">setq</a> or <a href="#setvar">setvar</a>.
 
 Not all symbols are treated the same in LBM. Some symbols are treated as
 special because of their very fundamental nature. Among these special symbols
@@ -418,7 +418,7 @@ explicit true makes sense.
 ## Quotes and Quasiquotation
 
 Code and data share the same representation, it is only a matter of how
-you look at it. The tools for changing how your view are the quotation and
+you look at it. The tools for changing view, or interpretation,  are the quotation and
 quasiquotation operations.
 
 ---
