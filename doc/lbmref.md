@@ -34,9 +34,8 @@ Not all symbols are treated the same in LBM. Some symbols are treated as
 special because of their very fundamental nature. Among these special symbols
 you find `define`, `let` and `lambda` for example. These are things that you
 should not be able to redefine and trying to redefine them leads to an error.
-There are two classes of symbols that are special by naming convention and
-these either start with a `#`, for fast-lookup variables, and `ext-` for
-extensions that will be bound at runtime.
+Symbols that start with `ext-` are special and reserved for use together
+with extensions that are loaded and bound at runtime.
 
 Examples of symbols used as data are `nil` and `t`. `nil` is used the
 represent nothing, the empty list or other similar things and `t`
