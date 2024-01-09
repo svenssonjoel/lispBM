@@ -44,6 +44,25 @@ represents true.  But any symbol can be used as data by quoting it
 `'`, see <a href="#quotes-and-quasiquotation"> Quotes and
 Quasiquotation </a>.
 
+### Valid symbol names
+
+A symbol is string of characters following the rules:
+1. The first character is a one of 'a' - 'z' or 'A' - 'Z' or '+-*/=<>#!'.
+2. The rest of the characters are in 'a' - 'z' or 'A' - 'Z' or '0' - '9' or '+-*/=<>!?_'.
+3. At most 256 characters long.
+
+Note that lower-case and upper-case alphabetical letters are considers identical
+so the symbol `apa` is the same symbol as `APA`.
+
+examples of valid symbols
+```
+apa
+apa?
+!apa
+kurt_russel_is_great
+```
+
+
 
 ## Arithmetic
 
