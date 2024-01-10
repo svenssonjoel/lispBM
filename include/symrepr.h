@@ -93,22 +93,6 @@ int lbm_add_variable_symbol_const(char *name, lbm_uint* id);
  * \return 1 for success and 0 for failure.
  */
 int lbm_add_symbol_const(char *name, lbm_uint *id);
-/** Add an extension symbol to the symbol table.
- *  The name is assumed to be a statically allocated constant.
- *
- * \param name Name of the symbol.
- * \param id Resulting id is returned through this argument.
- * \return 1 for success and 0 for failure.
- */
-int lbm_add_extension_symbol(char *name, lbm_uint* id);
-/** Add an extension symbol to the symbol table.
- *  The name is assumed to be statically allocated.
- *
- * \param name Statically allocated name string.
- * \param id Resulting id is returned through this argument.
- * \return 1 for success and 0 for failure.
- */
-int lbm_add_extension_symbol_const(char *name, lbm_uint* id);
 /** Get a pointer to the list entry holding a symbol name, id mapping.
  *
  * \param name Name string to look up.

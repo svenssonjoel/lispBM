@@ -46,7 +46,7 @@
 #define CONSTANT_MEMORY_SIZE 32*1024
 #define PROF_DATA_NUM 100
 
-extension_fptr extensions[EXTENSION_STORAGE_SIZE];
+lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 lbm_prof_t prof_data[100];
 
