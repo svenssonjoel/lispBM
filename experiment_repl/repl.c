@@ -590,7 +590,12 @@ void lookup_local(eval_context_t *ctx, void *arg1, void *arg2) {
 
 
 void sym_it(const char *str) {
-  printf("%s\n", str);
+  bool sym_name_flash = lbm_symbol_in_flash((char *)str);
+  bool sym_entry_flash = lbm_symbol_list_entry_in_flash((char *)str);
+  printf("[%s, %s]: %s\n",
+         sym_name_flash ? "FLASH" : "LBM_MEM",
+         sym_entry_flash ? "FLASH" : "LBM_MEM",
+         str);
 }
 
 static lbm_uint memory[LBM_MEMORY_SIZE_1M];

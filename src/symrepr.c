@@ -291,6 +291,18 @@ const char *lbm_get_name_by_symbol(lbm_uint id) {
   return lookup_symrepr_name_memory(id);
 }
 
+lbm_uint *lbm_get_symbol_list_entry_by_name(char *name) {
+  lbm_uint *curr = symlist;
+  while (curr) {
+    char *str = (char*)curr[NAME];
+    if (strcmp(name, str) == 0) {
+      return (lbm_uint *)curr;
+    }
+    curr = (lbm_uint*)curr[NEXT];
+  }
+  return NULL;
+}
+
 // Lookup symbol id given symbol name
 int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
 
@@ -473,4 +485,13 @@ lbm_uint lbm_get_symbol_table_size_names_flash(void) {
 
 lbm_uint lbm_get_num_variables(void) {
   return next_variable_symbol_id - VARIABLE_SYMBOLS_START;
+}
+
+bool lbm_symbol_in_flash(char *str) {
+  return !lbm_memory_ptr_inside((lbm_uint*)str);
+}
+
+bool lbm_symbol_list_entry_in_flash(char *str) {
+  lbm_uint *entry = lbm_get_symbol_list_entry_by_name(str);
+  return (entry == NULL || !lbm_memory_ptr_inside(entry));
 }
