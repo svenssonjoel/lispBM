@@ -1181,7 +1181,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 lbm_int lbm_heap_array_get_size(lbm_value arr) {
 
   int r = -1;
-  if (lbm_is_array_rw(arr)) {
+  if (lbm_is_array_r(arr)) {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
     if (header == NULL) {
       return r;
@@ -1191,7 +1191,19 @@ lbm_int lbm_heap_array_get_size(lbm_value arr) {
   return r;
 }
 
-uint8_t *lbm_heap_array_get_data(lbm_value arr) {
+const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr) {
+  uint8_t *r = NULL;
+  if (lbm_is_array_r(arr)) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+    if (header == NULL) {
+      return r;
+    }
+    r = (uint8_t*)header->data;
+  }
+  return r;
+}
+
+uint8_t *lbm_heap_array_get_data_rw(lbm_value arr) {
   uint8_t *r = NULL;
   if (lbm_is_array_rw(arr)) {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);

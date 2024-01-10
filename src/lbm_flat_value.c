@@ -365,9 +365,9 @@ int flatten_value_internal(lbm_flat_value_t *fv, lbm_value v) {
     break;
   case LBM_TYPE_ARRAY: {
     lbm_int s = lbm_heap_array_get_size(v);
-    uint8_t *d = lbm_heap_array_get_data(v);
+    const uint8_t *d = lbm_heap_array_get_data_ro(v);
     if (s > 0 && d != NULL) {
-      if (f_lbm_array(fv, (lbm_uint)s, d)) {
+      if (f_lbm_array(fv, (lbm_uint)s, (uint8_t*)d)) {
         return FLATTEN_VALUE_OK;
       }
     } else {
