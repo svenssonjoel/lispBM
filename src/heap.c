@@ -1165,13 +1165,15 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
 
-  if (array == NULL) return 0;
+  if (array == NULL) {
+    *value = ENC_SYM_MERROR;
+    return 0;
+  }
 
   array->data = (lbm_uint*)data;
   array->size = num_elt;
 
   lbm_set_car(cell, (lbm_uint)array);
-  //lbm_set_cdr(cell, lbm_enc_sym(SYM_ARRAY_TYPE));
 
   cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
   *value = cell;
