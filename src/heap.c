@@ -34,6 +34,45 @@
 #include "heap_vis.h"
 #endif
 
+lbm_heap_state_t lbm_heap_state;
+
+lbm_const_heap_t *lbm_const_heap_state = NULL;
+uint8_t *lbm_heap_gc_bits = NULL;
+
+lbm_cons_t *lbm_heaps[2] = {NULL, NULL};
+
+static mutex_t lbm_const_heap_mutex;
+static bool    lbm_const_heap_mutex_initialized = false;
+
+static mutex_t lbm_mark_mutex;
+static bool    lbm_mark_mutex_initialized = false;
+
+#ifdef USE_GC_PTR_REV
+
+#else
+static inline void lbm_set_gc_bit(lbm_uint ix) {
+  lbm_uint i = ix >> 3;
+  lbm_uint bi = ix & 0x7;
+  uint8_t byte = lbm_heap_gc_bits[i];
+  byte |= (1 << bi);
+  lbm_heap_gc_bits[i] = byte;
+}
+
+static inline void lbm_clr_gc_bit(lbm_uint ix) {
+  lbm_uint i = ix >> 3;
+  lbm_uint bi = ix & 0x7;
+  uint8_t byte = lbm_heap_gc_bits[i];
+  byte &= ~((uint8_t)(1 << bi));
+  lbm_heap_gc_bits[i] = byte;
+}
+
+static inline bool lbm_get_gc_bit(lbm_uint ix) {
+  lbm_uint i = ix >> 3;
+  lbm_uint bi = ix & 0x7;
+  uint8_t byte = lbm_heap_gc_bits[i];
+  uint8_t r = byte & (1 << bi);
+  return r ? true : false;
+}
 
 static inline lbm_value lbm_set_gc_mark(lbm_value x) {
   return x | LBM_GC_MARKED;
@@ -59,19 +98,7 @@ static inline lbm_value lbm_set_gc_flag(lbm_value x) {
 static inline lbm_value lbm_clr_gc_flag(lbm_value x) {
   return x & ~LBM_GC_MASK;
 }
-
-
-lbm_heap_state_t lbm_heap_state;
-
-lbm_const_heap_t *lbm_const_heap_state;
-
-lbm_cons_t *lbm_heaps[2] = {NULL, NULL};
-
-static mutex_t lbm_const_heap_mutex;
-static bool    lbm_const_heap_mutex_initialized = false;
-
-static mutex_t lbm_mark_mutex;
-static bool    lbm_mark_mutex_initialized = false;
+#endif
 
 #ifdef USE_GC_PTR_REV
 void lbm_gc_lock(void) {
@@ -507,12 +534,22 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
 
   lbm_uint *gc_stack_storage = (lbm_uint*)lbm_malloc(gc_stack_size * sizeof(lbm_uint));
   if (gc_stack_storage == NULL) return 0;
+
+  lbm_uint gc_bits_size = num_cells / 8; // size in bytes
+  #ifdef USE_GC_PTR_REV
+  gc_bits_size *=2;
+  lbm_heap_gc_bits = lbm_malloc(gc_bits_size);
+  #else
+  lbm_heap_gc_bits = lbm_malloc(gc_bits_size);
+  #endif
+  if (lbm_heap_gc_bits == NULL) return 0;
+  memset(lbm_heap_gc_bits, 0, gc_bits_size);
   
   heap_init_state(addr, num_cells,
                   gc_stack_storage, gc_stack_size);
 
   lbm_heaps[0] = addr;
-
+ 
   return generate_freelist(num_cells);
 }
 
@@ -711,11 +748,13 @@ void lbm_gc_mark_phase(lbm_value root) {
       continue;
     }
     lbm_cons_t *cell = lbm_ref_cell(curr);
+    lbm_uint cell_ix = lbm_dec_cons_cell_ptr(curr);
 
-    lbm_uint gc_mark = lbm_get_gc_mark(cell->cdr);
+    bool gc_mark = lbm_get_gc_bit(cell_ix);
     if (gc_mark) continue;
     lbm_heap_state.gc_marked ++;
-    cell->cdr = lbm_set_gc_mark(cell->cdr);
+    lbm_set_gc_bit(cell_ix);
+    //cell->cdr = lbm_set_gc_mark(cell->cdr);
 
     lbm_value t_ptr = lbm_type_of(curr);
 
@@ -767,7 +806,9 @@ int lbm_gc_mark_freelist(void) {
   curr = fl;
   while (lbm_is_ptr(curr)){
     t = lbm_ref_cell(curr);
-    t->cdr = lbm_set_gc_mark(t->cdr);
+    lbm_uint cell_ix = lbm_dec_cons_cell_ptr(curr);
+    lbm_set_gc_bit(cell_ix);
+    //t->cdr = lbm_set_gc_mark(t->cdr);
     curr = t->cdr;
 
     lbm_heap_state.gc_marked ++;
@@ -783,9 +824,13 @@ void lbm_gc_mark_env(lbm_value env) {
 
   while (lbm_is_ptr(curr)) {
     c = lbm_ref_cell(curr);
-    c->cdr = lbm_set_gc_mark(c->cdr); // mark the environent list structure.
+    lbm_uint curr_cell_ix = lbm_dec_cons_cell_ptr(curr);
+    lbm_set_gc_bit(curr_cell_ix);
+    //c->cdr = lbm_set_gc_mark(c->cdr); // mark the environent list structure.
     lbm_cons_t *b = lbm_ref_cell(c->car);
-    b->cdr = lbm_set_gc_mark(b->cdr); // mark the binding list head cell.
+    lbm_uint cell_ix = lbm_dec_cons_cell_ptr(c->car);
+    lbm_set_gc_bit(cell_ix);
+    //b->cdr = lbm_set_gc_mark(b->cdr); // mark the binding list head cell.
     lbm_gc_mark_phase(b->cdr);        // mark the bound object.
     lbm_heap_state.gc_marked +=2;
     curr = c->cdr;
@@ -819,9 +864,13 @@ int lbm_gc_sweep_phase(void) {
   lbm_cons_t *heap = (lbm_cons_t *)lbm_heap_state.heap;
 
   for (i = 0; i < lbm_heap_state.heap_size; i ++) {
-    if ( lbm_get_gc_mark(heap[i].cdr)) {
-      heap[i].cdr = lbm_clr_gc_mark(heap[i].cdr);
-    } else {
+    if ( lbm_get_gc_bit(i) ) {
+      lbm_clr_gc_bit(i);
+    }
+    //if ( lbm_get_gc_mark(heap[i].cdr)) {
+    //  heap[i].cdr = lbm_clr_gc_mark(heap[i].cdr);
+    //} else {
+    else {
       // Check if this cell is a pointer to an array
       // and free it.
       if (lbm_type_of(heap[i].cdr) == LBM_TYPE_SYMBOL) {
