@@ -1,4 +1,4 @@
-/*
+ /*
     Copyright 2018, 2020 - 2024 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
