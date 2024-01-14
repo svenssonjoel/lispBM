@@ -39,7 +39,7 @@ lbm_heap_state_t lbm_heap_state;
 lbm_const_heap_t *lbm_const_heap_state = NULL;
 static uint8_t *lbm_heap_gc_bits = NULL;
 static lbm_uint gc_bits_size = 0;
-static lbm_uint gc_sweep_pos = 0;
+//static lbm_uint gc_sweep_pos = 0;
 
 lbm_cons_t *lbm_heaps[2] = {NULL, NULL};
 
@@ -531,6 +531,7 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
                   lbm_uint gc_stack_size) {
 
   if (((uintptr_t)addr % 8) != 0) return 0;
+  if (num_cells == 0 || (num_cells % 8 != 0)) return 0;
 
   memset(addr,0, sizeof(lbm_cons_t) * num_cells);
 
@@ -859,11 +860,9 @@ void lbm_gc_mark_env(lbm_value env) {
     c = lbm_ref_cell(curr);
     lbm_uint curr_cell_ix = lbm_dec_cons_cell_ptr(curr);
     lbm_set_gc_bit(curr_cell_ix);
-    //c->cdr = lbm_set_gc_mark(c->cdr); // mark the environent list structure.
     lbm_cons_t *b = lbm_ref_cell(c->car);
     lbm_uint cell_ix = lbm_dec_cons_cell_ptr(c->car);
     lbm_set_gc_bit(cell_ix);
-    //b->cdr = lbm_set_gc_mark(b->cdr); // mark the binding list head cell.
     lbm_gc_mark_phase(b->cdr);        // mark the bound object.
     lbm_heap_state.gc_marked +=2;
     curr = c->cdr;
@@ -895,18 +894,17 @@ void lbm_gc_mark_roots(lbm_uint *roots, lbm_uint num_roots) {
 int lbm_gc_sweep_phase(void) {
   lbm_cons_t *heap = (lbm_cons_t *)lbm_heap_state.heap;
 
-  // Requires a number of heap cells to be multiple of 8.
-  for (lbm_uint byte_ix = 0; byte_ix < (gc_bits_size >> 3); byte_ix ++) {
+  for (lbm_uint byte_ix = 0; byte_ix < gc_bits_size; byte_ix ++) {
     uint8_t b = lbm_heap_gc_bits[byte_ix];
     if (b == 0xff)  {
       lbm_heap_gc_bits[byte_ix] = 0;
       continue;
     }
     for (lbm_uint bit_ix = 0; bit_ix < 8; bit_ix ++) {
-      if (b & ((uint8_t)1 << bit_ix)) {
-        b = b & ~((uint8_t)1 << bit_ix);
+      lbm_uint i = (byte_ix << 3) + bit_ix;
+      if (b & (uint8_t)(1 << bit_ix)) {
+        b = b & (uint8_t)~(1 << bit_ix);
       } else {
-        lbm_uint i = (byte_ix << 3) + bit_ix;
         if (lbm_type_of(heap[i].cdr) == LBM_TYPE_SYMBOL) {
           switch(heap[i].cdr) {
 
