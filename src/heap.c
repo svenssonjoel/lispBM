@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2022, 2023 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2022, 2023, 2024 Joel Svensson  svenssonjoel@yahoo.se
                           2022       Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -37,7 +37,9 @@
 lbm_heap_state_t lbm_heap_state;
 
 lbm_const_heap_t *lbm_const_heap_state = NULL;
-uint8_t *lbm_heap_gc_bits = NULL;
+static uint8_t *lbm_heap_gc_bits = NULL;
+static lbm_uint gc_bits_size = 0;
+static lbm_uint gc_sweep_pos = 0;
 
 lbm_cons_t *lbm_heaps[2] = {NULL, NULL};
 
@@ -535,7 +537,7 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
   lbm_uint *gc_stack_storage = (lbm_uint*)lbm_malloc(gc_stack_size * sizeof(lbm_uint));
   if (gc_stack_storage == NULL) return 0;
 
-  lbm_uint gc_bits_size = num_cells / 8; // size in bytes
+  gc_bits_size = num_cells / 8; // size in bytes
   #ifdef USE_GC_PTR_REV
   gc_bits_size *=2;
   lbm_heap_gc_bits = lbm_malloc(gc_bits_size);
@@ -556,6 +558,35 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
 lbm_uint lbm_heap_num_free(void) {
   return lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
 }
+
+// Lazy allocate cell.
+// TODO: Should reclaim storage for arrays, channels, custom_types.
+/* lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr) { */
+/*   lbm_value res; */
+
+/*   lbm_uint cell_ix; */
+/*   bool     do_gc = true; */
+
+/*   // TODO: Requires heap size a multiple of 8 cells. */
+/*   for (byte_ix = gc_sweep_pos >> 3; byte_ix < (gc_bits_size >> 3); byte_ix ++ ){ */
+/*     uint8_t b = lbm_heap_gc_bits[byte_ix]; */
+/*     for (bit_ix = gc_sweep_pos & 0x7; bit_ix < 8; bit_ix ++) { */
+/*       if (b & (1 << bit_ix) == 0) { */
+/*         b |= (1 << bit_ix); */
+/*         lbm_heap_gc_bits[byte_ix] = b; */
+/*         // update where to start sweep next time entering this loop. */
+/*         lbm_uint ix = byte_ix * 8 + bit_ix; */
+/*         gc_sweep_pos =  ix + 1; */
+/*         lbm_value rval = lbm_enc_cons_ptr(ix); */
+/*         lbm_heap_state.heap[ix].car  = car; */
+/*         lbm_heap_state.heap[ix].cdr  = cdr; */
+/*         rval = lbm_set_ptr_type(ptr_type); */
+/*         return rval; */
+/*       } */
+/*     } */
+/*   } */
+/*   return ENC_SYM_MERROR; */
+/* } */
 
 lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr) {
 
@@ -862,63 +893,64 @@ void lbm_gc_mark_roots(lbm_uint *roots, lbm_uint num_roots) {
 
 // Sweep moves non-marked heap objects to the free list.
 int lbm_gc_sweep_phase(void) {
-  unsigned int i = 0;
   lbm_cons_t *heap = (lbm_cons_t *)lbm_heap_state.heap;
 
-  for (i = 0; i < lbm_heap_state.heap_size; i ++) {
-    if ( lbm_get_gc_bit(i) ) {
-      lbm_clr_gc_bit(i);
+  // Requires a number of heap cells to be multiple of 8.
+  for (lbm_uint byte_ix = 0; byte_ix < (gc_bits_size >> 3); byte_ix ++) {
+    uint8_t b = lbm_heap_gc_bits[byte_ix];
+    if (b == 0xff)  {
+      lbm_heap_gc_bits[byte_ix] = 0;
+      continue;
     }
-    //if ( lbm_get_gc_mark(heap[i].cdr)) {
-    //  heap[i].cdr = lbm_clr_gc_mark(heap[i].cdr);
-    //} else {
-    else {
-      // Check if this cell is a pointer to an array
-      // and free it.
-      if (lbm_type_of(heap[i].cdr) == LBM_TYPE_SYMBOL) {
-        switch(lbm_dec_sym(heap[i].cdr)) {
+    for (lbm_uint bit_ix = 0; bit_ix < 8; bit_ix ++) {
+      if (b & ((uint8_t)1 << bit_ix)) {
+        b = b & ~((uint8_t)1 << bit_ix);
+      } else {
+        lbm_uint i = (byte_ix << 3) + bit_ix;
+        if (lbm_type_of(heap[i].cdr) == LBM_TYPE_SYMBOL) {
+          switch(heap[i].cdr) {
 
-        case SYM_IND_I_TYPE: /* fall through */
-        case SYM_IND_U_TYPE:
-        case SYM_IND_F_TYPE:
-          lbm_memory_free((lbm_uint*)heap[i].car);
-          break;
-        case SYM_ARRAY_TYPE:{
-          lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
-          if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
-            lbm_memory_free((lbm_uint *)arr->data);
-            lbm_heap_state.gc_recovered_arrays++;
-          }
-          lbm_memory_free((lbm_uint *)arr);
-        } break;
-        case SYM_CHANNEL_TYPE:{
-          lbm_char_channel_t *chan = (lbm_char_channel_t*)heap[i].car;
-          if (lbm_memory_ptr_inside((lbm_uint*)chan)) {
-            lbm_memory_free((lbm_uint*)chan->state);
-            lbm_memory_free((lbm_uint*)chan);
-          }
-        } break;
-        case SYM_CUSTOM_TYPE: {
-          lbm_uint *t = (lbm_uint*)heap[i].car;
-          lbm_custom_type_destroy(t);
-          lbm_memory_free(t);
+          case ENC_SYM_IND_I_TYPE: /* fall through */
+          case ENC_SYM_IND_U_TYPE:
+          case ENC_SYM_IND_F_TYPE:
+            lbm_memory_free((lbm_uint*)heap[i].car);
+            break;
+          case ENC_SYM_ARRAY_TYPE:{
+            lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
+            if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
+              lbm_memory_free((lbm_uint *)arr->data);
+              lbm_heap_state.gc_recovered_arrays++;
+            }
+            lbm_memory_free((lbm_uint *)arr);
           } break;
-        default:
-          break;
+          case ENC_SYM_CHANNEL_TYPE:{
+            lbm_char_channel_t *chan = (lbm_char_channel_t*)heap[i].car;
+            if (lbm_memory_ptr_inside((lbm_uint*)chan)) {
+              lbm_memory_free((lbm_uint*)chan->state);
+              lbm_memory_free((lbm_uint*)chan);
+            }
+          } break;
+          case ENC_SYM_CUSTOM_TYPE: {
+            lbm_uint *t = (lbm_uint*)heap[i].car;
+            lbm_custom_type_destroy(t);
+            lbm_memory_free(t);
+          } break;
+          default:
+            break;
+          }
         }
+        // create pointer to use as new freelist
+        lbm_uint addr = lbm_enc_cons_ptr(i);
+        // Clear the "freed" cell.
+        heap[i].car = ENC_SYM_RECOVERED;
+        heap[i].cdr = lbm_heap_state.freelist;
+        lbm_heap_state.freelist = addr;
+        lbm_heap_state.num_alloc --;
+        lbm_heap_state.gc_recovered ++;
       }
-      // create pointer to use as new freelist
-      lbm_uint addr = lbm_enc_cons_ptr(i);
-
-      // Clear the "freed" cell.
-      heap[i].car = ENC_SYM_RECOVERED;
-      heap[i].cdr = lbm_heap_state.freelist;
-      lbm_heap_state.freelist = addr;
-      lbm_heap_state.num_alloc --;
-      lbm_heap_state.gc_recovered ++;
     }
+    lbm_heap_gc_bits[byte_ix] = b;
   }
-
   return 1;
 }
 
