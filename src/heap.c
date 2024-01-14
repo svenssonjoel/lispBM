@@ -747,19 +747,21 @@ void lbm_gc_mark_phase(lbm_value root) {
       // Constant values can only refer to non-constants by name.
       continue;
     }
-    lbm_cons_t *cell = lbm_ref_cell(curr);
-    lbm_uint cell_ix = lbm_dec_cons_cell_ptr(curr);
+    // From here on, the cell will be a dynamic heap cell.
+    // lbm_dec_ptr can be used instead of ref_cell
+    lbm_uint cell_ix = lbm_dec_ptr(curr);
 
     bool gc_mark = lbm_get_gc_bit(cell_ix);
     if (gc_mark) continue;
     lbm_heap_state.gc_marked ++;
     lbm_set_gc_bit(cell_ix);
-    //cell->cdr = lbm_set_gc_mark(cell->cdr);
 
     lbm_value t_ptr = lbm_type_of(curr);
 
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
         t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
+
+    lbm_cons_t *cell = &lbm_heap_state.heap[cell_ix];
 
     if (cell->car == ENC_SYM_CONT) {
       lbm_value cont = cell->cdr;
@@ -808,9 +810,7 @@ int lbm_gc_mark_freelist(void) {
     t = lbm_ref_cell(curr);
     lbm_uint cell_ix = lbm_dec_cons_cell_ptr(curr);
     lbm_set_gc_bit(cell_ix);
-    //t->cdr = lbm_set_gc_mark(t->cdr);
     curr = t->cdr;
-
     lbm_heap_state.gc_marked ++;
   }
 
@@ -818,6 +818,8 @@ int lbm_gc_mark_freelist(void) {
 }
 
 //Environments are proper lists with a 2 element list stored in each car.
+// TODO: Make sure constant (flash stored) values within an environment are
+// handled correctly.
 void lbm_gc_mark_env(lbm_value env) {
   lbm_value curr = env;
   lbm_cons_t *c;

@@ -47,8 +47,8 @@ uint32_t print_stack_storage[PRINT_STACK_SIZE];
 
 static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
-static uint32_t memory_array[LBM_MEMORY_SIZE_8K];
-static uint32_t bitmap_array[LBM_MEMORY_BITMAP_SIZE_8K];
+static uint32_t memory_array[LBM_MEMORY_SIZE_10K];
+static uint32_t bitmap_array[LBM_MEMORY_BITMAP_SIZE_10K];
 
 static lbm_string_channel_state_t string_tok_state;
 static lbm_char_channel_t string_tok;
@@ -197,8 +197,8 @@ int main(void) {
   chThdSleepMilliseconds(2000);
 
   if (!lbm_init(heap, HEAP_SIZE,
-                memory_array, LBM_MEMORY_SIZE_8K,
-                bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
+                memory_array, LBM_MEMORY_SIZE_10K,
+                bitmap_array, LBM_MEMORY_BITMAP_SIZE_10K,
                 GC_STACK_SIZE,
                 PRINT_STACK_SIZE,
                 extensions,
@@ -301,8 +301,8 @@ int main(void) {
       }
 
       lbm_init(heap, HEAP_SIZE,
-               memory_array, LBM_MEMORY_SIZE_8K,
-               bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
+               memory_array, LBM_MEMORY_SIZE_10K,
+               bitmap_array, LBM_MEMORY_BITMAP_SIZE_10K,
                GC_STACK_SIZE,
                PRINT_STACK_SIZE,
                extensions,
