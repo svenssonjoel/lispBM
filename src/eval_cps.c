@@ -2910,12 +2910,12 @@ static void cont_if(eval_context_t *ctx) {
 
 static void cont_match(eval_context_t *ctx) {
   lbm_value e = ctx->r;
-  lbm_value patterns;
-  lbm_value new_env;
-  lbm_value orig_env;
   bool  do_gc = false;
-  lbm_pop_2(&ctx->K, &orig_env, &patterns); // restore enclosing environment
-  new_env = orig_env;
+
+  lbm_uint *sptr = get_stack_ptr(ctx, 2);
+  lbm_value patterns = (lbm_value)sptr[0];
+  lbm_value orig_env = (lbm_value)sptr[1]; // restore enclosing environment.
+  lbm_value new_env = orig_env;
 
   if (lbm_is_symbol_nil(patterns)) {
     // no more patterns
@@ -2937,8 +2937,6 @@ static void cont_match(eval_context_t *ctx) {
 
     bool is_match = match(pattern, e, &new_env, &do_gc);
     if (do_gc) {
-      lbm_uint roots[3] = {orig_env, patterns, e};
-      lbm_gc_mark_roots(roots, 3);
       gc();
       do_gc = false;
       new_env = orig_env;
@@ -2949,23 +2947,26 @@ static void cont_match(eval_context_t *ctx) {
     }
     if (is_match) {
       if (check_guard) {
-        lbm_value *sptr = stack_reserve(ctx,7);
+        lbm_value *rptr = stack_reserve(ctx,5);
         sptr[0] = get_cdr(patterns);
         sptr[1] = ctx->curr_env;
-        sptr[2] = MATCH;
-        sptr[3] = new_env;
-        sptr[4] = body;
-        sptr[5] = e;
-        sptr[6] = MATCH_GUARD;
+        rptr[0] = MATCH;
+        rptr[1] = new_env;
+        rptr[2] = body;
+        rptr[3] = e;
+        rptr[4] = MATCH_GUARD;
         ctx->curr_env = new_env;
         ctx->curr_exp = n1; // The guard
       } else {
+        lbm_stack_drop(&ctx->K, 2);
         ctx->curr_env = new_env;
         ctx->curr_exp = body;
       }
     } else {
       // set up for checking of next pattern
-      stack_push_3(&ctx->K, get_cdr(patterns),orig_env, MATCH);
+      sptr[0] = get_cdr(patterns);
+      sptr[1] = orig_env;
+      stack_push(&ctx->K, MATCH);
       // leave r unaltered
       ctx->app_cont = true;
     }
