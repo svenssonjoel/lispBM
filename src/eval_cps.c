@@ -122,6 +122,24 @@ const char* lbm_error_str_variable_not_bound = "Variable not bound.";
 
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
+#ifdef LBM_ALWAYS_GC
+
+#define WITH_GC(y, x)                           \
+  gc();                                         \
+  (y) = (x);                                    \
+  if (lbm_is_symbol_merror((y))) {              \
+    error_ctx(ENC_SYM_MERROR);                  \
+  }
+
+#define WITH_GC_RMBR_1(y, x, r)                 \
+  lbm_gc_mark_phase(r);                         \
+  gc();                                         \
+  (y) = (x);                                    \
+  if (lbm_is_symbol_merror((y))) {              \
+    error_ctx(ENC_SYM_MERROR);                  \
+  }
+
+#else
 
 #define WITH_GC(y, x)                           \
   (y) = (x);                                    \
@@ -144,6 +162,8 @@ static bool lbm_error_has_suspect = false;
     }                                           \
     /* continue executing statements below */   \
   }
+
+#endif
 
 typedef struct {
   eval_context_t *first;
@@ -3117,12 +3137,11 @@ static void cont_merge_rest(eval_context_t *ctx) {
   lbm_value cmp_env = sptr[6];
   // Environment should be preallocated already at this point
   // and the operations below should never need GC.
-  // maybe rewrite this as a more efficient update and
-  // a fatal error if that is not possible.
-  lbm_value new_env0;
-  lbm_value new_env;
-  WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a)));
-  WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b)), new_env0);
+  lbm_value new_env0 = lbm_env_set(cmp_env, par1, lbm_car(a));
+  lbm_value new_env = lbm_env_set(new_env0, par2, lbm_car(b));
+  if (lbm_is_symbol(new_env0) || lbm_is_symbol(new_env)) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+  }
   cmp_env = new_env;
 
   stack_push(&ctx->K, MERGE_REST);
@@ -3234,12 +3253,11 @@ static void cont_merge_layer(eval_context_t *ctx) {
   lbm_value par2 = sptr[3];
   // Environment should be preallocated already at this point
   // and the operations below should never need GC.
-  // maybe rewrite this as a more efficient update and
-  // a fatal error if that is not possible.
-  lbm_value new_env0;
-  lbm_value new_env;
-  WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a)));
-  WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b)), new_env0);
+  lbm_value new_env0 = lbm_env_set(cmp_env, par1, lbm_car(a));
+  lbm_value new_env = lbm_env_set(cmp_env, par2, lbm_car(b));
+  if (lbm_is_symbol(new_env0) || lbm_is_symbol(new_env)) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+  }
   cmp_env = new_env;
 
   lbm_uint *merge_cont = stack_reserve(ctx, 11);
