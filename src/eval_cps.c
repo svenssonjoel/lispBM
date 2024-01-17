@@ -397,6 +397,17 @@ eval_context_t *lbm_get_current_context(void) {
 /* Utilities used locally in this file              */
 
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
+#ifdef LBM_ALWAYS_GC
+  lbm_value roots[3] = {head, tail, remember};
+  lbm_gc_mark_roots(roots, 3);
+  gc();
+  lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
+  res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
+  if (lbm_is_symbol_merror(res)) {
+    error_ctx(ENC_SYM_MERROR);
+  }
+  return res;
+#else
   lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
   if (lbm_is_symbol_merror(res)) {
     lbm_value roots[3] = {head, tail, remember};
@@ -408,6 +419,7 @@ static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember
     }
   }
   return res;
+#endif
 }
 
 static lbm_uint *get_stack_ptr(eval_context_t *ctx, unsigned int n) {
@@ -4308,7 +4320,7 @@ lbm_value append(lbm_value front, lbm_value back) {
 
   lbm_value t0, t1;
 
-  t0 = cons_with_gc(back, ENC_SYM_NIL, ENC_SYM_NIL);
+  t0 = cons_with_gc(back, ENC_SYM_NIL, front);
   t1 = cons_with_gc(front, t0, ENC_SYM_NIL);
   return cons_with_gc(ENC_SYM_APPEND, t1, ENC_SYM_NIL);
 }
