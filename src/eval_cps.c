@@ -4407,9 +4407,7 @@ static void cont_qq_expand_list(eval_context_t* ctx) {
     if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
         lbm_dec_sym(car_val) == SYM_COMMA) {
       lbm_value tl = cons_with_gc(get_car(cdr_val), ENC_SYM_NIL, ENC_SYM_NIL);
-      //WITH_GC(tl, lbm_cons(get_car(cdr_val), ENC_SYM_NIL));
       lbm_value tmp = cons_with_gc(ENC_SYM_LIST, tl, ENC_SYM_NIL);
-      //WITH_GC_RMBR_1(tmp, lbm_cons(ENC_SYM_LIST, tl), tl);
       ctx->r = append(ctx->r, tmp);
       ctx->app_cont = true;
       return;
