@@ -603,15 +603,23 @@ static lbm_value get_cddr(lbm_value a) {
 
 static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value env) {
 
+#ifdef LBM_ALWAYS_GC
+  gc();
+  if (lbm_heap_num_free() < 4) {
+    error_ctx(ENC_SYM_MERROR);
+  }
+#else
   if (lbm_heap_num_free() < 4) {
     gc();
     if (lbm_heap_num_free() < 4) {
       error_ctx(ENC_SYM_MERROR);
     }
   }
+#endif
   lbm_value res = lbm_heap_state.freelist;
   if (lbm_type_of(res) == LBM_TYPE_CONS) {
-    lbm_cons_t *cell = lbm_ref_cell(res);
+    lbm_uint res_ix = lbm_dec_cons_cell_ptr(res);
+    lbm_cons_t *cell = &lbm_heap_state.heap[res_ix];
     cell->car = ENC_SYM_CLOSURE;
     cell = lbm_ref_cell(cell->cdr);
     cell->car = params;
