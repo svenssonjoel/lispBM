@@ -616,19 +616,21 @@ static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value en
     }
   }
 #endif
+  // The freelist will always contain just plain heap-cells.
+  // So dec_ptr is sufficient.
   lbm_value res = lbm_heap_state.freelist;
   if (lbm_type_of(res) == LBM_TYPE_CONS) {
-    lbm_uint res_ix = lbm_dec_cons_cell_ptr(res);
-    lbm_cons_t *cell = &lbm_heap_state.heap[res_ix];
-    cell->car = ENC_SYM_CLOSURE;
-    cell = lbm_ref_cell(cell->cdr);
-    cell->car = params;
-    cell = lbm_ref_cell(cell->cdr);
-    cell->car = body;
-    cell = lbm_ref_cell(cell->cdr);
-    cell->car = env;
-    lbm_heap_state.freelist = cell->cdr;
-    cell->cdr = ENC_SYM_NIL;
+    lbm_cons_t *heap = lbm_heap_state.heap;
+    lbm_uint ix = lbm_dec_ptr(res);
+    heap[ix].car = ENC_SYM_CLOSURE;
+    ix = lbm_dec_ptr(heap[ix].cdr);
+    heap[ix].car = params;
+    ix = lbm_dec_ptr(heap[ix].cdr);
+    heap[ix].car = body;
+    ix = lbm_dec_ptr(heap[ix].cdr);
+    heap[ix].car = env;
+    lbm_heap_state.freelist = heap[ix].cdr;
+    heap[ix].cdr = ENC_SYM_NIL;
     lbm_heap_state.num_alloc+=4;
   } else {
     error_ctx(ENC_SYM_FATAL_ERROR);
