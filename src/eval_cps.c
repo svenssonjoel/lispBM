@@ -487,8 +487,10 @@ static void stack_push(lbm_stack_t *s, lbm_uint val) {
 
 static void stack_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
   if (s->sp + 1 < s->size) {
-    s->data[s->sp++] = v1;
-    s->data[s->sp++] = v2;
+    lbm_uint *t = &s->data[s->sp];
+    t[0] = v1;
+    t[1] = v2;
+    s->sp += 2;
     if (s->sp > s->max_sp) s->max_sp = s->sp;
     return;
   }
@@ -497,9 +499,11 @@ static void stack_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
 
 static void stack_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) {
   if (s->sp + 2 < s->size) {
-    s->data[s->sp++] = v1;
-    s->data[s->sp++] = v2;
-    s->data[s->sp++] = v3;
+    lbm_uint *t = &s->data[s->sp];
+    t[0] = v1;
+    t[1] = v2;
+    t[2] = v3;
+    s->sp += 3;
     if (s->sp > s->max_sp) s->max_sp = s->sp;
     return;
   }
@@ -508,10 +512,12 @@ static void stack_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) 
 
 static void stack_push_4(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4) {
   if (s->sp + 3 < s->size) {
-    s->data[s->sp++] = v1;
-    s->data[s->sp++] = v2;
-    s->data[s->sp++] = v3;
-    s->data[s->sp++] = v4;
+    lbm_uint *t = &s->data[s->sp];
+    t[0] = v1;
+    t[1] = v2;
+    t[2] = v3;
+    t[3] = v4;
+    s->sp += 4;
     if (s->sp > s->max_sp) s->max_sp = s->sp;
     return;
   }
