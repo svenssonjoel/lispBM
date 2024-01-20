@@ -2798,20 +2798,20 @@ static void cont_closure_application_args(eval_context_t *ctx) {
       error_ctx(ENC_SYM_MERROR);
     }
   }
+  lbm_cons_t* heap = lbm_heap_state.heap;
   lbm_value cell0 = lbm_heap_state.freelist;
-  lbm_cons_t *cell0_r = lbm_ref_cell(cell0);
-  lbm_value cell1 = cell0_r->cdr;
-  lbm_cons_t *cell1_r = lbm_ref_cell(cell1);
-  lbm_heap_state.freelist = cell1_r->cdr;
+  lbm_uint cell0_ix = lbm_dec_ptr(cell0);
+  lbm_value cell1 = heap[cell0_ix].cdr;
+  lbm_uint cell1_ix = lbm_dec_ptr(cell1);
+  lbm_heap_state.freelist = heap[cell1_ix].cdr;
   lbm_heap_state.num_alloc += 2;
 
-  cell0_r->car = car_params;
-  cell0_r->cdr = ctx->r;
-  cell1_r->car = cell0;
-  cell1_r->cdr = clo_env;
+  heap[cell0_ix].car = car_params;
+  heap[cell0_ix].cdr = ctx->r;
+  heap[cell1_ix].car = cell0;
+  heap[cell1_ix].cdr = clo_env;
   clo_env = cell1;
 
-  // TODO: We are NOT going to implement a lazy sweep.
   bool a_nil = args == ENC_SYM_NIL;
   bool p_nil = cdr_params == ENC_SYM_NIL;
 
