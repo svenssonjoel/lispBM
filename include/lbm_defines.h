@@ -309,7 +309,7 @@
 #define RUNTIME_SYMBOLS_START     0x40000
 #define MAX_SYMBOL_VALUE          0x0FFFFFFF
 
-// This leaves 268173312 runtime systems available.
+// This leaves 268173312 runtime symbols available.
 
 /* ------------------------------------------------------------
    Encoded Symbols
