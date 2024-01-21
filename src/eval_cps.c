@@ -673,7 +673,7 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
       res = fundamental_table[fundamental](args, arg_count, ctx);
     }
     if (lbm_is_error(res)) {
-      error_at_ctx(res, lbm_enc_sym(fundamental+FUNDAMENTALS_START));
+      error_at_ctx(res, lbm_enc_sym(EXTENSION_SYMBOLS_START | fundamental));
     }
   }
   lbm_stack_drop(&ctx->K, arg_count+1);
@@ -1583,26 +1583,22 @@ int lbm_perform_gc(void) {
 
 static void eval_symbol(eval_context_t *ctx) {
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
-  if (s >= RUNTIME_SYMBOLS_START) {
-    lbm_value res;
+  lbm_uint k = SYMBOL_KIND(s);
+  if (k > SYMBOL_KIND_APPFUN) {
+    lbm_value res = ENC_SYM_NIL;
     if (lbm_env_lookup_b(&res, ctx->curr_exp, ctx->curr_env) ||
         lbm_global_env_lookup(&res, ctx->curr_exp)) {
       ctx->r =  res;
       ctx->app_cont = true;
       return;
     }
-  } else if (s <= EXTENSION_SYMBOLS_END) {
-    //special symbols and extensions can be handled the same way.
-    ctx->r = ctx->curr_exp;
-    ctx->app_cont = true;
-    return;
-  }
-  // Dynamic load attempt
-  const char *sym_str = lbm_get_name_by_symbol(s);
-  const char *code_str = NULL;
-  if (!dynamic_load_callback(sym_str, &code_str)) {
-    error_at_ctx(ENC_SYM_NOT_FOUND, ctx->curr_exp);
-  } else {
+    // Dynamic load attempt
+    // Only symbols of kind RUNTIME can be dynamically loaded.
+    const char *sym_str = lbm_get_name_by_symbol(s);
+    const char *code_str = NULL;
+    if (!dynamic_load_callback(sym_str, &code_str)) {
+      error_at_ctx(ENC_SYM_NOT_FOUND, ctx->curr_exp);
+    }
     stack_push_3(&ctx->K, ctx->curr_exp, ctx->curr_env, RESUME);
 
     lbm_value chan;
@@ -1623,6 +1619,10 @@ static void eval_symbol(eval_context_t *ctx) {
                                                           loader), loader);
     ctx->curr_exp = evaluator;
     ctx->curr_env = ENC_SYM_NIL; // dynamics should be evaluable in empty local env
+  } else {
+    //special symbols and extensions can be handled the same way.
+    ctx->r = ctx->curr_exp;
+    ctx->app_cont = true;
   }
 }
 
@@ -2749,19 +2749,11 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
   lbm_value fun = fun_args[0];
 
   lbm_uint fun_val = lbm_dec_sym(fun);
-  lbm_uint apply_val = fun_val - APPLY_FUNS_START;
-  lbm_uint fund_val  = fun_val - FUNDAMENTALS_START;
+  lbm_uint fun_kind = SYMBOL_KIND(fun_val);
 
-  if (apply_val <= (APPLY_FUNS_END - APPLY_FUNS_START)) {
-    fun_table[apply_val](&fun_args[1], arg_count, ctx);
-  } else if (fund_val <= (FUNDAMENTALS_END - FUNDAMENTALS_START)) {
-    call_fundamental(fund_val, &fun_args[1], arg_count, ctx);
-  } else {
-    // It may be an extension
-    extension_fptr f = lbm_get_extension(fun_val);
-    if (f == NULL) {
-      error_at_ctx(ENC_SYM_EERROR,fun);
-    }
+  switch (fun_kind) {
+  case SYMBOL_KIND_EXTENSION: {
+    extension_fptr f = extension_table[SYMBOL_IX(fun_val)].fptr;
 
     lbm_value ext_res;
     WITH_GC(ext_res, f(&fun_args[1], arg_count));
@@ -2783,6 +2775,16 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
       ctx->app_cont = true;
       ctx->r = ext_res;
     }
+  }  break;
+  case SYMBOL_KIND_FUNDAMENTAL:
+    call_fundamental(SYMBOL_IX(fun_val), &fun_args[1], arg_count, ctx);
+    break;
+  case SYMBOL_KIND_APPFUN:
+    fun_table[SYMBOL_IX(fun_val)](&fun_args[1], arg_count, ctx);
+    break;
+  default:
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    break;
   }
 }
 
