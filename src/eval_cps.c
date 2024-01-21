@@ -1583,8 +1583,7 @@ int lbm_perform_gc(void) {
 
 static void eval_symbol(eval_context_t *ctx) {
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
-  lbm_uint k = SYMBOL_KIND(s);
-  if (k > SYMBOL_KIND_APPFUN) {
+  if (s >= RUNTIME_SYMBOLS_START) {
     lbm_value res = ENC_SYM_NIL;
     if (lbm_env_lookup_b(&res, ctx->curr_exp, ctx->curr_env) ||
         lbm_global_env_lookup(&res, ctx->curr_exp)) {
@@ -3625,7 +3624,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
           if (!lbm_lookup_extension_id(ext_name, &ext_id)) {
             error_ctx(ENC_SYM_FATAL_ERROR);
           }
-          symbol_id = ext_id + EXTENSION_SYMBOLS_START;
+          symbol_id = ext_id;
         } else {
           error_ctx(ENC_SYM_MERROR);
         }
