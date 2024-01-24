@@ -1,0 +1,23 @@
+(uart-start 0 20 21 115200)
+
+(defun test-print (s) {
+  (uart-write s)
+  (uart-write "\n")
+  })
+
+(defun start-test (s) {
+  (test-print "\n\n")
+  (test-print (str-merge "TEST BEGIN: " s))
+  }
+  )
+
+(defun end-test ()
+  (test-print "TEST END")
+)
+
+(defun check (x)
+  (if x
+      (test-print "CHECK: SUCCESS")
+    (test-print "CHECK: FAILURE")
+    )
+  )
