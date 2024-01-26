@@ -4,19 +4,30 @@ echo "*** Making tests"
 make clean
 make
 
-file="/dev/ttyUSB0"
+#file="/dev/ttyUSB0"
 
 success_count=0
 fail_count=0
 failing_tests=()
 
-echo "*** Running tests"
-for f in *.plisp; do
-    echo "*** Performing test $f"
-    vesc_tool --uploadLisp $f &
+vesc_tool="vesc_tool_6.05"
 
-    while read -r line;
+echo "*** Running tests"
+exec <>3
+for f in *.plisp; do
+    if [ -p "test_pipe" ]; then
+        rm test_pipe
+    fi
+    echo "*** Performing test $f"
+    mkfifo test_pipe
+    
+    $vesc_tool --bridgeAppData --vescPort /dev/ttyACM0 --uploadLisp $f >>  test_pipe &
+    vesc_pid=$!
+    
+    while read -r line
     do
+        echo $line
+        
         if  [[ "$line" == "CHECK: SUCCESS" ]] ;
         then
             success_count=$((success_count+1))
@@ -33,7 +44,25 @@ for f in *.plisp; do
             echo "Test finished"
             break
         fi
-    done <"$file"
+    done  < test_pipe
+
+    echo "VESC_PID: " $vesc_pid
+    
+    proc=$(ps --pid $vesc_pid -o command=)
+    proc=$(echo $proc | cut -d " " -f 1)
+    echo "Trying to kill: " $proc
+    if [[ $proc == $vesc_tool ]]
+    then
+        kill -9 $vesc_pid 
+        if [ $? -eq 0 ] 
+        then
+            echo "KILL: VESC_TOOL"
+        else
+            echo "Error: Could not kill VESC_TOOL"
+        fi
+    else
+        echo "VESC_TOOL died by itself"
+    fi    
 done
 
 echo ""
