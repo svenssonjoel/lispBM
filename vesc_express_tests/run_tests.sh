@@ -23,10 +23,12 @@ for f in *.plisp; do
     
     $vesc_tool --bridgeAppData --vescPort /dev/ttyACM0 --uploadLisp $f >>  test_pipe &
     vesc_pid=$!
+
+    ok=false
     
     while read -r line
     do
-        echo $line
+        echo "ECHO LINE: " $line
         
         if  [[ "$line" == "CHECK: SUCCESS" ]] ;
         then
@@ -41,11 +43,18 @@ for f in *.plisp; do
         fi
         if  [[ "$line" == "TEST END"* ]] ;
         then
-            echo "Test finished"
+            ok=true
             break
         fi
     done  < test_pipe
 
+    if [ $ok ]
+    then
+        echo "TEST FINISHED"
+    else
+        echo "NO OUTPUT AVAILABLE"
+    fi
+    
     echo "VESC_PID: " $vesc_pid
     
     proc=$(ps --pid $vesc_pid -o command=)
