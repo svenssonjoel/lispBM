@@ -11,6 +11,18 @@ fail_count=0
 failing_tests=()
 
 vesc_tool="vesc_tool_6.05"
+vesc_express="/dev/ttyACM0"
+
+in_use=$(ls -l /proc/[0-9]*/fd/* 2> /dev/null |grep /dev/ | grep $vesc_express | grep -o 'proc/.*' | cut -d "/" -f2  2> /dev/null)
+
+if [ -z $in_use ]
+then
+    echo "TTY available: " $vesc_express
+else
+    echo "TTY unavailable: " $vesc_express
+    exit 0
+fi
+
 
 echo "*** Running tests"
 exec <>3
@@ -21,7 +33,7 @@ for f in *.plisp; do
     echo "*** Performing test $f"
     mkfifo test_pipe
     
-    $vesc_tool --bridgeAppData --vescPort /dev/ttyACM0 --uploadLisp $f >>  test_pipe &
+    $vesc_tool --bridgeAppData --vescPort $vesc_express --uploadLisp $f >>  test_pipe &
     vesc_pid=$!
 
     ok=false
