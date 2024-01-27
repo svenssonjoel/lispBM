@@ -10,8 +10,18 @@ success_count=0
 fail_count=0
 failing_tests=()
 
-vesc_tool="vesc_tool_6.05"
+tester_pid=$$
+
 vesc_express="/dev/ttyACM0"
+
+if [ ! -z $1 ]
+then
+vesc_express=$1
+fi
+
+   
+vesc_tool="vesc_tool_6.05"
+
 
 in_use=$(ls -l /proc/[0-9]*/fd/* 2> /dev/null |grep /dev/ | grep $vesc_express | grep -o 'proc/.*' | cut -d "/" -f2  2> /dev/null)
 
@@ -30,14 +40,32 @@ for f in *.plisp; do
     if [ -p "test_pipe" ]; then
         rm test_pipe
     fi
+    if [ -p "stderr_pipe" ]; then
+        rm stderr_pipe
+    fi
     echo "*** Performing test $f"
     mkfifo test_pipe
+    mkfifo stderr_pipe
     
-    $vesc_tool --bridgeAppData --vescPort $vesc_express --uploadLisp $f >>  test_pipe &
+    $vesc_tool --bridgeAppData --vescPort $vesc_express --uploadLisp $f >>  test_pipe 2>stderr_pipe &
     vesc_pid=$!
 
-    ok=false
+    while read -r line
+    do
+        echo $line
+        if  [[ "$line" == "Connected" ]] ;
+        then
+            echo "VESC_TOOL connected to vesc_express"
+        fi
+        if [[ "$line" == "Could not connect" ]] ;
+        then
+            echo "VESC_TOOL failed to connect to vesc_express"
+            kill $vesc_pid
+            kill $tester_pid
+        fi
+    done < stderr_pipe &
     
+    ok=false
     while read -r line
     do
         echo "ECHO LINE: " $line
