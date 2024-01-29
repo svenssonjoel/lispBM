@@ -2741,7 +2741,7 @@ static const apply_fun fun_table[] =
 /* passed over the stack.                          */
 
 
-static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_count) {
+static void __attribute__ ((noinline)) application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_count) {
   /* If arriving here, we know that the fun is a symbol.
    *  and can be a built in operation or an extension.
    */

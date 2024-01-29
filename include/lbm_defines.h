@@ -25,6 +25,21 @@
 
 #ifndef LBM64
 
+#define LBM_ADDRESS_SHIFT               2
+#define LBM_VAL_SHIFT                   4
+#define LBM_ENC_1                       0x10
+
+#define LBM_PTR_MASK                     0x00000001u
+#define LBM_PTR_BIT                      0x00000001u
+#define LBM_PTR_VAL_MASK                 0x03FFFFFCu
+#define LBM_PTR_TYPE_MASK                0xFC000000u
+#define LBM_PTR_NULL                     (0x03FFFFFCu >> 2)
+
+// The address is an index into the const heap.
+#define LBM_PTR_TO_CONSTANT_BIT          0x04000000u
+#define LBM_PTR_TO_CONSTANT_MASK         ~LBM_PTR_TO_CONSTANT_BIT
+#define LBM_PTR_TO_CONSTANT_SHIFT        26
+
 #define LBM_POINTER_TYPE_FIRST           0x10000000u
 #define LBM_TYPE_CONS                    0x10000000u
 #define LBM_TYPE_CONS_CONST              0x14000000u
@@ -40,6 +55,9 @@
 #define LBM_TYPE_CUSTOM                  0xA0000000u
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xAC000000u
 #define LBM_POINTER_TYPE_LAST            0xAC000000u
+
+#define LBM_CONS_TYPE_MASK               0x10000001u
+#define LBM_CONS_CONST_TYPE_MASK         0x14000001u
 
 #define LBM_CONTINUATION_INTERNAL        0xF8000001u // PTR bit set
 #define LBM_CONTINUATION_INTERNAL_TYPE   0xF8000000u
@@ -57,8 +75,23 @@
 #define LBM_TYPE_BYTE                    0x00000004u
 #define LBM_TYPE_U                       0x00000008u // 10  0   0
 #define LBM_TYPE_I                       0x0000000Cu // 11  0   0
+#define LBM_LOW_RESERVED_BITS            0x0000000Fu // 11  1   1
 
 #else /* 64 bit Version */
+
+#define LBM_ADDRESS_SHIFT                2
+#define LBM_VAL_SHIFT                    8
+#define LBM_ENC_1                        0x100
+
+#define LBM_PTR_MASK                     (lbm_uint)0x1
+#define LBM_PTR_BIT                      (lbm_uint)0x1
+#define LBM_PTR_VAL_MASK                 (lbm_uint)0x03FFFFFFFFFFFFFC
+#define LBM_PTR_TYPE_MASK                (lbm_uint)0xF800000000000000
+#define LBM_PTR_NULL                     ((lbm_uint)0x03FFFFFFFFFFFFFC >> 2)
+
+#define LBM_PTR_TO_CONSTANT_BIT          (lbm_uint)0x0400000000000000
+#define LBM_PTR_TO_CONSTANT_MASK         ~LBM_PTR_TO_CONSTANT_BIT
+#define LBM_PTR_TO_CONSTANT_SHIFT        58
 
 #define LBM_POINTER_TYPE_FIRST           (lbm_uint)0x1000000000000000
 #define LBM_TYPE_CONS                    (lbm_uint)0x1000000000000000
@@ -73,6 +106,8 @@
 #define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
 #define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
 
+#define LBM_CONS_TYPE_MASK               (lbm_uint)0x1000000000000001
+
 #define LBM_CONTINUATION_INTERNAL        (lbm_uint)0xF800000000000001
 #define LBM_CONTINUATION_INTERNAL_TYPE   (lbm_uint)0xF800000000000000
 
@@ -85,15 +120,16 @@
 #define LBM_TYPE_MASK                   (lbm_uint)0xF8000000000000FC
 #define LBM_NUMBER_MASK                 (lbm_uint)0x0800000000000000
 //    gc ptr
-#define LBM_TYPE_SYMBOL                 (lbm_uint)0x0 // 00 00 00  0   0
-#define LBM_TYPE_CHAR                   (lbm_uint)0x4 // 00 00 01  0   0
+#define LBM_TYPE_SYMBOL                 (lbm_uint)0x0  // 00 00 00  0   0
+#define LBM_TYPE_CHAR                   (lbm_uint)0x4  // 00 00 01  0   0
 #define LBM_TYPE_BYTE                   (lbm_uint)0x4
-#define LBM_TYPE_U                      (lbm_uint)0x8 // 00 00 10  0   0
-#define LBM_TYPE_I                      (lbm_uint)0xC // 00 00 11  0   0
-#define LBM_TYPE_U32                    (lbm_uint)0x14// 00 01 01  0   0
-#define LBM_TYPE_I32                    (lbm_uint)0x18// 00 01 10  0   0
-#define LBM_TYPE_FLOAT                  (lbm_uint)0x1C// 00 01 11  0   0
-
+#define LBM_TYPE_U                      (lbm_uint)0x8  // 00 00 10  0   0
+#define LBM_TYPE_I                      (lbm_uint)0xC  // 00 00 11  0   0
+#define LBM_TYPE_U32                    (lbm_uint)0x14 // 00 01 01  0   0
+#define LBM_TYPE_I32                    (lbm_uint)0x18 // 00 01 10  0   0
+#define LBM_TYPE_FLOAT                  (lbm_uint)0x1C // 00 01 11  0   0
+#define LBM_LOW_RESERVED_BITS           (lbm_uint)0xFF // 11 11 11  1   1
+  
 #endif
 /* ------------------------------------------------------------
    Built in symbols

@@ -430,17 +430,6 @@ double lbm_dec_as_double(lbm_value a) {
   }
   return 0;
 }
-/****************************************************/
-/* IS                                               */
-
-bool lbm_is_number(lbm_value x) {
-  lbm_uint t = lbm_type_of(x);
-  #ifndef LBM64
-  return (t & 0xC || t & LBM_NUMBER_MASK);
-  #else
-  return (t & ((uint64_t)0x1C) || t & LBM_NUMBER_MASK);
-  #endif
-}
 
 /****************************************************/
 /* HEAP MANAGEMENT                                  */
