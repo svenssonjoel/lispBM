@@ -795,7 +795,7 @@ static inline bool lbm_is_cons_rw(lbm_value x) {
  * \return true if x is a readable cons cell, false otherwise.
  */
 static inline bool lbm_is_cons(lbm_value x) {
-  return lbm_is_ptr(x) && ((x & LBM_CONS_TYPE_MASK) == LBM_CONS_TYPE_MASK);
+  return lbm_is_ptr(x) && ((x & LBM_CONS_TYPE_MASK) == (LBM_TYPE_CONS | LBM_PTR_BIT));
 }
 
 /** Check if a value represents a number

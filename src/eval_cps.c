@@ -4572,22 +4572,17 @@ static void evaluation_step(void){
     return;
   }
 
-  lbm_uint exp_type = lbm_type_of_functional(ctx->curr_exp);
-  if (exp_type == LBM_TYPE_SYMBOL) {
+  if (lbm_is_symbol(ctx->curr_exp)) {
     eval_symbol(ctx);
     return;
   }
-  if (exp_type == LBM_TYPE_CONS) {
+  if (lbm_is_cons(ctx->curr_exp)) {
     lbm_cons_t *cell = lbm_ref_cell(ctx->curr_exp);
-
-    if ((cell->car & LBM_VAL_TYPE_MASK) == LBM_TYPE_SYMBOL) {
-
-      lbm_value eval_index = lbm_dec_sym(cell->car) - SPECIAL_FORMS_START;
-
-      if (eval_index <= (SPECIAL_FORMS_END - SPECIAL_FORMS_START)) {
-        evaluators[eval_index](ctx);
-        return;
-      }
+    lbm_value h = cell->car;
+    if (lbm_is_symbol(h) && ((h & ENC_SPECIAL_FORMS_MASK) == ENC_SPECIAL_FORMS_BIT)) {
+      lbm_uint eval_index = lbm_dec_sym(h)  & SPECIAL_FORMS_INDEX_MASK;
+      evaluators[eval_index](ctx);
+      return;
     }
     /*
      * At this point head can be anything. It should evaluate
@@ -4597,7 +4592,7 @@ static void evaluation_step(void){
     reserved[0] = ctx->curr_env;
     reserved[1] = cell->cdr;
     reserved[2] = APPLICATION_START;
-    ctx->curr_exp = cell->car; // evaluate the function
+    ctx->curr_exp = h; // evaluate the function
     return;
   }
 

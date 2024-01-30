@@ -56,8 +56,8 @@
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xAC000000u
 #define LBM_POINTER_TYPE_LAST            0xAC000000u
 
-#define LBM_CONS_TYPE_MASK               0x10000001u
-#define LBM_CONS_CONST_TYPE_MASK         0x14000001u
+#define LBM_CONS_TYPE_MASK               0xF0000001u
+#define LBM_CONS_CONST_TYPE_MASK         0xFF000001u
 
 #define LBM_CONTINUATION_INTERNAL        0xF8000001u // PTR bit set
 #define LBM_CONTINUATION_INTERNAL_TYPE   0xF8000000u
@@ -235,6 +235,12 @@
 #define SYM_LOOP                0x115
 #define SPECIAL_FORMS_END       0x115
 
+#define SPECIAL_FORMS_MASK        0xFFFFFF00
+#define SPECIAL_FORMS_BIT         0x00000100
+#define ENC_SPECIAL_FORMS_MASK    0xFFFFF000
+#define ENC_SPECIAL_FORMS_BIT     0x00001000
+#define SPECIAL_FORMS_INDEX_MASK  0x000000FF
+
 // Fundamental built in operations that take their
 // arguments on stack. Fundamentals do not handle
 // their own GC and they are not allowed to create
@@ -334,6 +340,7 @@
 
 #define SYMBOL_IX(X)            ((X) & 0xFFFF)
 
+// TODO: look over for 64bit version
 #define SPECIAL_SYMBOLS_START     0
 #define SPECIAL_SYMBOLS_END       0xFFFF
 #define EXTENSION_SYMBOLS_START   0x10000
