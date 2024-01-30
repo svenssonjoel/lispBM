@@ -1608,11 +1608,11 @@ static void eval_symbol(eval_context_t *ctx) {
       }
     }
 
-    lbm_value loader = ENC_SYM_NIL;
+    lbm_value loader;
     WITH_GC_RMBR_1(loader, lbm_heap_allocate_list_init(2,
                                                        ENC_SYM_READ,
                                                        chan), chan);
-    lbm_value evaluator = ENC_SYM_NIL;
+    lbm_value evaluator;
     WITH_GC_RMBR_1(evaluator, lbm_heap_allocate_list_init(2,
                                                           ENC_SYM_EVAL,
                                                           loader), loader);
@@ -1681,7 +1681,7 @@ static void eval_callcc(eval_context_t *ctx) {
 
   /* Create an application */
   lbm_value fun_arg = get_cadr(ctx->curr_exp);
-  lbm_value app = ENC_SYM_NIL;
+  lbm_value app;
   WITH_GC_RMBR_1(app, lbm_heap_allocate_list_init(2,
                                                   fun_arg,
                                                   acont), acont);
@@ -3649,7 +3649,11 @@ static void cont_read_next_token(eval_context_t *ctx) {
     ctx->r = res;
     ctx->app_cont = true;
     return;
-  } else if (n < 0) goto retry_token;
+  } else if (n == TOKENIZER_NEED_MORE) {
+    goto retry_token;
+  } else if (n <= TOKENIZER_STRING_ERROR) {
+    read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
+  }
 
   /*
    * CHAR

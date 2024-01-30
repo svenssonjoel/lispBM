@@ -235,7 +235,7 @@ static bool share_const_array(lbm_value flash_cell, char *data, lbm_uint num_elt
   flash_array_header.data = (lbm_uint*)data;
   lbm_uint flash_array_header_ptr;
   lbm_flash_status s = lbm_write_const_raw((lbm_uint*)&flash_array_header,
-                                           sizeof(lbm_array_header_t),
+                                           sizeof(lbm_array_header_t) / sizeof(lbm_uint),
                                            &flash_array_header_ptr);
   if (s != LBM_FLASH_WRITE_OK) return false;
   s = write_const_car(flash_cell, flash_array_header_ptr);
