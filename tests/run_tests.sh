@@ -5,7 +5,10 @@ echo "BUILDING"
 make clean
 make
 
-echo "PERFORMING TESTS:"
+date=$(date +"%Y-%m-%d_%H-%M")
+logfile="log_${date}.log"
+
+echo "PERFORMING TESTS: " $date
 
 expected_fails=("test_lisp_code_cps -h 1024 test_take_iota_0.lisp"
                 "test_lisp_code_cps -s -h 1024 test_take_iota_0.lisp"
@@ -90,7 +93,7 @@ for prg in "test_lisp_code_cps" ; do
                 fail_count=$((fail_count+1))
 
                 echo $lisp FAILED
-                cat $tmp_file >> test.log
+                cat $tmp_file >> $logfile
             fi
             rm $tmp_file
         done
