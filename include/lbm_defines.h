@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2024 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -56,8 +56,8 @@
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xAC000000u
 #define LBM_POINTER_TYPE_LAST            0xAC000000u
 
-#define LBM_CONS_TYPE_MASK               0xF0000001u
-#define LBM_CONS_CONST_TYPE_MASK         0xFF000001u
+#define LBM_CONS_TYPE_MASK               0xF0000000u
+#define LBM_CONS_CONST_TYPE_MASK         0xFF000000u
 
 #define LBM_CONTINUATION_INTERNAL        0xF8000001u // PTR bit set
 #define LBM_CONTINUATION_INTERNAL_TYPE   0xF8000000u
@@ -106,7 +106,8 @@
 #define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
 #define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
 
-#define LBM_CONS_TYPE_MASK               (lbm_uint)0x1000000000000001
+#define LBM_CONS_TYPE_MASK               (lbm_uint)0xF000000000000000
+#define LBM_CONS_CONST_TYPE_MASK         (lbm_uint)0xFF00000000000000
 
 #define LBM_CONTINUATION_INTERNAL        (lbm_uint)0xF800000000000001
 #define LBM_CONTINUATION_INTERNAL_TYPE   (lbm_uint)0xF800000000000000

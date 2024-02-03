@@ -1,6 +1,6 @@
 
 /*
-    Copyright 2018 , 2022 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2018, 2024 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -535,11 +535,6 @@ void lbm_gc_state_inc(void);
  *  until after a garbage collection.
  */
 void lbm_nil_freelist(void);
-/** Mark all heap cells that are on the free-list.
- *
- * \return 1 on success or 0 if the free-list is corrupted.
- */
-int lbm_gc_mark_freelist(void);
 /** Mark all heap cells reachable from an environment.
  * \param environment.
  */
@@ -795,7 +790,7 @@ static inline bool lbm_is_cons_rw(lbm_value x) {
  * \return true if x is a readable cons cell, false otherwise.
  */
 static inline bool lbm_is_cons(lbm_value x) {
-  return lbm_is_ptr(x) && ((x & LBM_CONS_TYPE_MASK) == (LBM_TYPE_CONS | LBM_PTR_BIT));
+  return lbm_is_ptr(x) && ((x & LBM_CONS_TYPE_MASK) == LBM_TYPE_CONS);
 }
 
 /** Check if a value represents a number

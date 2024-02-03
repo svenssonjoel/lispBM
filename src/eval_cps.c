@@ -24,7 +24,6 @@
 #include "stack.h"
 #include "fundamental.h"
 #include "extensions.h"
-#include "exp_kind.h"
 #include "tokpar.h"
 #include "lbm_channel.h"
 #include "print.h"
