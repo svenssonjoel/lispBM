@@ -47,7 +47,7 @@ for f in *.plisp; do
     mkfifo test_pipe
     mkfifo stderr_pipe
     
-    $vesc_tool --bridgeAppData --vescPort $vesc_express --uploadLisp $f >>  test_pipe 2>stderr_pipe &
+    $vesc_tool --bridgeAppData  --vescPort $vesc_express --uploadLisp $f >>  test_pipe 2>stderr_pipe &
     vesc_pid=$!
 
     while read -r line
