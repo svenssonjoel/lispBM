@@ -35,7 +35,7 @@ fi
 
 
 echo "*** Running tests"
-exec <>3
+
 for f in *.plisp; do
     if [ -p "test_pipe" ]; then
         rm test_pipe
@@ -68,8 +68,6 @@ for f in *.plisp; do
     ok=false
     while read -r line
     do
-        echo "ECHO LINE: " $line
-        
         if  [[ "$line" == "CHECK: SUCCESS" ]] ;
         then
             success_count=$((success_count+1))

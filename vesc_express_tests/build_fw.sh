@@ -1,6 +1,7 @@
 #!/bin/bash
 
 IDF_DIR=$HOME/esp-idf-v5.0.2
+VESC_TOOL="vesc_tool_6.05"
 
 if [ -d "vesc_express" ]; then
     cd vesc_express
@@ -25,5 +26,11 @@ cd ..
 source $IDF_DIR/export.sh
 
 idf.py build
+
+if [ -f "vesc_express/build/vesc_express.bin" ]; then
+    $VESC_TOOL --uploadFirmware vesc_express/build/vesc_express.bin
+else
+    echo "Building firmware failed"
+fi
 
 
