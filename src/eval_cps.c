@@ -4706,7 +4706,7 @@ void lbm_run_eval(void){
   setjmp(error_jmp_buf);
 
   while (eval_running) {
-    if (eval_cps_state_changed) {
+    if (eval_cps_state_changed  || eval_cps_run_state == EVAL_CPS_STATE_PAUSED) {
       eval_cps_state_changed = false;
       switch (eval_cps_next_state) {
       case EVAL_CPS_STATE_PAUSED:
