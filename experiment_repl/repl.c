@@ -74,43 +74,8 @@ bool const_heap_write(lbm_uint ix, lbm_uint w) {
 
 static volatile bool allow_print = true;
 
-struct termios old_termios;
-struct termios new_termios;
-
-/* static lbm_tokenizer_string_state_t string_tok_state; */
-/* static lbm_tokenizer_char_stream_t string_tok; */
-
 static lbm_char_channel_t string_tok;
 static lbm_string_channel_state_t string_tok_state;
-
-
-void setup_terminal(void) {
-
-  tcgetattr(0,&old_termios);
-  new_termios = old_termios;
-  //new_termios.c_iflag;                     // INPUT MODES
-  //new_termios.c_oflag;                     // OUTPUT MODES
-  //new_termios.c_cflag;                     // CONTROL MODES
-  // LOCAL MODES
-  new_termios.c_lflag &= (tcflag_t) ~(ICANON  | ISIG | ECHO);
-  new_termios.c_cc[VMIN] = 0;
-  new_termios.c_cc[VTIME] = 0;
-  //new_termios.c_cc;                       // SPECIAL CHARACTERS
-
-  // LOCAL MODES
-  // Turn off:
-  //  - canonical mode
-  //  - Signal generation for certain characters (INTR, QUIT, SUSP, DSUSP)
-  //  VMIN:  Minimal number of characters for noncanonical read.
-  //  VTIME: Timeout in deciseconds for noncanonical read.
-
-  tcsetattr(0, TCSANOW, &new_termios);
-
-}
-
-void restore_terminal(void) {
-  tcsetattr(0, TCSANOW, &old_termios);
-}
 
 void new_prompt() {
   printf("\33[2K\r");
@@ -129,9 +94,8 @@ void *eval_thd_wrapper(void *v) {
   printf("Type :quit to exit.\n");
   printf("     :info for statistics.\n");
   printf("     :load [filename] to load lisp source.\n");
-  new_prompt();
   lbm_run_eval();
-
+  new_prompt();
   printf("Closing down evaluator thread\n");
   return NULL;
 }
@@ -178,67 +142,6 @@ void *prof_thd(void *v) {
   return NULL;
 }
 
-bool dyn_load(const char *str, const char **code) {
-  bool res = false;
-  if (strlen(str) == 5 && strncmp(str, "defun", 5) == 0) {
-    *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
-    res = true;
-  } else if (strlen(str) == 4 && strncmp(str, "iota", 4) == 0) {
-    *code = "(define iota (lambda (n) (range 0 n)))";
-    res = true;
-  } else if (strlen(str) == 6 && strncmp(str, "length", 6) == 0) {
-    *code = "(define length (lambda (xs)"
-            "(let ((len (lambda (l xs)"
-            "(if (eq xs nil) l"
-            "(len (+ l 1) (cdr xs))))))"
-            "(len 0 xs))))";
-    res = true;
-  } else if (strlen(str) == 4 && strncmp(str, "take", 4) == 0) {
-    *code = "(define take (lambda (n xs)"
-            "(let ((take-tail (lambda (acc n xs)"
-            "(if (= n 0) acc"
-            "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
-            "(reverse (take-tail nil n xs)))))";
-    res = true;
-  } else if (strlen(str) == 4 && strncmp(str, "drop", 4) == 0) {
-    *code = "(define drop (lambda (n xs)"
-            "(if (= n 0) xs"
-            "(if (eq xs nil) nil"
-            "(drop (- n 1) (cdr xs))))))";
-    res = true;
-  } else if (strlen(str) == 3 && strncmp(str, "zip", 3) == 0) {
-    *code = "(define zip (lambda (xs ys)"
-            "(if (eq xs nil) nil"
-            "(if (eq ys nil) nil"
-            "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
-    res = true;
-  } else if (strlen(str) == 6 && strncmp(str, "lookup", 6) == 0) {
-    *code = "(define lookup (lambda (x xs)"
-            "(if (eq xs nil) nil"
-            "(if (eq (car (car xs)) x)"
-            "(car (cdr (car xs)))"
-            "(lookup x (cdr xs))))))";
-    res = true;
-  } else if (strlen(str) == 5 && strncmp(str, "foldr", 5) == 0) {
-    *code = "(define foldr (lambda (f i xs)"
-            "(if (eq xs nil) i"
-            "(f (car xs) (foldr f i (cdr xs))))))";
-    res = true;
-  } else if (strlen(str) == 5 && strncmp(str, "foldl", 5) == 0) {
-    *code = "(define foldl (lambda (f i xs)"
-            "(if (eq xs nil) i (foldl f (f i (car xs)) (cdr xs)))))";
-    res = true;
-  } else if (strncmp(str, "loopforeach", 11) == 0) {
-    *code = "(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))";
-    res = true;
-  } else if (strncmp(str, "looprange", 9) == 0) {
-    *code = "(define looprange (macro (it start end body) (me-looprange it start end body)))";
-    res = true;
-  }
-
-  return res;
-}
-
 lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
@@ -261,7 +164,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   printf("\n");
   return lbm_enc_sym(SYM_TRUE);
 }
- 
+
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
   char *file_str = NULL;
@@ -428,16 +331,15 @@ int init_repl() {
   lbm_set_printf_callback(error_print);
 
   init_exts();
+
   if (!lbm_add_extension("print", ext_print)) {
     return 0;
   }
 
-  
-  /* Start evaluator thread */
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 1;
-  } 
+  }
   return 1;
 }
 
@@ -445,7 +347,7 @@ int main(int argc, char **argv) {
   parse_opts(argc, argv);
 
   using_history();
-  
+
   if (!init_repl()) {
     printf ("Failed to initialize REPL\n");
     return -1;
@@ -454,10 +356,11 @@ int main(int argc, char **argv) {
   char output[1024];
 
   while (1) {
+    erase();
     char *str = readline("# ");
     add_history(str);
     unsigned int n = strlen(str);
-    
+
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("--(LISP HEAP)-----------------------------------------------\n");
       lbm_get_heap_state(&heap_state);
