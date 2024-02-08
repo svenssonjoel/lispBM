@@ -28,7 +28,7 @@ uint32_t timestamp(void);
 
 int init_exts(void);
 
-
+bool dynamic_loader(const char *str, const char **code);
 
 #endif
  

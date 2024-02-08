@@ -424,7 +424,7 @@ int init_repl() {
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp);
   lbm_set_usleep_callback(sleep_callback);
-  lbm_set_dynamic_load_callback(dyn_load);
+  lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(error_print);
 
   init_exts();
