@@ -208,8 +208,8 @@ void lbm_set_eval_step_quota(uint32_t quota) {
   eval_steps_refill = quota;
 }
 
-static uint32_t          eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
-static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
+static uint32_t          eval_cps_run_state = EVAL_CPS_STATE_DEAD;
+static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_NONE;
 static volatile uint32_t eval_cps_next_state_arg = 0;
 static volatile bool     eval_cps_state_changed = false;
 
@@ -4706,24 +4706,27 @@ void lbm_run_eval(void){
   setjmp(error_jmp_buf);
 
   while (eval_running) {
-    eval_cps_state_changed = false;
-    switch (eval_cps_next_state) {
-    case EVAL_CPS_STATE_PAUSED:
-      if (eval_cps_run_state != EVAL_CPS_STATE_PAUSED) {
-        if (lbm_heap_num_free() < eval_cps_next_state_arg) {
-          gc();
+    if (eval_cps_state_changed) {
+      eval_cps_state_changed = false;
+      switch (eval_cps_next_state) {
+      case EVAL_CPS_STATE_PAUSED:
+        if (eval_cps_run_state != EVAL_CPS_STATE_PAUSED) {
+          if (lbm_heap_num_free() < eval_cps_next_state_arg) {
+            gc();
+          }
+          eval_cps_next_state_arg = 0;
         }
-        eval_cps_next_state_arg = 0;
+        eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
+        usleep_callback(EVAL_CPS_MIN_SLEEP);
+        continue; /* jump back to start of eval_running loop */
+      case EVAL_CPS_STATE_KILL:
+        eval_cps_run_state = EVAL_CPS_STATE_DEAD;
+        eval_running = false;
+        continue;
+      default: // running state
+        eval_cps_run_state = eval_cps_next_state;
+        break;
       }
-      eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
-      usleep_callback(EVAL_CPS_MIN_SLEEP);
-      continue; /* jump back to start of eval_running loop */
-    case EVAL_CPS_STATE_KILL:
-      eval_running = false;
-      continue;
-    default: // running state
-      eval_cps_run_state = eval_cps_next_state;
-      break;
     }
     while (true) {
       if (eval_steps_quota && ctx_running) {

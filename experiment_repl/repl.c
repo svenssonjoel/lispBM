@@ -25,6 +25,9 @@
 #include <unistd.h>
 #include <termios.h>
 #include <ctype.h>
+#include <getopt.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include "lispbm.h"
 #include "lbm_flat_value.h"
@@ -38,6 +41,8 @@
 #include "lbm_channel.h"
 #include "lbm_version.h"
 
+#include "repl_exts.h"
+
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 256
@@ -49,24 +54,6 @@
 lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 lbm_prof_t prof_data[100];
-
-static lbm_uint sym_res;
-static lbm_uint sym_loop;
-static lbm_uint sym_break;
-static lbm_uint sym_brk;
-static lbm_uint sym_rst;
-static lbm_uint sym_return;
-
-static lbm_value make_list(int num, ...) {
-	va_list arguments;
-	va_start (arguments, num);
-	lbm_value res = ENC_SYM_NIL;
-	for (int i = 0; i < num; i++) {
-		res = lbm_cons(va_arg(arguments, lbm_value), res);
-	}
-	va_end (arguments);
-	return lbm_list_destructive_reverse(res);
-}
 
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
   if (ix >= CONSTANT_MEMORY_SIZE) return false;
@@ -136,57 +123,16 @@ void erase() {
   fflush(stdout);
 }
 
-int inputline(char *buffer, int size) {
-  int n = 0;
-  int c;
-  for (n = 0; n < size - 1; n++) {
-
-    c = getchar(); // busy waiting.
-
-    if (c < 0) {
-      n--;
-      struct timespec s;
-      struct timespec r;
-      s.tv_sec = 0;
-      s.tv_nsec = (long)1000 * 1000;
-      nanosleep(&s, &r);
-      continue;
-    }
-    switch (c) {
-    case 27:
-      break;
-    case 127: /* fall through to below */
-    case '\b': /* backspace character received */
-      if (n > 0)
-        n--;
-      buffer[n] = 0;
-      //putchar(0x8); /* output backspace character */
-      //putchar(' ');
-      //putchar(0x8);
-      n--; /* set up next iteration to deal with preceding char location */
-      break;
-    case '\n': /* fall through to \r */
-    case '\r':
-      buffer[n] = 0;
-      return n;
-    default:
-      if (isprint(c)) { /* ignore non-printable characters */
-        //putchar(c);
-        buffer[n] = (char)c;
-      } else {
-        n -= 1;
-      }
-      break;
-    }
-  }
-  buffer[size - 1] = 0;
-  return 0; // Filled up buffer without reading a linebreak
-}
-
 void *eval_thd_wrapper(void *v) {
 
+  printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
+  printf("Type :quit to exit.\n");
+  printf("     :info for statistics.\n");
+  printf("     :load [filename] to load lisp source.\n");
+  new_prompt();
   lbm_run_eval();
 
+  printf("Closing down evaluator thread\n");
   return NULL;
 }
 
@@ -196,34 +142,22 @@ void critical(void) {
 }
 
 void done_callback(eval_context_t *ctx) {
-
-  erase();
   char output[1024];
-
   lbm_value t = ctx->r;
-
   lbm_print_value(output, 1024, t);
-
+  erase();
   printf("> %s\n", output);
-
-  fflush(stdout);
   new_prompt();
 }
 
 int error_print(const char *format, ...) {
-  erase();
   va_list args;
   va_start (args, format);
+  erase();
   int n = vprintf(format, args);
   va_end(args);
   new_prompt();
   return n;
-}
-
-uint32_t timestamp_callback() {
-  struct timeval tv;
-  gettimeofday(&tv,NULL);
-  return (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec);
 }
 
 void sleep_callback(uint32_t us) {
@@ -305,93 +239,7 @@ bool dyn_load(const char *str, const char **code) {
   return res;
 }
 
-static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
-  if (argn != 3) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value it = args[0];
-  lbm_value lst = args[1];
-  lbm_value body = args[2];
-
-  // (let ((loop (lambda (it rst res break) (if (eq it nil) res (loop (car rst) (cdr rst) body break))))) (call-cc (lambda (brk) (loop (car lst) (cdr lst) nil brk))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_LET),
-                   make_list(1,
-                             make_list(2,
-                                       lbm_enc_sym(sym_loop),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(4, it, lbm_enc_sym(sym_rst), lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
-                                                 make_list(4,
-                                                           lbm_enc_sym(SYM_IF),
-                                                           make_list(3, lbm_enc_sym(SYM_EQ), it, ENC_SYM_NIL),
-                                                           lbm_enc_sym(sym_res),
-                                                           make_list(5,
-                                                                     lbm_enc_sym(sym_loop),
-                                                                     make_list(2, lbm_enc_sym(SYM_CAR), lbm_enc_sym(sym_rst)),
-                                                                     make_list(2, lbm_enc_sym(SYM_CDR), lbm_enc_sym(sym_rst)),
-                                                                     body,
-                                                                     lbm_enc_sym(sym_break))
-                                                           )))),
-                   make_list(2,
-                             lbm_enc_sym(SYM_CALLCC),
-                             make_list(3,
-                                       lbm_enc_sym(SYM_LAMBDA),
-                                       make_list(1, lbm_enc_sym(sym_brk)),
-                                       make_list(5,
-                                                 lbm_enc_sym(sym_loop),
-                                                 make_list(2, lbm_enc_sym(SYM_CAR), lst),
-                                                 make_list(2, lbm_enc_sym(SYM_CDR), lst),
-                                                 ENC_SYM_NIL,
-                                                 lbm_enc_sym(sym_brk)))));
-}
-
-static lbm_value ext_me_looprange(lbm_value *args, lbm_uint argn) {
-  if (argn != 4) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value it = args[0];
-  lbm_value start = args[1];
-  lbm_value end = args[2];
-  lbm_value body = args[3];
-
-  // (let ((loop (lambda (it res break) (if (< it end) (loop (+ it 1) body break) res)))) (call-cc (lambda (brk) (loop start nil brk))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_LET),
-                   make_list(1,
-                             make_list(2,
-                                       lbm_enc_sym(sym_loop),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(3, it, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
-                                                 make_list(4,
-                                                           lbm_enc_sym(SYM_IF),
-                                                           make_list(3, lbm_enc_sym(SYM_LT), it, end),
-                                                           make_list(4, lbm_enc_sym(sym_loop), make_list(3, lbm_enc_sym(SYM_ADD), it, lbm_enc_i(1)), body, lbm_enc_sym(sym_break)),
-                                                           lbm_enc_sym(sym_res))))),
-                   make_list(2,
-                             lbm_enc_sym(SYM_CALLCC),
-                             make_list(3,
-                                       lbm_enc_sym(SYM_LAMBDA),
-                                       make_list(1, lbm_enc_sym(sym_brk)),
-                                       make_list(4, lbm_enc_sym(sym_loop), start, ENC_SYM_NIL, lbm_enc_sym(sym_brk)))));
-}
-
-
-
-lbm_value ext_block(lbm_value *args, lbm_uint argn) {
-
-  printf("blocking CID: %d\n", (int32_t)lbm_get_current_cid());
-  lbm_block_ctx_from_extension();
-  return lbm_enc_sym(SYM_TRUE);
-}
-
 lbm_value ext_print(lbm_value *args, lbm_uint argn) {
-  erase();
   if (argn < 1) return lbm_enc_sym(SYM_NIL);
 
   if (!allow_print) return lbm_enc_sym(SYM_TRUE);
@@ -411,100 +259,9 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
     }
   }
   printf("\n");
-  new_prompt();
   return lbm_enc_sym(SYM_TRUE);
 }
-
-lbm_value ext_unflatten(lbm_value *args, lbm_uint argn) {
-  (void) args;
-  (void) argn;
-
-  char *array = lbm_malloc(12);
-  array[0] = 'h';
-  array[1] = 'e';
-  array[2] = 'l';
-  array[3] = 'l';
-  array[4] = 'o';
-  array[5] = ' ';
-  array[6] = 'w';
-  array[7] = 'o';
-  array[8] = 'r';
-  array[9] = 'l';
-  array[10] = 'd';
-  array[11] = 0;
-
-
-  lbm_flat_value_t v;
-
-  if (lbm_start_flatten(&v, 100)) {
-    //  ((1 2 3 {3.000000} {51539607556} "hello world") . t)
-    f_cons(&v);
-    f_cons(&v);
-    f_i(&v, 1);
-    f_cons(&v);
-    f_i(&v, 2);
-    f_cons(&v);
-    f_i(&v, 3);
-    f_cons(&v);
-    f_float(&v, 3.14f);
-    f_cons(&v);
-    f_u64(&v, 0xFFFF0000FFFF0000);
-    f_cons(&v);
-    f_lbm_array(&v, 12, (uint8_t*)array);
-    f_sym(&v, SYM_NIL);
-    f_sym(&v, SYM_TRUE);
-    lbm_finish_flatten(&v);
-
-
-    v.buf_pos = 0;
-    lbm_value res;
-    lbm_unflatten_value(&v, &res);
-    return res;
-  } else {
-    return ENC_SYM_NIL;
-  }
-}
-
-char output[128];
-
-static bool test_destruct(lbm_uint value) {
-  printf("destroying custom value\n");
-  free((lbm_uint*)value);
-  return true;
-}
-
-static lbm_value ext_custom(lbm_value *args, lbm_uint argn) {
-
-  lbm_uint *mem = (lbm_uint*)malloc(1000*sizeof(lbm_uint));
-
-  lbm_value res;
-
-  lbm_custom_type_create((lbm_uint)mem, test_destruct, "custom_type", &res);
-  return res;
-}
-
-static lbm_value ext_event(lbm_value *args, lbm_uint argn) {
-
-  if (argn != 1 || !lbm_is_symbol(args[0])) return ENC_SYM_EERROR;
-
-  lbm_flat_value_t v;
-  if (lbm_start_flatten(&v,5)) {
-    f_sym(&v, lbm_dec_sym(args[0]));
-    lbm_finish_flatten(&v);
-    lbm_event(&v);
-    return ENC_SYM_TRUE;
-  }
-  return ENC_SYM_NIL;
-}
-
-
-static lbm_value ext_time(lbm_value *args, lbm_uint argn) {
-
-  uint32_t time = timestamp_callback();
-
-  return lbm_enc_u32(time);
-}
-
+ 
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
   char *file_str = NULL;
@@ -601,29 +358,43 @@ void sym_it(const char *str) {
 static lbm_uint memory[LBM_MEMORY_SIZE_1M];
 static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_1M];
 
-char char_array[1024];
-lbm_uint word_array[1024];
+pthread_t lispbm_thd = 0;
+unsigned int heap_size = 2048; // default
+lbm_cons_t *heap_storage = NULL;
+lbm_heap_state_t heap_state;
+lbm_const_heap_t const_heap;
 
+void parse_opts(int argc, char **argv) {
 
-int main(int argc, char **argv) {
-  int res = 0;
+  int c;
+  opterr = 1;
+  while ((c = getopt(argc, argv, "h:")) != -1) {
+    switch (c) {
+    case 'h':
+      heap_size = (unsigned int)atoi((char*)optarg);
+      break;
+    default:
+      break;
+    }
+  }
+}
 
-  pthread_t lispbm_thd;
+int init_repl() {
 
-  lbm_heap_state_t heap_state;
-  unsigned int heap_size = 2048;
-  lbm_cons_t *heap_storage = NULL;
-
-  lbm_const_heap_t const_heap;
-
-  for (int i = 0; i < 1024; i ++) {
-    char_array[i] = (char)i;
-    word_array[i] = (lbm_uint)i;
+  if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
+    int thread_r = 0;
+    lbm_kill_eval();
+    pthread_join(lispbm_thd, (void*)&thread_r);
+    lispbm_thd = 0;
   }
 
-  //setup_terminal();
+  if (heap_storage) {
+    free(heap_storage);
+    heap_storage = NULL;
+  }
 
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
+
   if (heap_storage == NULL) {
     return 0;
   }
@@ -635,12 +406,10 @@ int main(int argc, char **argv) {
                 PRINT_STACK_SIZE,
                 extensions,
                 EXTENSION_STORAGE_SIZE)) {
-    printf("Failed to initialize LispBM\n");
     return 0;
   }
 
   if (!lbm_eval_init_events(20)) {
-    printf("Failed to initialize events\n");
     return 0;
   }
 
@@ -649,113 +418,46 @@ int main(int argc, char **argv) {
                            &const_heap,constants_memory,
                            CONSTANT_MEMORY_SIZE)) {
     return 0;
-  } else {
-    printf("Constants memory initialized\n");
   }
 
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
-  lbm_set_timestamp_us_callback(timestamp_callback);
+  lbm_set_timestamp_us_callback(timestamp);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_printf_callback(error_print);
 
-  if (lbm_array_extensions_init()) {
-    printf("Array extensions loaded\n");
-  } else {
-    printf("Loading array extensions failed\n");
+  init_exts();
+  if (!lbm_add_extension("print", ext_print)) {
+    return 0;
   }
 
-  if (lbm_string_extensions_init()) {
-    printf("String extensions loaded\n");
-  } else {
-    printf("Loading string extensions failed\n");
-  }
-
-  if (lbm_math_extensions_init()) {
-    printf("Math extensions loaded\n");
-  } else {
-    printf("Loading math extensions failed\n");
-  }
-
-  if (lbm_runtime_extensions_init(false)) {
-    printf("Runtime extensions loaded\n");
-  } else {
-    printf("Loading runtime extensions failed\n");
-  }
-
-  res = lbm_add_extension("block", ext_block);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
-  res = lbm_add_extension("print", ext_print);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
-  res = lbm_add_extension("custom", ext_custom);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
-  res = lbm_add_extension("event", ext_event);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
-  res = lbm_add_extension("me-loopforeach", ext_me_loopforeach);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
-  res = lbm_add_extension("me-looprange", ext_me_looprange);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
-  res = lbm_add_extension("time", ext_time);
-  if (res)
-    printf("Extension added.\n");
-  else
-    printf("Error adding extension.\n");
-
-  lbm_add_symbol_const("a01", &sym_res);
-  lbm_add_symbol_const("a02", &sym_loop);
-  lbm_add_symbol_const("break", &sym_break);
-  lbm_add_symbol_const("a03", &sym_brk);
-  lbm_add_symbol_const("a04", &sym_rst);
-  lbm_add_symbol_const("return", &sym_return);
-
+  
   /* Start evaluator thread */
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 1;
-  }
+  } 
+  return 1;
+}
 
-  printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
-  printf("Type :quit to exit.\n");
-  printf("     :info for statistics.\n");
-  printf("     :load [filename] to load lisp source.\n");
+int main(int argc, char **argv) {
+  parse_opts(argc, argv);
+
+  using_history();
+  
+  if (!init_repl()) {
+    printf ("Failed to initialize REPL\n");
+    return -1;
+  }
 
   char output[1024];
 
   while (1) {
-    fflush(stdin);
-
-    new_prompt();
-
-    char *str = malloc(STR_SIZE);
-    memset(str, 0 ,STR_SIZE);
-
-    ssize_t n = inputline(str,STR_SIZE);
-
+    char *str = readline("# ");
+    add_history(str);
+    unsigned int n = strlen(str);
+    
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("--(LISP HEAP)-----------------------------------------------\n");
       lbm_get_heap_state(&heap_state);
@@ -821,20 +523,38 @@ int main(int argc, char **argv) {
         lbm_value curr = env[i];
         printf("Environment [%d]:\r\n", i);
         while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-          res = lbm_print_value(output,1024, lbm_car(curr));
+          lbm_print_value(output,1024, lbm_car(curr));
           curr = lbm_cdr(curr);
           printf("  %s\r\n",output);
         }
       }
       free(str);
-    }else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
+    } else if (strncmp(str, ":state", 6) == 0) {
+      lbm_uint state = lbm_get_eval_state();
+      switch (state) {
+      case EVAL_CPS_STATE_DEAD:
+        printf("DEAD\n");
+        break;
+      case EVAL_CPS_STATE_PAUSED:
+        printf("PAUSED\n");
+        break;
+      case EVAL_CPS_STATE_NONE:
+        printf("NO STATE\n");
+        break;
+      case EVAL_CPS_STATE_RUNNING:
+        printf("RUNNING\n");
+        break;
+      case EVAL_CPS_STATE_KILL:
+        printf("KILLING\n");
+        break;
+      }
+      free(str);
+    }
+    else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
 
       char *file_str = load_file(&str[5]);
       if (file_str) {
 
-        /* lbm_create_char_stream_from_string(&string_tok_state, */
-        /*                                       &string_tok, */
-        /*                                       file_str); */
         lbm_create_string_char_channel(&string_tok_state,
                                        &string_tok,
                                        file_str);
@@ -879,138 +599,19 @@ int main(int argc, char **argv) {
       int size = atoi(str + 5);
       if (size > 0) {
         heap_size = (unsigned int)size;
-
-        free(heap_storage);
-        heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
-
-        lbm_pause_eval();
-        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-          sleep_callback(10);
+        if (!init_repl()) {
+          printf("Failed to initialize REPL after heap resize\n");
+          return -1;
         }
-
-        lbm_init(heap_storage, heap_size,
-                 memory, LBM_MEMORY_SIZE_1M,
-                 bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
-                 GC_STACK_SIZE,
-                 PRINT_STACK_SIZE,
-                 extensions,
-                 EXTENSION_STORAGE_SIZE);
-
-        if (!lbm_const_heap_init(const_heap_write,
-                           &const_heap,constants_memory,
-                           CONSTANT_MEMORY_SIZE)) {
-          return 0;
-        } else {
-          printf("Constants memory initialized\n");
-        }
-
-        if (lbm_array_extensions_init()) {
-          printf("Array extensions loaded\n");
-        } else {
-          printf("Loading array extensions failed\n");
-        }
-
-        if (lbm_string_extensions_init()) {
-        printf("String extensions loaded\n");
-        } else {
-          printf("Loading string extensions failed\n");
-        }
-
-        if (lbm_math_extensions_init()) {
-          printf("Math extensions loaded\n");
-        } else {
-          printf("Loading math extensions failed\n");
-        }
-
-        res = lbm_add_extension("block", ext_block);
-        if (res)
-          printf("Extension added.\n");
-        else
-          printf("Error adding extension.\n");
-
-        lbm_add_extension("print", ext_print);
-        free(str);
       }
+      free(str);
     } else if (strncmp(str, ":reset", 6) == 0) {
-      lbm_pause_eval();
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        sleep_callback(10);
+      if (!init_repl()) {
+        printf ("Failed to initialize REPL\n");
+        return -1;
       }
-
-      lbm_init(heap_storage, heap_size,
-               memory, LBM_MEMORY_SIZE_1M,
-               bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
-               GC_STACK_SIZE,
-               PRINT_STACK_SIZE,
-               extensions,
-               EXTENSION_STORAGE_SIZE);
-
-      if (!lbm_const_heap_init(const_heap_write,
-                               &const_heap,constants_memory,
-                               CONSTANT_MEMORY_SIZE)) {
-        return 0;
-      } else {
-        printf("Constants memory initialized\n");
-      }
-
-      if (lbm_array_extensions_init()) {
-        printf("Array extensions loaded\n");
-      } else {
-        printf("Loading array extensions failed\n");
-      }
-
-      if (lbm_string_extensions_init()) {
-        printf("String extensions loaded\n");
-      } else {
-        printf("Loading string extensions failed\n");
-      }
-
-      if (lbm_math_extensions_init()) {
-        printf("Math extensions loaded\n");
-      } else {
-        printf("Loading math extensions failed\n");
-      }
-
-      if (lbm_runtime_extensions_init(false)) {
-        printf("Runtime extensions loaded\n");
-      } else {
-        printf("Loading runtime extensions failed\n");
-      }
-
-      res = lbm_add_extension("block", ext_block);
-      if (res)
-        printf("Extension added.\n");
-      else
-        printf("Error adding extension.\n");
-
-      res = lbm_add_extension("print", ext_print);
-      if (res)
-        printf("Extension added.\n");
-      else
-        printf("Error adding extension.\n");
-
-      res = lbm_add_extension("custom", ext_custom);
-      if (res)
-        printf("Extension added.\n");
-      else
-        printf("Error adding extension.\n");
-
-      res = lbm_add_extension("event", ext_event);
-      if (res)
-        printf("Extension added.\n");
-      else
-        printf("Error adding extension.\n");
-
-      res = lbm_add_extension("unflatten", ext_unflatten);
-      if (res)
-        printf("Extension added.\n");
-      else
-        printf("Error adding extension.\n");
-
-      lbm_add_extension("print", ext_print);
       free(str);
     } else if (strncmp(str, ":send", 5) == 0) {
-
       int id;
       int i_val;
 
@@ -1069,22 +670,13 @@ int main(int argc, char **argv) {
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
-      //printf("loading: %s\n", str);
-      //lbm_create_char_stream_from_string(&string_tok_state,
-      //                                   &string_tok,
-      //                                   str);
       lbm_create_string_char_channel(&string_tok_state,
                                      &string_tok,
                                      str);
       (void)lbm_load_and_eval_expression(&string_tok);
       lbm_continue_eval();
-
-      //printf("started ctx: %"PRI_UINT"\n", cid);
     }
   }
   free(heap_storage);
-
-  //restore_terminal();
-
   return 0;
 }

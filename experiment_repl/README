@@ -1,0 +1,10 @@
+
+Experiment REPL.
+
+Dependencies:
+        libreadline - lib32readline
+        libhistory  - lib32history
+
+
+Build:
+        make

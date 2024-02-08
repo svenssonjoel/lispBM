@@ -27,11 +27,11 @@
 extern "C" {
 #endif
 
-#define EVAL_CPS_STATE_INIT    0
+#define EVAL_CPS_STATE_NONE    0
 #define EVAL_CPS_STATE_PAUSED  1
 #define EVAL_CPS_STATE_RUNNING 2
-#define EVAL_CPS_STATE_STEP    3
 #define EVAL_CPS_STATE_KILL    4
+#define EVAL_CPS_STATE_DEAD    8
 
 #define EVAL_CPS_DEFAULT_MAILBOX_SIZE 10
 
