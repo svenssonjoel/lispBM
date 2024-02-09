@@ -71,13 +71,13 @@ available for X86 is currently very limited and "hacky". I use this repl as an
 experiment platform while working on the LBM implementation. A more serious attempt
 at a useful desktop/laptop/rpi LispBM repl is work in progress.
 
-1. Build the repl: `cd experiment_repl` and then `make all64`
+1. Build the repl: `cd repl` and then `make all64`
 
 2. Run the repl: `./repl`
 
 ## Compile a 32bit binary for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 
-1. Build the repl: `cd experiment_repl` and then `make`
+1. Build the repl: `cd repl` and then `make`
 
 2. Run the repl: `./repl`
 

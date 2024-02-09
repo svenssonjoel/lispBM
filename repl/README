@@ -1,0 +1,13 @@
+
+LBM REPL
+
+Dependencies:
+        libreadline - lib32readline
+        libhistory  - lib32history
+
+Ubuntu example for obtaining dependencies
+'sudo apt-get install lib32readline-dev lib32history-dev'
+
+
+Build:
+        make
