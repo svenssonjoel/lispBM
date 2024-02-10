@@ -42,6 +42,7 @@
 #include "lbm_version.h"
 
 #include "repl_exts.h"
+#include "base64.h"
 
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
@@ -267,15 +268,33 @@ lbm_cons_t *heap_storage = NULL;
 lbm_heap_state_t heap_state;
 lbm_const_heap_t const_heap;
 
+// OPTIONS
+
+#define NO_SHORT_OPT 1024
+struct option options[] = {
+  {"help", no_argument, NULL, 'h'},
+  {"heap_size", required_argument, NULL, 'H'},
+  {0,0,0,0}};
+  
+  
+
 void parse_opts(int argc, char **argv) {
 
   int c;
   opterr = 1;
-  while ((c = getopt(argc, argv, "h:")) != -1) {
+  int opt_index = 0;
+  while ((c = getopt_long(argc, argv, "´H:h",options, &opt_index)) != -1) {
     switch (c) {
-    case 'h':
+    case 'H':
       heap_size = (unsigned int)atoi((char*)optarg);
       break;
+    case 'h':
+      printf("Usage: %s [OPTION...]\n\n", argv[0]);
+      printf("\t-h, --help\t\t\tPrints help\n");
+      printf("\t-H SIZE, --heap_size=SIZE\tSet heap_size to be SIZE number of cells\n");
+      exit(EXIT_SUCCESS);
+    case 't':
+      printf("test: %s\n", (char *)optarg);
     default:
       break;
     }
