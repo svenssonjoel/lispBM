@@ -274,27 +274,75 @@ lbm_const_heap_t const_heap;
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
   {"heap_size", required_argument, NULL, 'H'},
+  {"src", required_argument, NULL, 's'},
+  {"env", required_argument, NULL, 'e'},
   {0,0,0,0}};
+
+typedef struct src_list_s {
+  char *filename;
+  struct src_list_s *next;
+} src_list_t;
+
+src_list_t *sources = NULL;
+
+bool src_list_add(char *filename) {
+  src_list_t *entry=malloc(sizeof(src_list_t));
+  if (!entry) return false;
+
+  entry->filename = filename;
+  entry->next = NULL;
   
-  
+  if (!sources) {
+    sources = entry;
+    return true;
+  }
+  src_list_t *curr = sources;
+  while(curr->next) {
+    curr = curr->next;
+  }
+  curr->next = entry;
+  return true;
+}
+
+int src_list_len(void) {
+  int n = 0;
+  src_list_t *curr = sources;
+  while (curr) {
+    curr = curr->next;
+    n++;
+  }
+  return n;
+}
+
+char *env_file = NULL;
 
 void parse_opts(int argc, char **argv) {
 
   int c;
   opterr = 1;
   int opt_index = 0;
-  while ((c = getopt_long(argc, argv, "´H:h",options, &opt_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "e:H:hs:",options, &opt_index)) != -1) {
     switch (c) {
+    case 'e':
+      env_file = (char*)optarg;
+      printf("Environment files are currently ignored\n");
+      break;
     case 'H':
       heap_size = (unsigned int)atoi((char*)optarg);
       break;
     case 'h':
       printf("Usage: %s [OPTION...]\n\n", argv[0]);
+      printf("\t-e FILEPATH, --env=FILEPATH\tLoad an environment file\n");
       printf("\t-h, --help\t\t\tPrints help\n");
       printf("\t-H SIZE, --heap_size=SIZE\tSet heap_size to be SIZE number of cells\n");
+      printf("\t-s FILEPATH, --src=FILEPATH\tLoad and evaluate list src\n");
       exit(EXIT_SUCCESS);
-    case 't':
-      printf("test: %s\n", (char *)optarg);
+    case 's':
+      if (!src_list_add((char*)optarg)) {
+        printf("Error adding source file to source list\n");
+        exit(EXIT_FAILURE);
+      }
+      break;
     default:
       break;
     }
