@@ -56,6 +56,8 @@ lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 lbm_prof_t prof_data[100];
 
+volatile lbm_cid startup_cid = -1;
+
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
   if (ix >= CONSTANT_MEMORY_SIZE) return false;
   if (constants_memory[ix] == 0xffffffff) {
@@ -107,6 +109,12 @@ void critical(void) {
 }
 
 void done_callback(eval_context_t *ctx) {
+
+  if (startup_cid != -1) {
+    if (ctx->id == startup_cid) {
+      startup_cid = -1;
+    }
+  }
   char output[1024];
   lbm_value t = ctx->r;
   lbm_print_value(output, 1024, t);
@@ -169,15 +177,11 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
   char *file_str = NULL;
-  //size_t str_len = strlen(filename);
-  //filename[str_len-1] = 0;
   int i = 0;
   while (filename[i] == ' ' && filename[i] != 0) {
     i ++;
   }
   FILE *fp;
-  printf("filename: %s\n", &filename[i]);
-
   if (strlen(&filename[i]) > 0) {
     errno = 0;
     fp = fopen(&filename[i], "r");
@@ -235,8 +239,6 @@ void ctx_exists(eval_context_t *ctx, void *arg1, void *arg2) {
 }
 
 void lookup_local(eval_context_t *ctx, void *arg1, void *arg2) {
-
-
   char output[1024];
   lbm_value res;
   if (lbm_env_lookup_b(&res, (lbm_value)arg1, ctx->curr_env)) {
@@ -291,7 +293,7 @@ bool src_list_add(char *filename) {
 
   entry->filename = filename;
   entry->next = NULL;
-  
+
   if (!sources) {
     sources = entry;
     return true;
@@ -428,8 +430,15 @@ bool evaluate_sources(void) {
       sleep_callback(10);
     }
 
-    lbm_cid c = lbm_load_and_eval_program_incremental(&string_tok, NULL);
+    startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
     lbm_continue_eval();
+
+    int counter = 0;
+    while (startup_cid != -1) {
+      sleep_callback(10);
+      counter++;
+    }
+
     curr = curr->next;
   }
   return true;
