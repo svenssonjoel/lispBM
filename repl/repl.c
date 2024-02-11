@@ -336,6 +336,9 @@ void parse_opts(int argc, char **argv) {
       printf("\t-h, --help\t\t\tPrints help\n");
       printf("\t-H SIZE, --heap_size=SIZE\tSet heap_size to be SIZE number of cells\n");
       printf("\t-s FILEPATH, --src=FILEPATH\tLoad and evaluate list src\n");
+      printf("\n");
+      printf("Multiple sourcefiles can be added with multiple uses of the --src/-s flag.\n" \
+             "Multiple sources are evaluated in sequence in the order they are specified on the command-line\n");
       exit(EXIT_SUCCESS);
     case 's':
       if (!src_list_add((char*)optarg)) {
@@ -410,6 +413,29 @@ int init_repl() {
   return 1;
 }
 
+bool evaluate_sources(void) {
+
+  src_list_t *curr = sources;
+  char *file_str = NULL;
+  while (curr) {
+    if (file_str) free(file_str);
+    file_str = load_file(curr->filename);
+    lbm_create_string_char_channel(&string_tok_state,
+                                   &string_tok,
+                                   file_str);
+    lbm_pause_eval_with_gc(50);
+    while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+      sleep_callback(10);
+    }
+
+    lbm_cid c = lbm_load_and_eval_program_incremental(&string_tok, NULL);
+    lbm_continue_eval();
+    curr = curr->next;
+  }
+  return true;
+}
+
+
 int main(int argc, char **argv) {
   parse_opts(argc, argv);
 
@@ -418,6 +444,10 @@ int main(int argc, char **argv) {
   if (!init_repl()) {
     printf ("Failed to initialize REPL\n");
     return -1;
+  }
+
+  if (sources) {
+    evaluate_sources();
   }
 
   char output[1024];
