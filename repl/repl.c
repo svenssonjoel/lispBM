@@ -495,6 +495,7 @@ int main(int argc, char **argv) {
   while (1) {
     erase();
     char *str = readline("# ");
+    if (str == NULL) exit(EXIT_SUCCESS);
     add_history(str);
     unsigned int n = strlen(str);
 

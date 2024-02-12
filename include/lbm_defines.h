@@ -86,7 +86,7 @@
 #define LBM_PTR_MASK                     (lbm_uint)0x1
 #define LBM_PTR_BIT                      (lbm_uint)0x1
 #define LBM_PTR_VAL_MASK                 (lbm_uint)0x03FFFFFFFFFFFFFC
-#define LBM_PTR_TYPE_MASK                (lbm_uint)0xF800000000000000
+#define LBM_PTR_TYPE_MASK                (lbm_uint)0xFC00000000000000
 #define LBM_PTR_NULL                     ((lbm_uint)0x03FFFFFFFFFFFFFC >> 2)
 
 #define LBM_PTR_TO_CONSTANT_BIT          (lbm_uint)0x0400000000000000
@@ -236,11 +236,19 @@
 #define SYM_LOOP                0x115
 #define SPECIAL_FORMS_END       0x115
 
+#ifndef LBM64
 #define SPECIAL_FORMS_MASK        0xFFFFFF00
 #define SPECIAL_FORMS_BIT         0x00000100
 #define ENC_SPECIAL_FORMS_MASK    0xFFFFF000
 #define ENC_SPECIAL_FORMS_BIT     0x00001000
 #define SPECIAL_FORMS_INDEX_MASK  0x000000FF
+#else
+#define SPECIAL_FORMS_MASK        0xFFFFFFFFFFFFFF00
+#define SPECIAL_FORMS_BIT         0x0000000000000100
+#define ENC_SPECIAL_FORMS_MASK    0xFFFFFFFFFFFF0000
+#define ENC_SPECIAL_FORMS_BIT     0x0000000000010000
+#define SPECIAL_FORMS_INDEX_MASK  0x00000000000000FF
+#endif
 
 // Fundamental built in operations that take their
 // arguments on stack. Fundamentals do not handle
@@ -341,7 +349,6 @@
 
 #define SYMBOL_IX(X)            ((X) & 0xFFFF)
 
-// TODO: look over for 64bit version
 #define SPECIAL_SYMBOLS_START     0
 #define SPECIAL_SYMBOLS_END       0xFFFF
 #define EXTENSION_SYMBOLS_START   0x10000
