@@ -23,7 +23,6 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <termios.h>
 #include <ctype.h>
 #include <getopt.h>
 #include <readline/readline.h>
@@ -272,12 +271,16 @@ lbm_const_heap_t const_heap;
 
 // OPTIONS
 
-#define NO_SHORT_OPT 1024
+#define NO_SHORT_OPT         0x0400
+#define LOAD_ENVIRONMENT     0x0401
+#define STORE_ENVIRONMENT    0x0402
+
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
   {"heap_size", required_argument, NULL, 'H'},
   {"src", required_argument, NULL, 's'},
-  {"env", required_argument, NULL, 'e'},
+  {"load_env", required_argument, NULL, LOAD_ENVIRONMENT},
+  {"store_env", required_argument, NULL, STORE_ENVIRONMENT},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -316,37 +319,46 @@ int src_list_len(void) {
   return n;
 }
 
-char *env_file = NULL;
+char *env_input_file = NULL;
+char *env_output_file = NULL;
 
 void parse_opts(int argc, char **argv) {
 
   int c;
   opterr = 1;
   int opt_index = 0;
-  while ((c = getopt_long(argc, argv, "e:H:hs:",options, &opt_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "H:hs:",options, &opt_index)) != -1) {
     switch (c) {
-    case 'e':
-      env_file = (char*)optarg;
-      printf("Environment files are currently ignored\n");
-      break;
     case 'H':
       heap_size = (unsigned int)atoi((char*)optarg);
       break;
     case 'h':
       printf("Usage: %s [OPTION...]\n\n", argv[0]);
-      printf("\t-e FILEPATH, --env=FILEPATH\tLoad an environment file\n");
       printf("\t-h, --help\t\t\tPrints help\n");
       printf("\t-H SIZE, --heap_size=SIZE\tSet heap_size to be SIZE number of cells\n");
       printf("\t-s FILEPATH, --src=FILEPATH\tLoad and evaluate list src\n");
       printf("\n");
+      printf("\t--load_env FILEPATH\tLoad the global environment from a file at startup\n");
+      printf("\t--store_env FILEPATH\tStore the global environment to a file upon exit\n");
+      printf("\n");
       printf("Multiple sourcefiles can be added with multiple uses of the --src/-s flag.\n" \
-             "Multiple sources are evaluated in sequence in the order they are specified on the command-line\n");
+             "Multiple sources are evaluated in sequence in the order they are specified\n" \
+             "on the command-line. Source file N will not start evaluating until after\n" \
+             "source file (N-1) has terminated, for N larger than 1.\n");
       exit(EXIT_SUCCESS);
     case 's':
       if (!src_list_add((char*)optarg)) {
         printf("Error adding source file to source list\n");
         exit(EXIT_FAILURE);
       }
+      break;
+    case LOAD_ENVIRONMENT:
+      env_input_file = (char*)optarg;
+      printf("Environment files are currently ignored\n");
+      break;
+    case STORE_ENVIRONMENT:
+      env_output_file = (char*)optarg;
+      printf("Environment files are currently ignored\n");
       break;
     default:
       break;
@@ -444,6 +456,23 @@ bool evaluate_sources(void) {
   return true;
 }
 
+void startup_procedure(void) {
+
+  if (env_input_file) {
+
+  }
+
+  if (sources) {
+    evaluate_sources();
+  }
+}
+
+void shutdown_procedure(void) {
+
+  if (env_output_file) {
+
+  }
+}
 
 int main(int argc, char **argv) {
   parse_opts(argc, argv);
@@ -454,11 +483,7 @@ int main(int argc, char **argv) {
     printf ("Failed to initialize REPL\n");
     return -1;
   }
-
-  if (sources) {
-    evaluate_sources();
-  }
-
+  startup_procedure();
   char output[1024];
 
   while (1) {
