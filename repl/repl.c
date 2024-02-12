@@ -41,7 +41,6 @@
 #include "lbm_version.h"
 
 #include "repl_exts.h"
-#include "base64.h"
 
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
@@ -97,8 +96,6 @@ void *eval_thd_wrapper(void *v) {
   printf("     :info for statistics.\n");
   printf("     :load [filename] to load lisp source.\n");
   lbm_run_eval();
-  new_prompt();
-  printf("Closing down evaluator thread\n");
   return NULL;
 }
 
@@ -274,6 +271,7 @@ lbm_const_heap_t const_heap;
 #define NO_SHORT_OPT         0x0400
 #define LOAD_ENVIRONMENT     0x0401
 #define STORE_ENVIRONMENT    0x0402
+#define STORE_RESULT         0x0403
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -281,6 +279,7 @@ struct option options[] = {
   {"src", required_argument, NULL, 's'},
   {"load_env", required_argument, NULL, LOAD_ENVIRONMENT},
   {"store_env", required_argument, NULL, STORE_ENVIRONMENT},
+  {"store_res", required_argument, NULL, STORE_RESULT},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -321,6 +320,7 @@ int src_list_len(void) {
 
 char *env_input_file = NULL;
 char *env_output_file = NULL;
+char *res_output_file = NULL;
 
 void parse_opts(int argc, char **argv) {
 
@@ -340,6 +340,8 @@ void parse_opts(int argc, char **argv) {
       printf("\n");
       printf("\t--load_env FILEPATH\tLoad the global environment from a file at startup\n");
       printf("\t--store_env FILEPATH\tStore the global environment to a file upon exit\n");
+      printf("\t--store_res FILEPATH\tStore the result of the last program specified with\n"\
+             "\t\t\t\tthe --src/-s options.\n");
       printf("\n");
       printf("Multiple sourcefiles can be added with multiple uses of the --src/-s flag.\n" \
              "Multiple sources are evaluated in sequence in the order they are specified\n" \
@@ -359,6 +361,10 @@ void parse_opts(int argc, char **argv) {
     case STORE_ENVIRONMENT:
       env_output_file = (char*)optarg;
       printf("Environment files are currently ignored\n");
+      break;
+    case STORE_RESULT:
+      res_output_file = (char*)optarg;
+      printf("Result files are currently ignored\n");
       break;
     default:
       break;

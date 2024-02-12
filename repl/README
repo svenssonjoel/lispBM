@@ -6,7 +6,7 @@ Dependencies:
         libhistory  - lib32history
 
 Ubuntu example for obtaining dependencies
-'sudo apt-get install lib32readline-dev lib32history-dev'
+'sudo apt-get install libreadline-dev lib32readline-dev'
 
 
 Build:

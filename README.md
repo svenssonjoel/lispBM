@@ -61,7 +61,7 @@ what we call "extensions" which are C functions that can be called from your Lis
  - Gotchas and caveats [Gotchas and caveats](./doc/gotchas.md).
  - Work in progress [LispBM programming manual](./doc/manual).
  - C code documentation can be found [here](http://svenssonjoel.github.io/lbmdoc/html/index.html).
- - LispBM's internals are documented as a series of [blog posts](http://svenssonjoel.github.io).
+ - LispBM's internals are documented as a series of (now quite outdated) [blog posts](http://svenssonjoel.github.io).
  - There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3TaqZoDOQqZcB9Yj-R1zS2DWDZ9q9).
 
 ### Compile a 64bit binary for linux
@@ -75,7 +75,7 @@ at a useful desktop/laptop/rpi LispBM repl is work in progress.
 
 2. Run the repl: `./repl`
 
-## Compile a 32bit binary for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
+### Compile a 32bit binary for linux (Requires 32bit libraries. May need something like "multilib" on a 64bit linux)
 
 1. Build the repl: `cd repl` and then `make`
 
