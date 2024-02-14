@@ -56,6 +56,8 @@ lbm_prof_t prof_data[100];
 
 volatile lbm_cid startup_cid = -1;
 
+void shutdown_procedure(void);
+
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
   if (ix >= CONSTANT_MEMORY_SIZE) return false;
   if (constants_memory[ix] == 0xffffffff) {
@@ -272,6 +274,7 @@ lbm_const_heap_t const_heap;
 #define LOAD_ENVIRONMENT     0x0401
 #define STORE_ENVIRONMENT    0x0402
 #define STORE_RESULT         0x0403
+#define TERMINATE            0x0404
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -280,6 +283,7 @@ struct option options[] = {
   {"load_env", required_argument, NULL, LOAD_ENVIRONMENT},
   {"store_env", required_argument, NULL, STORE_ENVIRONMENT},
   {"store_res", required_argument, NULL, STORE_RESULT},
+  {"terminate", no_argument, NULL, TERMINATE},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -322,6 +326,8 @@ char *env_input_file = NULL;
 char *env_output_file = NULL;
 char *res_output_file = NULL;
 
+bool terminate_after_startup = false;
+
 void parse_opts(int argc, char **argv) {
 
   int c;
@@ -345,6 +351,8 @@ void parse_opts(int argc, char **argv) {
              "                                  exit.\n");
       printf("    --store_res FILEPATH          Store the result of the last program\n"\
              "                                  specified with the --src/-s options.\n");
+      printf("    --terminate                   Terminate the REPL after evaluatinf the\n"\
+             "                                  source files specified with --src/-s\n");
       printf("\n");
       printf("Multiple sourcefiles can be added with multiple uses of the --src/-s flag.\n" \
              "Multiple sources are evaluated in sequence in the order they are specified\n" \
@@ -367,6 +375,8 @@ void parse_opts(int argc, char **argv) {
       res_output_file = (char*)optarg;
       printf("Result files are currently ignored\n");
       break;
+    case TERMINATE:
+      terminate_after_startup = true;
     default:
       break;
     }
@@ -558,6 +568,11 @@ void startup_procedure(void) {
  startup_procedure_1:
   if (sources) {
     evaluate_sources();
+  }
+
+  if(terminate_after_startup) {
+    shutdown_procedure();
+    exit(EXIT_SUCCESS);
   }
 }
 
