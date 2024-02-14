@@ -125,14 +125,22 @@ void done_callback(eval_context_t *ctx) {
         fv.buf_size = (uint32_t)fv_size;
         fv.buf_pos = 0;
         if (flatten_value_c(&fv, ctx->r) == FLATTEN_VALUE_OK) {
-          FILE *fp = fopen(res_output_file, "w");
+          FILE *fp = fopen((const char *)res_output_file, "w");
           if (fp) {
             fwrite(&fv_size, 1, sizeof(int32_t), fp);
             fwrite(fv.buf, 1, (size_t)fv_size, fp);
             fclose(fp);
+          } else {
+            printf("ALERT: Cannot open result file\n");
           }
+        } else {
+          printf("ALERT: Unable to flatten result value\n");
         }
+      } else {
+        printf("ALERT: Out of memory to allocate result buffer\n");
       }
+    } else {
+      printf("ALERT: Unable to flatten result value\n");
     }
   }
   char output[1024];
@@ -367,13 +375,13 @@ void parse_opts(int argc, char **argv) {
              "                                  cells.\n");
       printf("    -s FILEPATH, --src=FILEPATH   Load and evaluate lisp src\n");
       printf("\n");
-      printf("    --load_env FILEPATH           Load the global environment from a file at\n"\
+      printf("    --load_env=FILEPATH           Load the global environment from a file at\n"\
              "                                  startup.\n");
-      printf("    --store_env FILEPATH          Store the global environment to a file upon\n"\
+      printf("    --store_env=FILEPATH          Store the global environment to a file upon\n"\
              "                                  exit.\n");
-      printf("    --store_res FILEPATH          Store the result of the last program\n"\
+      printf("    --store_res=FILEPATH          Store the result of the last program\n"\
              "                                  specified with the --src/-s options.\n");
-      printf("    --terminate                   Terminate the REPL after evaluatinf the\n"\
+      printf("    --terminate                   Terminate the REPL after evaluating the\n"\
              "                                  source files specified with --src/-s\n");
       printf("\n");
       printf("Multiple sourcefiles can be added with multiple uses of the --src/-s flag.\n" \
