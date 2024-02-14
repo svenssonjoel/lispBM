@@ -54,7 +54,12 @@ lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 lbm_prof_t prof_data[100];
 
+char *env_input_file = NULL;
+char *env_output_file = NULL;
+volatile char *res_output_file = NULL;
+bool terminate_after_startup = false;
 volatile lbm_cid startup_cid = -1;
+volatile lbm_cid store_result_cid = -1;
 
 void shutdown_procedure(void);
 
@@ -108,9 +113,26 @@ void critical(void) {
 
 void done_callback(eval_context_t *ctx) {
 
-  if (startup_cid != -1) {
-    if (ctx->id == startup_cid) {
-      startup_cid = -1;
+  // fails silently if unable to generate result file.
+  // TODO: report failure in some way.
+  if (res_output_file && store_result_cid == ctx->id) {
+    store_result_cid = -1;
+    int32_t fv_size = flatten_value_size(ctx->r, 0, 0, (int)lbm_heap_size());
+    if (fv_size > 0) {
+      lbm_flat_value_t fv;
+      fv.buf = malloc((uint32_t)fv_size);
+      if (fv.buf) {
+        fv.buf_size = (uint32_t)fv_size;
+        fv.buf_pos = 0;
+        if (flatten_value_c(&fv, ctx->r) == FLATTEN_VALUE_OK) {
+          FILE *fp = fopen(res_output_file, "w");
+          if (fp) {
+            fwrite(&fv_size, 1, sizeof(int32_t), fp);
+            fwrite(fv.buf, 1, (size_t)fv_size, fp);
+            fclose(fp);
+          }
+        }
+      }
     }
   }
   char output[1024];
@@ -119,6 +141,12 @@ void done_callback(eval_context_t *ctx) {
   erase();
   printf("> %s\n", output);
   new_prompt();
+
+  if (startup_cid != -1) {
+    if (ctx->id == startup_cid) {
+      startup_cid = -1;
+    }
+  }
 }
 
 int error_print(const char *format, ...) {
@@ -322,12 +350,6 @@ int src_list_len(void) {
   return n;
 }
 
-char *env_input_file = NULL;
-char *env_output_file = NULL;
-char *res_output_file = NULL;
-
-bool terminate_after_startup = false;
-
 void parse_opts(int argc, char **argv) {
 
   int c;
@@ -373,7 +395,6 @@ void parse_opts(int argc, char **argv) {
       break;
     case STORE_RESULT:
       res_output_file = (char*)optarg;
-      printf("Result files are currently ignored\n");
       break;
     case TERMINATE:
       terminate_after_startup = true;
@@ -460,6 +481,9 @@ bool evaluate_sources(void) {
     }
 
     startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
+    if (res_output_file) {
+      store_result_cid = startup_cid;
+    }
     lbm_continue_eval();
 
     int counter = 0;
@@ -467,7 +491,6 @@ bool evaluate_sources(void) {
       sleep_callback(10);
       counter++;
     }
-
     curr = curr->next;
   }
   return true;
