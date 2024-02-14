@@ -105,7 +105,6 @@ static jmp_buf critical_error_jmp_buf;
 #define FB_TYPE_ERROR    -1
 
 const char* lbm_error_str_parse_eof = "End of parse stream.";
-const char* lbm_error_str_parse_token = "Malformed token.";
 const char* lbm_error_str_parse_dot = "Incorrect usage of '.'.";
 const char* lbm_error_str_parse_close = "Expected closing parenthesis.";
 const char* lbm_error_str_num_args = "Incorrect number of arguments.";
@@ -317,6 +316,10 @@ static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_
     mutex_unlock(&lbm_events_mutex);
   }
   return r;
+}
+
+bool lbm_event_define(lbm_value key, lbm_flat_value_t *fv) {
+  return event_internal(LBM_EVENT_DEFINE, key, (lbm_uint)fv->buf, fv->buf_size);
 }
 
 bool lbm_event_unboxed(lbm_value unboxed) {
@@ -4650,6 +4653,18 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   mutex_unlock(&qmutex);
 }
 
+static void handle_event_define(lbm_value key, lbm_value val) {
+  lbm_uint dec_key = lbm_dec_sym(key);
+  lbm_uint ix_key  = dec_key & GLOBAL_ENV_MASK;
+  lbm_value *global_env = lbm_get_global_env();
+  lbm_uint orig_env = global_env[ix_key];
+  lbm_value new_env;
+  // A key is a symbol and should not need to be remembered.
+  WITH_GC(new_env, lbm_env_set(orig_env,key,val));
+
+  global_env[ix_key] = new_env;
+}
+
 static lbm_value get_event_value(lbm_event_t *e) {
   lbm_value v;
   if (e->buf_len > 0) {
@@ -4680,6 +4695,9 @@ static void process_events(void) {
     switch(e.type) {
     case LBM_EVENT_UNBLOCK_CTX:
       handle_event_unblock_ctx((lbm_cid)e.parameter, event_val);
+      break;
+    case LBM_EVENT_DEFINE:
+      handle_event_define((lbm_value)e.parameter, event_val);
       break;
     case LBM_EVENT_FOR_HANDLER:
       if (lbm_event_handler_pid >= 0) {

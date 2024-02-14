@@ -2,11 +2,15 @@
 LBM REPL
 
 Dependencies:
-        libreadline - lib32readline
-        libhistory  - lib32history
 
-Ubuntu example for obtaining dependencies
-'sudo apt-get install libreadline-dev lib32readline-dev'
+        64Bit       | 32Bit
+        ---------------------------
+                    | gcc-multilib
+        libreadline | lib32readline
+        libhistory  | lib32history
+
+Ubuntu example for obtaining 32bit dependencies
+'sudo apt-get install gcc-ultilib libreadline-dev lib32readline-dev'
 
 
 Build:

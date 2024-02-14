@@ -334,14 +334,17 @@ void parse_opts(int argc, char **argv) {
       break;
     case 'h':
       printf("Usage: %s [OPTION...]\n\n", argv[0]);
-      printf("\t-h, --help\t\t\tPrints help\n");
-      printf("\t-H SIZE, --heap_size=SIZE\tSet heap_size to be SIZE number of cells\n");
-      printf("\t-s FILEPATH, --src=FILEPATH\tLoad and evaluate list src\n");
+      printf("    -h, --help                    Prints help\n");
+      printf("    -H SIZE, --heap_size=SIZE     Set heap_size to be SIZE number of\n"\
+             "                                  cells.\n");
+      printf("    -s FILEPATH, --src=FILEPATH   Load and evaluate lisp src\n");
       printf("\n");
-      printf("\t--load_env FILEPATH\tLoad the global environment from a file at startup\n");
-      printf("\t--store_env FILEPATH\tStore the global environment to a file upon exit\n");
-      printf("\t--store_res FILEPATH\tStore the result of the last program specified with\n"\
-             "\t\t\t\tthe --src/-s options.\n");
+      printf("    --load_env FILEPATH           Load the global environment from a file at\n"\
+             "                                  startup.\n");
+      printf("    --store_env FILEPATH          Store the global environment to a file upon\n"\
+             "                                  exit.\n");
+      printf("    --store_res FILEPATH          Store the result of the last program\n"\
+             "                                  specified with the --src/-s options.\n");
       printf("\n");
       printf("Multiple sourcefiles can be added with multiple uses of the --src/-s flag.\n" \
              "Multiple sources are evaluated in sequence in the order they are specified\n" \
@@ -356,11 +359,9 @@ void parse_opts(int argc, char **argv) {
       break;
     case LOAD_ENVIRONMENT:
       env_input_file = (char*)optarg;
-      printf("Environment files are currently ignored\n");
       break;
     case STORE_ENVIRONMENT:
       env_output_file = (char*)optarg;
-      printf("Environment files are currently ignored\n");
       break;
     case STORE_RESULT:
       res_output_file = (char*)optarg;
@@ -462,12 +463,99 @@ bool evaluate_sources(void) {
   return true;
 }
 
+#define NAME_BUF_SIZE 1024
 void startup_procedure(void) {
+  char name_buf[NAME_BUF_SIZE];
 
   if (env_input_file) {
+    FILE *fp = fopen(env_input_file, "r");
+    if (!fp) {
+      printf("Error opening environment input file\n");
+      goto startup_procedure_1;
+    }
+    while (true) {
+      printf("looping\n");
+      uint32_t name_len;
+      size_t n = fread(&name_len, 1, sizeof(uint32_t), fp);
+      if ( n < sizeof(uint32_t) ) {
+        // We are successfully done if n == 0;
+        if (n > 0) {
+          printf("ALERT: Invalid environment file\n");
+        }
+        break;
+      }
+      if (name_len ==  0) {
+        printf("ALERT: Invalid environment file\n");
+        break;
+      }
+      memset(name_buf, 0, NAME_BUF_SIZE);
+      n = fread(name_buf, 1, name_len, fp);
+      if (n < name_len) {
+        printf("ALERT: Invalid environment file\n");
+        break;
+      }
+      lbm_uint sym_id = 0;
+      if (!lbm_get_symbol_by_name(name_buf, &sym_id)) {
+        if (!lbm_add_symbol(name_buf, &sym_id)) {
+          printf("ALERT: Unable to add symbol\n");
+          break;
+        }
+      }
+      lbm_value key = lbm_enc_sym(sym_id);
+      uint32_t val_len;
+      n = fread(&val_len, 1, sizeof(uint32_t), fp);
+      if (n < sizeof(uint32_t) || val_len == 0) {
+        printf("ALERT: Invalid environment file\n");
+        break;
+      }
+      int retry = 0;
+      uint8_t *data = NULL;
+      while (retry < 100) {
+        data = lbm_malloc_reserve(val_len);
 
+        if (data == NULL) {
+          sleep_callback(100);
+          retry ++;
+          continue;
+        } else {
+          break;
+        }
+      }
+      if (retry >= 100) {
+        printf("ALERT: Unable to allocate memory for flat value inside LBM\n");
+        break;
+      }
+
+      n = fread(data, 1, val_len, fp);
+      if (n < val_len) {
+        lbm_free(data);
+        printf("ALERT: Invalid environment file\n");
+        break;
+      }
+      // Nonintuitive that fv is reused before event is processed.
+      // But ok as the fields of fv are copied inside lbm_event_define.
+      lbm_flat_value_t fv;
+      fv.buf = data;
+      fv.buf_size = val_len;
+      fv.buf_pos = 0;
+
+      retry = 0;
+      while (retry < 100) {
+        if (!lbm_event_define(key, &fv)) {
+          sleep_callback(100);
+          retry ++;
+          continue;
+        } else {
+          break;
+        }
+      }
+      if (retry >= 100) {
+        printf("ALERT: Unable to create define-event inside LBM\n");
+        break;
+      }
+    }
   }
-
+ startup_procedure_1:
   if (sources) {
     evaluate_sources();
   }
@@ -477,7 +565,52 @@ void shutdown_procedure(void) {
 
   if (env_output_file) {
 
+
+    FILE *fp = fopen(env_output_file, "w");
+    if (!fp) {
+      printf("Error opening environment output file\n");
+      goto shutdown_procedure_1;
+    }
+    lbm_value* env = lbm_get_global_env();
+    for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+      lbm_value curr = env[i];
+      while(lbm_is_cons(curr)) {
+        lbm_value name_field = lbm_caar(curr);
+        lbm_value val_field  = lbm_cdr(lbm_car(curr));
+        char *name = (char*)lbm_get_name_by_symbol(lbm_dec_sym(name_field));
+        if (!name) goto shutdown_procedure_1;
+        int32_t fv_size = flatten_value_size(val_field, 0, 0, (int)lbm_heap_size());
+        if (fv_size > 0) {
+          lbm_flat_value_t fv;
+          fv.buf = malloc((uint32_t)fv_size);
+          if (!fv.buf) {
+            printf("Error allocating memory for flat value\n");
+            exit(EXIT_FAILURE);
+          }
+          fv.buf_size = (uint32_t)fv_size;
+          fv.buf_pos = 0;
+          if (flatten_value_c(&fv, val_field) == FLATTEN_VALUE_OK) {
+            uint32_t name_len = strlen(name);
+            if (name_len > 0) {
+              fwrite(&name_len, 1, sizeof(int32_t),fp);
+              fwrite(name, 1, strlen(name), fp);
+              fwrite(&fv_size, 1, sizeof(int32_t),fp);
+              fwrite(fv.buf,1,(size_t)fv_size,fp);
+            } else {
+              printf("ALERT: Malformed key in environment\n");
+            }
+          } else {
+            printf("ALERT: A value in the environment was not flattenable\n");
+          }
+          free(fv.buf);
+        }
+        curr = lbm_cdr(curr);
+      }
+    }
+    fclose(fp);
   }
+  shutdown_procedure_1:
+  return;
 }
 
 int main(int argc, char **argv) {
@@ -631,6 +764,7 @@ int main(int argc, char **argv) {
       lbm_blocked_iterator(print_ctx_info, NULL, NULL);
       free(str);
     }  else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
+      shutdown_procedure();
       free(str);
       break;
     } else if (strncmp(str, ":symbols", 8) == 0) {
