@@ -70,7 +70,7 @@ There is an example REPL implementation that runs on X86 32 or 64bit in the `rep
 The REPL depends on libreadline.
 
 
-**REPL Dependencies 32Bit executable on 64Bit linux:**
+**REPL Dependencies for 32Bit executable on 64Bit linux:**
 * libreadline
 * lib32readline
 * gcc-multilib
