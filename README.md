@@ -70,13 +70,13 @@ There is an example REPL implementation that runs on X86 32 or 64bit in the `rep
 The REPL depends on libreadline.
 
 
-**REPL Dependencies 32Bit executable on 64Bit linux:
+**REPL Dependencies 32Bit executable on 64Bit linux:**
 * libreadline
 * lib32readline
 * gcc-multilib
 
 On Ubunty you can obtain the depencies by:
-`sudo apt-get install gcc-ultilib libreadline-dev lib32readline-dev`
+`sudo apt-get install gcc-multilib libreadline-dev lib32readline-dev`
 
 Then issue command `make` in the repl directory.
 

@@ -10,7 +10,7 @@ Dependencies:
         libhistory  | lib32history
 
 Ubuntu example for obtaining 32bit dependencies
-'sudo apt-get install gcc-ultilib libreadline-dev lib32readline-dev'
+'sudo apt-get install gcc-multilib libreadline-dev lib32readline-dev'
 
 
 Build:
