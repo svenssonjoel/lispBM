@@ -154,7 +154,10 @@ bool lbm_event(lbm_flat_value_t *fv);
  * \return true on success.
  */
 bool lbm_event_unboxed(lbm_value unboxed);
-
+/** Check if the event queue is empty.
+ * \return true if event queue is empty, otherwise false.
+ */
+bool lbm_event_queue_is_empty(void);
 /** Remove a context that has finished executing and free up its associated memory.
  *
  * \param cid Context id of context to free.

@@ -355,6 +355,16 @@ static bool lbm_event_pop(lbm_event_t *event) {
   return true;
 }
 
+bool lbm_event_queue_is_empty(void) {
+  mutex_lock(&lbm_events_mutex);
+  bool empty = false;
+  if (lbm_events_head == lbm_events_tail && !lbm_events_full) {
+    empty = true;
+  }
+  mutex_unlock(&lbm_events_mutex);
+  return empty;
+}
+
 static bool              eval_running = false;
 static volatile bool     blocking_extension = false;
 static mutex_t           blocking_extension_mutex;

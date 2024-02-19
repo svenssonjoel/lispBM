@@ -515,24 +515,23 @@ void startup_procedure(void) {
       goto startup_procedure_1;
     }
     while (true) {
-      printf("looping\n");
       uint32_t name_len;
       size_t n = fread(&name_len, 1, sizeof(uint32_t), fp);
       if ( n < sizeof(uint32_t) ) {
         // We are successfully done if n == 0;
         if (n > 0) {
-          printf("ALERT: Invalid environment file\n");
+          printf("ALERT: Trailing data in env file\n");
         }
         break;
       }
       if (name_len ==  0) {
-        printf("ALERT: Invalid environment file\n");
+        printf("ALERT: Zero length name in env file\n");
         break;
       }
       memset(name_buf, 0, NAME_BUF_SIZE);
       n = fread(name_buf, 1, name_len, fp);
       if (n < name_len) {
-        printf("ALERT: Invalid environment file\n");
+        printf("ALERT: Malformed name in env file\n");
         break;
       }
       lbm_uint sym_id = 0;
@@ -546,7 +545,7 @@ void startup_procedure(void) {
       uint32_t val_len;
       n = fread(&val_len, 1, sizeof(uint32_t), fp);
       if (n < sizeof(uint32_t) || val_len == 0) {
-        printf("ALERT: Invalid environment file\n");
+        printf("ALERT: Invalid value size in env file\n");
         break;
       }
       int retry = 0;
@@ -566,11 +565,10 @@ void startup_procedure(void) {
         printf("ALERT: Unable to allocate memory for flat value inside LBM\n");
         break;
       }
-
       n = fread(data, 1, val_len, fp);
       if (n < val_len) {
         lbm_free(data);
-        printf("ALERT: Invalid environment file\n");
+        printf("ALERT: Invalid value in env file\n");
         break;
       }
       // Nonintuitive that fv is reused before event is processed.
@@ -594,6 +592,11 @@ void startup_procedure(void) {
         printf("ALERT: Unable to create define-event inside LBM\n");
         break;
       }
+    }
+    // delay a little bit to allow all the events to be handled
+    // and the environment be fully populated
+    while (!lbm_event_queue_is_empty()) {
+      sleep_callback(100);
     }
   }
  startup_procedure_1:
