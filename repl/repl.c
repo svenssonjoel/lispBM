@@ -534,13 +534,23 @@ void startup_procedure(void) {
         printf("ALERT: Malformed name in env file\n");
         break;
       }
+      printf("adding key symbol: %s\n", name_buf);
       lbm_uint sym_id = 0;
       if (!lbm_get_symbol_by_name(name_buf, &sym_id)) {
+        printf("Symbol does not exists, adding\n");
         if (!lbm_add_symbol(name_buf, &sym_id)) {
           printf("ALERT: Unable to add symbol\n");
           break;
         }
       }
+
+      char *sym = lbm_get_name_by_symbol(sym_id);
+      if (sym) {
+        printf("symbol stored as: %s\n", sym);
+      } else {
+        printf("ERROR\n");
+      }
+
       lbm_value key = lbm_enc_sym(sym_id);
       uint32_t val_len;
       n = fread(&val_len, 1, sizeof(uint32_t), fp);
@@ -638,7 +648,8 @@ void shutdown_procedure(void) {
           }
           fv.buf_size = (uint32_t)fv_size;
           fv.buf_pos = 0;
-          if (flatten_value_c(&fv, val_field) == FLATTEN_VALUE_OK) {
+          int r = flatten_value_c(&fv, val_field);
+          if (r == FLATTEN_VALUE_OK) {
             uint32_t name_len = strlen(name);
             if (name_len > 0) {
               fwrite(&name_len, 1, sizeof(int32_t),fp);
@@ -650,6 +661,29 @@ void shutdown_procedure(void) {
             }
           } else {
             printf("ALERT: A value in the environment was not flattenable\n");
+            switch (r) {
+            case FLATTEN_VALUE_ERROR_CANNOT_BE_FLATTENED:
+              printf("CANNOT_BE_FLATTENED Error!\n");
+              break;
+            case FLATTEN_VALUE_ERROR_BUFFER_TOO_SMALL:
+              printf("Flat value buffer too small!\n");
+              break;
+            case FLATTEN_VALUE_ERROR_FATAL:
+              printf("Fatal error during flattening\n");
+              break;
+            case FLATTEN_VALUE_ERROR_CIRCULAR:
+              printf("Potentially circular value\n");
+              break;
+            case FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH:
+              printf("Maximum cons depth reached\n");
+              break;
+            case FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY:
+              printf("Not enough memory while flattening\n");
+              break;
+            }
+            char buf[1024];
+            lbm_print_value(buf,1024, val_field);
+            printf("Value: %s\n", buf);
           }
           free(fv.buf);
         }

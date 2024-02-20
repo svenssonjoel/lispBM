@@ -54,6 +54,11 @@ typedef struct {
 #define FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY   -6
 #define FLATTEN_VALUE_ERROR_FATAL               -7
 
+#define UNFLATTEN_MALFORMED     -2
+#define UNFLATTEN_GC_RETRY      -1
+#define UNFLATTEN_OK             0
+
+
 bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size);
 bool lbm_finish_flatten(lbm_flat_value_t *v);
 bool f_cons(lbm_flat_value_t *v);

@@ -258,7 +258,7 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, int n_cons, 
     return 0; // already terminated with error
   }
   case LBM_TYPE_BYTE:
-    return 1;
+    return 1 + 1;
   case LBM_TYPE_U: /* fall through */
   case LBM_TYPE_I:
 #ifndef LBM64
@@ -292,8 +292,9 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, int n_cons, 
 
 int flatten_value_size(lbm_value v, int depth, int n_cons, int max_cons) {
   jmp_buf jb;
-  if (setjmp(jb) > 0) {
-    return -1;
+  int r = setjmp(jb);
+  if (r != 0) {
+    return r;
   }
   return flatten_value_size_internal(jb, v, depth, n_cons, max_cons);
 }
@@ -487,10 +488,6 @@ static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
   }
   return false;
 }
-
-#define UNFLATTEN_MALFORMED     -2
-#define UNFLATTEN_GC_RETRY      -1
-#define UNFLATTEN_OK             0
 
 /* Recursive and potentially stack hungry for large flat values */
 static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
