@@ -524,7 +524,6 @@ void startup_procedure(void) {
         }
         break;
       }
-      printf("name_len = %d\n", name_len);
       if (name_len ==  0) {
         printf("ALERT: Zero length name in env file\n");
         break;
@@ -535,21 +534,19 @@ void startup_procedure(void) {
         printf("ALERT: Malformed name in env file\n");
         break;
       }
-      printf("adding key symbol: %s\n", name_buf);
+
       lbm_uint sym_id = 0;
       if (!lbm_get_symbol_by_name(name_buf, &sym_id)) {
-        printf("Symbol does not exists, adding\n");
         if (!lbm_add_symbol(name_buf, &sym_id)) {
           printf("ALERT: Unable to add symbol\n");
           break;
         }
       }
 
-      char *sym = lbm_get_name_by_symbol(sym_id);
-      if (sym) {
-        printf("symbol stored as: %s\n", sym);
-      } else {
+      char *sym = (char*)lbm_get_name_by_symbol(sym_id);
+      if (!sym) {
         printf("ERROR\n");
+        exit(EXIT_FAILURE);
       }
 
       lbm_value key = lbm_enc_sym(sym_id);
@@ -586,6 +583,7 @@ void startup_procedure(void) {
       // Nonintuitive that fv is reused before event is processed.
       // But ok as the fields of fv are copied inside lbm_event_define.
       // No this is not OK! that is not the case!
+      // TODO - Better synchronization method needed.
       lbm_flat_value_t fv;
       fv.buf = data;
       fv.buf_size = val_len;
