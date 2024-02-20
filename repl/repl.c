@@ -524,6 +524,7 @@ void startup_procedure(void) {
         }
         break;
       }
+      printf("name_len = %d\n", name_len);
       if (name_len ==  0) {
         printf("ALERT: Zero length name in env file\n");
         break;
@@ -581,8 +582,10 @@ void startup_procedure(void) {
         printf("ALERT: Invalid value in env file\n");
         break;
       }
+
       // Nonintuitive that fv is reused before event is processed.
       // But ok as the fields of fv are copied inside lbm_event_define.
+      // No this is not OK! that is not the case!
       lbm_flat_value_t fv;
       fv.buf = data;
       fv.buf_size = val_len;
@@ -602,11 +605,13 @@ void startup_procedure(void) {
         printf("ALERT: Unable to create define-event inside LBM\n");
         break;
       }
-    }
-    // delay a little bit to allow all the events to be handled
+      while (!lbm_event_queue_is_empty()) {
+        sleep_callback(100);
+      }
+      sleep_callback(1000);
+      // delay a little bit to allow all the events to be handled
     // and the environment be fully populated
-    while (!lbm_event_queue_is_empty()) {
-      sleep_callback(100);
+
     }
   }
  startup_procedure_1:

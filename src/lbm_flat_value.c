@@ -620,9 +620,9 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     return UNFLATTEN_MALFORMED;
   }
   case S_I64_VALUE: {
-   uint64_t tmp;
+   uint64_t tmp = 0;
     if (extract_dword(v, &tmp)) {
-      lbm_value im = lbm_enc_i64((int32_t)tmp);
+      lbm_value im = lbm_enc_i64((int64_t)tmp);
       if (lbm_is_symbol_merror(im)) {
         return UNFLATTEN_GC_RETRY;
       }
@@ -632,7 +632,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     return UNFLATTEN_MALFORMED;
   }
   case S_U64_VALUE: {
-    uint64_t tmp;
+    uint64_t tmp = 0;
     if (extract_dword(v, &tmp)) {
       lbm_value im = lbm_enc_u64(tmp);
       if (lbm_is_symbol_merror(im)) {
