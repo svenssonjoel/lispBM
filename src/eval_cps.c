@@ -685,7 +685,7 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
       res = fundamental_table[fundamental](args, arg_count, ctx);
     }
     if (lbm_is_error(res)) {
-      error_at_ctx(res, lbm_enc_sym(EXTENSION_SYMBOLS_START | fundamental));
+      error_at_ctx(res, lbm_enc_sym(FUNDAMENTAL_SYMBOLS_START | fundamental));
     }
   }
   lbm_stack_drop(&ctx->K, arg_count+1);
@@ -2752,7 +2752,7 @@ static const apply_fun fun_table[] =
 /* Application of function that takes arguments    */
 /* passed over the stack.                          */
 
-static void __attribute__ ((noinline)) application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_count) {
+static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_count) {
   /* If arriving here, we know that the fun is a symbol.
    *  and can be a built in operation or an extension.
    */
