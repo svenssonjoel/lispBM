@@ -236,21 +236,18 @@ void flatten_error(jmp_buf jb, int val) {
   longjmp(jb, val);
 }
 
-int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, int n_cons, int max_cons) {
+int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
   if (depth > flatten_maximum_depth) {
     flatten_error(jb, FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH);
-  }
-  if (n_cons > max_cons) {
-    flatten_error(jb, FLATTEN_VALUE_ERROR_CIRCULAR);
   }
 
   switch (lbm_type_of(v)) {
   case LBM_TYPE_CONS: /* fall through */
   case LBM_TYPE_CONS_CONST: {
     int s2 = 0;
-    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1, n_cons+1, max_cons);
+    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1);
     if (s1 > 0) {
-      s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1, n_cons+1, max_cons);
+      s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1);
       if (s2 > 0) {
         return (1 + s1 + s2);
       }
@@ -290,13 +287,13 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, int n_cons, 
   }
 }
 
-int flatten_value_size(lbm_value v, int depth, int n_cons, int max_cons) {
+int flatten_value_size(lbm_value v, int depth) {
   jmp_buf jb;
   int r = setjmp(jb);
   if (r != 0) {
     return r;
   }
-  return flatten_value_size_internal(jb, v, depth, n_cons, max_cons);
+  return flatten_value_size_internal(jb, v, depth);
 }
 
 int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
@@ -414,7 +411,7 @@ lbm_value flatten_value(lbm_value v) {
   }
 
   lbm_array_header_t *array = NULL;
-  int required_mem = flatten_value_size(v, 0, 0, (int)lbm_heap_size());
+  int required_mem = flatten_value_size(v, 0);
   if (required_mem > 0) {
     array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
     if (array == NULL) {
