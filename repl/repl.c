@@ -60,6 +60,7 @@ volatile char *res_output_file = NULL;
 bool terminate_after_startup = false;
 volatile lbm_cid startup_cid = -1;
 volatile lbm_cid store_result_cid = -1;
+volatile bool silent_mode = false;
 
 void shutdown_procedure(void);
 
@@ -97,11 +98,12 @@ void erase() {
 }
 
 void *eval_thd_wrapper(void *v) {
-
-  printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
-  printf("Type :quit to exit.\n");
-  printf("     :info for statistics.\n");
-  printf("     :load [filename] to load lisp source.\n");
+  if (!silent_mode) {
+    printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
+    printf("Type :quit to exit.\n");
+    printf("     :info for statistics.\n");
+    printf("     :load [filename] to load lisp source.\n");
+  }
   lbm_run_eval();
   return NULL;
 }
@@ -147,8 +149,12 @@ void done_callback(eval_context_t *ctx) {
   lbm_value t = ctx->r;
   lbm_print_value(output, 1024, t);
   erase();
-  printf("> %s\n", output);
-  new_prompt();
+  if (!silent_mode) {
+    printf("> %s\n", output);
+    new_prompt();
+  } else {
+    printf("%s\n", output);
+  }
 
   if (startup_cid != -1) {
     if (ctx->id == startup_cid) {
@@ -250,15 +256,16 @@ void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   char output[1024];
 
   int print_ret = lbm_print_value(output, 1024, ctx->r);
-
-  printf("--------------------------------\n");
-  printf("ContextID: %"PRI_UINT"\n", ctx->id);
-  printf("Stack SP: %"PRI_UINT"\n",  ctx->K.sp);
-  printf("Stack SP max: %"PRI_UINT"\n", ctx->K.max_sp);
-  if (print_ret) {
-    printf("Value: %s\n", output);
-  } else {
-    printf("Error: %s\n", output);
+  if (!silent_mode) { 
+    printf("--------------------------------\n");
+    printf("ContextID: %"PRI_UINT"\n", ctx->id);
+    printf("Stack SP: %"PRI_UINT"\n",  ctx->K.sp);
+    printf("Stack SP max: %"PRI_UINT"\n", ctx->K.max_sp);
+    if (print_ret) {
+      printf("Value: %s\n", output);
+    } else {
+      printf("Error: %s\n", output);
+    }
   }
 }
 
@@ -304,6 +311,7 @@ lbm_cons_t *heap_storage = NULL;
 lbm_heap_state_t heap_state;
 lbm_const_heap_t const_heap;
 
+
 // OPTIONS
 
 #define NO_SHORT_OPT         0x0400
@@ -311,6 +319,7 @@ lbm_const_heap_t const_heap;
 #define STORE_ENVIRONMENT    0x0402
 #define STORE_RESULT         0x0403
 #define TERMINATE            0x0404
+#define SILENT_MODE          0x0405
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -320,6 +329,7 @@ struct option options[] = {
   {"store_env", required_argument, NULL, STORE_ENVIRONMENT},
   {"store_res", required_argument, NULL, STORE_RESULT},
   {"terminate", no_argument, NULL, TERMINATE},
+  {"silent", no_argument, NULL, SILENT_MODE},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -383,6 +393,7 @@ void parse_opts(int argc, char **argv) {
              "                                  specified with the --src/-s options.\n");
       printf("    --terminate                   Terminate the REPL after evaluating the\n"\
              "                                  source files specified with --src/-s\n");
+      printf("    --silent                      The REPL will print as little as possible\n");
       printf("\n");
       printf("Multiple sourcefiles can be added with multiple uses of the --src/-s flag.\n" \
              "Multiple sources are evaluated in sequence in the order they are specified\n" \
@@ -406,6 +417,8 @@ void parse_opts(int argc, char **argv) {
       break;
     case TERMINATE:
       terminate_after_startup = true;
+    case SILENT_MODE:
+      silent_mode = true;
     default:
       break;
     }
@@ -713,7 +726,12 @@ int main(int argc, char **argv) {
 
   while (1) {
     erase();
-    char *str = readline("# ");
+    char *str;
+    if (silent_mode) {
+      str = readline("");
+    } else {
+      str = readline("# ");
+    }
     if (str == NULL) exit(EXIT_SUCCESS);
     add_history(str);
     unsigned int n = strlen(str);
