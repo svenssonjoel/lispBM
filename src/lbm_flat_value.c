@@ -139,10 +139,11 @@ int f_sym_string_bytes(lbm_value sym) {
 
 bool f_i(lbm_flat_value_t *v, lbm_int i) {
   bool res = true;
-  res = res && write_byte(v,S_I_VALUE);
 #ifndef LBM64
+  res = res && write_byte(v,S_I28_VALUE);
   res = res && write_word(v,(uint32_t)i);
 #else
+  res = res && write_byte(v,S_I56_VALUE);
   res = res && write_dword(v, (uint64_t)i);
 #endif
   return res;
@@ -150,10 +151,11 @@ bool f_i(lbm_flat_value_t *v, lbm_int i) {
 
 bool f_u(lbm_flat_value_t *v, lbm_uint u) {
   bool res = true;
-  res = res && write_byte(v,S_U_VALUE);
 #ifndef LBM64
+  res = res && write_byte(v,S_U28_VALUE);
   res = res && write_word(v,(uint32_t)u);
 #else
+  res = res && write_byte(v,S_U56_VALUE);
   res = res && write_dword(v,(uint64_t)u);
 #endif
   return res;
@@ -532,30 +534,50 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     }
     return UNFLATTEN_MALFORMED;
   }
-  case S_I_VALUE: {
+  case S_I28_VALUE: {
     lbm_uint tmp;
     bool b;
-#ifndef LBM64
     b = extract_word(v, &tmp);
-#else
-    b = extract_dword(v, &tmp);
-#endif
     if (b) {
       *res = lbm_enc_i((int32_t)tmp);
       return UNFLATTEN_OK;
     }
     return UNFLATTEN_MALFORMED;
   }
-  case S_U_VALUE: {
+  case S_U28_VALUE: {
     lbm_uint tmp;
     bool b;
-#ifndef LBM64
     b = extract_word(v, &tmp);
-#else
-    b = extract_dword(v, &tmp);
-#endif
     if (b) {
       *res = lbm_enc_u((uint32_t)tmp);
+      return UNFLATTEN_OK;
+    }
+    return UNFLATTEN_MALFORMED;
+  }
+  case S_I56_VALUE: {
+    uint64_t tmp;
+    bool b;
+    b = extract_dword(v, &tmp);
+    if (b) {
+#ifndef LBM64
+      *res = lbm_enc_i64((int64_t)tmp);
+#else
+      *res = lbm_enc_i(tmp);
+#endif
+      return UNFLATTEN_OK;
+    }
+    return UNFLATTEN_MALFORMED;
+  }
+  case S_U56_VALUE: {
+    uint64_t tmp;
+    bool b;
+    b = extract_dword(v, &tmp);
+    if (b) {
+#ifndef LBM64
+      *res = lbm_enc_u64(tmp);
+#else
+      *res = lbm_enc_u(tmp);
+#endif
       return UNFLATTEN_OK;
     }
     return UNFLATTEN_MALFORMED;

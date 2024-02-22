@@ -32,8 +32,8 @@ typedef struct {
 #define S_SYM_VALUE       0x2 // 1      value
 #define S_SYM_STRING      0x3
 #define S_BYTE_VALUE      0x4
-#define S_I_VALUE         0x5
-#define S_U_VALUE         0x6
+#define S_I28_VALUE       0x5
+#define S_U28_VALUE       0x6
 #define S_I32_VALUE       0x7
 #define S_U32_VALUE       0x8
 #define S_FLOAT_VALUE     0x9
@@ -41,6 +41,8 @@ typedef struct {
 #define S_U64_VALUE       0xB
 #define S_DOUBLE_VALUE    0xC
 #define S_LBM_ARRAY       0xD
+#define S_I56_VALUE       0xE
+#define S_U56_VALUE       0xF
 
 // Maximum number of recursive calls
 #define FLATTEN_VALUE_MAXIMUM_DEPTH 2000
