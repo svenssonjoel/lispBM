@@ -529,7 +529,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     uint8_t tmp;
     bool b = extract_byte(v, &tmp);
     if (b) {
-      *res = lbm_enc_char((char)tmp);
+      *res = lbm_enc_char((uint8_t)tmp);
       return UNFLATTEN_OK;
     }
     return UNFLATTEN_MALFORMED;
