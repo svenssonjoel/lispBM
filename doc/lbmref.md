@@ -77,35 +77,49 @@ The numerical types in LBM are
 
 The byte and the char value have identical representation and type, thus char is an unsigned 8 bit type in LBM.
 
-An integer literal is interpreted to be of type 'i', a 28/56bit signed integer value.
-A literal with decimal point is interpreted to be a type 'f32' or  float value.
+An integer literal is interpreted to be of type `i`, a 28/56bit signed integer value.
+A literal with decimal point is interpreted to be a type `f32` or  float value.
 
 To specify literals of the othertype the value is to be postfixed with a qualifier string.
-The qualifiers available in LBM are: 'b', 'i', 'u', 'i32', 'u32', 'i64', 'u64', 'f32' and 'f63'.
-The 'i' and 'f32' qualifiers are never strictly needed but can be added if one so wishes.
+The qualifiers available in LBM are: `b`, `i`, `u`, `i32`, `u32`, `i64`, `u64`, `f32` and `f63`.
+The `i` and `f32` qualifiers are never strictly needed but can be added if one so wishes.
 
 So for example:
-1. '1b'     - Specifies a byte typed value of 1
-2. '1.0f64' - Specifies a 64bit float with value 1.0.
+1. `1b`     - Specifies a byte typed value of 1
+2. `1.0f64` - Specifies a 64bit float with value 1.0.
 
 **Note** that it is an absolute requirement to include a decimal when writing a floating point literal in LBM.
 
 We are trying to make type conversions to not feel too unfamilar to people
 who are familiar with the C programming language. On a 32bit platform
-LBM numerical types are ordered according to: 'byte < i < u < i32 < u32 < i64 < u64 < float < double'.
-Operations such as '(+ a b)', figures out the largest type according to the ordering above and converts the
+LBM numerical types are ordered according to: `byte < i < u < i32 < u32 < i64 < u64 < float < double`.
+Operations such as `(+ a b)`, figures out the largest type according to the ordering above and converts the
 all values to this largest type.
 
 Example:
-1. '(+ 1u 3i32)' - Promotes the 1u value type i32 and performs the addition, resulting in 4i32.
-2. '(+ 1  3.14)' - Here the value 1 is of type 'i' which is smaller than 'f32', the result 4.14f32.
+1. `(+ 1u 3i32)` - Promotes the 1u value type i32 and performs the addition, resulting in 4i32.
+2. `(+ 1  3.14)` - Here the value 1 is of type `i` which is smaller than `f32`, the result 4.14f32.
 
-A potential source of confusion is that 'f32' is a larger type than 'i64' and 'u64'. this means
-that if you, for example, add 1.0 to an 'i64' value you will get an 'f32' back. If you instead wanted
+A potential source of confusion is that `f32` is a larger type than `i64` and `u64`. this means
+that if you, for example, add 1.0 to an `i64` value you will get an `f32` back. If you instead wanted
 the float to be converted into a double before the addition, this has to be done manually.
 
 Example:
-1. '(+ (to-double 1.0) 5i64)'    - Manually convert a value to double.
+1. `(+ (to-double 1.0) 5i64)`    - Manually convert a value to double.
+
+The `type-of` operation can be used to query a value for its type. On the
+numerical types the `type-of` operation answers as follows:
+
+1. `(type-of 1b)`     -> `type-char`
+2. `(type-of 1)`      -> `type-i`
+3. `(type-of 1u)`     -> `type-u`
+4. `(type-of 1i32)`   -> `type-i32`
+5. `(type-of 1u32)`   -> `type-u32`
+6. `(type-of 1i64)`   -> `type-i64`
+7. `(type-of 1u64)`   -> `type-u64`
+8. `(type-of 1.0)`    -> `type-float`
+9. `(type-of 1.0f64)` -> `type-double`
+
 
 ## Arithmetic
 
