@@ -244,7 +244,7 @@ a huge increase in cost for 64 bit types.
 
 ![Performance of 10 million additions at various types on x86 32bit](./images/millions.png)
 
-In 64But mode the x86 version of LBM shows negligible differences in cost of additions
+In 64Bit mode the x86 version of LBM shows negligible differences in cost of additions
 at different types.
 
 ![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png)
