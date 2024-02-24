@@ -228,6 +228,13 @@ The ranges representable in 32bit LBMs integer types are the following:
 > 18446744073709551615u64
 ```
 
+## Performance differences
+
+![Performance of 10 million additions at various types on x86 32bit](./images/millions.png)
+
+![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png)
+
+
 
 ---
 
