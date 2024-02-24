@@ -230,11 +230,28 @@ The ranges representable in 32bit LBMs integer types are the following:
 
 ## Performance differences
 
+All Values in LBM are encoded in one way or another. The encoded value
+holds additional information about type and garbage collection mark
+bit.  Operations that operate on an LBM value needs to unpack this
+encoded format and extract the actual numerical information from the
+representation. This has a cost and operations on numbers are in
+general a bit slower than what one gets in, for example C.
+
+The chart below shows the time it takes to perform 10 million
+additions on the x86 architecture (a i7-6820HQ) in 32bit mode. The
+difference in cost is negligible between the types `byte` - `u32` with
+a huge increase in cost for 64 bit types.
+
 ![Performance of 10 million additions at various types on x86 32bit](./images/millions.png)
+
+In 64But mode the x86 version of LBM shows negligible differences in cost of additions
+at different types.
 
 ![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png)
 
-
+On emedded platforms there are likely other limitations that kick in
+and makes the cost of operations at different more
+different. Producing a chart on for example STM32 is on my TODO list.
 
 ---
 
