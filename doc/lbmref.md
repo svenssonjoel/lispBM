@@ -133,13 +133,13 @@ The ranges representable in 32bit LBMs integer types are the following:
 6. `type-i64`   : -9223372036854775808 - 9223372036854775807
 7. `type-u64`   : 0 - 18446744073709551615
 
-** Overflow of Byte**
+**Overflow of Byte**
 ```
 # (+ 255b 1b)
 > 0b
 ```
 
-** Underflow of byte**
+**Underflow of byte**
 ```
 # (- 0b 1b)
 > 255b
