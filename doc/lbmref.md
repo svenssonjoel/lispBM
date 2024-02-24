@@ -120,6 +120,118 @@ numerical types the `type-of` operation answers as follows:
 8. `(type-of 1.0)`    -> `type-float`
 9. `(type-of 1.0f64)` -> `type-double`
 
+### Overflow behaviour
+
+Operations on fixed bitwidth mumerical types can lead to overflow.
+The ranges representable in 32bit LBMs integer types are the following:
+
+1. `type-char`  : 0 - 255
+2. `type-i`     : -134217728 - 134217727
+3. `type-u`     : 0 - 268435455
+4. `type-i32`   : -2147483648 - 2147483647
+5. `type-u32`   : 0- 4294967295
+6. `type-i64`   : -9223372036854775808 - 9223372036854775807
+7. `type-u64`   : 0 - 18446744073709551615
+
+** Overflow of Byte**
+```
+# (+ 255b 1b)
+> 0b
+```
+
+** Underflow of byte**
+```
+# (- 0b 1b)
+> 255b
+```
+
+**Overflow of i**
+```
+# ( + 134217727 1)
+> -134217728
+```
+
+**Underflow of i**
+
+```
+# (- -134217728 1)
+> 134217727
+```
+
+**Overflow of u**
+
+```
+# (+ 268435455u 1u)
+> 0u
+```
+
+**Underflow of u**
+
+```
+# (- 0u 1u)
+> 268435455u
+```
+
+**Overflow of i32**
+
+```
+# (+ 2147483647i32 1i32)
+> -2147483648i32
+```
+
+**Underflow of i32**
+
+```
+# (- 2147483648i32 1i32)
+> 2147483647i32
+```
+
+**Overflow of u32**
+
+```
+# (+ 4294967295u32 1)
+> 0u32
+```
+
+**Underflow of u32**
+
+```
+# (- 0u32 1)
+> 4294967295u32
+```
+
+**Overflow of i64**
+
+```
+#  (+ 9223372036854775807i64 1i64)
+> -9223372036854775808i64
+```
+
+**Underflow of i64**
+
+```
+#  (- -9223372036854775808i64 1i64)
+> 9223372036854775807i64
+```
+
+**Overflow of u64**
+
+```
+# (+ 18446744073709551615u64 1u64)
+> 0u64
+```
+
+**Underflow of u64**
+
+```
+# (- 0u64 1u64)
+> 18446744073709551615u64
+```
+
+
+--
+
+# Reference Manual
 
 ## Arithmetic
 
