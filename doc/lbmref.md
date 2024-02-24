@@ -229,7 +229,7 @@ The ranges representable in 32bit LBMs integer types are the following:
 ```
 
 
---
+---
 
 # Reference Manual
 
