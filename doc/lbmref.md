@@ -250,8 +250,8 @@ at different types.
 ![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png)
 
 On emedded platforms there are likely other limitations that kick in
-and makes the cost of operations at different more
-different. Producing a chart on for example STM32 is on my TODO list.
+and makes the cost of operations at different types more
+pronounced. Producing a chart on for example STM32 is on my TODO list.
 
 ---
 
