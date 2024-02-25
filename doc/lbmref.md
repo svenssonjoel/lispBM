@@ -37,7 +37,7 @@ should not be able to redefine and trying to redefine them leads to an error.
 Symbols that start with `ext-` are special and reserved for use together
 with extensions that are loaded and bound at runtime.
 
-Examples of symbols used as data are `nil` and `t`. `nil` representds
+Examples of symbols used as data are `nil` and `t`. `nil` represents
 "nothing", the empty list or other similar things and `t`
 represents true.  But any symbol can be used as data by quoting it
 `'`, see <a href="#quotes-and-quasiquotation"> Quotes and
@@ -75,34 +75,42 @@ The numerical types in LBM are
 8. f32    - (float) a 32bit floating point value.
 9. f64    - (double) a 64bit floating point value.
 
-The byte and the char value have identical representation and type, thus char is an unsigned 8 bit type in LBM.
+The byte and the char value have identical representation and type,
+thus char is an unsigned 8 bit type in LBM.
 
-An integer literal is interpreted to be of type `i`, a 28/56bit signed integer value.
-A literal with decimal point is interpreted to be a type `f32` or  float value.
+An integer literal is interpreted to be of type `i`, a 28/56bit signed
+integer value.  A literal with decimal point is interpreted to be a
+type `f32` or float value.
 
-To specify literals of the othertype the value is to be postfixed with a qualifier string.
-The qualifiers available in LBM are: `b`, `i`, `u`, `i32`, `u32`, `i64`, `u64`, `f32` and `f63`.
-The `i` and `f32` qualifiers are never strictly needed but can be added if one so wishes.
+To specify literals of the other types, the value must be postfixed with
+a qualifier string.  The qualifiers available in LBM are: `b`, `i`,
+`u`, `i32`, `u32`, `i64`, `u64`, `f32` and `f63`.  The `i` and `f32`
+qualifiers are never strictly needed but can be added if one so
+wishes.
 
 So for example:
 1. `1b`     - Specifies a byte typed value of 1
 2. `1.0f64` - Specifies a 64bit float with value 1.0.
 
-**Note** that it is an absolute requirement to include a decimal when writing a floating point literal in LBM.
+**Note** that it is an absolute requirement to include a decimal when
+  writing a floating point literal in LBM.
 
-We are trying to make type conversions to not feel too unfamilar to people
-who are familiar with the C programming language. On a 32bit platform
-LBM numerical types are ordered according to: `byte < i < u < i32 < u32 < i64 < u64 < float < double`.
-Operations such as `(+ a b)`, figures out the largest type according to the ordering above and converts the
+We are trying to make type conversions feel familar to people who are
+familiar with the C programming language. On a 32bit platform LBM
+numerical types are ordered according to: `byte < i < u < i32 < u32 <
+i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures
+out the largest type according to the ordering above and converts the
 all values to this largest type.
 
 Example:
 1. `(+ 1u 3i32)` - Promotes the 1u value type i32 and performs the addition, resulting in 4i32.
 2. `(+ 1  3.14)` - Here the value 1 is of type `i` which is smaller than `f32`, the result 4.14f32.
 
-A potential source of confusion is that `f32` is a larger type than `i64` and `u64`. this means
-that if you, for example, add 1.0 to an `i64` value you will get an `f32` back. If you instead wanted
-the float to be converted into a double before the addition, this has to be done manually.
+A potential source of confusion is that `f32` is a larger type than
+`i64` and `u64`. this means that if you, for example, add 1.0 to an
+`i64` value you will get an `f32` back. If you instead wanted the
+float to be converted into a double before the addition, this has to
+be done manually.
 
 Example:
 1. `(+ (to-double 1.0) 5i64)`    - Manually convert a value to double.
@@ -246,23 +254,24 @@ All Integer types          |  32Bit or smaller
 :-------------------------:|:-------------------------:
 ![Performance of 10 million additions at various types on x86 32bit](./images/millions.png) |![Performance of 10 million additions at various types on x86 32bit](./images/millions_zoom.png)
 
-In 64Bit mode the x86 version of LBM shows negligible differences in cost of additions
-at different types.
+In 64Bit mode the x86 version of LBM shows negligible differences in
+cost of additions at different types.
 
 ![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png)
 
-On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000 additions.
-There is a more pronounced gap between 28Bit and smaller types and the 32Bit types
-here. Likely because of the differences in encoding of 28Bit or less types and 32Bit types.
+On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000
+additions.  There is a more pronounced gap between 28Bit and smaller
+types and the 32Bit types here. Likely because of the differences in
+encoding of 28Bit or less types and 32Bit types.
 
 All Integer types          |  32Bit or smaller
 :-------------------------:|:-------------------------:
 ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv.png)  | ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv_zoom.png)
 
-On the STM32F4 at 168MHz (an EDU VESC) The results are similar to ESP32 but slower.
-The slower performance on the VESC compared to the VESC_Express ESP32 may be caused
-by the VESC firmware being in general more busy. I dont know. This is outside of
-my expertise.
+On the STM32F4 at 168MHz (an EDU VESC) The results are similar to
+ESP32 but slower.  The slower performance on the VESC compared to the
+VESC_Express ESP32 may be caused by the VESC firmware being in general
+more busy. I dont know. This is outside of my expertise.
 
 All Integer types          |  32Bit or smaller
 :-------------------------:|:-------------------------:
