@@ -99,8 +99,8 @@ We are trying to make type conversions feel familar to people who are
 familiar with the C programming language. On a 32bit platform LBM
 numerical types are ordered according to: `byte < i < u < i32 < u32 <
 i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures
-out the largest type according to the ordering above and converts the
-all values to this largest type.
+out the largest type according to the ordering above and converts all
+the values to this largest type.
 
 Example:
 1. `(+ 1u 3i32)` - Promotes the 1u value type i32 and performs the addition, resulting in 4i32.
