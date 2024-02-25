@@ -259,6 +259,10 @@ cost of additions at different types.
 
 ![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png)
 
+For addition performance on embedded systems, we use the the EDU VESC
+motorcontroller as the STM32F4 candidate and the VESC EXPRESS for a
+RISCV data point. 
+
 On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000
 additions.  There is a more pronounced gap between 28Bit and smaller
 types and the 32Bit types here. Likely because of the differences in
