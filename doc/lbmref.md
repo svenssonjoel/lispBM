@@ -242,16 +242,31 @@ additions on the x86 architecture (a i7-6820HQ) in 32bit mode. The
 difference in cost is negligible between the types `byte` - `u32` with
 a huge increase in cost for 64 bit types.
 
-![Performance of 10 million additions at various types on x86 32bit](./images/millions.png)
+All Integer types          |  32Bit or smaller
+:-------------------------:|:-------------------------:
+![Performance of 10 million additions at various types on x86 32bit](./images/millions.png) |![Performance of 10 million additions at various types on x86 32bit](./images/millions_zoom.png)
 
 In 64Bit mode the x86 version of LBM shows negligible differences in cost of additions
 at different types.
 
 ![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png)
 
-On emedded platforms there are likely other limitations that kick in
-and makes the cost of operations at different types more
-pronounced. Producing a chart on for example STM32 is on my TODO list.
+On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000 additions.
+There is a more pronounced gap between 28Bit and smaller types and the 32Bit types
+here. Likely because of the differences in encoding of 28Bit or less types and 32Bit types.
+
+All Integer types          |  32Bit or smaller
+:-------------------------:|:-------------------------:
+![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv.png)  | ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv_zoom.png)
+
+On the STM32F4 at 168MHz (an EDU VESC) The results are similar to ESP32 but slower.
+The slower performance on the VESC compared to the VESC_Express ESP32 may be caused
+by the VESC firmware being in general more busy. I dont know. This is outside of
+my expertise.
+
+All Integer types          |  32Bit or smaller
+:-------------------------:|:-------------------------:
+![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_arm.png)  | ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_arm_zoom.png)
 
 ---
 
