@@ -246,7 +246,7 @@ representation. This has a cost and operations on numbers are in
 general a bit slower than what one gets in, for example C.
 
 The chart below shows the time it takes to perform 10 million
-additions on the x86 architecture (a i7-6820HQ) in 32bit mode. The
+additions on the x86 architecture (a i7-6820HQ) in 32Bit mode. The
 difference in cost is negligible between the types `byte` - `u32` with
 a huge increase in cost for 64 bit types.
 
@@ -254,10 +254,22 @@ All Integer types          |  32Bit or smaller
 :-------------------------:|:-------------------------:
 ![Performance of 10 million additions at various types on x86 32bit](./images/millions.png) |![Performance of 10 million additions at various types on x86 32bit](./images/millions_zoom.png)
 
+The charts below compare floating point operations to `u32` operations on x86 32Bit.
+There is little difference in cost of `f32` and `u32` operations, but a large increase
+in cost when going to `f64` (double).
+
+`f32` and `f64` vs `u32`   |  `f32` vs `u32`
+:-------------------------:|:-------------------------:
+![Performance of floating point additions on x86 32bit](./images/float_x86_32.png) |![Performance floating point additions on x86 32bit](./images/float_x86_32_zoom.png)
+
 In 64Bit mode the x86 version of LBM shows negligible differences in
 cost of additions at different types.
 
 ![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png)
+
+On 64Bit x86 the difference in cost is little accross all LBM types. 
+
+![Performance of floating point additions on x86 64bit](./images/float_x86_64.png)
 
 For addition performance on embedded systems, we use the the EDU VESC
 motorcontroller as the STM32F4 candidate and the VESC EXPRESS for a
@@ -272,14 +284,41 @@ All Integer types          |  32Bit or smaller
 :-------------------------:|:-------------------------:
 ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv.png)  | ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv_zoom.png)
 
+On RISCV the difference in cost between `u32` and `f32` operations is small.
+This is a bit surprising as the ESP32C3 does not have a floating point unit. It
+is possible that the encoding/decoding of numbers is dominating the cost
+of any numerical opeation.
+
+`f32` and `f64` vs `u32`   |  `f32` vs `u32`
+:-------------------------:|:-------------------------:
+![Performance of floating point additions on ESP32C3 RISCV](./images/float_riscv.png) |![Performance floating point additions on ESP32C3 RISCV](./images/float_riscv_zoom.png)
+
 On the STM32F4 at 168MHz (an EDU VESC) The results are similar to
 ESP32 but slower.  The slower performance on the VESC compared to the
-VESC_Express ESP32 may be caused by the VESC firmware being in general
-more busy. I dont know. This is outside of my expertise.
+VESC_Express ESP32 may be caused by the VESC firmware running
+motorcontrol interrups at a high frequency.
 
 All Integer types          |  32Bit or smaller
 :-------------------------:|:-------------------------:
-![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_arm.png)  | ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_arm_zoom.png)
+![Performance of 100000 addtions at various types on STM32F4](./images/thousands_arm.png)  | ![Performance of 100000 addtions at various types on STM32F4](./images/thousands_arm_zoom.png)
+
+
+The cost of `f32` operations compared to `u32` on the STM32F4 shows
+little differences.  As expected there is a jump up in cost when going to 64Bit.
+
+`f32` and `f64` vs `u32`   |  `f32` vs `u32`
+:-------------------------:|:-------------------------:
+![Performance of floating point additions on STM32F4](./images/float_stm.png) |![Performance floating point additions on STM32F4](./images/float_stm_zoom.png)
+
+
+In general, on 32Bit platforms, the cost of operations on numerical
+types that are 32Bit or less are about equal in cost. The costs
+presented here was created by timing a large number of 2 argument
+additions. Do not see these measurements as the "truth carved in stone",
+LBM performance keeps changing over time as we make improvements, but
+use them as a rough guiding principle.  If anything can be taken away
+from this it is to stay away from 64Bit value operations in your
+tightest and most time critical loops.
 
 ---
 
