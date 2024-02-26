@@ -236,7 +236,7 @@ The ranges representable in 32bit LBMs integer types are the following:
 > 18446744073709551615u64
 ```
 
-## Performance differences
+### Cost of numerical operations
 
 All Values in LBM are encoded in one way or another. The encoded value
 holds additional information about type and garbage collection mark
