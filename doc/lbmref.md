@@ -265,11 +265,11 @@ in cost when going to `f64` (double).
 In 64Bit mode the x86 version of LBM shows negligible differences in
 cost of additions at different types.
 
-![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png)
+All Integer types          |  `f32` and `f64` vs `u32`
+:-------------------------:|:-------------------------:
+ ![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png) | ![Performance of floating point additions on x86 64bit](./images/float_x86_64.png)
 
 On 64Bit x86 the difference in cost is little accross all LBM types. 
-
-![Performance of floating point additions on x86 64bit](./images/float_x86_64.png)
 
 For addition performance on embedded systems, we use the the EDU VESC
 motorcontroller as the STM32F4 candidate and the VESC EXPRESS for a
