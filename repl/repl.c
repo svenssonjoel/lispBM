@@ -620,7 +620,7 @@ void startup_procedure(void) {
       }
       sleep_callback(1000);
       // delay a little bit to allow all the events to be handled
-    // and the environment be fully populated
+      // and the environment be fully populated
 
     }
   }
@@ -634,11 +634,8 @@ void startup_procedure(void) {
   }
 }
 
-void shutdown_procedure(void) {
 
-  if (env_output_file) {
-
-
+int store_env(char *filename) {
     FILE *fp = fopen(env_output_file, "w");
     if (!fp) {
       terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
@@ -650,13 +647,13 @@ void shutdown_procedure(void) {
         lbm_value name_field = lbm_caar(curr);
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
         char *name = (char*)lbm_get_name_by_symbol(lbm_dec_sym(name_field));
-        if (!name) goto shutdown_procedure_1;
+        if (!name) return REPL_EXIT_UNABLE_TO_ACCESS_SYMBOL_STRING;
         int32_t fv_size = flatten_value_size(val_field, 0);
         if (fv_size > 0) {
           lbm_flat_value_t fv;
           fv.buf = malloc((uint32_t)fv_size);
           if (!fv.buf) {
-            terminate_repl(REPL_EXIT_ERROR_FLATTEN_NO_MEM);
+            return REPL_EXIT_ERROR_FLATTEN_NO_MEM;
           }
           fv.buf_size = (uint32_t)fv_size;
           fv.buf_pos = 0;
@@ -669,27 +666,27 @@ void shutdown_procedure(void) {
               fwrite(&fv_size, 1, sizeof(int32_t),fp);
               fwrite(fv.buf,1,(size_t)fv_size,fp);
             } else {
-              terminate_repl(REPL_EXIT_INVALID_KEY_IN_ENVIRONMENT);
+              return REPL_EXIT_INVALID_KEY_IN_ENVIRONMENT;
             }
           } else {
             switch (r) {
             case FLATTEN_VALUE_ERROR_CANNOT_BE_FLATTENED:
-              terminate_repl(REPL_EXIT_VALUE_CANNOT_BE_FLATTENED);
+              return REPL_EXIT_VALUE_CANNOT_BE_FLATTENED;
               break;
             case FLATTEN_VALUE_ERROR_BUFFER_TOO_SMALL:
-              terminate_repl(REPL_EXIT_FLAT_VALUE_BUFFER_TOO_SMALL);
+              return REPL_EXIT_FLAT_VALUE_BUFFER_TOO_SMALL;
               break;
             case FLATTEN_VALUE_ERROR_FATAL:
-              terminate_repl(REPL_EXIT_FATAL_ERROR_WHILE_FLATTENING);
+              return REPL_EXIT_FATAL_ERROR_WHILE_FLATTENING;
               break;
             case FLATTEN_VALUE_ERROR_CIRCULAR:
-              terminate_repl(REPL_EXIT_CIRCULAR_VALUE);
+              return REPL_EXIT_CIRCULAR_VALUE;
               break;
             case FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH:
-              terminate_repl(REPL_EXIT_FLATTENING_MAXIMUM_DEPTH);
+              return REPL_EXIT_FLATTENING_MAXIMUM_DEPTH;
               break;
             case FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY:
-              terminate_repl(REPL_EXIT_OUT_OF_MEMORY_WHILE_FLATTENING);
+              return REPL_EXIT_OUT_OF_MEMORY_WHILE_FLATTENING;
               break;
             }
           }
@@ -699,8 +696,15 @@ void shutdown_procedure(void) {
       }
     }
     fclose(fp);
+    return REPL_EXIT_SUCCESS;
+}
+
+void shutdown_procedure(void) {
+
+  if (env_output_file) {
+    int r = store_env(env_output_file);
+    if (r != REPL_EXIT_SUCCESS) terminate_repl(r);
   }
-  shutdown_procedure_1:
   return;
 }
 

@@ -40,10 +40,11 @@
 #define REPL_EXIT_ERROR_FLATTEN_NO_MEM 17
 #define REPL_EXIT_UNABLE_TO_CREATE_SYMBOL 18
 #define REPL_EXIT_INVALID_SOURCE_FILE 19
-#define REPL_EXIT_CRITICAL_ERROR 20
+#define REPL_EXIT_UNABLE_TO_ACCESS_SYMBOL_STRING 20
+#define REPL_EXIT_CRITICAL_ERROR 21
 
 
-const char *repl_exit_message[21] =
+const char *repl_exit_message[22] =
   {"Goodbye.",
    "ERROR: Out of memory while flattening a value.",
    "ERROR: Maximum cons depth reached while flattening value.",
@@ -64,6 +65,7 @@ const char *repl_exit_message[21] =
    "ERROR: Unable to allocate memory for flat value creation.",
    "ERROR: Unable to create a symbol.",
    "ERROR: Invalid source file.",
+   "ERROR: Unable to access symbol string representation.",
    "ERROR: Critical Error"
   };
 
