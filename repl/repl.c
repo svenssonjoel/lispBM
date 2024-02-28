@@ -564,16 +564,16 @@ void startup_procedure(void) {
       if (!lbm_get_symbol_by_name(name_buf, &sym_id)) {
         if (!lbm_add_symbol(name_buf, &sym_id)) {
           terminate_repl(REPL_EXIT_UNABLE_TO_CREATE_SYMBOL);
-          printf("sym: %s\n", name_buf);
-          printf("pos1: %u symbols added\n", num_symbols);
+          //printf("sym: %s\n", name_buf);
+          //printf("pos1: %u symbols added\n", num_symbols);
         }
       }
 
       char *sym = (char*)lbm_get_name_by_symbol(sym_id);
       if (!sym) {
         terminate_repl(REPL_EXIT_UNABLE_TO_CREATE_SYMBOL);
-        printf("sym: %s\n", name_buf);
-        printf("pos2: %u symbols added\n", num_symbols);
+        //printf("sym: %s\n", name_buf);
+        //printf("pos2: %u symbols added\n", num_symbols);
       }
 
       num_symbols ++;
@@ -633,7 +633,8 @@ void startup_procedure(void) {
       lbm_value binding;
       int count = 0;
       while (!lbm_global_env_lookup(&binding, key)) {
-        if (count > 100) terminate_repl(REPL_EXIT_ENV_POPULATION_TIMEOUT);
+        // Wait up to one second for the binding to appear in the env.
+        if (count > 10000) terminate_repl(REPL_EXIT_ENV_POPULATION_TIMEOUT);
         sleep_callback(100);
         count++;
       }
