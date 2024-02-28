@@ -527,6 +527,7 @@ bool evaluate_sources(void) {
 }
 
 #define NAME_BUF_SIZE 1024
+
 void startup_procedure(void) {
   char name_buf[NAME_BUF_SIZE];
 
@@ -535,6 +536,7 @@ void startup_procedure(void) {
     if (!fp) {
       terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
     }
+    uint32_t num_symbols = 0;
     while (true) {
       uint32_t name_len;
       size_t n = fread(&name_len, 1, sizeof(uint32_t), fp);
@@ -554,18 +556,27 @@ void startup_procedure(void) {
         terminate_repl(REPL_EXIT_INVALID_KEY_IN_ENV_FILE);
       }
 
+      if (lbm_get_symbol_table_size() > (100 * 1024)) {
+        terminate_repl(REPL_EXIT_SYMBOL_TABLE_TOO_BIG);
+      }
+
       lbm_uint sym_id = 0;
       if (!lbm_get_symbol_by_name(name_buf, &sym_id)) {
         if (!lbm_add_symbol(name_buf, &sym_id)) {
           terminate_repl(REPL_EXIT_UNABLE_TO_CREATE_SYMBOL);
+          printf("sym: %s\n", name_buf);
+          printf("pos1: %u symbols added\n", num_symbols);
         }
       }
 
       char *sym = (char*)lbm_get_name_by_symbol(sym_id);
       if (!sym) {
         terminate_repl(REPL_EXIT_UNABLE_TO_CREATE_SYMBOL);
+        printf("sym: %s\n", name_buf);
+        printf("pos2: %u symbols added\n", num_symbols);
       }
 
+      num_symbols ++;
       lbm_value key = lbm_enc_sym(sym_id);
       uint32_t val_len;
       n = fread(&val_len, 1, sizeof(uint32_t), fp);
@@ -618,7 +629,14 @@ void startup_procedure(void) {
       while (!lbm_event_queue_is_empty()) {
         sleep_callback(100);
       }
-      sleep_callback(1000);
+
+      lbm_value binding;
+      int count = 0;
+      while (!lbm_global_env_lookup(&binding, key)) {
+        if (count > 100) terminate_repl(REPL_EXIT_ENV_POPULATION_TIMEOUT);
+        sleep_callback(100);
+        count++;
+      }
       // delay a little bit to allow all the events to be handled
       // and the environment be fully populated
 
