@@ -1438,6 +1438,14 @@ Example that evaluates to 2.
 (ix (list 1 2 3) 1)
 ```
 
+An index can also be negative in which case you are indexing from the
+end of the list.
+
+Example that evaluates to 3.
+```clj
+(ix (list 1 2 3) -1)
+```
+
 ---
 
 ### setix
