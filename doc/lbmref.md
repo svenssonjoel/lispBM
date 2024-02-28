@@ -1412,6 +1412,15 @@ if you index out of bounds the result is nil.
 > (1 2 77 4 5)
 ```
 
+It is also possible to index from the end of the list by using negative
+indices:
+
+```clj
+# (setix (list 1 2 3 4 5) -1 77)
+>
+```
+Using index `-1` updates the last element.
+
 ---
 
 ### setcar
