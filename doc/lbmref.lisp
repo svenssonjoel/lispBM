@@ -21,7 +21,7 @@
              (rend "</tr>\n")
              (render-code-res-pairs rend xs)
              }))))
-    
+
 (defun render-code-table (rend c)
     {
     (rend "<table>\n")
@@ -131,7 +131,7 @@
                 'newline
                 'hline
                 (bold "NOTE") 'newline
-                
+
                 (para (list "Symbols are expressed as strings in your program such as `a`, `let`,"
                             "`define`, `+` or `orange`. The \"reader\", the part of LBM that parses"
                             "code, translates each symbol into a 28bit value. The string `orange`"
@@ -142,12 +142,12 @@
                             "all integer comparisons."
                             ))
                 'hline
-                
+
                 (para (list "You associate values with symbols using, <a href=\"#define\">define</a>,"
                             "<a href=\"#let\">let</a> and you can change the value bound to a \"variable\""
                             "using <a href=\"#set\">set</a>, <a href=\"#setvar\">setq</a> or <a href=\"#setvar\">setvar</a>."
                             ))
-                
+
                 (para (list "Not all symbols are treated the same in LBM. Some symbols are treated as"
                             "special because of their very fundamental nature. Among these special symbols"
                             "you find `define`, `let` and `lambda` for example. These are things that you"
@@ -160,7 +160,7 @@
                             "represents true.  But any symbol can be used as data by quoting it"
                             "`'`, see <a href=\"#quotes-and-quasiquotation\"> Quotes and Quasiquotation </a>."
                             ))
-                
+
                 (section 3 "Valid Symbol Names"
                          (list
                           (para (list "A symbol is a string of characters following the rules:"
@@ -179,10 +179,9 @@
                                       "!apa"
                                       "kurt_russel_is_great"
                                       "```"
-                                      ))   
+                                      ))
                           end))
-                
-                
+
                 end)))
 
 
@@ -190,17 +189,44 @@
 (define arith-add
   (section 3 "+"
            (list
-            (para (list "Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1 ... exprN)`"
+            (para (list "Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1 ... exprN)`."
                         ))
 
             (code '((+ 1 2)
                     (+ 1 2 3 4)
-                    (+ 1 1u)))
+                    (+ 1 1u)
+                    (+ 2i 3.14)))
+            end)))
+
+(define arith-sub
+  (section 3 "-"
+           (list
+            (para (list "Subtract an arbitrary number of values from a value. The form of a `-` expression is `(- expr1 ... exprN)`."
+                        ))
+            (code '((- 5 3)
+                    (- 10 5 5)
+                    (- 10 2u)
+                    (- 10 3.14)))
+            end)))
+
+(define arith-mul
+  (section 3 "*"
+           (list
+            (para (list "Multiplying an arbitrary number of values. The form of a * expression is `(* expr1 ... exprN)`."
+                        ))
+
+            (code '((* 2 2)
+                    (* 2 3 4 5)
+                    (* 10 2u)
+                    (* 4 3.14)))
             end)))
 
 (define arithmetic
   (section 2 "Arithmetic"
-           (list arith-add)
+           (list arith-add
+                 arith-sub
+                 arith-mul
+                 )
            ))
 
 (def manual (list ch-symbols arithmetic))
