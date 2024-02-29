@@ -199,29 +199,6 @@ void *prof_thd(void *v) {
   return NULL;
 }
 
-lbm_value ext_print(lbm_value *args, lbm_uint argn) {
-  if (argn < 1) return lbm_enc_sym(SYM_NIL);
-
-  if (!allow_print) return lbm_enc_sym(SYM_TRUE);
-
-  char output[1024];
-
-  for (unsigned int i = 0; i < argn; i ++) {
-    lbm_value t = args[i];
-
-    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
-      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
-      char *data = (char*)array->data;
-      printf("%s", data);
-    } else {
-      lbm_print_value(output, 1024, t);
-      printf("%s", output);
-    }
-  }
-  printf("\n");
-  return lbm_enc_sym(SYM_TRUE);
-}
-
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
   char *file_str = NULL;
@@ -483,10 +460,6 @@ int init_repl() {
   lbm_set_printf_callback(error_print);
 
   init_exts();
-
-  if (!lbm_add_extension("print", ext_print)) {
-    return 0;
-  }
 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
@@ -868,11 +841,11 @@ int main(int argc, char **argv) {
       free(str);
       continue;
     } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
-      allow_print = true;
+      set_allow_print(true);
       free(str);
       continue;
     } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
-      allow_print = false;
+      set_allow_print(false);
       free(str);
       continue;
     } else if (strncmp(str, ":ctxs", 5) == 0) {
