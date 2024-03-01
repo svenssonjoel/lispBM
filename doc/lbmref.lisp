@@ -222,7 +222,7 @@
 (define arith-mul
   (ref-entry "*"
            (list
-            (para (list "Multiplying an arbitrary number of values. The form of a * expression is `(* expr1 ... exprN)`."
+            (para (list "Multiplying an arbitrary number of values. The form of a `*` expression is `(* expr1 ... exprN)`."
                         ))
 
             (code '((* 2 2)
@@ -231,11 +231,33 @@
                     (* 4 3.14)))
             end)))
 
+(define arith-div
+  (ref-entry "/"
+             (list
+              (para (list "Division. The form of a `/` expression is `(/ expr1 ... exprN)`."
+                          ))
+              (code '((/ 128 2)
+                      (/ 6.28 2)
+                      (/ 256 2 2 2 2 2 2 2)))
+              end)))
+
+(define arith-mod
+  (ref-entry "mod"
+             (list
+              (para (list "Modulo operation. The form of a `mod` expression is `(mod expr1 ... exprN)`."
+                          ))
+              (code '((mod 5 3)
+                      (mod 100 1024)
+                      (mod 5 -7)))
+              end)))
+
 (define arithmetic
   (section 2 "Arithmetic"
            (list arith-add
                  arith-sub
                  arith-mul
+                 arith-div
+                 arith-mod
                  )
            ))
 
