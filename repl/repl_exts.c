@@ -362,6 +362,78 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   return lbm_enc_sym(SYM_TRUE);
 }
 
+// ------------------------------------------------------------
+// File IO
+
+static const char *lbm_file_handle_desc = "File-Handle";
+
+typedef struct {
+  FILE *fp;
+} lbm_file_handle_t;
+
+static bool file_handle_destructor(lbm_uint value) {
+
+  lbm_file_handle_t *h = (lbm_file_handle_t *)value;
+  if (h->fp) {
+    fclose(h->fp);
+  }
+  return true;
+}
+
+static bool is_file_handle(lbm_value h) {
+  return ((lbm_uint)lbm_get_custom_descriptor(h) == (lbm_uint)lbm_file_handle_desc);
+}
+
+static lbm_value ext_fopen(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      lbm_is_array_r(args[0]) &&
+      lbm_is_array_r(args[1])) {
+
+    FILE *fp = NULL;
+
+    char *filename = lbm_dec_str(args[0]);
+    char *mode = lbm_dec_str(args[1]);
+
+    fp = fopen(filename, mode);
+    if (fp) {
+      lbm_file_handle_t *mem = lbm_malloc(sizeof(lbm_file_handle_t));
+      if (!mem) {
+        fclose(fp);
+        return ENC_SYM_MERROR;
+      }
+      mem->fp = fp;
+      lbm_custom_type_create((lbm_uint)mem,
+                             file_handle_destructor,
+                             lbm_file_handle_desc,
+                             &res);
+    } else {
+      return ENC_SYM_NIL;
+    }
+  }
+  return res;
+}
+
+static lbm_value ext_fwrite(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      is_file_handle(args[0]) &&
+      lbm_is_array_r(args[1])) {
+
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
+    if (array) {
+      fwrite(array->data, 1, array->size, h->fp);
+      res = ENC_SYM_TRUE;
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+  return res;
+
+}
 
 // ------------------------------------------------------------
 // Init
@@ -379,8 +451,10 @@ int init_exts(void) {
   }
   if (!lbm_runtime_extensions_init(false)) {
     return 0;
-  } 
+  }
 
+  lbm_add_extension("fopen", ext_fopen);
+  lbm_add_extension("fwrite", ext_fwrite);
   lbm_add_extension("print", ext_print);
   lbm_add_extension("systime", ext_systime);
   lbm_add_extension("secs-since", ext_secs_since);
