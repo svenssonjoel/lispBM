@@ -76,6 +76,7 @@
            (rend (str-merge "**" s "**")))
          ( (program (? c)) (render-program-table rend c))
          ( (code (? c)) (render-code-table rend c))
+         ( _ (render rend ss))
          ))
 
 
@@ -94,6 +95,15 @@
 
 (defun section (i str strs)
   (list 'section i str strs))
+
+(defun ref-entry (str strs)
+  (list
+   'hline
+   'newline
+   (section 3 str strs)
+   'newline
+   'hline
+   ))
 
 (defun hline ()
   'hline)
@@ -187,7 +197,7 @@
 
 
 (define arith-add
-  (section 3 "+"
+  (ref-entry "+"
            (list
             (para (list "Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1 ... exprN)`."
                         ))
@@ -199,7 +209,7 @@
             end)))
 
 (define arith-sub
-  (section 3 "-"
+  (ref-entry "-"
            (list
             (para (list "Subtract an arbitrary number of values from a value. The form of a `-` expression is `(- expr1 ... exprN)`."
                         ))
@@ -210,7 +220,7 @@
             end)))
 
 (define arith-mul
-  (section 3 "*"
+  (ref-entry "*"
            (list
             (para (list "Multiplying an arbitrary number of values. The form of a * expression is `(* expr1 ... exprN)`."
                         ))
