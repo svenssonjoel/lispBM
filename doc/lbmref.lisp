@@ -11,12 +11,12 @@
              (rend "<td>\n\n")
              (rend "```clj\n")
              (rend cstr)
-             (rend "```\n")
+             (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "<td>\n\n")
              (rend "```clj\n")
              (rend rstr)
-             (rend "```\n")
+             (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "</tr>\n")
              (render-code-res-pairs rend xs)
@@ -58,19 +58,19 @@
 
 (defun render-it (rend ss)
   (match ss
-         ( nil (rend "") )
+         ( nil (rend "\n") )
          ( (section (? i) (? x) (? xs))
            {
            (match i
-                  (1 (rend (str-merge "# " x "\n")))
-                  (2 (rend (str-merge "## " x "\n")))
-                  (3 (rend (str-merge "### " x "\n")))
-                  (4 (rend (str-merge "#### " x "\n"))))
+                  (1 (rend (str-merge "# " x "\n\n")))
+                  (2 (rend (str-merge "## " x "\n\n")))
+                  (3 (rend (str-merge "### " x "\n\n")))
+                  (4 (rend (str-merge "#### " x "\n\n"))))
            (render rend xs)
            }
            )
-         ( (para (? x)) { (map (lambda (s) (rend s)) x) (rend "\n") } )
-         ( hline (rend "---"))
+         ( (para (? x)) { (map (lambda (s) (rend (str-merge s " "))) x) (rend "\n") } )
+         ( hline (rend "\n---\n\n"))
          ( newline (rend "\n"))
          ( (bold (? s))
            (rend (str-merge "**" s "**")))
@@ -135,7 +135,7 @@
                             ))
                 (para (list "One way to think about a symbol is as a name. Used as a name, a"
                             "symbol can identify a value or function in the environment. A"
-                            "symbol can also be used as data in and of itself, more on "
+                            "symbol can also be used as data in and of itself, more on"
                             "this later."
                             ))
                 'newline
@@ -315,12 +315,39 @@
                       ))
               end)))
 
+(define comp-!=
+  (ref-entry "!="
+             (list
+              (para (list "The `!=` operation implements the negation of `=`. So, `(!= a b)` evaluates to the same result as `(not (= a b))`."
+                          ))
+              (code '((!= 1 1)
+                      (!= 1 2)
+                      (!= (+ 2 3) (+ 1 4))
+                      (!= (+ 1 2) (+ 2 3))
+                      ))
+              end)))
+
+(define comp->
+  (ref-entry ">"
+             (list
+              (para (list "Greater than comparison. A greater than comparison has the form `(> expr1 ... exprN)` and evaluates to `t` if expr1 is greater than all of expr2 ... exprN."
+                          ))
+
+              (code '((> 5 2)
+                      (> 2 5)
+                      (> 3.14 1)
+                      (> 1 3.14)
+                      ))
+              end)))
+
+
 
 (define comparisons
   (section 2 "Comparisons"
            (list comp-eq
                  comp-not-eq
                  comp-=
+                 comp->
                  )
            ))
 
@@ -328,3 +355,10 @@
 (def manual (list ch-symbols
                   arithmetic
                   comparisons))
+
+
+(defun render-manual ()
+  (let ((h (fopen "test.md" "w"))
+        (r (lambda (s) (fwrite-str h s))))
+    (render r manual)))
+

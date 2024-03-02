@@ -435,6 +435,27 @@ static lbm_value ext_fwrite(lbm_value *args, lbm_uint argn) {
 
 }
 
+static lbm_value ext_fwrite_str(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      is_file_handle(args[0]) &&
+      lbm_is_array_r(args[1])) {
+
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
+    if (array) {
+      fwrite(array->data, 1, strlen((char*)array->data), h->fp);
+      res = ENC_SYM_TRUE;
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+  return res;
+
+}
+
+
 // ------------------------------------------------------------
 // Init
 
@@ -455,6 +476,7 @@ int init_exts(void) {
 
   lbm_add_extension("fopen", ext_fopen);
   lbm_add_extension("fwrite", ext_fwrite);
+  lbm_add_extension("fwrite-str", ext_fwrite_str);
   lbm_add_extension("print", ext_print);
   lbm_add_extension("systime", ext_systime);
   lbm_add_extension("secs-since", ext_secs_since);
