@@ -46,7 +46,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 <td>
 
 ```clj
-1
+3
 ```
 
 
@@ -64,7 +64,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 <td>
 
 ```clj
-1
+10
 ```
 
 
@@ -82,7 +82,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 <td>
 
 ```clj
-1
+2u
 ```
 
 
@@ -100,7 +100,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 <td>
 
 ```clj
-2
+5.140000f32
 ```
 
 
@@ -135,7 +135,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 <td>
 
 ```clj
-5
+2
 ```
 
 
@@ -153,7 +153,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 <td>
 
 ```clj
-10
+0
 ```
 
 
@@ -171,7 +171,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 <td>
 
 ```clj
-10
+8u
 ```
 
 
@@ -189,7 +189,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 <td>
 
 ```clj
-10
+6.860000f32
 ```
 
 
@@ -224,7 +224,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 <td>
 
 ```clj
-2
+4
 ```
 
 
@@ -242,7 +242,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 <td>
 
 ```clj
-2
+120
 ```
 
 
@@ -260,7 +260,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 <td>
 
 ```clj
-10
+20u
 ```
 
 
@@ -278,7 +278,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 <td>
 
 ```clj
-4
+12.560000f32
 ```
 
 
@@ -313,7 +313,7 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 <td>
 
 ```clj
-128
+64
 ```
 
 
@@ -331,7 +331,7 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 <td>
 
 ```clj
-6.280000f32
+3.140000f32
 ```
 
 
@@ -349,7 +349,7 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 <td>
 
 ```clj
-256
+2
 ```
 
 
@@ -384,7 +384,7 @@ Modulo operation. The form of a `mod` expression is `(mod expr1 exp2)`. The modu
 <td>
 
 ```clj
-5
+2
 ```
 
 
@@ -402,7 +402,7 @@ Modulo operation. The form of a `mod` expression is `(mod expr1 exp2)`. The modu
 <td>
 
 ```clj
-1024
+24
 ```
 
 
@@ -420,7 +420,7 @@ Modulo operation. The form of a `mod` expression is `(mod expr1 exp2)`. The modu
 <td>
 
 ```clj
--7
+-2
 ```
 
 
@@ -458,7 +458,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-3
+t
 ```
 
 
@@ -476,7 +476,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-1
+t
 ```
 
 
@@ -494,7 +494,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-1
+nil
 ```
 
 
@@ -512,7 +512,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-7
+t
 ```
 
 
@@ -530,7 +530,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-(1 2 3 4)
+t
 ```
 
 
@@ -548,7 +548,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-(1 2 4 5)
+nil
 ```
 
 
@@ -583,7 +583,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-3
+nil
 ```
 
 
@@ -601,7 +601,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-1
+nil
 ```
 
 
@@ -619,7 +619,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-1
+t
 ```
 
 
@@ -637,7 +637,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-7
+nil
 ```
 
 
@@ -655,7 +655,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-(1 2 3 4)
+nil
 ```
 
 
@@ -673,7 +673,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-(1 2 4 5)
+t
 ```
 
 
@@ -709,7 +709,7 @@ The `=` operation can only be used on numerical arguments. If you know you are c
 <td>
 
 ```clj
-1
+t
 ```
 
 
@@ -727,7 +727,7 @@ The `=` operation can only be used on numerical arguments. If you know you are c
 <td>
 
 ```clj
-1
+nil
 ```
 
 
@@ -745,7 +745,7 @@ The `=` operation can only be used on numerical arguments. If you know you are c
 <td>
 
 ```clj
-5
+t
 ```
 
 
@@ -763,7 +763,7 @@ The `=` operation can only be used on numerical arguments. If you know you are c
 <td>
 
 ```clj
-3
+nil
 ```
 
 
@@ -798,7 +798,7 @@ Greater than comparison. A greater than comparison has the form `(> expr1 ... ex
 <td>
 
 ```clj
-5
+t
 ```
 
 
@@ -816,7 +816,7 @@ Greater than comparison. A greater than comparison has the form `(> expr1 ... ex
 <td>
 
 ```clj
-2
+nil
 ```
 
 
@@ -834,7 +834,7 @@ Greater than comparison. A greater than comparison has the form `(> expr1 ... ex
 <td>
 
 ```clj
-3.140000f32
+t
 ```
 
 
@@ -852,7 +852,7 @@ Greater than comparison. A greater than comparison has the form `(> expr1 ... ex
 <td>
 
 ```clj
-1
+nil
 ```
 
 
@@ -907,7 +907,7 @@ t
 <td>
 
 ```clj
-t
+3
 ```
 
 
@@ -925,7 +925,7 @@ t
 <td>
 
 ```clj
-t
+nil
 ```
 
 
@@ -978,7 +978,7 @@ nil
 <td>
 
 ```clj
-nil
+t
 ```
 
 
@@ -1032,7 +1032,7 @@ t
 <td>
 
 ```clj
-nil
+3
 ```
 
 
@@ -1067,7 +1067,7 @@ Boolean `not` takes one argument. The form of a `not` expression is `(not expr)`
 <td>
 
 ```clj
-t
+nil
 ```
 
 
@@ -1085,7 +1085,7 @@ t
 <td>
 
 ```clj
-nil
+t
 ```
 
 
@@ -1103,7 +1103,7 @@ nil
 <td>
 
 ```clj
-42
+nil
 ```
 
 
@@ -1140,7 +1140,7 @@ The shift left operation takes two arguments. The first argument is a value to s
 <td>
 
 ```clj
-1
+4
 ```
 
 
@@ -1158,7 +1158,7 @@ The shift left operation takes two arguments. The first argument is a value to s
 <td>
 
 ```clj
-1u32
+4u32
 ```
 
 
@@ -1176,7 +1176,7 @@ The shift left operation takes two arguments. The first argument is a value to s
 <td>
 
 ```clj
-1u64
+4u64
 ```
 
 
@@ -1211,7 +1211,7 @@ The shift right operation takes two arguments. The first argument is a value to 
 <td>
 
 ```clj
-4
+1
 ```
 
 
@@ -1229,7 +1229,7 @@ The shift right operation takes two arguments. The first argument is a value to 
 <td>
 
 ```clj
-4u32
+1u32
 ```
 
 
@@ -1247,7 +1247,7 @@ The shift right operation takes two arguments. The first argument is a value to 
 <td>
 
 ```clj
-4u64
+1u64
 ```
 
 
@@ -1282,7 +1282,7 @@ Performs the bitwise and operation between two values. The type of the result is
 <td>
 
 ```clj
-1048831u32
+255u32
 ```
 
 
@@ -1317,7 +1317,7 @@ Performs the bitwise or operation between two values. The type of the result is 
 <td>
 
 ```clj
-1048816
+1048831
 ```
 
 
@@ -1352,7 +1352,7 @@ Performs the bitwise exclusive or operation between two values. The type of the 
 <td>
 
 ```clj
-1048816
+1048591
 ```
 
 
@@ -1387,7 +1387,7 @@ Performs the bitwise negation operations on a value. The result is of same type 
 <td>
 
 ```clj
-4096u32
+4294963199u32
 ```
 
 
@@ -1424,7 +1424,7 @@ Represents the empty list. The nil value is also considered to be false by condi
 <td>
 
 ```clj
-1
+(1)
 ```
 
 
@@ -1442,7 +1442,7 @@ Represents the empty list. The nil value is also considered to be false by condi
 <td>
 
 ```clj
-nil
+100
 ```
 
 
@@ -1495,7 +1495,7 @@ All non nil values are considered true in conditionals. `t` should be used in ca
 <td>
 
 ```clj
-1
+(1 . t)
 ```
 
 
@@ -1513,7 +1513,7 @@ All non nil values are considered true in conditionals. `t` should be used in ca
 <td>
 
 ```clj
-t
+3
 ```
 
 
@@ -1684,4 +1684,277 @@ t
 
 
 ---
+
+## Quotes and Quasiquotation
+
+Code and data share the same representation, it is only a matter of how you look at it. The tools for changing view, or interpretation, are the quotation and quasiquotation operations. 
+
+---
+
+
+### quote
+
+Usages of the `'` quote symbol in input code is replaced with the symbol quote by the reader.  Evaluating a quoted expression, (quote a), results in a unevaluated. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+'(+ 1 2)
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(eval '(+ 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+'kurt
+```
+
+
+</td>
+<td>
+
+```clj
+kurt
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(quote (+ 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(eval (quote (+ 1 2)))
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(quote kurt)
+```
+
+
+</td>
+<td>
+
+```clj
+kurt
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### `
+
+The backwards tick `` ` `` is called the quasiquote. It is similar to the `'` but allows splicing in results of computations using the <a href="#,">,</a> and the <a href="#commaat">,@</a> operators. 
+The result of `'(+ 1 2)` and `` `(+ 1 2)`` are similar in effect. Both result in the result value of `(+ 1 2)`, that is a list containing +, 1 and 2.  When `` `(+ 1 2)`` is read into the heap it is expanded into the expression `(append (quote (+)) (append (quote (1)) (append (quote (2)) (quote nil))))` which evaluates to the list `(+ 1 2)`. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+`(+ 1 2)
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+`(+ 1 ,(+ 1 1))
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(append (quote (+ 1)) (list (+ 1 1)))
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### ,
+
+The comma is used to splice the result of a computation into a quasiquotation. 
+The expression `` `(+ 1 ,(+ 1 1))`` is expanded by the reader into `(append (quote (+)) (append (quote (1)) (append (list (+ 1 1)) (quote nil))))`. Evaluating the expression above results in the list `(+ 1 2)`. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+`(+ 1 ,(+ 1 1))
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### ,@
+
+The comma-at operation is used to splice in the result of a computation (that returns a list) into a list when quasiquoting. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+`(1 2 3 ,@(range 4 10))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 4 5 6 7 8 9)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+## Built-in operations
 

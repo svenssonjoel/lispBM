@@ -11,7 +11,7 @@
            (let ((x-str (if (has-alt-txt x)
                             (ix x 2)
                           (to-str x)))
-                 (x-code (if (is-cons x)
+                 (x-code (if (has-alt-txt x)
                              (ix x 1)
                            x))
                  (res (eval x-code))
@@ -595,6 +595,86 @@
                  )
            ))
 
+;; Quotes and quasiqoutation
+
+(define op-quote
+  (ref-entry "quote"
+             (list
+              (para (list "Usages of the `'` quote symbol in input code is replaced with the"
+                          "symbol quote by the reader.  Evaluating a quoted expression, (quote"
+                          "a), results in a unevaluated."
+                          ))
+              (code '((alt-txt '(+ 1 2) "'(+ 1 2)")
+                      (alt-txt (eval '(+ 1 2)) "(eval '(+ 1 2))")
+                      (alt-txt 'kurt "'kurt")
+                      (quote (+ 1 2))
+                      (eval (quote (+ 1 2)))
+                      (quote kurt)
+                      ))
+              end)))
+
+(define op-quasi
+  (ref-entry "`"
+             (list
+              (para (list "The backwards tick `` ` `` is called the quasiquote. It is similar to"
+                          "the `'` but allows splicing in results of computations using the <a"
+                          "href=\"#,\">,</a> and the <a href=\"#commaat\">,@</a> operators."
+                          ))
+              (para (list "The result of `'(+ 1 2)` and `` `(+ 1 2)`` are similar in effect. Both"
+                          "result in the result value of `(+ 1 2)`, that is a list containing +,"
+                          "1 and 2.  When `` `(+ 1 2)`` is read into the heap it is expanded into"
+                          "the expression `(append (quote (+)) (append (quote (1)) (append (quote"
+                          "(2)) (quote nil))))` which evaluates to the list `(+ 1 2)`."
+                          ))
+              (code '((alt-txt `(+ 1 2) "`(+ 1 2)")
+                      (alt-txt `(+ 1 ,(+ 1 1)) "`(+ 1 ,(+ 1 1))")
+                      (append (quote (+ 1)) (list (+ 1 1)))
+                      ))
+              end)))
+
+(define op-comma
+  (ref-entry ","
+             (list
+              (para (list "The comma is used to splice the result of a computation into a quasiquotation."
+                          ))
+              (para (list "The expression `` `(+ 1 ,(+ 1 1))`` is expanded by the reader into"
+                          "`(append (quote (+)) (append (quote (1)) (append (list (+ 1 1)) (quote nil))))`."
+                          "Evaluating the expression above results in the list `(+ 1 2)`."
+                          ))
+              (code '((alt-txt `(+ 1 ,(+ 1 1)) "`(+ 1 ,(+ 1 1))")
+                      ))
+              end)))
+
+(define op-commaat
+  (ref-entry ",@"
+             (list
+              (para (list "The comma-at operation is used to splice in the result of a computation (that"
+                          "returns a list) into a list when quasiquoting."
+                          ))
+              (code '((alt-txt `(1 2 3 ,@(range 4 10)) "`(1 2 3 ,@(range 4 10))")
+                      ))
+              end)))
+
+(define quotes
+  (section 2 "Quotes and Quasiquotation"
+           (list (para
+                  (list "Code and data share the same representation, it is only a matter of"
+                        "how you look at it. The tools for changing view, or interpretation,"
+                        "are the quotation and quasiquotation operations."
+                        ))
+                 op-quote
+                 op-quasi
+                 op-comma
+                 op-commaat
+                 )))
+
+;; Built-in operations
+
+(define built-ins
+  (section 2 "Built-in operations"
+           (list
+            )))
+
 ;; Manual
 
 (def manual (list ch-symbols
@@ -602,7 +682,10 @@
                   comparisons
                   boolean
                   bitwise
-                  nil-and-t))
+                  nil-and-t
+                  quotes
+                  built-ins
+                  ))
 
 
 
