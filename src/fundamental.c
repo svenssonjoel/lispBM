@@ -23,6 +23,7 @@
 #include "env.h"
 #include "lbm_utils.h"
 #include "lbm_custom_type.h"
+#include "lbm_constants.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -467,14 +468,13 @@ static lbm_value fundamental_div(lbm_value *args, lbm_uint nargs, eval_context_t
 
 static lbm_value fundamental_mod(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-
-  lbm_uint res = args[0];
-  for (lbm_uint i = 1; i < nargs; i ++) {
-    res = mod2(res, args[i]);
-    if (lbm_type_of(res) == LBM_TYPE_SYMBOL) {
-      break;
-    }
+  if (nargs != 2) {
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    return ENC_SYM_EERROR;
   }
+  lbm_value res = args[0];
+  lbm_value arg2 = args[1];
+  res = mod2(res, arg2);
   return res;
 }
 

@@ -195,6 +195,7 @@
                 end)))
 
 
+;; Arithmetic section
 
 (define arith-add
   (ref-entry "+"
@@ -244,11 +245,12 @@
 (define arith-mod
   (ref-entry "mod"
              (list
-              (para (list "Modulo operation. The form of a `mod` expression is `(mod expr1 ... exprN)`."
+              (para (list "Modulo operation. The form of a `mod` expression is `(mod expr1 exp2)`."
+                          "The modulo operation is not generalised to n arguments."
                           ))
               (code '((mod 5 3)
-                      (mod 100 1024)
-                      (mod 5 -7)))
+                      (mod 1024 100)
+                      (mod -7 5)))
               end)))
 
 (define arithmetic
@@ -261,4 +263,68 @@
                  )
            ))
 
-(def manual (list ch-symbols arithmetic))
+;; Comaprisons section
+
+(define  comp-eq
+  (ref-entry "eq"
+            (list
+             (para (list "Compare values for equality. The `eq` operation implements structural"
+                         "equiality. The form of an 'eq` expression is `(eq expr1 ... exprN)`."
+                         "\n"
+                         "Structural equality means that the values must have the identical in"
+                         "memory representations to be considered equal."
+                         ))
+             (code '((eq (+ 1 2) 3)
+                     (eq 1 1 1 1)
+                     (eq 1 1 2 1)
+                     (eq (+ 3 4) (+ 2 5) (+ 1 6))
+                     (eq (list 1 2 3 4) (list 1 2 3 4))
+                     (eq (list 1 2 4 5) (list 1 2 3 4))
+                     ))
+             end)))
+
+(define comp-not-eq
+  (ref-entry "not-eq"
+             (list
+              (para (list "`not-eq` implements the negation of eq. In other words, `(not-eq a b c)` evaluates to the same result as `(not (eq a b c))`."
+                          ))
+              (code '((not-eq (+ 1 2) 3)
+                      (not-eq 1 1 1 1)
+                      (not-eq 1 1 2 1)
+                      (not-eq (+ 3 4) (+ 2 5) (+ 1 6))
+                      (not-eq (list 1 2 3 4) (list 1 2 3 4))
+                      (not-eq (list 1 2 4 5) (list 1 2 3 4))
+                      ))
+              end)))
+
+(define comp-=
+  (ref-entry "="
+             (list
+              (para (list "The `=` operation can only be used on numerical arguments. If you know you are comparing numbers, it will be more efficient to use `=`."
+                          "\n"
+                          "An important difference between `eq` and `=` is"
+                          "that `=` compare the numerical values of the arguments. A 3 is a 3"
+                          "independent of them being different types. `eq` on the other"
+                          "hand compares the representations of the arguments exactly and they must"
+                          "match in structure, type and value to be considered equal."
+                          ))
+              (code '((= 1 1)
+                      (= 1 2)
+                      (= (+ 2 3) (+ 1 4))
+                      (= (+ 1 2) (+ 2 3))
+                      ))
+              end)))
+
+
+(define comparisons
+  (section 2 "Comparisons"
+           (list comp-eq
+                 comp-not-eq
+                 comp-=
+                 )
+           ))
+
+
+(def manual (list ch-symbols
+                  arithmetic
+                  comparisons))
