@@ -1,16 +1,26 @@
 
+(defun has-alt-txt (x)
+  (match x
+         ( (alt-txt . _) true)
+         (_ false)))
+
 (defun render-code-res-pairs (rend cs)
   (match cs
          (nil t)
          ( ((? x) . (? xs))
-           (let ((cstr (to-str x))
-                 (res (eval x))
+           (let ((x-str (if (has-alt-txt x)
+                            (ix x 2)
+                          (to-str x)))
+                 (x-code (if (is-cons x)
+                             (ix x 1)
+                           x))
+                 (res (eval x-code))
                  (rstr (to-str res)))
              {
              (rend "<tr>\n")
              (rend "<td>\n\n")
              (rend "```clj\n")
-             (rend cstr)
+             (rend x-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "<td>\n\n")
@@ -447,7 +457,7 @@
            ))
 
 ;; Bitwise operations
-(define bitwise-shl
+(define bit-shl
   (ref-entry "shl"
              (list
               (para (list "The shift left operation takes two arguments. The first argument is a value to shift and the"
@@ -461,11 +471,128 @@
 
               end)))
 
+(define bit-shr
+  (ref-entry "shr"
+             (list
+              (para (list "The shift right operation takes two arguments. The first argument is a"
+                          "value to shift and the second argument in the number of bit positions"
+                          "to shift the value."
+                          ))
+              (code '((shr 4 2)
+                      (shr 4u32 2)
+                      (shr 4u64 2)))
+
+              end)))
+
+(define bit-and
+  (ref-entry "bitwise-and"
+             (list
+              (para (list "Performs the bitwise and operation between two values. The type of the result"
+                          "is the same type as the first of the arguments."
+                          ))
+              (code '((bitwise-and 1048831u32 0xFFFF)
+                      ))
+
+              end)))
+
+(define bit-or
+  (ref-entry "bitwise-or"
+             (list
+              (para (list "Performs the bitwise or operation between two values. The type of the result"
+                          "is the same type as the first of the arguments."
+                          ))
+              (code '((bitwise-or 1048816 0xF)
+                      ))
+              end)))
+
+(define bit-xor
+  (ref-entry "bitwise-xor"
+             (list
+              (para (list "Performs the bitwise exclusive or operation between two values. The type of the result"
+                          "is the same type as the first of the arguments."
+                          ))
+              (code '((bitwise-xor 1048816 0xFF)
+                      ))
+              end)))
+
+(define bit-not
+  (ref-entry "bitwise-not"
+             (list
+              (para (list "Performs the bitwise negation operations on a value. The result is of same type as"
+                          "the argument."
+                          ))
+              (code '((bitwise-not 4096u32)
+                      ))
+              end)))
 
 (define bitwise
   (section 2 "Bit level operations"
-           (list bitwise-shl
+           (list bit-shl
+                 bit-shr
+                 bit-and
+                 bit-or
+                 bit-xor
+                 bit-not
             )
+           ))
+
+;; Nil and t, true and false
+
+(define value-nil
+  (ref-entry "nil"
+             (list
+              (para (list "Represents the empty list. The nil value is also considered to be false by conditionals."
+                          "`nil` is a symbol but it cannot be redefined and will always evaluate to itself."
+                          ))
+              (code '((cons 1 nil)
+                      (if nil 3 100)
+                      nil
+                      ))
+
+              end)))
+
+(define value-t
+  (ref-entry "t"
+             (list
+              (para (list "All non nil values are considered true in conditionals. `t` should be used in cases where an"
+                          "explicit true makes sense. `t` is a symbol but it cannot be redefined and will always evaluate to itself."
+                          ))
+              (code '((cons 1 t)
+                      (if t 3 100)
+                      t
+                      ))
+              end)))
+
+(define value-false
+  (ref-entry "false"
+             (list
+              (para (list "`false` is an alias for `nil`."
+                          ))
+              (code '((alt-txt (cons 1 false) "(cons 1 false)")
+                      (alt-txt (if false 3 100) "(if false 3 100)")
+                      (alt-txt false "false")
+                      ))
+              end)))
+
+(define value-true
+  (ref-entry "true"
+             (list
+              (para (list "`true` is an alias for `t`."
+                          ))
+              (code '((alt-txt (cons 1 true) "(cons 1 true)")
+                      (alt-txt (if true 3 100) "(if true 3 100)")
+                      (alt-txt true "true")
+                      ))
+              end)))
+
+
+(define nil-and-t
+  (section 2 "nil and t, true and false"
+           (list value-nil
+                 value-t
+                 value-false
+                 value-true
+                 )
            ))
 
 ;; Manual
@@ -474,7 +601,9 @@
                   arithmetic
                   comparisons
                   boolean
-                  bitwise))
+                  bitwise
+                  nil-and-t))
+
 
 
 

@@ -46,7 +46,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 <td>
 
 ```clj
-3
+1
 ```
 
 
@@ -64,7 +64,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 <td>
 
 ```clj
-10
+1
 ```
 
 
@@ -82,7 +82,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 <td>
 
 ```clj
-2u
+1
 ```
 
 
@@ -100,7 +100,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 <td>
 
 ```clj
-5.140000f32
+2
 ```
 
 
@@ -135,7 +135,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 <td>
 
 ```clj
-2
+5
 ```
 
 
@@ -153,7 +153,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 <td>
 
 ```clj
-0
+10
 ```
 
 
@@ -171,7 +171,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 <td>
 
 ```clj
-8u
+10
 ```
 
 
@@ -189,7 +189,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 <td>
 
 ```clj
-6.860000f32
+10
 ```
 
 
@@ -224,7 +224,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 <td>
 
 ```clj
-4
+2
 ```
 
 
@@ -242,7 +242,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 <td>
 
 ```clj
-120
+2
 ```
 
 
@@ -260,7 +260,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 <td>
 
 ```clj
-20u
+10
 ```
 
 
@@ -278,7 +278,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 <td>
 
 ```clj
-12.560000f32
+4
 ```
 
 
@@ -313,7 +313,7 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 <td>
 
 ```clj
-64
+128
 ```
 
 
@@ -331,7 +331,7 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 <td>
 
 ```clj
-3.140000f32
+6.280000f32
 ```
 
 
@@ -349,7 +349,7 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 <td>
 
 ```clj
-2
+256
 ```
 
 
@@ -384,7 +384,7 @@ Modulo operation. The form of a `mod` expression is `(mod expr1 exp2)`. The modu
 <td>
 
 ```clj
-2
+5
 ```
 
 
@@ -402,7 +402,7 @@ Modulo operation. The form of a `mod` expression is `(mod expr1 exp2)`. The modu
 <td>
 
 ```clj
-24
+1024
 ```
 
 
@@ -420,7 +420,7 @@ Modulo operation. The form of a `mod` expression is `(mod expr1 exp2)`. The modu
 <td>
 
 ```clj
--2
+-7
 ```
 
 
@@ -458,7 +458,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 <td>
 
 ```clj
-t
+3
 ```
 
 
@@ -476,7 +476,7 @@ t
 <td>
 
 ```clj
-t
+1
 ```
 
 
@@ -494,7 +494,7 @@ t
 <td>
 
 ```clj
-nil
+1
 ```
 
 
@@ -512,7 +512,7 @@ nil
 <td>
 
 ```clj
-t
+7
 ```
 
 
@@ -530,7 +530,7 @@ t
 <td>
 
 ```clj
-t
+(1 2 3 4)
 ```
 
 
@@ -548,7 +548,7 @@ t
 <td>
 
 ```clj
-nil
+(1 2 4 5)
 ```
 
 
@@ -583,7 +583,7 @@ nil
 <td>
 
 ```clj
-nil
+3
 ```
 
 
@@ -601,7 +601,7 @@ nil
 <td>
 
 ```clj
-nil
+1
 ```
 
 
@@ -619,7 +619,7 @@ nil
 <td>
 
 ```clj
-t
+1
 ```
 
 
@@ -637,7 +637,7 @@ t
 <td>
 
 ```clj
-nil
+7
 ```
 
 
@@ -655,7 +655,7 @@ nil
 <td>
 
 ```clj
-nil
+(1 2 3 4)
 ```
 
 
@@ -673,7 +673,7 @@ nil
 <td>
 
 ```clj
-t
+(1 2 4 5)
 ```
 
 
@@ -709,7 +709,7 @@ The `=` operation can only be used on numerical arguments. If you know you are c
 <td>
 
 ```clj
-t
+1
 ```
 
 
@@ -727,7 +727,7 @@ t
 <td>
 
 ```clj
-nil
+1
 ```
 
 
@@ -745,7 +745,7 @@ nil
 <td>
 
 ```clj
-t
+5
 ```
 
 
@@ -763,7 +763,7 @@ t
 <td>
 
 ```clj
-nil
+3
 ```
 
 
@@ -798,7 +798,7 @@ Greater than comparison. A greater than comparison has the form `(> expr1 ... ex
 <td>
 
 ```clj
-t
+5
 ```
 
 
@@ -816,7 +816,7 @@ t
 <td>
 
 ```clj
-nil
+2
 ```
 
 
@@ -834,7 +834,7 @@ nil
 <td>
 
 ```clj
-t
+3.140000f32
 ```
 
 
@@ -852,7 +852,7 @@ t
 <td>
 
 ```clj
-nil
+1
 ```
 
 
@@ -907,7 +907,7 @@ t
 <td>
 
 ```clj
-3
+t
 ```
 
 
@@ -925,7 +925,7 @@ t
 <td>
 
 ```clj
-nil
+t
 ```
 
 
@@ -978,7 +978,7 @@ nil
 <td>
 
 ```clj
-t
+nil
 ```
 
 
@@ -1032,7 +1032,7 @@ t
 <td>
 
 ```clj
-3
+nil
 ```
 
 
@@ -1067,7 +1067,7 @@ Boolean `not` takes one argument. The form of a `not` expression is `(not expr)`
 <td>
 
 ```clj
-nil
+t
 ```
 
 
@@ -1085,7 +1085,7 @@ nil
 <td>
 
 ```clj
-t
+nil
 ```
 
 
@@ -1103,7 +1103,7 @@ t
 <td>
 
 ```clj
-nil
+42
 ```
 
 
@@ -1140,7 +1140,7 @@ The shift left operation takes two arguments. The first argument is a value to s
 <td>
 
 ```clj
-4
+1
 ```
 
 
@@ -1158,7 +1158,7 @@ The shift left operation takes two arguments. The first argument is a value to s
 <td>
 
 ```clj
-4u32
+1u32
 ```
 
 
@@ -1176,7 +1176,504 @@ The shift left operation takes two arguments. The first argument is a value to s
 <td>
 
 ```clj
+1u64
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### shr
+
+The shift right operation takes two arguments. The first argument is a value to shift and the second argument in the number of bit positions to shift the value. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(shr 4 2)
+```
+
+
+</td>
+<td>
+
+```clj
+4
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(shr 4u32 2)
+```
+
+
+</td>
+<td>
+
+```clj
+4u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(shr 4u64 2)
+```
+
+
+</td>
+<td>
+
+```clj
 4u64
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### bitwise-and
+
+Performs the bitwise and operation between two values. The type of the result is the same type as the first of the arguments. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bitwise-and 1048831u32 65535)
+```
+
+
+</td>
+<td>
+
+```clj
+1048831u32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### bitwise-or
+
+Performs the bitwise or operation between two values. The type of the result is the same type as the first of the arguments. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bitwise-or 1048816 15)
+```
+
+
+</td>
+<td>
+
+```clj
+1048816
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### bitwise-xor
+
+Performs the bitwise exclusive or operation between two values. The type of the result is the same type as the first of the arguments. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bitwise-xor 1048816 255)
+```
+
+
+</td>
+<td>
+
+```clj
+1048816
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### bitwise-not
+
+Performs the bitwise negation operations on a value. The result is of same type as the argument. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bitwise-not 4096u32)
+```
+
+
+</td>
+<td>
+
+```clj
+4096u32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+## nil and t, true and false
+
+
+---
+
+
+### nil
+
+Represents the empty list. The nil value is also considered to be false by conditionals. `nil` is a symbol but it cannot be redefined and will always evaluate to itself. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons 1 nil)
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(if nil 3 100)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### t
+
+All non nil values are considered true in conditionals. `t` should be used in cases where an explicit true makes sense. `t` is a symbol but it cannot be redefined and will always evaluate to itself. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons 1 t)
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(if t 3 100)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### false
+
+`false` is an alias for `nil`. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons 1 false)
+```
+
+
+</td>
+<td>
+
+```clj
+(1)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(if false 3 100)
+```
+
+
+</td>
+<td>
+
+```clj
+100
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+false
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### true
+
+`true` is an alias for `t`. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons 1 true)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 . t)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(if true 3 100)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+true
+```
+
+
+</td>
+<td>
+
+```clj
+t
 ```
 
 
