@@ -426,6 +426,7 @@ static lbm_value ext_fwrite(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
     if (array) {
       fwrite(array->data, 1, array->size, h->fp);
+      fflush(h->fp);
       res = ENC_SYM_TRUE;
     } else {
       res = ENC_SYM_NIL;
@@ -446,6 +447,7 @@ static lbm_value ext_fwrite_str(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
     if (array) {
       fwrite(array->data, 1, strlen((char*)array->data), h->fp);
+      fflush(h->fp);
       res = ENC_SYM_TRUE;
     } else {
       res = ENC_SYM_NIL;

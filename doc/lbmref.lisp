@@ -340,7 +340,46 @@
                       ))
               end)))
 
+(define comp-<
+  (ref-entry "<"
+             (list
+              (para (list "Less than comparison. A less than comparison has the form `(> expr1 ... exprN)` and evaluates to `t` if expr1 is less than all of expr2 ... exprN."
+                          ))
 
+              (code '((< 5 2)
+                      (< 5 2)
+                      (< 3.14 1)
+                      (< 1 3.14)
+                      ))
+              end)))
+
+(define comp->=
+  (ref-entry ">="
+             (list
+              (para (list "Greater than or equal comparison. A greater than comparison has the form `(>= expr1 ... exprN)` and evaluates to `t` if expr1 is greater than or equal to all of expr2 ... exprN."
+                          ))
+
+              (code '((>= 1 1)
+                      (>= 5 2)
+                      (>= 2 5)
+                      (>= 3.14 1)
+                      (>= 1 3.14)
+                      ))
+              end)))
+
+(define comp-<=
+  (ref-entry "<="
+             (list
+              (para (list "Less than or equal comparison. A less than or equal comparison has the form `(<= expr1 ... exprN)` and evaluates to `t` if expr1 is less than or equal to all of expr2 ... exprN."
+                          ))
+
+              (code '((<= 1 1)
+                      (<= 5 2)
+                      (<= 2 5)
+                      (<= 3.14 1)
+                      (<= 1 3.14)
+                      ))
+              end)))
 
 (define comparisons
   (section 2 "Comparisons"
@@ -351,10 +390,92 @@
                  )
            ))
 
+;; Boolean operators
+
+(define bool-and
+  (ref-entry "and"
+             (list
+              (para (list "Boolean `and` operation between n arguments. The form of an `and`"
+                          "expression is `(and expr1 ... exprN)`.  This operation treats all"
+                          "non-nil values as true. Boolean `and` is \"shirt-circuiting\" and only"
+                          "evaluates until a false is encountered."
+                          ))
+              (code '((and t t)
+                      (and t t (+ 1 2))
+                      (and t (< 5 3))
+                      ))
+              end)))
+
+(define bool-or
+  (ref-entry "or"
+             (list
+              (para (list "Boolean `or` operation between n arguments. The form of an `or`"
+                          "expression is `(or expr1 ... exprN)`.  This operation treats all"
+                          "non-nil values as true. Boolean `or` is \"short-circuiting\" and only"
+                          "evaluates until a true is encountered."
+                          ))
+
+              (code '((or nil nil)
+                      (or nil t)
+                      (or t nil)
+                      (or t t)
+                      (or nil (+ 1 2))
+                      ))
+              end)))
+
+(define bool-not
+  (ref-entry "not"
+             (list
+              (para (list "Boolean `not` takes one argument. The form of a `not` expression is"
+                          "`(not expr)`. All non-nil values are considered true."
+                          ))
+
+              (code '((not t)
+                      (not nil)
+                      (not 42)
+                      ))
+              end)))
+
+
+
+(define boolean
+  (section 2 "Boolean operators"
+           (list bool-and
+                 bool-or
+                 bool-not
+                 )
+           ))
+
+;; Bitwise operations
+(define bitwise-shl
+  (ref-entry "shl"
+             (list
+              (para (list "The shift left operation takes two arguments. The first argument is a value to shift and the"
+                          "second argument is the number of bit positions to shift the value."
+                          ))
+
+              (code '((shl 1 2)
+                      (shl 1u32 2)
+                      (shl 1u64 2)
+                      ))
+
+              end)))
+
+
+(define bitwise
+  (section 2 "Bit level operations"
+           (list bitwise-shl
+            )
+           ))
+
+;; Manual
 
 (def manual (list ch-symbols
                   arithmetic
-                  comparisons))
+                  comparisons
+                  boolean
+                  bitwise))
+
 
 
 (defun render-manual ()
