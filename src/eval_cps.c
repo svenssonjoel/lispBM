@@ -2316,16 +2316,24 @@ static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if ( nargs == 1) {
     ctx->curr_exp = args[0];
-    lbm_stack_drop(&ctx->K, nargs+1);
+  } else if (nargs == 2) {
+    ctx->curr_exp = args[1];
+    ctx->curr_env = args[0];
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_at_ctx(ENC_SYM_EERROR, ENC_SYM_EVAL);
   }
+  lbm_stack_drop(&ctx->K, nargs+1);
 }
 
 static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (nargs == 1) {
-    lbm_value prg = args[0];
+  int prg_pos = 0;
+  if (nargs == 2) {
+    prg_pos = 1;
+    ctx->curr_env = args[0];
+  }
+  if (nargs == 1 || nargs == 2) {
+    lbm_value prg = args[prg_pos];
     lbm_value app_cont;
     lbm_value app_cont_prg;
     lbm_value new_prg;

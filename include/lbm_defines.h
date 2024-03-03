@@ -340,7 +340,6 @@
 #define SYM_MERGE                 0x30013
 #define SYM_SORT                  0x30014
 
-
 #define SYMBOL_KIND(X)          ((X) >> 16)
 #define SYMBOL_KIND_SPECIAL     0
 #define SYMBOL_KIND_EXTENSION   1

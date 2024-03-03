@@ -503,6 +503,34 @@ static lbm_value ext_str_len(lbm_value *args, lbm_uint argn) {
   return lbm_enc_i((int)strlen_max(str, array->size));
 }
 
+static lbm_value ext_str_replicate(lbm_value *args, lbm_uint argn) {
+  if (argn != 2) {
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    return ENC_SYM_EERROR;
+  }
+
+  lbm_value res = ENC_SYM_TERROR;
+
+  if (lbm_is_number(args[0]) &&
+      lbm_is_number(args[1])) {
+    uint32_t len = lbm_dec_as_u32(args[0]);
+    uint8_t c = lbm_dec_as_char(args[1]);
+
+    lbm_value lbm_res;
+    if (lbm_create_array(&lbm_res, len + 1)) {
+      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
+      for (unsigned int i = 0;i < len;i++) {
+        ((char*)(arr->data))[i] = (char)c;
+      }
+      ((char*)(arr->data))[len] = '\0';
+      res = lbm_res;
+    } else {
+      res = ENC_SYM_MERROR;
+    }
+  }
+  return res;
+}
+
 
 
 bool lbm_string_extensions_init(void) {
@@ -521,6 +549,7 @@ bool lbm_string_extensions_init(void) {
   res = res && lbm_add_extension("to-str", ext_to_str);
   res = res && lbm_add_extension("to-str-delim", ext_to_str_delim);
   res = res && lbm_add_extension("str-len", ext_str_len);
+  res = res && lbm_add_extension("str-replicate", ext_str_replicate);
 
   return res;
 }

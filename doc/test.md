@@ -2583,7 +2583,10 @@ If no `cond-exprN` evaluates to true, the result of the entire conditional is `n
 
 ```clj
 (define a 0)
-(cond ((< a 0) (quote abrakadabra)) ((> a 0) (quote llama)) ((= a 0) (quote hello-world)))
+(cond ((< a 0) (quote abrakadabra))
+      ((> a 0) (quote llama))
+      ((= a 0) (quote hello-world))
+)
 
 ```
 
@@ -2628,7 +2631,7 @@ You create an anonymous function with lambda. The function can be given a name b
 <td>
 
 ```clj
-(closure (x) (+ x 1) ((rstr) (res closure (x) (+ x 1) ((rstr) (res closure (x) (+ x 1) ((rstr) (res closure (x) (+ x 1) ((rstr) (res closure (x) (+ x 1) ((rstr) (res closure (x) (+ x 1) ((rstr) (res closure (x) (+ x 1) ((rstr) (res closure (x) (+ x 1) ((r
+(closure (x) (+ x 1) nil)
 ```
 
 

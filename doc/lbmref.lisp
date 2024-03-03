@@ -9,17 +9,41 @@
 ;; TODO: LBM pretty printer is needed for better presentation of programs.
 ;; TODO: Programs and expressions should evaluate in an empty local env.
 
+(defun pretty (c)
+  (pretty-ind 0 c))
+
+(defun ind-spaces (n)
+  (str-replicate n 32b))
+
+(defun pretty-ind (n c)
+  (match c
+         ( (cond (? x) . (? xs) )
+           (let ( (conds (pretty-cond (+ n 6) xs))
+                  (cond0 (pretty-ind n x)))
+             (str-merge (ind-spaces n) "(cond " cond0 "\n" conds ")")
+             )
+           )
+         (_ (str-merge (ind-spaces n) (to-str c))))
+  )
+
+(defun pretty-cond (n cs)
+  (match cs
+         (nil "")
+         ( ( (? x ) . (? xs))
+           (str-merge (pretty-ind n x) "\n" (pretty-cond n xs))))
+  )
+
 (defun render-code-res-pairs (rend cs)
   (match cs
          (nil t)
          ( ((? x) . (? xs))
            (let ((x-str (if (has-alt-txt x)
                             (ix x 2)
-                          (to-str x)))
+                          (pretty x)))
                  (x-code (if (has-alt-txt x)
                              (ix x 1)
                            x))
-                 (res (eval x-code))
+                 (res (eval nil x-code))
                  (rstr (to-str res)))
              {
              (rend "<tr>\n")
@@ -51,8 +75,8 @@
   (match cs
          (nil t)
          ( ((? x) . (? xs))
-           (let ((cstrs (map (lambda (c) (str-merge (to-str c) "\n"))  x))
-                 (res (eval-program x))
+           (let ((cstrs (map (lambda (c) (str-merge (pretty c) "\n"))  x))
+                 (res (eval-program nil x))
                  (rstr (to-str res)))
              {
              (rend "<tr>\n")
