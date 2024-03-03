@@ -17,6 +17,17 @@
 
 (defun pretty-ind (n c)
   (match c
+         ( (let ((? b0) . (? brest)) (? body)) ;; pattern
+           (str-merge (ind-spaces n)
+                      "(let ("
+
+                      (pretty b0)
+                      (pretty-let (+ n 4) brest)
+                      ")\n"
+
+                      (pretty-ind (+ n 4) body)
+                      ")"
+                      ))
          ( (cond (? x) . (? xs) )
            (let ( (conds (pretty-cond (+ n 6) xs))
                   (cond0 (pretty-ind n x)))
@@ -32,6 +43,14 @@
          ( ( (? x ) . (? xs))
            (str-merge (pretty-ind n x) "\n" (pretty-cond n xs))))
   )
+
+(defun pretty-let (n cs)
+  (match cs
+         (nil "")
+         ( ((? x) . (? xs))
+           (str-merge "\n" (pretty-ind n x) (pretty-let n xs))))
+  )
+
 
 (defun render-code-res-pairs (rend cs)
   (match cs
@@ -837,7 +856,13 @@
                            (cond ( (< a 0) 'abrakadabra)
                                  ( (> a 0) 'llama)
                                  ( (= a 0) 'hello-world))
-                           )))
+                           )
+                          ((define a 5)
+                           (cond ( (= a 1) 'doughnut)
+                                 ( (= a 7) 'apple-strudel)
+                                 ( (= a 10) 'baklava)))
+                          ))
+
               end)))
 
 (define special-form-lambda
@@ -851,6 +876,22 @@
                       ))
               end)))
 
+(define special-form-closure
+  (ref-entry "closure"
+             (list
+              (para (list "A <a href=\"#lambda\"> lambda </a> expression evaluates into a closure"
+                          "which is very similar to a <a href=\"#lambda\">lambda</a> but extended"
+                          "with a captured environment for any names unbound in the param-list"
+                          "appearing in the body-expr.  The form of a closure is `(closure"
+                          "param-list body-exp environment)`."
+                          ))
+              (code '((lambda (x) (+ x 1))
+                      (let ((a 1)) (lambda (x) (+ a x)))
+                      ))
+              end)))
+
+
+
 
 (define special-forms
   (section 2 "Special forms"
@@ -863,6 +904,7 @@
             (list special-form-if
                   special-form-cond
                   special-form-lambda
+                  special-form-closure
                   )
             )))
 

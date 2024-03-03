@@ -2602,6 +2602,31 @@ hello-world
 
 </td>
 </tr>
+<tr>
+<td>
+
+
+```clj
+(define a 5)
+(cond ((= a 1) (quote doughnut))
+      ((= a 7) (quote apple-strudel))
+      ((= a 10) (quote baklava))
+)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
 </table>
 
 
@@ -2650,6 +2675,60 @@ You create an anonymous function with lambda. The function can be given a name b
 
 ```clj
 2
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### closure
+
+A <a href="#lambda"> lambda </a> expression evaluates into a closure which is very similar to a <a href="#lambda">lambda</a> but extended with a captured environment for any names unbound in the param-list appearing in the body-expr.  The form of a closure is `(closure param-list body-exp environment)`. 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(lambda (x) (+ x 1))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x) (+ x 1) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(let ((a 1))
+    (lambda (x) (+ a x)))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x) (+ a x) ((a . 1)))
 ```
 
 
