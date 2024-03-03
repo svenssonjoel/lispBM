@@ -45,7 +45,8 @@
            (if (eq (type-of y) type-list)
                (str-merge " " (pretty x) (pretty-list y))
              (str-merge " " (pretty x) "." (pretty y)))
-           )))
+           )
+         ( (? x) (str-merge " . " (pretty x)))))
 
 (defun pretty-aligned-ontop (n cs)
   (match cs
@@ -1175,6 +1176,208 @@
               end)))
 
 
+(define lists-cdr
+  (ref-entry "cdr"
+             (list
+              (para (list "Use `cdr` to access the `cdr` field of a cons cell. A `cdr` expression has the form `(cdr expr)`."
+                          ))
+              (code '((cdr (cons 1 2))
+                      (cdr (list 9 8 7))
+                      ))
+              end)))
+
+(define lists-rest
+  (ref-entry "rest"
+             (list
+              (para (list "`rest` is an alternative name for the `cdr` operation."
+                          "Use `rest` to access all elements except the first one"
+                          "of a list, or to access the second element in a pair. A `rest` expression has the form `(rest expr)`."
+                          ))
+              (code '((rest (cons 1 2))
+                      (rest (list 9 8 7))
+                      ))
+              end)))
+
+(define lists-cons
+  (ref-entry "cons"
+             (list
+              (para (list "The `cons` operation allocates a cons cell from the heap and populates the"
+                          "`car` and the `cdr` fields of this cell with its two arguments."
+                          "The form of a `cons` expression is `(cons expr1 expr2)`."
+                          "To build well formed lists the innermost cons cell should have"
+                          "nil in the cdr field."
+                          ))
+              (code '((cons 1 (cons 2 (cons 3 nil)))
+                      (cons 1 2)
+                      (cons + 1)
+                      (cons (cons 1 2) (cons 3 4))
+                      ))
+              end)))
+
+(define lists-dot
+  (ref-entry "."
+             (list
+              (para (list "The dot, `.`, operation creates a pair. The form of a dot expression"
+                          "is `(expr1 . expr2)`. By default the evaluator will attempt to evaluate the"
+                          "result of `(expr1 . expr2)` unless it is prefixed with `'`."
+                          ))
+              (code '('(1 . 2)
+                      '((1 . 2) . 3)
+                      ))
+              end)))
+
+(define lists-list
+  (ref-entry "list"
+             (list
+              (para (list "The `list` function is used to create proper lists. The function"
+                          "takes n arguments and is of the form `(list expr1 ... exprN)`."
+                          ))
+              (code '((list 1 2 3 4)
+                      ))
+              end)))
+
+(define lists-length
+  (ref-entry "length"
+             (list
+              (para (list "Computes the length of a list. The `length` function takes"
+                          "one argument and is of the form `(length expr)`."
+                          ))
+              (code '((length (list 1 2 3 4))
+                      ))
+              end)))
+
+(define lists-range
+  (ref-entry "range"
+             (list
+              (para (list "The `range` function computes a list with integer values from a"
+                          "range specified by its endpoints. The form of a range expression"
+                          "is `(range start-expr end-expr)`. The end point in the range is excluded."
+                          ))
+              (code '((range 4 8)
+                      (range 0 10)
+                      (range -4 4)
+                      ))
+              end)))
+
+(define lists-append
+  (ref-entry "append"
+             (list
+              (para (list "The `append` function combines two lists into a longer list."
+                          "An `append` expression is of the form `(append expr1 expr2)`."
+                          ))
+              (code '((append (list 1 2 3 4) (list 5 6 7 8))
+                      ))
+              end)))
+
+(define lists-ix
+  (ref-entry "ix"
+             (list
+              (para (list "Index into a list using the `ix` function. The form of an `ix` expression"
+                          "is `(ix list-expr index-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil."
+                          "A negative index accesses values starting from the end of the list."
+                          ))
+              (code '((ix (list 1 2 3 4) 1)
+                      (ix (list 1 2 3 4) -1)
+                      ))
+              end)))
+
+
+(define lists-setix
+  (ref-entry "setix"
+             (list
+              (para (list "Destructively update an element in a list. The form of a `setix` expression"
+                          "is `(setix list-expr index-extr value-expr)`. Indexing starts from 0 and"
+                          "if you index out of bounds the result is nil."
+                          "A negative value -n will update the nth value from the end of the list."
+                          ))
+              (code '((setix (list 1 2 3 4 5) 2 77)
+                      (setix (list 1 2 3 4 5) -2 66)
+                      ))
+              end)))
+
+(define lists-setcar
+  (ref-entry "setcar"
+             (list
+              (para (list "The `setcar` is a destructive update of the car field of a cons-cell."
+                          ))
+              (program '(((define apa '(1 . 2))
+                          (setcar apa 42)
+                          apa
+                          )
+                         ((define apa (list 1 2 3 4))
+                          (setcar apa 42)
+                          apa
+                          )
+                         ))
+              end)))
+
+(define lists-setcdr
+  (ref-entry "setcdr"
+             (list
+              (para (list "The `setcdr` is a destructive update of the cdr field of a cons-cell."
+                          ))
+              (program '(((define apa '(1 . 2))
+                          (setcdr apa 42)
+                          apa
+                          )
+                         ((define apa (list 1 2 3 4))
+                          (setcdr apa (list 99 100))
+                          apa
+                          )
+                         ))
+              end)))
+
+(define lists-take
+  (ref-entry "take"
+             (list
+              (para (list "`take` creates a list containing the `n` first elements of another list."
+                          "The form of a `take` expression is `(take list-exp n-exp)`."
+                          ))
+              (program '(((define apa (list 1 2 3 4 5 6 7 8 9 10))
+                          (take apa 5)
+                          )
+                         ))
+              end)))
+
+(define lists-drop
+  (ref-entry "drop"
+             (list
+              (para (list "`drop` creates a list from another list by dropping the `n` first elements of that list."
+                          "The form of a `drop` expression is `(drop list-exp n-exp)`."
+                          ))
+              (program '(((define apa (list 1 2 3 4 5 6 7 8 9 10))
+                          (drop apa 5)
+                          )
+                         ))
+              end)))
+
+(define lists-merge
+  (ref-entry "merge"
+             (list
+              (para (list "`merge` merges two lists that are ordered according to a comparator into"
+                          "a single ordered list. The form of a `merge` expression is `(merge comparator-exp list-exp1 list-exp2)`."
+                          ))
+              (program '(((define a (list 2 4 6 8 10 12))
+                          (define b (list 1 3 5))
+                          (merge < a b)
+                          )
+                         ))
+              end)))
+
+(define lists-sort
+  (ref-entry "sort"
+             (list
+              (para (list "`sort` orders a list of values according to a comparator. The sorting"
+                          "algorithm used is an in-place merge-sort. A copy of the input list is created"
+                          "at the beginning of the sort to provide a functional interface from the user's"
+                          "point of view. The form of a sort expression is `(sort comparator-exp list-exp)`"
+                          ))
+              (program '(((define a (list 1 9 2 5 1 8 3))
+                          (sort < a)
+                          )
+                         ))
+              end)))
+
 
 
 (define lists
@@ -1199,8 +1402,103 @@
             (image "list" "images/list.png")
             lists-car
             lists-first
+            lists-cdr
+            lists-rest
+            lists-cons
+            lists-dot
+            lists-list
+            lists-length
+            lists-range
+            lists-append
+            lists-ix
+            lists-setix
+            lists-setcar
+            lists-setcdr
+            lists-take
+            lists-drop
+            lists-merge
+            lists-sort
             )))
 
+;; Association lists 
+
+(define assoc-acons
+  (ref-entry "acons"
+             (list
+              (para (list "The `acons` form is similar to `cons`, it attaches one more element"
+                          "onto an alist. The element that is added consists of a key and a value"
+                          "so `acons` takes one more argument than `cons`. The form of an"
+                          "`acons` expression is `(acons key-expr val-expr alist-expr)`."
+                          "The `alist-expr` should evaluate to an alist but there are no checks"
+                          "to ensure this."
+                          ))
+              (para (list "Example that adds the key `4` and associated value `lemur` to"
+                          "an existing alist."
+                          ))
+              (code '((acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+                      ))
+              end)))
+(define assoc-assoc
+  (ref-entry "assoc"
+             (list
+              (para (list "The `assoc` function looks up the first value in an alist matching a given a key. "
+                          "The form of an `assoc` expression is `(assoc alist-expr key-expr)`"
+                          ))
+              (code '((assoc (list '(1 . horse) '(2 . donkey) '(3 . shark)) 2)
+                      ))
+              end)))
+
+(define assoc-cossa
+  (ref-entry "cossa"
+             (list
+              (para (list "The `cossa` function looks up the first key in an alist that matches a given value."
+                          "The form of an `cossa` expression is `(cossa alist-expr value-expr)`"
+                          ))
+              (code '((cossa (list '(1 . horse) '(2 . donkey) '(3 . shark)) 'donkey)
+                      ))
+              end)))
+
+(define assoc-setassoc
+  (ref-entry "setassoc"
+             (list
+              (para (list "The `setassoc` function destructively updates a key-value mapping in an"
+                          "alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`."
+                          ))
+              (program '(((define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+                          (setassoc apa 2 'llama)
+                          )
+                         ))
+              end)))
+
+
+
+
+
+(define assoc-lists
+  (section 2 "association lists (alists)"
+           (list
+            (para (list "Association lists (alists) are, just like regular lists, built out"
+                        "of cons-cells. The difference is that an alist is a list of pairs"
+                        "where the first element in each par can be thought of as a key and"
+                        "the second element can be thought of as the value. So alists implement"
+                        "a key-value lookup structure."
+                        ))
+            (para (list "`(list '(1 . horse) '(2 . donkey) '(3 . shark))` is an example"
+                        "of an alist with integer keys and symbol values."
+                        ))
+            assoc-acons
+            assoc-assoc
+            assoc-cossa
+            assoc-setassoc
+            )))
+
+;; Arrays Byte buffers
+
+(define arrays
+  (section 2 "Arrays (byte buffers)"
+           (list
+            
+            )))
 
 
 ;; Manual
@@ -1221,6 +1519,8 @@
                   built-ins
                   special-forms
                   lists
+                  assoc-lists
+                  arrays
                   info
                   ))
 

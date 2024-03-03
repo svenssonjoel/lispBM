@@ -3605,5 +3605,992 @@ Taking the `car` of a number of symbol type is in general a <a href="#type_error
 
 ---
 
+
+---
+
+
+### cdr
+
+Use `cdr` to access the `cdr` field of a cons cell. A `cdr` expression has the form `(cdr expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cdr (cons 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cdr (list 9 8 7))
+```
+
+
+</td>
+<td>
+
+```clj
+(8 7)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### rest
+
+`rest` is an alternative name for the `cdr` operation. Use `rest` to access all elements except the first one of a list, or to access the second element in a pair. A `rest` expression has the form `(rest expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cdr (cons 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cdr (list 9 8 7))
+```
+
+
+</td>
+<td>
+
+```clj
+(8 7)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### cons
+
+The `cons` operation allocates a cons cell from the heap and populates the `car` and the `cdr` fields of this cell with its two arguments. The form of a `cons` expression is `(cons expr1 expr2)`. To build well formed lists the innermost cons cell should have nil in the cdr field. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons 1 (cons 2 (cons 3 nil)))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons 1 2)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 . 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons + 1)
+```
+
+
+</td>
+<td>
+
+```clj
+(+ . 1)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons (cons 1 2) (cons 3 4))
+```
+
+
+</td>
+<td>
+
+```clj
+((1 . 2) 3 . 4)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### .
+
+The dot, `.`, operation creates a pair. The form of a dot expression is `(expr1 . expr2)`. By default the evaluator will attempt to evaluate the result of `(expr1 . expr2)` unless it is prefixed with `'`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+'(1 . 2)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 . 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+'((1 . 2) . 3)
+```
+
+
+</td>
+<td>
+
+```clj
+((1 . 2) . 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### list
+
+The `list` function is used to create proper lists. The function takes n arguments and is of the form `(list expr1 ... exprN)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(list 1 2 3 4)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 4)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### length
+
+Computes the length of a list. The `length` function takes one argument and is of the form `(length expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(length (list 1 2 3 4))
+```
+
+
+</td>
+<td>
+
+```clj
+4
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### range
+
+The `range` function computes a list with integer values from a range specified by its endpoints. The form of a range expression is `(range start-expr end-expr)`. The end point in the range is excluded. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(range 4 8)
+```
+
+
+</td>
+<td>
+
+```clj
+(4 5 6 7)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(range 0 10)
+```
+
+
+</td>
+<td>
+
+```clj
+(0 1 2 3 4 5 6 7 8 9)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(range -4 4)
+```
+
+
+</td>
+<td>
+
+```clj
+(-4 -3 -2 -1 0 1 2 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### append
+
+The `append` function combines two lists into a longer list. An `append` expression is of the form `(append expr1 expr2)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(append (list 1 2 3 4) (list 5 6 7 8))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 4 5 6 7 8)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### ix
+
+Index into a list using the `ix` function. The form of an `ix` expression is `(ix list-expr index-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative index accesses values starting from the end of the list. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix (list 1 2 3 4) 1)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix (list 1 2 3 4) -1)
+```
+
+
+</td>
+<td>
+
+```clj
+4
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### setix
+
+Destructively update an element in a list. The form of a `setix` expression is `(setix list-expr index-extr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(setix (list 1 2 3 4 5) 2 77)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 77 4 5)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(setix (list 1 2 3 4 5) -2 66)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 66 5)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### setcar
+
+The `setcar` is a destructive update of the car field of a cons-cell. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa '(1 . 2))
+(setcar apa 42)
+apa
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(42 . 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list 1 2 3 4))
+(setcar apa 42)
+apa
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(42 2 3 4)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### setcdr
+
+The `setcdr` is a destructive update of the cdr field of a cons-cell. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa '(1 . 2))
+(setcdr apa 42)
+apa
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 . 42)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list 1 2 3 4))
+(setcdr apa (list 99 100))
+apa
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 99 100)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### take
+
+`take` creates a list containing the `n` first elements of another list. The form of a `take` expression is `(take list-exp n-exp)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+(take apa 5)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 2 3 4 5)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### drop
+
+`drop` creates a list from another list by dropping the `n` first elements of that list. The form of a `drop` expression is `(drop list-exp n-exp)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+(drop apa 5)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(6 7 8 9 10)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### merge
+
+`merge` merges two lists that are ordered according to a comparator into a single ordered list. The form of a `merge` expression is `(merge comparator-exp list-exp1 list-exp2)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define a (list 2 4 6 8 10 12))
+(define b (list 1 3 5))
+(merge < a b)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 2 3 4 5 6 8 10 12)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### sort
+
+`sort` orders a list of values according to a comparator. The sorting algorithm used is an in-place merge-sort. A copy of the input list is created at the beginning of the sort to provide a functional interface from the user's point of view. The form of a sort expression is `(sort comparator-exp list-exp)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define a (list 1 9 2 5 1 8 3))
+(sort < a)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 1 2 3 5 8 9)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+## association lists (alists)
+
+Association lists (alists) are, just like regular lists, built out of cons-cells. The difference is that an alist is a list of pairs where the first element in each par can be thought of as a key and the second element can be thought of as the value. So alists implement a key-value lookup structure. 
+
+`(list '(1 . horse) '(2 . donkey) '(3 . shark))` is an example of an alist with integer keys and symbol values. 
+
+
+---
+
+
+### acons
+
+The `acons` form is similar to `cons`, it attaches one more element onto an alist. The element that is added consists of a key and a value so `acons` takes one more argument than `cons`. The form of an `acons` expression is `(acons key-expr val-expr alist-expr)`. The `alist-expr` should evaluate to an alist but there are no checks to ensure this. 
+
+Example that adds the key `4` and associated value `lemur` to an existing alist. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+```
+
+
+</td>
+<td>
+
+```clj
+((4 . lemur) (1 . horse) (2 . donkey) (3 . shark))
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### assoc
+
+The `assoc` function looks up the first value in an alist matching a given a key.  The form of an `assoc` expression is `(assoc alist-expr key-expr)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(assoc (list '(1 . horse) '(2 . donkey) '(3 . shark)) 2)
+```
+
+
+</td>
+<td>
+
+```clj
+donkey
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### cossa
+
+The `cossa` function looks up the first key in an alist that matches a given value. The form of an `cossa` expression is `(cossa alist-expr value-expr)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cossa (list '(1 . horse) '(2 . donkey) '(3 . shark)) 'donkey)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### setassoc
+
+The `setassoc` function destructively updates a key-value mapping in an alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+(setassoc apa 2 'llama)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+((1 . horse) (2 . llama) (3 . shark))
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+## Arrays (byte buffers)
+
 This document was generated by LispBM version 0.22.0 
 
