@@ -5,10 +5,6 @@
          (_ false)))
 
 
-
-;; TODO: LBM pretty printer is needed for better presentation of programs.
-;; TODO: Programs and expressions should evaluate in an empty local env.
-
 (defun pretty (c)
   (pretty-ind 0 c))
 
@@ -17,40 +13,46 @@
 
 (defun pretty-ind (n c)
   (match c
+         ( (progn (? e ) . (? es))
+           (str-merge "(progn " (pretty e) (pretty-aligned-ontop (+ n 7) es) ")" ))
+         ( (quote (? e)) (str-merge (ind-spaces n) "'" (pretty e)))
          ( (let ((? b0) . (? brest)) (? body)) ;; pattern
            (str-merge (ind-spaces n)
                       "(let ("
 
                       (pretty b0)
-                      (pretty-let (+ n 4) brest)
+                      (pretty-aligned-ontop (+ n 6) brest)
                       ")\n"
 
-                      (pretty-ind (+ n 4) body)
+                      (pretty-ind (+ n 5) body)
                       ")"
                       ))
          ( (cond (? x) . (? xs) )
-           (let ( (conds (pretty-cond (+ n 6) xs))
-                  (cond0 (pretty-ind n x)))
-             (str-merge (ind-spaces n) "(cond " cond0 "\n" conds ")")
+           (let ( (conds (pretty-aligned-ontop (+ n 6) xs))
+                  (cond0 (pretty x)))
+             (str-merge (ind-spaces n) "(cond " cond0 conds ")")
              )
            )
+         ( ((? x) . (? xs)) (str-merge (ind-spaces n) "(" (pretty x) (pretty-list xs) ")" ))
          (_ (str-merge (ind-spaces n) (to-str c))))
   )
 
-(defun pretty-cond (n cs)
+(defun pretty-list (c)
+  (match c
+         ( nil "" )
+         ( ((? x) . nil) (str-merge " " (pretty x) ))
+         ( ((? x) . (? y))
+           (if (eq (type-of y) type-list)
+               (str-merge " " (pretty x) (pretty-list y))
+             (str-merge " " (pretty x) "." (pretty y)))
+           )))
+
+(defun pretty-aligned-ontop (n cs)
   (match cs
          (nil "")
          ( ( (? x ) . (? xs))
-           (str-merge (pretty-ind n x) "\n" (pretty-cond n xs))))
+           (str-merge "\n" (pretty-ind n x) (pretty-aligned-ontop n xs))))
   )
-
-(defun pretty-let (n cs)
-  (match cs
-         (nil "")
-         ( ((? x) . (? xs))
-           (str-merge "\n" (pretty-ind n x) (pretty-let n xs))))
-  )
-
 
 (defun render-code-res-pairs (rend cs)
   (match cs
@@ -137,7 +139,7 @@
            (render rend xs)
            }
            )
-         ( (para (? x)) { (map (lambda (s) (rend (str-merge s " "))) x) (rend "\n") } )
+         ( (para (? x)) { (map (lambda (s) (rend (str-merge s " "))) x) (rend "\n\n") } )
          ( hline (rend "\n---\n\n"))
          ( newline (rend "\n"))
          ( (bold (? s))
@@ -193,6 +195,9 @@
 
 (defun bold (str)
   (list 'bold str))
+
+(defun image (alt url)
+  (para (list (str-merge "![" alt "](" url " \"" alt "\")"))))
 
 (def ch-symbols
      (section 2 "About Symbols"
@@ -887,11 +892,232 @@
                           ))
               (code '((lambda (x) (+ x 1))
                       (let ((a 1)) (lambda (x) (+ a x)))
+                      (let ((a 1) (b 2)) (lambda (x) (+ a b x)))
+                      ))
+              end)))
+
+(define special-form-let
+  (ref-entry "let"
+             (list
+              (para (list "Local environments are created using let. The let binding in lispbm"
+                          "allows for mutually recursive bindings. The form of a let is `(let"
+                          "list-of-bindings body-expr)` and evaluating this expression means that"
+                          "body-expr is evaluted in an environment extended with the"
+                          "list-of-bindings."
+                          ))
+
+              (code '((let ((a 1) (b 2)) (+ a b))
+                      (let ((f (lambda (x) (if (= x 0) 0 (g (- x 1)))))
+                            (g (lambda (x) (if (= x 0) 1 (f (- x 1))))))
+                        (f 11))
+                      ))
+              end)))
+
+(define special-form-loop
+  (ref-entry "loop"
+             (list
+              (para (list "loop allows to repeatedly evaluate an expression for as long as a condition"
+                          "holds. The form of a loop is `(loop list-of-local-bindings condition-exp body-exp)`."
+                          ))
+              (para (list "The  `list-of-local-bindings` are very similar to how `let` works, just that here"
+                          "the `body-exp` is repeated."
+                          ))
+
+              (program '(((define sum 0)
+                          (loop ( (a 0) )  (<= a 10) { (setq sum (+ sum a)) (setq a (+ a 1)) })
+                          sum)
+                         ))
+              end)))
+
+(define special-form-define
+  (ref-entry "define"
+             (list
+              (para (list "You can give names to values in a global scope by using define."
+                          "The form of define is `(define name expr)`. The expr is evaluated and it is the"
+                          "result of the evaluated expr that is stored in the environment."
+                          "In lispbm you can redefine already defined values."
+                          ))
+              (code '((define apa 10)
+                      ))
+              end)))
+
+(define special-form-undefine
+  (ref-entry "undefine"
+             (list
+              (para (list "A definition in the global can be removed using undefine.  The form of"
+                          "an undefine expression is `(undefine name-expr)` where name-expr"
+                          "should evaluate to a symbol (for example `'apa`)."
+                          ))
+              {
+              (define apa 10)
+              (code '((undefine 'apa)
+                      ))
+              }
+              (para (list "It is also possible to undefine several bindings at the same time by"
+                          "providing a list of names."
+                          ))
+              {
+              (define apa 10)
+              (define bepa 20)
+              (define cepa 30)
+              (code '((undefine '(apa bepa cepa))
+                      ))
+              }
+              end)))
+
+(define special-form-set
+  (ref-entry "set"
+             (list
+              (para (list "The `set` form is used to change the value of some variable in an environment."
+                          "You can use `set` to change the value of a global definition or a local definition."
+                          "An application of the `set` form looks like `(set var-expr val-expr)` where"
+                          "`var-expr` should evaluate to a symbol. The `val-expr` is evaluated before"
+                          "rebinding the variable. `set` returns the value that `val-expr` evaluates to."
+                          ))
+              (program '(((define a 10)
+                          (set 'a 20)
+                          a)
+                         ))
+              (para (list "`set` works in local environments too such as in the body of a `let`"
+                          "or in a `progn`-local variable created using `var`."
+                          ))
+              (program '(((progn (var a 10) (set 'a 20) a))
+                          ))
+
+              end)))
+
+(define special-form-setq
+  (ref-entry "setq"
+             (list
+              (para (list "The `setq` special-form is similar to `set` and to `setvar` but expects the first argument"
+                          "to be a symbol. The first argument to `setq` is NOT evaluated."
+                          ))
+              (program '(((define a 10)
+                          (setq a 20)
+                          a)
+                         ))
+              (para (list "Just like `set` and `setvar`, `setq` can be used on variables that"
+                          "are bound locally such as in the body of a `let` or a `progn`-local variable"
+                          "created using `var`."
+                          ))
+              (program '(((progn (var a 10) (setq a 20) a))
+                         ))
+              end)))
+
+(define special-form-setvar
+  (ref-entry "setvar"
+             (list
+              (para (list "`setvar` is the exact same thing as `set`"
+                          ))
+              end)))
+
+(define special-form-progn
+  (ref-entry "progn"
+             (list
+              (para (list "The progn special form allows you to sequence a number of expressions."
+                          "The form of a progn expression is `(progn expr1 ... exprN)`."
+                          ))
+              (para (list "The evaluation result of a progn sequence is the value that the last `exprN`"
+                          "evaluated to. This is useful for sequencing of side-effecting operations."
+                          ))
+              (code '((progn 1 2 3)
+                      (progn (define a 10) (define b 20) (+ a b))
+                      ))
+              end)))
+
+(define special-form-brack
+  (ref-entry "{"
+             (list
+              (para (list "The curlybrace `{` syntax is a short-form (syntactic sugar) for `(progn`."
+                          "The parser replaces occurrences of `{` with `(progn`. The `{` should be"
+                          "closed with an `}`."
+                          ))
+              (para (list "These two programs are thus equivalent:"
+                          ))
+              (para (list "```clj\n"
+                          "(progn\n"
+                          "  (define a 10)\n"
+                          "  (define b 20)\n"
+                          "  (+ a b))\n"
+                          "```\n"
+                          ))
+              (para (list "And"
+                          ))
+              (para (list "```clj\n"
+                          "{\n"
+                          "  (define a 10)\n"
+                          "  (define b 20)\n"
+                          "  (+ a b)\n"
+                          "}\n"
+                          "```\n"
+                          ))
+              end)))
+
+(define special-form-close-brack
+  (ref-entry "}"
+             (list
+              (para (list "The closing curlybrace `}` should be used to close an opening `{` but purely"
+                          "for esthetical reasons. The `}` is treated identically to a regular closing parenthesis `)`."
+                          ))
+              (para (list 
+                          "The opening `{` and closing `}` curlybraces are used as a short-form for `progn`-blocks"
+                          "of sequences expressions."
+                          ))
+              end)))
+
+
+(define special-form-var
+  (ref-entry "var"
+             (list
+              (para (list "The var special form allows local bindings in a progn expression. A"
+                          "var expression is of the form (var symbol expr) and the symbol `symbol`"
+                          "is bound to the value that `expr` evaluates to withing the rest of the progn expression."
+                          ))
+
+              (code '((progn (var a 10) (var b 20) (+ a b))
+                      (progn (var a 10) (var b (+ a 10)) (+ a b))
+                      ))
+              end)))
+                          
+
+(define special-form-read
+  (ref-entry "read"
+             (list
+              (para (list "Parses a string resulting in either an expression or the <a href=\"#read_error\">read_error</a> in case"
+                          "the string can not be parsed into an expression. The form of a read expression is"
+                          "`(read string)`."
+                          ))
+              (code '((alt-txt (read "1") "(read \"1\")")
+                      (alt-txt (read "(lambda (x) (+ x 1))") "(read \"(lambda (x) (+ x 1))\"")
                       ))
               end)))
 
 
+(define special-form-read-program
+  (ref-entry "read-program"
+             (list
+              (para (list "Parses a string containing multiple sequenced expressions. The resulting list of"
+                          "expressions can be evaluated as a program using <a href=\"#eval-program\">eval-program</a>."
+                          "The form of a read-program expression is `(read-program string)`."
+                          ))
+              (code '((alt-txt (read-program "(define apa 1) (+ 2 apa)") "(read-program \"(define apa 1) (+ 2 apa)\")")
+                      ))
+              end)))
 
+(define special-form-read-eval-program
+  (ref-entry "read-eval-program"
+             (list
+              (para (list "Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression"
+                          "then evaluates it before reading the next."
+                          ))
+              (code '((alt-txt (read-eval-program "(define a 10) (+ a 10)") "(read-eval-program \"(define a 10) (+ a 10)\")")
+                      ))
+              (para (list "`read-eval-program` supports the `@const-start` and `@const-end` annotations which move all"
+                          "global definitions created in the program to constant memory (flash)."
+                          ))
+              (code '((alt-txt (read-eval-program "@const-start (define a 10) (+ a 10) @const-end") "(read-eval-program \"@const-start (define a 10) (+ a 10) @const-end\")")
+                      ))
+              end)))
 
 (define special-forms
   (section 2 "Special forms"
@@ -905,13 +1131,87 @@
                   special-form-cond
                   special-form-lambda
                   special-form-closure
+                  special-form-let
+                  special-form-loop
+                  special-form-define
+                  special-form-undefine
+                  special-form-set
+                  special-form-setq
+                  special-form-setvar
+                  special-form-progn
+                  special-form-brack
+                  special-form-close-brack
+                  special-form-var
+                  special-form-read
+                  special-form-read-program
+                  special-form-read-eval-program
                   )
             )))
+
+;; Lists and cons cells
+
+(define lists-car
+  (ref-entry "car"
+             (list
+              (para (list "Use `car` to access the `car` field of a cons cell. A `car` expression has the form `(car expr)`."
+                          ))
+              (para (list "Taking the `car` of a number of symbol type is in general a <a href=\"#type_error\">type_error</a>."
+                          ))
+
+              (code '((car (cons 1 2))
+                      (car (list 9 8 7))
+                      ))
+              end)))
+
+(define lists-first
+  (ref-entry "first"
+             (list
+              (para (list "`first` is an alternative  name for the `car` operation."
+                          "Use `first` to access the first element of a list or pair. A `first` expression  has the form `(first expr)`."
+                          ))
+              (code '((first (cons 1 2))
+                      (first (list 9 8 7))
+                      ))
+              end)))
+
+
+
+
+(define lists
+  (section 2 "Lists and cons cells"
+           (list
+            (para (list "Lists are built using cons cells. A cons cell is represented by the lbm_cons_t struct in the"
+                        "implementation and consists of two fields named the `car` and the `cdr`."
+                        "There is no special meaning associated with the `car` and the `cdr` each can hold"
+                        "a lbm_value. See <a href=\"#cons\">cons</a> and <a href=\"#list\">list</a> for two ways to create structures of"
+                        "cons cells on the heap."
+                        ))
+            (image "cons cell" "images/cons_cell.png")
+            (para (list "A cons cell can be used to store a pair of values. You create a pair by"
+                        "sticking a value in both the car and cdr field of a cons cell using either `'(1 . 2)` or"
+                        "`(cons 1 2)`."
+                        ))
+            (image "pair" "images/pair.png")
+            (para (list "A list is a number of cons cells linked together where the car fields hold values"
+                        "and the cdr fields hold pointers (the last cdr field is nil). The list below"
+                        "can be created either as `'(1 2 3)` or as `(list 1 2 3)`."
+                        ))
+            (image "list" "images/list.png")
+            lists-car
+            lists-first
+            )))
+
 
 
 ;; Manual
 
-(def manual (list ch-symbols
+(define info
+  (let (((major minor patch) (lbm-version))
+        (version-str (str-merge (to-str major) "." (to-str minor) "." (to-str patch))))
+        (para (list (str-merge "This document was generated by LispBM version " version-str))
+        )))
+
+(define manual (list ch-symbols
                   arithmetic
                   comparisons
                   boolean
@@ -920,6 +1220,8 @@
                   quotes
                   built-ins
                   special-forms
+                  lists
+                  info
                   ))
 
 
