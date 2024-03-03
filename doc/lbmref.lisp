@@ -4,6 +4,11 @@
          ( (alt-txt . _) true)
          (_ false)))
 
+
+
+;; TODO: LBM pretty printer is needed for better presentation of programs.
+;; TODO: Programs and expressions should evaluate in an empty local env.
+
 (defun render-code-res-pairs (rend cs)
   (match cs
          (nil t)
@@ -42,28 +47,38 @@
     (rend "</table>\n")
     })
 
+(defun render-program-res-pairs (rend cs)
+  (match cs
+         (nil t)
+         ( ((? x) . (? xs))
+           (let ((cstrs (map (lambda (c) (str-merge (to-str c) "\n"))  x))
+                 (res (eval-program x))
+                 (rstr (to-str res)))
+             {
+             (rend "<tr>\n")
+             (rend "<td>\n\n")
+             (rend "\n```clj\n")
+             (map rend cstrs)
+             (rend "\n```\n")
+             (rend "\n\n</td>\n")
+             (rend "<td>\n\n")
+             (rend "\n```clj\n")
+             (rend rstr)
+             (rend "\n```\n")
+             (rend "\n\n</td>\n")
+             (rend "</tr>\n")
+             (render-program-res-pairs rend xs)
+             }))))
+
 (defun render-program-table (rend c)
-  (let ((cstrs (map to-str c))
-        (res (eval-program c))
-        (rstr (to-str res)))
-    {
+  {
     (rend "<table>\n")
     (rend "<tr>\n")
     (rend "<td> Example </td> <td> Result </td>\n")
     (rend "</tr>\n")
-    (rend "<td>\n\n")
-    (rend "```clj\n")
-    (map rend cstrs)
-    (rend "```\n")
-    (rend "\n\n</td>\n")
-    (rend "<td>\n\n")
-    (rend "```clj\n")
-    (rend rstr)
-    (rend "```\n")
-    (rend "\n\n</td>\n")
-    (rend "</tr>\n")
+    (render-program-res-pairs rend c)
     (rend "</table>\n")
-    }))
+    })
 
 
 (defun render-it (rend ss)
@@ -670,10 +685,163 @@
 
 ;; Built-in operations
 
+(define built-in-eval
+  (ref-entry "eval"
+             (list
+              (para (list "Evaluate data as an expression. The data must represent a valid expression."
+                          ))
+
+              (code '((eval (list + 1 2))
+                      (alt-txt (eval '(+ 1 2)) "(eval '(+ 1 2))")
+                      (alt-txt (eval `(+ 1 ,@(range 2 5))) "(eval `(+ 1 ,@(range 2 5)))")
+                      ))
+              end)))
+
+(define built-in-eval-program
+  (ref-entry "eval-program"
+             (list
+              (para (list "Evaluate a list of data where each element represents an expression."
+                          ))
+              (code '((eval-program (list (list + 1 2) (list + 3 4)))
+                      (alt-txt (eval-program '( (+ 1 2) (+ 3 4))) "(eval-program '( (+ 1 2) (+ 3 4)))")
+                      (eval-program (list (list define 'a 10) (list + 'a 1)))
+                      (alt-txt (eval-program '( (define a 10) (+ a 1))) "(eval-program '( (define a 10) (+ a 1)))")
+                      ))
+              end)))
+
+(define built-in-type-of
+  (ref-entry "type-of"
+             (list
+              (para (list "The `type-of` function returns a symbol that indicates what type the"
+                          "argument is. The form of a `type-of` expression is `(type-of expr)`."
+                          ))
+              (code '((type-of 1)
+                      (type-of 1u)
+                      (type-of 1i32)
+                      (type-of 1u32)
+                      (type-of 1i64)
+                      (type-of 1u64)
+                      (type-of 3.14)
+                      (type-of 3.14f64)
+                      (alt-txt (type-of 'apa) "(type-of 'apa)")
+                      (type-of (list 1 2 3))
+                      ))
+              end)))
+
+(define built-in-sym2str
+  (ref-entry "sym2str"
+             (list
+              (para (list "The `sym2str` function converts a symbol to its string representation."
+                          "The resulting string is a copy of the original so you cannot destroy"
+                          "built in symbols using this function."
+                          ))
+              (code '((sym2str (quote lambda))
+                      (alt-txt (sym2str 'lambda) "(sym2str 'lambda)")
+                      ))
+              end)))
+
+(define built-in-str2sym
+  (ref-entry "str2sym"
+             (list
+              (para (list "The `str2sym` function converts a string to a symbol."
+                          ))
+              (code '((str2sym "hello")
+                      ))
+              end)))
+
+(define built-in-sym2u
+  (ref-entry "sym2u"
+             (list
+              (para (list "The `sym2u` function returns the numerical value used by the runtime system for a symbol."
+                          ))
+              (code '((sym2u (quote lambda))
+                      (alt-txt (sym2u 'lambda) "(sym2u 'lambda)")
+                      ))
+              end)))
+
+(define built-in-u2sym
+  (ref-entry "u2sym"
+             (list
+              (para (list "The `u2sym` function returns the symbol associated with the"
+                          "numerical value provided. This symbol may be undefined in which case you"
+                          "get as result a unnamed symbol."
+                          ))
+              (code '((u2sym 259u)
+                      (u2sym 66334u)
+                      ))
+              end)))
+
 (define built-ins
   (section 2 "Built-in operations"
+           (list built-in-eval
+                 built-in-eval-program
+                 built-in-type-of
+                 built-in-sym2str
+                 built-in-str2sym
+                 built-in-sym2u
+                 built-in-u2sym
+                 )))
+
+;; Special forms
+
+(define special-form-if
+  (ref-entry "if"
+             (list
+              (para (list "Conditionals are written as `(if cond-expr then-expr else-expr)`.  If"
+                          "the cond-expr evaluates to <a href=\"#nil\"> nil </a> the else-expr will"
+                          "be evaluated.  for any other value of cond-expr the then-expr will be"
+                          "evaluated."
+                          ))
+              (code '((if t 1 2)
+                      (if nil 1 2)
+                      ))
+              end)))
+
+(define special-form-cond
+  (ref-entry "cond"
+             (list
+              (para (list "`cond` is a generalization of `if` to discern between n different cases"
+                          "based on boolean expressions. The form of a `cond` expression is:"
+                          "`(cond ( cond-expr1 expr1) (cond-expr2 expr2) ... (cond-exprN exprN))`."
+                          "The conditions are checked from first to last and for the first `cond-exprN`"
+                          "that evaluates to true, the corresponding `exprN` is evaluated."
+                          ))
+              (para (list "If no `cond-exprN` evaluates to true, the result of the entire conditional"
+                          "is `nil`."
+                          ))
+              (program  '(((define a 0)
+                           (cond ( (< a 0) 'abrakadabra)
+                                 ( (> a 0) 'llama)
+                                 ( (= a 0) 'hello-world))
+                           )))
+              end)))
+
+(define special-form-lambda
+  (ref-entry "lambda"
+             (list
+              (para (list "You create an anonymous function with lambda. The function can be given a name by binding the lambda expression using <a href=\"#define\">define</a>"
+                          "or <a href=\"#let\">let</a>. A lambda expression has the form `(lambda param-list body-expr)`."
+                          ))
+              (code '((lambda (x) (+ x 1))
+                      ((lambda (x) (+ x 1)) 1)
+                      ))
+              end)))
+
+
+(define special-forms
+  (section 2 "Special forms"
            (list
+            (para (list "Special forms looks a lot like functions but they are allowed to"
+                        "break the norms when it comes to evaluation order of arguments."
+                        "a special form may choose to evaluate or not, freely, from its"
+                        "list of arguments."
+                        ))
+            (list special-form-if
+                  special-form-cond
+                  special-form-lambda
+                  )
             )))
+
 
 ;; Manual
 
@@ -685,6 +853,7 @@
                   nil-and-t
                   quotes
                   built-ins
+                  special-forms
                   ))
 
 

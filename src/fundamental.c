@@ -842,17 +842,17 @@ static lbm_value fundamental_symbol_to_string(lbm_value *args, lbm_uint nargs, e
 static lbm_value fundamental_string_to_symbol(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
-  if (nargs < 1 ||
-      lbm_is_array_r(args[0]))
-    return result;
-  lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
-  if (!arr) return ENC_SYM_FATAL_ERROR;
-  char *str = (char *)arr->data;
-  lbm_uint sym;
-  if (lbm_get_symbol_by_name(str, &sym)) {
-    result = lbm_enc_sym(sym);
-  } else if (lbm_add_symbol(str, &sym)) {
-    result = lbm_enc_sym(sym);
+  if (nargs == 1 &&
+      lbm_is_array_r(args[0])) {
+    lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
+    if (!arr) return ENC_SYM_FATAL_ERROR;
+    char *str = (char *)arr->data;
+    lbm_uint sym;
+    if (lbm_get_symbol_by_name(str, &sym)) {
+      result = lbm_enc_sym(sym);
+    } else if (lbm_add_symbol(str, &sym)) {
+      result = lbm_enc_sym(sym);
+    }
   }
   return result;
 }
