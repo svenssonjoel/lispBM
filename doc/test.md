@@ -1,3 +1,5 @@
+# LispBM Reference Manual
+
 ## About Symbols
 
 Symbols are very important and central to LispBM and also perhaps a bit different from identifiers/names used in languages such as C. A short introduction to symbols could be a good place to start. 
@@ -28,6 +30,376 @@ Note that lower-case and upper-case alphabetical letters are considered identica
 
 examples of valid symbols: ``` apa apa? !apa kurt_russel_is_great ``` 
 
+
+
+## Numbers and numerical types
+
+LBM supports signed and unsigned integer types as well as float and double. The numerical types in LBM are 
+
+   - byte   - unsigned 8bit value.
+   - i      - signed 28bit value  (56bits on 64bit platforms).
+   - u      - unsigned 28bit value (56bits on 64bit platforms).
+   - i32    - signed 32bit value.
+   - u32    - unsigned 32bit value.
+   - i64    - signed 64bit value.
+   - u64    - unsigned 64bit value.
+   - f32    - (float) a 32bit floating point value.
+   - f64    - (double) a 64bit floating point value.
+The byte and the char value have identical representation and type, thus char is an unsigned 8 bit type in LBM. 
+
+An integer literal is interpreted to be of type `i`, a 28/56bit signed integer value.  A literal with decimal point is interpreted to be a type `f32` or float value. 
+
+To specify literals of the other types, the value must be postfixed with a qualifier string.  The qualifiers available in LBM are: `b`, `i`, `u`, `i32`, `u32`, `i64`, `u64`, `f32` and `f63`.  The `i` and `f32` qualifiers are never strictly needed but can be added if one so wishes. 
+
+So for example: 
+
+   - `1b`     - Specifies a byte typed value of 1
+   - `1.0f64` - Specifies a 64bit float with value 1.0.
+**Note** that it is an absolute requirement to include a decimal when writing a floating point literal in LBM. 
+
+We are trying to make type conversions feel familar to people who are familiar with the C programming language. On a 32bit platform LBM numerical types are ordered according to: `byte < i < u < i32 < u32 < i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures out the largest type according to the ordering above and converts all the values to this largest type. 
+
+Example: 
+
+   - `(+ 1u 3i32)` - Promotes the 1u value type i32 and performs the addition, resulting in 4i32.
+   - `(+ 1  3.14)` - Here the value 1 is of type `i` which is smaller than `f32`, the result 4.14f32.
+A potential source of confusion is that `f32` is a larger type than `i64` and `u64`. this means that if you, for example, add 1.0 to an `i64` value you will get an `f32` back. If you instead wanted the float to be converted into a double before the addition, this has to be done manually. 
+
+Example: 
+
+   -  `(+ (to-double 1.0) 5i64)`    - Manually convert a value to double.
+The `type-of` operation can be used to query a value for its type. On the numerical types the `type-of` operation answers as follows: 
+
+   - `(type-of 1b)`     -> `type-char`
+   - `(type-of 1)`      -> `type-i`
+   - `(type-of 1u)`     -> `type-u`
+   - `(type-of 1i32)`   -> `type-i32`
+   - `(type-of 1u32)`   -> `type-u32`
+   - `(type-of 1i64)`   -> `type-i64`
+   - `(type-of 1u64)`   -> `type-u64`
+   - `(type-of 1.0)`    -> `type-float`
+   - `(type-of 1.0f64)` -> `type-double`
+
+### Overflow behaviour
+
+Operations on fixed bitwidth mumerical types can lead to overflow. The ranges representable in 32bit LBMs integer types are the following: 
+
+   - `type-char`  : 0 - 255
+   - `type-i`     : -134217728 - 1342177272
+   - `type-u`     : 0 - 268435455
+   - `type-i32`   : -2147483648 - 2147483647
+   - `type-u32`   : 0- 4294967295
+   - `type-i64`   : -9223372036854775808 - 9223372036854775807
+   - `type-u64`   : 0 - 18446744073709551615
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(+ 255b 1b)
+```
+
+
+</td>
+<td>
+
+```clj
+0b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(- 0b 1b)
+```
+
+
+</td>
+<td>
+
+```clj
+255b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(+ 134217727 1)
+```
+
+
+</td>
+<td>
+
+```clj
+-134217728
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(- -134217728 1)
+```
+
+
+</td>
+<td>
+
+```clj
+134217727
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(+ 268435455u 1u)
+```
+
+
+</td>
+<td>
+
+```clj
+0u
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(- 0u 1u)
+```
+
+
+</td>
+<td>
+
+```clj
+268435455u
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(+ 2147483647i32 1i32)
+```
+
+
+</td>
+<td>
+
+```clj
+-2147483648i32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(- -2147483648i32 1i32)
+```
+
+
+</td>
+<td>
+
+```clj
+2147483647i32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(+ 4294967295u32 1)
+```
+
+
+</td>
+<td>
+
+```clj
+0u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(- 0u32 1)
+```
+
+
+</td>
+<td>
+
+```clj
+4294967295u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(+ 9223372036854775807i64 1i64)
+```
+
+
+</td>
+<td>
+
+```clj
+-9223372036854775808i64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(- -9223372036854775808i64 1i64)
+```
+
+
+</td>
+<td>
+
+```clj
+9223372036854775807i64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(+ 18446744073709551615u64 1u64)
+```
+
+
+</td>
+<td>
+
+```clj
+0u64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(- 0u64 1u64)
+```
+
+
+</td>
+<td>
+
+```clj
+18446744073709551615u64
+```
+
+
+</td>
+</tr>
+</table>
+
+### Cost of numerical operations
+
+All Values in LBM are encoded in one way or another. The encoded value holds additional information about type and garbage collection mark bit.  Operations that operate on an LBM value needs to unpack this encoded format and extract the actual numerical information from the representation. This has a cost and operations on numbers are in general a bit slower than what one gets in, for example C. 
+
+The chart below shows the time it takes to perform 10 million additions on the x86 architecture (a i7-6820HQ) in 32Bit mode. The difference in cost is negligible between the types `byte` - `u32` with a huge increase in cost for 64 bit types. 
+
+All Integer types | 32Bit or smaller
+:---:|:---:|
+![Performance of 10 million additions at various types on x86 32bit](./images/millions.png) | ![Performance of 10 million additions at various types on x86 32bit](./images/millions_zoom.png)
+
+The charts below compare floating point operations to `u32` operations on x86 32Bit. There is little difference in cost of `f32` and `u32` operations, but a large increase in cost when going to `f64` (double). 
+
+`f32` and `f64` vs `u32` | `f32` vs `u32`
+:---:|:---:|
+![Performance of floating point additions on x86 32bit](./images/float_x86_32.png) | ![Performance floating point additions on x86 32bit](./images/float_x86_32_zoom.png)
+
+In 64Bit mode the x86 version of LBM shows negligible differences in cost of additions at different types. 
+
+All Integer types | `f32` and `f64` vs `u32`
+:---:|:---:|
+![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png) | ![Performance of floating point additions on x86 64bit](./images/float_x86_64.png)
+
+On 64Bit x86 the difference in cost is little accross all LBM types. 
+
+For addition performance on embedded systems, we use the the EDU VESC motorcontroller as the STM32F4 candidate and the VESC EXPRESS for a RISCV data point. 
+
+On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000 additions.  There is a more pronounced gap between 28Bit and smaller types and the 32Bit types here. Likely because of the differences in encoding of 28Bit or less types and 32Bit types. 
+
+All Integer types | 32Bit or smaller
+:---:|:---:|
+![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv.png) | ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv_zoom.png)
+
+On RISCV the difference in cost between `u32` and `f32` operations is small. This is a bit surprising as the ESP32C3 does not have a floating point unit. It is possible that the encoding/decoding of numbers is dominating the cost of any numerical opeation. 
+
+`f32` and `f64` vs `u32` | `f32` vs `u32`
+:---:|:---:|
+![Performance of floating point additions on ESP32C3 RISCV](./images/float_riscv.png) | ![Performance floating point additions on ESP32C3 RISCV](./images/float_riscv_zoom.png)
+
+On the STM32F4 at 168MHz (an EDU VESC) The results are similar to ESP32 but slower.  The slower performance on the VESC compared to the VESC_Express ESP32 may be caused by the VESC firmware running motorcontrol interrups at a high frequency. 
+
+All Integer types | 32Bit or smaller
+:---:|:---:|
+![Performance of 100000 addtions at various types on STM32F4](./images/thousands_arm.png) | ![Performance of 100000 additions at various types on STM32F4](./images/thousands_arm_zoom.png)
+
+The cost of `f32` operations compared to `u32` on the STM32F4 shows little differences.  As expected there is a jump up in cost when going to 64Bit. 
+
+`f32` and `f64` vs `u32` | `f32` vs `u32`
+:---:|:---:|
+![Performance of floating point additions on STM32F4](./images/float_stm.png) | ![Performance floating point additions on STM32F4](./images/float_stm_zoom.png)
+
+In general, on 32Bit platforms, the cost of operations on numerical types that are 32Bit or less are about equal in cost. The costs presented here was created by timing a large number of 2 argument additions. Do not see these measurements as the "truth carved in stone", LBM performance keeps changing over time as we make improvements, but use them as a rough guiding principle.  If anything can be taken away from this it is to stay away from 64Bit value operations in your tightest and most time critical loops. 
 
 
 ## Arithmetic
@@ -6301,6 +6673,794 @@ The `division_by_zero` symbol is returned when dividing by zero.
 
 The `variable_not_bound` symbol is returned when evaluating a variable (symbol) that is neighter bound nor special (built-in function). 
 
+
+
+
+---
+
+## Flash memory
+
+Flash memory can be used to store data and functions that are constant. Things can be moved to flash explicitly using the `move-to-flash` function or as part of the reading procedure. To move things automatically to flash during reading, there are `@`directives. 
+
+
+---
+
+
+### @const-symbol-strings
+
+if `@const-symbol-strings` directive is placed in a file, symbols will be created in flash memory instead of the arrays memory. 
+
+
+
+
+---
+
+
+---
+
+
+### @const-start
+
+`@const-start` opens a block of code where each global definition is moved to constant memory (flash) automatically. This can be used only together with the incremental reader (such as `read-eval-program`). 
+
+A `@const-start` opened block should be closed with a `@const-end`. Constant blocks cannot be nested. 
+
+```clj
+@const-start
+(defun f (x) (+ x 1))
+@const-end
+
+(+ (f 1) 2)
+```
+
+
+---
+
+
+---
+
+
+### @const-end
+
+`@const-end` closes an block opened by `@const-start`. 
+
+
+
+
+---
+
+
+---
+
+
+### move-to-flash
+
+A value can be moved to flash storage to save space on the normal evaluation heap or lbm memory.  A `move-to-flash` expression is of the form `(move-to-flash sym opt-sym1 ... opt-symN)`.  The symbols `sym`, `opt-sym1 ... opt-symN` should be globally bound to the values you want moved to flash. After the value has been moved, the environment binding is updated to point into flash memory. **CAUTION** This function should be used carefully. Ideally a value should be moved to flash immediately after it is created so there is no chance that other references to original value exists. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define a [1 2 3 4 5 6])
+(move-to-flash a)
+a
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+[1 2 3 4 5 6]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define ls '(1 2 3 4 5))
+(move-to-flash ls)
+ls
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 2 3 4 5)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun f (x) (+ x 1))
+(move-to-flash f)
+(f 10)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+11
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+## Type convertions
+
+
+---
+
+
+### to-byte
+
+Convert any numerical value to a byte. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-byte 1234)
+```
+
+
+</td>
+<td>
+
+```clj
+210b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-byte 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+3b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-byte 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0b
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### to-i
+
+Convert a value of any numerical type to an integer. The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### to-u
+
+Convert a value of any numerical type to an unsigned integer. The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25u
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+3u
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0u
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### to-i32
+
+Convert any numerical value to a 32bit int. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i32 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25i32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i32 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+3i32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i32 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0i32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### to-u32
+
+Convert any numerical value to a 32bit unsigned int. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u32 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u32 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+3u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u32 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0u32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### to-float
+
+Convert any numerical value to a single precision floating point value. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-float 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25.000000f32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-float 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+3.140000f32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-float 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0.000000f32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### to-i64
+
+Convert any numerical value to a 64bit int. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i64 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25i64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i64 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+3i64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i64 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0i64
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### to-u64
+
+Convert any numerical value to a 64bit unsigned int. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u64 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25u64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u64 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+3u64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u64 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0u64
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### to-double
+
+Convert any numerical value to a double precision floating point value. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-double 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25.000000f64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-double 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+3.140000f64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-double 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0.000000f64
+```
+
+
+</td>
+</tr>
+</table>
 
 
 
