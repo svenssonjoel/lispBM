@@ -13,6 +13,12 @@
 
 (defun pretty-ind (n c)
   (match c
+         ( (atomic (? e) . (? es))
+           (str-merge "(atomic " (pretty e) (pretty-aligned-ontop (+ n 8) es) ")" ))
+         ( (recv  (? e) . (? es))
+           (str-merge "(recv " (pretty e) (pretty-aligned-ontop (+ n 6) es) ")" ))
+         ( (match (? e) . (? es))
+           (str-merge "(match " (pretty e) (pretty-aligned-ontop (+ n 7) es) ")" ))
          ( (progn (? e ) . (? es))
            (str-merge "(progn " (pretty e) (pretty-aligned-ontop (+ n 7) es) ")" ))
          ( (quote (? e)) (str-merge (ind-spaces n) "'" (pretty e)))
@@ -196,6 +202,9 @@
 
 (defun bold (str)
   (list 'bold str))
+
+(defun bullet (ss)
+  (para (map (lambda (x) (str-merge "   - " x)) ss)))
 
 (defun image (alt url)
   (para (list (str-merge "![" alt "](" url " \"" alt "\")"))))
@@ -1060,7 +1069,7 @@
               (para (list "The closing curlybrace `}` should be used to close an opening `{` but purely"
                           "for esthetical reasons. The `}` is treated identically to a regular closing parenthesis `)`."
                           ))
-              (para (list 
+              (para (list
                           "The opening `{` and closing `}` curlybraces are used as a short-form for `progn`-blocks"
                           "of sequences expressions."
                           ))
@@ -1079,7 +1088,7 @@
                       (progn (var a 10) (var b (+ a 10)) (+ a b))
                       ))
               end)))
-                          
+
 
 (define special-form-read
   (ref-entry "read"
@@ -1420,7 +1429,7 @@
             lists-sort
             )))
 
-;; Association lists 
+;; Association lists
 
 (define assoc-acons
   (ref-entry "acons"
@@ -1533,7 +1542,7 @@
                       (bufget-u32 data 0)
                       ))
               end)))
-                          
+
 (define arrays-bufset
   (ref-entry "bufset-[X]"
              (list
@@ -1607,6 +1616,225 @@
             arrays-literal
             )))
 
+;; Pattern matching
+
+(define pm-match
+  (ref-entry "match"
+             (list
+              (para (list "Pattern-matching is expressed using match. The form of a match expression is"
+                          "`(match expr (pat1 expr1) ... (patN exprN))`. Pattern-matching compares"
+                          "the shape of an expression to each of the `pat1` ... `patN`"
+                          "and evaluates the expression `exprM` of the pattern that matches."
+                          "In a pattern you can use a number of match-binders or wildcards: `_`, `?`, `?i`,`?u`,`?float`."
+                          ))
+              (code '((match 'orange (green 1) (orange 2) (blue 3))
+                      ))
+              end)))
+
+(define pm-no_match
+  (ref-entry "no_match"
+             (list
+              (para (list "The `no_match` symbol is returned from pattern matching if no case matches the expression."
+                          ))
+              (bullet '("Add a catch-all case to your pattern-matching. `_`.")
+                      )
+              end)))
+
+(define pm-_
+  (ref-entry "_"
+             (list
+              (para (list "The underscore pattern matches anything."
+                          ))
+              (code '((match 'fish (horse 'its-a-horse) (pig 'its-a-pig) (_ 'i-dont-know))
+                      ))
+              end)))
+
+(define pm-?
+  (ref-entry "?"
+             (list
+              (para (list "The `?` pattern matches anything and binds that anything to variable."
+                          "Using the `?` pattern is done as `(? var)` and the part of the expression"
+                          "that matches is bound to `var`."
+                          ))
+              (code '((match '(orange 17) ((green (? n)) (+ n 1)) ((orange (? n)) (+ n 2)) ((blue (? n)) (+ n 3)))
+                      ))
+              end)))
+
+(define pm-guards
+  (ref-entry "Match with guards"
+             (list
+              (para (list "Patterns used in a match expressions can be augmented with a boolean"
+                          "guard to further discern between cases. A pattern with a guard is of the"
+                          "form `(pattern-expr guard-expr expr)`. A pattern with a guard, matches only"
+                          "if the pattern structurally matches and if the guard-expr evaluates to true"
+                          "in the match environment."
+                          ))
+              (code '((define x 1)
+                      (match x
+                             ( (? y) (< y 0) 'less-than-zero)
+                             ( (? y) (> y 0) 'greater-than-zero)
+                             ( (? y) (= y 0) 'equal-to-zero))
+                      ))
+              end)))
+
+(define pattern-matching
+  (section 2 "Pattern-matching"
+           (list pm-match
+                 pm-no_match
+                 pm-_
+                 pm-?
+                 pm-guards
+                 )))
+
+;; Concurrency
+
+(define conc-spawn
+  (ref-entry "spawn"
+             (list
+              (para (list "Use `spawn` to launch a concurrent process. Spawn takes a closure and"
+                          "arguments to pass to that closure as its arguments. The form of a"
+                          "spawn expression is `(spawn opt-name opt-stack-size closure arg1"
+                          "... argN)`."
+                          ))
+              (para (list "Each process has a runtime-stack which is used for the evaluation of"
+                          "expressions within that process. The stack size needed by a process"
+                          "depends on"
+                          " 1. How deeply nested expressions evaluated by the process are."
+                          " 2. Number of recursive calls (Only if a function is NOT tail-recursive)."
+                          " 3. The Number of arguments that functions called by the process take."
+                          ))
+              (para (list "Having a stack that is too small will result in a `out_of_stack` error."
+                          ))
+              (para (list "The default stack size is 256 words (1K Bytes) and should be more than"
+                          "enough for reasonable programs. Many processes will work perfectly"
+                          "fine with a lot less stack. You can find a good size by trial and error."
+                          ))
+              end)))
+
+(define conc-spawn-trap
+  (ref-entry "spawn-trap"
+             (list
+              (para (list "Use `spawn-trap` to spawn a child process and enable trapping of exit"
+                          "conditions for that child. The form of a `spawn-trap` expression is"
+                          "`(spawn-trap opt-name opt-stack-size closure arg1 .. argN)`.  If the"
+                          "child process is terminated because of an error, a message is sent to"
+                          "the parent process of the form `(exit-error tid err-val)`. If the"
+                          "child process terminates successfully a message of the form `(exit-ok"
+                          "tid value)` is sent to the parent."
+                          ))
+              (program '(((defun thd () (+ 1 2))
+                          (spawn-trap thd)
+                          (recv ((exit-error (? tid) (? e)) 'crash)
+                                ((exit-ok    (? tid) (? v)) 'ok))
+                          )
+                         ((defun thd () (+ 1 kurt-russel))
+                          (spawn-trap thd)
+                          (recv ((exit-error (? tid) (? e)) 'crash)
+                                ((exit-ok    (? tid) (? v)) 'ok))
+                          )
+                         ))
+              end)))
+
+(define conc-self
+  (ref-entry "self"
+             (list
+              (para (list "Use `self` to obtain the thread-id of the thread in which `self` is evaluated."
+                          "The form of a `self` expression is `(self)`. The thread id is of an integer type."
+                          ))
+              (code '((self)
+                      ))
+              end)))
+
+(define conc-wait
+  (ref-entry "wait"
+             (list
+              (para (list "Use `wait` to wait for a spawned process to finish."
+                          "The argument to `wait` should be a process id."
+                          "The `wait` blocks until the process with the given process id finishes."
+                          "When the process with with the given id finishes, the wait function returns True."
+                          ))
+              (para (list "Be careful to only wait for processes that actually exist and do"
+                          "finish. Otherwise you will wait forever."
+                          ))
+              end)))
+
+(define conc-yield
+  (ref-entry "yield"
+             (list
+              (para (list "To put a process to sleep, call `yield`. The argument to `yield`"
+                          "is number indicating at least how many microseconds the process should sleep."
+                          ))
+              end)))
+
+(define conc-atomic
+  (ref-entry "atomic"
+             (list
+              (para (list "`atomic` can be used to execute a LispBM one or more expression without allowing"
+                          "the runtime system to switch process during that time. `atomic` is similar to"
+                          "progn with the addition of being uninterruptable."
+                          ))
+              (code '((atomic (+ 1 2) (+ 3 4) (+ 4 5))
+                      ))
+              end)))
+
+(define conc-exit-ok
+  (ref-entry "exit-ok"
+             (list
+              (para (list "The `exit-ok` function terminates the thread in a \"successful\" way and"
+                          "returnes a result specified by the programmer. The form of an"
+                          "`exit-ok` expression is `(exit-ok value)`.  If the process that calls"
+                          "`exit-ok` was created using `spawn-trap` a message of the form"
+                          "`(exit-ok tid value)` is be sent to the parent of this process."
+                          ))
+              end)))
+
+(define conc-exit-error
+  (ref-entry "exit-error"
+             (list
+              (para (list "The `exit-error` function terminates the thread with an error"
+                          "specified by the programmer.  The form of an `exit-error` expression"
+                          "is `(exit-error err_val)`. If the process that calls `exit-error` was"
+                          "created using `spawn-trap` a message of the form `(exit-error tid"
+                          "err_val)` is sent to the parent of this process."
+                          ))
+              end)))
+
+
+
+
+(define concurrency
+  (section 2 "Concurrency"
+           (list
+            (para (list "The concurrency support in LispBM is provided by the set of functions,"
+                        "`spawn`, `wait`, `yeild` and `atomic` described below.  Concurrency in"
+                        "LispBM is scheduled by a round-robin scheduler that splits the runtime"
+                        "system evaluator fairly (with caveats, below) between all running processes."
+                        ))
+            (para (list "When a process is scheduled to run, made active, it is given a quota of"
+                        "evaluator \"steps\" to use up. The process then runs until that quota is"
+                        "exhausted or the process itself has signaled it wants to sleep by"
+                        "yielding or blocking (for example by waiting for a message using the"
+                        "message passing system)."
+                        ))
+            (para (list "A process can also request to not be \"pre-empted\" while executing a"
+                        "certain expression by invoking `atomic`. One should take care to make"
+                        "blocks of atomic code as small as possible as it disrupts the fairness"
+                        "of the scheduler. While executing inside of an atomic block the process"
+                        "has sole ownership of the shared global environment and can perform"
+                        "atomic read-modify-write sequences to global data."
+                        ))
+            conc-spawn
+            conc-spawn-trap
+            conc-self
+            conc-wait
+            conc-yield
+            conc-atomic
+            conc-exit-ok
+            conc-exit-error
+            )
+           ))
+
+
 
 ;; Manual
 
@@ -1628,6 +1856,8 @@
                   lists
                   assoc-lists
                   arrays
+                  pattern-matching
+                  concurrency
                   info
                   ))
 
