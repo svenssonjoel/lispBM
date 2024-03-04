@@ -13,14 +13,18 @@
 
 (defun pretty-ind (n c)
   (match c
+         ( (loop (? e) . (? es))
+           (str-merge (ind-spaces n) "(loop " (pretty e) (pretty-aligned-ontop (+ n 6) es) ")" ))
          ( (atomic (? e) . (? es))
-           (str-merge "(atomic " (pretty e) (pretty-aligned-ontop (+ n 8) es) ")" ))
+           (str-merge (ind-spaces n) "(atomic " (pretty e) (pretty-aligned-ontop (+ n 8) es) ")" ))
          ( (recv  (? e) . (? es))
-           (str-merge "(recv " (pretty e) (pretty-aligned-ontop (+ n 6) es) ")" ))
+           (str-merge (ind-spaces n) "(recv " (pretty e) (pretty-aligned-ontop (+ n 6) es) ")" ))
+         ( (recv-to  (? e) . (? es))
+           (str-merge (ind-spaces n) "(recv-to " (pretty e) (pretty-aligned-ontop (+ n 9) es) ")" ))
          ( (match (? e) . (? es))
-           (str-merge "(match " (pretty e) (pretty-aligned-ontop (+ n 7) es) ")" ))
+           (str-merge (ind-spaces n) "(match " (pretty e) (pretty-aligned-ontop (+ n 7) es) ")" ))
          ( (progn (? e ) . (? es))
-           (str-merge "(progn " (pretty e) (pretty-aligned-ontop (+ n 7) es) ")" ))
+           (str-merge (ind-spaces n) "(progn " (pretty e) (pretty-aligned-ontop (+ n 7) es) ")" ))
          ( (quote (? e)) (str-merge (ind-spaces n) "'" (pretty e)))
          ( (let ((? b0) . (? brest)) (? body)) ;; pattern
            (str-merge (ind-spaces n)
@@ -147,6 +151,7 @@
            }
            )
          ( (para (? x)) { (map (lambda (s) (rend (str-merge s " "))) x) (rend "\n\n") } )
+         ( (verb (? x)) (map (lambda (s) (rend s)) x))
          ( hline (rend "\n---\n\n"))
          ( newline (rend "\n"))
          ( (bold (? s))
@@ -188,6 +193,9 @@
 (defun para (str)
   (list 'para str))
 
+(defun verb (str)
+  (list 'verb str))
+
 (defun code (c)
   (list 'code c))
 
@@ -204,10 +212,18 @@
   (list 'bold str))
 
 (defun bullet (ss)
-  (para (map (lambda (x) (str-merge "   - " x)) ss)))
+  (verb (map (lambda (x) (str-merge "   - " x "\n")) ss)))
 
 (defun image (alt url)
   (para (list (str-merge "![" alt "](" url " \"" alt "\")"))))
+
+(defun image-pair (cap0 txt0 fig0 cap1 txt1 fig1)
+  (para (list (str-merge cap0 " | " cap 1)
+              (str-merge ":---:|:---:|")
+              (str-merge "![" txt0 "](" fig0 ") | ![" txt1 "](" fig1 ")")
+              )))
+
+
 
 (def ch-symbols
      (section 2 "About Symbols"
@@ -1834,6 +1850,302 @@
             )
            ))
 
+(define mp-send
+  (ref-entry "send"
+             (list
+              (para (list "Messages can be sent to a process by using `send`. The form"
+                          "of a `send` expression is `(send pid msg)`. The message, msg,"
+                          "can be any LispBM value."
+                          ))
+              end)))
+
+(define mp-recv
+  (ref-entry "recv"
+             (list
+              (para (list "To receive a message use the `recv` command. A process"
+                          "will block on a `recv` until there is a matching message in"
+                          "the mailbox."
+                          "The `recv` syntax is very similar to [match](#match)."
+                          ))
+              (program '(((send (self) 28)
+                          (recv ((? n) (+ n 1)))
+                          )
+                         ))
+              end)))
+
+(define mp-recv-to
+  (ref-entry "recv-to"
+             (list
+              (para (list "Like [recv](#recv), `recv-to` is used to receive"
+                          "messages but `recv-to` takes an extra timeout argument."
+                          ))
+              (para (list "The form of an `recv-to` expression is"
+                          "```clj"
+                          "(recv-to timeout-secs"
+                          "                (pattern1 exp1)"
+                          "                ..."
+                          "                (patternN expN))"
+                          "```"
+                          ))
+              (program '(((send (self) 28)
+                          (recv-to 0.1
+                                   ((? n) (+ n 1))
+                                   (timeout 'no-message))
+
+                          )
+                         ))
+              end)))
+
+(define mp-set-mailbox-size
+  (ref-entry "set-mailbox-size"
+             (list
+              (para (list "Change the size of the mailbox in the current process."
+                          "Standard mailbox size is 10 elements."
+                          ))
+              (code '((set-mailbox-size 100)
+                      (set-mailbox-size 5000000)
+                      ))
+              end)))
+
+(define message-passing
+  (section 2 "Message-passing"
+           (list
+            mp-send
+            mp-recv
+            mp-recv-to
+            mp-set-mailbox-size
+            )
+           ))
+
+;; Flat values
+
+(define fv-flatten
+  (ref-entry "flatten"
+             (list
+              (para (list "The `flatten` function takes a value as single argument and returns the flat representation if"
+                          "successful. A flatten expression has the form `(flatten expr)`. Note that `expr` is evaluated"
+                          "before the flattening. A flat value can be turned back into a normal lisp value applying `unflatten`"
+                          ))
+              (code '((define a (flatten (+ 1 2 3)))
+                      (unflatten a)
+                      (define a (flatten '(+ 1 2 3)))
+                      (unflatten a)
+                      ))
+              (para (list "A flat value is a byte-array containing an encoding of the value."
+                          ))
+              end)))
+
+(define fv-unflatten
+  (ref-entry "unflatten"
+             (list
+              (para (list "`unflatten` converts a flat value back into a lisp value. Te form of an"
+                          "`unflatten` expression is `(unflatten flat-value)`"
+                          ))
+              (code '((define a (flatten (+ 1 2 3)))
+                      (unflatten a)
+                      (define a (flatten '(+ 1 2 3)))
+                      (unflatten a)
+                      ))
+              end)))
+
+(define flat-values
+  (section 2 "Flat values"
+           (list
+            (para (list "Lisp values can be \"flattened\" into an array representation. The flat"
+                        "representation of a value contains all information needed so that the"
+                        "value can be recreated, \"unflattened\", in another instance of the"
+                        "runtime system (for example running on another microcontroller)."
+                        ))
+            (para (list "Not all values can be flattened, custom types for example cannot."
+                        ))
+            fv-flatten
+            fv-unflatten
+            )
+           ))
+
+;; MACRO!
+
+(define m-macro
+  (ref-entry "macro"
+             (list
+              (para (list "The form of a `macro` expression is: `(macro args body)`"
+                          ))
+              (code '((alt-txt (define defun (macro (name args body)
+                                                    `(define ,name (lambda ,args ,body))))
+                               "(define defun (macro (name args body)\n                    `(define ,name (lambda ,args ,body))))")
+                      (defun inc (x) (+ x 1))
+                      (inc 1)
+                      ))
+              end)))
+
+(define macros
+  (section 2 "Macros"
+           (list
+            (para (list "lispBM macros are created using the `macro` keyword. A macro"
+                        "is quite similar to [lambda](#lambda) in lispBM except that"
+                        "arguments are passed in unevaluated. Together with the code-splicing"
+                        "capabilities given by [quasiquotation](#quasiquotation), this"
+                        "provides a powerful code-generation tool."
+                        ))
+            (para (list "A macro application is run through the interpreter two times. Once to"
+                        "evaluate the body of the macro on the unevaluated arguments. The result of"
+                        "this first application should be a program. The resulting program then goes"
+                        "through the interpreter again to compute final values."
+                        ))
+            (para (list "Given this repeated evaluation, macros are not a performance boost in"
+                        "lispbm.  Macros are really a feature that should be used to invent new"
+                        "programming abstractions in cases where it is ok to pay a little for"
+                        "the overhead for benefits in expressivity."
+                        ))
+            m-macro
+            )
+           ))
+
+(define cc
+  (section 2 "Call with current continutation"
+           (list
+            (para (list "\"Call with current continuation\" is called `call-cc` in LBM."
+                        "Call with current continuation saves the \"current continuation\", which encodes what"
+                        "the evaluator will do next, into an object in the language. This encoded"
+                        "continuation object behaves as a function taking one argument."
+                        ))
+            (para (list "The `call-cc` should be given a function, `f`, as the single argument. This"
+                        "function, `f`, should also take a single argument, the continuation."
+                        "At any point in the body of `f` the continuation can be applied to"
+                        "a value, in essense replacing the entire `call-cc` with that value. All side-effecting operations"
+                        "operations up until the application of the continuation will take effect."
+                        ))
+            (para (list "From within a `call-cc` application it is possible to bind the continuation to a global variable"
+                        "which will allow some pretty arbitrary control flow."
+                        ))
+            (para (list "The example below creates a macro for a `progn` facility that"
+                        "allows returning at an arbitrary point.\n"
+                        "```clj\n"
+                        "(define do (macro (body)\n"
+                        "                  `(call-cc (lambda (return) (progn ,@body)))))\n"
+                        "```\n"
+                        "The example using `do` below makes use of `print` which is not a"
+                        "built-in feature of lispBM. There are just to many different ways a programmer may"
+                        "want to implement `print` on an microcontroller. Use the lispBM extensions"
+                        "framework to implement your own version of `print`\n"
+                        "```clj\n"
+                        "(do ((print 10)\n"
+                        "     (return 't)\n"
+                        "     (print 20)))\n"
+                        "```\n"
+                        "In the example above only \"10\" will be printed."
+                        "Below is an example that conditionally returns.\n"
+                        "```clj\n"
+                        "(define f (lambda (x)\n"
+                        "            (do ((print \"hello world\")\n"
+                        "                 (if (= x 1)\n"
+                        "                     (return 't)\n"
+                        "                     nil)\n"
+                        "                 (print \"Gizmo!\")))))\n"
+                        "```\n"
+                        ))
+            )
+           ))
+
+;; Error handling
+
+(define error-handling
+  (section 2 "Error handling"
+           (list
+            (para (list "If an error occurs while evaluating a program, the process that runs"
+                        "that program is killed.  The result of the killed process is set to an"
+                        "error symbol indicating what went wrong."
+                        ))
+            (para (list "If the process was created using `spawn` (or equivalently, started by a"
+                        "issuing a command in the repl), the process dies and an error message"
+                        "is presented over the registered printing callback (dependent on how LispBM"
+                        "is integrated into your system). The `ctx_done_callback` is also called"
+                        "and performs other integration dependent tasks related to the shutting down"
+                        "of a process."
+                        ))
+            (para (list "If the process was created using `spawn-trap`, in addition to the"
+                        "above, a message is sent to the parent process (the process that"
+                        "executed the spawn-trap) containing information about the process that"
+                        "struck an error. See <a href=\"#spawn-trap\">spawn-trap</a>."
+                        "The parent process can now choose to restart the process that crashed"
+                        "or to take some other action."
+                        ))
+            (ref-entry "read_error"
+                       (list
+                        (para (list "The `read_error` symbol is returned if the reader cannot parse the input code."
+                                    "Read errors are most likely caused by syntactically incorrect input programs."
+                                    ))
+                        (bullet '("Check that all opening parenthesis are properly closed."))
+                        end))
+            (ref-entry "type_error"
+                       (list
+                        (para (list "The `type_error` symbol is returned by built-in functions or extensions"
+                                    "if the values passed in are of incompatible types."
+                                    ))
+                        end))
+            (ref-entry "eval_error"
+                       (list
+                        (para (list "The `eval_error` symbol is returned if evaluation could"
+                                    "not proceed to evaluate the expression. This could be because the"
+                                    "expression is malformed."
+                                    ))
+                        (para (list "Evaluation error happens on programs that may be syntactically correct"
+                                    "(LispBM has a very low bar for what is considered syntactically correct),"
+                                    "but semantically nonsensical."
+                                    ))
+                        (bullet '("Check the program for mistakes."
+                                  "Are your parenthesis enclosing the correct subterms?"
+                                  "Check that you haven't written, for example, (1 + 2) where it should be (+ 1 2)."
+                                  ))
+                        end))
+            (ref-entry "out_of_memory"
+                       (list
+                        (para (list "The `out_of_memory` symbol is returned if the heap is full and running"
+                                    "the garbage collector was not able to free any memory up."
+                                    ))
+                        (para (list "The program you have written requires more memory."
+                                    ))
+                        (bullet '("Increase the heap size."
+                                  "Rewrite the application to use less memory."
+                                  ))
+                        end))
+            (ref-entry "fatal_error"
+                       (list
+                        (para (list "The `fatal_error` symbol is returned in cases where the"
+                                    "LispBM runtime system cannot proceed. Something is corrupt and it is"
+                                    "not safe to continue."
+                                    ))
+                        (bullet '("If this happens please send the program and the full error message to blog.joel.svensson@gmail.com. It will be much appreciated."
+                                  ))
+                        end))
+            (ref-entry "out_of_stack"
+                       (list
+                        (para (list "The `out_of_stack` symbol is returned if the evaluator"
+                                    "runs out of continuation stack (this is its runtime-stack). You are"
+                                    "most likely writing a non-tail-recursive function that is exhausting all"
+                                    "the resources."
+                                    ))
+                        (bullet '("Check your program for recursive functions that are not tail-recursive Rewrite these in tail-recursive form."
+                                  "If you spawned this process in a small stack. For example (spawn 10 prg), try to spawn it with a larger stack."
+                                  ))
+                        end))
+            (ref-entry "division_by_zero"
+                       (list
+                        (para (list "The `division_by_zero` symbol is returned when dividing by zero."
+                                    ))
+                        (bullet '("Check your math."
+                                  "Add 0-checks into your code at a strategic position."
+                                  ))
+                        end))
+            (ref-entry "variable_not_bound"
+                       (list
+                        (para (list "The `variable_not_bound` symbol is returned when evaluating a variable (symbol) that is neighter bound nor special (built-in function)."
+                                    ))
+                        end))
+            )
+           ))
+
+
 
 
 ;; Manual
@@ -1858,6 +2170,11 @@
                   arrays
                   pattern-matching
                   concurrency
+                  message-passing
+                  flat-values
+                  macros
+                  cc
+                  error-handling
                   info
                   ))
 

@@ -2887,8 +2887,10 @@ The  `list-of-local-bindings` are very similar to how `let` works, just that her
 
 ```clj
 (define sum 0)
-(loop ((a 0)) (<= a 10) (progn (setq sum (+ sum a))
-       (setq a (+ a 1))))
+(loop ((a 0))
+      (<= a 10)
+      (progn (setq sum (+ sum a))
+             (setq a (+ a 1))))
 sum
 
 ```
@@ -5309,6 +5311,996 @@ The form of the `[` and `]` syntax is `[ val1 ... valN ]`.
 </td>
 </tr>
 </table>
+
+
+
+---
+
+## Pattern-matching
+
+
+---
+
+
+### match
+
+Pattern-matching is expressed using match. The form of a match expression is `(match expr (pat1 expr1) ... (patN exprN))`. Pattern-matching compares the shape of an expression to each of the `pat1` ... `patN` and evaluates the expression `exprM` of the pattern that matches. In a pattern you can use a number of match-binders or wildcards: `_`, `?`, `?i`,`?u`,`?float`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(match 'orange
+       (green 1)
+       (orange 2)
+       (blue 3))
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### no_match
+
+The `no_match` symbol is returned from pattern matching if no case matches the expression. 
+
+   - Add a catch-all case to your pattern-matching. `_`.
+
+
+
+---
+
+
+---
+
+
+### _
+
+The underscore pattern matches anything. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(match 'fish
+       (horse 'its-a-horse)
+       (pig 'its-a-pig)
+       (_ 'i-dont-know))
+```
+
+
+</td>
+<td>
+
+```clj
+i-dont-know
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### ?
+
+The `?` pattern matches anything and binds that anything to variable. Using the `?` pattern is done as `(? var)` and the part of the expression that matches is bound to `var`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(match '(orange 17)
+       ((green (? n)) (+ n 1))
+       ((orange (? n)) (+ n 2))
+       ((blue (? n)) (+ n 3)))
+```
+
+
+</td>
+<td>
+
+```clj
+19
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### Match with guards
+
+Patterns used in a match expressions can be augmented with a boolean guard to further discern between cases. A pattern with a guard is of the form `(pattern-expr guard-expr expr)`. A pattern with a guard, matches only if the pattern structurally matches and if the guard-expr evaluates to true in the match environment. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define x 1)
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(match x
+       ((? y) (< y 0) 'less-than-zero)
+       ((? y) (> y 0) 'greater-than-zero)
+       ((? y) (= y 0) 'equal-to-zero))
+```
+
+
+</td>
+<td>
+
+```clj
+greater-than-zero
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+## Concurrency
+
+The concurrency support in LispBM is provided by the set of functions, `spawn`, `wait`, `yeild` and `atomic` described below.  Concurrency in LispBM is scheduled by a round-robin scheduler that splits the runtime system evaluator fairly (with caveats, below) between all running processes. 
+
+When a process is scheduled to run, made active, it is given a quota of evaluator "steps" to use up. The process then runs until that quota is exhausted or the process itself has signaled it wants to sleep by yielding or blocking (for example by waiting for a message using the message passing system). 
+
+A process can also request to not be "pre-empted" while executing a certain expression by invoking `atomic`. One should take care to make blocks of atomic code as small as possible as it disrupts the fairness of the scheduler. While executing inside of an atomic block the process has sole ownership of the shared global environment and can perform atomic read-modify-write sequences to global data. 
+
+
+---
+
+
+### spawn
+
+Use `spawn` to launch a concurrent process. Spawn takes a closure and arguments to pass to that closure as its arguments. The form of a spawn expression is `(spawn opt-name opt-stack-size closure arg1 ... argN)`. 
+
+Each process has a runtime-stack which is used for the evaluation of expressions within that process. The stack size needed by a process depends on  1. How deeply nested expressions evaluated by the process are.  2. Number of recursive calls (Only if a function is NOT tail-recursive).  3. The Number of arguments that functions called by the process take. 
+
+Having a stack that is too small will result in a `out_of_stack` error. 
+
+The default stack size is 256 words (1K Bytes) and should be more than enough for reasonable programs. Many processes will work perfectly fine with a lot less stack. You can find a good size by trial and error. 
+
+
+
+
+---
+
+
+---
+
+
+### spawn-trap
+
+Use `spawn-trap` to spawn a child process and enable trapping of exit conditions for that child. The form of a `spawn-trap` expression is `(spawn-trap opt-name opt-stack-size closure arg1 .. argN)`.  If the child process is terminated because of an error, a message is sent to the parent process of the form `(exit-error tid err-val)`. If the child process terminates successfully a message of the form `(exit-ok tid value)` is sent to the parent. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun thd nil (+ 1 2))
+(spawn-trap thd)
+(recv ((exit-error (? tid) (? e)) 'crash)
+      ((exit-ok (? tid) (? v)) 'ok))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+ok
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun thd nil (+ 1 kurt-russel))
+(spawn-trap thd)
+(recv ((exit-error (? tid) (? e)) 'crash)
+      ((exit-ok (? tid) (? v)) 'ok))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+crash
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### self
+
+Use `self` to obtain the thread-id of the thread in which `self` is evaluated. The form of a `self` expression is `(self)`. The thread id is of an integer type. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(self)
+```
+
+
+</td>
+<td>
+
+```clj
+636
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### wait
+
+Use `wait` to wait for a spawned process to finish. The argument to `wait` should be a process id. The `wait` blocks until the process with the given process id finishes. When the process with with the given id finishes, the wait function returns True. 
+
+Be careful to only wait for processes that actually exist and do finish. Otherwise you will wait forever. 
+
+
+
+
+---
+
+
+---
+
+
+### yield
+
+To put a process to sleep, call `yield`. The argument to `yield` is number indicating at least how many microseconds the process should sleep. 
+
+
+
+
+---
+
+
+---
+
+
+### atomic
+
+`atomic` can be used to execute a LispBM one or more expression without allowing the runtime system to switch process during that time. `atomic` is similar to progn with the addition of being uninterruptable. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(atomic (+ 1 2)
+        (+ 3 4)
+        (+ 4 5))
+```
+
+
+</td>
+<td>
+
+```clj
+9
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### exit-ok
+
+The `exit-ok` function terminates the thread in a "successful" way and returnes a result specified by the programmer. The form of an `exit-ok` expression is `(exit-ok value)`.  If the process that calls `exit-ok` was created using `spawn-trap` a message of the form `(exit-ok tid value)` is be sent to the parent of this process. 
+
+
+
+
+---
+
+
+---
+
+
+### exit-error
+
+The `exit-error` function terminates the thread with an error specified by the programmer.  The form of an `exit-error` expression is `(exit-error err_val)`. If the process that calls `exit-error` was created using `spawn-trap` a message of the form `(exit-error tid err_val)` is sent to the parent of this process. 
+
+
+
+
+---
+
+## Message-passing
+
+
+---
+
+
+### send
+
+Messages can be sent to a process by using `send`. The form of a `send` expression is `(send pid msg)`. The message, msg, can be any LispBM value. 
+
+
+
+
+---
+
+
+---
+
+
+### recv
+
+To receive a message use the `recv` command. A process will block on a `recv` until there is a matching message in the mailbox. The `recv` syntax is very similar to [match](#match). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(send (self) 28)
+(recv ((? n) (+ n 1)))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+29
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### recv-to
+
+Like [recv](#recv), `recv-to` is used to receive messages but `recv-to` takes an extra timeout argument. 
+
+The form of an `recv-to` expression is ```clj (recv-to timeout-secs                 (pattern1 exp1)                 ...                 (patternN expN)) ``` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(send (self) 28)
+(recv-to 0.100000f32
+         ((? n) (+ n 1))
+         (timeout 'no-message))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+29
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+---
+
+
+### set-mailbox-size
+
+Change the size of the mailbox in the current process. Standard mailbox size is 10 elements. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(set-mailbox-size 100)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(set-mailbox-size 5000000)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+## Flat values
+
+Lisp values can be "flattened" into an array representation. The flat representation of a value contains all information needed so that the value can be recreated, "unflattened", in another instance of the runtime system (for example running on another microcontroller). 
+
+Not all values can be flattened, custom types for example cannot. 
+
+
+---
+
+
+### flatten
+
+The `flatten` function takes a value as single argument and returns the flat representation if successful. A flatten expression has the form `(flatten expr)`. Note that `expr` is evaluated before the flattening. A flat value can be turned back into a normal lisp value applying `unflatten` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define a (flatten (+ 1 2 3)))
+```
+
+
+</td>
+<td>
+
+```clj
+
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(unflatten a)
+```
+
+
+</td>
+<td>
+
+```clj
+6
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define a (flatten '(+ 1 2 3)))
+```
+
+
+</td>
+<td>
+
+```clj
++
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(unflatten a)
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2 3)
+```
+
+
+</td>
+</tr>
+</table>
+A flat value is a byte-array containing an encoding of the value. 
+
+
+
+
+---
+
+
+---
+
+
+### unflatten
+
+`unflatten` converts a flat value back into a lisp value. Te form of an `unflatten` expression is `(unflatten flat-value)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define a (flatten (+ 1 2 3)))
+```
+
+
+</td>
+<td>
+
+```clj
+
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(unflatten a)
+```
+
+
+</td>
+<td>
+
+```clj
+6
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define a (flatten '(+ 1 2 3)))
+```
+
+
+</td>
+<td>
+
+```clj
++
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(unflatten a)
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+## Macros
+
+lispBM macros are created using the `macro` keyword. A macro is quite similar to [lambda](#lambda) in lispBM except that arguments are passed in unevaluated. Together with the code-splicing capabilities given by [quasiquotation](#quasiquotation), this provides a powerful code-generation tool. 
+
+A macro application is run through the interpreter two times. Once to evaluate the body of the macro on the unevaluated arguments. The result of this first application should be a program. The resulting program then goes through the interpreter again to compute final values. 
+
+Given this repeated evaluation, macros are not a performance boost in lispbm.  Macros are really a feature that should be used to invent new programming abstractions in cases where it is ok to pay a little for the overhead for benefits in expressivity. 
+
+
+---
+
+
+### macro
+
+The form of a `macro` expression is: `(macro args body)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define defun (macro (name args body)
+                    `(define ,name (lambda ,args ,body))))
+```
+
+
+</td>
+<td>
+
+```clj
+(macro (name args body) (append (quote (define)) (list name) (list (append (quote (lambda)) (list args) (list body)))))
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun inc (x) (+ x 1))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x) (+ x 1) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(inc 1)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+## Call with current continutation
+
+"Call with current continuation" is called `call-cc` in LBM. Call with current continuation saves the "current continuation", which encodes what the evaluator will do next, into an object in the language. This encoded continuation object behaves as a function taking one argument. 
+
+The `call-cc` should be given a function, `f`, as the single argument. This function, `f`, should also take a single argument, the continuation. At any point in the body of `f` the continuation can be applied to a value, in essense replacing the entire `call-cc` with that value. All side-effecting operations operations up until the application of the continuation will take effect. 
+
+From within a `call-cc` application it is possible to bind the continuation to a global variable which will allow some pretty arbitrary control flow. 
+
+The example below creates a macro for a `progn` facility that allows returning at an arbitrary point.
+ ```clj
+ (define do (macro (body)
+                   `(call-cc (lambda (return) (progn ,@body)))))
+ ```
+ The example using `do` below makes use of `print` which is not a built-in feature of lispBM. There are just to many different ways a programmer may want to implement `print` on an microcontroller. Use the lispBM extensions framework to implement your own version of `print`
+ ```clj
+ (do ((print 10)
+      (return 't)
+      (print 20)))
+ ```
+ In the example above only "10" will be printed. Below is an example that conditionally returns.
+ ```clj
+ (define f (lambda (x)
+             (do ((print "hello world")
+                  (if (= x 1)
+                      (return 't)
+                      nil)
+                  (print "Gizmo!")))))
+ ```
+ 
+
+## Error handling
+
+If an error occurs while evaluating a program, the process that runs that program is killed.  The result of the killed process is set to an error symbol indicating what went wrong. 
+
+If the process was created using `spawn` (or equivalently, started by a issuing a command in the repl), the process dies and an error message is presented over the registered printing callback (dependent on how LispBM is integrated into your system). The `ctx_done_callback` is also called and performs other integration dependent tasks related to the shutting down of a process. 
+
+If the process was created using `spawn-trap`, in addition to the above, a message is sent to the parent process (the process that executed the spawn-trap) containing information about the process that struck an error. See <a href="#spawn-trap">spawn-trap</a>. The parent process can now choose to restart the process that crashed or to take some other action. 
+
+
+---
+
+
+### read_error
+
+The `read_error` symbol is returned if the reader cannot parse the input code. Read errors are most likely caused by syntactically incorrect input programs. 
+
+   - Check that all opening parenthesis are properly closed.
+
+
+
+---
+
+
+---
+
+
+### type_error
+
+The `type_error` symbol is returned by built-in functions or extensions if the values passed in are of incompatible types. 
+
+
+
+
+---
+
+
+---
+
+
+### eval_error
+
+The `eval_error` symbol is returned if evaluation could not proceed to evaluate the expression. This could be because the expression is malformed. 
+
+Evaluation error happens on programs that may be syntactically correct (LispBM has a very low bar for what is considered syntactically correct), but semantically nonsensical. 
+
+   - Check the program for mistakes.
+   - Are your parenthesis enclosing the correct subterms?
+   - Check that you haven't written, for example, (1 + 2) where it should be (+ 1 2).
+
+
+
+---
+
+
+---
+
+
+### out_of_memory
+
+The `out_of_memory` symbol is returned if the heap is full and running the garbage collector was not able to free any memory up. 
+
+The program you have written requires more memory. 
+
+   - Increase the heap size.
+   - Rewrite the application to use less memory.
+
+
+
+---
+
+
+---
+
+
+### fatal_error
+
+The `fatal_error` symbol is returned in cases where the LispBM runtime system cannot proceed. Something is corrupt and it is not safe to continue. 
+
+   - If this happens please send the program and the full error message to blog.joel.svensson@gmail.com. It will be much appreciated.
+
+
+
+---
+
+
+---
+
+
+### out_of_stack
+
+The `out_of_stack` symbol is returned if the evaluator runs out of continuation stack (this is its runtime-stack). You are most likely writing a non-tail-recursive function that is exhausting all the resources. 
+
+   - Check your program for recursive functions that are not tail-recursive Rewrite these in tail-recursive form.
+   - If you spawned this process in a small stack. For example (spawn 10 prg), try to spawn it with a larger stack.
+
+
+
+---
+
+
+---
+
+
+### division_by_zero
+
+The `division_by_zero` symbol is returned when dividing by zero. 
+
+   - Check your math.
+   - Add 0-checks into your code at a strategic position.
+
+
+
+---
+
+
+---
+
+
+### variable_not_bound
+
+The `variable_not_bound` symbol is returned when evaluating a variable (symbol) that is neighter bound nor special (built-in function). 
+
 
 
 
