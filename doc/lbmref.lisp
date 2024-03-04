@@ -1494,10 +1494,117 @@
 
 ;; Arrays Byte buffers
 
+(define arrays-bufcreate
+  (ref-entry "bufcreate"
+             (list
+              (para (list "Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate size-expr)`"
+                          ))
+              (code '((define data (bufcreate 10))
+                      ))
+              end)))
+
+(define arrays-buflen
+  (ref-entry "buflen"
+             (list
+              (para (list "Returns the size of a buffer in number of bytes. The form"
+                          "of an `buflen` expression is `(buflen buf-expr)` where"
+                          "buf-expr has to evaluate into a buffer."
+                          ))
+              (code '((buflen data)
+                      ))
+              end)))
+
+(define arrays-bufget
+  (ref-entry "bufget-[X]"
+             (list
+              (para (list "Read a value from a buffer. The contents of a buffer can be read"
+                          "as a sized integer or unsigned value using as many bytes from the buffer"
+                          "as the X portion of the function name implies."
+                          "The form of a bufget expression is `(bufget-[X] buf-expr ix-expr)` where"
+                          "`ix-expr` evaluates to a number indicating the byte position to start"           
+                          "reading from."
+                          ))
+              (code '((define data [0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF])
+                      (bufget-i8 data 0)
+                      (bufget-i16 data 0)
+                      (bufget-i32 data 0)
+                      (bufget-u8 data 0)
+                      (bufget-u16 data 0)
+                      (bufget-u32 data 0)
+                      ))
+              end)))
+                          
+(define arrays-bufset
+  (ref-entry "bufset-[X]"
+             (list
+              (para (list "The `bufset` functions performs a destructive updates to a buffer."
+                          "The form of a `bufset` expression is `(bufset-[X] buf-expr ix-expr val-expr)`"
+                          "where `ix-expr` evaluates to a number indicating where in the buffer to"
+                          "start writing and `val-expr` is the value to write."
+                          ))
+              (code '((define data [0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF])
+                      (bufset-i8 data 0 10)
+                      data
+                      (bufset-i16 data 0 20)
+                      data
+                      (bufset-i32 data 0 -1)
+                      data
+                      (bufset-u8 data 0 10)
+                      data
+                      (bufset-u16 data 0 20)
+                      data
+                      (bufset-u32 data 0 0xFFFFFFFFu32)
+                      data
+                      ))
+              end)))
+
+(define arrays-bufclear
+  (ref-entry "bufclear"
+             (list
+              (para (list "To clear a byte array the function bufclear can be used `(bufclear arr optByte optStart optLen)`"
+                          "Where arr is the byte array to clear, optByte is the optional argument"
+                          "of what to clear with (default 0), optStart is the optional argument"
+                          "of which position to start clearing (default 0) and optLen is the"
+                          "optional argument of how many bytes to clear after start (default the"
+                          "entire array). Example:"
+                          ))
+              (code '((define data [0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF])
+                      (bufclear data)
+                      data
+                      (bufclear data 0xff)
+                      data
+                      (bufclear data 1 5)
+                      data
+                      (bufclear data 1 5 8)
+                      data
+                      (bufclear data 0xAA 1 5)
+                      data
+                      ))
+              end)))
+
+(define arrays-literal
+  (ref-entry "Byte-array literal syntax"
+             (list
+              (para (list "Byte-array (buffer) literals can be created using the `[` and `]` syntax to enclose"
+                          "values to initialize the array with. The `[` and `]` syntax is complete"
+                          "resolved in the parser and thus cannot contain arbitrary lisp terms."
+                          "the values listed between the `[` and the `]` must be literals!"
+                          ))
+              (para (list "The form of the `[` and `]` syntax is `[ val1 ... valN ]`."
+                          ))
+              (code '([1 2 3 4 5 6 7 8 9 10]
+                      ))
+              end)))
+
 (define arrays
   (section 2 "Arrays (byte buffers)"
            (list
-            
+            arrays-bufcreate
+            arrays-buflen
+            arrays-bufget
+            arrays-bufset
+            arrays-bufclear
+            arrays-literal
             )))
 
 
