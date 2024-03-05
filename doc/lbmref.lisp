@@ -182,7 +182,6 @@
 
 (defun ref-entry (str strs)
   (list
-   'hline
    'newline
    (section 3 str strs)
    'newline
@@ -573,7 +572,8 @@
 
 (define arithmetic
   (section 2 "Arithmetic"
-           (list arith-add
+           (list 'hline
+                 arith-add
                  arith-sub
                  arith-mul
                  arith-div
@@ -701,7 +701,8 @@
 
 (define comparisons
   (section 2 "Comparisons"
-           (list comp-eq
+           (list 'hline
+                 comp-eq
                  comp-not-eq
                  comp-=
                  comp->
@@ -758,7 +759,8 @@
 
 (define boolean
   (section 2 "Boolean operators"
-           (list bool-and
+           (list 'hline
+                 bool-and
                  bool-or
                  bool-not
                  )
@@ -835,7 +837,8 @@
 
 (define bitwise
   (section 2 "Bit level operations"
-           (list bit-shl
+           (list 'hline
+                 bit-shl
                  bit-shr
                  bit-and
                  bit-or
@@ -896,7 +899,8 @@
 
 (define nil-and-t
   (section 2 "nil and t, true and false"
-           (list value-nil
+           (list 'hline
+                 value-nil
                  value-t
                  value-false
                  value-true
@@ -970,6 +974,7 @@
                         "how you look at it. The tools for changing view, or interpretation,"
                         "are the quotation and quasiquotation operations."
                         ))
+                 'hline
                  op-quote
                  op-quasi
                  op-comma
@@ -982,10 +987,14 @@
   (ref-entry "eval"
              (list
               (para (list "Evaluate data as an expression. The data must represent a valid expression."
+                          "The form of an `eval` expression is `(eval expr)`."
+                          "An optional environment can be passed in as the first argument:"
+                          "`(eval env-expr expr)`."
                           ))
 
               (code '((eval (list + 1 2))
-                      (alt-txt (eval '(+ 1 2)) "(eval '(+ 1 2))")
+                      (eval '(+ 1 2))
+                      (eval '( (a . 100) ) '(+ a 1))
                       (alt-txt (eval `(+ 1 ,@(range 2 5))) "(eval `(+ 1 ,@(range 2 5)))")
                       ))
               end)))
@@ -994,9 +1003,15 @@
   (ref-entry "eval-program"
              (list
               (para (list "Evaluate a list of data where each element represents an expression."
+                          "The form of an `eval-program` expression is `(eval-program program-expr)`."
+                          "A `program-expr` is a list of expressions where each element in the list"
+                          "can be evaluated by `eval`."
+                          ))
+              (para (list "An optional environment can be passed in as the first arguement:"
+                          "`(eval-program env-expr program-expr)`."
                           ))
               (code '((eval-program (list (list + 1 2) (list + 3 4)))
-                      (alt-txt (eval-program '( (+ 1 2) (+ 3 4))) "(eval-program '( (+ 1 2) (+ 3 4)))")
+                      (eval-program '( (+ 1 2) (+ 3 4)))
                       (eval-program (list (list define 'a 10) (list + 'a 1)))
                       (alt-txt (eval-program '( (define a 10) (+ a 1))) "(eval-program '( (define a 10) (+ a 1)))")
                       ))
@@ -1064,15 +1079,30 @@
                       ))
               end)))
 
+(define built-in-gc
+  (ref-entry "gc"
+             (list
+              (para (list "The `gc` function runs the garbage collector so that it can reclaim"
+                          "values from the heap and LBM memory that are nolonger needed."
+                          ))
+              (para (list "**Note** that one should not need to run this function. GC is run"
+                          "automatically when needed."
+                          ))
+              (code '((gc)
+                      ))
+              end)))
+
 (define built-ins
   (section 2 "Built-in operations"
-           (list built-in-eval
+           (list 'hline
+                 built-in-eval
                  built-in-eval-program
                  built-in-type-of
                  built-in-sym2str
                  built-in-str2sym
                  built-in-sym2u
                  built-in-u2sym
+                 built-in-gc
                  )))
 
 ;; Special forms
@@ -1372,7 +1402,8 @@
                         "a special form may choose to evaluate or not, freely, from its"
                         "list of arguments."
                         ))
-            (list special-form-if
+            (list 'hline
+                  special-form-if
                   special-form-cond
                   special-form-lambda
                   special-form-closure
@@ -1842,14 +1873,14 @@
 
 (define arrays
   (section 2 "Arrays (byte buffers)"
-           (list
-            arrays-bufcreate
-            arrays-buflen
-            arrays-bufget
-            arrays-bufset
-            arrays-bufclear
-            arrays-literal
-            )))
+           (list 'hline
+                 arrays-bufcreate
+                 arrays-buflen
+                 arrays-bufget
+                 arrays-bufset
+                 arrays-bufclear
+                 arrays-literal
+                 )))
 
 ;; Pattern matching
 
@@ -1914,7 +1945,8 @@
 
 (define pattern-matching
   (section 2 "Pattern-matching"
-           (list pm-match
+           (list 'hline
+                 pm-match
                  pm-no_match
                  pm-_
                  pm-?
@@ -2058,6 +2090,7 @@
                         "has sole ownership of the shared global environment and can perform"
                         "atomic read-modify-write sequences to global data."
                         ))
+            'hline
             conc-spawn
             conc-spawn-trap
             conc-self
@@ -2437,6 +2470,7 @@
                         "or as part of the reading procedure. To move things automatically to flash during"
                         "reading, there are `@`directives."
                         ))
+            'hline
             const-symbol-strings
             const-start
             const-end
@@ -2554,28 +2588,30 @@
   (list 
    (section 1 "LispBM Reference Manual"
             (list ch-symbols
-                  ch-numbers                 
-                  arithmetic
-                  comparisons
-                  boolean
-                  bitwise
-                  nil-and-t
-                  quotes
-                  built-ins
-                  special-forms
-                  lists
-                  assoc-lists
-                  arrays
-                  pattern-matching
-                  concurrency
-                  message-passing
-                  flat-values
-                  macros
-                  cc
-                  error-handling
-                  flash
-                  type-conv
-                  info
+                  ch-numbers
+                  (section 1 "Reference"
+                           (list arithmetic
+                                 comparisons
+                                 boolean
+                                 bitwise
+                                 nil-and-t
+                                 quotes
+                                 built-ins
+                                 special-forms
+                                 lists
+                                 assoc-lists
+                                 arrays
+                                 pattern-matching
+                                 concurrency
+                                 message-passing
+                                 flat-values
+                                 macros
+                                 cc
+                                 error-handling
+                                 flash
+                                 type-conv
+                                 info
+                                 ))
                   )
             )
    )
@@ -2585,7 +2621,13 @@
 
 
 (defun render-manual ()
-  (let ((h (fopen "test.md" "w"))
+  (let ((h (fopen "lbmref.md" "w"))
         (r (lambda (s) (fwrite-str h s))))
-    (render r manual)))
+    {
+    (var t0 (systime))
+    (render r manual)
+    (print "Reference manual was generated in " (secs-since t0) " seconds")     
+    }
+    )
+  )
 
