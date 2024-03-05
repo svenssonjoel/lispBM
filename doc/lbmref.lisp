@@ -2575,6 +2575,13 @@
                         end))
             )))
 
+(define evaluation-rules
+  (section 2 "Evaluation rules"
+           (list
+            (para (list "hello"
+                        ))
+            ))
+  )
 
 ;; Manual
 
@@ -2589,6 +2596,7 @@
    (section 1 "LispBM Reference Manual"
             (list ch-symbols
                   ch-numbers
+;                  evaluation-rules
                   (section 1 "Reference"
                            (list arithmetic
                                  comparisons
