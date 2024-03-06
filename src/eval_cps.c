@@ -91,7 +91,8 @@ static jmp_buf critical_error_jmp_buf;
 #define LOOP_CONDITION        CONTINUATION(42)
 #define MERGE_REST            CONTINUATION(43)
 #define MERGE_LAYER           CONTINUATION(44)
-#define NUM_CONTINUATIONS     45
+#define CLOSURE_ARGS_REST     CONTINUATION(45)
+#define NUM_CONTINUATIONS     46
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -2727,6 +2728,21 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   error_ctx(ENC_SYM_TERROR);
 }
 
+static void apply_rest_args(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) args;
+  (void) nargs;
+
+  lbm_stack_drop(&ctx->K, 1);
+
+  lbm_value res;
+  if (lbm_env_lookup_b(&res, ENC_SYM_REST_ARGS, ctx->curr_env)) {
+    ctx->r = res;
+  } else {
+    ctx->r = ENC_SYM_NIL;
+  }
+  ctx->app_cont = true;
+}
+
 /***************************************************/
 /* Application lookup table                        */
 
@@ -2754,6 +2770,7 @@ static const apply_fun fun_table[] =
    apply_sleep,
    apply_merge,
    apply_sort,
+   apply_rest_args,
   };
 
 /***************************************************/
@@ -2818,6 +2835,9 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_value car_params, cdr_params;
   get_car_and_cdr(params, &car_params, &cdr_params);
 
+  bool a_nil = args == ENC_SYM_NIL;
+  bool p_nil = cdr_params == ENC_SYM_NIL;
+
   if (lbm_heap_num_free() < 2) {
     gc();
     if (lbm_heap_num_free() < 2) {
@@ -2838,9 +2858,6 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   heap[cell1_ix].cdr = clo_env;
   clo_env = cell1;
 
-  bool a_nil = args == ENC_SYM_NIL;
-  bool p_nil = cdr_params == ENC_SYM_NIL;
-
   if (!a_nil && !p_nil) {
     lbm_value car_args, cdr_args;
     get_car_and_cdr(args, &car_args, &cdr_args);
@@ -2849,6 +2866,31 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     sptr[4] = cdr_args;
     stack_push(&ctx->K, CLOSURE_ARGS);
     ctx->curr_exp = car_args;
+    ctx->curr_env = arg_env;
+  } else if (p_nil && !a_nil) {
+
+    if (lbm_heap_num_free() < 2) {
+      gc();
+      if (lbm_heap_num_free() < 2) {
+        error_ctx(ENC_SYM_MERROR);
+      }
+    }
+    lbm_value rest0 = lbm_heap_state.freelist;
+    lbm_uint rest0_ix = lbm_dec_ptr(rest0);
+    lbm_value rest1 = heap[rest0_ix].cdr;
+    lbm_uint rest1_ix = lbm_dec_ptr(rest1);
+    lbm_heap_state.freelist = heap[rest1_ix].cdr;
+    lbm_heap_state.num_alloc += 2;
+    heap[rest0_ix].car = ENC_SYM_REST_ARGS;
+    heap[rest0_ix].cdr = ENC_SYM_NIL;
+    heap[rest1_ix].car = rest0;
+    heap[rest1_ix].cdr = clo_env;
+    clo_env = rest1;
+    sptr[2] = clo_env;
+    sptr[3] = get_cdr(args);
+    sptr[4] = rest0; // last element of rest_args so far
+    stack_push(&ctx->K, CLOSURE_ARGS_REST);
+    ctx->curr_exp = get_car(args);
     ctx->curr_env = arg_env;
   } else if (a_nil && p_nil) {
     // Arguments and parameters match up in number
@@ -2861,6 +2903,43 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   }
 }
 
+
+static void cont_closure_args_rest(eval_context_t *ctx) {
+  lbm_uint* sptr = get_stack_ptr(ctx, 5);
+  lbm_value arg_env = (lbm_value)sptr[0];
+  lbm_value exp     = (lbm_value)sptr[1];
+  lbm_value clo_env = (lbm_value)sptr[2];
+  lbm_value args    = (lbm_value)sptr[3];
+  lbm_value last    = (lbm_value)sptr[4];
+  lbm_cons_t* heap = lbm_heap_state.heap;
+
+  lbm_value binding = lbm_heap_state.freelist;
+  if (binding == ENC_SYM_NIL) {
+    gc();
+    binding = lbm_heap_state.freelist;
+    if (binding == ENC_SYM_NIL) error_ctx(ENC_SYM_MERROR);
+  }
+  lbm_uint binding_ix = lbm_dec_ptr(binding);
+  lbm_heap_state.freelist = heap[binding_ix].cdr;
+  lbm_heap_state.num_alloc += 1;
+  heap[binding_ix].car = ctx->r;
+  heap[binding_ix].cdr = ENC_SYM_NIL;
+
+
+  lbm_set_cdr(last, binding);
+  sptr[4] = binding;
+
+  if (args == ENC_SYM_NIL) {
+    lbm_stack_drop(&ctx->K, 5);
+    ctx->curr_env = clo_env;
+    ctx->curr_exp = exp;
+  } else {
+    stack_push(&ctx->K, CLOSURE_ARGS_REST);
+    sptr[3] = get_cdr(args);
+    ctx->curr_exp = get_car(args);
+    ctx->curr_env = arg_env;
+  }
+}
 
 static void cont_application_args(eval_context_t *ctx) {
   lbm_uint *sptr = get_stack_ptr(ctx, 3);
@@ -2991,6 +3070,7 @@ static void cont_match(eval_context_t *ctx) {
 
   if (lbm_is_symbol_nil(patterns)) {
     // no more patterns
+    lbm_stack_drop(&ctx->K, 2);
     ctx->r = ENC_SYM_NO_MATCH;
     ctx->app_cont = true;
   } else if (lbm_is_cons(patterns)) {
@@ -4543,6 +4623,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_loop_condition,
     cont_merge_rest,
     cont_merge_layer,
+    cont_closure_args_rest,
   };
 
 /*********************************************************/

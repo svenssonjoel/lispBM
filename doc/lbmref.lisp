@@ -167,7 +167,7 @@
          ( (s-exp-graph (? img-name) (? code))
            {
            (render-dot img-name code)
-           (rend (str-merge "![Graph representaion of s-expression](./images" img-name ".png)"))
+           (rend (str-merge "![Graph representaion of s-expression](./images/" img-name ".png)\n\n"))
            })
          ( _ (render rend ss))
          ))
@@ -572,12 +572,8 @@
 (define ch-syntax-semantics
   (section 2 "Syntax and semantics"
            (list
-            (para (list 
-                  ))
-            )
-           )
-  )
-
+            ; (s-exp-graph "list" '(list 1 2 3 4 5)))
+           )))
 
 
 

@@ -404,8 +404,6 @@ In general, on 32Bit platforms, the cost of operations on numerical types that a
 
 ## Syntax and semantics
 
-
-
 # Reference
 
 ## Arithmetic
