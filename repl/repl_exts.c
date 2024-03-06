@@ -1,6 +1,6 @@
 /*
   Copyright 2024 Joel Svensson  svenssonjoel@yahoo.se
-            2022 Benjamin Vedder benjamin@vedder.se      
+            2022 Benjamin Vedder benjamin@vedder.se
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,7 +18,9 @@
 
 #include "repl_exts.h"
 
+#include <unistd.h>
 #include <stdio.h>
+#include <dirent.h>
 #include <sys/time.h>
 
 // Macro expanders
@@ -71,7 +73,7 @@ static lbm_value ext_me_defunret(lbm_value *argsi, lbm_uint argn) {
   lbm_value body = argsi[2];
 
   // (def name (lambda args (call-cc (lambda (return) body))))
- 
+
   return make_list(3,
                    lbm_enc_sym(SYM_DEFINE),
                    name,
@@ -457,6 +459,29 @@ static lbm_value ext_fwrite_str(lbm_value *args, lbm_uint argn) {
 
 }
 
+static bool all_arrays(lbm_value *args, lbm_uint argn) {
+  bool r = true;
+  for (uint32_t i = 0; i < argn; i ++) {
+    r = r && lbm_is_array_r(args[i]);
+  }
+  return r;
+}
+
+static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+
+  if (all_arrays(args, argn) && argn >= 1) {
+    char **strs = malloc(argn * sizeof(char*) + 1);
+    for (uint32_t i = 0; i < argn; i ++) {
+      strs[i] = lbm_dec_str(args[i]);
+    }
+    strs[argn] = NULL;
+    execvp(strs[0], &strs[1]);
+  }
+  return res;
+}
+
 
 // ------------------------------------------------------------
 // Init
@@ -476,6 +501,7 @@ int init_exts(void) {
     return 0;
   }
 
+  lbm_add_extension("exec", ext_exec);
   lbm_add_extension("fopen", ext_fopen);
   lbm_add_extension("fwrite", ext_fwrite);
   lbm_add_extension("fwrite-str", ext_fwrite_str);
@@ -486,11 +512,11 @@ int init_exts(void) {
   // Math
   lbm_add_extension("rand", ext_rand);
   lbm_add_extension("rand-max", ext_rand_max);
-  
+
   // Bit operations
   lbm_add_extension("bits-enc-int", ext_bits_enc_int);
   lbm_add_extension("bits-dec-int", ext_bits_dec_int);
-  
+
   // Macro expanders
   lbm_add_extension("me-defun", ext_me_defun);
   lbm_add_extension("me-defunret", ext_me_defunret);
@@ -498,7 +524,7 @@ int init_exts(void) {
   lbm_add_extension("me-loopwhile", ext_me_loopwhile);
   lbm_add_extension("me-looprange", ext_me_looprange);
   lbm_add_extension("me-loopforeach", ext_me_loopforeach);
-  
+
   return 1;
 }
 

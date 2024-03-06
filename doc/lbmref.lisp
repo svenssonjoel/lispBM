@@ -225,6 +225,38 @@
               )))
 
 
+;; Dot generation
+
+(defun dot-it ( i x)
+  (match x
+         ( ((? x) . (? xs))
+           (let ( (node (str-merge "cons" (to-str i)))
+                  ((c1 str1) (dot-it (shl i 1) x))
+                  ((c2 str2) (dot-it (+ 1 (shl i 1)) xs))
+                  )
+             (list node (str-merge "   " node " [label=\"cons\"]\n"
+                                   str1 "\n"
+                                   str2 "\n"
+                                   "   " node " -> " c1 ";\n"
+                                   "   " node " -> " c2 ";\n"
+                                   )
+                   )
+             )
+           )
+         ( (? x)
+           (let ( (node (str-merge "atom" (to-str i))) )
+             (list node (str-merge "   " node " [label=\"" (to-str x)  "\"]"))
+             )
+          )
+         )
+  )
+
+(defun to-dot (x)
+  (str-merge "digraph SExpression {\n"
+             "   node [shape=ellipse, fontsize=12];\n"
+             "   edge [fontsize=10];\n"
+             (car (cdr (dot-it 1u64 x))) "\n}"))
+
 
 (def ch-symbols
      (section 2 "About Symbols"
