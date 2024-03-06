@@ -402,6 +402,10 @@ The cost of `f32` operations compared to `u32` on the STM32F4 shows little diffe
 In general, on 32Bit platforms, the cost of operations on numerical types that are 32Bit or less are about equal in cost. The costs presented here was created by timing a large number of 2 argument additions. Do not see these measurements as the "truth carved in stone", LBM performance keeps changing over time as we make improvements, but use them as a rough guiding principle.  If anything can be taken away from this it is to stay away from 64Bit value operations in your tightest and most time critical loops. 
 
 
+## Syntax and semantics
+
+
+
 # Reference
 
 ## Arithmetic
@@ -3787,17 +3791,11 @@ Parses and evaluates a program incrementally. `read-eval-program` reads a top-le
 
 Lists are built using cons cells. A cons cell is represented by the lbm_cons_t struct in the implementation and consists of two fields named the `car` and the `cdr`. There is no special meaning associated with the `car` and the `cdr` each can hold a lbm_value. See <a href="#cons">cons</a> and <a href="#list">list</a> for two ways to create structures of cons cells on the heap. 
 
-![cons cell](images/cons_cell.png "cons cell") 
+![cons cell](images/cons_cell.png "cons cell")A cons cell can be used to store a pair of values. You create a pair by sticking a value in both the car and cdr field of a cons cell using either `'(1 . 2)` or `(cons 1 2)`. 
 
-A cons cell can be used to store a pair of values. You create a pair by sticking a value in both the car and cdr field of a cons cell using either `'(1 . 2)` or `(cons 1 2)`. 
+![pair](images/pair.png "pair")A list is a number of cons cells linked together where the car fields hold values and the cdr fields hold pointers (the last cdr field is nil). The list below can be created either as `'(1 2 3)` or as `(list 1 2 3)`. 
 
-![pair](images/pair.png "pair") 
-
-A list is a number of cons cells linked together where the car fields hold values and the cdr fields hold pointers (the last cdr field is nil). The list below can be created either as `'(1 2 3)` or as `(list 1 2 3)`. 
-
-![list](images/list.png "list") 
-
-
+![list](images/list.png "list")
 ### car
 
 Use `car` to access the `car` field of a cons cell. A `car` expression has the form `(car expr)`. 

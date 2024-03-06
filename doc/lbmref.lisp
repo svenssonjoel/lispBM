@@ -158,6 +158,17 @@
            (rend (str-merge "**" s "**")))
          ( (program (? c)) (render-program-table rend c))
          ( (code (? c)) (render-code-table rend c))
+         ( (image (? alt) (? url))
+           (rend (str-merge "![" alt "](" url " \"" alt "\")")))
+         ( (image-pair (? cap0) (? txt0) (? fig0) (? cap1) (? txt1) (? fig1))
+           (rend (str-merge cap0 " | " cap1 "\n"
+                            ":---:|:---:|\n"
+                            "![" txt0 "](" fig0 ") | ![" txt1 "](" fig1 ")\n\n")))
+         ( (s-exp-graph (? img-name) (? code))
+           {
+           (render-dot img-name code)
+           (rend (str-merge "![Graph representaion of s-expression](./images" img-name ".png)"))
+           })
          ( _ (render rend ss))
          ))
 
@@ -216,14 +227,13 @@
   (verb (map (lambda (x) (str-merge "   - " x "\n")) ss)))
 
 (defun image (alt url)
-  (para (list (str-merge "![" alt "](" url " \"" alt "\")"))))
+  (list 'image alt url))
 
 (defun image-pair (cap0 txt0 fig0 cap1 txt1 fig1)
-  (verb (list (str-merge cap0 " | " cap1 "\n")
-              (str-merge ":---:|:---:|\n")
-              (str-merge "![" txt0 "](" fig0 ") | ![" txt1 "](" fig1 ")\n\n")
-              )))
+  (list 'image-pair cap0 txt0 fig0 cap1 txt1 fig1))
 
+(defun s-exp-graph (img-name code)
+  (list 's-exp-graph code))
 
 ;; Dot generation
 
@@ -257,6 +267,19 @@
              "   edge [fontsize=10];\n"
              (car (cdr (dot-it 1u64 x))) "\n}"))
 
+
+(defun render-dot (filename code)
+  (let ( (dot-str (to-dot code))
+         (name-dot (str-merge "./images/" filename ".dot"))
+         (name-png (str-merge "./images/" filename ".png"))
+         (fp-dot (fopen name-dot "w"))
+         (fp-png (fopen name-png "w"))
+         )
+    {
+    (fwrite fp-dot dot-str)
+    (unsafe-call-system (str-merge "dot " name-dot " -Tpng > " name-png))
+    }
+    ))
 
 (def ch-symbols
      (section 2 "About Symbols"
@@ -543,6 +566,20 @@
             numerical-cost
             ))
   )
+
+
+
+(define ch-syntax-semantics
+  (section 2 "Syntax and semantics"
+           (list
+            (para (list 
+                  ))
+            )
+           )
+  )
+
+
+
 
 ;; Arithmetic section
 
@@ -2607,14 +2644,6 @@
                         end))
             )))
 
-(define evaluation-rules
-  (section 2 "Evaluation rules"
-           (list
-            (para (list "hello"
-                        ))
-            ))
-  )
-
 ;; Manual
 
 (define info
@@ -2628,7 +2657,7 @@
    (section 1 "LispBM Reference Manual"
             (list ch-symbols
                   ch-numbers
-;                  evaluation-rules
+                  ch-syntax-semantics
                   (section 1 "Reference"
                            (list arithmetic
                                  comparisons

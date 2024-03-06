@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 
 // Macro expanders
 
@@ -470,18 +471,41 @@ static bool all_arrays(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = ENC_SYM_TERROR;
-
+  int pid;
+  
   if (all_arrays(args, argn) && argn >= 1) {
     char **strs = malloc(argn * sizeof(char*) + 1);
     for (uint32_t i = 0; i < argn; i ++) {
       strs[i] = lbm_dec_str(args[i]);
     }
     strs[argn] = NULL;
-    execvp(strs[0], &strs[1]);
+    fflush(stdout);
+    int status = 0;
+    pid = fork();
+    if (pid == 0) {
+      execvp(strs[0], &strs[1]);
+      exit(0);
+    } else {
+      waitpid(pid, &status, 0);
+      res = ENC_SYM_TRUE;
+    }
+  }
+  return res; 
+}
+
+static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 && lbm_is_array_r(args[0])) {
+    int r = system(lbm_dec_str(args[0]));
+    if (r == 0)  {
+      res = ENC_SYM_TRUE;
+    } else {
+      res = lbm_enc_i(r);
+    }
   }
   return res;
 }
-
 
 // ------------------------------------------------------------
 // Init
@@ -501,6 +525,7 @@ int init_exts(void) {
     return 0;
   }
 
+  lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
   lbm_add_extension("exec", ext_exec);
   lbm_add_extension("fopen", ext_fopen);
   lbm_add_extension("fwrite", ext_fwrite);
