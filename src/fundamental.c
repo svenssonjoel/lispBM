@@ -335,7 +335,7 @@ static void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
   }
 }
 
-static lbm_value index_list(lbm_value l, int32_t n) {
+lbm_value index_list(lbm_value l, int32_t n) {
   lbm_value curr = l;
 
   if (n < 0) {

@@ -2728,18 +2728,20 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   error_ctx(ENC_SYM_TERROR);
 }
 
+extern lbm_value index_list(lbm_value l, int32_t n);
+
 static void apply_rest_args(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) args;
-  (void) nargs;
-
-  lbm_stack_drop(&ctx->K, 1);
-
   lbm_value res;
   if (lbm_env_lookup_b(&res, ENC_SYM_REST_ARGS, ctx->curr_env)) {
+    if (nargs == 1 && lbm_is_number(args[0])) {
+      int32_t ix = lbm_dec_as_i32(args[0]);
+      res = index_list(res, ix);
+    }
     ctx->r = res;
   } else {
     ctx->r = ENC_SYM_NIL;
   }
+  lbm_stack_drop(&ctx->K, nargs+1);
   ctx->app_cont = true;
 }
 

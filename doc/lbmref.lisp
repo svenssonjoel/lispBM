@@ -100,7 +100,7 @@
     (rend "<td> Example </td> <td> Result </td>\n")
     (rend "</tr>\n")
     (render-code-res-pairs rend c)
-    (rend "</table>\n")
+    (rend "</table>\n\n")
     })
 
 (defun render-program-res-pairs (rend cs)
@@ -133,7 +133,7 @@
     (rend "<td> Example </td> <td> Result </td>\n")
     (rend "</tr>\n")
     (render-program-res-pairs rend c)
-    (rend "</table>\n")
+    (rend "</table>\n\n")
     })
 
 
@@ -173,7 +173,7 @@
          ))
 
 
-(defun render (rend ss) 
+(defun render (rend ss)
   (match ss
          (nil t)
          ( ((? x) . (? xs))
@@ -572,7 +572,18 @@
 (define ch-syntax-semantics
   (section 2 "Syntax and semantics"
            (list
-            ; (s-exp-graph "list" '(list 1 2 3 4 5)))
+            (section 3 "Syntax overview"
+                     (list
+                      )
+                     )
+            (section 3 "Function application"
+                     (list
+                      )
+                     )
+            (section 3 "Special forms"
+                     (list
+                      )
+                     )
            )))
 
 
@@ -1218,6 +1229,20 @@
                           ))
               (code '((lambda (x) (+ x 1))
                       ((lambda (x) (+ x 1)) 1)
+                      ))
+              (para (list "You can give more arguments to a function created using lambda. The extra arguments can be accessed"
+                          "in the lambda body by calling the `rest-args` function which gives back auxiliary arguments"
+                          "as a list."
+                          ))
+              (code '(((lambda (x) (cons x (rest-args))) 1 2 3 4 5 6)
+                      ((lambda (x) (cons x (rest-args))) 1)
+                      ))
+              (para (list "`rest-args` takes an optional numerical argument that is used to index into the list containing the rest of the arguments."
+                          ))
+              (code '(((lambda (x) (rest-args 0)) 1 2 3 4 5)
+                      ((lambda (x) (rest-args 1)) 1 2 3 4 5)
+                      ((lambda (x) (rest-args 2)) 1 2 3 4 5)
+                      ((lambda (x) (rest-args 3)) 1 2 3 4 5)
                       ))
               end)))
 
@@ -2649,7 +2674,7 @@
         )))
 
 (define manual
-  (list 
+  (list
    (section 1 "LispBM Reference Manual"
             (list ch-symbols
                   ch-numbers
@@ -2681,7 +2706,6 @@
             )
    )
   )
-  
 
 
 
@@ -2691,7 +2715,7 @@
     {
     (var t0 (systime))
     (render r manual)
-    (print "Reference manual was generated in " (secs-since t0) " seconds")     
+    (print "Reference manual was generated in " (secs-since t0) " seconds")
     }
     )
   )

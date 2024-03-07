@@ -349,6 +349,7 @@ Operations on fixed bitwidth mumerical types can lead to overflow. The ranges re
 </tr>
 </table>
 
+
 ### Cost of numerical operations
 
 All Values in LBM are encoded in one way or another. The encoded value holds additional information about type and garbage collection mark bit.  Operations that operate on an LBM value needs to unpack this encoded format and extract the actual numerical information from the representation. This has a cost and operations on numbers are in general a bit slower than what one gets in, for example C. 
@@ -403,6 +404,12 @@ In general, on 32Bit platforms, the cost of operations on numerical types that a
 
 
 ## Syntax and semantics
+
+### Syntax overview
+
+### Function application
+
+### Special forms
 
 # Reference
 
@@ -496,6 +503,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 
 
 
+
 ---
 
 
@@ -580,6 +588,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 </td>
 </tr>
 </table>
+
 
 
 
@@ -670,6 +679,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 
 
 
+
 ---
 
 
@@ -739,6 +749,7 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 
 
 
+
 ---
 
 
@@ -805,6 +816,7 @@ Modulo operation. The form of a `mod` expression is `(mod expr1 exp2)`. The modu
 </td>
 </tr>
 </table>
+
 
 
 
@@ -937,6 +949,7 @@ nil
 
 
 
+
 ---
 
 
@@ -1060,6 +1073,7 @@ t
 
 
 
+
 ---
 
 
@@ -1145,6 +1159,7 @@ nil
 </td>
 </tr>
 </table>
+
 
 
 
@@ -1235,6 +1250,7 @@ nil
 
 
 
+
 ---
 
 ## Boolean operators
@@ -1306,6 +1322,7 @@ nil
 </td>
 </tr>
 </table>
+
 
 
 
@@ -1414,6 +1431,7 @@ t
 
 
 
+
 ---
 
 
@@ -1480,6 +1498,7 @@ nil
 </td>
 </tr>
 </table>
+
 
 
 
@@ -1557,6 +1576,7 @@ The shift left operation takes two arguments. The first argument is a value to s
 
 
 
+
 ---
 
 
@@ -1626,6 +1646,7 @@ The shift right operation takes two arguments. The first argument is a value to 
 
 
 
+
 ---
 
 
@@ -1656,6 +1677,7 @@ Performs the bitwise and operation between two values. The type of the result is
 </td>
 </tr>
 </table>
+
 
 
 
@@ -1692,6 +1714,7 @@ Performs the bitwise or operation between two values. The type of the result is 
 
 
 
+
 ---
 
 
@@ -1725,6 +1748,7 @@ Performs the bitwise exclusive or operation between two values. The type of the 
 
 
 
+
 ---
 
 
@@ -1755,6 +1779,7 @@ Performs the bitwise negation operations on a value. The result is of same type 
 </td>
 </tr>
 </table>
+
 
 
 
@@ -1832,6 +1857,7 @@ nil
 
 
 
+
 ---
 
 
@@ -1898,6 +1924,7 @@ t
 </td>
 </tr>
 </table>
+
 
 
 
@@ -1970,6 +1997,7 @@ nil
 
 
 
+
 ---
 
 
@@ -2036,6 +2064,7 @@ t
 </td>
 </tr>
 </table>
+
 
 
 
@@ -2169,6 +2198,7 @@ kurt
 
 
 
+
 ---
 
 
@@ -2240,6 +2270,7 @@ The result of `'(+ 1 2)` and `` `(+ 1 2)`` are similar in effect. Both result in
 
 
 
+
 ---
 
 
@@ -2275,6 +2306,7 @@ The expression `` `(+ 1 ,(+ 1 1))`` is expanded by the reader into `(append (quo
 
 
 
+
 ---
 
 
@@ -2305,6 +2337,7 @@ The comma-at operation is used to splice in the result of a computation (that re
 </td>
 </tr>
 </table>
+
 
 
 
@@ -2400,6 +2433,7 @@ Evaluate data as an expression. The data must represent a valid expression. The 
 
 
 
+
 ---
 
 
@@ -2486,6 +2520,7 @@ An optional environment can be passed in as the first arguement: `(eval-program 
 </td>
 </tr>
 </table>
+
 
 
 
@@ -2684,6 +2719,7 @@ type-list
 
 
 
+
 ---
 
 
@@ -2735,6 +2771,7 @@ lambda
 
 
 
+
 ---
 
 
@@ -2765,6 +2802,7 @@ hello
 </td>
 </tr>
 </table>
+
 
 
 
@@ -2819,6 +2857,7 @@ The `sym2u` function returns the numerical value used by the runtime system for 
 
 
 
+
 ---
 
 
@@ -2870,6 +2909,7 @@ lambda
 
 
 
+
 ---
 
 
@@ -2902,6 +2942,7 @@ t
 </td>
 </tr>
 </table>
+
 
 
 
@@ -2960,6 +3001,7 @@ Conditionals are written as `(if cond-expr then-expr else-expr)`.  If the cond-e
 </td>
 </tr>
 </table>
+
 
 
 
@@ -3028,6 +3070,7 @@ nil
 
 
 
+
 ---
 
 
@@ -3076,6 +3119,131 @@ You create an anonymous function with lambda. The function can be given a name b
 </td>
 </tr>
 </table>
+
+You can give more arguments to a function created using lambda. The extra arguments can be accessed in the lambda body by calling the `rest-args` function which gives back auxiliary arguments as a list. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+((lambda (x) (cons x (rest-args))) 1 2 3 4 5 6)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 4 5 6)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+((lambda (x) (cons x (rest-args))) 1)
+```
+
+
+</td>
+<td>
+
+```clj
+(1)
+```
+
+
+</td>
+</tr>
+</table>
+
+`rest-args` takes an optional numerical argument that is used to index into the list containing the rest of the arguments. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+((lambda (x) (rest-args 0)) 1 2 3 4 5)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+((lambda (x) (rest-args 1)) 1 2 3 4 5)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+((lambda (x) (rest-args 2)) 1 2 3 4 5)
+```
+
+
+</td>
+<td>
+
+```clj
+4
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+((lambda (x) (rest-args 3)) 1 2 3 4 5)
+```
+
+
+</td>
+<td>
+
+```clj
+5
+```
+
+
+</td>
+</tr>
+</table>
+
 
 
 
@@ -3151,6 +3319,7 @@ A <a href="#lambda"> lambda </a> expression evaluates into a closure which is ve
 
 
 
+
 ---
 
 
@@ -3206,6 +3375,7 @@ Local environments are created using let. The let binding in lispbm allows for m
 
 
 
+
 ---
 
 
@@ -3249,6 +3419,7 @@ sum
 
 
 
+
 ---
 
 
@@ -3282,6 +3453,7 @@ You can give names to values in a global scope by using define. The form of defi
 
 
 
+
 ---
 
 
@@ -3312,6 +3484,7 @@ t
 </td>
 </tr>
 </table>
+
 It is also possible to undefine several bindings at the same time by providing a list of names. 
 
 <table>
@@ -3337,6 +3510,7 @@ t
 </td>
 </tr>
 </table>
+
 
 
 
@@ -3375,6 +3549,7 @@ a
 </td>
 </tr>
 </table>
+
 `set` works in local environments too such as in the body of a `let` or in a `progn`-local variable created using `var`. 
 
 <table>
@@ -3405,6 +3580,7 @@ a
 </td>
 </tr>
 </table>
+
 
 
 
@@ -3443,6 +3619,7 @@ a
 </td>
 </tr>
 </table>
+
 Just like `set` and `setvar`, `setq` can be used on variables that are bound locally such as in the body of a `let` or a `progn`-local variable created using `var`. 
 
 <table>
@@ -3473,6 +3650,7 @@ Just like `set` and `setvar`, `setq` can be used on variables that are bound loc
 </td>
 </tr>
 </table>
+
 
 
 
@@ -3540,6 +3718,7 @@ The evaluation result of a progn sequence is the value that the last `exprN` eva
 </td>
 </tr>
 </table>
+
 
 
 
@@ -3641,6 +3820,7 @@ The var special form allows local bindings in a progn expression. A var expressi
 
 
 
+
 ---
 
 
@@ -3692,6 +3872,7 @@ Parses a string resulting in either an expression or the <a href="#read_error">r
 
 
 
+
 ---
 
 
@@ -3725,6 +3906,7 @@ Parses a string containing multiple sequenced expressions. The resulting list of
 
 
 
+
 ---
 
 
@@ -3755,6 +3937,7 @@ Parses and evaluates a program incrementally. `read-eval-program` reads a top-le
 </td>
 </tr>
 </table>
+
 `read-eval-program` supports the `@const-start` and `@const-end` annotations which move all global definitions created in the program to constant memory (flash). 
 
 <table>
@@ -3780,6 +3963,7 @@ Parses and evaluates a program incrementally. `read-eval-program` reads a top-le
 </td>
 </tr>
 </table>
+
 
 
 
@@ -3844,6 +4028,7 @@ Taking the `car` of a number of symbol type is in general a <a href="#type_error
 
 
 
+
 ---
 
 
@@ -3892,6 +4077,7 @@ Taking the `car` of a number of symbol type is in general a <a href="#type_error
 </td>
 </tr>
 </table>
+
 
 
 
@@ -3946,6 +4132,7 @@ Use `cdr` to access the `cdr` field of a cons cell. A `cdr` expression has the f
 
 
 
+
 ---
 
 
@@ -3994,6 +4181,7 @@ Use `cdr` to access the `cdr` field of a cons cell. A `cdr` expression has the f
 </td>
 </tr>
 </table>
+
 
 
 
@@ -4084,6 +4272,7 @@ The `cons` operation allocates a cons cell from the heap and populates the `car`
 
 
 
+
 ---
 
 
@@ -4135,6 +4324,7 @@ The dot, `.`, operation creates a pair. The form of a dot expression is `(expr1 
 
 
 
+
 ---
 
 
@@ -4168,6 +4358,7 @@ The `list` function is used to create proper lists. The function takes n argumen
 
 
 
+
 ---
 
 
@@ -4198,6 +4389,7 @@ Computes the length of a list. The `length` function takes one argument and is o
 </td>
 </tr>
 </table>
+
 
 
 
@@ -4270,6 +4462,7 @@ The `range` function computes a list with integer values from a range specified 
 
 
 
+
 ---
 
 
@@ -4300,6 +4493,7 @@ The `append` function combines two lists into a longer list. An `append` express
 </td>
 </tr>
 </table>
+
 
 
 
@@ -4354,6 +4548,7 @@ Index into a list using the `ix` function. The form of an `ix` expression is `(i
 
 
 
+
 ---
 
 
@@ -4402,6 +4597,7 @@ Destructively update an element in a list. The form of a `setix` expression is `
 </td>
 </tr>
 </table>
+
 
 
 
@@ -4466,6 +4662,7 @@ apa
 
 
 
+
 ---
 
 
@@ -4527,6 +4724,7 @@ apa
 
 
 
+
 ---
 
 
@@ -4564,6 +4762,7 @@ apa
 
 
 
+
 ---
 
 
@@ -4598,6 +4797,7 @@ apa
 </td>
 </tr>
 </table>
+
 
 
 
@@ -4639,6 +4839,7 @@ apa
 
 
 
+
 ---
 
 
@@ -4673,6 +4874,7 @@ apa
 </td>
 </tr>
 </table>
+
 
 
 
@@ -4717,6 +4919,7 @@ Example that adds the key `4` and associated value `lemur` to an existing alist.
 
 
 
+
 ---
 
 
@@ -4750,6 +4953,7 @@ donkey
 
 
 
+
 ---
 
 
@@ -4780,6 +4984,7 @@ The `cossa` function looks up the first key in an alist that matches a given val
 </td>
 </tr>
 </table>
+
 
 
 
@@ -4817,6 +5022,7 @@ The `setassoc` function destructively updates a key-value mapping in an alist. T
 </td>
 </tr>
 </table>
+
 
 
 
@@ -4858,6 +5064,7 @@ Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate si
 
 
 
+
 ---
 
 
@@ -4888,6 +5095,7 @@ Returns the size of a buffer in number of bytes. The form of an `buflen` express
 </td>
 </tr>
 </table>
+
 
 
 
@@ -5029,6 +5237,7 @@ Read a value from a buffer. The contents of a buffer can be read as a sized inte
 </td>
 </tr>
 </table>
+
 
 
 
@@ -5281,6 +5490,7 @@ data
 
 
 
+
 ---
 
 
@@ -5494,6 +5704,7 @@ data
 
 
 
+
 ---
 
 
@@ -5526,6 +5737,7 @@ The form of the `[` and `]` syntax is `[ val1 ... valN ]`.
 </td>
 </tr>
 </table>
+
 
 
 
@@ -5567,6 +5779,7 @@ Pattern-matching is expressed using match. The form of a match expression is `(m
 </td>
 </tr>
 </table>
+
 
 
 
@@ -5617,6 +5830,7 @@ i-dont-know
 
 
 
+
 ---
 
 
@@ -5650,6 +5864,7 @@ The `?` pattern matches anything and binds that anything to variable. Using the 
 </td>
 </tr>
 </table>
+
 
 
 
@@ -5704,6 +5919,7 @@ greater-than-zero
 </td>
 </tr>
 </table>
+
 
 
 
@@ -5797,6 +6013,7 @@ crash
 
 
 
+
 ---
 
 
@@ -5827,6 +6044,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 </td>
 </tr>
 </table>
+
 
 
 
@@ -5884,6 +6102,7 @@ To put a process to sleep, call `yield`. The argument to `yield` is number indic
 </td>
 </tr>
 </table>
+
 
 
 
@@ -5956,6 +6175,7 @@ To receive a message use the `recv` command. A process will block on a `recv` un
 
 
 
+
 ---
 
 
@@ -5994,6 +6214,7 @@ The form of an `recv-to` expression is ```clj (recv-to timeout-secs             
 </td>
 </tr>
 </table>
+
 
 
 
@@ -6045,6 +6266,7 @@ nil
 </td>
 </tr>
 </table>
+
 
 
 
@@ -6138,6 +6360,7 @@ The `flatten` function takes a value as single argument and returns the flat rep
 </td>
 </tr>
 </table>
+
 A flat value is a byte-array containing an encoding of the value. 
 
 
@@ -6230,6 +6453,7 @@ A flat value is a byte-array containing an encoding of the value.
 
 
 
+
 ---
 
 ## Macros
@@ -6305,6 +6529,7 @@ The form of a `macro` expression is: `(macro args body)`
 </td>
 </tr>
 </table>
+
 
 
 
@@ -6570,6 +6795,7 @@ ls
 
 
 
+
 ---
 
 ## Type convertions
@@ -6638,6 +6864,7 @@ Convert any numerical value to a byte. If the input is not a number the output o
 </td>
 </tr>
 </table>
+
 
 
 
@@ -6710,6 +6937,7 @@ Convert a value of any numerical type to an integer. The resulting integer is a 
 
 
 
+
 ---
 
 
@@ -6776,6 +7004,7 @@ Convert a value of any numerical type to an unsigned integer. The resulting inte
 </td>
 </tr>
 </table>
+
 
 
 
@@ -6848,6 +7077,7 @@ Convert any numerical value to a 32bit int. If the input is not a number the out
 
 
 
+
 ---
 
 
@@ -6914,6 +7144,7 @@ Convert any numerical value to a 32bit unsigned int.
 </td>
 </tr>
 </table>
+
 
 
 
@@ -6986,6 +7217,7 @@ Convert any numerical value to a single precision floating point value. If the i
 
 
 
+
 ---
 
 
@@ -7052,6 +7284,7 @@ Convert any numerical value to a 64bit int. If the input is not a number the out
 </td>
 </tr>
 </table>
+
 
 
 
@@ -7124,6 +7357,7 @@ Convert any numerical value to a 64bit unsigned int. If the input is not a numbe
 
 
 
+
 ---
 
 
@@ -7190,6 +7424,7 @@ Convert any numerical value to a double precision floating point value. If the i
 </td>
 </tr>
 </table>
+
 
 
 
