@@ -6067,6 +6067,30 @@ Be careful to only wait for processes that actually exist and do finish. Otherwi
 
 To put a process to sleep, call `yield`. The argument to `yield` is number indicating at least how many microseconds the process should sleep. 
 
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(yield 10)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
 
 
 

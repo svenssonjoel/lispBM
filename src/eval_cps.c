@@ -2818,7 +2818,10 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     fun_table[SYMBOL_IX(fun_val)](&fun_args[1], arg_count, ctx);
     break;
   default:
-    error_ctx(ENC_SYM_FATAL_ERROR);
+    // Symbols that are "special" but not in the way caught above
+    // ends up here.
+    lbm_set_error_reason("Symbol does not represent a function");
+    error_at_ctx(ENC_SYM_EERROR,fun_args[0]);
     break;
   }
 }

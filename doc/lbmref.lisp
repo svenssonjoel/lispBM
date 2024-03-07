@@ -169,6 +169,8 @@
            (render-dot img-name code)
            (rend (str-merge "![Graph representaion of s-expression](./images/" img-name ".png)\n\n"))
            })
+         ( (semantic-step (? c1) (? c2) (? p)
+                          ))
          ( _ (render rend ss))
          ))
 
@@ -234,6 +236,9 @@
 
 (defun s-exp-graph (img-name code)
   (list 's-exp-graph code))
+
+(defun semantic-step (c1 c2 prop)
+  (list 'semantic-step c1 c2 prop))
 
 ;; Dot generation
 
@@ -2121,6 +2126,8 @@
               (para (list "To put a process to sleep, call `yield`. The argument to `yield`"
                           "is number indicating at least how many microseconds the process should sleep."
                           ))
+              (code '((yield 10)
+                      ))
               end)))
 
 (define conc-atomic
