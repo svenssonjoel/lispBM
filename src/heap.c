@@ -1065,6 +1065,28 @@ lbm_value lbm_list_drop(unsigned int n, lbm_value ls) {
   return curr;
 }
 
+lbm_value lbm_index_list(lbm_value l, int32_t n) {
+  lbm_value curr = l;
+
+  if (n < 0) {
+    int32_t len = (int32_t)lbm_list_length(l);
+    n = len + n;
+    if (n < 0) return ENC_SYM_NIL;
+  }
+
+  while (lbm_is_cons(curr) &&
+          n > 0) {
+    curr = lbm_cdr(curr);
+    n --;
+  }
+  if (lbm_is_cons(curr)) {
+    return lbm_car(curr);
+  } else {
+    return ENC_SYM_NIL;
+  }
+}
+
+
 
 // Arrays are part of the heap module because their lifespan is managed
 // by the garbage collector. The data in the array is not stored
