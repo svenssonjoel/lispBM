@@ -536,9 +536,8 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr
     // all is as it should be (but no free cells)
     return ENC_SYM_MERROR;
   }
-  else {
-    return ENC_SYM_FATAL_ERROR;
-  }
+  // Unreachable, unless something very wrong
+  return ENC_SYM_FATAL_ERROR;
 }
 
 lbm_value lbm_heap_allocate_list(lbm_uint n) {

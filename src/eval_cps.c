@@ -98,9 +98,11 @@ static jmp_buf critical_error_jmp_buf;
 #define FM_NO_MATCH      -2
 #define FM_PATTERN_ERROR -3
 
-#define BL_OK             0
-#define BL_NO_MEMORY     -1
-#define BL_INCORRECT_KEY -2
+typedef enum {
+  BL_OK = 0,
+  BL_NO_MEMORY,
+  BL_INCORRECT_KEY
+} binding_location_status;
 
 #define FB_OK             0
 #define FB_TYPE_ERROR    -1
@@ -1808,7 +1810,7 @@ static void eval_move_to_flash(eval_context_t *ctx) {
 }
 
 // Create a named location in an environment to later receive a value.
-static int create_binding_location(lbm_value key, lbm_value *env) {
+static binding_location_status create_binding_location(lbm_value key, lbm_value *env) {
 
   if (lbm_is_symbol(key) &&
       (key == ENC_SYM_NIL ||
@@ -1847,22 +1849,23 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
   while (lbm_is_cons(curr)) {
     lbm_value new_env_tmp = env;
     lbm_value key = get_caar(curr);
-    int r = create_binding_location(key, &new_env_tmp);
-    if (r < 0) {
+    binding_location_status r = create_binding_location(key, &new_env_tmp);
+    if (r != BL_OK) {
       if (r == BL_NO_MEMORY) {
         new_env_tmp = env;
         lbm_gc_mark_phase(env);
         gc();
         r = create_binding_location(key, &new_env_tmp);
       }
-      if (r < 0) {
-        if (r == BL_INCORRECT_KEY)
-          error_ctx(ENC_SYM_TERROR);
-        else if (r == BL_NO_MEMORY)
-          error_ctx(ENC_SYM_MERROR);
-        else
-          error_ctx(ENC_SYM_FATAL_ERROR);
-        return;
+      switch(r) {
+      case BL_OK:
+        break;
+      case BL_NO_MEMORY:
+        error_ctx(ENC_SYM_MERROR);
+        break;
+      case BL_INCORRECT_KEY:
+        error_ctx(ENC_SYM_TERROR);
+        break;
       }
     }
     env = new_env_tmp;
@@ -3817,6 +3820,8 @@ static void cont_read_start_array(eval_context_t *ctx) {
       lbm_set_error_reason("Out of memory while reading.");
       lbm_channel_reader_close(str);
       error_ctx(ENC_SYM_FATAL_ERROR);
+      // NOTE: If array is not created evaluation ends here.
+      // Static analysis seems unaware.
     }
 
     sptr[0] = array;
@@ -3841,7 +3846,11 @@ static void cont_read_append_array(eval_context_t *ctx) {
     error_ctx(ENC_SYM_MERROR);
   }
 
-  lbm_array_header_t *arr = (lbm_array_header_t*)get_car(array); // TODO: Check
+  // get_car can return nil. Whose value is 0!
+  // So static Analysis is right about this being a potential NULL pointer.
+  // However, if the array was created correcly to begin with, it should be fine.
+  lbm_value arr_car = get_car(array);
+  lbm_array_header_t *arr = (lbm_array_header_t*)arr_car;
 
   if (lbm_is_number(ctx->r)) {
     ((uint8_t*)arr->data)[ix] = (uint8_t)lbm_dec_as_u32(ctx->r);
