@@ -1,8 +1,8 @@
 # LispBM Test reports
 
-This directory stores LBM test reports associated with. Under
+This directory stores LBM test reports. Under
 the `test_reports` directory, you find directories named `version_X.Y.Z`.
-The test reports in directory `version_X.Y.Z` has been run on the git commit
+The test reports in directory `version_X.Y.Z` corresponds to the git commit
 tagged (git tag) with tag X.Y.Z.
 
 ## Testing approach
