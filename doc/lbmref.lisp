@@ -577,6 +577,24 @@
   )
 
 
+(defun semantics ()
+  (section 3 "The meaning (semantics) that LispBM imposes on S-Expressions"
+           (list
+            (para (list "The S-expressions from the previous section are just trees. The Lisp evaluator"
+                        "provides a computational interepretation for such trees. Not all trees make sense"
+                        "as lisp programs. This section is about those trees that do make sense and"
+                        "what they mean to the Lisp evaluator."
+                        ))
+            ))
+  )
+
+
+(defun concurrency-and-semantics ()
+  (section 3 "Concurrency and Semantics"
+           (list
+            )
+           ))
+
 
 (define ch-syntax-semantics
   (section 2 "Syntax and semantics"
@@ -634,16 +652,18 @@
                           "Symbols: Such as `a`, `lambda`, `define`, `kurt-russel` ..."
                           ))
             (para (list "In LispBM a pair of S-expressions is created by an application of `cons` as `(cons a b)`"
-                        "But at this point we are getting into semantics, which is the topic of the next section."
+                        "which creates the pair `(a . b)`. Convention is that `(e0 e1 ... eN)` = `(e0 . ( e1 . ... ( eN . nil)))`."
                         ))
+            (semantics)
+            (concurrency-and-semantics)
             
-            (section 3 "The meaning (semantics) that LispBM imposes on S-Expressions"
-                     (list
-                      (para (list "Work in progress"
-                                  ))
                       )
-                     )
-           )))
+           )
+  )
+           
+
+
+
 
 
 

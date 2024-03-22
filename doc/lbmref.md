@@ -451,11 +451,13 @@ In LispBM the set of atoms consist of:
    - Byte Arrays: Such as [1 2 3 4 5]
    - Symbols: Such as `a`, `lambda`, `define`, `kurt-russel` ...
 
-In LispBM a pair of S-expressions is created by an application of `cons` as `(cons a b)` But at this point we are getting into semantics, which is the topic of the next section. 
+In LispBM a pair of S-expressions is created by an application of `cons` as `(cons a b)` which creates the pair `(a . b)`. Convention is that `(e0 e1 ... eN)` = `(e0 . ( e1 . ... ( eN . nil)))`. 
 
 ### The meaning (semantics) that LispBM imposes on S-Expressions
 
-Work in progress 
+The S-expressions from the previous section are just trees. The Lisp evaluator provides a computational interepretation for such trees. Not all trees make sense as lisp programs. This section is about those trees that do make sense and what they mean to the Lisp evaluator. 
+
+### Concurrency and Semantics
 
 # Reference
 

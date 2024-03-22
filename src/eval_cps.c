@@ -1807,30 +1807,6 @@ static void eval_app_cont(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-// (var x (...)) - local binding inside of an progn
-static void eval_var(eval_context_t *ctx) {
-  lbm_value args = get_cdr(ctx->curr_exp);
-  lbm_value sym = get_car(args);
-  lbm_value v_exp = get_cadr(args);
-  stack_push_2(&ctx->K, sym, PROGN_VAR);
-  ctx->curr_exp = v_exp;
-}
-
-// (setq x (...)) - same as (set 'x (...)) or (setvar 'x (...))
-static void eval_setq(eval_context_t *ctx) {
-  lbm_value args = get_cdr(ctx->curr_exp);
-  lbm_value sym = get_car(args);
-  lbm_value v_exp = get_cadr(args);
-  stack_push_3(&ctx->K, ctx->curr_env, sym, SETQ);
-  ctx->curr_exp = v_exp;
-}
-
-static void eval_move_to_flash(eval_context_t *ctx) {
-  lbm_value args = get_cdr(ctx->curr_exp);
-  stack_push_2(&ctx->K, args, MOVE_TO_FLASH);
-  ctx->app_cont = true;
-}
-
 // Create a named location in an environment to later receive a value.
 static binding_location_status create_binding_location(lbm_value key, lbm_value *env) {
 
@@ -1905,6 +1881,30 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
   sptr[4] = BIND_TO_KEY_REST;
   ctx->curr_exp = val0_exp;
   ctx->curr_env = env;
+}
+
+// (var x (...)) - local binding inside of an progn
+static void eval_var(eval_context_t *ctx) {
+  lbm_value args = get_cdr(ctx->curr_exp);
+  lbm_value sym = get_car(args);
+  lbm_value v_exp = get_cadr(args);
+  stack_push_2(&ctx->K, sym, PROGN_VAR);
+  ctx->curr_exp = v_exp;
+}
+
+// (setq x (...)) - same as (set 'x (...)) or (setvar 'x (...))
+static void eval_setq(eval_context_t *ctx) {
+  lbm_value args = get_cdr(ctx->curr_exp);
+  lbm_value sym = get_car(args);
+  lbm_value v_exp = get_cadr(args);
+  stack_push_3(&ctx->K, ctx->curr_env, sym, SETQ);
+  ctx->curr_exp = v_exp;
+}
+
+static void eval_move_to_flash(eval_context_t *ctx) {
+  lbm_value args = get_cdr(ctx->curr_exp);
+  stack_push_2(&ctx->K, args, MOVE_TO_FLASH);
+  ctx->app_cont = true;
 }
 
 // (loop list-of-local-bindings
