@@ -1885,6 +1885,7 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
 
 // (var x (...)) - local binding inside of an progn
 static void eval_var(eval_context_t *ctx) {
+
   lbm_value args = get_cdr(ctx->curr_exp);
   lbm_value sym = get_car(args);
   lbm_value v_exp = get_cadr(args);
@@ -3728,6 +3729,10 @@ static void cont_read_next_token(eval_context_t *ctx) {
         if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS &&
             ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
           r = lbm_add_symbol_flash(tokpar_sym_str, &symbol_id);
+          if (!r) {
+            lbm_set_error_reason((char*)lbm_error_str_flash_error);
+            error_ctx(ENC_SYM_FATAL_ERROR);
+          }
         } else {
           r = lbm_add_symbol(tokpar_sym_str, &symbol_id);
           if (!r) {
