@@ -1808,7 +1808,7 @@ static void eval_app_cont(eval_context_t *ctx) {
 }
 
 // Create a named location in an environment to later receive a value.
-static binding_location_status create_binding_location(lbm_value key, lbm_value *env) {
+static binding_location_status create_binding_location_internal(lbm_value key, lbm_value *env) {
 
   if (lbm_is_symbol(key) &&
       (key == ENC_SYM_NIL ||
@@ -1825,13 +1825,38 @@ static binding_location_status create_binding_location(lbm_value key, lbm_value 
     }
     *env = new_env_tmp;
   } else if (lbm_is_cons(key)) { // deconstruct case
-    int r = create_binding_location(get_car(key), env);
+    int r = create_binding_location_internal(get_car(key), env);
     if (r == BL_OK) {
-      r = create_binding_location(get_cdr(key), env);
+      r = create_binding_location_internal(get_cdr(key), env);
     }
     return r;
   }
   return BL_OK;
+}
+
+static void create_binding_location(lbm_value key, lbm_value *env) {
+
+  lbm_value env_tmp = *env;
+  binding_location_status r = create_binding_location_internal(key, &env_tmp);
+  if (r != BL_OK) {
+    if (r == BL_NO_MEMORY) {
+      env_tmp = *env;
+      lbm_gc_mark_phase(env_tmp);
+      gc();
+      r = create_binding_location_internal(key, &env_tmp);
+    }
+    switch(r) {
+    case BL_OK:
+      break;
+    case BL_NO_MEMORY:
+      error_ctx(ENC_SYM_MERROR);
+      break;
+    case BL_INCORRECT_KEY:
+      error_ctx(ENC_SYM_TERROR);
+      break;
+    }
+  }
+  *env = env_tmp;
 }
 
 static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, eval_context_t *ctx) {
@@ -1847,25 +1872,7 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
   while (lbm_is_cons(curr)) {
     lbm_value new_env_tmp = env;
     lbm_value key = get_caar(curr);
-    binding_location_status r = create_binding_location(key, &new_env_tmp);
-    if (r != BL_OK) {
-      if (r == BL_NO_MEMORY) {
-        new_env_tmp = env;
-        lbm_gc_mark_phase(env);
-        gc();
-        r = create_binding_location(key, &new_env_tmp);
-      }
-      switch(r) {
-      case BL_OK:
-        break;
-      case BL_NO_MEMORY:
-        error_ctx(ENC_SYM_MERROR);
-        break;
-      case BL_INCORRECT_KEY:
-        error_ctx(ENC_SYM_TERROR);
-        break;
-      }
-    }
+    create_binding_location(key, &new_env_tmp);
     env = new_env_tmp;
     curr = get_cdr(curr);
   }
@@ -1909,24 +1916,7 @@ static void eval_var(eval_context_t *ctx) {
     lbm_value new_env = ctx->K.data[sp-4];
     lbm_value args = get_cdr(ctx->curr_exp);
     lbm_value key = get_car(args);
-    binding_location_status r = create_binding_location(key, &new_env);
-    if (r != BL_OK) {
-      if (r == BL_NO_MEMORY) {
-        new_env = ctx->K.data[sp-4];
-        gc();
-        r = create_binding_location(key, &new_env);
-      }
-      switch(r) {
-      case BL_OK:
-        break;
-      case BL_NO_MEMORY:
-        error_ctx(ENC_SYM_MERROR);
-        break;
-      case BL_INCORRECT_KEY:
-        error_ctx(ENC_SYM_TERROR);
-        break;
-      }
-    }
+    create_binding_location(key, &new_env);
     ctx->K.data[sp-4] = new_env;
 
     lbm_value v_exp = get_cadr(args);
