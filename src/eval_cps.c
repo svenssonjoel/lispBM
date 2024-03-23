@@ -1884,6 +1884,15 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
 }
 
 // (var x (...)) - local binding inside of an progn
+// var has to take, place root-level nesting within progn.
+// (progn ... (var a 10) ...) OK!
+// (progn ... (something (var a 10)) ... ) NOT OK!
+/* progn stack
+   sp-4 : env
+   sp-3 : 0
+   sp-2 : rest
+   sp-1 : PROGN_REST
+*/
 static void eval_var(eval_context_t *ctx) {
 
   if (ctx->K.sp >= 4) { // Possibly in progn
@@ -4242,13 +4251,6 @@ static void cont_eval_r(eval_context_t* ctx) {
   ctx->curr_env = env;
 }
 
-/* progn + var stack
-   sp-5 : env
-   sp-4 : 0
-   sp-3 : rest
-   sp-2 : PROGN_REST
-   sp-1 : symbol
- */
 static void cont_progn_var(eval_context_t* ctx) {
 
   lbm_value key;
