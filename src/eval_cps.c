@@ -1886,11 +1886,48 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
 // (var x (...)) - local binding inside of an progn
 static void eval_var(eval_context_t *ctx) {
 
-  lbm_value args = get_cdr(ctx->curr_exp);
-  lbm_value sym = get_car(args);
-  lbm_value v_exp = get_cadr(args);
-  stack_push_2(&ctx->K, sym, PROGN_VAR);
-  ctx->curr_exp = v_exp;
+  if (ctx->K.sp >= 4) { // Possibly in progn
+    lbm_value sv = ctx->K.data[ctx->K.sp - 1];
+    if (IS_CONTINUATION(sv) && (sv == PROGN_REST)) {
+    lbm_uint sp = ctx->K.sp;
+    uint32_t is_copied = lbm_dec_as_u32(ctx->K.data[sp-3]);
+    if (is_copied == 0) {
+      lbm_value env;
+      WITH_GC(env, lbm_env_copy_spine(ctx->K.data[sp-4]));
+      ctx->K.data[sp-3] = lbm_enc_u(1);
+      ctx->K.data[sp-4] = env;
+    }
+    lbm_value new_env = ctx->K.data[sp-4];
+    lbm_value args = get_cdr(ctx->curr_exp);
+    lbm_value key = get_car(args);
+    binding_location_status r = create_binding_location(key, &new_env);
+    if (r != BL_OK) {
+      if (r == BL_NO_MEMORY) {
+        new_env = ctx->K.data[sp-4];
+        gc();
+        r = create_binding_location(key, &new_env);
+      }
+      switch(r) {
+      case BL_OK:
+        break;
+      case BL_NO_MEMORY:
+        error_ctx(ENC_SYM_MERROR);
+        break;
+      case BL_INCORRECT_KEY:
+        error_ctx(ENC_SYM_TERROR);
+        break;
+      }
+    }
+    ctx->K.data[sp-4] = new_env;
+
+    lbm_value v_exp = get_cadr(args);
+    stack_push_3(&ctx->K, new_env, key, PROGN_VAR);
+    ctx->curr_exp = v_exp;
+    return;
+    }
+  }
+  lbm_set_error_reason((char*)lbm_error_str_var_outside_progn);
+  error_ctx(ENC_SYM_EERROR);
 }
 
 // (setq x (...)) - same as (set 'x (...)) or (setvar 'x (...))
@@ -4214,32 +4251,17 @@ static void cont_eval_r(eval_context_t* ctx) {
  */
 static void cont_progn_var(eval_context_t* ctx) {
 
-  lbm_value sym;
+  lbm_value key;
+  lbm_value env;
 
-  lbm_pop(&ctx->K, &sym);
+  lbm_pop_2(&ctx->K, &key, &env);
 
-  if (ctx->K.sp >= 4) { // could potentially be inside of an progn
-    lbm_value sv = ctx->K.data[ctx->K.sp - 1];
-    if (IS_CONTINUATION(sv) &&
-        (sv == PROGN_REST)) {
-      lbm_uint  sp = ctx->K.sp;
-      uint32_t  is_copied = lbm_dec_as_u32(ctx->K.data[sp - 3]);
-      if (is_copied == 0) {
-        lbm_value env;
-        WITH_GC(env, lbm_env_copy_spine(ctx->K.data[sp - 4]));
-        ctx->K.data[sp - 3] = lbm_enc_u(1);
-        ctx->K.data[sp - 4] = env;
-      }
-      lbm_value new_env = ctx->K.data[sp - 4];
-      lbm_value tmp;
-      WITH_GC(tmp, lbm_env_set_functional(new_env, sym, ctx->r));
-      ctx->K.data[ctx->K.sp - 4] = tmp;
-      ctx->app_cont = true; // return to progn body
-      return;
-    }
+  if (fill_binding_location(key, ctx->r, env) < 0) {
+    lbm_set_error_reason("Incorrect type of name/key in let-binding");
+    error_at_ctx(ENC_SYM_TERROR, key);
   }
-  lbm_set_error_reason((char*)lbm_error_str_var_outside_progn);
-  error_ctx(ENC_SYM_EERROR);
+
+  ctx->app_cont = true;
 }
 
 static void cont_setq(eval_context_t *ctx) {
