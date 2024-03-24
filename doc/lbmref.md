@@ -3421,6 +3421,52 @@ Local environments are created using let. The let binding in lispbm allows for m
 </tr>
 </table>
 
+You can deconstruct composite values while let binding. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(let (((a b) (list 1 2)))
+     (+ a b))
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(let (((a . as) (list 1 2 3 4 5 6)))
+     (cons a (reverse as)))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 6 5 4 3 2)
+```
+
+
+</td>
+</tr>
+</table>
+
 
 
 
@@ -3859,6 +3905,52 @@ The var special form allows local bindings in a progn expression. A var expressi
 
 ```clj
 30
+```
+
+
+</td>
+</tr>
+</table>
+
+You can deconstruct composite value while var binding. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(progn (var (a b) (list 1 2))
+       (+ a b))
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(progn (var (a . as) (list 1 2 3 4 5 6))
+       (cons a (reverse as)))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 6 5 4 3 2)
 ```
 
 

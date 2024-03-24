@@ -1355,6 +1355,13 @@
                             (g (lambda (x) (if (= x 0) 1 (f (- x 1))))))
                         (f 11))
                       ))
+              (para (list "You can deconstruct composite values while let binding."
+                          ))
+              (code '(( let ( ( (a b) (list 1 2) ) ) (+ a b))
+                      ( let ( ( (a . as) (list 1 2 3 4 5 6)) ) (cons a (reverse as) ))
+                      ))
+              
+              
               end)))
 
 (define special-form-loop
@@ -1520,6 +1527,11 @@
 
               (code '((progn (var a 10) (var b 20) (+ a b))
                       (progn (var a 10) (var b (+ a 10)) (+ a b))
+                      ))
+              (para (list "You can deconstruct composite value while var binding."
+                          ))
+              (code '((progn (var (a b) (list 1 2)) (+ a b))
+                      (progn (var (a . as) (list 1 2 3 4 5 6)) (cons a (reverse as)))
                       ))
               end)))
 
