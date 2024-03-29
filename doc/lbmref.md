@@ -5082,7 +5082,9 @@ apa
 </tr>
 </table>
 
+Rotating a list in the negative direction is slightly faster than rotating in the positive direction. The chart below shows the time 1 Million 3 step rotations take in each direction at varying list lengths. The data is collected on x86. 
 
+![Performance of list rotate](images/rotate_pos_neg.png "Performance of list rotate")
 
 
 ---
