@@ -466,6 +466,7 @@ static lbm_value ext_fwrite_value(lbm_value *args, lbm_uint argn) {
     res = ENC_SYM_NIL;
     lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
 
+    lbm_set_max_flatten_depth(10000);
     int32_t fv_size = flatten_value_size(args[1], 0);
     if (fv_size > 0) {
       lbm_flat_value_t fv;
@@ -478,16 +479,14 @@ static lbm_value ext_fwrite_value(lbm_value *args, lbm_uint argn) {
           fflush(h->fp);
           res = ENC_SYM_TRUE;
         } else {
-          printf("ALERT: Cannot open result file\n");
+          printf("ALERT: Unable to flatten result value\n");
         }
       } else {
-        printf("ALERT: Unable to flatten result value\n");
+        printf("ALERT: Out of memory to allocate result buffer\n");
       }
     } else {
-      printf("ALERT: Out of memory to allocate result buffer\n");
+      printf("ALERT: Incorrect FV size: %d \n", fv_size);
     }
-  } else {
-    printf("ALERT: Unable to flatten result value\n");
   }
   return res;
 }
