@@ -1058,28 +1058,20 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
       lbm_value msg = lbm_cons(err_val, ENC_SYM_NIL);
       msg = lbm_cons(lbm_enc_i(ctx_running->id), msg);
       msg = lbm_cons(ENC_SYM_EXIT_ERROR, msg);
-      if (lbm_is_symbol_merror(msg)) {
-        // If this happens something is pretty seriously wrong.
-        print_error_message(err_val,
-                            has_at,
-                            at,
-                            row,
-                            column,
-                            ctx_running->row0,
-                            ctx_running->row1);
-      } else {
+      if (!lbm_is_symbol_merror(msg)) {
         lbm_find_receiver_and_send(ctx_running->parent, msg);
+        goto error_ctx_base_done;
       }
     }
-  } else {
-    print_error_message(err_val,
-                        has_at,
-                        at,
-                        row,
-                        column,
-                        ctx_running->row0,
-                        ctx_running->row1);
   }
+  print_error_message(err_val,
+                      has_at,
+                      at,
+                      row,
+                      column,
+                      ctx_running->row0,
+                      ctx_running->row1);
+ error_ctx_base_done:
   ctx_running->r = err_val;
   finish_ctx();
   longjmp(error_jmp_buf, 1);
@@ -3678,22 +3670,12 @@ static void cont_read_next_token(eval_context_t *ctx) {
       lbm_stack_drop(&ctx->K, 2);
       ctx->r = ENC_SYM_CLOSEPAR;
       return;
-    case TOKCONSTSTART:
-      ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
-      sptr[0] = stream;
-      sptr[1] = lbm_enc_u(0);
-      stack_push(&ctx->K, READ_NEXT_TOKEN);
-      ctx->app_cont = true;
-      return;
+    case TOKCONSTSTART: /* fall through */
     case TOKCONSTEND:
-      ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
-      sptr[0] = stream;
-      sptr[1] = lbm_enc_u(0);
-      stack_push(&ctx->K, READ_NEXT_TOKEN);
-      ctx->app_cont = true;
-      return;
     case TOKCONSTSYMSTR:
-      ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS;
+      if (match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
+      if (match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
+      if (match == TOKCONSTSYMSTR) ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS;
       sptr[0] = stream;
       sptr[1] = lbm_enc_u(0);
       stack_push(&ctx->K, READ_NEXT_TOKEN);
