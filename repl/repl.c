@@ -31,10 +31,6 @@
 #include "lispbm.h"
 #include "lbm_flat_value.h"
 #include "lbm_prof.h"
-#include "extensions/array_extensions.h"
-#include "extensions/string_extensions.h"
-#include "extensions/math_extensions.h"
-#include "extensions/runtime_extensions.h"
 
 #include "lbm_custom_type.h"
 #include "lbm_channel.h"

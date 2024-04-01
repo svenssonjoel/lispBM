@@ -1819,18 +1819,6 @@
                          ))
               end)))
 
-(define lists-member
-  (ref-entry "member"
-             (list
-              (para (list "`member` checks if a list contains a given element."
-                          "The form of a `member` expression is `(member list-exp exp)`."
-                          ))
-              (code '((member (list 1 2 3) 5)
-                      (member (list 1 2 3) 2)
-                      ))
-              end)))
-
-
 (define lists-rotate
   (ref-entry "rotate"
              (list
