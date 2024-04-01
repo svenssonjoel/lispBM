@@ -861,6 +861,9 @@
                  comp-not-eq
                  comp-=
                  comp->
+                 comp-<
+                 comp->=
+                 comp-<=
                  )
            ))
 
@@ -1906,7 +1909,6 @@
             lists-setcdr
             lists-take
             lists-drop
-            lists-member
             lists-reverse
             lists-rotate
             lists-merge
