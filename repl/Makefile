@@ -20,6 +20,9 @@ ifdef HEAP_VIS
 	CCFLAGS += -DVISUALIZE_HEAP
 endif
 
+improved_closures: CCFLAGS += -m32 -DCLEAN_UP_CLOSURES
+improved_closures: repl
+
 all: CCFLAGS += -m32 
 all: repl 
 

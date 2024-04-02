@@ -1785,7 +1785,19 @@ static void eval_define(eval_context_t *ctx) {
 static void eval_lambda(eval_context_t *ctx) {
   lbm_value cdr = get_cdr(ctx->curr_exp);
   ctx->r = allocate_closure(get_car(cdr), get_cadr(cdr), ctx->curr_env);
+#ifdef CLEAN_UP_CLOSURES
+  // Todo, lookup once and cache.
+  lbm_uint sym_id  = 0;
+  if (lbm_get_symbol_by_name("clean-cl-env", &sym_id)) {
+    lbm_value tail = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+    lbm_value app = cons_with_gc(lbm_enc_sym(sym_id), tail, tail);
+    ctx->curr_exp = app;
+  } else {
+    ctx->app_cont = true;
+  }
+#else
   ctx->app_cont = true;
+#endif
 }
 
 // (if cond-expr then-expr else-expr)
