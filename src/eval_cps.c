@@ -721,7 +721,7 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
 #define LOOP_BODY  2
 
 // (a b c) -> [a b c]
-static void extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
+static lbm_value extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
   for (unsigned int i = 0; i < n; i ++) {
     if (lbm_is_ptr(curr)) {
       lbm_cons_t *cell = lbm_ref_cell(curr);
@@ -731,6 +731,7 @@ static void extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
       error_ctx(ENC_SYM_TERROR);
     }
   }
+  return curr; // Rest of list is returned here.
 }
 
 static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg_count, eval_context_t *ctx) {
@@ -1741,25 +1742,21 @@ static void eval_callcc(eval_context_t *ctx) {
 }
 
 // (define sym exp)
+#define KEY 1
+#define VAL 2
 static void eval_define(eval_context_t *ctx) {
-  lbm_value args = get_cdr(ctx->curr_exp);
-  lbm_value key, rest_args;
-  get_car_and_cdr(args, &key, &rest_args);
-  lbm_value val_exp, rest_val;
-  get_car_and_cdr(rest_args, &val_exp, &rest_val);
+  lbm_value parts[3];
+  lbm_value rest = extract_n(ctx->curr_exp, parts, 3);
   lbm_uint *sptr = stack_reserve(ctx, 2);
-
-  if (lbm_is_symbol(key) && lbm_is_symbol_nil(rest_val)) {
-    lbm_uint sym_val = lbm_dec_sym(key);
-
-    sptr[0] = key;
-
+  if (lbm_is_symbol(parts[KEY]) && lbm_is_symbol_nil(rest)) {
+    lbm_uint sym_val = lbm_dec_sym(parts[KEY]);
+    sptr[0] = parts[KEY];
     if (sym_val >= RUNTIME_SYMBOLS_START) {
       sptr[1] = SET_GLOBAL_ENV;
       if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST) {
         stack_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH);
       }
-      ctx->curr_exp = val_exp;
+      ctx->curr_exp = parts[VAL];
       return;
     }
   }
