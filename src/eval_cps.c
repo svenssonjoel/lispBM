@@ -491,7 +491,7 @@ static void lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt)
   handle_flash_status(write_const_cdr(flash_cell, ENC_SYM_ARRAY_TYPE));
 }
 
-static void stack_push(lbm_stack_t *s, lbm_uint val) {
+static inline void stack_push(lbm_stack_t *s, lbm_uint val) {
   if (s->sp < s->size) {
     s->data[s->sp++] = val;
     if (s->sp > s->max_sp) s->max_sp = s->sp;
@@ -500,7 +500,7 @@ static void stack_push(lbm_stack_t *s, lbm_uint val) {
   error_ctx(ENC_SYM_STACK_ERROR);
 }
 
-static void stack_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
+static inline void stack_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
   if (s->sp + 1 < s->size) {
     lbm_uint *t = &s->data[s->sp];
     t[0] = v1;
@@ -512,7 +512,7 @@ static void stack_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
   error_ctx(ENC_SYM_STACK_ERROR);
 }
 
-static void stack_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) {
+static inline void stack_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) {
   if (s->sp + 2 < s->size) {
     lbm_uint *t = &s->data[s->sp];
     t[0] = v1;
@@ -525,7 +525,7 @@ static void stack_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) 
   error_ctx(ENC_SYM_STACK_ERROR);
 }
 
-static void stack_push_4(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4) {
+static inline void stack_push_4(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4) {
   if (s->sp + 3 < s->size) {
     lbm_uint *t = &s->data[s->sp];
     t[0] = v1;
@@ -539,7 +539,7 @@ static void stack_push_4(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, 
   error_ctx(ENC_SYM_STACK_ERROR);
 }
 
-static void stack_push_5(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4, lbm_uint v5) {
+static inline void stack_push_5(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4, lbm_uint v5) {
   if (s->sp + 4 < s->size) {
     lbm_uint *t = &s->data[s->sp];
     t[0] = v1;
@@ -554,7 +554,7 @@ static void stack_push_5(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, 
   error_ctx(ENC_SYM_STACK_ERROR);
 }
 
-static void stack_push_6(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4, lbm_uint v5, lbm_uint v6) {
+static inline void stack_push_6(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4, lbm_uint v5, lbm_uint v6) {
   if (s->sp + 5 < s->size) {
     lbm_uint *t = &s->data[s->sp];
     t[0] = v1;
@@ -720,7 +720,7 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
 #define LOOP_COND  1
 #define LOOP_BODY  2
 
-// (closure params exp env) -> [params, exp, env])
+// (a b c) -> [a b c]
 static void extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
   for (unsigned int i = 0; i < n; i ++) {
     if (lbm_is_ptr(curr)) {
@@ -1802,17 +1802,9 @@ static void eval_lambda(eval_context_t *ctx) {
 
 // (if cond-expr then-expr else-expr)
 static void eval_if(eval_context_t *ctx) {
-
   lbm_value cdr = get_cdr(ctx->curr_exp);
-  lbm_value exp, cddr;
-  get_car_and_cdr(cdr, &exp, &cddr);
-
-  lbm_uint *sptr = stack_reserve(ctx, 4);
-  sptr[0] = get_cadr(cddr); // else_branch
-  sptr[1] = get_car(cddr); // then_branch
-  sptr[2] = ctx->curr_env;
-  sptr[3] = IF;
-  ctx->curr_exp = exp;
+  stack_push_3(&ctx->K, get_cdr(cdr), ctx->curr_env, IF);
+  ctx->curr_exp = get_car(cdr);
 }
 
 // (cond (cond-expr-1 expr-1)
@@ -1833,12 +1825,11 @@ static void eval_cond(eval_context_t *ctx) {
     lbm_value condition = get_car(cond1);
     lbm_value body = get_cadr(cond1);
     lbm_value rest;
-    rest = cons_with_gc(ENC_SYM_COND, get_cddr(ctx->curr_exp), ENC_SYM_NIL);
-    lbm_uint *sptr = stack_reserve(ctx, 4);
-    sptr[0] = rest;
-    sptr[1] = body;
-    sptr[2] = ctx->curr_env;
-    sptr[3] = IF;
+    WITH_GC(rest, lbm_heap_allocate_list_init(2,
+                                              body, // Then branch
+                                              cons_with_gc(ENC_SYM_COND, get_cddr(ctx->curr_exp), ENC_SYM_NIL)));
+
+    stack_push_3(&ctx->K, rest, ctx->curr_env, IF);
     ctx->curr_exp = condition;
   }
 }
@@ -3166,13 +3157,13 @@ static void cont_if(eval_context_t *ctx) {
 
   lbm_value arg = ctx->r;
 
-  lbm_value *sptr = pop_stack_ptr(ctx, 3);
+  lbm_value *sptr = pop_stack_ptr(ctx, 2);
 
-  ctx->curr_env = sptr[2];
+  ctx->curr_env = sptr[1];
   if (lbm_is_symbol_nil(arg)) {
-    ctx->curr_exp = sptr[0]; // else branch
+    ctx->curr_exp = get_cadr(sptr[0]); // else branch
   } else {
-    ctx->curr_exp = sptr[1]; // then branch
+    ctx->curr_exp = get_car(sptr[0]); // then branch
   }
 }
 
