@@ -1961,11 +1961,10 @@ static void eval_var(eval_context_t *ctx) {
 
 // (setq x (...)) - same as (set 'x (...)) or (setvar 'x (...))
 static void eval_setq(eval_context_t *ctx) {
-  lbm_value args = get_cdr(ctx->curr_exp);
-  lbm_value sym = get_car(args);
-  lbm_value v_exp = get_cadr(args);
-  stack_push_3(&ctx->K, ctx->curr_env, sym, SETQ);
-  ctx->curr_exp = v_exp;
+  lbm_value parts[3];
+  extract_n(ctx->curr_exp, parts, 3);
+  stack_push_3(&ctx->K, ctx->curr_env, parts[1], SETQ);
+  ctx->curr_exp = parts[2];
 }
 
 static void eval_move_to_flash(eval_context_t *ctx) {
