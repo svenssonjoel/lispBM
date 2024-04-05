@@ -1988,9 +1988,9 @@ static void eval_loop(eval_context_t *ctx) {
 //      body-exp)
 static void eval_let(eval_context_t *ctx) {
   lbm_value env      = ctx->curr_env;
-  lbm_value binds    = get_cadr(ctx->curr_exp); // key value pairs.
-  lbm_value exp      = get_cadr(get_cdr(ctx->curr_exp)); // exp to evaluate in the new env.
-  let_bind_values_eval(binds, exp, env, ctx);
+  lbm_value parts[3];
+  extract_n(ctx->curr_exp, parts, 3);
+  let_bind_values_eval(parts[1], parts[2], env, ctx);
 }
 
 // (and exp0 ... expN)
