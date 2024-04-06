@@ -346,38 +346,26 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
 
 extern lbm_flash_status lbm_write_const_array_padded(uint8_t *data, lbm_uint n, lbm_uint *res);
 
-static bool store_symbol_name_base(char *name, lbm_uint *res, bool flash) {
+
+static bool store_symbol_name_flash(char *name, lbm_uint *res) {
   size_t n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
 
-  char *symbol_name_storage = NULL;
   lbm_uint alloc_size;
   if (n % sizeof(lbm_uint) == 0) {
     alloc_size = n/(sizeof(lbm_uint));
   } else {
     alloc_size = (n/(sizeof(lbm_uint))) + 1;
   }
-  if (flash) {
-    lbm_uint symbol_addr = 0;
-    lbm_flash_status s = lbm_write_const_array_padded((uint8_t*)name, n, &symbol_addr);
-    if (s != LBM_FLASH_WRITE_OK || symbol_addr == 0) {
-      return false;
-    }
-    symbol_table_size_strings_flash += alloc_size;
-    *res = symbol_addr;
-    return true;
-  } else {
-    symbol_name_storage = (char *)lbm_memory_allocate(alloc_size);
-    if (symbol_name_storage == NULL) return false;
-    symbol_table_size_strings += alloc_size;
-    strcpy(symbol_name_storage, name);
-    *res = (lbm_uint)symbol_name_storage;
-    return true;
-  }
-}
 
-static bool store_symbol_name_flash(char *name, lbm_uint *res) {
-  return store_symbol_name_base(name, res, true);
+  lbm_uint symbol_addr = 0;
+  lbm_flash_status s = lbm_write_const_array_padded((uint8_t*)name, n, &symbol_addr);
+  if (s != LBM_FLASH_WRITE_OK || symbol_addr == 0) {
+    return false;
+  }
+  symbol_table_size_strings_flash += alloc_size;
+  *res = symbol_addr;
+  return true;
 }
 
 static bool add_symbol_to_symtab(char* name, lbm_uint id) {
