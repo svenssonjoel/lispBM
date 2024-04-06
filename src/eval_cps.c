@@ -2149,11 +2149,7 @@ static void cont_set_global_env(eval_context_t *ctx){
 }
 
 static void cont_resume(eval_context_t *ctx) {
-  lbm_value exp;
-  lbm_value env;
-  lbm_pop_2(&ctx->K, &env, &exp);
-  ctx->curr_exp = exp;
-  ctx->curr_env = env;
+  lbm_pop_2(&ctx->K, &ctx->curr_env, &ctx->curr_exp);
 }
 
 static void cont_progn_rest(eval_context_t *ctx) {
@@ -2164,16 +2160,14 @@ static void cont_progn_rest(eval_context_t *ctx) {
 
   lbm_value rest_car, rest_cdr;
   get_car_and_cdr(rest, &rest_car, &rest_cdr);
+  ctx->curr_exp = rest_car;
+  ctx->curr_env = env;
   if (lbm_is_symbol_nil(rest_cdr)) {
     // allow for tail recursion
-    ctx->curr_exp = rest_car;
-    ctx->curr_env = env;
     lbm_stack_drop(&ctx->K, 3);
   } else {
     sptr[2] = rest_cdr;
     stack_push(&ctx->K, PROGN_REST);
-    ctx->curr_exp = rest_car;
-    ctx->curr_env = env;
   }
 }
 
