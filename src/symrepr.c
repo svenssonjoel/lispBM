@@ -376,21 +376,30 @@ static bool store_symbol_name_base(char *name, lbm_uint *res, bool flash) {
   }
 }
 
-static bool store_symbol_name(char *name, lbm_uint *res) {
-  return store_symbol_name_base(name, res, false);
-}
-
 static bool store_symbol_name_flash(char *name, lbm_uint *res) {
   return store_symbol_name_base(name, res, true);
 }
 
-static bool add_symbol_to_symtab(lbm_uint name, lbm_uint id) {
-  lbm_uint *m = lbm_memory_allocate(3);
+static bool add_symbol_to_symtab(char* name, lbm_uint id) {
+  size_t n = strlen(name) + 1;
+  if (n == 1) return 0; // failure if empty symbol
+
+  lbm_uint alloc_size;
+  if (n % sizeof(lbm_uint) == 0) {
+    alloc_size = n/(sizeof(lbm_uint));
+  } else {
+    alloc_size = (n/(sizeof(lbm_uint))) + 1;
+  }
+
+  lbm_uint *storage = lbm_memory_allocate(alloc_size + 3);
+  if (storage == NULL) return false;
+  strncpy(((char*)storage) + 12, name, n);  
+  lbm_uint *m = storage;
 
   if (m == NULL) return false;
 
   symbol_table_size_list += 3;
-  m[NAME] = name;
+  m[NAME] = (lbm_uint)&storage[3];
   m[NEXT] = (lbm_uint) symlist;
   symlist = m;
   m[ID] =id;
@@ -417,9 +426,7 @@ static int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash) {
     if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
     if (!add_symbol_to_symtab_flash(symbol_name_storage, next_symbol_id)) return 0;
   } else {
-    if (!store_symbol_name(name, &symbol_name_storage)) return 0;
-    if (!add_symbol_to_symtab(symbol_name_storage, next_symbol_id)) {
-      lbm_memory_free((lbm_uint*)symbol_name_storage);
+    if (!add_symbol_to_symtab(name, next_symbol_id)) {
       return 0;
     }
   }
@@ -436,13 +443,14 @@ int lbm_add_symbol_flash(char *name, lbm_uint* id) {
 }
 
 int lbm_add_symbol_const(char *name, lbm_uint* id) {
-
-  if (!add_symbol_to_symtab((lbm_uint)name, next_symbol_id)) {
-    return 0;
-  }
-
+  lbm_uint *m = lbm_memory_allocate(3);
+  if (m == NULL) return 0;
+  symbol_table_size_list += 3;
+  m[NAME] = (lbm_uint) name;
+  m[NEXT] = (lbm_uint) symlist;
+  symlist = m;
+  m[ID] = next_symbol_id;
   *id = next_symbol_id ++;
-
   return 1;
 }
 
