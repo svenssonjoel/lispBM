@@ -1950,7 +1950,12 @@ static void eval_var(eval_context_t *ctx) {
 
     lbm_value v_exp = get_cadr(args);
     stack_push_3(&ctx->K, new_env, key, PROGN_VAR);
-    ctx->curr_env = new_env; // So binding body knows binding (enables recursion)
+    // Activating the new environment before the evaluation of the value to be bound,
+    // means that other variables with same name will be shadowed already in the value
+    // body.
+    // The way closures work, the var-variable needs to be in scope during val evaluation
+    // for a recursive closure to be possible.
+    ctx->curr_env = new_env;
     ctx->curr_exp = v_exp;
     return;
     }

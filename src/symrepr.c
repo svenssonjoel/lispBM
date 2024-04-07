@@ -21,10 +21,12 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
+
 #include <lbm_memory.h>
 #include <heap.h>
 #include "symrepr.h"
 #include "extensions.h"
+#include "lbm_utils.h"
 
 #define NUM_SPECIAL_SYMBOLS (sizeof(special_symbols) / sizeof(special_sym))
 #define NAME   0
@@ -305,7 +307,7 @@ lbm_uint *lbm_get_symbol_list_entry_by_name(char *name) {
   lbm_uint *curr = symlist;
   while (curr) {
     char *str = (char*)curr[NAME];
-    if (strcmp(name, str) == 0) {
+    if (str_eq(name, str)) {
       return (lbm_uint *)curr;
     }
     curr = (lbm_uint*)curr[NEXT];
@@ -318,7 +320,7 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
 
   // loop through special symbols
   for (unsigned int i = 0; i < NUM_SPECIAL_SYMBOLS; i ++) {
-    if (strcmp(name, special_symbols[i].name) == 0) {
+    if (str_eq(name, (char *)special_symbols[i].name)) {
       *id = special_symbols[i].id;
       return 1;
     }
@@ -326,7 +328,7 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
 
   // loop through extensions
   for (unsigned int i = 0; i < lbm_get_max_extensions(); i ++) {
-    if (extension_table[i].name && strcmp(name, extension_table[i].name) == 0) {
+    if (extension_table[i].name && str_eq(name, extension_table[i].name)) {
       *id = EXTENSION_SYMBOLS_START + i;
       return 1;
     }
@@ -335,7 +337,7 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
   lbm_uint *curr = symlist;
   while (curr) {
     char *str = (char*)curr[NAME];
-    if (strcmp(name, str) == 0) {
+    if (str_eq(name, str)) {
       *id = curr[ID];
       return 1;
     }
