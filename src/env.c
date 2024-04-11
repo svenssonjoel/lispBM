@@ -37,6 +37,21 @@ lbm_value *lbm_get_global_env(void) {
   return env_global;
 }
 
+lbm_value lbm_env_copy_shallow(lbm_value env) {
+  lbm_value new_env = ENC_SYM_NIL;
+  lbm_value curr = env;
+  while (lbm_is_cons(curr)) {
+    lbm_value pair = lbm_car(curr);
+    lbm_value new_pair = lbm_cons(lbm_car(pair), lbm_cdr(pair));
+    if (lbm_is_symbol(new_pair)) return new_pair;
+    new_env = lbm_cons(new_pair, new_env);
+    if (lbm_is_symbol(new_env)) return new_env;
+    curr = lbm_cdr(curr);
+  }
+  return new_env;
+}
+
+// Copy the list structure of an environment.
 lbm_value lbm_env_copy_spine(lbm_value env) {
 
   lbm_value r = ENC_SYM_MERROR;
