@@ -1303,8 +1303,7 @@ static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
 /* Advance execution to the next expression in the program */
 static void advance_ctx(eval_context_t *ctx) {
   if (lbm_is_cons(ctx->program)) {
-    lbm_value *sptr = stack_reserve(ctx, 1);
-    sptr[0] = DONE;
+    stack_reserve(ctx, 1)[0] = DONE;;
     get_car_and_cdr(ctx->program, &ctx->curr_exp, &ctx->program);
     ctx->curr_env = ENC_SYM_NIL;
   } else {
@@ -1635,8 +1634,7 @@ static void eval_atomic(eval_context_t *ctx) {
     lbm_set_error_reason("Atomic blocks cannot be nested!");
     error_ctx(ENC_SYM_EERROR);
   }
-  lbm_value *sptr = stack_reserve(ctx, 1);
-  sptr[0] = EXIT_ATOMIC;
+  stack_reserve(ctx, 1)[0] = EXIT_ATOMIC;
   is_atomic ++;
   eval_progn(ctx);
 }
@@ -1678,8 +1676,7 @@ static void eval_define(eval_context_t *ctx) {
     if (sym_val >= RUNTIME_SYMBOLS_START) {
       sptr[1] = SET_GLOBAL_ENV;
       if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST) {
-        lbm_value *sptr2 = stack_reserve(ctx, 1);
-        sptr2[0] = MOVE_VAL_TO_FLASH_DISPATCH;
+        stack_reserve(ctx, 1)[0] = MOVE_VAL_TO_FLASH_DISPATCH;
       }
       ctx->curr_exp = parts[VAL];
       return;
@@ -1702,6 +1699,9 @@ static void eval_define(eval_context_t *ctx) {
    However, one can try to write programs in such a way that closures are created
    seldomly. If one does that the space-usage benefits of "correct" closures
    may outweigh the performance gain of "incorrect" ones.
+
+   some obscure programs such as test_setq_local_closure.lisp does not
+   work properly due to this cheating.
  */
 // (lambda param-list body-exp) -> (closure param-list body-exp env)
 static void eval_lambda(eval_context_t *ctx) {
@@ -2123,8 +2123,7 @@ static void cont_progn_rest(eval_context_t *ctx) {
     lbm_stack_drop(&ctx->K, 3);
   } else {
     sptr[2] = rest_cdr;
-    lbm_value *rptr = stack_reserve(ctx, 1);
-    rptr[0] = PROGN_REST;
+    stack_reserve(ctx, 1)[0] = PROGN_REST;
   }
 }
 
@@ -3787,14 +3786,17 @@ static void cont_read_next_token(eval_context_t *ctx) {
   if (n > 0) {
     lbm_channel_drop(chan, (unsigned int) n);
     lbm_uint symbol_id;
-
     if (lbm_get_symbol_by_name(tokpar_sym_str, &symbol_id)) {
       res = lbm_enc_sym(symbol_id);
     } else {
       int r = 0;
-      if (strncmp(tokpar_sym_str,"ext-",4) == 0) {
+      if (n > 4 &&
+          tokpar_sym_str[0] == 'e' &&
+          tokpar_sym_str[1] == 'x' &&
+          tokpar_sym_str[2] == 't' &&
+          tokpar_sym_str[3] == '-') {
         lbm_uint ext_id;
-        lbm_uint ext_name_len = strlen(tokpar_sym_str)+1;
+        lbm_uint ext_name_len = (lbm_uint)n + 1;
         char *ext_name = lbm_malloc(ext_name_len);
         if (!ext_name) {
           gc();
