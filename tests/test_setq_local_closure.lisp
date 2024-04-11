@@ -1,5 +1,9 @@
 
 
+;; (a 10) is similar to a global but only global to the two functions
+;; created in the let.
+;; This may be a bit strange. But strangeness only observable through
+;; imperative updates.
 (define funs (let ( ( a 10) )
                (list (lambda (x) { (setq a x) a})
                      (lambda () a))))
@@ -10,5 +14,4 @@
 
 (f 20)
 
-;; Below is incorrect but maybe tollerable?
-(check (= (g) 10))
+(check (= (g) 20))

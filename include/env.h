@@ -39,14 +39,6 @@ int lbm_init_env(void);
  * \return the global environment
  */
 lbm_value *lbm_get_global_env(void);
-/** Copy an environment. The list structure is
- * recreated and a copy of the key-value pair is created. The value portion
- * may still be references.
- *
- * \param env Environment to copy.
- * \return Copy of environment.
- */
-lbm_value lbm_env_copy_shallow(lbm_value env);
 /** Copy the spine of an environment. The list structure is
  * recreated but the values themselves are not copied but rather
  * just referenced.
