@@ -2054,7 +2054,7 @@ static void eval_receive_timeout(eval_context_t *ctx) {
     lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
     error_ctx(ENC_SYM_EERROR);
   }
-  lbm_value timeout_val = get_car(get_cdr(ctx->curr_exp));
+  lbm_value timeout_val = get_cadr(ctx->curr_exp);
   if (!lbm_is_number(timeout_val)) {
     error_ctx(ENC_SYM_EERROR);
   }
@@ -2660,7 +2660,7 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_uint len = lbm_list_length(cl[CLO_PARAMS]);
     if (len == 2) {
       par1 = get_car(cl[CLO_PARAMS]);
-      par2 = get_car(get_cdr(cl[CLO_PARAMS]));
+      par2 = get_cadr(cl[CLO_PARAMS]);
       lbm_value new_env0;
       lbm_value new_env;
       WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a_1)));
@@ -2744,7 +2744,7 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_uint cl_len = lbm_list_length(cl[CLO_PARAMS]);
     if (cl_len == 2) {
       par1 = get_car(cl[CLO_PARAMS]);
-      par2 = get_car(get_cdr(cl[CLO_PARAMS]));
+      par2 = get_cadr(cl[CLO_PARAMS]);
       lbm_value new_env0;
       lbm_value new_env;
       WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a)));
@@ -4538,17 +4538,17 @@ lbm_value append(lbm_value front, lbm_value back) {
 
   if (lbm_is_quoted_list(front) &&
       lbm_is_quoted_list(back)) {
-    lbm_value f = get_car(get_cdr(front));
-    lbm_value b = get_car(get_cdr(back));
+    lbm_value f = get_cadr(front);
+    lbm_value b = get_cadr(back);
     return quote_it(lbm_list_append(f, b));
   }
 
   if (is_append(back) &&
-      lbm_is_quoted_list(get_car(get_cdr(back))) &&
+      lbm_is_quoted_list(get_cadr(back)) &&
        lbm_is_quoted_list(front)) {
-    lbm_value ql = get_car(get_cdr(back));
-    lbm_value f = get_car(get_cdr(front));
-    lbm_value b = get_car(get_cdr(ql));
+    lbm_value ql = get_cadr(back);
+    lbm_value f = get_cadr(front);
+    lbm_value b = get_cadr(ql);
 
     lbm_value v = lbm_list_append(f, b);
     lbm_set_car(get_cdr(ql), v);
