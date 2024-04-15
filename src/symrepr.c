@@ -383,7 +383,7 @@ static bool add_symbol_to_symtab(char* name, lbm_uint id) {
 
   lbm_uint *storage = lbm_memory_allocate(alloc_size + 3);
   if (storage == NULL) return false;
-  strncpy(((char*)storage) + 12, name, n);  
+  strncpy(((char*)storage) + (3 * sizeof(lbm_uint)), name, n);
   lbm_uint *m = storage;
 
   if (m == NULL) return false;

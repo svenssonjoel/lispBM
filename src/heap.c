@@ -1147,7 +1147,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
 lbm_int lbm_heap_array_get_size(lbm_value arr) {
 
-  int r = -1;
+  lbm_int r = -1;
   if (lbm_is_array_r(arr)) {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
     if (header == NULL) {

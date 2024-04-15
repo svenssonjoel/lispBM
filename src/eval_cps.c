@@ -1616,7 +1616,7 @@ static void eval_progn(eval_context_t *ctx) {
   if (lbm_is_cons(exps)) {
     lbm_uint *sptr = stack_reserve(ctx, 4);
     sptr[0] = ctx->curr_env; // env to restore between expressions in progn
-    sptr[1] = lbm_enc_u(0);   // Has env been copied (needed for progn local bindings)
+    sptr[1] = lbm_enc_u(0);  // Has env been copied (needed for progn local bindings)
     sptr[3] = PROGN_REST;
     get_car_and_cdr(exps, &ctx->curr_exp, &sptr[2]);
     if (lbm_is_symbol(sptr[2])) /* The only symbol it can be is nil */
@@ -3375,8 +3375,8 @@ static void cont_merge_rest(eval_context_t *ctx) {
 // ctx->r merged sublist
 static void cont_merge_layer(eval_context_t *ctx) {
   lbm_uint *sptr = get_stack_ptr(ctx, 9);
-  int layer = lbm_dec_i(sptr[7]);
-  int len   = lbm_dec_i(sptr[8]);
+  lbm_int layer = lbm_dec_i(sptr[7]);
+  lbm_int len = lbm_dec_i(sptr[8]);
 
   lbm_value r_curr = ctx->r;
   while (lbm_is_cons(r_curr)) {

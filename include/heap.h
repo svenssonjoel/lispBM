@@ -873,7 +873,7 @@ static inline bool lbm_is_symbol(lbm_value exp) {
 }
 
 static inline bool lbm_is_symbol_nil(lbm_value exp) {
-  return exp == ENC_SYM_NIL;
+  return !exp;// == ENC_SYM_NIL;
 }
 
 static inline bool lbm_is_symbol_true(lbm_value exp) {
