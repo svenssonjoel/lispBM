@@ -360,53 +360,17 @@ Operations on fixed bitwidth mumerical types can lead to overflow. The ranges re
 
 All Values in LBM are encoded in one way or another. The encoded value holds additional information about type and garbage collection mark bit.  Operations that operate on an LBM value needs to unpack this encoded format and extract the actual numerical information from the representation. This has a cost and operations on numbers are in general a bit slower than what one gets in, for example C. 
 
-The chart below shows the time it takes to perform 10 million additions on the x86 architecture (a i7-6820HQ) in 32Bit mode. The difference in cost is negligible between the types `byte` - `u32` with a huge increase in cost for 64 bit types. 
+The chart below shows the time it takes to perform 10 million additions on the x86 architecture (a i7-6820HQ) in 32 and 64 Bit mode. 
 
-All Integer types | 32Bit or smaller
-|:---:|:---:|
-![Performance of 10 million additions at various types on x86 32bit](./images/millions.png) | ![Performance of 10 million additions at various types on x86 32bit](./images/millions_zoom.png)
-
-The charts below compare floating point operations to `u32` operations on x86 32Bit. There is little difference in cost of `f32` and `u32` operations, but a large increase in cost when going to `f64` (double). 
-
-`f32` and `f64` vs `u32` | `f32` vs `u32`
-|:---:|:---:|
-![Performance of floating point additions on x86 32bit](./images/float_x86_32.png) | ![Performance floating point additions on x86 32bit](./images/float_x86_32_zoom.png)
+![Perfomance of 10 million additions at various types on X86](./images/lbm_arith_pc.png "Perfomance of 10 million additions at various types on X86")
 
 In 64Bit mode the x86 version of LBM shows negligible differences in cost of additions at different types. 
 
-All Integer types | `f32` and `f64` vs `u32`
-|:---:|:---:|
-![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png) | ![Performance of floating point additions on x86 64bit](./images/float_x86_64.png)
-
-On 64Bit x86 the difference in cost is little accross all LBM types. 
-
 For addition performance on embedded systems, we use the the EDU VESC motorcontroller as the STM32F4 candidate and the VESC EXPRESS for a RISCV data point. 
 
-On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000 additions.  There is a more pronounced gap between 28Bit and smaller types and the 32Bit types here. Likely because of the differences in encoding of 28Bit or less types and 32Bit types. 
+![Performance of 100000 additions at various types on ESP32C3 and STM32F4](./images/lbm_arith_embedded.png "Performance of 100000 additions at various types on ESP32C3 and STM32F4")
 
-All Integer types | 32Bit or smaller
-|:---:|:---:|
-![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv.png) | ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv_zoom.png)
-
-On RISCV the difference in cost between `u32` and `f32` operations is small. This is a bit surprising as the ESP32C3 does not have a floating point unit. It is possible that the encoding/decoding of numbers is dominating the cost of any numerical opeation. 
-
-`f32` and `f64` vs `u32` | `f32` vs `u32`
-|:---:|:---:|
-![Performance of floating point additions on ESP32C3 RISCV](./images/float_riscv.png) | ![Performance floating point additions on ESP32C3 RISCV](./images/float_riscv_zoom.png)
-
-On the STM32F4 at 168MHz (an EDU VESC) The results are similar to ESP32 but slower.  The slower performance on the VESC compared to the VESC_Express ESP32 may be caused by the VESC firmware running motorcontrol interrups at a high frequency. 
-
-All Integer types | 32Bit or smaller
-|:---:|:---:|
-![Performance of 100000 addtions at various types on STM32F4](./images/thousands_arm.png) | ![Performance of 100000 additions at various types on STM32F4](./images/thousands_arm_zoom.png)
-
-The cost of `f32` operations compared to `u32` on the STM32F4 shows little differences.  As expected there is a jump up in cost when going to 64Bit. 
-
-`f32` and `f64` vs `u32` | `f32` vs `u32`
-|:---:|:---:|
-![Performance of floating point additions on STM32F4](./images/float_stm.png) | ![Performance floating point additions on STM32F4](./images/float_stm_zoom.png)
-
-In general, on 32Bit platforms, the cost of operations on numerical types that are 32Bit or less are about equal in cost. The costs presented here was created by timing a large number of 2 argument additions. Do not see these measurements as the "truth carved in stone", LBM performance keeps changing over time as we make improvements, but use them as a rough guiding principle.  If anything can be taken away from this it is to stay away from 64Bit value operations in your tightest and most time critical loops. 
+In general, on 32Bit platforms, the cost of operations on numerical types that are 32Bit or less are about equal in cost. The costs presented here was created by timing a large number of 2 argument additions. Do not see these measurements as the "truth carved in stone", LBM performance keeps changing over time as we make improvements, but use them as a rough guiding principle. 
 
 
 ## Syntax and semantics
@@ -457,7 +421,11 @@ In LispBM a pair of S-expressions is created by an application of `cons` as `(co
 
 The S-expressions from the previous section are just trees. The Lisp evaluator provides a computational interepretation for such trees. Not all trees make sense as lisp programs. This section is about those trees that do make sense and what they mean to the Lisp evaluator. 
 
+TODO: Finish section. 
+
 ### Concurrency and Semantics
+
+TODO: Finish section. 
 
 # Reference
 
@@ -4413,11 +4381,17 @@ Parses and evaluates a program incrementally. `read-eval-program` reads a top-le
 
 Lists are built using cons cells. A cons cell is represented by the lbm_cons_t struct in the implementation and consists of two fields named the `car` and the `cdr`. There is no special meaning associated with the `car` and the `cdr` each can hold a lbm_value. See <a href="#cons">cons</a> and <a href="#list">list</a> for two ways to create structures of cons cells on the heap. 
 
-![cons cell](images/cons_cell.png "cons cell")A cons cell can be used to store a pair of values. You create a pair by sticking a value in both the car and cdr field of a cons cell using either `'(1 . 2)` or `(cons 1 2)`. 
+![cons cell](images/cons_cell.png "cons cell")
 
-![pair](images/pair.png "pair")A list is a number of cons cells linked together where the car fields hold values and the cdr fields hold pointers (the last cdr field is nil). The list below can be created either as `'(1 2 3)` or as `(list 1 2 3)`. 
+A cons cell can be used to store a pair of values. You create a pair by sticking a value in both the car and cdr field of a cons cell using either `'(1 . 2)` or `(cons 1 2)`. 
+
+![pair](images/pair.png "pair")
+
+A list is a number of cons cells linked together where the car fields hold values and the cdr fields hold pointers (the last cdr field is nil). The list below can be created either as `'(1 2 3)` or as `(list 1 2 3)`. 
 
 ![list](images/list.png "list")
+
+
 ### car
 
 Use `car` to access the `car` field of a cons cell. A `car` expression has the form `(car expr)`. 
@@ -5385,6 +5359,8 @@ apa
 Rotating a list in the negative direction is slightly faster than rotating in the positive direction. The chart below shows the time 1 Million 3 step rotations take in each direction at varying list lengths. The data is collected on x86. 
 
 ![Performance of list rotate](images/rotate_pos_neg.png "Performance of list rotate")
+
+
 
 
 ---

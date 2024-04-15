@@ -163,7 +163,7 @@
          ( (program (? c)) (render-program-table rend c))
          ( (code (? c)) (render-code-table rend c))
          ( (image (? alt) (? url))
-           (rend (str-merge "![" alt "](" url " \"" alt "\")")))
+           (rend (str-merge "![" alt "](" url " \"" alt "\")\n\n")))
          ( (image-pair (? cap0) (? txt0) (? fig0) (? cap1) (? txt1) (? fig1))
            (rend (str-merge cap0 " | " cap1 "\n"
                             "|:---:|:---:|\n"
@@ -401,98 +401,29 @@
                         "general a bit slower than what one gets in, for example C."
                         ))
             (para (list "The chart below shows the time it takes to perform 10 million"
-                        "additions on the x86 architecture (a i7-6820HQ) in 32Bit mode. The"
-                        "difference in cost is negligible between the types `byte` - `u32` with"
-                        "a huge increase in cost for 64 bit types."
+                        "additions on the x86 architecture (a i7-6820HQ) in 32 and 64 Bit mode."
                         ))
-            (image-pair "All Integer types"
-                        "Performance of 10 million additions at various types on x86 32bit"
-                        "./images/millions.png"
-                        "32Bit or smaller"
-                        "Performance of 10 million additions at various types on x86 32bit"
-                        "./images/millions_zoom.png"
-                        )
-            (para (list "The charts below compare floating point operations to `u32` operations on x86 32Bit."
-                        "There is little difference in cost of `f32` and `u32` operations, but a large increase"
-                        "in cost when going to `f64` (double)."
-                        ))
-            (image-pair "`f32` and `f64` vs `u32`"
-                        "Performance of floating point additions on x86 32bit"
-                        "./images/float_x86_32.png"
-                        "`f32` vs `u32`"
-                        "Performance floating point additions on x86 32bit"
-                        "./images/float_x86_32_zoom.png"
-                        )
+            (image "Perfomance of 10 million additions at various types on X86"
+                   "./images/lbm_arith_pc.png"
+                   )
             (para (list "In 64Bit mode the x86 version of LBM shows negligible differences in"
                         "cost of additions at different types."
                         ))
-            (image-pair "All Integer types"
-                        "Performance of 10 million additions at various types on x86 64bit"
-                        "./images/millions64.png"
-                        "`f32` and `f64` vs `u32`"
-                        "Performance of floating point additions on x86 64bit"
-                        "./images/float_x86_64.png"
-                        )
-            (para (list "On 64Bit x86 the difference in cost is little accross all LBM types."
-                        ))
+            
             (para (list "For addition performance on embedded systems, we use the the EDU VESC"
                         "motorcontroller as the STM32F4 candidate and the VESC EXPRESS for a"
                         "RISCV data point."
                         ))
-            (para (list "On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000"
-                        "additions.  There is a more pronounced gap between 28Bit and smaller"
-                        "types and the 32Bit types here. Likely because of the differences in"
-                        "encoding of 28Bit or less types and 32Bit types."
-                        ))
-            (image-pair "All Integer types"
-                        "Performance of 100000 addtions at various types on ESP32C3 RISCV"
-                        "./images/thousands_riscv.png"
-                        "32Bit or smaller"
-                        "Performance of 100000 addtions at various types on ESP32C3 RISCV"
-                        "./images/thousands_riscv_zoom.png"
-                        )
-            (para (list "On RISCV the difference in cost between `u32` and `f32` operations is small."
-                        "This is a bit surprising as the ESP32C3 does not have a floating point unit. It"
-                        "is possible that the encoding/decoding of numbers is dominating the cost"
-                        "of any numerical opeation."
-                        ))
-            (image-pair "`f32` and `f64` vs `u32`"
-                        "Performance of floating point additions on ESP32C3 RISCV"
-                        "./images/float_riscv.png"
-                        "`f32` vs `u32`"
-                        "Performance floating point additions on ESP32C3 RISCV"
-                        "./images/float_riscv_zoom.png"
-                        )
-            (para (list "On the STM32F4 at 168MHz (an EDU VESC) The results are similar to"
-                        "ESP32 but slower.  The slower performance on the VESC compared to the"
-                        "VESC_Express ESP32 may be caused by the VESC firmware running"
-                        "motorcontrol interrups at a high frequency."
-                        ))
-            (image-pair "All Integer types"
-                        "Performance of 100000 addtions at various types on STM32F4"
-                        "./images/thousands_arm.png"
-                        "32Bit or smaller"
-                        "Performance of 100000 additions at various types on STM32F4"
-                        "./images/thousands_arm_zoom.png"
-                        )
-            (para (list "The cost of `f32` operations compared to `u32` on the STM32F4 shows"
-                        "little differences.  As expected there is a jump up in cost when going to 64Bit."
-                        ))
-            (image-pair "`f32` and `f64` vs `u32`"
-                        "Performance of floating point additions on STM32F4"
-                        "./images/float_stm.png"
-                        "`f32` vs `u32`"
-                        "Performance floating point additions on STM32F4"
-                        "./images/float_stm_zoom.png"
-                        )
+            (image "Performance of 100000 additions at various types on ESP32C3 and STM32F4"
+                   "./images/lbm_arith_embedded.png"
+                   )
             (para (list "In general, on 32Bit platforms, the cost of operations on numerical"
-                        "types that are 32Bit or less are about equal in cost. The costs"
+                        "types that are 32Bit or less are about equal in cost."
+                        "The costs"
                         "presented here was created by timing a large number of 2 argument"
                         "additions. Do not see these measurements as the \"truth carved in stone\","
                         "LBM performance keeps changing over time as we make improvements, but"
-                        "use them as a rough guiding principle.  If anything can be taken away"
-                        "from this it is to stay away from 64Bit value operations in your"
-                        "tightest and most time critical loops."
+                        "use them as a rough guiding principle."
                         ))
             end))
   )
@@ -585,6 +516,8 @@
                         "as lisp programs. This section is about those trees that do make sense and"
                         "what they mean to the Lisp evaluator."
                         ))
+            (para (list "TODO: Finish section."
+                        ))
             ))
   )
 
@@ -592,6 +525,8 @@
 (defun concurrency-and-semantics ()
   (section 3 "Concurrency and Semantics"
            (list
+            (para (list "TODO: Finish section."
+                        ))
             )
            ))
 
