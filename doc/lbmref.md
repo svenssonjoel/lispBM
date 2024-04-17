@@ -427,7 +427,7 @@ TODO: Finish section.
 
 TODO: Finish section. 
 
-:qui## Functional and Imperative programming
+## Functional and Imperative programming
 
 To differentiate from Imperative and Functional, think of imperative programs  as sequences of operations that update a state and  functional programs as transformations of values through application  of compositions of functions. Functional programming languages often let functions be values, which means that functions  can be stored in lists, returned from other functions and so on 
 
@@ -524,7 +524,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 <td>
 
 ```clj
-(+ 2 3.140000f32)
+(+ 2i 3.14)
 ```
 
 
@@ -612,7 +612,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 <td>
 
 ```clj
-(- 10 3.140000f32)
+(- 10 3.14)
 ```
 
 
@@ -700,7 +700,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 <td>
 
 ```clj
-(* 4 3.140000f32)
+(* 4 3.14)
 ```
 
 
@@ -752,7 +752,7 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 <td>
 
 ```clj
-(/ 6.280000f32 2)
+(/ 6.28 2)
 ```
 
 
@@ -1341,7 +1341,7 @@ nil
 <td>
 
 ```clj
-(< 3.140000f32 1)
+(< 3.14 1)
 ```
 
 
@@ -1359,7 +1359,7 @@ nil
 <td>
 
 ```clj
-(< 1 3.140000f32)
+(< 1 3.14)
 ```
 
 
@@ -1447,7 +1447,7 @@ nil
 <td>
 
 ```clj
-(>= 3.140000f32 1)
+(>= 3.14 1)
 ```
 
 
@@ -1465,7 +1465,7 @@ t
 <td>
 
 ```clj
-(>= 1 3.140000f32)
+(>= 1 3.14)
 ```
 
 
@@ -1553,7 +1553,7 @@ t
 <td>
 
 ```clj
-(<= 3.140000f32 1)
+(<= 3.14 1)
 ```
 
 
@@ -1571,7 +1571,7 @@ nil
 <td>
 
 ```clj
-(<= 1 3.140000f32)
+(<= 1 3.14)
 ```
 
 

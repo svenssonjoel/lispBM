@@ -1,9 +1,8 @@
 
-(defun has-alt-txt (x)
+(defun is-read-eval-txt (x)
   (match x
-         ( (alt-txt . _) true)
+         ( (read-eval . _) true)
          (_ false)))
-
 
 (defun pretty (c)
   (pretty-ind 0 c))
@@ -69,11 +68,11 @@
   (match cs
          (nil t)
          ( ((? x) . (? xs))
-           (let ((x-str (if (has-alt-txt x)
-                            (ix x 2)
+           (let ((x-str (if (is-read-eval-txt x)
+                            (ix x 1)
                           (pretty x)))
-                 (x-code (if (has-alt-txt x)
-                             (ix x 1)
+                 (x-code (if (is-read-eval-txt x)
+                             (read (ix x 1))
                            x))
                  (res (eval nil x-code))
                  (rstr (to-str res)))
@@ -651,7 +650,8 @@
             (code '((+ 1 2)
                     (+ 1 2 3 4)
                     (+ 1 1u)
-                    (+ 2i 3.14)))
+                    (read-eval "(+ 2i 3.14)")
+                    ))
             end)))
 
 (define arith-sub
@@ -662,7 +662,8 @@
             (code '((- 5 3)
                     (- 10 5 5)
                     (- 10 2u)
-                    (- 10 3.14)))
+                    (read-eval "(- 10 3.14)")
+                    ))
             end)))
 
 (define arith-mul
@@ -674,7 +675,8 @@
             (code '((* 2 2)
                     (* 2 3 4 5)
                     (* 10 2u)
-                    (* 4 3.14)))
+                    (read-eval "(* 4 3.14)")
+                             ))
             end)))
 
 (define arith-div
@@ -683,7 +685,7 @@
               (para (list "Division. The form of a `/` expression is `(/ expr1 ... exprN)`."
                           ))
               (code '((/ 128 2)
-                      (/ 6.28 2)
+                      (read-eval "(/ 6.28 2)")
                       (/ 256 2 2 2 2 2 2 2)))
               end)))
 
@@ -794,8 +796,8 @@
 
               (code '((< 5 2)
                       (< 5 2)
-                      (< 3.14 1)
-                      (< 1 3.14)
+                      (read-eval "(< 3.14 1)")
+                      (read-eval "(< 1 3.14)")
                       ))
               end)))
 
@@ -808,8 +810,8 @@
               (code '((>= 1 1)
                       (>= 5 2)
                       (>= 2 5)
-                      (>= 3.14 1)
-                      (>= 1 3.14)
+                      (read-eval "(>= 3.14 1)")
+                      (read-eval "(>= 1 3.14)")
                       ))
               end)))
 
@@ -822,8 +824,8 @@
               (code '((<= 1 1)
                       (<= 5 2)
                       (<= 2 5)
-                      (<= 3.14 1)
-                      (<= 1 3.14)
+                      (read-eval "(<= 3.14 1)")
+                      (read-eval "(<= 1 3.14)")
                       ))
               end)))
 
@@ -1010,9 +1012,9 @@
              (list
               (para (list "`false` is an alias for `nil`."
                           ))
-              (code '((alt-txt (cons 1 false) "(cons 1 false)")
-                      (alt-txt (if false 3 100) "(if false 3 100)")
-                      (alt-txt false "false")
+              (code '((read-eval "(cons 1 false)")
+                      (read-eval "(if false 3 100)")
+                      (read-eval "false")
                       ))
               end)))
 
@@ -1021,9 +1023,9 @@
              (list
               (para (list "`true` is an alias for `t`."
                           ))
-              (code '((alt-txt (cons 1 true) "(cons 1 true)")
-                      (alt-txt (if true 3 100) "(if true 3 100)")
-                      (alt-txt true "true")
+              (code '((read-eval "(cons 1 true)")
+                      (read-eval "(if true 3 100)")
+                      (read-eval "true")
                       ))
               end)))
 
@@ -1047,9 +1049,9 @@
                           "symbol quote by the reader.  Evaluating a quoted expression, (quote"
                           "a), results in a unevaluated."
                           ))
-              (code '((alt-txt '(+ 1 2) "'(+ 1 2)")
-                      (alt-txt (eval '(+ 1 2)) "(eval '(+ 1 2))")
-                      (alt-txt 'kurt "'kurt")
+              (code '((read-eval "'(+ 1 2)")
+                      (read-eval "(eval '(+ 1 2))")
+                      (read-eval "'kurt")
                       (quote (+ 1 2))
                       (eval (quote (+ 1 2)))
                       (quote kurt)
@@ -1069,8 +1071,8 @@
                           "the expression `(append (quote (+)) (append (quote (1)) (append (quote"
                           "(2)) (quote nil))))` which evaluates to the list `(+ 1 2)`."
                           ))
-              (code '((alt-txt `(+ 1 2) "`(+ 1 2)")
-                      (alt-txt `(+ 1 ,(+ 1 1)) "`(+ 1 ,(+ 1 1))")
+              (code '((read-eval "`(+ 1 2)")
+                      (read-eval "`(+ 1 ,(+ 1 1))")
                       (append (quote (+ 1)) (list (+ 1 1)))
                       ))
               end)))
@@ -1084,7 +1086,7 @@
                           "`(append (quote (+)) (append (quote (1)) (append (list (+ 1 1)) (quote nil))))`."
                           "Evaluating the expression above results in the list `(+ 1 2)`."
                           ))
-              (code '((alt-txt `(+ 1 ,(+ 1 1)) "`(+ 1 ,(+ 1 1))")
+              (code '((read-eval "`(+ 1 ,(+ 1 1))")
                       ))
               end)))
 
@@ -1094,7 +1096,7 @@
               (para (list "The comma-at operation is used to splice in the result of a computation (that"
                           "returns a list) into a list when quasiquoting."
                           ))
-              (code '((alt-txt `(1 2 3 ,@(range 4 10)) "`(1 2 3 ,@(range 4 10))")
+              (code '((read-eval "`(1 2 3 ,@(range 4 10))")
                       ))
               end)))
 
@@ -1126,7 +1128,7 @@
               (code '((eval (list + 1 2))
                       (eval '(+ 1 2))
                       (eval '( (a . 100) ) '(+ a 1))
-                      (alt-txt (eval `(+ 1 ,@(range 2 5))) "(eval `(+ 1 ,@(range 2 5)))")
+                      (read-eval "(eval `(+ 1 ,@(range 2 5)))")
                       ))
               end)))
 
@@ -1144,7 +1146,7 @@
               (code '((eval-program (list (list + 1 2) (list + 3 4)))
                       (eval-program '( (+ 1 2) (+ 3 4)))
                       (eval-program (list (list define 'a 10) (list + 'a 1)))
-                      (alt-txt (eval-program '( (define a 10) (+ a 1))) "(eval-program '( (define a 10) (+ a 1)))")
+                      (read-eval "(eval-program '( (define a 10) (+ a 1)))")
                       ))
               end)))
 
@@ -1162,7 +1164,7 @@
                       (type-of 1u64)
                       (type-of 3.14)
                       (type-of 3.14f64)
-                      (alt-txt (type-of 'apa) "(type-of 'apa)")
+                      (read-eval "(type-of 'apa)")
                       (type-of (list 1 2 3))
                       ))
               end)))
@@ -1175,7 +1177,7 @@
                           "built in symbols using this function."
                           ))
               (code '((sym2str (quote lambda))
-                      (alt-txt (sym2str 'lambda) "(sym2str 'lambda)")
+                      (read-eval "(sym2str 'lambda)")
                       ))
               end)))
 
@@ -1194,7 +1196,7 @@
               (para (list "The `sym2u` function returns the numerical value used by the runtime system for a symbol."
                           ))
               (code '((sym2u (quote lambda))
-                      (alt-txt (sym2u 'lambda) "(sym2u 'lambda)")
+                      (read-eval "(sym2u 'lambda)")
                       ))
               end)))
 
@@ -1519,8 +1521,8 @@
                           "the string can not be parsed into an expression. The form of a read expression is"
                           "`(read string)`."
                           ))
-              (code '((alt-txt (read "1") "(read \"1\")")
-                      (alt-txt (read "(lambda (x) (+ x 1))") "(read \"(lambda (x) (+ x 1))\"")
+              (code '((read-eval "(read \"1\")")
+                      (read-eval "(read \"(lambda (x) (+ x 1))\"")
                       ))
               end)))
 
@@ -1532,7 +1534,7 @@
                           "expressions can be evaluated as a program using <a href=\"#eval-program\">eval-program</a>."
                           "The form of a read-program expression is `(read-program string)`."
                           ))
-              (code '((alt-txt (read-program "(define apa 1) (+ 2 apa)") "(read-program \"(define apa 1) (+ 2 apa)\")")
+              (code '((read-eval "(read-program \"(define apa 1) (+ 2 apa)\")")
                       ))
               end)))
 
@@ -1542,12 +1544,12 @@
               (para (list "Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression"
                           "then evaluates it before reading the next."
                           ))
-              (code '((alt-txt (read-eval-program "(define a 10) (+ a 10)") "(read-eval-program \"(define a 10) (+ a 10)\")")
+              (code '((read-eval "(read-eval-program \"(define a 10) (+ a 10)\")")
                       ))
               (para (list "`read-eval-program` supports the `@const-start` and `@const-end` annotations which move all"
                           "global definitions created in the program to constant memory (flash)."
                           ))
-              (code '((alt-txt (read-eval-program "@const-start (define a 10) (+ a 10) @const-end") "(read-eval-program \"@const-start (define a 10) (+ a 10) @const-end\")")
+              (code '((read-eval "(read-eval-program \"@const-start (define a 10) (+ a 10) @const-end\")")
                       ))
               end)))
 
@@ -2417,9 +2419,7 @@
              (list
               (para (list "The form of a `macro` expression is: `(macro args body)`"
                           ))
-              (code '((alt-txt (define defun (macro (name args body)
-                                                    `(define ,name (lambda ,args ,body))))
-                               "(define defun (macro (name args body)\n                    `(define ,name (lambda ,args ,body))))")
+              (code '((read-eval "(define defun (macro (name args body)\n                    `(define ,name (lambda ,args ,body))))")
                       (defun inc (x) (+ x 1))
                       (inc 1)
                       ))
