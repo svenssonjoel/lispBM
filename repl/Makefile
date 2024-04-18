@@ -29,8 +29,8 @@ all: repl
 all64: 	CCFLAGS += -DLBM64
 all64: repl 
 
-clean_cl.h: clean.lisp
-	./repl --store_env="clean_cl.env" --src=clean.lisp --terminate
+clean_cl.h: ./scripts/clean.lisp
+	./repl --store_env="clean_cl.env" --src=./scripts/clean.lisp --terminate
 	xxd -i clean_cl.env clean_cl.h
 
 install: all
