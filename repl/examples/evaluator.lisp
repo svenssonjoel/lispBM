@@ -15,6 +15,13 @@
       (eq e '*)
       ))
 
+(defun zip (as bs)
+  (if (or (eq nil as) (eq nil bs))
+      nil
+    (let ( (a (car as))
+           (b (car bs)) )
+      (cons (cons a b) (zip (cdr as) (cdr bs))))))
+
 (defun is-closure (e)
   (and (eq (type-of e) type-list)
        (eq (car e) 'closure)))
@@ -87,26 +94,28 @@
           (apply-closure env ls k)
         'error))))
 
-(defun evalk (env exp k)
-  (if (is-operator exp)
-      (k exp)
-    (if (is-symbol exp)
-        (let ((res (assoc env exp)))
+(defun evalk (env e k)
+  (if (is-operator e)
+      (k e)
+    (if (is-symbol e)
+        (let ((res (assoc env e)))
           (if (eq res nil)
-              (k (assoc global-env exp))
+              (k (assoc global-env e))
             (k res)))
-      (if (is-number exp)
-          (k exp)
-        (match exp
+      (if (is-number e)
+          (k e)
+        (match e
                ((progn  . (? ls)) (eval-progn  env ls k))
                ((define . (? ls)) (eval-define env ls k))
                ((lambda . (? ls)) (eval-lambda env ls k))
                ((if . (? ls))     (eval-if env ls k))
-               ((?cons ls)        (eval-list env ls nil
-                                             (lambda
-                                               (rs)
-                                               (apply env rs k))))
-               )))))
+               ((? ls)        (eval-list env ls nil
+                                         (lambda
+                                           (rs)
+                                           (apply env rs k))))
+               )
+        )))
+  )
 
 (define test1 '(define apa 1))
 

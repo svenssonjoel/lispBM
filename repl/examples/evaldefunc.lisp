@@ -19,6 +19,14 @@
   (and (eq (type-of e) type-list)
        (eq (car e) 'closure)))
 
+(defun zip (as bs)
+  (if (or (eq nil as) (eq nil bs))
+      nil
+    (let ( (a (car as))
+           (b (car bs)) )
+      (cons (cons a b) (zip (cdr as) (cdr bs))))))
+
+
 (defun add-bindings (env binds)
   (match binds
          (nil env)
@@ -75,39 +83,39 @@
              (apply-closure env ls k)
              'error))))
 
-(defun apply-cont (k exp)
+(defun apply-cont (k e)
   (match k
-         (done exp)
+         (done e)
          ((progn-cont (? env) (? ls) (? k1)) (eval-progn env ls k1))
          ((define-cont (? key) (? k1))
           (progn
-            (setvar 'global-env (acons key exp global-env))
-            (apply-cont k1 exp)))
+            (setvar 'global-env (acons key e global-env))
+            (apply-cont k1 e)))
          ((list-cont (? env) (? r) (? acc) (? k1))
-          (eval-list env r (append acc (list exp)) k1))
+          (eval-list env r (append acc (list e)) k1))
          ((application-cont (? env) (? k1))
-          (apply env exp k1))
+          (apply env e k1))
          ((if-cont (? env) (? then-branch) (? else-branch) (? k1))
-          (if exp
+          (if e
               (evald env then-branch k1)
             (evald env else-branch k1)))))
 
-(defun evald (env exp k)
-  (if (is-operator exp)
-      (apply-cont k exp)
-    (if (is-symbol exp)
-        (let ((res (assoc env exp)))
+(defun evald (env e k)
+  (if (is-operator e)
+      (apply-cont k e)
+    (if (is-symbol e)
+        (let ((res (assoc env e)))
           (if (eq res nil)
-              (apply-cont k (assoc global-env exp))
+              (apply-cont k (assoc global-env e))
             (apply-cont k res)))
-      (if (is-number exp)
-          (apply-cont k exp)
-        (match exp
+      (if (is-number e)
+          (apply-cont k e )
+        (match e
                ((progn  . (? ls)) (eval-progn  env ls k))
                ((define . (? ls)) (eval-define env ls k))
                ((lambda . (? ls)) (eval-lambda env ls k))
                ((if . (? ls))     (eval-if env ls k))
-               ((?cons ls)        (eval-list env ls nil
+               ((? ls)            (eval-list env ls nil
                                              (list 'application-cont env k)))
                )))))
 

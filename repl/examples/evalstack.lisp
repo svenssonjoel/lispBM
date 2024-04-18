@@ -30,6 +30,13 @@
   (and (eq (type-of e) type-list)
        (eq (car e) 'closure)))
 
+(defun zip (as bs)
+  (if (or (eq nil as) (eq nil bs))
+      nil
+    (let ( (a (car as))
+           (b (car bs)) )
+      (cons (cons a b) (zip (cdr as) (cdr bs))))))
+
 (defun add-bindings (env binds)
   (match binds
          (nil env)
@@ -94,50 +101,51 @@
              (apply-closure env ls)
              'error))))
 
-(defun apply-cont (exp)
+(defun apply-cont (e)
   (let (( k (pop)))
     (match k
-           (done exp)
+           (done e)
            ((progn-cont (? env) (? ls)) (eval-progn env ls))
            ((define-cont (? key))
             (progn
-              (setvar 'global-env (acons key exp global-env))
-              (apply-cont exp)))
+              (setvar 'global-env (acons key e global-env))
+              (apply-cont e)))
            ((list-cont (? env) (? r) (? acc))
-            (eval-list env r (append acc (list exp))))
+            (eval-list env r (append acc (list e))))
            ((application-cont (? env))
-            (apply env exp))
+            (apply env e))
            ((if-cont (? env) (? then-branch) (? else-branch))
-            (if exp
+            (if e
                 (eval-stack env then-branch)
                 (eval-stack env else-branch))))))
 
-(defun evals (env exp)
+(defun evals (env e)
   (progn
     (setvar 'stack nil)
     (push 'done)
-    (eval-stack env exp)))
+    (eval-stack env e)))
   
 
-(defun eval-stack (env exp)
-  (if (is-operator exp)
-      (apply-cont exp)
-    (if (is-symbol exp)
-        (let ((res (assoc env exp)))
+(defun eval-stack (env e)
+  (if (is-operator e)
+      (apply-cont e)
+    (if (is-symbol e)
+        (let ((res (assoc env e)))
           (if (eq res nil)
-              (apply-cont (assoc global-env exp))
+              (apply-cont (assoc global-env e))
             (apply-cont res)))
-      (if (is-number exp)
-          (apply-cont exp)
-        (match exp
+      (if (is-number e)
+          (apply-cont e)
+        (match e
                ((progn  . (? ls)) (eval-progn  env ls))
                ((define . (? ls)) (eval-define env ls))
                ((lambda . (? ls)) (eval-lambda env ls))
                ((if . (? ls))     (eval-if env ls))
-               ((?cons ls)        (progn
-                                    (push (list 'application-cont env))
-                                    (eval-list env ls nil)))
-               )))))
+               ((? ls)        (progn
+                                (push (list 'application-cont env))
+                                (eval-list env ls nil)))
+               )
+        ))))
 
 (define test1 '(define apa 1))
 
