@@ -124,6 +124,8 @@ bool f_sym_string(lbm_flat_value_t *v, char *str) {
   return false;
 }
 
+// Potentially a difference between 32/64 bit version.
+// strlen returns size_t which is different on 32/64 bit platforms.
 int f_sym_string_bytes(lbm_value sym) {
   char *sym_str;
   if (lbm_is_symbol(sym)) {
@@ -131,7 +133,7 @@ int f_sym_string_bytes(lbm_value sym) {
     sym_str = (char*)lbm_get_name_by_symbol(s);
     if (sym_str) {
       lbm_uint sym_bytes = strlen(sym_str) + 1;
-      return (lbm_int)sym_bytes;
+      return (int)sym_bytes;
     }
   }
   return FLATTEN_VALUE_ERROR_FATAL;
@@ -214,6 +216,7 @@ bool f_u64(lbm_flat_value_t *v, uint64_t w) {
   return res;
 }
 
+// num_bytes is specifically an uint32_t
 bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_bytes, uint8_t *data) {
   bool res = true;
   res = res && write_byte(v, S_LBM_ARRAY);
@@ -276,13 +279,15 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
   case LBM_TYPE_SYMBOL: {
     int s = f_sym_string_bytes(v);
     if (s > 0) return 1 + s;
-    flatten_error(jb, s);
+    flatten_error(jb, (int)s);
   } return 0; // already terminated with error
   case LBM_TYPE_ARRAY: {
+    // Platform dependent size.
+    // TODO: Something needs to be done to these inconsistencies.
     lbm_int s = lbm_heap_array_get_size(v);
     if (s > 0)
-      return 1 + 4 + s;
-    flatten_error(jb, s);
+      return 1 + 4 + (int)s;
+    flatten_error(jb, (int)s);
   } return 0; // already terminated with error
   default:
     return FLATTEN_VALUE_ERROR_CANNOT_BE_FLATTENED;
@@ -367,7 +372,7 @@ int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
     lbm_int s = lbm_heap_array_get_size(v);
     const uint8_t *d = lbm_heap_array_get_data_ro(v);
     if (s > 0 && d != NULL) {
-      if (f_lbm_array(fv, (lbm_uint)s, (uint8_t*)d)) {
+      if (f_lbm_array(fv, (uint32_t)s, (uint8_t*)d)) {
         return FLATTEN_VALUE_OK;
       }
     } else {
@@ -535,7 +540,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     return UNFLATTEN_MALFORMED;
   }
   case S_I28_VALUE: {
-    lbm_uint tmp;
+    uint32_t tmp;
     bool b;
     b = extract_word(v, &tmp);
     if (b) {
@@ -545,7 +550,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     return UNFLATTEN_MALFORMED;
   }
   case S_U28_VALUE: {
-    lbm_uint tmp;
+    uint32_t tmp;
     bool b;
     b = extract_word(v, &tmp);
     if (b) {
@@ -562,7 +567,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
 #ifndef LBM64
       *res = lbm_enc_i64((int64_t)tmp);
 #else
-      *res = lbm_enc_i(tmp);
+      *res = lbm_enc_i((int64_t)tmp);
 #endif
       return UNFLATTEN_OK;
     }
@@ -583,7 +588,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     return UNFLATTEN_MALFORMED;
   }
   case S_FLOAT_VALUE: {
-    lbm_uint tmp;
+    uint32_t tmp;
     bool b;
     b = extract_word(v, &tmp);
     if (b) {
