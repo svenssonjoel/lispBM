@@ -42,10 +42,14 @@
 #include "clean_cl.h"
 #endif
 
+#ifdef WITH_SDL
+#include "lbm_sdl.h"
+#endif
+
 
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
-#define EXTENSION_STORAGE_SIZE 256
+#define EXTENSION_STORAGE_SIZE 1024
 #define WAIT_TIMEOUT 2500
 #define STR_SIZE 1024
 #define CONSTANT_MEMORY_SIZE 32*1024
@@ -103,6 +107,9 @@ void erase() {
 void *eval_thd_wrapper(void *v) {
   if (!silent_mode) {
     printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
+#ifdef WITH_SDL
+    printf("With SDL extensions\n");
+#endif 
     printf("Type :quit to exit.\n");
     printf("     :info for statistics.\n");
     printf("     :load [filename] to load lisp source.\n");
@@ -517,6 +524,12 @@ int init_repl() {
   lbm_set_printf_callback(error_print);
 
   init_exts();
+  
+#ifdef WITH_SDL
+  if (!lbm_sdl_init()) {
+    return 0;
+  }
+#endif
 
   /* Load clean_cl library into heap */
 #ifdef CLEAN_UP_CLOSURES
