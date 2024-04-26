@@ -2815,7 +2815,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-byte 1234)
-                                (to-byte 3.14)
+                                (read-eval "(to-byte 3.14)")
                                 (to-byte 'apa)
                                 ))
                         end))
@@ -2826,7 +2826,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-i 25b)
-                                (to-i 3.14)
+                                (read-eval "(to-i 3.14)")
                                 (to-i 'apa)))
                         end))
             (ref-entry "to-u"
@@ -2836,7 +2836,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-u 25b)
-                                (to-u 3.14)
+                                (read-eval "(to-u 3.14)")
                                 (to-u 'apa)
                                 ))
                         end))
@@ -2846,7 +2846,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-i32 25b)
-                                (to-i32 3.14)
+                                (read-eval "(to-i32 3.14)")
                                 (to-i32 'apa)
                                 ))
                         end))
@@ -2855,7 +2855,7 @@
                         (para (list "Convert any numerical value to a 32bit unsigned int."
                                     ))
                         (code '((to-u32 25b)
-                                (to-u32 3.14)
+                                (read-eval "(to-u32 3.14)")
                                 (to-u32 'apa)
                                 ))
                         end))
@@ -2865,7 +2865,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-float 25b)
-                                (to-float 3.14)
+                                (read-eval "(to-float 3.14)")
                                 (to-float 'apa)
                                 ))
                         end))
@@ -2875,7 +2875,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-i64 25b)
-                                (to-i64 3.14)
+                                (read-eval "(to-i64 3.14)")
                                 (to-i64 'apa)
                                 ))
                         end))
@@ -2885,7 +2885,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-u64 25b)
-                                (to-u64 3.14)
+                                (read-eval "(to-u64 3.14)")
                                 (to-u64 'apa)
                                 ))
                         end))
@@ -2895,7 +2895,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-double 25b)
-                                (to-double 3.14)
+                                (read-eval "(to-double 3.14)")
                                 (to-double 'apa)
                                 ))
                         end))

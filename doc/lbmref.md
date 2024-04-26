@@ -7782,7 +7782,7 @@ Convert any numerical value to a byte. If the input is not a number the output o
 <td>
 
 ```clj
-(to-byte 3.140000f32)
+(to-byte 3.14)
 ```
 
 
@@ -7852,7 +7852,7 @@ Convert a value of any numerical type to an integer. The resulting integer is a 
 <td>
 
 ```clj
-(to-i 3.140000f32)
+(to-i 3.14)
 ```
 
 
@@ -7922,7 +7922,7 @@ Convert a value of any numerical type to an unsigned integer. The resulting inte
 <td>
 
 ```clj
-(to-u 3.140000f32)
+(to-u 3.14)
 ```
 
 
@@ -7992,7 +7992,7 @@ Convert any numerical value to a 32bit int. If the input is not a number the out
 <td>
 
 ```clj
-(to-i32 3.140000f32)
+(to-i32 3.14)
 ```
 
 
@@ -8062,7 +8062,7 @@ Convert any numerical value to a 32bit unsigned int.
 <td>
 
 ```clj
-(to-u32 3.140000f32)
+(to-u32 3.14)
 ```
 
 
@@ -8132,7 +8132,7 @@ Convert any numerical value to a single precision floating point value. If the i
 <td>
 
 ```clj
-(to-float 3.140000f32)
+(to-float 3.14)
 ```
 
 
@@ -8202,7 +8202,7 @@ Convert any numerical value to a 64bit int. If the input is not a number the out
 <td>
 
 ```clj
-(to-i64 3.140000f32)
+(to-i64 3.14)
 ```
 
 
@@ -8272,7 +8272,7 @@ Convert any numerical value to a 64bit unsigned int. If the input is not a numbe
 <td>
 
 ```clj
-(to-u64 3.140000f32)
+(to-u64 3.14)
 ```
 
 
@@ -8342,7 +8342,7 @@ Convert any numerical value to a double precision floating point value. If the i
 <td>
 
 ```clj
-(to-double 3.140000f32)
+(to-double 3.14)
 ```
 
 
