@@ -2688,6 +2688,285 @@ The comma-at operation is used to splice in the result of a computation (that re
 ---
 
 
+### rest-args
+
+`rest-args` are related to user defined functions. As such `rest-args` is also given a brief explanation in the section about the  <a href="#lambda">lambda</a>. 
+
+`rest-args` is a mechanism for handling optional arguments in functions. Say you want to define a function with 2 arguments and an optional 3rd argument. You can do this by creating a 3 argument function and check if argument 3 is valid or not in the body of the function 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (x y opt) (if opt (+ x y opt) (+ x y)))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x y opt) (if opt (+ x y opt) (+ x y)) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2 nil)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2 100)
+```
+
+
+</td>
+<td>
+
+```clj
+103
+```
+
+
+</td>
+</tr>
+</table>
+
+This approach works well if your function has 1,2 or some other small number of optional arguments. However, functions with many optional arguments will look messy at the application site, `(my-fun 1 2 nil nil nil nil 32 nil kurt-russel)` for examples 
+
+Functions you create, using lambda or defun, do actually take an arbitrary number of arguments. In other words, it is no error to pass in 5 arguments to a defun or lambda function. The extra arguments will by default just be ignored. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (x y) (+ x y))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x y) (+ x y) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2 100 200 300 400 500)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+</table>
+
+all of those extra arguments, `100 200 300 400 500` passed into my-fun are ignored. But if we want to, we can access these extra arguments through the `rest-args` operation. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (x y) (apply + (cons x (cons y (rest-args)))))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x y) (apply + (cons x (cons y (rest-args)))) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2 100)
+```
+
+
+</td>
+<td>
+
+```clj
+103
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2 100 1000 10000)
+```
+
+
+</td>
+<td>
+
+```clj
+11103
+```
+
+
+</td>
+</tr>
+</table>
+
+`rest-args` gives a clean looking interface to functions taking arbitrary optional arguments. Functions that make use of `rest-args` must, however, be written specifically to do so and are themself responsible for the figuring out the positional semantics of extra arguments. 
+
+One was to explicitly carry the semantics of an optional argument into the function body is to add optional arguments as key-value pairs where the key states the meaning. Then `rest-args` becomes essentially an association list that you query using `assoc`. For example: 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (x) (assoc (rest-args) x))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x) (assoc (rest-args) x) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 'kurt-russel '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+```
+
+
+</td>
+<td>
+
+```clj
+is-great
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 'apa '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+```
+
+
+</td>
+<td>
+
+```clj
+10
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 'bepa '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+```
+
+
+</td>
+<td>
+
+```clj
+20
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
 ### eval
 
 Evaluate data as an expression. The data must represent a valid expression. The form of an `eval` expression is `(eval expr)`. An optional environment can be passed in as the first argument: `(eval env-expr expr)`. 

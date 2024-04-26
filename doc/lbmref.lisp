@@ -1251,9 +1251,63 @@
                       ))
               end)))
 
+(define built-in-rest-args
+  (ref-entry "rest-args"
+             (list
+              (para (list "`rest-args` are related to user defined functions. As such `rest-args` is"
+                          "also given a brief explanation in the section about the  <a href=\"#lambda\">lambda</a>."
+                          ))
+              
+              (para (list "`rest-args` is a mechanism for handling optional arguments in functions."
+                          "Say you want to define a function with 2 arguments and an optional 3rd argument."
+                          "You can do this by creating a 3 argument function and check if argument 3 is valid or not in the body of the function"
+                          ))
+              (code '((defun my-fun (x y opt) (if opt (+ x y opt)
+                                                (+ x y)))
+                      (my-fun 1 2 nil)
+                      (my-fun 1 2 100)
+                      ))
+              (para (list "This approach works well if your function has 1,2 or some other small number"
+                          "of optional arguments. However, functions with many optional arguments will look"
+                          "messy at the application site, `(my-fun 1 2 nil nil nil nil 32 nil kurt-russel)` for examples"
+                          ))
+              (para (list "Functions you create, using lambda or defun, do actually take an arbitrary number of"
+                          "arguments. In other words, it is no error to pass in 5 arguments to a defun or lambda function."
+                          "The extra arguments will by default just be ignored."
+                          ))
+              (code '((defun my-fun (x y) (+ x y))
+                      (my-fun 1 2)
+                      (my-fun 1 2 100 200 300 400 500)
+                      ))
+              (para (list "all of those extra arguments, `100 200 300 400 500` passed into my-fun are"
+                          "ignored. But if we want to, we can access these extra arguments through the"
+                          "`rest-args` operation."
+                          ))
+              (code '((defun my-fun (x y) (apply + (cons x (cons y (rest-args)))))
+                      (my-fun 1 2 100)
+                      (my-fun 1 2 100 1000 10000)
+                      ))
+              (para (list "`rest-args` gives a clean looking interface to functions taking arbitrary optional arguments."
+                          "Functions that make use of `rest-args` must, however, be written specifically to do so and"
+                          "are themself responsible for the figuring out the positional semantics of extra arguments."
+                          ))
+              (para (list "One was to explicitly carry the semantics of an optional argument into the function body"
+                          "is to add optional arguments as key-value pairs where the key states the meaning."
+                          "Then `rest-args` becomes essentially an association list that you query using `assoc`."
+                          "For example:"
+                          ))
+              (code '((defun my-fun (x) (assoc (rest-args) x))
+                      (my-fun 'kurt-russel '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+                      (my-fun 'apa '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+                      (my-fun 'bepa '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+                      ))
+                          
+              )))
+
 (define built-ins
   (section 2 "Built-in operations"
            (list 'hline
+                 built-in-rest-args
                  built-in-eval
                  built-in-eval-program
                  built-in-type-of
