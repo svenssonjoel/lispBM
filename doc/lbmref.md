@@ -2756,7 +2756,7 @@ The comma-at operation is used to splice in the result of a computation (that re
 
 This approach works well if your function has 1,2 or some other small number of optional arguments. However, functions with many optional arguments will look messy at the application site, `(my-fun 1 2 nil nil nil nil 32 nil kurt-russel)` for examples 
 
-Functions you create, using lambda or defun, do actually take an arbitrary number of arguments. In other words, it is no error to pass in 5 arguments to a defun or lambda function. The extra arguments will by default just be ignored. 
+Functions you create, using lambda or defun, do actually take an arbitrary number of arguments. In other words, it is no error to pass in 5 arguments to a 2 argument defun or lambda function. The extra arguments will by default just be ignored. 
 
 <table>
 <tr>

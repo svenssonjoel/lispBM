@@ -1272,7 +1272,7 @@
                           "messy at the application site, `(my-fun 1 2 nil nil nil nil 32 nil kurt-russel)` for examples"
                           ))
               (para (list "Functions you create, using lambda or defun, do actually take an arbitrary number of"
-                          "arguments. In other words, it is no error to pass in 5 arguments to a defun or lambda function."
+                          "arguments. In other words, it is no error to pass in 5 arguments to a 2 argument defun or lambda function."
                           "The extra arguments will by default just be ignored."
                           ))
               (code '((defun my-fun (x y) (+ x y))
