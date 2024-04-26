@@ -2962,6 +2962,86 @@ is-great
 </tr>
 </table>
 
+The `rest-args` operation also, itself, takes an optional numerical argument that acts as an index into the list of rest arguments. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (i) (rest-args i))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (i) (rest-args i) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 0 1 2 3)
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 1 2 3)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 2 1 2 3)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+</table>
+
 
 
 ---

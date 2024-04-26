@@ -1301,6 +1301,14 @@
                       (my-fun 'apa '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
                       (my-fun 'bepa '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
                       ))
+              (para (list "The `rest-args` operation also, itself, takes an optional numerical argument that"
+                          "acts as an index into the list of rest arguments."
+                          ))
+              (code '((defun my-fun (i) (rest-args i))
+                      (my-fun 0 1 2 3)
+                      (my-fun 1 1 2 3)
+                      (my-fun 2 1 2 3)
+                      ))
                           
               )))
 
