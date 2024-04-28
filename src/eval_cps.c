@@ -1646,6 +1646,7 @@ static void eval_callcc(eval_context_t *ctx) {
     gc();
     if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp * sizeof(lbm_uint))) {
       error_ctx(ENC_SYM_MERROR);
+      return; // dead return but static analysis doesnt know :)
     }
   }
   lbm_array_header_t *arr = (lbm_array_header_t*)get_car(cont_array);
@@ -3706,6 +3707,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
       gc();
       if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1))) {
         error_ctx(ENC_SYM_MERROR);
+        return; // dead return but static analysis does not know that.
       }
     }
     lbm_array_header_t *arr = (lbm_array_header_t*)get_car(res);
