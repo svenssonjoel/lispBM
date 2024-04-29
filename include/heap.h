@@ -826,7 +826,7 @@ static inline bool lbm_is_array_rw(lbm_value x) {
 static inline bool lbm_is_channel(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_CHANNEL &&
           lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
-          lbm_dec_sym(lbm_cdr(x)) == SYM_CHANNEL_TYPE);
+          lbm_cdr(x) == ENC_SYM_CHANNEL_TYPE);
 }
 static inline bool lbm_is_char(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_CHAR);
@@ -840,31 +840,31 @@ static inline bool lbm_is_special(lbm_value symrep) {
 static inline bool lbm_is_closure(lbm_value exp) {
   return ((lbm_is_cons(exp)) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          (lbm_dec_sym(lbm_car(exp)) == SYM_CLOSURE));
+          (lbm_car(exp) == ENC_SYM_CLOSURE));
 }
 
 static inline bool lbm_is_continuation(lbm_value exp) {
   return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          (lbm_dec_sym(lbm_car(exp)) == SYM_CONT));
+          (lbm_car(exp) == ENC_SYM_CONT));
 }
 
 static inline bool lbm_is_macro(lbm_value exp) {
   return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          (lbm_dec_sym(lbm_car(exp)) == SYM_MACRO));
+          (lbm_car(exp) == ENC_SYM_MACRO));
 }
 
 static inline bool lbm_is_match_binder(lbm_value exp) {
   return (lbm_is_cons(exp) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          ((lbm_dec_sym(lbm_car(exp)) == SYM_MATCH_ANY)));
+          (lbm_car(exp) == ENC_SYM_MATCH_ANY));
 }
 
 static inline bool lbm_is_comma_qualified_symbol(lbm_value exp) {
   return (lbm_is_cons(exp) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          (lbm_dec_sym(lbm_car(exp)) == SYM_COMMA) &&
+          (lbm_car(exp) == ENC_SYM_COMMA) &&
           (lbm_type_of(lbm_car(lbm_cdr(exp))) == LBM_TYPE_SYMBOL));
 }
 
@@ -877,11 +877,11 @@ static inline bool lbm_is_symbol_nil(lbm_value exp) {
 }
 
 static inline bool lbm_is_symbol_true(lbm_value exp) {
-  return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_TRUE);
+  return (lbm_is_symbol(exp) && exp == ENC_SYM_TRUE);
 }
 
 static inline bool lbm_is_symbol_eval(lbm_value exp) {
-  return (lbm_is_symbol(exp) && lbm_dec_sym(exp) == SYM_EVAL);
+  return (lbm_is_symbol(exp) && exp == ENC_SYM_EVAL);
 }
 
 static inline bool lbm_is_symbol_merror(lbm_value exp) {
@@ -899,7 +899,7 @@ static inline bool lbm_is_list_rw(lbm_value x) {
 static inline bool lbm_is_quoted_list(lbm_value x) {
   return (lbm_is_cons(x) &&
           lbm_is_symbol(lbm_car(x)) &&
-          (lbm_dec_sym(lbm_car(x)) == SYM_QUOTE) &&
+          (lbm_car(x) == ENC_SYM_QUOTE) &&
           lbm_is_cons(lbm_cdr(x)) &&
           lbm_is_cons(lbm_car(lbm_cdr(x))));
 }
