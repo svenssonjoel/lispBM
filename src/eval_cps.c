@@ -1419,9 +1419,9 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
 
     if (!lbm_is_symbol(var)) return false;
 
-    switch (lbm_dec_sym(bindertype)) {
-    case SYM_MATCH_ANY:
-      if (lbm_dec_sym(var) == SYM_DONTCARE) {
+    switch (bindertype) {
+    case ENC_SYM_MATCH_ANY:
+      if ( var == ENC_SYM_DONTCARE) {
         return true;
       }
       break;
@@ -1442,7 +1442,7 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
   }
 
   if (lbm_is_symbol(p)) {
-    if (lbm_dec_sym(p) == SYM_DONTCARE) return true;
+    if (p == ENC_SYM_DONTCARE) return true;
     return (p == e);
   }
   if (lbm_is_cons(p) &&
@@ -3946,7 +3946,7 @@ static void cont_read_append_array(eval_context_t *ctx) {
     rptr[2] = lbm_enc_u(0);
     rptr[3] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
-  } else if (lbm_is_symbol(ctx->r) && lbm_dec_sym(ctx->r) == SYM_CLOSEBRACK) {
+  } else if (lbm_is_symbol(ctx->r) && ctx->r == ENC_SYM_CLOSEBRACK) {
     lbm_uint array_size = ix / sizeof(lbm_uint);
 
     if (ix % sizeof(lbm_uint) != 0) {
@@ -3976,8 +3976,8 @@ static void cont_read_append_continue(eval_context_t *ctx) {
 
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
 
-    switch(lbm_dec_sym(ctx->r)) {
-    case SYM_CLOSEPAR:
+    switch(ctx->r) {
+    case ENC_SYM_CLOSEPAR:
       if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
         lbm_set_cdr(last_cell, ENC_SYM_NIL); // terminate the list
         ctx->r = first_cell;
@@ -3988,7 +3988,7 @@ static void cont_read_append_continue(eval_context_t *ctx) {
       /* Skip reading another token and apply the continuation */
       ctx->app_cont = true;
       return;
-    case SYM_DOT: {
+    case ENC_SYM_DOT: {
       lbm_value *rptr = stack_reserve(ctx, 4);
       rptr[0] = READ_DOT_TERMINATE;
       rptr[1] = stream;
@@ -4035,11 +4035,11 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
 
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
 
-    switch(lbm_dec_sym(ctx->r)) {
-    case SYM_CLOSEPAR:
+    switch(ctx->r) {
+    case ENC_SYM_CLOSEPAR:
       ctx->app_cont = true;
       return;
-    case SYM_DOT: {
+    case ENC_SYM_DOT: {
       lbm_value *rptr = stack_reserve(ctx, 4);
       rptr[0] = READ_DOT_TERMINATE;
       rptr[1] = stream;
@@ -4073,7 +4073,7 @@ static void cont_read_expect_closepar(eval_context_t *ctx) {
   }
 
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-      lbm_dec_sym(ctx->r) == SYM_CLOSEPAR) {
+      ctx->r == ENC_SYM_CLOSEPAR) {
     ctx->r = res;
     ctx->app_cont = true;
   } else {
@@ -4098,8 +4098,8 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
   lbm_stack_drop(&ctx->K ,3);
 
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-      (lbm_dec_sym(ctx->r) == SYM_CLOSEPAR ||
-       lbm_dec_sym(ctx->r) == SYM_DOT)) {
+      (ctx->r == ENC_SYM_CLOSEPAR ||
+       ctx->r == ENC_SYM_DOT)) {
     lbm_channel_reader_close(str);
     lbm_set_error_reason((char*)lbm_error_str_parse_dot);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
@@ -4421,16 +4421,16 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
     ctx->r = flash_cell;
     lbm_cons_t *ref = lbm_ref_cell(val);
     if (lbm_type_of(ref->cdr) == LBM_TYPE_SYMBOL) {
-      switch (lbm_dec_sym(ref->cdr)) {
-      case SYM_RAW_I_TYPE: /* fall through */
-      case SYM_RAW_U_TYPE:
-      case SYM_RAW_F_TYPE:
+      switch (ref->cdr) {
+      case ENC_SYM_RAW_I_TYPE: /* fall through */
+      case ENC_SYM_RAW_U_TYPE:
+      case ENC_SYM_RAW_F_TYPE:
         handle_flash_status(write_const_car(flash_cell, ref->car));
         handle_flash_status(write_const_cdr(flash_cell, ref->cdr));
         break;
-      case SYM_IND_I_TYPE: /* fall through */
-      case SYM_IND_U_TYPE:
-      case SYM_IND_F_TYPE: {
+      case ENC_SYM_IND_I_TYPE: /* fall through */
+      case ENC_SYM_IND_U_TYPE:
+      case ENC_SYM_IND_F_TYPE: {
 #ifndef LBM64
         /* 64 bit values are in lbm mem on 32bit platforms. */
         lbm_uint *lbm_mem_ptr = (lbm_uint*)ref->car;
@@ -4444,7 +4444,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
         error_ctx(ENC_SYM_FATAL_ERROR);
 #endif
       } break;
-      case SYM_ARRAY_TYPE: {
+      case ENC_SYM_ARRAY_TYPE: {
         lbm_array_header_t *arr = (lbm_array_header_t*)ref->car;
         // arbitrary address: flash_arr.
         lbm_uint flash_arr;
@@ -4453,8 +4453,8 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
                          (char *)flash_arr,
                          arr->size);
       } break;
-      case SYM_CHANNEL_TYPE: /* fall through */
-      case SYM_CUSTOM_TYPE:
+      case ENC_SYM_CHANNEL_TYPE: /* fall through */
+      case ENC_SYM_CUSTOM_TYPE:
         lbm_set_error_reason((char *)lbm_error_str_flash_not_possible);
         error_ctx(ENC_SYM_EERROR);
       }
@@ -4531,7 +4531,7 @@ lbm_value quote_it(lbm_value qquoted) {
 bool is_append(lbm_value a) {
   return (lbm_is_cons(a) &&
           lbm_is_symbol(get_car(a)) &&
-          (lbm_dec_sym(get_car(a)) == SYM_APPEND));
+          (get_car(a) == ENC_SYM_APPEND));
 }
 
 lbm_value append(lbm_value front, lbm_value back) {
@@ -4594,11 +4594,11 @@ static void cont_qq_expand(eval_context_t *ctx) {
     lbm_value car_val = get_car(qquoted);
     lbm_value cdr_val = get_cdr(qquoted);
     if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
-        lbm_dec_sym(car_val) == SYM_COMMA) {
+        car_val == ENC_SYM_COMMA) {
       ctx->r = append(ctx->r, get_car(cdr_val));
       ctx->app_cont = true;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
-               lbm_dec_sym(car_val) == SYM_COMMAAT) {
+               car_val == ENC_SYM_COMMAAT) {
       error_ctx(ENC_SYM_RERROR);
     } else {
       lbm_value *rptr = stack_reserve(ctx, 6);
@@ -4655,13 +4655,13 @@ static void cont_qq_expand_list(eval_context_t* ctx) {
     lbm_value car_val = get_car(l);
     lbm_value cdr_val = get_cdr(l);
     if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
-        lbm_dec_sym(car_val) == SYM_COMMA) {
+        car_val == ENC_SYM_COMMA) {
       lbm_value tl = cons_with_gc(get_car(cdr_val), ENC_SYM_NIL, ENC_SYM_NIL);
       lbm_value tmp = cons_with_gc(ENC_SYM_LIST, tl, ENC_SYM_NIL);
       ctx->r = append(ctx->r, tmp);
       return;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
-               lbm_dec_sym(car_val) == SYM_COMMAAT) {
+               car_val == ENC_SYM_COMMAAT) {
       ctx->r = get_car(cdr_val);
       return;
     } else {
@@ -4815,7 +4815,7 @@ static void evaluation_step(void){
     lbm_cons_t *cell = lbm_ref_cell(ctx->curr_exp);
     lbm_value h = cell->car;
     if (lbm_is_symbol(h) && ((h & ENC_SPECIAL_FORMS_MASK) == ENC_SPECIAL_FORMS_BIT)) {
-      lbm_uint eval_index = lbm_dec_sym(h)  & SPECIAL_FORMS_INDEX_MASK;
+      lbm_uint eval_index = lbm_dec_sym(h) & SPECIAL_FORMS_INDEX_MASK;
       evaluators[eval_index](ctx);
       return;
     }

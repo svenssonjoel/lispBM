@@ -769,14 +769,14 @@ int lbm_gc_sweep_phase(void) {
       // Check if this cell is a pointer to an array
       // and free it.
       if (lbm_type_of(heap[i].cdr) == LBM_TYPE_SYMBOL) {
-        switch(lbm_dec_sym(heap[i].cdr)) {
+        switch(heap[i].cdr) {
 
-        case SYM_IND_I_TYPE: /* fall through */
-        case SYM_IND_U_TYPE:
-        case SYM_IND_F_TYPE:
+        case ENC_SYM_IND_I_TYPE: /* fall through */
+        case ENC_SYM_IND_U_TYPE:
+        case ENC_SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
-        case SYM_ARRAY_TYPE:{
+        case ENC_SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
             lbm_memory_free((lbm_uint *)arr->data);
@@ -784,14 +784,14 @@ int lbm_gc_sweep_phase(void) {
           }
           lbm_memory_free((lbm_uint *)arr);
         } break;
-        case SYM_CHANNEL_TYPE:{
+        case ENC_SYM_CHANNEL_TYPE:{
           lbm_char_channel_t *chan = (lbm_char_channel_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)chan)) {
             lbm_memory_free((lbm_uint*)chan->state);
             lbm_memory_free((lbm_uint*)chan);
           }
         } break;
-        case SYM_CUSTOM_TYPE: {
+        case ENC_SYM_CUSTOM_TYPE: {
           lbm_uint *t = (lbm_uint*)heap[i].car;
           lbm_custom_type_destroy(t);
           lbm_memory_free(t);

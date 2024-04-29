@@ -923,13 +923,13 @@ static lbm_value fundamental_assoc(lbm_value *args, lbm_uint nargs, eval_context
     if (lbm_is_cons(args[0])) {
       lbm_value r = assoc_lookup(args[1], args[0]);
       if (lbm_is_symbol(r) &&
-          lbm_dec_sym(r) == SYM_NO_MATCH) {
+          r == ENC_SYM_NO_MATCH) {
         result = ENC_SYM_NIL;
       } else {
         result = r;
       }
     } else if (lbm_is_symbol(args[0]) &&
-               lbm_dec_sym(args[0]) == SYM_NIL) {
+               args[0] == ENC_SYM_NIL) {
       result = args[0]; /* nil */
     } /* else error */
   }
@@ -974,13 +974,13 @@ static lbm_value fundamental_cossa(lbm_value *args, lbm_uint nargs, eval_context
     if (lbm_is_cons(args[0])) {
       lbm_value r = cossa_lookup(args[1], args[0]);
       if (lbm_is_symbol(r) &&
-          lbm_dec_sym(r) == SYM_NO_MATCH) {
+          r == ENC_SYM_NO_MATCH) {
         result = ENC_SYM_NIL;
       } else {
         result = r;
       }
     } else if (lbm_is_symbol(args[0]) &&
-               lbm_dec_sym(args[0]) == SYM_NIL) {
+               args[0] == ENC_SYM_NIL) {
       result = args[0]; /* nil */
     } /* else error */
   }
