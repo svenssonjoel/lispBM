@@ -776,7 +776,7 @@ int lbm_gc_sweep_phase(void) {
         case ENC_SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
-        case ENC_SYM_ARRAY_TYPE:{
+        case ENC_SYM_BYTEARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
             lbm_memory_free((lbm_uint *)arr->data);
@@ -1101,7 +1101,7 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
   array->size = size;
 
   // allocating a cell for array's heap-presence
-  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_ARRAY, (lbm_uint) array, ENC_SYM_ARRAY_TYPE);
+  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_BYTEARRAY, (lbm_uint) array, ENC_SYM_BYTEARRAY_TYPE);
 
   *res = cell;
 
@@ -1121,7 +1121,7 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
-  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
+  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_BYTEARRAY_TYPE);
 
   if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
     *value = cell;
@@ -1140,7 +1140,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_set_car(cell, (lbm_uint)array);
 
-  cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
+  cell = lbm_set_ptr_type(cell, LBM_TYPE_BYTEARRAY);
   *value = cell;
   return 1;
 }

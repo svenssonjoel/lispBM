@@ -816,11 +816,11 @@ static inline bool lbm_is_number(lbm_value x) {
  */
 static inline bool lbm_is_array_r(lbm_value x) {
   lbm_type t = lbm_type_of(x);
-  return ((t & LBM_PTR_TO_CONSTANT_MASK) == LBM_TYPE_ARRAY);
+  return ((t & LBM_PTR_TO_CONSTANT_MASK) == LBM_TYPE_BYTEARRAY);
 }
 
 static inline bool lbm_is_array_rw(lbm_value x) {
-  return( (lbm_type_of(x) == LBM_TYPE_ARRAY) && !(x & LBM_PTR_TO_CONSTANT_BIT));
+  return( (lbm_type_of(x) == LBM_TYPE_BYTEARRAY) && !(x & LBM_PTR_TO_CONSTANT_BIT));
 }
 
 static inline bool lbm_is_channel(lbm_value x) {

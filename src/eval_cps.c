@@ -488,7 +488,7 @@ static void lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt)
                                           sizeof(lbm_array_header_t) / sizeof(lbm_uint),
                                           &flash_array_header_ptr));
   handle_flash_status(write_const_car(flash_cell, flash_array_header_ptr));
-  handle_flash_status(write_const_cdr(flash_cell, ENC_SYM_ARRAY_TYPE));
+  handle_flash_status(write_const_cdr(flash_cell, ENC_SYM_BYTEARRAY_TYPE));
 }
 
 static void get_car_and_cdr(lbm_value a, lbm_value *a_car, lbm_value *a_cdr) {
@@ -2194,7 +2194,7 @@ static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, bool program, bool incremental) {
   if (nargs == 1) {
     lbm_value chan = ENC_SYM_NIL;
-    if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
+    if (lbm_type_of_functional(args[0]) == LBM_TYPE_BYTEARRAY) {
       if (!create_string_channel(lbm_dec_str(args[0]), &chan)) {
         gc();
         if (!create_string_channel(lbm_dec_str(args[0]), &chan)) {
@@ -2541,7 +2541,7 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
 }
 
 static void apply_unflatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if(nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
+  if(nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_BYTEARRAY) {
     lbm_array_header_t *array;
     array = (lbm_array_header_t *)get_car(args[0]);
 
@@ -4444,7 +4444,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
         error_ctx(ENC_SYM_FATAL_ERROR);
 #endif
       } break;
-      case ENC_SYM_ARRAY_TYPE: {
+      case ENC_SYM_BYTEARRAY_TYPE: {
         lbm_array_header_t *arr = (lbm_array_header_t*)ref->car;
         // arbitrary address: flash_arr.
         lbm_uint flash_arr;

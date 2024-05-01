@@ -249,7 +249,7 @@ static lbm_uint sub2(lbm_uint a, lbm_uint b) {
   return retval;
 }
 
-static bool array_equality(lbm_value a, lbm_value b) {
+static bool bytearray_equality(lbm_value a, lbm_value b) {
   if (lbm_is_array_r(a) && lbm_is_array_r(b)) {
     lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
     lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
@@ -294,8 +294,8 @@ bool struct_eq(lbm_value a, lbm_value b) {
       return (lbm_dec_u64(a) == lbm_dec_u64(b));
     case LBM_TYPE_DOUBLE:
       return (lbm_dec_double(a) == lbm_dec_double(b));
-    case LBM_TYPE_ARRAY:
-      return array_equality(a, b);
+    case LBM_TYPE_BYTEARRAY:
+      return bytearray_equality(a, b);
     }
   }
   return res;
@@ -1225,7 +1225,7 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   }
   switch(t) {
   case LBM_TYPE_CONS: return ENC_SYM_TYPE_LIST;
-  case LBM_TYPE_ARRAY: return ENC_SYM_TYPE_ARRAY;
+  case LBM_TYPE_BYTEARRAY: return ENC_SYM_TYPE_BYTEARRAY;
   case LBM_TYPE_I32: return ENC_SYM_TYPE_I32;
   case LBM_TYPE_U32: return ENC_SYM_TYPE_U32;
   case LBM_TYPE_FLOAT: return ENC_SYM_TYPE_FLOAT;

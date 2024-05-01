@@ -281,7 +281,7 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
     if (s > 0) return 1 + s;
     flatten_error(jb, (int)s);
   } return 0; // already terminated with error
-  case LBM_TYPE_ARRAY: {
+  case LBM_TYPE_BYTEARRAY: {
     // Platform dependent size.
     // TODO: Something needs to be done to these inconsistencies.
     lbm_int s = lbm_heap_array_get_size(v);
@@ -368,7 +368,7 @@ int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
       return FLATTEN_VALUE_OK;
     }
   } break;
-  case LBM_TYPE_ARRAY: {
+  case LBM_TYPE_BYTEARRAY: {
     lbm_int s = lbm_heap_array_get_size(v);
     const uint8_t *d = lbm_heap_array_get_data_ro(v);
     if (s > 0 && d != NULL) {
@@ -405,7 +405,7 @@ lbm_value flatten_value(lbm_value v) {
 
   jmp_buf jb;
 
-  lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
+  lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_BYTEARRAY_TYPE);
   if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) {
     lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
     return ENC_SYM_MERROR;
@@ -441,7 +441,7 @@ lbm_value flatten_value(lbm_value v) {
       array->data = (lbm_uint*)fv.buf;
       array->size = fv.buf_size;
       lbm_set_car(array_cell, (lbm_uint)array);
-      array_cell = lbm_set_ptr_type(array_cell, LBM_TYPE_ARRAY);
+      array_cell = lbm_set_ptr_type(array_cell, LBM_TYPE_BYTEARRAY);
       return array_cell;
     } else {
       flatten_error(jb, FLATTEN_VALUE_ERROR_FATAL);

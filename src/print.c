@@ -94,7 +94,7 @@ int lbm_print_init(lbm_uint print_stack_size) {
 #define EMIT_FAILED -1
 #define EMIT_OK      0
 
-int print_emit_string(lbm_char_channel_t *chan, char* str) {
+static int print_emit_string(lbm_char_channel_t *chan, char* str) {
   if (str == NULL) return EMIT_FAILED;
   while (*str != 0) {
     int r = lbm_channel_write(chan, *str);
@@ -104,7 +104,7 @@ int print_emit_string(lbm_char_channel_t *chan, char* str) {
   return EMIT_OK;
 }
 
-int print_emit_char(lbm_char_channel_t *chan, char c) {
+static int print_emit_char(lbm_char_channel_t *chan, char c) {
 
   int r = lbm_channel_write(chan, c);
   if (r != CHANNEL_SUCCESS) return EMIT_FAILED;
@@ -112,7 +112,7 @@ int print_emit_char(lbm_char_channel_t *chan, char c) {
 }
 
 
-int emit_escape(lbm_char_channel_t *chan, char c) {
+static int emit_escape(lbm_char_channel_t *chan, char c) {
   switch(c) {
   case '"': return print_emit_string(chan, "\\\"");
   case '\n': return print_emit_string(chan, "\\n");
@@ -124,7 +124,7 @@ int emit_escape(lbm_char_channel_t *chan, char c) {
   }
 }
 
-int print_emit_string_value(lbm_char_channel_t *chan, char* str) {
+static int print_emit_string_value(lbm_char_channel_t *chan, char* str) {
   if (str == NULL) return EMIT_FAILED;
   while (*str != 0) {
     int r = emit_escape(chan, *str++);
@@ -133,73 +133,73 @@ int print_emit_string_value(lbm_char_channel_t *chan, char* str) {
   return EMIT_OK;
 }
 
-int print_emit_symbol(lbm_char_channel_t *chan, lbm_value sym) {
+static int print_emit_symbol(lbm_char_channel_t *chan, lbm_value sym) {
   char *str_ptr = (char*)lbm_get_name_by_symbol(lbm_dec_sym(sym));
   return print_emit_string(chan, str_ptr);
 }
 
-int print_emit_i(lbm_char_channel_t *chan, lbm_int v) {
+static int print_emit_i(lbm_char_channel_t *chan, lbm_int v) {
   char buf[EMIT_BUFFER_SIZE];
   snprintf(buf, EMIT_BUFFER_SIZE, "%"PRI_INT, v);
   return print_emit_string(chan, buf);
 }
 
-int print_emit_u(lbm_char_channel_t *chan, lbm_uint v, bool ps) {
+static int print_emit_u(lbm_char_channel_t *chan, lbm_uint v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
   snprintf(buf, EMIT_BUFFER_SIZE, "%"PRI_UINT"%s", v, ps ? "u" : "");
   return print_emit_string(chan, buf);
 }
 
-int print_emit_byte(lbm_char_channel_t *chan, uint8_t v, bool ps) {
+static int print_emit_byte(lbm_char_channel_t *chan, uint8_t v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
   snprintf(buf, EMIT_BUFFER_SIZE, "%u%s", v, ps ? "b" : "");
   return print_emit_string(chan, buf);
 }
 
-int print_emit_float(lbm_char_channel_t *chan, float v, bool ps) {
+static int print_emit_float(lbm_char_channel_t *chan, float v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
   snprintf(buf, EMIT_BUFFER_SIZE, "%"PRI_FLOAT"%s", (double)v, ps ? "f32" : "");
   return print_emit_string(chan, buf);
 }
 
-int print_emit_double(lbm_char_channel_t *chan, double v, bool ps) {
+static int print_emit_double(lbm_char_channel_t *chan, double v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
   snprintf(buf, EMIT_BUFFER_SIZE, "%lf%s", v, ps ? "f64" : "");
   return print_emit_string(chan, buf);
 }
 
-int print_emit_u32(lbm_char_channel_t *chan, uint32_t v, bool ps) {
+static int print_emit_u32(lbm_char_channel_t *chan, uint32_t v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
   snprintf(buf,EMIT_BUFFER_SIZE, "%"PRIu32"%s", v, ps ? "u32" : "");
   return print_emit_string(chan, buf);
 }
 
-int print_emit_i32(lbm_char_channel_t *chan, int32_t v, bool ps) {
+static int print_emit_i32(lbm_char_channel_t *chan, int32_t v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
   snprintf(buf,EMIT_BUFFER_SIZE, "%"PRId32"%s", v, ps ? "i32" : "");
   return print_emit_string(chan, buf);
 }
 
-int print_emit_u64(lbm_char_channel_t *chan, uint64_t v, bool ps) {
+static int print_emit_u64(lbm_char_channel_t *chan, uint64_t v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
   snprintf(buf,EMIT_BUFFER_SIZE, "%"PRIu64"%s", v, ps ? "u64" : "");
   return print_emit_string(chan, buf);
 }
 
-int print_emit_i64(lbm_char_channel_t *chan, int64_t v, bool ps) {
+static int print_emit_i64(lbm_char_channel_t *chan, int64_t v, bool ps) {
   char buf[EMIT_BUFFER_SIZE];
   snprintf(buf,EMIT_BUFFER_SIZE, "%"PRId64"%s", v, ps ? "i64" : "");
   return print_emit_string(chan, buf);
 }
 
-int print_emit_continuation(lbm_char_channel_t *chan, lbm_value v) {
+static int print_emit_continuation(lbm_char_channel_t *chan, lbm_value v) {
   char buf[EMIT_BUFFER_SIZE];
   lbm_uint cont = (v & ~LBM_CONTINUATION_INTERNAL) >> LBM_ADDRESS_SHIFT;
   snprintf(buf, EMIT_BUFFER_SIZE, "CONT[" "%"PRI_UINT"]", cont);
   return print_emit_string(chan, buf);
 }
 
-int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
+static int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
   lbm_uint *custom = (lbm_uint*)lbm_car(v);
   int r;
   if (custom && custom[CUSTOM_TYPE_DESCRIPTOR]) {
@@ -210,12 +210,12 @@ int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
   return r;
 }
 
-int print_emit_channel(lbm_char_channel_t *chan, lbm_value v) {
+static int print_emit_channel(lbm_char_channel_t *chan, lbm_value v) {
   (void) v;
   return print_emit_string(chan, "~CHANNEL~");
 }
 
-int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *array) {
+static int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *array) {
 
   int r = print_emit_char(chan, '[');
 
@@ -237,7 +237,7 @@ int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *array) {
   return r;
 }
 
-int print_emit_array(lbm_char_channel_t *chan, lbm_value v) {
+static int print_emit_bytearray(lbm_char_channel_t *chan, lbm_value v) {
 
   char *str;
 
@@ -257,7 +257,7 @@ int print_emit_array(lbm_char_channel_t *chan, lbm_value v) {
 }
 
 
-int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
+static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
 
   lbm_stack_clear(&print_stack);
   lbm_push_2(&print_stack, v, PRINT);
@@ -400,8 +400,8 @@ int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       case LBM_TYPE_CHANNEL:
         r = print_emit_channel(chan, curr);
         break;
-      case LBM_TYPE_ARRAY:
-        r = print_emit_array(chan, curr);
+      case LBM_TYPE_BYTEARRAY:
+        r = print_emit_bytearray(chan, curr);
         break;
       default:
         return EMIT_FAILED;

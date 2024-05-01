@@ -97,7 +97,7 @@ special_sym const special_symbols[] =  {
   {"flash_full"         , SYM_ERROR_FLASH_HEAP_FULL},
 
   // Special symbols with unparsable names
-  {"$array"          , SYM_ARRAY_TYPE},
+  {"$array"          , SYM_BYTEARRAY_TYPE},
   {"$raw_i"          , SYM_RAW_I_TYPE},
   {"$raw_u"          , SYM_RAW_U_TYPE},
   {"$raw_f"          , SYM_RAW_F_TYPE},
@@ -135,7 +135,7 @@ special_sym const special_symbols[] =  {
   {"type-double"      , SYM_TYPE_DOUBLE},
   {"type-i64"         , SYM_TYPE_I64},
   {"type-u64"         , SYM_TYPE_U64},
-  {"type-array"       , SYM_TYPE_ARRAY},
+  {"type-array"       , SYM_TYPE_BYTEARRAY},
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
@@ -173,7 +173,7 @@ special_sym const special_symbols[] =  {
   {"list"             , SYM_LIST},
   {"append"           , SYM_APPEND},
   {"undefine"         , SYM_UNDEFINE},
-  {"bufcreate"        , SYM_ARRAY_CREATE},
+  {"bufcreate"        , SYM_BYTEARRAY_CREATE},
   {"type-of"          , SYM_TYPE_OF},
   {"sym2str"          , SYM_SYMBOL_TO_STRING},
   {"str2sym"          , SYM_STRING_TO_SYMBOL},
@@ -226,7 +226,7 @@ special_sym const special_symbols[] =  {
   {"setvar"         , SYM_SETVAR},
   {"type-f32"       , SYM_TYPE_FLOAT},
   {"type-f64"       , SYM_TYPE_DOUBLE},
-  {"array-create"   , SYM_ARRAY_CREATE},
+  {"array-create"   , SYM_BYTEARRAY_CREATE},
 };
 
 static lbm_uint *symlist = NULL;
