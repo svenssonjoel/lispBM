@@ -1642,9 +1642,9 @@ static void eval_atomic(eval_context_t *ctx) {
 
 static void eval_callcc(eval_context_t *ctx) {
   lbm_value cont_array;
-  if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp * sizeof(lbm_uint))) {
+  if (!lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp)) {
     gc();
-    if (!lbm_heap_allocate_array(&cont_array, ctx->K.sp * sizeof(lbm_uint))) {
+    if (!lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp)) {
       error_ctx(ENC_SYM_MERROR);
       return; // dead return but static analysis doesnt know :)
     }
@@ -4239,7 +4239,7 @@ static void cont_application_start(eval_context_t *ctx) {
        */
       lbm_value c = get_cdr(ctx->r); /* should be the continuation array*/
 
-      if (!lbm_is_array_r(c)) {
+      if (!lbm_is_lisp_array_r(c)) {
         error_ctx(ENC_SYM_FATAL_ERROR);
       }
 

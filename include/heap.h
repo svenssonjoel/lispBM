@@ -569,14 +569,20 @@ void lbm_gc_mark_roots(lbm_uint *roots, lbm_uint num_roots);
 int lbm_gc_sweep_phase(void);
 
 // Array functionality
+/** Allocate an bytearray in symbols and arrays memory (lispbm_memory.h)
+ * and create a heap cell that refers to this bytearray.
+ * \param res The resulting lbm_value is returned through this argument.
+ * \param size Array size in number of 32 bit words.
+ * \return 1 for success of 0 for failure.
+ */
+int lbm_heap_allocate_array(lbm_value *res, lbm_uint size);
 /** Allocate an array in symbols and arrays memory (lispbm_memory.h)
  * and create a heap cell that refers to this array.
  * \param res The resulting lbm_value is returned through this argument.
  * \param size Array size in number of 32 bit words.
- * \param type The type information to encode onto the heap cell.
  * \return 1 for success of 0 for failure.
  */
-int lbm_heap_allocate_array(lbm_value *res, lbm_uint size);
+int lbm_heap_allocate_lisp_array(lbm_value *res, lbm_uint size);
 /** Convert a C array into an lbm array. If the C array is allocated in LBM MEMORY
  *  the lifetime of the array will be managed by GC.
  * \param res lbm_value result pointer for storage of the result array.
@@ -822,6 +828,16 @@ static inline bool lbm_is_array_r(lbm_value x) {
 static inline bool lbm_is_array_rw(lbm_value x) {
   return( (lbm_type_of(x) == LBM_TYPE_BYTEARRAY) && !(x & LBM_PTR_TO_CONSTANT_BIT));
 }
+
+static inline bool lbm_is_lisp_array_r(lbm_value x) {
+  lbm_type t = lbm_type_of(x);
+  return ((t & LBM_PTR_TO_CONSTANT_MASK) == LBM_TYPE_ARRAY);
+}
+
+static inline bool lbm_is_lisp_array_rw(lbm_value x) {
+  return( (lbm_type_of(x) == LBM_TYPE_ARRAY) && !(x & LBM_PTR_TO_CONSTANT_BIT));
+}
+
 
 static inline bool lbm_is_channel(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_CHANNEL &&

@@ -1,6 +1,6 @@
 /*
-    Copyright 2018, 2020, 2022, 2023 Joel Svensson  svenssonjoel@yahoo.se
-                          2022       Benjamin Vedder
+    Copyright 2018, 2020, 2022 - 2024 Joel Svensson  svenssonjoel@yahoo.se
+                          2022        Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -693,13 +693,10 @@ void lbm_gc_mark_phase(lbm_value root) {
 
     lbm_value t_ptr = lbm_type_of(curr);
 
-    if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST &&
-        t_ptr <= LBM_NON_CONS_POINTER_TYPE_LAST) continue;
-
-    if (cell->car == ENC_SYM_CONT) {
-      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(cell->cdr);
+    if (t_ptr == LBM_TYPE_ARRAY) {
+      lbm_array_header_t *arr = (lbm_array_header_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
-      for (lbm_uint i = 0; i < arr->size / 4; i ++) {
+      for (lbm_uint i = 0; i < arr->size / sizeof(lbm_value); i ++) {
         if (lbm_is_ptr(arrdata[i]) &&
             !((arrdata[i] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
           if (!lbm_push (s, arrdata[i])) {
@@ -707,7 +704,11 @@ void lbm_gc_mark_phase(lbm_value root) {
           }
         }
       }
+      continue;
     }
+
+    if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST) continue;
+
     if (lbm_is_ptr(cell->cdr)) {
       if (!lbm_push(s, cell->cdr)) {
         lbm_critical_error();
@@ -776,6 +777,7 @@ int lbm_gc_sweep_phase(void) {
         case ENC_SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
+        case ENC_SYM_ARRAY_TYPE: /* fall through */
         case ENC_SYM_BYTEARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
@@ -1074,12 +1076,13 @@ lbm_value lbm_index_list(lbm_value l, int32_t n) {
   }
 }
 
-
+// High-level arrays are just bytearrays but with a different tag and pointer type.
+// These arrays will be inspected by GC and the elements of the array will be marked.
 
 // Arrays are part of the heap module because their lifespan is managed
 // by the garbage collector. The data in the array is not stored
 // in the "heap of cons cells".
-int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
+int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size){
 
   lbm_array_header_t *array = NULL;
 
@@ -1090,6 +1093,14 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
     return 0;
   }
 
+  lbm_uint tag = ENC_SYM_BYTEARRAY_TYPE;
+  lbm_uint type = LBM_TYPE_BYTEARRAY;
+  if (!byte_array) {
+      tag = ENC_SYM_ARRAY_TYPE;
+      type = LBM_TYPE_ARRAY;
+      size = sizeof(lbm_value) * size;
+  }
+
   array->data = (lbm_uint*)lbm_malloc(size);
 
   if (array->data == NULL) {
@@ -1097,11 +1108,13 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
     *res = ENC_SYM_MERROR;
     return 0;
   }
+  // It is more important to zero out high-level arrays.
+  // 0 is symbol NIL which is perfectly safe for the GC to inspect.
   memset(array->data, 0, size);
   array->size = size;
 
   // allocating a cell for array's heap-presence
-  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_BYTEARRAY, (lbm_uint) array, ENC_SYM_BYTEARRAY_TYPE);
+  lbm_value cell  = lbm_heap_allocate_cell(type, (lbm_uint) array, tag);
 
   *res = cell;
 
@@ -1114,6 +1127,14 @@ int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
   lbm_heap_state.num_alloc_arrays ++;
 
   return 1;
+}
+
+int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
+  return lbm_heap_allocate_array_base(res, true, size);
+}
+
+int lbm_heap_allocate_lisp_array(lbm_value *res, lbm_uint size) {
+  return lbm_heap_allocate_array_base(res, false, size);
 }
 
 // Convert a C array into an lbm_array.

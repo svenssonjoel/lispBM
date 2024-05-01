@@ -97,7 +97,7 @@ special_sym const special_symbols[] =  {
   {"flash_full"         , SYM_ERROR_FLASH_HEAP_FULL},
 
   // Special symbols with unparsable names
-  {"$array"          , SYM_BYTEARRAY_TYPE},
+  {"$barray"         , SYM_BYTEARRAY_TYPE},
   {"$raw_i"          , SYM_RAW_I_TYPE},
   {"$raw_u"          , SYM_RAW_U_TYPE},
   {"$raw_f"          , SYM_RAW_F_TYPE},
@@ -107,6 +107,7 @@ special_sym const special_symbols[] =  {
   {"$channel"        , SYM_CHANNEL_TYPE},
   {"$recovered"      , SYM_RECOVERED},
   {"$custom"         , SYM_CUSTOM_TYPE},
+  {"$array"          , SYM_ARRAY_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
 
   // tokenizer symbols with unparsable names
@@ -140,6 +141,7 @@ special_sym const special_symbols[] =  {
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
   {"type-channel"     , SYM_TYPE_CHANNEL},
+  {"type-lisparray"   , SYM_TYPE_ARRAY},
 
   // Fundamental operations
   {"+"                , SYM_ADD},
@@ -212,6 +214,7 @@ special_sym const special_symbols[] =  {
   {"event-register-handler", SYM_REG_EVENT_HANDLER},
   {"take"           , SYM_TAKE},
   {"drop"           , SYM_DROP},
+  {"mkarray"        , SYM_MKARRAY},
 
   // fast access in list
   {"ix"             , SYM_IX},

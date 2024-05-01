@@ -35,6 +35,9 @@
 #define CONTINUE_LIST  4
 #define END_LIST       5
 #define PRINT_DOT      6
+#define START_ARRAY    7
+#define CONTINUE_ARRAY 8
+#define END_ARRAY      9
 
 static lbm_stack_t print_stack = { NULL, 0, 0, 0};
 static bool print_has_stack = false;
@@ -269,6 +272,53 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
   while (!lbm_stack_is_empty(&print_stack) && !chan_full) {
     lbm_pop(&print_stack, &instr);
     switch (instr) {
+    case START_ARRAY: {
+      lbm_pop(&print_stack, &curr);
+      int res = 1;
+      r = print_emit_char(chan, '[');
+      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(curr);
+      lbm_uint ix = 0;
+      lbm_uint size = arr->size / sizeof(lbm_value);
+      lbm_value *arrdata = (lbm_value*)arr->data;
+      if (size >= 1) {
+        res &= lbm_push(&print_stack, (ix + 1));
+        res &= lbm_push(&print_stack, (lbm_uint)arr);
+        res &= lbm_push(&print_stack, CONTINUE_ARRAY);
+        res &= lbm_push(&print_stack, arrdata[ix]);
+        res &= lbm_push(&print_stack, PRINT);
+      } else {
+        res &= lbm_push(&print_stack, END_LIST);
+      }
+      break;
+    }
+    case CONTINUE_ARRAY: {
+      lbm_uint arr_ptr;
+      lbm_array_header_t *arr;
+      lbm_uint ix;
+      int res = 1;
+      lbm_pop(&print_stack, &arr_ptr);
+      lbm_pop(&print_stack, &ix);
+      arr = (lbm_array_header_t *)arr_ptr;
+      lbm_value *arrdata = (lbm_value*)arr->data;
+      if (ix < (arr->size / sizeof(lbm_value))) {
+        r = print_emit_char(chan, ' ');
+        res &= lbm_push(&print_stack, (ix + 1));
+        res &= lbm_push(&print_stack, (lbm_uint)arr);
+        res &= lbm_push(&print_stack, CONTINUE_ARRAY);
+        res &= lbm_push(&print_stack, arrdata[ix]);
+        res &= lbm_push(&print_stack, PRINT);
+      } else {
+        res &= lbm_push(&print_stack, END_ARRAY);
+      }
+      if (!res) {
+        return EMIT_FAILED;
+      }
+      break;
+    }
+    case END_ARRAY: {
+      r = print_emit_char(chan, ']');
+      break;
+    }
     case START_LIST: {
       lbm_pop(&print_stack, &curr);
       r = print_emit_char(chan, '(');
@@ -352,7 +402,6 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
           t = t & LBM_PTR_TO_CONSTANT_MASK; // print constants normally
       
       switch(t) {
-        //case LBM_TYPE_CONS_CONST: /* fall through */
       case LBM_TYPE_CONS: {
         int res = lbm_push_2(&print_stack, curr, START_LIST);
         if (!res) {
@@ -403,6 +452,14 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       case LBM_TYPE_BYTEARRAY:
         r = print_emit_bytearray(chan, curr);
         break;
+      case LBM_TYPE_ARRAY: {
+        int res = lbm_push_2(&print_stack, curr, START_ARRAY);
+        if (!res) {
+          print_emit_string(chan, " ...");
+          return EMIT_OK;
+        }
+        break;
+      }
       default:
         return EMIT_FAILED;
       }

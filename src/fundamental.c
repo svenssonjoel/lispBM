@@ -1,6 +1,6 @@
 /*
-    Copyright 2019, 2021, 2022, 2023 Joel Svensson   svenssonjoel@yahoo.se
-                          2022       Benjamin Vedder
+    Copyright 2019, 2021 - 2024      Joel Svensson   svenssonjoel@yahoo.se
+                           2022      Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -327,7 +327,7 @@ static int compare(lbm_uint a, lbm_uint b) {
   return retval;
 }
 
-/* (array-create type size) */
+/* (array-create size) */
 static void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
   *result = ENC_SYM_EERROR;
   if (nargs == 1 && IS_NUMBER(args[0])) {
@@ -888,9 +888,8 @@ static lbm_value fundamental_set_cdr(lbm_value *args, lbm_uint nargs, eval_conte
 static lbm_value fundamental_set_ix(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
-  if (nargs == 3) {
-    if (lbm_is_cons(args[0]) &&
-        IS_NUMBER(args[1])) {
+  if (nargs == 3 && IS_NUMBER(args[1])) {
+    if (lbm_is_cons(args[0])) {
       lbm_value curr = args[0];
       lbm_uint i = 0;
       lbm_int ix_pre = lbm_dec_as_i32(args[1]);
@@ -911,6 +910,16 @@ static lbm_value fundamental_set_ix(lbm_value *args, lbm_uint nargs, eval_contex
         curr = lbm_cdr(curr);
         i++;
       }
+    } else if (lbm_is_lisp_array_rw(args[0])) {
+      lbm_value index = lbm_dec_as_u32(args[1]);
+      lbm_value val = args[2];
+      lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[0]);
+      lbm_value *arrdata = (lbm_value*)header->data;
+      lbm_uint size = header->size / sizeof(lbm_value);
+      if (index < size) {
+        arrdata[index] = val;
+        result = args[0];
+      }  // index out of range will be eval error.
     }
   }
   return result;
@@ -991,7 +1000,17 @@ static lbm_value fundamental_ix(lbm_value *args, lbm_uint nargs, eval_context_t 
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 2 && IS_NUMBER(args[1])) {
-    result = lbm_index_list(args[0], lbm_dec_as_i32(args[1]));
+    if (lbm_is_list(args[0])) {
+      result = lbm_index_list(args[0], lbm_dec_as_i32(args[1]));
+    } else if (lbm_is_lisp_array_r(args[0])) {
+      lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[0]);
+      lbm_value *arrdata = (lbm_value*)header->data;
+      lbm_uint size = header->size / sizeof(lbm_value);
+      lbm_uint index = lbm_dec_as_u32(args[1]);
+      if (index < size) {
+        result = arrdata[index];
+      }  // index out of range will be eval error.
+    }
   }
   return result;
 }
@@ -1236,6 +1255,7 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   case LBM_TYPE_U: return ENC_SYM_TYPE_U;
   case LBM_TYPE_CHAR: return ENC_SYM_TYPE_CHAR;
   case LBM_TYPE_SYMBOL: return ENC_SYM_TYPE_SYMBOL;
+  case LBM_TYPE_ARRAY: return ENC_SYM_TYPE_ARRAY;
   }
   return ENC_SYM_TERROR;
 }
@@ -1317,6 +1337,16 @@ static lbm_value fundamental_drop(lbm_value *args, lbm_uint nargs, eval_context_
   return lbm_list_drop(lbm_dec_as_u32(args[1]), args[0]);
 }
 
+/* (mkarray size) */
+static lbm_value fundamental_mkarray(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  if (nargs == 1 && IS_NUMBER(args[0])) {
+    lbm_heap_allocate_lisp_array(&res, lbm_dec_as_u32(args[0]));
+  }
+  return res;
+}
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1376,4 +1406,5 @@ const fundamental_fun fundamental_table[] =
    fundamental_reg_event_handler,
    fundamental_take,
    fundamental_drop,
+   fundamental_mkarray,
   };

@@ -53,8 +53,9 @@
 #define LBM_TYPE_BYTEARRAY               0x80000000u
 #define LBM_TYPE_CHANNEL                 0x90000000u
 #define LBM_TYPE_CUSTOM                  0xA0000000u
-#define LBM_NON_CONS_POINTER_TYPE_LAST   0xAC000000u
-#define LBM_POINTER_TYPE_LAST            0xAC000000u
+#define LBM_TYPE_ARRAY                   0xB0000000u // a "real" array
+#define LBM_NON_CONS_POINTER_TYPE_LAST   0xBC000000u
+#define LBM_POINTER_TYPE_LAST            0xBC000000u
 
 #define LBM_CONS_TYPE_MASK               0xF0000000u
 #define LBM_CONS_CONST_TYPE_MASK         0xFF000000u
@@ -103,8 +104,9 @@
 #define LBM_TYPE_BYTEARRAY               (lbm_uint)0x5000000000000000
 #define LBM_TYPE_CHANNEL                 (lbm_uint)0x7000000000000000
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
-#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x8000000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x8000000000000000
+#define LBM_TYPE_ARRAY                   (lbm_uint)0x9000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x9000000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x9000000000000000
 
 #define LBM_CONS_TYPE_MASK               (lbm_uint)0xF000000000000000
 #define LBM_CONS_CONST_TYPE_MASK         (lbm_uint)0xFF00000000000000
@@ -155,7 +157,7 @@
 #define SYM_ERROR_FLASH_HEAP_FULL 0x29
 
 
-#define TYPE_CLASSIFIER_STARTS 0x30
+//#define TYPE_CLASSIFIER_STARTS 0x30
 #define SYM_BYTEARRAY_TYPE     0x30
 #define SYM_RAW_I_TYPE         0x31
 #define SYM_RAW_U_TYPE         0x32
@@ -165,7 +167,8 @@
 #define SYM_IND_F_TYPE         0x36
 #define SYM_CHANNEL_TYPE       0x37
 #define SYM_CUSTOM_TYPE        0x38
-#define TYPE_CLASSIFIER_ENDS   0x39
+#define SYM_ARRAY_TYPE         0x39
+//#define TYPE_CLASSIFIER_ENDS   0x39
 #define SYM_NONSENSE           0x3A
 
 #define SYM_NO_MATCH       0x40
@@ -186,6 +189,7 @@
 #define SYM_TYPE_CHAR      0x5B
 #define SYM_TYPE_BYTE      0x5C
 #define SYM_TYPE_CHANNEL   0x5E
+#define SYM_TYPE_ARRAY     0x5F
 
 //Relevant for the tokenizer and reader
 #define TOKENIZER_SYMBOLS_START 0x70
@@ -312,6 +316,7 @@
 #define SYM_REG_EVENT_HANDLER   0x20037
 #define SYM_TAKE                0x20038
 #define SYM_DROP                0x20039
+#define SYM_MKARRAY             0x2003A
 
 // Apply funs:
 // Get their arguments in evaluated form on the stack.
@@ -394,6 +399,7 @@
 #define ENC_SYM_IND_F_TYPE         ENC_SYM(SYM_IND_F_TYPE)
 #define ENC_SYM_CHANNEL_TYPE       ENC_SYM(SYM_CHANNEL_TYPE)
 #define ENC_SYM_CUSTOM_TYPE        ENC_SYM(SYM_CUSTOM_TYPE)
+#define ENC_SYM_ARRAY_TYPE     ENC_SYM(SYM_ARRAY_TYPE)
 #define ENC_SYM_NONSENSE           ENC_SYM(SYM_NONSENSE)
 
 #define ENC_SYM_NO_MATCH       ENC_SYM(SYM_NO_MATCH)
@@ -413,6 +419,7 @@
 #define ENC_SYM_TYPE_CHAR       ENC_SYM(SYM_TYPE_CHAR)
 #define ENC_SYM_TYPE_BYTE       ENC_SYM(SYM_TYPE_BYTE)
 #define ENC_SYM_TYPE_CHANNEL    ENC_SYM(SYM_TYPE_CHANNEL)
+#define ENC_SYM_TYPE_ARRAY      ENC_SYM(SYM_TYPE_ARRAY)
 
 #define ENC_SYM_OPENPAR          ENC_SYM(SYM_OPENPAR)
 #define ENC_SYM_CLOSEPAR         ENC_SYM(SYM_CLOSEPAR)
@@ -535,5 +542,6 @@
 #define ENC_SYM_REG_EVENT_HANDLER   ENC_SYM(SYM_REG_EVENT_HANDLER)
 #define ENC_SYM_TAKE                ENC_SYM(SYM_TAKE)
 #define ENC_SYM_DROP                ENC_SYM(SYM_DROP)
+#define ENC_SYM_MKARRAY             ENC_SYM(SYM_MKARRAY)
 
 #endif
