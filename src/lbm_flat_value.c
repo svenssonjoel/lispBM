@@ -1,6 +1,6 @@
 /*
-    Copyright 2023 Joel Svensson    svenssonjoel@yahoo.se
-              2023 Benjamin Vedder
+    Copyright 2023, 2024 Joel Svensson    svenssonjoel@yahoo.se
+              2023       Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -98,6 +98,14 @@ bool f_cons(lbm_flat_value_t *v) {
   return false;
 }
 
+bool f_lisp_array(lbm_flat_value_t *v, uint32_t size) {
+  // arrays are smaller than 2^32 elements long
+  bool res = true;
+  res = res && write_byte(v, S_LBM_LISP_ARRAY);
+  res = res && write_word(v, size); // number of elements.
+  return res;
+}
+  
 bool f_sym(lbm_flat_value_t *v, lbm_uint sym_id) {
   bool res = true;
   res = res && write_byte(v,S_SYM_VALUE);
@@ -259,6 +267,16 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
     }
     return 0; // already terminated with error
   }
+  case LBM_TYPE_ARRAY: {
+    int sum = 4 + 1; // sizeof(uint32_t) + 1;
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v);
+    lbm_value *arrdata = (lbm_value*)header->data;
+    lbm_uint size = header->size / sizeof(lbm_value);
+    for (lbm_uint i = 0; i < size; i ++ ) {
+      sum += flatten_value_size_internal(jb, arrdata[i], depth + 1);
+    }
+    return sum;
+  }
   case LBM_TYPE_BYTE:
     return 1 + 1;
   case LBM_TYPE_U: /* fall through */
@@ -288,7 +306,7 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
     if (s > 0)
       return 1 + 4 + (int)s;
     flatten_error(jb, (int)s);
-  } return 0; // already terminated with error
+  } return 0; // already terminated with error    
   default:
     return FLATTEN_VALUE_ERROR_CANNOT_BE_FLATTENED;
   }
@@ -317,6 +335,20 @@ int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
       return fv_r;
     }
   }break;
+  case LBM_TYPE_ARRAY: {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v);
+    lbm_value *arrdata = (lbm_value*)header->data;
+    lbm_uint size = header->size / sizeof(lbm_value);
+    if (!f_lisp_array(fv, size)) return FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY;
+    int fv_r;
+    for (lbm_uint i = 0; i < size; i ++ ) {
+      fv_r =  flatten_value_c(fv, arrdata[i]);
+      if (fv_r != FLATTEN_VALUE_OK) {
+        return fv_r;
+      }
+    }
+    return FLATTEN_VALUE_OK;
+  } break;
   case LBM_TYPE_BYTE:
     if (f_b(fv, (uint8_t)lbm_dec_as_char(v))) {
       return FLATTEN_VALUE_OK;
@@ -513,6 +545,29 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
         *res = c;
         r = UNFLATTEN_OK;
       }
+    }
+    return r;
+  }
+  case S_LBM_LISP_ARRAY: {
+    uint32_t size;
+    bool b = extract_word(v, &size);
+    int r = UNFLATTEN_MALFORMED;
+    if (b) {
+      lbm_value array;
+      lbm_heap_allocate_lisp_array(&array, size);
+      lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(array);
+      lbm_value *arrdata = (lbm_value*)header->data;
+      if (lbm_is_symbol_merror(array)) return UNFLATTEN_GC_RETRY;
+      lbm_value a;
+      for (uint32_t i = 0; i < size; i ++) {
+        r = lbm_unflatten_value_internal(v, &a);
+        if (r == UNFLATTEN_OK) {
+          arrdata[i] = a;
+        } else {
+          break;
+        }
+      }
+      *res = array;
     }
     return r;
   }
