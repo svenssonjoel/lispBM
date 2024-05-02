@@ -1325,6 +1325,19 @@ lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
   return r;
 }
 
+lbm_flash_status lbm_allocate_const_raw(lbm_uint nwords, lbm_uint *res) {
+  lbm_flash_status r = LBM_FLASH_FULL;
+
+  if (lbm_const_heap_state &&
+      (lbm_const_heap_state->next + nwords) < lbm_const_heap_state->size) {
+    lbm_uint ix = lbm_const_heap_state->next;
+    *res = (lbm_uint)&lbm_const_heap_state->heap[ix];
+    lbm_const_heap_state->next += nwords;
+    r = LBM_FLASH_WRITE_OK;
+  }
+  return r;
+}
+
 lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res) {
 
   lbm_flash_status r = LBM_FLASH_FULL;
@@ -1342,6 +1355,19 @@ lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res) 
     r = LBM_FLASH_WRITE_OK;
   }
   return r;
+}
+
+lbm_flash_status lbm_const_write(lbm_uint *tgt, lbm_uint val) {
+
+  if (lbm_const_heap_state) {
+    lbm_uint flash = (lbm_uint)lbm_const_heap_state->heap;
+    lbm_uint ix = (((lbm_uint)tgt - flash) / 4); // byte address to ix
+    if (const_heap_write(ix, val)) {
+      return LBM_FLASH_WRITE_OK;
+    }
+    return LBM_FLASH_WRITE_ERROR;
+  }
+  return LBM_FLASH_FULL;
 }
 
 lbm_flash_status write_const_cdr(lbm_value cell, lbm_value val) {

@@ -92,7 +92,8 @@ static jmp_buf critical_error_jmp_buf;
 #define MERGE_REST            CONTINUATION(43)
 #define MERGE_LAYER           CONTINUATION(44)
 #define CLOSURE_ARGS_REST     CONTINUATION(45)
-#define NUM_CONTINUATIONS     46
+#define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(46)
+#define NUM_CONTINUATIONS     47
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -478,7 +479,7 @@ static void handle_flash_status(lbm_flash_status s) {
   }
 }
 
-static void lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt) {
+static void lift_array_flash(lbm_value flash_cell, bool bytearray,  char *data, lbm_uint num_elt) {
 
   lbm_array_header_t flash_array_header;
   flash_array_header.size = num_elt;
@@ -488,7 +489,8 @@ static void lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt)
                                           sizeof(lbm_array_header_t) / sizeof(lbm_uint),
                                           &flash_array_header_ptr));
   handle_flash_status(write_const_car(flash_cell, flash_array_header_ptr));
-  handle_flash_status(write_const_cdr(flash_cell, ENC_SYM_BYTEARRAY_TYPE));
+  lbm_uint t = bytearray ? ENC_SYM_BYTEARRAY_TYPE : ENC_SYM_ARRAY_TYPE;
+  handle_flash_status(write_const_cdr(flash_cell, t));
 }
 
 static void get_car_and_cdr(lbm_value a, lbm_value *a_car, lbm_value *a_cdr) {
@@ -4444,12 +4446,35 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
         error_ctx(ENC_SYM_FATAL_ERROR);
 #endif
       } break;
+      case ENC_SYM_ARRAY_TYPE: {
+        lbm_array_header_t *arr = (lbm_array_header_t*)ref->car;
+        lbm_uint size = arr->size / sizeof(lbm_uint);
+        lbm_uint flash_addr;
+        lbm_value *arrdata = (lbm_value *)arr->data;
+        handle_flash_status(lbm_allocate_const_raw(size, &flash_addr));
+
+        lift_array_flash(flash_cell,
+                         false,
+                         (char *)flash_addr,
+                         arr->size);
+        // Move array contents to flash recursively
+        lbm_value *rptr = stack_reserve(ctx, 5);
+        rptr[0] = flash_cell;
+        rptr[1] = lbm_enc_u(0);
+        rptr[2] = val;
+        rptr[3] = MOVE_ARRAY_ELTS_TO_FLASH;
+        rptr[4] = MOVE_VAL_TO_FLASH_DISPATCH;
+        ctx->r = arrdata[0];
+        ctx->app_cont = true;
+        return;
+      }
       case ENC_SYM_BYTEARRAY_TYPE: {
         lbm_array_header_t *arr = (lbm_array_header_t*)ref->car;
         // arbitrary address: flash_arr.
         lbm_uint flash_arr;
         handle_flash_status(lbm_write_const_array_padded((uint8_t*)arr->data, arr->size, &flash_arr));
         lift_array_flash(flash_cell,
+                         true,
                          (char *)flash_arr,
                          arr->size);
       } break;
@@ -4510,6 +4535,34 @@ static void cont_close_list_in_flash(eval_context_t *ctx) {
   handle_flash_status(write_const_cdr(lst, val));
   ctx->r = fst;
   ctx->app_cont = true;
+}
+
+static void cont_move_array_elts_to_flash(eval_context_t *ctx) {
+  lbm_value *sptr = get_stack_ptr(ctx, 3);
+  // sptr[2] = source array in RAM
+  // sptr[1] = current index
+  // sptr[0] = target array in flash
+  lbm_array_header_t *src_arr = (lbm_array_header_t*)get_car(sptr[2]);
+  lbm_uint size = src_arr->size / sizeof(lbm_uint);
+  lbm_value *srcdata = (lbm_value *)src_arr->data;
+
+  lbm_array_header_t *tgt_arr = (lbm_array_header_t*)get_car(sptr[0]);
+  lbm_uint *tgtdata = (lbm_value *)tgt_arr->data;
+  lbm_uint ix = lbm_dec_as_u32(sptr[1]);
+  handle_flash_status(lbm_const_write(&tgtdata[ix], ctx->r));
+  if (ix >= size-1) {
+    ctx->r = sptr[0];
+    lbm_stack_drop(&ctx->K, 3);
+    ctx->app_cont = true;
+    return;
+  }
+  sptr[1] = lbm_enc_u(ix + 1);
+  lbm_value *rptr = stack_reserve(ctx, 2);
+  rptr[0] = MOVE_ARRAY_ELTS_TO_FLASH;
+  rptr[1] = MOVE_VAL_TO_FLASH_DISPATCH;
+  ctx->r = srcdata[ix+1];
+  ctx->app_cont = true;
+  return;
 }
 
 static void cont_qq_expand_start(eval_context_t *ctx) {
@@ -4750,6 +4803,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_merge_rest,
     cont_merge_layer,
     cont_closure_args_rest,
+    cont_move_array_elts_to_flash,
   };
 
 /*********************************************************/
