@@ -1266,6 +1266,9 @@ static lbm_value fundamental_list_length(lbm_value *args, lbm_uint nargs, eval_c
   if (nargs == 1 && lbm_is_list(args[0])) {
     int32_t len = (int32_t)lbm_list_length(args[0]);
     result = lbm_enc_i(len);
+  } else if (nargs == 1 && lbm_is_lisp_array_r(args[0])) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[0]);
+    result = lbm_enc_i((int)(header->size / (sizeof(lbm_uint))));
   }
   return result;
 }
@@ -1336,13 +1339,56 @@ static lbm_value fundamental_drop(lbm_value *args, lbm_uint nargs, eval_context_
     return ENC_SYM_TERROR;
   return lbm_list_drop(lbm_dec_as_u32(args[1]), args[0]);
 }
-
 /* (mkarray size) */
 static lbm_value fundamental_mkarray(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value res = ENC_SYM_TERROR;
   if (nargs == 1 && IS_NUMBER(args[0])) {
     lbm_heap_allocate_lisp_array(&res, lbm_dec_as_u32(args[0]));
+  }
+  return res;
+}
+
+static lbm_value fundamental_array_to_list(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  if (nargs == 1 && lbm_is_lisp_array_r(args[0])) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[0]);
+    lbm_value *arrdata = (lbm_value*)header->data;
+    lbm_uint size = (header->size / sizeof(lbm_uint));
+    res = lbm_heap_allocate_list(size);
+    if (lbm_is_symbol(res)) return res;
+    lbm_value curr = res;
+    lbm_uint ix = 0;
+    while (lbm_is_cons(curr)) {
+      lbm_set_car(curr, arrdata[ix]);
+      ix ++;
+      curr = lbm_cdr(curr);
+    }
+  }
+  return res;
+}
+
+static lbm_value fundamental_list_to_array(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  if (nargs == 1 && lbm_is_list(args[0])) {
+    lbm_int len = (lbm_int)lbm_list_length(args[0]);
+    if ( len > 0 ) {
+      lbm_heap_allocate_lisp_array(&res, (lbm_uint)len);
+      if (lbm_is_symbol(res)) return res;
+      lbm_value curr = args[0];
+      int ix = 0;
+      lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(res);
+      lbm_value *arrdata = (lbm_value*)header->data;
+      while (lbm_is_cons(curr)) {
+        arrdata[ix] = lbm_car(curr);
+        ix ++;
+        curr = lbm_cdr(curr);
+      }
+    } else {
+      res = ENC_SYM_NIL; // could be a unique array-empty symbol
+    }
   }
   return res;
 }
@@ -1407,4 +1453,6 @@ const fundamental_fun fundamental_table[] =
    fundamental_take,
    fundamental_drop,
    fundamental_mkarray,
+   fundamental_array_to_list,
+   fundamental_list_to_array,
   };

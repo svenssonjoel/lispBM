@@ -317,6 +317,8 @@
 #define SYM_TAKE                0x20038
 #define SYM_DROP                0x20039
 #define SYM_MKARRAY             0x2003A
+#define SYM_ARRAY_TO_LIST       0x2003B
+#define SYM_LIST_TO_ARRAY       0x2003C
 
 // Apply funs:
 // Get their arguments in evaluated form on the stack.
@@ -543,5 +545,8 @@
 #define ENC_SYM_TAKE                ENC_SYM(SYM_TAKE)
 #define ENC_SYM_DROP                ENC_SYM(SYM_DROP)
 #define ENC_SYM_MKARRAY             ENC_SYM(SYM_MKARRAY)
+#define ENC_SYM_ARRAY_TO_LIST       ENC_SYM(SYM_ARRAY_TO_LIST)
+#define ENC_SYM_LIST_TO_ARRAY       ENC_SYM(SYM_LIST_TO_ARRAY)
+
 
 #endif
