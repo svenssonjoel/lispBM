@@ -301,7 +301,10 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
            PRINT};
         res = res && push_n(&print_stack, continuation, 5);
       } else {
-        res &= lbm_push(&print_stack, END_LIST);
+        res = res && lbm_push(&print_stack, END_LIST);
+      }
+      if (!res) {
+        return EMIT_FAILED;
       }
       break;
     }
@@ -323,7 +326,7 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
            PRINT};
         res = res && push_n(&print_stack, continuation, 5);
       } else {
-        res &= lbm_push(&print_stack, END_ARRAY);
+        res = res && lbm_push(&print_stack, END_ARRAY);
       }
       if (!res) {
         return EMIT_FAILED;
