@@ -692,7 +692,13 @@ void lbm_gc_mark_phase(lbm_value root) {
     lbm_heap_state.gc_marked ++;
 
     lbm_value t_ptr = lbm_type_of(curr);
-
+    // GC of high-level arrays is a bit tricky.
+    // The approach below pushes all (ptr) elements of the array to the GC stack.
+    // If the array is long and full of pointers this will fill the GC stack.
+    // A piece-by-piece approah is needed, but takes bookkeeping that needs to go somewhere
+    // and also be robust for when nested arrays are used.
+    // Pointer reversal algorithm doesnt really help as there are no pointers
+    // to reverse in an array.
     if (t_ptr == LBM_TYPE_ARRAY) {
       lbm_array_header_t *arr = (lbm_array_header_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
