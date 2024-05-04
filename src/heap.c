@@ -688,8 +688,6 @@ void lbm_gc_mark_phase(lbm_value root) {
     lbm_cons_t *cell = &lbm_heap_state.heap[lbm_dec_ptr(curr)];
 
     if (lbm_get_gc_mark(cell->cdr))  continue;
-    cell->cdr = lbm_set_gc_mark(cell->cdr);
-    lbm_heap_state.gc_marked ++;
 
     lbm_value t_ptr = lbm_type_of(curr);
     // GC of high-level arrays is a bit tricky.
@@ -699,19 +697,33 @@ void lbm_gc_mark_phase(lbm_value root) {
     // and also be robust for when nested arrays are used.
     // Pointer reversal algorithm doesnt really help as there are no pointers
     // to reverse in an array.
+
+    // Approach below is O(N^2) in marking an array but only 1 element of storage.
+    // This can be reduced to O(NLOGN) by applying a binary search for next
+    // element to handle. Incorrect, Binary search cannot be applied as elements
+    // can be marked by access through a different path.
     if (t_ptr == LBM_TYPE_ARRAY) {
+      lbm_push(s, curr); // put array back as bookkeeping.
       lbm_array_header_t *arr = (lbm_array_header_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
       for (lbm_uint i = 0; i < arr->size / sizeof(lbm_value); i ++) {
         if (lbm_is_ptr(arrdata[i]) &&
             !((arrdata[i] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
-          if (!lbm_push (s, arrdata[i])) {
-            lbm_critical_error();
+          lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[i])];
+          if (!lbm_get_gc_mark(elt->cdr)) {
+            curr = arrdata[i];
+            goto mark_shortcut;
           }
         }
       }
+      cell->cdr = lbm_set_gc_mark(cell->cdr);
+      lbm_heap_state.gc_marked ++;
+      lbm_pop(s, &curr); // Remove array as we are done with it.
       continue;
     }
+
+    cell->cdr = lbm_set_gc_mark(cell->cdr);
+    lbm_heap_state.gc_marked ++;
 
     if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST) continue;
 
