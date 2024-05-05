@@ -702,6 +702,10 @@ void lbm_gc_mark_phase(lbm_value root) {
     // This can be reduced to O(NLOGN) by applying a binary search for next
     // element to handle. Incorrect, Binary search cannot be applied as elements
     // can be marked by access through a different path.
+
+    // The pointer reversal GC algorithm uses two bits, and that would potentially
+    // make the Binary search approach viable. Within an array, one bit can be used to
+    // keep track of "has been visited as part of array traversal" and the second bit "marked".
     if (t_ptr == LBM_TYPE_ARRAY) {
       lbm_push(s, curr); // put array back as bookkeeping.
       lbm_array_header_t *arr = (lbm_array_header_t*)cell->car;
