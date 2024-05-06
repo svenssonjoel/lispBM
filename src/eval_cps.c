@@ -2224,11 +2224,13 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
 
     if (program) {
       if (incremental) {
+        ctx->flags |= EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
         lbm_value  *rptr1 = stack_reserve(ctx,3);
         rptr1[0] = chan;
         rptr1[1] = ctx->curr_env;
         rptr1[2] = READ_EVAL_CONTINUE;
       } else {
+        ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
         lbm_value  *rptr1 = stack_reserve(ctx,4);
         rptr1[0] = ENC_SYM_NIL;
         rptr1[1] = ENC_SYM_NIL;
@@ -2252,7 +2254,6 @@ static void apply_read_program(lbm_value *args, lbm_uint nargs, eval_context_t *
 }
 
 static void apply_read_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
   apply_read_base(args,nargs,ctx,true,true);
 }
 
