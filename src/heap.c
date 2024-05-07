@@ -706,6 +706,10 @@ void lbm_gc_mark_phase(lbm_value root) {
     // The pointer reversal GC algorithm uses two bits, and that would potentially
     // make the Binary search approach viable. Within an array, one bit can be used to
     // keep track of "has been visited as part of array traversal" and the second bit "marked".
+
+    // The marking of an array can be made O(N) with an additional field stored
+    // in the array, same size as the length. Use this field to keep track of last
+    // processed index in the array.
     if (t_ptr == LBM_TYPE_ARRAY) {
       lbm_push(s, curr); // put array back as bookkeeping.
       lbm_array_header_t *arr = (lbm_array_header_t*)cell->car;
