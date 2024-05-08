@@ -51,9 +51,11 @@
 #define LBM_TYPE_FLOAT                   0x68000000u
 #define LBM_TYPE_DOUBLE                  0x78000000u
 #define LBM_TYPE_BYTEARRAY               0x80000000u
+#define LBM_TYPE_BYTEARRAY_CONST         0x84000000u
 #define LBM_TYPE_CHANNEL                 0x90000000u
 #define LBM_TYPE_CUSTOM                  0xA0000000u
 #define LBM_TYPE_ARRAY                   0xB0000000u // a "real" array
+#define LBM_TYPE_ARRAY_CONST             0xB4000000u
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xBC000000u
 #define LBM_POINTER_TYPE_LAST            0xBC000000u
 
@@ -102,11 +104,13 @@
 #define LBM_TYPE_U64                     (lbm_uint)0x3800000000000000
 #define LBM_TYPE_DOUBLE                  (lbm_uint)0x4800000000000000
 #define LBM_TYPE_BYTEARRAY               (lbm_uint)0x5000000000000000
+#define LBM_TYPE_BYTEARRAY_CONST         (lbm_uint)0x5400000000000000
 #define LBM_TYPE_CHANNEL                 (lbm_uint)0x7000000000000000
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
 #define LBM_TYPE_ARRAY                   (lbm_uint)0x9000000000000000
+#define LBM_TYPE_ARRAY_CONST             (lbm_uint)0x9400000000000000
 #define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x9000000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x9000000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x9F00000000000000
 
 #define LBM_CONS_TYPE_MASK               (lbm_uint)0xF000000000000000
 #define LBM_CONS_CONST_TYPE_MASK         (lbm_uint)0xFF00000000000000

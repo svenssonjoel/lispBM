@@ -105,7 +105,7 @@ bool f_lisp_array(lbm_flat_value_t *v, uint32_t size) {
   res = res && write_word(v, size); // number of elements.
   return res;
 }
-  
+
 bool f_sym(lbm_flat_value_t *v, lbm_uint sym_id) {
   bool res = true;
   res = res && write_byte(v,S_SYM_VALUE);
@@ -254,9 +254,14 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
     flatten_error(jb, FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH);
   }
 
-  switch (lbm_type_of(v)) {
-  case LBM_TYPE_CONS: /* fall through */
-  case LBM_TYPE_CONS_CONST: {
+  lbm_uint t = lbm_type_of(v);
+  if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) {
+    //  Clear constant bit, it is irrelevant to flattening
+    t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
+  }
+
+  switch (t) {
+  case LBM_TYPE_CONS: {
     int s2 = 0;
     int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1);
     if (s1 > 0) {
@@ -306,7 +311,7 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
     if (s > 0)
       return 1 + 4 + (int)s;
     flatten_error(jb, (int)s);
-  } return 0; // already terminated with error    
+  } return 0; // already terminated with error
   default:
     return FLATTEN_VALUE_ERROR_CANNOT_BE_FLATTENED;
   }
@@ -322,9 +327,15 @@ int flatten_value_size(lbm_value v, int depth) {
 }
 
 int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
-  switch (lbm_type_of(v)) {
-  case LBM_TYPE_CONS: /* fall through */
-  case LBM_TYPE_CONS_CONST: {
+
+  lbm_uint t = lbm_type_of(v);
+  if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) {
+    //  Clear constant bit, it is irrelevant to flattening
+    t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
+  }
+
+  switch (t) {
+  case LBM_TYPE_CONS: {
     bool res = true;
     res = res && f_cons(fv);
     if (res) {
