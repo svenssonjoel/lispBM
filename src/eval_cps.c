@@ -172,6 +172,10 @@ typedef struct {
   eval_context_t *last;
 } eval_context_queue_t;
 
+#ifdef CLEAN_UP_CLOSURES
+static lbm_value clean_cl_env_symbol = ENC_SYM_NIL;
+#endif
+
 static int gc(void);
 static void error_ctx(lbm_value);
 static void error_at_ctx(lbm_value err_val, lbm_value at);
@@ -1708,14 +1712,19 @@ static void eval_define(eval_context_t *ctx) {
  */
 // (lambda param-list body-exp) -> (closure param-list body-exp env)
 static void eval_lambda(eval_context_t *ctx) {
-  lbm_value cdr = get_cdr(ctx->curr_exp);
-  ctx->r = allocate_closure(get_car(cdr), get_cadr(cdr), ctx->curr_env);
+  lbm_value vals[3];
+  extract_n(ctx->curr_exp, vals, 3);
+  ctx->r = allocate_closure(vals[1],vals[2], ctx->curr_env);
 #ifdef CLEAN_UP_CLOSURES
-  // Todo, lookup once and cache.
   lbm_uint sym_id  = 0;
-  if (lbm_get_symbol_by_name("clean-cl-env", &sym_id)) {
+  if (clean_cl_env_symbol) {
     lbm_value tail = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
-    lbm_value app = cons_with_gc(lbm_enc_sym(sym_id), tail, tail);
+    lbm_value app = cons_with_gc(clean_cl_env_symbol, tail, tail);
+    ctx->curr_exp = app;
+  } else if (lbm_get_symbol_by_name("clean-cl-env", &sym_id)) {
+    clean_cl_env_symbol = lbm_enc_sym(sym_id);
+    lbm_value tail = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+    lbm_value app = cons_with_gc(clean_cl_env_symbol, tail, tail);
     ctx->curr_exp = app;
   } else {
     ctx->app_cont = true;
