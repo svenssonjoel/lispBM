@@ -249,6 +249,12 @@ typedef struct {
   lbm_uint *data;           /// pointer to lbm_memory array or C array.
 } lbm_array_header_t;
 
+typedef struct {
+  lbm_uint size;
+  lbm_uint *data;
+  uint32_t index;         // Limits arrays to max 2^32-1 elements.
+} lbm_array_header_extended_t;
+  
 /** Lock GC mutex
  *  Locks a mutex during GC marking when using the pointer reversal algorithm.
  *  Does nothing when using stack based GC mark.

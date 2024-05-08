@@ -690,44 +690,32 @@ void lbm_gc_mark_phase(lbm_value root) {
     if (lbm_get_gc_mark(cell->cdr))  continue;
 
     lbm_value t_ptr = lbm_type_of(curr);
-    // GC of high-level arrays is a bit tricky.
-    // The approach below pushes all (ptr) elements of the array to the GC stack.
-    // If the array is long and full of pointers this will fill the GC stack.
-    // A piece-by-piece approah is needed, but takes bookkeeping that needs to go somewhere
-    // and also be robust for when nested arrays are used.
-    // Pointer reversal algorithm doesnt really help as there are no pointers
-    // to reverse in an array.
-
-    // Approach below is O(N^2) in marking an array but only 1 element of storage.
-    // This can be reduced to O(NLOGN) by applying a binary search for next
-    // element to handle. Incorrect, Binary search cannot be applied as elements
-    // can be marked by access through a different path.
-
-    // The pointer reversal GC algorithm uses two bits, and that would potentially
-    // make the Binary search approach viable. Within an array, one bit can be used to
-    // keep track of "has been visited as part of array traversal" and the second bit "marked".
-
-    // The marking of an array can be made O(N) with an additional field stored
-    // in the array, same size as the length. Use this field to keep track of last
-    // processed index in the array.
+    // An array is marked in O(N) time using an additional 32bit
+    // value per array that keeps track of how far into the array GC
+    // has progressed.
     if (t_ptr == LBM_TYPE_ARRAY) {
       lbm_push(s, curr); // put array back as bookkeeping.
-      lbm_array_header_t *arr = (lbm_array_header_t*)cell->car;
+      lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
-      for (lbm_uint i = 0; i < arr->size / sizeof(lbm_value); i ++) {
-        if (lbm_is_ptr(arrdata[i]) &&
-            !((arrdata[i] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
-          lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[i])];
-          if (!lbm_get_gc_mark(elt->cdr)) {
-            curr = arrdata[i];
-            goto mark_shortcut;
-          }
+      uint32_t index = arr->index;
+      if (lbm_is_ptr(arrdata[index]) &&
+          !((arrdata[index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
+        lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];
+        if (!lbm_get_gc_mark(elt->cdr)) {
+          curr = arrdata[index];
+          goto mark_shortcut;
         }
       }
-      cell->cdr = lbm_set_gc_mark(cell->cdr);
-      lbm_heap_state.gc_marked ++;
-      lbm_pop(s, &curr); // Remove array as we are done with it.
-      continue;
+      if (index < ((arr->size/4) - 1)) {
+        arr->index++;
+        continue;
+      } else {
+        arr->index = 0;
+        cell->cdr = lbm_set_gc_mark(cell->cdr);
+        lbm_heap_state.gc_marked ++;
+        lbm_pop(s, &curr); // Remove array from GC stack as we are done marking it.
+        continue;
+      }
     }
 
     cell->cdr = lbm_set_gc_mark(cell->cdr);
@@ -1112,7 +1100,12 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
 
   lbm_array_header_t *array = NULL;
 
-  array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / sizeof(lbm_uint));
+  if (!byte_array) {
+    // an extra 32bit quantity for a GC index.
+    array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_extended_t) / sizeof(lbm_uint));
+  } else {
+    array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / sizeof(lbm_uint));
+  }
 
   if (array == NULL) {
     *res = ENC_SYM_MERROR;
@@ -1125,6 +1118,8 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
       tag = ENC_SYM_ARRAY_TYPE;
       type = LBM_TYPE_ARRAY;
       size = sizeof(lbm_value) * size;
+      lbm_array_header_extended_t *ext_array = (lbm_array_header_extended_t*)array;
+      ext_array->index = 0;
   }
 
   array->data = (lbm_uint*)lbm_malloc(size);
