@@ -93,7 +93,8 @@ static jmp_buf critical_error_jmp_buf;
 #define MERGE_LAYER           CONTINUATION(44)
 #define CLOSURE_ARGS_REST     CONTINUATION(45)
 #define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(46)
-#define NUM_CONTINUATIONS     47
+#define POP_READER_FLAGS      CONTINUATION(47)
+#define NUM_CONTINUATIONS     48
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -2219,17 +2220,14 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     }
     lbm_value *sptr = get_stack_ptr(ctx, 2);
 
-    //sptr[0] = Restore context flag to incremental read?
-    //          TRUE -> set incremental
-    //          NIL  -> set non-incremental
-    if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
-      sptr[0] = ENC_SYM_TRUE;
-    } else {
-      sptr[0] = ENC_SYM_NIL;
-    }
+    // If we are inside a reader, its settings are stored.
+    sptr[0] = lbm_enc_u(ctx->flags);  // flags stored.
     sptr[1] = chan;
     lbm_value  *rptr = stack_reserve(ctx,1);
     rptr[0] = READ_DONE;
+
+    // Each reader starts in a fresh situation
+    ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
 
     if (program) {
       if (incremental) {
@@ -4052,6 +4050,8 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
       ctx->app_cont = true;
       return;
     case ENC_SYM_DOT: {
+      // This case is a bit mysterious.
+      // A dot, may in reality be an error in this location.
       lbm_value *rptr = stack_reserve(ctx, 4);
       rptr[0] = READ_DOT_TERMINATE;
       rptr[1] = stream;
@@ -4069,6 +4069,8 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
   rptr[3] = stream;
   rptr[4] = lbm_enc_u(1);
   rptr[5] = READ_NEXT_TOKEN;
+  rptr[6] = lbm_enc_u(ctx->flags);
+  rptr[7] = POP_READER_FLAGS;
   ctx->curr_env = env;
   ctx->curr_exp = ctx->r;
 }
@@ -4137,14 +4139,12 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
 
 static void cont_read_done(eval_context_t *ctx) {
   lbm_value stream;
-  lbm_value restore_incremental;
-  lbm_pop_2(&ctx->K, &stream ,&restore_incremental);
+  lbm_value f_val;
+  lbm_pop_2(&ctx->K, &stream ,&f_val);
 
-  if (restore_incremental == ENC_SYM_TRUE) {
-    ctx->flags |= EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
-  } else {
-    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
-  }
+  uint32_t flags = lbm_dec_as_u32(f_val);
+  ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
+  ctx->flags |= (flags & EVAL_CPS_CONTEXT_READER_FLAGS_MASK);
 
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
@@ -4762,6 +4762,16 @@ static void cont_kill(eval_context_t *ctx) {
   finish_ctx();
 }
 
+static void cont_pop_reader_flags(eval_context_t *ctx) {
+  lbm_value flags;
+  lbm_pop(&ctx->K, &flags);
+  ctx->flags = ctx->flags & ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
+  ctx->flags |= (lbm_dec_as_u32(flags) & EVAL_CPS_CONTEXT_READER_FLAGS_MASK);
+  // r is unchanged.
+  ctx->app_cont = true;
+}
+
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -4814,6 +4824,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_merge_layer,
     cont_closure_args_rest,
     cont_move_array_elts_to_flash,
+    cont_pop_reader_flags,
   };
 
 /*********************************************************/
