@@ -565,22 +565,6 @@ static lbm_value get_cadr(lbm_value a) {
   return(ENC_SYM_TERROR);
 }
 
-static lbm_value get_cddr(lbm_value a) {
-  if (lbm_is_ptr(a)) {
-    lbm_cons_t *cell = lbm_ref_cell(a);
-    lbm_value tmp = cell->cdr;
-    if (lbm_is_ptr(tmp)) {
-      return lbm_ref_cell(tmp)->cdr;
-    } else if (lbm_is_symbol_nil(tmp)) {
-      return tmp;
-    }
-  } else if (lbm_is_symbol_nil(a)) {
-    return a;
-  }
-  error_ctx(ENC_SYM_TERROR);
-  return(ENC_SYM_TERROR);
-}
-
 static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value env) {
 
 #ifdef LBM_ALWAYS_GC
@@ -655,7 +639,7 @@ static lbm_value extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
       res[i] = cell->car;
       curr = cell->cdr;
     } else {
-      error_ctx(ENC_SYM_TERROR);
+      res[i] = ENC_SYM_NIL;
     }
   }
   return curr; // Rest of list is returned here.
@@ -1749,29 +1733,32 @@ static void eval_if(eval_context_t *ctx) {
 //         ...
 //       (cond-expr-N expr-N))
 static void eval_cond(eval_context_t *ctx) {
-  lbm_value cond1 = get_cadr(ctx->curr_exp);
+  lbm_value cond1[2];
+  lbm_value rest_conds = extract_n(ctx->curr_exp, cond1, 2);
 
-  if (lbm_is_symbol_nil(cond1)) {
+  // end recursion at (cond )
+  if (lbm_is_symbol_nil(cond1[1])) {
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
   } else {
-    lbm_uint len = lbm_list_length(cond1);
+    // Cond is one of the few places where a bit of syntax checking takes place at runtime..
+    // Maybe dont bother?
+    lbm_uint len = lbm_list_length(cond1[1]);
     if (len != 2) {
       lbm_set_error_reason("Incorrect syntax in cond");
       error_ctx(ENC_SYM_EERROR);
     }
-    lbm_value condition = get_car(cond1);
-    lbm_value body = get_cadr(cond1);
+    lbm_value cond_expr[2];
+    extract_n(cond1[1], cond_expr, 2);
     lbm_value rest;
     WITH_GC(rest, lbm_heap_allocate_list_init(2,
-                                              body, // Then branch
-                                              cons_with_gc(ENC_SYM_COND, get_cddr(ctx->curr_exp), ENC_SYM_NIL)));
-
+                                              cond_expr[1], // Then branch
+                                              cons_with_gc(ENC_SYM_COND, rest_conds , ENC_SYM_NIL)));
     lbm_value *sptr = stack_reserve(ctx, 3);
     sptr[0] = rest;
     sptr[1] = ctx->curr_env;
     sptr[2] = IF;
-    ctx->curr_exp = condition;
+    ctx->curr_exp = cond_expr[0]; //condition;
   }
 }
 

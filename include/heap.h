@@ -889,7 +889,7 @@ static inline bool lbm_is_comma_qualified_symbol(lbm_value exp) {
   return (lbm_is_cons(exp) &&
           (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
           (lbm_car(exp) == ENC_SYM_COMMA) &&
-          (lbm_type_of(lbm_car(lbm_cdr(exp))) == LBM_TYPE_SYMBOL));
+          (lbm_type_of(lbm_cadr(exp)) == LBM_TYPE_SYMBOL));
 }
 
 static inline bool lbm_is_symbol(lbm_value exp) {
@@ -925,7 +925,7 @@ static inline bool lbm_is_quoted_list(lbm_value x) {
           lbm_is_symbol(lbm_car(x)) &&
           (lbm_car(x) == ENC_SYM_QUOTE) &&
           lbm_is_cons(lbm_cdr(x)) &&
-          lbm_is_cons(lbm_car(lbm_cdr(x))));
+          lbm_is_cons(lbm_cadr(x)));
 }
 
 #ifndef LBM64
