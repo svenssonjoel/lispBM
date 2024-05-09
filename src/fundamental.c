@@ -24,6 +24,7 @@
 #include "lbm_utils.h"
 #include "lbm_custom_type.h"
 #include "lbm_constants.h"
+#include "fundamental.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -253,11 +254,31 @@ static bool bytearray_equality(lbm_value a, lbm_value b) {
   if (lbm_is_array_r(a) && lbm_is_array_r(b)) {
     lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
     lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
-
-    if (a_ == NULL || b_ == NULL) return false; // Not possible to properly report error from here.
+    
+    // A NULL array arriving here should be impossible.
+    // if the a and b are not valid arrays at this point, the data
+    // is most likely nonsense - corrupted by cosmic radiation.
+    // if (a_ == NULL || b_ == NULL) return false; // Not possible to properly report error from here.
 
     if (a_->size == b_->size) {
       return (memcmp((char*)a_->data, (char*)b_->data, a_->size) == 0);
+    }
+  }
+  return false;
+}
+
+static bool array_struct_equality(lbm_value a, lbm_value b) {
+  if (lbm_is_lisp_array_r(a) && lbm_is_lisp_array_r(b)) {
+    lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
+    lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
+    lbm_value *adata = (lbm_value*)a_->data;
+    lbm_value *bdata = (lbm_value*)b_->data;
+    if ( a_->size == b_->size) {
+      uint32_t size = a_->size / 4;
+      for (uint32_t i = 0; i < (size); i ++ ) {
+        if (!struct_eq(adata[i], bdata[i])) return false;
+      }
+      return true;
     }
   }
   return false;
@@ -296,6 +317,8 @@ bool struct_eq(lbm_value a, lbm_value b) {
       return (lbm_dec_double(a) == lbm_dec_double(b));
     case LBM_TYPE_BYTEARRAY:
       return bytearray_equality(a, b);
+    case LBM_TYPE_ARRAY:
+      return array_struct_equality(a, b);
     }
   }
   return res;
