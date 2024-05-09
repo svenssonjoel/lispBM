@@ -856,6 +856,10 @@ lbm_value lbm_car(lbm_value c){
   return ENC_SYM_TERROR;
 }
 
+// TODO: Many comparisons "is this the nil symbol" can be
+// streamlined a bit. NIL is 0 and cannot be confused with any other
+// lbm_value.
+
 lbm_value lbm_caar(lbm_value c) {
 
   lbm_value tmp;
