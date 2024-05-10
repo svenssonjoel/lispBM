@@ -672,24 +672,33 @@ void lbm_gc_mark_phase(lbm_value root) {
 #else
 extern eval_context_t *ctx_running;
 void lbm_gc_mark_phase(lbm_value root) {
-
+  lbm_value t_ptr;
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
   s->data[s->sp++] = root;
 
   while (!lbm_stack_is_empty(s)) {
     lbm_value curr;
     lbm_pop(s, &curr);
+    
+    
   mark_shortcut:
 
-    if (!lbm_is_ptr(curr) || (curr & LBM_PTR_TO_CONSTANT_BIT)) {
+   
+    
+    if (!lbm_is_ptr(curr) ||
+        (curr & LBM_PTR_TO_CONSTANT_BIT) ||
+        ((curr & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
+      continue;
+    }
+    
+    lbm_cons_t *cell = &lbm_heap_state.heap[lbm_dec_ptr(curr)];
+
+    if (lbm_get_gc_mark(cell->cdr)) {
       continue;
     }
 
-    lbm_cons_t *cell = &lbm_heap_state.heap[lbm_dec_ptr(curr)];
-
-    if (lbm_get_gc_mark(cell->cdr))  continue;
-
-    lbm_value t_ptr = lbm_type_of(curr);
+     t_ptr = lbm_type_of(curr);
+    
     // An array is marked in O(N) time using an additional 32bit
     // value per array that keeps track of how far into the array GC
     // has progressed.
@@ -1105,10 +1114,10 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
   lbm_array_header_t *array = NULL;
 
   if (byte_array) {
-    array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / sizeof(lbm_uint));
+    array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
   } else {
     // an extra 32bit quantity for a GC index.
-    array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_extended_t) / sizeof(lbm_uint));
+    array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_extended_t));
   }
 
   if (array == NULL) {
