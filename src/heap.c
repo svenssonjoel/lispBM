@@ -127,7 +127,7 @@ lbm_value lbm_enc_float(float x) {
 lbm_value lbm_enc_i64(int64_t x) {
 #ifndef LBM64
   lbm_value res = ENC_SYM_MERROR;
-  lbm_uint* storage = lbm_memory_allocate(2);
+  lbm_uint* storage = lbm_memory_allocate(2);// why 2 ?
   if (storage) {
     res = lbm_cons((lbm_uint)storage, ENC_SYM_IND_I_TYPE);
     if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
@@ -679,8 +679,8 @@ void lbm_gc_mark_phase(lbm_value root) {
   while (!lbm_stack_is_empty(s)) {
     lbm_value curr;
     lbm_pop(s, &curr);
-
   mark_shortcut:
+
     if (!lbm_is_ptr(curr) || (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       continue;
     }
@@ -706,31 +706,31 @@ void lbm_gc_mark_phase(lbm_value root) {
           goto mark_shortcut;
         }
       }
-      if (index < ((arr->size/4) - 1)) {
+      if (index < ((arr->size/(sizeof(lbm_value))) - 1)) {
         arr->index++;
         continue;
-      } else {
-        arr->index = 0;
-        cell->cdr = lbm_set_gc_mark(cell->cdr);
-        lbm_heap_state.gc_marked ++;
-        lbm_pop(s, &curr); // Remove array from GC stack as we are done marking it.
-        continue;
       }
+
+      arr->index = 0;
+      cell->cdr = lbm_set_gc_mark(cell->cdr);
+      lbm_heap_state.gc_marked ++;
+      lbm_pop(s, &curr); // Remove array from GC stack as we are done marking it.
+      continue;
     }
 
     cell->cdr = lbm_set_gc_mark(cell->cdr);
     lbm_heap_state.gc_marked ++;
 
-    if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST) continue;
-
-    if (lbm_is_ptr(cell->cdr)) {
-      if (!lbm_push(s, cell->cdr)) {
-        lbm_critical_error();
-        break;
+    if (t_ptr == LBM_TYPE_CONS) {
+      if (lbm_is_ptr(cell->cdr)) {
+        if (!lbm_push(s, cell->cdr)) {
+          lbm_critical_error();
+          break;
+        }
       }
+      curr = cell->car;
+      goto mark_shortcut; // Skip a push/pop
     }
-    curr = cell->car;
-    goto mark_shortcut; // Skip a push/pop
   }
 }
 #endif
