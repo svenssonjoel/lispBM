@@ -679,18 +679,14 @@ void lbm_gc_mark_phase(lbm_value root) {
   while (!lbm_stack_is_empty(s)) {
     lbm_value curr;
     lbm_pop(s, &curr);
-    
-    
+
   mark_shortcut:
 
-   
-    
     if (!lbm_is_ptr(curr) ||
-        (curr & LBM_PTR_TO_CONSTANT_BIT) ||
-        ((curr & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
+        (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       continue;
     }
-    
+
     lbm_cons_t *cell = &lbm_heap_state.heap[lbm_dec_ptr(curr)];
 
     if (lbm_get_gc_mark(cell->cdr)) {
@@ -698,7 +694,7 @@ void lbm_gc_mark_phase(lbm_value root) {
     }
 
      t_ptr = lbm_type_of(curr);
-    
+
     // An array is marked in O(N) time using an additional 32bit
     // value per array that keeps track of how far into the array GC
     // has progressed.
@@ -707,6 +703,10 @@ void lbm_gc_mark_phase(lbm_value root) {
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
       uint32_t index = arr->index;
+
+      // Potential optimization.
+      // 1. CONS pointers are set to curr and recurse.
+      // 2. Any other ptr is marked immediately and index is increased.
       if (lbm_is_ptr(arrdata[index]) && ((arrdata[index] & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
           !((arrdata[index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
         lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];

@@ -55,8 +55,8 @@
 #define LBM_TYPE_CUSTOM                  0xA0000000u
 #define LBM_TYPE_LISPARRAY               0xB0000000u // a "real" array
 #define LBM_TYPE_LISPARRAY_CONST         0xB4000000u
-//#define LBM_NON_CONS_POINTER_TYPE_LAST   0xBC000000u
 #define LBM_POINTER_TYPE_LAST            0xBC000000u
+// POINTER_TYPE_LAST is less than the value used for CONTINUATION_INTERNAL
 
 #define LBM_CONS_TYPE_MASK               0xF0000000u
 #define LBM_CONS_CONST_TYPE_MASK         0xFF000000u
@@ -107,8 +107,8 @@
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
 #define LBM_TYPE_LISPARRAY               (lbm_uint)0x9000000000000000
 #define LBM_TYPE_LISPARRAY_CONST         (lbm_uint)0x9400000000000000
-//#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0xFF00000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0xFF00000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x9C00000000000000
+// POINTER_TYPE_LAST is less than the value used for CONTINUATION_INTERNAL
 
 #define LBM_CONS_TYPE_MASK               (lbm_uint)0xF000000000000000
 #define LBM_CONS_CONST_TYPE_MASK         (lbm_uint)0xFF00000000000000
