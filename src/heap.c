@@ -1186,6 +1186,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
   array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
 
   if (array == NULL) {
+    lbm_set_car_and_cdr(cell, ENC_SYM_NIL, ENC_SYM_NIL);
     *value = ENC_SYM_MERROR;
     return 0;
   }
