@@ -447,7 +447,6 @@ lbm_value flatten_value(lbm_value v) {
 
   lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
   if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) {
-    lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
     return ENC_SYM_MERROR;
   }
 
@@ -458,12 +457,14 @@ lbm_value flatten_value(lbm_value v) {
   if (required_mem > 0) {
     array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
     if (array == NULL) {
+      lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
       return ENC_SYM_MERROR;
     }
 
     bool r = lbm_start_flatten(&fv, (lbm_uint)required_mem);
     if (!r) {
       lbm_free(array);
+      lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
       return ENC_SYM_MERROR;
     }
 
@@ -483,6 +484,7 @@ lbm_value flatten_value(lbm_value v) {
       return array_cell;
     } 
   }
+  lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
   return handle_flatten_error(required_mem);
 }
 
