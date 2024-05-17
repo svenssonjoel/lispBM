@@ -9,6 +9,8 @@
 
 (sleep 1)
 
+(gc)
+
 (unblock-rmbr id)
 
 (recv ( (? x) (def res x)))

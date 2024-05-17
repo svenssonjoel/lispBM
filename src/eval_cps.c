@@ -95,8 +95,7 @@ static jmp_buf critical_error_jmp_buf;
 #define CLOSURE_ARGS_REST     CONTINUATION(45)
 #define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(46)
 #define POP_READER_FLAGS      CONTINUATION(47)
-#define STACK_DISCARD_N       CONTINUATION(48)
-#define NUM_CONTINUATIONS     49
+#define NUM_CONTINUATIONS     48
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -1294,6 +1293,22 @@ bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
   return event_internal(LBM_EVENT_UNBLOCK_CTX, (lbm_uint)cid, (lbm_uint)fv->buf, fv->buf_size);
 }
 
+bool lbm_unblock_ctx_r(lbm_cid cid) {
+  mutex_lock(&blocking_extension_mutex);
+  bool r = false;
+  eval_context_t *found = NULL;
+  mutex_lock(&qmutex);
+  found = lookup_ctx_nm(&blocked, cid);
+  if (found) {
+    drop_ctx_nm(&blocked,found);
+    enqueue_ctx_nm(&queue,found);
+    r = true;
+  }
+  mutex_unlock(&qmutex);
+  mutex_unlock(&blocking_extension_mutex);
+  return r;
+}
+
 // unblock unboxed is also safe for rmbr:ed things.
 bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
   mutex_lock(&blocking_extension_mutex);
@@ -1317,13 +1332,8 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
   mutex_unlock(&blocking_extension_mutex);
   return r;
 }
-// block could fail if stack is near full.
-// in that case false is returned.
-//
-// block_ctx_base is run from an extension.
-// Not safe to terminate the current context upon error as things are now.
-// Extension must return and then we terminate ctx.
-static bool lbm_block_ctx_base_va(bool timeout, float t_s, uint32_t rmbr_cnt, va_list va) {
+
+static bool lbm_block_ctx_base(bool timeout, float t_s) {
   mutex_lock(&blocking_extension_mutex);
   blocking_extension = true;
   if (timeout) {
@@ -1332,50 +1342,15 @@ static bool lbm_block_ctx_base_va(bool timeout, float t_s, uint32_t rmbr_cnt, va
   } else {
     blocking_extension_timeout = false;
   }
-  if (rmbr_cnt > 0) {
-    for (uint32_t i = 0; i < rmbr_cnt; i ++) {
-      if (!lbm_push(&ctx_running->K, va_arg(va, lbm_value))) {
-        return false;
-      }
-    }
-    // Limits rmbr count to max 2^28-1 (that is still thousands of times
-    // larger than any stack we will have).
-    if (!lbm_push(&ctx_running->K, lbm_enc_u(rmbr_cnt))) return false;
-    if (!lbm_push(&ctx_running->K, STACK_DISCARD_N)) return false;
-  }
   return true;
 }
 
-static bool lbm_block_ctx_base(bool timeout, float t_s, uint32_t rmbr_cnt, ...) {
-  va_list va;
-  va_start(va, rmbr_cnt);
-  bool r = lbm_block_ctx_base_va(timeout, t_s, rmbr_cnt, va);
-  va_end(va);
-  return r;
-}
-
 void lbm_block_ctx_from_extension_timeout(float s) {
-  lbm_block_ctx_base(true, s, 0);
+  lbm_block_ctx_base(true, s);
 }
 
 void lbm_block_ctx_from_extension(void) {
-  lbm_block_ctx_base(false, 0, 0);
-}
-
-bool lbm_block_ctx_from_extension_timeout_rmbr(float s, uint32_t rmbr_cnt, ...) {
-  va_list va;
-  va_start(va, rmbr_cnt);
-  bool r = lbm_block_ctx_base_va(true, s, rmbr_cnt, va);
-  va_end(va);
-  return r;
-}
-
-bool lbm_block_ctx_from_extension_rmbr(uint32_t rmbr_cnt, ...) {
-  va_list va;
-  va_start(va, rmbr_cnt);
-  bool r = lbm_block_ctx_base_va(false, 0, rmbr_cnt, va);
-  va_end(va);
-  return r;
+  lbm_block_ctx_base(false, 0);
 }
 
 // todo: May need to pop rmbrs from stack, if present.
@@ -2934,6 +2909,9 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     }
     lbm_stack_drop(&ctx->K, arg_count + 1);
 
+    ctx->app_cont = true;
+    ctx->r = ext_res;
+
     if (blocking_extension) {
       blocking_extension = false;
       if (blocking_extension_timeout) {
@@ -2943,9 +2921,6 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
         block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,true);
       }
       mutex_unlock(&blocking_extension_mutex);
-    } else {
-      ctx->app_cont = true;
-      ctx->r = ext_res;
     }
   }  break;
   case SYMBOL_KIND_FUNDAMENTAL:
@@ -4794,18 +4769,6 @@ static void cont_pop_reader_flags(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static void cont_stack_discard_n(eval_context_t *ctx) {
-  lbm_value n_val;
-  lbm_pop(&ctx->K, &n_val);
-  uint32_t n = lbm_dec_as_u32(n_val);
-  lbm_value dummy;
-  for (uint32_t i = 0; i < n; i ++) {
-    lbm_pop(&ctx->K, &dummy);
-  }
-  ctx->app_cont = true;
-}
-
-
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -4859,7 +4822,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_closure_args_rest,
     cont_move_array_elts_to_flash,
     cont_pop_reader_flags,
-    cont_stack_discard_n,
   };
 
 /*********************************************************/

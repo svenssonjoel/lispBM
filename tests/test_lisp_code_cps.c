@@ -308,9 +308,6 @@ LBM_EXTENSION(ext_unblock, args, argn) {
   return res;
 }
 
-
-lbm_value glob_array;
-
 LBM_EXTENSION(ext_block_rmbr, args, argn) {
   (void) args;
   (void) argn;
@@ -324,9 +321,8 @@ LBM_EXTENSION(ext_block_rmbr, args, argn) {
       data[i] = (uint8_t)( 1 + i);
     }
 
-    glob_array = array;
-    lbm_block_ctx_from_extension_rmbr(1, array);
-    return ENC_SYM_NIL; // ignored
+    lbm_block_ctx_from_extension();
+    return array; // remembered
   }
   return ENC_SYM_MERROR;
 }
@@ -337,7 +333,7 @@ LBM_EXTENSION(ext_unblock_rmbr, args, argn) {
     lbm_cid c = lbm_dec_as_i32(args[0]);
     // Glob array will be protected until cid is allowed to run again.
     // Should keep array safe from GC.
-    lbm_unblock_ctx_unboxed(c, glob_array);
+    lbm_unblock_ctx_r(c);
     return ENC_SYM_TRUE;
   }
   return res;
