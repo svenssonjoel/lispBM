@@ -258,20 +258,21 @@ void lbm_block_ctx_from_extension(void);
  * \param s Timeout in seconds.
  */
 void lbm_block_ctx_from_extension_timeout(float s);
-/** Undo a previous call to lbm_block_ctx_from_extension.
+/** Block a context from an extension with a timeout.
+ *  Protects the variable number of values passed.
+ * \param s Timeout in seconds.
+ * \param rmbr_cnt Number of values to protect from GC.
+ * \param ... Values to protect from GC.
+ * \return true on success and false on stack error. if this function returns false,
+ *    the extension calling it must immediately return with ENC_SYM_STACK_ERROR.
  */
-void lbm_undo_block_ctx_from_extension(void);
-/** Unblock a context that has been blocked by a C extension
- *  Trying to unblock a context that is waiting on a message
- *  in a mailbox is not encouraged
- * \param cid Lisp process to wake up.
- * \param fv lbm_flat_value to give return as result from the unblocket process.
- */
-bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv);
-/** Unblock a context bypassing the event-queue.
- *  Since the context will be unblocked in a separate tread it cannot
- *  take a composite return value. Only unboxed lbm_values are allowed.
- * \param cid Lisp process to inblock.
+bool lbm_block_ctx_from_extension_timeout_rmbr(float s, uint32_t rmbr_cnt, ...);
+/** Block a context from an extension.
+ *  Protects the variable number of values passed.
+ * \param s Timeout in seconds.
+ * \param rmbr_cnt Number of values to protect from GC.
+ * \param ... Values to protect from GC.
+ * \return true on success and false on stack error. if this function returns false, unblock.
  * \param unboxed An unboxed lbm_value: char, i, u or symbol type.
  * \return True on successfully unblocking. False otherwise.
  */
