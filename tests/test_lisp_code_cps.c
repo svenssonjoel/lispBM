@@ -339,8 +339,6 @@ LBM_EXTENSION(ext_unblock_rmbr, args, argn) {
   return res;
 }
 
-
-
 LBM_EXTENSION(ext_unblock_error, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_number(args[0])) {
@@ -355,7 +353,6 @@ LBM_EXTENSION(ext_unblock_error, args, argn) {
   }
   return res;
 }
-
 
 int checks = 0;
 LBM_EXTENSION(ext_check, args, argn) {
