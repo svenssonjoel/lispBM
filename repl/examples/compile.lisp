@@ -1,23 +1,9 @@
 
 ;; Lbm compiler experiment
 
-;; Compile function bodies.
-;; Do not recursively compile into functions called from body.
-;; Try to utilize as far as possible all existing code (continuaions, apply, fundamentals..).
-;; Emacs elisp like behavior as I understand it.
-
-;; Compiling a lambda leads to a kind of compiled closure that can be applied.
-;; The point of compilation determines the values of free variables inside
-;; the lambda body.
-
-;; Should it be possible to compile for example a "progn"
-;; as a standalone thing? 
-
-;; Fundamental operations on literals can be evaluated at compile time.
-
 ;; Bytecode format
 ;; Lisp array containing:
-;;  1. number of arguments 
+;;  1. number of arguments
 ;;  2. byte-array with byte-code
 ;;  3. lisp array of "constants"
 
@@ -34,7 +20,32 @@
 ;; closure application gets an environment populted with param/value pairs for
 ;; the arguments. For compiled code, it may be easier to push the param values
 ;; to the stack and then generate code with stack-index operations where argument
-;; accesses take place. 
+;; accesses take place.
+
+;; NOTE:
+;; - tailcalls, detect and enable ?
+;; - recursive compiled functions ? Since we currently compile lambdas, they dont even have names.
+
+;; Registers needed
+;; r, pc
+
+;; TODO: maintain scopes on a stack of (variable . stackpos) association lists.
+;; Things that add a scope should push a alist onto the stack that is popped when
+;; the compiler exits this scope.
+;; Variables should be search forin TOS-alist first then downwards the stack.
+;; code generated for leaving a scope will discard N elements from the stack.
+;; The N is determined by size of the scope popped.
+
+(def lbm-opcodes
+     '(stack-ref
+       constant
+       call-fundamental
+       call-extension
+       push-r
+       pop-r
+       end       ;; terminate the byte-code evaluator
+       discard-n ;; remove N elements from the stack
+       ))
 
 (defun mkir ()
   (let ((ir (mkarray 2)))
@@ -52,13 +63,13 @@
 
 (defun is-number (e)
   (let ((type (type-of e)))
-    (or (eq type type-char) ;; symbol 91  
+    (or (eq type type-char) ;; symbol 91
         (eq type type-byte) ;; symbol 92  This is not that good.
         (eq type type-i)
         (eq type type-u))))
 
 (defun is-zero (e)
-  (if (is-number e) 
+  (if (is-number e)
       (= 0 e)
     nil))
 
@@ -72,6 +83,7 @@
            '/
            'mod
            '=
+           'length
            )) ;; to start with
 
 (def special-forms
@@ -101,79 +113,114 @@
                            ( _ 'nil)))))
     (find-ix x xs 0)))
 
-(defun compile-list (ps const xs)
+(defun compile-list (ps const env xs)
   (match xs
          ( ((? x) . (? xs))
            {
-           (print "Compiling " x )
-           (var (ps-new const-new code) (compile ps const x))
-           (var (ps-fin const-fin code-fin) (compile-list ps-new const-new xs))
-           (print "code " code)
-           (print "code-fin " code-fin)
-           (print "code-res " (append code code-fin))
+           (var (ps-new const-new code) (compile ps const env x))
+           (var (ps-fin const-fin code-fin) (compile-list ps-new const-new env xs))
            (list ps-fin const-fin (append code code-fin))
            }
            )
          ( _ (list ps const nil))))
 
-
 ;; Code specific to associative operator with 0 identity.
 ;; TODO: generalize
-(defun compile-fundamental (ps const x xs)
+(defun compile-fundamental (ps const env x xs)
   {
+  (print "compiling fundamental " x)
   (var constants (filter (lambda (x) (is-number x)) xs))
   (var unknown   (filter (lambda (x) (not (is-number x))) xs))
-  (var new-e (eval (cons x constants)))
-  (var new-xs (cons new-e unknown))
-  (var xs-1 (filter is-not-zero new-xs))
-  (print "new-e " new-e)
-  (print "new-xs " new-xs)
-  (print "xs-1 " xs-1)
-  
-  (var (ps-new const-new code) (compile-list ps const xs-1))
-  (print "Generatin code " (append code (list (list x (length xs-1)))))
-  (list ps-new const-new (append code (list (list x (length xs-1)))))
+  (if constants
+      {
+    (var new-e (eval (cons x constants)))
+    (var new-xs (cons new-e unknown))
+    (var xs-1 (filter is-not-zero new-xs))
+    (var (ps-new const-new code) (compile-list ps const env xs-1))
+    (list ps-new const-new (append code (list (list 'call-fundamental x (length xs-1))
+                                              'push-r)))
+    }
+    {
+    (var (ps-new const-new code) (compile-list ps const env unknown))
+    (list ps-new const-new (append code (list (list 'call-fundamental x (length unknown))
+                                              'push-r)))
+    }
+   )
   })
 
-(defun compile-special-form (ps const x xs)
+;; Extensions are similar to fundamentals.
+;; All arguments compiled and should go onto stack
+;; then opcode call-extension should take care of the rest.
+
+;; Example compile define.
+;;
+;; (compile  (define x something))
+;; push x
+;; something-code   (probably ends in push-r, so a peephole opt can remove)
+;; pop-r
+;; call-continuation set_global_env
+
+(defun compile-special-form (ps const env x xs)
   (print "special form"))
 
-(defun compile (ps const body)
+(defun gen-constant (ps const e)
+  (let (( inx (index-lookup e const))
+        ( n   (length const)))
+    (if inx
+        (list ps const `((constant ,(- n inx 1))))
+      (list ps (cons e const) `((constant ,n))))))
+
+;; Stack-ref currently not correct.
+;;
+
+(defun compile (ps const env body)
   (match body
-         ( ((? x) . (? xs)) (cond ((is-fundamental x) (compile-fundamental ps const x xs))
-                                  ((is-special-form x) (compile-special-form ps const x xs))))
+         ( ((? x) . (? xs)) (cond ((is-fundamental x) (compile-fundamental ps const env x xs))
+                                  ((is-special-form x) (compile-special-form ps const env x xs))))
          ( (? x) (cond ((is-symbol x) (let (( inx (index-lookup x ps)))
                                         (if inx
                                             (list ps const `((stack-ref ,inx)))
-                                          (print "Cannot compile " x))))
-                       ((is-number x) (let (( inx (index-lookup x const))
-                                            ( n   (length const)))
-                                        (if inx
-                                            (list ps const `((constant ,(- length inx))))
-                                          (list ps (cons x const) `((constant ,n)))))) ;; Maybe + n 1
+                                          (if (assoc env x)
+                                              (gen-constant ps const (assoc env x))
+                                            (print "Cannot compile " x)))))
+                       ((is-number x) (gen-constant ps const x))
                        (t             (list ps const nil))
-                       ))))                       
-                        
-           
+                       ))))
+
+(defun peep-opt (x)
+  (match x
+         ( (push-r pop-r . (? xs)) (peep-opt xs))
+         ( ((? x) . (? xs)) (cons x (peep-opt xs)))
+         (nil nil)))
 
 (defun compile-fun (e)
   (match e
-         ( (lambda (? ps) (? body))
+         ( (closure (? ps) (? body) (? env))
            {
-           (var (ps-fin const-fin code-fin) (compile ps nil body))
-           (list ps-fin const-fin code-fin)
+           (var (ps-fin const-fin code-fin) (compile ps nil env body))
+           (list ps-fin const-fin (peep-opt (append code-fin (list 'pop-r 'end))))
            }
            )
-         ( _ (print "Can only compile lambdas"))
+         ( (lambda (? ps) (? body))
+           {
+           (var (ps-fin const-fin code-fin) (compile ps nil nil body))
+           (list ps-fin const-fin (peep-opt (append code-fin (list 'pop-r 'end))))
+           }
+           )
+         ( _ (print "Can only compile lambdas/closures"))
          ))
 
 (compile-fun '(apa))
 
-;; (define apa 10)
-
-;; (exec-code (compile '(apa)))
-
 (compile-fun '((f 1 2 3)))
 
-(compile-fun '(lambda (x) (+ x 1 )))
+(let ((y 10))
+  (compile-fun (lambda (x) (+ x y)))
+  )
+
+(define f (lambda (x) (+ x 1)))
+
+(define f-c (compile-fun f))
+
+(compile-fun (lambda (xs) (length xs)))
 
