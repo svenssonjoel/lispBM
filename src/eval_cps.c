@@ -95,7 +95,8 @@ static jmp_buf critical_error_jmp_buf;
 #define CLOSURE_ARGS_REST     CONTINUATION(45)
 #define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(46)
 #define POP_READER_FLAGS      CONTINUATION(47)
-#define NUM_CONTINUATIONS     48
+#define EXCEPTION_HANDLER     CONTINUATION(48)
+#define NUM_CONTINUATIONS     49
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -992,6 +993,22 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
         goto error_ctx_base_done;
       }
     }
+  }
+  if ((ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN) &&
+      (err_val != ENC_SYM_FATAL_ERROR)) {
+    lbm_uint v;
+    while (ctx_running->K.sp > 0) {
+      lbm_pop(&ctx_running->K, &v);
+      if (v == EXCEPTION_HANDLER) {
+        lbm_value *sptr = get_stack_ptr(ctx_running, 2);
+        lbm_set_car(sptr[0], ENC_SYM_EXIT_ERROR);
+        lbm_push(&ctx_running->K, EXCEPTION_HANDLER); // Put it back!
+        ctx_running->app_cont = true;
+        ctx_running->r = err_val;
+        longjmp(error_jmp_buf, 1);
+      }
+    }
+    err_val = ENC_SYM_FATAL_ERROR;
   }
   print_error_message(err_val,
                       has_at,
@@ -1941,7 +1958,28 @@ static void eval_loop(eval_context_t *ctx) {
   let_bind_values_eval(parts[LOOP_BINDS], parts[LOOP_COND], env, ctx);
 }
 
-// (let list-of-bindings
+/* (trap expression)
+ *
+ * suggested use:
+ * (match (trap expression)
+ *   ((exit-error (? err)) (error-handler err))
+ *   ((exit-ok    (? v))   (value-handler v)))
+ */
+static void eval_trap(eval_context_t *ctx) {
+
+  lbm_value expr = get_cadr(ctx->curr_exp);
+  lbm_value retval;
+  WITH_GC(retval, lbm_heap_allocate_list(2));
+  lbm_set_car(retval, ENC_SYM_EXIT_OK); // Assume things will go well.
+  lbm_uint *sptr = stack_reserve(ctx,3);
+  sptr[0] = retval;
+  sptr[1] = ctx->flags;
+  sptr[2] = EXCEPTION_HANDLER;
+  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN;
+  ctx->curr_exp = expr;
+}
+
+// (let list-of-binding s
 //      body-exp)
 static void eval_let(eval_context_t *ctx) {
   lbm_value env      = ctx->curr_env;
@@ -2852,7 +2890,6 @@ static void apply_rotate(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   }
   error_ctx(ENC_SYM_EERROR);
 }
-
 
 /***************************************************/
 /* Application lookup table                        */
@@ -4769,6 +4806,18 @@ static void cont_pop_reader_flags(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static void cont_exception_handler(eval_context_t *ctx) {
+  lbm_value *sptr = pop_stack_ptr(ctx, 2);
+  lbm_value retval = sptr[0];
+  lbm_value flags = sptr[1];
+  char buf[1024];
+  lbm_set_car(get_cdr(retval), ctx->r);
+  lbm_print_value(buf,1024, retval);
+  ctx->flags = flags;
+  ctx->r = retval;
+  ctx->app_cont = true;
+}
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -4822,6 +4871,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_closure_args_rest,
     cont_move_array_elts_to_flash,
     cont_pop_reader_flags,
+    cont_exception_handler
   };
 
 /*********************************************************/
@@ -4852,6 +4902,7 @@ static const evaluator_fun evaluators[] =
    eval_setq,
    eval_move_to_flash,
    eval_loop,
+   eval_trap
   };
 
 

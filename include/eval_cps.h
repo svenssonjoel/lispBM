@@ -36,11 +36,12 @@ extern "C" {
 #define EVAL_CPS_DEFAULT_MAILBOX_SIZE 10
 
 // Make sure the flags fit in an u28. (do not go beyond 27 flags)
-#define EVAL_CPS_CONTEXT_FLAG_NOTHING               (uint32_t)0x0
-#define EVAL_CPS_CONTEXT_FLAG_TRAP                  (uint32_t)0x1
-#define EVAL_CPS_CONTEXT_FLAG_CONST                 (uint32_t)0x2
-#define EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS  (uint32_t)0x4
-#define EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ      (uint32_t)0x8
+#define EVAL_CPS_CONTEXT_FLAG_NOTHING               (uint32_t)0x00
+#define EVAL_CPS_CONTEXT_FLAG_TRAP                  (uint32_t)0x01
+#define EVAL_CPS_CONTEXT_FLAG_CONST                 (uint32_t)0x02
+#define EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS  (uint32_t)0x04
+#define EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ      (uint32_t)0x08
+#define EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN    (uint32_t)0x10
 #define EVAL_CPS_CONTEXT_READER_FLAGS_MASK          (EVAL_CPS_CONTEXT_FLAG_CONST | EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS | EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ)
 
 /** The eval_context_t struct represents a lispbm process.
