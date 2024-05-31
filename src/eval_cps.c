@@ -4810,9 +4810,7 @@ static void cont_exception_handler(eval_context_t *ctx) {
   lbm_value *sptr = pop_stack_ptr(ctx, 2);
   lbm_value retval = sptr[0];
   lbm_value flags = sptr[1];
-  char buf[1024];
   lbm_set_car(get_cdr(retval), ctx->r);
-  lbm_print_value(buf,1024, retval);
   ctx->flags = flags;
   ctx->r = retval;
   ctx->app_cont = true;
