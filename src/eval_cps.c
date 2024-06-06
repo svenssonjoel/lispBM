@@ -1652,29 +1652,27 @@ static void eval_atomic(eval_context_t *ctx) {
   eval_progn(ctx);
 }
 
-
+/* (call-cc (lambda (k) .... ))  */
 static void eval_callcc(eval_context_t *ctx) {
   lbm_value cont_array;
   if (!lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp)) {
     gc();
     if (!lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp)) {
       error_ctx(ENC_SYM_MERROR);
-      return; // dead return but static analysis doesnt know :)
+      return; // dead return but static analysis doesn't know :)
     }
   }
   lbm_array_header_t *arr = (lbm_array_header_t*)get_car(cont_array);
   memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
 
   lbm_value acont = cons_with_gc(ENC_SYM_CONT, cont_array, ENC_SYM_NIL);
-
-  /* Create an application */
-  lbm_value fun_arg = get_cadr(ctx->curr_exp);
-  lbm_value app;
-  WITH_GC_RMBR_1(app, lbm_heap_allocate_list_init(2,
-                                                  fun_arg,
-                                                  acont), acont);
-
-  ctx->curr_exp = app;
+  lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
+  // Go directly into application evaluation without passing go
+  lbm_uint *sptr = stack_reserve(ctx, 3);
+  sptr[0] = ctx->curr_env;
+  sptr[1] = arg_list;
+  sptr[2] = APPLICATION_START;
+  ctx->curr_exp = get_cadr(ctx->curr_exp);
 }
 
 // (define sym exp)
