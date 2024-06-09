@@ -1002,7 +1002,7 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
       if (v == EXCEPTION_HANDLER) {
         lbm_value *sptr = get_stack_ptr(ctx_running, 2);
         lbm_set_car(sptr[0], ENC_SYM_EXIT_ERROR);
-        lbm_push(&ctx_running->K, EXCEPTION_HANDLER); // Put it back!
+        stack_reserve(ctx_running, 1)[0] = EXCEPTION_HANDLER;
         ctx_running->app_cont = true;
         ctx_running->r = err_val;
         longjmp(error_jmp_buf, 1);
@@ -1337,9 +1337,7 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
     drop_ctx_nm(&blocked,found);
     found->r = unboxed;
     if (lbm_is_error(unboxed)) {
-      lbm_value trash;
-      lbm_pop(&found->K, &trash);     // Destructively make sure there is room on stack.
-      lbm_push(&found->K, TERMINATE);
+      get_stack_ptr(found, 1)[0] = TERMINATE; // replace TOS
       found->app_cont = true;
     }
     enqueue_ctx_nm(&queue,found);
@@ -4990,9 +4988,7 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   if (found) {
     drop_ctx_nm(&blocked,found);
     if (lbm_is_error(v)) {
-      lbm_uint trash;
-      lbm_pop(&found->K, &trash);
-      lbm_push(&found->K, TERMINATE);
+      get_stack_ptr(found, 1)[0] = TERMINATE; // replace TOS
       found->app_cont = true;
     }
     found->r = v;
