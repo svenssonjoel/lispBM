@@ -2411,6 +2411,8 @@ static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   }
 }
 
+/* (eval expr)
+   (eval env expr) */
 static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if ( nargs == 1) {
     ctx->curr_exp = args[0];
