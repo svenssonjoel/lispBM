@@ -2985,8 +2985,8 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_value car_params, cdr_params;
   get_car_and_cdr(params, &car_params, &cdr_params);
 
-  int a_nil = lbm_is_symbol_nil(args);
-  int p_nil = lbm_is_symbol_nil(cdr_params);
+  bool a_nil = lbm_is_symbol_nil(args);
+  bool p_nil = lbm_is_symbol_nil(cdr_params);
 
   lbm_value binder = allocate_binding(car_params, ctx->r, clo_env);
 
