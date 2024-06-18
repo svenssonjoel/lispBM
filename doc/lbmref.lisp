@@ -2335,6 +2335,16 @@
               (code '((yield 10)
                       ))
               end)))
+(define conc-sleep
+  (ref-entry "sleep"
+             (list
+              (para (list "'sleep' puts a thread to sleep and differs from 'yield' only in the argument."
+                          "'sleep' takes a floating point number indicating how long in seconds the thread"
+                          "should sleep at least."
+                          ))
+              (code '((sleep 1.0)
+                      ))
+              end)))
 
 (define conc-atomic
   (ref-entry "atomic"
@@ -2399,6 +2409,7 @@
             conc-self
             conc-wait
             conc-yield
+            conc-sleep
             conc-atomic
             conc-exit-ok
             conc-exit-error

@@ -7096,6 +7096,40 @@ t
 ---
 
 
+### sleep
+
+'sleep' puts a thread to sleep and differs from 'yield' only in the argument. 'sleep' takes a floating point number indicating how long in seconds the thread should sleep at least. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(sleep 1.000000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
 ### atomic
 
 `atomic` can be used to execute a LispBM one or more expression without allowing the runtime system to switch process during that time. `atomic` is similar to progn with the addition of being uninterruptable. 
