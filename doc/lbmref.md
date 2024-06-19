@@ -521,11 +521,19 @@ The result of evaluating '(mk-code 10)' is the list containing a '+', '10' and '
 </tr>
 </table>
 
-In most cases this is quite natural and our functions will result in, Strings, lists and numbers that are easily and naturally understood as values. The rest of this section will now explain the meaning of LBM programs by informally showing **expressions** and what **values** they evaluate into. 
+In most cases this is quite natural and our functions will result in, Strings, lists and numbers that are easily and naturally understood as values. 
+
+Still, it is worthwhile to remember that values can be expressions and expressions can be values. 
+
+**Environments** 
+
+LispBM expressions are evaluated in relation to a global and a local environment. An environment is a key-value store where the key is a lisp symbol and the value is any lisp value. 
+
+The rest of this section will now explain the meaning of LBM programs by informally showing **expressions**, what **values** they evaluate into and how they change and depend on the environments 
 
 **Atoms** 
 
-Some atoms, such as Numbers, Strings and byte arrays cannot be further evaluated. We can call these fully evaluated forms, values. 
+Some atoms, such as Numbers, Strings and byte arrays cannot be further evaluated. 
 
 <table>
 <tr>

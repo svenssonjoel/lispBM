@@ -564,15 +564,24 @@
                     ))
             (para (list "In most cases this is quite natural and our functions will result in, Strings, lists and numbers"
                         "that are easily and naturally understood as values."
-                        "The rest of this section will now explain the meaning of LBM programs by informally"
-                        "showing **expressions** and what **values** they evaluate into."
+                        ))
+            (para (list "Still, it is worthwhile to remember that values can be expressions and expressions can be values."
+                        ))
+            (para (list "**Environments**"
+                        ))
+            (para (list "LispBM expressions are evaluated in relation to a global and a local environment."
+                        "An environment is a key-value store where the key is a lisp symbol and the value"
+                        "is any lisp value." 
+                        ))
+        
+            (para (list "The rest of this section will now explain the meaning of LBM programs by informally"
+                        "showing **expressions**, what **values** they evaluate into and how they change and depend on the environments"
                         ))
 
             (para (list "**Atoms**"
                         ))
             
             (para (list "Some atoms, such as Numbers, Strings and byte arrays cannot be further evaluated."
-                        "We can call these fully evaluated forms, values."
                         ))
             (code '((read-eval "10")
                     (read-eval "\"hello world\"")
