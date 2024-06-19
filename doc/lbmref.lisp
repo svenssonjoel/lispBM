@@ -536,11 +536,55 @@
 (defun semantics ()
   (section 3 "The meaning (semantics) that LispBM imposes on S-Expressions"
            (list
-            (para (list "The S-expressions from the previous section are just trees. The Lisp evaluator"
-                        "provides a computational interepretation for such trees. Not all trees make sense"
-                        "as lisp programs. This section is about those trees that do make sense and"
-                        "what they mean to the Lisp evaluator."
+            (para (list "The S-expressions discussed in the previous section are merely tree structures."
+                        "The Lisp evaluator provides a computational interpretation for these trees."
+                        "However, not all trees are valid Lisp programs."
+                        "This section focuses on those trees that do make sense as Lisp programs and"
+                        "their meaning to the Lisp evaluator."
                         ))
+            (para (list "**Values and expressions**"
+                        ))
+            (para (list "The LispBM evaluator transforms expressions"
+                        "into values. For instance, the expression  '(+ 1 2)' is to the value '3'."
+                        ))
+            (code '((+ 1 2)
+                    ))
+            (para (list "In LispBM the distinction between expressions and values is often blurred."
+                        "For example, it is possible to write a function that returns a result that"
+                        "can itself be interpreted as code"
+                        ))
+            (code '((read-eval "(defun mk-code (x) `(+ ,x 1))")
+                    (mk-code 10)
+                    ))
+            (para (list "The result of evaluating '(mk-code 10)' is the list containing a '+', '10' and '1'."
+                        "This list is the value that '(mk-code 10)' evaluates to."
+                        "Now, the result of '(mk-code 10)', since it is valid lisp, can be evaluated."
+                        ))
+            (code '((eval (mk-code 10))
+                    ))
+            (para (list "In most cases this is quite natural and our functions will result in, Strings, lists and numbers"
+                        "that are easily and naturally understood as values."
+                        "The rest of this section will now explain the meaning of LBM programs by informally"
+                        "showing **expressions** and what **values** they evaluate into."
+                        ))
+
+            (para (list "**Atoms**"
+                        ))
+            
+            (para (list "Some atoms, such as Numbers, Strings and byte arrays cannot be further evaluated."
+                        "We can call these fully evaluated forms, values."
+                        ))
+            (code '((read-eval "10")
+                    (read-eval "\"hello world\"")
+                    (read-eval "[1 2 3 4]")
+                    )
+                  )
+            
+            (para (list "Symbols evaluate to a lookup in the environment."
+                        "This lookup is either successfull and results in some value or it is a failure"
+                        "and results in an error."
+                        ))
+                         
             (para (list "TODO: Finish section."
                         ))
             ))
@@ -613,6 +657,8 @@
                           ))
             (para (list "In LispBM a pair of S-expressions is created by an application of `cons` as `(cons a b)`"
                         "which creates the pair `(a . b)`. Convention is that `(e0 e1 ... eN)` = `(e0 . ( e1 . ... ( eN . nil)))`."
+                        ))
+            (para (list "A structure such as `(e0 e1 ... eN)` is called a list."
                         ))
             (semantics)
             (concurrency-and-semantics)
