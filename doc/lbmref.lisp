@@ -491,8 +491,8 @@
             (para (list "**Note** that it is an absolute requirement to include a decimal when"
                         "writing a floating point literal in LBM."
                         ))
-            (para (list "We are trying to make type conversions feel familar to people who are"
-                        "familiar with the C programming language. On a 32bit platform LBM"
+            (para (list "We are trying to make type conversions feel familiar to people who know a bit of "
+                        "programming. On a 32bit platform LBM"
                         "numerical types are ordered according to: `byte < i < u < i32 < u32 <"
                         "i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures"
                         "out the largest type according to the ordering above and converts all"
@@ -567,6 +567,15 @@
                         ))
             (para (list "Still, it is worthwhile to remember that values can be expressions and expressions can be values."
                         ))
+            (para (list "**Errors**"
+                        ))
+            (para (list "Some times evaluation is impossible. This could be because the program is malformed, a type mismatch or"
+                        "a division by zero (among many other possibilities)."
+                        "Errors terminate the evaluation of the expression. To recover from an error and handle it"
+                        "the programmer needs to explicitly 'trap' the error."
+                        ))
+            (code '((trap (/ 1 0 ))
+                    ))
             (para (list "**Environments**"
                         ))
             (para (list "LispBM expressions are evaluated in relation to a global and a local environment."
@@ -589,11 +598,14 @@
                     )
                   )
             
-            (para (list "Symbols evaluate to a lookup in the environment."
-                        "This lookup is either successfull and results in some value or it is a failure"
-                        "and results in an error."
+            (para (list "Symbols evaluate by a lookup in the environment."
+                        "First, the local environment is searched for a binding of the symbols."
+                        "If unable to find a binding in the local environment, the global environment is searched."
+                        "If unable to find a binding in the global environment as well, an error 'variable_not_bound' is triggered." 
                         ))
-                         
+            (para (list "**Composite forms**"
+                        ))
+
             (para (list "TODO: Finish section."
                         ))
             ))
