@@ -492,7 +492,7 @@
                         "writing a floating point literal in LBM."
                         ))
             (para (list "We are trying to make type conversions feel familiar to people who know a bit of "
-                        "programming. On a 32bit platform LBM"
+                        "C programming. On a 32bit platform LBM"
                         "numerical types are ordered according to: `byte < i < u < i32 < u32 <"
                         "i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures"
                         "out the largest type according to the ordering above and converts all"
