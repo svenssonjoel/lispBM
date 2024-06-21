@@ -87,7 +87,7 @@ The `type-of` operation can be used to query a value for its type. On the numeri
 
 ### Overflow behaviour
 
-Operations on fixed bitwidth mumerical types can lead to overflow. The ranges representable in 32bit LBMs integer types are the following: 
+Operations on fixed bitwidth numerical types can lead to overflow. The ranges representable in 32bit LBMs integer types are the following: 
 
    - `type-char`  : 0 - 255
    - `type-i`     : -134217728 - 1342177272
@@ -425,7 +425,7 @@ The S-expressions discussed in the previous section are merely tree structures. 
 
 **Values and expressions** 
 
-The LispBM evaluator transforms expressions into values. For instance, the expression  '(+ 1 2)' is to the value '3'. 
+The LispBM evaluator transforms expressions into values. For instance, the expression  '(+ 1 2)' is evaluated to the value '3'. 
 
 <table>
 <tr>
@@ -627,7 +627,39 @@ Symbols evaluate by a lookup in the environment. First, the local environment is
 
 **Composite forms** 
 
-TODO: Finish section. 
+A composite form, such as '(e1 ... eN)' is evaluated in different ways depending on what 'e1' is. There are three major categories that 'e1' can fall into. Either 'e1' is something that represents a function and '(e1 ... eN)' is a function application. Or 'e1' is a so-called *special-forms* that form the core of the LBM language. Or lastly, 'e1' is anything else than the above and the composite form is malformed ultimately resulting in an error. 
+
+The composite form '(e1 ... eN)' is evaluated by first checking if 'e1' is a special form or not. if 'e1' is a special form the composite form is passed to a special-form evaluator. if 'e1' is not a special form,  the composite form is evaluated as a function application. These two major branches of composite form evaluation are described below. 
+
+**Special form evaluation** 
+
+The special-forms in lispBM are: 
+
+   - quote
+   - define
+   - progn
+   - lambda
+   - if
+   - let
+   - and
+   - or
+   - match
+   - receive
+   - callcc
+   - atomic
+   - macro
+   - closure
+   - cond
+   - setq
+   - move-to-flash
+   - loop
+   - trap
+
+**Function application evaluation** 
+
+The evaluation strategies explained here are applied to composite expressions of the '(e1 ... eN)' form. 
+
+**The quote and the quasiquote** 
 
 ### Concurrency and Semantics
 

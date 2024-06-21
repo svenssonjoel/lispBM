@@ -386,7 +386,7 @@
 (define overflow-behaviour
   (section 3 "Overflow behaviour"
            (list
-            (para (list "Operations on fixed bitwidth mumerical types can lead to overflow."
+            (para (list "Operations on fixed bitwidth numerical types can lead to overflow."
                         "The ranges representable in 32bit LBMs integer types are the following:"
                         ))
             (bullet '("`type-char`  : 0 - 255"
@@ -545,7 +545,7 @@
             (para (list "**Values and expressions**"
                         ))
             (para (list "The LispBM evaluator transforms expressions"
-                        "into values. For instance, the expression  '(+ 1 2)' is to the value '3'."
+                        "into values. For instance, the expression  '(+ 1 2)' is evaluated to the value '3'."
                         ))
             (code '((+ 1 2)
                     ))
@@ -605,12 +605,51 @@
                         ))
             (para (list "**Composite forms**"
                         ))
-
-            (para (list "TODO: Finish section."
+            (para (list "A composite form, such as '(e1 ... eN)' is evaluated in different ways depending"
+                        "on what 'e1' is."
+                        "There are three major categories that 'e1' can fall into. Either 'e1' is something that"
+                        "represents a function and '(e1 ... eN)' is a function application."
+                        "Or 'e1' is a so-called *special-forms* that form the core of the LBM language."
+                        "Or lastly, 'e1' is anything else than the above and the composite form is malformed ultimately resulting in an error."
+                        ))
+            (para (list "The composite form '(e1 ... eN)' is evaluated by first checking if 'e1' is a special form or not."
+                         "if 'e1' is a special form the composite form is passed to a special-form evaluator."
+                         "if 'e1' is not a special form,  the composite form is evaluated as a function application."
+                         "These two major branches of composite form evaluation are described below."
+                         ))
+            (para (list "**Special form evaluation**"
+                        ))
+            (para (list "The special-forms in lispBM are:"
+                        ))
+            (bullet (list "quote"
+                          "define"
+                          "progn"
+                          "lambda"
+                          "if"
+                          "let"
+                          "and"
+                          "or"
+                          "match"
+                          "receive"
+                          "callcc"
+                          "atomic"
+                          "macro"
+                          "closure"
+                          "cond"
+                          "setq"
+                          "move-to-flash"
+                          "loop"
+                          "trap"
+                          ))
+            (para (list "**Function application evaluation**"
+                        ))
+            (para (list "The evaluation strategies explained here are applied to composite expressions"
+                        "of the '(e1 ... eN)' form."
+                        ))
+            (para (list "**The quote and the quasiquote**"
                         ))
             ))
   )
-
 
 (defun concurrency-and-semantics ()
   (section 3 "Concurrency and Semantics"
