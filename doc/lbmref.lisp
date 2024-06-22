@@ -545,7 +545,7 @@
             (para (list "**Values and expressions**"
                         ))
             (para (list "The LispBM evaluator transforms expressions"
-                        "into values. For instance, the expression  '(+ 1 2)' is evaluated to the value '3'."
+                        "into values. For instance, the expression  `(+ 1 2)` is evaluated to the value `3`."
                         ))
             (code '((+ 1 2)
                     ))
@@ -556,9 +556,9 @@
             (code '((read-eval "(defun mk-code (x) `(+ ,x 1))")
                     (mk-code 10)
                     ))
-            (para (list "The result of evaluating '(mk-code 10)' is the list containing a '+', '10' and '1'."
-                        "This list is the value that '(mk-code 10)' evaluates to."
-                        "Now, the result of '(mk-code 10)', since it is valid lisp, can be evaluated."
+            (para (list "The result of evaluating `(mk-code 10)` is the list containing a `+`, `10` and `1`."
+                        "This list is the value that `(mk-code 10)` evaluates to."
+                        "Now, the result of `(mk-code 10)`, since it is valid lisp, can be evaluated."
                         ))
             (code '((eval (mk-code 10))
                     ))
@@ -572,7 +572,7 @@
             (para (list "Some times evaluation is impossible. This could be because the program is malformed, a type mismatch or"
                         "a division by zero (among many other possibilities)."
                         "Errors terminate the evaluation of the expression. To recover from an error and handle it"
-                        "the programmer needs to explicitly 'trap' the error."
+                        "the programmer needs to explicitly `trap` the error."
                         ))
             (code '((trap (/ 1 0 ))
                     ))
@@ -601,20 +601,20 @@
             (para (list "Symbols evaluate by a lookup in the environment."
                         "First, the local environment is searched for a binding of the symbols."
                         "If unable to find a binding in the local environment, the global environment is searched."
-                        "If unable to find a binding in the global environment as well, an error 'variable_not_bound' is triggered." 
+                        "If unable to find a binding in the global environment as well, an error `variable_not_bound` is triggered." 
                         ))
             (para (list "**Composite forms**"
                         ))
-            (para (list "A composite form, such as '(e1 ... eN)' is evaluated in different ways depending"
-                        "on what 'e1' is."
-                        "There are three major categories that 'e1' can fall into. Either 'e1' is something that"
-                        "represents a function and '(e1 ... eN)' is a function application."
-                        "Or 'e1' is a so-called *special-forms* that form the core of the LBM language."
-                        "Or lastly, 'e1' is anything else than the above and the composite form is malformed ultimately resulting in an error."
+            (para (list "A composite form, such as `(e1 ... eN)` is evaluated in different ways depending"
+                        "on what `e1` is."
+                        "There are three major categories that `e1` can fall into. Either `e1` is something that"
+                        "represents a function and `(e1 ... eN)` is a function application."
+                        "Or `e1` is a so-called *special-form* that form the core of the LBM language."
+                        "Or lastly, `e1` is anything else than the above and the composite form is malformed ultimately resulting in an error."
                         ))
-            (para (list "The composite form '(e1 ... eN)' is evaluated by first checking if 'e1' is a special form or not."
-                         "if 'e1' is a special form the composite form is passed to a special-form evaluator."
-                         "if 'e1' is not a special form,  the composite form is evaluated as a function application."
+            (para (list "The composite form `(e1 ... eN)` is evaluated by first checking if `e1` is a special form or not."
+                         "if `e1` is a special form the composite form is passed to a special-form evaluator."
+                         "if `e1` is not a special form,  the composite form is evaluated as a function application."
                          "These two major branches of composite form evaluation are described below."
                          ))
             (para (list "**Special form evaluation**"
@@ -644,7 +644,7 @@
             (para (list "**Function application evaluation**"
                         ))
             (para (list "The evaluation strategies explained here are applied to composite expressions"
-                        "of the '(e1 ... eN)' form."
+                        "of the `(e1 ... eN)` form."
                         ))
             (para (list "**The quote and the quasiquote**"
                         ))

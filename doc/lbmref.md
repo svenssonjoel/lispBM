@@ -425,7 +425,7 @@ The S-expressions discussed in the previous section are merely tree structures. 
 
 **Values and expressions** 
 
-The LispBM evaluator transforms expressions into values. For instance, the expression  '(+ 1 2)' is evaluated to the value '3'. 
+The LispBM evaluator transforms expressions into values. For instance, the expression  `(+ 1 2)` is evaluated to the value `3`. 
 
 <table>
 <tr>
@@ -495,7 +495,7 @@ In LispBM the distinction between expressions and values is often blurred. For e
 </tr>
 </table>
 
-The result of evaluating '(mk-code 10)' is the list containing a '+', '10' and '1'. This list is the value that '(mk-code 10)' evaluates to. Now, the result of '(mk-code 10)', since it is valid lisp, can be evaluated. 
+The result of evaluating `(mk-code 10)` is the list containing a `+`, `10` and `1`. This list is the value that `(mk-code 10)` evaluates to. Now, the result of `(mk-code 10)`, since it is valid lisp, can be evaluated. 
 
 <table>
 <tr>
@@ -527,7 +527,7 @@ Still, it is worthwhile to remember that values can be expressions and expressio
 
 **Errors** 
 
-Some times evaluation is impossible. This could be because the program is malformed, a type mismatch or a division by zero (among many other possibilities). Errors terminate the evaluation of the expression. To recover from an error and handle it the programmer needs to explicitly 'trap' the error. 
+Some times evaluation is impossible. This could be because the program is malformed, a type mismatch or a division by zero (among many other possibilities). Errors terminate the evaluation of the expression. To recover from an error and handle it the programmer needs to explicitly `trap` the error. 
 
 <table>
 <tr>
@@ -623,13 +623,13 @@ hello world
 </tr>
 </table>
 
-Symbols evaluate by a lookup in the environment. First, the local environment is searched for a binding of the symbols. If unable to find a binding in the local environment, the global environment is searched. If unable to find a binding in the global environment as well, an error 'variable_not_bound' is triggered. 
+Symbols evaluate by a lookup in the environment. First, the local environment is searched for a binding of the symbols. If unable to find a binding in the local environment, the global environment is searched. If unable to find a binding in the global environment as well, an error `variable_not_bound` is triggered. 
 
 **Composite forms** 
 
-A composite form, such as '(e1 ... eN)' is evaluated in different ways depending on what 'e1' is. There are three major categories that 'e1' can fall into. Either 'e1' is something that represents a function and '(e1 ... eN)' is a function application. Or 'e1' is a so-called *special-forms* that form the core of the LBM language. Or lastly, 'e1' is anything else than the above and the composite form is malformed ultimately resulting in an error. 
+A composite form, such as `(e1 ... eN)` is evaluated in different ways depending on what `e1` is. There are three major categories that `e1` can fall into. Either `e1` is something that represents a function and `(e1 ... eN)` is a function application. Or `e1` is a so-called *special-form* that form the core of the LBM language. Or lastly, `e1` is anything else than the above and the composite form is malformed ultimately resulting in an error. 
 
-The composite form '(e1 ... eN)' is evaluated by first checking if 'e1' is a special form or not. if 'e1' is a special form the composite form is passed to a special-form evaluator. if 'e1' is not a special form,  the composite form is evaluated as a function application. These two major branches of composite form evaluation are described below. 
+The composite form `(e1 ... eN)` is evaluated by first checking if `e1` is a special form or not. if `e1` is a special form the composite form is passed to a special-form evaluator. if `e1` is not a special form,  the composite form is evaluated as a function application. These two major branches of composite form evaluation are described below. 
 
 **Special form evaluation** 
 
@@ -657,7 +657,7 @@ The special-forms in lispBM are:
 
 **Function application evaluation** 
 
-The evaluation strategies explained here are applied to composite expressions of the '(e1 ... eN)' form. 
+The evaluation strategies explained here are applied to composite expressions of the `(e1 ... eN)` form. 
 
 **The quote and the quasiquote** 
 
