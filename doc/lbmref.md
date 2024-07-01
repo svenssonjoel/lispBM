@@ -527,7 +527,7 @@ Still, it is worthwhile to remember that values can be expressions and expressio
 
 **Errors** 
 
-Some times evaluation is impossible. This could be because the program is malformed, a type mismatch or a division by zero (among many other possibilities). Errors terminate the evaluation of the expression. To recover from an error and handle it the programmer needs to explicitly `trap` the error. 
+Some times evaluation is impossible. This could be because the program is malformed, a type mismatch or a division by zero (among many other possibilities). Errors terminate the evaluation of the expression. To recover from an error the programmer needs to explicitly `trap` it. 
 
 <table>
 <tr>
@@ -623,11 +623,11 @@ hello world
 </tr>
 </table>
 
-Symbols evaluate by a lookup in the environment. First, the local environment is searched for a binding of the symbols. If unable to find a binding in the local environment, the global environment is searched. If unable to find a binding in the global environment as well, an error `variable_not_bound` is triggered. 
+Symbols evaluate by a lookup in the environment. First, the local environment is searched for a binding of the symbol. If unable to find a binding in the local environment, the global environment is searched. If unable to find a binding in the global environment as well, the runtime system attempts to dynamically load a binding using a system provided callback function. If all of the above fails to provide a value a `variable_not_bound` error is produced. 
 
 **Composite forms** 
 
-A composite form, such as `(e1 ... eN)` is evaluated in different ways depending on what `e1` is. There are three major categories that `e1` can fall into. Either `e1` is something that represents a function and `(e1 ... eN)` is a function application. Or `e1` is a so-called *special-form* that form the core of the LBM language. Or lastly, `e1` is anything else than the above and the composite form is malformed ultimately resulting in an error. 
+A composite form, such as `(e1 ... eN)` is evaluated in different ways depending on what `e1` is. There are three major categories that `e1` can fall into. Either `e1` is something that represents a function and `(e1 ... eN)` is a function application. Or `e1` is a so-called *special-form* that form the core of the LBM language. Or lastly, `e1` is anything else and the composite form is malformed and will ultimately result in an error. 
 
 The composite form `(e1 ... eN)` is evaluated by first checking if `e1` is a special form or not. if `e1` is a special form the composite form is passed to a special-form evaluator. if `e1` is not a special form,  the composite form is evaluated as a function application. These two major branches of composite form evaluation are described below. 
 

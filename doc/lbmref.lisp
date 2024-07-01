@@ -571,8 +571,8 @@
                         ))
             (para (list "Some times evaluation is impossible. This could be because the program is malformed, a type mismatch or"
                         "a division by zero (among many other possibilities)."
-                        "Errors terminate the evaluation of the expression. To recover from an error and handle it"
-                        "the programmer needs to explicitly `trap` the error."
+                        "Errors terminate the evaluation of the expression. To recover from an error"
+                        "the programmer needs to explicitly `trap` it."
                         ))
             (code '((trap (/ 1 0 ))
                     ))
@@ -599,9 +599,11 @@
                   )
             
             (para (list "Symbols evaluate by a lookup in the environment."
-                        "First, the local environment is searched for a binding of the symbols."
+                        "First, the local environment is searched for a binding of the symbol."
                         "If unable to find a binding in the local environment, the global environment is searched."
-                        "If unable to find a binding in the global environment as well, an error `variable_not_bound` is triggered." 
+                        "If unable to find a binding in the global environment as well, the runtime system attempts to dynamically load"
+                        "a binding using a system provided callback function."
+                        "If all of the above fails to provide a value a `variable_not_bound` error is produced."
                         ))
             (para (list "**Composite forms**"
                         ))
@@ -610,7 +612,7 @@
                         "There are three major categories that `e1` can fall into. Either `e1` is something that"
                         "represents a function and `(e1 ... eN)` is a function application."
                         "Or `e1` is a so-called *special-form* that form the core of the LBM language."
-                        "Or lastly, `e1` is anything else than the above and the composite form is malformed ultimately resulting in an error."
+                        "Or lastly, `e1` is anything else and the composite form is malformed and will ultimately result in an error."
                         ))
             (para (list "The composite form `(e1 ... eN)` is evaluated by first checking if `e1` is a special form or not."
                          "if `e1` is a special form the composite form is passed to a special-form evaluator."
