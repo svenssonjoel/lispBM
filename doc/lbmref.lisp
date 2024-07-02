@@ -651,7 +651,9 @@
             (para (list "**The quote and the quasiquote**"
                         ))
             (para (list "The LBM parser (Reader) expands usages of the character sequences:"
-                        "`'`, `` ` ``, `,` and `,@`"
+                        "`'`, `` ` ``, `,` and `,@`."
+                        "The `'` as in `'a` is expanded into `(quote a)` for any a."
+                        "The remaining `` ` ``, `,` and `,@` are expanded into applications of `quote`, `append` and `cons`"
                         "using the algorithms described by Bawden in [quasiquotation in lisp](https://brics.dk/NS/99/1/BRICS-NS-99-1.pdf#page=6)."
                         ))
             ))

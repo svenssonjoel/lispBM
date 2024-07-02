@@ -661,7 +661,7 @@ The evaluation strategies explained here are applied to composite expressions of
 
 **The quote and the quasiquote** 
 
-The LBM parser (Reader) expands usages of the character sequences: `'`, `` ` ``, `,` and `,@` using the algorithms described by Bawden in [quasiquotation in lisp](https://brics.dk/NS/99/1/BRICS-NS-99-1.pdf#page=6). 
+The LBM parser (Reader) expands usages of the character sequences: `'`, `` ` ``, `,` and `,@`. The `'` as in `'a` is expanded into `(quote a)` for any a. The remaining `` ` ``, `,` and `,@` are expanded into applications of `quote`, `append` and `cons` using the algorithms described by Bawden in [quasiquotation in lisp](https://brics.dk/NS/99/1/BRICS-NS-99-1.pdf#page=6). 
 
 ### Concurrency and Semantics
 
