@@ -623,23 +623,27 @@
                         ))
             (para (list "Below are a selection of basic special-forms in lispBM together with their evaluation process"
                         ))
-            (bullet (list "**quote**: `(quote a)` is evaluated into a for any a"
+            (bullet (list "**quote**: `(quote a)` evaluates to a for any a"
                           "**define**: `(define s e)`, `e` is evaluated into `v` and the global environment is augmented with the pair `(s . v)`"
                           "**lambda**: `(lambda params body)` is evaluated into '(closure params body env)`. `env` is the local environment there the lambda expression is evaluated."
                           "**if**: `(if e1 e2 e3)` is evaluated by evaluating `e1` into `v1` if `v1` is nil, `e3` is evaluated otherwise `e2` is evaluated."
-                          "let"
+			  "**progn**: `(progn e1 e2 ... eN)` is evaluated by evaluating `e1` then `e2` and so on until `eN`. The value `v` that `eN` evaluats into is the value `(progn e1 e2 ... eN)` evaluates to."
+			  ))
+	    (para (list "`progn` and `if` evaluates expressions in sequence."
+			"`if` evaluates first the condition expression and then"
+			"either the true or false branch. `progn` evaluates all of the expressions in sequence."
+			"In this case, the constituent expressions are all evaluated in the same local environment."
+			"Any extensions to the local environment performed by an expresison in the sequence is only visible within that expression itself."
+			))
+	    (bullet (list "let"
                           "and"
                           "or"
-                          "match"
-                          "receive"
                           "callcc"
                           "atomic"
                           "macro"
                           "closure"
                           "cond"
                           "setq"
-                          "move-to-flash"
-                          "loop"
                           "trap"
                           ))
             (para (list "**Function application evaluation**"
