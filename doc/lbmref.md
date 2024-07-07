@@ -633,13 +633,12 @@ The composite form `(e1 ... eN)` is evaluated by first checking if `e1` is a spe
 
 **Special form evaluation** 
 
-The special-forms in lispBM are: 
+Below are a selection of basic special-forms in lispBM together with their evaluation process 
 
-   - quote
-   - define
-   - progn
-   - lambda
-   - if
+   - **quote**: `(quote a)` is evaluated into a for any a
+   - **define**: `(define s e)`, `e` is evaluated into `v` and the global environment is augmented with the pair `(s . v)`
+   - **lambda**: `(lambda params body)` is evaluated into '(closure params body env)`. `env` is the local environment there the lambda expression is evaluated.
+   - **if**: `(if e1 e2 e3)` is evaluated by evaluating `e1` into `v1` if `v1` is nil, `e3` is evaluated otherwise `e2` is evaluated.
    - let
    - and
    - or
