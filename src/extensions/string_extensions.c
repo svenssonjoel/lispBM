@@ -1,6 +1,7 @@
 /*
     Copyright 2022, 2023 Joel Svensson        svenssonjoel@yahoo.se
     Copyright 2022, 2023 Benjamin Vedder
+    Copyright 2024       Rasmus Söderhielm    rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,6 +22,7 @@
 #include "heap.h"
 #include "fundamental.h"
 #include "lbm_c_interop.h"
+#include "eval_cps.h"
 #include "print.h"
 
 #include <ctype.h>
@@ -33,6 +35,9 @@
 #endif
 
 static char print_val_buffer[256];
+
+static lbm_uint sym_left;
+static lbm_uint sym_right;
 
 static size_t strlen_max(const char *s, size_t maxlen) {
   size_t i;
@@ -94,29 +99,75 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
   }
 }
 
-static lbm_value ext_str_merge(lbm_value *args, lbm_uint argn) {
-  size_t len_tot = 0;
-  for (unsigned int i = 0;i < argn;i++) {
-    char *str = lbm_dec_str(args[i]);
-    if (str) {
-      len_tot += strlen(str);
-    } else {
+// signature: (str-join strings [delim]) -> str
+static lbm_value ext_str_join(lbm_value *args, lbm_uint argn) {
+  // This function does not check that the string arguments contain any
+  // terminating null bytes.
+  
+  if (argn != 1 && argn != 2) {
+    lbm_set_error_reason((char *)lbm_error_str_num_args);
+    return ENC_SYM_EERROR;
+  }
+
+  size_t str_len   = 0;
+  size_t str_count = 0;
+  if (!lbm_is_list(args[0])) {
+    lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
+    lbm_set_error_suspect(args[0]);
+    return ENC_SYM_TERROR;
+  }
+  for (lbm_value current = args[0]; lbm_is_cons(current); current = lbm_cdr(current)) {
+    char *str = lbm_dec_str(lbm_car(current));
+    if (!str) {
+      lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
+      lbm_set_error_suspect(args[0]);
+      return ENC_SYM_TERROR;
+    }
+
+    str_len   += (strlen(str));
+    str_count += 1;
+  }
+  
+  const char *delim = "";
+  if (argn >= 2) {
+    delim = lbm_dec_str(args[1]);
+    if (!delim) {
+      lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
+      lbm_set_error_suspect(args[1]);
       return ENC_SYM_TERROR;
     }
   }
 
-  lbm_value res;
-  if (lbm_create_array(&res, len_tot + 1)) {
-    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-    unsigned int offset = 0;
-    for (unsigned int i = 0;i < argn;i++) {
-      offset += (unsigned int)sprintf((char*)arr->data + offset, "%s", lbm_dec_str(args[i]));
-    }
-    ((char*)(arr->data))[len_tot] = '\0';
-    return res;
-  } else {
+  size_t delim_len = strlen(delim);
+  if (str_count > 0) {
+    str_len += (str_count - 1) * delim_len;
+  }
+  
+  lbm_value result;
+  if (!lbm_create_array(&result, str_len + 1)) {
     return ENC_SYM_MERROR;
   }
+  char *result_str = lbm_dec_str(result);
+
+  size_t i      = 0;
+  size_t offset = 0;
+  for (lbm_value current = args[0]; lbm_is_cons(current); current = lbm_cdr(current)) {
+    const char *str = lbm_dec_str(lbm_car(current));
+    size_t len      = strlen(str);
+
+    memcpy(result_str + offset, str, len);
+    offset += len;
+
+    if (i != str_count - 1) {
+      memcpy(result_str + offset, delim, delim_len);
+      offset += delim_len;
+    }
+    i++;
+  }
+
+  result_str[str_len] = '\0';
+
+  return result;
 }
 
 static lbm_value ext_str_to_i(lbm_value *args, lbm_uint argn) {
@@ -525,13 +576,89 @@ static lbm_value ext_str_replicate(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+// signature: (str-find str seq [occurrence] [start] [dir]) -> int
+static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || 5 < argn) {
+    lbm_set_error_reason((char *)lbm_error_str_num_args);
+    return ENC_SYM_EERROR;
+  }
+  if (!lbm_is_array_r(args[0]) || !lbm_is_array_r(args[1])) {
+    lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
+    return ENC_SYM_TERROR;
+  }
 
+  lbm_array_header_t *str_header = (lbm_array_header_t *)lbm_car(args[0]);
+  lbm_array_header_t *seq_header = (lbm_array_header_t *)lbm_car(args[1]);
+
+  const char *str   = (const char *)str_header->data;
+  lbm_uint str_size = str_header->size;
+
+  const char *seq  = (const char *)seq_header->data;
+  lbm_uint seq_len = seq_header->size - 1;
+
+  bool from_left    = true;
+  lbm_int dir_index = -1;
+  if (argn >= 3 && lbm_is_symbol(args[argn - 1])) {
+    dir_index       = argn - 1;
+    lbm_uint symbol = lbm_dec_sym(args[dir_index]);
+
+    if (symbol == sym_right) {
+      from_left = false;
+    } else if (symbol != sym_left) {
+      lbm_set_error_suspect(args[dir_index]);
+      lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
+      return ENC_SYM_TERROR;
+    }
+  }
+
+  uint32_t occurrence = 0;
+  if (argn >= 3 && dir_index != 2) {
+    if (!lbm_is_number(args[2])) {
+      lbm_set_error_reason((char *)lbm_error_str_no_number);
+      lbm_set_error_suspect(args[2]);
+      return ENC_SYM_TERROR;
+    }
+
+    occurrence = lbm_dec_as_u32(args[2]);
+  }
+
+  uint32_t start = from_left ? 0 : str_size - seq_len;
+  if (argn >= 4 && dir_index != 3) {
+    if (!lbm_is_number(args[3])) {
+      lbm_set_error_reason((char *)lbm_error_str_no_number);
+      lbm_set_error_suspect(args[3]);
+      return ENC_SYM_TERROR;
+    }
+
+    start = lbm_dec_as_u32(args[3]);
+  }
+
+  if (start > str_size - seq_len) {
+    return lbm_enc_i(-1);
+  }
+
+  lbm_int dir = from_left ? 1 : -1;
+  for (lbm_int i = start; from_left ? (i <= (str_size - seq_len)) : (i >= 0); i += dir) {
+    if (memcmp(&str[i], seq, seq_len) == 0) {
+      if (occurrence == 0) {
+        return lbm_enc_i(i);
+      }
+      occurrence -= 1;
+    }
+  }
+
+  return lbm_enc_i(-1);
+}
 
 bool lbm_string_extensions_init(void) {
 
   bool res = true;
+  
+  res = res && lbm_add_symbol_const("left", &sym_left);
+  res = res && lbm_add_symbol_const("right", &sym_right);
+  
   res = res && lbm_add_extension("str-from-n", ext_str_from_n);
-  res = res && lbm_add_extension("str-merge", ext_str_merge);
+  res = res && lbm_add_extension("str-join", ext_str_join);
   res = res && lbm_add_extension("str-to-i", ext_str_to_i);
   res = res && lbm_add_extension("str-to-f", ext_str_to_f);
   res = res && lbm_add_extension("str-part", ext_str_part);
@@ -544,6 +671,7 @@ bool lbm_string_extensions_init(void) {
   res = res && lbm_add_extension("to-str-delim", ext_to_str_delim);
   res = res && lbm_add_extension("str-len", ext_str_len);
   res = res && lbm_add_extension("str-replicate", ext_str_replicate);
+  res = res && lbm_add_extension("str-find", ext_str_find);
 
   return res;
 }
