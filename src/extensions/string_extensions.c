@@ -602,9 +602,9 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
     dir_index       = argn - 1;
     lbm_uint symbol = lbm_dec_sym(args[dir_index]);
 
-    if (symbol == sym_right) {
+    if (symbol == sym_left) {
       from_left = false;
-    } else if (symbol != sym_left) {
+    } else if (symbol != sym_right) {
       lbm_set_error_suspect(args[dir_index]);
       lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
       return ENC_SYM_TERROR;
