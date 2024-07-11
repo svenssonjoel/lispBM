@@ -4433,11 +4433,11 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
   lbm_value val = ctx->r;
 
   if (lbm_is_cons(val)) {
-    lbm_value flash_cell = ENC_SYM_NIL;
-    handle_flash_status(request_flash_storage_cell(val, &flash_cell));
+    //lbm_value flash_cell = ENC_SYM_NIL;
+    //handle_flash_status(request_flash_storage_cell(val, &flash_cell));
     lbm_value *rptr = stack_reserve(ctx, 5);
-    rptr[0] = flash_cell;
-    rptr[1] = flash_cell;
+    rptr[0] = ENC_SYM_NIL; //flash_cell; // fst cell of list
+    rptr[1] = ENC_SYM_NIL; //flash_cell; // last cell of list
     rptr[2] = get_cdr(val);
     rptr[3] = MOVE_LIST_TO_FLASH;
     rptr[4] = MOVE_VAL_TO_FLASH_DISPATCH;
@@ -4540,14 +4540,28 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
   lbm_value lst = sptr[1];
   lbm_value val = sptr[2];
 
-  handle_flash_status(write_const_car(lst, ctx->r));
+
+  lbm_value new_lst = ENC_SYM_NIL;
+  // Allocate element ptr storage after storing the element to flash. 
+  handle_flash_status(request_flash_storage_cell(lbm_enc_cons_ptr(LBM_PTR_NULL), &new_lst)); 
+  
+  if (lbm_is_symbol_nil(fst)) {
+    lst = new_lst;
+    fst = new_lst;
+    handle_flash_status(write_const_car(lst, ctx->r));
+  } else {
+    handle_flash_status(write_const_cdr(lst, new_lst)); // low before high
+    handle_flash_status(write_const_car(new_lst, ctx->r));
+    lst = new_lst;	
+  }
 
   if (lbm_is_cons(val)) {
     // prepare cell for rest of list
-    lbm_value rest_cell = ENC_SYM_NIL;
-    handle_flash_status(request_flash_storage_cell(val, &rest_cell));
-    handle_flash_status(write_const_cdr(lst, rest_cell));
-    sptr[1] = rest_cell;
+    //lbm_value rest_cell = ENC_SYM_NIL;
+    //handle_flash_status(request_flash_storage_cell(val, &rest_cell));
+    //handle_flash_status(write_const_cdr(lst, rest_cell));
+    sptr[0] = fst;
+    sptr[1] = lst;//rest_cell;
     sptr[2] = get_cdr(val);
     lbm_value *rptr = stack_reserve(ctx, 2);
     rptr[0] = MOVE_LIST_TO_FLASH;
