@@ -597,7 +597,7 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
   lbm_uint seq_len = seq_header->size - 1;
 
   bool from_left    = true;
-  lbm_int dir_index = -1;
+  lbm_uint dir_index = 4;
   if (argn >= 3 && lbm_is_symbol(args[argn - 1])) {
     dir_index       = argn - 1;
     lbm_uint symbol = lbm_dec_sym(args[dir_index]);
@@ -638,7 +638,7 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
   }
 
   lbm_int dir = from_left ? 1 : -1;
-  for (lbm_int i = start; from_left ? (i <= (str_size - seq_len)) : (i >= 0); i += dir) {
+  for (lbm_int i = (lbm_int)start; from_left ? (i <= (lbm_int)(str_size - seq_len)) : (i >= 0); i += dir) {
     if (memcmp(&str[i], seq, seq_len) == 0) {
       if (occurrence == 0) {
         return lbm_enc_i(i);
