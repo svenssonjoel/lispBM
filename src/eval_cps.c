@@ -3860,16 +3860,16 @@ static void cont_read_next_token(eval_context_t *ctx) {
       } else {
         if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS &&
             ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
-          r = lbm_add_symbol_flash(tokpar_sym_str, &symbol_id);
-          if (!r) {
+          r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id, true); //flash
+           if (!r) {
             lbm_set_error_reason((char*)lbm_error_str_flash_error);
             error_ctx(ENC_SYM_FATAL_ERROR);
           }
         } else {
-          r = lbm_add_symbol(tokpar_sym_str, &symbol_id);
+          r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false); //ram
           if (!r) {
             gc();
-            r = lbm_add_symbol(tokpar_sym_str, &symbol_id);
+            r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false); //ram
           }
         }
       }
@@ -4559,10 +4559,6 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
   }
 
   if (lbm_is_cons(val)) {
-    // prepare cell for rest of list
-    //lbm_value rest_cell = ENC_SYM_NIL;
-    //handle_flash_status(request_flash_storage_cell(val, &rest_cell));
-    //handle_flash_status(write_const_cdr(lst, rest_cell));
     sptr[0] = fst;
     sptr[1] = lst;//rest_cell;
     sptr[2] = get_cdr(val);
