@@ -576,7 +576,7 @@ static lbm_value ext_str_replicate(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-// signature: (str-find str:byte-array substr [occurrence:int] [start:int] [dir]) -> int
+// signature: (str-find str:byte-array substr [start:int] [occurrence:int] [dir]) -> int
 // where
 //   seq = string|(..string)
 //   dir = 'left|'right
@@ -662,7 +662,7 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
     }
   }
 
-  uint32_t occurrence = 0;
+  lbm_int start = to_right ? 0 : str_size - min_substr_len;
   if (argn >= 3 && dir_index != 2) {
     if (!lbm_is_number(args[2])) {
       lbm_set_error_reason((char *)lbm_error_str_no_number);
@@ -670,10 +670,10 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
-    occurrence = lbm_dec_as_u32(args[2]);
+    start = lbm_dec_as_int(args[2]);
   }
-
-  lbm_int start = to_right ? 0 : str_size - min_substr_len;
+  
+  uint32_t occurrence = 0;
   if (argn >= 4 && dir_index != 3) {
     if (!lbm_is_number(args[3])) {
       lbm_set_error_reason((char *)lbm_error_str_no_number);
@@ -681,10 +681,11 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
-    start = lbm_dec_as_int(args[3]);
+    occurrence = lbm_dec_as_u32(args[3]);
   }
+
   if (start < 0) {
-    // start = -1 starts search at the character index before the final null
+    // start: -1 starts the search at the character index before the final null
     // byte index.
     start = str_size - 1 + start;
   }
