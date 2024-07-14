@@ -576,34 +576,85 @@ static lbm_value ext_str_replicate(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-// signature: (str-find str seq [occurrence] [start] [dir]) -> int
+// signature: (str-find str:byte-array substr [occurrence:int] [start:int] [dir]) -> int
+// where
+//   seq = string|(..string)
+//   dir = 'left|'right
 static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
   if (argn < 2 || 5 < argn) {
     lbm_set_error_reason((char *)lbm_error_str_num_args);
     return ENC_SYM_EERROR;
   }
-  if (!lbm_is_array_r(args[0]) || !lbm_is_array_r(args[1])) {
+  if (!lbm_is_array_r(args[0])) {
+    lbm_set_error_suspect(args[0]);
     lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
     return ENC_SYM_TERROR;
   }
 
   lbm_array_header_t *str_header = (lbm_array_header_t *)lbm_car(args[0]);
-  lbm_array_header_t *seq_header = (lbm_array_header_t *)lbm_car(args[1]);
-
   const char *str   = (const char *)str_header->data;
-  lbm_uint str_size = str_header->size;
+  lbm_int str_size = (lbm_int)str_header->size;
 
-  const char *seq  = (const char *)seq_header->data;
-  lbm_uint seq_len = seq_header->size - 1;
+  // Guaranteed to be list containing strings.
+  lbm_value substrings;
+  lbm_int min_substr_len = LBM_INT_MAX;
+  if (lbm_is_array_r(args[1])) {
+    substrings = lbm_cons(args[1], ENC_SYM_NIL);
+    if (substrings == ENC_SYM_MERROR) {
+      return ENC_SYM_MERROR;
+    }
+    lbm_array_header_t *header =
+        (lbm_array_header_t *)lbm_car(args[1]);
+    if (!header) {
+      // Should not be possible
+      return ENC_SYM_FATAL_ERROR;
+    }
 
-  bool from_left    = true;
+    lbm_int len = (lbm_int)header->size - 1;
+    if (len < 0) {
+      // substr is zero length array
+      return lbm_enc_i(-1);
+    }
+    min_substr_len = len;
+  } else if (lbm_is_list(args[1])) {
+    for (lbm_value current = args[1]; lbm_is_cons(current); current = lbm_cdr(current)) {
+      if (!lbm_is_array_r(lbm_car(current))) {
+        lbm_set_error_suspect(args[1]);
+        lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
+        return ENC_SYM_TERROR;
+      }
+
+      lbm_array_header_t *header =
+          (lbm_array_header_t *)lbm_car(lbm_car(current));
+      if (!header) {
+        // Should not be possible
+        return ENC_SYM_FATAL_ERROR;
+      }
+
+      lbm_int len = (lbm_int)header->size - 1;
+      if (len < 0) {
+        // substr is zero length array
+        continue;
+      }
+      if (len < min_substr_len) {
+        min_substr_len = len;
+      }
+    }
+    substrings = args[1];
+  } else {
+    lbm_set_error_suspect(args[1]);
+    lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
+    return ENC_SYM_TERROR;
+  }
+
+  bool to_right    = true;
   lbm_uint dir_index = 4;
   if (argn >= 3 && lbm_is_symbol(args[argn - 1])) {
     dir_index       = argn - 1;
     lbm_uint symbol = lbm_dec_sym(args[dir_index]);
 
     if (symbol == sym_left) {
-      from_left = false;
+      to_right = false;
     } else if (symbol != sym_right) {
       lbm_set_error_suspect(args[dir_index]);
       lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
@@ -622,7 +673,7 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
     occurrence = lbm_dec_as_u32(args[2]);
   }
 
-  uint32_t start = from_left ? 0 : str_size - seq_len;
+  lbm_int start = to_right ? 0 : str_size - min_substr_len;
   if (argn >= 4 && dir_index != 3) {
     if (!lbm_is_number(args[3])) {
       lbm_set_error_reason((char *)lbm_error_str_no_number);
@@ -630,20 +681,41 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
-    start = lbm_dec_as_u32(args[3]);
+    start = lbm_dec_as_int(args[3]);
+  }
+  if (start < 0) {
+    // start = -1 starts search at the character index before the final null
+    // byte index.
+    start = str_size - 1 + start;
   }
 
-  if (start > str_size - seq_len) {
-    return lbm_enc_i(-1);
+  if (!to_right && (start > str_size - min_substr_len)) {
+    start = str_size - min_substr_len;
+  }
+  else if (to_right && (start < 0)) {
+    start = 0;
   }
 
-  lbm_int dir = from_left ? 1 : -1;
-  for (lbm_int i = (lbm_int)start; from_left ? (i <= (lbm_int)(str_size - seq_len)) : (i >= 0); i += dir) {
-    if (memcmp(&str[i], seq, seq_len) == 0) {
-      if (occurrence == 0) {
-        return lbm_enc_i(i);
+  lbm_int dir = to_right ? 1 : -1;
+  for (lbm_int i = start; to_right ? (i <= str_size - min_substr_len) : (i >= 0); i += dir) {
+    for (lbm_value current = substrings; lbm_is_cons(current); current = lbm_cdr(current)) {
+      lbm_array_header_t *header = (lbm_array_header_t *)lbm_car(lbm_car(current));
+      lbm_int substr_len         = (lbm_int)header->size - 1;
+      const char *substr         = (const char *)header->data;
+
+      if (
+        i > str_size - substr_len // substr length runs over str end.
+        || substr_len < 0 // substr was zero bytes in size
+      ) {
+        continue;
       }
-      occurrence -= 1;
+      
+      if (memcmp(&str[i], substr, (size_t)substr_len) == 0) {
+        if (occurrence == 0) {
+          return lbm_enc_i(i);
+        }
+        occurrence -= 1;
+      }
     }
   }
 
