@@ -626,10 +626,6 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
 
       lbm_array_header_t *header =
           (lbm_array_header_t *)lbm_car(lbm_car(current));
-      if (!header) {
-        // Should not be possible
-        return ENC_SYM_FATAL_ERROR;
-      }
 
       lbm_int len = (lbm_int)header->size - 1;
       if (len < 0) {
