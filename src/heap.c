@@ -124,21 +124,25 @@ lbm_value lbm_enc_float(float x) {
 #endif
 }
 
-lbm_value lbm_enc_i64(int64_t x) {
-#ifndef LBM64
+static lbm_value enc_64_on_32(uint8_t *source, lbm_uint type_qual, lbm_uint type) {
   lbm_value res = ENC_SYM_MERROR;
-  res = lbm_cons(ENC_SYM_NIL, ENC_SYM_NIL);
+  res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
   if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
-    lbm_uint* storage = lbm_malloc(sizeof(int64_t));
+    uint8_t* storage = lbm_malloc(sizeof(uint64_t));
     if (storage) {
-      memcpy(storage,&x, sizeof(int64_t));
-      lbm_set_car_and_cdr(res, (lbm_uint)storage, ENC_SYM_IND_I_TYPE);
-      res = lbm_set_ptr_type(res, LBM_TYPE_I64);
+      memcpy(storage,source, sizeof(uint64_t));
+      lbm_set_car_and_cdr(res, (lbm_uint)storage,  type_qual);
+      res = lbm_set_ptr_type(res, type);
     } else {
-      return ENC_SYM_MERROR;
+      res = ENC_SYM_MERROR;
     }
   }
   return res;
+}
+
+lbm_value lbm_enc_i64(int64_t x) {
+#ifndef LBM64
+  return enc_64_on_32((uint8_t *)&x, ENC_SYM_IND_I_TYPE, LBM_TYPE_I64);
 #else
   lbm_value u = lbm_cons((uint64_t)x, ENC_SYM_RAW_I_TYPE);
   if (lbm_type_of(u) == LBM_TYPE_SYMBOL) return u;
@@ -148,19 +152,7 @@ lbm_value lbm_enc_i64(int64_t x) {
 
 lbm_value lbm_enc_u64(uint64_t x) {
 #ifndef LBM64
-  lbm_value res = ENC_SYM_MERROR;
-  res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
-  if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
-    uint8_t* storage = lbm_malloc(sizeof(uint64_t));
-    if (storage) {
-      memcpy(storage,&x, sizeof(uint64_t));
-      lbm_set_car_and_cdr(res, (lbm_uint)storage,  ENC_SYM_IND_U_TYPE);
-      res = lbm_set_ptr_type(res, LBM_TYPE_U64);
-    } else {
-      res = ENC_SYM_MERROR;
-    }
-  }
-  return res;
+  return enc_64_on_32((uint8_t *)&x, ENC_SYM_IND_U_TYPE, LBM_TYPE_U64);
 #else
   lbm_value u = lbm_cons(x, ENC_SYM_RAW_U_TYPE);
   if (lbm_type_of(u) == LBM_TYPE_SYMBOL) return u;
@@ -170,19 +162,7 @@ lbm_value lbm_enc_u64(uint64_t x) {
 
 lbm_value lbm_enc_double(double x) {
 #ifndef LBM64
-  lbm_value res = ENC_SYM_MERROR;
-  res = lbm_cons(ENC_SYM_NIL, ENC_SYM_NIL);
-  if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
-    lbm_uint* storage = lbm_memory_allocate(sizeof(double));
-    if (storage) {
-      memcpy(storage,&x, sizeof(double));
-      lbm_set_car_and_cdr(res, (lbm_uint)storage, ENC_SYM_IND_F_TYPE);
-      res = lbm_set_ptr_type(res, LBM_TYPE_DOUBLE);
-    } else {
-      res = ENC_SYM_MERROR;
-    }
-  }
-  return res;
+  return enc_64_on_32((uint8_t *)&x, ENC_SYM_IND_F_TYPE, LBM_TYPE_DOUBLE);
 #else
   lbm_uint t;
   memcpy(&t, &x, sizeof(double));
@@ -191,6 +171,11 @@ lbm_value lbm_enc_double(double x) {
   return lbm_set_ptr_type(f, LBM_TYPE_DOUBLE);
 #endif
 }
+
+// Type specific (as opposed to the dec_as_X) functions
+// should only be run on values known to represent a value of the type
+// that the decoder decodes.
+
 
 float lbm_dec_float(lbm_value x) {
 #ifndef LBM64
