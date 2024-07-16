@@ -1256,9 +1256,6 @@ const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr) {
   uint8_t *r = NULL;
   if (lbm_is_array_r(arr)) {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
-    if (header == NULL) {
-      return r;
-    }
     r = (uint8_t*)header->data;
   }
   return r;
@@ -1268,9 +1265,6 @@ uint8_t *lbm_heap_array_get_data_rw(lbm_value arr) {
   uint8_t *r = NULL;
   if (lbm_is_array_rw(arr)) {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
-    if (header == NULL) {
-      return r;
-    }
     r = (uint8_t*)header->data;
   }
   return r;
