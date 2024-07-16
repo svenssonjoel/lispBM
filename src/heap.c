@@ -173,9 +173,8 @@ lbm_value lbm_enc_double(double x) {
 }
 
 // Type specific (as opposed to the dec_as_X) functions
-// should only be run on values known to represent a value of the type
+// should only be run on values KNOWN to represent a value of the type
 // that the decoder decodes.
-
 
 float lbm_dec_float(lbm_value x) {
 #ifndef LBM64
@@ -195,7 +194,6 @@ double lbm_dec_double(lbm_value x) {
 #ifndef LBM64
   double d;
   uint32_t *data = (uint32_t*)lbm_car(x);
-  if (data == NULL) return 0; // no good way to report error from here currently.
   memcpy(&d, data, sizeof(double));
   return d;
 #else
@@ -210,7 +208,6 @@ uint64_t lbm_dec_u64(lbm_value x) {
 #ifndef LBM64
   uint64_t u;
   uint32_t *data = (uint32_t*)lbm_car(x);
-  if (data == NULL) return 0;
   memcpy(&u, data, 8);
   return u;
 #else
@@ -222,7 +219,6 @@ int64_t lbm_dec_i64(lbm_value x) {
 #ifndef LBM64
   int64_t i;
   uint32_t *data = (uint32_t*)lbm_car(x);
-  if (data == NULL) return 0;
   memcpy(&i, data, 8);
   return i;
 #else
