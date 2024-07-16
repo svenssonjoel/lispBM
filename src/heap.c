@@ -127,12 +127,15 @@ lbm_value lbm_enc_float(float x) {
 lbm_value lbm_enc_i64(int64_t x) {
 #ifndef LBM64
   lbm_value res = ENC_SYM_MERROR;
-  lbm_uint* storage = lbm_memory_allocate(2);// why 2 ?
-  if (storage) {
-    res = lbm_cons((lbm_uint)storage, ENC_SYM_IND_I_TYPE);
-    if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
-      memcpy(storage,&x, 8);
+  res = lbm_cons(ENC_SYM_NIL, ENC_SYM_NIL);
+  if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
+    lbm_uint* storage = lbm_malloc(sizeof(int64_t));
+    if (storage) {
+      memcpy(storage,&x, sizeof(int64_t));
+      lbm_set_car_and_cdr(res, (lbm_uint)storage, ENC_SYM_IND_I_TYPE);
       res = lbm_set_ptr_type(res, LBM_TYPE_I64);
+    } else {
+      return ENC_SYM_MERROR;
     }
   }
   return res;
@@ -146,12 +149,15 @@ lbm_value lbm_enc_i64(int64_t x) {
 lbm_value lbm_enc_u64(uint64_t x) {
 #ifndef LBM64
   lbm_value res = ENC_SYM_MERROR;
-  uint8_t* storage = lbm_malloc(sizeof(uint64_t));
-  if (storage) {
-    res = lbm_cons((lbm_uint)storage, ENC_SYM_IND_U_TYPE);
-    if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
+  res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
+  if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
+    uint8_t* storage = lbm_malloc(sizeof(uint64_t));
+    if (storage) {
       memcpy(storage,&x, sizeof(uint64_t));
+      lbm_set_car_and_cdr(res, (lbm_uint)storage,  ENC_SYM_IND_U_TYPE);
       res = lbm_set_ptr_type(res, LBM_TYPE_U64);
+    } else {
+      res = ENC_SYM_MERROR;
     }
   }
   return res;
@@ -165,12 +171,15 @@ lbm_value lbm_enc_u64(uint64_t x) {
 lbm_value lbm_enc_double(double x) {
 #ifndef LBM64
   lbm_value res = ENC_SYM_MERROR;
-  lbm_uint* storage = lbm_memory_allocate(2);
-  if (storage) {
-    res = lbm_cons((lbm_uint)storage, ENC_SYM_IND_F_TYPE);
-    if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
-      memcpy(storage,&x, 8);
+  res = lbm_cons(ENC_SYM_NIL, ENC_SYM_NIL);
+  if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
+    lbm_uint* storage = lbm_memory_allocate(sizeof(double));
+    if (storage) {
+      memcpy(storage,&x, sizeof(double));
+      lbm_set_car_and_cdr(res, (lbm_uint)storage, ENC_SYM_IND_F_TYPE);
       res = lbm_set_ptr_type(res, LBM_TYPE_DOUBLE);
+    } else {
+      res = ENC_SYM_MERROR;
     }
   }
   return res;
