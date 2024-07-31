@@ -7,19 +7,11 @@ import SExpGen
 import Test.QuickCheck
 import Test.QuickCheck.Random
 import System.Environment
+import System.IO
+import Options.Applicative
 import qualified Data.Map as M
 
-
-seed :: QCGen
-seed = read "SMGen 16900282403807365132 373647451104439981"
-
-size = 66
-
-#ifdef QUICKERCHECK
-check = quickCheckPar
-#else
-check = quickCheck
-#endif
+check = quickCheckWithResult stdArgs
 
 properties = M.fromList
     [ ("prop_add", check (withMaxSuccess 100 prop_add)),
@@ -43,30 +35,64 @@ properties = M.fromList
       ("prop_progn", check (withMaxSuccess 1000 prop_progn)),
       ("prop_var", check (withMaxSuccess 1000 prop_var)),
       ("prop_let", check (withMaxSuccess 1000 prop_let)),
-      ("prop_app", check (withMaxSuccess 1000 prop_app)),
-      ("arb-ctx", putStrLn =<< (prettyCtx <$> generate genCtx)),
-      ("arb-type", putStrLn =<< (prettyType <$> generate (arbSizedType 15))),
-      ("arb-exp", putStrLn =<< (do t <- generate $ arbSizedType 15
-                                   s <- generate $ chooseInt (1,10)
-                                   (_, e) <- generate $ genExp newCtx s t
-                                   return $ prettyExp e))
+      ("prop_app", check (withMaxSuccess 1000 prop_app))
     ]
-      
 
-runProp :: String -> IO ()
-runProp p_str = do
+generators = M.fromList
+  [ ("arb-ctx", putStrLn =<< (prettyCtx <$> generate genCtx)),
+    ("arb-type", putStrLn =<< (prettyType <$> generate (arbSizedType 15))),
+    ("arb-exp", putStrLn =<< (do t <- generate $ arbSizedType 15
+                                 s <- generate $ chooseInt (1,10)
+                                 (_, e) <- generate $ genExp newCtx s t
+                                 return $ prettyExp e))
+  ]
+
+-- TODO Populate the entire failure object.
+failNoProp = Test.QuickCheck.Failure { reason = "No such property" }
+
+runProp :: String -> Handle -> IO ()
+runProp p_str logHandle = do
       let prop = M.lookup p_str properties
       case prop of
-        (Just a) -> a
-        Nothing -> putStrLn "Property not found"
-  
-main :: IO ()
-main = do
-  args <- getArgs
-  let nargs = length args
-  
-  if (nargs > 0)
-    then runProp (head args) 
-    else putStrLn (unlines (M.keys properties))
-    
+        (Just a) -> do
+          res <- a
+          hPutStrLn logHandle "------------------------------------------------------------"
+          hPutStrLn logHandle $ "Property: " ++ p_str
+          hPutStrLn logHandle $ show res
+          hPutStrLn logHandle "------------------------------------------------------------"
+        Nothing -> do hPutStrLn logHandle $ "Property not found: " ++ p_str
 
+
+
+
+data Options = Options
+   { logfile :: String
+   , allTests :: Bool } 
+   deriving Show
+
+
+optParser :: Parser Options
+optParser = Options
+      <$> strOption
+          ( long "logfile"
+            <> value ""
+            <> short 'l'
+            <> metavar "FILENAME"
+            <> help "Log results into this file" ) <*>
+          switch
+          ( long "all"
+            <> short 'a'
+            <> help "Run all tests")
+
+
+main :: IO ()
+main = do  
+  args <- execParser (info ( optParser <**> helper) fullDesc)
+
+  rawArgs <- getArgs
+
+  logHandle <- if ((logfile args) == "") then return stdout else openFile (logfile args) WriteMode
+
+  -- discard [()]                                                               
+  results <- mapM (\s -> runProp s logHandle) (M.keys properties)
+  return ()

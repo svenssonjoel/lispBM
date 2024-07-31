@@ -28,7 +28,15 @@ flag quickercheck
 library sexp-gen-lib
     exposed-modules: SExpGen
     other-modules: Syntax, Driver, Property, Oracles
-    build-depends: base, QuickCheck, containers, bytestring, binary, directory, process, random, temporary
+    build-depends: base
+                 , QuickCheck
+                 , containers
+                 , bytestring
+                 , binary
+                 , directory
+                 , process
+                 , random
+                 , temporary
     hs-source-dirs: src
     default-language: Haskell2010
 
@@ -40,7 +48,11 @@ executable sexp-gen-exe
     
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base, sexp-gen-lib, QuickCheck, containers
+    build-depends:    base
+                    , sexp-gen-lib
+                    , QuickCheck
+                    , containers
+                    , optparse-applicative
     hs-source-dirs:   app
     default-language: Haskell2010
     if(flag(quickercheck))
