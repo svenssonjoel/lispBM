@@ -691,6 +691,7 @@ str s =
 --  | List f [SExp f]
 
 listToCons :: [SExp Type] -> SExp Type
+listToCons [] = nil
 listToCons [e] = Cons (TPair (getf e) (getf nil)) e nil
 listToCons (e : es) = let r = listToCons es in Cons (TPair (getf e) (getf r)) e r
 

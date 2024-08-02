@@ -8,6 +8,9 @@ import Data.Int
 import Data.List
 import qualified Data.Map as M
 import Data.Word
+import Data.IORef
+import Data.Either
+
 import Driver
 import Syntax
 import Oracles
@@ -16,7 +19,6 @@ import System.Process
 import System.Random
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
-import Data.IORef
 import Unsafe.Coerce
 import Control.Monad (foldM)
 
@@ -911,8 +913,23 @@ prop_add_single (NumericExpressions ctx (e:_)) = monadicIO $ do
   r1 <- run $ compileAndRun env e
   guardAgainstError r1
 
-  r2 <- run $ compileAndRun env (Add e)
+  r2 <- run $ compileAndRun env (Add (listToCons [e]))
   guardAgainstError r2
+
+  monitor $
+    counterexample $
+      "Counterexample: \n" ++
+      if (isRight r1 && isRight r2)
+      then (prettyExp e) ++ " = " ++ (prettyExp (fst (fromRight (nil,M.empty) r1))) ++ "\n" ++
+           (prettyExp (Add e)) ++ " = " ++ (prettyExp (fst (fromRight (nil,M.empty) r2)))
+      else "LEFTS"
+
+  monitor $
+    whenFail $
+      do -- I want to add this info to the log 
+        putStrLn $ show e
+        putStrLn $ show (Add e)
+
  
   assert $ r1 == r2
 

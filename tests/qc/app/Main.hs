@@ -84,9 +84,11 @@ runProp p_str logHandle = do
         Nothing -> do hPutStrLn logHandle $ "Property not found: " ++ p_str
 
 
-data Options = Options
+data Options = Options --ordering here needs to match order in parser (I think)
    { logfile :: String
-   , allTests :: Bool } 
+   , prop :: String
+   , allTests :: Bool
+   }
    deriving Show
 
 optParser :: Parser Options
@@ -97,6 +99,12 @@ optParser = Options
             <> short 'l'
             <> metavar "FILENAME"
             <> help "Log results into this file" ) <*>
+          strOption
+          ( long "property"
+            <> short 'p'
+            <> value ""
+            <> metavar "PROPNAME"
+            <> help "Run this specific property") <*>
           switch
           ( long "all"
             <> short 'a'
@@ -108,4 +116,8 @@ main = do
   args <- execParser (info ( optParser <**> helper) fullDesc)
   rawArgs <- getArgs
   logHandle <- if ((logfile args) == "") then return stdout else openFile (logfile args) WriteMode
-  mapM_ (\s -> runProp s logHandle) (M.keys properties)
+  if (allTests args) 
+    then mapM_ (\s -> runProp s logHandle) (M.keys properties)
+    else if (prop args == "")
+         then return ()
+         else runProp (prop args) logHandle
