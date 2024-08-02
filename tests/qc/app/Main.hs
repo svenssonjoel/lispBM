@@ -3,6 +3,7 @@
 module Main where
 
 import Data.IORef
+import Data.List
 import SExpGen
 import Test.QuickCheck
 import Test.QuickCheck.Random
@@ -47,8 +48,27 @@ generators = M.fromList
                                  return $ prettyExp e))
   ]
 
--- TODO Populate the entire failure object.
-failNoProp = Test.QuickCheck.Failure { reason = "No such property" }
+plotSuccess :: Result -> String
+plotSuccess s = "Num tests: " ++ (show (numTests s)) ++ "\n" ++
+                "Num Discarded: " ++ (show (numDiscarded s)) ++ "\n" ++
+                "Output: " ++ (output s) ++ "\n\n" ++
+                "SUCCESS"
+
+-- How is the list of strings "failing test" created.
+-- It seems to come directly from the whenFail in the prop.
+plotFailure :: Result -> String
+plotFailure f = "Num tests: " ++ show (numTests f) ++ "\n" ++
+                "Num Discarded: " ++ show (numDiscarded f) ++ "\n" ++
+                "Seed: " ++ show (usedSeed f) ++ "\n" ++
+                "Reason: " ++ (reason f) ++ "\n" ++
+                "Output: " ++ (output f) ++ "\n" ++
+                "Failing test: " ++ concat (intersperse "\n" (failingTestCase f)) ++ "\n\n" ++
+                "FAILURE"
+                
+
+plotResult :: Result -> String
+plotResult s@Test.QuickCheck.Success{} = plotSuccess s
+plotResult f@Test.QuickCheck.Failure{} = plotFailure f
 
 runProp :: String -> Handle -> IO ()
 runProp p_str logHandle = do
@@ -58,18 +78,16 @@ runProp p_str logHandle = do
           res <- a
           hPutStrLn logHandle "------------------------------------------------------------"
           hPutStrLn logHandle $ "Property: " ++ p_str
-          hPutStrLn logHandle $ show res
+          hPutStrLn logHandle $ plotResult res
           hPutStrLn logHandle "------------------------------------------------------------"
+          hFlush logHandle
         Nothing -> do hPutStrLn logHandle $ "Property not found: " ++ p_str
-
-
 
 
 data Options = Options
    { logfile :: String
    , allTests :: Bool } 
    deriving Show
-
 
 optParser :: Parser Options
 optParser = Options
@@ -88,11 +106,6 @@ optParser = Options
 main :: IO ()
 main = do  
   args <- execParser (info ( optParser <**> helper) fullDesc)
-
   rawArgs <- getArgs
-
   logHandle <- if ((logfile args) == "") then return stdout else openFile (logfile args) WriteMode
-
-  -- discard [()]                                                               
-  results <- mapM (\s -> runProp s logHandle) (M.keys properties)
-  return ()
+  mapM_ (\s -> runProp s logHandle) (M.keys properties)
