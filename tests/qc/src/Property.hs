@@ -30,6 +30,20 @@ subdir = "Generated"
 pathToUnitTests :: String
 pathToUnitTests = "tests/Regression/" <> subdir <> "/"
 
+
+prettyCounterexample (e,r) =
+  (prettyExp e) ++ " = " ++ (prettyExp (fst (fromRight (nil,M.empty) r)))
+
+counterexampleList es = do 
+  monitor $
+    counterexample $
+    "Counterexample: \n" ++
+    if (all isRight (map snd es))
+    then concat $ intersperse "\n" (map prettyCounterexample es)
+    else "LEFTS"
+  
+
+
 -- | Generate a random module name to use for the generated unit test
 randomModuleName :: IO String
 randomModuleName = do
@@ -664,8 +678,11 @@ prop_gc_progn (PropGCProgn ctx [e1, e2]) =  monadicIO $ do
       prg1 = lispProgn [e1, gc, e2]
       prg2 = lispProgn [e1, e2]
              
-  (Right (r1, env1)) <- run $ compileAndRun env prg1
-  (Right (r2, env2)) <- run $ compileAndRun env1 prg2
+  r_1@(Right (r1, env1)) <- run $ compileAndRun env prg1
+  guardAgainstError r_1
+  r_2@(Right (r2, env2)) <- run $ compileAndRun env prg2
+
+  counterexampleList [(prg1, r_1), (prg2, r_2)];
   
   monitor $
     whenFail $
@@ -869,6 +886,9 @@ prop_gc_2 = forAllShrink (randomExpList 2 2000) shrinkRandomExpList $ \(ctx, es)
 -- ------------------------------------------------------------
 -- Prop_progn_step
 
+
+-- TODO: I think that the random list of exps shrinks to less then enough elements...
+-- Or is incorrectly generated that way. 
 prop_progn_step :: Property
 prop_progn_step = forAllShrink (randomExpList 3 20) shrinkRandomExpList $ \(ctx, es) -> monadicIO $ do
   let env1 = toplevelToEnv ctx
@@ -878,10 +898,13 @@ prop_progn_step = forAllShrink (randomExpList 3 20) shrinkRandomExpList $ \(ctx,
       prg2_a = h
       prg2_b = lispProgn t
 
-  (Right (r1, env2)) <- run $ compileAndRun env1 prg1
-  
-  (Right (r2_a, env3_a)) <- run $ compileAndRun env1 prg2_a
-  (Right (r2_b, env3_b)) <- run $ compileAndRun env3_a prg2_b
+  -- if the es program does not error out, then neither should the chopped up progn.
+  r_1@(Right (r1, env2)) <- run $ compileAndRun env1 prg1
+  guardAgainstError r_1
+  r_2a@(Right (r2_a, env3_a)) <- run $ compileAndRun env1 prg2_a
+  r_2b@(Right (r2_b, env3_b)) <- run $ compileAndRun env3_a prg2_b
+
+  counterexampleList [(prg1, r_1), (prg2_a, r_2a), (prg2_b, r_2b)]
 
   monitor $
     whenFail $
@@ -916,13 +939,7 @@ prop_add_single (NumericExpressions ctx (e:_)) = monadicIO $ do
   r2 <- run $ compileAndRun env (Add (listToCons [e]))
   guardAgainstError r2
 
-  monitor $
-    counterexample $
-      "Counterexample: \n" ++
-      if (isRight r1 && isRight r2)
-      then (prettyExp e) ++ " = " ++ (prettyExp (fst (fromRight (nil,M.empty) r1))) ++ "\n" ++
-           (prettyExp (Add e)) ++ " = " ++ (prettyExp (fst (fromRight (nil,M.empty) r2)))
-      else "LEFTS"
+  counterexampleList [(e,r1), ((Add (listToCons [e])),r2)]
 
   monitor $
     whenFail $

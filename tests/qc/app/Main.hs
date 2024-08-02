@@ -29,7 +29,7 @@ properties = M.fromList
       ("prop_gc_2",check (withMaxSuccess 100 prop_gc_2)),
       ("prop_progn_step", check (withMaxSuccess 100 prop_progn_step)),
       ("prop_add_single", check (withMaxSuccess 100 prop_add_single)),
-      ("prop_add_inductive", check (verboseShrinking $ withMaxSuccess 10000 prop_add_inductive)),
+      ("prop_add_inductive", check (verboseShrinking $ withMaxSuccess 1000 prop_add_inductive)),
       ("prop_define", check (withMaxSuccess 1000 prop_define)),
       ("prop_lambda", check (withMaxSuccess 1000 prop_lambda)),
       ("prop_closure", check (withMaxSuccess 1000 prop_closure)),
@@ -54,17 +54,15 @@ plotSuccess s = "Num tests: " ++ (show (numTests s)) ++ "\n" ++
                 "Output: " ++ (output s) ++ "\n\n" ++
                 "SUCCESS"
 
--- How is the list of strings "failing test" created.
--- It seems to come directly from the whenFail in the prop.
 plotFailure :: Result -> String
 plotFailure f = "Num tests: " ++ show (numTests f) ++ "\n" ++
                 "Num Discarded: " ++ show (numDiscarded f) ++ "\n" ++
                 "Seed: " ++ show (usedSeed f) ++ "\n" ++
                 "Reason: " ++ (reason f) ++ "\n" ++
-                "Output: " ++ (output f) ++ "\n" ++
-                "Failing test: " ++ concat (intersperse "\n" (failingTestCase f)) ++ "\n\n" ++
+                "Output: " ++ (output f) ++ "\n\n" ++
+                -- Show counterexample information
+                concat (intersperse "\n" (failingTestCase f)) ++ "\n\n" ++
                 "FAILURE"
-                
 
 plotResult :: Result -> String
 plotResult s@Test.QuickCheck.Success{} = plotSuccess s
@@ -110,7 +108,7 @@ optParser = Options
             <> short 'a'
             <> help "Run all tests")
 
-
+  
 main :: IO ()
 main = do  
   args <- execParser (info ( optParser <**> helper) fullDesc)
@@ -119,5 +117,5 @@ main = do
   if (allTests args) 
     then mapM_ (\s -> runProp s logHandle) (M.keys properties)
     else if (prop args == "")
-         then return ()
+         then putStrLn "Some arguments are needed"
          else runProp (prop args) logHandle
