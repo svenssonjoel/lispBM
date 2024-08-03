@@ -30,15 +30,24 @@ subdir = "Generated"
 pathToUnitTests :: String
 pathToUnitTests = "tests/Regression/" <> subdir <> "/"
 
+-- Counterexample plotting
 
-prettyCounterexample (e,r) =
-  (prettyExp e) ++ " = " ++ (prettyExp (fst (fromRight (nil,M.empty) r)))
+prettyCounterexample :: (Environment,SExp Type, RunResult) -> String
+prettyCounterexample (env0,e,r) =
+  "In env: \n" ++
+  (prettyEnv env0) ++ "\n" ++ 
+  "===>\n" ++
+  (prettyExp e) ++ " = " ++ (prettyExp res) ++
+  "<===\n" ++
+  (prettyEnv env)
+  where (res, env) = fromRight (nil, M.empty) r
 
+counterexampleList :: Monad m => [(Environment, SExp Type, RunResult)] -> PropertyM m ()
 counterexampleList es = do 
   monitor $
     counterexample $
     "Counterexample: \n" ++
-    if (all isRight (map snd es))
+    if (all isRight (map (\(x,y,z) -> z)  es))
     then concat $ intersperse "\n" (map prettyCounterexample es)
     else "LEFTS"
   
@@ -682,7 +691,7 @@ prop_gc_progn (PropGCProgn ctx [e1, e2]) =  monadicIO $ do
   guardAgainstError r_1
   r_2@(Right (r2, env2)) <- run $ compileAndRun env prg2
 
-  counterexampleList [(prg1, r_1), (prg2, r_2)];
+  counterexampleList [(env,prg1, r_1), (env,prg2, r_2)];
   
   monitor $
     whenFail $
@@ -904,7 +913,7 @@ prop_progn_step = forAllShrink (randomExpList 3 20) shrinkRandomExpList $ \(ctx,
   r_2a@(Right (r2_a, env3_a)) <- run $ compileAndRun env1 prg2_a
   r_2b@(Right (r2_b, env3_b)) <- run $ compileAndRun env3_a prg2_b
 
-  counterexampleList [(prg1, r_1), (prg2_a, r_2a), (prg2_b, r_2b)]
+  counterexampleList [(env1,prg1, r_1), (env1,prg2_a, r_2a), (env3_a,prg2_b, r_2b)]
 
   monitor $
     whenFail $
@@ -939,7 +948,7 @@ prop_add_single (NumericExpressions ctx (e:_)) = monadicIO $ do
   r2 <- run $ compileAndRun env (Add (listToCons [e]))
   guardAgainstError r2
 
-  counterexampleList [(e,r1), ((Add (listToCons [e])),r2)]
+  counterexampleList [(env,e,r1), (env, (Add (listToCons [e])),r2)]
 
   monitor $
     whenFail $

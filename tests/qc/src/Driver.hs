@@ -21,6 +21,7 @@ import Test.QuickCheck.Monadic
 import Data.List
 
 -- * Compile and run (or load and interprete)
+type RunResult = Either String (SExp Type, Environment)
 
 -- | Compile and run the given program with the given environment, and get either an error, or
 -- the result and final environment back.
@@ -28,7 +29,7 @@ import Data.List
 -- NOTE: This function is supposed to be threadsafe, as it generates a unique directory to
 -- use as a scratch space. If we trust the unique name generator to not give us collisions, it
 -- is thread-safe.
-compileAndRun :: Environment -> SExp Type -> IO (Either String (SExp Type, Environment))
+compileAndRun :: Environment -> SExp Type -> IO (RunResult)
 compileAndRun env prog =
   withTempDirectory "" "tmp" $ \fp -> do
     let envin = fp <> "/envin.env"
