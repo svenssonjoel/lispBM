@@ -935,8 +935,11 @@ prop_progn_step = forAllShrink (randomExpList 3 20) shrinkRandomExpList $ \(ctx,
       putStrLn $ ""
       putStrLn $ "r2_b: " ++ prettyExp r2_b
       createUnitTest env1
-     
-  assert $ env2 == env3_b && r1 == r2_b
+
+  -- If there is an error, then the same error should happen in prg2_a or prg2_b
+  if (isLBMException r_1) 
+    then assert $ (r1 == r2_b) || (r1 == r2_a)
+    else assert $ env2 == env3_b && r1 == r2_b
 
 -- | New addition relations
 

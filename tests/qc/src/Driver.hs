@@ -119,6 +119,14 @@ guardAgainstError r@(Right (Symbol _ _ (Sym s), _)) | s `elem` errors =
   assertWith False ("error was thrown: " <> s) >> return r
 guardAgainstError r = return r
 
+isLBMError :: Either String (SExp Type, Environment) -> Bool
+isLBMError (Left str) = True
+isLBMError _ = False
+
+isLBMException :: Either String (SExp Type, Environment) -> Bool
+isLBMException r@(Right (Symbol _ _ (Sym s), _)) = s `elem` errors 
+isLBMException _ = False
+
 foldOverResults :: Environment -> [SExp Type] -> Maybe (SExp Type) -> (SExp Type -> SExp Type -> SExp Type) -> PropertyM IO (Either String (SExp Type, Environment))
 foldOverResults env [] (Just acc) _ = return $ Right (acc, env)
 foldOverResults env (e:es) acc f = do
