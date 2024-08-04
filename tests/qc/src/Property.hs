@@ -900,6 +900,9 @@ prop_gc_2 = forAllShrink (randomExpList 2 2000) shrinkRandomExpList $ \(ctx, es)
 -- Or is incorrectly generated that way. 
 prop_progn_step :: Property
 prop_progn_step = forAllShrink (randomExpList 3 20) shrinkRandomExpList $ \(ctx, es) -> monadicIO $ do
+  if (length es < 3)
+    then discard
+    else return () 
   let env1 = toplevelToEnv ctx
       h = head es;
       t = tail es;
@@ -909,7 +912,6 @@ prop_progn_step = forAllShrink (randomExpList 3 20) shrinkRandomExpList $ \(ctx,
 
   -- if the es program does not error out, then neither should the chopped up progn.
   r_1@(Right (r1, env2)) <- run $ compileAndRun env1 prg1
-  guardAgainstError r_1
   r_2a@(Right (r2_a, env3_a)) <- run $ compileAndRun env1 prg2_a
   r_2b@(Right (r2_b, env3_b)) <- run $ compileAndRun env3_a prg2_b
 

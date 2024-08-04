@@ -73,6 +73,7 @@ runProp p_str logHandle = do
       let prop = M.lookup p_str properties
       case prop of
         (Just a) -> do
+          putStrLn $ "Running property: " ++ p_str
           res <- a
           hPutStrLn logHandle "------------------------------------------------------------"
           hPutStrLn logHandle $ "Property: " ++ p_str
