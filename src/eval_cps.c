@@ -1597,6 +1597,8 @@ static void eval_symbol(eval_context_t *ctx) {
       }
     }
 
+    // Here, chan has either been assigned or execution has terminated.
+    
     lbm_value loader;
     WITH_GC_RMBR_1(loader, lbm_heap_allocate_list_init(2,
                                                        ENC_SYM_READ,

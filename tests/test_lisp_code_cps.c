@@ -49,7 +49,11 @@
 lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
+#ifndef LONGER_DELAY
 static uint32_t timeout = 10;
+#else
+static uint32_t timeout = 30;
+#endif
 
 void const_heap_init(void) {
   for (int i = 0; i < CONSTANT_MEMORY_SIZE; i ++) {
