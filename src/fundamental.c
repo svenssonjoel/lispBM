@@ -190,6 +190,7 @@ static lbm_uint mod2(lbm_uint a, lbm_uint b) {
 
   lbm_uint t = (lbm_type_of_functional(a) < lbm_type_of_functional(b)) ? lbm_type_of_functional(b) : lbm_type_of_functional(a);
   switch (t) {
+  case LBM_TYPE_CHAR: if (lbm_dec_char(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_char(lbm_dec_char(a) % lbm_dec_as_i32(b)); break;
   case LBM_TYPE_I: if (lbm_dec_i(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_i(lbm_dec_as_i32(a) % lbm_dec_as_i32(b)); break;
   case LBM_TYPE_U: if (lbm_dec_as_u32(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_u(lbm_dec_as_u32(a) % lbm_dec_as_u32(b)); break;
   case LBM_TYPE_U32: if (lbm_dec_as_u32(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_u32(lbm_dec_as_u32(a) % lbm_dec_as_u32(b)); break;
@@ -455,7 +456,7 @@ static lbm_value fundamental_div(lbm_value *args, lbm_uint nargs, eval_context_t
 
   lbm_uint res = args[0];
 
-  if (nargs >= 1) {
+  if (nargs >= 2) {
     for (lbm_uint i = 1; i < nargs; i ++) {
       res = div2(res, args[i]);
       if (lbm_type_of(res) == LBM_TYPE_SYMBOL) {
