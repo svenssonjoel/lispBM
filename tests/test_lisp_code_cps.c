@@ -32,6 +32,7 @@
 #include "extensions/matvec_extensions.h"
 #include "extensions/random_extensions.h"
 #include "extensions/loop_extensions.h"
+#include "extensions/set_extensions.h"
 #include "lbm_channel.h"
 #include "lbm_flat_value.h"
 
@@ -39,7 +40,7 @@
 
 #define GC_STACK_SIZE 96
 #define PRINT_STACK_SIZE 256
-#define EXTENSION_STORAGE_SIZE 100
+#define EXTENSION_STORAGE_SIZE 200
 #define CONSTANT_MEMORY_SIZE 32*1024
 
 
@@ -602,6 +603,13 @@ int main(int argc, char **argv) {
     printf("Loop extensions initialized.\n");
   } else {
     printf("Loop extensions failed.\n");
+    return FAIL;
+  }
+
+  if (lbm_set_extensions_init()) {
+    printf("Set extensions initialized.\n");
+  } else {
+    printf("Set extensions failed.\n");
     return FAIL;
   }
 
