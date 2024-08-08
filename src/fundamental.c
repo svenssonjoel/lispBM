@@ -244,36 +244,34 @@ static lbm_uint sub2(lbm_uint a, lbm_uint b) {
   return retval;
 }
 
+// a and b must be bytearrays!
 static bool bytearray_equality(lbm_value a, lbm_value b) {
-  if (lbm_is_array_r(a) && lbm_is_array_r(b)) {
-    lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
-    lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
-    
-    // A NULL array arriving here should be impossible.
-    // if the a and b are not valid arrays at this point, the data
-    // is most likely nonsense - corrupted by cosmic radiation.
-    // if (a_ == NULL || b_ == NULL) return false; // Not possible to properly report error from here.
-
-    if (a_->size == b_->size) {
-      return (memcmp((char*)a_->data, (char*)b_->data, a_->size) == 0);
-    }
+  lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
+  lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
+  
+  // A NULL array arriving here should be impossible.
+  // if the a and b are not valid arrays at this point, the data
+  // is most likely nonsense - corrupted by cosmic radiation.
+  // if (a_ == NULL || b_ == NULL) return false; // Not possible to properly report error from here.
+  
+  if (a_->size == b_->size) {
+    return (memcmp((char*)a_->data, (char*)b_->data, a_->size) == 0);
   }
   return false;
 }
 
+// a and b must be arrays! 
 static bool array_struct_equality(lbm_value a, lbm_value b) {
-  if (lbm_is_lisp_array_r(a) && lbm_is_lisp_array_r(b)) {
-    lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
-    lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
-    lbm_value *adata = (lbm_value*)a_->data;
-    lbm_value *bdata = (lbm_value*)b_->data;
-    if ( a_->size == b_->size) {
-      uint32_t size = a_->size / (sizeof(lbm_value));
-      for (uint32_t i = 0; i < size; i ++ ) {
-        if (!struct_eq(adata[i], bdata[i])) return false;
-      }
-      return true;
+  lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
+  lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
+  lbm_value *adata = (lbm_value*)a_->data;
+  lbm_value *bdata = (lbm_value*)b_->data;
+  if ( a_->size == b_->size) {
+    uint32_t size = a_->size / (sizeof(lbm_value));
+    for (uint32_t i = 0; i < size; i ++ ) {
+      if (!struct_eq(adata[i], bdata[i])) return false;
     }
+    return true;
   }
   return false;
 }
@@ -354,18 +352,21 @@ static void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
 
 static lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
+  lbm_value res = ENC_SYM_NO_MATCH;
   while (lbm_is_cons(curr)) {
     lbm_value c = lbm_ref_cell(curr)->car;
     if (lbm_is_cons(c)) {
       if (struct_eq(lbm_ref_cell(c)->car, key)) {
-        return lbm_ref_cell(c)->cdr;
+        res = lbm_ref_cell(c)->cdr;
+        break;
       }
     } else {
-      return ENC_SYM_EERROR;
+      res = ENC_SYM_EERROR;
+      break;
     }
     curr = lbm_ref_cell(curr)->cdr;
   }
-  return ENC_SYM_NO_MATCH;
+  return res;
 }
 
 static lbm_value cossa_lookup(lbm_value key, lbm_value assoc) {
