@@ -253,7 +253,7 @@ typedef struct {
   lbm_uint *data;
   uint32_t index;         // Limits arrays to max 2^32-1 elements.
 } lbm_array_header_extended_t;
-  
+
 /** Lock GC mutex
  *  Locks a mutex during GC marking when using the pointer reversal algorithm.
  *  Does nothing when using stack based GC mark.
@@ -631,6 +631,12 @@ uint8_t *lbm_heap_array_get_data_rw(lbm_value arr);
  * \param arr Array value.
  */
 int lbm_heap_explicit_free_array(lbm_value arr);
+/** An array that has been freed is invalid for use.
+ * \param arr Array
+ * \return true if array is still valid.
+ */
+int lbm_heap_array_valid(lbm_value arr);
+
 /** Query the size in bytes of an lbm_type.
  * \param t Type
  * \return Size in bytes of type or 0 if the type represents a composite.

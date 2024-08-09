@@ -7,6 +7,7 @@
 (define r4 (trap (- (list 1 2 3))))
 (define r5 (trap (- 1 apa)))
 (define r6 (trap (- apa 1)))
+(define r7 (trap (- 10 5 4 3 'apa)))
 
                  
 (check (and (eq '(exit-error type_error) r1)
@@ -14,4 +15,5 @@
             (eq '(exit-error type_error) r3)
             (eq '(exit-error type_error) r4)
             (eq '(exit-error type_error) r5)
-            (eq '(exit-error type_error) r6)))
+            (eq '(exit-error type_error) r6)
+            (eq '(exit-error type_error) r7)))

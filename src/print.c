@@ -57,7 +57,7 @@ static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
 
 bool lbm_value_is_printable_string(lbm_value v, char **str) {
   bool is_a_string = false;
-  if (lbm_is_array_r(v)) {
+  if (lbm_is_array_r(v) && lbm_heap_array_valid(v)) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
 
     is_a_string = true;
@@ -252,22 +252,25 @@ static int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *a
 }
 
 static int print_emit_bytearray(lbm_char_channel_t *chan, lbm_value v) {
-
+  int r = 0;
   char *str;
-
-  if (lbm_value_is_printable_string(v, &str)) {
-    int r = print_emit_char(chan, '"');
-    if (r == EMIT_OK) {
-      r = print_emit_string_value(chan, str);
+  if (lbm_is_array_r(v) && lbm_heap_array_valid(v)) {
+    if (lbm_value_is_printable_string(v, &str)) {
+      r = print_emit_char(chan, '"');
       if (r == EMIT_OK) {
-        r = print_emit_char(chan, '"');
+        r = print_emit_string_value(chan, str);
+        if (r == EMIT_OK) {
+          r = print_emit_char(chan, '"');
+        }
       }
+    } else {
+      lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
+      r=  print_emit_array_data(chan, array);
     }
-    return r;
+  } else {
+    r = print_emit_string(chan, "[INVALID_ARRAY]");
   }
-
-  lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
-  return print_emit_array_data(chan, array);
+  return r;
 }
 
 
