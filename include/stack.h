@@ -1,6 +1,6 @@
 /** \file stack.h */
 /*
-    Copyright 2019 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2019, 2024Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -62,13 +62,6 @@ void lbm_stack_free(lbm_stack_t *s);
  * \param s Stack to clear.
  */
 void lbm_stack_clear(lbm_stack_t *s);
-/** Get a pointer to the nth element (from the top) of a stack.
- *
- * \param s Stack.
- * \param n Index.
- * \return Pointer into the stack or NULL.
- */
-lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n);
 /** Drop n elements (from the top) of a stack.
  *
  * \param s Stack to drop elements from.
@@ -76,15 +69,6 @@ lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n);
  * \return 1 on Success and 0 on failure.
  */
 int lbm_stack_drop(lbm_stack_t *s, lbm_uint n);
-
-/** Reserve place for n elements on the stack and
- *  move the stack pointer to the new top.
- * \param s Stack to reserve values on
- * \param n Number of values to reserve
- * \return Pointer into stack position of reserver value 0 or NULL
- *         on failure
- */
-lbm_uint *lbm_stack_reserve(lbm_stack_t *s, lbm_uint n);
 /** Push an element onto a stack.
  *
  * \param s Stack to push a value onto.

@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2024 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -50,28 +50,12 @@ void lbm_stack_clear(lbm_stack_t *s) {
   s->sp = 0;
 }
 
-lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n) {
-  if (n > s->sp) return NULL;
-  lbm_uint index = s->sp - n;
-  return &s->data[index];
-}
-
 int lbm_stack_drop(lbm_stack_t *s, lbm_uint n) {
 
   if (n > s->sp) return 0;
 
   s->sp -= n;
   return 1;
-}
-
-lbm_uint *lbm_stack_reserve(lbm_stack_t *s, lbm_uint n) {
-
-  if (s->sp + n >= s->size) {
-    return NULL;
-  }
-  lbm_uint *ptr = &s->data[s->sp];
-  s->sp += n;
-  return ptr;
 }
 
 int lbm_push(lbm_stack_t *s, lbm_uint val) {

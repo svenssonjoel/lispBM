@@ -1,5 +1,5 @@
 /*
-    Copyright 2022, 2023 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2023, 2024 Joel Svensson        svenssonjoel@yahoo.se
     Copyright 2022, 2023 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -167,7 +167,7 @@ static bool buffer_append_bytes(uint8_t *data, lbm_uint d_size, bool be, lbm_uin
         data[index+2]  = (uint8_t)(value >> 16);
       }
       break;
-    case 4:
+    default:
       if (be) {
         data[index+3]  = (uint8_t) value;
         data[index+2]  = (uint8_t) (value >> 8);
@@ -180,8 +180,6 @@ static bool buffer_append_bytes(uint8_t *data, lbm_uint d_size, bool be, lbm_uin
         data[index+3]  = (uint8_t) (value >> 24);
       }
       break;
-    default:
-      res = false;
     }
   }
   return res;
