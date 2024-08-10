@@ -95,7 +95,7 @@ bool lbm_array_extensions_init(void) {
 lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1) {
-    if (lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
+    if (lbm_is_array_rw(args[0])) {
       if (lbm_heap_explicit_free_array(args[0])) {
         res = ENC_SYM_TRUE;
       } else {
@@ -121,7 +121,6 @@ static bool decode_append_args(lbm_value *error, lbm_value *args, lbm_uint argn,
     /* fall through */
   case 3:
     if(lbm_is_array_rw(args[0]) &&
-       lbm_heap_array_valid(args[0]) &&
        lbm_is_number(args[1]) &&
        lbm_is_number(args[2])) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
@@ -402,7 +401,6 @@ static bool decode_get_args(lbm_value *error, lbm_value *args, lbm_uint argn, lb
     /* fall through */
   case 2:
     if (lbm_is_array_r(args[0]) &&
-        lbm_heap_array_valid(args[0]) &&
         lbm_is_number(args[1])) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
       *a_size = array->size;
@@ -627,118 +625,104 @@ lbm_value array_extension_buffer_length(lbm_value *args, lbm_uint argn) {
 //TODO: Have to think about 32 vs 64 bit here
 static lbm_value array_extensions_bufclear(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_EERROR;
+  if (argn >= 1 && argn <= 4) {
+    res = ENC_SYM_TERROR;
+    if (lbm_is_array_rw(args[0])) {
+      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
 
-  if ((argn != 1 && argn != 2 && argn != 3 && argn != 4) || !lbm_is_array_rw(args[0])) {
-    return res;
-  }
+      uint8_t clear_byte = 0;
+      if (argn >= 2) {
+        if (!lbm_is_number(args[1])) {
+          return res;
+        }
+        clear_byte = (uint8_t)lbm_dec_as_u32(args[1]);
+      }
 
-  if (!lbm_heap_array_valid(args[0])) { // return type error for symmetry with the get set.
-    return ENC_SYM_TERROR;
-  }
+      uint32_t start = 0;
+      if (argn >= 3) {
+        if (!lbm_is_number(args[2])) {
+          return res;
+        }
+        uint32_t start_new = lbm_dec_as_u32(args[2]);
+        if (start_new < array->size) {
+          start = start_new;
+        } else {
+          return res;
+        }
+      }
+      // Truncates size on 64 bit build
+      uint32_t len = (uint32_t)array->size - start;
+      if (argn >= 4) {
+        if (!lbm_is_number(args[3])) {
+          return res;
+        }
+        uint32_t len_new = lbm_dec_as_u32(args[3]);
+        if (len_new <= len) {
+          len = len_new;
+        }
+      }
 
-  lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
-
-  uint8_t clear_byte = 0;
-  if (argn >= 2) {
-    if (!lbm_is_number(args[1])) {
-      return res;
+      memset((char*)array->data + start, clear_byte, len);
+      res = ENC_SYM_TRUE;
     }
-    clear_byte = (uint8_t)lbm_dec_as_u32(args[1]);
   }
-
-  uint32_t start = 0;
-  if (argn >= 3) {
-    if (!lbm_is_number(args[2])) {
-      return res;
-    }
-    uint32_t start_new = lbm_dec_as_u32(args[2]);
-    if (start_new < array->size) {
-      start = start_new;
-    } else {
-      return res;
-    }
-  }
-  // Truncates size on 64 bit build
-  uint32_t len = (uint32_t)array->size - start;
-  if (argn >= 4) {
-    if (!lbm_is_number(args[3])) {
-      return res;
-    }
-    uint32_t len_new = lbm_dec_as_u32(args[3]);
-    if (len_new <= len) {
-      len = len_new;
-    }
-  }
-
-  memset((char*)array->data + start, clear_byte, len);
-  res = ENC_SYM_TRUE;
-
   return res;
 }
 
 static lbm_value array_extensions_bufcpy(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_EERROR;
 
-  if (argn != 5 || !lbm_is_array_rw(args[0]) || !lbm_is_number(args[1])
-      || !lbm_is_array_r(args[2]) || !lbm_is_number(args[3]) || !lbm_is_number(args[4])) {
-    return res;
-  }
+  if (argn == 5) {
+    res = ENC_SYM_TERROR;
+    if (lbm_is_array_rw(args[0]) && lbm_is_number(args[1]) &&
+        lbm_is_array_r(args[2]) && lbm_is_number(args[3]) &&lbm_is_number(args[4])) {
+      lbm_array_header_t *array1 = (lbm_array_header_t *)lbm_car(args[0]);
 
-  if (!lbm_heap_array_valid(args[0]) || !lbm_heap_array_valid(args[2])) {
-    return ENC_SYM_TERROR;
-  }
+      uint32_t start1 = lbm_dec_as_u32(args[1]);
 
-  lbm_array_header_t *array1 = (lbm_array_header_t *)lbm_car(args[0]);
+      lbm_array_header_t *array2 = (lbm_array_header_t *)lbm_car(args[2]);
 
-  uint32_t start1 = lbm_dec_as_u32(args[1]);
+      uint32_t start2 = lbm_dec_as_u32(args[3]);
+      uint32_t len = lbm_dec_as_u32(args[4]);
 
-  lbm_array_header_t *array2 = (lbm_array_header_t *)lbm_car(args[2]);
+      if (start1 < array1->size && start2 < array2->size) {
+        if (len > (array1->size - start1)) {
+          len = ((uint32_t)array1->size - start1);
+        }
+        if (len > (array2->size - start2)) {
+          len = ((uint32_t)array2->size - start2);
+        }
 
-  uint32_t start2 = lbm_dec_as_u32(args[3]);
-  uint32_t len = lbm_dec_as_u32(args[4]);
-
-  if (start1 < array1->size && start2 < array2->size) {
-    if (len > (array1->size - start1)) {
-      len = ((uint32_t)array1->size - start1);
+        memcpy((char*)array1->data + start1, (char*)array2->data + start2, len);
+      }
+      res = ENC_SYM_TRUE;
     }
-    if (len > (array2->size - start2)) {
-      len = ((uint32_t)array2->size - start2);
-    }
-
-    memcpy((char*)array1->data + start1, (char*)array2->data + start2, len);
   }
-
-  res = ENC_SYM_TRUE;
-
   return res;
 }
 
 static lbm_value array_extensions_bufset_bit(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_EERROR;
 
-  if (argn != 3 || !lbm_is_array_rw(args[0]) ||
-      !lbm_is_number(args[1]) || !lbm_is_number(args[2])) {
-    return res;
+  if (argn == 3) {
+    res = ENC_SYM_TERROR; 
+    if (lbm_is_array_rw(args[0]) &&
+        lbm_is_number(args[1]) && lbm_is_number(args[2])) {
+      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+
+      unsigned int pos = lbm_dec_as_u32(args[1]);
+      unsigned int bit = lbm_dec_as_u32(args[2]) ? 1 : 0;
+
+      unsigned int bytepos = pos / 8;
+      unsigned int bitpos = pos % 8;
+
+      if (bytepos < array->size) {
+        ((uint8_t*)array->data)[bytepos] &= (uint8_t)~(1 << bitpos);
+        ((uint8_t*)array->data)[bytepos] |= (uint8_t)(bit << bitpos);
+      }
+
+      res = ENC_SYM_TRUE;
+    }
   }
-
-  if (!lbm_heap_array_valid(args[0])) {
-    return ENC_SYM_TERROR;
-  }
-
-  lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
-
-  unsigned int pos = lbm_dec_as_u32(args[1]);
-  unsigned int bit = lbm_dec_as_u32(args[2]) ? 1 : 0;
-
-  unsigned int bytepos = pos / 8;
-  unsigned int bitpos = pos % 8;
-
-  if (bytepos < array->size) {
-    ((uint8_t*)array->data)[bytepos] &= (uint8_t)~(1 << bitpos);
-    ((uint8_t*)array->data)[bytepos] |= (uint8_t)(bit << bitpos);
-  }
-
-  res = ENC_SYM_TRUE;
-
   return res;
 }

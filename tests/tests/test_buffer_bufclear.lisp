@@ -1,7 +1,6 @@
 
 (define b (bufcreate 16))
 
-
 (define eerr '(exit-error eval_error))
 (define terr '(exit-error type_error))
 

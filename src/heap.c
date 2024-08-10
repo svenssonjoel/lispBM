@@ -229,7 +229,7 @@ int64_t lbm_dec_i64(lbm_value x) {
 char *lbm_dec_str(lbm_value val) {
   char *res = 0;
   // If val is an array, car of val will be non-null.
-  if (lbm_is_array_r(val) && lbm_heap_array_valid(val)) {
+  if (lbm_is_array_r(val)) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
     res = (char *)array->data;
   }
@@ -1303,13 +1303,6 @@ int lbm_heap_explicit_free_array(lbm_value arr) {
 
   return r;
 }
-
-// Check if an array is valid (an invalid array has been freed by someone explicitly)
-int lbm_heap_array_valid(lbm_value arr) {
-  return !(lbm_is_symbol_nil(lbm_car(arr)) ||
-           lbm_is_symbol_nil(lbm_cdr(arr)));
-}
-
 
 lbm_uint lbm_size_of(lbm_type t) {
   lbm_uint s = 0;
