@@ -215,11 +215,11 @@ static int print_emit_continuation(lbm_char_channel_t *chan, lbm_value v) {
 
 static int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
   lbm_uint *custom = (lbm_uint*)lbm_car(v);
-  int r;
+  int r; // NULL checks works against SYM_NIL. 
   if (custom && custom[CUSTOM_TYPE_DESCRIPTOR]) {
     r = print_emit_string(chan, (char*)custom[CUSTOM_TYPE_DESCRIPTOR]);
   } else {
-    r = print_emit_string(chan, "Unspecified_Custom_Type");
+    r = print_emit_string(chan, "INVALID_CUSTOM_TYPE");
   }
   return r;
 }
