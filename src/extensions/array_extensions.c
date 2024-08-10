@@ -197,9 +197,7 @@ lbm_value array_extension_buffer_append_i8(lbm_value *args, lbm_uint argn) {
   if (decode_append_args(&res, args, argn, &index, &be, &d_size, &data)) {
     if (buffer_append_bytes(data, d_size, be, index, nbytes, (lbm_uint)lbm_dec_as_i32(args[2]))) {
       res = ENC_SYM_TRUE;
-    } else {
-      res = ENC_SYM_NIL;
-    }
+    } 
   }
   return res;
 }
@@ -216,9 +214,7 @@ lbm_value array_extension_buffer_append_i16(lbm_value *args, lbm_uint argn) {
   if (decode_append_args(&res, args, argn, &index, &be, &d_size, &data)) {
     if (buffer_append_bytes(data, d_size, be, index, nbytes, (lbm_uint)lbm_dec_as_i32(args[2]))) {
       res = ENC_SYM_TRUE;
-    } else {
-      res = ENC_SYM_NIL;
-    }
+    } 
   }
   return res;
 }
@@ -235,9 +231,7 @@ lbm_value array_extension_buffer_append_i32(lbm_value *args, lbm_uint argn) {
   if (decode_append_args(&res, args, argn, &index, &be, &d_size, &data)) {
     if (buffer_append_bytes(data, d_size, be, index, nbytes, (lbm_uint)lbm_dec_as_i32(args[2]))) {
       res = ENC_SYM_TRUE;
-    } else {
-      res = ENC_SYM_NIL;
-    }
+    } 
   }
   return res;
 }
@@ -255,9 +249,7 @@ lbm_value array_extension_buffer_append_u8(lbm_value *args, lbm_uint argn) {
   if (decode_append_args(&res, args, argn, &index, &be, &d_size, &data)) {
     if (buffer_append_bytes(data, d_size, be, index, nbytes, (lbm_uint)lbm_dec_as_u32(args[2]))) {
       res = ENC_SYM_TRUE;
-    } else {
-      res = ENC_SYM_NIL;
-    }
+    } 
   }
   return res;
 }
@@ -274,9 +266,7 @@ lbm_value array_extension_buffer_append_u16(lbm_value *args, lbm_uint argn) {
   if (decode_append_args(&res, args, argn, &index, &be, &d_size, &data)) {
     if (buffer_append_bytes(data, d_size, be, index, nbytes, (lbm_uint)lbm_dec_as_u32(args[2]))) {
       res = ENC_SYM_TRUE;
-    } else {
-      res = ENC_SYM_NIL;
-    }
+    } 
   }
   return res;
 }
@@ -293,9 +283,7 @@ lbm_value array_extension_buffer_append_u24(lbm_value *args, lbm_uint argn) {
   if (decode_append_args(&res, args, argn, &index, &be, &d_size, &data)) {
     if (buffer_append_bytes(data, d_size, be, index, nbytes, (lbm_uint)lbm_dec_as_u32(args[2]))) {
       res = ENC_SYM_TRUE;
-    } else {
-      res = ENC_SYM_NIL;
-    }
+    } 
   }
   return res;
 }
@@ -312,9 +300,7 @@ lbm_value array_extension_buffer_append_u32(lbm_value *args, lbm_uint argn) {
   if (decode_append_args(&res, args, argn, &index, &be, &d_size, &data)) {
     if (buffer_append_bytes(data, d_size, be, index, nbytes, (lbm_uint)lbm_dec_as_u32(args[2]))) {
       res = ENC_SYM_TRUE;
-    } else {
-      res = ENC_SYM_NIL;
-    }
+    } 
   }
   return res;
 }
@@ -375,9 +361,7 @@ lbm_value array_extension_buffer_append_f32(lbm_value *args, lbm_uint argn) {
   if (decode_append_args(&res, args, argn, &index, &be, &d_size, &data)) {
     if (buffer_append_bytes(data, d_size, be, index, nbytes, (lbm_uint)float_to_u(lbm_dec_as_float(args[2])))) {
       res = ENC_SYM_TRUE;
-    } else {
-      res = ENC_SYM_NIL;
-    }
+    } 
   }
   return res;
 }
