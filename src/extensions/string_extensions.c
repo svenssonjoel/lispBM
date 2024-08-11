@@ -1,7 +1,7 @@
 /*
-    Copyright 2022, 2023 Joel Svensson        svenssonjoel@yahoo.se
-    Copyright 2022, 2023 Benjamin Vedder
-    Copyright 2024       Rasmus Söderhielm    rasmus.soderhielm@gmail.com
+    Copyright 2022, 2023, 2024 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2023       Benjamin Vedder
+    Copyright             2024 Rasmus Söderhielm    rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -69,11 +69,12 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
   size_t len = 0;
 
   switch (lbm_type_of(args[0])) {
+  case LBM_TYPE_DOUBLE: /* fall through */
   case LBM_TYPE_FLOAT:
     if (!format) {
       format = "%g";
     }
-    len = (size_t)snprintf(buffer, sizeof(buffer), format, (double)lbm_dec_as_float(args[0]));
+    len = (size_t)snprintf(buffer, sizeof(buffer), format, lbm_dec_as_double(args[0]));
     break;
 
   default:
