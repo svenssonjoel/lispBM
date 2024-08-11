@@ -863,6 +863,7 @@ static lbm_value fundamental_string_to_symbol(lbm_value *args, lbm_uint nargs, e
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 1) {
+    result = ENC_SYM_TERROR;
     if (lbm_is_array_r(args[0])) {
       lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
       // TODO: String to symbol, string should be in LBM_memory..
@@ -870,15 +871,10 @@ static lbm_value fundamental_string_to_symbol(lbm_value *args, lbm_uint nargs, e
       // Check that array points into lbm_memory.
       // Additionally check that it is a zero-terminated string.
       char *str = (char *)arr->data;
-      lbm_uint sym;
-      if (lbm_get_symbol_by_name(str, &sym)) {
-        result = lbm_enc_sym(sym);
-      } else if (lbm_add_symbol(str, &sym)) {
-        result = lbm_enc_sym(sym);
-      }
-    } else {
-      result = ENC_SYM_TERROR;
-    }
+      lbm_uint sym = ENC_SYM_NIL;
+      lbm_str_to_symbol(str,&sym);
+      result = lbm_enc_sym(sym);
+    } 
   }
   return result;
 }
