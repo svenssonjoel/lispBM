@@ -1141,6 +1141,10 @@ static void wake_up_ctxs_nm(void) {
 }
 
 static void yield_ctx(lbm_uint sleep_us) {
+  if (is_atomic) {
+    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_YIELD);
+  }
   if (timestamp_us_callback) {
     ctx_running->timestamp = timestamp_us_callback();
     ctx_running->sleep_us = sleep_us;
@@ -2258,6 +2262,15 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
       }
     } else if (lbm_type_of(args[0]) == LBM_TYPE_CHANNEL) {
       chan = args[0];
+      // Streaming transfers can freeze the evaluator if the stream is cut while
+      // the reader is reading inside of an atomic block.
+      // It is generally not advisable to read in an atomic block but now it is also
+      // enforced in the case where it can cause problems.
+      if (lbm_channel_may_block(lbm_dec_channel(chan)) && is_atomic) {
+       lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
+       is_atomic = false;
+       error_ctx(ENC_SYM_EERROR);
+      }
     } else {
       error_ctx(ENC_SYM_EERROR);
     }
@@ -2380,10 +2393,6 @@ static void apply_spawn_trap(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 }
 
 static void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (is_atomic) {
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_YIELD);
-  }
   if (nargs == 1 && lbm_is_number(args[0])) {
     lbm_uint ts = lbm_dec_as_u32(args[0]);
     lbm_stack_drop(&ctx->K, nargs+1);
@@ -2395,10 +2404,6 @@ static void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_sleep(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (is_atomic) {
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_SLEEP);
-  }
   if (nargs == 1 && lbm_is_number(args[0])) {
     lbm_uint ts = (lbm_uint)(1000000.0f * lbm_dec_as_float(args[0]));
     lbm_stack_drop(&ctx->K, nargs+1);
