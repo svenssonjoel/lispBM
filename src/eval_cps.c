@@ -383,7 +383,7 @@ static bool              blocking_extension_mutex_initialized = false;
 static lbm_uint          blocking_extension_timeout_us = 0;
 static bool              blocking_extension_timeout = false;
 
-static uint32_t          is_atomic = 0;
+static bool              is_atomic = false;
 
 /* Process queues */
 static eval_context_queue_t blocked  = {NULL, NULL};
@@ -653,7 +653,13 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
 
 // block_current_ctx blocks a context until it is
 // woken up externally or a timeout period of time passes.
+// Blocking while in an atomic block would have bad consequences.
 static void block_current_ctx(uint32_t state, lbm_uint sleep_us,  bool do_cont) {
+  if (is_atomic) {
+    is_atomic = false;
+    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
+    error_ctx(ENC_SYM_EERROR);
+  }
   ctx_running->timestamp = timestamp_us_callback();
   ctx_running->sleep_us = sleep_us;
   ctx_running->state  = state;
@@ -1647,11 +1653,12 @@ static void eval_progn(eval_context_t *ctx) {
 
 static void eval_atomic(eval_context_t *ctx) {
   if (is_atomic) {
-    lbm_set_error_reason("Atomic blocks cannot be nested!");
-    error_ctx(ENC_SYM_EERROR);
+    is_atomic = false;
+    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_ATOMIC);
   }
   stack_reserve(ctx, 1)[0] = EXIT_ATOMIC;
-  is_atomic ++;
+  is_atomic = true;
   eval_progn(ctx);
 }
 
@@ -2952,7 +2959,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     ctx->app_cont = true;
     ctx->r = ext_res;
 
-    if (blocking_extension) {
+    if (blocking_extension) { // block_current_ctx checks the atomic status and issues error.
       blocking_extension = false;
       if (blocking_extension_timeout) {
         blocking_extension_timeout = false;
@@ -3257,7 +3264,7 @@ static void cont_match(eval_context_t *ctx) {
 }
 
 static void cont_exit_atomic(eval_context_t *ctx) {
-  is_atomic --;
+  is_atomic = false; // atomic blocks cannot nest!
   ctx->app_cont = true;
 }
 
@@ -5110,12 +5117,7 @@ void lbm_run_eval(void){
       } else {
         if (eval_cps_state_changed) break;
         eval_steps_quota = eval_steps_refill;
-        if (is_atomic) {
-          if (!ctx_running) {
-            lbm_set_flags(LBM_FLAG_ATOMIC_MALFUNCTION);
-            is_atomic = 0;
-          }
-        } else {
+        if (!is_atomic) { 
           if (gc_requested) {
             gc();
           }
