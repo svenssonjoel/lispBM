@@ -418,6 +418,17 @@ LBM_EXTENSION(ext_load_inc_i, args, argn) {
   return ENC_SYM_TRUE;
 }
 
+
+LBM_EXTENSION(ext_flatten_depth, args, argn) {
+  lbm_value res = ENC_SYM_NIL;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_int i = lbm_dec_as_i32(args[0]);
+    lbm_set_max_flatten_depth(i);
+    res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
 int main(int argc, char **argv) {
 
   int res = 0;
@@ -726,6 +737,14 @@ int main(int argc, char **argv) {
   }
 
   res = lbm_add_extension("load-inc-i", ext_load_inc_i);
+  if (res)
+    printf("extension load extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return FAIL;
+  }
+
+  res = lbm_add_extension("flatten-depth", ext_flatten_depth);
   if (res)
     printf("extension load extension added.\n");
   else {

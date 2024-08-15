@@ -651,15 +651,17 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
   ctx->r = res;
 }
 
+static void atomic_error(void) {
+  is_atomic = false;
+  lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
+  error_ctx(ENC_SYM_EERROR);
+}
+
 // block_current_ctx blocks a context until it is
 // woken up externally or a timeout period of time passes.
 // Blocking while in an atomic block would have bad consequences.
 static void block_current_ctx(uint32_t state, lbm_uint sleep_us,  bool do_cont) {
-  if (is_atomic) {
-    is_atomic = false;
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_ctx(ENC_SYM_EERROR);
-  }
+  if (is_atomic) atomic_error();
   ctx_running->timestamp = timestamp_us_callback();
   ctx_running->sleep_us = sleep_us;
   ctx_running->state  = state;
@@ -1141,10 +1143,7 @@ static void wake_up_ctxs_nm(void) {
 }
 
 static void yield_ctx(lbm_uint sleep_us) {
-  if (is_atomic) {
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_YIELD);
-  }
+  if (is_atomic) atomic_error();
   if (timestamp_us_callback) {
     ctx_running->timestamp = timestamp_us_callback();
     ctx_running->sleep_us = sleep_us;
@@ -1656,11 +1655,7 @@ static void eval_progn(eval_context_t *ctx) {
 }
 
 static void eval_atomic(eval_context_t *ctx) {
-  if (is_atomic) {
-    is_atomic = false;
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_ATOMIC);
-  }
+  if (is_atomic) atomic_error();
   stack_reserve(ctx, 1)[0] = EXIT_ATOMIC;
   is_atomic = true;
   eval_progn(ctx);
@@ -1803,13 +1798,8 @@ static void eval_app_cont(eval_context_t *ctx) {
 
 // Create a named location in an environment to later receive a value.
 static binding_location_status create_binding_location_internal(lbm_value key, lbm_value *env) {
-
-  if (lbm_is_symbol(key) &&
-      (key == ENC_SYM_NIL ||
-       key == ENC_SYM_DONTCARE))
-    return BL_OK;
-
   if (lbm_type_of(key) == LBM_TYPE_SYMBOL) { // default case
+    if (key == ENC_SYM_NIL || key == ENC_SYM_DONTCARE) return BL_OK;
     lbm_value binding;
     lbm_value new_env_tmp;
     binding = lbm_cons(key, ENC_SYM_NIL);
@@ -1854,39 +1844,36 @@ static void create_binding_location(lbm_value key, lbm_value *env) {
 }
 
 static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, eval_context_t *ctx) {
-
-  if (!lbm_is_cons(binds)) {
-    // binds better be nil or there is a programmer error.
-    ctx->curr_exp = exp;
-    return;
-  }
-
-  // Preallocate binding locations.
-  lbm_value curr = binds;
-  while (lbm_is_cons(curr)) {
-    lbm_value new_env_tmp = env;
-    lbm_value car_curr, cdr_curr;
-    get_car_and_cdr(curr, &car_curr, &cdr_curr);
-    lbm_value key = get_car(car_curr);
-    create_binding_location(key, &new_env_tmp);
-    env = new_env_tmp;
-    curr = cdr_curr;
-  }
-
-  lbm_value car_binds;
-  lbm_value cdr_binds;
-  get_car_and_cdr(binds, &car_binds, &cdr_binds);
-  lbm_value key_val[2];
-  extract_n(car_binds, key_val, 2);
-
-  lbm_uint *sptr = stack_reserve(ctx, 5);
-  sptr[0] = exp;
-  sptr[1] = cdr_binds;
-  sptr[2] = env;
-  sptr[3] = key_val[0];
-  sptr[4] = BIND_TO_KEY_REST;
-  ctx->curr_exp = key_val[1];
-  ctx->curr_env = env;
+  if (lbm_is_cons(binds)) {
+      // Preallocate binding locations.
+      lbm_value curr = binds;
+      while (lbm_is_cons(curr)) {
+        lbm_value new_env_tmp = env;
+        lbm_value car_curr, cdr_curr;
+        get_car_and_cdr(curr, &car_curr, &cdr_curr);
+        lbm_value key = get_car(car_curr);
+        create_binding_location(key, &new_env_tmp);
+        env = new_env_tmp;
+        curr = cdr_curr;
+      }
+      
+      lbm_value car_binds;
+      lbm_value cdr_binds;
+      get_car_and_cdr(binds, &car_binds, &cdr_binds);
+      lbm_value key_val[2];
+      extract_n(car_binds, key_val, 2);
+      
+      lbm_uint *sptr = stack_reserve(ctx, 5);
+      sptr[0] = exp;
+      sptr[1] = cdr_binds;
+      sptr[2] = env;
+      sptr[3] = key_val[0];
+      sptr[4] = BIND_TO_KEY_REST;
+      ctx->curr_exp = key_val[1];
+      ctx->curr_env = env;
+    } else {
+      ctx->curr_exp = exp;
+    }
 }
 
 // (var x (...)) - local binding inside of an progn
@@ -2110,10 +2097,7 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
 }
 
 static void eval_receive_timeout(eval_context_t *ctx) {
-  if (is_atomic) {
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_ctx(ENC_SYM_EERROR);
-  }
+  if (is_atomic) atomic_error();
   lbm_value timeout_val = get_cadr(ctx->curr_exp);
   if (!lbm_is_number(timeout_val)) {
     error_ctx(ENC_SYM_EERROR);
@@ -2127,11 +2111,7 @@ static void eval_receive_timeout(eval_context_t *ctx) {
 // (recv (pattern expr)
 //       (pattern expr))
 static void eval_receive(eval_context_t *ctx) {
-
-  if (is_atomic) {
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_at_ctx(ENC_SYM_EERROR, ctx->curr_exp);
-  }
+  if (is_atomic) atomic_error();
   lbm_value pats = get_cdr(ctx->curr_exp);
   receive_base(ctx, pats, 0, false);
 }
