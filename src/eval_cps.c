@@ -1925,6 +1925,7 @@ static void eval_var(eval_context_t *ctx) {
 }
 
 // (setq x (...)) - same as (set 'x (...)) or (setvar 'x (...))
+// does not error when given incorrect number of arguments.
 static void eval_setq(eval_context_t *ctx) {
   lbm_value parts[3];
   extract_n(ctx->curr_exp, parts, 3);
