@@ -119,6 +119,11 @@ void context_done_callback(eval_context_t *ctx) {
   printf("Thread %d finished: %s\n", (int32_t)ctx->id, output);
 }
 
+void critical_error(void) {
+  printf("Critical error\n");
+  exit(EXIT_FAILURE);
+}
+
 bool dyn_load(const char *str, const char **code) {
 
   size_t len = strlen(str);
@@ -756,6 +761,7 @@ int main(int argc, char **argv) {
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_printf_callback(printf);
+  lbm_set_critical_error_callback(critical_error);
 
   lbm_set_verbose(true);
 

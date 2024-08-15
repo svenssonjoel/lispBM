@@ -545,10 +545,6 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
   return generate_freelist(num_cells);
 }
 
-lbm_uint lbm_heap_num_free(void) {
-  return lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
-}
-
 lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr) {
   lbm_value res;
   // it is a ptr replace freelist with cdr of freelist;

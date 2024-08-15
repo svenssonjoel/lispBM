@@ -949,33 +949,6 @@ static void context_exists(eval_context_t *ctx, void *cid, void *b) {
   }
 }
 
-bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
-
-  bool exists;
-  uint32_t i = 0;
-
-  do {
-    exists = false;
-    lbm_blocked_iterator(context_exists, &cid, &exists);
-    lbm_running_iterator(context_exists, &cid, &exists);
-
-    if (ctx_running &&
-        ctx_running->id == cid) {
-      exists = true;
-    }
-
-    if (exists) {
-       if (usleep_callback) {
-         usleep_callback(1000);
-       }
-       if (timeout_ms > 0) i ++;
-    }
-  } while (exists && i < timeout_ms);
-
-  if (exists) return false;
-  return true;
-}
-
 void lbm_set_error_suspect(lbm_value suspect) {
   lbm_error_suspect = suspect;
   lbm_error_has_suspect = true;
@@ -2100,12 +2073,13 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
 static void eval_receive_timeout(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   lbm_value timeout_val = get_cadr(ctx->curr_exp);
-  if (!lbm_is_number(timeout_val)) {
+  if (lbm_is_number(timeout_val)) {
+    float timeout_time = lbm_dec_as_float(timeout_val);
+    lbm_value pats = get_cdr(get_cdr(ctx->curr_exp));
+    receive_base(ctx, pats, timeout_time, true);
+  } else {
     error_ctx(ENC_SYM_EERROR);
   }
-  float timeout_time = lbm_dec_as_float(timeout_val);
-  lbm_value pats = get_cdr(get_cdr(ctx->curr_exp));
-  receive_base(ctx, pats, timeout_time, true);
 }
 
 // Receive

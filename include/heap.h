@@ -286,7 +286,10 @@ void lbm_heap_new_freelist_length(void);
  *
  * \return Number of free lbm_cons_t cells.
  */
-lbm_uint lbm_heap_num_free(void);
+static inline lbm_uint lbm_heap_num_free(void) {
+  return lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
+}
+
 /** Check how many lbm_cons_t cells are allocated.
  *
  * \return  Number of lbm_cons_t cells that are currently allocated.
