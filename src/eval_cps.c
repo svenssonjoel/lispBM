@@ -4795,7 +4795,7 @@ static void cont_qq_list(eval_context_t *ctx) {
 
 static void cont_kill(eval_context_t *ctx) {
   (void) ctx;
-  finish_ctx();
+  ok_ctx(); 
 }
 
 static void cont_pop_reader_flags(eval_context_t *ctx) {
