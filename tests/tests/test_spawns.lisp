@@ -12,11 +12,11 @@
             }
             ))
 
-(define p1 (spawn f 10000))
-(define p2 (spawn f 10000))
-(define p3 (spawn f 10000))
-(define p4 (spawn f 10000))
-(define p5 (spawn g 10000))
+(define p1 (spawn "apa" 100 f 10000))
+(define p2 (spawn "bepa" 50 f 10000))
+(define p3 (spawn "cepa" 40 f 10000))
+(define p4 (spawn "depa" 30 f 10000))
+(define p5 (spawn "eepa" 20 g 10000))
 
 (wait p5)
 
