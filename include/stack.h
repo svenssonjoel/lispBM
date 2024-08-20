@@ -34,7 +34,6 @@ typedef struct {
   lbm_uint* data;
   lbm_uint sp;
   lbm_uint size;
-  lbm_uint max_sp;
 } lbm_stack_t;
 
 /** Allocate a stack on the symbols and arrays memory.
@@ -52,6 +51,11 @@ int lbm_stack_allocate(lbm_stack_t *s, lbm_uint stack_size);
  * \return 1
  */
 int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint size);
+/** Check maximum SP
+ * \param s Pointer to stack
+ * \return maximum SP written to in stack.
+ */  
+lbm_uint lbm_get_max_stack(lbm_stack_t *s);
 /** Free a stack allocated on the lispbm_memory.
  *
  * \param s Pointer to lbm_stack_t to free.

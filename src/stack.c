@@ -22,22 +22,40 @@
 #include "stack.h"
 #include "print.h"
 
+#define STACK_UNUSED_BYTE 0x55
+#ifndef LBM64
+#define STACK_UNUSED_WORD 0x55555555
+#else
+#define STACK_UNUSED_WORD 0x5555555555555555
+#endif
+
 int lbm_stack_allocate(lbm_stack_t *s, lbm_uint stack_size) {
   s->data = lbm_memory_allocate(stack_size);
+  memset(s->data, STACK_UNUSED_BYTE, stack_size * sizeof(lbm_uint));
   s->sp = 0;
   s->size = stack_size;
-  s->max_sp = 0;
-
   if (s->data) return 1;
   return 0;
 }
 
-int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint size) {
+int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint stack_size) {
   s->data = data;
+  memset(s->data, STACK_UNUSED_BYTE, stack_size * sizeof(lbm_uint));
   s->sp = 0;
-  s->size = size;
-  s->max_sp = 0;
+  s->size = stack_size;
   return 1;
+}
+
+lbm_uint lbm_get_max_stack(lbm_stack_t *s) {
+  lbm_uint unused = 0;
+  for (lbm_uint i = s->size-1 ; i >= 0; i --) {
+    if (s->data[i] == STACK_UNUSED_WORD) {
+      unused ++;
+    } else {
+      break;
+    }
+  }
+  return s->size - unused;
 }
 
 void lbm_stack_free(lbm_stack_t *s) {
@@ -64,7 +82,6 @@ int lbm_push(lbm_stack_t *s, lbm_uint val) {
     return 0;
   }
   s->data[s->sp++] = val;
-  if (s->sp > s->max_sp) s->max_sp = s->sp;
   return res;
 }
 

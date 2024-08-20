@@ -39,7 +39,7 @@
 #define CONTINUE_ARRAY 8
 #define END_ARRAY      9
 
-static lbm_stack_t print_stack = { NULL, 0, 0, 0};
+static lbm_stack_t print_stack = { NULL, 0, 0};
 static bool print_has_stack = false;
 
 const char *failed_str = "Error: print failed\n";
