@@ -59,27 +59,28 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
   bool is_a_string = false;
   if (lbm_is_array_r(v)) {
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
-
-    is_a_string = true;
     // TODO: Potential null deref.
     //       Highly unlikely that array is a recognizable NULL though.
     //       If it is incorrect, it is most likely arbitrary.
     char *c_data = (char *)array->data;
-    if (array->size == 1) {
-      *str = c_data;
-      return c_data[0] == 0;
-    }
-    unsigned int i;
-    for (i = 0; i < array->size; i ++) {
-      if (c_data[i] == 0 && i > 0) break;
-      if (!isprint((unsigned char)c_data[i]) && !iscntrl((unsigned char)c_data[i])) {
-        is_a_string = false;
-        break;
+    unsigned int i = 0;
+    if (array->size >= 1 && c_data[0] != 0) { // nonzero length and ix 0 is not 0
+      is_a_string = true;
+      for (i = 0; i < array->size; i ++) {
+	if (c_data[i] == 0) break;
+	if (!isprint((unsigned char)c_data[i]) && ((c_data[i] < 8) || c_data[i] > 13)) {
+	  is_a_string = false;
+	  break;
+	}
       }
     }
 
+    for (; i < array->size; i ++) {
+      if (c_data[i] != 0) is_a_string = false;
+    }
+
     if (i == array->size) i--;
-    if (i > 0 && c_data[i] != 0) is_a_string = false;
+    if (c_data[i] != 0) is_a_string = false;
     if (is_a_string) {
       *str = (char*)array->data;
     }
