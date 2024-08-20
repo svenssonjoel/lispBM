@@ -74,13 +74,7 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
 	}
       }
     }
-
-    for (; i < array->size; i ++) {
-      if (c_data[i] != 0) is_a_string = false;
-    }
-
-    if (i == array->size) i--;
-    if (c_data[i] != 0) is_a_string = false;
+    if (i != array->size-1 && c_data[i-1] != 0) is_a_string = false;
     if (is_a_string) {
       *str = (char*)array->data;
     }
