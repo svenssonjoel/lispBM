@@ -48,7 +48,7 @@ int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint stack_size) {
 
 lbm_uint lbm_get_max_stack(lbm_stack_t *s) {
   lbm_uint unused = 0;
-  for (lbm_uint i = s->size-1 ; i >= 0; i --) {
+  for (int i = (int)s->size-1 ; i >= 0; i --) {
     if (s->data[i] == STACK_UNUSED_WORD) {
       unused ++;
     } else {

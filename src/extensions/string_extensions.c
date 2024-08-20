@@ -38,6 +38,9 @@ static char print_val_buffer[256];
 
 static lbm_uint sym_left;
 static lbm_uint sym_right;
+static lbm_uint sym_case_sensitive;
+static lbm_uint sym_case_insensitive;
+
 
 static size_t strlen_max(const char *s, size_t maxlen) {
   size_t i;
@@ -577,12 +580,24 @@ static lbm_value ext_str_replicate(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-// signature: (str-find str:byte-array substr [start:int] [occurrence:int] [dir]) -> int
+bool ci_strncmp(const char *str1, const char *str2,int n) {
+  bool res = true;
+  for (int i = 0; i < n; i ++) {
+    if (tolower(str1[i]) != tolower(str2[i])) {
+      res = false;
+      break;
+    }
+  }
+  return res;
+}
+
+// signature: (str-find str:byte-array substr [start:int] [occurrence:int] [dir] [case_sensitivity]) -> int
 // where
 //   seq = string|(..string)
 //   dir = 'left|'right
+//   case_sensitivity = 'case-sensitive | 'case-insensitive
 static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
-  if (argn < 2 || 5 < argn) {
+  if (argn < 2 || 6 < argn) {
     lbm_set_error_reason((char *)lbm_error_str_num_args);
     return ENC_SYM_EERROR;
   }
@@ -610,7 +625,7 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
       // Should not be possible
       return ENC_SYM_FATAL_ERROR;
     }
-
+    
     lbm_int len = (lbm_int)header->size - 1;
     if (len < 0) {
       // substr is zero length array
@@ -645,40 +660,39 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
   }
 
   bool to_right    = true;
-  lbm_uint dir_index = 4;
-  if (argn >= 3 && lbm_is_symbol(args[argn - 1])) {
-    dir_index       = argn - 1;
-    lbm_uint symbol = lbm_dec_sym(args[dir_index]);
+  bool case_sensitive = true;
 
-    if (symbol == sym_left) {
-      to_right = false;
-    } else if (symbol != sym_right) {
-      lbm_set_error_suspect(args[dir_index]);
-      lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
-      return ENC_SYM_TERROR;
+  int nums[2] = {0, 0};
+  bool nums_set[2] = {false, false};
+  int num_ix = 0;
+  
+  
+  for (int i = 0; i < (int)argn; i ++ ) {
+    if (lbm_is_number(args[i]) && num_ix < 2) {
+      nums_set[num_ix] = true;
+      nums[num_ix++] = lbm_dec_as_int(args[i]);
     }
-  }
-
-  lbm_int start = to_right ? 0 : str_size - min_substr_len;
-  if (argn >= 3 && dir_index != 2) {
-    if (!lbm_is_number(args[2])) {
-      lbm_set_error_reason((char *)lbm_error_str_no_number);
-      lbm_set_error_suspect(args[2]);
-      return ENC_SYM_TERROR;
+    if (lbm_is_symbol(args[i])) {
+      lbm_uint symbol = lbm_dec_sym(args[i]);
+      if (symbol == sym_right) {
+	to_right = true;
+      } else if (symbol == sym_left) {
+	to_right = false;
+      } else if (symbol == sym_case_sensitive) {
+	case_sensitive  = true;
+      } else if (symbol == sym_case_insensitive) {
+	case_sensitive = false;
+      }
     }
-
-    start = lbm_dec_as_int(args[2]);
   }
   
   uint32_t occurrence = 0;
-  if (argn >= 4 && dir_index != 3) {
-    if (!lbm_is_number(args[3])) {
-      lbm_set_error_reason((char *)lbm_error_str_no_number);
-      lbm_set_error_suspect(args[3]);
-      return ENC_SYM_TERROR;
-    }
-
-    occurrence = lbm_dec_as_u32(args[3]);
+  lbm_int start = to_right ? 0 : str_size - min_substr_len;
+  if (nums_set[0]) { 
+    start = nums[0];
+  }
+  if (nums_set[1]) {
+    occurrence = (uint32_t)nums[1];
   }
 
   if (start < 0) {
@@ -708,7 +722,8 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
         continue;
       }
       
-      if (memcmp(&str[i], substr, (size_t)substr_len) == 0) {
+      if ((case_sensitive && memcmp(&str[i], substr, (size_t)substr_len) == 0) ||
+	  (!case_sensitive && ci_strncmp(&str[i], substr, (int)substr_len))) {
         if (occurrence == 0) {
           return lbm_enc_i(i);
         }
@@ -726,6 +741,8 @@ bool lbm_string_extensions_init(void) {
   
   res = res && lbm_add_symbol_const("left", &sym_left);
   res = res && lbm_add_symbol_const("right", &sym_right);
+  res = res && lbm_add_symbol_const("case-sensitive", &sym_case_sensitive);
+  res = res && lbm_add_symbol_const("case-insensitive", &sym_case_insensitive);
   
   res = res && lbm_add_extension("str-from-n", ext_str_from_n);
   res = res && lbm_add_extension("str-join", ext_str_join);
