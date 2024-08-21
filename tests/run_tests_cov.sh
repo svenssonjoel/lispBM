@@ -2,7 +2,8 @@
 
 echo "BUILDING"
 
-rm coverage/*
+rm -rf coverage
+mkdir coverage 
 rm *.gcno
 rm *.gcda
 make clean
