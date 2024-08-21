@@ -37,8 +37,6 @@
 static char print_val_buffer[256];
 
 static lbm_uint sym_left;
-static lbm_uint sym_right;
-static lbm_uint sym_case_sensitive;
 static lbm_uint sym_case_insensitive;
 
 
@@ -674,12 +672,8 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
     }
     if (lbm_is_symbol(args[i])) {
       lbm_uint symbol = lbm_dec_sym(args[i]);
-      if (symbol == sym_right) {
-	to_right = true;
-      } else if (symbol == sym_left) {
+      if (symbol == sym_left) {
 	to_right = false;
-      } else if (symbol == sym_case_sensitive) {
-	case_sensitive  = true;
       } else if (symbol == sym_case_insensitive) {
 	case_sensitive = false;
       }
@@ -740,9 +734,7 @@ bool lbm_string_extensions_init(void) {
   bool res = true;
   
   res = res && lbm_add_symbol_const("left", &sym_left);
-  res = res && lbm_add_symbol_const("right", &sym_right);
-  res = res && lbm_add_symbol_const("case-sensitive", &sym_case_sensitive);
-  res = res && lbm_add_symbol_const("case-insensitive", &sym_case_insensitive);
+  res = res && lbm_add_symbol_const("nocase", &sym_case_insensitive);
   
   res = res && lbm_add_extension("str-from-n", ext_str_from_n);
   res = res && lbm_add_extension("str-join", ext_str_join);
