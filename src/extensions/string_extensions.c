@@ -711,11 +711,11 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
 
       if (
         i > str_size - substr_len // substr length runs over str end.
-        || substr_len < 0 // substr was zero bytes in size
+        || substr_len < 0 // empty substr substr was zero bytes in size
       ) {
         continue;
       }
-      
+
       if ((case_sensitive && memcmp(&str[i], substr, (size_t)substr_len) == 0) ||
 	  (!case_sensitive && ci_strncmp(&str[i], substr, (int)substr_len))) {
         if (occurrence == 0) {
