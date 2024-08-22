@@ -97,9 +97,7 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
     break;
   }
 
-  if (len > sizeof(buffer)) {
-    len = sizeof(buffer);
-  }
+  len = MIN(len, sizeof(buffer));
 
   lbm_value res;
   if (lbm_create_array(&res, len + 1)) {
