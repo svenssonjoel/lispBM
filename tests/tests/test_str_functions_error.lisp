@@ -26,6 +26,9 @@
 (define r13 (eq eerr (trap (str-to-lower))))
 
 (define r14 (eq eerr (trap (str-cmp))))
+(define r23 (eq terr (trap (str-cmp "apa" 1))))
+(define r24 (eq terr (trap (str-cmp 1 "apa"))))
+(define r25 (eq terr (trap (str-cmp "apa" "bepa" "cepa"))))
 
 (define r15 (eq eerr (trap (str-len))))
 (define r16 (eq terr (trap (str-len 2))))
@@ -42,4 +45,4 @@
 	    r14 r15 r16
 	    r17 r18
 	    r19 r20
-	    r21 r22))
+	    r21 r22 r23 r24 r25))

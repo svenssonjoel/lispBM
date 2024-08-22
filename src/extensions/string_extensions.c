@@ -460,7 +460,7 @@ static lbm_value ext_str_cmp(lbm_value *args, lbm_uint argn) {
   int n = -1;
   if (argn == 3) {
     if (!lbm_is_number(args[2])) {
-      return ENC_SYM_EERROR;
+      return ENC_SYM_TERROR;
     }
 
     n = lbm_dec_as_i32(args[2]);
