@@ -1,3 +1,3 @@
 
 
-(check (eq (type-of (mem-size) type-i)))
+(check (eq (type-of (mem-size)) type-i))
