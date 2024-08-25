@@ -77,6 +77,8 @@ void free_defrag_allocation(lbm_uint *allocation) {
   }
 }
 
+// Called by GC.
+// if called elsewhere, the reference cell needs clearing. 
 void lbm_defrag_mem_destroy(lbm_uint *defrag_mem) {
   lbm_uint nwords = DEFRAG_MEM_SIZE(defrag_mem);
   lbm_uint *defrag_data = DEFRAG_MEM_DATA(defrag_mem);
@@ -91,6 +93,7 @@ void lbm_defrag_mem_destroy(lbm_uint *defrag_mem) {
     }
     else i ++;
   }
+  lbm_free(defrag_mem);
 }
 
 
@@ -208,12 +211,6 @@ lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint bytes) {
   }
   return res;
 }
-
-// If a defrag allocation is freed explicitly, the heap cell needs to be destroyed.
-void lbm_defrag_mem_free_value(lbm_value v) {
-  (void) v;
-
-} 
 
 // IF GC frees a defrag allocation, the cell pointing to it will also be destroyed by GC.
 

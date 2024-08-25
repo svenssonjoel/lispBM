@@ -220,6 +220,7 @@ static int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
 }
 
 static int print_emit_defrag_mem(lbm_char_channel_t *chan, lbm_value v) {
+  (void) v;
   return print_emit_string(chan, "DM");
 }
 
