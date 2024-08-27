@@ -96,7 +96,8 @@ static jmp_buf critical_error_jmp_buf;
 #define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(46)
 #define POP_READER_FLAGS      CONTINUATION(47)
 #define EXCEPTION_HANDLER     CONTINUATION(48)
-#define NUM_CONTINUATIONS     49
+#define RECV_TO               CONTINUATION(49)
+#define NUM_CONTINUATIONS     50
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -2070,16 +2071,16 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
   return;
 }
 
+// Receive-timeout
+// (recv timeout (pattern expr)
+//               (pattern expr))
 static void eval_receive_timeout(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   lbm_value timeout_val = get_cadr(ctx->curr_exp);
-  if (lbm_is_number(timeout_val)) {
-    float timeout_time = lbm_dec_as_float(timeout_val);
-    lbm_value pats = get_cdr(get_cdr(ctx->curr_exp));
-    receive_base(ctx, pats, timeout_time, true);
-  } else {
-    error_ctx(ENC_SYM_EERROR);
-  }
+  lbm_value *sptr = stack_reserve(ctx, 2);
+  sptr[0] = get_cdr(get_cdr(ctx->curr_exp));
+  sptr[1] = RECV_TO;
+  ctx->curr_exp = timeout_val;
 }
 
 // Receive
@@ -4792,6 +4793,18 @@ static void cont_exception_handler(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static void cont_recv_to(eval_context_t *ctx) {
+  lbm_value *sptr = pop_stack_ptr(ctx, 1);
+  lbm_value pats = sptr[0];
+
+  if (lbm_is_number(ctx->r)) {
+    float timeout_time = lbm_dec_as_float(ctx->r);
+    receive_base(ctx, pats, timeout_time, true);
+  } else {
+    error_ctx(ENC_SYM_TERROR);
+  }
+}
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -4845,7 +4858,8 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_closure_args_rest,
     cont_move_array_elts_to_flash,
     cont_pop_reader_flags,
-    cont_exception_handler
+    cont_exception_handler,
+    cont_recv_to
   };
 
 /*********************************************************/
