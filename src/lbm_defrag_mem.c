@@ -55,7 +55,7 @@ lbm_value lbm_defrag_mem_create(lbm_uint nbytes) {
   return res;
 }
 
-void free_defrag_allocation(lbm_uint *allocation) {
+static void free_defrag_allocation(lbm_uint *allocation) {
   lbm_uint size = DEFRAG_ALLOC_SIZE(allocation); // array allocation is size in bytes
 
   if (size > 0) { 
@@ -67,7 +67,11 @@ void free_defrag_allocation(lbm_uint *allocation) {
     // if the cell is recovered, then the data should also have been
     // cleared in the defrag_mem.
 
-    lbm_set_car_and_cdr(cell_back_ptr, ENC_SYM_NIL, ENC_SYM_NIL);
+    cell_back_ptr = lbm_set_ptr_type(cell_back_ptr, LBM_TYPE_CONS);
+    bool marked = lbm_cdr(cell_back_ptr) & LBM_GC_MASK;
+    lbm_value new_cdr = marked ? (ENC_SYM_NIL | LBM_GC_MARKED) : ENC_SYM_NIL;
+    lbm_set_car_and_cdr(cell_back_ptr, ENC_SYM_NIL, new_cdr);
+    // possible optimize, if not marked. dont bother setting anything.
 
     for (lbm_uint i = 0; i < nwords; i ++) {
       allocation[i] = 0;
@@ -76,11 +80,11 @@ void free_defrag_allocation(lbm_uint *allocation) {
 }
 
 // Called by GC.
-// if called elsewhere, the reference cell needs clearing. 
+// As it is called by GC, gc bits may be set and needs to be
+// honored!
 void lbm_defrag_mem_destroy(lbm_uint *defrag_mem) {
   lbm_uint nwords = DEFRAG_MEM_SIZE(defrag_mem);
   lbm_uint *defrag_data = DEFRAG_MEM_DATA(defrag_mem);
-  
   for (lbm_uint i = 0; i < nwords;) {
     lbm_uint a = defrag_data[i];
     if (a != 0) {
@@ -226,7 +230,7 @@ lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint bytes) {
 // any array.
 
 // At the time of free from GC all we have is the pointer.
-void lbm_defrag_mem_free(lbm_uint* data) {  
+void lbm_defrag_mem_free(lbm_uint* data) {
   lbm_uint nbytes = data[0];
   lbm_uint words_to_wipe = 3 + bs2ws(nbytes);
   for (lbm_uint i = 0; i < words_to_wipe; i ++) {

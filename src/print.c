@@ -57,7 +57,7 @@ static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
 
 bool lbm_value_is_printable_string(lbm_value v, char **str) {
   bool is_a_string = false;
-  if (lbm_is_array_r(v)) {
+  if (lbm_is_array_r(v)) {    
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
     // TODO: Potential null deref.
     //       Highly unlikely that array is a recognizable NULL though.

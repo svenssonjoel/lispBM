@@ -110,6 +110,8 @@ special_sym const special_symbols[] =  {
   {"$custom"         , SYM_CUSTOM_TYPE},
   {"$array"          , SYM_LISPARRAY_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
+  {"$dm-array"       , SYM_DEFRAG_ARRAY_TYPE},
+  {"$dm"             , SYM_DEFRAG_MEM_TYPE},
 
   // tokenizer symbols with unparsable names
   {"[openpar]"        , SYM_OPENPAR},
