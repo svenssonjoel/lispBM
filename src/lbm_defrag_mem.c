@@ -60,16 +60,14 @@ void free_defrag_allocation(lbm_uint *allocation) {
 
   if (size > 0) { 
     lbm_uint nwords = bs2ws(size) + 3;
-    lbm_uint cell_back_ptr = DEFRAG_ALLOC_CELLPTR(allocation);
-
-    lbm_value cell = lbm_enc_cons_ptr(cell_back_ptr);
+    lbm_value cell_back_ptr = DEFRAG_ALLOC_CELLPTR(allocation);
 
     // I have a feeling that it should be impossible for the 
     // cell to be recovered if we end up here.
     // if the cell is recovered, then the data should also have been
     // cleared in the defrag_mem.
 
-    lbm_set_car_and_cdr(cell, ENC_SYM_NIL, ENC_SYM_NIL);
+    lbm_set_car_and_cdr(cell_back_ptr, ENC_SYM_NIL, ENC_SYM_NIL);
 
     for (lbm_uint i = 0; i < nwords; i ++) {
       allocation[i] = 0;
@@ -115,13 +113,22 @@ void lbm_defrag_mem_defrag(lbm_uint *defrag_mem) {
 	hole_start = i;  
       } else {
 	lbm_uint move_dist = i - hole_start;
-	lbm_uint clear_ix = i - move_dist;
+	lbm_uint clear_ix = (hole_start + alloc_words + 3); 
+
+        //for (lbm_uint i = 0; i < alloc_words; i ++) {
+        //  target[i] = source[i]; source[i] = 0;
+        //}
+
 	memmove(target, source, (alloc_words + 3) * sizeof(lbm_uint));
 	memset(&mem_data[clear_ix],0, move_dist* sizeof(lbm_uint));
+        DEFRAG_ALLOC_DATA(target) = (lbm_uint)&target[3];
 	lbm_value cell = DEFRAG_ALLOC_CELLPTR(target);
-	lbm_set_car(cell,(lbm_uint)target);  
-	i += alloc_words + 3;
-	hole_start += alloc_words + 3;  
+
+	lbm_set_car(cell,(lbm_uint)target);
+        // move home and i forwards.
+        // i can move to the original end of allocation.
+	hole_start += alloc_words + 3;
+        i += alloc_words + 3;
       }
     } else {
       // no allocation hole remains but i increments.
@@ -201,7 +208,7 @@ lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint bytes) {
     lbm_uint *allocation = (lbm_uint*)&mem_data[free_start];
     DEFRAG_ALLOC_SIZE(allocation) = bytes;
     DEFRAG_ALLOC_DATA(allocation) = (lbm_uint)&allocation[3]; //data starts after back_ptr
-    DEFRAG_ALLOC_CELLPTR(allocation) = lbm_dec_ptr(cell);
+    DEFRAG_ALLOC_CELLPTR(allocation) = cell;
     lbm_set_car(cell, (lbm_uint)allocation);
     cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
     res = cell;
