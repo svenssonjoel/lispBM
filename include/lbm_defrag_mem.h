@@ -25,5 +25,5 @@ extern lbm_value lbm_defrag_mem_create(lbm_uint nbytes);
 extern void lbm_defrag_mem_destroy(lbm_uint *ptr);
 extern lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint nbytes);
 extern void lbm_defrag_mem_free(lbm_uint* data);
-extern void lbm_defrag_mem_defrag(lbm_uint *defrag_mem);
+
 #endif

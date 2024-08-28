@@ -99,11 +99,13 @@ void lbm_defrag_mem_destroy(lbm_uint *defrag_mem) {
 }
 
 
-void lbm_defrag_mem_defrag(lbm_uint *defrag_mem) {
+static void lbm_defrag_mem_defrag(lbm_uint *defrag_mem, lbm_uint bytes) {
   lbm_uint mem_size = ((lbm_uint*)defrag_mem)[0]; // mem size words
   lbm_uint *mem_data = DEFRAG_MEM_DATA(defrag_mem);
   lbm_uint hole_start = 0;
 
+  lbm_uint until_size = bs2ws(bytes) + 3; // defrag until hole is this size or complete defrag.
+  
   for (lbm_uint i = 0; i < mem_size; ) {
     // check if there is an allocation here
     if (mem_data[i] != 0) {
@@ -117,12 +119,8 @@ void lbm_defrag_mem_defrag(lbm_uint *defrag_mem) {
 	hole_start = i;  
       } else {
 	lbm_uint move_dist = i - hole_start;
+        if (move_dist >= until_size) break;
 	lbm_uint clear_ix = (hole_start + alloc_words + 3); 
-
-        //for (lbm_uint i = 0; i < alloc_words; i ++) {
-        //  target[i] = source[i]; source[i] = 0;
-        //}
-
 	memmove(target, source, (alloc_words + 3) * sizeof(lbm_uint));
 	memset(&mem_data[clear_ix],0, move_dist* sizeof(lbm_uint));
         DEFRAG_ALLOC_DATA(target) = (lbm_uint)&target[3];
@@ -155,7 +153,7 @@ void lbm_defrag_mem_defrag(lbm_uint *defrag_mem) {
 //
 // [header (size, data-ptr) cell_back_ptr | data | padding ]
 
-lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint bytes) {
+lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes) {
 
   lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_DEFRAG_ARRAY_TYPE);
   if (lbm_is_symbol(cell)) {
@@ -164,11 +162,6 @@ lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint bytes) {
   
   lbm_uint mem_size = DEFRAG_MEM_SIZE(defrag_mem);
   lbm_uint *mem_data = DEFRAG_MEM_DATA(defrag_mem);
-
-  if (DEFRAG_MEM_FLAGS(defrag_mem)) {
-    lbm_defrag_mem_defrag(defrag_mem);
-    DEFRAG_MEM_FLAGS(defrag_mem) = 0;
-  }
 
   lbm_uint num_words = bs2ws(bytes); 
   lbm_uint alloc_words = num_words + 3;
@@ -222,6 +215,20 @@ lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint bytes) {
   }
   return res;
 }
+
+lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint bytes) {
+
+  lbm_value res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes); // Try to allocate 
+  if (lbm_is_symbol_merror(res)) { 
+    if (DEFRAG_MEM_FLAGS(defrag_mem)) { //if we already performed GC, then also defrag
+      lbm_defrag_mem_defrag(defrag_mem, bytes);
+      res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes); // then try again
+      DEFRAG_MEM_FLAGS(defrag_mem) = 0;
+    }
+  }
+  return res;
+}
+
 
 // IF GC frees a defrag allocation, the cell pointing to it will also be destroyed by GC.
 
