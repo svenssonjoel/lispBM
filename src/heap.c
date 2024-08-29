@@ -1154,7 +1154,10 @@ lbm_value lbm_index_list(lbm_value l, int32_t n) {
 int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size){
 
   lbm_array_header_t *array = NULL;
-
+  if (size == 0) {
+    *res = ENC_SYM_NIL;
+    return 1;
+  }
   if (byte_array) {
     array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
   } else {
