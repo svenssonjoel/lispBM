@@ -745,7 +745,11 @@ void print_error_message(lbm_value error,
 
   lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
   printf_callback(  "***   Error: %s\n", buf);
-  printf_callback(  "***   ctx: %d %s\n", cid, name ? name : "");
+  if (name) {
+    printf_callback(  "***   ctx: %d \"%s\"\n", cid, name);
+  } else {
+    printf_callback(  "***   ctx: %d\n", cid);
+  }
   if (has_at) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, at);
     printf_callback("***   In:    %s\n",buf);
@@ -2356,6 +2360,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
                                       name);
   ctx->r = lbm_enc_i(cid);
   ctx->app_cont = true;
+  if (cid == -1) error_ctx(ENC_SYM_MERROR); // Kill parent and signal out of memory.
 }
 
 static void apply_spawn(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
