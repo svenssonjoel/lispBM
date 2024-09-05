@@ -67,11 +67,11 @@
 #endif
 
 #ifndef LBM64
-#define PROMOTE(t, a, b)                                       \
-  if (lbm_type_of_functional(a) < lbm_type_of_functional(b)) { \
-    t = lbm_type_of_functional(b);                             \
-  } else {                                                     \
-    t = lbm_type_of_functional(a);                             \
+#define PROMOTE(t, a, b)                                                \
+  t = lbm_type_of_functional(a);                                        \
+  lbm_uint t_b = lbm_type_of_functional(b);                             \
+  if (t < t_b) {                                                        \
+    t  = t_b;                                                           \
   }
 
 #else
@@ -124,7 +124,7 @@ static lbm_uint mul2(lbm_uint a, lbm_uint b) {
 static lbm_uint div2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
   if (IS_NUMBER(a) && IS_NUMBER(b)) {
-    lbm_uint t = (lbm_type_of_functional(a) < lbm_type_of_functional(b)) ? lbm_type_of_functional(b) : lbm_type_of_functional(a);
+    PROMOTE(t, a, b);
     switch (t) {
     case LBM_TYPE_CHAR: if (lbm_dec_char(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_char((uint8_t)(lbm_dec_char(a) / lbm_dec_char(b))); break;
     case LBM_TYPE_I: if (lbm_dec_i(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_i(lbm_dec_as_i32(a) / lbm_dec_as_i32(b)); break;
@@ -145,7 +145,7 @@ static lbm_uint div2(lbm_uint a, lbm_uint b) {
 static lbm_uint mod2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
   if (IS_NUMBER(a) && IS_NUMBER(b)) {
-    lbm_uint t = (lbm_type_of_functional(a) < lbm_type_of_functional(b)) ? lbm_type_of_functional(b) : lbm_type_of_functional(a);
+    PROMOTE(t, a, b);
     switch (t) {
     case LBM_TYPE_CHAR: if (lbm_dec_char(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_char((uint8_t)(lbm_dec_char(a) % lbm_dec_as_i32(b))); break;
     case LBM_TYPE_I: if (lbm_dec_i(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_i(lbm_dec_as_i32(a) % lbm_dec_as_i32(b)); break;
@@ -328,19 +328,7 @@ static lbm_value cossa_lookup(lbm_value key, lbm_value assoc) {
 
 /***************************************************/
 /* Fundamental operations                          */
-/*
-static lbm_value fundamental_add(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_uint sum = lbm_enc_char(0);
-  for (lbm_uint i = 0; i < nargs; i ++) {
-    sum = add2(sum, args[i]);
-    if (lbm_type_of(sum) == LBM_TYPE_SYMBOL) {
-      break;
-    }
-  }
-  return sum;
-}
-*/
+
 static lbm_value fundamental_add(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_uint sum = lbm_enc_char(0);
