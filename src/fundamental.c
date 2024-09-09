@@ -124,6 +124,7 @@ static lbm_uint mul2(lbm_uint a, lbm_uint b) {
 static lbm_uint div2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
   if (IS_NUMBER(a) && IS_NUMBER(b)) {
+    lbm_type t;
     PROMOTE(t, a, b);
     switch (t) {
     case LBM_TYPE_CHAR: if (lbm_dec_char(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_char((uint8_t)(lbm_dec_char(a) / lbm_dec_char(b))); break;
@@ -145,6 +146,7 @@ static lbm_uint div2(lbm_uint a, lbm_uint b) {
 static lbm_uint mod2(lbm_uint a, lbm_uint b) {
   lbm_uint retval = ENC_SYM_TERROR;
   if (IS_NUMBER(a) && IS_NUMBER(b)) {
+    lbm_type t;
     PROMOTE(t, a, b);
     switch (t) {
     case LBM_TYPE_CHAR: if (lbm_dec_char(b) == 0) {return ENC_SYM_DIVZERO;} retval = lbm_enc_char((uint8_t)(lbm_dec_char(a) % lbm_dec_as_i32(b))); break;
