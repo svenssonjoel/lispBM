@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 - 2024      Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020 - 2025      Joel Svensson    svenssonjoel@yahoo.se
                            2022      Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -57,7 +57,7 @@ static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
 
 bool lbm_value_is_printable_string(lbm_value v, char **str) {
   bool is_a_string = false;
-  if (lbm_is_array_r(v)) {
+  if (lbm_is_array_r(v)) {    
     lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
     // TODO: Potential null deref.
     //       Highly unlikely that array is a recognizable NULL though.
@@ -217,6 +217,11 @@ static int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
     r = print_emit_string(chan, "INVALID_CUSTOM_TYPE");
   }
   return r;
+}
+
+static int print_emit_defrag_mem(lbm_char_channel_t *chan, lbm_value v) {
+  (void) v;
+  return print_emit_string(chan, "DM");
 }
 
 static int print_emit_channel(lbm_char_channel_t *chan, lbm_value v) {
@@ -465,6 +470,9 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       case LBM_TYPE_ARRAY:
         r = print_emit_bytearray(chan, curr);
         break;
+      case LBM_TYPE_DEFRAG_MEM:
+	r = print_emit_defrag_mem(chan, curr);
+	break;
       case LBM_TYPE_LISPARRAY: {
         lbm_value cont[2] = {curr, START_ARRAY};
         int res = push_n(&print_stack, cont, 2);

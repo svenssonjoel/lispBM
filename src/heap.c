@@ -23,6 +23,7 @@
 #include <inttypes.h>
 #include <lbm_memory.h>
 #include <lbm_custom_type.h>
+#include <lbm_defrag_mem.h>
 
 #include "heap.h"
 #include "symrepr.h"
@@ -254,224 +255,230 @@ lbm_uint lbm_dec_custom(lbm_value val) {
 }
 
 uint8_t lbm_dec_as_char(lbm_value a) {
+  uint8_t r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-    return (uint8_t) lbm_dec_char(a);
+    r = (uint8_t)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (uint8_t) lbm_dec_i(a);
+    r = (uint8_t)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (uint8_t) lbm_dec_u(a);
+    r = (uint8_t)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (uint8_t) lbm_dec_i32(a);
+    r = (uint8_t)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (uint8_t) lbm_dec_u32(a);
+    r = (uint8_t)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (uint8_t)lbm_dec_float(a);
+    r = (uint8_t)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (uint8_t) lbm_dec_i64(a);
+    r = (uint8_t)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (uint8_t) lbm_dec_u64(a);
+    r = (uint8_t)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (uint8_t) lbm_dec_double(a);
+    r = (uint8_t) lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 uint32_t lbm_dec_as_u32(lbm_value a) {
+  uint32_t r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-    return (uint32_t) lbm_dec_char(a);
+    r = (uint32_t)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (uint32_t) lbm_dec_i(a);
+    r = (uint32_t)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (uint32_t) lbm_dec_u(a);
+    r = (uint32_t)lbm_dec_u(a); break;
   case LBM_TYPE_I32: /* fall through */
   case LBM_TYPE_U32:
-    return (uint32_t) lbm_dec_u32(a);
+    r = (uint32_t)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (uint32_t)lbm_dec_float(a);
+    r = (uint32_t)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (uint32_t) lbm_dec_i64(a);
+    r = (uint32_t)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (uint32_t) lbm_dec_u64(a);
+    r = (uint32_t)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (uint32_t) lbm_dec_double(a);
+    r = (uint32_t)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 int32_t lbm_dec_as_i32(lbm_value a) {
+  int32_t r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-      return (int32_t) lbm_dec_char(a);
+    r = (int32_t)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (int32_t) lbm_dec_i(a);
+    r = (int32_t)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (int32_t) lbm_dec_u(a);
+    r = (int32_t)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (int32_t) lbm_dec_i32(a);
+    r = (int32_t)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (int32_t) lbm_dec_u32(a);
+    r = (int32_t)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (int32_t) lbm_dec_float(a);
+    r = (int32_t)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (int32_t) lbm_dec_i64(a);
+    r = (int32_t)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (int32_t) lbm_dec_u64(a);
+    r = (int32_t)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (int32_t) lbm_dec_double(a);
-
+    r = (int32_t) lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 int64_t lbm_dec_as_i64(lbm_value a) {
+  int64_t r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-      return (int64_t) lbm_dec_char(a);
+    r = (int64_t)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return lbm_dec_i(a);
+    r = (int64_t)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (int64_t) lbm_dec_u(a);
+    r = (int64_t)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (int64_t) lbm_dec_i32(a);
+    r = (int64_t)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (int64_t) lbm_dec_u32(a);
+    r = (int64_t)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (int64_t) lbm_dec_float(a);
+    r = (int64_t)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (int64_t) lbm_dec_i64(a);
+    r = (int64_t)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (int64_t) lbm_dec_u64(a);
+    r = (int64_t)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (int64_t) lbm_dec_double(a);
+    r = (int64_t) lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 uint64_t lbm_dec_as_u64(lbm_value a) {
+  uint64_t r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-    return (uint64_t) lbm_dec_char(a);
+    r = (uint64_t)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (uint64_t) lbm_dec_i(a);
+    r = (uint64_t)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return lbm_dec_u(a);
+    r = (uint64_t)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (uint64_t) lbm_dec_i32(a);
+    r = (uint64_t)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (uint64_t) lbm_dec_u32(a);
+    r = (uint64_t)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (uint64_t)lbm_dec_float(a);
+    r = (uint64_t)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (uint64_t) lbm_dec_i64(a);
+    r = (uint64_t)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (uint64_t) lbm_dec_u64(a);
+    r = (uint64_t)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (uint64_t) lbm_dec_double(a);
+    r = (uint64_t)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 lbm_uint lbm_dec_as_uint(lbm_value a) {
+  lbm_uint r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-    return (lbm_uint) lbm_dec_char(a);
+    r = (lbm_uint)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (lbm_uint) lbm_dec_i(a);
+    r = (lbm_uint)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (lbm_uint) lbm_dec_u(a);
+    r = (lbm_uint)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (lbm_uint) lbm_dec_i32(a);
+    r = (lbm_uint)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (lbm_uint) lbm_dec_u32(a);
+    r = (lbm_uint)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (lbm_uint) lbm_dec_float(a);
+    r = (lbm_uint)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (lbm_uint) lbm_dec_i64(a);
+    r = (lbm_uint)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (lbm_uint) lbm_dec_u64(a);
+    r = (lbm_uint) lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (lbm_uint) lbm_dec_double(a);
+    r = (lbm_uint)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 lbm_int lbm_dec_as_int(lbm_value a) {
+  lbm_int r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-    return (lbm_int) lbm_dec_char(a);
+    r = (lbm_int)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (lbm_int) lbm_dec_i(a);
+    r = (lbm_int)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (lbm_int) lbm_dec_u(a);
+    r = (lbm_int)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (lbm_int) lbm_dec_i32(a);
+    r = (lbm_int)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (lbm_int) lbm_dec_u32(a);
+    r = (lbm_int)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (lbm_int)lbm_dec_float(a);
+    r = (lbm_int)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (lbm_int) lbm_dec_i64(a);
+    r = (lbm_int)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (lbm_int) lbm_dec_u64(a);
+    r = (lbm_int)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (lbm_int) lbm_dec_double(a);
+    r = (lbm_int)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 float lbm_dec_as_float(lbm_value a) {
-
+  float r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-      return (float) lbm_dec_char(a);
+    r = (float)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (float) lbm_dec_i(a);
+    r = (float)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (float) lbm_dec_u(a);
+    r = (float)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (float) lbm_dec_i32(a);
+    r = (float)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (float) lbm_dec_u32(a);
+    r = (float)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (float) lbm_dec_float(a);
+    r = (float)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (float) lbm_dec_i64(a);
+    r = (float)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (float) lbm_dec_u64(a);
+    r = (float)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (float) lbm_dec_double(a);
+    r = (float)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 double lbm_dec_as_double(lbm_value a) {
-
+  double r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-      return (double) lbm_dec_char(a);
+    r = (double)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (double) lbm_dec_i(a);
+    r = (double)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (double) lbm_dec_u(a);
+    r = (double)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (double) lbm_dec_i32(a);
+    r = (double)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (double) lbm_dec_u32(a);
+    r = (double)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (double) lbm_dec_float(a);
+    r = (double)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (double) lbm_dec_i64(a);
+    r = (double)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (double) lbm_dec_u64(a);
+    r = (double)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (double) lbm_dec_double(a);
+    r = (double)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
-/****************************************************/
+ /****************************************************/
 /* HEAP MANAGEMENT                                  */
 
 static int generate_freelist(size_t num_cells) {
@@ -833,6 +840,9 @@ int lbm_gc_sweep_phase(void) {
         case ENC_SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
+	case ENC_SYM_DEFRAG_ARRAY_TYPE:
+	  lbm_defrag_mem_free((lbm_uint*)heap[i].car);
+	  break;
         case ENC_SYM_LISPARRAY_TYPE: /* fall through */
         case ENC_SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
@@ -853,6 +863,10 @@ int lbm_gc_sweep_phase(void) {
           lbm_uint *t = (lbm_uint*)heap[i].car;
           lbm_custom_type_destroy(t);
           lbm_memory_free(t);
+          } break;
+	case ENC_SYM_DEFRAG_MEM_TYPE: {
+	  lbm_uint *ptr = (lbm_uint *)heap[i].car;
+	  lbm_defrag_mem_destroy(ptr);
           } break;
         default:
           break;
@@ -1139,12 +1153,17 @@ lbm_value lbm_index_list(lbm_value l, int32_t n) {
 // in the "heap of cons cells".
 int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size){
 
+  lbm_uint tag = ENC_SYM_ARRAY_TYPE;
+  lbm_uint type = LBM_TYPE_ARRAY;
+  if (!byte_array) {
+      tag = ENC_SYM_LISPARRAY_TYPE;
+      type = LBM_TYPE_LISPARRAY;
+      size = sizeof(lbm_value) * size;
+  }
   lbm_array_header_t *array = NULL;
-
   if (byte_array) {
     array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
   } else {
-    // an extra 32bit quantity for a GC index.
     array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_extended_t));
   }
 
@@ -1152,27 +1171,24 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
     *res = ENC_SYM_MERROR;
     return 0;
   }
-
-  lbm_uint tag = ENC_SYM_ARRAY_TYPE;
-  lbm_uint type = LBM_TYPE_ARRAY;
-  if (!byte_array) {
-      tag = ENC_SYM_LISPARRAY_TYPE;
-      type = LBM_TYPE_LISPARRAY;
-      size = sizeof(lbm_value) * size;
+  array->data = NULL;
+  if ( size > 0) {
+    if (!byte_array) {
       lbm_array_header_extended_t *ext_array = (lbm_array_header_extended_t*)array;
       ext_array->index = 0;
-  }
+    }
 
-  array->data = (lbm_uint*)lbm_malloc(size);
+    array->data = (lbm_uint*)lbm_malloc(size);
 
-  if (array->data == NULL) {
-    lbm_memory_free((lbm_uint*)array);
-    *res = ENC_SYM_MERROR;
-    return 0;
+    if (array->data == NULL) {
+      lbm_memory_free((lbm_uint*)array);
+      *res = ENC_SYM_MERROR;
+      return 0;
+    }
+    // It is more important to zero out high-level arrays.
+    // 0 is symbol NIL which is perfectly safe for the GC to inspect.
+    memset(array->data, 0, size);
   }
-  // It is more important to zero out high-level arrays.
-  // 0 is symbol NIL which is perfectly safe for the GC to inspect.
-  memset(array->data, 0, size);
   array->size = size;
 
   // allocating a cell for array's heap-presence
@@ -1282,8 +1298,7 @@ uint8_t *lbm_heap_array_get_data_rw(lbm_value arr) {
 int lbm_heap_explicit_free_array(lbm_value arr) {
 
   int r = 0;
-  if (lbm_is_array_rw(arr)) {
-
+  if (lbm_is_array_rw(arr) && lbm_cdr(arr) == ENC_SYM_ARRAY_TYPE) {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
     if (header == NULL) {
       return 0;

@@ -96,7 +96,9 @@ static jmp_buf critical_error_jmp_buf;
 #define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(46)
 #define POP_READER_FLAGS      CONTINUATION(47)
 #define EXCEPTION_HANDLER     CONTINUATION(48)
-#define NUM_CONTINUATIONS     49
+#define RECV_TO               CONTINUATION(49)
+#define REBLOCK               CONTINUATION(50)
+#define NUM_CONTINUATIONS     51
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -124,6 +126,7 @@ const char* lbm_error_str_flash_not_possible = "Value cannot be written to flash
 const char* lbm_error_str_flash_error = "Error writing to flash.";
 const char* lbm_error_str_flash_full = "Flash memory is full.";
 const char* lbm_error_str_variable_not_bound = "Variable not bound.";
+const char* lbm_error_str_read_no_mem = "Out of memory while reading.";
 
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
@@ -723,7 +726,15 @@ void print_environments(char *buf, unsigned int size) {
   }
 }
 
-void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned int row, unsigned int col, lbm_int row0, lbm_int row1) {
+void print_error_message(lbm_value error,
+			 bool has_at,
+			 lbm_value at,
+			 unsigned int row,
+			 unsigned int col,
+			 lbm_int row0,
+			 lbm_int row1,
+			 lbm_int cid,
+			 char *name) {
   if (!printf_callback) return;
 
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
@@ -735,6 +746,11 @@ void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned in
 
   lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
   printf_callback(  "***   Error: %s\n", buf);
+  if (name) {
+    printf_callback(  "***   ctx: %d \"%s\"\n", cid, name);
+  } else {
+    printf_callback(  "***   ctx: %d\n", cid);
+  }
   if (has_at) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, at);
     printf_callback("***   In:    %s\n",buf);
@@ -770,7 +786,6 @@ void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned in
   }
   if (lbm_verbose) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("   In context: %d\n", ctx_running->id);
     printf_callback("   Current intermediate result: %s\n\n", buf);
 
     print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
@@ -1000,7 +1015,9 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
                       row,
                       column,
                       ctx_running->row0,
-                      ctx_running->row1);
+                      ctx_running->row1,
+		      ctx_running->id,
+		      ctx_running->name);
  error_ctx_base_done:
   ctx_running->r = err_val;
   finish_ctx();
@@ -1302,6 +1319,9 @@ bool lbm_unblock_ctx_r(lbm_cid cid) {
   mutex_lock(&qmutex);
   found = lookup_ctx_nm(&blocked, cid);
   if (found) {
+    if (found->K.data[found->K.sp-1] == REBLOCK) {
+      pop_stack_ptr(found,2); // clear 2 fields.
+    }
     drop_ctx_nm(&blocked,found);
     enqueue_ctx_nm(&queue,found);
     r = true;
@@ -1319,6 +1339,9 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
   mutex_lock(&qmutex);
   found = lookup_ctx_nm(&blocked, cid);
   if (found) {
+    if (found->K.data[found->K.sp-1] == REBLOCK) {
+      pop_stack_ptr(found,2); // clear 2 fields.
+    }
     drop_ctx_nm(&blocked,found);
     found->r = unboxed;
     if (lbm_is_error(unboxed)) {
@@ -2070,16 +2093,16 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
   return;
 }
 
+// Receive-timeout
+// (recv timeout (pattern expr)
+//               (pattern expr))
 static void eval_receive_timeout(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   lbm_value timeout_val = get_cadr(ctx->curr_exp);
-  if (lbm_is_number(timeout_val)) {
-    float timeout_time = lbm_dec_as_float(timeout_val);
-    lbm_value pats = get_cdr(get_cdr(ctx->curr_exp));
-    receive_base(ctx, pats, timeout_time, true);
-  } else {
-    error_ctx(ENC_SYM_EERROR);
-  }
+  lbm_value *sptr = stack_reserve(ctx, 2);
+  sptr[0] = get_cdr(get_cdr(ctx->curr_exp));
+  sptr[1] = RECV_TO;
+  ctx->curr_exp = timeout_val;
 }
 
 // Receive
@@ -2337,6 +2360,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
                                       name);
   ctx->r = lbm_enc_i(cid);
   ctx->app_cont = true;
+  if (cid == -1) error_ctx(ENC_SYM_MERROR); // Kill parent and signal out of memory.
 }
 
 static void apply_spawn(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -2918,15 +2942,19 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     ctx->app_cont = true;
     ctx->r = ext_res;
-
+    
     if (blocking_extension) { // block_current_ctx checks the atomic status and issues error.
       blocking_extension = false;
+      lbm_value *rptr = stack_reserve(ctx, 2);
       if (blocking_extension_timeout) {
         blocking_extension_timeout = false;
         block_current_ctx(LBM_THREAD_STATE_TIMEOUT, blocking_extension_timeout_us,true);
+        rptr[0] = lbm_enc_i((lbm_int)blocking_extension_timeout_us);
       } else {
         block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,true);
+        rptr[0] = lbm_enc_i((lbm_int)-1);
       }
+      rptr[1] = REBLOCK;
       mutex_unlock(&blocking_extension_mutex);
     }
   }  break;
@@ -3895,25 +3923,34 @@ static void cont_read_start_array(eval_context_t *ctx) {
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
   }
+  if (ctx->r == ENC_SYM_CLOSEBRACK) {
+    lbm_value array;
 
-  lbm_uint num_free = lbm_memory_longest_free();
-  lbm_uint initial_size = (lbm_uint)((float)num_free * 0.9);
-  if (initial_size == 0) {
-    gc();
-    num_free = lbm_memory_longest_free();
-    initial_size = (lbm_uint)((float)num_free * 0.9);
-    if (initial_size == 0) {
+    if (!lbm_heap_allocate_array(&array, 0)) {
+      lbm_set_error_reason((char*)lbm_error_str_read_no_mem);
       lbm_channel_reader_close(str);
-      error_ctx(ENC_SYM_MERROR);
+      error_ctx(ENC_SYM_FATAL_ERROR); // Terminates ctx
     }
-  }
-
-  if (lbm_is_number(ctx->r)) {
+    lbm_stack_drop(&ctx->K, 1);
+    ctx->r = array;
+    ctx->app_cont = true;
+  } else if (lbm_is_number(ctx->r)) {
+    lbm_uint num_free = lbm_memory_longest_free();
+    lbm_uint initial_size = (lbm_uint)((float)num_free * 0.9);
+    if (initial_size == 0) {
+      gc();
+      num_free = lbm_memory_longest_free();
+      initial_size = (lbm_uint)((float)num_free * 0.9);
+      if (initial_size == 0) {
+	lbm_channel_reader_close(str);
+	error_ctx(ENC_SYM_MERROR);
+      }
+    }
     lbm_value array;
     initial_size = sizeof(lbm_uint) * initial_size;
 
     if (!lbm_heap_allocate_array(&array, initial_size)) {
-      lbm_set_error_reason("Out of memory while reading.");
+      lbm_set_error_reason((char*)lbm_error_str_read_no_mem);
       lbm_channel_reader_close(str);
       error_ctx(ENC_SYM_FATAL_ERROR);
       // NOTE: If array is not created evaluation ends here.
@@ -3925,8 +3962,7 @@ static void cont_read_start_array(eval_context_t *ctx) {
     rptr[0] = lbm_enc_u(initial_size);
     rptr[1] = lbm_enc_u(0);
     rptr[2] = stream;
-    rptr[3] = READ_APPEND_ARRAY;
-    ctx->app_cont = true;
+    rptr[3] = READ_APPEND_ARRAY;    ctx->app_cont = true;
   } else {
     lbm_channel_reader_close(str);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
@@ -4792,6 +4828,29 @@ static void cont_exception_handler(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static void cont_recv_to(eval_context_t *ctx) {
+  lbm_value *sptr = pop_stack_ptr(ctx, 1);
+  lbm_value pats = sptr[0];
+
+  if (lbm_is_number(ctx->r)) {
+    float timeout_time = lbm_dec_as_float(ctx->r);
+    receive_base(ctx, pats, timeout_time, true);
+  } else {
+    error_ctx(ENC_SYM_TERROR);
+  }
+}
+
+static void cont_reblock(eval_context_t *ctx) {
+  lbm_value *sptr = get_stack_ptr(ctx, 1);
+  lbm_int timeout = lbm_dec_as_int(sptr[0]);
+  lbm_push(&ctx->K, REBLOCK);
+  if (timeout > 0) {
+    block_current_ctx(LBM_THREAD_STATE_TIMEOUT, blocking_extension_timeout_us,true); 
+  } else {
+    block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,true);
+  }
+}
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -4845,7 +4904,9 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_closure_args_rest,
     cont_move_array_elts_to_flash,
     cont_pop_reader_flags,
-    cont_exception_handler
+    cont_exception_handler,
+    cont_recv_to,
+    cont_reblock
   };
 
 /*********************************************************/
@@ -4972,6 +5033,9 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
       found->app_cont = true;
     }
     found->r = v;
+    if (found->K.data[found->K.sp-1] == REBLOCK) {
+      pop_stack_ptr(found,2); // clear 2 fields.
+    }
     enqueue_ctx_nm(&queue,found);
   }
   mutex_unlock(&qmutex);
