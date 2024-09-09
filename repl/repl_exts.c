@@ -423,6 +423,34 @@ static lbm_value ext_fopen(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+static lbm_value ext_load_file(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_file_handle(args[0])) {
+
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    res = ENC_SYM_EERROR;
+    if (fseek(h->fp, 0, SEEK_END) >= 0) {
+      res = ENC_SYM_MERROR;
+
+      long size = ftell(h->fp);
+      rewind(h->fp);
+
+      uint8_t *data = lbm_malloc(size);
+      if (data) {
+
+        lbm_value val;
+        lbm_lift_array(&val, data, size);
+        if (!lbm_is_symbol(val)) {
+          fread(data, 1, size, h->fp);
+          res = val;
+        }
+      }
+    }
+  }
+  return res;
+}
+
 static lbm_value ext_fwrite(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = ENC_SYM_TERROR;
@@ -575,6 +603,7 @@ int init_exts(void) {
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
   lbm_add_extension("exec", ext_exec);
   lbm_add_extension("fopen", ext_fopen);
+  lbm_add_extension("load-file", ext_load_file);
   lbm_add_extension("fwrite", ext_fwrite);
   lbm_add_extension("fwrite-str", ext_fwrite_str);
   lbm_add_extension("fwrite-value", ext_fwrite_value);
