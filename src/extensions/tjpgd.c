@@ -137,7 +137,7 @@ static void* alloc_pool (	/* Pointer to allocated memory block (NULL:no memory a
 	char *rp = 0;
 
 
-	ndata = (ndata + 3) & ~3;			/* Align block size to the word boundary */
+	ndata = (ndata + 3u) & ~3u;			/* Align block size to the word boundary */
 
 	if (jd->sz_pool >= ndata) {
 		jd->sz_pool -= ndata;
@@ -352,7 +352,7 @@ static int huffext (	/* >=0: decoded data, <0: error code */
 			d = *dp++; dc--;
 			if (flg) {		/* In flag sequence? */
 				flg = 0;	/* Exit flag sequence */
-				if (d != 0) jd->marker = d;	/* Not an escape of 0xFF but a marker */
+				if (d != 0) jd->marker = (uint8_t)d;	/* Not an escape of 0xFF but a marker */
 				d = 0xFF;
 			} else {
 				if (d == 0xFF) {		/* Is start of flag sequence? */
@@ -401,7 +401,7 @@ static int huffext (	/* >=0: decoded data, <0: error code */
 			d = w >> (wbit - bl);
 			do {	/* Search the code word in this bit length */
 				if (d == *hc++) {		/* Matched? */
-					jd->dbit = wbit - bl;	/* Snip the huffman code */
+                                  jd->dbit = (uint8_t)(wbit - bl);	/* Snip the huffman code */
 					return *hd;			/* Return the decoded data */
 				}
 				hd++;
@@ -480,7 +480,7 @@ static int bitext (	/* >=0: extracted data, <0: error code */
 			d = *dp++; dc--;
 			if (flg) {		/* In flag sequence? */
 				flg = 0;	/* Exit flag sequence */
-				if (d != 0) jd->marker = d;	/* Not an escape of 0xFF but a marker */
+				if (d != 0) jd->marker = (uint8_t)d;	/* Not an escape of 0xFF but a marker */
 				d = 0xFF;
 			} else {
 				if (d == 0xFF) {		/* Is start of flag sequence? */
@@ -491,7 +491,7 @@ static int bitext (	/* >=0: extracted data, <0: error code */
 		w = w << 8 | d;	/* Get 8 bits into the working register */
 		wbit += 8;
 	}
-	jd->wreg = w; jd->dbit = wbit - nbit;
+	jd->wreg = w; jd->dbit = (uint8_t)(wbit - nbit);
 	jd->dctr = dc; jd->dptr = dp;
 
 	return (int)(w >> ((wbit - nbit) % 32));
@@ -731,7 +731,7 @@ static JRESULT mcu_load (
 				e = bitext(jd, bc);					/* Extract data bits */
 				if (e < 0) return (JRESULT)(0 - e);	/* Err: input */
 				bc = 1 << (bc - 1);					/* MSB position */
-				if (!(e & bc)) e -= (bc << 1) - 1;	/* Restore negative value if needed */
+				if (!((unsigned int)e & bc)) e -= (int)(bc << 1) - 1;	/* Restore negative value if needed */
 				d += e;								/* Get current value */
 				jd->dcv[cmp] = (int16_t)d;			/* Save current DC value for next block */
 			}
@@ -752,7 +752,7 @@ static JRESULT mcu_load (
 					d = bitext(jd, bc);				/* Extract data bits */
 					if (d < 0) return (JRESULT)(0 - d);	/* Err: input device */
 					bc = 1 << (bc - 1);				/* MSB position */
-					if (!(d & bc)) d -= (bc << 1) - 1;	/* Restore negative value if needed */
+					if (!((unsigned int)d & bc)) d -= (int)(bc << 1) - 1;	/* Restore negative value if needed */
 					i = Zig[z];						/* Get raster-order index */
 					tmp[i] = d * dqf[i] >> 8;		/* De-quantize, apply scale factor of Arai algorithm and descale 8 bits */
 				}
@@ -762,7 +762,7 @@ static JRESULT mcu_load (
 				if (z == 1 || (JD_USE_SCALE && jd->scale == 3)) {	/* If no AC element or scale ratio is 1/8, IDCT can be ommited and the block is filled with DC value */
 					d = (jd_yuv_t)((*tmp / 256) + 128);
 					if (JD_FASTDECODE >= 1) {
-						for (i = 0; i < 64; bp[i++] = d) ;
+                                          for (i = 0; i < 64; bp[i++] = (jd_yuv_t)d) ;
 					} else {
 						memset(bp, d, 64);
 					}
@@ -808,8 +808,8 @@ static JRESULT mcu_output (
 		if (!rx || !ry) return JDR_OK;					/* Skip this MCU if all pixel is to be rounded off */
 		x >>= jd->scale; y >>= jd->scale;
 	}
-	rect.left = x; rect.right = x + rx - 1;				/* Rectangular area in the frame buffer */
-	rect.top = y; rect.bottom = y + ry - 1;
+	rect.left = (uint16_t)x; rect.right = (uint16_t)(x + rx - 1);				/* Rectangular area in the frame buffer */
+	rect.top = (uint16_t)y; rect.bottom = (uint16_t)(y + ry - 1);
 
 
 	if (!JD_USE_SCALE || jd->scale != 3) {	/* Not for 1/8 scaling */
@@ -857,7 +857,7 @@ static JRESULT mcu_output (
 
 		/* Descale the MCU rectangular if needed */
 		if (JD_USE_SCALE && jd->scale) {
-			unsigned int x, y, r, g, b, s, w, a;
+			unsigned int i, j, r, g, b, s, w, a;
 			uint8_t *op;
 
 			/* Get averaged RGB value of each square correcponds to a pixel */
@@ -869,8 +869,8 @@ static JRESULT mcu_output (
 				for (ix = 0; ix < mx; ix += w) {
 					pix = (uint8_t*)jd->workbuf + (iy * mx + ix) * (JD_FORMAT != 2 ? 3 : 1);
 					r = g = b = 0;
-					for (y = 0; y < w; y++) {	/* Accumulate RGB value in the square */
-						for (x = 0; x < w; x++) {
+					for (i = 0; i < w; i++) {	/* Accumulate RGB value in the square */
+						for (j = 0; j < w; j++) {
 							r += *pix++;	/* Accumulate R or Y (monochrome output) */
 							if (JD_FORMAT != 2) {	/* RGB output? */
 								g += *pix++;	/* Accumulate G */
@@ -906,7 +906,7 @@ static JRESULT mcu_output (
 					*pix++ = /*G*/ BYTECLIP(yy - ((int)(0.344 * CVACC) * cb + (int)(0.714 * CVACC) * cr) / CVACC);
 					*pix++ = /*B*/ BYTECLIP(yy + ((int)(1.772 * CVACC) * cb / CVACC));
 				} else {
-					*pix++ = yy;
+                                  *pix++ = (uint8_t)yy;
 				}
 			}
 		}
@@ -916,11 +916,11 @@ static JRESULT mcu_output (
 	mx >>= jd->scale;
 	if (rx < mx) {	/* Is the MCU spans rigit edge? */
 		uint8_t *s, *d;
-		unsigned int x, y;
+		unsigned int i, j;
 
 		s = d = (uint8_t*)jd->workbuf;
-		for (y = 0; y < ry; y++) {
-			for (x = 0; x < rx; x++) {	/* Copy effective pixels */
+		for (i = 0; i < ry; i++) {
+			for (j = 0; j < rx; j++) {	/* Copy effective pixels */
 				*d++ = *s++;
 				if (JD_FORMAT != 2) {
 					*d++ = *s++;

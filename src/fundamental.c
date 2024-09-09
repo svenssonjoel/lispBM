@@ -210,8 +210,8 @@ static bool array_struct_equality(lbm_value a, lbm_value b) {
   lbm_value *bdata = (lbm_value*)b_->data;
   bool res =  a_->size == b_->size;
   if (res) {
-    uint32_t size = a_->size / (sizeof(lbm_value));
-    for (uint32_t i = 0; i < size; i ++ ) {
+    lbm_uint size = (lbm_uint)a_->size / (lbm_uint)sizeof(lbm_value);
+    for (lbm_uint i = 0; i < size; i ++ ) {
       res = struct_eq(adata[i], bdata[i]);
       if (!res) break;
     }
