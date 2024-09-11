@@ -1345,8 +1345,6 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
     found->state = LBM_THREAD_STATE_READY;
     enqueue_ctx_nm(&queue,found);
     r = true;
-  } else {
-    printf("Didnt find any\n");
   }
   mutex_unlock(&qmutex);
   mutex_unlock(&blocking_extension_mutex);
