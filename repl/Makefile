@@ -59,7 +59,7 @@ pirepl: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS)
 	gcc $(PICCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) $(LIBS)
 
 clean:
-	rm repl
-	rm repl_cov
-	rm *.gcda
-	rm *.gcno
+	rm -f repl
+	rm -f repl_cov
+	rm -f *.gcda
+	rm -f *.gcno
