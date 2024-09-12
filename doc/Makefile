@@ -2,4 +2,4 @@
 # install it by running `make install` in ../repl.
 
 all:
-	printf "" | lbm -H 10000000 --src="lbmref.lisp" --eval="(render-manual)"
+	lbm -H 10000000 --src="lbmref.lisp" --eval="(render-manual)" --terminate
