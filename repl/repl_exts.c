@@ -28,6 +28,7 @@
 #include "extensions/math_extensions.h"
 #include "extensions/runtime_extensions.h"
 #include "extensions/set_extensions.h"
+#include "extensions/display_extensions.h"
 
 // Macro expanders
 
@@ -433,18 +434,24 @@ static lbm_value ext_load_file(lbm_value *args, lbm_uint argn) {
     if (fseek(h->fp, 0, SEEK_END) >= 0) {
       res = ENC_SYM_MERROR;
 
-      long size = ftell(h->fp);
+      long int  size = ftell(h->fp);
       rewind(h->fp);
 
-      uint8_t *data = lbm_malloc(size);
-      if (data) {
+      if (size > 0) {
+        uint8_t *data = lbm_malloc((size_t)size);
+        if (data) {
 
-        lbm_value val;
-        lbm_lift_array(&val, data, size);
-        if (!lbm_is_symbol(val)) {
-          fread(data, 1, size, h->fp);
-          res = val;
+          lbm_value val;
+          lbm_lift_array(&val, (char*)data, (lbm_uint)size);
+          if (!lbm_is_symbol(val)) {
+            fread(data, 1, (size_t)size, h->fp);
+            res = val;
+          }
+        } else {
+          res = ENC_SYM_MERROR;
         }
+      } else {
+        res = ENC_SYM_NIL;
       }
     }
   }
@@ -571,6 +578,156 @@ static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
+
+
+// ------------------------------------------------------------
+// image to png
+
+// a display driver for displaying images onto an image RGB888
+
+
+
+/* static void png_blast_indexed2(uint8_t *img, color_t *colors) { */
+
+/*   uint8_t *data = image_buffer_data(img); */
+/*   uint16_t w    = image_buffer_width(img); */
+/*   uint16_t h    = image_buffer_height(img); */
+/*   int num_pix = w * h; */
+
+/*   uint32_t *w_dest = (uint32_t *)dest; */
+/*   for (int i = 0; i < num_pix; i ++) { */
+/*     int byte = i >> 3; */
+/*     int bit  = 7 - (i & 0x7); */
+/*     int color_ind = (data[byte] & (1 << bit)) >> bit; */
+
+/*     uint32_t color = COLOR_TO_RGB888(colors[color_ind], */
+/*                                      i % w, i / w); */
+/*     w_dest[i] = color; */
+/*   } */
+/* } */
+
+/* static void png_blast_indexed4(uint8_t *img, color_t *colors) { */
+/*   uint8_t *data = image_buffer_data(img); */
+/*   uint16_t w    = image_buffer_width(img); */
+/*   uint16_t h    = image_buffer_height(img); */
+/*   int num_pix = w * h; */
+
+/*   uint32_t *w_dest = (uint32_t *)dest; */
+/*   for (int i = 0; i < num_pix; i ++) { */
+/*     int byte = i >> 2; */
+/*     int bit = (3 - (i & 0x03)) * 2; */
+/*     int color_ind = (data[byte] & (0x03 << bit)) >> bit; */
+
+/*     uint32_t color = COLOR_TO_RGB888(colors[color_ind], */
+/*                                      i % w, i / w); */
+/*     w_dest[i] = color; */
+/*   } */
+/* } */
+
+/* static void png_blast_indexed16(uint8_t *img, color_t *colors) { */
+/*   uint8_t *data = image_buffer_data(img); */
+/*   uint16_t w    = image_buffer_width(img); */
+/*   uint16_t h    = image_buffer_height(img); */
+/*   int num_pix = w * h; */
+
+/*   //uint32_t *w_dest = (uint32_t *)dest; */
+/*   for (int i = 0; i < num_pix; i ++) { */
+/*     int byte = i >> 1;    // byte to access is pix / 2 */
+/*     int bit = (1 - (i & 0x01)) * 4; // bit position to access within byte */
+/*     int color_ind = (data[byte] & (0x0F << bit)) >> bit; // extract 4 bit value. */
+
+/*     uint32_t color = COLOR_TO_RGB888(colors[color_ind], */
+/*                                      i % w, i / w); */
+/*     //w_dest[i] = color; */
+/*   } */
+/* } */
+
+/* static void png_blast_rgb332(uint8_t *img) { */
+/*   uint8_t *data = image_buffer_data(img); */
+/*   uint16_t w    = image_buffer_width(img); */
+/*   uint16_t h    = image_buffer_height(img); */
+/*   int num_pix = w * h; */
+
+/*   //uint32_t *w_dest = (uint32_t *)dest; */
+/*   for (int i = 0; i < num_pix; i ++) { */
+/*     uint8_t pix = data[i]; */
+/*     uint32_t r = (uint32_t)((pix >> 5) & 0x7); */
+/*     uint32_t g = (uint32_t)((pix >> 2) & 0x7); */
+/*     uint32_t b = (uint32_t)(pix & 0x3); */
+/*     uint32_t rgb888 = r << (16 + 5) | g << (8 + 5) | b << 6; */
+/*     //w_dest[i] = rgb888; */
+/*   } */
+/* } */
+
+/* static void png_blast_rgb565(uint8_t *img) { */
+/*   uint8_t *data = image_buffer_data(img); */
+/*   uint16_t w    = image_buffer_width(img); */
+/*   uint16_t h    = image_buffer_height(img); */
+/*   int num_pix = w * h; */
+
+/*   //uint32_t *w_dest = (uint32_t *)dest; */
+/*   for (int i = 0; i < num_pix; i ++) { */
+/*     uint16_t pix = (((uint16_t)data[2 * i]) << 8) | ((uint16_t)data[2 * i + 1]); */
+
+/*     uint32_t r = (uint32_t)(pix >> 11); */
+/*     uint32_t g = (uint32_t)((pix >> 5) & 0x3F); */
+/*     uint32_t b = (uint32_t)(pix & 0x1F); */
+/*     uint32_t rgb888 = r << (16 + 3) | g << (8 + 2) | b << 3; */
+/*     //w_dest[i] = rgb888; */
+/*   } */
+/* } */
+
+/* static void png_blast_rgb888(uint8_t *img) { */
+/*   uint8_t *data = image_buffer_data(img); */
+/*   uint16_t w    = image_buffer_width(img); */
+/*   uint16_t h    = image_buffer_height(img); */
+/*   int num_pix = w * h; */
+
+/*   //uint32_t *w_dest = (uint32_t *)dest; */
+/*   for (int i = 0; i < num_pix; i ++) { */
+/*     uint32_t r = data[3 * i]; */
+/*     uint32_t g = data[3 * i + 1]; */
+/*     uint32_t b = data[3 * i + 2]; */
+
+/*     uint32_t rgb888 = r << 16 | g << 8 | b; */
+/*     //w_dest[i] = rgb888; */
+/*   } */
+/* } */
+
+/* bool png_render_image(uint8_t *img, uint16_t x, uint16_t y, color_t *colors) { */
+
+/*   if (strlen(png_file,255) > 0) { */
+
+/*     uint16_t w = image_buffer_width(img); */
+/*     uint16_t h = image_buffer_height(img); */
+/*     uint8_t  bpp = image_buffer_format(img); */
+
+/*     switch(bpp) { */
+/*     case indexed2: */
+/*       png_blast_indexed2(img, colors); */
+/*       break; */
+/*     case indexed4: */
+/*       png_blast_indexed4(img, colors); */
+/*       break; */
+/*     case indexed16: */
+/*       png_blast_indexed16(img, colors); */
+/*       break; */
+/*     case rgb332: */
+/*       png_blast_rgb332(img); */
+/*       break; */
+/*     case rgb565: */
+/*       png_blast_rgb565(img); */
+/*       break; */
+/*     case rgb888: */
+/*       png_blast_rgb888( img); */
+/*       break; */
+/*     default: */
+/*       break; */
+/*     } */
+/*   } */
+/*   return true; */
+/* } */
+
 
 // ------------------------------------------------------------
 // Init

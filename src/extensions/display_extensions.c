@@ -90,7 +90,6 @@ uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
   }
 }
 
-static const char *image_buffer_desc = "Image-Buffer";
 static const char *color_desc = "Color";
 
 static lbm_uint symbol_indexed2 = 0;
@@ -236,11 +235,6 @@ static lbm_value image_buffer_allocate(color_format_t fmt, uint16_t width, uint1
 }
 
 // Exported interface
-
-bool display_is_image_buffer(lbm_value v) {
-  return ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)image_buffer_desc);
-}
-
 bool display_is_color(lbm_value v) {
   return ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)color_desc);
 }
@@ -370,31 +364,28 @@ static uint32_t  rgb565to888(uint16_t rgb) {
   return res_rgb888;
 }
 
-static void image_buffer_clear(uint8_t *img, uint32_t cc) {
-  color_format_t fmt = (color_format_t)image_buffer_format(img);
-  uint32_t w = image_buffer_width(img);
-  uint32_t h = image_buffer_height(img);
+static void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
+  color_format_t fmt = img->fmt;
+  uint32_t w = img->width;
+  uint32_t h = img->height;
   uint32_t img_size = w * h;
-  uint8_t *data = image_buffer_data(img);
+  uint8_t *data = img->data;
   switch (fmt) {
   case indexed2: {
-    uint32_t extra = img_size & 0x7;
-    uint32_t bytes = (img_size >> 3) + (extra ? 1 : 0);
-    uint8_t c8 = (uint8_t)((cc & 1) ? 0xFFFF : 0x0); // 0xFFFF is more than 8 bits
+    uint32_t bytes = (img_size / 8) + (img_size % 8 ? 1 : 0);
+    uint8_t c8 = (uint8_t)((cc & 1) ? 0xFF : 0x0);
     memset(data, c8, bytes);
   }
     break;
   case indexed4: {
     static const uint8_t index4_table[4] = {0x00, 0x55, 0xAA, 0xFF};
-    uint32_t extra = img_size & 0x3;
-    uint32_t bytes = (img_size >> 2) + (extra ? 1 : 0);
+    uint32_t bytes = (img_size / 4) + (img_size % 4 ? 1 : 0);
     uint8_t ix = (uint8_t)(cc & 0x3);
     memset(data, index4_table[ix], bytes);
   }
     break;
   case indexed16: {
-    uint32_t extra = img_size & 0x2;
-    uint32_t bytes = (img_size >> 1) + (extra ? 1 : 0);
+    uint32_t bytes = (img_size / 2) + (img_size % 2 ? 1 : 0);
     uint8_t ix = (uint8_t)(cc & 0xF);
     uint8_t color = (ix | ix << 4);  // create a color based on duplication of index
     memset(data, color, bytes);
@@ -433,15 +424,15 @@ static const uint8_t indexed16_mask[4] = {0x0F, 0xF0};
 static const uint8_t indexed16_shift[4] = {0, 4};
 
 
-static void putpixel(uint8_t* img, int x_i, int y_i, uint32_t c) {
-  color_format_t fmt = (color_format_t)image_buffer_format(img);
-  uint16_t w = image_buffer_width(img);
-  uint16_t h = image_buffer_height(img);
-  uint16_t x = (uint16_t)x_i;
+static void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
+  color_format_t fmt = img->fmt;
+  uint16_t w = img->width;
+  uint16_t h = img->height;
+  uint16_t x = (uint16_t)x_i; // negative numbers become really large.
   uint16_t y = (uint16_t)y_i;
 
   if (x < w && y < h) {
-    uint8_t *data = image_buffer_data(img);
+    uint8_t *data = img->data;
     switch(fmt) {
     case indexed2: {
       uint32_t pos = (uint32_t)y * (uint32_t)w + (uint32_t)x;
@@ -493,15 +484,15 @@ static void putpixel(uint8_t* img, int x_i, int y_i, uint32_t c) {
   }
 }
 
-static uint32_t getpixel(uint8_t* img, int x_i, int y_i) {
-  color_format_t fmt = (color_format_t)image_buffer_format(img);
-  uint16_t w = image_buffer_width(img);
-  uint16_t h = image_buffer_height(img);
+static uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
+  color_format_t fmt = img->fmt;
+  uint16_t w = img->width;
+  uint16_t h = img->height;
   uint16_t x = (uint16_t)x_i;
   uint16_t y = (uint16_t)y_i;
 
   if (x < w && y < h) {
-    uint8_t *data = image_buffer_data(img);
+    uint8_t *data = img->data;
     switch(fmt) {
     case indexed2: {
       uint32_t pos = (uint32_t)y * w + x;
@@ -544,19 +535,19 @@ static uint32_t getpixel(uint8_t* img, int x_i, int y_i) {
   return 0;
 }
 
-static void h_line(uint8_t* img, int x, int y, int len, uint32_t c) {
+static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
   for (int i = 0; i < len; i ++) {
     putpixel(img, x+i, y, c);
   }
 }
 
-static void v_line(uint8_t* img, int x, int y, int len, uint32_t c) {
+static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
   for (int i = 0; i < len; i ++) {
     putpixel(img, x, y+i, c);
   }
 }
 
-static void fill_circle(uint8_t *img, int x, int y, int radius, uint32_t color) {
+static void fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color) {
   switch (radius) {
   case 0:
     break;
@@ -622,7 +613,7 @@ static void fill_circle(uint8_t *img, int x, int y, int radius, uint32_t color) 
 
 // Circle helper function, to draw a circle with an inner and outer radius.
 // Draws the slice at the given outer radius point.
-static void handle_circle_slice(int outer_x, int outer_y, uint8_t *img, int c_x, int c_y, int radius_inner, uint32_t color, int radius_inner_dbl_sq) {
+static void handle_circle_slice(int outer_x, int outer_y, image_buffer_t *img, int c_x, int c_y, int radius_inner, uint32_t color, int radius_inner_dbl_sq) {
   int width;
 
   bool slice_filled;
@@ -664,7 +655,7 @@ static void handle_circle_slice(int outer_x, int outer_y, uint8_t *img, int c_x,
 }
 
 // thickness extends inwards from the given radius circle
-static void circle(uint8_t *img, int x, int y, int radius, int thickness, uint32_t color) {
+static void circle(image_buffer_t *img, int x, int y, int radius, int thickness, uint32_t color) {
   if (thickness <= 0) {
     int x0 = 0;
     int y0 = radius;
@@ -720,7 +711,7 @@ static void circle(uint8_t *img, int x, int y, int radius, int thickness, uint32
 // TODO: This should be more efficient
 // http://homepages.enterprise.net/murphy/thickline/index.html
 // https://github.com/ArminJo/STMF3-Discovery-Demos/blob/master/lib/BlueDisplay/LocalGUI/ThickLine.hpp
-static void line(uint8_t *img, int x0, int y0, int x1, int y1, int thickness, int dot1, int dot2, uint32_t c) {
+static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickness, int dot1, int dot2, uint32_t c) {
   int dx = abs(x1 - x0);
   int sx = x0 < x1 ? 1 : -1;
   int dy = -abs(y1 - y0);
@@ -802,7 +793,7 @@ static void line(uint8_t *img, int x0, int y0, int x1, int y1, int thickness, in
 }
 
 // thickness extends inwards from the given rectangle edge.
-static void rectangle(uint8_t *img, int x, int y, int width, int height,
+static void rectangle(image_buffer_t *img, int x, int y, int width, int height,
                       bool fill, int thickness, int dot1, int dot2, uint32_t color) {
   thickness /= 2;
 
@@ -836,7 +827,7 @@ static void rectangle(uint8_t *img, int x, int y, int width, int height,
 #define NMIN(a, b) ((a) < (b) ? (a) : (b))
 #define NMAX(a, b) ((a) > (b) ? (a) : (b))
 
-static void fill_triangle(uint8_t *img, int x0, int y0,
+static void fill_triangle(image_buffer_t *img, int x0, int y0,
                           int x1, int y1, int x2, int y2, uint32_t color) {
   int x_min = NMIN(x0, NMIN(x1, x2));
   int x_max = NMAX(x0, NMAX(x1, x2));
@@ -857,7 +848,7 @@ static void fill_triangle(uint8_t *img, int x0, int y0,
   }
 }
 
-static void generic_arc(uint8_t *img, int x, int y, int rad, float ang_start, float ang_end,
+static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
                         int thickness, bool filled, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color) {
   ang_start *= (float)M_PI / 180.0f;
   ang_end *= (float)M_PI / 180.0f;
@@ -934,7 +925,7 @@ static void generic_arc(uint8_t *img, int x, int y, int rad, float ang_start, fl
 // thin arc helper function
 // handles a single pixel in the complete circle, checking if the pixel is part
 // of the arc.
-static void handle_thin_arc_pixel(uint8_t *img, int x, int y,
+static void handle_thin_arc_pixel(image_buffer_t *img, int x, int y,
                                   int c_x, int c_y, int cap0_x, int cap0_y, int cap1_x, int cap1_y, int min_y, int max_y, bool angle_is_closed, uint32_t color) {
   if (y > max_y || y < min_y) {
     return;
@@ -964,7 +955,7 @@ static void handle_thin_arc_pixel(uint8_t *img, int x, int y,
 }
 
 // single pixel wide arc
-static void thin_arc(uint8_t *img, int c_x, int c_y, int radius, float angle0, float angle1, bool sector, bool segment, uint32_t color) {
+static void thin_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1, bool sector, bool segment, uint32_t color) {
   if (radius == 0) {
     return;
   }
@@ -1074,7 +1065,7 @@ static void thin_arc(uint8_t *img, int c_x, int c_y, int radius, float angle0, f
 
 // arc helper function
 // handles a horizontal slice at the given outer arc point
-static void handle_arc_slice(uint8_t *img, int outer_x, int outer_y, int c_x, int c_y, uint32_t color,
+static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int c_x, int c_y, uint32_t color,
                              int outer_x0, int outer_y0, int outer_x1, int outer_y1,
                              int cap0_min_y, int cap0_max_y, int cap1_min_y, int cap1_max_y,
                              int radius_outer, int radius_inner,
@@ -1392,7 +1383,7 @@ static void handle_arc_slice(uint8_t *img, int outer_x, int outer_y, int c_x, in
 // slightly off).
 // TODO: Look into buggy rendering with angles around 180°-270°. This seems to
 // affect arcs, sectors, and segments likewise.
-static void arc(uint8_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
+static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
                 int thickness, bool rounded, bool filled, bool sector, bool segment, int dot1, int dot2, int resolution, uint32_t color) {
   if (dot1 > 0 && !filled) {
     thickness /= 2;
@@ -1609,7 +1600,7 @@ static void arc(uint8_t *img, int c_x, int c_y, int radius, float angle0, float 
   }
 }
 
-static void img_putc(uint8_t *img, int x, int y, uint32_t *colors, int num_colors, uint8_t *font_data, uint8_t ch) {
+static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors, uint8_t *font_data, uint8_t ch) {
   uint8_t w = font_data[0];
   uint8_t h = font_data[1];
   uint8_t char_num = font_data[2];
@@ -1670,18 +1661,18 @@ static void img_putc(uint8_t *img, int x, int y, uint32_t *colors, int num_color
 }
 
 static void blit_rot_scale(
-                           uint8_t *img_dest,
-                           uint8_t *img_src,
+                           image_buffer_t *img_dest,
+                           image_buffer_t *img_src,
                            int x, int y, // Where on display
                            float xr, float yr, // Pixel to rotate around
                            float rot, // Rotation angle in degrees
                            float scale, // Scale factor
                            int32_t transparent_color) {
 
-  int src_w = image_buffer_width(img_src);
-  int src_h = image_buffer_height(img_src);
-  int des_w = image_buffer_width(img_dest);
-  int des_h = image_buffer_height(img_dest);
+  int src_w = img_src->width;
+  int src_h = img_src->height;
+  int des_w = img_dest->width;
+  int des_h = img_dest->height;
 
   int des_x_start = 0;
   int des_y_start = 0;
@@ -1794,7 +1785,7 @@ typedef struct {
 
 typedef struct {
   bool is_valid;
-  uint8_t *img;
+  image_buffer_t img;
   lbm_value args[ARG_MAX_NUM];
   attr_t attr_thickness;
   attr_t attr_filled;
@@ -1813,12 +1804,18 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
     return res;
   }
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(args[0]);
-  res.img = (uint8_t*)arr->data;
 
   if (!image_buffer_is_valid((uint8_t*)arr->data, arr->size)) {
     res.is_valid = false;
     return res;
   }
+
+  res.img.width = image_buffer_width((uint8_t*)arr->data);
+  res.img.height = image_buffer_height((uint8_t*)arr->data);
+  res.img.fmt = image_buffer_format((uint8_t*)arr->data);
+  res.img.mem_base = (uint8_t*)arr->data;
+  res.img.data = image_buffer_data((uint8_t*)arr->data);
+
 
   int num_dec = 0;
   for (unsigned int i = 1;i < argn;i++) {
@@ -1919,9 +1916,9 @@ static lbm_value ext_image_dims(lbm_value *args, lbm_uint argn) {
     return dims;
   }
   lbm_value curr = dims;
-  lbm_set_car(curr, lbm_enc_i(image_buffer_width(arg_dec.img)));
+  lbm_set_car(curr, lbm_enc_i(arg_dec.img.width));
   curr = lbm_cdr(curr);
-  lbm_set_car(curr, lbm_enc_i(image_buffer_height(arg_dec.img)));
+  lbm_set_car(curr, lbm_enc_i(arg_dec.img.height));
   return dims;
 }
 
@@ -2178,14 +2175,19 @@ static lbm_value ext_clear(lbm_value *args, lbm_uint argn) {
   }
 
   lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
-  uint8_t *img = (uint8_t*)arr->data;
+  image_buffer_t img_buf;
+  img_buf.width = image_buffer_width((uint8_t*)arr->data);
+  img_buf.height = image_buffer_height((uint8_t*)arr->data);
+  img_buf.fmt = image_buffer_format((uint8_t*)arr->data);
+  img_buf.mem_base = (uint8_t*)arr->data;
+  img_buf.data = image_buffer_data((uint8_t*)arr->data);
 
   uint32_t color = 0;
   if (argn == 2) {
     color = lbm_dec_as_u32(args[1]);
   }
 
-  image_buffer_clear(img, color);
+  image_buffer_clear(&img_buf, color);
 
   return ENC_SYM_TRUE;
 }
@@ -2197,7 +2199,7 @@ static lbm_value ext_putpixel(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  putpixel(arg_dec.img,
+  putpixel(&arg_dec.img,
            lbm_dec_as_i32(arg_dec.args[0]),
            lbm_dec_as_i32(arg_dec.args[1]),
            lbm_dec_as_u32(arg_dec.args[2]));
@@ -2212,7 +2214,7 @@ static lbm_value ext_line(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  line(arg_dec.img,
+  line(&arg_dec.img,
        lbm_dec_as_i32(arg_dec.args[0]),
        lbm_dec_as_i32(arg_dec.args[1]),
        lbm_dec_as_i32(arg_dec.args[2]),
@@ -2234,13 +2236,13 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
   }
 
   if (arg_dec.attr_filled.is_valid) {
-    fill_circle(arg_dec.img,
+    fill_circle(&arg_dec.img,
                 lbm_dec_as_i32(arg_dec.args[0]),
                 lbm_dec_as_i32(arg_dec.args[1]),
                 lbm_dec_as_i32(arg_dec.args[2]),
                 lbm_dec_as_u32(arg_dec.args[3]));
   } if (arg_dec.attr_dotted.is_valid) {
-    arc(arg_dec.img,
+    arc(&arg_dec.img,
         lbm_dec_as_i32(arg_dec.args[0]),
         lbm_dec_as_i32(arg_dec.args[1]),
         lbm_dec_as_i32(arg_dec.args[2]),
@@ -2254,7 +2256,7 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
         lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
         lbm_dec_as_u32(arg_dec.args[3]));
   } else {
-    circle(arg_dec.img,
+    circle(&arg_dec.img,
            lbm_dec_as_i32(arg_dec.args[0]),
            lbm_dec_as_i32(arg_dec.args[1]),
            lbm_dec_as_i32(arg_dec.args[2]),
@@ -2273,7 +2275,7 @@ static lbm_value ext_arc(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  arc(arg_dec.img,
+  arc(&arg_dec.img,
       lbm_dec_as_i32(arg_dec.args[0]),
       lbm_dec_as_i32(arg_dec.args[1]),
       lbm_dec_as_i32(arg_dec.args[2]),
@@ -2299,7 +2301,7 @@ static lbm_value ext_circle_sector(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  arc(arg_dec.img,
+  arc(&arg_dec.img,
       lbm_dec_as_i32(arg_dec.args[0]),
       lbm_dec_as_i32(arg_dec.args[1]),
       lbm_dec_as_i32(arg_dec.args[2]),
@@ -2325,7 +2327,7 @@ static lbm_value ext_circle_segment(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  arc(arg_dec.img,
+  arc(&arg_dec.img,
       lbm_dec_as_i32(arg_dec.args[0]),
       lbm_dec_as_i32(arg_dec.args[1]),
       lbm_dec_as_i32(arg_dec.args[2]),
@@ -2352,7 +2354,7 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  uint8_t *img = arg_dec.img;
+  image_buffer_t *img = &arg_dec.img;
   int x = lbm_dec_as_i32(arg_dec.args[0]);
   int y = lbm_dec_as_i32(arg_dec.args[1]);
   int width = lbm_dec_as_i32(arg_dec.args[2]);
@@ -2419,7 +2421,7 @@ static lbm_value ext_triangle(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  uint8_t *img = arg_dec.img;
+  image_buffer_t *img = &arg_dec.img;
   int x0 = lbm_dec_as_i32(arg_dec.args[0]);
   int y0 = lbm_dec_as_i32(arg_dec.args[1]);
   int x1 = lbm_dec_as_i32(arg_dec.args[2]);
@@ -2463,7 +2465,6 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     int ind = 0;
     while (lbm_is_cons(curr)) {
       lbm_value  arg = lbm_car(curr);
-
       if (lbm_is_number(arg)) {
         colors[ind++] = lbm_dec_as_i32(arg);
       } else {
@@ -2478,9 +2479,16 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     }
   }
 
-  if (!array_is_image_buffer(args[0])) return ENC_SYM_TERROR;
+  if (!array_is_image_buffer(args[0])) {
+  return ENC_SYM_TERROR;
+  }
   lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
-  uint8_t *img = (uint8_t*)arr->data;
+  image_buffer_t img_buf;
+  img_buf.width = image_buffer_width((uint8_t*)arr->data);
+  img_buf.height = image_buffer_height((uint8_t*)arr->data);
+  img_buf.fmt = image_buffer_format((uint8_t*)arr->data);
+  img_buf.mem_base = (uint8_t*)arr->data;
+  img_buf.data = image_buffer_data((uint8_t*)arr->data);
 
   lbm_array_header_t *font = 0;
   if (lbm_type_of(args[5]) == LBM_TYPE_ARRAY) {
@@ -2498,7 +2506,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
 
   int ind = 0;
   while (txt[ind] != 0) {
-    img_putc(img, x + ind * w, y, (uint32_t *)colors, 4, font_data, (uint8_t)txt[ind]);
+    img_putc(&img_buf, x + ind * w, y, (uint32_t *)colors, 4, font_data, (uint8_t)txt[ind]);
     ind++;
   }
 
@@ -2516,7 +2524,12 @@ static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
   lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
-  uint8_t *dest = (uint8_t*)arr->data;
+  image_buffer_t dest_buf;
+  dest_buf.width = image_buffer_width((uint8_t*)arr->data);
+  dest_buf.height = image_buffer_height((uint8_t*)arr->data);
+  dest_buf.fmt = image_buffer_format((uint8_t*)arr->data);
+  dest_buf.mem_base = (uint8_t*)arr->data;
+  dest_buf.data = image_buffer_data((uint8_t*)arr->data);
 
   float scale = 1.0;
   if (arg_dec.attr_scale.is_valid) {
@@ -2524,8 +2537,8 @@ static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
   }
 
   blit_rot_scale(
-                 dest,
-                 arg_dec.img,
+                 &dest_buf,
+                 &arg_dec.img,
                  lbm_dec_as_i32(arg_dec.args[0]),
                  lbm_dec_as_i32(arg_dec.args[1]),
                  lbm_dec_as_float(arg_dec.attr_rotate.args[0]),
@@ -2546,7 +2559,7 @@ void display_dummy_clear(uint32_t color) {
   return;
 }
 
-bool display_dummy_render_image(uint8_t *img, uint16_t x, uint16_t y,  color_t *colors) {
+bool display_dummy_render_image(image_buffer_t *img, uint16_t x, uint16_t y,  color_t *colors) {
   (void) img;
   (void) x;
   (void) y;
@@ -2554,12 +2567,10 @@ bool display_dummy_render_image(uint8_t *img, uint16_t x, uint16_t y,  color_t *
   return false;
 }
 
-static bool(* volatile disp_render_image)(uint8_t *img, uint16_t x, uint16_t y, color_t *colors) = display_dummy_render_image;
+static bool(* volatile disp_render_image)(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors) = display_dummy_render_image;
 static void(* volatile disp_clear)(uint32_t color) = display_dummy_clear;
 static void(* volatile disp_reset)(void) = display_dummy_reset;
 
-//static char *msg_invalid_gpio = "Invalid GPIO";
-//static char *msg_invalid_clk_speed = "Invalid clock speed";
 static char *msg_not_supported = "Command not supported or display driver not initialized";
 
 static lbm_value ext_disp_reset(lbm_value *args, lbm_uint argn) {
@@ -2615,7 +2626,13 @@ static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
   }
 
   lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
-  uint8_t *img = (uint8_t*)arr->data;
+
+  image_buffer_t img_buf;
+  img_buf.fmt = image_buffer_format((uint8_t*)arr->data);
+  img_buf.width = image_buffer_width((uint8_t*)arr->data);
+  img_buf.height = image_buffer_height((uint8_t*)arr->data);
+  img_buf.mem_base = (uint8_t*)arr->data;
+  img_buf.data = ((uint8_t*)arr->data) + IMAGE_BUFFER_HEADER_SIZE;
 
   color_t colors[16];
   memset(colors, 0, sizeof(color_t) * 16);
@@ -2639,7 +2656,8 @@ static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
     }
   }
 
-  bool render_res = disp_render_image(img, (uint16_t)lbm_dec_as_u32(args[1]), (uint16_t)lbm_dec_as_u32(args[2]), colors);
+  // img_buf is a stack allocated image_buffer_t.
+  bool render_res = disp_render_image(&img_buf, (uint16_t)lbm_dec_as_u32(args[1]), (uint16_t)lbm_dec_as_u32(args[2]), colors);
 
   if (!render_res) {
     lbm_set_error_reason("Could not render image. Check if the format and location is compatible with the display.");
@@ -2680,15 +2698,14 @@ int jpg_output_func (	/* 1:Ok, 0:Aborted */
                         ) {
   jpg_bufdef *dev = (jpg_bufdef*)jd->device;
 
-  // Go to data area hidden before the buffer.
-  uint8_t *img = (uint8_t*)bitmap;
-  img -= IMAGE_BUFFER_HEADER_SIZE;
+  image_buffer_t img;
+  img.mem_base = (uint8_t*)bitmap;
+  img.data = (uint8_t*)bitmap;
+  img.width = (uint16_t)(rect->right - rect->left + 1);
+  img.height = (uint16_t)(rect->bottom - rect->top + 1);
+  img.fmt = rgb888;
 
-  image_buffer_set_width(img, (uint16_t)(rect->right - rect->left + 1));
-  image_buffer_set_height(img, (uint16_t)(rect->bottom - rect->top + 1));
-  image_buffer_set_format(img, rgb888);
-
-  disp_render_image(img, (uint16_t)(rect->left + dev->ofs_x), (uint16_t)(rect->top + dev->ofs_y), 0);
+  disp_render_image(&img, (uint16_t)(rect->left + dev->ofs_x), (uint16_t)(rect->top + dev->ofs_y), 0);
 
   return 1;
 }
@@ -2760,7 +2777,7 @@ void lbm_display_extensions_init(void) {
 }
 
 void lbm_display_extensions_set_callbacks(
-                                          bool(* volatile render_image)(uint8_t *img, uint16_t x, uint16_t y, color_t *colors),
+                                          bool(* volatile render_image)(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors),
                                           void(* volatile clear)(uint32_t color),
                                           void(* volatile reset)(void)
                                           ) {

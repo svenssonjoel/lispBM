@@ -45,6 +45,15 @@ typedef enum {
 } COLOR_TYPE;
 
 typedef struct {
+  color_format_t fmt;
+  uint16_t width;
+  uint16_t height;
+  uint8_t  *data;
+  uint8_t  *mem_base;
+} image_buffer_t;
+
+
+typedef struct {
   int color1;
   int color2;
   uint16_t param1;
@@ -151,13 +160,12 @@ static inline uint32_t color_apply_precalc(color_t color, int x, int y) {
 #define COLOR_TO_RGB888(color, x, y) (color.type == COLOR_REGULAR ? color.color1 : COLOR_CHECK_PRE(color, x, y))
 
 // Interface
-bool lbm_display_is_image_buffer(lbm_value v);
 bool lbm_display_is_color(lbm_value v);
 uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y);
 
 void lbm_display_extensions_init(void);
 void lbm_display_extensions_set_callbacks(
-                                          bool(* volatile render_image)(uint8_t *img, uint16_t x, uint16_t y, color_t *colors),
+                                          bool(* volatile render_image)(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors),
                                           void(* volatile clear)(uint32_t color),
                                           void(* volatile reset)(void)
                                           );
