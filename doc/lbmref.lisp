@@ -2558,6 +2558,18 @@
                           ))
               end)))
 
+(define conc-kill
+  (ref-entry "kill"
+             (list
+              (para (list "The `kill` function allows you to force terminate"
+                          "another thread. It has the signature `(kill cid r-val)`,"
+                          "where `cid` is the thread that you want to terminate,"
+                          "and `r-val` is the final result the thread dies with."
+                          "As far as I (rasmus.soderhielm@gmail.com) can tell,"
+                          "the value you choose here has no observable side"
+                          "effects on the lbm runtime."
+                          ))
+              end)))
 
 
 
@@ -2592,6 +2604,7 @@
             conc-atomic
             conc-exit-ok
             conc-exit-error
+            conc-kill
             )
            ))
 
@@ -2623,6 +2636,8 @@
              (list
               (para (list "Like [recv](#recv), `recv-to` is used to receive"
                           "messages but `recv-to` takes an extra timeout argument."
+                          "It then receives a message containing the symbol"
+                          "`timeout` after the timeout period ends."
                           ))
               (para (list "The form of an `recv-to` expression is"
                           "```clj"
@@ -2635,6 +2650,13 @@
               (program '(((send (self) 28)
                           (recv-to 0.1
                                    ((? n) (+ n 1))
+                                   (timeout 'no-message))
+
+                          )
+                         ))
+              (program '(((send (self) 'not-foo)
+                          (recv-to 0.1
+                                   (foo 'got-foo)
                                    (timeout 'no-message))
 
                           )
