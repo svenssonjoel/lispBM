@@ -7538,7 +7538,70 @@ The `exit-error` function terminates the thread with an error specified by the p
 
 ### kill
 
-The `kill` function allows you to force terminate another thread. It has the signature `(kill cid r-val)`, where `cid` is the thread that you want to terminate, and `r-val` is the final result the thread dies with. As far as I (rasmus.soderhielm@gmail.com) can tell, the value you choose here has no observable side effects on the lbm runtime. 
+The `kill` function allows you to force terminate another thread. It has the signature `(kill thread-id-expr val-expr)`, where `thread-id-expr` is the thread that you want to terminate, and `val-expr` is the final result the thread dies with. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun f nil (f))
+(define id (spawn f))
+(kill id nil)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+The `val-expr` can be observed if the thread exit status is captured using `spawn-trap` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun f nil (f))
+(define id (spawn-trap f))
+(kill id 'kurt-russel)
+(recv ((? x) x))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(exit-ok 170298 kurt-russel)
+```
+
+
+</td>
+</tr>
+</table>
+
+The `val-expr` could be used to communicate to a thread monitor that the thread it monitors has been intentionally but externally killed. 
 
 
 

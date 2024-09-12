@@ -2562,13 +2562,27 @@
   (ref-entry "kill"
              (list
               (para (list "The `kill` function allows you to force terminate"
-                          "another thread. It has the signature `(kill cid r-val)`,"
-                          "where `cid` is the thread that you want to terminate,"
-                          "and `r-val` is the final result the thread dies with."
-                          "As far as I (rasmus.soderhielm@gmail.com) can tell,"
-                          "the value you choose here has no observable side"
-                          "effects on the lbm runtime."
+                          "another thread. It has the signature `(kill thread-id-expr val-expr)`,"
+                          "where `thread-id-expr` is the thread that you want to terminate,"
+                          "and `val-expr` is the final result the thread dies with."
                           ))
+              (program '(((defun f () (f))
+                          (define id (spawn f))
+                          (kill id nil)
+                          )
+                         ))
+              (para (list "The `val-expr` can be observed if the thread exit status is captured using `spawn-trap`"
+                          ))
+              (program '(((defun f () (f))
+                          (define id (spawn-trap f))
+                          (kill id 'kurt-russel)
+                          (recv (( ? x) x))
+                          )
+                         ))
+              (para (list "The `val-expr` could be used to communicate to a thread monitor that the"
+                          "thread it monitors has been intentionally but externally killed."
+                          ))
+              
               end)))
 
 
