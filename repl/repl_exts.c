@@ -784,6 +784,7 @@ int init_exts(void) {
 // Dynamic loader
 
 static const char* functions[] = {
+  "(defun str-merge () (str-join (rest-args)))",
   "(defun iota (n) (range n))",
 
   "(defun foldl (f init lst)"

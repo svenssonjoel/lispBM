@@ -1,6 +1,4 @@
 
-(defun str-merge () (str-join (rest-args)))
-
 (defun is-read-eval-txt (x)
   (match x
          ( (read-eval . _) true)
