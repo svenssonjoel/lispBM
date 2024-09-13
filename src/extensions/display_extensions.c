@@ -416,7 +416,7 @@ static void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
     uint16_t c = rgb888to565(cc);
     uint8_t *dp = (uint8_t*)data;
     for (unsigned int i = 0; i < img_size/2; i +=2) {
-      dp[i] = (uint8_t)c >> 8;
+      dp[i] = (uint8_t)(c >> 8);
       dp[i+1] = (uint8_t)c;
     }
   }
@@ -424,8 +424,8 @@ static void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
   case rgb888: {
     uint8_t *dp = (uint8_t*)data;
     for (unsigned int i = 0; i < img_size * 3; i+= 3) {
-      dp[i]   = (uint8_t)cc >> 16;
-      dp[i+1] = (uint8_t)cc >> 8;
+      dp[i]   = (uint8_t)(cc >> 16);
+      dp[i+1] = (uint8_t)(cc >> 8);
       dp[i+2] = (uint8_t)cc;
     }
   }
@@ -484,14 +484,14 @@ static void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
     case rgb565: {
       int pos = y*(w<<1) + (x<<1) ;
       uint16_t color = rgb888to565(c);
-      data[pos] = (uint8_t)color >> 8;
+      data[pos] = (uint8_t)(color >> 8);
       data[pos+1] = (uint8_t)color;
       break;
     }
     case rgb888: {
       int pos = y*(w*3) + (x*3);
-      data[pos] = (uint8_t)c>>16;
-      data[pos+1] = (uint8_t)c>>8;
+      data[pos] = (uint8_t)(c>>16);
+      data[pos+1] = (uint8_t)(c>>8);
       data[pos+2] = (uint8_t)c;
       break;
     }
