@@ -134,15 +134,32 @@ static color_format_t sym_to_color_format(lbm_value v) {
 
 static uint32_t image_dims_to_size_bytes(color_format_t fmt, uint16_t width, uint16_t height) {
   uint32_t num_pix = (uint32_t)width * (uint32_t)height;
-  uint32_t bpp = (uint32_t)color_format_to_byte(fmt);
-  uint32_t size_tot = num_pix * bpp;
-  uint32_t size_bytes = size_tot / 8;
-  if (size_tot % 8 != 0) size_bytes += 1;
-  return size_bytes;
+  switch(fmt) {
+  case indexed2:
+    if (num_pix % 8 != 0) return (num_pix / 8) + 1;
+    else return (num_pix / 8);
+    break;
+  case indexed4:
+    if (num_pix % 4 != 0) return (num_pix / 4) + 1;
+    else return (num_pix / 4);
+    break;
+  case indexed16: // Two pixels per byte
+    if (num_pix % 2 != 0) return (num_pix / 2) + 1;
+    else return (num_pix / 2);
+  case rgb332:
+    return num_pix;
+    break;
+  case rgb565:
+    return num_pix * 2;
+    break;
+  case rgb888:
+    return num_pix * 3;
+  default:
+    return 0;
+  }
 }
 
-static lbm_value image_buffer_lift(uint8_t *buf, uint8_t buf_offset, color_format_t fmt, uint16_t width, uint16_t height) {
-  (void) buf_offset;
+static lbm_value image_buffer_lift(uint8_t *buf, color_format_t fmt, uint16_t width, uint16_t height) {
   lbm_value res = ENC_SYM_MERROR;
   lbm_uint size = image_dims_to_size_bytes(fmt, width, height);
   if ( lbm_lift_array(&res, (char*)buf, IMAGE_BUFFER_HEADER_SIZE + size)) {
@@ -226,8 +243,8 @@ static lbm_value image_buffer_allocate(color_format_t fmt, uint16_t width, uint1
   if (!buf) {
     return ENC_SYM_MERROR;
   }
-  memset(buf, 0, size_bytes);
-  lbm_value res = image_buffer_lift(buf, 0, fmt, width, height);
+  memset(buf, 0, size_bytes + IMAGE_BUFFER_HEADER_SIZE);
+  lbm_value res = image_buffer_lift(buf, fmt, width, height);
   if (lbm_is_symbol(res)) { /* something is wrong, free */
     lbm_free(buf);
   }
@@ -2632,7 +2649,7 @@ static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
   img_buf.width = image_buffer_width((uint8_t*)arr->data);
   img_buf.height = image_buffer_height((uint8_t*)arr->data);
   img_buf.mem_base = (uint8_t*)arr->data;
-  img_buf.data = ((uint8_t*)arr->data) + IMAGE_BUFFER_HEADER_SIZE;
+  img_buf.data = image_buffer_data((uint8_t*)arr->data);
 
   color_t colors[16];
   memset(colors, 0, sizeof(color_t) * 16);
