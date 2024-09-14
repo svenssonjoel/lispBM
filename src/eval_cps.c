@@ -4816,7 +4816,7 @@ static void cont_exception_handler(eval_context_t *ctx) {
   lbm_value retval = sptr[0];
   lbm_value flags = sptr[1];
   lbm_set_car(get_cdr(retval), ctx->r);
-  ctx->flags = flags;
+  ctx->flags = (uint32_t)flags;
   ctx->r = retval;
   ctx->app_cont = true;
 }

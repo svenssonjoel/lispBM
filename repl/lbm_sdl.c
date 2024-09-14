@@ -43,7 +43,7 @@ sdl_symbol_t lbm_sdl_events[] = {
 
 
 static int register_sdl_event_symbols(void) {
-  for (int i = 0; i < (sizeof(lbm_sdl_events) / sizeof(sdl_symbol_t)); i ++) {
+  for (size_t i = 0; i < (sizeof(lbm_sdl_events) / sizeof(sdl_symbol_t)); i ++) {
     if (!lbm_add_symbol(lbm_sdl_events[i].name, &lbm_sdl_events[i].sym_id))
       return 0;
   }
@@ -51,7 +51,7 @@ static int register_sdl_event_symbols(void) {
 }
 
 static lbm_uint lookup_sdl_event_symbol(uint32_t sdl_event) {
-  for (int i = 0; i < (sizeof(lbm_sdl_events) / sizeof(sdl_symbol_t)); i ++) {
+  for (size_t i = 0; i < (sizeof(lbm_sdl_events) / sizeof(sdl_symbol_t)); i ++) {
     if (sdl_event == lbm_sdl_events[i].sdl_id) {
       return lbm_sdl_events[i].sym_id;
     }
@@ -298,11 +298,11 @@ static lbm_value ext_sdl_set_active_renderer(lbm_value *args, lbm_uint argn) {
 }
 
 // hacky
-static void blast_indexed2(uint8_t *dest, int dest_pitch, uint8_t *img, color_t *colors) {
+static void blast_indexed2(uint8_t *dest, int dest_pitch, image_buffer_t *img, color_t *colors) {
 
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t *w_dest = (uint32_t *)dest;
@@ -317,10 +317,10 @@ static void blast_indexed2(uint8_t *dest, int dest_pitch, uint8_t *img, color_t 
   }
 }
 
-static void blast_indexed4(uint8_t *dest, int dest_pitch, uint8_t *img, color_t *colors) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void blast_indexed4(uint8_t *dest, int dest_pitch, image_buffer_t *img, color_t *colors) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t *w_dest = (uint32_t *)dest;
@@ -335,10 +335,10 @@ static void blast_indexed4(uint8_t *dest, int dest_pitch, uint8_t *img, color_t 
   }
 }
 
-static void blast_indexed16(uint8_t *dest, int dest_pitch,uint8_t *img, color_t *colors) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void blast_indexed16(uint8_t *dest, int dest_pitch,image_buffer_t *img, color_t *colors) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t *w_dest = (uint32_t *)dest;
@@ -353,10 +353,10 @@ static void blast_indexed16(uint8_t *dest, int dest_pitch,uint8_t *img, color_t 
   }
 }
 
-static void blast_rgb332(uint8_t *dest, int dest_pitch,uint8_t *img) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void blast_rgb332(uint8_t *dest, int dest_pitch,image_buffer_t *img) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t *w_dest = (uint32_t *)dest;
@@ -370,10 +370,10 @@ static void blast_rgb332(uint8_t *dest, int dest_pitch,uint8_t *img) {
   }
 }
 
-static void blast_rgb565(uint8_t *dest, int dest_pitch,uint8_t *img) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void blast_rgb565(uint8_t *dest, int dest_pitch, image_buffer_t *img) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t *w_dest = (uint32_t *)dest;
@@ -388,10 +388,10 @@ static void blast_rgb565(uint8_t *dest, int dest_pitch,uint8_t *img) {
   }
 }
 
-static void blast_rgb888(uint8_t *dest, int dest_pitch,uint8_t *img) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void blast_rgb888(uint8_t *dest, int dest_pitch, image_buffer_t *img) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t *w_dest = (uint32_t *)dest;
@@ -406,19 +406,19 @@ static void blast_rgb888(uint8_t *dest, int dest_pitch,uint8_t *img) {
 }
 
 
-bool sdl_render_image(uint8_t *img, uint16_t x, uint16_t y, color_t *colors) {
+bool sdl_render_image(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors) {
 
   if (active_rend) {
 
-    uint16_t w = image_buffer_width(img);
-    uint16_t h = image_buffer_height(img);
-    uint8_t  bpp = image_buffer_format(img);
+    uint16_t w = img->width;
+    uint16_t h = img->height;
+    uint8_t  bpp = img->fmt;
 
     SDL_Texture* tex = SDL_CreateTexture(active_rend, SDL_PIXELFORMAT_RGB888,SDL_TEXTUREACCESS_STREAMING, w, h);
     int pitch = 0;
 
     uint8_t* p = NULL;
-    SDL_LockTexture(tex, NULL, &p, &pitch);
+    SDL_LockTexture(tex, NULL, (void**)&p, &pitch);
     switch(bpp) {
     case indexed2:
       blast_indexed2(p, pitch, img, colors);
@@ -453,7 +453,10 @@ bool sdl_render_image(uint8_t *img, uint16_t x, uint16_t y, color_t *colors) {
 
 
 void sdl_clear(uint32_t color) {
-
+  if (active_rend) {
+    SDL_RenderClear(active_rend);
+    SDL_RenderPresent(active_rend);
+  }
 }
 
 void sdl_reset(void) {
