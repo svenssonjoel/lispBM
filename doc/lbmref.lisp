@@ -2984,8 +2984,11 @@
 (define const-symbol-strings
   (ref-entry "@const-symbol-strings"
              (list
-              (para (list "if `@const-symbol-strings` directive is placed in a file, symbols will be created"
-                          "in flash memory instead of the arrays memory."
+              (para (list "`@const-symbol-strings` functionality have been combined with `@const-start` and `@const-end`."
+                          "Now symbols created while in a const block, end up in flash storage."
+                          ))
+              (para (list "~~if `@const-symbol-strings` directive is placed in a file, symbols will be created"
+                          "in flash memory instead of the arrays memory.~~"
                           ))
               end)))
 
