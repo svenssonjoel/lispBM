@@ -3711,16 +3711,19 @@ static void cont_read_next_token(eval_context_t *ctx) {
       ctx->r = ENC_SYM_CLOSEPAR;
       return;
     case TOKCONSTSTART: /* fall through */
-    case TOKCONSTEND:
-    case TOKCONSTSYMSTR: {
+    case TOKCONSTEND: {
       if (match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
       if (match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
-      if (match == TOKCONSTSYMSTR) ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS;
       sptr[0] = stream;
       sptr[1] = lbm_enc_u(0);
       stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
       ctx->app_cont = true;
     } return;
+    case TOKCONSTSYMSTR:
+      printf_callback("WARNING: @const-symbol-string does nothing!");
+      stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
+      ctx->app_cont = true;
+      return;
     default:
       read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
     }
@@ -3851,7 +3854,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
           error_ctx(ENC_SYM_MERROR);
         }
       } else {
-        if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS &&
+        if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST &&
             ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
           r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id, true); //flash
            if (!r) {
