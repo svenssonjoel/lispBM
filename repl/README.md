@@ -25,7 +25,7 @@ needed.
 entire OS! So I cannot recommend trying that... But if anyone know what is going
 on there, please let me know! 
 
-To generate the dot graphs from LBM, also install graphviz:
+To generate dot graphs from LBM, also install graphviz:
 
 ```
 sudo apt install graphviz
