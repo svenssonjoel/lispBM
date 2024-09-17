@@ -123,6 +123,11 @@ lbm_value ext_env_get(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TERROR;
 }
 
+lbm_value ext_local_env_get(lbm_value *args, lbm_uint argn) {
+  eval_context_t *ctx = lbm_get_current_context();
+  return ctx->curr_env;
+}
+
 lbm_value ext_env_set(lbm_value *args, lbm_uint argn) {
   if (argn == 2 && lbm_is_number(args[0])) {
     lbm_uint ix = lbm_dec_as_u32(args[0]) & GLOBAL_ENV_MASK;
@@ -131,6 +136,16 @@ lbm_value ext_env_set(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TRUE;
   }
   return ENC_SYM_NIL;
+}
+
+lbm_value ext_local_env_set(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1) {
+    eval_context_t *ctx = lbm_get_current_context();
+    ctx->curr_env = args[0];
+    res = ENC_SYM_TRUE;
+  }
+  return res;
 }
 
 lbm_value ext_set_gc_stack_size(lbm_value *args, lbm_uint argn) {
@@ -213,6 +228,8 @@ void lbm_runtime_extensions_init(bool minimal) {
     lbm_add_extension("lbm-heap-state", ext_lbm_heap_state);
     lbm_add_extension("env-get", ext_env_get);
     lbm_add_extension("env-set", ext_env_set);
+    lbm_add_extension("local-env-get", ext_local_env_get);
+    lbm_add_extension("local-env-set", ext_local_env_set);
     lbm_add_extension("set-gc-stack-size", ext_set_gc_stack_size);
     lbm_add_extension("is-64bit", ext_is_64bit);
     lbm_add_extension("symtab-size", ext_symbol_table_size);
