@@ -870,7 +870,7 @@ int init_exts(void) {
   lbm_array_extensions_init();
   lbm_string_extensions_init();
   lbm_math_extensions_init();
-  lbm_runtime_extensions_init(false);
+  lbm_runtime_extensions_init(;
   lbm_set_extensions_init();
   lbm_display_extensions_init();
 

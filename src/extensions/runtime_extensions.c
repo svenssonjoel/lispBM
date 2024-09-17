@@ -23,6 +23,7 @@
 #include <lbm_version.h>
 #include <env.h>
 
+#ifdef FULL_RTS_LIB
 static lbm_uint sym_heap_size;
 static lbm_uint sym_heap_bytes;
 static lbm_uint sym_num_alloc_cells;
@@ -33,6 +34,7 @@ static lbm_uint sym_num_gc_recovered_cells;
 static lbm_uint sym_num_gc_recovered_arrays;
 static lbm_uint sym_num_least_free;
 static lbm_uint sym_num_last_free;
+#endif
 
 lbm_value ext_eval_set_quota(lbm_value *args, lbm_uint argn) {
   LBM_CHECK_ARGN_NUMBER(1);
@@ -41,6 +43,7 @@ lbm_value ext_eval_set_quota(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+#ifdef FULL_RTS_LIB
 lbm_value ext_memory_num_free(lbm_value *args, lbm_uint argn) {
   (void)args;
   (void)argn;
@@ -124,6 +127,8 @@ lbm_value ext_env_get(lbm_value *args, lbm_uint argn) {
 }
 
 lbm_value ext_local_env_get(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
   eval_context_t *ctx = lbm_get_current_context();
   return ctx->curr_env;
 }
@@ -200,10 +205,11 @@ lbm_value ext_symbol_table_size_names_flash(lbm_uint *args, lbm_uint argn) {
   return lbm_enc_u(lbm_get_symbol_table_size_names_flash());
 }
 
+#endif
 
-void lbm_runtime_extensions_init(bool minimal) {
+void lbm_runtime_extensions_init(void) {
 
-  if (!minimal) {
+#ifdef FULL_RTS_LIB
     lbm_add_symbol_const("get-heap-size", &sym_heap_size);
     lbm_add_symbol_const("get-heap-bytes", &sym_heap_bytes);
     lbm_add_symbol_const("get-num-alloc-cells", &sym_num_alloc_cells);
@@ -214,11 +220,11 @@ void lbm_runtime_extensions_init(bool minimal) {
     lbm_add_symbol_const("get-gc-num-recovered-arrays", &sym_num_gc_recovered_arrays);
     lbm_add_symbol_const("get-gc-num-least-free", &sym_num_least_free);
     lbm_add_symbol_const("get-gc-num-last-free", &sym_num_last_free);
-  }
+#endif
 
-  if (minimal) {
+#ifndef FULL_RTS_LIB
     lbm_add_extension("set-eval-quota", ext_eval_set_quota);
-  } else {
+#else
     lbm_add_extension("set-eval-quota", ext_eval_set_quota);
     lbm_add_extension("mem-num-free", ext_memory_num_free);
     lbm_add_extension("mem-longest-free", ext_memory_longest_free);
@@ -236,5 +242,5 @@ void lbm_runtime_extensions_init(bool minimal) {
     lbm_add_extension("symtab-size-flash", ext_symbol_table_size_flash);
     lbm_add_extension("symtab-size-names", ext_symbol_table_size_names);
     lbm_add_extension("symtab-size-names-flash", ext_symbol_table_size_names_flash);
-  }
+#endif
 }
