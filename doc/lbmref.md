@@ -5929,7 +5929,7 @@ apa
 
 ### rotate
 
-`rotate` creates a list containing the same elements as an existing list but rotated some number of step along a direction. The form of a `reverse` expression is `(rotate list-exp dist-expr)`. The sign of the value dist-expr evaluates to, decides direction of rotation. 
+`rotate` creates a list containing the same elements as an existing list but rotated some number of step along a direction. The form of a `rotate` expression is `(rotate list-exp dist-expr)`. The sign of the value dist-expr evaluates to, decides direction of rotation. 
 
 <table>
 <tr>
@@ -7593,7 +7593,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 170441 kurt-russel)
+(exit-ok 170440 kurt-russel)
 ```
 
 

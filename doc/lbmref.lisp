@@ -2027,7 +2027,7 @@
   (ref-entry "rotate"
              (list
               (para (list "`rotate` creates a list containing the same elements as an existing list but rotated some number of step along a direction."
-                          "The form of a `reverse` expression is `(rotate list-exp dist-expr)`."
+                          "The form of a `rotate` expression is `(rotate list-exp dist-expr)`."
                           "The sign of the value dist-expr evaluates to, decides direction of rotation."
                           ))
               (code '((define apa (list 1 2 3 4 5 6 7 8 9 10))
