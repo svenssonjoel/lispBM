@@ -104,7 +104,7 @@
     {
     (rend "<table>\n")
     (rend "<tr>\n")
-    (rend "<td> Example </td> <td> Image </td> <td> Result </td>\n")
+    (rend "<td> Example </td> <td> Result </td>\n")
     (rend "</tr>\n")
     (render-code-res-pairs rend c)
     (rend "</table>\n\n")
@@ -126,6 +126,7 @@
 	     {
 	     (disp-render img 0 0 colors) 
 	     (save-active-image png)
+             (disp-clear)
 	     (rend "<tr>\n")
 	     (rend "<td>\n\n")
 	     (rend "```clj\n")
@@ -135,24 +136,21 @@
 	     ;; image
 	     (rend "<td>\n\n")
 	     (rend (str-merge "<img src=" png " >"))
-	     (rend "\n```\n")
 	     (rend "\n\n</td>\n")	     
-	     (rend "\n```\n")
 	     (rend "<td>\n\n")
 	     (rend "```clj\n")
-	     ;; return
 	     (rend rstr)
 	     (rend "\n```\n")
 	     (rend "\n\n</td>\n")
 	     (rend "</tr>\n")
-	     (render-code-res-pairs rend xs)
+	     (render-code-png-pairs rend img colors xs)
 	     }))))
   
 (defun render-code-png-table (rend img colors c)
     {
     (rend "<table>\n")
     (rend "<tr>\n")
-    (rend "<td> Example </td> <td> Result </td>\n")
+    (rend "<td> Example </td> <td> Image </td> <td> Result </td>\n")
     (rend "</tr>\n")
     (render-code-png-pairs rend img colors c)
     (rend "</table>\n\n")
@@ -238,10 +236,8 @@
            (rend (str-merge "**" s "**")))
          ( (program (? c)) (render-program-table rend c))
          ( (code (? c)) (render-code-table rend c))
-	 ( (code-png (? img) (? colors) (? c)) {
-	   (print "code-png!!!")
-	   (render-code-png-table rend img colors c)
-	   })
+	 ( (code-png (? img) (? colors) (? c))
+	   (render-code-png-table rend (eval img) colors c))
          ( (image (? alt) (? url))
            (rend (str-merge "![" alt "](" url " \"" alt "\")\n\n")))
          ( (image-pair (? cap0) (? txt0) (? fig0) (? cap1) (? txt1) (? fig1))

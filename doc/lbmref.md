@@ -99,7 +99,7 @@ Operations on fixed bitwidth numerical types can lead to overflow. The ranges re
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -429,7 +429,7 @@ The LispBM evaluator transforms expressions into values. For instance, the expre
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -455,7 +455,7 @@ In LispBM the distinction between expressions and values is often blurred. For e
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -499,7 +499,7 @@ The result of evaluating `(mk-code 10)` is the list containing a `+`, `10` and `
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -531,7 +531,7 @@ Some times evaluation is impossible. This could be because the program is malfor
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -565,7 +565,7 @@ Some atoms, such as Numbers, Strings and byte arrays cannot be further evaluated
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -699,7 +699,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -787,7 +787,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -875,7 +875,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -963,7 +963,7 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1033,7 +1033,7 @@ Modulo operation. The form of a `mod` expression is `(mod expr1 exp2)`. The modu
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1109,7 +1109,7 @@ Compare values for equality. The `eq` operation implements structural equiality.
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1233,7 +1233,7 @@ nil
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1358,7 +1358,7 @@ The `=` operation can only be used on numerical arguments. If you know you are c
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1446,7 +1446,7 @@ Greater than comparison. A greater than comparison has the form `(> expr1 ... ex
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1534,7 +1534,7 @@ Less than comparison. A less than comparison has the form `(> expr1 ... exprN)` 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1622,7 +1622,7 @@ Greater than or equal comparison. A greater than comparison has the form `(>= ex
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1728,7 +1728,7 @@ Less than or equal comparison. A less than or equal comparison has the form `(<=
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1839,7 +1839,7 @@ Boolean `and` operation between n arguments. The form of an `and` expression is 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1909,7 +1909,7 @@ Boolean `or` operation between n arguments. The form of an `or` expression is `(
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2015,7 +2015,7 @@ Boolean `not` takes one argument. The form of a `not` expression is `(not expr)`
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2090,7 +2090,7 @@ The shift left operation takes two arguments. The first argument is a value to s
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2160,7 +2160,7 @@ The shift right operation takes two arguments. The first argument is a value to 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2230,7 +2230,7 @@ Performs the bitwise and operation between two values. The type of the result is
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2264,7 +2264,7 @@ Performs the bitwise or operation between two values. The type of the result is 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2298,7 +2298,7 @@ Performs the bitwise exclusive or operation between two values. The type of the 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2332,7 +2332,7 @@ Performs the bitwise negation operations on a value. The result is of same type 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2371,7 +2371,7 @@ Represents the empty list. The nil value is also considered to be false by condi
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2441,7 +2441,7 @@ All non nil values are considered true in conditionals. `t` should be used in ca
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2511,7 +2511,7 @@ t
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2581,7 +2581,7 @@ nil
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2658,7 +2658,7 @@ Usages of the `'` quote symbol in input code is replaced with the symbol quote b
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2784,7 +2784,7 @@ The result of `'(+ 1 2)` and `` `(+ 1 2)`` are similar in effect. Both result in
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2856,7 +2856,7 @@ The expression `` `(+ 1 ,(+ 1 1))`` is expanded by the reader into `(append (quo
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2890,7 +2890,7 @@ The comma-at operation is used to splice in the result of a computation (that re
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2931,7 +2931,7 @@ The comma-at operation is used to splice in the result of a computation (that re
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -2995,7 +2995,7 @@ Functions you create, using lambda or defun, do actually take an arbitrary numbe
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3057,7 +3057,7 @@ all of those extra arguments, `100 200 300 400 500` passed into my-fun are ignor
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3121,7 +3121,7 @@ One was to explicitly carry the semantics of an optional argument into the funct
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3201,7 +3201,7 @@ The `rest-args` operation also, itself, takes an optional numerical argument tha
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3288,7 +3288,7 @@ Evaluate data as an expression. The data must represent a valid expression. The 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3378,7 +3378,7 @@ An optional environment can be passed in as the first arguement: `(eval-program 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3466,7 +3466,7 @@ The `type-of` function returns a symbol that indicates what type the argument is
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3662,7 +3662,7 @@ The `sym2str` function converts a symbol to its string representation. The resul
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3714,7 +3714,7 @@ The `str2sym` function converts a string to a symbol.
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3748,7 +3748,7 @@ The `sym2u` function returns the numerical value used by the runtime system for 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3800,7 +3800,7 @@ The `u2sym` function returns the symbol associated with the numerical value prov
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3854,7 +3854,7 @@ The `gc` function runs the garbage collector so that it can reclaim values from 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -3895,7 +3895,7 @@ Conditionals are written as `(if cond-expr then-expr else-exp)`.  If the cond-ex
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4013,7 +4013,7 @@ You create an anonymous function with lambda. The function can be given a name b
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4057,7 +4057,7 @@ You can give more arguments to a function created using lambda. The extra argume
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4101,7 +4101,7 @@ You can give more arguments to a function created using lambda. The extra argume
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4189,7 +4189,7 @@ A <a href="#lambda"> lambda </a> expression evaluates into a closure which is ve
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4262,7 +4262,7 @@ Local environments are created using let. The let binding in lispbm allows for m
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4310,7 +4310,7 @@ You can deconstruct composite values while let binding.
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4408,7 +4408,7 @@ You can give names to values in a global scope by using define. The form of defi
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4442,7 +4442,7 @@ A definition in the global can be removed using undefine.  The form of an undefi
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4468,7 +4468,7 @@ It is also possible to undefine several bindings at the same time by providing a
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4654,7 +4654,7 @@ The evaluation result of a progn sequence is the value that the last `exprN` eva
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4753,7 +4753,7 @@ The var special form allows local bindings in a progn expression. A var expressi
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4801,7 +4801,7 @@ You can deconstruct composite value while var binding.
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4855,7 +4855,7 @@ Parses a string resulting in either an expression or the <a href="#read_error">r
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4907,7 +4907,7 @@ Parses a string containing multiple sequenced expressions. The resulting list of
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4941,7 +4941,7 @@ Parses and evaluates a program incrementally. `read-eval-program` reads a top-le
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -4967,7 +4967,7 @@ Parses and evaluates a program incrementally. `read-eval-program` reads a top-le
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5001,7 +5001,7 @@ Parses and evaluates a program incrementally. `read-eval-program` reads a top-le
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5071,7 +5071,7 @@ Taking the `car` of a number of symbol type is in general a <a href="#type_error
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5123,7 +5123,7 @@ Taking the `car` of a number of symbol type is in general a <a href="#type_error
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5175,7 +5175,7 @@ Use `cdr` to access the `cdr` field of a cons cell. A `cdr` expression has the f
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5227,7 +5227,7 @@ Use `cdr` to access the `cdr` field of a cons cell. A `cdr` expression has the f
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5279,7 +5279,7 @@ The `cons` operation allocates a cons cell from the heap and populates the `car`
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5367,7 +5367,7 @@ The dot, `.`, operation creates a pair. The form of a dot expression is `(expr1 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5419,7 +5419,7 @@ The `list` function is used to create proper lists. The function takes n argumen
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5453,7 +5453,7 @@ Computes the length of a list. The `length` function takes one argument and is o
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5487,7 +5487,7 @@ The `range` function computes a list with integer values from a range specified 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5557,7 +5557,7 @@ The `append` function combines two lists into a longer list. An `append` express
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5591,7 +5591,7 @@ Index into a list using the `ix` function. The form of an `ix` expression is `(i
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5643,7 +5643,7 @@ Destructively update an element in a list. The form of a `setix` expression is `
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -5933,7 +5933,7 @@ apa
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -6128,7 +6128,7 @@ Example that adds the key `4` and associated value `lemur` to an existing alist.
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -6162,7 +6162,7 @@ The `assoc` function looks up the first value in an alist matching a given a key
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -6196,7 +6196,7 @@ The `cossa` function looks up the first key in an alist that matches a given val
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -6273,7 +6273,7 @@ Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate si
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -6325,7 +6325,7 @@ Returns the size of a buffer in number of bytes. The form of an `buflen` express
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -6359,7 +6359,7 @@ Read a value from a buffer. The contents of a buffer can be read as a sized inte
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -6501,7 +6501,7 @@ The `bufset` functions performs a destructive updates to a buffer. The form of a
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -6751,7 +6751,7 @@ To clear a byte array the function bufclear can be used `(bufclear arr optByte o
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -6967,7 +6967,7 @@ The form of the `[` and `]` syntax is `[ val1 ... valN ]`.
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7014,7 +7014,7 @@ The LBM (non-compacting) gabage collector frees arrays from a defragmentable mem
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7047,7 +7047,7 @@ DM
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7103,7 +7103,7 @@ Pattern-matching is expressed using match. The form of a match expression is `(m
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7152,7 +7152,7 @@ The underscore pattern matches anything.
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7189,7 +7189,7 @@ The `?` pattern matches anything and binds that anything to variable. Using the 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7226,7 +7226,7 @@ Patterns used in a match expressions can be augmented with a boolean guard to fu
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7372,7 +7372,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7386,7 +7386,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-2878
+2861
 ```
 
 
@@ -7418,7 +7418,7 @@ To put a process to sleep, call `yield`. The argument to `yield` is number indic
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7452,7 +7452,7 @@ t
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7486,7 +7486,7 @@ t
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7593,7 +7593,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 171656 kurt-russel)
+(exit-ok 171634 kurt-russel)
 ```
 
 
@@ -7737,7 +7737,7 @@ Change the size of the mailbox in the current process. Standard mailbox size is 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7850,7 +7850,7 @@ The `flatten` function takes a value as single argument and returns the flat rep
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -7940,7 +7940,7 @@ A flat value is a byte-array containing an encoding of the value.
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -8036,7 +8036,7 @@ The form of a `macro` expression is: `(macro args body)`
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -8383,7 +8383,7 @@ Convert any numerical value to a byte. If the input is not a number the output o
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -8453,7 +8453,7 @@ Convert a value of any numerical type to an integer. The resulting integer is a 
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -8523,7 +8523,7 @@ Convert a value of any numerical type to an unsigned integer. The resulting inte
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -8593,7 +8593,7 @@ Convert any numerical value to a 32bit int. If the input is not a number the out
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -8663,7 +8663,7 @@ Convert any numerical value to a 32bit unsigned int.
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -8733,7 +8733,7 @@ Convert any numerical value to a single precision floating point value. If the i
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -8803,7 +8803,7 @@ Convert any numerical value to a 64bit int. If the input is not a number the out
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -8873,7 +8873,7 @@ Convert any numerical value to a 64bit unsigned int. If the input is not a numbe
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -8943,7 +8943,7 @@ Convert any numerical value to a double precision floating point value. If the i
 
 <table>
 <tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
+<td> Example </td> <td> Result </td>
 </tr>
 <tr>
 <td>

@@ -6,29 +6,23 @@
 (set-active-image render-target)
 (disp-clear)
 
-(define my-img (img-buffer 'indexed2 100 100))
-(img-line my-img 0 0 100 100 1)
-(disp-render my-img 0 0 '(0x0 0x00ff00))
-
-(save-active-image "img-apa.png")
-
-  
-
 (define create_image1
   (ref-entry "img-buffer"
              (list
               (para (list "Allocate an image buffer from lbm memory or from a compactible region."
                           "The form of an `img-buffer` expression is `(img-buffer opt-dm format width height)`."
                           ))
-              (code '((define my-img (img-buffer 'indexed2 100 100))
+              (code '((define my-img (img-buffer 'indexed2 320 200))
                       ))
-              (program '(((define my-dm (dm-create 6000))
-                          (define my-img (img-buffer my-dm 'indexed2 100 100))
+              (program '(((define my-dm (dm-create 10000))
+                          (define my-img (img-buffer my-dm 'indexed2 320 200))
                           )
                          ))
-	      ;(code-png 'my-img '(0x00 0xffffff)
-	;		'((img-line my-img 0 0 100 100 1)
-	;		  ))
+	      (code-png 'my-img '(0x00 0xffffff)
+			'((img-line my-img 0 0 320 200 1)
+                          (img-clear my-img 0)
+                          (img-line my-img 0 200 320 0 1 '(dotted 4 20))
+			  ))
               end)))
 
 

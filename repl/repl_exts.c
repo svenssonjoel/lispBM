@@ -592,7 +592,6 @@ static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
 
 // blit into a buffer that is guaranteed large enough.
 static void buffer_blast_indexed2(uint8_t *dest, uint8_t *img, color_t *colors) {
-  printf("blasting\n");
   uint8_t *data = image_buffer_data(img);
   uint16_t w    = image_buffer_width(img);
   uint16_t h    = image_buffer_height(img);
