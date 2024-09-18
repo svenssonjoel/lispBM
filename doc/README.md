@@ -2,16 +2,15 @@
 
 # LispBM Programming Documentation
 
-
 [Language reference](./lbmref.md)
-
-[Gotchas and caveats](./gotchas.md)
-
 
 ## Extension libraries
 
 [display extensions](./displayref.md)
 
+## Gotchas
+
+[Gotchas and caveats](./gotchas.md)
 
 ## Programming manual
 
