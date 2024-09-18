@@ -18,18 +18,41 @@
                           (define my-img (img-buffer my-dm 'indexed2 320 200))
                           )
                          ))
-	      (code-png 'my-img '(0x00 0xffffff)
-			'((img-line my-img 0 0 320 200 1)
-                          (img-clear my-img 0)
-                          (img-line my-img 0 200 320 0 1 '(dotted 4 20))
-			  ))
               end)))
+
+(define arcs
+    (ref-entry "arcs"
+	       (list
+		(code-png 'my-img '(0x00 0xffffff)
+			  '((img-arc my-img 100 100 50 160 100 1)
+			    (img-arc my-img 100 100 50 160 100 1 '(dotted 15 15))
+			    (img-arc my-img 100 100 50 160 100 1 '(filled))
+			    (img-arc my-img 100 100 50 160 100 1 '(thickness 10))
+			    (img-arc my-img 100 100 50 160 100 1 '(rounded))
+			    ))
+		(code-png 'my-img '(0x00 0xffffff)
+			  '((img-arc my-img 100 100 50 160 100 1 '(dotted 15 15) '(resolution 3))
+			    (img-arc my-img 100 100 50 160 100 1 '(thickness 10) '(rounded))
+			  ))
+		end)))
+
+(define lines
+    (ref-entry "lines"
+	       (list
+		(code-png 'my-img '(0x00 0xffffff)
+			  '((img-line my-img 0 0 320 200 1)
+                            (img-line my-img 0 200 320 0 1 '(dotted 4 20))
+			    ))
+		end)))
+	       
 
 
 (define manual
   (list
    (section 1 "LispBM Display Reference Manual"
-            (list create_image1)
+            (list create_image1
+		  arcs
+		  lines)
             )
    )
   )
