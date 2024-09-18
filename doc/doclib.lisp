@@ -1,4 +1,12 @@
 
+(define png-count 0)
+
+(defun png-file () {
+       (var n png-count)
+       (setq png-count (+ png-count 1))
+       (str-merge "./images/img" (to-str png-count) ".png")
+       })
+
 (defun is-read-eval-txt (x)
   (match x
          ( (read-eval . _) true)
@@ -96,9 +104,57 @@
     {
     (rend "<table>\n")
     (rend "<tr>\n")
-    (rend "<td> Example </td> <td> Result </td>\n")
+    (rend "<td> Example </td> <td> Image </td> <td> Result </td>\n")
     (rend "</tr>\n")
     (render-code-res-pairs rend c)
+    (rend "</table>\n\n")
+    })
+
+(defun render-code-png-pairs (rend img colors cs)
+  (match cs
+         (nil t)
+         ( ((? x) . (? xs))
+           (let ((x-str (if (is-read-eval-txt x)
+                            (ix x 1)
+                            (pretty x)))
+                 (x-code (if (is-read-eval-txt x)
+                             (read (ix x 1))
+                             x))
+                 (res (eval nil x-code))
+		 (png (png-file))
+                 (rstr (to-str res)))
+	     {
+	     (disp-render img 0 0 colors) 
+	     (save-active-image png)
+	     (rend "<tr>\n")
+	     (rend "<td>\n\n")
+	     (rend "```clj\n")
+	     (rend x-str)
+	     (rend "\n```\n")
+	     (rend "\n\n</td>\n")
+	     ;; image
+	     (rend "<td>\n\n")
+	     (rend (str-merge "<img src=" png " >"))
+	     (rend "\n```\n")
+	     (rend "\n\n</td>\n")	     
+	     (rend "\n```\n")
+	     (rend "<td>\n\n")
+	     (rend "```clj\n")
+	     ;; return
+	     (rend rstr)
+	     (rend "\n```\n")
+	     (rend "\n\n</td>\n")
+	     (rend "</tr>\n")
+	     (render-code-res-pairs rend xs)
+	     }))))
+  
+(defun render-code-png-table (rend img colors c)
+    {
+    (rend "<table>\n")
+    (rend "<tr>\n")
+    (rend "<td> Example </td> <td> Result </td>\n")
+    (rend "</tr>\n")
+    (render-code-png-pairs rend img colors c)
     (rend "</table>\n\n")
     })
 
@@ -182,6 +238,10 @@
            (rend (str-merge "**" s "**")))
          ( (program (? c)) (render-program-table rend c))
          ( (code (? c)) (render-code-table rend c))
+	 ( (code-png (? img) (? colors) (? c)) {
+	   (print "code-png!!!")
+	   (render-code-png-table rend img colors c)
+	   })
          ( (image (? alt) (? url))
            (rend (str-merge "![" alt "](" url " \"" alt "\")\n\n")))
          ( (image-pair (? cap0) (? txt0) (? fig0) (? cap1) (? txt1) (? fig1))
@@ -238,6 +298,9 @@
 
 (defun code (c)
   (list 'code c))
+
+(defun code-png (img colors c)
+  (list 'code-png img colors c))
 
 (defun code-examples (c)
   (list 'code-examples c))

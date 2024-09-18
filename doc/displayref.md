@@ -7,7 +7,7 @@ Allocate an image buffer from lbm memory or from a compactible region. The form 
 
 <table>
 <tr>
-<td> Example </td> <td> Result </td>
+<td> Example </td> <td> Image </td> <td> Result </td>
 </tr>
 <tr>
 <td>
