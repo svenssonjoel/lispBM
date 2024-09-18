@@ -2940,7 +2940,14 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     ctx->app_cont = true;
     ctx->r = ext_res;
     
-    if (blocking_extension) { // block_current_ctx checks the atomic status and issues error.
+    if (blocking_extension) {
+      if (is_atomic) {
+        // Check atomic_error explicitly so that the mutex
+        // can be released if there is an error.
+        blocking_extension = false;
+        mutex_unlock(&blocking_extension_mutex);
+        atomic_error();
+      }
       blocking_extension = false;
       if (blocking_extension_timeout) {
         blocking_extension_timeout = false;
@@ -3710,8 +3717,10 @@ static void cont_read_next_token(eval_context_t *ctx) {
       lbm_stack_drop(&ctx->K, 2);
       ctx->r = ENC_SYM_CLOSEPAR;
       return;
+    case TOKCONSTSYMSTR: /* fall through */
     case TOKCONSTSTART: /* fall through */
     case TOKCONSTEND: {
+      if (match == TOKCONSTSYMSTR)  printf_callback("WARNING: @const-symbol-string does nothing!");
       if (match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
       if (match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
       sptr[0] = stream;
@@ -3719,11 +3728,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
       stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
       ctx->app_cont = true;
     } return;
-    case TOKCONSTSYMSTR:
-      printf_callback("WARNING: @const-symbol-string does nothing!");
-      stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
-      ctx->app_cont = true;
-      return;
     default:
       read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
     }
@@ -3857,7 +3861,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
         if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST &&
             ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
           r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id, true); //flash
-           if (!r) {
+          if (!r) {
             lbm_set_error_reason((char*)lbm_error_str_flash_error);
             error_ctx(ENC_SYM_FATAL_ERROR);
           }
