@@ -839,8 +839,15 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
 }
 
 static void image_renderer_clear(uint32_t color) {
-  (void) color;
-  ;
+  if (lbm_is_array_r(active_image)) {
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(active_image);
+    image_buffer_t img;
+    img.fmt = image_buffer_format((uint8_t*)arr->data);
+    img.width = image_buffer_width((uint8_t*)arr->data);
+    img.height = image_buffer_height((uint8_t*)arr->data);
+    img.data = image_buffer_data((uint8_t*)arr->data);
+    image_buffer_clear(&img, color);
+  }
 }
 
 static void image_renderer_reset(void) {

@@ -399,7 +399,7 @@ static uint32_t  rgb565to888(uint16_t rgb) {
   return res_rgb888;
 }
 
-static void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
+void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
   color_format_t fmt = img->fmt;
   uint32_t w = img->width;
   uint32_t h = img->height;

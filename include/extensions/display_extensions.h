@@ -162,6 +162,8 @@ static inline uint32_t color_apply_precalc(color_t color, int x, int y) {
 // Interface
 bool lbm_display_is_color(lbm_value v);
 uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y);
+void image_buffer_clear(image_buffer_t *img, uint32_t cc);
+
 
 void lbm_display_extensions_init(void);
 void lbm_display_extensions_set_callbacks(
