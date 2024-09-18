@@ -4,10 +4,18 @@
 
 
 [Language reference](./lbmref.md)
+
 [Gotchas and caveats](./gotchas.md)
 
 
+## Extension libraries
+
+[display extensions](./displayref.md)
+
+
 ## Programming manual
+
+This programming manual is outdated and should be avoided!
 
 [Chapter 1: Introduction](./manual/ch1_introduction.md)
 
