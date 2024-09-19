@@ -36,6 +36,40 @@
 			  ))
 		end)))
 
+
+(define circles
+  (ref-entry "circles"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-circle my-img 100 100 80 1)
+                          (img-circle my-img 100 100 80 1 '(thickness 5))
+                          (img-circle my-img 100 100 80 1 '(dotted 14 14))
+                          (img-circle my-img 100 100 80 1 '(filled))
+                          ))
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-circle my-img 100 100 80 1 '(dotted 14 14) '(resolution 6))
+                          ))
+              end)))
+
+(define circle-sectors
+  (ref-entry "circle sectors"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-circle-sector my-img 220 40 40 90 200 1)
+                          (img-circle-sector my-img 220 40 40 90 200 1 '(thickness 3))
+                          ))
+              end)))
+
+(define circle-segments
+  (ref-entry "circle segments"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-circle-segment my-img 100 100 80 0 100 1)
+                          (img-circle-segment my-img 100 100 80 0 100 1 '(filled))
+                          ))
+              end)))
+
+
 (define lines
     (ref-entry "lines"
 	       (list
@@ -52,6 +86,9 @@
    (section 1 "LispBM Display Reference Manual"
             (list create_image1
 		  arcs
+                  circles
+                  circle-sectors
+                  circle-segments
 		  lines)
             )
    )

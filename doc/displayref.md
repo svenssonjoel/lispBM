@@ -244,7 +244,7 @@ t
 ---
 
 
-### lines
+### circles
 
 <table>
 <tr>
@@ -254,7 +254,7 @@ t
 <td>
 
 ```clj
-(img-line my-img 0 0 320 200 1)
+(img-circle my-img 100 100 80 1)
 ```
 
 
@@ -277,7 +277,7 @@ t
 <td>
 
 ```clj
-(img-line my-img 0 200 320 0 1 '(dotted 4 20))
+(img-circle my-img 100 100 80 1 '(thickness 5))
 ```
 
 
@@ -285,6 +285,261 @@ t
 <td>
 
 <img src=./images/img9.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle my-img 100 100 80 1 '(dotted 14 14))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img10.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle my-img 100 100 80 1 '(filled))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img11.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle my-img 100 100 80 1 '(dotted 14 14) '(resolution 6))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img12.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### circle sectors
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle-sector my-img 220 40 40 90 200 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img13.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle-sector my-img 220 40 40 90 200 1 '(thickness 3))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img14.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### circle segments
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle-segment my-img 100 100 80 0 100 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img15.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle-segment my-img 100 100 80 0 100 1 '(filled))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img16.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### lines
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-line my-img 0 0 320 200 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img17.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-line my-img 0 200 320 0 1 '(dotted 4 20))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img18.png >
 
 </td>
 <td>
