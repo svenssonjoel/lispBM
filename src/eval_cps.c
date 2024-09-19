@@ -4981,6 +4981,15 @@ static void evaluation_step(void){
   return;
 }
 
+
+// Reset has a built in pause.
+// so after reset, continue.
+void lbm_reset_eval(void) {
+  eval_cps_next_state_arg = 0;
+  eval_cps_next_state = EVAL_CPS_STATE_RESET;
+  if (eval_cps_next_state != eval_cps_run_state) eval_cps_state_changed = true;
+}
+
 void lbm_pause_eval(void ) {
   eval_cps_next_state_arg = 0;
   eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
@@ -5101,16 +5110,29 @@ void lbm_run_eval(void){
     if (eval_cps_state_changed  || eval_cps_run_state == EVAL_CPS_STATE_PAUSED) {
       eval_cps_state_changed = false;
       switch (eval_cps_next_state) {
+      case EVAL_CPS_STATE_RESET:
+        if (eval_cps_run_state != EVAL_CPS_STATE_RESET) {
+          is_atomic = false;
+          ctx_running = NULL;
+          eval_steps_quota = eval_steps_refill;
+          eval_cps_run_state = EVAL_CPS_STATE_RESET;
+          if (blocking_extension) {
+            blocking_extension = false;
+            mutex_unlock(&blocking_extension_mutex);
+          }
+        }
+        usleep_callback(EVAL_CPS_MIN_SLEEP);
+        continue;
       case EVAL_CPS_STATE_PAUSED:
         if (eval_cps_run_state != EVAL_CPS_STATE_PAUSED) {
           if (lbm_heap_num_free() < eval_cps_next_state_arg) {
             gc();
           }
           eval_cps_next_state_arg = 0;
+          eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
         }
-        eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
         usleep_callback(EVAL_CPS_MIN_SLEEP);
-        continue; /* jump back to start of eval_running loop */
+        continue;
       case EVAL_CPS_STATE_KILL:
         eval_cps_run_state = EVAL_CPS_STATE_DEAD;
         eval_running = false;
