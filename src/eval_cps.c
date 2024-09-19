@@ -5113,6 +5113,10 @@ void lbm_run_eval(void){
       case EVAL_CPS_STATE_RESET:
         if (eval_cps_run_state != EVAL_CPS_STATE_RESET) {
           is_atomic = false;
+          blocked.first = NULL;
+          blocked.last = NULL;
+          queue.first = NULL;
+          queue.last = NULL;
           ctx_running = NULL;
           eval_steps_quota = eval_steps_refill;
           eval_cps_run_state = EVAL_CPS_STATE_RESET;
