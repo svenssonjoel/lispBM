@@ -6,7 +6,8 @@
 
 ## Extension libraries
 
-[display library](./displayref.md)
+[Display library](./displayref.md)
+[Runtime library](./runtimeref.md)
 
 ## Gotchas
 

@@ -28,7 +28,7 @@ Allocate an image buffer from lbm memory or from a compactible region. The form 
 </td>
 </tr>
 </table>
-1
+
 <table>
 <tr>
 <td> Example </td> <td> Result </td>
@@ -63,7 +63,7 @@ Allocate an image buffer from lbm memory or from a compactible region. The form 
 ---
 
 
-### arcs
+### img-arc
 
 <table>
 <tr>
@@ -244,7 +244,7 @@ t
 ---
 
 
-### circles
+### img-circle
 
 <table>
 <tr>
@@ -379,7 +379,7 @@ t
 ---
 
 
-### circle sectors
+### img-circle-sector
 
 <table>
 <tr>
@@ -439,7 +439,7 @@ t
 ---
 
 
-### circle segments
+### img-circle-segment
 
 <table>
 <tr>
@@ -499,7 +499,7 @@ t
 ---
 
 
-### lines
+### img-line
 
 <table>
 <tr>
@@ -582,7 +582,7 @@ t
 ---
 
 
-### rectangles
+### img-rectangle
 
 <table>
 <tr>
@@ -665,7 +665,81 @@ t
 ---
 
 
-### setpixel
+### img-setpix
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-setpix my-img 10 10 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img23.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-text
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-text my-img 10 10 1 0 font LispBM)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img24.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-triangle
 
 <table>
 <tr>
@@ -682,7 +756,7 @@ t
 </td>
 <td>
 
-<img src=./images/img23.png >
+<img src=./images/img25.png >
 
 </td>
 <td>
@@ -705,7 +779,7 @@ t
 </td>
 <td>
 
-<img src=./images/img24.png >
+<img src=./images/img26.png >
 
 </td>
 <td>
@@ -722,80 +796,6 @@ t
 
 ```clj
 (img-triangle my-img 30 60 160 120 10 180 1 '(dotted 14 14))
-```
-
-
-</td>
-<td>
-
-<img src=./images/img25.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
-### text
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(img-text my-img 10 10 1 0 font LispBM)
-```
-
-
-</td>
-<td>
-
-<img src=./images/img26.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
-### triangles
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(img-setpix my-img 10 10 1)
 ```
 
 

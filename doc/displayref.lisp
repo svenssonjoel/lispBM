@@ -23,7 +23,7 @@
               end)))
 
 (define arcs
-    (ref-entry "arcs"
+    (ref-entry "img-arc"
 	       (list
 		(code-png 'my-img '(0x00 0xffffff)
 			  '((img-arc my-img 100 100 50 160 100 1)
@@ -40,7 +40,7 @@
 
 
 (define circles
-  (ref-entry "circles"
+  (ref-entry "img-circle"
              (list
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-circle my-img 100 100 80 1)
@@ -54,7 +54,7 @@
               end)))
 
 (define circle-sectors
-  (ref-entry "circle sectors"
+  (ref-entry "img-circle-sector"
              (list
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-circle-sector my-img 220 40 40 90 200 1)
@@ -63,7 +63,7 @@
               end)))
 
 (define circle-segments
-  (ref-entry "circle segments"
+  (ref-entry "img-circle-segment"
              (list
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-circle-segment my-img 100 100 80 0 100 1)
@@ -72,7 +72,7 @@
               end)))
 
 (define lines
-  (ref-entry "lines"
+  (ref-entry "img-line"
 	     (list
 	      (code-png 'my-img '(0x00 0xffffff)
 			'((img-line my-img 0 0 320 200 1)
@@ -82,7 +82,7 @@
 	      end)))
 
 (define rectangles
-  (ref-entry "rectangles"
+  (ref-entry "img-rectangle"
              (list
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-rectangle my-img 10 10 120 180 1)
@@ -92,23 +92,23 @@
               end)))
 
 (define texts
-  (ref-entry "text"
+  (ref-entry "img-text"
              (list
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-text my-img 10 10 1 0 font "LispBM")
                           ))
               end)))
 
-(define triangles
-  (ref-entry "triangles"
+(define setpixel
+  (ref-entry "img-setpix"
              (list
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-setpix my-img 10 10 1)
                           ))
               end)))
 
-(define setpixel
-  (ref-entry "setpixel"
+(define triangles
+  (ref-entry "img-triangle"
              (list
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-triangle my-img 30 60 160 120 10 180 1)
