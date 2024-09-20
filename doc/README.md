@@ -6,7 +6,7 @@
 
 ## Extension libraries
 
-[display extensions](./displayref.md)
+[display library](./displayref.md)
 
 ## Gotchas
 

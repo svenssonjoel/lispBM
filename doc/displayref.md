@@ -28,7 +28,7 @@ Allocate an image buffer from lbm memory or from a compactible region. The form 
 </td>
 </tr>
 </table>
-
+1
 <table>
 <tr>
 <td> Example </td> <td> Result </td>
@@ -532,7 +532,7 @@ t
 <td>
 
 ```clj
-(img-line my-img 0 200 320 0 1 '(dotted 4 20))
+(img-line my-img 0 200 320 0 1 '(thickness 5))
 ```
 
 
@@ -540,6 +540,269 @@ t
 <td>
 
 <img src=./images/img18.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-line my-img 0 0 320 200 1 '(dotted 4 20))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img19.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### rectangles
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-rectangle my-img 10 10 120 180 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img20.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-rectangle my-img 10 10 120 180 1 '(filled))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img21.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-rectangle my-img 10 10 120 180 1 '(rounded 45))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img22.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### setpixel
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-triangle my-img 30 60 160 120 10 180 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img23.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-triangle my-img 30 60 160 120 10 180 1 '(filled))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img24.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-triangle my-img 30 60 160 120 10 180 1 '(dotted 14 14))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img25.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### text
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-text my-img 10 10 1 0 font LispBM)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img26.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### triangles
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-setpix my-img 10 10 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img27.png >
 
 </td>
 <td>

@@ -1,5 +1,7 @@
 
 
+(define font-file (fopen "font_15_18.bin" "r"))
+(define font (load-file font-file))
 
 (display-to-image)
 (define render-target (img-buffer 'rgb888 320 200))
@@ -69,16 +71,51 @@
                           ))
               end)))
 
-
 (define lines
-    (ref-entry "lines"
-	       (list
-		(code-png 'my-img '(0x00 0xffffff)
-			  '((img-line my-img 0 0 320 200 1)
-                            (img-line my-img 0 200 320 0 1 '(dotted 4 20))
-			    ))
-		end)))
-	       
+  (ref-entry "lines"
+	     (list
+	      (code-png 'my-img '(0x00 0xffffff)
+			'((img-line my-img 0 0 320 200 1)
+                          (img-line my-img 0 200 320 0 1 '(thickness 5))
+                          (img-line my-img 0 0 320 200 1 '(dotted 4 20))
+			  ))
+	      end)))
+
+(define rectangles
+  (ref-entry "rectangles"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-rectangle my-img 10 10 120 180 1)
+                          (img-rectangle my-img 10 10 120 180 1 '(filled))
+                          (img-rectangle my-img 10 10 120 180 1 '(rounded 45))
+                          ))
+              end)))
+
+(define texts
+  (ref-entry "text"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-text my-img 10 10 1 0 font "LispBM")
+                          ))
+              end)))
+
+(define triangles
+  (ref-entry "triangles"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-setpix my-img 10 10 1)
+                          ))
+              end)))
+
+(define setpixel
+  (ref-entry "setpixel"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-triangle my-img 30 60 160 120 10 180 1)
+                          (img-triangle my-img 30 60 160 120 10 180 1 '(filled))
+                          (img-triangle my-img 30 60 160 120 10 180 1 '(dotted 14 14))
+                          ))
+              end)))
 
 
 (define manual
@@ -89,7 +126,11 @@
                   circles
                   circle-sectors
                   circle-segments
-		  lines)
+		  lines
+                  rectangles
+                  setpixel
+                  texts
+                  triangles)
             )
    )
   )
