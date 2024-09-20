@@ -37,6 +37,15 @@
                       ))
               end)))
 
+(define memory-size
+  (ref-entry "mem-size"
+             (list
+              (para (list "`mem-size` returns the size of the LBM memory."
+                          ))
+              (code '((mem-size)
+                      ))
+              end)))
+
 (define heap-state
   (ref-entry "lbm-heap-state"
              (list
@@ -60,6 +69,7 @@
   (section 2 "Memory"
            (list num-free
                  longest-free
+                 memory-size
                  heap-state)))
 
 (define gc-stack
@@ -152,15 +162,100 @@
                          ))
               end)))
 
-
 (define chapter-environments
   (section 2 "Environments"
            (list environment-get
                  environment-set
-                 local-environment-get)))
+                 local-environment-get
+                 )))
 
 
-             
+(define symbol-table-size
+  (ref-entry "symtab-size"
+             (list
+              (para (list "`symtab-size` returns the size of the symbol table in bytes."
+                          ))
+              (code '((symtab-size)
+                      ))
+              end)))
+
+(define symbol-table-size-flash
+  (ref-entry "symtab-size-flash"
+             (list
+              (para (list "`symtab-size-flash` returns the size in bytes of the portion of the symbol table"
+                          "that is stored in flash."
+                          ))
+              (code '((symtab-size-flash)
+                      ))
+              end)))
+
+
+(define symbol-table-size-names
+  (ref-entry "symtab-size-names"
+             (list
+              (para (list "`symtab-size-names` returns the size in bytes of the string names stored in"
+                          "the symbol table."
+                          ))
+              (code '((symtab-size-names)
+                      ))
+              end)))
+
+(define symbol-table-size-names-flash
+  (ref-entry "symtab-size-names-flash"
+             (list
+              (para (list "`symtab-size-names` returns the size in bytes of the string names stored in"
+                          "the symbol table in flash."
+                          ))
+              (code '((symtab-size-names-flash)
+                      ))
+              end)))
+
+
+(define chapter-symboltable
+  (section 2 "Symbol table"
+           (list symbol-table-size
+                 symbol-table-size-flash
+                 symbol-table-size-names
+                 symbol-table-size-names-flash
+                 )))
+
+
+(define version
+  (ref-entry "lbm-version"
+             (list
+              (para (list "`lbm-version` returns the version of the lbm runtime system."
+                          ))
+              (code '((lbm-version)
+                      ))
+              end)))
+
+(define arch
+  (ref-entry "is-64bit"
+             (list
+              (para (list "`is-64bit` returns true if a 64bit version of lbm is running."
+                          ))
+              (code '((is-64bit)
+                      ))
+              end)))
+
+
+(define word
+  (ref-entry "word-size"
+             (list
+              (para (list "`word-size` returns 4 on 32bit LBM  and 8 on 64bits."
+                          ))
+              (code '((word-size)
+                      ))
+              end)))
+
+(define chapter-versioning
+  (section 2 "Version"
+           (list version
+                 arch
+                 word
+           )))
+
+
 (define manual
   (list
    (section 1 "LispBM Runtime Extensions Reference Manual"
@@ -175,6 +270,8 @@
              chapter-gc
              chapter-memory
              chapter-scheduling
+             chapter-symboltable
+             chapter-versioning
             ))
    )
   )

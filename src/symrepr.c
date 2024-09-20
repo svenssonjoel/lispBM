@@ -402,6 +402,7 @@ static bool add_symbol_to_symtab(char* name, lbm_uint id) {
   if (m == NULL) return false;
 
   symbol_table_size_list += 3;
+  symbol_table_size_strings += alloc_size;
   m[NAME] = (lbm_uint)&storage[3];
   m[NEXT] = (lbm_uint) symlist;
   symlist = m;
