@@ -63,7 +63,41 @@ Allocate an image buffer from lbm memory or from a compactible region. The form 
 ---
 
 
-### img-arc
+### img-buffer-from-bin
+
+Checks if a binary blob stored in an array is likely to be an image buffer. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-buffer-from-bin llama-bin)
+```
+
+
+</td>
+<td>
+
+```clj
+[1 0 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-blit
 
 <table>
 <tr>
@@ -73,7 +107,7 @@ Allocate an image buffer from lbm memory or from a compactible region. The form 
 <td>
 
 ```clj
-(img-arc my-img 100 100 50 160 100 1)
+(img-blit my-img llama-bin 10 10 -1)
 ```
 
 
@@ -96,7 +130,7 @@ t
 <td>
 
 ```clj
-(img-arc my-img 100 100 50 160 100 1 '(dotted 15 15))
+(img-blit my-img llama-bin 10 10 -1 '(rotate 128 128 45))
 ```
 
 
@@ -119,7 +153,7 @@ t
 <td>
 
 ```clj
-(img-arc my-img 100 100 50 160 100 1 '(filled))
+(img-blit my-img llama-bin 10 10 -1 '(scale 0.500000f32))
 ```
 
 
@@ -138,11 +172,25 @@ t
 
 </td>
 </tr>
+</table>
+
+
+
+
+---
+
+
+### img-arc
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
 <tr>
 <td>
 
 ```clj
-(img-arc my-img 100 100 50 160 100 1 '(thickness 10))
+(img-arc my-img 100 100 50 160 100 1)
 ```
 
 
@@ -165,7 +213,7 @@ t
 <td>
 
 ```clj
-(img-arc my-img 100 100 50 160 100 1 '(rounded))
+(img-arc my-img 100 100 50 160 100 1 '(dotted 15 15))
 ```
 
 
@@ -173,6 +221,75 @@ t
 <td>
 
 <img src=./images/img5.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-arc my-img 100 100 50 160 100 1 '(filled))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img6.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-arc my-img 100 100 50 160 100 1 '(thickness 10))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img7.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-arc my-img 100 100 50 160 100 1 '(rounded))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img8.png >
 
 </td>
 <td>
@@ -201,7 +318,7 @@ t
 </td>
 <td>
 
-<img src=./images/img6.png >
+<img src=./images/img9.png >
 
 </td>
 <td>
@@ -224,7 +341,7 @@ t
 </td>
 <td>
 
-<img src=./images/img7.png >
+<img src=./images/img10.png >
 
 </td>
 <td>
@@ -261,7 +378,7 @@ t
 </td>
 <td>
 
-<img src=./images/img8.png >
+<img src=./images/img11.png >
 
 </td>
 <td>
@@ -284,7 +401,7 @@ t
 </td>
 <td>
 
-<img src=./images/img9.png >
+<img src=./images/img12.png >
 
 </td>
 <td>
@@ -307,7 +424,7 @@ t
 </td>
 <td>
 
-<img src=./images/img10.png >
+<img src=./images/img13.png >
 
 </td>
 <td>
@@ -330,7 +447,7 @@ t
 </td>
 <td>
 
-<img src=./images/img11.png >
+<img src=./images/img14.png >
 
 </td>
 <td>
@@ -359,7 +476,7 @@ t
 </td>
 <td>
 
-<img src=./images/img12.png >
+<img src=./images/img15.png >
 
 </td>
 <td>
@@ -396,7 +513,7 @@ t
 </td>
 <td>
 
-<img src=./images/img13.png >
+<img src=./images/img16.png >
 
 </td>
 <td>
@@ -419,7 +536,7 @@ t
 </td>
 <td>
 
-<img src=./images/img14.png >
+<img src=./images/img17.png >
 
 </td>
 <td>
@@ -456,7 +573,7 @@ t
 </td>
 <td>
 
-<img src=./images/img15.png >
+<img src=./images/img18.png >
 
 </td>
 <td>
@@ -479,7 +596,7 @@ t
 </td>
 <td>
 
-<img src=./images/img16.png >
+<img src=./images/img19.png >
 
 </td>
 <td>
@@ -516,7 +633,7 @@ t
 </td>
 <td>
 
-<img src=./images/img17.png >
+<img src=./images/img20.png >
 
 </td>
 <td>
@@ -539,7 +656,7 @@ t
 </td>
 <td>
 
-<img src=./images/img18.png >
+<img src=./images/img21.png >
 
 </td>
 <td>
@@ -562,7 +679,7 @@ t
 </td>
 <td>
 
-<img src=./images/img19.png >
+<img src=./images/img22.png >
 
 </td>
 <td>
@@ -599,7 +716,7 @@ t
 </td>
 <td>
 
-<img src=./images/img20.png >
+<img src=./images/img23.png >
 
 </td>
 <td>
@@ -622,7 +739,7 @@ t
 </td>
 <td>
 
-<img src=./images/img21.png >
+<img src=./images/img24.png >
 
 </td>
 <td>
@@ -645,7 +762,7 @@ t
 </td>
 <td>
 
-<img src=./images/img22.png >
+<img src=./images/img25.png >
 
 </td>
 <td>
@@ -682,7 +799,7 @@ t
 </td>
 <td>
 
-<img src=./images/img23.png >
+<img src=./images/img26.png >
 
 </td>
 <td>
@@ -719,7 +836,7 @@ t
 </td>
 <td>
 
-<img src=./images/img24.png >
+<img src=./images/img27.png >
 
 </td>
 <td>
@@ -756,7 +873,7 @@ t
 </td>
 <td>
 
-<img src=./images/img25.png >
+<img src=./images/img28.png >
 
 </td>
 <td>
@@ -779,7 +896,7 @@ t
 </td>
 <td>
 
-<img src=./images/img26.png >
+<img src=./images/img29.png >
 
 </td>
 <td>
@@ -802,7 +919,7 @@ t
 </td>
 <td>
 
-<img src=./images/img27.png >
+<img src=./images/img30.png >
 
 </td>
 <td>

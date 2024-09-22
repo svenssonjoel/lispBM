@@ -3,6 +3,11 @@
 (define font-file (fopen "font_15_18.bin" "r"))
 (define font (load-file font-file))
 
+
+(define llama-file (fopen "images/lama2.bin" "r"))
+(define llama-bin (load-file llama-file))
+
+
 (display-to-image)
 (define render-target (img-buffer 'rgb888 320 200))
 (set-active-image render-target)
@@ -20,6 +25,15 @@
                           (define my-img (img-buffer my-dm 'indexed2 320 200))
                           )
                          ))
+              end)))
+
+(define image-from-bin
+  (ref-entry "img-buffer-from-bin"
+             (list
+              (para (list "Checks if a binary blob stored in an array is likely to be an image buffer."
+                          ))
+              (code '((img-buffer-from-bin llama-bin)
+                      ))
               end)))
 
 (define arcs
@@ -118,10 +132,23 @@
               end)))
 
 
+(define blitting
+  (ref-entry "img-blit"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-blit my-img llama-bin 10 10 -1)
+                          (img-blit my-img llama-bin 10 10 -1 '(rotate 128 128 45))
+                          (img-blit my-img llama-bin 10 10 -1 '(scale 0.5))
+                          ))
+             end)))
+
+
 (define manual
   (list
    (section 1 "LispBM Display Reference Manual"
             (list create_image1
+                  image-from-bin
+                  blitting
 		  arcs
                   circles
                   circle-sectors
