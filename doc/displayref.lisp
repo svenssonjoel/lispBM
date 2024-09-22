@@ -145,7 +145,11 @@
 
 (define manual
   (list
-   (section 1 "LispBM Display Reference Manual"
+   (section 1 "LispBM Display Library"
+            (list )
+            )
+
+   (section 2 "Reference"
             (list create_image1
                   image-from-bin
                   blitting

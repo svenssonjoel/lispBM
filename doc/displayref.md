@@ -1,4 +1,6 @@
-# LispBM Display Reference Manual
+# LispBM Display Library
+
+## Reference
 
 
 ### img-buffer
