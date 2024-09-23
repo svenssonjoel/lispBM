@@ -13,6 +13,12 @@
 (set-active-image render-target)
 (disp-clear)
 
+(define img-rgb888 (img-buffer 'rgb888 320 200))
+
+(define small (img-buffer 'rgb888 10 10)) 
+
+
+
 (define create_image1
   (ref-entry "img-buffer"
              (list
@@ -146,10 +152,63 @@
 (define manual
   (list
    (section 1 "LispBM Display Library"
-            (list )
-            )
-
-   (section 2 "Reference"
+            (list 
+	     (para (list "The display extensions contains a graphics library designed"
+			 "for platforms for with very limited memory resources."
+			 "The drawing routines in the library operate on rectangular images (arrays) of pixels"
+			 ", called an image buffer."
+			 ))
+	     (para (list "The values stored in image buffers represents colors via an encoding"
+			 "determined by the image buffer pixel format. A pixel buffer has one of"
+			 "the following formats:"
+			 ))
+	     (bullet '("indexed2 : 2 colors (1 bit per pixel)"
+		       "indexed4 : 4 colors (2 bits per pixel)"
+		       "indexed16 : 16 colors (4 bits per pixel)"
+		       "rgb332 : 8Bit color"
+		       "rgb565 : 16bit color"
+		       "rgb888 : 24bit color"
+		       ))
+	     (para (list "Note that the RAM requirenment of a 100x100 image is;"
+			 ))
+	     (bullet '("at indexed2: 1250 Bytes"
+		       "at indexed4: 2500 Bytes"
+		       "at indexed16: 5000 Bytes"
+		       "at rgb332: 10000 Bytes"
+		       "at rgb565: 20000 Bytes"
+		       "at rgb888; 30000 Bytes"
+		       ))
+	     (para (list "So on an embedded platform you most likely not be able to be"
+			 "working with rgb565, rgb888 other than in very limited areas."
+			 ))
+	     (para (list "At the low-level end of things you will want to display graphics"
+			 "onto an display. The interface towards the low-level end needs to"
+			 "be implemented for the particular hardware platform and display."
+			 "For examples of this see [vesc_express](https://github.com/vedderb/vesc_express/tree/main/main/display)."
+			 "The LBM linux REPL has SDL and png backends for the display library."
+			 ))
+	     (para (list "the display library is specifically designed to allow for using many"
+			 "colors simultaneously on screen, without needing to use full screen high-color"
+			 "buffers."
+			 "This is done by delaying the choice of collor mapping in the `indexed2`, `indexed4` and `indexed16`"
+			 "images until they are presented on screen."
+			 ))
+	     (para (list "images are rendered onto a display using the function `disp-render`."
+			 "`disp-render` takes an image, a position (x,y) where to draw the image, and a colormapping"
+			 "that can be expressed as a list of colors".
+			 "for example:"
+			 ))
+	     (code-png 'render-target nil
+		       '((disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))
+			 (disp-render llama-bin 20 20 '(0x000000 0xFF0000))
+			 (disp-render llama-bin 30 30 '(0x000000 0x00FF00))
+			 (disp-render llama-bin 30 30 '(0x000000 0x0000FF))
+			 ))
+			 
+	     
+	     
+	    end ))
+   (section 1 "Reference"
             (list create_image1
                   image-from-bin
                   blitting
