@@ -226,6 +226,9 @@ special_sym const special_symbols[] =  {
   {"dm-create"      , SYM_DM_CREATE},
   {"dm-alloc"       , SYM_DM_ALLOC},
 
+  {"list?"          , SYM_IS_LIST},
+  {"number?"        , SYM_IS_NUMBER},
+  
   // fast access in list
   {"ix"             , SYM_IX},
 

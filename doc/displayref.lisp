@@ -34,11 +34,12 @@
               end)))
 
 (define image-from-bin
-  (ref-entry "img-buffer-from-bin"
+  (ref-entry "img-buffer?"
              (list
-              (para (list "Checks if a binary blob stored in an array is likely to be an image buffer."
+              (para (list "Checks if the argument is likely to be an image buffer."
                           ))
-              (code '((img-buffer-from-bin llama-bin)
+              (code '((img-buffer? llama-bin)
+		      (img-buffer? 'apa)
                       ))
               end)))
 

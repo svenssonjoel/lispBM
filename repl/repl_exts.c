@@ -832,10 +832,8 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
       uint16_t t_w = image_buffer_width(target_image);
       uint16_t t_h = image_buffer_height(target_image);
       if (t_w == w && t_h == h) {
-	printf("same size copying\n");
 	memcpy(image_buffer_data(target_image), buffer, (size_t)w * h * 3);
       } else {
-	printf("size diff, region copy\n");
 	copy_image_area(image_buffer_data(target_image), t_w, t_h, x, y, buffer, w, h);
       }
       free(buffer);

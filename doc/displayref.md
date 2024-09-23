@@ -192,9 +192,9 @@ Allocate an image buffer from lbm memory or from a compactible region. The form 
 ---
 
 
-### img-buffer-from-bin
+### img-buffer?
 
-Checks if a binary blob stored in an array is likely to be an image buffer. 
+Checks if the argument is likely to be an image buffer. 
 
 <table>
 <tr>
@@ -204,7 +204,7 @@ Checks if a binary blob stored in an array is likely to be an image buffer.
 <td>
 
 ```clj
-(img-buffer-from-bin llama-bin)
+(img-buffer? llama-bin)
 ```
 
 
@@ -212,7 +212,25 @@ Checks if a binary blob stored in an array is likely to be an image buffer.
 <td>
 
 ```clj
-[1 0 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-buffer? 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
 ```
 
 
