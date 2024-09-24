@@ -25,7 +25,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((symbol-table-size-names newline (section 3 "symtab-size-names" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table.")) (code ((symtab-size-names))) nil)) newline hline) (pretty-aligned-ontop closure (n
+((chapter-environments section 2 "Environments" ((newline (section 3 "env-get" ((para ("`env-get` can be used to reify, turn into value, parts of the global environment." "The global environment is stored as a hashtable and an index into this hashtable" "
 ```
 
 
@@ -43,7 +43,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((symbol-table-size-names-flash newline (section 3 "symtab-size-names-flash" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table in flash.")) (code ((symtab-size-names-flash))) nil)) newline hline))
+((symbol-table-size newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline))
 ```
 
 
@@ -61,7 +61,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((chapter-symboltable section 2 "Symbol table" ((newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (newline (section 3 "symtab-size-flash" ((para ("`symtab
+((symbol-table-size-flash newline (section 3 "symtab-size-flash" ((para ("`symtab-size-flash` returns the size in bytes of the portion of the symbol table" "that is stored in flash.")) (code ((symtab-size-flash))) nil)) newline hline) (render-program-tabl
 ```
 
 
@@ -79,7 +79,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((version newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline) (png-count . 0))
+((symbol-table-size-names newline (section 3 "symtab-size-names" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table.")) (code ((symtab-size-names))) nil)) newline hline) (code closure (c) (list (quote c
 ```
 
 
@@ -97,7 +97,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((arch newline (section 3 "is-64bit" ((para ("`is-64bit` returns true if a 64bit version of lbm is running.")) (code ((is-64bit))) nil)) newline hline) (defun macro (name args body) (me-defun name args body)))
+((symbol-table-size-names-flash newline (section 3 "symtab-size-names-flash" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table in flash.")) (code ((symtab-size-names-flash))) nil)) newline hline) (rend
 ```
 
 
@@ -115,7 +115,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((word newline (section 3 "word-size" ((para ("`word-size` returns 4 on 32bit LBM  and 8 on 64bits.")) (code ((word-size))) nil)) newline hline) (render-program-res-pairs closure (rend cs) (match cs (nil t) (((? x) ? xs) (let ((cstrs (map (lambda (c) (str
+((chapter-symboltable section 2 "Symbol table" ((newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (newline (section 3 "symtab-size-flash" ((para ("`symtab
 ```
 
 
@@ -133,7 +133,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((chapter-versioning section 2 "Version" ((newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline) (newline (section 3 "is-64bit" ((para ("`is-64bit` returns tru
+((version newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline) (render-code-res-pairs closure (rend cs) (match cs (nil t) (((? x) ? xs) (let ((x-str (if (is-r
 ```
 
 
@@ -151,7 +151,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((manual (section 1 "LispBM Runtime Extensions Reference Manual" ((para ("The runtime extensions, if present, can be either compiled" "in a minimal or a full mode." "In the minimal mode only `set-eval-quota` is present." "Minimal mode is the default when 
+((arch newline (section 3 "is-64bit" ((para ("`is-64bit` returns true if a 64bit version of lbm is running.")) (code ((is-64bit))) nil)) newline hline))
 ```
 
 
@@ -169,7 +169,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((render-manual closure nil (let ((h (fopen "runtimeref.md" "w")) (r (lambda (s) (fwrite-str h s)))) (progn (gc) (var t0 (systime)) (render r manual) (print "Runtime reference manual was generated in " (secs-since t0) " seconds"))) nil))
+((word newline (section 3 "word-size" ((para ("`word-size` returns 4 on 32bit LBM  and 8 on 64bits.")) (code ((word-size))) nil)) newline hline) (ind-spaces closure (n) (str-replicate n 32b) nil) (render-code-png-table closure (rend img colors c) (progn (
 ```
 
 
@@ -187,7 +187,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((render-code-png-table closure (rend img colors c) (progn (rend "<table>\n") (rend "<tr>\n") (rend "<td> Example </td> <td> Image </td> <td> Result </td>\n") (rend "</tr>\n") (render-code-png-pairs rend img colors c) (rend "</table>\n\n")) nil))
+((chapter-versioning section 2 "Version" ((newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline) (newline (section 3 "is-64bit" ((para ("`is-64bit` returns tru
 ```
 
 
@@ -205,7 +205,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((end) (is-read-eval-txt closure (x) (match x ((read-eval . _) t) (_ nil)) nil) (intersperse closure (str strs) (match strs (((? s)) s) (((? s) ? ss) (str-merge s str (intersperse str ss)))) nil))
+((manual (section 1 "LispBM Runtime Extensions Reference Manual" ((para ("The runtime extensions, if present, can be either compiled" "in a minimal or a full mode." "In the minimal mode only `set-eval-quota` is present." "Minimal mode is the default when 
 ```
 
 
@@ -223,7 +223,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((render-program-table closure (rend c) (progn (rend "<table>\n") (rend "<tr>\n") (rend "<td> Example </td> <td> Result </td>\n") (rend "</tr>\n") (render-program-res-pairs rend c) (rend "</table>\n\n")) nil))
+((render-manual closure nil (let ((h (fopen "runtimeref.md" "w")) (r (lambda (s) (fwrite-str h s)))) (progn (gc) (var t0 (systime)) (render r manual) (print "Runtime reference manual was generated in " (secs-since t0) " seconds"))) nil) (image closure (al
 ```
 
 
@@ -241,7 +241,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((s+ closure (s ss) (cons s ss) nil) (s-exp-graph closure (img-name code) (list (quote s-exp-graph) img-name code) nil))
+nil
 ```
 
 
@@ -259,7 +259,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((str-merge-list closure (strs) (match strs (nil [0]) (((? s) ? ss) (str-merge s (str-merge-list ss)))) nil))
+((dot-it closure (i x) (match x (((? x) ? xs) (let ((node (str-merge "cons" (to-str i))) ((c1 str1) (dot-it (shl i 1) x)) ((c2 str2) (dot-it (+ 1 (shl i 1)) xs))) (list node (str-merge "   " node " [label=\"cons\"]\n" str1 "\n" str2 "\n" "   " node " -> "
 ```
 
 
@@ -277,7 +277,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((ref-entry closure (str strs) (list (quote newline) (section 3 str strs) (quote newline) (quote hline)) nil) (bold closure (str) (list (quote bold) str) nil) (code-examples closure (c) (list (quote code-examples) c) nil))
+((image-pair closure (cap0 txt0 fig0 cap1 txt1 fig1) (list (quote image-pair) cap0 txt0 fig0 cap1 txt1 fig1) nil) (end))
 ```
 
 
@@ -295,7 +295,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((render-dot closure (filename code) (let ((dot-str (to-dot code)) (name-dot (str-merge "./images/" filename ".dot")) (name-png (str-merge "./images/" filename ".png")) (fp-dot (fopen name-dot "w")) (fp-png (fopen name-png "w"))) (progn (fwrite fp-dot dot
+((render-program-res-pairs closure (rend cs) (match cs (nil t) (((? x) ? xs) (let ((cstrs (map (lambda (c) (str-merge (pretty c) "\n")) x)) (res (eval-program nil x)) (rstr (to-str res))) (progn (rend "<tr>\n") (rend "<td>\n\n") (rend "\n```clj\n") (map r
 ```
 
 
@@ -313,7 +313,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((evaluation-quota newline (section 3 "set-eval-quota" ((para ("`set-eval-quota` sets the number of evaluation steps that is" "given to each context when given turn to execute by the round-robin" "scheduler.")) (code ((set-eval-quota 30))) nil)) newline h
+nil
 ```
 
 
@@ -331,7 +331,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((chapter-scheduling section 2 "Scheduling" ((newline (section 3 "set-eval-quota" ((para ("`set-eval-quota` sets the number of evaluation steps that is" "given to each context when given turn to execute by the round-robin" "scheduler.")) (code ((set-eval-
+((to-dot closure (x) (str-merge "digraph SExpression {\n" "   node [shape=ellipse, fontsize=12];\n" "   edge [fontsize=10];\n" (car (cdr (dot-it 1u64 x))) "\n}") nil))
 ```
 
 
@@ -349,7 +349,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((num-free newline (section 3 "mem-num-free" ((para ("`mem-num-free` returns the number of free words in the LBM memory." "This is the memory where arrays and strings are stored.")) (code ((mem-num-free))) nil)) newline hline) (code-png closure (img color
+((render-code-png-pairs closure (rend img colors cs) (match cs (nil t) (((? x) ? xs) (let ((x-str (if (is-read-eval-txt x) (ix x 1) (pretty x))) (x-code (if (is-read-eval-txt x) (read (ix x 1)) x)) (png (png-file))) (progn (img-clear img 0) (var res (eval
 ```
 
 
@@ -367,7 +367,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((longest-free newline (section 3 "mem-longest-free" ((para ("`mem-longest-free` returns the length in words of the longest" "consecutive sequence of free words in the LBM memory.")) (code ((mem-num-free))) nil)) newline hline))
+((str-merge closure nil (str-join (rest-args)) nil) (evaluation-quota newline (section 3 "set-eval-quota" ((para ("`set-eval-quota` sets the number of evaluation steps that is" "given to each context when given turn to execute by the round-robin" "schedul
 ```
 
 
@@ -385,7 +385,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((memory-size newline (section 3 "mem-size" ((para ("`mem-size` returns the size of the LBM memory.")) (code ((mem-size))) nil)) newline hline) (bullet closure (ss) (verb (map (lambda (x) (str-merge "   - " x "\n")) ss)) nil))
+((chapter-scheduling section 2 "Scheduling" ((newline (section 3 "set-eval-quota" ((para ("`set-eval-quota` sets the number of evaluation steps that is" "given to each context when given turn to execute by the round-robin" "scheduler.")) (code ((set-eval-
 ```
 
 
@@ -403,7 +403,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((heap-state newline (section 3 "lbm-heap-state" ((para ("`lbm-heap-state` can be used to query information about heap usage.")) (code ((lbm-heap-state (quote get-heap-size)) (lbm-heap-state (quote get-heap-bytes)) (lbm-heap-state (quote get-num-alloc-cel
+((num-free newline (section 3 "mem-num-free" ((para ("`mem-num-free` returns the number of free words in the LBM memory." "This is the memory where arrays and strings are stored.")) (code ((mem-num-free))) nil)) newline hline) (s-exp-graph closure (img-na
 ```
 
 
@@ -421,7 +421,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((chapter-memory section 2 "Memory" ((newline (section 3 "mem-num-free" ((para ("`mem-num-free` returns the number of free words in the LBM memory." "This is the memory where arrays and strings are stored.")) (code ((mem-num-free))) nil)) newline hline) (
+((longest-free newline (section 3 "mem-longest-free" ((para ("`mem-longest-free` returns the length in words of the longest" "consecutive sequence of free words in the LBM memory.")) (code ((mem-num-free))) nil)) newline hline) (defun macro (name args bod
 ```
 
 
@@ -439,7 +439,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((str-merge closure nil (str-join (rest-args)) nil) (gc-stack newline (section 3 "set-gc-stack-size" ((para ("With `set-gc-stack-size` you can change the size of the stack used for heap traversal" "by the garbage collector.")) (code ((set-gc-stack-size 10
+((memory-size newline (section 3 "mem-size" ((para ("`mem-size` returns the size of the LBM memory.")) (code ((mem-size))) nil)) newline hline) (render-dot closure (filename code) (let ((dot-str (to-dot code)) (name-dot (str-merge "./images/" filename ".d
 ```
 
 
@@ -457,7 +457,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((chapter-gc section 2 "GC" ((newline (section 3 "set-gc-stack-size" ((para ("With `set-gc-stack-size` you can change the size of the stack used for heap traversal" "by the garbage collector.")) (code ((set-gc-stack-size 100))) nil)) newline hline))) (ren
+((heap-state newline (section 3 "lbm-heap-state" ((para ("`lbm-heap-state` can be used to query information about heap usage.")) (code ((lbm-heap-state (quote get-heap-size)) (lbm-heap-state (quote get-heap-bytes)) (lbm-heap-state (quote get-num-alloc-cel
 ```
 
 
@@ -475,7 +475,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((environment-get newline (section 3 "env-get" ((para ("`env-get` can be used to reify, turn into value, parts of the global environment." "The global environment is stored as a hashtable and an index into this hashtable" "is used to extract the bindings 
+((chapter-memory section 2 "Memory" ((newline (section 3 "mem-num-free" ((para ("`mem-num-free` returns the number of free words in the LBM memory." "This is the memory where arrays and strings are stored.")) (code ((mem-num-free))) nil)) newline hline) (
 ```
 
 
@@ -493,7 +493,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((environment-set newline (section 3 "env-set" ((para ("`env-set` destructively sets an entry in the global environment hashtable.")) (program (((if (eq (env-get 1) nil) (env-set 1 (list (quote (a . 75))))) (env-get 1)))) (para ("Note that in the example 
+((gc-stack newline (section 3 "set-gc-stack-size" ((para ("With `set-gc-stack-size` you can change the size of the stack used for heap traversal" "by the garbage collector.")) (code ((set-gc-stack-size 100))) nil)) newline hline) (render closure (rend ss)
 ```
 
 
@@ -511,7 +511,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((render-it closure (rend ss) (match ss (nil (rend "\n")) ((section (? i) (? x) (? xs)) (progn (match i (1 (rend (str-merge "# " x "\n\n"))) (2 (rend (str-merge "## " x "\n\n"))) (3 (rend (str-merge "### " x "\n\n"))) (4 (rend (str-merge "#### " x "\n\n")
+((chapter-gc section 2 "GC" ((newline (section 3 "set-gc-stack-size" ((para ("With `set-gc-stack-size` you can change the size of the stack used for heap traversal" "by the garbage collector.")) (code ((set-gc-stack-size 100))) nil)) newline hline))) (ren
 ```
 
 
@@ -529,7 +529,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((local-environment-get newline (section 3 "local-env-get" ((para ("`local-env-get` can be used to reify, turn into value, the local environment.")) (code ((local-env-get))) (program (((let ((a 50)) (local-env-get))))) nil)) newline hline) (pretty-ind clo
+((environment-get newline (section 3 "env-get" ((para ("`env-get` can be used to reify, turn into value, parts of the global environment." "The global environment is stored as a hashtable and an index into this hashtable" "is used to extract the bindings 
 ```
 
 
@@ -547,7 +547,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((chapter-environments section 2 "Environments" ((newline (section 3 "env-get" ((para ("`env-get` can be used to reify, turn into value, parts of the global environment." "The global environment is stored as a hashtable and an index into this hashtable" "
+((environment-set newline (section 3 "env-set" ((para ("`env-set` destructively sets an entry in the global environment hashtable.")) (program (((if (eq (env-get 1) nil) (env-set 1 (list (quote (a . 75))))) (env-get 1)))) (para ("Note that in the example 
 ```
 
 
@@ -565,7 +565,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((symbol-table-size newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (pretty closure (c) (pretty-ind 0 c) nil))
+((pretty-ind closure (n c) (match c ((loop (? e) ? es) (str-merge (ind-spaces n) "(loop " (pretty e) (pretty-aligned-ontop (+ n 6) es) ")")) ((atomic (? e) ? es) (str-merge (ind-spaces n) "(atomic " (pretty e) (pretty-aligned-ontop (+ n 8) es) ")")) ((rec
 ```
 
 
@@ -583,7 +583,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((symbol-table-size-flash newline (section 3 "symtab-size-flash" ((para ("`symtab-size-flash` returns the size in bytes of the portion of the symbol table" "that is stored in flash.")) (code ((symtab-size-flash))) nil)) newline hline) (ind-spaces closure 
+((local-environment-get newline (section 3 "local-env-get" ((para ("`local-env-get` can be used to reify, turn into value, the local environment.")) (code ((local-env-get))) (program (((let ((a 50)) (local-env-get))))) nil)) newline hline) (render-table c
 ```
 
 
@@ -621,7 +621,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 
 
 ```clj
-((symbol-table-size-names-flash newline (section 3 "symtab-size-names-flash" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table in flash.")) (code ((symtab-size-names-flash))) nil)) newline hline))
+((symbol-table-size newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline))
 ```
 
 
@@ -757,7 +757,7 @@ t
 <td>
 
 ```clj
-255200
+255168
 ```
 
 
@@ -791,7 +791,7 @@ t
 <td>
 
 ```clj
-255130
+255098
 ```
 
 
@@ -895,7 +895,7 @@ t
 <td>
 
 ```clj
-9137u
+9332u
 ```
 
 
@@ -913,7 +913,7 @@ t
 <td>
 
 ```clj
-732u
+751u
 ```
 
 
@@ -949,7 +949,7 @@ t
 <td>
 
 ```clj
-2600u
+2795u
 ```
 
 
@@ -967,7 +967,7 @@ t
 <td>
 
 ```clj
-9997400u
+9997205u
 ```
 
 
@@ -1003,7 +1003,7 @@ t
 <td>
 
 ```clj
-9997400u
+9997205u
 ```
 
 
@@ -1021,7 +1021,7 @@ t
 <td>
 
 ```clj
-9997400u
+9997205u
 ```
 
 
@@ -1093,7 +1093,7 @@ t
 <td>
 
 ```clj
-3396u
+3492u
 ```
 
 
@@ -1161,7 +1161,7 @@ t
 <td>
 
 ```clj
-1344u
+1404u
 ```
 
 

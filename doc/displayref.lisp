@@ -15,8 +15,11 @@
 
 (define img-rgb888 (img-buffer 'rgb888 320 200))
 
-(define small (img-buffer 'rgb888 10 10)) 
+;(define small (img-buffer 'rgb888 10 10)) 
 
+(define img-100-100 (img-buffer 'indexed2 100 100))
+
+(img-blit img-100-100 llama-bin 0 0 -1 '(scale 0.3))
 
 
 (define create_image1
@@ -199,13 +202,19 @@
 			 "that can be expressed as a list of colors".
 			 "for example:"
 			 ))
-	     (code-png 'render-target nil
-		       '((disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))
-			 (disp-render llama-bin 20 20 '(0x000000 0xFF0000))
-			 (disp-render llama-bin 30 30 '(0x000000 0x00FF00))
-			 (disp-render llama-bin 30 30 '(0x000000 0x0000FF))
+	     (code-disp '((disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))
+			  (disp-render llama-bin 20 20 '(0x000000 0xFF0000))
+			  (disp-render llama-bin 30 30 '(0x000000 0x00FF00))
+			  (disp-render llama-bin 30 30 '(0x000000 0x0000FF))
+			  (disp-clear)
 			 ))
-			 
+
+	     (code-disp '((disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))
+			 (disp-render img-100-100 0 100 '(0x000000 0xFF0000))
+			 (disp-render img-100-100 100 0 '(0x000000 0x00FF00))
+			 (disp-render img-100-100 100 100 '(0x000000 0x0000FF))
+			 ))
+	
 	     
 	     
 	    end ))

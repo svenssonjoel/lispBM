@@ -5,7 +5,7 @@
 all: lbmref.md displayref.md runtimeref.md
 
 doclib.env: doclib.lisp
-	lbm --src="doclib.lisp" --store_env=doclib.env --terminate
+	lbm -H 100000 --src="doclib.lisp" --store_env=doclib.env --terminate
 
 lbmref.md: doclib.env lbmref.lisp
 	lbm -H 10000000 --src="lbmref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate

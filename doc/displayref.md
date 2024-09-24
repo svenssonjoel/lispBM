@@ -124,6 +124,127 @@ t
 
 </td>
 </tr>
+<tr>
+<td>
+
+```clj
+(disp-clear)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img5.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-render img-100-100 0 0 '(0 16777215))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img6.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-render img-100-100 0 100 '(0 16711680))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img7.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-render img-100-100 100 0 '(0 65280))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img8.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-render img-100-100 100 100 '(0 255))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img9.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
 </table>
 
 
@@ -261,7 +382,7 @@ nil
 </td>
 <td>
 
-<img src=./images/img5.png >
+<img src=./images/img10.png >
 
 </td>
 <td>
@@ -284,7 +405,7 @@ t
 </td>
 <td>
 
-<img src=./images/img6.png >
+<img src=./images/img11.png >
 
 </td>
 <td>
@@ -307,7 +428,7 @@ t
 </td>
 <td>
 
-<img src=./images/img7.png >
+<img src=./images/img12.png >
 
 </td>
 <td>
@@ -344,7 +465,7 @@ t
 </td>
 <td>
 
-<img src=./images/img8.png >
+<img src=./images/img13.png >
 
 </td>
 <td>
@@ -367,7 +488,7 @@ t
 </td>
 <td>
 
-<img src=./images/img9.png >
+<img src=./images/img14.png >
 
 </td>
 <td>
@@ -390,7 +511,7 @@ t
 </td>
 <td>
 
-<img src=./images/img10.png >
+<img src=./images/img15.png >
 
 </td>
 <td>
@@ -413,7 +534,7 @@ t
 </td>
 <td>
 
-<img src=./images/img11.png >
+<img src=./images/img16.png >
 
 </td>
 <td>
@@ -436,7 +557,7 @@ t
 </td>
 <td>
 
-<img src=./images/img12.png >
+<img src=./images/img17.png >
 
 </td>
 <td>
@@ -465,7 +586,7 @@ t
 </td>
 <td>
 
-<img src=./images/img13.png >
+<img src=./images/img18.png >
 
 </td>
 <td>
@@ -488,7 +609,7 @@ t
 </td>
 <td>
 
-<img src=./images/img14.png >
+<img src=./images/img19.png >
 
 </td>
 <td>
@@ -525,7 +646,7 @@ t
 </td>
 <td>
 
-<img src=./images/img15.png >
+<img src=./images/img20.png >
 
 </td>
 <td>
@@ -548,7 +669,7 @@ t
 </td>
 <td>
 
-<img src=./images/img16.png >
+<img src=./images/img21.png >
 
 </td>
 <td>
@@ -571,7 +692,7 @@ t
 </td>
 <td>
 
-<img src=./images/img17.png >
+<img src=./images/img22.png >
 
 </td>
 <td>
@@ -594,7 +715,7 @@ t
 </td>
 <td>
 
-<img src=./images/img18.png >
+<img src=./images/img23.png >
 
 </td>
 <td>
@@ -623,7 +744,7 @@ t
 </td>
 <td>
 
-<img src=./images/img19.png >
+<img src=./images/img24.png >
 
 </td>
 <td>
@@ -660,7 +781,7 @@ t
 </td>
 <td>
 
-<img src=./images/img20.png >
+<img src=./images/img25.png >
 
 </td>
 <td>
@@ -683,7 +804,7 @@ t
 </td>
 <td>
 
-<img src=./images/img21.png >
+<img src=./images/img26.png >
 
 </td>
 <td>
@@ -720,7 +841,7 @@ t
 </td>
 <td>
 
-<img src=./images/img22.png >
+<img src=./images/img27.png >
 
 </td>
 <td>
@@ -743,7 +864,7 @@ t
 </td>
 <td>
 
-<img src=./images/img23.png >
+<img src=./images/img28.png >
 
 </td>
 <td>
@@ -780,7 +901,7 @@ t
 </td>
 <td>
 
-<img src=./images/img24.png >
+<img src=./images/img29.png >
 
 </td>
 <td>
@@ -803,7 +924,7 @@ t
 </td>
 <td>
 
-<img src=./images/img25.png >
+<img src=./images/img30.png >
 
 </td>
 <td>
@@ -826,7 +947,7 @@ t
 </td>
 <td>
 
-<img src=./images/img26.png >
+<img src=./images/img31.png >
 
 </td>
 <td>
@@ -863,7 +984,7 @@ t
 </td>
 <td>
 
-<img src=./images/img27.png >
+<img src=./images/img32.png >
 
 </td>
 <td>
@@ -886,7 +1007,7 @@ t
 </td>
 <td>
 
-<img src=./images/img28.png >
+<img src=./images/img33.png >
 
 </td>
 <td>
@@ -909,7 +1030,7 @@ t
 </td>
 <td>
 
-<img src=./images/img29.png >
+<img src=./images/img34.png >
 
 </td>
 <td>
@@ -946,7 +1067,7 @@ t
 </td>
 <td>
 
-<img src=./images/img30.png >
+<img src=./images/img35.png >
 
 </td>
 <td>
@@ -983,7 +1104,7 @@ t
 </td>
 <td>
 
-<img src=./images/img31.png >
+<img src=./images/img36.png >
 
 </td>
 <td>
@@ -1020,7 +1141,7 @@ t
 </td>
 <td>
 
-<img src=./images/img32.png >
+<img src=./images/img37.png >
 
 </td>
 <td>
@@ -1043,7 +1164,7 @@ t
 </td>
 <td>
 
-<img src=./images/img33.png >
+<img src=./images/img38.png >
 
 </td>
 <td>
@@ -1066,7 +1187,7 @@ t
 </td>
 <td>
 
-<img src=./images/img34.png >
+<img src=./images/img39.png >
 
 </td>
 <td>
