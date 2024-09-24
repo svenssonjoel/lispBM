@@ -123,7 +123,7 @@ static void lbm_defrag_mem_defrag(lbm_uint *defrag_mem, lbm_uint bytes) {
         memmove(target, source, (alloc_words + 3) * sizeof(lbm_uint));
         memset(&mem_data[clear_ix],0, move_dist* sizeof(lbm_uint));
         DEFRAG_ALLOC_DATA(target) = (lbm_uint)&target[3];
-        lbm_value cell = DEFRAG_ALLOC_CELLPTR(targetQ);
+        lbm_value cell = DEFRAG_ALLOC_CELLPTR(target);
 
         lbm_set_car(cell,(lbm_uint)target);
         // move home and i forwards.

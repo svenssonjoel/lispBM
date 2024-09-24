@@ -554,6 +554,8 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
   return generate_freelist(num_cells);
 }
 
+// Could make use of NIL == 0 here and return the lbm_value,
+// it can still be used in conditionals as false/true.
 bool lbm_heap_allocate_cell(lbm_value *r_val, lbm_type ptr_type, lbm_value car, lbm_value cdr) {
   bool r = false;
   lbm_value cell = lbm_heap_state.freelist;
