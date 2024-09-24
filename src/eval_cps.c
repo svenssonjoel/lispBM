@@ -423,28 +423,27 @@ eval_context_t *lbm_get_current_context(void) {
 
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
 #ifdef LBM_ALWAYS_GC
-  lbm_value roots[3] = {head, tail, remember};
-  lbm_gc_mark_roots(roots, 3);
+  lbm_value rootsises[3] = {head, tail, remember};
+  lbm_gc_mark_roots(rootsises,3);
   gc();
-  lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
-  res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
-  if (lbm_is_symbol_merror(res)) {
-    error_ctx(ENC_SYM_MERROR);
-  }
-  return res;
-#else
-  lbm_value res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
-  if (lbm_is_symbol_merror(res)) {
+#endif
+  lbm_value res = lbm_heap_state.freelist;
+  if (lbm_is_symbol_nil(res)) { // freelist empty
     lbm_value roots[3] = {head, tail, remember};
     lbm_gc_mark_roots(roots,3);
     gc();
-    res = lbm_heap_allocate_cell(LBM_TYPE_CONS, head, tail);
-    if (lbm_is_symbol_merror(res)) {
-        error_ctx(ENC_SYM_MERROR);
+    res = lbm_heap_state.freelist;
+    if (lbm_is_symbol_nil(res)) {
+      error_ctx(ENC_SYM_MERROR);
     }
   }
+  lbm_uint heap_ix = lbm_dec_ptr(res);
+  lbm_heap_state.freelist = lbm_heap_state.heap[heap_ix].cdr;
+  lbm_heap_state.num_alloc++;
+  lbm_heap_state.heap[heap_ix].car = head;
+  lbm_heap_state.heap[heap_ix].cdr = tail;
+  res = lbm_set_ptr_type(res, LBM_TYPE_CONS);
   return res;
-#endif
 }
 
 static lbm_uint *get_stack_ptr(eval_context_t *ctx, unsigned int n) {
