@@ -423,12 +423,12 @@ eval_context_t *lbm_get_current_context(void) {
 
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
 #ifdef LBM_ALWAYS_GC
-  lbm_value rootsises[3] = {head, tail, remember};
-  lbm_gc_mark_roots(rootsises,3);
+  lbm_value always_gc_roots[3] = {head, tail, remember};
+  lbm_gc_mark_roots(always_gc_roots,3);
   gc();
 #endif
   lbm_value res = lbm_heap_state.freelist;
-  if (lbm_is_symbol_nil(res)) { // freelist empty
+  if (lbm_is_symbol_nil(res)) {
     lbm_value roots[3] = {head, tail, remember};
     lbm_gc_mark_roots(roots,3);
     gc();
