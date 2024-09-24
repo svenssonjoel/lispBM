@@ -451,8 +451,9 @@ lbm_value handle_flatten_error(int err_val) {
 
 lbm_value flatten_value(lbm_value v) {
 
-  lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
-  if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) {
+  lbm_value array_cell;
+
+  if (!lbm_heap_allocate_cell(&array_cell, LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE)) {
     return ENC_SYM_MERROR;
   }
 
