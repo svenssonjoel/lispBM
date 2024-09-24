@@ -172,6 +172,17 @@ static bool lbm_error_has_suspect = false;
 
 #endif
 
+/**************************************************************/
+/* Make static analysis happy  */
+
+lbm_uint sa_dummy_data[1] = { 0 };
+
+lbm_array_header_t sa_dummy_array_header = { 0 , sa_dummy_data }  ;
+
+#define SA_DUMMY_ARRAY &sa_dummy_array_header;
+
+/**************************************************************/
+/* */
 typedef struct {
   eval_context_t *first;
   eval_context_t *last;
@@ -421,6 +432,15 @@ eval_context_t *lbm_get_current_context(void) {
 /****************************************************/
 /* Utilities used locally in this file              */
 
+static lbm_array_header_t * get_array(lbm_value a) {
+  if (lbm_is_ptr(a)) {
+    lbm_cons_t *cell = lbm_ref_cell(a);
+    return (lbm_array_header_t *)cell->car;
+  }
+  error_ctx(ENC_SYM_FATAL_ERROR); // Stack contains garbage!
+  return SA_DUMMY_ARRAY;
+}
+
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
 #ifdef LBM_ALWAYS_GC
   lbm_value always_gc_roots[3] = {head, tail, remember};
@@ -509,6 +529,7 @@ static void get_car_and_cdr(lbm_value a, lbm_value *a_car, lbm_value *a_cdr) {
   } else if (lbm_is_symbol_nil(a)) {
     *a_car = *a_cdr = ENC_SYM_NIL;
   } else {
+    *a_car = *a_cdr = ENC_SYM_NIL;
     error_ctx(ENC_SYM_TERROR);
   }
 }
@@ -1589,7 +1610,7 @@ static void eval_symbol(eval_context_t *ctx) {
     sptr[1] = ctx->curr_env;
     sptr[2] = RESUME;
 
-    lbm_value chan;
+    lbm_value chan = ENC_SYM_NIL;
     if (!create_string_channel((char *)code_str, &chan)) {
       gc();
       if (!create_string_channel((char *)code_str, &chan)) {
@@ -1662,7 +1683,7 @@ static void eval_callcc(eval_context_t *ctx) {
       return; // dead return but static analysis doesn't know :)
     }
   }
-  lbm_array_header_t *arr = (lbm_array_header_t*)get_car(cont_array);
+  lbm_array_header_t *arr = get_array(cont_array);
   memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
 
   lbm_value acont = cons_with_gc(ENC_SYM_CONT, cont_array, ENC_SYM_NIL);
@@ -3737,7 +3758,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
         return; // dead return but static analysis does not know that.
       }
     }
-    lbm_array_header_t *arr = (lbm_array_header_t*)get_car(res);
+    lbm_array_header_t *arr = get_array(res);
     char *data = (char*)arr->data;
     memset(data,0, string_len + 1);
     memcpy(data, tokpar_sym_str, string_len);
@@ -3968,8 +3989,7 @@ static void cont_read_append_array(eval_context_t *ctx) {
   // get_car can return nil. Whose value is 0!
   // So static Analysis is right about this being a potential NULL pointer.
   // However, if the array was created correcly to begin with, it should be fine.
-  lbm_value arr_car = get_car(array);
-  lbm_array_header_t *arr = (lbm_array_header_t*)arr_car;
+  lbm_array_header_t *arr = get_array(array);
 
   if (lbm_is_number(ctx->r)) {
     ((uint8_t*)arr->data)[ix] = (uint8_t)lbm_dec_as_u32(ctx->r);
@@ -4062,42 +4082,42 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
   lbm_pop_2(&ctx->K, &env, &stream);
 
   lbm_char_channel_t *str = lbm_dec_channel(stream);
-  if (str == NULL || str->state == NULL) {
+  if (str && str->state) {
+    ctx->row1 = (lbm_int)str->row(str);
+
+    if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
+
+      switch(ctx->r) {
+      case ENC_SYM_CLOSEPAR:
+	ctx->app_cont = true;
+	return;
+      case ENC_SYM_DOT: {
+	// This case is a bit mysterious.
+	// A dot, may in reality be an error in this location.
+	lbm_value *rptr = stack_reserve(ctx, 4);
+	rptr[0] = READ_DOT_TERMINATE;
+	rptr[1] = stream;
+	rptr[2] = lbm_enc_u(0);
+	rptr[3] = READ_NEXT_TOKEN;
+	ctx->app_cont = true;
+      } return;
+      }
+    }
+
+    lbm_value *rptr = stack_reserve(ctx, 6);
+    rptr[0] = stream;
+    rptr[1] = env;
+    rptr[2] = READ_EVAL_CONTINUE;
+    rptr[3] = stream;
+    rptr[4] = lbm_enc_u(1);
+    rptr[5] = READ_NEXT_TOKEN;
+    rptr[6] = lbm_enc_u(ctx->flags);
+    rptr[7] = POP_READER_FLAGS;
+    ctx->curr_env = env;
+    ctx->curr_exp = ctx->r;
+  } else {
     error_ctx(ENC_SYM_FATAL_ERROR);
   }
-
-  ctx->row1 = (lbm_int)str->row(str);
-
-  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
-
-    switch(ctx->r) {
-    case ENC_SYM_CLOSEPAR:
-      ctx->app_cont = true;
-      return;
-    case ENC_SYM_DOT: {
-      // This case is a bit mysterious.
-      // A dot, may in reality be an error in this location.
-      lbm_value *rptr = stack_reserve(ctx, 4);
-      rptr[0] = READ_DOT_TERMINATE;
-      rptr[1] = stream;
-      rptr[2] = lbm_enc_u(0);
-      rptr[3] = READ_NEXT_TOKEN;
-      ctx->app_cont = true;
-    } return;
-    }
-  }
-
-  lbm_value *rptr = stack_reserve(ctx, 6);
-  rptr[0] = stream;
-  rptr[1] = env;
-  rptr[2] = READ_EVAL_CONTINUE;
-  rptr[3] = stream;
-  rptr[4] = lbm_enc_u(1);
-  rptr[5] = READ_NEXT_TOKEN;
-  rptr[6] = lbm_enc_u(ctx->flags);
-  rptr[7] = POP_READER_FLAGS;
-  ctx->curr_env = env;
-  ctx->curr_exp = ctx->r;
 }
 
 static void cont_read_expect_closepar(eval_context_t *ctx) {
@@ -4288,7 +4308,7 @@ static void cont_application_start(eval_context_t *ctx) {
       }
       lbm_stack_clear(&ctx->K);
 
-      lbm_array_header_t *arr = (lbm_array_header_t*)get_car(c);
+      lbm_array_header_t *arr = get_array(c);
 
       ctx->K.sp = arr->size / sizeof(lbm_uint);
       memcpy(ctx->K.data, arr->data, arr->size);
@@ -4583,11 +4603,11 @@ static void cont_move_array_elts_to_flash(eval_context_t *ctx) {
   // sptr[2] = source array in RAM
   // sptr[1] = current index
   // sptr[0] = target array in flash
-  lbm_array_header_t *src_arr = (lbm_array_header_t*)get_car(sptr[2]);
+  lbm_array_header_t *src_arr = get_array(sptr[2]);
   lbm_uint size = src_arr->size / sizeof(lbm_uint);
   lbm_value *srcdata = (lbm_value *)src_arr->data;
 
-  lbm_array_header_t *tgt_arr = (lbm_array_header_t*)get_car(sptr[0]);
+  lbm_array_header_t *tgt_arr = get_array(sptr[0]);
   lbm_uint *tgtdata = (lbm_value *)tgt_arr->data;
   lbm_uint ix = lbm_dec_as_u32(sptr[1]);
   handle_flash_status(lbm_const_write(&tgtdata[ix], ctx->r));
