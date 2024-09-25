@@ -432,13 +432,8 @@ eval_context_t *lbm_get_current_context(void) {
 /****************************************************/
 /* Utilities used locally in this file              */
 
-static lbm_array_header_t * get_array(lbm_value a) {
-  if (lbm_is_ptr(a)) {
-    lbm_cons_t *cell = lbm_ref_cell(a);
-    return (lbm_array_header_t *)cell->car;
-  }
-  error_ctx(ENC_SYM_FATAL_ERROR); // Stack contains garbage!
-  return SA_DUMMY_ARRAY;
+static inline lbm_array_header_t *assume_array(lbm_value a){
+  return (lbm_array_header_t*)lbm_ref_cell(a)->car;
 }
 
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
@@ -1678,22 +1673,24 @@ static void eval_callcc(eval_context_t *ctx) {
   lbm_value cont_array;
   if (!lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp)) {
     gc();
-    if (!lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp)) {
-      error_ctx(ENC_SYM_MERROR);
-      return; // dead return but static analysis doesn't know :)
-    }
+    lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp);
   }
-  lbm_array_header_t *arr = get_array(cont_array);
-  memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
+  if (lbm_is_ptr(cont_array)) {
+    lbm_array_header_t *arr = assume_array(cont_array);
+    memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
 
-  lbm_value acont = cons_with_gc(ENC_SYM_CONT, cont_array, ENC_SYM_NIL);
-  lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
-  // Go directly into application evaluation without passing go
-  lbm_uint *sptr = stack_reserve(ctx, 3);
-  sptr[0] = ctx->curr_env;
-  sptr[1] = arg_list;
-  sptr[2] = APPLICATION_START;
-  ctx->curr_exp = get_cadr(ctx->curr_exp);
+    lbm_value acont = cons_with_gc(ENC_SYM_CONT, cont_array, ENC_SYM_NIL);
+    lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
+    // Go directly into application evaluation without passing go
+    lbm_uint *sptr = stack_reserve(ctx, 3);
+    sptr[0] = ctx->curr_env;
+    sptr[1] = arg_list;
+    sptr[2] = APPLICATION_START;
+    ctx->curr_exp = get_cadr(ctx->curr_exp);
+  } else {
+    // failed to create continuation array.
+    error_ctx(ENC_SYM_MERROR);
+  }
 }
 
 // (define sym exp)
@@ -3753,19 +3750,20 @@ static void cont_read_next_token(eval_context_t *ctx) {
     lbm_channel_drop(chan, (unsigned int)n);
     if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1))) {
       gc();
-      if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1))) {
-        error_ctx(ENC_SYM_MERROR);
-        return; // dead return but static analysis does not know that.
-      }
+      lbm_heap_allocate_array(&res, (unsigned int)(string_len+1));
     }
-    lbm_array_header_t *arr = get_array(res);
-    char *data = (char*)arr->data;
-    memset(data,0, string_len + 1);
-    memcpy(data, tokpar_sym_str, string_len);
-    lbm_stack_drop(&ctx->K, 2);
-    ctx->r = res;
-    ctx->app_cont = true;
-    return;
+    if (lbm_is_ptr(res)) {
+      lbm_array_header_t *arr = assume_array(res);
+      char *data = (char*)arr->data;
+      memset(data,0, string_len + 1);
+      memcpy(data, tokpar_sym_str, string_len);
+      lbm_stack_drop(&ctx->K, 2);
+      ctx->r = res;
+      ctx->app_cont = true;
+      return;
+    } else {
+      error_ctx(ENC_SYM_MERROR);
+    }
   } else if (n < 0) goto retry_token;
 
   /*
@@ -3986,11 +3984,9 @@ static void cont_read_append_array(eval_context_t *ctx) {
     error_ctx(ENC_SYM_MERROR);
   }
 
-  // get_car can return nil. Whose value is 0!
-  // So static Analysis is right about this being a potential NULL pointer.
-  // However, if the array was created correcly to begin with, it should be fine.
-  lbm_array_header_t *arr = get_array(array);
-
+  // if sptr[0] is not an array something is very very wrong.
+  // Not robust against a garbage on stack. But how would garbage get onto stack?
+  lbm_array_header_t *arr = assume_array(array);
   if (lbm_is_number(ctx->r)) {
     ((uint8_t*)arr->data)[ix] = (uint8_t)lbm_dec_as_u32(ctx->r);
 
@@ -4308,8 +4304,7 @@ static void cont_application_start(eval_context_t *ctx) {
       }
       lbm_stack_clear(&ctx->K);
 
-      lbm_array_header_t *arr = get_array(c);
-
+      lbm_array_header_t *arr = assume_array(c);
       ctx->K.sp = arr->size / sizeof(lbm_uint);
       memcpy(ctx->K.data, arr->data, arr->size);
 
@@ -4469,11 +4464,11 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
       case ENC_SYM_RAW_I_TYPE: /* fall through */
       case ENC_SYM_RAW_U_TYPE:
       case ENC_SYM_RAW_F_TYPE: {
-	lbm_value flash_cell = ENC_SYM_NIL;
-	handle_flash_status(request_flash_storage_cell(val, &flash_cell));
+        lbm_value flash_cell = ENC_SYM_NIL;
+        handle_flash_status(request_flash_storage_cell(val, &flash_cell));
         handle_flash_status(write_const_car(flash_cell, ref->car));
         handle_flash_status(write_const_cdr(flash_cell, ref->cdr));
-	ctx->r = flash_cell;
+        ctx->r = flash_cell;
       } break;
       case ENC_SYM_IND_I_TYPE: /* fall through */
       case ENC_SYM_IND_U_TYPE:
@@ -4484,11 +4479,11 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
         lbm_uint flash_ptr;
 
         handle_flash_status(lbm_write_const_raw(lbm_mem_ptr, 2, &flash_ptr));
-	lbm_value flash_cell = ENC_SYM_NIL;
-	handle_flash_status(request_flash_storage_cell(val, &flash_cell));
+        lbm_value flash_cell = ENC_SYM_NIL;
+        handle_flash_status(request_flash_storage_cell(val, &flash_cell));
         handle_flash_status(write_const_car(flash_cell, flash_ptr));
         handle_flash_status(write_const_cdr(flash_cell, ref->cdr));
-	ctx->r = flash_cell;
+        ctx->r = flash_cell;
 #else
         // There are no indirect types in LBM64
         error_ctx(ENC_SYM_FATAL_ERROR);
@@ -4499,8 +4494,8 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
         lbm_uint size = arr->size / sizeof(lbm_uint);
         lbm_uint flash_addr;
         lbm_value *arrdata = (lbm_value *)arr->data;
-	lbm_value flash_cell = ENC_SYM_NIL;
-	handle_flash_status(request_flash_storage_cell(val, &flash_cell));
+        lbm_value flash_cell = ENC_SYM_NIL;
+        handle_flash_status(request_flash_storage_cell(val, &flash_cell));
         handle_flash_status(lbm_allocate_const_raw(size, &flash_addr));
         lift_array_flash(flash_cell,
                          false,
@@ -4522,13 +4517,13 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
         // arbitrary address: flash_arr.
         lbm_uint flash_arr;
         handle_flash_status(lbm_write_const_array_padded((uint8_t*)arr->data, arr->size, &flash_arr));
-	lbm_value flash_cell = ENC_SYM_NIL;
-	handle_flash_status(request_flash_storage_cell(val, &flash_cell));
+        lbm_value flash_cell = ENC_SYM_NIL;
+        handle_flash_status(request_flash_storage_cell(val, &flash_cell));
         lift_array_flash(flash_cell,
                          true,
                          (char *)flash_arr,
                          arr->size);
-	ctx->r = flash_cell;
+        ctx->r = flash_cell;
       } break;
       case ENC_SYM_CHANNEL_TYPE: /* fall through */
       case ENC_SYM_CUSTOM_TYPE:
@@ -4603,11 +4598,11 @@ static void cont_move_array_elts_to_flash(eval_context_t *ctx) {
   // sptr[2] = source array in RAM
   // sptr[1] = current index
   // sptr[0] = target array in flash
-  lbm_array_header_t *src_arr = get_array(sptr[2]);
+  lbm_array_header_t *src_arr = assume_array(sptr[2]);
   lbm_uint size = src_arr->size / sizeof(lbm_uint);
   lbm_value *srcdata = (lbm_value *)src_arr->data;
 
-  lbm_array_header_t *tgt_arr = get_array(sptr[0]);
+  lbm_array_header_t *tgt_arr = assume_array(sptr[0]);
   lbm_uint *tgtdata = (lbm_value *)tgt_arr->data;
   lbm_uint ix = lbm_dec_as_u32(sptr[1]);
   handle_flash_status(lbm_const_write(&tgtdata[ix], ctx->r));
