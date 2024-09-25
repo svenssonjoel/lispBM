@@ -26,7 +26,7 @@ At the low-level end of things you will want to display graphics onto an display
 
 the display library is specifically designed to allow for using many colors simultaneously on screen, without needing to use full screen high-color buffers. This is done by delaying the choice of collor mapping in the `indexed2`, `indexed4` and `indexed16` images until they are presented on screen. 
 
-images are rendered onto a display using the function `disp-render`. `disp-render` takes an image, a position (x,y) where to draw the image, and a colormapping that can be expressed as a list of colors 
+images are rendered onto a display using the function `disp-render`. `disp-render` takes an image, a position (x,y) where to draw the image, and a colormapping that can be expressed as a list of colors. for example: 
 
 <table>
 <tr>
@@ -36,7 +36,7 @@ images are rendered onto a display using the function `disp-render`. `disp-rende
 <td>
 
 ```clj
-(disp-render llama-bin 10 10 '(0 16777215))
+(disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))
 ```
 
 
@@ -59,7 +59,7 @@ t
 <td>
 
 ```clj
-(disp-render llama-bin 20 20 '(0 16711680))
+(disp-render llama-bin 20 20 '(0x000000 0xFF0000))
 ```
 
 
@@ -82,7 +82,7 @@ t
 <td>
 
 ```clj
-(disp-render llama-bin 30 30 '(0 65280))
+(disp-render llama-bin 30 30 '(0x000000 0x00FF00))
 ```
 
 
@@ -105,7 +105,7 @@ t
 <td>
 
 ```clj
-(disp-render llama-bin 30 30 '(0 255))
+(disp-render llama-bin 30 30 '(0x000000 0x0000FF))
 ```
 
 
@@ -157,7 +157,7 @@ t
 <td>
 
 ```clj
-(disp-render img-100-100 0 0 '(0 16777215))
+(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))
 ```
 
 
@@ -180,7 +180,7 @@ t
 <td>
 
 ```clj
-(disp-render img-100-100 0 100 '(0 16711680))
+(disp-render img-100-100 0 100 '(0x000000 0xFF0000))
 ```
 
 
@@ -203,7 +203,7 @@ t
 <td>
 
 ```clj
-(disp-render img-100-100 100 0 '(0 65280))
+(disp-render img-100-100 100 0 '(0x000000 0x00FF00))
 ```
 
 
@@ -226,7 +226,7 @@ t
 <td>
 
 ```clj
-(disp-render img-100-100 100 100 '(0 255))
+(disp-render img-100-100 100 100 '(0x000000 0x0000FF))
 ```
 
 

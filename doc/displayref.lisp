@@ -21,6 +21,7 @@
 
 (img-blit img-100-100 llama-bin 0 0 -1 '(scale 0.3))
 
+(defun code-disp-str (xs) (code-disp (map (lambda (x) (list 'read-eval x)) xs)))
 
 (define create_image1
   (ref-entry "img-buffer"
@@ -199,21 +200,21 @@
 			 ))
 	     (para (list "images are rendered onto a display using the function `disp-render`."
 			 "`disp-render` takes an image, a position (x,y) where to draw the image, and a colormapping"
-			 "that can be expressed as a list of colors".
+			 "that can be expressed as a list of colors."
 			 "for example:"
 			 ))
-	     (code-disp '((disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))
-			  (disp-render llama-bin 20 20 '(0x000000 0xFF0000))
-			  (disp-render llama-bin 30 30 '(0x000000 0x00FF00))
-			  (disp-render llama-bin 30 30 '(0x000000 0x0000FF))
-			  (disp-clear)
-			 ))
+	     (code-disp-str '("(disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))"
+			      "(disp-render llama-bin 20 20 '(0x000000 0xFF0000))"
+			      "(disp-render llama-bin 30 30 '(0x000000 0x00FF00))"
+			      "(disp-render llama-bin 30 30 '(0x000000 0x0000FF))"
+			      "(disp-clear)"
+			      ))
 
-	     (code-disp '((disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))
-			 (disp-render img-100-100 0 100 '(0x000000 0xFF0000))
-			 (disp-render img-100-100 100 0 '(0x000000 0x00FF00))
-			 (disp-render img-100-100 100 100 '(0x000000 0x0000FF))
-			 ))
+	     (code-disp-str '("(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))"
+			      "(disp-render img-100-100 0 100 '(0x000000 0xFF0000))"
+			      "(disp-render img-100-100 100 0 '(0x000000 0x00FF00))"
+			      "(disp-render img-100-100 100 100 '(0x000000 0x0000FF))"
+			      ))
 	
 	     
 	     
