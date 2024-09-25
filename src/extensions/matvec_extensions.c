@@ -39,7 +39,7 @@ static lbm_value vector_float_allocate(lbm_uint size) {
                                     size * sizeof(float));
   if (!mem) return ENC_SYM_MERROR;
   mem->size = size;
-  lbm_value res;
+  lbm_value res = 0;
   lbm_custom_type_create((lbm_uint)mem,
                          common_destructor,
                          vector_float_desc,
@@ -68,7 +68,7 @@ static lbm_value matrix_float_allocate(unsigned int rows, unsigned int cols) {
   if (!mem) return ENC_SYM_MERROR;
   mem->rows = rows;
   mem->cols = cols;
-  lbm_value res;
+  lbm_value res = 0;
   lbm_custom_type_create((lbm_uint)mem,
                          common_destructor,
                          matrix_float_desc,

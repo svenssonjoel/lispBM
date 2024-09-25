@@ -127,8 +127,7 @@ lbm_value lbm_enc_float(float x) {
 
 #ifndef LBM64
 static lbm_value enc_64_on_32(uint8_t *source, lbm_uint type_qual, lbm_uint type) {
-  lbm_value res = ENC_SYM_MERROR;
-  res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
+  lbm_value res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
   if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
     uint8_t* storage = lbm_malloc(sizeof(uint64_t));
     if (storage) {

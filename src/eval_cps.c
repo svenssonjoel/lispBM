@@ -507,7 +507,7 @@ static void lift_array_flash(lbm_value flash_cell, bool bytearray,  char *data, 
   lbm_array_header_t flash_array_header;
   flash_array_header.size = num_elt;
   flash_array_header.data = (lbm_uint*)data;
-  lbm_uint flash_array_header_ptr;
+  lbm_uint flash_array_header_ptr = 0;
   handle_flash_status(lbm_write_const_raw((lbm_uint*)&flash_array_header,
                                           sizeof(lbm_array_header_t) / sizeof(lbm_uint),
                                           &flash_array_header_ptr));
@@ -2845,7 +2845,7 @@ static void apply_rest_args(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
 static void apply_rotate(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2 && lbm_is_list(args[0]) && lbm_is_number(args[1])) {
     int len = -1;
-    lbm_value ls = ENC_SYM_NIL;
+    lbm_value ls;
     WITH_GC(ls, lbm_list_copy(&len, args[0]));
     int dist = lbm_dec_as_i32(args[1]);
     if (len > 0 && dist != 0) {
@@ -4492,7 +4492,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
       case ENC_SYM_LISPARRAY_TYPE: {
         lbm_array_header_t *arr = (lbm_array_header_t*)ref->car;
         lbm_uint size = arr->size / sizeof(lbm_uint);
-        lbm_uint flash_addr;
+        lbm_uint flash_addr = 0;
         lbm_value *arrdata = (lbm_value *)arr->data;
         lbm_value flash_cell = ENC_SYM_NIL;
         handle_flash_status(request_flash_storage_cell(val, &flash_cell));
@@ -4515,7 +4515,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
       case ENC_SYM_ARRAY_TYPE: {
         lbm_array_header_t *arr = (lbm_array_header_t*)ref->car;
         // arbitrary address: flash_arr.
-        lbm_uint flash_arr;
+        lbm_uint flash_arr = 0;
         handle_flash_status(lbm_write_const_array_padded((uint8_t*)arr->data, arr->size, &flash_arr));
         lbm_value flash_cell = ENC_SYM_NIL;
         handle_flash_status(request_flash_storage_cell(val, &flash_cell));
