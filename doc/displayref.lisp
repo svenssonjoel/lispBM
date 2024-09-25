@@ -214,6 +214,8 @@
 			      "(disp-render img-100-100 0 100 '(0x000000 0xFF0000))"
 			      "(disp-render img-100-100 100 0 '(0x000000 0x00FF00))"
 			      "(disp-render img-100-100 100 100 '(0x000000 0x0000FF))"
+			      "(disp-render img-100-100 200 0 '(0x000000 0x00FFFF))"
+			      "(disp-render img-100-100 200 100 '(0x000000 0xFF00FF))"
 			      ))
 	
 	     
