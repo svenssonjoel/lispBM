@@ -271,7 +271,7 @@ static lbm_value image_buffer_allocate_dm(lbm_uint *dm, color_format_t fmt, uint
 
 // Exported interface
 bool display_is_color(lbm_value v) {
-  return ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)color_desc);
+  return (lbm_is_custom(v) && ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)color_desc));
 }
 
 // Register symbols

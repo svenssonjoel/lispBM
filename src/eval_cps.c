@@ -4552,9 +4552,9 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
 
 
   lbm_value new_lst = ENC_SYM_NIL;
-  // Allocate element ptr storage after storing the element to flash. 
+  // Allocate element ptr storage after storing the element to flash.
   handle_flash_status(request_flash_storage_cell(lbm_enc_cons_ptr(LBM_PTR_NULL), &new_lst)); 
-  
+
   if (lbm_is_symbol_nil(fst)) {
     lst = new_lst;
     fst = new_lst;
@@ -4562,7 +4562,7 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
   } else {
     handle_flash_status(write_const_cdr(lst, new_lst)); // low before high
     handle_flash_status(write_const_car(new_lst, ctx->r));
-    lst = new_lst;	
+    lst = new_lst;
   }
 
   if (lbm_is_cons(val)) {
@@ -4805,7 +4805,7 @@ static void cont_qq_list(eval_context_t *ctx) {
 
 static void cont_kill(eval_context_t *ctx) {
   (void) ctx;
-  ok_ctx(); 
+  ok_ctx();
 }
 
 static void cont_pop_reader_flags(eval_context_t *ctx) {
@@ -5152,7 +5152,7 @@ void lbm_run_eval(void){
       } else {
         if (eval_cps_state_changed) break;
         eval_steps_quota = eval_steps_refill;
-        if (!is_atomic) { 
+        if (!is_atomic) {
           if (gc_requested) {
             gc();
           }
