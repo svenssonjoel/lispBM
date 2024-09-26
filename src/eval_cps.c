@@ -2526,8 +2526,9 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value *sptr = get_stack_ptr(ctx, 3);
 
     lbm_value f = args[0];
-    lbm_value h = get_car(args[1]);
-    lbm_value t = get_cdr(args[1]);
+    lbm_cons_t *args1_cell = lbm_ref_cell(args[1]);
+    lbm_value h = args1_cell->car;
+    lbm_value t = args1_cell->cdr;
 
     lbm_value appli_1;
     lbm_value appli;
@@ -2569,9 +2570,10 @@ static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
 
     lbm_value new_list = ENC_SYM_NIL;
     while (lbm_is_cons(curr)) {
-      lbm_value tmp = cons_with_gc(get_car(curr), new_list, ENC_SYM_NIL);
+      lbm_cons_t *curr_cell = lbm_ref_cell(curr); // known cons.
+      lbm_value tmp = cons_with_gc(curr_cell->car, new_list, ENC_SYM_NIL);
       new_list = tmp;
-      curr = get_cdr(curr);
+      curr = curr_cell->cdr;
     }
     lbm_stack_drop(&ctx->K, 2);
     ctx->r = new_list;
