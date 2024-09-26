@@ -83,4 +83,8 @@ On Ubunty you can obtain the depencies by:
 
 Then issue command `make` in the repl directory.
 
+### Editor support
+
+* [vesc_tool](https://vesc-project.com/vesc_tool)
+* [vscode support](https://marketplace.visualstudio.com/items?itemName=rasmus-soderhielm.lispbm-language-support)
 
