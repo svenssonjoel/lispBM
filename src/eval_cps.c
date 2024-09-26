@@ -1484,12 +1484,12 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
   }
   if (lbm_is_cons(p) &&
       lbm_is_cons(e) ) {
-
-    lbm_value headp, tailp;
-    lbm_value heade, taile;
-    get_car_and_cdr(p, &headp, &tailp);
-    get_car_and_cdr(e, &heade, &taile); // Static analysis warns, but execution does not
-                                        // past this point unless head and tail get initialized.
+    lbm_cons_t *p_cell = lbm_ref_cell(p);
+    lbm_cons_t *e_cell = lbm_ref_cell(e);
+    lbm_value headp = p_cell->car;
+    lbm_value tailp = p_cell->cdr;
+    lbm_value heade = e_cell->car;
+    lbm_value taile = e_cell->cdr;
     if (!match(headp, heade, env, gc)) {
       return false;
     }
@@ -1653,15 +1653,16 @@ static void eval_progn(eval_context_t *ctx) {
   lbm_value exps = get_cdr(ctx->curr_exp);
 
   if (lbm_is_cons(exps)) {
-    lbm_uint *sptr = stack_reserve(ctx, 4);
-    sptr[0] = ctx->curr_env; // env to restore between expressions in progn
-    sptr[1] = lbm_enc_u(0);  // Has env been copied (needed for progn local bindings)
-    sptr[3] = PROGN_REST;
     lbm_cons_t *cell = lbm_ref_cell(exps); // already checked that it's cons.
     ctx->curr_exp = cell->car;
-    sptr[2] = cell->cdr;
-    if (lbm_is_symbol(sptr[2])) // The only symbol it can be is nil
-      lbm_stack_drop(&ctx->K, 4); // drop to allow tailcall-opt
+    if (lbm_is_cons(cell->cdr)) { // malformed progn not ending in nil is tolerated
+      lbm_uint *sptr = stack_reserve(ctx, 4);
+      sptr[0] = ctx->curr_env; // env to restore between expressions in progn
+      sptr[1] = lbm_enc_u(0);  // Has env been copied (needed for progn local bindings)
+      sptr[2] = cell->cdr;     // Requirement: sptr[2] is a cons.
+      sptr[3] = PROGN_REST;
+    }
+    // Nothing is pushed to stack for final element in progn. (tail-call req)
   } else if (lbm_is_symbol_nil(exps)) {
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
@@ -1867,19 +1868,18 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
       lbm_value curr = binds;
       while (lbm_is_cons(curr)) {
         lbm_value new_env_tmp = env;
-	lbm_cons_t *cell = lbm_ref_cell(curr); // already checked that cons
+	lbm_cons_t *cell = lbm_ref_cell(curr); // already checked that cons.
         lbm_value car_curr = cell->car;
 	lbm_value cdr_curr = cell->cdr;
-        get_car_and_cdr(curr, &car_curr, &cdr_curr);
         lbm_value key = get_car(car_curr);
         create_binding_location(key, &new_env_tmp);
         env = new_env_tmp;
         curr = cdr_curr;
       }
-      
-      lbm_value car_binds;
-      lbm_value cdr_binds;
-      get_car_and_cdr(binds, &car_binds, &cdr_binds);
+
+      lbm_cons_t *cell = lbm_ref_cell(binds); // already checked that cons.
+      lbm_value car_binds = cell->car;
+      lbm_value cdr_binds = cell->cdr;
       lbm_value key_val[2];
       extract_n(car_binds, key_val, 2);
       
@@ -2054,18 +2054,17 @@ static void eval_or(eval_context_t *ctx) {
 static void eval_match(eval_context_t *ctx) {
 
   lbm_value rest = get_cdr(ctx->curr_exp);
-  if (lbm_type_of(rest) == LBM_TYPE_SYMBOL &&
-      rest == ENC_SYM_NIL) {
-    // Someone wrote the program (match)
-    ctx->app_cont = true;
-    ctx->r = ENC_SYM_NIL;
-  } else {
-    lbm_value cdr_rest;
-    get_car_and_cdr(rest, &ctx->curr_exp, &cdr_rest);
+  if (lbm_is_cons(rest)) {
+    lbm_cons_t *cell = lbm_ref_cell(rest);
+    lbm_value cdr_rest = cell->cdr;
+    ctx->curr_exp = cell->car;
     lbm_value *sptr = stack_reserve(ctx, 3);
     sptr[0] = cdr_rest;
     sptr[1] = ctx->curr_env;
     sptr[2] = MATCH;
+  } else {
+    // syntax error to not include at least one pattern
+    error_ctx(ENC_SYM_EERROR);
   }
 }
 
@@ -2173,19 +2172,20 @@ static void cont_resume(eval_context_t *ctx) {
 static void cont_progn_rest(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 3);
 
-  lbm_value rest = sptr[2];
   lbm_value env  = sptr[0];
+  // eval_progn and cont_progn_rest both ensure that sptr[2] is a list
+  // whenever cont_progn_rest is called.
 
-  lbm_value rest_car, rest_cdr;
-  get_car_and_cdr(rest, &rest_car, &rest_cdr);
-  ctx->curr_exp = rest_car;
+  lbm_cons_t *rest_cell = lbm_ref_cell(sptr[2]);
+  lbm_value rest_cdr = rest_cell->cdr;
+  ctx->curr_exp = rest_cell->car;;
   ctx->curr_env = env;
-  if (lbm_is_symbol_nil(rest_cdr)) {
+  if (lbm_is_cons(rest_cdr)) {
+    sptr[2] = rest_cdr; // Requirement: rest_cdr is a cons
+    stack_reserve(ctx, 1)[0] = PROGN_REST;
+  } else {
     // allow for tail recursion
     lbm_stack_drop(&ctx->K, 3);
-  } else {
-    sptr[2] = rest_cdr;
-    stack_reserve(ctx, 1)[0] = PROGN_REST;
   }
 }
 
@@ -3277,8 +3277,9 @@ static void cont_map(eval_context_t *ctx) {
   lbm_value t   = sptr[3];
   lbm_set_car(t, ctx->r); // update car field tailmost position.
   if (lbm_is_cons(ls)) {
-    lbm_value next, rest;
-    get_car_and_cdr(ls, &next, &rest);
+    lbm_cons_t *cell = lbm_ref_cell(ls); // already checked that cons.
+    lbm_value next = cell->car;
+    lbm_value rest = cell->cdr;
     sptr[0] = rest;
     stack_reserve(ctx,1)[0] = MAP;
     lbm_set_car(sptr[5], next); // new arguments
@@ -4336,10 +4337,12 @@ static void cont_application_start(eval_context_t *ctx) {
       lbm_value expand_env = env;
       while (lbm_is_cons(curr_param) &&
              lbm_is_cons(curr_arg)) {
-        lbm_value car_curr_param, cdr_curr_param;
-        lbm_value car_curr_arg, cdr_curr_arg;
-        get_car_and_cdr(curr_param, &car_curr_param, &cdr_curr_param);
-        get_car_and_cdr(curr_arg, &car_curr_arg, &cdr_curr_arg);
+	lbm_cons_t *param_cell = lbm_ref_cell(curr_param); // already checked that cons.
+	lbm_cons_t *arg_cell = lbm_ref_cell(curr_arg);
+        lbm_value car_curr_param = param_cell->car;
+	lbm_value cdr_curr_param = param_cell->cdr;
+        lbm_value car_curr_arg = arg_cell->car;
+	lbm_value cdr_curr_arg = arg_cell->cdr;
 
         lbm_value entry = cons_with_gc(car_curr_param, car_curr_arg, expand_env);
         lbm_value aug_env = cons_with_gc(entry, expand_env,ENC_SYM_NIL);
