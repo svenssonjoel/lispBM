@@ -1309,11 +1309,18 @@ static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
   return true;
 }
 
-/* Advance execution to the next expression in the program */
+/**************************************************************
+ * Advance execution to the next expression in the program.
+ * Assumes programs are not malformed. Apply_eval_program
+ * ensures programs are lists ending in nil. The reader
+ * ensures this likewise.
+ *************************************************************/
 static void advance_ctx(eval_context_t *ctx) {
-  if (lbm_is_cons(ctx->program)) {
-    stack_reserve(ctx, 1)[0] = DONE;;
-    get_car_and_cdr(ctx->program, &ctx->curr_exp, &ctx->program);
+  if (ctx->program) { // fast not-nil check,  assume cons if not nil.
+    stack_reserve(ctx, 1)[0] = DONE;
+    lbm_cons_t *cell = lbm_ref_cell(ctx->program);
+    ctx->curr_exp = cell->car;
+    ctx->program = cell->cdr;
     ctx->curr_env = ENC_SYM_NIL;
   } else {
     if (ctx_running == ctx) {  // This should always be the case because of odd historical reasons.
@@ -1650,9 +1657,11 @@ static void eval_progn(eval_context_t *ctx) {
     sptr[0] = ctx->curr_env; // env to restore between expressions in progn
     sptr[1] = lbm_enc_u(0);  // Has env been copied (needed for progn local bindings)
     sptr[3] = PROGN_REST;
-    get_car_and_cdr(exps, &ctx->curr_exp, &sptr[2]);
-    if (lbm_is_symbol(sptr[2])) /* The only symbol it can be is nil */
-      lbm_stack_drop(&ctx->K, 4);
+    lbm_cons_t *cell = lbm_ref_cell(exps); // already checked that it's cons.
+    ctx->curr_exp = cell->car;
+    sptr[2] = cell->cdr;
+    if (lbm_is_symbol(sptr[2])) // The only symbol it can be is nil
+      lbm_stack_drop(&ctx->K, 4); // drop to allow tailcall-opt
   } else if (lbm_is_symbol_nil(exps)) {
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
@@ -1858,7 +1867,9 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
       lbm_value curr = binds;
       while (lbm_is_cons(curr)) {
         lbm_value new_env_tmp = env;
-        lbm_value car_curr, cdr_curr;
+	lbm_cons_t *cell = lbm_ref_cell(curr); // already checked that cons
+        lbm_value car_curr = cell->car;
+	lbm_value cdr_curr = cell->cdr;
         get_car_and_cdr(curr, &car_curr, &cdr_curr);
         lbm_value key = get_car(car_curr);
         create_binding_location(key, &new_env_tmp);
