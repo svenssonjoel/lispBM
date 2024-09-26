@@ -2450,10 +2450,10 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
   int prg_pos = 0;
   if (nargs == 2) {
     prg_pos = 1;
-    ctx->curr_env = args[0];
+    ctx->curr_env = args[0]; // No check that args[0] is an actual env.
   }
   if (nargs == 1 || nargs == 2) {
-    lbm_value prg = args[prg_pos];
+    lbm_value prg = args[prg_pos]; // No check that this is a program.
     lbm_value app_cont;
     lbm_value app_cont_prg;
     lbm_value new_prg;
@@ -2462,18 +2462,15 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     int len = -1;
     WITH_GC(prg_copy, lbm_list_copy(&len, prg));
     lbm_stack_drop(&ctx->K, nargs+1);
-
-    if (ctx->K.sp > nargs+2) { // if there is a continuation
-      app_cont = cons_with_gc(ENC_SYM_APP_CONT, ENC_SYM_NIL, prg_copy);
-      app_cont_prg = cons_with_gc(app_cont, ENC_SYM_NIL, prg_copy);
-      new_prg = lbm_list_append(app_cont_prg, ctx->program);
-      new_prg = lbm_list_append(prg_copy, new_prg);
-    } else {
-      new_prg = lbm_list_append(prg_copy, ctx->program);
-    }
-    if (!lbm_is_list(new_prg)) {
-      error_at_ctx(ENC_SYM_EERROR, ENC_SYM_EVAL_PROGRAM);
-    }
+    // There is always a continuation (DONE).
+    // If ctx->program is nil, the stack should contain DONE.
+    // after adding an intermediate done for prg, stack becomes DONE, DONE.
+    app_cont = cons_with_gc(ENC_SYM_APP_CONT, ENC_SYM_NIL, prg_copy);
+    app_cont_prg = cons_with_gc(app_cont, ENC_SYM_NIL, prg_copy);
+    new_prg = lbm_list_append(app_cont_prg, ctx->program);
+    new_prg = lbm_list_append(prg_copy, new_prg);
+    // new_prg is guaranteed to be a cons cell or nil
+    // even if the eval-program application is syntactically broken.
     stack_reserve(ctx, 1)[0] = DONE;
     ctx->program = get_cdr(new_prg);
     ctx->curr_exp = get_car(new_prg);
