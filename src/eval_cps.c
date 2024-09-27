@@ -173,15 +173,6 @@ static bool lbm_error_has_suspect = false;
 #endif
 
 /**************************************************************/
-/* Make static analysis happy  */
-
-lbm_uint sa_dummy_data[1] = { 0 };
-
-lbm_array_header_t sa_dummy_array_header = { 0 , sa_dummy_data }  ;
-
-#define SA_DUMMY_ARRAY &sa_dummy_array_header;
-
-/**************************************************************/
 /* */
 typedef struct {
   eval_context_t *first;
