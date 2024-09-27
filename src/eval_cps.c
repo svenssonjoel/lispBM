@@ -2289,7 +2289,7 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
 
     // Each reader starts in a fresh situation
     ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
-    ctx->r = ENC_SYM_NIL; // reading an empty program/expression is nil
+    ctx->r = ENC_SYM_NIL; // set r to a known state.
 
     if (program) {
       if (incremental) {
