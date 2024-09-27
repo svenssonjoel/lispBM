@@ -4091,26 +4091,18 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str && str->state) {
     ctx->row1 = (lbm_int)str->row(str);
-
     if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
-
       switch(ctx->r) {
       case ENC_SYM_CLOSEPAR:
 	ctx->app_cont = true;
 	return;
-      case ENC_SYM_DOT: {
-	// This case is a bit mysterious.
-	// A dot, may in reality be an error in this location.
-	lbm_value *rptr = stack_reserve(ctx, 4);
-	rptr[0] = READ_DOT_TERMINATE;
-	rptr[1] = stream;
-	rptr[2] = lbm_enc_u(0);
-	rptr[3] = READ_NEXT_TOKEN;
-	ctx->app_cont = true;
-      } return;
+      case ENC_SYM_DOT:
+	// A dot here is a syntax error.
+	lbm_set_error_reason((char*)lbm_error_str_parse_dot);
+	read_error_ctx(lbm_channel_row(str),lbm_channel_column(str));
+	return;
       }
     }
-
     lbm_value *rptr = stack_reserve(ctx, 6);
     rptr[0] = stream;
     rptr[1] = env;
@@ -4120,6 +4112,7 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
     rptr[5] = READ_NEXT_TOKEN;
     rptr[6] = lbm_enc_u(ctx->flags);
     rptr[7] = POP_READER_FLAGS;
+
     ctx->curr_env = env;
     ctx->curr_exp = ctx->r;
   } else {
