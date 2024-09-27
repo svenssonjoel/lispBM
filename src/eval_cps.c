@@ -2243,6 +2243,11 @@ static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   }
 }
 
+
+#define READING_EXPRESSION             ((0 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READING_PROGRAM                ((1 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+#define READING_PROGRAM_INCREMENTALLY  ((2 << LBM_VAL_SHIFT) | LBM_TYPE_U)
+
 static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, bool program, bool incremental) {
   if (nargs == 1) {
     lbm_value chan = ENC_SYM_NIL;
@@ -2272,11 +2277,19 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     // If we are inside a reader, its settings are stored.
     sptr[0] = lbm_enc_u(ctx->flags);  // flags stored.
     sptr[1] = chan;
-    lbm_value  *rptr = stack_reserve(ctx,1);
-    rptr[0] = READ_DONE;
+    lbm_value  *rptr = stack_reserve(ctx,2);
+    if (!program && !incremental) {
+      rptr[0] = READING_EXPRESSION;
+    } else if (program && !incremental) {
+      rptr[0] = READING_PROGRAM;
+    } else if (program && incremental) {
+      rptr[0] = READING_PROGRAM_INCREMENTALLY;
+    }  // the last combo is illegal
+    rptr[1] = READ_DONE;
 
     // Each reader starts in a fresh situation
     ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
+    ctx->r = ENC_SYM_NIL; // reading an empty program/expression is nil
 
     if (program) {
       if (incremental) {
@@ -3546,17 +3559,21 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
      The parser could be in a state where it needs
      more tokens to correctly finish an expression.
 
-     Three cases
+     Four cases
      1. The program / expression is malformed and the context should die.
      2. We are finished reading a program and should close off the
      internal representation with a closing parenthesis. Then
      apply continuation.
      3. We are finished reading an expression and should
-     apply the continuation.
+     apply the continuation
+     4. We are finished read-and-evaluating
 
-     In case 3, we should find the READ_DONE at sp - 1.
      In case 2, we should find the READ_DONE at sp - 5.
+     In case 3, we should find the READ_DONE at sp - 1.
+     In case 4, we should find the READ_DONE at sp - 4.
 
+     case 3 should not end up here, but rather end up in
+     cont_read_done.
   */
 
   if (lbm_is_symbol(ctx->r)) {
@@ -3567,33 +3584,30 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
     }
   }
 
-  if (ctx->K.data[ctx->K.sp-1] == READ_DONE &&
-      lbm_dec_u(ctx->K.data[ctx->K.sp-3]) == 0) {
-    /* successfully finished reading an expression  (CASE 3) */
-    ctx->app_cont = true;
-  } else if (ctx->K.sp > 4  && ctx->K.data[ctx->K.sp - 4] == READ_DONE) {
+  if (ctx->K.sp > 4  && (ctx->K.data[ctx->K.sp - 4] == READ_DONE) &&
+      (ctx->K.data[ctx->K.sp - 5] == READING_PROGRAM_INCREMENTALLY)) {
+    /* read and evaluate is done */
     lbm_value env;
     lbm_value s;
     lbm_value sym;
     lbm_pop_3(&ctx->K, &sym, &env, &s);
     ctx->curr_env = env;
     ctx->app_cont = true; // Program evaluated and result is in ctx->r.
-  } else if (ctx->K.sp > 5 && ctx->K.data[ctx->K.sp - 5] == READ_DONE) {
+  } else if (ctx->K.sp > 5 && (ctx->K.data[ctx->K.sp - 5] == READ_DONE) &&
+	     (ctx->K.data[ctx->K.sp - 6] == READING_PROGRAM)) {
     /* successfully finished reading a program  (CASE 2) */
     ctx->r = ENC_SYM_CLOSEPAR;
     ctx->app_cont = true;
   } else {
-    /* Parsing failed */
-    if (lbm_channel_row(str) == 1 &&
-        lbm_channel_column(str) == 1 ){
-      // eof at empty stream.
+    if (lbm_channel_row(str) == 1 && lbm_channel_column(str) == 1) {
+      // (read "") evaluates to nil.
       ctx->r = ENC_SYM_NIL;
       ctx->app_cont = true;
     } else {
+      lbm_channel_reader_close(str);
       lbm_set_error_reason((char*)lbm_error_str_parse_eof);
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
     }
-    lbm_channel_reader_close(str);
   }
 }
 
@@ -4176,7 +4190,8 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
 static void cont_read_done(eval_context_t *ctx) {
   lbm_value stream;
   lbm_value f_val;
-  lbm_pop_2(&ctx->K, &stream ,&f_val);
+  lbm_value reader_mode;
+  lbm_pop_3(&ctx->K, &reader_mode, &stream ,&f_val);
 
   uint32_t flags = lbm_dec_as_u32(f_val);
   ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
