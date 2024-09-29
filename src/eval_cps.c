@@ -1434,59 +1434,52 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   return ENC_SYM_NIL;
 }
 
+// a match binder looks like (? x) or (? _) for example.
+// It is a list of two elements where the first is a ? and the second is a symbol.
+static inline lbm_value get_match_binder_variable(lbm_value exp) {
+  lbm_value var = ENC_SYM_NIL; // 0 false
+  if (lbm_is_cons(exp)) {
+    lbm_cons_t *e_cell = lbm_ref_cell(exp);
+    lbm_value bt = e_cell->car;
+    if (bt == ENC_SYM_MATCH_ANY && lbm_is_cons(e_cell->cdr)) {
+      var = lbm_ref_cell(e_cell->cdr)->car;
+    }
+  }
+  return var;
+}
+
 /* Pattern matching is currently implemented as a recursive
    function and make use of stack relative to the size of
    expressions that are being matched. */
 static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
-
-  lbm_value binding;
-
-  if (lbm_is_match_binder(p)) {
-    lbm_value var = get_cadr(p);
-    lbm_value bindertype = get_car(p);
-
-    if (!lbm_is_symbol(var)) return false;
-
-    switch (bindertype) {
-    case ENC_SYM_MATCH_ANY:
-      if ( var == ENC_SYM_DONTCARE) {
-        return true;
+  bool r = false;
+  lbm_value var = get_match_binder_variable(p);
+  if (var) {
+    lbm_value binding = lbm_cons(var, e);
+    if (lbm_is_cons(binding)) {
+      lbm_value new_env = lbm_cons(binding, *env);
+      if (lbm_is_cons(new_env)) {
+	*env = new_env;
+	r = true;
       }
-      break;
-    default: /* this should be an error case */
-      return false;
     }
-    binding = lbm_cons(var, e);
-    if ( lbm_type_of(binding) == LBM_TYPE_SYMBOL ) {
-      *gc = true;
-      return false;
-    }
-    *env = lbm_cons(binding, *env);
-    if ( lbm_type_of(*env) == LBM_TYPE_SYMBOL ) {
-      *gc = true;
-      return false;
-    }
-    return true;
-  }
-
-  if (lbm_is_symbol(p)) {
-    if (p == ENC_SYM_DONTCARE) return true;
-    return (p == e);
-  }
-  if (lbm_is_cons(p) &&
-      lbm_is_cons(e) ) {
+    *gc = !r;
+  } else  if (lbm_is_symbol(p)) {
+    if (p == ENC_SYM_DONTCARE) r = true;
+    else r = (p == e);
+  } else if (lbm_is_cons(p) && lbm_is_cons(e) ) {
     lbm_cons_t *p_cell = lbm_ref_cell(p);
     lbm_cons_t *e_cell = lbm_ref_cell(e);
     lbm_value headp = p_cell->car;
     lbm_value tailp = p_cell->cdr;
     lbm_value heade = e_cell->car;
     lbm_value taile = e_cell->cdr;
-    if (!match(headp, heade, env, gc)) {
-      return false;
-    }
-    return match (tailp, taile, env, gc);
+    r = match(headp, heade, env, gc);
+    r = r && match (tailp, taile, env, gc);
+  } else {
+    r = struct_eq(p, e);
   }
-  return struct_eq(p, e);
+  return r;
 }
 
 // Find match is not very picky about syntax.
