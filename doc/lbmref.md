@@ -5128,3 +5128,4154 @@ Parses a string resulting in either an expression or the <a href="#read_error">r
 
 </td>
 </tr>
+<tr>
+<td>
+
+```clj
+(read "(+ 1 2)")
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(read "(lambda (x) (+ x 1))")
+```
+
+
+</td>
+<td>
+
+```clj
+(lambda (x) (+ x 1))
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### read-program
+
+Parses a string containing multiple sequenced expressions. The resulting list of expressions can be evaluated as a program using <a href="#eval-program">eval-program</a>. The form of a read-program expression is `(read-program string)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(read-program "(define apa 1) (+ 2 apa)")
+```
+
+
+</td>
+<td>
+
+```clj
+((define apa 1) (+ 2 apa))
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### read-eval-program
+
+Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression then evaluates it before reading the next. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(read-eval-program "(define a 10) (+ a 10)")
+```
+
+
+</td>
+<td>
+
+```clj
+20
+```
+
+
+</td>
+</tr>
+</table>
+
+`read-eval-program` supports the `@const-start` and `@const-end` annotations which move all global definitions created in the program to constant memory (flash). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(read-eval-program "@const-start (define a 10) (+ a 10) @const-end")
+```
+
+
+</td>
+<td>
+
+```clj
+20
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### trap
+
+`trap` lets you catch an error rather than have the evaluation context terminate. The form of a trap expression is `(trap expr)`. If expr crashes with an error `e` then `(trap expr)` evaluates to `(exit-error e)`. If expr successfully runs and returns `r`, then `(trap expr)` evaluates to (exit-ok r). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(trap (/ 1 0))
+```
+
+
+</td>
+<td>
+
+```clj
+(exit-error division_by_zero)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(trap (+ 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+(exit-ok 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+`trap` catches any error except for fatal errors. A fatal error will still lead to the context being terminated. 
+
+
+
+
+---
+
+## Lists and cons cells
+
+Lists are built using cons cells. A cons cell is represented by the lbm_cons_t struct in the implementation and consists of two fields named the `car` and the `cdr`. There is no special meaning associated with the `car` and the `cdr` each can hold a lbm_value. See <a href="#cons">cons</a> and <a href="#list">list</a> for two ways to create structures of cons cells on the heap. 
+
+![cons cell](images/cons_cell.png "cons cell")
+
+A cons cell can be used to store a pair of values. You create a pair by sticking a value in both the car and cdr field of a cons cell using either `'(1 . 2)` or `(cons 1 2)`. 
+
+![pair](images/pair.png "pair")
+
+A list is a number of cons cells linked together where the car fields hold values and the cdr fields hold pointers (the last cdr field is nil). The list below can be created either as `'(1 2 3)` or as `(list 1 2 3)`. 
+
+![list](images/list.png "list")
+
+
+### car
+
+Use `car` to access the `car` field of a cons cell. A `car` expression has the form `(car expr)`. 
+
+Taking the `car` of a number of symbol type is in general a <a href="#type_error">type_error</a>. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(car (cons 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(car (list 9 8 7))
+```
+
+
+</td>
+<td>
+
+```clj
+9
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### first
+
+`first` is an alternative  name for the `car` operation. Use `first` to access the first element of a list or pair. A `first` expression  has the form `(first expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(car (cons 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(car (list 9 8 7))
+```
+
+
+</td>
+<td>
+
+```clj
+9
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### cdr
+
+Use `cdr` to access the `cdr` field of a cons cell. A `cdr` expression has the form `(cdr expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cdr (cons 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cdr (list 9 8 7))
+```
+
+
+</td>
+<td>
+
+```clj
+(8 7)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### rest
+
+`rest` is an alternative name for the `cdr` operation. Use `rest` to access all elements except the first one of a list, or to access the second element in a pair. A `rest` expression has the form `(rest expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cdr (cons 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cdr (list 9 8 7))
+```
+
+
+</td>
+<td>
+
+```clj
+(8 7)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### cons
+
+The `cons` operation allocates a cons cell from the heap and populates the `car` and the `cdr` fields of this cell with its two arguments. The form of a `cons` expression is `(cons expr1 expr2)`. To build well formed lists the innermost cons cell should have nil in the cdr field. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons 1 (cons 2 (cons 3 nil)))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons 1 2)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 . 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons + 1)
+```
+
+
+</td>
+<td>
+
+```clj
+(+ . 1)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cons (cons 1 2) (cons 3 4))
+```
+
+
+</td>
+<td>
+
+```clj
+((1 . 2) 3 . 4)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### .
+
+The dot, `.`, operation creates a pair. The form of a dot expression is `(expr1 . expr2)`. By default the evaluator will attempt to evaluate the result of `(expr1 . expr2)` unless it is prefixed with `'`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+'(1 . 2)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 . 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+'((1 . 2) . 3)
+```
+
+
+</td>
+<td>
+
+```clj
+((1 . 2) . 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### list
+
+The `list` function is used to create proper lists. The function takes n arguments and is of the form `(list expr1 ... exprN)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(list 1 2 3 4)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 4)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### length
+
+Computes the length of a list. The `length` function takes one argument and is of the form `(length expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(length (list 1 2 3 4))
+```
+
+
+</td>
+<td>
+
+```clj
+4
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### range
+
+The `range` function computes a list with integer values from a range specified by its endpoints. The form of a range expression is `(range start-expr end-expr)`. The end point in the range is excluded. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(range 4 8)
+```
+
+
+</td>
+<td>
+
+```clj
+(4 5 6 7)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(range 0 10)
+```
+
+
+</td>
+<td>
+
+```clj
+(0 1 2 3 4 5 6 7 8 9)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(range -4 4)
+```
+
+
+</td>
+<td>
+
+```clj
+(-4 -3 -2 -1 0 1 2 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### append
+
+The `append` function combines two lists into a longer list. An `append` expression is of the form `(append expr1 expr2)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(append (list 1 2 3 4) (list 5 6 7 8))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 4 5 6 7 8)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### ix
+
+Index into a list using the `ix` function. The form of an `ix` expression is `(ix list-expr index-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative index accesses values starting from the end of the list. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix (list 1 2 3 4) 1)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix (list 1 2 3 4) -1)
+```
+
+
+</td>
+<td>
+
+```clj
+4
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### setix
+
+Destructively update an element in a list. The form of a `setix` expression is `(setix list-expr index-extr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(setix (list 1 2 3 4 5) 2 77)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 77 4 5)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(setix (list 1 2 3 4 5) -2 66)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 66 5)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### setcar
+
+The `setcar` is a destructive update of the car field of a cons-cell. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa '(1 . 2))
+(setcar apa 42)
+apa
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(42 . 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list 1 2 3 4))
+(setcar apa 42)
+apa
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(42 2 3 4)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### setcdr
+
+The `setcdr` is a destructive update of the cdr field of a cons-cell. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa '(1 . 2))
+(setcdr apa 42)
+apa
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 . 42)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list 1 2 3 4))
+(setcdr apa (list 99 100))
+apa
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 99 100)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### take
+
+`take` creates a list containing the `n` first elements of another list. The form of a `take` expression is `(take list-exp n-exp)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+(take apa 5)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 2 3 4 5)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### drop
+
+`drop` creates a list from another list by dropping the `n` first elements of that list. The form of a `drop` expression is `(drop list-exp n-exp)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+(drop apa 5)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(6 7 8 9 10)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### reverse
+
+`reverse` creates a list containing the same elements as an existing list but in reverse order. The form of a `reverse` expression is `(reverse list-exp)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+(reverse apa)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(10 9 8 7 6 5 4 3 2 1)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### rotate
+
+`rotate` creates a list containing the same elements as an existing list but rotated some number of step along a direction. The form of a `rotate` expression is `(rotate list-exp dist-expr)`. The sign of the value dist-expr evaluates to, decides direction of rotation. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 4 5 6 7 8 9 10)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(rotate apa 1)
+```
+
+
+</td>
+<td>
+
+```clj
+(10 1 2 3 4 5 6 7 8 9)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(rotate apa -1)
+```
+
+
+</td>
+<td>
+
+```clj
+(2 3 4 5 6 7 8 9 10 1)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(rotate apa 3)
+```
+
+
+</td>
+<td>
+
+```clj
+(8 9 10 1 2 3 4 5 6 7)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(rotate apa -3)
+```
+
+
+</td>
+<td>
+
+```clj
+(4 5 6 7 8 9 10 1 2 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+Rotating a list in the negative direction is slightly faster than rotating in the positive direction. The chart below shows the time 1 Million 3 step rotations take in each direction at varying list lengths. The data is collected on x86. 
+
+![Performance of list rotate](images/rotate_pos_neg.png "Performance of list rotate")
+
+
+
+
+---
+
+
+### merge
+
+`merge` merges two lists that are ordered according to a comparator into a single ordered list. The form of a `merge` expression is `(merge comparator-exp list-exp1 list-exp2)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define a (list 2 4 6 8 10 12))
+(define b (list 1 3 5))
+(merge < a b)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 2 3 4 5 6 8 10 12)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### sort
+
+`sort` orders a list of values according to a comparator. The sorting algorithm used is an in-place merge-sort. A copy of the input list is created at the beginning of the sort to provide a functional interface from the user's point of view. The form of a sort expression is `(sort comparator-exp list-exp)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define a (list 1 9 2 5 1 8 3))
+(sort < a)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 1 2 3 5 8 9)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## association lists (alists)
+
+Association lists (alists) are, just like regular lists, built out of cons-cells. The difference is that an alist is a list of pairs where the first element in each par can be thought of as a key and the second element can be thought of as the value. So alists implement a key-value lookup structure. 
+
+`(list '(1 . horse) '(2 . donkey) '(3 . shark))` is an example of an alist with integer keys and symbol values. 
+
+
+### acons
+
+The `acons` form is similar to `cons`, it attaches one more element onto an alist. The element that is added consists of a key and a value so `acons` takes one more argument than `cons`. The form of an `acons` expression is `(acons key-expr val-expr alist-expr)`. The `alist-expr` should evaluate to an alist but there are no checks to ensure this. 
+
+Example that adds the key `4` and associated value `lemur` to an existing alist. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(acons 4 'lemur (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+```
+
+
+</td>
+<td>
+
+```clj
+((4 . lemur) (1 . horse) (2 . donkey) (3 . shark))
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### assoc
+
+The `assoc` function looks up the first value in an alist matching a given a key.  The form of an `assoc` expression is `(assoc alist-expr key-expr)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(assoc (list '(1 . horse) '(2 . donkey) '(3 . shark)) 2)
+```
+
+
+</td>
+<td>
+
+```clj
+donkey
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### cossa
+
+The `cossa` function looks up the first key in an alist that matches a given value. The form of an `cossa` expression is `(cossa alist-expr value-expr)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(cossa (list '(1 . horse) '(2 . donkey) '(3 . shark)) 'donkey)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### setassoc
+
+The `setassoc` function destructively updates a key-value mapping in an alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+(setassoc apa 2 'llama)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+((1 . horse) (2 . llama) (3 . shark))
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## Arrays (byte buffers)
+
+
+---
+
+
+### bufcreate
+
+Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate size-expr)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define data (bufcreate 10))
+```
+
+
+</td>
+<td>
+
+```clj
+[0 0 0 0 0 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define empty-array (bufcreate 0))
+```
+
+
+</td>
+<td>
+
+```clj
+[]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### buflen
+
+Returns the size of a buffer in number of bytes. The form of an `buflen` expression is `(buflen buf-expr)` where buf-expr has to evaluate into a buffer. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(buflen data)
+```
+
+
+</td>
+<td>
+
+```clj
+10
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### bufget-[X]
+
+Read a value from a buffer. The contents of a buffer can be read as a sized integer or unsigned value using as many bytes from the buffer as the X portion of the function name implies. The form of a bufget expression is `(bufget-[X] buf-expr ix-expr)` where `ix-expr` evaluates to a number indicating the byte position to start reading from. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define data [255 255 255 255 255 255 255 255])
+```
+
+
+</td>
+<td>
+
+```clj
+[255 255 255 255 255 255 255 255]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufget-i8 data 0)
+```
+
+
+</td>
+<td>
+
+```clj
+-1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufget-i16 data 0)
+```
+
+
+</td>
+<td>
+
+```clj
+-1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufget-i32 data 0)
+```
+
+
+</td>
+<td>
+
+```clj
+-1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufget-u8 data 0)
+```
+
+
+</td>
+<td>
+
+```clj
+255
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufget-u16 data 0)
+```
+
+
+</td>
+<td>
+
+```clj
+65535
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufget-u32 data 0)
+```
+
+
+</td>
+<td>
+
+```clj
+4294967295u32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### bufset-[X]
+
+The `bufset` functions performs a destructive updates to a buffer. The form of a `bufset` expression is `(bufset-[X] buf-expr ix-expr val-expr)` where `ix-expr` evaluates to a number indicating where in the buffer to start writing and `val-expr` is the value to write. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define data [255 255 255 255 255 255 255 255])
+```
+
+
+</td>
+<td>
+
+```clj
+[255 255 255 255 255 255 255 255]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufset-i8 data 0 10)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[10 255 255 255 255 255 255 255]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufset-i16 data 0 20)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[0 20 255 255 255 255 255 255]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufset-i32 data 0 -1)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[255 255 255 255 255 255 255 255]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufset-u8 data 0 10)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[10 255 255 255 255 255 255 255]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufset-u16 data 0 20)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[0 20 255 255 255 255 255 255]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufset-u32 data 0 4294967295u32)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[255 255 255 255 255 255 255 255]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### bufclear
+
+To clear a byte array the function bufclear can be used `(bufclear arr optByte optStart optLen)` Where arr is the byte array to clear, optByte is the optional argument of what to clear with (default 0), optStart is the optional argument of which position to start clearing (default 0) and optLen is the optional argument of how many bytes to clear after start (default the entire array). Example: 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define data [255 255 255 255 255 255 255 255])
+```
+
+
+</td>
+<td>
+
+```clj
+[255 255 255 255 255 255 255 255]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufclear data)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[0 0 0 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufclear data 255)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[255 255 255 255 255 255 255 255]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufclear data 1 5)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[255 255 255 255 255 1 1 1]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufclear data 1 5 8)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[255 255 255 255 255 1 1 1]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bufclear data 170 1 5)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+data
+```
+
+
+</td>
+<td>
+
+```clj
+[255 170 170 170 170 170 1 1]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### Byte-array literal syntax
+
+Byte-array (buffer) literals can be created using the `[` and `]` syntax to enclose values to initialize the array with. The `[` and `]` syntax is complete resolved in the parser and thus cannot contain arbitrary lisp terms. the values listed between the `[` and the `]` must be literals! 
+
+The form of the `[` and `]` syntax is `[ val1 ... valN ]`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+[1 2 3 4 5 6 7 8 9 10]
+```
+
+
+</td>
+<td>
+
+```clj
+[1 2 3 4 5 6 7 8 9 10]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## Defragmentable memory
+
+LBM has two types of memory, the HEAP and the LBM_MEMORY. Lists and pairs are all stored on the heap. Arrays and large values (such as 64bit numbers are stored on LBM_MEMORY. The HEAP has a nice property that all allocations on it are the same size and therefore the HEAP is imune the problems caused by fragmentation. On LBM_MEMORY arbitrarily sized arrays can be allocated and fragmentation can cause an allocation to fail even though there is enough free bytes. 
+
+One way to resolve the fragmentation problem is to use a compacting garbage collector. We have opted to not use a compacting garbage collector on the LBM_MEMORY as it is quite complicated. It is extra complicated given how this memory is a shared resource between C extensions and the lisp runtime system. 
+
+Our solution is to allow the programmer to create a memory block inside of the LBM_MEMORY in which we will run a defragmentation routine when needed. The defragmentable memory can only be used to allocate non-zero sized byte arrays on the lisp side. The idea is that the programmer calculates the maximum size of simultaneously used arrays (+ the overhead of 3 words per allocation) needed for a small critical set of arrays used in the program and allocates a defragmentable memory of that size. 
+
+The LBM (non-compacting) gabage collector frees arrays from a defragmentable memory area automatically. An allocation in the defragmentable memory area that fails triggers garbage collection followed by compaction (if needed). 
+
+
+---
+
+
+### dm-create
+
+`dm-create` creates a region of defragmentable memory for bytearrays within LBM memory. The form of a `dm-create` expression is `(dm-create size-expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define dm (dm-create 1000))
+```
+
+
+</td>
+<td>
+
+```clj
+DM
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### dm-alloc
+
+`dm-alloc` is used to allocate a byte-array from a region of defragmentable memory. The form of a `dm-alloc` expression is `(dm-alloc DM-expr size-expr)`. where `DM-expr` evaluates to the defragmentable region to allocate from and `size-expr` is the number of bytes to allocate. Each allocation uses up 12 extre bytes of header that you do not include in `size-expr`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define arr10 (dm-alloc dm 10))
+```
+
+
+</td>
+<td>
+
+```clj
+[0 0 0 0 0 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define arr100 (dm-alloc dm 100))
+```
+
+
+</td>
+<td>
+
+```clj
+[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+## Pattern-matching
+
+
+---
+
+
+### match
+
+Pattern-matching is expressed using match. The form of a match expression is `(match expr (pat1 expr1) ... (patN exprN))`. Pattern-matching compares the shape of an expression to each of the `pat1` ... `patN` and evaluates the expression `exprM` of the pattern that matches. In a pattern you can use a number of match-binders or wildcards: `_`, `?`, `?i`,`?u`,`?float`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(match 'orange
+       (green 1)
+       (orange 2)
+       (blue 3))
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### no_match
+
+The `no_match` symbol is returned from pattern matching if no case matches the expression. 
+
+   - Add a catch-all case to your pattern-matching. `_`.
+
+
+
+
+---
+
+
+### _
+
+The underscore pattern matches anything. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(match 'fish
+       (horse 'its-a-horse)
+       (pig 'its-a-pig)
+       (_ 'i-dont-know))
+```
+
+
+</td>
+<td>
+
+```clj
+i-dont-know
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### ?
+
+The `?` pattern matches anything and binds that anything to variable. Using the `?` pattern is done as `(? var)` and the part of the expression that matches is bound to `var`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(match '(orange 17)
+       ((green (? n)) (+ n 1))
+       ((orange (? n)) (+ n 2))
+       ((blue (? n)) (+ n 3)))
+```
+
+
+</td>
+<td>
+
+```clj
+19
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### Match with guards
+
+Patterns used in a match expressions can be augmented with a boolean guard to further discern between cases. A pattern with a guard is of the form `(pattern-expr guard-expr expr)`. A pattern with a guard, matches only if the pattern structurally matches and if the guard-expr evaluates to true in the match environment. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define x 1)
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(match x
+       ((? y) (< y 0) 'less-than-zero)
+       ((? y) (> y 0) 'greater-than-zero)
+       ((? y) (= y 0) 'equal-to-zero))
+```
+
+
+</td>
+<td>
+
+```clj
+greater-than-zero
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## Concurrency
+
+The concurrency support in LispBM is provided by the set of functions, `spawn`, `wait`, `yeild` and `atomic` described below.  Concurrency in LispBM is scheduled by a round-robin scheduler that splits the runtime system evaluator fairly (with caveats, below) between all running processes. 
+
+When a process is scheduled to run, made active, it is given a quota of evaluator "steps" to use up. The process then runs until that quota is exhausted or the process itself has signaled it wants to sleep by yielding or blocking (for example by waiting for a message using the message passing system). 
+
+A process can also request to not be "pre-empted" while executing a certain expression by invoking `atomic`. One should take care to make blocks of atomic code as small as possible as it disrupts the fairness of the scheduler. While executing inside of an atomic block the process has sole ownership of the shared global environment and can perform atomic read-modify-write sequences to global data. 
+
+
+---
+
+
+### spawn
+
+Use `spawn` to launch a concurrent process. Spawn takes a closure and arguments to pass to that closure as its arguments. The form of a spawn expression is `(spawn opt-name opt-stack-size closure arg1 ... argN)`. 
+
+Each process has a runtime-stack which is used for the evaluation of expressions within that process. The stack size needed by a process depends on  1. How deeply nested expressions evaluated by the process are.  2. Number of recursive calls (Only if a function is NOT tail-recursive).  3. The Number of arguments that functions called by the process take. 
+
+Having a stack that is too small will result in a `out_of_stack` error. 
+
+The default stack size is 256 words (1K Bytes) and should be more than enough for reasonable programs. Many processes will work perfectly fine with a lot less stack. You can find a good size by trial and error. 
+
+
+
+
+---
+
+
+### spawn-trap
+
+Use `spawn-trap` to spawn a child process and enable trapping of exit conditions for that child. The form of a `spawn-trap` expression is `(spawn-trap opt-name opt-stack-size closure arg1 .. argN)`.  If the child process is terminated because of an error, a message is sent to the parent process of the form `(exit-error tid err-val)`. If the child process terminates successfully a message of the form `(exit-ok tid value)` is sent to the parent. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun thd nil (+ 1 2))
+(spawn-trap thd)
+(recv ((exit-error (? tid) (? e)) 'crash)
+      ((exit-ok (? tid) (? v)) 'ok))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+ok
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun thd nil (+ 1 kurt-russel))
+(spawn-trap thd)
+(recv ((exit-error (? tid) (? e)) 'crash)
+      ((exit-ok (? tid) (? v)) 'ok))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+crash
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### self
+
+Use `self` to obtain the thread-id of the thread in which `self` is evaluated. The form of a `self` expression is `(self)`. The thread id is of an integer type. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(self)
+```
+
+
+</td>
+<td>
+
+```clj
+3197
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### wait
+
+Use `wait` to wait for a spawned process to finish. The argument to `wait` should be a process id. The `wait` blocks until the process with the given process id finishes. When the process with with the given id finishes, the wait function returns True. 
+
+Be careful to only wait for processes that actually exist and do finish. Otherwise you will wait forever. 
+
+
+
+
+---
+
+
+### yield
+
+To put a process to sleep, call `yield`. The argument to `yield` is number indicating at least how many microseconds the process should sleep. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(yield 10)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### sleep
+
+'sleep' puts a thread to sleep and differs from 'yield' only in the argument. 'sleep' takes a floating point number indicating how long in seconds the thread should sleep at least. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(sleep 1.000000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### atomic
+
+`atomic` can be used to execute a LispBM one or more expression without allowing the runtime system to switch process during that time. `atomic` is similar to progn with the addition of being uninterruptable. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(atomic (+ 1 2)
+        (+ 3 4)
+        (+ 4 5))
+```
+
+
+</td>
+<td>
+
+```clj
+9
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### exit-ok
+
+The `exit-ok` function terminates the thread in a "successful" way and returnes a result specified by the programmer. The form of an `exit-ok` expression is `(exit-ok value)`.  If the process that calls `exit-ok` was created using `spawn-trap` a message of the form `(exit-ok tid value)` is be sent to the parent of this process. 
+
+
+
+
+---
+
+
+### exit-error
+
+The `exit-error` function terminates the thread with an error specified by the programmer.  The form of an `exit-error` expression is `(exit-error err_val)`. If the process that calls `exit-error` was created using `spawn-trap` a message of the form `(exit-error tid err_val)` is sent to the parent of this process. 
+
+
+
+
+---
+
+
+### kill
+
+The `kill` function allows you to force terminate another thread. It has the signature `(kill thread-id-expr val-expr)`, where `thread-id-expr` is the thread that you want to terminate, and `val-expr` is the final result the thread dies with. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun f nil (f))
+(define id (spawn f))
+(kill id nil)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+The `val-expr` can be observed if the thread exit status is captured using `spawn-trap` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun f nil (f))
+(define id (spawn-trap f))
+(kill id 'kurt-russel)
+(recv ((? x) x))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(exit-ok 175664 kurt-russel)
+```
+
+
+</td>
+</tr>
+</table>
+
+The `val-expr` could be used to communicate to a thread monitor that the thread it monitors has been intentionally but externally killed. 
+
+
+
+
+---
+
+## Message-passing
+
+
+### send
+
+Messages can be sent to a process by using `send`. The form of a `send` expression is `(send pid msg)`. The message, msg, can be any LispBM value. 
+
+
+
+
+---
+
+
+### recv
+
+To receive a message use the `recv` command. A process will block on a `recv` until there is a matching message in the mailbox. The `recv` syntax is very similar to [match](#match). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(send (self) 28)
+(recv ((? n) (+ n 1)))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+29
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### recv-to
+
+Like [recv](#recv), `recv-to` is used to receive messages but `recv-to` takes an extra timeout argument. It then receives a message containing the symbol `timeout` after the timeout period ends. 
+
+The form of an `recv-to` expression is ```clj (recv-to timeout-secs                 (pattern1 exp1)                 ...                 (patternN expN)) ``` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(send (self) 28)
+(recv-to 0.100000f32
+         ((? n) (+ n 1))
+         (timeout 'no-message))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+29
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(send (self) 'not-foo)
+(recv-to 0.100000f32
+         (foo 'got-foo)
+         (timeout 'no-message))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+0.100000f32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### set-mailbox-size
+
+Change the size of the mailbox in the current process. Standard mailbox size is 10 elements. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(set-mailbox-size 100)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(set-mailbox-size 5000000)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## Flat values
+
+Lisp values can be "flattened" into an array representation. The flat representation of a value contains all information needed so that the value can be recreated, "unflattened", in another instance of the runtime system (for example running on another microcontroller). 
+
+Not all values can be flattened, custom types for example cannot. 
+
+Flat values are designed for recursive encoding and decoding each sub-value contains all information about its size either implicitly or explicitly (as is the case with arrays). 
+
+multibyte values are stored in network byte order (big endian). 
+
+**Cons** A cons cell is encoded into a byte 0x1 followed by the encoding of the car and then the cdr field of that cons cell. 
+
+
+|cons |car value|cdr value|
+|:----:|:----:|:----:|
+|0x1|M bytes|N bytes|
+
+**Symbol as value** A symbol value can be flattened. Note that symbol values only make sense locally. A flattened symbol value will only make sense in the same runtime system instance that flattened it. 
+
+
+|symbol-value|value|
+|:----:|:----:|
+|0x2|4 bytes on 32bit, 8 bytes on 64bit|
+
+**Symbol as string** A symbol can be flattened as a string and thus make sense across runtime system instances. 
+
+
+|symbol-string|string|
+|:----:|:----:|
+|0x3|zero terminated C style string|
+
+**Byte Arrays** Byte arrays can be flattened and the length is stored explicitly. 
+
+
+|byte array|size in bytes|data|
+|:----:|:----:|:----:|
+|0xD|4 bytes|size bytes|
+
+The rest of the atomic types are flattened according to the following: 
+
+
+|type|flat-id|value|
+|:----:|:----:|:----:|
+|byte|0x4|1 Byte|
+|i28|0x5|4 Bytes|
+|u28|0x6|4 Bytes|
+|i32|0x7|4 Bytes|
+|u32|0x8|4 Bytes|
+|float|0x9|4 Bytes|
+|i64|0xA|8 Bytes|
+|u64|0xB|8 Bytes|
+|double|0xC|8 Bytes|
+|i56|0xE|8 Bytes|
+|u56|0xF| 8 Bytes|
+
+Note that some of the types are only present of 32Bit runtime systems and some only on 64 bit. i28 is present on 32 bit and i56 on 64 bit. likewise for u28 and u56. 
+
+When LispBM unflattens a i56 or u56 on a 32bit system it creates a i64 or u64 in its place. 
+
+Symbols as values, are not possible to transfer between runtime systems in general and is even more pointless between a 32 and 64 bit runtime system. 
+
+
+### flatten
+
+The `flatten` function takes a value as single argument and returns the flat representation if successful. A flatten expression has the form `(flatten expr)`. Note that `expr` is evaluated before the flattening. A flat value can be turned back into a normal lisp value applying `unflatten` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define a (flatten (+ 1 2 3)))
+```
+
+
+</td>
+<td>
+
+```clj
+[5 0 0 0 6]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(unflatten a)
+```
+
+
+</td>
+<td>
+
+```clj
+6
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define a (flatten '(+ 1 2 3)))
+```
+
+
+</td>
+<td>
+
+```clj
+[1 3 43 0 1 5 0 0 0 1 1 5 0 0 0 2 1 5 0 0 0 3 3 110 105 108 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(unflatten a)
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+A flat value is a byte-array containing an encoding of the value. 
+
+
+
+
+---
+
+
+### unflatten
+
+`unflatten` converts a flat value back into a lisp value. Te form of an `unflatten` expression is `(unflatten flat-value)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define a (flatten (+ 1 2 3)))
+```
+
+
+</td>
+<td>
+
+```clj
+[5 0 0 0 6]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(unflatten a)
+```
+
+
+</td>
+<td>
+
+```clj
+6
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define a (flatten '(+ 1 2 3)))
+```
+
+
+</td>
+<td>
+
+```clj
+[1 3 43 0 1 5 0 0 0 1 1 5 0 0 0 2 1 5 0 0 0 3 3 110 105 108 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(unflatten a)
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## Macros
+
+lispBM macros are created using the `macro` keyword. A macro is quite similar to [lambda](#lambda) in lispBM except that arguments are passed in unevaluated. Together with the code-splicing capabilities given by [quasiquotation](#quasiquotation), this provides a powerful code-generation tool. 
+
+A macro application is run through the interpreter two times. Once to evaluate the body of the macro on the unevaluated arguments. The result of this first application should be a program. The resulting program then goes through the interpreter again to compute final values. 
+
+Given this repeated evaluation, macros are not a performance boost in lispbm.  Macros are really a feature that should be used to invent new programming abstractions in cases where it is ok to pay a little for the overhead for benefits in expressivity. 
+
+
+### macro
+
+The form of a `macro` expression is: `(macro args body)` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define defun (macro (name args body)
+                    `(define ,name (lambda ,args ,body))))
+```
+
+
+</td>
+<td>
+
+```clj
+(macro (name args body) (append (quote (define)) (list name) (list (append (quote (lambda)) (list args) (list body)))))
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun inc (x) (+ x 1))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x) (+ x 1) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(inc 1)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## Call with current continutation
+
+"Call with current continuation" is called `call-cc` in LBM. Call with current continuation saves the "current continuation", which encodes what the evaluator will do next, into an object in the language. This encoded continuation object behaves as a function taking one argument. 
+
+The `call-cc` should be given a function, `f`, as the single argument. This function, `f`, should also take a single argument, the continuation. At any point in the body of `f` the continuation can be applied to a value, in essense replacing the entire `call-cc` with that value. All side-effecting operations operations up until the application of the continuation will take effect. 
+
+From within a `call-cc` application it is possible to bind the continuation to a global variable which will allow some pretty arbitrary control flow. 
+
+The example below creates a macro for a `progn` facility that allows returning at an arbitrary point.
+ ```clj
+ (define do (macro (body)
+                   `(call-cc (lambda (return) (progn ,@body)))))
+ ```
+ The example using `do` below makes use of `print` which is not a built-in feature of lispBM. There are just to many different ways a programmer may want to implement `print` on an microcontroller. Use the lispBM extensions framework to implement your own version of `print`
+ ```clj
+ (do ((print 10)
+      (return 't)
+      (print 20)))
+ ```
+ In the example above only "10" will be printed. Below is an example that conditionally returns.
+ ```clj
+ (define f (lambda (x)
+             (do ((print "hello world")
+                  (if (= x 1)
+                      (return 't)
+                      nil)
+                  (print "Gizmo!")))))
+ ```
+ 
+
+## Error handling
+
+If an error occurs while evaluating a program, the process that runs that program is killed.  The result of the killed process is set to an error symbol indicating what went wrong. 
+
+If the process was created using `spawn` (or equivalently, started by a issuing a command in the repl), the process dies and an error message is presented over the registered printing callback (dependent on how LispBM is integrated into your system). The `ctx_done_callback` is also called and performs other integration dependent tasks related to the shutting down of a process. 
+
+If the process was created using `spawn-trap`, in addition to the above, a message is sent to the parent process (the process that executed the spawn-trap) containing information about the process that struck an error. See <a href="#spawn-trap">spawn-trap</a>. The parent process can now choose to restart the process that crashed or to take some other action. 
+
+Another way to catch errors is to use `trap` which works similar to `spawn-trap` but it does not spawn a thread. `trap` takes one argument which is an expressions. The expression is evaluated and if it fails `(trap expr)` returns an object representing the error. For more information on `trap`, see  <a href="#trap">trap</a>. 
+
+
+### read_error
+
+The `read_error` symbol is returned if the reader cannot parse the input code. Read errors are most likely caused by syntactically incorrect input programs. 
+
+   - Check that all opening parenthesis are properly closed.
+
+
+
+
+---
+
+
+### type_error
+
+The `type_error` symbol is returned by built-in functions or extensions if the values passed in are of incompatible types. 
+
+
+
+
+---
+
+
+### eval_error
+
+The `eval_error` symbol is returned if evaluation could not proceed to evaluate the expression. This could be because the expression is malformed. 
+
+Evaluation error happens on programs that may be syntactically correct (LispBM has a very low bar for what is considered syntactically correct), but semantically nonsensical. 
+
+   - Check the program for mistakes.
+   - Are your parenthesis enclosing the correct subterms?
+   - Check that you haven't written, for example, (1 + 2) where it should be (+ 1 2).
+
+
+
+
+---
+
+
+### out_of_memory
+
+The `out_of_memory` symbol is returned if the heap is full and running the garbage collector was not able to free any memory up. 
+
+The program you have written requires more memory. 
+
+   - Increase the heap size.
+   - Rewrite the application to use less memory.
+
+
+
+
+---
+
+
+### fatal_error
+
+The `fatal_error` symbol is returned in cases where the LispBM runtime system cannot proceed. Something is corrupt and it is not safe to continue. 
+
+   - If this happens please send the program and the full error message to blog.joel.svensson@gmail.com. It will be much appreciated.
+
+
+
+
+---
+
+
+### out_of_stack
+
+The `out_of_stack` symbol is returned if the evaluator runs out of continuation stack (this is its runtime-stack). You are most likely writing a non-tail-recursive function that is exhausting all the resources. 
+
+   - Check your program for recursive functions that are not tail-recursive Rewrite these in tail-recursive form.
+   - If you spawned this process in a small stack. For example (spawn 10 prg), try to spawn it with a larger stack.
+
+
+
+
+---
+
+
+### division_by_zero
+
+The `division_by_zero` symbol is returned when dividing by zero. 
+
+   - Check your math.
+   - Add 0-checks into your code at a strategic position.
+
+
+
+
+---
+
+
+### variable_not_bound
+
+The `variable_not_bound` symbol is returned when evaluating a variable (symbol) that is neighter bound nor special (built-in function). 
+
+
+
+
+---
+
+## Flash memory
+
+Flash memory can be used to store data and functions that are constant. Things can be moved to flash explicitly using the `move-to-flash` function or as part of the reading procedure. To move things automatically to flash during reading, there are `@`directives. 
+
+
+---
+
+
+### @const-symbol-strings
+
+`@const-symbol-strings` functionality have been combined with `@const-start` and `@const-end`. Now symbols created while in a const block, end up in flash storage. 
+
+~~if `@const-symbol-strings` directive is placed in a file, symbols will be created in flash memory instead of the arrays memory.~~ 
+
+
+
+
+---
+
+
+### @const-start
+
+`@const-start` opens a block of code where each global definition is moved to constant memory (flash) automatically. This can be used only together with the incremental reader (such as `read-eval-program`). 
+
+A `@const-start` opened block should be closed with a `@const-end`. Constant blocks cannot be nested. 
+
+```clj
+@const-start
+(defun f (x) (+ x 1))
+@const-end
+
+(+ (f 1) 2)
+```
+
+
+
+---
+
+
+### @const-end
+
+`@const-end` closes an block opened by `@const-start`. 
+
+
+
+
+---
+
+
+### move-to-flash
+
+A value can be moved to flash storage to save space on the normal evaluation heap or lbm memory.  A `move-to-flash` expression is of the form `(move-to-flash sym opt-sym1 ... opt-symN)`.  The symbols `sym`, `opt-sym1 ... opt-symN` should be globally bound to the values you want moved to flash. After the value has been moved, the environment binding is updated to point into flash memory. **CAUTION** This function should be used carefully. Ideally a value should be moved to flash immediately after it is created so there is no chance that other references to original value exists. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define a [1 2 3 4 5 6])
+(move-to-flash a)
+a
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+[1 2 3 4 5 6]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define ls '(1 2 3 4 5))
+(move-to-flash ls)
+ls
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 2 3 4 5)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun f (x) (+ x 1))
+(move-to-flash f)
+(f 10)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+11
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## Type convertions
+
+
+### to-byte
+
+Convert any numerical value to a byte. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-byte 1234)
+```
+
+
+</td>
+<td>
+
+```clj
+210b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-byte 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-byte 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0b
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-i
+
+Convert a value of any numerical type to an integer. The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-u
+
+Convert a value of any numerical type to an unsigned integer. The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25u
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3u
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0u
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-i32
+
+Convert any numerical value to a 32bit int. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i32 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25i32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i32 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3i32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i32 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0i32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-u32
+
+Convert any numerical value to a 32bit unsigned int. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u32 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u32 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u32 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0u32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-float
+
+Convert any numerical value to a single precision floating point value. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-float 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25.000000f32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-float 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3.140000f32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-float 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0.000000f32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-i64
+
+Convert any numerical value to a 64bit int. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i64 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25i64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i64 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3i64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i64 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0i64
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-u64
+
+Convert any numerical value to a 64bit unsigned int. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u64 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25u64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u64 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3u64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u64 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0u64
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-double
+
+Convert any numerical value to a double precision floating point value. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-double 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25.000000f64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-double 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3.140000f64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-double 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0.000000f64
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+This document was generated by LispBM version 0.26.0 
+
