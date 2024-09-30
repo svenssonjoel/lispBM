@@ -1143,7 +1143,7 @@ t
 <td>
 
 ```clj
-(img-text my-img 40 40 1 0 font LispBM)
+(img-text my-img 40 40 1 0 font "LispBM")
 ```
 
 
@@ -1166,7 +1166,7 @@ t
 <td>
 
 ```clj
-(img-text my-img 40 120 1 0 font LispBM 'up)
+(img-text my-img 40 120 1 0 font "LispBM" 'up)
 ```
 
 
@@ -1189,7 +1189,7 @@ t
 <td>
 
 ```clj
-(img-text my-img 40 40 1 0 font LispBM 'down)
+(img-text my-img 40 40 1 0 font "LispBM" 'down)
 ```
 
 

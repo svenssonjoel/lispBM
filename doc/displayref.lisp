@@ -22,6 +22,7 @@
 (img-blit img-100-100 llama-bin 0 0 -1 '(scale 0.3))
 
 (defun code-disp-str (xs) (code-disp (map (lambda (x) (list 'read-eval x)) xs)))
+(defun code-png-str (img c xs) (code-png img c (map (lambda (x) (list 'read-eval x)) xs)))
 
 (define create_image1
   (ref-entry "img-buffer"
@@ -119,11 +120,11 @@
 (define texts
   (ref-entry "img-text"
              (list
-              (code-png 'my-img '(0x00 0xffffff)
-                        '((img-text my-img 40 40 1 0 font "LispBM")
-                          (img-text my-img 40 120 1 0 font "LispBM" 'up)
-                          (img-text my-img 40 40 1 0 font "LispBM" 'down)
-                          ))
+              (code-png-str 'my-img '(0x00 0xffffff)
+                            '("(img-text my-img 40 40 1 0 font \"LispBM\")"
+                              "(img-text my-img 40 120 1 0 font \"LispBM\" 'up)"
+                              "(img-text my-img 40 40 1 0 font \"LispBM\" 'down)"
+                              ))
               end)))
 
 (define setpixel
