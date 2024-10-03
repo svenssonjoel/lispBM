@@ -3280,6 +3280,16 @@ static void cont_exit_atomic(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+// map stack contents:
+//
+// sptr[0]: s[sp-6] = Rest of the input list.
+// sptr[1]: s[sp-5] = environment to restore for the eval of each application.
+// sptr[2]: s[sp-4] = result list.
+// sptr[3]: s[sp-3] = cell that goes into result list after being populated with application result.
+// sptr[4]: s[sp-2] = ref to application.
+// sptr[5]: s[sp-1] = ref to application argument.
+//
+// ctx->r  = eval result of previous application.
 static void cont_map(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 6);
 
