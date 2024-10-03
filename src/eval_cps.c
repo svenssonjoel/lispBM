@@ -2139,9 +2139,11 @@ static void eval_receive(eval_context_t *ctx) {
 /*********************************************************/
 /*  Continuation functions                               */
 
-/* cont_set_global_env
-   sp-1 : Key-symbol
- */
+// cont_set_global_env:
+//
+//   s[sp-1] = Key-symbol
+//
+//   ctx->r = Value
 static void cont_set_global_env(eval_context_t *ctx){
 
   lbm_value key;
@@ -2164,10 +2166,23 @@ static void cont_set_global_env(eval_context_t *ctx){
   return;
 }
 
+// cont_resume:
+//
+// s[sp-2] = Expression
+// s[sp-1] = Environment
+//
+// ctx->r = Irrelevant.
 static void cont_resume(eval_context_t *ctx) {
   lbm_pop_2(&ctx->K, &ctx->curr_env, &ctx->curr_exp);
 }
 
+// cont_progn_rest:
+//
+// s[sp-3] = Environment to evaluate each expression in.
+// s[sp-2] = Flag indicating if env has been copied.
+// s[sp-1] = list of expressions to evaluate.
+//
+// ctx->r = Result of last evaluated expression.
 static void cont_progn_rest(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 3);
 
@@ -3280,14 +3295,14 @@ static void cont_exit_atomic(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-// map stack contents:
+// cont_map:
 //
 // sptr[0]: s[sp-6] = Rest of the input list.
-// sptr[1]: s[sp-5] = environment to restore for the eval of each application.
-// sptr[2]: s[sp-4] = result list.
-// sptr[3]: s[sp-3] = cell that goes into result list after being populated with application result.
-// sptr[4]: s[sp-2] = ref to application.
-// sptr[5]: s[sp-1] = ref to application argument.
+// sptr[1]: s[sp-5] = Environment to restore for the eval of each application.
+// sptr[2]: s[sp-4] = Result list.
+// sptr[3]: s[sp-3] = Cell that goes into result list after being populated with application result.
+// sptr[4]: s[sp-2] = Ref to application.
+// sptr[5]: s[sp-1] = Ref to application argument.
 //
 // ctx->r  = eval result of previous application.
 static void cont_map(eval_context_t *ctx) {
