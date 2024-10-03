@@ -13,7 +13,10 @@ PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11
 LISPBM_SRC += $(LISPBM_EVAL_CPS_SRC)
 
 REPL_SRC= repl.c \
-	  repl_exts.c
+	  repl_exts.c \
+          crc.c \
+          packet.c \
+          buffer.c
 
 
 ifdef HEAP_VIS
@@ -35,7 +38,7 @@ all64: repl
 
 sdl: CCFLAGS += -DLBM64 -DWITH_SDL
 sdl: LISPBM_FLAGS += -I/usr/include/SDL2 -lSDL2_image -lSDL2
-sdl: LISPBM_SRC += lbm_sdl.c
+sdl: REPL_SRC += lbm_sdl.c
 sdl: repl
 
 clean_cl.h: ./scripts/clean.lisp

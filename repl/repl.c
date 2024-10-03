@@ -15,12 +15,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define _POSIX_C_SOURCE 200809L
+//#define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
 #include <pthread.h>
+//#define _POSIX_C_SOURCE	199309L
 #include <sys/time.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -28,6 +29,14 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+//network
+#include <netinet/in.h> 
+#include <sys/socket.h> 
+#include <sys/types.h> 
+#include <arpa/inet.h>
+#include <netdb.h>
+
+//lispbm
 #include "lispbm.h"
 #include "lbm_flat_value.h"
 #include "lbm_prof.h"
@@ -46,7 +55,15 @@
 #include "lbm_sdl.h"
 #endif
 
+// things directly copied from VESC_EXPRESS
+#include "packet.h"
+#include "comm_packet_id.h"
+#include "buffer.h"
+#include "crc.h"
 
+typedef void (*send_func_t)(unsigned char *, unsigned int);
+
+#define DEFAULT_VESCTCP_PORT 65107
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 1024
@@ -66,6 +83,11 @@ bool terminate_after_startup = false;
 volatile lbm_cid startup_cid = -1;
 volatile lbm_cid store_result_cid = -1;
 volatile bool silent_mode = false;
+bool vesctcp = false;
+uint16_t vesctcp_port = (uint16_t)DEFAULT_VESCTCP_PORT;
+
+volatile bool vesctcp_server_in_use = false;
+const char *vesctcp_in_use = "Error: Server is in use\n";
 
 
 void shutdown_procedure(void);
@@ -318,6 +340,8 @@ lbm_const_heap_t const_heap;
 #define STORE_RESULT         0x0403
 #define TERMINATE            0x0404
 #define SILENT_MODE          0x0405
+#define VESCTCP              0x0406
+#define VESCTCP_PORT         0x0407         
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -329,6 +353,8 @@ struct option options[] = {
   {"store_res", required_argument, NULL, STORE_RESULT},
   {"terminate", no_argument, NULL, TERMINATE},
   {"silent", no_argument, NULL, SILENT_MODE},
+  {"vesctcp",no_argument, NULL, VESCTCP},
+  {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -415,13 +441,17 @@ void parse_opts(int argc, char **argv) {
       printf("\n");
       printf("    --load_env=FILEPATH               Load the global environment from a file at\n"\
              "                                      startup.\n");
+      printf("    --silent                          The REPL will print as little as possible\n");
       printf("    --store_env=FILEPATH              Store the global environment to a file upon\n"\
              "                                      exit.\n");
       printf("    --store_res=FILEPATH              Store the result of the last program\n"\
              "                                      specified with the --src/-s options.\n");
+      printf("    --vesctcp                         Open a TCP server talking the VESC protocol\n"\
+             "                                      on port %d\n", DEFAULT_VESCTCP_PORT);
+      printf("    --vesctcp_port=port               open the TCP server on this port instead\n");
       printf("    --terminate                       Terminate the REPL after evaluating the\n"\
              "                                      source files specified with --src/-s\n");
-      printf("    --silent                          The REPL will print as little as possible\n");
+
       printf("\n");
       printf("Multiple sourcefiles and expressions can be added with multiple uses\n" \
              "of the --src/-s and --eval/-e flags.\n" \
@@ -456,6 +486,13 @@ void parse_opts(int argc, char **argv) {
       break;
     case SILENT_MODE:
       silent_mode = true;
+      break;
+    case VESCTCP:
+      vesctcp = true;
+      break;
+    case VESCTCP_PORT:
+      vesctcp_port = atoi((char *)optarg);
+      vesctcp = true;
       break;
     default:
       break;
@@ -860,6 +897,254 @@ void shutdown_procedure(void) {
   return;
 }
 
+// ////////////////////////////////////////////////////////////
+// Packet handling
+
+#define PRINT_BUFFER_SIZE 1024
+#define HW_NAME "lispbm"
+#define FW_NAME "lispbm"
+#define HW_TYPE_CUSTOM_MODULE 2
+#define FW_TEST_VERSION_NUMBER 0
+#define SEND_MAX_RETRY 10
+
+static send_func_t send_func = 0;
+static int connected_socket = 0;
+
+
+char *lispif_print_prefix(void) {
+  return "";
+}
+
+void commands_send_packet(unsigned char *data, unsigned int len) {
+  if (send_func) {
+    send_func(data, len);
+  }
+}
+
+
+int commands_printf_lisp(const char* format, ...) {
+  va_list arg;
+  va_start(arg, format);
+  int len;
+
+  char *print_buffer = malloc(PRINT_BUFFER_SIZE);
+	
+
+  print_buffer[0] = COMM_LISP_PRINT;
+  int offset = 1;
+  size_t prefix_len = sprintf(print_buffer + offset, lispif_print_prefix(), "%s");
+  offset += prefix_len;
+
+  len = vsnprintf(
+                  print_buffer + offset, (PRINT_BUFFER_SIZE - offset), format, arg
+                  );
+  va_end(arg);
+
+  int len_to_print = (len < (PRINT_BUFFER_SIZE - offset)) ? len + offset : PRINT_BUFFER_SIZE;
+
+  for (size_t i = 2; i < len_to_print; i++) {
+    // TODO: Handle newline character in prefix?
+    char chr = print_buffer[i - 1];
+    if (chr == '\0') {
+      break;
+    }
+    if (chr == '\n') {
+      int remaining_len = len_to_print - i;
+      if (remaining_len > (PRINT_BUFFER_SIZE - i - prefix_len)) {
+        remaining_len = PRINT_BUFFER_SIZE - i - prefix_len;
+      }
+      if (remaining_len <= 0) {
+        break;
+      }
+      memmove(print_buffer + i + prefix_len, print_buffer + i, remaining_len);
+      memmove(print_buffer + i, lispif_print_prefix(), prefix_len);
+      i += prefix_len;
+      len_to_print += prefix_len;
+    }
+		
+    if (len_to_print > PRINT_BUFFER_SIZE) {
+      len_to_print = PRINT_BUFFER_SIZE;
+    }
+  }
+
+  if (len > 0) {
+    if (print_buffer[len_to_print - 1] == '\n') {
+      len_to_print--;
+    }
+
+    commands_send_packet((unsigned char*)print_buffer, len_to_print);
+  }
+
+  free(print_buffer);
+
+  return len_to_print - 1;
+}
+
+
+void repl_process_cmd(unsigned char *data, unsigned int len,
+                      void(*reply_func)(unsigned char *data, unsigned int len)) {
+  COMM_PACKET_ID packet_id;
+
+  packet_id = data[0];
+  data++;
+  len--;
+
+  switch (packet_id) {
+  case COMM_FW_VERSION: {
+    printf("sending FW version\n");
+    int32_t ind = 0;
+    uint8_t send_buffer[65];
+    send_buffer[ind++] = COMM_FW_VERSION;
+    send_buffer[ind++] = 1;
+    send_buffer[ind++] = 1;
+
+    strcpy((char*)(send_buffer + ind), HW_NAME);
+    ind += strlen(HW_NAME) + 1;
+
+    //size_t size_bits = esp_efuse_get_field_size(ESP_EFUSE_MAC_FACTORY);
+    //esp_efuse_read_field_blob(ESP_EFUSE_MAC_FACTORY, send_buffer + ind, size_bits);
+    ind += 6;
+    memset(send_buffer + ind, 0, 6);
+    ind += 6;
+
+    send_buffer[ind++] = 0;
+    send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
+
+    send_buffer[ind++] = HW_TYPE_CUSTOM_MODULE;
+    send_buffer[ind++] = 1; // One custom config
+
+    send_buffer[ind++] = 0; // No phase filters
+    send_buffer[ind++] = 0; // No HW QML
+
+    //if (flash_helper_code_size(CODE_IND_QML) > 0) {
+    //  send_buffer[ind++] = flash_helper_code_flags(CODE_IND_QML);
+    //} else {
+    send_buffer[ind++] = 0;
+    //}
+    
+    send_buffer[ind++] = 0; // No NRF flags
+
+    strcpy((char*)(send_buffer + ind), FW_NAME);
+    ind += strlen(FW_NAME) + 1;
+
+    buffer_append_uint32(send_buffer, 967, &ind); // main_calc_hw_crc()
+    reply_func(send_buffer, ind);
+  } break;
+
+  case COMM_LISP_SET_RUNNING: {
+  } break;
+
+  case COMM_LISP_GET_STATS: {
+  } break;
+
+  case COMM_LISP_REPL_CMD: {
+  } break;
+
+  case COMM_LISP_STREAM_CODE: {
+  } break;
+
+  case COMM_LISP_RMSG: {
+  } break;
+
+  default:
+    break;
+  }
+
+}
+
+
+
+// ////////////////////////////////////////////////////////////
+//  
+
+void *udp_broadcast_task(void *arg) {
+  (void)arg;
+
+  int sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+  char hostbuffer[256];
+  char *ip;
+  int hostname = gethostname(hostbuffer, sizeof(hostbuffer));
+  struct hostent *host_entry;
+
+  host_entry = gethostbyname(hostbuffer);
+
+  ip = inet_ntoa(*((struct in_addr*)
+                         host_entry->h_addr_list[0]));
+ 
+ 
+  int bc = 1;
+  setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &bc, sizeof(bc));
+
+  struct sockaddr_in sDestAddr;
+  memset(&sDestAddr, 0, sizeof(sDestAddr));
+  sDestAddr.sin_family = AF_INET;
+  //sDestAddr.sin_len = sizeof(sDestAddr);
+  sDestAddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+  sDestAddr.sin_port = htons(65109);
+
+  for (;;) {
+    char sendbuf[50];
+    size_t ind = 0;
+    printf("%s::%s::%u\n", "LBM",  ip, vesctcp_port);
+    ind += sprintf(sendbuf, "%s::%s::%u", "LBM-REPL",  ip, vesctcp_port) + 1;
+    sendto(sock, sendbuf, ind, 0, (struct sockaddr *)&sDestAddr, sizeof(sDestAddr));
+    sleep(2);
+  }
+}
+
+void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
+  int to_write = len;
+  int error_cnt = 0;
+
+  printf("sending bytes %d\n", len);
+  while (to_write > 0) { 
+    int written = write (connected_socket, buffer + (len - to_write), to_write);
+    if (written < 0) {
+      error_cnt ++;
+      if (error_cnt > SEND_MAX_RETRY) {
+        return;
+      }
+      sleep_callback(10);
+    }
+    to_write -= written;
+  }
+}
+
+PACKET_STATE_t packet;
+
+void send_packet_local(unsigned char *data, unsigned int len) {
+  packet_send_packet(data, len, &packet);
+}
+
+void process_packet_local(unsigned char *data, unsigned int len) {
+  repl_process_cmd(data,len, send_packet_local);
+}
+
+void *vesctcp_client_handler(void *arg) {
+  send_func = send_tcp_bytes;  // ?
+  connected_socket = (int)arg;
+  uint8_t buffer[1024];
+  packet_init(send_tcp_bytes, process_packet_local,&packet);
+
+  printf("In client handler\n");
+  
+  int len;
+  do {
+    len = read(connected_socket, buffer, 1024);
+    for (int i = 0; i < len; i ++) {
+      packet_process_byte(buffer[i], &packet);
+    }
+  } while (len > 0); 
+
+  printf("leaving client handler\n");
+  vesctcp_server_in_use = false;
+}
+
+
+
+// ////////////////////////////////////////////////////////////
+//  
 int main(int argc, char **argv) {
   parse_opts(argc, argv);
 
@@ -869,241 +1154,281 @@ int main(int argc, char **argv) {
     terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
   }
   startup_procedure();
-  char output[1024];
 
-  while (1) {
-    erase();
-    char *str;
-    if (silent_mode) {
-      str = readline("");
-    } else {
-      str = readline("# ");
+  if (vesctcp) {
+    pthread_t broadcast_thread;
+    pthread_t client_thread;
+    pthread_create(&broadcast_thread, NULL, udp_broadcast_task, NULL);
+
+
+    // Start tcp server
+    struct sockaddr_in server_sockaddr_in;
+    server_sockaddr_in.sin_family = AF_INET;
+    server_sockaddr_in.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_sockaddr_in.sin_port = htons(vesctcp_port);
+
+    int server_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    bind(server_socket, (struct sockaddr *)&server_sockaddr_in, sizeof(server_sockaddr_in));
+
+    listen(server_socket, 5);
+
+    for (;;) { 
+      struct sockaddr_in client_sockaddr_in;
+      socklen_t len = sizeof(client_sockaddr_in);
+      
+      int client_socket = accept(server_socket, (struct sockaddr *)&client_sockaddr_in, &len);
+
+      // TODO: reset everything between connections?
+      
+      if (client_socket >= 0 && !vesctcp_server_in_use ) {
+        printf("accepting connection\n");
+        vesctcp_server_in_use = true;
+        pthread_create(&client_thread, NULL, vesctcp_client_handler, (void*)client_socket);
+        
+      } else if (client_socket < 0) {
+        printf("refusing connection");
+        write(client_socket, vesctcp_in_use, strlen(vesctcp_in_use));
+      }
     }
-    if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
-    add_history(str);
-    size_t n = strlen(str);
+  } else { 
 
-    if (n >= 5 && strncmp(str, ":info", 5) == 0) {
-      printf("--(LISP HEAP)-----------------------------------------------\n");
-      lbm_get_heap_state(&heap_state);
-      printf("Heap size: %u Bytes\n", heap_size * 8);
-      printf("Used cons cells: %"PRI_INT"\n", heap_size - lbm_heap_num_free());
-      printf("Free cons cells: %"PRI_INT"\n", lbm_heap_num_free());
-      printf("GC counter: %"PRI_INT"\n", heap_state.gc_num);
-      printf("Recovered: %"PRI_INT"\n", heap_state.gc_recovered);
-      printf("Recovered arrays: %"PRI_UINT"\n", heap_state.gc_recovered_arrays);
-      printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
-      printf("GC stack size: %"PRI_UINT"\n", lbm_get_gc_stack_size());
-      printf("GC SP max: %"PRI_UINT"\n", lbm_get_gc_stack_max());
-      printf("--(Symbol and Array memory)---------------------------------\n");
-      printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
-      printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
-      printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
-      printf("Symbol table size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
-      printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
-      printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
-      printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
-      free(str);
-    } else if (strncmp(str, ":prof start", 11) == 0) {
-      lbm_prof_init(prof_data,
-                    PROF_DATA_NUM);
-      pthread_t thd; // just forget this id.
-      prof_running = true;
-      if (pthread_create(&thd, NULL, prof_thd, NULL)) {
-        printf("Error creating profiler thread\n");
+    char output[1024];
+
+    while (1) {
+      erase();
+      char *str;
+      if (silent_mode) {
+        str = readline("");
+      } else {
+        str = readline("# ");
+      }
+      if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
+      add_history(str);
+      size_t n = strlen(str);
+
+      if (n >= 5 && strncmp(str, ":info", 5) == 0) {
+        printf("--(LISP HEAP)-----------------------------------------------\n");
+        lbm_get_heap_state(&heap_state);
+        printf("Heap size: %u Bytes\n", heap_size * 8);
+        printf("Used cons cells: %"PRI_INT"\n", heap_size - lbm_heap_num_free());
+        printf("Free cons cells: %"PRI_INT"\n", lbm_heap_num_free());
+        printf("GC counter: %"PRI_INT"\n", heap_state.gc_num);
+        printf("Recovered: %"PRI_INT"\n", heap_state.gc_recovered);
+        printf("Recovered arrays: %"PRI_UINT"\n", heap_state.gc_recovered_arrays);
+        printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
+        printf("GC stack size: %"PRI_UINT"\n", lbm_get_gc_stack_size());
+        printf("GC SP max: %"PRI_UINT"\n", lbm_get_gc_stack_max());
+        printf("--(Symbol and Array memory)---------------------------------\n");
+        printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
+        printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
+        printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
+        printf("Symbol table size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
+        printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
+        printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
+        printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
+        free(str);
+      } else if (strncmp(str, ":prof start", 11) == 0) {
+        lbm_prof_init(prof_data,
+                      PROF_DATA_NUM);
+        pthread_t thd; // just forget this id.
+        prof_running = true;
+        if (pthread_create(&thd, NULL, prof_thd, NULL)) {
+          printf("Error creating profiler thread\n");
+          free(str);
+          continue;
+        }
+        printf("Profiler started\n");
+        free(str);
+      } else if (strncmp(str, ":prof stop", 10) == 0) {
+        prof_running = false;
+        printf("Profiler stopped. Issue command ':prof report' for statistics\n.");
+        free(str);
+      } else if (strncmp(str, ":prof report", 12) == 0) {
+        lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
+        lbm_uint num_system = lbm_prof_get_num_system_samples();
+        lbm_uint tot_samples = lbm_prof_get_num_samples();
+        lbm_uint tot_gc = 0;
+        printf("CID\tName\tSamples\t%%Load\t%%GC\n");
+        for (int i = 0; i < PROF_DATA_NUM; i ++) {
+          if (prof_data[i].cid == -1) break;
+          tot_gc += prof_data[i].gc_count;
+          printf("%"PRI_VALUE"\t%s\t%"PRI_UINT"\t%f\t%f\n",
+                 prof_data[i].cid,
+                 prof_data[i].name,
+                 prof_data[i].count,
+                 100.0 * ((float)prof_data[i].count) / (float) tot_samples,
+                 100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count);
+        }
+        printf("\n");
+        printf("GC:\t%"PRI_UINT"\t%f%%\n", tot_gc, 100.0 * ((float)tot_gc / (float)tot_samples));
+        printf("System:\t%"PRI_UINT"\t%f%%\n", num_system, 100.0 * ((float)num_system / (float)tot_samples));
+        printf("Sleep:\t%"PRI_UINT"\t%f%%\n", num_sleep, 100.0 * ((float)num_sleep / (float)tot_samples));
+        printf("Total:\t%"PRI_UINT" samples\n", tot_samples);
+        free(str);
+      } else if (strncmp(str, ":env", 4) == 0) {
+        for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+          lbm_value *env = lbm_get_global_env();
+          lbm_value curr = env[i];
+          printf("Environment [%d]:\r\n", i);
+          while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+            lbm_print_value(output,1024, lbm_car(curr));
+            curr = lbm_cdr(curr);
+            printf("  %s\r\n",output);
+          }
+        }
+        free(str);
+      } else if (strncmp(str, ":state", 6) == 0) {
+        lbm_uint state = lbm_get_eval_state();
+        switch (state) {
+        case EVAL_CPS_STATE_DEAD:
+          printf("DEAD\n");
+          break;
+        case EVAL_CPS_STATE_PAUSED:
+          printf("PAUSED\n");
+          break;
+        case EVAL_CPS_STATE_NONE:
+          printf("NO STATE\n");
+          break;
+        case EVAL_CPS_STATE_RUNNING:
+          printf("RUNNING\n");
+          break;
+        case EVAL_CPS_STATE_KILL:
+          printf("KILLING\n");
+          break;
+        }
+        free(str);
+      }
+      else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
+
+        char *file_str = load_file(&str[5]);
+        if (file_str) {
+          lbm_create_string_char_channel(&string_tok_state,
+                                         &string_tok,
+                                         file_str);
+
+          /* Get exclusive access to the heap */
+          lbm_pause_eval_with_gc(50);
+          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+            sleep_callback(10);
+          }
+
+          (void)lbm_load_and_eval_program_incremental(&string_tok, NULL);
+          lbm_continue_eval();
+
+          //printf("started ctx: %"PRI_UINT"\n", cid);
+          // TODO: Should free the file_str at some point!!
+          // but it is hard to figure out when to do that if loading incrementally.
+        } else {
+          printf("Error loading file: %s\n",&str[5]);
+        }
+        free(str);
+      } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
+        lbm_toggle_verbose();
         free(str);
         continue;
-      }
-      printf("Profiler started\n");
-      free(str);
-    } else if (strncmp(str, ":prof stop", 10) == 0) {
-      prof_running = false;
-      printf("Profiler stopped. Issue command ':prof report' for statistics\n.");
-      free(str);
-    } else if (strncmp(str, ":prof report", 12) == 0) {
-      lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
-      lbm_uint num_system = lbm_prof_get_num_system_samples();
-      lbm_uint tot_samples = lbm_prof_get_num_samples();
-      lbm_uint tot_gc = 0;
-      printf("CID\tName\tSamples\t%%Load\t%%GC\n");
-      for (int i = 0; i < PROF_DATA_NUM; i ++) {
-        if (prof_data[i].cid == -1) break;
-        tot_gc += prof_data[i].gc_count;
-        printf("%"PRI_VALUE"\t%s\t%"PRI_UINT"\t%f\t%f\n",
-               prof_data[i].cid,
-               prof_data[i].name,
-               prof_data[i].count,
-               100.0 * ((float)prof_data[i].count) / (float) tot_samples,
-               100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count);
-      }
-      printf("\n");
-      printf("GC:\t%"PRI_UINT"\t%f%%\n", tot_gc, 100.0 * ((float)tot_gc / (float)tot_samples));
-      printf("System:\t%"PRI_UINT"\t%f%%\n", num_system, 100.0 * ((float)num_system / (float)tot_samples));
-      printf("Sleep:\t%"PRI_UINT"\t%f%%\n", num_sleep, 100.0 * ((float)num_sleep / (float)tot_samples));
-      printf("Total:\t%"PRI_UINT" samples\n", tot_samples);
-      free(str);
-    } else if (strncmp(str, ":env", 4) == 0) {
-      for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
-        lbm_value *env = lbm_get_global_env();
-        lbm_value curr = env[i];
-        printf("Environment [%d]:\r\n", i);
-        while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-          lbm_print_value(output,1024, lbm_car(curr));
-          curr = lbm_cdr(curr);
-          printf("  %s\r\n",output);
+      } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
+        set_allow_print(true);
+        free(str);
+        continue;
+      } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
+        set_allow_print(false);
+        free(str);
+        continue;
+      } else if (strncmp(str, ":ctxs", 5) == 0) {
+        printf("****** Running contexts ******\n");
+        lbm_running_iterator(print_ctx_info, NULL, NULL);
+        printf("****** Blocked contexts ******\n");
+        lbm_blocked_iterator(print_ctx_info, NULL, NULL);
+        free(str);
+      }  else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
+        shutdown_procedure();
+        free(str);
+        break;
+      } else if (strncmp(str, ":symbols", 8) == 0) {
+        lbm_symrepr_name_iterator(sym_it);
+        free(str);
+      } else if (strncmp(str, ":heap", 5) == 0) {
+        int size = atoi(str + 5);
+        if (size > 0) {
+          heap_size = (unsigned int)size;
+          if (!init_repl()) {
+            printf("Failed to initialize REPL after heap resize\n");
+            terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
+          }
         }
-      }
-      free(str);
-    } else if (strncmp(str, ":state", 6) == 0) {
-      lbm_uint state = lbm_get_eval_state();
-      switch (state) {
-      case EVAL_CPS_STATE_DEAD:
-        printf("DEAD\n");
-        break;
-      case EVAL_CPS_STATE_PAUSED:
-        printf("PAUSED\n");
-        break;
-      case EVAL_CPS_STATE_NONE:
-        printf("NO STATE\n");
-        break;
-      case EVAL_CPS_STATE_RUNNING:
-        printf("RUNNING\n");
-        break;
-      case EVAL_CPS_STATE_KILL:
-        printf("KILLING\n");
-        break;
-      }
-      free(str);
-    }
-    else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
+        free(str);
+      } else if (strncmp(str, ":reset", 6) == 0) {
+        if (!init_repl()) {
+          printf ("Failed to initialize REPL\n");
+          terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
+        }
+        free(str);
+      } else if (strncmp(str, ":send", 5) == 0) {
+        int id;
+        int i_val;
 
-      char *file_str = load_file(&str[5]);
-      if (file_str) {
-        lbm_create_string_char_channel(&string_tok_state,
-                                       &string_tok,
-                                       file_str);
+        if (sscanf(str + 5, "%d%d", &id, &i_val) == 2) {
+          lbm_pause_eval_with_gc(50);
+          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+            sleep_callback(10);
+          }
 
+          if (lbm_send_message((lbm_cid)id, lbm_enc_i(i_val)) == 0) {
+            printf("Could not send message\n");
+          }
+
+          lbm_continue_eval();
+        } else {
+          printf("Incorrect arguments to send\n");
+        }
+        free(str);
+      } else if (strncmp(str, ":pause", 6) == 0) {
+        lbm_pause_eval_with_gc(30);
+        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+        printf("Evaluator paused\n");
+        free(str);
+      } else if (strncmp(str, ":continue", 9) == 0) {
+        lbm_continue_eval();
+        free(str);
+      } else if (strncmp(str, ":inspect", 8) == 0) {
+
+        int i = 8;
+        if (strlen(str) >= 8) {
+          while (str[i] == ' ') i++;
+        }
+        char *sym = str + i;
+        lbm_uint sym_id = 0;
+        if (lbm_get_symbol_by_name(sym, &sym_id)) {
+          lbm_running_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+          lbm_blocked_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+        } else {
+          printf("symbol does not exist\n");
+        }
+      } else if (strncmp(str, ":undef", 6) == 0) {
+        lbm_pause_eval_with_gc(50);
+        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+        char *sym = str + 7;
+        printf("undefining: %s\n", sym);
+        printf("%s\n", lbm_undefine(sym) ? "Cleared bindings" : "No definition found");
+        lbm_continue_eval();
+        free(str);
+      } else {
         /* Get exclusive access to the heap */
         lbm_pause_eval_with_gc(50);
         while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
           sleep_callback(10);
         }
-
-        (void)lbm_load_and_eval_program_incremental(&string_tok, NULL);
+        lbm_create_string_char_channel(&string_tok_state,
+                                       &string_tok,
+                                       str);
+        (void)lbm_load_and_eval_expression(&string_tok);
         lbm_continue_eval();
-
-        //printf("started ctx: %"PRI_UINT"\n", cid);
-        // TODO: Should free the file_str at some point!!
-        // but it is hard to figure out when to do that if loading incrementally.
-      } else {
-        printf("Error loading file: %s\n",&str[5]);
       }
-      free(str);
-    } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
-      lbm_toggle_verbose();
-      free(str);
-      continue;
-    } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
-      set_allow_print(true);
-      free(str);
-      continue;
-    } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
-      set_allow_print(false);
-      free(str);
-      continue;
-    } else if (strncmp(str, ":ctxs", 5) == 0) {
-      printf("****** Running contexts ******\n");
-      lbm_running_iterator(print_ctx_info, NULL, NULL);
-      printf("****** Blocked contexts ******\n");
-      lbm_blocked_iterator(print_ctx_info, NULL, NULL);
-      free(str);
-    }  else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
-      shutdown_procedure();
-      free(str);
-      break;
-    } else if (strncmp(str, ":symbols", 8) == 0) {
-      lbm_symrepr_name_iterator(sym_it);
-      free(str);
-    } else if (strncmp(str, ":heap", 5) == 0) {
-      int size = atoi(str + 5);
-      if (size > 0) {
-        heap_size = (unsigned int)size;
-        if (!init_repl()) {
-          printf("Failed to initialize REPL after heap resize\n");
-          terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
-        }
-      }
-      free(str);
-    } else if (strncmp(str, ":reset", 6) == 0) {
-      if (!init_repl()) {
-        printf ("Failed to initialize REPL\n");
-        terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
-      }
-      free(str);
-    } else if (strncmp(str, ":send", 5) == 0) {
-      int id;
-      int i_val;
-
-      if (sscanf(str + 5, "%d%d", &id, &i_val) == 2) {
-        lbm_pause_eval_with_gc(50);
-        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-          sleep_callback(10);
-        }
-
-        if (lbm_send_message((lbm_cid)id, lbm_enc_i(i_val)) == 0) {
-          printf("Could not send message\n");
-        }
-
-        lbm_continue_eval();
-      } else {
-        printf("Incorrect arguments to send\n");
-      }
-      free(str);
-    } else if (strncmp(str, ":pause", 6) == 0) {
-      lbm_pause_eval_with_gc(30);
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        sleep_callback(10);
-      }
-      printf("Evaluator paused\n");
-      free(str);
-    } else if (strncmp(str, ":continue", 9) == 0) {
-      lbm_continue_eval();
-      free(str);
-    } else if (strncmp(str, ":inspect", 8) == 0) {
-
-      int i = 8;
-      if (strlen(str) >= 8) {
-        while (str[i] == ' ') i++;
-      }
-      char *sym = str + i;
-      lbm_uint sym_id = 0;
-      if (lbm_get_symbol_by_name(sym, &sym_id)) {
-        lbm_running_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
-        lbm_blocked_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
-      } else {
-        printf("symbol does not exist\n");
-      }
-    } else if (strncmp(str, ":undef", 6) == 0) {
-      lbm_pause_eval_with_gc(50);
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        sleep_callback(10);
-      }
-      char *sym = str + 7;
-      printf("undefining: %s\n", sym);
-      printf("%s\n", lbm_undefine(sym) ? "Cleared bindings" : "No definition found");
-      lbm_continue_eval();
-      free(str);
-    } else {
-      /* Get exclusive access to the heap */
-      lbm_pause_eval_with_gc(50);
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        sleep_callback(10);
-      }
-      lbm_create_string_char_channel(&string_tok_state,
-                                     &string_tok,
-                                     str);
-      (void)lbm_load_and_eval_expression(&string_tok);
-      lbm_continue_eval();
     }
   }
   free(heap_storage);
