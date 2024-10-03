@@ -205,8 +205,19 @@ void *prof_thd(void *v) {
 char * load_file(char *filename) {
   char *file_str = NULL;
   int i = 0;
+  size_t len = strlen(filename);
+  // leading whitespace
   while (filename[i] == ' ' && filename[i] != 0) {
     i ++;
+  }
+  //trailing whitespace
+  while (len > 0) {
+    if (filename[len-1] == ' ') {
+      printf("shortening\n");
+      filename[len-1] = 0;
+    }
+    else break;
+    len--;
   }
   FILE *fp;
   if (strlen(&filename[i]) > 0) {
@@ -968,7 +979,6 @@ int main(int argc, char **argv) {
 
       char *file_str = load_file(&str[5]);
       if (file_str) {
-
         lbm_create_string_char_channel(&string_tok_state,
                                        &string_tok,
                                        file_str);
@@ -983,6 +993,10 @@ int main(int argc, char **argv) {
         lbm_continue_eval();
 
         //printf("started ctx: %"PRI_UINT"\n", cid);
+        // TODO: Should free the file_str at some point!!
+        // but it is hard to figure out when to do that if loading incrementally.
+      } else {
+        printf("Error loading file: %s\n",&str[5]);
       }
       free(str);
     } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
