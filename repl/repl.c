@@ -626,7 +626,7 @@ int init_repl() {
 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
-    return 1;
+    return 0;
   }
   return 1;
 }
@@ -980,6 +980,165 @@ int commands_printf_lisp(const char* format, ...) {
   return len_to_print - 1;
 }
 
+bool lispif_restart(bool print, bool load_code, bool load_imports) {
+  bool res = false;
+  //if (prof_running) {
+  //  prof_running = false;
+  //  esp_timer_stop(prof_timer);
+  //}
+
+  // 
+  //char *code_data = (char*)flash_helper_code_data_ptr(CODE_IND_LISP);
+  //int32_t code_len = flash_helper_code_size(CODE_IND_LISP);
+
+  //if (!load_code || (code_data != 0 && code_len > 0)) {
+  //  lispif_disable_all_events();
+
+  if (lispbm_thd) {
+    int thread_r = 0;
+    lbm_kill_eval();
+    pthread_join(lispbm_thd, (void *)&thread_r);
+    lispbm_thd = 0;
+  }
+    
+  if (heap_storage) {
+    free(heap_storage);
+    heap_storage = NULL;
+  }
+    
+  heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
+    
+  if (heap_storage == NULL) {
+    return 0;
+  }
+    
+  if (!lbm_init(heap_storage, heap_size,
+                memory, LBM_MEMORY_SIZE_1M,
+                bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
+                GC_STACK_SIZE,
+                PRINT_STACK_SIZE,
+                extensions,
+                EXTENSION_STORAGE_SIZE)) {
+    return 0;
+  }
+
+  
+  if (!lbm_eval_init_events(20)) {
+    return 0;
+  }
+
+  memset(constants_memory, 0xFF, CONSTANT_MEMORY_SIZE * sizeof(lbm_uint));
+  if (!lbm_const_heap_init(const_heap_write,
+                           &const_heap,constants_memory,
+                           CONSTANT_MEMORY_SIZE)) {
+    return 0;
+  }
+
+  lbm_set_critical_error_callback(critical);
+  lbm_set_ctx_done_callback(done_callback);
+  lbm_set_timestamp_us_callback(timestamp);
+  lbm_set_usleep_callback(sleep_callback);
+  lbm_set_dynamic_load_callback(dynamic_loader);
+  //lbm_set_printf_callback(error_print);
+  lbm_set_printf_callback(commands_printf_lisp);
+
+  init_exts(); // another print extension should be used (commands_printf_lisp)
+
+#ifdef WITH_SDL
+  if (!lbm_sdl_init()) {
+    return 0;
+  }
+#endif
+
+  /* Load clean_cl library into heap */
+#ifdef CLEAN_UP_CLOSURES
+  if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
+    printf("Error loading a flat library\n");
+    return 1;
+  }
+#endif
+
+  if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
+    printf("Error creating evaluation thread\n");
+    return 0;
+  }
+
+  lbm_pause_eval();
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+    lbm_pause_eval();
+    sleep_callback(1000);
+  }
+
+  /* lispif_load_vesc_extensions(); */
+  /* for (int i = 0;i < EXT_LOAD_CALLBACK_LEN;i++) { */
+  /*   if (ext_load_callbacks[i] == 0) { */
+  /*     break; */
+  /*   } */
+
+  /*   ext_load_callbacks[i](); */
+  /* } */
+
+  /* lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader); */
+
+  /* int code_chars = 0; */
+  /* if (code_data) { */
+  /*   code_chars = strnlen(code_data, code_len); */
+  /* } */
+
+  // Load imports
+    
+  /* if (load_imports) { */
+  /*   if (code_len > code_chars + 3) { */
+  /*     int32_t ind = code_chars + 1; */
+  /*     uint16_t num_imports = buffer_get_uint16((uint8_t*)code_data, &ind); */
+
+  /*     if (num_imports > 0 && num_imports < 500) { */
+  /*       for (int i = 0;i < num_imports;i++) { */
+  /*         char *name = code_data + ind; */
+  /*         ind += strlen(name) + 1; */
+  /*         int32_t offset = buffer_get_int32((uint8_t*)code_data, &ind); */
+  /*         int32_t len = buffer_get_int32((uint8_t*)code_data, &ind); */
+
+  /*         lbm_value val; */
+  /*         if (lbm_share_array(&val, code_data + offset, len)) { */
+  /*           lbm_define(name, val); */
+  /*         } */
+  /*       } */
+  /*     } */
+  /*   } */
+  /* } */
+    
+  /* if (code_data == 0) { */
+  /*   code_data = (char*)flash_helper_code_data_raw(CODE_IND_LISP); */
+  /* } */
+
+  /* const_heap_max_ind = 0; */
+  /* const_heap_ptr = (lbm_uint*)(code_data + code_len + 16); */
+  /* const_heap_ptr = (lbm_uint*)((uint32_t)const_heap_ptr & 0xFFFFFFF4); */
+  /* uint32_t const_heap_len = ((uint32_t)code_data + flash_helper_code_size_raw(CODE_IND_LISP)) - (uint32_t)const_heap_ptr; */
+  /* lbm_const_heap_init(const_heap_write, &const_heap, (lbm_uint*)const_heap_ptr, const_heap_len); */
+
+  /* if (load_code) { */
+  /*   if (print) { */
+  /*     commands_printf_lisp("Parsing %d characters", code_chars); */
+  /*   } */
+
+  /*   lbm_create_string_char_channel(&string_tok_state, &string_tok, code_data); */
+  /*   lbm_load_and_eval_program_incremental(&string_tok, "main-u"); */
+  /* } */
+
+  lbm_continue_eval();
+
+  res = true;
+
+  /* if (repl_buffer) { */
+  /*   lbm_free(repl_buffer); */
+  /*   repl_buffer = 0; */
+  /* } */
+
+  return res;
+}
+
 
 void repl_process_cmd(unsigned char *data, unsigned int len,
                       void(*reply_func)(unsigned char *data, unsigned int len)) {
@@ -1033,6 +1192,29 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
   } break;
 
   case COMM_LISP_SET_RUNNING: {
+    // request to change the "running" state of the LBM evaluator.
+    bool ok = false;
+    bool running = data[0];
+    printf("COMM_LISP_SET_RUNNING %d\n", data[0]);
+    if (!running) {
+      if (lispbm_thd) {
+        int timeout_cnt = 2000;
+        lbm_pause_eval();
+        while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+          sleep_callback(1000);
+          timeout_cnt--;
+        }
+        ok = timeout_cnt > 0;
+      }
+    } else {
+      // Vesc express does a restart here..
+      ok = lispif_restart(true, true, true);
+    }
+    int32_t ind = 0;
+    uint8_t send_buffer[50];
+    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = ok;
+    reply_func(send_buffer, ind);
   } break;
 
   case COMM_LISP_GET_STATS: {
