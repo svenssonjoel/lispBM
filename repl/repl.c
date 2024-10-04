@@ -30,9 +30,9 @@
 #include <readline/history.h>
 
 //network
-#include <netinet/in.h> 
-#include <sys/socket.h> 
-#include <sys/types.h> 
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 
@@ -131,7 +131,7 @@ void *eval_thd_wrapper(void *v) {
     printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
 #ifdef WITH_SDL
     printf("With SDL extensions\n");
-#endif 
+#endif
     printf("Type :quit to exit.\n");
     printf("     :info for statistics.\n");
     printf("     :load [filename] to load lisp source.\n");
@@ -341,7 +341,7 @@ lbm_const_heap_t const_heap;
 #define TERMINATE            0x0404
 #define SILENT_MODE          0x0405
 #define VESCTCP              0x0406
-#define VESCTCP_PORT         0x0407         
+#define VESCTCP_PORT         0x0407
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -609,7 +609,7 @@ int init_repl() {
   lbm_set_printf_callback(error_print);
 
   init_exts();
-  
+
 #ifdef WITH_SDL
   if (!lbm_sdl_init()) {
     return 0;
@@ -665,7 +665,7 @@ bool evaluate_sources(void) {
 bool evaluate_expressions(void) {
   expr_list_t *curr = expressions;
   char *expr = NULL;
-  
+
   while (curr) {
     // if (expr) free(expr);
     expr = curr->expr;
@@ -928,7 +928,7 @@ int commands_printf_lisp(const char* format, ...) {
   int len;
 
   char *print_buffer = malloc(PRINT_BUFFER_SIZE);
-	
+
 
   print_buffer[0] = COMM_LISP_PRINT;
   int offset = 1;
@@ -961,7 +961,7 @@ int commands_printf_lisp(const char* format, ...) {
       i += prefix_len;
       len_to_print += prefix_len;
     }
-		
+
     if (len_to_print > PRINT_BUFFER_SIZE) {
       len_to_print = PRINT_BUFFER_SIZE;
     }
@@ -985,13 +985,14 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
                       void(*reply_func)(unsigned char *data, unsigned int len)) {
   COMM_PACKET_ID packet_id;
 
+  //send_func = reply_func;
+
   packet_id = data[0];
   data++;
   len--;
 
   switch (packet_id) {
   case COMM_FW_VERSION: {
-    printf("sending FW version\n");
     int32_t ind = 0;
     uint8_t send_buffer[65];
     send_buffer[ind++] = COMM_FW_VERSION;
@@ -1021,7 +1022,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     //} else {
     send_buffer[ind++] = 0;
     //}
-    
+
     send_buffer[ind++] = 0; // No NRF flags
 
     strcpy((char*)(send_buffer + ind), FW_NAME);
@@ -1041,12 +1042,23 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
   } break;
 
   case COMM_LISP_STREAM_CODE: {
+
   } break;
+  case COMM_LISP_WRITE_CODE: {
+  } break;
+  case COMM_LISP_READ_CODE: {
+
+  } break;
+  case COMM_LISP_ERASE_CODE: {
+
+    break;
+  }
 
   case COMM_LISP_RMSG: {
   } break;
 
   default:
+    printf("Command %d is not supported by the LBM REPL VESC interface\n",packet_id);
     break;
   }
 
@@ -1055,7 +1067,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
 
 
 // ////////////////////////////////////////////////////////////
-//  
+//
 
 void *udp_broadcast_task(void *arg) {
   (void)arg;
@@ -1071,22 +1083,20 @@ void *udp_broadcast_task(void *arg) {
 
   ip = inet_ntoa(*((struct in_addr*)
                          host_entry->h_addr_list[0]));
- 
- 
+
+
   int bc = 1;
   setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &bc, sizeof(bc));
 
   struct sockaddr_in sDestAddr;
   memset(&sDestAddr, 0, sizeof(sDestAddr));
   sDestAddr.sin_family = AF_INET;
-  //sDestAddr.sin_len = sizeof(sDestAddr);
   sDestAddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
   sDestAddr.sin_port = htons(65109);
 
   for (;;) {
     char sendbuf[50];
     size_t ind = 0;
-    printf("%s::%s::%u\n", "LBM",  ip, vesctcp_port);
     ind += sprintf(sendbuf, "%s::%s::%u", "LBM-REPL",  ip, vesctcp_port) + 1;
     sendto(sock, sendbuf, ind, 0, (struct sockaddr *)&sDestAddr, sizeof(sDestAddr));
     sleep(2);
@@ -1097,8 +1107,7 @@ void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
   int to_write = len;
   int error_cnt = 0;
 
-  printf("sending bytes %d\n", len);
-  while (to_write > 0) { 
+  while (to_write > 0) {
     int written = write (connected_socket, buffer + (len - to_write), to_write);
     if (written < 0) {
       error_cnt ++;
@@ -1122,29 +1131,39 @@ void process_packet_local(unsigned char *data, unsigned int len) {
 }
 
 void *vesctcp_client_handler(void *arg) {
-  send_func = send_tcp_bytes;  // ?
   connected_socket = (int)arg;
   uint8_t buffer[1024];
   packet_init(send_tcp_bytes, process_packet_local,&packet);
-
-  printf("In client handler\n");
-  
+  send_func = send_packet_local;
   int len;
+
+  struct sockaddr_in addr;
+  socklen_t addr_size = sizeof(struct sockaddr_in);
+  int res = getpeername(connected_socket, (struct sockaddr *)&addr, &addr_size);
+  char ip[256];
+  memset(ip,0,256);
+  strncpy(ip, inet_ntoa(addr.sin_addr), 256);
+
+  printf("Client %s connected\n",ip);
+
   do {
     len = read(connected_socket, buffer, 1024);
     for (int i = 0; i < len; i ++) {
       packet_process_byte(buffer[i], &packet);
     }
-  } while (len > 0); 
+  } while (len > 0);
 
-  printf("leaving client handler\n");
+  close(connected_socket);
+  send_func = NULL;
+  printf("Client %s disconnected\n",ip);
   vesctcp_server_in_use = false;
+
 }
 
 
 
 // ////////////////////////////////////////////////////////////
-//  
+//
 int main(int argc, char **argv) {
   parse_opts(argc, argv);
 
@@ -1173,25 +1192,27 @@ int main(int argc, char **argv) {
 
     listen(server_socket, 5);
 
-    for (;;) { 
+    for (;;) {
       struct sockaddr_in client_sockaddr_in;
       socklen_t len = sizeof(client_sockaddr_in);
-      
+
       int client_socket = accept(server_socket, (struct sockaddr *)&client_sockaddr_in, &len);
 
       // TODO: reset everything between connections?
-      
+
       if (client_socket >= 0 && !vesctcp_server_in_use ) {
-        printf("accepting connection\n");
         vesctcp_server_in_use = true;
         pthread_create(&client_thread, NULL, vesctcp_client_handler, (void*)client_socket);
-        
-      } else if (client_socket < 0) {
-        printf("refusing connection");
+
+      } else if (client_socket >= 0) {
+        char ip[256];
+        memset(ip,0,256);
+        strncpy(ip, inet_ntoa(client_sockaddr_in.sin_addr), 256);
+        printf("Refusing connection from %s\n", ip);
         write(client_socket, vesctcp_in_use, strlen(vesctcp_in_use));
       }
     }
-  } else { 
+  } else {
 
     char output[1024];
 
