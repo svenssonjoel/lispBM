@@ -2358,6 +2358,8 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
   lbm_uint stack_size = EVAL_CPS_DEFAULT_STACK_SIZE;
   lbm_uint closure_pos = 0;
   char *name = NULL;
+  // allowed arguments:
+  // (spawn opt-name opt-stack-size closure arg1 ... argN)
 
   if (nargs >= 1 &&
       lbm_is_closure(args[0])) {
@@ -2372,7 +2374,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
              lbm_is_closure(args[1])) {
     name = lbm_dec_str(args[0]);
     closure_pos = 1;
-  }else if (nargs >= 3 &&
+  } else if (nargs >= 3 &&
              lbm_is_array_r(args[0]) &&
              lbm_is_number(args[1]) &&
              lbm_is_closure(args[2])) {
