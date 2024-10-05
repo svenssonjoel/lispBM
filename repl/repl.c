@@ -1139,6 +1139,25 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
   return res;
 }
 
+int get_cpu_usage(void) {
+
+  int pid = getpid();
+  
+  char fname[200] ;
+  snprintf(fname, sizeof(fname), "/proc/%d/task/%d/stat", pid, pid) ;
+  FILE *fp = fopen(fname, "r") ;
+  if ( !fp ) {
+    return -1;
+  }
+  int ucpu = 0, scpu=0, tot_cpu = -1 ;
+  if ( fscanf(fp, "%*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %d %d",
+              &ucpu, &scpu) == 2 )
+    tot_cpu = ucpu + scpu ;
+  fclose(fp) ;
+  return tot_cpu ;
+}
+
+
 
 void repl_process_cmd(unsigned char *data, unsigned int len,
                       void(*reply_func)(unsigned char *data, unsigned int len)) {
@@ -1218,6 +1237,68 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
   } break;
 
   case COMM_LISP_GET_STATS: {
+    float cpu_use = 100.0f / get_cpu_usage();
+    float heap_use = 0.0f;
+    float mem_use = 0.0f;
+
+    bool print_all = true;
+    if (len > 0) {
+      print_all = data[0];
+    }
+
+    lbm_gc_lock();
+    if (lbm_heap_state.gc_num > 0) {
+      heap_use = 100.0 * (float)(heap_size - lbm_heap_state.gc_last_free) / (float)heap_size;
+    }
+
+    mem_use = 100.0 * (float)(lbm_memory_num_words() - lbm_memory_num_free()) / (float)lbm_memory_num_words();
+
+    uint8_t send_buffer_global[4096];
+    int32_t ind = 0;
+
+    send_buffer_global[ind++] = packet_id;
+    buffer_append_float16(send_buffer_global, cpu_use, 1e2, &ind);
+    buffer_append_float16(send_buffer_global, heap_use, 1e2, &ind);
+    buffer_append_float16(send_buffer_global, mem_use, 1e2, &ind);
+
+    // Stack. Currently unused
+    buffer_append_float16(send_buffer_global, 0, 1e2, &ind);
+
+    // Result. Currently unused.
+    send_buffer_global[ind++] = '\0';
+
+    lbm_value *glob_env = lbm_get_global_env();
+    for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+      if (ind > 300) {
+        break;
+      }
+
+      lbm_value curr = glob_env[i];
+      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+        lbm_value key_val = lbm_car(curr);
+        if (lbm_type_of(lbm_car(key_val)) == LBM_TYPE_SYMBOL && lbm_is_number(lbm_cdr(key_val))) {
+          const char *name = lbm_get_name_by_symbol(lbm_dec_sym(lbm_car(key_val)));
+
+          if (print_all ||
+              ((name[0] == 'v' || name[0] == 'V') &&
+               (name[1] == 't' || name[1] == 'T'))) {
+            strcpy((char*)(send_buffer_global + ind), name);
+            ind += strlen(name) + 1;
+            buffer_append_float32_auto(send_buffer_global, lbm_dec_as_float(lbm_cdr(key_val)), &ind);
+          }
+        }
+
+        if (ind > 300) {
+          break;
+        }
+
+        curr = lbm_cdr(curr);
+      }
+    }
+
+    lbm_gc_unlock();
+
+    reply_func(send_buffer_global, ind);
   } break;
 
   case COMM_LISP_REPL_CMD: {

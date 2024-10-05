@@ -31,7 +31,11 @@ CCFLAGS_COV = -g -coverage -O0 -Wall -Wconversion -Wsign-compare -pedantic -std=
 LIBS = -lpthread -lreadline -lhistory -lpng
 
 all: CCFLAGS += -m32 
-all: repl repl_cov
+all: repl
+
+cov: CCFLAGS += -m32 
+cov: repl_cov
+
 
 all64: 	CCFLAGS += -DLBM64
 all64: repl
