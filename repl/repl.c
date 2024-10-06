@@ -63,7 +63,21 @@
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
 
-#define DEFAULT_VESCTCP_PORT 65107
+
+// ////////////////////////////////////////////////////////////
+// VESCTCP
+#define DEFAULT_VESCIF_TCP_PORT 65107
+#define DEFAULT_VESCIF_TCP_PROGRAM_FLASH 1024 * 1024
+
+bool vesctcp = false;
+uint16_t vesctcp_port = (uint16_t)DEFAULT_VESCIF_TCP_PORT;
+volatile bool vesctcp_server_in_use = false;
+const char *vesctcp_in_use = "Error: Server is in use\n";
+uint8_t *vescif_program_flash = NULL;
+
+
+// ////////////////////////////////////////////////////////////
+// LBM 
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 1024
@@ -83,11 +97,60 @@ bool terminate_after_startup = false;
 volatile lbm_cid startup_cid = -1;
 volatile lbm_cid store_result_cid = -1;
 volatile bool silent_mode = false;
-bool vesctcp = false;
-uint16_t vesctcp_port = (uint16_t)DEFAULT_VESCTCP_PORT;
 
-volatile bool vesctcp_server_in_use = false;
-const char *vesctcp_in_use = "Error: Server is in use\n";
+struct read_state_s {
+  char *str;   // String being read. 
+  int  cid;    // Reader thread id.
+  struct read_state_s *next;
+}; 
+
+typedef struct read_state_s read_state_t;
+read_state_t *readers = NULL; // ongoing list of readers.
+
+void add_reader(char *str, int cid) {
+  read_state_t *new_reader = (read_state_t*)malloc(sizeof(read_state_t));
+  new_reader->str = str;
+  new_reader->cid = cid;
+  new_reader->next = readers;
+  readers = new_reader;
+}
+
+void clear_readers(void) {
+  read_state_t *curr = readers;
+  while (curr) {
+
+    read_state_t *next = curr->next;
+    if (curr->str) free(curr->str);
+    free(curr);
+    curr = next;
+  }
+  readers = NULL;
+}
+
+bool drop_reader(int cid) {
+
+  bool r = false;
+  read_state_t *prev = NULL;
+  read_state_t *curr = readers;
+
+  while (curr) {
+    if (curr->cid == cid) {
+      if (prev) {
+        prev->next = curr->next;
+      } else {
+        readers = curr->next;
+      }
+      
+      if (curr->str) free(curr->str);
+      free(curr);
+      r = true;
+      break;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+  return r;
+}
 
 
 void shutdown_procedure(void);
@@ -447,7 +510,7 @@ void parse_opts(int argc, char **argv) {
       printf("    --store_res=FILEPATH              Store the result of the last program\n"\
              "                                      specified with the --src/-s options.\n");
       printf("    --vesctcp                         Open a TCP server talking the VESC protocol\n"\
-             "                                      on port %d\n", DEFAULT_VESCTCP_PORT);
+             "                                      on port %d\n", DEFAULT_VESCIF_TCP_PORT);
       printf("    --vesctcp_port=port               open the TCP server on this port instead\n");
       printf("    --terminate                       Terminate the REPL after evaluating the\n"\
              "                                      source files specified with --src/-s\n");
@@ -981,29 +1044,17 @@ int commands_printf_lisp(const char* format, ...) {
 }
 
 #define UTILS_AGE_S(x)		((float)(timestamp() - x) / 1000.0f)
-static int repl_cid = -1;
-static int repl_cid_for_buffer = -1;
-static char *repl_buffer = NULL;
 static uint32_t repl_time = 0;
 
 static void vesc_lbm_done_callback(eval_context_t *ctx) {
   lbm_cid cid = ctx->id;
   lbm_value t = ctx->r;
-
-  if (cid == repl_cid) {
-    if (UTILS_AGE_S(repl_time) < 0.5) {
-      char output[128];
-      lbm_print_value(output, sizeof(output), t);
-      commands_printf_lisp("> %s", output);
-    } else {
-      repl_cid = -1;
-    }
-  }
-
-  if (cid == repl_cid_for_buffer && repl_buffer) {
-    free(repl_buffer);
-    repl_buffer = 0;
-  }
+  
+  if (drop_reader(cid)) { 
+    char output[128];
+    lbm_print_value(output, sizeof(output), t);
+    commands_printf_lisp("> %s", output);
+  } 
 }
 
 bool vesc_lbm_restart(bool print, bool load_code, bool load_imports) {
@@ -1156,30 +1207,46 @@ bool vesc_lbm_restart(bool print, bool load_code, bool load_imports) {
 
   res = true;
 
-  /* if (repl_buffer) { */
-  /*   lbm_free(repl_buffer); */
-  /*   repl_buffer = 0; */
-  /* } */
-
   return res;
 }
 
-int get_cpu_usage(void) {
+unsigned int get_cpu_last_time = 1;
+long unsigned int get_cpu_last_ticks = 1;
+
+float get_cpu_usage(void) {
 
   int pid = getpid();
+
+ 
+
+  int ticks_per_s = sysconf(_SC_CLK_TCK);
   
   char fname[200] ;
-  snprintf(fname, sizeof(fname), "/proc/%d/task/%d/stat", pid, pid) ;
+  snprintf(fname, sizeof(fname), "/proc/self/stat") ;
   FILE *fp = fopen(fname, "r") ;
   if ( !fp ) {
     return -1;
   }
-  int ucpu = 0, scpu=0, tot_cpu = -1 ;
-  if ( fscanf(fp, "%*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %d %d",
+  long unsigned int ucpu = 0, scpu=0, tot_cpu = -1 ;
+  if ( fscanf(fp, "%*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s  %lu %lu",
               &ucpu, &scpu) == 2 )
     tot_cpu = ucpu + scpu ;
+    
+    long unsigned int ticks = tot_cpu - get_cpu_last_ticks;
+    unsigned int t_now = timestamp();
+    unsigned int t_diff = t_now - get_cpu_last_time;
+
+    // Not sure about this :)
+    float cpu_usage = 100.0f * (((float)ticks / ((float)t_diff / 1000000.0))  / ticks_per_s);
+    if (cpu_usage > 100) cpu_usage = 100;
+    if (cpu_usage < 0) cpu_usage = 0;
+    
+    get_cpu_last_time = t_now;
+    get_cpu_last_ticks = tot_cpu;
+    
+    
   fclose(fp) ;
-  return tot_cpu ;
+  return cpu_usage ;
 }
 
 
@@ -1262,7 +1329,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
   } break;
 
   case COMM_LISP_GET_STATS: {
-    float cpu_use = 100.0f / get_cpu_usage();
+    float cpu_use = get_cpu_usage();
     float heap_use = 0.0f;
     float mem_use = 0.0f;
 
@@ -1500,11 +1567,6 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         lbm_set_verbose(verbose_now);
         commands_printf_lisp("Verbose errors %s", verbose_now ? "Enabled" : "Disabled");
       } else {
-        if (repl_buffer) {
-          //lispif_unlock_lbm();
-          break;
-        }
-
         bool ok = true;
         int timeout_cnt = 1000;
         lbm_pause_eval_with_gc(30);
@@ -1515,19 +1577,18 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         ok = timeout_cnt > 0;
 
         if (ok) {
-          repl_buffer = malloc(len);
-          if (repl_buffer) {
-            memcpy(repl_buffer, data, len);
-            lbm_create_string_char_channel(&string_tok_state, &string_tok, repl_buffer);
-            repl_cid = lbm_load_and_eval_expression(&string_tok);
-            repl_cid_for_buffer = repl_cid;
-            lbm_continue_eval();
-
-            if (reply_func != NULL) {
-              repl_time = timestamp();
+          char *buffer = malloc(len);
+          if (buffer) {
+            memcpy(buffer, data, len);
+            lbm_create_string_char_channel(&string_tok_state, &string_tok, buffer);
+            int cid = lbm_load_and_eval_expression(&string_tok);
+            if (cid >= 0) { 
+              add_reader(buffer, cid);
             } else {
-              repl_cid = -1;
+              free(buffer);
+              commands_printf_lisp("failed to spawn reader for REPL command\n");
             }
+            lbm_continue_eval();
           } else {
             commands_printf_lisp("Not enough memory");
           }
