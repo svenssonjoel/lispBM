@@ -67,17 +67,19 @@ typedef void (*send_func_t)(unsigned char *, unsigned int);
 // ////////////////////////////////////////////////////////////
 // VESCTCP
 #define DEFAULT_VESCIF_TCP_PORT 65107
-#define DEFAULT_VESCIF_TCP_PROGRAM_FLASH 1024 * 1024
+#define DEFAULT_VESCIF_TCP_PROGRAM_FLASH_SIZE 1024 * 1024
 
 bool vesctcp = false;
 uint16_t vesctcp_port = (uint16_t)DEFAULT_VESCIF_TCP_PORT;
 volatile bool vesctcp_server_in_use = false;
 const char *vesctcp_in_use = "Error: Server is in use\n";
 uint8_t *vescif_program_flash = NULL;
+unsigned int vescif_program_flash_size = DEFAULT_VESCIF_TCP_PROGRAM_FLASH_SIZE;
+unsigned int vescif_program_flash_code_len = 0;
 
 
 // ////////////////////////////////////////////////////////////
-// LBM 
+// LBM
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 1024
@@ -99,10 +101,10 @@ volatile lbm_cid store_result_cid = -1;
 volatile bool silent_mode = false;
 
 struct read_state_s {
-  char *str;   // String being read. 
+  char *str;   // String being read.
   int  cid;    // Reader thread id.
   struct read_state_s *next;
-}; 
+};
 
 typedef struct read_state_s read_state_t;
 read_state_t *readers = NULL; // ongoing list of readers.
@@ -140,7 +142,7 @@ bool drop_reader(int cid) {
       } else {
         readers = curr->next;
       }
-      
+
       if (curr->str) free(curr->str);
       free(curr);
       r = true;
@@ -405,6 +407,7 @@ lbm_const_heap_t const_heap;
 #define SILENT_MODE          0x0405
 #define VESCTCP              0x0406
 #define VESCTCP_PORT         0x0407
+#define VESCTCP_PROGRAM_FLASH_SIZE   0x0408
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -418,6 +421,7 @@ struct option options[] = {
   {"silent", no_argument, NULL, SILENT_MODE},
   {"vesctcp",no_argument, NULL, VESCTCP},
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
+  {"vesctcp_program_flash_size", required_argument, NULL, VESCTCP_PROGRAM_FLASH_SIZE},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -511,7 +515,8 @@ void parse_opts(int argc, char **argv) {
              "                                      specified with the --src/-s options.\n");
       printf("    --vesctcp                         Open a TCP server talking the VESC protocol\n"\
              "                                      on port %d\n", DEFAULT_VESCIF_TCP_PORT);
-      printf("    --vesctcp_port=port               open the TCP server on this port instead\n");
+      printf("    --vesctcp_port=PORT               open the TCP server on this port instead.\n");
+      printf("    --vesctcp_program_flash_size=SIZE Size of memory for program storage.\n");
       printf("    --terminate                       Terminate the REPL after evaluating the\n"\
              "                                      source files specified with --src/-s\n");
 
@@ -556,6 +561,9 @@ void parse_opts(int argc, char **argv) {
     case VESCTCP_PORT:
       vesctcp_port = atoi((char *)optarg);
       vesctcp = true;
+      break;
+    case VESCTCP_PROGRAM_FLASH_SIZE:
+      vescif_program_flash_size= atoi((char *)optarg);
       break;
     default:
       break;
@@ -1049,22 +1057,22 @@ static uint32_t repl_time = 0;
 static void vesc_lbm_done_callback(eval_context_t *ctx) {
   lbm_cid cid = ctx->id;
   lbm_value t = ctx->r;
-  
-  if (drop_reader(cid)) { 
+
+  if (drop_reader(cid)) {
     char output[128];
     lbm_print_value(output, sizeof(output), t);
     commands_printf_lisp("> %s", output);
-  } 
+  }
 }
 
-bool vesc_lbm_restart(bool print, bool load_code, bool load_imports) {
+bool vescif_restart(bool print, bool load_code, bool load_imports) {
   bool res = false;
   //if (prof_running) {
   //  prof_running = false;
   //  esp_timer_stop(prof_timer);
   //}
 
-  // 
+  //
   //char *code_data = (char*)flash_helper_code_data_ptr(CODE_IND_LISP);
   //int32_t code_len = flash_helper_code_size(CODE_IND_LISP);
 
@@ -1077,18 +1085,15 @@ bool vesc_lbm_restart(bool print, bool load_code, bool load_imports) {
     pthread_join(lispbm_thd, (void *)&thread_r);
     lispbm_thd = 0;
   }
-    
+
   if (heap_storage) {
     free(heap_storage);
     heap_storage = NULL;
   }
-    
+
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
-    
-  if (heap_storage == NULL) {
-    return 0;
-  }
-    
+  if (heap_storage == NULL) return 0;
+
   if (!lbm_init(heap_storage, heap_size,
                 memory, LBM_MEMORY_SIZE_1M,
                 bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
@@ -1099,7 +1104,7 @@ bool vesc_lbm_restart(bool print, bool load_code, bool load_imports) {
     return 0;
   }
 
-  
+
   if (!lbm_eval_init_events(20)) {
     return 0;
   }
@@ -1162,7 +1167,7 @@ bool vesc_lbm_restart(bool print, bool load_code, bool load_imports) {
   /* } */
 
   // Load imports
-    
+
   /* if (load_imports) { */
   /*   if (code_len > code_chars + 3) { */
   /*     int32_t ind = code_chars + 1; */
@@ -1183,7 +1188,7 @@ bool vesc_lbm_restart(bool print, bool load_code, bool load_imports) {
   /*     } */
   /*   } */
   /* } */
-    
+
   /* if (code_data == 0) { */
   /*   code_data = (char*)flash_helper_code_data_raw(CODE_IND_LISP); */
   /* } */
@@ -1216,11 +1221,10 @@ long unsigned int get_cpu_last_ticks = 1;
 float get_cpu_usage(void) {
 
   int pid = getpid();
-
- 
-
-  int ticks_per_s = sysconf(_SC_CLK_TCK);
   
+  int ticks_per_s = sysconf(_SC_CLK_TCK);
+  float cpu_usage = 0.0;
+    
   char fname[200] ;
   snprintf(fname, sizeof(fname), "/proc/self/stat") ;
   FILE *fp = fopen(fname, "r") ;
@@ -1229,22 +1233,22 @@ float get_cpu_usage(void) {
   }
   long unsigned int ucpu = 0, scpu=0, tot_cpu = -1 ;
   if ( fscanf(fp, "%*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s  %lu %lu",
-              &ucpu, &scpu) == 2 )
+              &ucpu, &scpu) == 2 ) {
     tot_cpu = ucpu + scpu ;
-    
+
     long unsigned int ticks = tot_cpu - get_cpu_last_ticks;
     unsigned int t_now = timestamp();
     unsigned int t_diff = t_now - get_cpu_last_time;
 
     // Not sure about this :)
-    float cpu_usage = 100.0f * (((float)ticks / ((float)t_diff / 1000000.0))  / ticks_per_s);
+    cpu_usage = 100.0f * (((float)ticks / ((float)t_diff / 1000000.0))  / ticks_per_s);
     if (cpu_usage > 100) cpu_usage = 100;
     if (cpu_usage < 0) cpu_usage = 0;
-    
+
     get_cpu_last_time = t_now;
     get_cpu_last_ticks = tot_cpu;
-    
-    
+  }
+
   fclose(fp) ;
   return cpu_usage ;
 }
@@ -1319,7 +1323,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
       }
     } else {
       // Vesc express does a restart here..
-      ok = vesc_lbm_restart(true, true, true);
+      ok = vescif_restart(true, true, true);
     }
     int32_t ind = 0;
     uint8_t send_buffer[50];
@@ -1395,7 +1399,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
 
   case COMM_LISP_REPL_CMD: {
     if (!lispbm_thd) {
-      vesc_lbm_restart(true, false, true);
+      vescif_restart(true, false, true);
     }
 
     if (lispbm_thd) {
@@ -1707,7 +1711,7 @@ void *vesctcp_client_handler(void *arg) {
 
   printf("Client %s connected\n",ip);
 
-  vesc_lbm_restart(false,false,false);
+  vescif_restart(false,false,false);
 
   do {
     len = read(connected_socket, buffer, 1024);
@@ -1743,6 +1747,10 @@ int main(int argc, char **argv) {
     pthread_t client_thread;
     pthread_create(&broadcast_thread, NULL, udp_broadcast_task, NULL);
 
+    // initialize program flash
+    vescif_program_flash_code_len = 0;
+    vescif_program_flash=(uint8_t*)malloc(vescif_program_flash_size);
+    if (vescif_program_flash == NULL) return 0;
 
     // Start tcp server
     struct sockaddr_in server_sockaddr_in;
@@ -1761,8 +1769,6 @@ int main(int argc, char **argv) {
       socklen_t len = sizeof(client_sockaddr_in);
 
       int client_socket = accept(server_socket, (struct sockaddr *)&client_sockaddr_in, &len);
-
-      // TODO: reset everything between connections?
 
       if (client_socket >= 0 && !vesctcp_server_in_use ) {
         vesctcp_server_in_use = true;
