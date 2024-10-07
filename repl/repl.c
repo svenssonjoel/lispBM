@@ -69,13 +69,18 @@ typedef void (*send_func_t)(unsigned char *, unsigned int);
 #define DEFAULT_VESCIF_TCP_PORT 65107
 #define DEFAULT_VESCIF_TCP_PROGRAM_FLASH_SIZE 1024 * 1024
 
-bool vesctcp = false;
-uint16_t vesctcp_port = (uint16_t)DEFAULT_VESCIF_TCP_PORT;
-volatile bool vesctcp_server_in_use = false;
-const char *vesctcp_in_use = "Error: Server is in use\n";
-uint8_t *vescif_program_flash = NULL;
-unsigned int vescif_program_flash_size = DEFAULT_VESCIF_TCP_PROGRAM_FLASH_SIZE;
-unsigned int vescif_program_flash_code_len = 0;
+static bool vesctcp = false;
+static uint16_t vesctcp_port = (uint16_t)DEFAULT_VESCIF_TCP_PORT;
+static volatile bool vesctcp_server_in_use = false;
+static const char *vesctcp_in_use = "Error: Server is in use\n";
+static uint8_t *vescif_program_flash = NULL;
+static unsigned int vescif_program_flash_size = DEFAULT_VESCIF_TCP_PROGRAM_FLASH_SIZE;
+static unsigned int vescif_program_flash_code_len = 0;
+
+static lbm_string_channel_state_t string_tok_state;
+static lbm_char_channel_t string_tok;
+static lbm_buffered_channel_state_t buffered_tok_state;
+static lbm_char_channel_t buffered_string_tok;
 
 
 // ////////////////////////////////////////////////////////////
@@ -1607,7 +1612,150 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
   } break;
 
   case COMM_LISP_STREAM_CODE: {
+    int32_t ind = 0;
+    int32_t offset = buffer_get_int32(data, &ind);
+    int32_t tot_len = buffer_get_int32(data, &ind);
+    int8_t restart = data[ind++];
 
+    static bool buffered_channel_created = false;
+    static int32_t offset_last = -1;
+    static int16_t result_last = -1;
+
+    if (offset == 0) {
+      if (!lispbm_thd) {
+        vescif_restart(true, restart == 2 ? true : false, true);
+        buffered_channel_created = false;
+      } else if (restart == 1) {
+        vescif_restart(true, false, true);
+        buffered_channel_created = false;
+      } else if (restart == 2) {
+        vescif_restart(true, true, true);
+        buffered_channel_created = false;
+      }
+    }
+
+    int32_t send_ind = 0;
+    uint8_t send_buffer[50];
+    send_buffer[send_ind++] = packet_id;
+    buffer_append_int32(send_buffer, offset, &send_ind);
+
+    if (offset_last == offset) {
+      buffer_append_int16(send_buffer, result_last, &send_ind);
+      reply_func(send_buffer, ind);
+      break;
+    }
+
+    offset_last = offset;
+
+    if (!lispbm_thd) {
+      result_last = -1;
+      offset_last = -1;
+      buffer_append_int16(send_buffer, result_last, &send_ind);
+      reply_func(send_buffer, ind);
+      break;
+    }
+
+    if (offset == 0) {
+      if (buffered_channel_created) {
+        int timeout = 1500;
+        while (!buffered_tok_state.reader_closed) {
+          lbm_channel_writer_close(&buffered_string_tok);
+          sleep_callback(1000);
+          timeout--;
+          if (timeout == 0) {
+            break;
+          }
+        }
+
+        if (timeout == 0) {
+          result_last = -2;
+          offset_last = -1;
+          buffer_append_int16(send_buffer, result_last, &send_ind);
+          commands_printf_lisp("Reader not closing");
+          reply_func(send_buffer, ind);
+          break;
+        }
+      }
+
+      int timeout_cnt = 1000;
+      //lispif_lock_lbm();
+      lbm_pause_eval_with_gc(30);
+      while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+        sleep_callback(1000);
+        timeout_cnt--;
+      }
+
+      if (timeout_cnt == 0) {
+        //lispif_unlock_lbm();
+        result_last = -3;
+        offset_last = -1;
+        buffer_append_int16(send_buffer, result_last, &send_ind);
+        commands_printf_lisp("Could not pause");
+        reply_func(send_buffer, ind);
+        break;
+      }
+
+      lbm_create_buffered_char_channel(&buffered_tok_state, &buffered_string_tok);
+
+      if (lbm_load_and_eval_program(&buffered_string_tok, "main-s") <= 0) {
+        //lispif_unlock_lbm();
+        result_last = -4;
+        offset_last = -1;
+        buffer_append_int16(send_buffer, result_last, &send_ind);
+        commands_printf_lisp("Could not start eval");
+        reply_func(send_buffer, ind);
+        break;
+      }
+
+      lbm_continue_eval();
+      buffered_channel_created = true;
+      //lispif_unlock_lbm();
+    }
+
+    int32_t written = 0;
+    int timeout = 1500;
+    while (ind < (int32_t)len) {
+      int ch_res = lbm_channel_write(&buffered_string_tok, (char)data[ind]);
+
+      if (ch_res == CHANNEL_SUCCESS) {
+        ind++;
+        written++;
+        timeout = 0;
+      } else if (ch_res == CHANNEL_READER_CLOSED) {
+        break;
+      } else {
+        sleep_callback(1000);
+        timeout--;
+        if (timeout == 0) {
+          break;
+        }
+      }
+    }
+
+    if (ind == (int32_t)len) {
+      if ((offset + written) == tot_len) {
+        lbm_channel_writer_close(&buffered_string_tok);
+        offset_last = -1;
+        commands_printf_lisp("Stream done, starting...");
+      }
+
+      result_last = 0;
+      buffer_append_int16(send_buffer, result_last, &send_ind);
+    } else {
+      if (timeout == 0) {
+        result_last = -5;
+        offset_last = -1;
+        buffer_append_int16(send_buffer, result_last, &send_ind);
+        commands_printf_lisp("Stream timed out");
+      } else {
+        result_last = -6;
+        offset_last = -1;
+        buffer_append_int16(send_buffer, result_last, &send_ind);
+        commands_printf_lisp("Stream closed");
+      }
+    }
+
+    reply_func(send_buffer, send_ind);
   } break;
   case COMM_LISP_WRITE_CODE: {
   } break;
