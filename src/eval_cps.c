@@ -4245,7 +4245,6 @@ static void cont_read_done(eval_context_t *ctx) {
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
     }
   }
-
   ctx->row0 = -1;
   ctx->row1 = -1;
   ctx->app_cont = true;
@@ -4312,13 +4311,13 @@ static void cont_application_start(eval_context_t *ctx) {
         ctx->curr_exp = cl[CLO_BODY];
         ctx->curr_env = cl[CLO_ENV];
       } else if (p_nil) {
+        reserved[1] = get_cdr(args);      // protect cdr(args) from allocate_binding
+        ctx->curr_exp = get_car(args);    // protect car(args) from allocate binding
+        ctx->curr_env = arg_env;
         lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, cl[CLO_ENV]);
         reserved[0] = rest_binder;
-        reserved[1] = get_cdr(args);
         reserved[2] = get_car(rest_binder);
         reserved[3] = CLOSURE_ARGS_REST;
-        ctx->curr_exp = get_car(args);
-        ctx->curr_env = arg_env;
       } else {
         lbm_set_error_reason((char*)lbm_error_str_num_args);
         error_at_ctx(ENC_SYM_EERROR, ctx->r);
