@@ -184,12 +184,9 @@ int lbm_send_message(lbm_cid cid, lbm_value msg) {
 
   if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
 
-    lbm_value v = lbm_find_receiver_and_send(cid, msg);
-
-    if (lbm_type_of(v) == LBM_TYPE_SYMBOL &&
-        lbm_dec_sym(v) == SYM_TRUE) {
-      res = 1;
-    }
+    int v = lbm_find_receiver_and_send(cid, msg);
+    if (v == 0) res = 1;
+    else res = 0;
   }
   return res;
 }
