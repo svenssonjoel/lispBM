@@ -4333,6 +4333,11 @@ static void cont_application_start(eval_context_t *ctx) {
         error_ctx(ENC_SYM_FATAL_ERROR);
       }
 
+      // You are doing arbitrary control flow.
+      // Exiting atomic.
+      if (is_atomic) is_atomic = false;
+      
+
       lbm_uint arg_count = lbm_list_length(args);
       lbm_value arg = ENC_SYM_NIL;
       switch (arg_count) {
@@ -5061,8 +5066,8 @@ uint32_t lbm_get_eval_state(void) {
   return eval_cps_run_state;
 }
 
-// Will wake up thread that is sleeping as well.
-// Not sure this is good behavior.
+// Only unblocks threads that are unblockable.
+// A sleeping thread is not unblockable.
 static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   eval_context_t *found = NULL;
   mutex_lock(&qmutex);
