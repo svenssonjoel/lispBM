@@ -1939,7 +1939,16 @@ static void eval_var(eval_context_t *ctx) {
       lbm_value new_env = ctx->K.data[sp-4];
       lbm_value args = get_cdr(ctx->curr_exp);
       lbm_value key = get_car(args);
+      lbm_value old_val;
+      
+      if (!lbm_env_lookup_b(&old_val, key, new_env) &&
+          !lbm_global_env_lookup(&old_val, key)) {
+        old_val = ENC_SYM_NIL;
+      }
+      
       create_binding_location(key, &new_env);
+      lbm_env_modify_binding(new_env, key, old_val);
+      
       ctx->K.data[sp-4] = new_env;
 
       lbm_value v_exp = get_cadr(args);
@@ -1947,9 +1956,9 @@ static void eval_var(eval_context_t *ctx) {
       sptr[0] = new_env;
       sptr[1] = key;
       sptr[2] = PROGN_VAR;
-      // Activating the new environment before the evaluation of the value to be bound,
-      // means that other variables with same name will be shadowed already in the value
-      // body.
+      // Activating the new environment before the evaluation of the value to be bound.
+      // This would shadow the existing value, but we set the new binding to copy any
+      // previous ones.
       // The way closures work, the var-variable needs to be in scope during val evaluation
       // for a recursive closure to be possible.
       ctx->curr_env = new_env;
