@@ -304,7 +304,6 @@ char * load_file(char *filename) {
   //trailing whitespace
   while (len > 0) {
     if (filename[len-1] == ' ') {
-      printf("shortening\n");
       filename[len-1] = 0;
     }
     else break;
