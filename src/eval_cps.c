@@ -1838,7 +1838,7 @@ static binding_location_status create_binding_location_internal(lbm_value key, l
     if (key == ENC_SYM_NIL || key == ENC_SYM_DONTCARE) return BL_OK;
     lbm_value binding;
     lbm_value new_env_tmp;
-    binding = lbm_cons(key, ENC_SYM_NIL);
+    binding = lbm_cons(key, ENC_SYM_PLACEHOLDER);
     new_env_tmp = lbm_cons(binding, *env);
     if (lbm_is_symbol(binding) || lbm_is_symbol(new_env_tmp)) {
       return BL_NO_MEMORY;
@@ -1924,7 +1924,6 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
    sp-1 : PROGN_REST
 */
 static void eval_var(eval_context_t *ctx) {
-
   if (ctx->K.sp >= 4) { // Possibly in progn
     lbm_value sv = ctx->K.data[ctx->K.sp - 1];
     if (IS_CONTINUATION(sv) && (sv == PROGN_REST)) {
@@ -1939,15 +1938,8 @@ static void eval_var(eval_context_t *ctx) {
       lbm_value new_env = ctx->K.data[sp-4];
       lbm_value args = get_cdr(ctx->curr_exp);
       lbm_value key = get_car(args);
-      lbm_value old_val;
-      
-      if (!lbm_env_lookup_b(&old_val, key, new_env) &&
-          !lbm_global_env_lookup(&old_val, key)) {
-        old_val = ENC_SYM_NIL;
-      }
       
       create_binding_location(key, &new_env);
-      lbm_env_modify_binding(new_env, key, old_val);
       
       ctx->K.data[sp-4] = new_env;
 
@@ -1957,10 +1949,10 @@ static void eval_var(eval_context_t *ctx) {
       sptr[1] = key;
       sptr[2] = PROGN_VAR;
       // Activating the new environment before the evaluation of the value to be bound.
-      // This would shadow the existing value, but we set the new binding to copy any
-      // previous ones.
-      // The way closures work, the var-variable needs to be in scope during val evaluation
-      // for a recursive closure to be possible.
+      // This would normally shadow the existing value, but create_binding_location sets
+      // the binding to be $placeholder, which is ignored when looking up the value.
+      // The way closures work, the var-variable needs to be in scope during val
+      // evaluation for a recursive closure to be possible.
       ctx->curr_env = new_env;
       ctx->curr_exp = v_exp;
       return;
