@@ -1928,33 +1928,33 @@ static void eval_var(eval_context_t *ctx) {
   if (ctx->K.sp >= 4) { // Possibly in progn
     lbm_value sv = ctx->K.data[ctx->K.sp - 1];
     if (IS_CONTINUATION(sv) && (sv == PROGN_REST)) {
-    lbm_uint sp = ctx->K.sp;
-    uint32_t is_copied = lbm_dec_as_u32(ctx->K.data[sp-3]);
-    if (is_copied == 0) {
-      lbm_value env;
-      WITH_GC(env, lbm_env_copy_spine(ctx->K.data[sp-4]));
-      ctx->K.data[sp-3] = lbm_enc_u(1);
-      ctx->K.data[sp-4] = env;
-    }
-    lbm_value new_env = ctx->K.data[sp-4];
-    lbm_value args = get_cdr(ctx->curr_exp);
-    lbm_value key = get_car(args);
-    create_binding_location(key, &new_env);
-    ctx->K.data[sp-4] = new_env;
+      lbm_uint sp = ctx->K.sp;
+      uint32_t is_copied = lbm_dec_as_u32(ctx->K.data[sp-3]);
+      if (is_copied == 0) {
+        lbm_value env;
+        WITH_GC(env, lbm_env_copy_spine(ctx->K.data[sp-4]));
+        ctx->K.data[sp-3] = lbm_enc_u(1);
+        ctx->K.data[sp-4] = env;
+      }
+      lbm_value new_env = ctx->K.data[sp-4];
+      lbm_value args = get_cdr(ctx->curr_exp);
+      lbm_value key = get_car(args);
+      create_binding_location(key, &new_env);
+      ctx->K.data[sp-4] = new_env;
 
-    lbm_value v_exp = get_cadr(args);
-    lbm_value *sptr = stack_reserve(ctx, 3);
-    sptr[0] = new_env;
-    sptr[1] = key;
-    sptr[2] = PROGN_VAR;
-    // Activating the new environment before the evaluation of the value to be bound,
-    // means that other variables with same name will be shadowed already in the value
-    // body.
-    // The way closures work, the var-variable needs to be in scope during val evaluation
-    // for a recursive closure to be possible.
-    ctx->curr_env = new_env;
-    ctx->curr_exp = v_exp;
-    return;
+      lbm_value v_exp = get_cadr(args);
+      lbm_value *sptr = stack_reserve(ctx, 3);
+      sptr[0] = new_env;
+      sptr[1] = key;
+      sptr[2] = PROGN_VAR;
+      // Activating the new environment before the evaluation of the value to be bound,
+      // means that other variables with same name will be shadowed already in the value
+      // body.
+      // The way closures work, the var-variable needs to be in scope during val evaluation
+      // for a recursive closure to be possible.
+      ctx->curr_env = new_env;
+      ctx->curr_exp = v_exp;
+      return;
     }
   }
   lbm_set_error_reason((char*)lbm_error_str_var_outside_progn);
