@@ -757,14 +757,14 @@ void print_environments(char *buf, unsigned int size) {
 }
 
 void print_error_message(lbm_value error,
-			 bool has_at,
-			 lbm_value at,
-			 unsigned int row,
-			 unsigned int col,
-			 lbm_int row0,
-			 lbm_int row1,
-			 lbm_int cid,
-			 char *name) {
+                         bool has_at,
+                         lbm_value at,
+                         unsigned int row,
+                         unsigned int col,
+                         lbm_int row0,
+                         lbm_int row1,
+                         lbm_int cid,
+                         char *name) {
   if (!printf_callback) return;
 
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
@@ -1046,8 +1046,8 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
                       column,
                       ctx_running->row0,
                       ctx_running->row1,
-		      ctx_running->id,
-		      ctx_running->name);
+                      ctx_running->id,
+                      ctx_running->name);
  error_ctx_base_done:
   ctx_running->r = err_val;
   finish_ctx();
@@ -1490,8 +1490,8 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
     if (lbm_is_cons(binding)) {
       lbm_value new_env = lbm_cons(binding, *env);
       if (lbm_is_cons(new_env)) {
-	*env = new_env;
-	r = true;
+        *env = new_env;
+        r = true;
       }
     }
     *gc = !r;
@@ -1636,7 +1636,7 @@ static void eval_symbol(eval_context_t *ctx) {
     }
 
     // Here, chan has either been assigned or execution has terminated.
-    
+
     lbm_value loader;
     WITH_GC_RMBR_1(loader, lbm_heap_allocate_list_init(2,
                                                        ENC_SYM_READ,
@@ -1885,9 +1885,9 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
       lbm_value curr = binds;
       while (lbm_is_cons(curr)) {
         lbm_value new_env_tmp = env;
-	lbm_cons_t *cell = lbm_ref_cell(curr); // already checked that cons.
+        lbm_cons_t *cell = lbm_ref_cell(curr); // already checked that cons.
         lbm_value car_curr = cell->car;
-	lbm_value cdr_curr = cell->cdr;
+        lbm_value cdr_curr = cell->cdr;
         lbm_value key = get_car(car_curr);
         create_binding_location(key, &new_env_tmp);
         env = new_env_tmp;
@@ -1899,7 +1899,7 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
       lbm_value cdr_binds = cell->cdr;
       lbm_value key_val[2];
       extract_n(car_binds, key_val, 2);
-      
+
       lbm_uint *sptr = stack_reserve(ctx, 5);
       sptr[0] = exp;
       sptr[1] = cdr_binds;
@@ -1938,9 +1938,9 @@ static void eval_var(eval_context_t *ctx) {
       lbm_value new_env = ctx->K.data[sp-4];
       lbm_value args = get_cdr(ctx->curr_exp);
       lbm_value key = get_car(args);
-      
+
       create_binding_location(key, &new_env);
-      
+
       ctx->K.data[sp-4] = new_env;
 
       lbm_value v_exp = get_cadr(args);
@@ -2999,7 +2999,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     ctx->app_cont = true;
     ctx->r = ext_res;
-    
+
     if (blocking_extension) {
       if (is_atomic) {
         // Check atomic_error explicitly so that the mutex
@@ -3648,7 +3648,7 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
     ctx->curr_env = env;
     ctx->app_cont = true; // Program evaluated and result is in ctx->r.
   } else if (ctx->K.sp > 5 && (ctx->K.data[ctx->K.sp - 5] == READ_DONE) &&
-	     (ctx->K.data[ctx->K.sp - 6] == READING_PROGRAM)) {
+             (ctx->K.data[ctx->K.sp - 6] == READING_PROGRAM)) {
     /* successfully finished reading a program  (CASE 2) */
     ctx->r = ENC_SYM_CLOSEPAR;
     ctx->app_cont = true;
@@ -3944,7 +3944,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
           }
         }
       }
-      if (!r) {
+      if (!r)
         read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
       }
     }
@@ -4011,8 +4011,8 @@ static void cont_read_start_array(eval_context_t *ctx) {
       num_free = lbm_memory_longest_free();
       initial_size = (lbm_uint)((float)num_free * 0.9);
       if (initial_size == 0) {
-	lbm_channel_reader_close(str);
-	error_ctx(ENC_SYM_MERROR);
+        lbm_channel_reader_close(str);
+        error_ctx(ENC_SYM_MERROR);
       }
     }
     lbm_value array;
@@ -4031,7 +4031,8 @@ static void cont_read_start_array(eval_context_t *ctx) {
     rptr[0] = lbm_enc_u(initial_size);
     rptr[1] = lbm_enc_u(0);
     rptr[2] = stream;
-    rptr[3] = READ_APPEND_ARRAY;    ctx->app_cont = true;
+    rptr[3] = READ_APPEND_ARRAY;
+    ctx->app_cont = true;
   } else {
     lbm_channel_reader_close(str);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
@@ -4149,13 +4150,13 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
     if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
       switch(ctx->r) {
       case ENC_SYM_CLOSEPAR:
-	ctx->app_cont = true;
-	return;
+        ctx->app_cont = true;
+        return;
       case ENC_SYM_DOT:
-	// A dot here is a syntax error.
-	lbm_set_error_reason((char*)lbm_error_str_parse_dot);
-	read_error_ctx(lbm_channel_row(str),lbm_channel_column(str));
-	return;
+        // A dot here is a syntax error.
+        lbm_set_error_reason((char*)lbm_error_str_parse_dot);
+        read_error_ctx(lbm_channel_row(str),lbm_channel_column(str));
+        return;
       }
     }
     lbm_value *rptr = stack_reserve(ctx, 6);
@@ -4388,12 +4389,12 @@ static void cont_application_start(eval_context_t *ctx) {
       lbm_value expand_env = env;
       while (lbm_is_cons(curr_param) &&
              lbm_is_cons(curr_arg)) {
-	lbm_cons_t *param_cell = lbm_ref_cell(curr_param); // already checked that cons.
-	lbm_cons_t *arg_cell = lbm_ref_cell(curr_arg);
+        lbm_cons_t *param_cell = lbm_ref_cell(curr_param); // already checked that cons.
+        lbm_cons_t *arg_cell = lbm_ref_cell(curr_arg);
         lbm_value car_curr_param = param_cell->car;
-	lbm_value cdr_curr_param = param_cell->cdr;
+        lbm_value cdr_curr_param = param_cell->cdr;
         lbm_value car_curr_arg = arg_cell->car;
-	lbm_value cdr_curr_arg = arg_cell->cdr;
+        lbm_value cdr_curr_arg = arg_cell->cdr;
 
         lbm_value entry = cons_with_gc(car_curr_param, car_curr_arg, expand_env);
         lbm_value aug_env = cons_with_gc(entry, expand_env,ENC_SYM_NIL);
