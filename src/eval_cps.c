@@ -3904,9 +3904,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
   if (n > 0) {
     lbm_channel_drop(chan, (unsigned int) n);
     lbm_uint symbol_id;
-    if (lbm_get_symbol_by_name(tokpar_sym_str, &symbol_id)) {
-      res = lbm_enc_sym(symbol_id);
-    } else {
+    if (!lbm_get_symbol_by_name(tokpar_sym_str, &symbol_id)) {
       int r = 0;
       if (n > 4 &&
           tokpar_sym_str[0] == 'e' &&
@@ -3946,14 +3944,12 @@ static void cont_read_next_token(eval_context_t *ctx) {
           }
         }
       }
-      if (r) {
-        res = lbm_enc_sym(symbol_id);
-      } else {
+      if (!r) {
         read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
       }
     }
     lbm_stack_drop(&ctx->K, 2);
-    ctx->r = res;
+    ctx->r =lbm_enc_sym(symbol_id);
     ctx->app_cont = true;
     return;
   } else if (n == TOKENIZER_NEED_MORE) {
