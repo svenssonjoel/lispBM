@@ -3944,12 +3944,12 @@ static void cont_read_next_token(eval_context_t *ctx) {
           }
         }
       }
-      if (!r)
+      if (!r) {
         read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
       }
     }
     lbm_stack_drop(&ctx->K, 2);
-    ctx->r =lbm_enc_sym(symbol_id);
+    ctx->r = lbm_enc_sym(symbol_id);
     ctx->app_cont = true;
     return;
   } else if (n == TOKENIZER_NEED_MORE) {
