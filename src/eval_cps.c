@@ -2087,12 +2087,12 @@ static void eval_match(eval_context_t *ctx) {
 }
 
 static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time, bool timeout) {
-   if (ctx->num_mail == 0) {
-     if (timeout) {
-       block_current_ctx(LBM_THREAD_STATE_RECV_TO, S_TO_US(timeout_time), false);
-     } else {
-       block_current_ctx(LBM_THREAD_STATE_RECV_BL,0,false);
-     }
+  if (ctx->num_mail == 0) {
+    if (timeout) {
+      block_current_ctx(LBM_THREAD_STATE_RECV_TO, S_TO_US(timeout_time), false);
+    } else {
+      block_current_ctx(LBM_THREAD_STATE_RECV_BL,0,false);
+    }
   } else {
     lbm_value *msgs = ctx->mailbox;
     lbm_uint  num   = ctx->num_mail;
@@ -2105,8 +2105,13 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
       /* The common case */
       lbm_value e;
       lbm_value new_env = ctx->curr_env;
+#ifdef LBM_ALWAYS_GC
+      lbm_gc_mark_phase(pats); // Needed in recv-to case
+      gc();
+#endif
       int n = find_match(pats, msgs, num, &e, &new_env);
       if (n == FM_NEED_GC) {
+	lbm_gc_mark_phase(pats); // Needed in recv-to case
         gc();
         new_env = ctx->curr_env;
         n = find_match(pats, msgs, num, &e, &new_env);
@@ -2631,7 +2636,9 @@ static void apply_reverse(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
 
 static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 1) {
-
+#ifdef LBM_ALWAYS_GC
+    gc();
+#endif    
     lbm_value v = flatten_value(args[0]);
     if ( v == ENC_SYM_MERROR) {
       gc();
