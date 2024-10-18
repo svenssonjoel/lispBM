@@ -669,6 +669,9 @@ static lbm_value extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
 
 static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg_count, eval_context_t *ctx) {
   lbm_value res;
+#ifdef LBM_ALWAYS_GC
+  gc();
+#endif
   res = fundamental_table[fundamental](args, arg_count, ctx);
   if (lbm_is_error(res)) {
     if (lbm_is_symbol_merror(res)) {
@@ -1184,7 +1187,13 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   if (!lbm_is_cons(program)) return -1;
 
   eval_context_t *ctx = NULL;
-
+#ifdef LBM_ALWAYS_GC
+  {
+    lbm_uint roots[2] = {program, env};
+    lbm_gc_mark_roots(roots, 2);
+    gc();
+  }
+#endif
   ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   if (ctx == NULL) {
     lbm_uint roots[2] = {program, env};
@@ -1193,7 +1202,13 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
     ctx = (eval_context_t*)lbm_malloc(sizeof(eval_context_t));
   }
   if (ctx == NULL) return -1;
-
+#ifdef LBM_ALWAYS_GC
+  {
+    lbm_uint roots[2] = {program, env};
+    lbm_gc_mark_roots(roots, 2);
+    gc();
+  }
+#endif
   if (!lbm_stack_allocate(&ctx->K, stack_size)) {
     lbm_uint roots[2] = {program, env};
     lbm_gc_mark_roots(roots, 2);
@@ -1205,6 +1220,13 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   }
 
   lbm_value *mailbox = NULL;
+#ifdef LBM_ALWAYS_GC
+  {
+    lbm_uint roots[2] = {program, env};
+    lbm_gc_mark_roots(roots, 2);
+    gc();
+  }
+#endif
   mailbox = (lbm_value*)lbm_memory_allocate(EVAL_CPS_DEFAULT_MAILBOX_SIZE);
   if (mailbox == NULL) {
     lbm_value roots[2] = {program, env};
@@ -1221,6 +1243,13 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
   // TODO: Limit names to 19 chars + 1 char for 0? (or something similar).
   if (name) {
     lbm_uint name_len = strlen(name) + 1;
+#ifdef LBM_ALWAYS_GC
+    {
+      lbm_uint roots[2] = {program, env};
+      lbm_gc_mark_roots(roots, 2);
+      gc();
+    }
+#endif
     ctx->name = lbm_malloc(strlen(name) + 1);
     if (ctx->name == NULL) {
       lbm_value roots[2] = {program, env};
@@ -1288,6 +1317,9 @@ lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size, ch
 bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size) {
 
   lbm_value *mailbox = NULL;
+#ifdef LBM_ALWAYS_GC
+  gc();
+#endif
   mailbox = (lbm_value*)lbm_memory_allocate(new_size);
   if (mailbox == NULL) {
     gc();
@@ -1628,6 +1660,9 @@ static void eval_symbol(eval_context_t *ctx) {
     sptr[2] = RESUME;
 
     lbm_value chan = ENC_SYM_NIL;
+#ifdef LBM_ALWAYS_GC
+    gc();
+#endif
     if (!create_string_channel((char *)code_str, &chan)) {
       gc();
       if (!create_string_channel((char *)code_str, &chan)) {
@@ -1698,6 +1733,9 @@ static void eval_callcc(eval_context_t *ctx) {
   lbm_value cont_array;
   lbm_uint *sptr0 = stack_reserve(ctx, 1);
   sptr0[0] = is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL;
+#ifdef LBM_ALWAYS_GC
+  gc();
+#endif
   if (!lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp)) {
     gc();
     lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp);
@@ -1857,6 +1895,10 @@ static binding_location_status create_binding_location_internal(lbm_value key, l
 static void create_binding_location(lbm_value key, lbm_value *env) {
 
   lbm_value env_tmp = *env;
+#ifdef LBM_ALWAYS_GC
+  lbm_gc_mark_phase(env_tmp);
+  gc();
+#endif
   binding_location_status r = create_binding_location_internal(key, &env_tmp);
   if (r != BL_OK) {
     if (r == BL_NO_MEMORY) {
@@ -2297,14 +2339,19 @@ static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
 static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, bool program, bool incremental) {
   if (nargs == 1) {
+    lbm_value save_array = ENC_SYM_NIL;
     lbm_value chan = ENC_SYM_NIL;
     if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
+#ifdef LBM_ALWAYS_GC
+      gc();
+#endif
       if (!create_string_channel(lbm_dec_str(args[0]), &chan)) {
         gc();
         if (!create_string_channel(lbm_dec_str(args[0]), &chan)) {
           error_ctx(ENC_SYM_MERROR);
         }
       }
+      save_array = args[0];
     } else if (lbm_type_of(args[0]) == LBM_TYPE_CHANNEL) {
       chan = args[0];
       // Streaming transfers can freeze the evaluator if the stream is cut while
@@ -2322,17 +2369,18 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     lbm_value *sptr = get_stack_ptr(ctx, 2);
 
     // If we are inside a reader, its settings are stored.
-    sptr[0] = lbm_enc_u(ctx->flags);  // flags stored.
-    sptr[1] = chan;
-    lbm_value  *rptr = stack_reserve(ctx,2);
+    sptr[0] = save_array;
+    sptr[1] = lbm_enc_u(ctx->flags);  // flags stored.
+    lbm_value  *rptr = stack_reserve(ctx,3);
+    rptr[0] = chan;
     if (!program && !incremental) {
-      rptr[0] = READING_EXPRESSION;
+      rptr[1] = READING_EXPRESSION;
     } else if (program && !incremental) {
-      rptr[0] = READING_PROGRAM;
+      rptr[1] = READING_PROGRAM;
     } else if (program && incremental) {
-      rptr[0] = READING_PROGRAM_INCREMENTALLY;
+      rptr[1] = READING_PROGRAM_INCREMENTALLY;
     }  // the last combo is illegal
-    rptr[1] = READ_DONE;
+    rptr[2] = READ_DONE;
 
     // Each reader starts in a fresh situation
     ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
@@ -3094,7 +3142,9 @@ static void cont_closure_args_rest(eval_context_t *ctx) {
   lbm_value args    = (lbm_value)sptr[3];
   lbm_value last    = (lbm_value)sptr[4];
   lbm_cons_t* heap = lbm_heap_state.heap;
-
+#ifdef LBM_ALWAYS_GC
+  gc();
+#endif
   lbm_value binding = lbm_heap_state.freelist;
   if (binding == ENC_SYM_NIL) {
     gc();
@@ -3277,7 +3327,9 @@ static void cont_match(eval_context_t *ctx) {
       body = n2;
       check_guard = true;
     }
-
+#ifdef LBM_ALWAYS_GC
+    gc();
+#endif
     bool is_match = match(pattern, e, &new_env, &do_gc);
     if (do_gc) {
       gc();
@@ -3825,6 +3877,9 @@ static void cont_read_next_token(eval_context_t *ctx) {
   n = tok_string(chan, &string_len);
   if (n >= 2) {
     lbm_channel_drop(chan, (unsigned int)n);
+#ifdef LBM_ALWAYS_GC
+    gc();
+#endif
     if (!lbm_heap_allocate_array(&res, (unsigned int)(string_len+1))) {
       gc();
       lbm_heap_allocate_array(&res, (unsigned int)(string_len+1));
@@ -3920,6 +3975,9 @@ static void cont_read_next_token(eval_context_t *ctx) {
           tokpar_sym_str[3] == '-') {
         lbm_uint ext_id;
         lbm_uint ext_name_len = (lbm_uint)n + 1;
+#ifdef LBM_ALWAYS_GC
+        gc();
+#endif
         char *ext_name = lbm_malloc(ext_name_len);
         if (!ext_name) {
           gc();
@@ -3944,6 +4002,9 @@ static void cont_read_next_token(eval_context_t *ctx) {
             error_ctx(ENC_SYM_FATAL_ERROR);
           }
         } else {
+#ifdef LBM_ALWAYS_GC
+          gc();
+#endif
           r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false); //ram
           if (!r) {
             gc();
@@ -4011,6 +4072,9 @@ static void cont_read_start_array(eval_context_t *ctx) {
     ctx->r = array;
     ctx->app_cont = true;
   } else if (lbm_is_number(ctx->r)) {
+#ifdef LBM_ALWAYS_GC
+    gc();
+#endif
     lbm_uint num_free = lbm_memory_longest_free();
     lbm_uint initial_size = (lbm_uint)((float)num_free * 0.9);
     if (initial_size == 0) {
@@ -4249,7 +4313,9 @@ static void cont_read_done(eval_context_t *ctx) {
   lbm_value stream;
   lbm_value f_val;
   lbm_value reader_mode;
-  lbm_pop_3(&ctx->K, &reader_mode, &stream ,&f_val);
+  lbm_value saved_array;
+  lbm_pop_2(&ctx->K, &reader_mode, &stream);
+  lbm_pop_2(&ctx->K, &f_val, &saved_array);
 
   uint32_t flags = lbm_dec_as_u32(f_val);
   ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
