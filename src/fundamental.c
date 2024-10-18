@@ -1380,6 +1380,22 @@ static lbm_value fundamental_is_number(lbm_value *args, lbm_uint argn, eval_cont
   return res;
 }
 
+static lbm_value fundamental_int_div(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
+  lbm_value res = fundamental_div(args, argn, ctx);
+  switch (lbm_type_of(res)) {
+    case LBM_TYPE_FLOAT: {
+      res = lbm_enc_i((lbm_int)lbm_dec_float(res));
+      break;
+    }
+    case LBM_TYPE_DOUBLE: {
+      res = lbm_enc_i((lbm_int)lbm_dec_double(res));
+      break;
+    }
+  }
+
+  return res;
+}
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1445,5 +1461,6 @@ const fundamental_fun fundamental_table[] =
    fundamental_dm_create,
    fundamental_dm_alloc,
    fundamental_is_list,
-   fundamental_is_number
+   fundamental_is_number,
+   fundamental_int_div,
   };
