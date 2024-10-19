@@ -770,6 +770,9 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
 
 bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
   bool b = false;
+#ifdef LBM_ALWAYS_GC
+  lbm_perform_gc();
+#endif
   int r = lbm_unflatten_value_internal(v,res);
   if (r == UNFLATTEN_GC_RETRY) {
     lbm_perform_gc();

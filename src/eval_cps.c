@@ -982,12 +982,10 @@ static void finish_ctx(void) {
   /* Drop the continuation stack immediately to free up lbm_memory */
   lbm_stack_free(&ctx_running->K);
   ctx_done_callback(ctx_running);
-  if (lbm_memory_ptr_inside((lbm_uint*)ctx_running->name)) {
-    lbm_free(ctx_running->name);
-  }
-  if (lbm_memory_ptr_inside((lbm_uint*)ctx_running->error_reason)) {
-    lbm_memory_free((lbm_uint*)ctx_running->error_reason);
-  }
+
+  lbm_free(ctx_running->name); //free name if in LBM_MEM
+  lbm_memory_free((lbm_uint*)ctx_running->error_reason); //free error_reason if in LBM_MEM
+
   lbm_memory_free((lbm_uint*)ctx_running->mailbox);
   lbm_memory_free((lbm_uint*)ctx_running);
   ctx_running = NULL;
