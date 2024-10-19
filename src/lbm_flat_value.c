@@ -761,7 +761,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
       *res = lbm_enc_sym(sym_id);
       return UNFLATTEN_OK;
     }
-    return UNFLATTEN_MALFORMED;
+    return UNFLATTEN_GC_RETRY;
   }
   default:
     return UNFLATTEN_MALFORMED;
