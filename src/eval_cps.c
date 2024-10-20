@@ -1743,6 +1743,8 @@ static void eval_callcc(eval_context_t *ctx) {
   if (lbm_is_ptr(cont_array)) {
     lbm_array_header_t *arr = assume_array(cont_array);
     memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
+    // The stored stack contains the is_atomic flag.
+    // This flag is overwritten in the following execution path.
 
     lbm_value acont = cons_with_gc(ENC_SYM_CONT, cont_array, ENC_SYM_NIL);
     lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
@@ -4227,7 +4229,7 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
         return;
       }
     }
-    lbm_value *rptr = stack_reserve(ctx, 6);
+    lbm_value *rptr = stack_reserve(ctx, 8);
     rptr[0] = stream;
     rptr[1] = env;
     rptr[2] = READ_EVAL_CONTINUE;
