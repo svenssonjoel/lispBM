@@ -515,7 +515,7 @@ lbm_uint lbm_get_symbol_table_size_flash(void) {
 }
 
 lbm_uint lbm_get_symbol_table_size_names(void) {
-  return symbol_table_size_strings * sizeof(lbm_uint);
+  return symbol_table_size_strings; // Bytes already
 }
 
 lbm_uint lbm_get_symbol_table_size_names_flash(void) {
