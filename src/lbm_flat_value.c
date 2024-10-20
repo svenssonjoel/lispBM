@@ -751,11 +751,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   }
   case S_SYM_STRING: {
     lbm_uint sym_id;
-    int r = lbm_get_symbol_by_name((char *)(v->buf + v->buf_pos), &sym_id);
-    if (!r) {
-      r = lbm_add_symbol_base((char *)(v->buf + v->buf_pos), &sym_id,false); //ram
-    }
-    if (r) {
+    if (lbm_add_symbol((char *)(v->buf + v->buf_pos), &sym_id)) {
       lbm_uint num_bytes = strlen((char*)(v->buf + v->buf_pos)) + 1;
       v->buf_pos += num_bytes;
       *res = lbm_enc_sym(sym_id);
