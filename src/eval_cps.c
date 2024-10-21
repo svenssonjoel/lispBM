@@ -841,21 +841,21 @@ bool create_string_channel(char *str, lbm_value *res, lbm_value dep) {
   lbm_char_channel_t *chan = NULL;
   lbm_string_channel_state_t *st = NULL;
 
-  st = (lbm_string_channel_state_t*)lbm_memory_allocate(sizeof(lbm_string_channel_state_t) / sizeof(lbm_uint) +1);
+  st = (lbm_string_channel_state_t*)lbm_malloc(sizeof(lbm_string_channel_state_t));
   if (st == NULL) {
     return false;
   }
-  chan = (lbm_char_channel_t*)lbm_memory_allocate(sizeof(lbm_char_channel_t) / sizeof(lbm_uint) + 1);
+  chan = (lbm_char_channel_t*)lbm_malloc(sizeof(lbm_char_channel_t));
   if (chan == NULL) {
-    lbm_memory_free((lbm_uint*)st);
+    lbm_free(st);
     return false;
   }
 
   lbm_create_string_char_channel(st, chan, str);
   lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE);
   if (cell == ENC_SYM_MERROR) {
-    lbm_memory_free((lbm_uint*)st);
-    lbm_memory_free((lbm_uint*)chan);
+    lbm_free(st);
+    lbm_free(chan);
     return false;
   }
 
