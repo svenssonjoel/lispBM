@@ -1250,12 +1250,12 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
       gc();
     }
 #endif
-    ctx->name = lbm_malloc(strlen(name) + 1);
+    ctx->name = lbm_malloc(name_len);
     if (ctx->name == NULL) {
       lbm_value roots[2] = {program, env};
       lbm_gc_mark_roots(roots, 2);
       gc();
-      ctx->name = lbm_malloc(strlen(name) + 1);
+      ctx->name = lbm_malloc(name_len);
     }
     if (ctx->name == NULL) {
       lbm_stack_free(&ctx->K);
@@ -1263,7 +1263,7 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
       lbm_memory_free((lbm_uint*)ctx);
       return -1;
     }
-    memcpy(ctx->name, name, name_len+1);
+    memcpy(ctx->name, name, name_len);
   } else {
      ctx->name = NULL;
   }
