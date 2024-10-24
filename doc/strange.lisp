@@ -14,10 +14,25 @@
   )
 
 
+(def ch-constant
+     (section 2 "Constant code and data"
+              (list
+               (para (list "As LBM is targeting microcontrollers RAM is a limited resource while FLASH can be quite abundant!"
+                           "LBM allows the usage of flash for storage of both code and data and this is a source of a lot of"
+                           "interesting and perhaps unexpected behaviors."
+                           "Lisps are usually very liberal about what can be mutated. In essense just about everything can be mutated."
+                           "Constant storage destroys this property."
+                           ))
+               )
+              )
+     )
+
+
 (define manual
     (list
      (section 1 "The LBM guide to the strange and unexpected"
               (list ch-intro
+                    ch-constant
 		    info
                     )
               )
