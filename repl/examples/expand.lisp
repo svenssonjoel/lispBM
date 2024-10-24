@@ -12,15 +12,16 @@
 
 (defun zip (ls1 ls2)
   (match ls1
-         (((? a) . (? as)) (cons (list a (car ls2)) (zip as (cdr ls2))))
+         (((? a) . (? as)) (cons (cons a (car ls2)) (zip as (cdr ls2))))
          (_ nil)))
 
 (defun macro-expand (ma)
   (let (((a . as) ma)
         (evala (eval a)))
-      (if (macro? evala) {
+    (if (macro? evala) {
         (var params (macro-param-list evala))
         (var env (zip params as))
+	(print env)
         (eval env (macro-body evala))
         }
         nil)))
