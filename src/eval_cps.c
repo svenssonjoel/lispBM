@@ -4066,9 +4066,12 @@ static void cont_read_start_array(eval_context_t *ctx) {
     lbm_value array;
 
     if (!lbm_heap_allocate_array(&array, 0)) {
-      lbm_set_error_reason((char*)lbm_error_str_read_no_mem);
-      lbm_channel_reader_close(str);
-      error_ctx(ENC_SYM_FATAL_ERROR); // Terminates ctx
+      gc();
+      if (!lbm_heap_allocate_array(&array, 0)) {
+        lbm_set_error_reason((char*)lbm_error_str_read_no_mem);
+        lbm_channel_reader_close(str);
+        error_ctx(ENC_SYM_FATAL_ERROR); // Terminates ctx
+      }
     }
     lbm_stack_drop(&ctx->K, 1);
     ctx->r = array;
@@ -4091,12 +4094,17 @@ static void cont_read_start_array(eval_context_t *ctx) {
     lbm_value array;
     initial_size = sizeof(lbm_uint) * initial_size;
 
+    // Keep in mind that this allocation can fail for both
+    // lbm_memory and heap reasons.
     if (!lbm_heap_allocate_array(&array, initial_size)) {
-      lbm_set_error_reason((char*)lbm_error_str_read_no_mem);
-      lbm_channel_reader_close(str);
-      error_ctx(ENC_SYM_FATAL_ERROR);
-      // NOTE: If array is not created evaluation ends here.
-      // Static analysis seems unaware.
+      gc();
+      if (!lbm_heap_allocate_array(&array, initial_size)) {
+        lbm_set_error_reason((char*)lbm_error_str_read_no_mem);
+        lbm_channel_reader_close(str);
+        error_ctx(ENC_SYM_FATAL_ERROR);
+        // NOTE: If array is not created evaluation ends here.
+        // Static analysis seems unaware.
+      }
     }
 
     sptr[0] = array;
