@@ -82,7 +82,6 @@ const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"}", TOKCLOSECURL, 1},
   {"@const-start", TOKCONSTSTART, 12},
   {"@const-end", TOKCONSTEND, 10},
-  {"@const-symbol-strings", TOKCONSTSYMSTR, 21},
 };
 
 #define NUM_TYPE_QUALIFIERS 9

@@ -3850,10 +3850,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
       lbm_stack_drop(&ctx->K, 2);
       ctx->r = ENC_SYM_CLOSEPAR;
       return;
-    case TOKCONSTSYMSTR: /* fall through */
     case TOKCONSTSTART: /* fall through */
     case TOKCONSTEND: {
-      if (match == TOKCONSTSYMSTR)  printf_callback("WARNING: @const-symbol-string does nothing!");
       if (match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
       if (match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
       sptr[0] = stream;
