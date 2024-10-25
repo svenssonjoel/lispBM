@@ -806,10 +806,9 @@ void print_error_message(lbm_value error,
       error == ENC_SYM_RERROR) {
     printf_callback("***   Line:   %u\n", row);
     printf_callback("***   Column: %u\n", col);
-  } else if (row0 != -1 || row1 != -1 ) {
-    printf_callback("***   Between rows: (-1 unknown) \n");
-    printf_callback("***     Start: %d\n", (int32_t)row0);
-    printf_callback("***     End:   %d\n", (int32_t)row1);
+  } else if (row0 >= 0) {
+    if (row1 < 0) printf_callback("***   Starting at row: %d\n", row0);
+    else printf_callback("***   Between row %d and %d\n", row0, row1);
   }
 
   printf_callback("\n");
@@ -3762,6 +3761,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
 
   if (lbm_dec_u(grab_row0)) {
     ctx->row0 = (int32_t)lbm_channel_row(chan);
+    ctx->row1 = -1; // a new start, end is unknown
   }
 
   /* Attempt to extract tokens from the character stream */
