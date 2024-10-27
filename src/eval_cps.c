@@ -68,36 +68,34 @@ static jmp_buf critical_error_jmp_buf;
 #define READ_EXPECT_CLOSEPAR  CONTINUATION(18)
 #define READ_DOT_TERMINATE    CONTINUATION(19)
 #define READ_DONE             CONTINUATION(20)
-#define READ_QUOTE_RESULT     CONTINUATION(21)
-#define READ_COMMAAT_RESULT   CONTINUATION(22)
-#define READ_COMMA_RESULT     CONTINUATION(23)
-#define READ_START_ARRAY      CONTINUATION(24)
-#define READ_APPEND_ARRAY     CONTINUATION(25)
-#define MAP                   CONTINUATION(26)
-#define MATCH_GUARD           CONTINUATION(27)
-#define TERMINATE             CONTINUATION(28)
-#define PROGN_VAR             CONTINUATION(29)
-#define SETQ                  CONTINUATION(30)
-#define MOVE_TO_FLASH         CONTINUATION(31)
-#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(32)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(33)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(34)
-#define QQ_EXPAND_START       CONTINUATION(35)
-#define QQ_EXPAND             CONTINUATION(36)
-#define QQ_APPEND             CONTINUATION(37)
-#define QQ_EXPAND_LIST        CONTINUATION(38)
-#define QQ_LIST               CONTINUATION(39)
-#define KILL                  CONTINUATION(40)
-#define LOOP                  CONTINUATION(41)
-#define LOOP_CONDITION        CONTINUATION(42)
-#define MERGE_REST            CONTINUATION(43)
-#define MERGE_LAYER           CONTINUATION(44)
-#define CLOSURE_ARGS_REST     CONTINUATION(45)
-#define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(46)
-#define POP_READER_FLAGS      CONTINUATION(47)
-#define EXCEPTION_HANDLER     CONTINUATION(48)
-#define RECV_TO               CONTINUATION(49)
-#define NUM_CONTINUATIONS     50
+#define READ_START_ARRAY      CONTINUATION(21)
+#define READ_APPEND_ARRAY     CONTINUATION(22)
+#define MAP                   CONTINUATION(23)
+#define MATCH_GUARD           CONTINUATION(24)
+#define TERMINATE             CONTINUATION(25)
+#define PROGN_VAR             CONTINUATION(26)
+#define SETQ                  CONTINUATION(27)
+#define MOVE_TO_FLASH         CONTINUATION(28)
+#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(29)
+#define MOVE_LIST_TO_FLASH    CONTINUATION(30)
+#define CLOSE_LIST_IN_FLASH   CONTINUATION(31)
+#define QQ_EXPAND_START       CONTINUATION(32)
+#define QQ_EXPAND             CONTINUATION(33)
+#define QQ_APPEND             CONTINUATION(34)
+#define QQ_EXPAND_LIST        CONTINUATION(35)
+#define QQ_LIST               CONTINUATION(36)
+#define KILL                  CONTINUATION(37)
+#define LOOP                  CONTINUATION(38)
+#define LOOP_CONDITION        CONTINUATION(39)
+#define MERGE_REST            CONTINUATION(40)
+#define MERGE_LAYER           CONTINUATION(41)
+#define CLOSURE_ARGS_REST     CONTINUATION(42)
+#define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(43)
+#define POP_READER_FLAGS      CONTINUATION(44)
+#define EXCEPTION_HANDLER     CONTINUATION(45)
+#define RECV_TO               CONTINUATION(46)
+#define WRAP_RESULT           CONTINUATION(47)
+#define NUM_CONTINUATIONS     48
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -2653,10 +2651,9 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     rptr[3] = MAP;
     ctx->curr_exp = appli;
   } else if (nargs == 2 && lbm_is_symbol_nil(args[1])) {
-      lbm_stack_drop(&ctx->K, 3);
-      ctx->r = ENC_SYM_NIL;
-      ctx->app_cont = true;
-      return;
+    lbm_stack_drop(&ctx->K, 3);
+    ctx->r = ENC_SYM_NIL;
+    ctx->app_cont = true;
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_at_ctx(ENC_SYM_EERROR, ENC_SYM_MAP);
@@ -3779,7 +3776,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
     ctx->app_cont = true;
-    lbm_uint do_next = 0;
     switch(match) {
     case TOKOPENPAR: {
       sptr[0] = ENC_SYM_NIL;
@@ -3818,7 +3814,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
       ctx->r = ENC_SYM_DONTCARE;
       return;
     case TOKQUOTE:
-      do_next = READ_QUOTE_RESULT;
+      sptr[0] = ENC_SYM_QUOTE;
+      sptr[1] = WRAP_RESULT;
       break;
     case TOKBACKQUOTE: {
       sptr[0] = QQ_EXPAND_START;
@@ -3829,10 +3826,12 @@ static void cont_read_next_token(eval_context_t *ctx) {
       ctx->app_cont = true;
     } return;
     case TOKCOMMAAT:
-      do_next = READ_COMMAAT_RESULT;
+      sptr[0] = ENC_SYM_COMMAAT;
+      sptr[1] = WRAP_RESULT;
       break;
     case TOKCOMMA:
-      do_next = READ_COMMA_RESULT;
+      sptr[0] = ENC_SYM_COMMA;
+      sptr[1] = WRAP_RESULT;
       break;
     case TOKMATCHANY:
       lbm_stack_drop(&ctx->K, 2);
@@ -3862,11 +3861,11 @@ static void cont_read_next_token(eval_context_t *ctx) {
     default:
       read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
     }
-    sptr[0] = do_next;
-    sptr[1] = stream;
-    lbm_value *rptr = stack_reserve(ctx, 2);
-    rptr[0] = lbm_enc_u(0);
-    rptr[1] = READ_NEXT_TOKEN;
+    // read next token
+    lbm_value *rptr = stack_reserve(ctx, 3);
+    rptr[0] = stream;
+    rptr[1] = lbm_enc_u(0);
+    rptr[2] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
     return;
   } else if (n < 0) goto retry_token;
@@ -4345,26 +4344,14 @@ static void cont_read_done(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static void cont_read_quote_result(eval_context_t *ctx) {
+static void cont_wrap_result(eval_context_t *ctx) {
   lbm_value cell;
+  lbm_value wrapper;
+  lbm_pop(&ctx->K, &wrapper);
   WITH_GC(cell, lbm_heap_allocate_list_init(2,
-                                            ENC_SYM_QUOTE,
+                                            wrapper,
                                             ctx->r));
   ctx->r = cell;
-  ctx->app_cont = true;
-}
-
-static void cont_read_commaat_result(eval_context_t *ctx) {
-  lbm_value cell2 = cons_with_gc(ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
-  lbm_value cell1 = cons_with_gc(ENC_SYM_COMMAAT, cell2, ENC_SYM_NIL);
-  ctx->r = cell1;
-  ctx->app_cont = true;
-}
-
-static void cont_read_comma_result(eval_context_t *ctx) {
-  lbm_value cell2 = cons_with_gc(ctx->r,ENC_SYM_NIL,ENC_SYM_NIL);
-  lbm_value cell1 = cons_with_gc(ENC_SYM_COMMA, cell2, ENC_SYM_NIL);
-  ctx->r = cell1;
   ctx->app_cont = true;
 }
 
@@ -5010,9 +4997,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_read_expect_closepar,
     cont_read_dot_terminate,
     cont_read_done,
-    cont_read_quote_result,
-    cont_read_commaat_result,
-    cont_read_comma_result,
     cont_read_start_array,
     cont_read_append_array,
     cont_map,
@@ -5039,6 +5023,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_pop_reader_flags,
     cont_exception_handler,
     cont_recv_to,
+    cont_wrap_result,
   };
 
 /*********************************************************/

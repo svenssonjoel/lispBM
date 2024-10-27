@@ -87,7 +87,6 @@
   } else {                                                              \
     t = lbm_type_of_functional(a);                                      \
   }
-
 #endif
 
 
