@@ -512,12 +512,12 @@ void parse_opts(int argc, char **argv) {
       printf("    --load_env=FILEPATH               Load the global environment from a file at\n"\
              "                                      startup.\n");
       printf("    --silent                          The REPL will print as little as possible\n");
-      printf("    --store_env=FILEPATH              Store the global environment to a file upon\n"\
-             "                                      exit.\n");
+      printf("    --store_env=FILEPATH              Store the global environment to a file\n"\
+             "                                      upon exit.\n");
       printf("    --store_res=FILEPATH              Store the result of the last program\n"\
              "                                      specified with the --src/-s options.\n");
-      printf("    --vesctcp                         Open a TCP server talking the VESC protocol\n"\
-             "                                      on port %d\n", DEFAULT_VESCIF_TCP_PORT);
+      printf("    --vesctcp                         Open a TCP server talking the VESC\n"\
+             "                                      protocol on port %d\n", DEFAULT_VESCIF_TCP_PORT);
       printf("    --vesctcp_port=PORT               open the TCP server on this port instead.\n");
       printf("    --vesctcp_program_flash_size=SIZE Size of memory for program storage.\n");
       printf("    --terminate                       Terminate the REPL after evaluating the\n"\
