@@ -96,13 +96,20 @@ lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 lbm_prof_t prof_data[100];
 
-char *env_input_file = NULL;
-char *env_output_file = NULL;
-volatile char *res_output_file = NULL;
-bool terminate_after_startup = false;
-volatile lbm_cid startup_cid = -1;
-volatile lbm_cid store_result_cid = -1;
-volatile bool silent_mode = false;
+static char *env_input_file = NULL;
+static char *env_output_file = NULL;
+static volatile char *res_output_file = NULL;
+static bool terminate_after_startup = false;
+static volatile lbm_cid startup_cid = -1;
+static volatile lbm_cid store_result_cid = -1;
+static volatile bool silent_mode = false;
+
+static int lbm_memory_size = LBM_MEMORY_SIZE_8K;
+static int lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_8K;
+
+static lbm_uint *memory=NULL;
+static lbm_uint *bitmap=NULL;
+
 
 struct read_state_s {
   char *str;   // String being read.
@@ -390,9 +397,6 @@ void sym_it(const char *str) {
          str);
 }
 
-static lbm_uint memory[LBM_MEMORY_SIZE_1M];
-static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_1M];
-
 pthread_t lispbm_thd = 0;
 unsigned int heap_size = 2048; // default
 lbm_cons_t *heap_storage = NULL;
@@ -415,6 +419,7 @@ lbm_const_heap_t const_heap;
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
   {"heap_size", required_argument, NULL, 'H'},
+  {"memory_size", required_argument, NULL, 'M'},
   {"src", required_argument, NULL, 's'},
   {"eval", required_argument, NULL, 'e'},
   {"load_env", required_argument, NULL, LOAD_ENVIRONMENT},
@@ -496,16 +501,68 @@ void parse_opts(int argc, char **argv) {
   int c;
   opterr = 1;
   int opt_index = 0;
-  while ((c = getopt_long(argc, argv, "H:hse:",options, &opt_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "H:M:hse:",options, &opt_index)) != -1) {
     switch (c) {
     case 'H':
       heap_size = (unsigned int)atoi((char*)optarg);
       break;
+    case 'M': {
+      int ix = (unsigned int) atoi((char*)optarg);
+      switch(ix) {
+      case 1:
+        lbm_memory_size = LBM_MEMORY_SIZE_512;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_512;
+        break;
+      case 2:
+        lbm_memory_size = LBM_MEMORY_SIZE_1K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_1K;
+        break;
+      case 3:
+        lbm_memory_size = LBM_MEMORY_SIZE_2K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_2K;
+        break;
+      case 4:
+        lbm_memory_size = LBM_MEMORY_SIZE_4K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_4K;
+        break;
+      case 5:
+        lbm_memory_size = LBM_MEMORY_SIZE_8K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_8K;
+        break;
+      case 6:
+        lbm_memory_size = LBM_MEMORY_SIZE_10K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
+        break;
+      case 7:
+        lbm_memory_size = LBM_MEMORY_SIZE_12K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_12K;
+        break;
+      case 8:
+        lbm_memory_size = LBM_MEMORY_SIZE_14K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_14K;
+        break;
+      case 9:
+        lbm_memory_size = LBM_MEMORY_SIZE_16K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_16K;
+        break;
+      case 10:
+        lbm_memory_size = LBM_MEMORY_SIZE_32K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_32K;
+        break;
+      case 11:
+        lbm_memory_size = LBM_MEMORY_SIZE_1M;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_1M;
+        break;
+      }
+    } break;
     case 'h':
       printf("Usage: %s [OPTION...]\n\n", argv[0]);
       printf("    -h, --help                        Prints help\n");
       printf("    -H SIZE, --heap_size=SIZE         Set heap_size to be SIZE number of\n"\
              "                                      cells.\n");
+      printf("    -M SIZE, --memory_size=SIZE       Set the arrays and symbols memory\n"\
+             "                                      size to one memory-size-indices\n"\
+             "                                      listed below.\n");
       printf("    -s FILEPATH, --src=FILEPATH       Load and evaluate lisp src\n");
       printf("    -e EXPRESSION, --eval=EXPRESSION  Load and evaluate lisp src\n");
       printf("\n");
@@ -522,7 +579,32 @@ void parse_opts(int argc, char **argv) {
       printf("    --vesctcp_program_flash_size=SIZE Size of memory for program storage.\n");
       printf("    --terminate                       Terminate the REPL after evaluating the\n"\
              "                                      source files specified with --src/-s\n");
-
+      printf("Memory-size-indices: \n"          \
+             "Index | Words\n"                  \
+             "  1   - %d\n"                     \
+             "  2   - %d\n"                     \
+             "  3   - %d\n"                     \
+             "  4   - %d\n"                     \
+             "* 5   - %d\n"                     \
+             "  6   - %d\n"                     \
+             "  7   - %d\n"                     \
+             "  8   - %d\n"                     \
+             "  9   - %d\n"                     \
+             " 10   - %d\n"                     \
+             " 11   - %d\n",
+             LBM_MEMORY_SIZE_512,
+             LBM_MEMORY_SIZE_1K,
+             LBM_MEMORY_SIZE_2K,
+             LBM_MEMORY_SIZE_4K,
+             LBM_MEMORY_SIZE_8K,
+             LBM_MEMORY_SIZE_10K,
+             LBM_MEMORY_SIZE_12K,
+             LBM_MEMORY_SIZE_14K,
+             LBM_MEMORY_SIZE_16K,
+             LBM_MEMORY_SIZE_32K,
+             LBM_MEMORY_SIZE_1M
+             );
+      printf("Default is marked with a *.\n");
       printf("\n");
       printf("Multiple sourcefiles and expressions can be added with multiple uses\n" \
              "of the --src/-s and --eval/-e flags.\n" \
@@ -654,9 +736,14 @@ int init_repl() {
     return 0;
   }
 
+  memory = (lbm_uint*)malloc(lbm_memory_size * sizeof(lbm_uint));
+  bitmap = (lbm_uint*)malloc(lbm_memory_bitmap_size * sizeof(lbm_uint));
+
+  if (memory == NULL || bitmap == NULL) return 0;
+
   if (!lbm_init(heap_storage, heap_size,
-                memory, LBM_MEMORY_SIZE_1M,
-                bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
+                memory, lbm_memory_size,
+                bitmap, lbm_memory_bitmap_size,
                 GC_STACK_SIZE,
                 PRINT_STACK_SIZE,
                 extensions,
@@ -1098,9 +1185,17 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
   if (heap_storage == NULL) return 0;
 
+  /* if (memory) free(memory); */
+  /* if (bitmap) free(bitmap); */
+
+  /* memory = (lbm_uint*)malloc(lbm_memory_size * sizeof(lbm_uint)); */
+  /* bitmap = (lbm_uint*)malloc(lbm_memory_bitmap_size * sizeof(lbm_uint)); */
+
+  /* if (memory == NULL || bitmap == NULL) return 0; */
+
   if (!lbm_init(heap_storage, heap_size,
-                memory, LBM_MEMORY_SIZE_1M,
-                bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
+                memory, lbm_memory_size,
+                bitmap, lbm_memory_bitmap_size,
                 GC_STACK_SIZE,
                 PRINT_STACK_SIZE,
                 extensions,
@@ -1233,7 +1328,7 @@ float get_cpu_usage(void) {
   if ( fp ) {
     long unsigned int ucpu = 0, scpu=0, tot_cpu = 0 ;
     if ( fscanf(fp, "%*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s  %lu %lu",
-		&ucpu, &scpu) == 2 ) {
+                &ucpu, &scpu) == 2 ) {
       tot_cpu = ucpu + scpu ;
 
       long unsigned int ticks = tot_cpu - get_cpu_last_ticks;
@@ -1586,7 +1681,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
             memcpy(buffer, data, len);
             lbm_create_string_char_channel(&string_tok_state, &string_tok, buffer);
             lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
-            if (cid >= 0) { 
+            if (cid >= 0) {
               add_reader(buffer, cid);
             } else {
               free(buffer);
@@ -1927,9 +2022,9 @@ int main(int argc, char **argv) {
         strncpy(ip, inet_ntoa(client_sockaddr_in.sin_addr), 255);
         printf("Refusing connection from %s\n", ip);
         ssize_t r = write(client_socket, vesctcp_in_use, strlen(vesctcp_in_use));
-	if (r < 0) {
-	  printf("Unable to write to refused client\n");
-	}
+        if (r < 0) {
+          printf("Unable to write to refused client\n");
+        }
       }
     }
   } else {
