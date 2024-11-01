@@ -1192,6 +1192,23 @@ static lbm_value ext_vescif_import(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_NIL;
 }
 
+void vescif_print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
+  (void) arg1;
+  (void) arg2;
+
+  char output[1024];
+  int print_ret = lbm_print_value(output, 1024, ctx->r);
+  commands_printf_lisp("--------------------------------");
+  commands_printf_lisp("ContextID: %"PRI_UINT, ctx->id);
+  commands_printf_lisp("Stack SP: %"PRI_UINT,  ctx->K.sp);
+  commands_printf_lisp("Stack SP max: %"PRI_UINT, lbm_get_max_stack(&ctx->K));
+  if (print_ret) {
+    commands_printf_lisp("Value: %s\n", output);
+  } else {
+    commands_printf_lisp("Error: %s\n", output);
+  }
+}
+
 
 bool vescif_restart(bool print, bool load_code, bool load_imports) {
   bool res = false;
@@ -1678,10 +1695,11 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
           }
         }
       } else if (strncmp(str, ":ctxs", 5) == 0) {
+        printf("CONTEXTS\n");
         commands_printf_lisp("****** Running contexts ******");
-        lbm_running_iterator(print_ctx_info, NULL, NULL);
+        lbm_running_iterator(vescif_print_ctx_info, NULL, NULL);
         commands_printf_lisp("****** Blocked contexts ******");
-        lbm_blocked_iterator(print_ctx_info, NULL, NULL);
+        lbm_blocked_iterator(vescif_print_ctx_info, NULL, NULL);
       } else if (strncmp(str, ":symbols", 8) == 0) {
         lbm_symrepr_name_iterator(sym_it);
         commands_printf_lisp(" ");
