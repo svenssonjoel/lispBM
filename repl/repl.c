@@ -1185,6 +1185,13 @@ static lbm_value ext_vescif_print(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+// a dummy to make imports do noting upon eval
+static lbm_value ext_vescif_import(lbm_value *args, lbm_uint argn) {
+  (void)args;
+  (void)argn;
+  return ENC_SYM_NIL;
+}
+
 
 bool vescif_restart(bool print, bool load_code, bool load_imports) {
   bool res = false;
@@ -1255,6 +1262,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 
   init_exts();
   lbm_add_extension("print", ext_vescif_print); // replace print
+  lbm_add_extension("import", ext_vescif_import); // dummy import
 
 #ifdef WITH_SDL
   if (!lbm_sdl_init()) {
@@ -1292,7 +1300,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 
   /* lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader); */
 
-  char *code_data = vescif_program_flash+8;
+  char *code_data = (char*)vescif_program_flash+8;
   size_t code_len = vescif_program_flash_code_len;
 
   size_t code_chars = 0;
@@ -1307,12 +1315,10 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   /* printf("\n"); */
   
   // Load imports
-  printf("loading imports\n");
   if (load_imports) {
     if (code_len > code_chars + 3) {
-      int32_t ind = code_chars + 1;
+      int32_t ind = (int32_t)code_chars + 1;
       uint16_t num_imports = buffer_get_uint16((uint8_t*)code_data, &ind);
-
       if (num_imports > 0 && num_imports < 500) {
         for (int i = 0;i < num_imports;i++) {
           char *name = code_data + ind;
@@ -1321,7 +1327,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
           int32_t len = buffer_get_int32((uint8_t*)code_data, &ind);
 
           lbm_value val;
-          if (lbm_share_array(&val, code_data + offset, len)) {
+          if (lbm_share_array(&val, code_data + offset, (lbm_uint)len)) {
             lbm_define(name, val);
           }
         }
@@ -1339,12 +1345,14 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   /* uint32_t const_heap_len = ((uint32_t)code_data + flash_helper_code_size_raw(CODE_IND_LISP)) - (uint32_t)const_heap_ptr; */
   /* lbm_const_heap_init(const_heap_write, &const_heap, (lbm_uint*)const_heap_ptr, const_heap_len); */
 
+  code_data = vescif_program_flash+8;
+  
   if (load_code) {
     if (print) {
       commands_printf_lisp("Parsing %d characters", code_chars);
     }
 
-    lbm_create_string_char_channel(&string_tok_state, &string_tok, code_data);
+    lbm_create_string_char_channel(&string_tok_state, &string_tok, (char*)code_data);
     lbm_load_and_eval_program_incremental(&string_tok, "main-u");
   }
 
@@ -1891,20 +1899,17 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     int32_t ind = 0;
     int result = 0;
     uint32_t offset = buffer_get_uint32(data, &ind);
-    // offset should be 0 for lisp code and non-zero for QML.
-    if (!offset) { 
 
-      size_t num = len - ind; // length of data;
-      if (num < vescif_program_flash_size) {
-        memcpy((uint8_t*)vescif_program_flash, data+ind, num);
-        vescif_program_flash_code_len = num;
-        result = 1;
-      }
+    size_t num = len - (size_t)ind; // length of data;
+    if (num + offset < vescif_program_flash_size) {
+      memcpy((uint8_t*)vescif_program_flash+offset, data+ind, num);
+      vescif_program_flash_code_len = num;
+      result = 1;
     }
     ind = 0;
     uint8_t send_buffer[50];
     send_buffer[ind++] = packet_id;
-    send_buffer[ind++] = result;
+    send_buffer[ind++] = (uint8_t)result;
     buffer_append_uint32(send_buffer, offset, &ind);
     reply_func(send_buffer, ind);
   } break;
