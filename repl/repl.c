@@ -1168,6 +1168,24 @@ static void vesc_lbm_done_callback(eval_context_t *ctx) {
   }
 }
 
+static lbm_value ext_vescif_print(lbm_value *args, lbm_uint argn) {
+  const int str_len = 256;
+  char *print_val_buffer = malloc(str_len);
+  if (!print_val_buffer) {
+    return ENC_SYM_MERROR;
+  }
+
+  for (lbm_uint i = 0; i < argn; i ++) {
+    lbm_print_value(print_val_buffer, str_len, args[i]);
+    commands_printf_lisp("%s", print_val_buffer);
+  }
+
+  lbm_free(print_val_buffer);
+
+  return ENC_SYM_TRUE;
+}
+
+
 bool vescif_restart(bool print, bool load_code, bool load_imports) {
   bool res = false;
   //if (prof_running) {
@@ -1235,7 +1253,8 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(commands_printf_lisp);
 
-  init_exts(); // another print extension should be used (commands_printf_lisp)
+  init_exts(); 
+  lbm_add_extension("print", ext_vescif_print); // replace print
 
 #ifdef WITH_SDL
   if (!lbm_sdl_init()) {
@@ -1861,18 +1880,40 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     reply_func(send_buffer, (unsigned int)send_ind);
   } break;
   case COMM_LISP_WRITE_CODE: {
+    int32_t ind = 0;
+    int result = 0;
+    uint32_t offset = buffer_get_uint32(data, &ind);
+    // offset should be 0 for lisp code and non-zero for QML.
+    if (!offset) { 
+
+      size_t num = len - ind; // length of data;
+      if (num < vescif_program_flash_size) {
+        memcpy((uint8_t*)vescif_program_flash, data+ind, num);
+        result = 1;
+      }
+    }
+    ind = 0;
+    uint8_t send_buffer[50];
+    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = result;
+    buffer_append_uint32(send_buffer, offset, &ind);
+    reply_func(send_buffer, ind);
   } break;
+    
   case COMM_LISP_READ_CODE: {
-
-  } break;
+  }break;
   case COMM_LISP_ERASE_CODE: {
-
+    memset(vescif_program_flash, 0, vescif_program_flash_size);
+    vescif_program_flash_code_len = 0;
+    int32_t ind = 0;
+    uint8_t send_buffer[50];
+    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = 1;
+    reply_func(send_buffer, ind);
     break;
   }
 
-  case COMM_LISP_RMSG: {
-  } break;
-
+  case COMM_LISP_RMSG: /* fall through */
   default:
     printf("Command %d is not supported by the LBM REPL VESC interface\n",packet_id);
     break;
