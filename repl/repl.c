@@ -89,11 +89,9 @@ static lbm_char_channel_t buffered_string_tok;
 #define EXTENSION_STORAGE_SIZE 1024
 #define WAIT_TIMEOUT 2500
 #define STR_SIZE 1024
-#define CONSTANT_MEMORY_SIZE 32*1024
 #define PROF_DATA_NUM 100
 
 lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
-lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 lbm_prof_t prof_data[100];
 
 static char *env_input_file = NULL;
@@ -104,12 +102,13 @@ static volatile lbm_cid startup_cid = -1;
 static volatile lbm_cid store_result_cid = -1;
 static volatile bool silent_mode = false;
 
-static int lbm_memory_size = LBM_MEMORY_SIZE_8K;
-static int lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_8K;
+static size_t lbm_memory_size = LBM_MEMORY_SIZE_8K;
+static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_8K;
+static size_t constants_memory_size = 4096;
 
+static lbm_uint *constants_memory = NULL;
 static lbm_uint *memory=NULL;
 static lbm_uint *bitmap=NULL;
-
 
 struct read_state_s {
   char *str;   // String being read.
@@ -176,7 +175,7 @@ void terminate_repl(int exit_code) {
 }
 
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
-  if (ix >= CONSTANT_MEMORY_SIZE) return false;
+  if (ix >= constants_memory_size) return false;
   if (constants_memory[ix] == 0xffffffff) {
     constants_memory[ix] = w;
     return true;
@@ -420,6 +419,7 @@ struct option options[] = {
   {"help", no_argument, NULL, 'h'},
   {"heap_size", required_argument, NULL, 'H'},
   {"memory_size", required_argument, NULL, 'M'},
+  {"const_memory_size", required_argument, NULL, 'C'},
   {"src", required_argument, NULL, 's'},
   {"eval", required_argument, NULL, 'e'},
   {"load_env", required_argument, NULL, LOAD_ENVIRONMENT},
@@ -501,13 +501,16 @@ void parse_opts(int argc, char **argv) {
   int c;
   opterr = 1;
   int opt_index = 0;
-  while ((c = getopt_long(argc, argv, "H:M:hse:",options, &opt_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "H:M:C:hse:",options, &opt_index)) != -1) {
     switch (c) {
     case 'H':
-      heap_size = (unsigned int)atoi((char*)optarg);
+      heap_size = (size_t)atoi((char*)optarg);
+      break;
+    case 'C':
+      constants_memory_size = (size_t)atoi((char*)optarg);
       break;
     case 'M': {
-      int ix = (unsigned int) atoi((char*)optarg);
+      size_t ix = (size_t)atoi((char*)optarg);
       switch(ix) {
       case 1:
         lbm_memory_size = LBM_MEMORY_SIZE_512;
@@ -553,6 +556,11 @@ void parse_opts(int argc, char **argv) {
         lbm_memory_size = LBM_MEMORY_SIZE_1M;
         lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_1M;
         break;
+      default:
+        printf("WARNING: Incorrect lbm_memory_size index! Using default\n");
+        lbm_memory_size = LBM_MEMORY_SIZE_4K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_4K;
+        break;
       }
     } break;
     case 'h':
@@ -563,6 +571,9 @@ void parse_opts(int argc, char **argv) {
       printf("    -M SIZE, --memory_size=SIZE       Set the arrays and symbols memory\n"\
              "                                      size to one memory-size-indices\n"\
              "                                      listed below.\n");
+      printf("    -C SIZE, --const_memory_size=SIZE Set the size of the constants memory.\n"\
+             "                                      This memory emulates a flash memory"\
+             "                                      that can be written to once per location.");
       printf("    -s FILEPATH, --src=FILEPATH       Load and evaluate lisp src\n");
       printf("    -e EXPRESSION, --eval=EXPRESSION  Load and evaluate lisp src\n");
       printf("\n");
@@ -755,10 +766,11 @@ int init_repl() {
     return 0;
   }
 
-  memset(constants_memory, 0xFF, CONSTANT_MEMORY_SIZE * sizeof(lbm_uint));
+  constants_memory = (lbm_uint*)malloc(constants_memory_size * sizeof(lbm_uint));
+  memset(constants_memory, 0xFF, constants_memory_size * sizeof(lbm_uint));
   if (!lbm_const_heap_init(const_heap_write,
                            &const_heap,constants_memory,
-                           CONSTANT_MEMORY_SIZE)) {
+                           constants_memory_size)) {
     return 0;
   }
 
@@ -1208,10 +1220,11 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
     return 0;
   }
 
-  memset(constants_memory, 0xFF, CONSTANT_MEMORY_SIZE * sizeof(lbm_uint));
+  constants_memory = (lbm_uint*)malloc(constants_memory_size * sizeof(lbm_uint));
+  memset(constants_memory, 0xFF, constants_memory_size * sizeof(lbm_uint));
   if (!lbm_const_heap_init(const_heap_write,
                            &const_heap,constants_memory,
-                           CONSTANT_MEMORY_SIZE)) {
+                           constants_memory_size)) {
     return 0;
   }
 
@@ -1568,9 +1581,9 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         commands_printf_lisp("Symbol name size flash: %u Bytes\n", lbm_get_symbol_table_size_names_flash());
         commands_printf_lisp("Extensions: %u, max %u\n", lbm_get_num_extensions(), lbm_get_max_extensions());
         commands_printf_lisp("--(Flash)--\n");
-        commands_printf_lisp("Size: %u Bytes\n", const_heap.size);
-        commands_printf_lisp("Used cells: %d\n", const_heap.next);
-        commands_printf_lisp("Free cells: %d\n", const_heap.size / 4 - const_heap.next);
+        commands_printf_lisp("Size: %u words", const_heap.size);
+        commands_printf_lisp("Used words: %d\n", const_heap.next);
+        commands_printf_lisp("Free words: %d\n", const_heap.size - const_heap.next);
         //flast_stats stats = flash_helper_stats();
         //commands_printf_lisp("Erase Cnt Tot: %d\n", stats.erase_cnt_tot);
         //commands_printf_lisp("Erase Cnt Max Sector: %d\n", stats.erase_cnt_max);
@@ -2063,6 +2076,10 @@ int main(int argc, char **argv) {
         printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
         printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
         printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
+        printf("--(Flash)--\n");
+        printf("Size: %u words\n", const_heap.size);
+        printf("Used words: %d\n", const_heap.next);
+        printf("Free words: %d\n", const_heap.size - const_heap.next);
         free(str);
       } else if (strncmp(str, ":prof start", 11) == 0) {
         lbm_prof_init(prof_data,
