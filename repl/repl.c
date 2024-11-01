@@ -1253,7 +1253,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(commands_printf_lisp);
 
-  init_exts(); 
+  init_exts();
   lbm_add_extension("print", ext_vescif_print); // replace print
 
 #ifdef WITH_SDL
@@ -1292,33 +1292,42 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 
   /* lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader); */
 
-  /* int code_chars = 0; */
-  /* if (code_data) { */
-  /*   code_chars = strnlen(code_data, code_len); */
-  /* } */
+  char *code_data = vescif_program_flash+8;
+  size_t code_len = vescif_program_flash_code_len;
 
+  size_t code_chars = 0;
+  if (code_data) {
+    code_chars = strnlen(code_data, code_len);
+  }
+
+  /* for (size_t i = 0; i < code_len; i ++)  { */
+  /*   printf("%i %c\n",i, code_data[i]); */
+      
+  /* } */
+  /* printf("\n"); */
+  
   // Load imports
+  printf("loading imports\n");
+  if (load_imports) {
+    if (code_len > code_chars + 3) {
+      int32_t ind = code_chars + 1;
+      uint16_t num_imports = buffer_get_uint16((uint8_t*)code_data, &ind);
 
-  /* if (load_imports) { */
-  /*   if (code_len > code_chars + 3) { */
-  /*     int32_t ind = code_chars + 1; */
-  /*     uint16_t num_imports = buffer_get_uint16((uint8_t*)code_data, &ind); */
+      if (num_imports > 0 && num_imports < 500) {
+        for (int i = 0;i < num_imports;i++) {
+          char *name = code_data + ind;
+          ind += strlen(name) + 1;
+          int32_t offset = buffer_get_int32((uint8_t*)code_data, &ind);
+          int32_t len = buffer_get_int32((uint8_t*)code_data, &ind);
 
-  /*     if (num_imports > 0 && num_imports < 500) { */
-  /*       for (int i = 0;i < num_imports;i++) { */
-  /*         char *name = code_data + ind; */
-  /*         ind += strlen(name) + 1; */
-  /*         int32_t offset = buffer_get_int32((uint8_t*)code_data, &ind); */
-  /*         int32_t len = buffer_get_int32((uint8_t*)code_data, &ind); */
-
-  /*         lbm_value val; */
-  /*         if (lbm_share_array(&val, code_data + offset, len)) { */
-  /*           lbm_define(name, val); */
-  /*         } */
-  /*       } */
-  /*     } */
-  /*   } */
-  /* } */
+          lbm_value val;
+          if (lbm_share_array(&val, code_data + offset, len)) {
+            lbm_define(name, val);
+          }
+        }
+      }
+    }
+  }
 
   /* if (code_data == 0) { */
   /*   code_data = (char*)flash_helper_code_data_raw(CODE_IND_LISP); */
@@ -1330,14 +1339,14 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   /* uint32_t const_heap_len = ((uint32_t)code_data + flash_helper_code_size_raw(CODE_IND_LISP)) - (uint32_t)const_heap_ptr; */
   /* lbm_const_heap_init(const_heap_write, &const_heap, (lbm_uint*)const_heap_ptr, const_heap_len); */
 
-  /* if (load_code) { */
-  /*   if (print) { */
-  /*     commands_printf_lisp("Parsing %d characters", code_chars); */
-  /*   } */
+  if (load_code) {
+    if (print) {
+      commands_printf_lisp("Parsing %d characters", code_chars);
+    }
 
-  /*   lbm_create_string_char_channel(&string_tok_state, &string_tok, code_data); */
-  /*   lbm_load_and_eval_program_incremental(&string_tok, "main-u"); */
-  /* } */
+    lbm_create_string_char_channel(&string_tok_state, &string_tok, code_data);
+    lbm_load_and_eval_program_incremental(&string_tok, "main-u");
+  }
 
   lbm_continue_eval();
 
@@ -1437,7 +1446,6 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     // request to change the "running" state of the LBM evaluator.
     bool ok = false;
     bool running = data[0];
-    printf("COMM_LISP_SET_RUNNING %d\n", data[0]);
     if (!running) {
       if (lispbm_thd) {
         int timeout_cnt = 2000;
@@ -1889,6 +1897,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
       size_t num = len - ind; // length of data;
       if (num < vescif_program_flash_size) {
         memcpy((uint8_t*)vescif_program_flash, data+ind, num);
+        vescif_program_flash_code_len = num;
         result = 1;
       }
     }
