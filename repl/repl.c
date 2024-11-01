@@ -572,8 +572,8 @@ void parse_opts(int argc, char **argv) {
              "                                      size to one memory-size-indices\n"\
              "                                      listed below.\n");
       printf("    -C SIZE, --const_memory_size=SIZE Set the size of the constants memory.\n"\
-             "                                      This memory emulates a flash memory"\
-             "                                      that can be written to once per location.");
+             "                                      This memory emulates a flash memory\n"\
+             "                                      that can be written to once per location.\n");
       printf("    -s FILEPATH, --src=FILEPATH       Load and evaluate lisp src\n");
       printf("    -e EXPRESSION, --eval=EXPRESSION  Load and evaluate lisp src\n");
       printf("\n");
