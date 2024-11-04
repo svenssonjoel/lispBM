@@ -1704,9 +1704,13 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         lbm_symrepr_name_iterator(sym_it);
         commands_printf_lisp(" ");
       } else if (strncmp(str, ":reset", 6) == 0) {
-        commands_printf_lisp("TODO: :reset\n");
-        //commands_printf_lisp(vesc_lbm_restart(true, flash_helper_code_size(CODE_IND_LISP) > 0, true) ?
-        //                     "Reset OK\n\n" : "Reset Failed\n\n");
+        bool r = false;
+        if (vescif_program_flash_code_len) {
+          r = vescif_restart(true, true, true);
+        } else {
+          r = vescif_restart(true, false, true);
+        }
+        commands_printf_lisp(r ? "Reset OK\n\n" : "Reset Failed\n\n");
       } else if (strncmp(str, ":pause", 6) == 0) {
         lbm_pause_eval_with_gc(30);
         while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
