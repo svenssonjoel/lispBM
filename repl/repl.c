@@ -102,8 +102,8 @@ static volatile lbm_cid startup_cid = -1;
 static volatile lbm_cid store_result_cid = -1;
 static volatile bool silent_mode = false;
 
-static size_t lbm_memory_size = LBM_MEMORY_SIZE_8K;
-static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_8K;
+static size_t lbm_memory_size = LBM_MEMORY_SIZE_10K;
+static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
 static size_t constants_memory_size = 4096;
 
 static lbm_uint *constants_memory = NULL;
@@ -560,8 +560,8 @@ void parse_opts(int argc, char **argv) {
         break;
       default:
         printf("WARNING: Incorrect lbm_memory_size index! Using default\n");
-        lbm_memory_size = LBM_MEMORY_SIZE_4K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_4K;
+        lbm_memory_size = LBM_MEMORY_SIZE_10K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
         break;
       }
     } break;
@@ -598,8 +598,8 @@ void parse_opts(int argc, char **argv) {
              "  2   - %d\n"                     \
              "  3   - %d\n"                     \
              "  4   - %d\n"                     \
-             "* 5   - %d\n"                     \
-             "  6   - %d\n"                     \
+             "  5   - %d\n"                     \
+             "* 6   - %d\n"                     \
              "  7   - %d\n"                     \
              "  8   - %d\n"                     \
              "  9   - %d\n"                     \
