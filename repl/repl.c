@@ -1194,7 +1194,7 @@ static lbm_value ext_vescif_import(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_NIL;
 }
 
-void vescif_print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
+static void vescif_print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void) arg1;
   (void) arg2;
 
@@ -1212,19 +1212,23 @@ void vescif_print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
 }
 
 
+static void vescif_sym_it(const char *str) {
+  bool sym_name_flash = lbm_symbol_in_flash((char *)str);
+  bool sym_entry_flash = lbm_symbol_list_entry_in_flash((char *)str);
+  commands_printf_lisp("[%s, %s]: %s\n",
+         sym_name_flash ? "FLASH" : "LBM_MEM",
+         sym_entry_flash ? "FLASH" : "LBM_MEM",
+         str);
+}
+
+
 bool vescif_restart(bool print, bool load_code, bool load_imports) {
   bool res = false;
-  //if (prof_running) {
-  //  prof_running = false;
-  //  esp_timer_stop(prof_timer);
-  //}
-
-  //
-  //char *code_data = (char*)flash_helper_code_data_ptr(CODE_IND_LISP);
-  //int32_t code_len = flash_helper_code_size(CODE_IND_LISP);
-
-  //if (!load_code || (code_data != 0 && code_len > 0)) {
-  //  lispif_disable_all_events();
+  if (prof_running) {
+    prof_running = false;
+    void *a;
+    pthread_join(prof_thread, &a);
+  }
 
   if (lispbm_thd) {
     int thread_r = 0;
@@ -1240,14 +1244,6 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
   if (heap_storage == NULL) return 0;
-
-  /* if (memory) free(memory); */
-  /* if (bitmap) free(bitmap); */
-
-  /* memory = (lbm_uint*)malloc(lbm_memory_size * sizeof(lbm_uint)); */
-  /* bitmap = (lbm_uint*)malloc(lbm_memory_bitmap_size * sizeof(lbm_uint)); */
-
-  /* if (memory == NULL || bitmap == NULL) return 0; */
 
   if (!lbm_init(heap_storage, heap_size,
                 memory, lbm_memory_size,
@@ -1329,10 +1325,10 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 
   /* for (size_t i = 0; i < code_len; i ++)  { */
   /*   printf("%i %c\n",i, code_data[i]); */
-      
+
   /* } */
   /* printf("\n"); */
-  
+
   // Load imports
   if (load_imports) {
     if (code_len > code_chars + 3) {
@@ -1341,7 +1337,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
       if (num_imports > 0 && num_imports < 500) {
         for (int i = 0;i < num_imports;i++) {
           char *name = code_data + ind;
-          ind += strlen(name) + 1;
+          ind += (int32_t)(strlen(name) + 1);
           int32_t offset = buffer_get_int32((uint8_t*)code_data, &ind);
           int32_t len = buffer_get_int32((uint8_t*)code_data, &ind);
 
@@ -1364,8 +1360,8 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   /* uint32_t const_heap_len = ((uint32_t)code_data + flash_helper_code_size_raw(CODE_IND_LISP)) - (uint32_t)const_heap_ptr; */
   /* lbm_const_heap_init(const_heap_write, &const_heap, (lbm_uint*)const_heap_ptr, const_heap_len); */
 
-  code_data = vescif_program_flash+8;
-  
+  code_data = (char*)vescif_program_flash+8;
+
   if (load_code) {
     if (print) {
       commands_printf_lisp("Parsing %d characters", code_chars);
@@ -1702,7 +1698,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         commands_printf_lisp("****** Blocked contexts ******");
         lbm_blocked_iterator(vescif_print_ctx_info, NULL, NULL);
       } else if (strncmp(str, ":symbols", 8) == 0) {
-        lbm_symrepr_name_iterator(sym_it);
+        lbm_symrepr_name_iterator(vescif_sym_it);
         commands_printf_lisp(" ");
       } else if (strncmp(str, ":reset", 6) == 0) {
         bool r = false;
@@ -1934,9 +1930,9 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     send_buffer[ind++] = packet_id;
     send_buffer[ind++] = (uint8_t)result;
     buffer_append_uint32(send_buffer, offset, &ind);
-    reply_func(send_buffer, ind);
+    reply_func(send_buffer, (unsigned int)ind);
   } break;
-    
+
   case COMM_LISP_READ_CODE: {
   }break;
   case COMM_LISP_ERASE_CODE: {
@@ -1946,7 +1942,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     uint8_t send_buffer[50];
     send_buffer[ind++] = packet_id;
     send_buffer[ind++] = 1;
-    reply_func(send_buffer, ind);
+    reply_func(send_buffer, (unsigned int)ind);
     break;
   }
 
