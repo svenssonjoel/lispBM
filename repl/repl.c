@@ -110,6 +110,8 @@ static lbm_uint *constants_memory = NULL;
 static lbm_uint *memory=NULL;
 static lbm_uint *bitmap=NULL;
 
+static pthread_t prof_thread;
+
 struct read_state_s {
   char *str;   // String being read.
   lbm_cid cid;    // Reader thread id.
@@ -1641,47 +1643,47 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         //commands_printf_lisp("Erase Cnt Max Sector: %d\n", stats.erase_cnt_max);
         //commands_printf_lisp("Num sectors erased: %d\n", stats.erased_sector_num);
       } else if (strncmp(str, ":prof start", 11) == 0) {
-        commands_printf_lisp("TODO: :prof start\n");
-        //if (prof_running) {
-        //  lbm_prof_init(prof_data, PROF_DATA_NUM);
-        //  commands_printf_lisp("Profiler restarted\n");
-        //} else {
-        //  lbm_prof_init(prof_data, PROF_DATA_NUM);
-        //  prof_running = true;
-        //  esp_timer_create(&periodic_timer_args, &prof_timer);
-        //  // Use a period that isn't a multiple if the eval thread periods
-        //  esp_timer_start_periodic(prof_timer, 571);
-        //  commands_printf_lisp("Profiler started\n");
-        //}
+        if (prof_running) {
+          prof_running = false;
+          void *a;
+          pthread_join(prof_thread,&a);
+        }
+        lbm_prof_init(prof_data, PROF_DATA_NUM);
+        prof_running = true;
+        if (pthread_create(&prof_thread, NULL, prof_thd, NULL)) {
+          commands_printf_lisp("Error creating profiler thread\n");
+        } else {
+          commands_printf_lisp("Profiler started\n");
+        }
       } else if (strncmp(str, ":prof stop", 10) == 0) {
+        void *a;
         commands_printf_lisp("TODO :prof stop\n");
-        //if (prof_running) {
-        //  prof_running = false;
-        //  esp_timer_stop(prof_timer);
-        //}
-        //commands_printf_lisp("Profiler stopped. Issue command ':prof report' for statistics\n");
+        if (prof_running) {
+          prof_running = false;
+          pthread_join(prof_thread,&a);
+        }
+        commands_printf_lisp("Profiler stopped. Issue command ':prof report' for statistics\n");
       } else if (strncmp(str, ":prof report", 12) == 0) {
-        commands_printf_lisp("TODO: :prof report\n");
-        //lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
-        //lbm_uint num_system = lbm_prof_get_num_system_samples();
-        //lbm_uint tot_samples = lbm_prof_get_num_samples();
-        //lbm_uint tot_gc = 0;
-        //commands_printf_lisp("CID\tName\tSamples\t%%Load\t%%GC");
-        //for (int i = 0; i < PROF_DATA_NUM; i ++) {
-        //  if (prof_data[i].cid == -1) break;
-        //  tot_gc += prof_data[i].gc_count;
-        //  commands_printf_lisp("%d\t%s\t%u\t%.3f\t%.3f",
-        //                       prof_data[i].cid,
-        //                       prof_data[i].name,
-        //                       prof_data[i].count,
-        //                       (double)(100.0 * ((float)prof_data[i].count) / (float) tot_samples),
-        //                       (double)(100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count));
-        //}
-        //commands_printf_lisp(" ");
-        //commands_printf_lisp("GC:\t%u\t%f%%\n", tot_gc, (double)(100.0 * ((float)tot_gc / (float)tot_samples)));
-        //commands_printf_lisp("System:\t%u\t%f%%\n", num_system, (double)(100.0 * ((float)num_system / (float)tot_samples)));
-        //commands_printf_lisp("Sleep:\t%u\t%f%%\n", num_sleep, (double)(100.0 * ((float)num_sleep / (float)tot_samples)));
-        //commands_printf_lisp("Total:\t%u samples\n", tot_samples);
+        lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
+        lbm_uint num_system = lbm_prof_get_num_system_samples();
+        lbm_uint tot_samples = lbm_prof_get_num_samples();
+        lbm_uint tot_gc = 0;
+        commands_printf_lisp("CID\tName\tSamples\t%%Load\t%%GC");
+        for (int i = 0; i < PROF_DATA_NUM; i ++) {
+         if (prof_data[i].cid == -1) break;
+         tot_gc += prof_data[i].gc_count;
+         commands_printf_lisp("%d\t%s\t%u\t%.3f\t%.3f",
+                              prof_data[i].cid,
+                              prof_data[i].name,
+                              prof_data[i].count,
+                              (double)(100.0 * ((float)prof_data[i].count) / (float) tot_samples),
+                              (double)(100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count));
+        }
+        commands_printf_lisp(" ");
+        commands_printf_lisp("GC:\t%u\t%f%%\n", tot_gc, (double)(100.0 * ((float)tot_gc / (float)tot_samples)));
+        commands_printf_lisp("System:\t%u\t%f%%\n", num_system, (double)(100.0 * ((float)num_system / (float)tot_samples)));
+        commands_printf_lisp("Sleep:\t%u\t%f%%\n", num_sleep, (double)(100.0 * ((float)num_sleep / (float)tot_samples)));
+        commands_printf_lisp("Total:\t%u samples\n", tot_samples);
       } else if (strncmp(str, ":env", 4) == 0) {
         lbm_value *glob_env = lbm_get_global_env();
         char output[128];
@@ -1695,7 +1697,6 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
           }
         }
       } else if (strncmp(str, ":ctxs", 5) == 0) {
-        printf("CONTEXTS\n");
         commands_printf_lisp("****** Running contexts ******");
         lbm_running_iterator(vescif_print_ctx_info, NULL, NULL);
         commands_printf_lisp("****** Blocked contexts ******");
