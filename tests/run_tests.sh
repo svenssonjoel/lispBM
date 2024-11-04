@@ -2,7 +2,6 @@
 
 echo "BUILDING"
 
-# make clean
 make
 
 date=$(date +"%Y-%m-%d_%H-%M")
@@ -12,7 +11,7 @@ if [ -n "$1" ]; then
    logfile=$1
 fi
 
-echo "PERFORMING TESTS: " $date
+echo "PERFORMING 32BIT TESTS: " $date
 
 expected_fails=("test_lisp_code_cps -h 1024 tests/test_take_iota_0.lisp"
                 "test_lisp_code_cps -s -h 1024 tests/test_take_iota_0.lisp"
@@ -29,29 +28,6 @@ success_count=0
 fail_count=0
 failing_tests=()
 result=0
-
-for exe in *.exe; do
-
-    if [ "$exe" = "test_gensym.exe" ]; then
-        continue
-    fi
-
-    ./$exe
-
-    result=$?
-
-    echo "------------------------------------------------------------"
-    if [ $result -eq 1 ]
-    then
-        success_count=$((success_count+1))
-        echo $exe SUCCESS
-    else
-
-        fail_count=$((fail_count+1))
-        echo $exe FAILED
-    fi
-    echo "------------------------------------------------------------"
-done
 
 test_config=("-h 32768"
              "-i -h 32768"

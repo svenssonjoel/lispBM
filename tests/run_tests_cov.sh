@@ -6,8 +6,7 @@ rm -rf coverage
 mkdir coverage 
 rm *.gcno
 rm *.gcda
-make clean
-make coverage
+make
 
 date=$(date +"%Y-%m-%d_%H-%M")
 logfile="log_${date}.log"
@@ -18,14 +17,14 @@ fi
 
 echo "PERFORMING TESTS: " $date
 
-expected_fails=("test_lisp_code_cps -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -s -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -s -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -s -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -s -h 512 tests/test_take_iota_0.lisp"
+expected_fails=("test_lisp_code_cps_cov -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -s -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -i -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -i -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -i -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -i -s -h 512 tests/test_take_iota_0.lisp"
               )
 
 
@@ -63,7 +62,7 @@ test_config=("-h 32768"
               "-s -h 512"
               "-i -s -h 512")
 
-for prg in "test_lisp_code_cps" ; do
+for prg in "test_lisp_code_cps_cov" ; do
     for arg in "${test_config[@]}"; do
         echo "Configuration: " $arg
         for lisp in tests/*.lisp; do

@@ -1440,7 +1440,7 @@ lbm_flash_status lbm_const_write(lbm_uint *tgt, lbm_uint val) {
 
   if (lbm_const_heap_state) {
     lbm_uint flash = (lbm_uint)lbm_const_heap_state->heap;
-    lbm_uint ix = (((lbm_uint)tgt - flash) / 4); // byte address to ix
+    lbm_uint ix = (((lbm_uint)tgt - flash) / sizeof(lbm_uint)); // byte address to ix
     if (const_heap_write(ix, val)) {
       return LBM_FLASH_WRITE_OK;
     }

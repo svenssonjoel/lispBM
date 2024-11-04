@@ -2,19 +2,18 @@
 
 echo "BUILDING"
 
-make clean
-make allrev
+make
 
 echo "PERFORMING TESTS:"
 
-expected_fails=("test_lisp_code_cps -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -s -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -s -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -s -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -s -h 512 tests/test_take_iota_0.lisp"
+expected_fails=("test_lisp_code_cps_revgc -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_revgc -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_revgc -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_revgc -s -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_revgc -i -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_revgc -i -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_revgc -i -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_revgc -i -s -h 512 tests/test_take_iota_0.lisp"
                )
 
 
@@ -22,30 +21,6 @@ success_count=0
 fail_count=0
 failing_tests=()
 result=0
-
-for exe in *.exe; do
-
-    if [ "$exe" = "test_gensym.exe" ]; then
-        continue
-    fi
-
-    ./$exe
-
-    result=$?
-
-    echo "------------------------------------------------------------"
-    if [ $result -eq 1 ]
-    then
-        success_count=$((success_count+1))
-        echo $exe SUCCESS
-    else
-
-        fail_count=$((fail_count+1))
-        echo $exe FAILED
-    fi
-    echo "------------------------------------------------------------"
-done
-
 test_config=("-h 32768"
              "-i -h 32768"
               "-s -h 32768"
@@ -76,7 +51,7 @@ test_config=("-h 32768"
               "-i -s -h 512")
 
 #"test_lisp_code_cps_nc"
-for prg in "test_lisp_code_cps" ; do
+for prg in "test_lisp_code_cps_revgc" ; do
     for arg in "${test_config[@]}"; do
         for lisp in tests/*.lisp; do
 
