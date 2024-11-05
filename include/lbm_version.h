@@ -31,10 +31,16 @@ extern "C" {
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
-#define LBM_VERSION_STRING "0.26.0"
+#define LBM_VERSION_STRING "0.27.0"
 
 
 /*! \page changelog Changelog
+NOV 5 2024: Version 0.27.0
+  - A number of important bugfixes. A write out of bounds among the most important.
+  - Addition of integer division operation (By Rasmus S)
+  - A lot of refactoring for readability of code and reduce code complexity.
+  - A defragmentable memory (compactible memory area).
+  - Vesc interfacing in the LBM REPL.
 AUG 6 2024: Version 0.26.0
   - Bugfix related to restargs.
   - coverage report in relation to the unit tests.
