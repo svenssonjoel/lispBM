@@ -27,7 +27,7 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 26
+#define LBM_MINOR_VERSION 27
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
