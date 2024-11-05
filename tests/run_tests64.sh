@@ -2,7 +2,8 @@
 
 echo "BUILDING"
 
-make
+rm -f test_lisp_code_cps_64
+make test_lisp_code_cps_64
 
 
 date=$(date +"%Y-%m-%d_%H-%M")

@@ -2,8 +2,8 @@
 
 echo "BUILDING"
 
-make clean
-make gc
+rm -f test_lisp_code_cps_gc
+make test_lisp_code_cps_gc
 
 timeout="50"
 date=$(date +"%Y-%m-%d_%H-%M")

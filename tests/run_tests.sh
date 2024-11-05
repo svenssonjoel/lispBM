@@ -2,7 +2,8 @@
 
 echo "BUILDING"
 
-make
+rm -f test_lisp_code_cps
+make test_lisp_code_cps
 
 date=$(date +"%Y-%m-%d_%H-%M")
 logfile="log_${date}.log"
