@@ -27,7 +27,7 @@ SOURCES = $(wildcard *.c)
 EXECS = $(patsubst %.c, %.exe, $(SOURCES))
 
 test_lisp_code_cps_gc: $(LISPBM_SRC) $(PLATFORM_SRC) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_GC) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_cov -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_GC) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_gc -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_cov: $(LISPBM_SRC) $(PLATFORM_SRC) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_COV) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_cov -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
