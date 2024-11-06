@@ -50,6 +50,12 @@ test_config=("-h 32768"
               "-s -h 512"
               "-i -s -h 512")
 
+
+for conf in "${test_config[@]}" ; do
+    expected_fails+=("test_lisp_code_cps_revgc $conf tests/test_is_64bit.lisp")
+done
+
+
 #"test_lisp_code_cps_nc"
 for prg in "test_lisp_code_cps_revgc" ; do
     for arg in "${test_config[@]}"; do

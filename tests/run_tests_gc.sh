@@ -61,6 +61,12 @@ test_config=("-t $timeout -h 32768"
               "-t $timeout -s -h 512"
               "-t $timeout -i -s -h 512")
 
+
+for conf in "${test_config[@]}" ; do
+    expected_fails+=("test_lisp_code_cps_gc $conf tests/test_is_64bit.lisp")
+done
+
+
 for prg in "test_lisp_code_cps_gc" ; do
     for arg in "${test_config[@]}"; do
         echo "Configuration: " $arg

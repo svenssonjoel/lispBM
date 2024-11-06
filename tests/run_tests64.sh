@@ -60,6 +60,11 @@ test_config=("-h 32768"
               "-s -h 512"
               "-i -s -h 512")
 
+for conf in "${test_config[@]}" ; do
+    expected_fails+=("test_lisp_code_cps_64 $conf tests/test_is_32bit.lisp")
+done
+
+
 for prg in "test_lisp_code_cps_64" ; do
     for arg in "${test_config[@]}"; do
         echo "Configuration: " $arg
@@ -91,7 +96,6 @@ do
   expected=false
   for (( j = 0; j < ${#expected_fails[@]}; j++))
   do
-
       if [[ "${failing_tests[$i]}" == "${expected_fails[$j]}" ]] ;
       then
           expected=true
