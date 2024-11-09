@@ -1098,19 +1098,23 @@ void commands_send_packet(unsigned char *data, unsigned int len) {
 
 
 int commands_printf_lisp(const char* format, ...) {
-  va_list arg;
-  va_start(arg, format);
   int len;
 
   char *print_buffer = malloc(PRINT_BUFFER_SIZE);
-
+  if (!print_buffer) return 0;
 
   print_buffer[0] = (char)COMM_LISP_PRINT;
   int offset = 1;
   int prefix_len = sprintf(print_buffer + offset, lispif_print_prefix(), "%s");
-  if (prefix_len < 0) return prefix_len; // error.
+  if (prefix_len < 0) {
+    free(print_buffer);
+    return prefix_len; // error.
+  }
   offset += prefix_len;
 
+  va_list arg;
+  va_start(arg, format);
+  
   len = vsnprintf(
                   print_buffer + offset, (size_t)(PRINT_BUFFER_SIZE - offset), format, arg
                   );
