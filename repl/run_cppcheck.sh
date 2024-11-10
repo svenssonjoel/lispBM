@@ -16,14 +16,16 @@ fi
 make clean
 bear make
 
-cppcheck --project=compile_commands.json --enable=all --suppress=unusedFunction &> $logfile32
+cppcheck --version &> $logfile32
+cppcheck --project=compile_commands.json --enable=all --suppress=unusedFunction &>> $logfile32
 
 
 #64bit run
 make clean
 bear make all64
 
-cppcheck --project=compile_commands.json --enable=all --suppress=unusedFunction &> $logfile64
+cppcheck --version &> $logfile64
+cppcheck --project=compile_commands.json --enable=all --suppress=unusedFunction &>> $logfile64
 
 
 
