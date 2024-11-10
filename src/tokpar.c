@@ -105,9 +105,8 @@ static int tok_match_fixed_size_tokens(lbm_char_channel_t *chan, const matcher *
     uint32_t tok = m[i].token;
     char c;
     int char_pos;
-    int r;
     for (char_pos = 0; char_pos < (int)tok_len; char_pos ++) {
-      r = lbm_channel_peek(chan,(unsigned int)char_pos + start_pos, &c);
+      int r = lbm_channel_peek(chan,(unsigned int)char_pos + start_pos, &c);
       if (r == CHANNEL_SUCCESS) {
         if (c != match_str[char_pos]) break;
       } else if (r == CHANNEL_MORE ) {
@@ -224,8 +223,8 @@ int tok_string(lbm_char_channel_t *chan, unsigned int *string_len) {
 
   // read string into buffer
   r = lbm_channel_peek(chan,n,&c);
-  while (r == CHANNEL_SUCCESS && (c != '\"' || (c == '\"' && encode)) &&
-         len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
+  while (r == CHANNEL_SUCCESS && (c != '\"' || encode) &&
+	 len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
     if (c == '\\' && !encode) {
       encode = true;
     } else {
@@ -513,7 +512,7 @@ int tok_integer(lbm_char_channel_t *chan, token_int *result) {
   }
 
   if ((result->negative && n > 1) ||
-      (!result->negative && n > 0)) valid_num = true;
+      !result->negative) valid_num = true;
 
   if (valid_num) {
     result->value = acc;

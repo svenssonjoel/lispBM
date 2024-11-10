@@ -1,5 +1,5 @@
 /*
-    Copyright 2022, 2023 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2022 - 2024 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,11 +25,11 @@ extern "C" {
 #endif
 
 /** LBM major version */
-#define LBM_MAJOR_VERSION 0
+#define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 27
+#define LBM_MINOR_VERSION 27u
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 1
+#define LBM_PATCH_VERSION 1u
 
 #define LBM_VERSION_STRING "0.27.1"
 
