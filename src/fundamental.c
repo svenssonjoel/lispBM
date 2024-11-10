@@ -496,23 +496,20 @@ static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context
   (void) ctx;
 
   lbm_uint a = args[0];
-  bool r = true;
-  bool ok = true;
-
   lbm_value res = ENC_SYM_TERROR;
 
   if (IS_NUMBER(a)) {
+    res = ENC_SYM_TRUE;
     for (lbm_uint i = 1; i < nargs; i ++) {
       lbm_uint b = args[i];
       if (!IS_NUMBER(b)) {
-        ok = false;
+        res = ENC_SYM_TERROR;
         break;
       }
-      r = r && (compare_num(a, b) == 0);
-      if (!r) break;
-    }
-    if (ok) {
-      res = r ? ENC_SYM_TRUE : ENC_SYM_NIL;
+      if (!compare_num(a, b) == 0) {
+        res = ENC_SYM_NIL;
+        break;
+      }
     }
   }
   return res;
