@@ -924,11 +924,8 @@ lbm_value lbm_car(lbm_value c){
 // lbm_value.
 
 lbm_value lbm_caar(lbm_value c) {
-
-  lbm_value tmp;
-
   if (lbm_is_ptr(c)) {
-    tmp = lbm_ref_cell(c)->car;
+    lbm_value tmp = lbm_ref_cell(c)->car;
 
     if (lbm_is_ptr(tmp)) {
       return lbm_ref_cell(tmp)->car;
@@ -943,11 +940,8 @@ lbm_value lbm_caar(lbm_value c) {
 
 
 lbm_value lbm_cadr(lbm_value c) {
-
-  lbm_value tmp;
-
   if (lbm_is_ptr(c)) {
-    tmp = lbm_ref_cell(c)->cdr;
+    lbm_value tmp = lbm_ref_cell(c)->cdr;
 
     if (lbm_is_ptr(tmp)) {
       return lbm_ref_cell(tmp)->car;

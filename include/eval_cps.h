@@ -48,13 +48,13 @@ extern "C" {
 /** The eval_context_t struct represents a lispbm process.
  *
  */
-#define LBM_THREAD_STATE_READY      (uint32_t)0
-#define LBM_THREAD_STATE_BLOCKED    (uint32_t)1
-#define LBM_THREAD_STATE_TIMEOUT    (uint32_t)2
-#define LBM_THREAD_STATE_SLEEPING   (uint32_t)4
-#define LBM_THREAD_STATE_RECV_BL    (uint32_t)8
-#define LBM_THREAD_STATE_RECV_TO    (uint32_t)16
-#define LBM_THREAD_STATE_GC_BIT     (uint32_t)(1 << 31)
+#define LBM_THREAD_STATE_READY      (uint32_t)0u
+#define LBM_THREAD_STATE_BLOCKED    (uint32_t)1u
+#define LBM_THREAD_STATE_TIMEOUT    (uint32_t)2u
+#define LBM_THREAD_STATE_SLEEPING   (uint32_t)4u
+#define LBM_THREAD_STATE_RECV_BL    (uint32_t)8u
+#define LBM_THREAD_STATE_RECV_TO    (uint32_t)16u
+#define LBM_THREAD_STATE_GC_BIT     (uint32_t)(1u << 31)
 
 #define LBM_IS_STATE_TIMEOUT(X) (X & (LBM_THREAD_STATE_TIMEOUT | LBM_THREAD_STATE_RECV_TO))
 #define LBM_IS_STATE_WAKE_UP_WAKABLE(X) (X & (LBM_THREAD_STATE_SLEEPING | LBM_IS_STATE_TIMEOUT(X)))
