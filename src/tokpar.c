@@ -102,7 +102,6 @@ static int tok_match_fixed_size_tokens(lbm_char_channel_t *chan, const matcher *
   for (unsigned int i = 0; i < num; i ++) {
     uint32_t tok_len = m[i].len;
     const char *match_str = m[i].str;
-    uint32_t tok = m[i].token;
     char c;
     int char_pos;
     for (char_pos = 0; char_pos < (int)tok_len; char_pos ++) {
@@ -117,7 +116,7 @@ static int tok_match_fixed_size_tokens(lbm_char_channel_t *chan, const matcher *
     }
 
     if (char_pos == (int)tok_len) { //match
-      *res = tok;
+      *res = m[i].token;
       return (int)tok_len;
     }
   }

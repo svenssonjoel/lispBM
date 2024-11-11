@@ -873,12 +873,11 @@ static lbm_value fundamental_set_ix(lbm_value *args, lbm_uint nargs, eval_contex
       }
     } else if (lbm_is_lisp_array_rw(args[0])) {
       lbm_value index = lbm_dec_as_u32(args[1]);
-      lbm_value val = args[2];
       lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[0]);
       lbm_value *arrdata = (lbm_value*)header->data;
       lbm_uint size = header->size / sizeof(lbm_value);
       if (index < size) {
-        arrdata[index] = val;
+        arrdata[index] = args[2]; // value
         result = args[0];
       }  // index out of range will be eval error.
     }

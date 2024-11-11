@@ -4279,7 +4279,6 @@ static void cont_read_expect_closepar(eval_context_t *ctx) {
 static void cont_read_dot_terminate(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 3);
 
-  lbm_value first_cell = sptr[0];
   lbm_value last_cell  = sptr[1];
   lbm_value stream = sptr[2];
 
@@ -4299,7 +4298,7 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
   } else {
     if (lbm_is_cons(last_cell)) {
       lbm_set_cdr(last_cell, ctx->r);
-      ctx->r = first_cell;
+      ctx->r = sptr[0]; // first cell
       lbm_value *rptr = stack_reserve(ctx, 6);
       rptr[0] = stream;
       rptr[1] = ctx->r;
@@ -4584,7 +4583,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
   }
 
   if (lbm_is_ptr(val) && (val & LBM_PTR_TO_CONSTANT_BIT)) {
-    ctx->r = val;
+    //ctx->r unchanged
     ctx->app_cont = true;
     return;
   }
@@ -4960,12 +4959,10 @@ static void cont_exception_handler(eval_context_t *ctx) {
 }
 
 static void cont_recv_to(eval_context_t *ctx) {
-  lbm_value *sptr = pop_stack_ptr(ctx, 1);
-  lbm_value pats = sptr[0];
-
   if (lbm_is_number(ctx->r)) {
+    lbm_value *sptr = pop_stack_ptr(ctx, 1);
     float timeout_time = lbm_dec_as_float(ctx->r);
-    receive_base(ctx, pats, timeout_time, true);
+    receive_base(ctx, sptr[0], timeout_time, true);
   } else {
     error_ctx(ENC_SYM_TERROR);
   }
