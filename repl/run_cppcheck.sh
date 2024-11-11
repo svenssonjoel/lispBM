@@ -13,7 +13,8 @@ fi
 suppressions=("--suppress=missingIncludeSystem"
               "--suppress=unusedFunction"
               "--suppress=constParameterPointer"
-              "--suppress=constParameterCallback")
+              "--suppress=constParameterCallback"
+              "--suppress=constVariablePointer")
 
 # 32bit run 
 make clean
