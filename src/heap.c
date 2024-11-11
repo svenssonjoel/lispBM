@@ -654,13 +654,10 @@ static inline void value_assign(lbm_value *a, lbm_value b) {
   lbm_value a_old = *a & LBM_GC_MASK;
   *a = a_old | (b & ~LBM_GC_MASK);
 }
-
-void lbm_gc_mark_phase(lbm_value root) {
+void lbm_gc_mark_phase_nm(lbm_value root) {
   bool work_to_do = true;
-
   if (!lbm_is_ptr(root)) return;
 
-  mutex_lock(&lbm_const_heap_mutex);
   lbm_value curr = root;
   lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
 
@@ -679,6 +676,16 @@ void lbm_gc_mark_phase(lbm_value root) {
         value_assign(&cell->car, prev);
         value_assign(&prev,curr);
         value_assign(&curr, next);
+      } else if (lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
+        lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
+        lbm_value *arr_data = (lbm_value *)arr->data;
+        size_t  arr_size = (size_t)arr->size / sizeof(lbm_value);
+        // C stack recursion as deep as there are nested arrays.
+        // TODO: Try to do this without recursion on the C side.
+        for (size_t i = 0; i < arr_size; i ++) {
+          lbm_gc_mark_phase_nm(arr_data[i]);
+        }
+
       }
       // Will jump out next iteration as gc mark is set in curr.
     }
@@ -709,6 +716,12 @@ void lbm_gc_mark_phase(lbm_value root) {
     }
   }
   mutex_unlock(&lbm_const_heap_mutex);
+}
+
+void lbm_gc_mark_phase(lbm_value root) {
+    mutex_lock(&lbm_const_heap_mutex);
+    lbm_gc_mark_phase_nm(root);
+    mutex_unlock(&lbm_const_heap_mutex);
 }
 
 #else

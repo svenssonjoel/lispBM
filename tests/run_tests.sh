@@ -5,6 +5,7 @@ echo "BUILDING"
 rm -f test_lisp_code_cps
 make test_lisp_code_cps
 
+
 date=$(date +"%Y-%m-%d_%H-%M")
 logfile="log_${date}.log"
 
@@ -63,8 +64,6 @@ for conf in "${test_config[@]}" ; do
     expected_fails+=("test_lisp_code_cps $conf tests/test_is_64bit.lisp")
 done
 
-echo ${expected_fails[@]}
-
 for prg in "test_lisp_code_cps" ; do
     for arg in "${test_config[@]}"; do
         echo "Configuration: " $arg
@@ -86,8 +85,6 @@ for prg in "test_lisp_code_cps" ; do
         done
     done
 done
-
-# echo -e $failing_tests
 
 expected_count=0
 
