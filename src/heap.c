@@ -479,7 +479,7 @@ double lbm_dec_as_double(lbm_value a) {
   return r;
 }
 
- /****************************************************/
+/****************************************************/
 /* HEAP MANAGEMENT                                  */
 
 static int generate_freelist(size_t num_cells) {
@@ -650,10 +650,31 @@ lbm_uint lbm_get_gc_stack_size(void) {
 }
 
 #ifdef USE_GC_PTR_REV
+/* ************************************************************
+   Deutch-Schorr-Waite (DSW) pointer reversal GC for 2-ptr cells
+   with a hack-solution for the lisp-array case (n-ptr cells).
+
+   DSW visits each branch node 3 times compared to 2 times for
+   the stack based recursive mark.
+   Where the stack based recursive mark performs a stack push/pop,
+   DSW rearranges the, current, prev, next and a ptr field on
+   the heap.
+
+   DSW changes the structure of the heap and it introduces an
+   invalid pointer (LBM_PTR_NULL) temporarily during marking.
+   Since the heap will be "messed up" while marking, a mutex
+   is introuded to keep other processes out of the heap while
+   marking.
+
+   TODO: See if the extra index field in arrays can be used
+   to mark arrays without resorting to recursive mark calls.
+*/
+
 static inline void value_assign(lbm_value *a, lbm_value b) {
   lbm_value a_old = *a & LBM_GC_MASK;
   *a = a_old | (b & ~LBM_GC_MASK);
 }
+
 void lbm_gc_mark_phase_nm(lbm_value root) {
   bool work_to_do = true;
   if (!lbm_is_ptr(root)) return;
@@ -685,7 +706,6 @@ void lbm_gc_mark_phase_nm(lbm_value root) {
         for (size_t i = 0; i < arr_size; i ++) {
           lbm_gc_mark_phase_nm(arr_data[i]);
         }
-
       }
       // Will jump out next iteration as gc mark is set in curr.
     }
@@ -715,7 +735,6 @@ void lbm_gc_mark_phase_nm(lbm_value root) {
       value_assign(&cell->cdr, next);
     }
   }
-  mutex_unlock(&lbm_const_heap_mutex);
 }
 
 void lbm_gc_mark_phase(lbm_value root) {
@@ -725,6 +744,22 @@ void lbm_gc_mark_phase(lbm_value root) {
 }
 
 #else
+/* ************************************************************
+   Explicit stack "recursive" mark phase
+
+   Trees are marked in a left subtree before rigth subtree, car first then cdr,
+   way to favor lisp lists. This means that stack will grow slowly when
+   marking right-leaning (cdr-recursive) data-structures while left-leaning
+   (car-recursive) structures uses a lot of stack.
+
+   Lisp arrays contain an extra book-keeping field to keep track
+   of how far into the array the marking process has gone.
+
+   TODO: DSW should be used as a last-resort if the GC stack is exhausted.
+         If we use DSW as last-resort can we get away with a way smaller
+         GC stack and unchanged performance (on sensible programs)?
+*/
+
 extern eval_context_t *ctx_running;
 void lbm_gc_mark_phase(lbm_value root) {
   lbm_value t_ptr;
@@ -785,9 +820,9 @@ void lbm_gc_mark_phase(lbm_value root) {
       lbm_heap_state.gc_marked ++;
       // TODO: Can channels be explicitly freed ?
       if (cell->car != ENC_SYM_NIL) {
-	lbm_char_channel_t *chan = (lbm_char_channel_t *)cell->car;
-	curr = chan->dependency;
-	goto mark_shortcut;
+        lbm_char_channel_t *chan = (lbm_char_channel_t *)cell->car;
+        curr = chan->dependency;
+        goto mark_shortcut;
       }
       continue;
     }
@@ -871,14 +906,14 @@ int lbm_gc_sweep_phase(void) {
         case ENC_SYM_LISPARRAY_TYPE: /* fall through */
         case ENC_SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
-	  lbm_memory_free((lbm_uint *)arr->data);
-	  lbm_heap_state.gc_recovered_arrays++;
+          lbm_memory_free((lbm_uint *)arr->data);
+          lbm_heap_state.gc_recovered_arrays++;
           lbm_memory_free((lbm_uint *)arr);
         } break;
         case ENC_SYM_CHANNEL_TYPE:{
           lbm_char_channel_t *chan = (lbm_char_channel_t*)heap[i].car;
-	  lbm_memory_free((lbm_uint*)chan->state);
-	  lbm_memory_free((lbm_uint*)chan);
+          lbm_memory_free((lbm_uint*)chan->state);
+          lbm_memory_free((lbm_uint*)chan);
         } break;
         case ENC_SYM_CUSTOM_TYPE: {
           lbm_uint *t = (lbm_uint*)heap[i].car;
