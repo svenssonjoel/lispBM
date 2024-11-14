@@ -40,10 +40,16 @@ cov: repl_cov
 all64: 	CCFLAGS += -DLBM64
 all64: repl
 
-sdl: CCFLAGS += -DLBM64 -DWITH_SDL
-sdl: LISPBM_FLAGS += -I/usr/include/SDL2 -lSDL2_image -lSDL2
+sdl: CCFLAGS += -DLBM64 -DWITH_SDL -I/usr/include/SDL2
+sdl: LIBS += -lSDL2_image -lSDL2
 sdl: REPL_SRC += lbm_sdl.c
 sdl: repl
+
+sdl32: CCFLAGS += -DWITH_SDL -m32 -I/usr/include/SDL2
+sdl32: LIBS += -lSDL2_image -lSDL2
+sdl32: REPL_SRC += lbm_sdl.c
+sdl32: repl
+
 
 clean_cl.h: ./scripts/clean.lisp
 	./repl --store_env="clean_cl.env" --src=./scripts/clean.lisp --terminate
