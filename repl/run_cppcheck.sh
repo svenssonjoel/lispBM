@@ -14,7 +14,7 @@ fi
 
 # 32bit run 
 make clean
-bear make
+bear -- make
 
 cppcheck --version &> $logfile32
 cppcheck --project=compile_commands.json --enable=all --suppress=unusedFunction &>> $logfile32
@@ -22,7 +22,7 @@ cppcheck --project=compile_commands.json --enable=all --suppress=unusedFunction 
 
 #64bit run
 make clean
-bear make all64
+bear -- make all64
 
 cppcheck --version &> $logfile64
 cppcheck --project=compile_commands.json --enable=all --suppress=unusedFunction &>> $logfile64
