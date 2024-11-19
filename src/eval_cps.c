@@ -757,6 +757,26 @@ void print_environments(char *buf, unsigned int size) {
   }
 }
 
+void print_error_value(char *buf, lbm_uint bufsize, char *pre, lbm_value v, bool lookup) {
+
+  lbm_print_value(buf, bufsize, v);
+  printf_callback("%s %s\n",pre, buf);
+  if (lookup) {
+    if (lbm_is_symbol(v)) {
+      if (lbm_dec_sym(v) >= RUNTIME_SYMBOLS_START) {
+	lbm_value res = ENC_SYM_NIL;
+	if (lbm_env_lookup_b(&res, v, ctx_running->curr_env) ||
+	    lbm_global_env_lookup(&res, v)) {
+	  lbm_print_value(buf, bufsize, res);
+	  printf_callback("      bound to: %s\n", buf);
+	} else {
+	  printf_callback("      UNDEFINED\n");
+	}
+      }
+    }
+  }
+}
+
 void print_error_message(lbm_value error,
                          bool has_at,
                          lbm_value at,
@@ -775,27 +795,22 @@ void print_error_message(lbm_value error,
     return;
   }
 
-  lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
-  printf_callback(  "***   Error: %s\n", buf);
+  print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   Error:", error, false);
   if (name) {
     printf_callback(  "***   ctx: %d \"%s\"\n", cid, name);
   } else {
     printf_callback(  "***   ctx: %d\n", cid);
   }
   if (has_at) {
-    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, at);
-    printf_callback("***   In:    %s\n",buf);
+    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   In:", at, true);
     if (lbm_error_has_suspect) {
-      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, lbm_error_suspect);
+      print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   At:", lbm_error_suspect, true);
       lbm_error_has_suspect = false;
-      printf_callback("***   At:    %s\n", buf);
     } else {
-      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-      printf_callback("***   After: %s\n",buf);
+      print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   After:", ctx_running->curr_exp, true);
     }
   } else {
-    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("***   Near:  %s\n",buf);
+    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   Near:",ctx_running->curr_exp, true);
   }
 
   printf_callback("\n");
