@@ -300,6 +300,14 @@ bool lbm_unblock_ctx_r(lbm_cid cid);
  * \return True on successfully unblocking. False otherwise.
  */
 bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed);
+/**  Iterate over ALL contexts and apply function on each context.
+ *   This includes the currently running context, if there is one.
+ *
+ * \param f Function to apply to each context.
+ * \param arg1 Pointer argument that can be used to convey information back to user.
+ * \param arg2 Same as above.
+ */
+void lbm_all_ctxs_iterator(ctx_fun f, void *arg1, void *arg2);
 /**  Iterate over all ready contexts and apply function on each context.
  *
  * \param f Function to apply to each context.
