@@ -1202,10 +1202,22 @@ static void vescif_print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void) arg1;
   (void) arg2;
 
+  const char *state_string = "UNKNOWN (CONTACT JOEL)";
+
+  switch (ctx->state & 0xFFFF) {
+  case 0: state_string = "READY"; break;
+  case 1: state_string = "BLOCKED"; break;
+  case 2: state_string = "TIMEOUT"; break;
+  case 4: state_string = "SLEEPING"; break;
+  case 8: state_string = "RECV BLOCKING"; break;
+  case 16: state_string = "RECV TIMEOUT"; break;
+  }
+
   char output[1024];
   int print_ret = lbm_print_value(output, 1024, ctx->r);
   commands_printf_lisp("--------------------------------");
   commands_printf_lisp("ContextID: %"PRI_UINT, ctx->id);
+  commands_printf_lisp("State: %s\n", state_string);
   commands_printf_lisp("Stack SP: %"PRI_UINT,  ctx->K.sp);
   commands_printf_lisp("Stack SP max: %"PRI_UINT, lbm_get_max_stack(&ctx->K));
   if (print_ret) {
@@ -1697,10 +1709,8 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
           }
         }
       } else if (strncmp(str, ":ctxs", 5) == 0) {
-        commands_printf_lisp("****** Running contexts ******");
-        lbm_running_iterator(vescif_print_ctx_info, NULL, NULL);
-        commands_printf_lisp("****** Blocked contexts ******");
-        lbm_blocked_iterator(vescif_print_ctx_info, NULL, NULL);
+        commands_printf_lisp("****** Contexts ******");
+        lbm_all_ctxs_iterator(vescif_print_ctx_info, NULL,NULL);
       } else if (strncmp(str, ":symbols", 8) == 0) {
         lbm_symrepr_name_iterator(vescif_sym_it);
         commands_printf_lisp(" ");

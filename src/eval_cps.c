@@ -885,6 +885,14 @@ static void queue_iterator_nm(eval_context_queue_t *q, ctx_fun f, void *arg1, vo
   }
 }
 
+void lbm_all_ctxs_iterator(ctx_fun f, void *arg1, void *arg2) {
+  mutex_lock(&qmutex);
+  queue_iterator_nm(&blocked, f, arg1, arg2);
+  queue_iterator_nm(&queue, f, arg1, arg2);
+  if (ctx_running) f(ctx_running, arg1, arg2);
+  mutex_unlock(&qmutex);
+}
+
 void lbm_running_iterator(ctx_fun f, void *arg1, void *arg2){
   mutex_lock(&qmutex);
   queue_iterator_nm(&queue, f, arg1, arg2);
