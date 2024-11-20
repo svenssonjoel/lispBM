@@ -1642,6 +1642,7 @@ static int gc(void) {
 
   int r = lbm_gc_sweep_phase();
   lbm_heap_new_freelist_length();
+  lbm_memory_update_min_free();
 
   if (ctx_running) {
     ctx_running->state = ctx_running->state & ~LBM_THREAD_STATE_GC_BIT;
