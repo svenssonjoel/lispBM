@@ -1640,7 +1640,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         commands_printf_lisp("Memory size: %u bytes\n", lbm_memory_num_words() * 4);
         commands_printf_lisp("Memory free: %u bytes\n", lbm_memory_num_free() * 4);
         commands_printf_lisp("Longest block free: %u bytes\n", lbm_memory_longest_free() * 4);
-	commands_printf_lisp("maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
+	commands_printf_lisp("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
         commands_printf_lisp("Allocated arrays: %u\n", lbm_heap_state.num_alloc_arrays);
         commands_printf_lisp("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
         commands_printf_lisp("Symbol table size flash: %u Bytes\n", lbm_get_symbol_table_size_flash());
@@ -2160,7 +2160,7 @@ int main(int argc, char **argv) {
         printf("--(Symbol and Array memory)---------------------------------\n");
         printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
         printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
-	printf("maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
+	printf("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
         printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
         printf("Symbol table size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
         printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
