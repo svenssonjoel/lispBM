@@ -1205,12 +1205,12 @@ static void vescif_print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   const char *state_string = "UNKNOWN (CONTACT JOEL)";
 
   switch (ctx->state & 0xFFFF) {
-  case 0: state_string = "READY"; break;
-  case 1: state_string = "BLOCKED"; break;
-  case 2: state_string = "TIMEOUT"; break;
-  case 4: state_string = "SLEEPING"; break;
-  case 8: state_string = "RECV BLOCKING"; break;
-  case 16: state_string = "RECV TIMEOUT"; break;
+  case LBM_THREAD_STATE_READY: state_string = "READY"; break;
+  case LBM_THREAD_STATE_BLOCKED: state_string = "BLOCKED"; break;
+  case LBM_THREAD_STATE_TIMEOUT: state_string = "TIMEOUT"; break;
+  case LBM_THREAD_STATE_SLEEPING: state_string = "SLEEPING"; break;
+  case LBM_THREAD_STATE_RECV_BL: state_string = "RECV BLOCKING"; break;
+  case LBM_THREAD_STATE_RECV_TO: state_string = "RECV TIMEOUT"; break;
   }
 
   char output[1024];
