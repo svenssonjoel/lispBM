@@ -2605,8 +2605,15 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
 
   int ind = 0;
   while (txt[ind] != 0) {
-    img_putc(&img_buf, x + ind * w * incx, y + ind * h * incy,
-      (uint32_t *)colors, 4, font_data, (uint8_t)txt[ind], up, down);
+    img_putc(&img_buf,
+      x + ind * ((up || down) ? h : w) * incx,
+      y + ind * ((up || down) ? w : h) * incy,
+      (uint32_t *)colors,
+      4,
+      font_data,
+      (uint8_t)txt[ind],
+      up,
+      down);
     ind++;
   }
 
