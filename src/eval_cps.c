@@ -830,7 +830,7 @@ void print_error_message(lbm_value error,
     printf_callback("Reason:\n   %s\n\n", ctx_running->error_reason);
   }
   if (lbm_verbose) {
-    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->r);
     printf_callback("   Current intermediate result: %s\n\n", buf);
 
     print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
