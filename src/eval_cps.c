@@ -2367,14 +2367,19 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
   if (nargs == 1) {
     lbm_value chan = ENC_SYM_NIL;
     if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
+      char *str = lbm_dec_str(args[0]);
+      if (str) { 
 #ifdef LBM_ALWAYS_GC
-      gc();
-#endif
-      if (!create_string_channel(lbm_dec_str(args[0]), &chan, args[0])) {
         gc();
+#endif
         if (!create_string_channel(lbm_dec_str(args[0]), &chan, args[0])) {
-          error_ctx(ENC_SYM_MERROR);
+          gc();
+          if (!create_string_channel(lbm_dec_str(args[0]), &chan, args[0])) {
+            error_ctx(ENC_SYM_MERROR);
+          }
         }
+      } else {
+        error_ctx(ENC_SYM_EERROR);
       }
     } else if (lbm_type_of(args[0]) == LBM_TYPE_CHANNEL) {
       chan = args[0];
