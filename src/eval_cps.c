@@ -95,7 +95,8 @@ static jmp_buf critical_error_jmp_buf;
 #define EXCEPTION_HANDLER     CONTINUATION(45)
 #define RECV_TO               CONTINUATION(46)
 #define WRAP_RESULT           CONTINUATION(47)
-#define NUM_CONTINUATIONS     48
+#define RECV_TO_RETRY         CONTINUATION(48)
+#define NUM_CONTINUATIONS     49
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -786,8 +787,6 @@ void print_error_message(lbm_value error,
                          lbm_int row1,
                          lbm_int cid,
                          char *name) {
-  if (!printf_callback) return;
-
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
   char *buf = lbm_malloc_reserve(ERROR_MESSAGE_BUFFER_SIZE_BYTES);
   if (!buf) {
@@ -795,39 +794,35 @@ void print_error_message(lbm_value error,
     return;
   }
 
-  print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   Error:", error, false);
+  print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Error:", error, false);
   if (name) {
-    printf_callback(  "***   ctx: %d \"%s\"\n", cid, name);
+    printf_callback(  "   CTX: %d \"%s\"\n", cid, name);
   } else {
-    printf_callback(  "***   ctx: %d\n", cid);
+    printf_callback(  "   CTX: %d\n", cid);
   }
-  if (has_at) {
-    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   In:", at, true);
-    if (lbm_error_has_suspect) {
-      print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   At:", lbm_error_suspect, true);
+  print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Current:", ctx_running->curr_exp, true);
+  if (lbm_error_has_suspect) {
+      print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   At:", lbm_error_suspect, true);
       lbm_error_has_suspect = false;
-    } else {
-      print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   After:", ctx_running->curr_exp, true);
-    }
-  } else {
-    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   Near:",ctx_running->curr_exp, true);
+  } else if (has_at) {
+    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   In:", at, true);
   }
 
   printf_callback("\n");
 
   if (lbm_is_symbol(error) &&
       error == ENC_SYM_RERROR) {
-    printf_callback("***   Line:   %u\n", row);
-    printf_callback("***   Column: %u\n", col);
+    printf_callback("   Line:   %u\n", row);
+    printf_callback("   Column: %u\n", col);
   } else if (row0 >= 0) {
-    if (row1 < 0) printf_callback("***   Starting at row: %d\n", row0);
-    else printf_callback("***   Between row %d and %d\n", row0, row1);
+    if (row1 < 0) printf_callback("   Starting at row: %d\n", row0);
+    else printf_callback("   Between row %d and %d\n", row0, row1);
   }
 
   printf_callback("\n");
 
   if (ctx_running->error_reason) {
-    printf_callback("Reason:\n   %s\n\n", ctx_running->error_reason);
+    printf_callback("   Reason: %s\n\n", ctx_running->error_reason);
   }
   if (lbm_verbose) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->r);
@@ -2154,54 +2149,37 @@ static void eval_match(eval_context_t *ctx) {
   }
 }
 
-static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time, bool timeout) {
+static void receive_base(eval_context_t *ctx, lbm_value pats) {
   if (ctx->num_mail == 0) {
-    if (timeout) {
-      block_current_ctx(LBM_THREAD_STATE_RECV_TO, S_TO_US(timeout_time), false);
-    } else {
       block_current_ctx(LBM_THREAD_STATE_RECV_BL,0,false);
-    }
   } else {
     lbm_value *msgs = ctx->mailbox;
     lbm_uint  num   = ctx->num_mail;
 
-    if (lbm_is_symbol_nil(pats)) {
-      /* A receive statement without any patterns */
-      ctx->app_cont = true;
-      ctx->r = ENC_SYM_NIL;
-    } else {
-      /* The common case */
-      lbm_value e;
-      lbm_value new_env = ctx->curr_env;
+    lbm_value e;
+    lbm_value new_env = ctx->curr_env;
 #ifdef LBM_ALWAYS_GC
-      lbm_gc_mark_phase(pats); // Needed in recv-to case
-      gc();
+    gc();
 #endif
-      int n = find_match(pats, msgs, num, &e, &new_env);
+    int n = find_match(pats, msgs, num, &e, &new_env);
+    if (n == FM_NEED_GC) {
+      gc();
+      new_env = ctx->curr_env;
+      n = find_match(pats, msgs, num, &e, &new_env);
       if (n == FM_NEED_GC) {
-	lbm_gc_mark_phase(pats); // Needed in recv-to case
-        gc();
-        new_env = ctx->curr_env;
-        n = find_match(pats, msgs, num, &e, &new_env);
-        if (n == FM_NEED_GC) {
-          error_ctx(ENC_SYM_MERROR);
-        }
+        error_ctx(ENC_SYM_MERROR);
       }
-      if (n == FM_PATTERN_ERROR) {
-        lbm_set_error_reason("Incorrect pattern format for recv");
-        error_at_ctx(ENC_SYM_EERROR,pats);
-      } else if (n >= 0 ) { /* Match */
-        mailbox_remove_mail(ctx, (lbm_uint)n);
-        ctx->curr_env = new_env;
-        ctx->curr_exp = e;
-      } else { /* No match  go back to sleep */
-        ctx->r = ENC_SYM_NO_MATCH;
-        if (timeout) {
-          block_current_ctx(LBM_THREAD_STATE_RECV_TO,S_TO_US(timeout_time),false);
-        } else {
-          block_current_ctx(LBM_THREAD_STATE_RECV_BL, 0,false);
-        }
-      }
+    }
+    if (n == FM_PATTERN_ERROR) {
+      lbm_set_error_reason("Incorrect pattern format for recv");
+      error_at_ctx(ENC_SYM_EERROR,pats);
+    } else if (n >= 0 ) { /* Match */
+      mailbox_remove_mail(ctx, (lbm_uint)n);
+      ctx->curr_env = new_env;
+      ctx->curr_exp = e;
+    } else { /* No match  go back to sleep */
+      ctx->r = ENC_SYM_NO_MATCH;
+      block_current_ctx(LBM_THREAD_STATE_RECV_BL, 0,false);
     }
   }
   return;
@@ -2213,10 +2191,16 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
 static void eval_receive_timeout(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   lbm_value timeout_val = get_cadr(ctx->curr_exp);
-  lbm_value *sptr = stack_reserve(ctx, 2);
-  sptr[0] = get_cdr(get_cdr(ctx->curr_exp));
-  sptr[1] = RECV_TO;
-  ctx->curr_exp = timeout_val;
+  lbm_value pats = get_cdr(get_cdr(ctx->curr_exp));
+  if (lbm_is_symbol_nil(pats)) {
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    error_at_ctx(ENC_SYM_EERROR, ctx->curr_exp);
+  } else {
+    lbm_value *sptr = stack_reserve(ctx, 2);
+    sptr[0] = pats;
+    sptr[1] = RECV_TO;
+    ctx->curr_exp = timeout_val;
+  }
 }
 
 // Receive
@@ -2225,7 +2209,12 @@ static void eval_receive_timeout(eval_context_t *ctx) {
 static void eval_receive(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   lbm_value pats = get_cdr(ctx->curr_exp);
-  receive_base(ctx, pats, 0, false);
+  if (lbm_is_symbol_nil(pats)) {
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    error_at_ctx(ENC_SYM_EERROR,ctx->curr_exp);
+  } else {
+    receive_base(ctx, pats);
+  }
 }
 
 /*********************************************************/
@@ -4987,14 +4976,98 @@ static void cont_exception_handler(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+// cont_recv_to:
+//
+// s[sp-1] = patterns
+//
+// ctx->r = timeout value
 static void cont_recv_to(eval_context_t *ctx) {
   if (lbm_is_number(ctx->r)) {
-    lbm_value *sptr = pop_stack_ptr(ctx, 1);
+    lbm_value *sptr = get_stack_ptr(ctx, 1); // patterns at sptr[0]
     float timeout_time = lbm_dec_as_float(ctx->r);
-    receive_base(ctx, sptr[0], timeout_time, true);
+
+    if (ctx->num_mail > 0) {
+      lbm_value e;
+      lbm_value new_env = ctx->curr_env;
+#ifdef LBM_ALWAYS_GC
+      gc();
+#endif
+      int n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
+      if (n == FM_NEED_GC) {
+        gc();
+        new_env = ctx->curr_env;
+        n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
+        if (n == FM_NEED_GC) error_ctx(ENC_SYM_MERROR);
+      }
+      if (n == FM_PATTERN_ERROR) {
+        lbm_set_error_reason("Incorrect pattern format for recv");
+        error_at_ctx(ENC_SYM_EERROR, sptr[0]);
+      } else if (n >= 0) { // match
+        mailbox_remove_mail(ctx, (lbm_uint)n);
+        ctx->curr_env = new_env;
+        ctx->curr_exp = e;
+        lbm_stack_drop(&ctx->K, 1);
+        return;
+      }
+    }
+    // If no mail or no match, go to sleep
+    lbm_uint *rptr = stack_reserve(ctx,2);
+    rptr[0] = ctx->r; // timeout time
+    rptr[1] = RECV_TO_RETRY;
+    block_current_ctx(LBM_THREAD_STATE_RECV_TO,S_TO_US(timeout_time),true);
   } else {
     error_ctx(ENC_SYM_TERROR);
   }
+}
+
+// cont_recv_to_retry
+//
+// s[sp-2] = patterns
+// s[sp-1] = timeout value
+//
+// ctx->r = nonsense | timeout symbol
+static void cont_recv_to_retry(eval_context_t *ctx) {
+  lbm_value *sptr = get_stack_ptr(ctx, 2); //sptr[0] = patterns, sptr[1] = timeout
+
+  // num_mail should be at least 1 here.
+  if (ctx->num_mail > 0) {
+    lbm_value e;
+    lbm_value new_env = ctx->curr_env;
+#ifdef LBM_ALWAYS_GC
+    gc();
+#endif
+    int n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
+    if (n == FM_NEED_GC) {
+      gc();
+      new_env = ctx->curr_env;
+      n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
+      if (n == FM_NEED_GC) error_ctx(ENC_SYM_MERROR);
+    }
+    if (n == FM_PATTERN_ERROR) {
+      lbm_set_error_reason("Incorrect pattern format for recv");
+      error_at_ctx(ENC_SYM_EERROR, sptr[0]);
+    } else if (n >= 0) { // match
+      mailbox_remove_mail(ctx, (lbm_uint)n);
+      ctx->curr_env = new_env;
+      ctx->curr_exp = e;
+      lbm_stack_drop(&ctx->K, 2);
+      return;
+    }
+  }
+
+  // No message matched but the timeout was reached.
+  // This is like having a recv-to with no case that matches
+  // the timeout symbol.
+  if (ctx->r == ENC_SYM_TIMEOUT) {
+    lbm_stack_drop(&ctx->K, 2);
+    ctx->app_cont = true;
+    return;
+  }
+
+  //TODO: Timeout is reset if there is a completely unrelated message.
+  //      Don't currently have an easy fix for this.
+  stack_reserve(ctx,1)[0] = RECV_TO_RETRY;
+  block_current_ctx(LBM_THREAD_STATE_RECV_TO,S_TO_US(sptr[1]),true);
 }
 
 /*********************************************************/
@@ -5050,6 +5123,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_exception_handler,
     cont_recv_to,
     cont_wrap_result,
+    cont_recv_to_retry
   };
 
 /*********************************************************/
