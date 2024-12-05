@@ -37,10 +37,13 @@ failing_unit_tests_64_log_file="failing_unit_tests_log_64_${release}.txt"
 gc_unit_tests_log_file="gc_unit_tests_log_${release}.txt"
 failing_gc_unit_tests_log_file="failing_gc_unit_tests_log_${release}.txt"
 
+revgc_unit_tests_log_file="revgc_unit_tests_log_${release}.txt"
+failing_revgc_unit_tests_log_file="failing_revgc_unit_tests_log_${release}.txt"
 
 ./run_tests.sh ../$reportdir/$failing_unit_tests_log_file >> ../$reportdir/$unit_tests_log_file
 ./run_tests64.sh ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file
 ./run_tests_gc.sh ../$reportdir/$failing_gc_unit_tests_log_file >> ../$reportdir/$gc_unit_tests_log_file
+./run_tests_gc_rev.sh ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file
 
 # Run the 32bit tests for a coverage report.
 ./run_tests_cov.sh
