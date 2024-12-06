@@ -1569,13 +1569,13 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
   // ( (p1 e1) (p2 e2) ... (pn en))
   lbm_value curr_p = plist;
   int n = 0;
-  bool gc = false;
+  bool need_gc = false;
   for (int i = 0; i < (int)num; i ++ ) {
     lbm_value curr_e = earr[i];
     while (!lbm_is_symbol_nil(curr_p)) {
       lbm_value me = get_car(curr_p);
-      if (match(get_car(me), curr_e, env, &gc)) {
-        if (gc) return FM_NEED_GC;
+      if (match(get_car(me), curr_e, env, &need_gc)) {
+        if (need_gc) return FM_NEED_GC;
         *e = get_cadr(me);
 
         if (!lbm_is_symbol_nil(get_cadr(get_cdr(me)))) {
@@ -3787,14 +3787,14 @@ static void cont_read_next_token(eval_context_t *ctx) {
   /*
    * SYNTAX
    */
-  uint32_t match;
-  n = tok_syntax(chan, &match);
+  uint32_t tok_match;
+  n = tok_syntax(chan, &tok_match);
   if (n > 0) {
     if (!lbm_channel_drop(chan, (unsigned int)n)) {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
     ctx->app_cont = true;
-    switch(match) {
+    switch(tok_match) {
     case TOKOPENPAR: {
       sptr[0] = ENC_SYM_NIL;
       sptr[1] = ENC_SYM_NIL;
@@ -3869,8 +3869,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
       return;
     case TOKCONSTSTART: /* fall through */
     case TOKCONSTEND: {
-      if (match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
-      if (match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
+      if (tok_match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
+      if (tok_match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
       sptr[0] = stream;
       sptr[1] = lbm_enc_u(0);
       stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
