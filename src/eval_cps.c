@@ -591,22 +591,19 @@ static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value en
   // The freelist will always contain just plain heap-cells.
   // So dec_ptr is sufficient.
   lbm_value res = lbm_heap_state.freelist;
-  if (lbm_type_of(res) == LBM_TYPE_CONS) {
-    lbm_cons_t *heap = lbm_heap_state.heap;
-    lbm_uint ix = lbm_dec_ptr(res);
-    heap[ix].car = ENC_SYM_CLOSURE;
-    ix = lbm_dec_ptr(heap[ix].cdr);
-    heap[ix].car = params;
-    ix = lbm_dec_ptr(heap[ix].cdr);
-    heap[ix].car = body;
-    ix = lbm_dec_ptr(heap[ix].cdr);
-    heap[ix].car = env;
-    lbm_heap_state.freelist = heap[ix].cdr;
-    heap[ix].cdr = ENC_SYM_NIL;
-    lbm_heap_state.num_alloc+=4;
-  } else {
-    error_ctx(ENC_SYM_FATAL_ERROR);
-  }
+  // CONS check is not needed. If num_free is correct, then freelist is a cons-cell.
+  lbm_cons_t *heap = lbm_heap_state.heap;
+  lbm_uint ix = lbm_dec_ptr(res);
+  heap[ix].car = ENC_SYM_CLOSURE;
+  ix = lbm_dec_ptr(heap[ix].cdr);
+  heap[ix].car = params;
+  ix = lbm_dec_ptr(heap[ix].cdr);
+  heap[ix].car = body;
+  ix = lbm_dec_ptr(heap[ix].cdr);
+  heap[ix].car = env;
+  lbm_heap_state.freelist = heap[ix].cdr;
+  heap[ix].cdr = ENC_SYM_NIL;
+  lbm_heap_state.num_alloc+=4;
   return res;
 }
 
@@ -631,6 +628,7 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
     }
   }
 #endif
+  // If num_free is calculated correctly, freelist is definitely a cons-cell.
   lbm_cons_t* heap = lbm_heap_state.heap;
   lbm_value binding_cell = lbm_heap_state.freelist;
   lbm_uint binding_cell_ix = lbm_dec_ptr(binding_cell);
@@ -1810,11 +1808,6 @@ static void eval_define(eval_context_t *ctx) {
    and then looked up the values of these creating a new environment.
    2. The global env is considered global constant. As there is no copying
    of environment bindings into the closure, undefine may break closures.
-
-   Correct closure creation is a lot more expensive than what happens here.
-   However, one can try to write programs in such a way that closures are created
-   seldomly. If one does that the space-usage benefits of "correct" closures
-   may outweigh the performance gain of "incorrect" ones.
 
    some obscure programs such as test_setq_local_closure.lisp does not
    work properly due to this cheating.
