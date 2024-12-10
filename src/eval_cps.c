@@ -573,40 +573,6 @@ static lbm_value get_cadr(lbm_value a) {
   return(ENC_SYM_TERROR);
 }
 
-static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value env) {
-
-#ifdef LBM_ALWAYS_GC
-  gc();
-  if (lbm_heap_num_free() < 4) {
-    error_ctx(ENC_SYM_MERROR);
-  }
-#else
-  if (lbm_heap_num_free() < 4) {
-    gc();
-    if (lbm_heap_num_free() < 4) {
-      error_ctx(ENC_SYM_MERROR);
-    }
-  }
-#endif
-  // The freelist will always contain just plain heap-cells.
-  // So dec_ptr is sufficient.
-  lbm_value res = lbm_heap_state.freelist;
-  // CONS check is not needed. If num_free is correct, then freelist is a cons-cell.
-  lbm_cons_t *heap = lbm_heap_state.heap;
-  lbm_uint ix = lbm_dec_ptr(res);
-  heap[ix].car = ENC_SYM_CLOSURE;
-  ix = lbm_dec_ptr(heap[ix].cdr);
-  heap[ix].car = params;
-  ix = lbm_dec_ptr(heap[ix].cdr);
-  heap[ix].car = body;
-  ix = lbm_dec_ptr(heap[ix].cdr);
-  heap[ix].car = env;
-  lbm_heap_state.freelist = heap[ix].cdr;
-  heap[ix].cdr = ENC_SYM_NIL;
-  lbm_heap_state.num_alloc+=4;
-  return res;
-}
-
 // Allocate a binding and attach it to a list (if so desired)
 static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cdr) {
 #ifdef LBM_ALWAYS_GC
@@ -1799,6 +1765,42 @@ static void eval_define(eval_context_t *ctx) {
   error_at_ctx(ENC_SYM_EERROR, ctx->curr_exp);
 }
 
+/* Allocate closure is only used in eval_lambda currently.
+   Inlining it should use no extra storage.
+ */
+static inline lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value env) {
+
+#ifdef LBM_ALWAYS_GC
+  gc();
+  if (lbm_heap_num_free() < 4) {
+    error_ctx(ENC_SYM_MERROR);
+  }
+#else
+  if (lbm_heap_num_free() < 4) {
+    gc();
+    if (lbm_heap_num_free() < 4) {
+      error_ctx(ENC_SYM_MERROR);
+    }
+  }
+#endif
+  // The freelist will always contain just plain heap-cells.
+  // So dec_ptr is sufficient.
+  lbm_value res = lbm_heap_state.freelist;
+  // CONS check is not needed. If num_free is correct, then freelist is a cons-cell.
+  lbm_cons_t *heap = lbm_heap_state.heap;
+  lbm_uint ix = lbm_dec_ptr(res);
+  heap[ix].car = ENC_SYM_CLOSURE;
+  ix = lbm_dec_ptr(heap[ix].cdr);
+  heap[ix].car = params;
+  ix = lbm_dec_ptr(heap[ix].cdr);
+  heap[ix].car = body;
+  ix = lbm_dec_ptr(heap[ix].cdr);
+  heap[ix].car = env;
+  lbm_heap_state.freelist = heap[ix].cdr;
+  heap[ix].cdr = ENC_SYM_NIL;
+  lbm_heap_state.num_alloc+=4;
+  return res;
+}
 
 /* Eval lambda is cheating, a lot! It does this
    for performance reasons. The cheats are that
