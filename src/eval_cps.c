@@ -5168,7 +5168,7 @@ static void evaluation_step(void){
     ctx->app_cont = false;
 
     lbm_uint decoded_k = DEC_CONTINUATION(k);
-
+    // If app_cont is true, then top of stack must be a valid continuation!
     if (decoded_k < NUM_CONTINUATIONS) {
       continuations[decoded_k](ctx);
     } else {
