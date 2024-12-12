@@ -20,7 +20,7 @@ mkdir -p $reportdir/cppcheck
 release_readme="readme_${release}.md"
 
 echo "# LispBM Release ${release} Test logs" > $reportdir/$release_readme
-echo "" >> $release_readme
+echo "" >> $reportdir/$release_readme
 
 cd repl
 
