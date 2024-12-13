@@ -2643,7 +2643,7 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 // When doing (map f arg-list) I assume one means to apply f to each element of arg-list
 // exactly as those elements are. That is, no evaluation of the argument.
 // The implementation of map below makes sure that the elements of the arg-list are not
-// evaluated by wrapping them each in a `quote`. 
+// evaluated by wrapping them each in a `quote`.
 //
 // Map creates a structure in memory that looks like this (f (quote dummy . nil) . nil).
 // Then, for each element from arg-list (example a1 ... aN) the object
@@ -2661,9 +2661,9 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 // # (map quote '(1 2 3 4))
 // > ((quote 4) (quote 4) (quote 4) (quote 4))
 //
-// A potential fix is to instead of creting the object (f (quote aM . nil) . nil)
+// A potential fix is to instead of creating the object (f (quote aM . nil) . nil)
 // we create the object (f var) for some unique var and then extend the environment
-// for each round of evaluation with a binding var => aM. 
+// for each round of evaluation with a binding var => aM.
 
 // (map f arg-list)
 static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
