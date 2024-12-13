@@ -2630,6 +2630,41 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   error_at_ctx(err_val, ENC_SYM_EXIT_ERROR);
 }
 
+// ////////////////////////////////////////////////////////////
+// Map takes a function f and a list ls as arguments.
+// The function f is applied to each element of ls.
+//
+// Normally when applying a function to an argument this happens:
+//   1. the function is evaluated
+//   2. the argument is evaluated
+//   3. the result of evaluating the function is applied to the result of evaluating
+//      the argument.
+//
+// When doing (map f arg-list) I assume one means to apply f to each element of arg-list
+// exactly as those elements are. That is, no evaluation of the argument.
+// The implementation of map below makes sure that the elements of the arg-list are not
+// evaluated by wrapping them each in a `quote`. 
+//
+// Map creates a structure in memory that looks like this (f (quote dummy . nil) . nil).
+// Then, for each element from arg-list (example a1 ... aN) the object
+// (f (quote aM . nil) . nil) is created by substituting dummy for an element of the list.
+// after this substitution the evaluator is fired up to evaluate the entire (f (quote aM . nil) . nil)
+// structure resulting in an element for the result list.
+//
+// Here comes the fun part, if you (map quote arg-list), then the object
+// (quote (quote aM . nil) . nil) is created and evaluated. Now note that quote just gives back
+// exactly what you give to it when evaluated.
+// So (quote (quote aM . nil) . nil) gives you as result (quote aM . nil) and now also note that
+// this is a list, and a list is really just an address on the heap!
+// This leads to the very fun behavior that:
+//
+// # (map quote '(1 2 3 4))
+// > ((quote 4) (quote 4) (quote 4) (quote 4))
+//
+// A potential fix is to instead of creting the object (f (quote aM . nil) . nil)
+// we create the object (f var) for some unique var and then extend the environment
+// for each round of evaluation with a binding var => aM. 
+
 // (map f arg-list)
 static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2 && lbm_is_cons(args[1])) {
@@ -3398,7 +3433,6 @@ static void cont_exit_atomic(eval_context_t *ctx) {
 // ctx->r  = eval result of previous application.
 static void cont_map(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 6);
-
   lbm_value ls  = sptr[0];
   lbm_value env = sptr[1];
   lbm_value t   = sptr[3];
