@@ -205,6 +205,16 @@
                           "and not really a part of core LispBM."
                           "The LispBM REPL does not have an import feature currently."
                           ))
+              (para (list "In the \"Desktop\" LispBM REPL the rotated llama examples looks"
+                          "as follows."
+                          ))
+              (program-disp '((
+                               (define pic (load-file (fopen  "images/lama2.bin" "r")))
+                               (define img (img-buffer 'indexed2 320 200))
+                               (img-blit img pic 10 10 -1 '(rotate 128 128 45))
+                               (disp-render img 0 0 '(0x000000 0xFF0000))
+                               ))
+                            )
               end)))
              
 
