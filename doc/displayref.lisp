@@ -24,6 +24,12 @@
 (defun code-disp-str (xs) (code-disp (map (lambda (x) (list 'read-eval x)) xs)))
 (defun code-png-str (img c xs) (code-png img c (map (lambda (x) (list 'read-eval x)) xs)))
 
+
+;; VESC style import emulator
+(define import (macro (file sym)
+                      `(define ,(eval sym) (load-file (fopen ,file "r")))))
+
+
 (define create_image1
   (ref-entry "img-buffer"
              (list
@@ -183,8 +189,24 @@
                                (disp-render s-img 0 0 '(0x000000 0xFFFFFF))
                                ))
                             )
-             end)))
+              end)))
 
+(define rotated-llama
+  (ref-entry "Example: rotated llama"
+             (list
+              (program-disp '((
+                               (import "images/lama2.bin" 'pic)
+                               (define img (img-buffer 'indexed2 320 200))
+                               (img-blit img pic 10 10 -1 '(rotate 128 128 45))
+                               (disp-render img 0 0 '(0x000000 0xFF0000))
+                               ))
+                            )
+              (para (list "Note that `import` is a feature of the VESC integration of LispBM"
+                          "and not really a part of core LispBM."
+                          "The LispBM REPL does not have an import feature currently."
+                          ))
+              end)))
+             
 
 
 (define manual
@@ -270,7 +292,8 @@
                   )
             )
    (section 1 "Examples"
-            (list sierpinsky))
+            (list sierpinsky
+                  rotated-llama))
    info
    )
   )

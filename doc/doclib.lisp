@@ -23,6 +23,8 @@
 
 (defun pretty-ind (n c)
   (match c
+         ( (import (? txt) (? sym))
+           (str-merge (ind-spaces n) "(import \"" txt "\" '" (to-str (eval sym)) ")"))
          ( (loop (? e) . (? es))
            (str-merge (ind-spaces n) "(loop " (pretty nil e) (pretty-aligned-ontop (+ n 6) es) ")" ))
          ( (atomic (? e) . (? es))
