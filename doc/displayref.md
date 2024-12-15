@@ -1299,6 +1299,8 @@ t
 
 # Examples
 
+These examples are leaving out the details on how to setup and initialize any particular display you may have connected to your embedded system. For information on how to initialize a display on a VESC EXPRESS platform see [vesc_express display documentation](https://github.com/vedderb/vesc_express/tree/main/main/display). 
+
 
 ### Example: Sierpinsky triangle
 
@@ -1405,7 +1407,7 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
  (define pic (load-file (fopen "images/lama2.bin" "r")))
  (define img (img-buffer 'indexed2 320 200))
  (img-blit img pic 10 10 -1 '(rotate 128 128 45))
- (disp-render img 0 0 '(0 16711680))
+ (disp-render img 100 0 '(0 16711680))
 ```
 
 
@@ -1424,12 +1426,6 @@ t
 
 
 </td>
-</tr>
-</table>
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1460,6 +1456,34 @@ t
 t
 ```
 
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Animation </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+ (define pic (load-file (fopen "images/lama2.bin" "r")))
+ (define img (img-buffer 'indexed2 128 128))
+ (define m (/ 360.000000f32 100.000000f32))
+ (loopfor i 0 (< i 100) (+ i 1) (progn (var rot (list 'rotate 128 128 (* i m)))
+       (img-blit img pic 0 0 -1 '(scale 0.500000f32) rot)
+       (disp-clear)
+       (disp-render img 10 10 '(0 16711680))))
+```
+
+
+</td>
+<td>
+
+<img src=./images/anm1.gif >
 
 </td>
 </tr>

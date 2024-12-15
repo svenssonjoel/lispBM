@@ -212,10 +212,9 @@
                                (define pic (load-file (fopen  "images/lama2.bin" "r")))
                                (define img (img-buffer 'indexed2 320 200))
                                (img-blit img pic 10 10 -1 '(rotate 128 128 45))
-                               (disp-render img 0 0 '(0x000000 0xFF0000))
-                               ))
-                            )
-              (program-disp '((
+                               (disp-render img 100 0 '(0x000000 0xFF0000))
+                               )
+                              (
                                (disp-clear)
                                (define pic (load-file (fopen  "images/lama2.bin" "r")))
                                (define img128x128 (img-buffer 'indexed2 128 128))
@@ -226,6 +225,18 @@
                                (disp-render img128x128 148 10 '(0x000000 0x00FF00))
                                ))
                             )
+              (program-gif '( (100 ((define pic (load-file (fopen  "images/lama2.bin" "r")))
+                                    (define img (img-buffer 'indexed2 128 128))
+                                    (define m (/ 360.0 100.0))
+                                    (loopfor i 0 (< i 100) (+ i 1) {
+                                             (var rot (list 'rotate 128 128 (* i m)))
+                                             (img-blit img pic 0 0 -1 '(scale 0.5) rot)
+                                             (disp-clear)
+                                             (disp-render-mac img 10 10 '(0x000000 0xFF0000))
+                                             })
+                                    )
+                                   )
+                              ))
               end)))
              
 
@@ -313,8 +324,15 @@
                   )
             )
    (section 1 "Examples"
-            (list sierpinsky
-                  rotated-llama))
+            (list
+             (para (list "These examples are leaving out the details on how to setup and initialize"
+                         "any particular display you may have connected to your embedded system."
+                         "For information on how to initialize a display on a VESC EXPRESS platform"
+                         "see [vesc_express display documentation](https://github.com/vedderb/vesc_express/tree/main/main/display)."
+                         ))
+             
+             sierpinsky
+             rotated-llama))
    info
    )
   )
