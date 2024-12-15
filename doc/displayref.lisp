@@ -215,6 +215,18 @@
                                (disp-render img 0 0 '(0x000000 0xFF0000))
                                ))
                             )
+              (program-disp '((
+                               (disp-clear)
+                               (define pic (load-file (fopen  "images/lama2.bin" "r")))
+                               (define img128x128 (img-buffer 'indexed2 128 128))
+                               (img-blit img128x128 pic 0 0 -1 '(scale 0.5) '(rotate 128 128 45))
+                               (disp-render img128x128 10 10 '(0x000000 0xFF0000))
+                               (img-clear img128x128)
+                               (img-blit img128x128 pic 0 0 -1 '(scale 0.5) '(rotate 128 128 -45))
+                               (disp-render img128x128 148 10 '(0x000000 0x00FF00))
+
+                               ))
+                            )
               end)))
              
 

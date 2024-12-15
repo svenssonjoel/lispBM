@@ -1427,6 +1427,44 @@ t
 </tr>
 </table>
 
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+ (disp-clear)
+ (define pic (load-file (fopen "images/lama2.bin" "r")))
+ (define img128x128 (img-buffer 'indexed2 128 128))
+ (img-blit img128x128 pic 0 0 -1 '(scale 0.500000f32) '(rotate 128 128 45))
+ (disp-render img128x128 10 10 '(0 16711680))
+ (img-clear img128x128)
+ (img-blit img128x128 pic 0 0 -1 '(scale 0.500000f32) '(rotate 128 128 -45))
+ (disp-render img128x128 148 10 '(0 65280))
+```
+
+
+</td>
+<td>
+
+<img src=./images/img47.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
 
 
 
