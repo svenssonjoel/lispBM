@@ -224,7 +224,6 @@
                                (img-clear img128x128)
                                (img-blit img128x128 pic 0 0 -1 '(scale 0.5) '(rotate 128 128 -45))
                                (disp-render img128x128 148 10 '(0x000000 0x00FF00))
-
                                ))
                             )
               end)))
