@@ -41,6 +41,8 @@
 
 (defun pretty-ind (n c)
   (match c
+         ( (loopfor (? v) (? init) (? cond) (? upd) (? body) )
+           (str-merge (ind-spaces n) "(loopfor " (pretty nil v) " " (pretty nil init) " " (pretty nil cond) " " (pretty nil upd) "\n" (pretty-ind (+ n 6) body) ")"))
          ( (disp-render-mac (? i) (? x) (? y) (? color))
            (str-merge (ind-spaces n) "(disp-render " (pretty nil i) " " (pretty nil x) " " (pretty nil y) " " (pretty nil color) ")"))
          ( (fopen (? f) (? m))
