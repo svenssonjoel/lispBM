@@ -1473,9 +1473,9 @@ t
  (define pic (load-file (fopen "images/lama2.bin" "r")))
  (define img (img-buffer 'indexed2 128 128))
  (define m (/ 360.000000f32 100.000000f32))
+ (disp-clear)
  (loopfor i 0 (< i 100) (+ i 1) (progn (var rot (list 'rotate 128 128 (* i m)))
        (img-blit img pic 0 0 -1 '(scale 0.500000f32) rot)
-       (disp-clear)
        (disp-render img 10 10 '(0 16711680))))
 ```
 

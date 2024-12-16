@@ -228,10 +228,10 @@
               (program-gif '( (100 ((define pic (load-file (fopen  "images/lama2.bin" "r")))
                                     (define img (img-buffer 'indexed2 128 128))
                                     (define m (/ 360.0 100.0))
+                                    (disp-clear)
                                     (loopfor i 0 (< i 100) (+ i 1) {
                                              (var rot (list 'rotate 128 128 (* i m)))
                                              (img-blit img pic 0 0 -1 '(scale 0.5) rot)
-                                             (disp-clear)
                                              (disp-render-mac img 10 10 '(0x000000 0xFF0000))
                                              })
                                     )
