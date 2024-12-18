@@ -5014,7 +5014,7 @@ static void cont_recv_to(eval_context_t *ctx) {
   if (lbm_is_number(ctx->r)) {
     lbm_value *sptr = get_stack_ptr(ctx, 1); // patterns at sptr[0]
     float timeout_time = lbm_dec_as_float(ctx->r);
-
+    if (timeout_time < 0.0) timeout_time = 0.0; // clamp.
     if (ctx->num_mail > 0) {
       lbm_value e;
       lbm_value new_env = ctx->curr_env;
@@ -5041,7 +5041,7 @@ static void cont_recv_to(eval_context_t *ctx) {
     }
     // If no mail or no match, go to sleep
     lbm_uint *rptr = stack_reserve(ctx,2);
-    rptr[0] = ctx->r; // timeout time
+    rptr[0] = ctx->r;
     rptr[1] = RECV_TO_RETRY;
     block_current_ctx(LBM_THREAD_STATE_RECV_TO,S_TO_US(timeout_time),true);
   } else {
@@ -5058,7 +5058,6 @@ static void cont_recv_to(eval_context_t *ctx) {
 static void cont_recv_to_retry(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 2); //sptr[0] = patterns, sptr[1] = timeout
 
-  // num_mail should be at least 1 here.
   if (ctx->num_mail > 0) {
     lbm_value e;
     lbm_value new_env = ctx->curr_env;
@@ -5095,8 +5094,10 @@ static void cont_recv_to_retry(eval_context_t *ctx) {
 
   //TODO: Timeout is reset if there is a completely unrelated message.
   //      Don't currently have an easy fix for this.
+  float timeout_time = lbm_dec_as_float(sptr[1]);
+  if (timeout_time < 0.0) timeout_time = 0.0; // clamp.
   stack_reserve(ctx,1)[0] = RECV_TO_RETRY;
-  block_current_ctx(LBM_THREAD_STATE_RECV_TO,S_TO_US(sptr[1]),true);
+  block_current_ctx(LBM_THREAD_STATE_RECV_TO,S_TO_US(timeout_time),true);
 }
 
 /*********************************************************/
