@@ -669,6 +669,17 @@ static void block_current_ctx(uint32_t state, lbm_uint sleep_us,  bool do_cont) 
   ctx_running = NULL;
 }
 
+// reblock an essentially already blocked context.
+// Same as block but sets no new timestamp or sleep_us.
+static void reblock_current_ctx(uint32_t state, bool do_cont) {
+  if (is_atomic) atomic_error();
+  ctx_running->state  = state;
+  ctx_running->app_cont = do_cont;
+  enqueue_ctx(&blocked, ctx_running);
+  ctx_running = NULL;
+}
+
+
 lbm_flash_status lbm_write_const_array_padded(uint8_t *data, lbm_uint n, lbm_uint *res) {
   lbm_uint full_words = n / sizeof(lbm_uint);
   lbm_uint n_mod = n % sizeof(lbm_uint);
@@ -5092,12 +5103,8 @@ static void cont_recv_to_retry(eval_context_t *ctx) {
     return;
   }
 
-  //TODO: Timeout is reset if there is a completely unrelated message.
-  //      Don't currently have an easy fix for this.
-  float timeout_time = lbm_dec_as_float(sptr[1]);
-  if (timeout_time < 0.0) timeout_time = 0.0; // clamp.
   stack_reserve(ctx,1)[0] = RECV_TO_RETRY;
-  block_current_ctx(LBM_THREAD_STATE_RECV_TO,S_TO_US(timeout_time),true);
+  reblock_current_ctx(LBM_THREAD_STATE_RECV_TO,true);
 }
 
 /*********************************************************/
