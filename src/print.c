@@ -61,7 +61,7 @@ static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
 // Value                   | Print as                | Condition
 // [0]                     | [0]                     |
 // [1]                     | [1]                     |
-// ""                      | [0]                     | (array->size < 1) => false
+// ""                      | [0]                     | (array->size <= 1) => false
 // "hej"                   | "hej"                   | printable characters followed by a 0
 // [65 66 67 0 65 66 67 0] | [65 66 67 0 65 66 67 0] | position of first 0 after printable characters = array->size-1
 // [0 65 66 0]             | [0 65 66 0]             | position of first 0 after printable characters = array->size-1
