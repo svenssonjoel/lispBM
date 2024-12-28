@@ -616,6 +616,11 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
 #define LOOP_COND  1
 #define LOOP_BODY  2
 
+// TODO: extract_n could be a good place to do some error checking.
+//       extract_n is often used to extract components of a list that
+//       makes up a special form application. If there are not n items
+//       present that could be an indication of a syntax error in the
+//       special form application.
 // (a b c) -> [a b c]
 static lbm_value extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
   for (unsigned int i = 0; i < n; i ++) {
@@ -4627,7 +4632,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
 
   lbm_value val = ctx->r;
 
-  if (lbm_is_cons(val)) {
+  if (lbm_is_cons(val)) { // non-constant cons-cell
     lbm_value *rptr = stack_reserve(ctx, 5);
     rptr[0] = ENC_SYM_NIL; // fst cell of list
     rptr[1] = ENC_SYM_NIL; // last cell of list
@@ -4639,13 +4644,13 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
     return;
   }
 
-  if (lbm_is_ptr(val) && (val & LBM_PTR_TO_CONSTANT_BIT)) {
+  if (lbm_is_ptr(val) && (val & LBM_PTR_TO_CONSTANT_BIT)) { // constant pointer cons or not.
     //ctx->r unchanged
     ctx->app_cont = true;
     return;
   }
 
-  if (lbm_is_ptr(val)) {
+  if (lbm_is_ptr(val)) { // something that is not a cons but still a ptr type.
     lbm_cons_t *ref = lbm_ref_cell(val);
     if (lbm_type_of(ref->cdr) == LBM_TYPE_SYMBOL) {
       switch (ref->cdr) {
@@ -4724,6 +4729,8 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
     ctx->app_cont = true;
     return;
   }
+
+  // if no condition matches, nothing happens (id).
   ctx->r = val;
   ctx->app_cont = true;
 }
