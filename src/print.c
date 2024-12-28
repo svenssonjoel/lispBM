@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 - 2025      Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020 - 2024      Joel Svensson    svenssonjoel@yahoo.se
                            2022      Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -55,6 +55,16 @@ static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
   return 0;
 }
 
+// is_printable_string is turning out to be a headache.
+// What do we want from this function???
+//
+// Value                   | Print as                | Condition
+// [0]                     | [0]                     |
+// [1]                     | [1]                     |
+// ""                      | [0]                     | (array->size < 1) => false
+// "hej"                   | "hej"                   | printable characters followed by a 0
+// [65 66 67 0 65 66 67 0] | [65 66 67 0 65 66 67 0] | position of first 0 after printable characters = array->size-1
+// [0 65 66 0]             | [0 65 66 0]             | position of first 0 after printable characters = array->size-1
 bool lbm_value_is_printable_string(lbm_value v, char **str) {
   bool is_a_string = false;
   if (lbm_is_array_r(v)) {    
@@ -63,7 +73,7 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
     //       Highly unlikely that array is a recognizable NULL though.
     //       If it is incorrect, it is most likely arbitrary.
     char *c_data = (char *)array->data;
-    if (array->size >= 1) { // nonzero length
+    if (array->size > 1) { // nonzero length
       unsigned int i = 0;
       is_a_string = true;
       for (i = 0; i < array->size; i ++) {
@@ -74,6 +84,7 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
 	}
       }
       if (i > 0 && i != array->size-1 && c_data[i-1] != 0) is_a_string = false;
+      if (array->size-1 > i) is_a_string = false;
       if (is_a_string) {
         *str = (char*)array->data;
       }
