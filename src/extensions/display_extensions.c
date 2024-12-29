@@ -1733,13 +1733,13 @@ static void blit_rot_scale(
 
   int des_x_start = 0; // TODO: strange code. Vars hold known values..
   int des_y_start = 0;
-  int des_x_end = (des_x_start + des_w);
-  int des_y_end = (des_y_start + des_h);
+  int des_x_end = des_w; //(des_x_start + des_w);
+  int des_y_end = des_h; //(des_y_start + des_h);
 
-  if (des_x_start < 0) des_x_start = 0; // but here we check what they are and change.
-  if (des_x_end > des_w) des_x_end = des_w; //TODO: This condition is always false.
-  if (des_y_start < 0) des_y_start = 0;
-  if (des_y_end > des_h) des_y_end = des_h;
+  //if (des_x_start < 0) des_x_start = 0; // but here we check what they are and change.
+  //if (des_x_end > des_w) des_x_end = des_w; //TODO: This condition is always false.
+  //if (des_y_start < 0) des_y_start = 0;
+  //if (des_y_end > des_h) des_y_end = des_h;
 
   if (rot == 0.0 && scale == 1.0) {
     if (x > 0) des_x_start += x;

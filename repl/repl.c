@@ -2165,7 +2165,7 @@ int main(int argc, char **argv) {
         printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
         printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
         printf("--(Flash)--\n");
-        printf("Size: %u words\n", const_heap.size);
+        printf("Size: %"PRI_UINT" words\n", const_heap.size);
         printf("Used words: %"PRI_UINT"\n", const_heap.next);
         printf("Free words: %"PRI_UINT"\n", const_heap.size - const_heap.next);
         free(str);
