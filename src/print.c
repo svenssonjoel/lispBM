@@ -262,7 +262,8 @@ static int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *a
 static int print_emit_bytearray(lbm_char_channel_t *chan, lbm_value v) {
   int r = 0;
   char *str;
-  if (lbm_is_array_r(v)) {
+  lbm_array_header_t *array = lbm_dec_array_r(v);
+  if (array) {
     if (lbm_value_is_printable_string(v, &str)) {
       r = print_emit_char(chan, '"');
       if (r == EMIT_OK) {
@@ -272,7 +273,6 @@ static int print_emit_bytearray(lbm_char_channel_t *chan, lbm_value v) {
         }
       }
     } else {
-      lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
       r=  print_emit_array_data(chan, array);
     }
   } else {

@@ -276,11 +276,15 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
   }
   case LBM_TYPE_LISPARRAY: {
     int sum = 4 + 1; // sizeof(uint32_t) + 1;
-    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v);
-    lbm_value *arrdata = (lbm_value*)header->data;
-    lbm_uint size = header->size / sizeof(lbm_value);
-    for (lbm_uint i = 0; i < size; i ++ ) {
-      sum += flatten_value_size_internal(jb, arrdata[i], depth + 1);
+    lbm_array_header_t *header = lbm_dec_array_r(v);
+    if (header) {
+      lbm_value *arrdata = (lbm_value*)header->data;
+      lbm_uint size = header->size / sizeof(lbm_value);
+      for (lbm_uint i = 0; i < size; i ++ ) {
+        sum += flatten_value_size_internal(jb, arrdata[i], depth + 1);
+      }
+    } else {
+      flatten_error(jb, FLATTEN_VALUE_ERROR_ARRAY);
     }
     return sum;
   }
