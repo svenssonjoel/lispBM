@@ -2802,8 +2802,8 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
 static void apply_unflatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if(nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
     lbm_array_header_t *array;
+    // By design the array ptr should be valid at this point.
     array = (lbm_array_header_t *)get_car(args[0]);
-
     lbm_flat_value_t fv;
     fv.buf = (uint8_t*)array->data;
     fv.buf_size = array->size;
@@ -3829,6 +3829,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
   lbm_char_channel_t *chan = lbm_dec_channel(stream);
   if (chan == NULL || chan->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
+    return; // INFER does not understant that error_ctx longjmps
+            // out of this function.
   }
 
   if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
@@ -4153,6 +4155,8 @@ static void cont_read_start_array(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
+    return; // INFER does not understand that error_ctx longjmps out
+            // of this function here.
   }
   if (ctx->r == ENC_SYM_CLOSEBRACK) {
     lbm_value array;
@@ -4263,6 +4267,8 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
+    return; // INFER does not understand that execution
+            // jumps out on error_ctx with a longjmp.
   }
 
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
@@ -4356,18 +4362,18 @@ static void cont_read_expect_closepar(eval_context_t *ctx) {
   lbm_pop_2(&ctx->K, &res, &stream);
 
   lbm_char_channel_t *str = lbm_dec_channel(stream);
-  if (str == NULL || str->state == NULL) {
+  if (str == NULL || str->state == NULL) { // TODO: De Morgan these conditions.
     error_ctx(ENC_SYM_FATAL_ERROR);
-  }
-
-  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-      ctx->r == ENC_SYM_CLOSEPAR) {
-    ctx->r = res;
-    ctx->app_cont = true;
   } else {
-    lbm_channel_reader_close(str);
-    lbm_set_error_reason((char*)lbm_error_str_parse_close);
-    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+    if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
+        ctx->r == ENC_SYM_CLOSEPAR) {
+      ctx->r = res;
+      ctx->app_cont = true;
+    } else {
+      lbm_channel_reader_close(str);
+      lbm_set_error_reason((char*)lbm_error_str_parse_close);
+      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+    }
   }
 }
 
@@ -4380,32 +4386,35 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
-  }
-
-  lbm_stack_drop(&ctx->K ,3);
-
-  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-      (ctx->r == ENC_SYM_CLOSEPAR ||
-       ctx->r == ENC_SYM_DOT)) {
-    lbm_channel_reader_close(str);
-    lbm_set_error_reason((char*)lbm_error_str_parse_dot);
-    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
   } else {
-    if (lbm_is_cons(last_cell)) {
-      lbm_set_cdr(last_cell, ctx->r);
-      ctx->r = sptr[0]; // first cell
-      lbm_value *rptr = stack_reserve(ctx, 6);
-      rptr[0] = stream;
-      rptr[1] = ctx->r;
-      rptr[2] = READ_EXPECT_CLOSEPAR;
-      rptr[3] = stream;
-      rptr[4] = lbm_enc_u(0);
-      rptr[5] = READ_NEXT_TOKEN;
-      ctx->app_cont = true;
-    } else {
+    // else to make Infer understand the following dereferences happen only on
+    // non-null addresses.
+    // TODO: this kind of NULL checks are a bit redundant
+    // as under correct operation they should never happen.
+    lbm_stack_drop(&ctx->K ,3);
+    if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
+        (ctx->r == ENC_SYM_CLOSEPAR ||
+         ctx->r == ENC_SYM_DOT)) {
       lbm_channel_reader_close(str);
       lbm_set_error_reason((char*)lbm_error_str_parse_dot);
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+    } else {
+      if (lbm_is_cons(last_cell)) {
+        lbm_set_cdr(last_cell, ctx->r);
+        ctx->r = sptr[0]; // first cell
+        lbm_value *rptr = stack_reserve(ctx, 6);
+        rptr[0] = stream;
+        rptr[1] = ctx->r;
+        rptr[2] = READ_EXPECT_CLOSEPAR;
+        rptr[3] = stream;
+        rptr[4] = lbm_enc_u(0);
+        rptr[5] = READ_NEXT_TOKEN;
+        ctx->app_cont = true;
+      } else {
+        lbm_channel_reader_close(str);
+        lbm_set_error_reason((char*)lbm_error_str_parse_dot);
+        read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+      }
     }
   }
 }
@@ -4423,19 +4432,23 @@ static void cont_read_done(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
-  }
-
-  lbm_channel_reader_close(str);
-  if (lbm_is_symbol(ctx->r)) {
-    lbm_uint sym_val = lbm_dec_sym(ctx->r);
-    if (sym_val >= TOKENIZER_SYMBOLS_START &&
-        sym_val <= TOKENIZER_SYMBOLS_END) {
-      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+  } else {
+    // the "else" is there to make INFER understand
+    // that this only happens if str is non-null.
+    // the "else" is unnecessary though as
+    // error_ctx longjmps out.
+    lbm_channel_reader_close(str);
+    if (lbm_is_symbol(ctx->r)) {
+      lbm_uint sym_val = lbm_dec_sym(ctx->r);
+      if (sym_val >= TOKENIZER_SYMBOLS_START &&
+          sym_val <= TOKENIZER_SYMBOLS_END) {
+        read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+      }
     }
+    ctx->row0 = -1;
+    ctx->row1 = -1;
+    ctx->app_cont = true;
   }
-  ctx->row0 = -1;
-  ctx->row1 = -1;
-  ctx->app_cont = true;
 }
 
 static void cont_wrap_result(eval_context_t *ctx) {
