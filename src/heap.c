@@ -194,9 +194,11 @@ float lbm_dec_float(lbm_value x) {
 
 double lbm_dec_double(lbm_value x) {
 #ifndef LBM64
-  double d;
-  uint32_t *data = (uint32_t*)lbm_car(x);
-  memcpy(&d, data, sizeof(double));
+  double d = 0.0;
+  if (lbm_is_ptr(x)) {
+    uint32_t *data = (uint32_t*)lbm_ref_cell(x)->car;
+    memcpy(&d, data, sizeof(double));
+  }
   return d;
 #else
   double f_tmp;
@@ -208,9 +210,11 @@ double lbm_dec_double(lbm_value x) {
 
 uint64_t lbm_dec_u64(lbm_value x) {
 #ifndef LBM64
-  uint64_t u;
-  uint32_t *data = (uint32_t*)lbm_car(x);
-  memcpy(&u, data, 8);
+  uint64_t u = 0;
+  if (lbm_is_ptr(x)) {
+    uint32_t *data = (uint32_t*)lbm_ref_cell(x)->car;
+    memcpy(&u, data, 8);
+  }
   return u;
 #else
   return (uint64_t)lbm_car(x);
@@ -219,9 +223,11 @@ uint64_t lbm_dec_u64(lbm_value x) {
 
 int64_t lbm_dec_i64(lbm_value x) {
 #ifndef LBM64
-  int64_t i;
-  uint32_t *data = (uint32_t*)lbm_car(x);
-  memcpy(&i, data, 8);
+  int64_t i = 0;
+  if (lbm_is_ptr(x)) {
+    uint32_t *data = (uint32_t*)lbm_ref_cell(x)->car;
+    memcpy(&i, data, 8);
+  }
   return i;
 #else
   return (int64_t)lbm_car(x);
@@ -230,10 +236,9 @@ int64_t lbm_dec_i64(lbm_value x) {
 
 char *lbm_dec_str(lbm_value val) {
   char *res = 0;
-  // If val is an array, car of val will be non-null.
   if (lbm_is_array_r(val)) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
-    res = (char *)array->data;
+    if (array) res = (char *)array->data;
   }
   return res;
 }
@@ -249,6 +254,22 @@ lbm_array_header_t *lbm_dec_array_r(lbm_value val) {
 lbm_array_header_t *lbm_dec_array_rw(lbm_value val) {
   lbm_array_header_t *array = NULL;
   if (lbm_is_array_rw(val)) {
+    array = (lbm_array_header_t *)lbm_car(val);
+  }
+  return array;
+}
+
+lbm_array_header_t *lbm_dec_lisp_array_r(lbm_value val) {
+  lbm_array_header_t *array = NULL;
+  if (lbm_is_lisp_array_r(val)) {
+    array = (lbm_array_header_t *)lbm_car(val);
+  }
+  return array;
+}
+
+lbm_array_header_t *lbm_dec_lisp_array_rw(lbm_value val) {
+  lbm_array_header_t *array = NULL;
+  if (lbm_is_lisp_array_rw(val)) {
     array = (lbm_array_header_t *)lbm_car(val);
   }
   return array;
