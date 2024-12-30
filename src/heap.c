@@ -238,6 +238,22 @@ char *lbm_dec_str(lbm_value val) {
   return res;
 }
 
+lbm_array_header_t *lbm_dec_array_r(lbm_value val) {
+  lbm_array_header_t *array = NULL;
+  if (lbm_is_array_r(val)) {
+    array = (lbm_array_header_t *)lbm_car(val);
+  }
+  return array;
+}
+
+lbm_array_header_t *lbm_dec_array_rw(lbm_value val) {
+  lbm_array_header_t *array = NULL;
+  if (lbm_is_array_rw(val)) {
+    array = (lbm_array_header_t *)lbm_car(val);
+  }
+  return array;
+}
+
 lbm_char_channel_t *lbm_dec_channel(lbm_value val) {
   lbm_char_channel_t *res = NULL;
 
@@ -1297,11 +1313,8 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 lbm_int lbm_heap_array_get_size(lbm_value arr) {
 
   lbm_int r = -1;
-  if (lbm_is_array_r(arr)) {
-    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
-    if (header == NULL) {
-      return r;
-    }
+  lbm_array_header_t *header = lbm_dec_array_r(arr);
+  if (header) {
     r = (lbm_int)header->size;
   }
   return r;
@@ -1309,8 +1322,8 @@ lbm_int lbm_heap_array_get_size(lbm_value arr) {
 
 const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr) {
   uint8_t *r = NULL;
-  if (lbm_is_array_r(arr)) {
-    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+  lbm_array_header_t *header = lbm_dec_array_r(arr);
+  if (header) {
     r = (uint8_t*)header->data;
   }
   return r;
@@ -1318,8 +1331,8 @@ const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr) {
 
 uint8_t *lbm_heap_array_get_data_rw(lbm_value arr) {
   uint8_t *r = NULL;
-  if (lbm_is_array_rw(arr)) {
-    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+  lbm_array_header_t *header = lbm_dec_array_rw(arr);
+  if (header) {
     r = (uint8_t*)header->data;
   }
   return r;

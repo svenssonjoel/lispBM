@@ -2800,10 +2800,8 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
 }
 
 static void apply_unflatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if(nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
-    lbm_array_header_t *array;
-    // By design the array ptr should be valid at this point.
-    array = (lbm_array_header_t *)get_car(args[0]);
+  lbm_array_header_t *array;
+  if(nargs == 1 && (array = lbm_dec_array_r(args[0]))) {
     lbm_flat_value_t fv;
     fv.buf = (uint8_t*)array->data;
     fv.buf_size = array->size;

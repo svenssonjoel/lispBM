@@ -67,11 +67,8 @@ static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
 // [0 65 66 0]             | [0 65 66 0]             | position of first 0 after printable characters = array->size-1
 bool lbm_value_is_printable_string(lbm_value v, char **str) {
   bool is_a_string = false;
-  if (lbm_is_array_r(v)) {    
-    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
-    // TODO: Potential null deref.
-    //       Highly unlikely that array is a recognizable NULL though.
-    //       If it is incorrect, it is most likely arbitrary.
+  lbm_array_header_t *array = lbm_dec_array_r(v);
+  if (array) {
     char *c_data = (char *)array->data;
     if (array->size > 1) { // nonzero length
       unsigned int i = 0;

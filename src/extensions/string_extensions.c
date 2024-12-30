@@ -50,8 +50,8 @@ static size_t strlen_max(const char *s, size_t maxlen) {
 
 static bool dec_str_size(lbm_value v, char **data, size_t *size) {
   bool result = false;
-  if (lbm_is_array_r(v)) {
-      lbm_array_header_t *array = (lbm_array_header_t*) lbm_car(v);
+  lbm_array_header_t *array = lbm_dec_array_r(v);
+  if (array) {
       *data = (char*)array->data;
       *size = array->size;
       result = true;
