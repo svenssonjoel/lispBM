@@ -4384,36 +4384,27 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
+  } else if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
+             (ctx->r == ENC_SYM_CLOSEPAR ||
+              ctx->r == ENC_SYM_DOT)) {
+    lbm_channel_reader_close(str);
+    lbm_set_error_reason((char*)lbm_error_str_parse_dot);
+    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+  } else if (lbm_is_cons(last_cell)) {
+    lbm_set_cdr(last_cell, ctx->r);
+    ctx->r = sptr[0]; // first cell
+    lbm_value *rptr = stack_reserve(ctx, 3);
+    sptr[0] = stream;
+    sptr[1] = ctx->r;
+    sptr[2] = READ_EXPECT_CLOSEPAR;
+    rptr[0] = stream;
+    rptr[1] = lbm_enc_u(0);
+    rptr[2] = READ_NEXT_TOKEN;
+    ctx->app_cont = true;
   } else {
-    // else to make Infer understand the following dereferences happen only on
-    // non-null addresses.
-    // TODO: this kind of NULL checks are a bit redundant
-    // as under correct operation they should never happen.
-    lbm_stack_drop(&ctx->K ,3);
-    if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-        (ctx->r == ENC_SYM_CLOSEPAR ||
-         ctx->r == ENC_SYM_DOT)) {
-      lbm_channel_reader_close(str);
-      lbm_set_error_reason((char*)lbm_error_str_parse_dot);
-      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
-    } else {
-      if (lbm_is_cons(last_cell)) {
-        lbm_set_cdr(last_cell, ctx->r);
-        ctx->r = sptr[0]; // first cell
-        lbm_value *rptr = stack_reserve(ctx, 6);
-        rptr[0] = stream;
-        rptr[1] = ctx->r;
-        rptr[2] = READ_EXPECT_CLOSEPAR;
-        rptr[3] = stream;
-        rptr[4] = lbm_enc_u(0);
-        rptr[5] = READ_NEXT_TOKEN;
-        ctx->app_cont = true;
-      } else {
-        lbm_channel_reader_close(str);
-        lbm_set_error_reason((char*)lbm_error_str_parse_dot);
-        read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
-      }
-    }
+    lbm_channel_reader_close(str);
+    lbm_set_error_reason((char*)lbm_error_str_parse_dot);
+    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
   }
 }
 
