@@ -4294,11 +4294,13 @@ static void cont_read_append_continue(eval_context_t *ctx) {
     }
   }
   lbm_value new_cell = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
-  if (lbm_is_symbol_merror(new_cell)) {
-    lbm_channel_reader_close(str);
-    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
-    return;
-  }
+  // Does not return if merror. So we cannot get a read-error here
+  // unless we write the a version of cons_with_gc here.
+  //if (lbm_is_symbol_merror(new_cell)) {
+  //  lbm_channel_reader_close(str);
+  //  read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+  //  return;
+  //}
   if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
     lbm_set_cdr(last_cell, new_cell);
     last_cell = new_cell;
@@ -4307,7 +4309,7 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   }
   sptr[0] = first_cell;
   sptr[1] = last_cell;
-  sptr[2] = stream;    // unchanged.
+  //sptr[2] = stream;    // unchanged.
   lbm_value *rptr = stack_reserve(ctx, 4);
   rptr[0] = READ_APPEND_CONTINUE;
   rptr[1] = stream;
