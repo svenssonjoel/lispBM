@@ -4319,14 +4319,16 @@ static void cont_read_append_continue(eval_context_t *ctx) {
 static void cont_read_eval_continue(eval_context_t *ctx) {
   lbm_value env;
   lbm_value stream;
-  lbm_pop_2(&ctx->K, &env, &stream);
-
+  lbm_value *sptr = get_stack_ptr(ctx, 2);
+  env = sptr[1];
+  stream = sptr[0];
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str && str->state) {
     ctx->row1 = (lbm_int)str->row(str);
     if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
       switch(ctx->r) {
       case ENC_SYM_CLOSEPAR:
+        lbm_stack_drop(&ctx->K, 2);
         ctx->app_cont = true;
         return;
       case ENC_SYM_DOT:
@@ -4336,15 +4338,13 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
         return;
       }
     }
-    lbm_value *rptr = stack_reserve(ctx, 8);
-    rptr[0] = stream;
-    rptr[1] = env;
-    rptr[2] = READ_EVAL_CONTINUE;
-    rptr[3] = stream;
-    rptr[4] = lbm_enc_u(1);
-    rptr[5] = READ_NEXT_TOKEN;
-    rptr[6] = lbm_enc_u(ctx->flags);
-    rptr[7] = POP_READER_FLAGS;
+    lbm_value *rptr = stack_reserve(ctx, 6);
+    rptr[0] = READ_EVAL_CONTINUE;
+    rptr[1] = stream;
+    rptr[2] = lbm_enc_u(1);
+    rptr[3] = READ_NEXT_TOKEN;
+    rptr[4] = lbm_enc_u(ctx->flags);
+    rptr[5] = POP_READER_FLAGS;
 
     ctx->curr_env = env;
     ctx->curr_exp = ctx->r;
