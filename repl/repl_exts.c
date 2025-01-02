@@ -29,6 +29,7 @@
 #include "extensions/runtime_extensions.h"
 #include "extensions/set_extensions.h"
 #include "extensions/display_extensions.h"
+#include "extensions/mutex_extensions.h"
 
 #include <png.h>
 // Macro expanders
@@ -901,6 +902,7 @@ int init_exts(void) {
   lbm_runtime_extensions_init();
   lbm_set_extensions_init();
   lbm_display_extensions_init();
+  lbm_mutex_extensions_init();
 
   lbm_add_symbol_const("a01", &sym_res);
   lbm_add_symbol_const("a02", &sym_loop);
