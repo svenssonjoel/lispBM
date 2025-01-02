@@ -367,7 +367,10 @@ lbm_cid lbm_get_current_cid(void);
  * a guarantee that a context is running
  */
 eval_context_t *lbm_get_current_context(void);
-
+/** Surrenders remaining eval quota.
+ *  Call this from extensions that takes non-trivial amounts of time.
+ */
+void lbm_surrender_quota(void);
 /** Change the mailbox size for a given context.
  * \param ctx The context to change mailbox size for.
  * \param new_size The new size of the mailbox.

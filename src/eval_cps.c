@@ -459,6 +459,11 @@ eval_context_t *lbm_get_current_context(void) {
   return ctx_running;
 }
 
+void lbm_surrender_quota(void) {
+  eval_steps_quota = 0;
+}
+
+
 /****************************************************/
 /* Utilities used locally in this file              */
 
