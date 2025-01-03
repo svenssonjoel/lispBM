@@ -33,6 +33,7 @@
 #include "extensions/random_extensions.h"
 #include "extensions/loop_extensions.h"
 #include "extensions/set_extensions.h"
+#include "extensions/mutex_extensions.h"
 #include "lbm_channel.h"
 #include "lbm_flat_value.h"
 
@@ -580,8 +581,9 @@ int main(int argc, char **argv) {
   lbm_matvec_extensions_init();
   lbm_random_extensions_init();
   lbm_loop_extensions_init();
-
+  lbm_mutex_extensions_init();
   lbm_set_extensions_init();
+
   lbm_add_extension("ext-even", ext_even);
   lbm_add_extension("ext-odd", ext_odd);
   lbm_add_extension("ext-numbers", ext_numbers);
