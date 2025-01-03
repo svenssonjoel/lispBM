@@ -4916,6 +4916,16 @@ lbm_value append(lbm_value front, lbm_value back) {
   return cons_with_gc(ENC_SYM_APPEND, t1, ENC_SYM_NIL);
 }
 
+// ////////////////////////////////////////////////////////////
+// Quasiquotation expansion that takes place at read time
+// and is based on the paper by Bawden "Quasiquotation in lisp".
+//
+// cont_qq_expand and cont_qq_expand_list corresponds (mostly) to
+// qq-expand and qq-expand-list in the paper.
+// One difference is that the case where a backquote is nested
+// inside of a backqoute is handled via the recursion through the
+// reader.
+
 /* Bawden's qq-expand implementation
 (define (qq-expand x)
   (cond ((tag-comma? x)
