@@ -150,6 +150,7 @@ const char* lbm_error_str_flash_error = "Error writing to flash.";
 const char* lbm_error_str_flash_full = "Flash memory is full.";
 const char* lbm_error_str_variable_not_bound = "Variable not bound.";
 const char* lbm_error_str_read_no_mem = "Out of memory while reading.";
+const char* lbm_error_str_qq_expand = "Quasiquotation expansion error.";
 
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
@@ -4955,7 +4956,8 @@ static void cont_qq_expand(eval_context_t *ctx) {
       ctx->app_cont = true;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                car_val == ENC_SYM_COMMAAT) {
-      error_ctx(ENC_SYM_RERROR);
+      lbm_set_error_reason((char*)lbm_error_str_qq_expand);
+      error_at_ctx(ENC_SYM_RERROR, qquoted);
     } else {
       lbm_value *rptr = stack_reserve(ctx, 6);
       rptr[0] = ctx->r;
@@ -5018,7 +5020,13 @@ static void cont_qq_expand_list(eval_context_t* ctx) {
       return;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                car_val == ENC_SYM_COMMAAT) {
-      ctx->r = get_car(cdr_val);
+      lbm_value cadr_val = lbm_car(cdr_val);
+      if (lbm_is_list(cadr_val)) {
+        ctx->r = cadr_val;
+      } else {
+        lbm_set_error_reason((char*)lbm_error_str_qq_expand);
+        error_at_ctx(ENC_SYM_RERROR, l);
+      }
       return;
     } else {
       lbm_value *rptr = stack_reserve(ctx, 7);
