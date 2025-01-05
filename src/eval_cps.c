@@ -4920,6 +4920,7 @@ lbm_value append(lbm_value front, lbm_value back) {
 // ////////////////////////////////////////////////////////////
 // Quasiquotation expansion that takes place at read time
 // and is based on the paper by Bawden "Quasiquotation in lisp".
+// Bawden, Alan. "Quasiquotation in Lisp." PEPM. 1999.
 //
 // cont_qq_expand and cont_qq_expand_list corresponds (mostly) to
 // qq-expand and qq-expand-list in the paper.

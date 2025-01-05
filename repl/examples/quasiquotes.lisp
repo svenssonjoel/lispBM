@@ -56,12 +56,14 @@
 (defun read-eval (str)
   (eval (read str)))
 
-(loopforeach elt qq-tests {
-             (var a (car elt))
-             (var b (cdr elt))
-             (var ra (read-eval a))
-             (var rb (read b))
-             (print "check: " a " == " b)
-             (if (eq ra rb) (print "OK: " ra " == " rb "\n")
-               (print "FAIL: " ra " != " rb "\n"))
-             })
+(defun performtest (p) {
+       (var a (car p))
+       (var b (cdr p))
+       (var ra (read-eval a))
+       (var rb (read b))
+       (print "check: " a " == " b)
+       (if (eq ra rb) (print "OK: " ra " == " rb "\n")
+         (print "FAIL: " ra " != " rb "\n"))
+       })
+
+(loopforeach elt qq-tests (performtest elt))
