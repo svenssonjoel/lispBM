@@ -1,3 +1,5 @@
+;; Lisp in small pieces chapter 2 page 58.
+;; Variations on let.
 
 (defun macro? (x)
    (and (eq (type-of x) type-list)
