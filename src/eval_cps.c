@@ -5022,12 +5022,7 @@ static void cont_qq_expand_list(eval_context_t* ctx) {
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                car_val == ENC_SYM_COMMAAT) {
       lbm_value cadr_val = lbm_car(cdr_val);
-      if (lbm_is_list(cadr_val)) {
-        ctx->r = cadr_val;
-      } else {
-        lbm_set_error_reason((char*)lbm_error_str_qq_expand);
-        error_at_ctx(ENC_SYM_RERROR, l);
-      }
+      ctx->r = cadr_val;
       return;
     } else {
       lbm_value *rptr = stack_reserve(ctx, 7);
