@@ -12,6 +12,9 @@
   arr
   })
 
+(defun is-struct (struct name)
+  (eq (ix struct 0) name))
+
 (defun accessor-sym (name field)
   (str2sym (str-merge name "-" (sym2str field))))
 
@@ -29,9 +32,11 @@
          (var num-fields (length list-of-fields))
          (var name-as-string (sym2str name))
          (var new-create-sym (str2sym (str-merge "create-" name-as-string)))
+         (var new-pred-sym (str2sym (str-merge "is-" name-as-string)))
          (var field-ix (zip list-of-fields (range 1 (+ num-fields 1))))
          `(progn
             (define ,new-create-sym (lambda () (create-struct ',name ,num-fields)))
+            (define ,new-pred-sym (lambda (struct) (is-struct struct ',name)))
             ,@(map (lambda (x) (list define (accessor-sym name-as-string (car x))
                                      (access-set (car (cdr x))))) field-ix)
             't
