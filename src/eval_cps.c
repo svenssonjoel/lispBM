@@ -1618,9 +1618,9 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
 static void mark_context(eval_context_t *ctx, void *arg1, void *arg2) {
   (void) arg1;
   (void) arg2;
-  lbm_value roots[3] = {ctx->curr_exp, ctx->program, ctx->r };
+  lbm_value roots[4] = {ctx->curr_exp, ctx->program, ctx->r, ctx->retstack };
   lbm_gc_mark_env(ctx->curr_env);
-  lbm_gc_mark_roots(roots, 3);
+  lbm_gc_mark_roots(roots, 4);
   lbm_gc_mark_roots(ctx->mailbox, ctx->num_mail);
   lbm_gc_mark_aux(ctx->K.data, ctx->K.sp);
 }
