@@ -7816,7 +7816,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4106
+4136
 ```
 
 
@@ -8021,7 +8021,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 180692 kurt-russel)
+(exit-ok 180922 kurt-russel)
 ```
 
 
@@ -8554,6 +8554,86 @@ The example below creates a macro for a `progn` facility that allows returning a
                   (print "Gizmo!")))))
  ```
  
+
+## Limited return continuations
+
+
+### push-ret
+
+`push-ret` creates a return point to which you instantly return from within an expression. The form of a `push-ret` expression is `(push-ret expr)`. From within `expr` in `(push-ret expr)` you can imemdiately return to the point from where `push-ret` was called with a value. See `pop-ret`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(push-ret (progn 1
+       2
+       3
+       (pop-ret 100)
+       4
+       5
+       6))
+```
+
+
+</td>
+<td>
+
+```clj
+100
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### pop-ret
+
+`pop-ret` returns to the return point that is at the top of the return stack. The form of a `pop-ret` expression is `(pop-ret ret-val-expr)`. When calling `pop-ret` the `ret-val-ret` is immediately provided as result for the entire nearest enclosing `(push-ret expr)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(push-ret (progn 1
+       2
+       3
+       (pop-ret 100)
+       4
+       5
+       6))
+```
+
+
+</td>
+<td>
+
+```clj
+100
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
 
 ## Error handling
 

@@ -2636,6 +2636,38 @@
             )
            ))
 
+(define push-return-value
+  (ref-entry "push-ret"
+             (list
+              (para (list "`push-ret` creates a return point to which you instantly return from within"
+                          "an expression. The form of a `push-ret` expression is `(push-ret expr)`."
+                          "From within `expr` in `(push-ret expr)` you can imemdiately return to the"
+                          "point from where `push-ret` was called with a value. See `pop-ret`."
+                          ))
+              (code '((push-ret { 1 2 3 (pop-ret 100) 4 5 6})))
+              )))
+
+(define pop-return-value
+  (ref-entry "pop-ret"
+             (list
+              (para (list "`pop-ret` returns to the return point that is at the top of the return stack."
+                          "The form of a `pop-ret` expression is `(pop-ret ret-val-expr)`."
+                          "When calling `pop-ret` the `ret-val-ret` is immediately provided as result"
+                          "for the entire nearest enclosing `(push-ret expr)`."
+                          ))
+              (code '((push-ret { 1 2 3 (pop-ret 100) 4 5 6})))
+              )))
+
+
+
+(define push-pop-ret
+  (section 2 "Limited return continuations"
+           (list push-return-value
+                 pop-return-value
+                 )
+           ))
+
+
 ;; Error handling
 
 (define error-handling
@@ -2950,6 +2982,7 @@
                                  flat-values
                                  macros
                                  cc
+                                 push-pop-ret
                                  error-handling
                                  flash
                                  type-conv
