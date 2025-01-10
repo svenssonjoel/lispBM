@@ -1,5 +1,5 @@
 /*
-    Copyright 2022, 2024 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2024, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -249,8 +249,9 @@
 #define SYM_MOVE_TO_FLASH       0x114
 #define SYM_LOOP                0x115
 #define SYM_TRAP                0x116
-#define SYM_PUSHRET             0x117
-#define SPECIAL_FORMS_END       0x117
+#define SYM_CALL_CC_UNSAFE      0x117
+#define SYM_CONT_SP             0x118
+#define SPECIAL_FORMS_END       0x118
 
 #ifndef LBM64
 #define SPECIAL_FORMS_MASK        0xFFFFFF00
@@ -510,9 +511,9 @@
 #define ENC_SYM_SORT                  ENC_SYM(SYM_SORT)
 #define ENC_SYM_REST_ARGS             ENC_SYM(SYM_REST_ARGS)
 #define ENC_SYM_ROTATE                ENC_SYM(SYM_ROTATE)
-#define ENC_SYM_PUSHRET               ENC_SYM(SYM_PUSHRET)
-#define ENC_SYM_POPRET                ENC_SYM(SYM_POPRET)
 #define ENC_SYM_TRAP                  ENC_SYM(SYM_TRAP)
+#define ENC_SYM_CALL_UNSAFE_CC        ENC_SYM(SYM_CALL_UNSAFE_CC)
+#define ENC_SYM_CONT_SP               ENC_SYM(SYM_CONT_SP)
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)
 #define ENC_SYM_SUB           ENC_SYM(SYM_SUB)

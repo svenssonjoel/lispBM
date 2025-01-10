@@ -78,7 +78,6 @@ typedef struct eval_context_s{
   char *name;
   lbm_cid id;
   lbm_cid parent;
-  lbm_value retstack;
   /* while reading */
   lbm_int row0;
   lbm_int row1;
