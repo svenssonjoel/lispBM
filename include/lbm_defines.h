@@ -249,7 +249,8 @@
 #define SYM_MOVE_TO_FLASH       0x114
 #define SYM_LOOP                0x115
 #define SYM_TRAP                0x116
-#define SPECIAL_FORMS_END       0x116
+#define SYM_PUSHRET             0x117
+#define SPECIAL_FORMS_END       0x117
 
 #ifndef LBM64
 #define SPECIAL_FORMS_MASK        0xFFFFFF00
@@ -366,6 +367,7 @@
 #define SYM_SORT                  0x30014
 #define SYM_REST_ARGS             0x30015
 #define SYM_ROTATE                0x30016
+#define SYM_POPRET                0x30017
 
 #define SYMBOL_KIND(X)          ((X) >> 16)
 #define SYMBOL_KIND_SPECIAL     0
@@ -508,6 +510,8 @@
 #define ENC_SYM_SORT                  ENC_SYM(SYM_SORT)
 #define ENC_SYM_REST_ARGS             ENC_SYM(SYM_REST_ARGS)
 #define ENC_SYM_ROTATE                ENC_SYM(SYM_ROTATE)
+#define ENC_SYM_PUSHRET               ENC_SYM(SYM_PUSHRET)
+#define ENC_SYM_POPRET                ENC_SYM(SYM_POPRET)
 #define ENC_SYM_TRAP                  ENC_SYM(SYM_TRAP)
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)

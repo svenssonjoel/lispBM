@@ -96,7 +96,8 @@ static jmp_buf critical_error_jmp_buf;
 #define RECV_TO               CONTINUATION(46)
 #define WRAP_RESULT           CONTINUATION(47)
 #define RECV_TO_RETRY         CONTINUATION(48)
-#define NUM_CONTINUATIONS     49
+#define POP_RET               CONTINUATION(49)
+#define NUM_CONTINUATIONS     50
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -1324,6 +1325,7 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
 
   ctx->id = cid;
   ctx->parent = parent;
+  ctx->retstack = ENC_SYM_NIL;
 
   if (!lbm_push(&ctx->K, DONE)) {
     lbm_memory_free((lbm_uint*)ctx->mailbox);
@@ -2266,6 +2268,15 @@ static void eval_receive(eval_context_t *ctx) {
   }
 }
 
+//(push-ret expr) 
+static void eval_push_ret(eval_context_t *ctx) {
+
+  lbm_value sp = lbm_enc_i((int32_t)ctx->K.sp); // TODO: Limits range of SP
+  ctx->retstack = cons_with_gc(sp, ctx->retstack, ENC_SYM_NIL);
+  stack_reserve(ctx,1)[0] = POP_RET;
+  ctx->curr_exp = get_cadr(ctx->curr_exp);
+}
+
 /*********************************************************/
 /*  Continuation functions                               */
 
@@ -3095,6 +3106,20 @@ static void apply_rotate(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   error_ctx(ENC_SYM_EERROR);
 }
 
+// (pop-ret value-exp) alt: (pop-ret)
+static void apply_pop_ret(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if (ctx->retstack == ENC_SYM_NIL) {
+    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_POPRET);
+    return; // dead code
+  }
+
+  ctx->r = nargs < 1 ? ENC_SYM_NIL : args[0];
+  lbm_value retpoint = get_car(ctx->retstack);
+  ctx->retstack = get_cdr(ctx->retstack);
+  ctx->K.sp = (lbm_uint)lbm_dec_i(retpoint); // TODO: limits range of SP
+  ctx->app_cont = true;
+}
+
 /***************************************************/
 /* Application lookup table                        */
 
@@ -3124,6 +3149,7 @@ static const apply_fun fun_table[] =
    apply_sort,
    apply_rest_args,
    apply_rotate,
+   apply_pop_ret,
   };
 
 /***************************************************/
@@ -5169,6 +5195,11 @@ static void cont_recv_to_retry(eval_context_t *ctx) {
   reblock_current_ctx(LBM_THREAD_STATE_RECV_TO,true);
 }
 
+static void cont_pop_ret(eval_context_t *ctx) {
+  ctx->retstack = get_cdr(ctx->retstack);
+  ctx->app_cont = true;
+}
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -5222,7 +5253,8 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_exception_handler,
     cont_recv_to,
     cont_wrap_result,
-    cont_recv_to_retry
+    cont_recv_to_retry,
+    cont_pop_ret,
   };
 
 /*********************************************************/
@@ -5253,7 +5285,8 @@ static const evaluator_fun evaluators[] =
    eval_setq,
    eval_move_to_flash,
    eval_loop,
-   eval_trap
+   eval_trap,
+   eval_push_ret
   };
 
 
