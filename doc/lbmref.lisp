@@ -2608,22 +2608,22 @@
                         "which will allow some pretty arbitrary control flow."
                         ))
             (para (list "The example below creates a macro for a `progn` facility that"
-                        "allows returning at an arbitrary point.\n"
+                        "allows returning at an arbitrary point.\n\n"
                         "```clj\n"
                         "(define do (macro (body)\n"
                         "                  `(call-cc (lambda (return) (progn ,@body)))))\n"
-                        "```\n"
+                        "```\n\n"
                         "The example using `do` below makes use of `print` which is not a"
                         "built-in feature of lispBM. There are just to many different ways a programmer may"
                         "want to implement `print` on an microcontroller. Use the lispBM extensions"
-                        "framework to implement your own version of `print`\n"
+                        "framework to implement your own version of `print`\n\n"
                         "```clj\n"
                         "(do ((print 10)\n"
                         "     (return 't)\n"
                         "     (print 20)))\n"
-                        "```\n"
+                        "```\n\n"
                         "In the example above only \"10\" will be printed."
-                        "Below is an example that conditionally returns.\n"
+                        "Below is an example that conditionally returns.\n\n"
                         "```clj\n"
                         "(define f (lambda (x)\n"
                         "            (do ((print \"hello world\")\n"
@@ -2631,41 +2631,29 @@
                         "                     (return 't)\n"
                         "                     nil)\n"
                         "                 (print \"Gizmo!\")))))\n"
-                        "```\n"
+                        "```\n\n"
                         ))
-            )
+                  
+            (ref-entry "call-cc"
+                       (list
+                        (para (list "The form of a `call-cc` expression is `(call-cc f)`, where f is a function taking a continuation k."
+                                    "In code most uses of call-cc will have the form `(call-cc (lambda (k) expr ))`."
+                                    "When using `call-cc` the expr above is allowed to bind `k` to a global variable."
+                                    ))
+                        )
+                       )           
+           (ref-entry "call-cc-unsafe"
+                      (list
+                       (para (list "`call-cc-unsafe` is similar to `call-cc` in form. `(call-cc-unsafe f)`"
+                                   "and in code usually as `(call-cc-unsafe (lambda (k) expr))`."
+                                   "When using call-cc-unsafe you must NOT let the `k` leak out of the scope created"
+                                   "by the enclosing lambda! That is, if `k` is used at all, it must be withing `expr`."
+                                   "Binding `k` to a global is a violation of the trust I am putting in you."
+                                   ))
+                       )
+                      )
            ))
-
-(define push-return-value
-  (ref-entry "push-ret"
-             (list
-              (para (list "`push-ret` creates a return point to which you instantly return from within"
-                          "an expression. The form of a `push-ret` expression is `(push-ret expr)`."
-                          "From within `expr` in `(push-ret expr)` you can imemdiately return to the"
-                          "point from where `push-ret` was called with a value. See `pop-ret`."
-                          ))
-              (code '((push-ret { 1 2 3 (pop-ret 100) 4 5 6})))
-              )))
-
-(define pop-return-value
-  (ref-entry "pop-ret"
-             (list
-              (para (list "`pop-ret` returns to the return point that is at the top of the return stack."
-                          "The form of a `pop-ret` expression is `(pop-ret ret-val-expr)`."
-                          "When calling `pop-ret` the `ret-val-ret` is immediately provided as result"
-                          "for the entire nearest enclosing `(push-ret expr)`."
-                          ))
-              (code '((push-ret { 1 2 3 (pop-ret 100) 4 5 6})))
-              )))
-
-
-
-(define push-pop-ret
-  (section 2 "Limited return continuations"
-           (list push-return-value
-                 pop-return-value
-                 )
-           ))
+  )
 
 
 ;; Error handling
@@ -2982,7 +2970,6 @@
                                  flat-values
                                  macros
                                  cc
-                                 push-pop-ret
                                  error-handling
                                  flash
                                  type-conv

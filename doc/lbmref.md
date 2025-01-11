@@ -8021,7 +8021,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 180922 kurt-russel)
+(exit-ok 180910 kurt-russel)
 ```
 
 
@@ -8534,17 +8534,22 @@ The `call-cc` should be given a function, `f`, as the single argument. This func
 From within a `call-cc` application it is possible to bind the continuation to a global variable which will allow some pretty arbitrary control flow. 
 
 The example below creates a macro for a `progn` facility that allows returning at an arbitrary point.
+
  ```clj
  (define do (macro (body)
                    `(call-cc (lambda (return) (progn ,@body)))))
  ```
+
  The example using `do` below makes use of `print` which is not a built-in feature of lispBM. There are just to many different ways a programmer may want to implement `print` on an microcontroller. Use the lispBM extensions framework to implement your own version of `print`
+
  ```clj
  (do ((print 10)
       (return 't)
       (print 20)))
  ```
+
  In the example above only "10" will be printed. Below is an example that conditionally returns.
+
  ```clj
  (define f (lambda (x)
              (do ((print "hello world")
@@ -8553,83 +8558,22 @@ The example below creates a macro for a `progn` facility that allows returning a
                       nil)
                   (print "Gizmo!")))))
  ```
+
  
 
-## Limited return continuations
 
+### call-cc
 
-### push-ret
-
-`push-ret` creates a return point to which you instantly return from within an expression. The form of a `push-ret` expression is `(push-ret expr)`. From within `expr` in `(push-ret expr)` you can imemdiately return to the point from where `push-ret` was called with a value. See `pop-ret`. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(push-ret (progn 1
-       2
-       3
-       (pop-ret 100)
-       4
-       5
-       6))
-```
-
-
-</td>
-<td>
-
-```clj
-100
-```
-
-
-</td>
-</tr>
-</table>
+The form of a `call-cc` expression is `(call-cc f)`, where f is a function taking a continuation k. In code most uses of call-cc will have the form `(call-cc (lambda (k) expr ))`. When using `call-cc` the expr above is allowed to bind `k` to a global variable. 
 
 
 
 ---
 
 
-### pop-ret
+### call-cc-unsafe
 
-`pop-ret` returns to the return point that is at the top of the return stack. The form of a `pop-ret` expression is `(pop-ret ret-val-expr)`. When calling `pop-ret` the `ret-val-ret` is immediately provided as result for the entire nearest enclosing `(push-ret expr)`. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(push-ret (progn 1
-       2
-       3
-       (pop-ret 100)
-       4
-       5
-       6))
-```
-
-
-</td>
-<td>
-
-```clj
-100
-```
-
-
-</td>
-</tr>
-</table>
+`call-cc-unsafe` is similar to `call-cc` in form. `(call-cc-unsafe f)` and in code usually as `(call-cc-unsafe (lambda (k) expr))`. When using call-cc-unsafe you must NOT let the `k` leak out of the scope created by the enclosing lambda! That is, if `k` is used at all, it must be withing `expr`. Binding `k` to a global is a violation of the trust I am putting in you. 
 
 
 
