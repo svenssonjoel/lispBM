@@ -30,6 +30,7 @@
 #include "extensions/set_extensions.h"
 #include "extensions/display_extensions.h"
 #include "extensions/mutex_extensions.h"
+#include "extensions/loop_extensions.h"
 
 #include <png.h>
 // Macro expanders
@@ -96,149 +97,6 @@ static lbm_value ext_me_defunret(lbm_value *argsi, lbm_uint argn) {
                                                  make_list(1, lbm_enc_sym(sym_return)),
                                                  body))));
 }
-
-static lbm_value ext_me_loopfor(lbm_value *args, lbm_uint argn) {
-  if (argn != 5) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value it = args[0];
-  lbm_value start = args[1];
-  lbm_value cond = args[2];
-  lbm_value update = args[3];
-  lbm_value body = args[4];
-
-  // (let ((loop (lambda (it res break) (if cond (loop update body break) res)))) (call-cc (lambda (brk) (loop start nil brk))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_LET),
-                   make_list(1,
-                             make_list(2,
-                                       lbm_enc_sym(sym_loop),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(3, it, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
-                                                 make_list(4,
-                                                           lbm_enc_sym(SYM_IF),
-                                                           cond,
-                                                           make_list(4, lbm_enc_sym(sym_loop), update, body, lbm_enc_sym(sym_break)),
-                                                           lbm_enc_sym(sym_res))))),
-                   make_list(2,
-                             lbm_enc_sym(SYM_CALLCC),
-                             make_list(3,
-                                       lbm_enc_sym(SYM_LAMBDA),
-                                       make_list(1, lbm_enc_sym(sym_brk)),
-                                       make_list(4, lbm_enc_sym(sym_loop), start, ENC_SYM_NIL, lbm_enc_sym(sym_brk)))));
-}
-
-static lbm_value ext_me_loopwhile(lbm_value *args, lbm_uint argn) {
-  if (argn != 2) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value cond = args[0];
-  lbm_value body = args[1];
-
-  // (let ((loop (lambda (res break) (if cond (loop body break) res)))) (call-cc (lambda (brk) (loop nil brk))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_LET),
-                   make_list(1,
-                             make_list(2,
-                                       lbm_enc_sym(sym_loop),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(2, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
-                                                 make_list(4,
-                                                           lbm_enc_sym(SYM_IF),
-                                                           cond,
-                                                           make_list(3, lbm_enc_sym(sym_loop), body, lbm_enc_sym(sym_break)),
-                                                           lbm_enc_sym(sym_res))))),
-                   make_list(2,
-                             lbm_enc_sym(SYM_CALLCC),
-                             make_list(3,
-                                       lbm_enc_sym(SYM_LAMBDA),
-                                       make_list(1, lbm_enc_sym(sym_brk)),
-                                       make_list(3, lbm_enc_sym(sym_loop), ENC_SYM_NIL, lbm_enc_sym(sym_brk)))));
-}
-
-static lbm_value ext_me_looprange(lbm_value *args, lbm_uint argn) {
-  if (argn != 4) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value it = args[0];
-  lbm_value start = args[1];
-  lbm_value end = args[2];
-  lbm_value body = args[3];
-
-  // (let ((loop (lambda (it res break) (if (< it end) (loop (+ it 1) body break) res)))) (call-cc (lambda (brk) (loop start nil brk))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_LET),
-                   make_list(1,
-                             make_list(2,
-                                       lbm_enc_sym(sym_loop),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(3, it, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
-                                                 make_list(4,
-                                                           lbm_enc_sym(SYM_IF),
-                                                           make_list(3, lbm_enc_sym(SYM_LT), it, end),
-                                                           make_list(4, lbm_enc_sym(sym_loop), make_list(3, lbm_enc_sym(SYM_ADD), it, lbm_enc_i(1)), body, lbm_enc_sym(sym_break)),
-                                                           lbm_enc_sym(sym_res))))),
-                   make_list(2,
-                             lbm_enc_sym(SYM_CALLCC),
-                             make_list(3,
-                                       lbm_enc_sym(SYM_LAMBDA),
-                                       make_list(1, lbm_enc_sym(sym_brk)),
-                                       make_list(4, lbm_enc_sym(sym_loop), start, ENC_SYM_NIL, lbm_enc_sym(sym_brk)))));
-}
-
-static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
-  if (argn != 3) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value it = args[0];
-  lbm_value lst = args[1];
-  lbm_value body = args[2];
-
-  // (let ((loop (lambda (it rst res break) (if (eq it nil) res (loop (car rst) (cdr rst) body break))))) (call-cc (lambda (brk) (loop (car lst) (cdr lst) nil brk))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_LET),
-                   make_list(1,
-                             make_list(2,
-                                       lbm_enc_sym(sym_loop),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(4, it, lbm_enc_sym(sym_rst), lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
-                                                 make_list(4,
-                                                           lbm_enc_sym(SYM_IF),
-                                                           make_list(3, lbm_enc_sym(SYM_EQ), it, ENC_SYM_NIL),
-                                                           lbm_enc_sym(sym_res),
-                                                           make_list(5,
-                                                                     lbm_enc_sym(sym_loop),
-                                                                     make_list(2, lbm_enc_sym(SYM_CAR), lbm_enc_sym(sym_rst)),
-                                                                     make_list(2, lbm_enc_sym(SYM_CDR), lbm_enc_sym(sym_rst)),
-                                                                     body,
-                                                                     lbm_enc_sym(sym_break))
-                                                           )))),
-                   make_list(2,
-                             lbm_enc_sym(SYM_CALLCC),
-                             make_list(3,
-                                       lbm_enc_sym(SYM_LAMBDA),
-                                       make_list(1, lbm_enc_sym(sym_brk)),
-                                       make_list(5,
-                                                 lbm_enc_sym(sym_loop),
-                                                 make_list(2, lbm_enc_sym(SYM_CAR), lst),
-                                                 make_list(2, lbm_enc_sym(SYM_CDR), lst),
-                                                 ENC_SYM_NIL,
-                                                 lbm_enc_sym(sym_brk)))));
-}
-
-
 // Math
 
 static lbm_value ext_rand(lbm_value *args, lbm_uint argn) {
@@ -934,10 +792,6 @@ int init_exts(void) {
   // Macro expanders
   lbm_add_extension("me-defun", ext_me_defun);
   lbm_add_extension("me-defunret", ext_me_defunret);
-  lbm_add_extension("me-loopfor", ext_me_loopfor);
-  lbm_add_extension("me-loopwhile", ext_me_loopwhile);
-  lbm_add_extension("me-looprange", ext_me_looprange);
-  lbm_add_extension("me-loopforeach", ext_me_loopforeach);
 
   //displaying to active image
   lbm_add_extension("set-active-image", ext_set_active_image);
@@ -994,12 +848,7 @@ static const char* functions[] = {
 
 static const char* macros[] = {
   "(define defun (macro (name args body) (me-defun name args body)))",
-  "(define defunret (macro (name args body) (me-defunret name args body)))",
-  "(define loopfor (macro (it start cnd update body) (me-loopfor it start cnd update body)))",
-  "(define loopwhile (macro (cnd body) (me-loopwhile cnd body)))",
-  "(define looprange (macro (it start end body) (me-looprange it start end body)))",
-  "(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))",
-  "(define loopwhile-thd (macro (stk cnd body) `(spawn ,stk (fn () (loopwhile ,cnd ,body)))))",
+  "(define defunret (macro (name args body) (me-defunret name args body)))"
 };
 
 static bool strmatch(const char *str1, const char *str2) {
@@ -1021,6 +870,13 @@ static bool strmatch(const char *str1, const char *str2) {
 }
 
 bool dynamic_loader(const char *str, const char **code) {
+  for (unsigned int i = 0; i < (sizeof(loop_extensions_dyn_load) / sizeof(loop_extensions_dyn_load[0]));i++) {
+    if (strmatch(str, loop_extensions_dyn_load[i] + 8)) {
+      *code = loop_extensions_dyn_load[i];
+      return true;
+    }
+  }
+
   for (unsigned int i = 0; i < (sizeof(macros) / sizeof(macros[0]));i++) {
     if (strmatch(str, macros[i] + 8)) {
       *code = macros[i];
