@@ -2647,8 +2647,8 @@
                        (para (list "`call-cc-unsafe` is similar to `call-cc` in form. `(call-cc-unsafe f)`"
                                    "and in code usually as `(call-cc-unsafe (lambda (k) expr))`."
                                    "When using call-cc-unsafe you must NOT let the `k` leak out of the scope created"
-                                   "by the enclosing lambda! That is, if `k` is used at all, it must be withing `expr`."
-                                   "Binding `k` to a global is a violation of the trust I am putting in you."
+                                   "by the enclosing `call-cc-unsafe`! That is, if `k` is used at all, it must be within `expr`."
+                                   "Binding `k` (directly or indirectly) to a global is a violation of the trust I am putting in you."
                                    ))
                        )
                       )
