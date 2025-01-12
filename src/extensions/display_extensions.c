@@ -1877,7 +1877,7 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
   res.is_valid = false;
 
   lbm_array_header_t *arr;
-  if (argn > 1 && (arr = get_image_buffer(args[0]))) {
+  if (argn >= 1 && (arr = get_image_buffer(args[0]))) {
     // at least one argument which is an image buffer.
     res.img.width = image_buffer_width((uint8_t*)arr->data);
     res.img.height = image_buffer_height((uint8_t*)arr->data);
