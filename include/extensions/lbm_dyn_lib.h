@@ -32,14 +32,14 @@ const char* lbm_dyn_fun[] = {
   "(defun apply (f lst) (eval (cons f lst)))",
 
   "(defun zipwith (f xs ys) "
-  "   (let (( zip-acc (lambda (acc xs ys) "
-  "                  (if (and xs ys) "
-  "                      (zip-acc (cons (f (car xs) (car ys)) acc) (cdr xs) (cdr ys)) "
-  "                    acc)))) "
-  "  (reverse (zip-acc nil xs ys))))",
+  "(let (( zip-acc (lambda (acc xs ys) "
+  "(if (and xs ys) "
+  "(zip-acc (cons (f (car xs) (car ys)) acc) (cdr xs) (cdr ys)) "
+  "acc)))) "
+  "(reverse (zip-acc nil xs ys))))",
 
   "(defun zip (xs ys) "
-  "    (zipwith cons xs ys))",
+  "(zipwith cons xs ys))",
 
   "(defun filter (f lst)"
   "(let ((filter-rec (lambda (f lst ys)"
@@ -63,12 +63,12 @@ const char* lbm_dyn_fun[] = {
 const char* lbm_dyn_macros[] =
   {
   "(define defun "
-  "   (macro (name param body) "
-  "           `(define ,name (lambda ,param ,body))))",
+  "(macro (name param body) "
+  "`(define ,name (lambda ,param ,body))))",
 
   "(define defunret "
-  "  (macro (name param body) "
-  "         `(define ,name (lambda ,param (call-cc-unsafe (lambda (return) ,body))))))"
+  "(macro (name param body) "
+  "`(define ,name (lambda ,param (call-cc-unsafe (lambda (return) ,body))))))"
 
   };
 
@@ -76,34 +76,34 @@ const char *lbm_dyn_loop[] =
   {
   "(define loopfor "
   "(macro (it start cnd update body) "
-  "      `(call-cc-unsafe (lambda (break) "
-  "                         (let ((a02 (lambda (,it a01) "
-  "                                       (if ,cnd (a02 ,update ,body) a01)))) "
-  "                           (a02 ,start nil)))) "
-  "       ))",
+  "`(call-cc-unsafe (lambda (break) "
+  "(let ((a02 (lambda (,it a01) "
+  "(if ,cnd (a02 ,update ,body) a01)))) "
+  "(a02 ,start nil)))) "
+  "))",
 
   "(define loopwhile "
   "(macro (cnd body) "
-  "       `(call-cc-unsafe (lambda (break) (let ((a02 (lambda (a01) "
-  "                    (if ,cnd (a02 ,body) a01)))) "
-  "         (a02 nil)))) "
-  "      )) ",
+  "`(call-cc-unsafe (lambda (break) (let ((a02 (lambda (a01) "
+  "(if ,cnd (a02 ,body) a01)))) "
+  "(a02 nil)))) "
+  ")) ",
 
   "(define looprange "
   "(macro (it start end body) "
-  "       `(call-cc-unsafe "
-  "        (lambda (break) "
-  "          (let ((a02 (lambda (,it a01) "
-  "                       (if (< ,it ,end) (a02 (+ ,it 1) ,body) a01)))) "
-  "            (a02 ,start nil)))) "
-  "      )) ",
+  "`(call-cc-unsafe "
+  "(lambda (break) "
+  "(let ((a02 (lambda (,it a01) "
+  "(if (< ,it ,end) (a02 (+ ,it 1) ,body) a01)))) "
+  "(a02 ,start nil)))) "
+  ")) ",
 
   "(define loopforeach "
   "(macro (it lst body) "
-  "      `(call-cc-unsafe (lambda (break) (let ((a02 (lambda (,it a04 a01) "
-  "                     (if (eq ,it nil) a01 (a02 (car a04) (cdr a04) ,body))))) "
-  "         (a02 (car ,lst) (cdr ,lst) nil)))) "
-  "      )) "
+  "`(call-cc-unsafe (lambda (break) (let ((a02 (lambda (,it a04 a01) "
+  "(if (eq ,it nil) a01 (a02 (car a04) (cdr a04) ,body))))) "
+  "(a02 (car ,lst) (cdr ,lst) nil)))) "
+  ")) "
   };
 
 
