@@ -4573,7 +4573,6 @@ static void cont_application_start(eval_context_t *ctx) {
       lbm_value atomic = get_cadr(get_cdr(ctx->r));
 
       if (!lbm_is_number(c)) {
-        printf("Not a number\n");
         error_ctx(ENC_SYM_FATAL_ERROR);
       }
 
@@ -4598,8 +4597,6 @@ static void cont_application_start(eval_context_t *ctx) {
               ctx->curr_exp = arg;
               return;
       } else {
-        printf("%s\n", IS_CONTINUATION(ctx->K.data[sp-1]) ? "IS CONT" : "ISNT CONT");
-        printf("%d %d\n", sp, ctx->K.sp);
         error_ctx(ENC_SYM_FATAL_ERROR);
       }
     } break;
