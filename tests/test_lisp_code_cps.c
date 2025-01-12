@@ -146,11 +146,6 @@ static bool strmatch(const char *str1, const char *str2) {
   return same;
 }
 
-bool dynamic_loader(const char *str, const char **code) {
-
-}
-
-
 bool dyn_load(const char *str, const char **code) {
 
   size_t len = strlen(str);
