@@ -700,6 +700,7 @@ int init_exts(void) {
   lbm_display_extensions_init();
   lbm_mutex_extensions_init();
   lbm_loop_extensions_init();
+  lbm_dyn_lib_init();
 
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
   lbm_add_extension("exec", ext_exec);

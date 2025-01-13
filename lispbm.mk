@@ -28,7 +28,8 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/display_extensions.c \
              $(LISPBM)/src/extensions/loop_extensions.c \
              $(LISPBM)/src/extensions/tjpgd.c \
-             $(LISPBM)/src/extensions/mutex_extensions.c
+             $(LISPBM)/src/extensions/mutex_extensions.c \
+             $(LISPBM)/src/extensions/lbm_dyn_lib.c 
 
 LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/eval_cps.h \

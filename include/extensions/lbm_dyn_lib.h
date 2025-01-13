@@ -60,16 +60,11 @@ const char* lbm_dyn_fun[] = {
   "(defun abs (x) (if (< x 0) (- x) x))",
 };
 
-const char* lbm_dyn_macros[] =
-  {
-  "(define defun "
-  "(macro (name param body) "
-  "`(define ,name (lambda ,param ,body))))",
+const char* lbm_dyn_macros[] = {
+  "(define defun (macro (name args body) (me-defun name args body)))",
+  "(define defunret (macro (name args body) (me-defunret name args body)))"
+};
 
-  "(define defunret "
-  "(macro (name param body) "
-  "`(define ,name (lambda ,param (call-cc-unsafe (lambda (return) ,body))))))"
-
-  };
+void lbm_dyn_lib_init(void);
 
 #endif
