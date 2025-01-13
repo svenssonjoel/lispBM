@@ -512,7 +512,7 @@
 #define ENC_SYM_REST_ARGS             ENC_SYM(SYM_REST_ARGS)
 #define ENC_SYM_ROTATE                ENC_SYM(SYM_ROTATE)
 #define ENC_SYM_TRAP                  ENC_SYM(SYM_TRAP)
-#define ENC_SYM_CALL_UNSAFE_CC        ENC_SYM(SYM_CALL_UNSAFE_CC)
+#define ENC_SYM_CALL_CC_UNSAFE        ENC_SYM(SYM_CALL_CC_UNSAFE)
 #define ENC_SYM_CONT_SP               ENC_SYM(SYM_CONT_SP)
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)

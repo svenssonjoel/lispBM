@@ -33,6 +33,7 @@
 #include "extensions/random_extensions.h"
 #include "extensions/set_extensions.h"
 #include "extensions/mutex_extensions.h"
+#include "extensions/loop_extensions.h"
 #include "extensions/lbm_dyn_lib.h"
 #include "lbm_channel.h"
 #include "lbm_flat_value.h"
@@ -193,9 +194,9 @@ bool dyn_load(const char *str, const char **code) {
     return true;
   }
 
-  for (unsigned int i = 0; i < (sizeof(lbm_dyn_loop) / sizeof(lbm_dyn_loop[0]));i++) {
-    if (strmatch(str, lbm_dyn_loop[i] + 8)) {
-      *code = lbm_dyn_loop[i];
+  for (unsigned int i = 0; i < (sizeof(loop_extensions_dyn_load) / sizeof(loop_extensions_dyn_load[0]));i++) {
+    if (strmatch(str, loop_extensions_dyn_load[i] + 8)) {
+      *code = loop_extensions_dyn_load[i];
       return true;
     }
   }
@@ -614,6 +615,7 @@ int main(int argc, char **argv) {
   lbm_random_extensions_init();
   lbm_mutex_extensions_init();
   lbm_set_extensions_init();
+  lbm_loop_extensions_init();
 
   lbm_add_extension("ext-even", ext_even);
   lbm_add_extension("ext-odd", ext_odd);
