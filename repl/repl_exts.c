@@ -737,24 +737,6 @@ int init_exts(void) {
 
 // Dynamic loader
 
-static bool strmatch(const char *str1, const char *str2) {
-  size_t len = strlen(str1);
-
-  if (str2[len] != ' ') {
-    return false;
-  }
-
-  bool same = true;
-  for (unsigned int i = 0;i < len;i++) {
-    if (str1[i] != str2[i]) {
-      same = false;
-      break;
-    }
-  }
-
-  return same;
-}
-
 bool dynamic_loader(const char *str, const char **code) {
   for (unsigned int i = 0; i < (sizeof(loop_extensions_dyn_load) / sizeof(loop_extensions_dyn_load[0]));i++) {
     if (strmatch(str, loop_extensions_dyn_load[i] + 8)) {
@@ -762,20 +744,5 @@ bool dynamic_loader(const char *str, const char **code) {
       return true;
     }
   }
-
-  for (unsigned int i = 0; i < (sizeof(lbm_dyn_macros) / sizeof(lbm_dyn_macros[0]));i++) {
-    if (strmatch(str, lbm_dyn_macros[i] + 8)) {
-      *code = lbm_dyn_macros[i];
-      return true;
-    }
-  }
-
-  for (unsigned int i = 0; i < (sizeof(lbm_dyn_fun) / sizeof(lbm_dyn_fun[0]));i++) {
-    if (strmatch(str, lbm_dyn_fun[i] + 7)) {
-      *code = lbm_dyn_fun[i];
-      return true;
-    }
-  }
-
-  return false;
+  return lbm_dyn_lib_find(str, code);
 }

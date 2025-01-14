@@ -133,6 +133,7 @@ lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn);
 // Extension writing helpers
 
 extern lbm_value make_list(int num, ...);
+extern bool strmatch(const char *str1, const char *str2);
   
 static inline lbm_value mk_lam(lbm_value args, lbm_value body) {
   return make_list(3, ENC_SYM_LAMBDA, args, body);

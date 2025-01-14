@@ -18,6 +18,56 @@
 
 #include <extensions.h>
 
+#ifndef LBM_NO_DYN_FUNS
+static const char* lbm_dyn_fun[] = {
+  "(defun str-merge () (str-join (rest-args)))",
+  "(defun iota (n) (range n))",
+
+  "(defun foldl (f init lst)"
+  "(if (eq lst nil) init (foldl f (f init (car lst)) (cdr lst))))",
+
+  "(defun foldr (f init lst)"
+  "(if (eq lst nil) init (f (car lst) (foldr f init (cdr lst)))))",
+
+  "(defun apply (f lst) (eval (cons f lst)))",
+
+  "(defun zipwith (f xs ys) "
+  "(let (( zip-acc (lambda (acc xs ys) "
+  "(if (and xs ys) "
+  "(zip-acc (cons (f (car xs) (car ys)) acc) (cdr xs) (cdr ys)) "
+  "acc)))) "
+  "(reverse (zip-acc nil xs ys))))",
+
+  "(defun zip (xs ys) "
+  "(zipwith cons xs ys))",
+
+  "(defun filter (f lst)"
+  "(let ((filter-rec (lambda (f lst ys)"
+  "(if (eq lst nil)"
+  "(reverse ys)"
+  "(if (f (car lst))"
+  "(filter-rec f (cdr lst) (cons (car lst) ys))"
+  "(filter-rec f (cdr lst) ys))))))"
+  "(filter-rec f lst nil)"
+  "))",
+
+  "(defun str-cmp-asc (a b) (< (str-cmp a b) 0))",
+  "(defun str-cmp-dsc (a b) (> (str-cmp a b) 0))",
+
+  "(defun second (x) (car (cdr x)))",
+  "(defun third (x) (car (cdr (cdr x))))",
+
+  "(defun abs (x) (if (< x 0) (- x) x))",
+};
+#endif
+
+#ifndef LBM_NO_DYN_MACROS
+static const char* lbm_dyn_macros[] = {
+  "(define defun (macro (name args body) (me-defun name args body)))",
+  "(define defunret (macro (name args body) (me-defunret name args body)))",
+  "(define defmacro (macro (name args body) `(define ,name (macro ,args ,body))))"
+};
+
 static lbm_uint sym_return;
 
 static lbm_value ext_me_defun(lbm_value *argsi, lbm_uint argn) {
@@ -32,9 +82,9 @@ static lbm_value ext_me_defun(lbm_value *argsi, lbm_uint argn) {
   // (define name (lambda args body))
 
   return make_list(3,
-		   ENC_SYM_DEFINE,
-		   name,
-		   mk_lam(args, body));
+                   ENC_SYM_DEFINE,
+                   name,
+                   mk_lam(args, body));
 }
 
 static lbm_value ext_me_defunret(lbm_value *argsi, lbm_uint argn) {
@@ -49,16 +99,41 @@ static lbm_value ext_me_defunret(lbm_value *argsi, lbm_uint argn) {
   // (def name (lambda args (call-cc (lambda (return) body))))
 
   return make_list(3,
-		   ENC_SYM_DEFINE,
-		   name,
-		   mk_lam(args,
-			  mk_call_cc(mk_lam(make_list(1, lbm_enc_sym(sym_return)),
-					    body))));
+                   ENC_SYM_DEFINE,
+                   name,
+                   mk_lam(args,
+                          mk_call_cc(mk_lam(make_list(1, lbm_enc_sym(sym_return)),
+                                            body))));
 }
 
+#endif
+
 void lbm_dyn_lib_init(void) {
+#ifndef LBM_NO_DYN_MACROS
   lbm_add_symbol_const("return", &sym_return);
-  
+
   lbm_add_extension("me-defun", ext_me_defun);
   lbm_add_extension("me-defunret", ext_me_defunret);
+#endif
+}
+
+bool lbm_dyn_lib_find(const char *str, const char **code) {
+#ifndef LBM_NO_DYN_MACROS
+  for (unsigned int i = 0; i < (sizeof(lbm_dyn_macros) / sizeof(lbm_dyn_macros[0]));i++) {
+    if (strmatch(str, lbm_dyn_macros[i] + 8)) { // define is 6 char
+      *code = lbm_dyn_macros[i];
+      return true;
+    }
+  }
+#endif
+
+#ifndef LBM_NO_DYN_FUNS
+  for (unsigned int i = 0; i < (sizeof(lbm_dyn_fun) / sizeof(lbm_dyn_fun[0]));i++) {
+    if (strmatch(str, lbm_dyn_fun[i] + 7)) { // defun is 5
+      *code = lbm_dyn_fun[i];
+      return true;
+    }
+  }
+#endif
+  return false;
 }
