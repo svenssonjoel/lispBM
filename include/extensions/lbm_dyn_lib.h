@@ -62,7 +62,8 @@ const char* lbm_dyn_fun[] = {
 
 const char* lbm_dyn_macros[] = {
   "(define defun (macro (name args body) (me-defun name args body)))",
-  "(define defunret (macro (name args body) (me-defunret name args body)))"
+  "(define defunret (macro (name args body) (me-defunret name args body)))",
+  "(define defmacro (macro (name args body) `(define ,name (macro ,args ,body))))"
 };
 
 void lbm_dyn_lib_init(void);
