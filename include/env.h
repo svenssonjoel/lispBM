@@ -1,6 +1,6 @@
 /** \file env.h */
 /*
-    Copyright 2018 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2018, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
