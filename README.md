@@ -15,7 +15,9 @@ LispBM can also be built to run on top of a regular linux.
 The LispBM mascot, Lispy the llama, was created by
 [PixiLadyArt](https://www.instagram.com/pixiladyart/). Thank you, Pixi! 
 
-## Want to get involved and help out?
+## Contribute to LispBM!
+LispBM is an open source project and welcomes collaboration and contribution.
+Do you want to get involved and help out?
 
  - Check out the [lispbm.com](http://www.lispbm.com) website.
  - Join the [discord server](https://discord.gg/urtJUUMnwQ).
