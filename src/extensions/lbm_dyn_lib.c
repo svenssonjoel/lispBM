@@ -18,7 +18,7 @@
 
 #include <extensions.h>
 
-#ifndef LBM_NO_DYN_FUNS
+#ifdef LBM_USE_DYN_FUNS
 static const char* lbm_dyn_fun[] = {
   "(defun str-merge () (str-join (rest-args)))",
   "(defun iota (n) (range n))",
@@ -58,14 +58,52 @@ static const char* lbm_dyn_fun[] = {
   "(defun third (x) (car (cdr (cdr x))))",
 
   "(defun abs (x) (if (< x 0) (- x) x))",
+#ifdef LBM_USE_DYN_DEFSTRUCT
+  "(defun create-struct (name num-fields) { "
+  "(var arr (mkarray (+ 1 num-fields))) "
+  "(setix arr 0 name) "
+  "arr "
+  "})",
+
+  "(defun is-struct (struct name) "
+  "(and (eq (type-of struct) type-lisparray) "
+  "(eq (ix struct 0) name)))",
+
+  "(defun accessor-sym (name field) "
+  "(str2sym (str-merge name \"-\" (sym2str field))))",
+
+  "(defun access-set (i) "
+  "(lambda (struct) "
+  "(if (rest-args) "
+  "(setix struct i (rest-args 0)) "
+  "(ix struct i)))) ",
+#endif
 };
 #endif
 
-#ifndef LBM_NO_DYN_MACROS
+#ifdef LBM_USE_DYN_MACROS
 static const char* lbm_dyn_macros[] = {
   "(define defun (macro (name args body) (me-defun name args body)))",
   "(define defunret (macro (name args body) (me-defunret name args body)))",
-  "(define defmacro (macro (name args body) `(define ,name (macro ,args ,body))))"
+  "(define defmacro (macro (name args body) `(define ,name (macro ,args ,body))))",
+#ifdef LBM_USE_DYN_DEFSTRUCT
+  "(define defstruct (macro (name list-of-fields)"
+  "{"
+  "(var num-fields (length list-of-fields))"
+  "(var name-as-string (sym2str name))"
+  "(var new-create-sym (str2sym (str-merge \"make-\" name-as-string)))"
+  "(var new-pred-sym (str2sym (str-merge name-as-string \"?\")))"
+  "(var field-ix (zip list-of-fields (range 1 (+ num-fields 1))))"
+  "`(progn"
+  "(define ,new-create-sym (lambda () (create-struct ',name ,num-fields)))"
+  "(define ,new-pred-sym (lambda (struct) (is-struct struct ',name)))"
+  ",@(map (lambda (x) (list define (accessor-sym name-as-string (car x))"
+  "(access-set (cdr x)))) field-ix)"
+  "'t"
+  ")"
+  "}))",
+
+#endif
 };
 
 static lbm_uint sym_return;
@@ -109,7 +147,7 @@ static lbm_value ext_me_defunret(lbm_value *argsi, lbm_uint argn) {
 #endif
 
 void lbm_dyn_lib_init(void) {
-#ifndef LBM_NO_DYN_MACROS
+#ifdef LBM_USE_DYN_MACROS
   lbm_add_symbol_const("return", &sym_return);
 
   lbm_add_extension("me-defun", ext_me_defun);
@@ -118,7 +156,7 @@ void lbm_dyn_lib_init(void) {
 }
 
 bool lbm_dyn_lib_find(const char *str, const char **code) {
-#ifndef LBM_NO_DYN_MACROS
+#ifdef LBM_USE_DYN_MACROS
   for (unsigned int i = 0; i < (sizeof(lbm_dyn_macros) / sizeof(lbm_dyn_macros[0]));i++) {
     if (strmatch(str, lbm_dyn_macros[i] + 8)) { // define is 6 char
       *code = lbm_dyn_macros[i];
@@ -127,7 +165,7 @@ bool lbm_dyn_lib_find(const char *str, const char **code) {
   }
 #endif
 
-#ifndef LBM_NO_DYN_FUNS
+#ifdef LBM_USE_DYN_FUNS
   for (unsigned int i = 0; i < (sizeof(lbm_dyn_fun) / sizeof(lbm_dyn_fun[0]));i++) {
     if (strmatch(str, lbm_dyn_fun[i] + 7)) { // defun is 5
       *code = lbm_dyn_fun[i];

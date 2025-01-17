@@ -26,7 +26,7 @@
       (ix struct i))))
   
 
-(defmacro defstruct (name list-of-fields)
+(define defstruct (macro (name list-of-fields)
          {
          (var num-fields (length list-of-fields))
          (var name-as-string (sym2str name))
@@ -40,6 +40,6 @@
                                      (access-set (car (cdr x))))) field-ix)
             't
             )
-         })
+         }))
 
 
