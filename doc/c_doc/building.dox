@@ -4,8 +4,9 @@
 
 <p> LispBM is intended to be integrated into a larger application and then building
 LispBM is a part of building that larger application. Currently there are no detailed
-instructions on how to set that up other than the examples that exists in https://https://github.com/vedderb/vesc_express
-and https://https://github.com/vedderb/BLDC. </p>
+instructions on how to set that up other than the examples that exists in
+<a href="https://github.com/vedderb/vesc_express">vesc_express</a>, <a href="https://github.com/vedderb/BLDC">BLDC</a>.
+and in the <a href="https://github.com/svenssonjoel/lispBM/tree/master/repl">LispBM REPL</a>.</p>
 
 
 <h2 id="cond_build"> Conditional building of features </h2>
@@ -24,35 +25,36 @@ These should be added as a -D... flag to the C compiler for the LispBM compilati
 
 <p> Start by cloning the LispBM repository. Open a terminal and issue command</p>
 
-<pre>
+@code
 git clone https://github.com/svenssonjoel/lispBM.git
-</pre>
+@endcode
 
 <p> You should now have a directory called lispBM. Go into it and into the <code>repl</code> subdirectory. </p>
     
-<pre>
+@code
 cd lispBM
 cd repl
-</pre>
+@endcode
 
 <p> Now, you have multiple choices on how to build the REPL. To build the 32bit version (which is most similar to what you will run on a microcontroller) issue the <code>make</code> command. </p>
-<pre>
+
+@code
 make
-</pre>
+@endcode
 
 <p> If the make command above fails, it is most likely because there are some missing dependencies. </p>
 <p> Building the 32bit version of the repl requires 32bit libraries. If you are on an Ubuntu platform you get 32bit standard libraries by installing <code>gcc-multilib</code>. </p>
 <p> In addition to <code>gcc-multilib</code> the REPL requires libreadline andlibpng. You need to get the 32bit versions of these libraries. On Ubuntu you can run the following commands. </p>
 
-<pre>
+@code
 sudo apt install gcc-multilib libreadline-dev:i386 libpng-dev:i386
-</pre>
+@endcode
 
 <p> If you were unable to install the 32bit dependencies with the command above, you may need to instruct the package manager that you are interested in 32bit packages as well.</p>
     
-<pre>
+@code
 sudo dpkg --add-architecture i386
-</pre>
+@endcode
 
 <p> Then retry the previous step to install the dependencies. </p>
 
@@ -60,13 +62,13 @@ sudo dpkg --add-architecture i386
 
 <p> Start the REPL and explore! </p>
 
-<pre>
+@code
 ./repl
-</pre> 
+@endcode 
 
 <p> You should now be greeted by the LispBM REPL in a way similar to what is shown below.</p>
 
-<pre>
+@code
 Lisp REPL started! (LBM Version: 0.27.1)
 Type :quit to exit.
      :info for statistics.
@@ -84,29 +86,29 @@ Type :quit to exit.
 # (+ 1 2)
 > 3
 # 
-</pre>
+@endcode
 
 <p> When you input code at the <code>#</code> prompt, LispBM answers on a new line starting with <code>></code>.</p>
 
 <p> Alternatively the REPL can be built as a 64bit binary. Building the 64bit binary requires 64bit versions of the readline and png libraries. </p>
 <p> On Ubuntu you get the dependcies by doing <code>sudo apt install libreadline-dev libpng-dev</code>. Then to build the executable you issue the following command.</p>
 
-<pre>
+@code
 make all64
-</pre>
+@endcode
 
 <p> Lastly, the REPL can be build with <a href="https://www.libsdl.org/">SDL (Simple Directmedia Layer)</a> for graphical output.
 This is done by issueing the following command.</p>
 
-<pre>
+@code
 make sdl64 
-</pre>
+@endcode
 
 <p> Or for 32bit.</p>
 
-<pre>
+@code
 make sdl
-</pre>
+@endcode
 
 <p>The REPL with SDL requires <code>libsdl2-dev</code> and <code>libsdl2-image-dev</code> libraries or
 the 32 bit versions (for 32bit repl binary) <code>libsdl2-dev:i386</code> and <code>libsdl2-image-dev:i386</code>.</p>
