@@ -186,8 +186,12 @@ static lbm_value ext_axpy(lbm_value *args, lbm_uint argn ) {
       res = vector_float_allocate(res_size);
       if (!lbm_is_symbol_merror(res)) {
         vector_float_t *R = (vector_float_t*)lbm_get_custom_value(res);
-        for (unsigned i = 0; i < res_size; i ++) {
-          R->data[i] = alpha * X->data[i] + Y->data[i];
+        if (R->data) {
+          for (unsigned i = 0; i < res_size; i ++) {
+            R->data[i] = alpha * X->data[i] + Y->data[i];
+          }
+        } else {
+          res = ENC_SYM_FATAL_ERROR;
         }
       }
     }
@@ -290,7 +294,11 @@ static lbm_value ext_list_to_matrix(lbm_value *args, lbm_uint argn) {
         lbm_value curr = args[1];
         unsigned int i = 0;
         while (lbm_is_cons(curr)) {
-          lmat->data[i] = lbm_dec_as_float(lbm_car(curr));
+          if (lmat->data) {
+            lmat->data[i] = lbm_dec_as_float(lbm_car(curr));
+          } else {
+            return ENC_SYM_FATAL_ERROR;
+          }
           i ++;
           curr = lbm_cdr(curr);
         }
