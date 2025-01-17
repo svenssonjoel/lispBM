@@ -617,7 +617,7 @@ int main(int argc, char **argv) {
 
   lbm_set_verbose(true);
 
-  printf("LBM memory free: %u words, %u bytes \n", lbm_memory_num_free(), lbm_memory_num_free() * sizeof(lbm_uint));
+  printf("LBM memory free: %"PRI_UINT" words, %"PRI_UINT" bytes \n", lbm_memory_num_free(), lbm_memory_num_free() * sizeof(lbm_uint));
 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
@@ -660,7 +660,7 @@ int main(int argc, char **argv) {
   }
 
   test_cid = cid; // the result which is important for success or failure of test.
-  printf("test_cid = %d\n", test_cid);
+  printf("test_cid = %"PRI_INT"\n", test_cid);
 
   lbm_continue_eval();
   uint32_t stream_i = 0;

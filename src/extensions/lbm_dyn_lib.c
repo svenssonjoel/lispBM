@@ -156,6 +156,13 @@ void lbm_dyn_lib_init(void) {
 }
 
 bool lbm_dyn_lib_find(const char *str, const char **code) {
+#ifndef LBM_USE_DYN_MACROS
+#ifndef LBM_USE_DYN_FUNS
+  (void)str;
+  (void)code;
+#endif
+#endif
+
 #ifdef LBM_USE_DYN_MACROS
   for (unsigned int i = 0; i < (sizeof(lbm_dyn_macros) / sizeof(lbm_dyn_macros[0]));i++) {
     if (strmatch(str, lbm_dyn_macros[i] + 8)) { // define is 6 char
