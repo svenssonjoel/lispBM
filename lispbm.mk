@@ -59,7 +59,6 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions/display_extensions.h \
            $(LISPBM)/include/extensions/lbm_dyn_lib.h \
            $(LISPBM)/include/extensions/math_extensions.h \
-           $(LISPBM)/include/extensions/matvec_extensions.h \
            $(LISPBM)/include/extensions/random_extensions.h \
            $(LISPBM)/include/extensions/runtime_extensions.h \
            $(LISPBM)/include/extensions/set_extensions.h \
