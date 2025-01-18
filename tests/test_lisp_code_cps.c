@@ -29,7 +29,6 @@
 #include "extensions/math_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/runtime_extensions.h"
-#include "extensions/matvec_extensions.h"
 #include "extensions/random_extensions.h"
 #include "extensions/set_extensions.h"
 #include "extensions/mutex_extensions.h"
@@ -578,7 +577,6 @@ int main(int argc, char **argv) {
   lbm_math_extensions_init();
   lbm_string_extensions_init();
   lbm_runtime_extensions_init();
-  lbm_matvec_extensions_init();
   lbm_random_extensions_init();
   lbm_mutex_extensions_init();
   lbm_set_extensions_init();
