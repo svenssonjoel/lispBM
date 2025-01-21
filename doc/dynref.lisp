@@ -232,13 +232,14 @@
               )
              ))
 
+
 (define dm-defmacro
   (ref-entry "defmacro"
              (list
               (para (list "`defmacro` is a macro that provides a shorthand form for defining macros."
                           "`(defmacro name args body)` expands into `(define name (macro args body))`."
                           ))
-              (code '((defmacro my-macro (a) `(list 'apa ,a))
+              (code '((read-eval "(defmacro my-macro (a) `(list 'apa ,a))")
                       (my-macro 10)
                       ))
                                 

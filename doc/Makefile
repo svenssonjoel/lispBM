@@ -2,7 +2,7 @@
 # install it by running `make install` in ../repl.
 
 
-all: lbmref.md displayref.md runtimeref.md strange.md efficient.md
+all: lbmref.md displayref.md runtimeref.md strange.md efficient.md dynref.md
 
 doclib.env: doclib.lisp
 	lbm -H 100000 -M 11 --src="doclib.lisp" --store_env=doclib.env --terminate

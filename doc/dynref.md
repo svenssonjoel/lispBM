@@ -800,7 +800,7 @@ nil
 <td>
 
 ```clj
-(defmacro my-macro (a) (append '(list) (list ''apa) (list a)))
+(defmacro my-macro (a) `(list 'apa ,a))
 ```
 
 
