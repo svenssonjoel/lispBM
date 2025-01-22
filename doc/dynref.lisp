@@ -435,9 +435,13 @@
                              "fields `(defstruct name list-of-fields)`."
                              ))
                  (para (list "Structs are implemented as arrays of lisp values and offer constant time"
-                             "lookup of each of its fields."
+                             "lookup of each of its fields. The struct itself does not occupy heap cells, but"
+                             "the values stored in the fields may."
                              ))
-                 (para (list "This example creates a structure type called my-struct with three fields"
+                 (para (list "As structs are allocated from array memory (lbm_memory), there is a potential"
+                             "for causing memory fragmentation."
+                             ))
+                 (para (list "The example below creates a structure type called my-struct with three fields"
                              "called `a`, `b` and `c`."
                              ))
                  (code '((defstruct my-struct (a b c))

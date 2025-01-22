@@ -1115,9 +1115,11 @@ Example that forever prints "Hello World" every two seconds:
 
 `defstruct` defines a datastructure with named fields similar to a `struct` in C.  `defstruct` takes two arguments, a struct name and a list of fields `(defstruct name list-of-fields)`. 
 
-Structs are implemented as arrays of lisp values and offer constant time lookup of each of its fields. 
+Structs are implemented as arrays of lisp values and offer constant time lookup of each of its fields. The struct itself does not occupy heap cells, but the values stored in the fields may. 
 
-This example creates a structure type called my-struct with three fields called `a`, `b` and `c`. 
+As structs are allocated from array memory (lbm_memory), there is a potential for causing memory fragmentation. 
+
+The example below creates a structure type called my-struct with three fields called `a`, `b` and `c`. 
 
 <table>
 <tr>
