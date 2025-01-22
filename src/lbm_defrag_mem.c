@@ -1,5 +1,5 @@
 /*
-    Copyright 2024 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2024, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -152,10 +152,10 @@ static void lbm_defrag_mem_defrag(lbm_uint *defrag_mem, lbm_uint bytes) {
 //
 // [header (size, data-ptr) cell_back_ptr | data | padding ]
 
-lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes) {
+lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes, lbm_uint type) {
 
   if (bytes == 0) return ENC_SYM_EERROR;
-  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_DEFRAG_ARRAY_TYPE);
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, type);
 
   if (cell == ENC_SYM_MERROR) {
     return cell;
@@ -208,7 +208,6 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes) {
     DEFRAG_ALLOC_DATA(allocation) = (lbm_uint)&allocation[3]; //data starts after back_ptr
     DEFRAG_ALLOC_CELLPTR(allocation) = cell;
     lbm_set_car(cell, (lbm_uint)allocation);
-    cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
     res = cell;
   } else {
     DEFRAG_MEM_FLAGS(defrag_mem) = 1;
@@ -219,16 +218,38 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes) {
 
 lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint bytes) {
 
-  lbm_value res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes); // Try to allocate 
+  lbm_value res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes, ENC_SYM_DEFRAG_ARRAY_TYPE); // Try to allocate
   if (lbm_is_symbol_merror(res)) {
     if (DEFRAG_MEM_FLAGS(defrag_mem)) { //if we already performed GC, then also defrag
       lbm_defrag_mem_defrag(defrag_mem, bytes);
-      res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes); // then try again
+      res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes, ENC_SYM_DEFRAG_ARRAY_TYPE); // then try again
       DEFRAG_MEM_FLAGS(defrag_mem) = 0;
     }
   }
+  if (!lbm_is_symbol_merror(res)) {
+    res = lbm_set_ptr_type(res, LBM_TYPE_ARRAY);
+  }
   return res;
 }
+
+// Allocate a high-level array from DM area
+lbm_value lbm_defrag_mem_alloc_lisparray(lbm_uint *defrag_mem, lbm_uint elts) {
+
+  size_t bytes = elts * sizeof(lbm_uint);
+  lbm_value res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes, ENC_SYM_DEFRAG_LISPARRAY_TYPE); // Try to allocate
+  if (lbm_is_symbol_merror(res)) {
+    if (DEFRAG_MEM_FLAGS(defrag_mem)) { //if we already performed GC, then also defrag
+      lbm_defrag_mem_defrag(defrag_mem, bytes);
+      res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes, ENC_SYM_DEFRAG_LISPARRAY_TYPE); // then try again
+      DEFRAG_MEM_FLAGS(defrag_mem) = 0;
+    }
+  }
+  if (!lbm_is_symbol_merror(res)) {
+    res = lbm_set_ptr_type(res, LBM_TYPE_LISPARRAY);
+  }
+  return res;
+}
+
 
 
 // IF GC frees a defrag allocation, the cell pointing to it will also be destroyed by GC.

@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021 - 2024      Joel Svensson   svenssonjoel@yahoo.se
+    Copyright 2019, 2021 - 2025      Joel Svensson   svenssonjoel@yahoo.se
                            2022      Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -311,6 +311,9 @@ static void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
   *result = ENC_SYM_EERROR;
   if (nargs == 1 && IS_NUMBER(args[0])) {
     lbm_heap_allocate_array(result, lbm_dec_as_u32(args[0]));
+  } else if (nargs == 2 && IS_NUMBER(args[1]) && lbm_type_of(args[0]) == LBM_TYPE_DEFRAG_MEM) {
+    lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
+    *result = lbm_defrag_mem_alloc(dm, lbm_dec_as_uint(args[1]));
   }
 }
 
@@ -1332,6 +1335,9 @@ static lbm_value fundamental_mkarray(lbm_value *args, lbm_uint nargs, eval_conte
   lbm_value res = ENC_SYM_TERROR;
   if (nargs == 1 && IS_NUMBER(args[0])) {
     lbm_heap_allocate_lisp_array(&res, lbm_dec_as_u32(args[0]));
+  } else if (nargs == 2 && IS_NUMBER(args[1]) && lbm_type_of(args[0]) == LBM_TYPE_DEFRAG_MEM) {
+    lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
+    res = lbm_defrag_mem_alloc_lisparray(dm, lbm_dec_as_u32(args[1]));
   }
   return res;
 }
@@ -1397,6 +1403,11 @@ static lbm_value fundamental_dm_alloc(lbm_value *args, lbm_uint argn, eval_conte
     if (lbm_type_of(args[0]) == LBM_TYPE_DEFRAG_MEM) {
       lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
       res = lbm_defrag_mem_alloc(dm, lbm_dec_as_uint(args[1]));
+    }
+  } else if (argn == 3 && lbm_is_number(args[1]) && args[2] == ENC_SYM_TYPE_LISPARRAY)  {
+    if (lbm_type_of(args[0]) == LBM_TYPE_DEFRAG_MEM) {
+      lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
+      res = lbm_defrag_mem_alloc_lisparray(dm, lbm_dec_as_uint(args[1]));
     }
   }
   return res;

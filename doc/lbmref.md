@@ -6711,7 +6711,7 @@ The `setassoc` function destructively updates a key-value mapping in an alist. T
 
 ### bufcreate
 
-Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate size-expr)` 
+Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate size-expr)`. 
 
 <table>
 <tr>
@@ -6754,6 +6754,52 @@ Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate si
 </td>
 </tr>
 </table>
+
+Alternatively a buffer can be allocated from a compactible memory region (defrag mem). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define dm (dm-create 1000))
+```
+
+
+</td>
+<td>
+
+```clj
+DM
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define data-in-dm (bufcreate dm 10))
+```
+
+
+</td>
+<td>
+
+```clj
+[0 0 0 0 0 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+</table>
+
+For more information about defragmentable memory see <a href=#Defragmentable_memory>Defragmentable memory</a>. 
 
 
 
@@ -8031,7 +8077,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 181287 kurt-russel)
+(exit-ok 182488 kurt-russel)
 ```
 
 

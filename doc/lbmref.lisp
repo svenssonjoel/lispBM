@@ -1955,11 +1955,18 @@
 (define arrays-bufcreate
   (ref-entry "bufcreate"
              (list
-              (para (list "Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate size-expr)`"
+              (para (list "Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate size-expr)`."
                           ))
               (code '((define data (bufcreate 10))
 		      (define empty-array (bufcreate 0))
                       ))
+              (para (list "Alternatively a buffer can be allocated from a compactible memory region (defrag mem)."
+                          ))
+              (code '((define dm (dm-create 1000))
+                      (define data-in-dm (bufcreate dm 10))
+                      ))
+              (para (list "For more information about defragmentable memory see <a href=#Defragmentable_memory>Defragmentable memory</a>."
+                          ))
               end)))
 
 (define arrays-buflen
