@@ -7,7 +7,7 @@ LispBM can be built with varying amount of included dynamic loadable functionali
 The inclusion of dynamically loadable functionality from this library is determined when LispBM is compiled using the following flags: 
 
    - LBM_USE_DYN_FUNS : Add a library of functions to the dynamic loader.
-   - LBM_USE_DYN_MACRO : Add a library of macros to the dynamic loader.
+   - LBM_USE_DYN_MACROS : Add a library of macros to the dynamic loader.
    - LBM_USE_DYN_DEFSTRUCT : Add the defstruct mechanism, requires LBM_USE_DYN_FUNS and LBM_USE_DYN_MACROS.
    - LBM_USE_DYN_LOOPS : Add loop macros, requires LBM_USE_DYN_MACROS.
 
