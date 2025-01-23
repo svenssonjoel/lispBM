@@ -974,7 +974,7 @@ static lbm_value fundamental_ix(lbm_value *args, lbm_uint nargs, eval_context_t 
       if (index < 0) index = (int32_t)size + index;
       if ((uint32_t)index < size) {
         result = arrdata[index];
-      }  
+      }
     }
   }
   return result;
