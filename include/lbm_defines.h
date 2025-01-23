@@ -220,7 +220,9 @@
 #define SYM_TOKENIZER_RERROR 0x82
 #define SYM_OPENCURL         0x84
 #define SYM_CONST            0x85
-#define TOKENIZER_SYMBOLS_END 0x85
+#define SYM_OPENARRAY        0x86
+#define SYM_CLOSEARRAY       0x87
+#define TOKENIZER_SYMBOLS_END 0x87
 
 // Built in special forms:
 // Special forms get their arguments unevaluated
@@ -340,6 +342,7 @@
 #define SYM_IS_NUMBER           0x20040
 #define SYM_INT_DIV             0x20041
 #define SYM_IDENTITY            0x20042
+#define SYM_ARRAY               0x20043
 
 
 // Apply funs:
@@ -467,6 +470,8 @@
 #define ENC_SYM_TOKENIZER_RERROR ENC_SYM(SYM_TOKENIZER_RERROR)
 #define ENC_SYM_OPENCURL         ENC_SYM(SYM_OPENCURL)
 #define ENC_SYM_CONST            ENC_SYM(SYM_CONST)
+#define ENC_SYM_OPENARRAY        ENC_SYM(SYM_OPENARRAY)
+#define ENC_SYM_CLOSEARRAY       ENC_SYM(SYM_CLOSEARRAY)
 
 #define ENC_SYM_QUOTE               ENC_SYM(SYM_QUOTE)
 #define ENC_SYM_DEFINE              ENC_SYM(SYM_DEFINE)

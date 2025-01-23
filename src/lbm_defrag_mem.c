@@ -24,16 +24,20 @@ static inline lbm_uint bs2ws(lbm_uint bs) {
 }
 
 #define DEFRAG_MEM_HEADER_SIZE 2
-#define DEFRAG_MEM_HEADER_BYTES  (2*sizeof(lbm_uint))
+#define DEFRAG_MEM_HEADER_BYTES  (DEFRAG_MEM_HEADER_SIZE*sizeof(lbm_uint))
 #define DEFRAG_MEM_DATA(X) &(X)[DEFRAG_MEM_HEADER_SIZE];
 // length and flags.
 // Currently only one flag that tells if we should do a compaction before allocation.
 #define DEFRAG_MEM_SIZE(X) X[0]
 #define DEFRAG_MEM_FLAGS(X) X[1]
 
+// TODO: We can move the GC index to the end (or elsewhere) of an array to save space in these
+//       headers in the case of ByteArrays.
 #define DEFRAG_ALLOC_SIZE(X) X[0]
 #define DEFRAG_ALLOC_DATA(X) X[1]
-#define DEFRAG_ALLOC_CELLPTR(X) X[2]
+#define DEFRAG_ALLOC_INDEX(X) X[2] // GC index for traversal of high-level arrays
+#define DEFRAG_ALLOC_CELLPTR(X) X[3]
+#define DEFRAG_ALLOC_ARRAY_HEADER_SIZE 4
 
 lbm_value lbm_defrag_mem_create(lbm_uint nbytes) {
   lbm_value res = ENC_SYM_TERROR;
@@ -59,7 +63,7 @@ lbm_value lbm_defrag_mem_create(lbm_uint nbytes) {
 static void free_defrag_allocation(lbm_uint *allocation) {
   lbm_uint size = DEFRAG_ALLOC_SIZE(allocation); // array allocation is size in bytes
   // a defrag-mem allocation is always bigger than 0
-  lbm_uint nwords = bs2ws(size) + 3;
+  lbm_uint nwords = bs2ws(size) +  DEFRAG_ALLOC_ARRAY_HEADER_SIZE;
   lbm_value cell_back_ptr = DEFRAG_ALLOC_CELLPTR(allocation);
 
   // I have a feeling that it should be impossible for the
@@ -88,7 +92,9 @@ void lbm_defrag_mem_destroy(lbm_uint *defrag_mem) {
     lbm_uint a = defrag_data[i];
     if (a != 0) {
       lbm_uint *allocation = &defrag_data[i];
-      lbm_uint alloc_words = 3 + bs2ws(DEFRAG_ALLOC_SIZE(allocation));
+      lbm_uint alloc_words =
+        DEFRAG_ALLOC_ARRAY_HEADER_SIZE +
+        bs2ws(DEFRAG_ALLOC_SIZE(allocation));
       free_defrag_allocation(allocation);
       i += alloc_words;
     }
@@ -103,7 +109,7 @@ static void lbm_defrag_mem_defrag(lbm_uint *defrag_mem, lbm_uint bytes) {
   lbm_uint *mem_data = DEFRAG_MEM_DATA(defrag_mem);
   lbm_uint hole_start = 0;
 
-  lbm_uint until_size = bs2ws(bytes) + 3; // defrag until hole is this size or complete defrag.
+  lbm_uint until_size =  DEFRAG_ALLOC_ARRAY_HEADER_SIZE + bs2ws(bytes); // defrag until hole is this size or complete defrag.
 
   for (lbm_uint i = 0; i < mem_size; ) {
     // check if there is an allocation here
@@ -114,22 +120,22 @@ static void lbm_defrag_mem_defrag(lbm_uint *defrag_mem, lbm_uint bytes) {
       lbm_uint alloc_words = bs2ws(alloc_bytes);
       // move allocation into hole
       if (hole_start == i) {
-        i += alloc_words+3;
+        i += alloc_words + DEFRAG_ALLOC_ARRAY_HEADER_SIZE;
         hole_start = i;
       } else {
         lbm_uint move_dist = i - hole_start;
         if (move_dist >= until_size) break;
-        lbm_uint clear_ix = (hole_start + alloc_words + 3);
-        memmove(target, source, (alloc_words + 3) * sizeof(lbm_uint));
+        lbm_uint clear_ix = (hole_start + alloc_words + DEFRAG_ALLOC_ARRAY_HEADER_SIZE);
+        memmove(target, source, (alloc_words + DEFRAG_ALLOC_ARRAY_HEADER_SIZE) * sizeof(lbm_uint));
         memset(&mem_data[clear_ix],0, move_dist* sizeof(lbm_uint));
-        DEFRAG_ALLOC_DATA(target) = (lbm_uint)&target[3];
+        DEFRAG_ALLOC_DATA(target) = (lbm_uint)&target[DEFRAG_ALLOC_ARRAY_HEADER_SIZE];
         lbm_value cell = DEFRAG_ALLOC_CELLPTR(target);
 
         lbm_set_car(cell,(lbm_uint)target);
         // move home and i forwards.
         // i can move to the original end of allocation.
-        hole_start += alloc_words + 3;
-        i += alloc_words + 3;
+        hole_start += alloc_words +  DEFRAG_ALLOC_ARRAY_HEADER_SIZE;
+        i += alloc_words +  DEFRAG_ALLOC_ARRAY_HEADER_SIZE;
       }
     } else {
       // no allocation hole remains but i increments.
@@ -165,7 +171,7 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes, lb
   lbm_uint *mem_data = DEFRAG_MEM_DATA(defrag_mem);
 
   lbm_uint num_words = bs2ws(bytes);
-  lbm_uint alloc_words = num_words + 3;
+  lbm_uint alloc_words = num_words +  DEFRAG_ALLOC_ARRAY_HEADER_SIZE;
 
   uint8_t state = INIT;
   lbm_uint free_words = 0;
@@ -183,7 +189,7 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes, lb
         i++;
       } else {
         // jump to next spot
-        i += bs2ws(mem_data[i]) + 3;
+        i += bs2ws(mem_data[i]) + DEFRAG_ALLOC_ARRAY_HEADER_SIZE;
       }
       break;
     case FREE_LEN:
@@ -205,7 +211,7 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes, lb
   if (alloc_found) {
     lbm_uint *allocation = (lbm_uint*)&mem_data[free_start];
     DEFRAG_ALLOC_SIZE(allocation) = bytes;
-    DEFRAG_ALLOC_DATA(allocation) = (lbm_uint)&allocation[3]; //data starts after back_ptr
+    DEFRAG_ALLOC_DATA(allocation) = (lbm_uint)&allocation[DEFRAG_ALLOC_ARRAY_HEADER_SIZE]; //data starts after back_ptr
     DEFRAG_ALLOC_CELLPTR(allocation) = cell;
     lbm_set_car(cell, (lbm_uint)allocation);
     res = cell;
@@ -261,7 +267,7 @@ lbm_value lbm_defrag_mem_alloc_lisparray(lbm_uint *defrag_mem, lbm_uint elts) {
 // At the time of free from GC all we have is the pointer.
 void lbm_defrag_mem_free(lbm_uint* data) {
   lbm_uint nbytes = data[0];
-  lbm_uint words_to_wipe = 3 + bs2ws(nbytes);
+  lbm_uint words_to_wipe = DEFRAG_ALLOC_ARRAY_HEADER_SIZE + bs2ws(nbytes);
   for (lbm_uint i = 0; i < words_to_wipe; i ++) {
     data[i] = 0;
   }

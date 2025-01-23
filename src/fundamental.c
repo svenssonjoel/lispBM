@@ -874,11 +874,12 @@ static lbm_value fundamental_set_ix(lbm_value *args, lbm_uint nargs, eval_contex
         i++;
       }
     } else if (lbm_is_lisp_array_rw(args[0])) {
-      lbm_value index = lbm_dec_as_u32(args[1]);
+      int32_t index = lbm_dec_as_i32(args[1]);
       lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[0]);
       lbm_value *arrdata = (lbm_value*)header->data;
       lbm_uint size = header->size / sizeof(lbm_value);
-      if (index < size) {
+      if (index < 0) index = (int32_t)size + index;
+      if ((uint32_t)index < size) {
         arrdata[index] = args[2]; // value
         result = args[0];
       }  // index out of range will be eval error.
@@ -962,16 +963,18 @@ static lbm_value fundamental_ix(lbm_value *args, lbm_uint nargs, eval_context_t 
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 2 && IS_NUMBER(args[1])) {
+    result = ENC_SYM_NIL;
     if (lbm_is_list(args[0])) {
       result = lbm_index_list(args[0], lbm_dec_as_i32(args[1]));
     } else if (lbm_is_lisp_array_r(args[0])) {
       lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[0]);
       lbm_value *arrdata = (lbm_value*)header->data;
       lbm_uint size = header->size / sizeof(lbm_value);
-      lbm_uint index = lbm_dec_as_u32(args[1]);
-      if (index < size) {
+      int32_t index = lbm_dec_as_i32(args[1]);
+      if (index < 0) index = (int32_t)size + index;
+      if ((uint32_t)index < size) {
         result = arrdata[index];
-      }  // index out of range will be eval error.
+      }  
     }
   }
   return result;
@@ -1386,6 +1389,22 @@ static lbm_value fundamental_list_to_array(lbm_value *args, lbm_uint nargs, eval
   return res;
 }
 
+// Create an array in a similar way to how list creates a list.
+static lbm_value fundamental_array(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  lbm_heap_allocate_lisp_array(&res, nargs);
+  if (!lbm_is_symbol_merror(res)) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(res);
+    lbm_value *arrdata = (lbm_value*)header->data;
+    for (lbm_uint i = 0; i < nargs; i ++) {
+      arrdata[i] = args[i];
+    }
+  }
+  return res;
+}
+
+
 static lbm_value fundamental_dm_create(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
   (void) ctx;
   lbm_value res = ENC_SYM_TERROR;
@@ -1524,4 +1543,5 @@ const fundamental_fun fundamental_table[] =
    fundamental_is_number,
    fundamental_int_div,
    fundamental_identity,
+   fundamental_array
   };

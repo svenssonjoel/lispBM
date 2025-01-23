@@ -130,6 +130,8 @@ special_sym const special_symbols[] =  {
   {"[closebrack]"     , SYM_CLOSEBRACK},
   {"[rerror]"         , SYM_TOKENIZER_RERROR},
   {"[appcont]"        , SYM_APP_CONT},
+  {"[openarr]"        , SYM_OPENARRAY},
+  {"[closearr]"       , SYM_CLOSEARRAY},
 
   // special symbols with parseable names
   {"type-list"        , SYM_TYPE_LIST},
@@ -235,6 +237,9 @@ special_sym const special_symbols[] =  {
   // fast access in list
   {"ix"             , SYM_IX},
 
+  {"identity"       , SYM_IDENTITY},
+  {"array"          , SYM_ARRAY},
+
   // aliases
   {"first"          , SYM_CAR},
   {"rest"           , SYM_CDR},
@@ -246,7 +251,7 @@ special_sym const special_symbols[] =  {
   {"type-f32"       , SYM_TYPE_FLOAT},
   {"type-f64"       , SYM_TYPE_DOUBLE},
   {"array-create"   , SYM_BYTEARRAY_CREATE},
-  {"identity"       , SYM_IDENTITY},
+
 };
 
 static lbm_uint *symlist = NULL;

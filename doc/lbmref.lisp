@@ -1950,9 +1950,9 @@
             assoc-setassoc
             )))
 
-;; Arrays Byte buffers
+;; Byte buffers
 
-(define arrays-bufcreate
+(define bb-bufcreate
   (ref-entry "bufcreate"
              (list
               (para (list "Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate size-expr)`."
@@ -1969,7 +1969,7 @@
                           ))
               end)))
 
-(define arrays-buflen
+(define bb-buflen
   (ref-entry "buflen"
              (list
               (para (list "Returns the size of a buffer in number of bytes. The form"
@@ -1980,7 +1980,7 @@
                       ))
               end)))
 
-(define arrays-bufget
+(define bb-bufget
   (ref-entry "bufget-[X]"
              (list
               (para (list "Read a value from a buffer. The contents of a buffer can be read"
@@ -2000,7 +2000,7 @@
                       ))
               end)))
 
-(define arrays-bufset
+(define bb-bufset
   (ref-entry "bufset-[X]"
              (list
               (para (list "The `bufset` functions performs a destructive updates to a buffer."
@@ -2024,7 +2024,7 @@
                       ))
               end)))
 
-(define arrays-bufclear
+(define bb-bufclear
   (ref-entry "bufclear"
              (list
               (para (list "To clear a byte array the function bufclear can be used `(bufclear arr optByte optStart optLen)`"
@@ -2048,10 +2048,10 @@
                       ))
               end)))
 
-(define arrays-literal
-  (ref-entry "Byte-array literal syntax"
+(define bb-literal
+  (ref-entry "Byte buffer literal syntax"
              (list
-              (para (list "Byte-array (buffer) literals can be created using the `[` and `]` syntax to enclose"
+              (para (list "Byte buffer literals can be created using the `[` and `]` syntax to enclose"
                           "values to initialize the array with. The `[` and `]` syntax is complete"
                           "resolved in the parser and thus cannot contain arbitrary lisp terms."
                           "the values listed between the `[` and the `]` must be literals!"
@@ -2062,16 +2062,150 @@
                       ))
               end)))
 
-(define arrays
-  (section 2 "Arrays (byte buffers)"
+(define bytebuffers
+  (section 2 "Byte buffers"
            (list 'hline
-                 arrays-bufcreate
-                 arrays-buflen
-                 arrays-bufget
-                 arrays-bufset
-                 arrays-bufclear
-                 arrays-literal
+                 bb-bufcreate
+                 bb-buflen
+                 bb-bufget
+                 bb-bufset
+                 bb-bufclear
+                 bb-literal
                  )))
+
+(define array-literals
+  (ref-entry "array literals"
+             (list
+              (para (list "An array literal are specified as a sequence of lisp values between `[|` and `|]`."
+                          "Values in a literal array are not evaluated."
+                          ))
+              (code '((define my-arr [| 1 2 3 |])
+                      (define my-arr [| daniel jackson |])
+                      (define my-arr [| (apa . bepa) (1 . 2) |])
+                      (define my-arr [| (+ 1 2) (+ 3 4) |])
+                      (define my-arr [| [| 1 2 3|] [|4 5 6|]|])
+                      (ix my-arr 0)
+                      (ix my-arr 1)
+                      (ix (ix my-arr 0) 1)
+                      (ix (ix my-arr 1) 2)
+                      ))
+              end
+              )
+             )
+  )
+
+(define array-array
+  (ref-entry "array"
+             (list
+              (para (list "`array` takes n arguments and creates an array holding those arguments as values."
+                          "The form of an `array` expression is `(array expr1 ... exprN)`."
+                          ))
+              (code '((define my-arr (array 1 2 3))
+                      (define my-arr (array (+ 1 2) (+ 3 4)))
+                      ))
+              end
+              )
+             )
+  )
+
+(define array-mkarray
+  (ref-entry "mkarray"
+   (list
+    (para (list "Allocate an array with `mkarray`. Arrays are allocated in arrays and byte buffer memory"
+                "but can also be allocated in a compactible (defrag mem) area."
+                "The form of an `mkarray` expression is either `(mkarray num)` or `(mkarray dm num)` where"
+                "`dm` is a defrag-mem area and num is the size of the array to allocate."
+                ))
+    (para (list "Note that there is currently no literal syntax for arrays."
+                ))
+    (para (list "The example below allocates an array in \"lbm_memory\" (arrays and byte-buffer memory)."
+                ))
+    (code '((define my-arr (mkarray 10))
+            ))
+    (para (list "Below is an example allocating an array from a compactible memory area."
+                ))
+    (code '((define my-dm (dm-create 1000))
+            (define my-arr (mkarray my-dm 10))
+            ))
+    end
+    )
+   )
+  )
+
+(define array-array-to-list
+  (ref-entry "array-to-list"
+             (list
+              (para (list "Convert an array to a list"
+                          ))
+              (code '((array-to-list (list-to-array (list 1 2 3)))
+                      (array-to-list my-arr)
+                      ))
+
+              end
+              )
+             )
+  )
+
+(define array-list-to-array
+  (ref-entry "list-to-array"
+             (list
+              (para (list "Convert a list to an array"
+                          ))
+              (code '((list-to-array (list 1 2 3))
+                      (list-to-array '(nil nil nil))
+                      ))
+              end
+              )
+             )
+  )
+
+(define array-ix
+  (ref-entry "ix"
+             (list
+              (para (list "Index into an array using the `ix` function. The form of an `ix` expression"
+                          "is `(ix array-expr index-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil."
+                          "A negative index accesses values starting from the end of the array."
+                          ))
+              (code '((ix [| 1 2 3 4 |] 1)
+                      (ix [| 1 2 3 4 |] -1)
+                      ))
+              end
+              )
+             )
+  )
+
+(define array-setix
+  (ref-entry "setix"
+             (list
+               (para (list "Destructively update an element in an array. The form of a `setix` expression"
+                          "is `(setix arr-expr index-extr value-expr)`. Indexing starts from 0 and"
+                          "if you index out of bounds the result is nil."
+                          "A negative value -n will update the nth value from the end of the list."
+                          ))
+              (code '((setix [| 1 2 3 4 5 |] 2 77)
+                      (setix [| 1 2 3 4 5 |] -2 66)
+                      ))
+              end
+              )
+             )
+  )
+
+;; High level arrays
+(define arrays
+  (section 2 "Arrays"
+           (list
+            (para (list "LispBM supports arrays of arbitrary lisp values (including other arrays)."
+                        ))
+            array-literals
+            array-array
+            array-mkarray
+            array-array-to-list
+            array-list-to-array
+            array-ix
+            array-setix
+            )
+           )
+  )
 
 ;; Defragmentable memory
 
@@ -2969,6 +3103,7 @@
                                  special-forms
                                  lists
                                  assoc-lists
+                                 bytebuffers
                                  arrays
 				 defrag-mem
                                  pattern-matching

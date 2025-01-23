@@ -6703,7 +6703,7 @@ The `setassoc` function destructively updates a key-value mapping in an alist. T
 
 ---
 
-## Arrays (byte buffers)
+## Byte buffers
 
 
 ---
@@ -7447,9 +7447,9 @@ data
 ---
 
 
-### Byte-array literal syntax
+### Byte buffer literal syntax
 
-Byte-array (buffer) literals can be created using the `[` and `]` syntax to enclose values to initialize the array with. The `[` and `]` syntax is complete resolved in the parser and thus cannot contain arbitrary lisp terms. the values listed between the `[` and the `]` must be literals! 
+Byte buffer literals can be created using the `[` and `]` syntax to enclose values to initialize the array with. The `[` and `]` syntax is complete resolved in the parser and thus cannot contain arbitrary lisp terms. the values listed between the `[` and the `]` must be literals! 
 
 The form of the `[` and `]` syntax is `[ val1 ... valN ]`. 
 
@@ -7470,6 +7470,530 @@ The form of the `[` and `]` syntax is `[ val1 ... valN ]`.
 
 ```clj
 [1 2 3 4 5 6 7 8 9 10]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## Arrays
+
+LispBM supports arrays of arbitrary lisp values (including other arrays). 
+
+
+### array literals
+
+An array literal are specified as a sequence of lisp values between `[|` and `|]`. Values in a literal array are not evaluated. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr [|1 2 3|])
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 3|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr [|daniel jackson|])
+```
+
+
+</td>
+<td>
+
+```clj
+[|daniel jackson|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr [|(apa . bepa) (1 . 2)|])
+```
+
+
+</td>
+<td>
+
+```clj
+[|(apa . bepa) (1 . 2)|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr [|(+ 1 2) (+ 3 4)|])
+```
+
+
+</td>
+<td>
+
+```clj
+[|(+ 1 2) (+ 3 4)|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr [|[|1 2 3|] [|4 5 6|]|])
+```
+
+
+</td>
+<td>
+
+```clj
+[|[|1 2 3|] [|4 5 6|]|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix my-arr 0)
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 3|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix my-arr 1)
+```
+
+
+</td>
+<td>
+
+```clj
+[|4 5 6|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix (ix my-arr 0) 1)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix (ix my-arr 1) 2)
+```
+
+
+</td>
+<td>
+
+```clj
+6
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### array
+
+`array` takes n arguments and creates an array holding those arguments as values. The form of an `array` expression is `(array expr1 ... exprN)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr (array 1 2 3))
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 3|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr (array (+ 1 2) (+ 3 4)))
+```
+
+
+</td>
+<td>
+
+```clj
+[|3 7|]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### mkarray
+
+Allocate an array with `mkarray`. Arrays are allocated in arrays and byte buffer memory but can also be allocated in a compactible (defrag mem) area. The form of an `mkarray` expression is either `(mkarray num)` or `(mkarray dm num)` where `dm` is a defrag-mem area and num is the size of the array to allocate. 
+
+Note that there is currently no literal syntax for arrays. 
+
+The example below allocates an array in "lbm_memory" (arrays and byte-buffer memory). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr (mkarray 10))
+```
+
+
+</td>
+<td>
+
+```clj
+[|nil nil nil nil nil nil nil nil nil nil|]
+```
+
+
+</td>
+</tr>
+</table>
+
+Below is an example allocating an array from a compactible memory area. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-dm (dm-create 1000))
+```
+
+
+</td>
+<td>
+
+```clj
+DM
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr (mkarray my-dm 10))
+```
+
+
+</td>
+<td>
+
+```clj
+[|nil nil nil nil nil nil nil nil nil nil|]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### array-to-list
+
+Convert an array to a list 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(array-to-list (list-to-array (list 1 2 3)))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(array-to-list my-arr)
+```
+
+
+</td>
+<td>
+
+```clj
+(nil nil nil nil nil nil nil nil nil nil)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### list-to-array
+
+Convert a list to an array 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(list-to-array (list 1 2 3))
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 3|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(list-to-array '(nil nil nil))
+```
+
+
+</td>
+<td>
+
+```clj
+[|nil nil nil|]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### ix
+
+Index into an array using the `ix` function. The form of an `ix` expression is `(ix array-expr index-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative index accesses values starting from the end of the array. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix [|1 2 3 4|] 1)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix [|1 2 3 4|] -1)
+```
+
+
+</td>
+<td>
+
+```clj
+4
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### setix
+
+Destructively update an element in an array. The form of a `setix` expression is `(setix arr-expr index-extr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(setix [|1 2 3 4 5|] 2 77)
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 77 4 5|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(setix [|1 2 3 4 5|] -2 66)
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 3 66 5|]
 ```
 
 
@@ -8077,7 +8601,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 182488 kurt-russel)
+(exit-ok 192326 kurt-russel)
 ```
 
 
@@ -9496,5 +10020,5 @@ Convert any numerical value to a double precision floating point value. If the i
 
 ---
 
-This document was generated by LispBM version 0.30.1 
+This document was generated by LispBM version 0.30.3 
 
