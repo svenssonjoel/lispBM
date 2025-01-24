@@ -83,7 +83,7 @@
                           "An initial value is provided and here used in the first, rightmost, operation."
                           ))
 
-              (para (list "`foldr` has a disadvantage compared to `foldr` as I don't think it is"
+              (para (list "`foldr` has a disadvantage compared to `foldl` as I don't think it is"
                           "possible to give `foldr` a constant-space and tail-recursive implementation."
                           "One can make `foldr` tail-recursive by writing it in continuation passing style (CPS)."
                           "The CPS version of foldr will run without building upon the return stack, but instead"

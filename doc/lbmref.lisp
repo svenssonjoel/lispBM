@@ -322,7 +322,7 @@
 			"Any extensions to the local environment performed by an expresison in the sequence is only visible within that expression itself."
 			))
 	    (bullet (list "**let**: `(let ((s1 e1) (s2 e2) ... (sN eN) e)` eI are evaluated in order into `vI`. The local environment is extended with `(sI . vI)`. `sI` is visible in `eJ` for `J >= I`. `e` is then evaluated in the extended local environment."
-			  "**setq**: `(setq s e)' is evaluated by first evaluating `e` into `v`. The environments are then scanned for a bining of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`."
+			  "**setq**: `(setq s e)` is evaluated by first evaluating `e` into `v`. The environments are then scanned for a bining of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`."
 			  ))
 	    (para (list "If no binding of `s` is found when evaluating `(setq s e)` a `variable_not_bound` error is triggered."
 			))
@@ -336,8 +336,19 @@
             (para (list "**Function application evaluation**"
                         ))
             (para (list "The evaluation strategies explained here are applied to composite expressions"
-                        "of the `(e1 ... eN)` form."
+                        "of the `(e1 ... eN)` form where `e1` does not fall into the category of \"special forms\"."
                         ))
+            (para (list "In LispBM an `(e1 ... eN)` is evaluated by first evaluating `e1`. This is because depending on"
+                        "what kind of function object `e1` evaluates into, the application if evaluated in different ways."
+                        ))
+            (para (list "`e1` sould evaluate into a `closure`, a \"fundamental operation\" or an \"extension\"."
+                        "fundamental operations and extensions take their arguments passed on the stack while a closure"
+                        "is applied in an environment extended with the argument value bindings."
+                        ))
+            (para (list "Depending on the value of `e1` the arguments are either evaluated left to right and the results are"
+                        "pushed onto the stack, or they are evaluated left to right and used to extend the environment."
+                        ))
+            
             (para (list "**The quote and the quasiquote**"
                         ))
             (para (list "The LBM parser (Reader) expands usages of the character sequences:"
@@ -1855,7 +1866,7 @@
                         "and the cdr fields hold pointers (the last cdr field is nil). The list below"
                         "can be created either as `'(1 2 3)` or as `(list 1 2 3)`."
                         ))
-            (image "list" "images/list.png")
+            (s-exp-graph "list_1_2_3" (list 1 2 3))
             lists-car
             lists-first
             lists-cdr
@@ -2555,12 +2566,7 @@
                           "`timeout` after the timeout period ends."
                           ))
               (para (list "The form of an `recv-to` expression is"
-                          "```clj"
-                          "(recv-to timeout-secs"
-                          "                (pattern1 exp1)"
-                          "                ..."
-                          "                (patternN expN))"
-                          "```"
+                          "`(recv-to timeout-secs (pattern1 exp1) ... (patternN expN))`"
                           ))
               (program '(((send (self) 28)
                           (recv-to 0.1
