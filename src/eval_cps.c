@@ -1816,10 +1816,11 @@ static void eval_call_cc_unsafe(eval_context_t *ctx) {
   lbm_uint sp = ctx->K.sp;
   // The stored stack contains the is_atomic flag.
   // This flag is overwritten in the following execution path.
-  lbm_value acont = lbm_heap_allocate_list_init(3,
-                                                ENC_SYM_CONT_SP,
-                                                lbm_enc_i((int32_t)sp),
-                                                is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value acont;
+  WITH_GC(acont, lbm_heap_allocate_list_init(3,
+					     ENC_SYM_CONT_SP,
+					     lbm_enc_i((int32_t)sp),
+					     is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL, ENC_SYM_NIL));
   lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
   // Go directly into application evaluation without passing go
   lbm_uint *sptr = stack_reserve(ctx, 3);
