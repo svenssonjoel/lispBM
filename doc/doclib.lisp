@@ -470,10 +470,14 @@
            (rend (str-merge cap0 " | " cap1 "\n"
                             "|:---:|:---:|\n"
                             "![" txt0 "](" fig0 ") | ![" txt1 "](" fig1 ")\n\n")))
-         ( (s-exp-graph (? img-name) (? code))
+         ( (s-exp-graph (? img-name) (? code) (? ra) )
            {
            (render-dot img-name code)
-           (rend (str-merge "![Graph representaion of s-expression](./images/" img-name ".png)\n\n"))
+           (if ra
+               (rend (str-merge "![" ra  "](./images/" img-name ".png)\n\n"))
+             (rend (str-merge "![Graph representaion of s-expression](./images/" img-name ".png)\n\n"))
+             )
+             
            })
          ( (semantic-step (? c1) (? c2) (? p)
                           ))
@@ -555,7 +559,7 @@
   (list 'image-pair cap0 txt0 fig0 cap1 txt1 fig1))
 
 (defun s-exp-graph (img-name code)
-  (list 's-exp-graph img-name code))
+  (list 's-exp-graph img-name code (rest-args 0)))
 
 (defun semantic-step (c1 c2 prop)
   (list 'semantic-step c1 c2 prop))
@@ -581,6 +585,18 @@
                    )
              )
            )
+         ( (? x) (eq (type-of x) type-lisparray)
+           (let ( (node (str-merge "cons" (to-str i)))
+                  (atom1 (str-merge "atom" (to-str (+ i 1))))
+                  (atom2 (str-merge "atom" (to-str (+ i 2))))
+                  (str1 (str-merge "   " atom1 " [label=\"" (to-str x) "\"]\n"))
+                  (str2 (str-merge "   " atom2 " [label=\"ARRAY TAG\"]\n")))
+             
+             (list node (str-merge "   "  node " [label=\"heap-cell\"]\n"
+                                   str1 str2
+                                   "   " node " -> " atom1 ";\n"
+                                   "   " node " -> " atom2 ";\n"))))
+                                   
          ( (? x)
            (let ( (node (str-merge "atom" (to-str i))) )
              (list node (str-merge "   " node " [label=\"" (to-str x)  "\"]"))

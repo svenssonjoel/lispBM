@@ -7665,6 +7665,10 @@ An array literal are specified as a sequence of lisp values between `[|` and `|]
 </tr>
 </table>
 
+All arrays have an associated heap-cell that acts as a liaison in relation to the garbage collector. When garbage collection frees the liaison, it also frees the array data in buffers and arrays memory (lbm_memory). 
+
+![In memory representation of an array](./images/array_literal.png)
+
 
 
 
@@ -8402,7 +8406,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4404
+4707
 ```
 
 
@@ -8607,7 +8611,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 193847 kurt-russel)
+(exit-ok 194731 kurt-russel)
 ```
 
 

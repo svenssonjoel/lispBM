@@ -2100,6 +2100,12 @@
                       (ix (ix my-arr 0) 1)
                       (ix (ix my-arr 1) 2)
                       ))
+              (para (list "All arrays have an associated heap-cell that acts as a liaison in relation"
+                          "to the garbage collector."
+                          "When garbage collection frees the liaison, it also frees the array data in"
+                          "buffers and arrays memory (lbm_memory)."
+                          ))
+              (s-exp-graph "array_literal" [| 1 2 3 |] "In memory representation of an array")
               end
               )
              )
