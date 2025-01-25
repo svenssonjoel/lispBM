@@ -154,7 +154,7 @@ Operations on fixed bitwidth numerical types can lead to overflow. The ranges re
 
 
 </td>
-</tr>	
+</tr>
 <tr>
 <td>
 
@@ -7809,110 +7809,6 @@ DM
 ---
 
 
-### array-to-list
-
-Convert an array to a list 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(array-to-list (list-to-array (list 1 2 3)))
-```
-
-
-</td>
-<td>
-
-```clj
-(1 2 3)
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(array-to-list my-arr)
-```
-
-
-</td>
-<td>
-
-```clj
-(nil nil nil nil nil nil nil nil nil nil)
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
-### list-to-array
-
-Convert a list to an array 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(list-to-array (list 1 2 3))
-```
-
-
-</td>
-<td>
-
-```clj
-[|1 2 3|]
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(list-to-array '(nil nil nil))
-```
-
-
-</td>
-<td>
-
-```clj
-[|nil nil nil|]
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
 ### ix
 
 Index into an array using the `ix` function. The form of an `ix` expression is `(ix array-expr index-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative index accesses values starting from the end of the array. 
@@ -8406,7 +8302,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4707
+4676
 ```
 
 
@@ -8611,7 +8507,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 194731 kurt-russel)
+(exit-ok 193074 kurt-russel)
 ```
 
 

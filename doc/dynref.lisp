@@ -426,6 +426,57 @@
            )
   )
 
+(define da-array-to-list
+  (ref-entry "array-to-list"
+             (list
+              (para (list "Convert an array to a list"
+                          ))
+              (code '((array-to-list (list-to-array (list 1 2 3)))
+                      (array-to-list [| 1 2 3 4|])
+                      ))
+              end
+              )
+             )
+  )
+
+(define da-list-to-array
+  (ref-entry "list-to-array"
+             (list
+              (para (list "Convert a list to an array"
+                          ))
+              (code '((list-to-array (list 1 2 3))
+                      (list-to-array '(nil nil nil))
+                      ))
+              end
+              )
+             )
+  )
+
+(define da-is-array
+    (ref-entry "array?"
+	       (list
+		(para (list "Array predicate is true for arrays."
+			    ))
+		(code '((array? [| 1 2 3 |])
+			(array? 1)
+			(array? 'apa)
+			(array? (list 1 2 3))
+			))
+		end
+		)
+	       )
+  )
+
+(define dynamic-arrays
+    (section 2 "Array functions"
+	     (list 'hline
+		   da-list-to-array
+		   da-array-to-list
+		   da-is-array
+		   )
+	     )
+  )
+
 (define dynamic-defstruct
   (section 2 "defstruct and its operations"
            (list 'hline
@@ -506,12 +557,14 @@
                        "LBM_USE_DYN_MACROS : Add a library of macros to the dynamic loader."
                        "LBM_USE_DYN_DEFSTRUCT : Add the defstruct mechanism, requires LBM_USE_DYN_FUNS and LBM_USE_DYN_MACROS."
                        "LBM_USE_DYN_LOOPS : Add loop macros, requires LBM_USE_DYN_MACROS."
+		       "LBM_USE_DYN_ARRAYS : Add functions on arrays. Requires LBM_USE_DYN_MACROS and LBM_USE_DYN_LOOPS."
                        ))
              (para (list "The flags should be given to the compiler as -Dx for example -DLBM_USE_DYN_FUNS."
                          ))
              dynamic-functions
              dynamic-macros
              dynamic-loop-macros
+	     dynamic-arrays
              dynamic-defstruct
              
              ))

@@ -2149,33 +2149,6 @@
    )
   )
 
-(define array-array-to-list
-  (ref-entry "array-to-list"
-             (list
-              (para (list "Convert an array to a list"
-                          ))
-              (code '((array-to-list (list-to-array (list 1 2 3)))
-                      (array-to-list my-arr)
-                      ))
-
-              end
-              )
-             )
-  )
-
-(define array-list-to-array
-  (ref-entry "list-to-array"
-             (list
-              (para (list "Convert a list to an array"
-                          ))
-              (code '((list-to-array (list 1 2 3))
-                      (list-to-array '(nil nil nil))
-                      ))
-              end
-              )
-             )
-  )
-
 (define array-ix
   (ref-entry "ix"
              (list
@@ -2216,8 +2189,6 @@
             array-literals
             array-array
             array-mkarray
-            array-array-to-list
-            array-list-to-array
             array-ix
             array-setix
             )

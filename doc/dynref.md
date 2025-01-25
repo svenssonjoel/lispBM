@@ -10,6 +10,7 @@ The inclusion of dynamically loadable functionality from this library is determi
    - LBM_USE_DYN_MACROS : Add a library of macros to the dynamic loader.
    - LBM_USE_DYN_DEFSTRUCT : Add the defstruct mechanism, requires LBM_USE_DYN_FUNS and LBM_USE_DYN_MACROS.
    - LBM_USE_DYN_LOOPS : Add loop macros, requires LBM_USE_DYN_MACROS.
+   - LBM_USE_DYN_ARRAYS : Add functions on arrays. Requires LBM_USE_DYN_MACROS and LBM_USE_DYN_LOOPS.
 
 The flags should be given to the compiler as -Dx for example -DLBM_USE_DYN_FUNS. 
 
@@ -1102,6 +1103,203 @@ Example that forever prints "Hello World" every two seconds:
  })
  ```
  
+
+
+
+
+---
+
+## Array functions
+
+
+---
+
+
+### list-to-array
+
+Convert a list to an array 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(list-to-array (list 1 2 3))
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 3|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(list-to-array '(nil nil nil))
+```
+
+
+</td>
+<td>
+
+```clj
+[|nil nil nil|]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### array-to-list
+
+Convert an array to a list 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(array-to-list (list-to-array (list 1 2 3)))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(array-to-list [|1 2 3 4|])
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 4)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### array?
+
+Array predicate is true for arrays. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(array? [|1 2 3|])
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(array? 1)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(array? 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(array? (list 1 2 3))
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+</table>
 
 
 
