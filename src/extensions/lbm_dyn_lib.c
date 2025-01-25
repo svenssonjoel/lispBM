@@ -18,8 +18,9 @@
 
 #include <extensions.h>
 
-#ifdef LBM_USE_DYN_FUNS
+#if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)
 static const char* lbm_dyn_fun[] = {
+#ifdef LBM_USE_DYN_FUNS
   "(defun str-merge () (str-join (rest-args)))",
   "(defun iota (n) (range n))",
 
@@ -58,16 +59,6 @@ static const char* lbm_dyn_fun[] = {
   "(defun third (x) (car (cdr (cdr x))))",
 
   "(defun abs (x) (if (< x 0) (- x) x))",
-#ifdef LBM_USE_DYN_ARRAYS
-  "(defun list-to-array (ls)"
-  "(let ((n (length ls)) (arr (mkarray n)) (i 0)) {"
-  "(loopforeach e ls { (setix arr i e) (setq i (+ i 1)) }) arr }))",
-
-  "(defun array-to-list (arr)"
-  "(let ((n (length arr)) (ls nil)) {"
-  "(loopfor i (- n 1) (>= i 0) (- i 1) { (setq ls (cons (ix arr i) ls)) }) ls }))",
-
-#endif
 #ifdef LBM_USE_DYN_DEFSTRUCT
   "(defun create-struct (dm name num-fields) { "
   "(var arr (if dm (mkarray dm (+ 1 num-fields)) (mkarray (+ 1 num-fields)))) "
@@ -88,8 +79,19 @@ static const char* lbm_dyn_fun[] = {
   "(setix struct i (rest-args 0)) "
   "(ix struct i)))) ",
 #endif
-};
+#endif //LBM_DYN_FUNS
+#ifdef LBM_USE_DYN_ARRAYS
+  "(defun list-to-array (ls)"
+  "(let ((n (length ls)) (arr (mkarray n)) (i 0)) {"
+  "(loopforeach e ls { (setix arr i e) (setq i (+ i 1)) }) arr }))",
+
+  "(defun array-to-list (arr)"
+  "(let ((n (length arr)) (ls nil)) {"
+  "(loopfor i (- n 1) (>= i 0) (- i 1) { (setq ls (cons (ix arr i) ls)) }) ls }))",
 #endif
+};
+#endif // defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)
+
 
 #ifdef LBM_USE_DYN_MACROS
 static const char* lbm_dyn_macros[] = {
@@ -337,7 +339,7 @@ void lbm_dyn_lib_init(void) {
   lbm_add_extension("me-loopwhile", ext_me_loopwhile);
   lbm_add_extension("me-looprange", ext_me_looprange);
   lbm_add_extension("me-loopforeach", ext_me_loopforeach);
-#endif  
+#endif
 #endif
 }
 
@@ -358,7 +360,8 @@ bool lbm_dyn_lib_find(const char *str, const char **code) {
   }
 #endif
 
-#ifdef LBM_USE_DYN_FUNS
+
+#if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)
   for (unsigned int i = 0; i < (sizeof(lbm_dyn_fun) / sizeof(lbm_dyn_fun[0]));i++) {
     if (strmatch(str, lbm_dyn_fun[i] + 7)) { // defun is 5
       *code = lbm_dyn_fun[i];
