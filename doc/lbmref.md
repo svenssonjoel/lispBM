@@ -154,7 +154,7 @@ Operations on fixed bitwidth numerical types can lead to overflow. The ranges re
 
 
 </td>
-</tr>
+</tr>	
 <tr>
 <td>
 

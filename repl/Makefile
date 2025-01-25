@@ -10,7 +10,8 @@ LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_DYN_FUNS \
            -DLBM_USE_DYN_MACROS \
            -DLBM_USE_DYN_DEFSTRUCT \
-           -DLBM_USE_DYN_LOOPS
+           -DLBM_USE_DYN_LOOPS \
+           -DLBM_USE_DYN_ARRAYS
 
 
 CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast

@@ -225,8 +225,6 @@ special_sym const special_symbols[] =  {
   {"take"           , SYM_TAKE},
   {"drop"           , SYM_DROP},
   {"mkarray"        , SYM_MKARRAY},
-  {"array-to-list"  , SYM_ARRAY_TO_LIST},
-  {"list-to-array"  , SYM_LIST_TO_ARRAY},
 
   {"dm-create"      , SYM_DM_CREATE},
   {"dm-alloc"       , SYM_DM_ALLOC},

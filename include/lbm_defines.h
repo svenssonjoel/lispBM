@@ -334,15 +334,13 @@
 #define SYM_TAKE                0x20038
 #define SYM_DROP                0x20039
 #define SYM_MKARRAY             0x2003A
-#define SYM_ARRAY_TO_LIST       0x2003B
-#define SYM_LIST_TO_ARRAY       0x2003C
-#define SYM_DM_CREATE           0x2003D
-#define SYM_DM_ALLOC            0x2003E
-#define SYM_IS_LIST             0x2003F
-#define SYM_IS_NUMBER           0x20040
-#define SYM_INT_DIV             0x20041
-#define SYM_IDENTITY            0x20042
-#define SYM_ARRAY               0x20043
+#define SYM_DM_CREATE           0x2003B
+#define SYM_DM_ALLOC            0x2003C
+#define SYM_IS_LIST             0x2003D
+#define SYM_IS_NUMBER           0x2003E
+#define SYM_INT_DIV             0x2003F
+#define SYM_IDENTITY            0x20040
+#define SYM_ARRAY               0x20041
 
 
 // Apply funs:
@@ -582,8 +580,6 @@
 #define ENC_SYM_TAKE                ENC_SYM(SYM_TAKE)
 #define ENC_SYM_DROP                ENC_SYM(SYM_DROP)
 #define ENC_SYM_MKARRAY             ENC_SYM(SYM_MKARRAY)
-#define ENC_SYM_ARRAY_TO_LIST       ENC_SYM(SYM_ARRAY_TO_LIST)
-#define ENC_SYM_LIST_TO_ARRAY       ENC_SYM(SYM_LIST_TO_ARRAY)
 #define ENC_SYM_DM_CREATE           ENC_SYM(SYM_DM_CREATE)
 #define ENC_SYM_DM_ALLOC            ENC_SYM(SYM_DM_ALLOC)
 #define ENC_SYM_IS_LIST             ENC_SYM(SYM_IS_LIST)
