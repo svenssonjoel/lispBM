@@ -532,30 +532,28 @@ static lbm_value fundamental_leq(lbm_value *args, lbm_uint nargs, eval_context_t
   (void) ctx;
 
   lbm_uint a = args[0];
-  lbm_uint b = ENC_SYM_NIL;
   bool r = true;
-  bool ok = true;
 
-  if (!IS_NUMBER(a)) {
+  if (IS_NUMBER(a)) {
+    for (lbm_uint i = 1; i < nargs; i ++) {
+      lbm_uint b = args[i];
+      if (IS_NUMBER(b)) {
+	r = r && (compare_num(a, b) <= 0);
+      } else {
+	lbm_set_error_suspect(b);
+	goto leq_type_error;
+      }
+    }
+  } else {
     lbm_set_error_suspect(a);
-    return ENC_SYM_TERROR;
+    goto leq_type_error;
   }
-  for (lbm_uint i = 1; i < nargs; i ++) {
-    b = args[i];
-    if (!IS_NUMBER(b)) {
-      ok = false;
-      break;
-    }
-    r = r && (compare_num(a, b) <= 0);
+  if (r) {
+    return ENC_SYM_TRUE;
+  } else {
+    return ENC_SYM_NIL;
   }
-  if (ok) {
-    if (r) {
-      return ENC_SYM_TRUE;
-    } else {
-      return ENC_SYM_NIL;
-    }
-  }
-  lbm_set_error_suspect(b);
+ leq_type_error:
   return ENC_SYM_TERROR;
 }
 
@@ -563,30 +561,28 @@ static lbm_value fundamental_geq(lbm_value *args, lbm_uint nargs, eval_context_t
   (void) ctx;
 
   lbm_uint a = args[0];
-  lbm_uint b = ENC_SYM_NIL;
   bool r = true;
-  bool ok = true;
 
-  if (!IS_NUMBER(a)) {
+  if (IS_NUMBER(a)) {
+    for (lbm_uint i = 1; i < nargs; i ++) {
+      lbm_uint b = args[i];
+      if (IS_NUMBER(b)) {
+	r = r && (compare_num(a, b) >= 0);
+      } else {
+	lbm_set_error_suspect(b);
+	goto geq_type_error;
+      }
+    }
+  } else {
     lbm_set_error_suspect(a);
-    return ENC_SYM_TERROR;
+    goto geq_type_error;
   }
-  for (lbm_uint i = 1; i < nargs; i ++) {
-    b = args[i];
-    if (!IS_NUMBER(b)) {
-      ok = false;
-      break;
-    }
-    r = r && (compare_num(a, b) >= 0);
+  if (r) {
+    return ENC_SYM_TRUE;
+  } else {
+    return ENC_SYM_NIL;
   }
-  if (ok) {
-    if (r) {
-      return ENC_SYM_TRUE;
-    } else {
-      return ENC_SYM_NIL;
-    }
-  }
-  lbm_set_error_suspect(b);
+ geq_type_error:
   return ENC_SYM_TERROR;
 }
 
@@ -693,6 +689,8 @@ static lbm_value fundamental_list(lbm_value *args, lbm_uint nargs, eval_context_
   lbm_value result = ENC_SYM_NIL;
   for (lbm_uint i = 1; i <= nargs; i ++) {
     result = lbm_cons(args[nargs-i], result);
+    // This check may be a mostly useless optimisation.
+    // Only triggers in case of running out of heap here.
     if (lbm_type_of(result) == LBM_TYPE_SYMBOL)
       break;
   }
