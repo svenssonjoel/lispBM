@@ -1592,7 +1592,6 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
 // A completely malformed recv form is most likely to
 // just return no_match.
 static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value *e, lbm_value *env) {
-
   // A pattern list is a list of pattern, expression lists.
   // ( (p1 e1) (p2 e2) ... (pn en))
   lbm_value curr_p = plist;
@@ -1601,22 +1600,34 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
   for (int i = 0; i < (int)num; i ++ ) {
     lbm_value curr_e = earr[i];
     while (!lbm_is_symbol_nil(curr_p)) {
+      lbm_value p[3];
+      extract_n(get_car(curr_p), p, 3);
       lbm_value me = get_car(curr_p);
-      if (match(get_car(me), curr_e, env, &need_gc)) {
-        if (need_gc) return FM_NEED_GC;
-        *e = get_cadr(me);
-
-        if (!lbm_is_symbol_nil(get_cadr(get_cdr(me)))) {
-          return FM_PATTERN_ERROR;
+      if (!lbm_is_symbol_nil(p[2])) { // A rare syntax check. maybe drop?
+        lbm_set_error_reason("Incorrect pattern format for recv");
+        error_at_ctx(ENC_SYM_EERROR,me);
+        return FM_NO_MATCH; // PHONY for SA
+      }
+#ifdef LBM_ALWAYS_GC
+      gc();
+#endif
+      if (match(p[0], curr_e, env, &need_gc) && !need_gc) {
+        *e = p[1];
+         return n;
+      } else if (need_gc) {
+        if (match(p[0], curr_e, env, &need_gc) && !need_gc) {
+          *e = p[1];
+           return n;
+        } else {
+          error_ctx(ENC_SYM_MERROR);
+          return FM_NO_MATCH; // PHONY for SA
         }
-        return n;
       }
       curr_p = get_cdr(curr_p);
     }
     curr_p = plist;       /* search all patterns against next exp */
     n ++;
   }
-
   return FM_NO_MATCH;
 }
 
@@ -1818,9 +1829,9 @@ static void eval_call_cc_unsafe(eval_context_t *ctx) {
   // This flag is overwritten in the following execution path.
   lbm_value acont;
   WITH_GC(acont, lbm_heap_allocate_list_init(3,
-					     ENC_SYM_CONT_SP,
-					     lbm_enc_i((int32_t)sp),
-					     is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL, ENC_SYM_NIL));
+                                             ENC_SYM_CONT_SP,
+                                             lbm_enc_i((int32_t)sp),
+                                             is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL, ENC_SYM_NIL));
   lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
   // Go directly into application evaluation without passing go
   lbm_uint *sptr = stack_reserve(ctx, 3);
@@ -2231,42 +2242,6 @@ static void eval_match(eval_context_t *ctx) {
   }
 }
 
-static void receive_base(eval_context_t *ctx, lbm_value pats) {
-  if (ctx->num_mail == 0) {
-      block_current_ctx(LBM_THREAD_STATE_RECV_BL,0,false);
-  } else {
-    lbm_value *msgs = ctx->mailbox;
-    lbm_uint  num   = ctx->num_mail;
-
-    lbm_value e;
-    lbm_value new_env = ctx->curr_env;
-#ifdef LBM_ALWAYS_GC
-    gc();
-#endif
-    int n = find_match(pats, msgs, num, &e, &new_env);
-    if (n == FM_NEED_GC) {
-      gc();
-      new_env = ctx->curr_env;
-      n = find_match(pats, msgs, num, &e, &new_env);
-      if (n == FM_NEED_GC) {
-        error_ctx(ENC_SYM_MERROR);
-      }
-    }
-    if (n == FM_PATTERN_ERROR) {
-      lbm_set_error_reason("Incorrect pattern format for recv");
-      error_at_ctx(ENC_SYM_EERROR,pats);
-    } else if (n >= 0 ) { /* Match */
-      mailbox_remove_mail(ctx, (lbm_uint)n);
-      ctx->curr_env = new_env;
-      ctx->curr_exp = e;
-    } else { /* No match  go back to sleep */
-      ctx->r = ENC_SYM_NO_MATCH;
-      block_current_ctx(LBM_THREAD_STATE_RECV_BL, 0,false);
-    }
-  }
-  return;
-}
-
 // Receive-timeout
 // (recv-to timeout (pattern expr)
 //                  (pattern expr))
@@ -2291,11 +2266,31 @@ static void eval_receive_timeout(eval_context_t *ctx) {
 static void eval_receive(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   lbm_value pats = get_cdr(ctx->curr_exp);
-  if (lbm_is_symbol_nil(pats)) {
+  if (pats) { // non-nil check
+    if (ctx->num_mail == 0) {
+      block_current_ctx(LBM_THREAD_STATE_RECV_BL,0,false);
+    } else {
+      lbm_value *msgs = ctx->mailbox;
+      lbm_uint  num   = ctx->num_mail;
+
+      lbm_value e;
+      lbm_value new_env = ctx->curr_env;
+#ifdef LBM_ALWAYS_GC
+      gc();
+#endif
+      int n = find_match(pats, msgs, num, &e, &new_env);
+      if (n >= 0 ) { /* Match */
+        mailbox_remove_mail(ctx, (lbm_uint)n);
+        ctx->curr_env = new_env;
+        ctx->curr_exp = e;
+      } else { /* No match  go back to sleep */
+        ctx->r = ENC_SYM_NO_MATCH;
+        block_current_ctx(LBM_THREAD_STATE_RECV_BL, 0,false);
+      }
+    }
+  } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_at_ctx(ENC_SYM_EERROR,ctx->curr_exp);
-  } else {
-    receive_base(ctx, pats);
   }
 }
 
@@ -5273,16 +5268,7 @@ static void cont_recv_to(eval_context_t *ctx) {
       gc();
 #endif
       int n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
-      if (n == FM_NEED_GC) {
-        gc();
-        new_env = ctx->curr_env;
-        n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
-        if (n == FM_NEED_GC) error_ctx(ENC_SYM_MERROR);
-      }
-      if (n == FM_PATTERN_ERROR) {
-        lbm_set_error_reason("Incorrect pattern format for recv");
-        error_at_ctx(ENC_SYM_EERROR, sptr[0]);
-      } else if (n >= 0) { // match
+      if (n >= 0) { // match
         mailbox_remove_mail(ctx, (lbm_uint)n);
         ctx->curr_env = new_env;
         ctx->curr_exp = e;
@@ -5316,16 +5302,7 @@ static void cont_recv_to_retry(eval_context_t *ctx) {
     gc();
 #endif
     int n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
-    if (n == FM_NEED_GC) {
-      gc();
-      new_env = ctx->curr_env;
-      n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
-      if (n == FM_NEED_GC) error_ctx(ENC_SYM_MERROR);
-    }
-    if (n == FM_PATTERN_ERROR) {
-      lbm_set_error_reason("Incorrect pattern format for recv");
-      error_at_ctx(ENC_SYM_EERROR, sptr[0]);
-    } else if (n >= 0) { // match
+    if (n >= 0) { // match
       mailbox_remove_mail(ctx, (lbm_uint)n);
       ctx->curr_env = new_env;
       ctx->curr_exp = e;

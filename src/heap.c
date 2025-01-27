@@ -1255,32 +1255,32 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
     array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_extended_t));
     ext_array = (lbm_array_header_extended_t*)array;
   }
-  if (array == NULL) goto allocate_array_merror;
+  if (array) {
+    if (!byte_array) ext_array->index = 0;
 
-  if (!byte_array) ext_array->index = 0;
-
-  array->data = NULL;
-  array->size = size;
-  if ( size > 0) {
-    array->data = (lbm_uint*)lbm_malloc(size);
-    if (array->data == NULL) {
+    array->data = NULL;
+    array->size = size;
+    if ( size > 0) {
+      array->data = (lbm_uint*)lbm_malloc(size);
+      if (array->data == NULL) {
+        lbm_memory_free((lbm_uint*)array);
+        goto allocate_array_merror;
+      }
+      // It is more important to zero out high-level arrays.
+      // 0 is symbol NIL which is perfectly safe for the GC to inspect.
+      memset(array->data, 0, size);
+    }
+    // allocating a cell for array's heap-presence
+    lbm_value cell = lbm_heap_allocate_cell(type, (lbm_uint) array, tag);
+    if (cell == ENC_SYM_MERROR) {
+      lbm_memory_free((lbm_uint*)array->data);
       lbm_memory_free((lbm_uint*)array);
       goto allocate_array_merror;
     }
-    // It is more important to zero out high-level arrays.
-    // 0 is symbol NIL which is perfectly safe for the GC to inspect.
-    memset(array->data, 0, size);
+    *res = cell;
+    lbm_heap_state.num_alloc_arrays ++;
+    return 1;
   }
-  // allocating a cell for array's heap-presence
-  lbm_value cell = lbm_heap_allocate_cell(type, (lbm_uint) array, tag);
-  if (cell == ENC_SYM_MERROR) {
-    lbm_memory_free((lbm_uint*)array->data);
-    lbm_memory_free((lbm_uint*)array);
-    goto allocate_array_merror;
-  }
-  *res = cell;
-  lbm_heap_state.num_alloc_arrays ++;
-  return 1;
  allocate_array_merror:
   *res = ENC_SYM_MERROR;
   return 0;
