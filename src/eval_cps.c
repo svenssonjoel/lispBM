@@ -1442,6 +1442,7 @@ bool lbm_unblock_ctx_r(lbm_cid cid) {
 }
 
 // unblock unboxed is also safe for rmbr:ed things.
+// TODO: What happens if we unblock and the value is "merror"
 bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
   mutex_lock(&blocking_extension_mutex);
   bool r = false;
@@ -1615,6 +1616,7 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
         *e = p[1];
          return n;
       } else if (need_gc) {
+        gc();
         if (match(p[0], curr_e, env, &need_gc) && !need_gc) {
           *e = p[1];
            return n;
