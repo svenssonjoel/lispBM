@@ -2584,7 +2584,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   img_buf.data = image_buffer_data((uint8_t*)arr->data);
 
   lbm_array_header_t *font = 0;
-  if (lbm_type_of(args[5]) == LBM_TYPE_ARRAY) {
+  if (lbm_type_of(args[argn - 2]) == LBM_TYPE_ARRAY) {
     font = (lbm_array_header_t *)lbm_car(args[argn - 2]);
   }
 
