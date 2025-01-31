@@ -158,6 +158,13 @@ static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
 #ifdef LBM_ALWAYS_GC
 
+// TODO: Optimize, In a large number of cases
+// where WITH_GC is used, it is not really required to check is_symbol_merror.
+// Just checking is_symbol should be enough.
+// Given the number of calls to WITH_GC this could save some code
+// space and potentially also be a slight speedup.
+// TODO: profile.
+
 #define WITH_GC(y, x)                           \
   gc();                                         \
   (y) = (x);                                    \
