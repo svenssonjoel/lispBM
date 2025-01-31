@@ -2708,6 +2708,7 @@ static void apply_ok(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs >= 1) {
     ok_val = args[0];
   }
+  is_atomic = false;
   ctx->r = ok_val;
   ok_ctx();
 }
@@ -2718,6 +2719,7 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs >= 1) {
     err_val = args[0];
   }
+  is_atomic = false;
   error_at_ctx(err_val, ENC_SYM_EXIT_ERROR);
 }
 
