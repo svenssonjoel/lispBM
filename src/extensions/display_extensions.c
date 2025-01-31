@@ -88,8 +88,6 @@ uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
   }
 }
 
-//static const char *color_desc = "Color";
-
 static lbm_uint symbol_indexed2 = 0;
 static lbm_uint symbol_indexed4 = 0;
 static lbm_uint symbol_indexed16 = 0;

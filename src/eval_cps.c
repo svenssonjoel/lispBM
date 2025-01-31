@@ -1509,6 +1509,7 @@ void lbm_undo_block_ctx_from_extension(void) {
 int lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   mutex_lock(&qmutex);
   eval_context_t *found = NULL;
+  int res = LBM_RECEIVER_FOUND;
 
   found = lookup_ctx_nm(&blocked, cid);
   if (found) {
@@ -1518,34 +1519,31 @@ int lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
       enqueue_ctx_nm(&queue,found);
     }
     if (!mailbox_add_mail(found, msg)) {
-      mutex_unlock(&qmutex);
-      return LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
+      res = LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
     }
-    mutex_unlock(&qmutex);
-    return LBM_RECEIVER_FOUND;
+    goto find_receiver_end;
   }
 
   found = lookup_ctx_nm(&queue, cid);
   if (found) {
     if (!mailbox_add_mail(found, msg)) {
-      mutex_unlock(&qmutex);
-      return LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
+      res = LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
     }
-    mutex_unlock(&qmutex);
-    return LBM_RECEIVER_FOUND;
+    goto find_receiver_end;
   }
 
   /* check the current context */
   if (ctx_running && ctx_running->id == cid) {
     if (!mailbox_add_mail(ctx_running, msg)) {
-      mutex_unlock(&qmutex);
-      return LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
+      res = LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
     }
-    mutex_unlock(&qmutex);
-    return LBM_RECEIVER_FOUND;
+    goto find_receiver_end;
   }
   mutex_unlock(&qmutex);
   return LBM_RECEIVER_NOT_FOUND;
+ find_receiver_end:
+  mutex_unlock(&qmutex);
+  return res;
 }
 
 // a match binder looks like (? x) or (? _) for example.
@@ -3455,13 +3453,13 @@ static void cont_match(eval_context_t *ctx) {
     lbm_value match_case = get_car(patterns);
     lbm_value pattern = get_car(match_case);
     lbm_value n1      = get_cadr(match_case);
-    lbm_value n2      = get_cadr(get_cdr(match_case));
+    lbm_value n2      = get_cdr(get_cdr(match_case));
     lbm_value body;
     bool check_guard = false;
     if (lbm_is_symbol_nil(n2)) { // TODO: Not a very robust check.
       body = n1;
     } else {
-      body = n2;
+      body = get_car(n2);
       check_guard = true;
     }
 #ifdef LBM_ALWAYS_GC
