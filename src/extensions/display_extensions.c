@@ -30,6 +30,8 @@
 #define MAX_WIDTH 32000
 #define MAX_HEIGHT 32000
 
+// TODO: looks symetric around center.
+// Cut array size in half and index with 128-(i - 128) when i >= 128.
 static const uint8_t cos_tab_256[] = {
   255, 255, 255, 255, 254, 254, 254, 253, 253, 252, 251,
   250, 250, 249, 248, 246, 245, 244, 243, 241, 240, 238, 237, 235, 234,
