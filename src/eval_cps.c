@@ -246,15 +246,24 @@ void lbm_request_gc(void) {
 */
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
+#define EVAL_TIME_QUOTA 400 // time in used, if time quota
 #define EVAL_CPS_MIN_SLEEP 200
 #define EVAL_STEPS_QUOTA   10
 
+#ifdef LBM_USE_TIME_QUOTA
+static volatile uint32_t eval_time_refill = EVAL_TIME_QUOTA;
+static uint32_t eval_time_quota = EVAL_TIME_QUOTA;
+static uint32_t eval_current_quota = 0;
+void lbm_set_eval_time_quota(uint32_t quota) {
+  eval_time_refill = quota;
+}
+#else
 static volatile uint32_t eval_steps_refill = EVAL_STEPS_QUOTA;
 static uint32_t eval_steps_quota = EVAL_STEPS_QUOTA;
-
 void lbm_set_eval_step_quota(uint32_t quota) {
   eval_steps_refill = quota;
 }
+#endif
 
 static uint32_t          eval_cps_run_state = EVAL_CPS_STATE_DEAD;
 static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_NONE;
@@ -474,10 +483,15 @@ eval_context_t *lbm_get_current_context(void) {
   return ctx_running;
 }
 
+#ifdef LBM_USE_TIME_QUOTA
+void lbm_surrender_quota(void) {
+  // dummy;
+}
+#else
 void lbm_surrender_quota(void) {
   eval_steps_quota = 0;
 }
-
+#endif
 
 /****************************************************/
 /* Utilities used locally in this file              */
@@ -1060,16 +1074,16 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
   }
 
   if (!(lbm_hide_trapped_error &&
-	(ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN))) {
+        (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN))) {
     print_error_message(err_val,
-			has_at,
-			at,
-			row,
-			column,
-			ctx_running->row0,
-			ctx_running->row1,
-			ctx_running->id,
-			ctx_running->name);
+                        has_at,
+                        at,
+                        row,
+                        column,
+                        ctx_running->row0,
+                        ctx_running->row1,
+                        ctx_running->id,
+                        ctx_running->name);
   }
 
   if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
@@ -5619,7 +5633,11 @@ void lbm_run_eval(void){
           queue.first = NULL;
           queue.last = NULL;
           ctx_running = NULL;
+#ifdef LBM_USE_TIME_QUOTA
+          eval_time_quota = 0; // maybe timestamp here ?
+#else
           eval_steps_quota = eval_steps_refill;
+#endif
           eval_cps_run_state = EVAL_CPS_STATE_RESET;
           if (blocking_extension) {
             blocking_extension = false;
@@ -5648,6 +5666,38 @@ void lbm_run_eval(void){
       }
     }
     while (true) {
+#ifdef LBM_USE_TIME_QUOTA
+      // use a fast implementation of timestamp where possible.
+      if (timestamp_us_callback() < eval_current_quota && ctx_running) {
+        evaluation_step();
+      } else {
+        if (eval_cps_state_changed) break;
+        // On overflow of timer, task will get a no-quota.
+        // Could lead to busy-wait here until timestamp and quota
+        // are on same side of overflow.
+        eval_current_quota = timestamp_us_callback() + eval_time_refill;
+        if (!is_atomic) {
+          if (gc_requested) {
+            gc();
+          }
+          process_events();
+          mutex_lock(&qmutex);
+          if (ctx_running) {
+            enqueue_ctx_nm(&queue, ctx_running);
+            ctx_running = NULL;
+          }
+          wake_up_ctxs_nm();
+          ctx_running = dequeue_ctx_nm(&queue);
+          mutex_unlock(&qmutex);
+          if (!ctx_running) {
+            lbm_system_sleeping = true;
+            //Fixed sleep interval to poll events regularly.
+            usleep_callback(EVAL_CPS_MIN_SLEEP);
+            lbm_system_sleeping = false;
+          }
+        }
+      }
+#else
       if (eval_steps_quota && ctx_running) {
         eval_steps_quota--;
         evaluation_step();
@@ -5675,6 +5725,7 @@ void lbm_run_eval(void){
           }
         }
       }
+#endif
     }
   }
 }
