@@ -1,0 +1,81 @@
+
+(define manual
+  (list
+   (section 1 "LispBM goals and vision"
+            (list
+             (para (list "The definition of vision that we use in this document is \"what we aspire to, but may not currently know exactly how to reach\"."
+                         "Goals are more concrete and measureable."
+                         ))
+             (para (list "This document starts at vision, and derives a set of semi-long term attainable goals."
+                         "The later part of the document is the most dynamic and this is where"
+                         "long term goals is split up into short term tasks or ideas."
+                         ))
+             (para (list 
+                         ))
+             (para (list "The purpose of having a goals and vision document is to have an agreed upon and discussed direction to take LBM."
+                         "Mainly this has been set up to releave the stress of the \"core team of devs doing the implementation work\" ;)."
+                         "The contents of this document is open for discussion and the happiest the \"core team of devs\" will be if a"
+                         "an understanding for it's motivations and desires is reached and respected. However, Nothing in this document"
+                         "is holy, and good ideas or insighs may change the entire vision. However, it is expected that this document is"
+                         "more dynamic the further into it you read."
+                         ))
+             )
+            )
+   (section 2 "Vision"
+            (list
+             (para (list "Our vision is for LispBM to be a scripting language very well suited for microcontrollers an embedded in general"
+                         "and, specifically, for VESC devices (motorcontrollers and auxiliery)."
+                         "Ideally LispBM should be usable in all areas including safety or security critical applications."
+                         ))
+             (para (list "We identity the following key properties of a scripting language for our target platforms."
+                         ))
+             
+             (bullet '("Small memory footprint of the runtime system."
+                       "Sandboxing - scripts can only influence the rest of the application through the specified interface."
+                       "Fast enough."
+                       "Easy to learn and use."
+                       ))
+             (para (list "TODO: add more bullets"
+                         ))
+             ))
+   (section 2 "Goals"
+            (list
+             (para (list "When selecting what to implement/add/change in LBM one should consider it's value according to the following questions:"
+                         ))
+             (bullet '("How easy is it to implement?"
+                       "How much code does it add?"
+                       "How fun is it to implement?"
+                       "How useful is the addition or change?"
+                       "Does it break compatibility with existing programs?"
+                       ))
+             (section 3 "Long term goals"
+                      (list
+                       (para (list "**Byte code compilation and execution**"
+                                   "ranks very high on the how fun is it axis and will be implemented at some point. Byte code evaluator unit may be a compile time opt-in."
+                       ))
+                       )
+                      )
+             ))
+   (section 2 "Continuosly ongoing work"
+            (list
+             (bullet '("Code size optimisations - do more with less (and add space for fun additions)."
+                       "Improving upon testing frameworks and tests."
+                       "Improving and expanding on documentation."
+                     ))
+             ))
+             
+   info
+   )
+  )
+
+(defun render-manual ()
+  (let ((h (fopen "goals.md" "w"))
+        (r (lambda (s) (fwrite-str h s))))
+    {
+    (gc)
+    (var t0 (systime))
+    (render r manual)
+    (print "Goals and vision document was generated in " (secs-since t0) " seconds")
+    }
+    )
+  )
