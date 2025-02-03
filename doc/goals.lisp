@@ -52,7 +52,10 @@
                       (list
                        (para (list "**Byte code compilation and execution**"
                                    "ranks very high on the how fun is it axis and will be implemented at some point. Byte code evaluator unit may be a compile time opt-in."
-                       ))
+                                   ))
+                       (para (list "**Syntax checker, linter etc**"
+                                   "A tool for analysis of LBM programs and do a lot of the syntax checking that the reader does not do."
+                                   ))
                        )
                       )
              ))
