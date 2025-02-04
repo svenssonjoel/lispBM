@@ -29,10 +29,11 @@
                          ))
              (para (list "We identity the following key properties of a scripting language for our target platforms."
                          ))
-             
              (bullet '("Small memory footprint of the runtime system."
+		       "Predictable performance."
+		       "Predictable resource usage." 
                        "Sandboxing - scripts can only influence the rest of the application through the specified interface."
-                       "Fast enough."
+		       "Developer ergonomics. Make things you are likely to want to do on an embedded device builtin."
                        "Easy to learn and use."
                        ))
              (para (list "TODO: add more bullets"
