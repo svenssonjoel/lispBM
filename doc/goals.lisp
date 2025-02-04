@@ -51,14 +51,16 @@
              (section 3 "Long term goals"
                       (list
                        (para (list "**Bootup time improvements:**"
+                                   "The big issue with startup-time improvements via \"images\" is how to handle state that needs to be initialized upon startup."
+                                   "Handles in the image to resources allocated on the C side, will be stale!"
                                    ))
                        (bullet '("by improving the reader efficiency (very hard given how complex the reader is already with streaming support)."
                                  "by saving an image of the running system and restoring that upon startup (circumventing the reader)."
                                  "by running the reader \"off-line\" and storing a flattened read-result. (This would be superseeded if there is a byte-code compiler in the future.)"
-                                 ))
-                                 
+                                 ))                                 
                        (para (list "**Byte code compilation and execution**"
-                                   "ranks very high on the how fun is it axis and will be implemented at some point. Byte code evaluator unit may be a compile time opt-in."
+                                   "ranks very high on the how fun is it axis and will be implemented at some point. Byte code evaluator unit may be a compile time opt-in."'
+                                   "Byte code could be stored in flash and executed from flash easily and then also help in speeding up startup-times."
                                    ))
                        (para (list "**Syntax checker, linter etc**"
                                    "A tool for analysis of LBM programs and do a lot of the syntax checking that the reader does not do."
