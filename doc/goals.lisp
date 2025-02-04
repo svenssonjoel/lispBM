@@ -50,6 +50,13 @@
                        ))
              (section 3 "Long term goals"
                       (list
+                       (para (list "**Bootup time improvements:**"
+                                   ))
+                       (bullet '("by improving the reader efficiency (very hard given how complex the reader is already with streaming support)."
+                                 "by saving an image of the running system and restoring that upon startup (circumventing the reader)."
+                                 "by running the reader \"off-line\" and storing a flattened read-result. (This would be superseeded if there is a byte-code compiler in the future.)"
+                                 ))
+                                 
                        (para (list "**Byte code compilation and execution**"
                                    "ranks very high on the how fun is it axis and will be implemented at some point. Byte code evaluator unit may be a compile time opt-in."
                                    ))
