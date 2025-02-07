@@ -838,6 +838,10 @@ static void print_error_message(lbm_value error,
   } else {
     print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Error:", error, false);
   }
+  if (lbm_is_symbol_merror(error)) {
+    printf_callback("\n   Heap cells free:  %d\n", lbm_heap_state.heap_size - lbm_heap_state.num_alloc);
+    printf_callback("   Mem longest free: %d\n\n", lbm_memory_longest_free());
+  }
   if (name) {
     printf_callback(  "   CTX: %d \"%s\"\n", cid, name);
   } else {
@@ -1582,19 +1586,31 @@ static inline lbm_value get_match_binder_variable(lbm_value exp) {
 /* Pattern matching is currently implemented as a recursive
    function and make use of stack relative to the size of
    expressions that are being matched. */
-static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
+static bool match(lbm_value p, lbm_value e, lbm_value *env) {
   bool r = false;
   lbm_value var = get_match_binder_variable(p);
   if (var) {
-    lbm_value binding = lbm_cons(var, e);
-    if (lbm_is_cons(binding)) {
-      lbm_value new_env = lbm_cons(binding, *env);
-      if (lbm_is_cons(new_env)) {
-        *env = new_env;
-        r = true;
+#ifdef LBM_ALWAYS_GC
+    lbm_gc_mark_phase(*env);
+    gc();
+#endif
+    lbm_value ls = lbm_heap_allocate_list_init(2, var, ENC_SYM_NIL);
+    if (!lbm_is_ptr(ls)) {
+      lbm_gc_mark_phase(*env);
+      gc();
+      ls = lbm_heap_allocate_list_init(2, var, ENC_SYM_NIL);
+      if (!lbm_is_ptr(ls)) {
+        error_ctx(ls);
+        return false; // Phony for SA
       }
     }
-    *gc = !r;
+    lbm_value c1 = ls;
+    lbm_value c2 = lbm_cdr(ls);
+    lbm_set_cdr(c1, e);
+    lbm_set_car(c2, c1);
+    lbm_set_cdr(c2, *env);
+    *env = c2;
+    r = true;
   } else  if (lbm_is_symbol(p)) {
     if (p == ENC_SYM_DONTCARE) r = true;
     else r = (p == e);
@@ -1605,8 +1621,8 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
     lbm_value tailp = p_cell->cdr;
     lbm_value heade = e_cell->car;
     lbm_value taile = e_cell->cdr;
-    r = match(headp, heade, env, gc);
-    r = r && match (tailp, taile, env, gc);
+    r = match(headp, heade, env);
+    r = r && match (tailp, taile, env);
   } else {
     r = struct_eq(p, e);
   }
@@ -1621,7 +1637,6 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
   // ( (p1 e1) (p2 e2) ... (pn en))
   lbm_value curr_p = plist;
   int n = 0;
-  bool need_gc = false;
   for (int i = 0; i < (int)num; i ++ ) {
     lbm_value curr_e = earr[i];
     while (!lbm_is_symbol_nil(curr_p)) {
@@ -1633,21 +1648,9 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
         error_at_ctx(ENC_SYM_EERROR,me);
         return FM_NO_MATCH; // PHONY for SA
       }
-#ifdef LBM_ALWAYS_GC
-      gc();
-#endif
-      if (match(p[0], curr_e, env, &need_gc) && !need_gc) {
+      if (match(p[0], curr_e, env)) {
         *e = p[1];
          return n;
-      } else if (need_gc) {
-        gc();
-        if (match(p[0], curr_e, env, &need_gc) && !need_gc) {
-          *e = p[1];
-           return n;
-        } else {
-          error_ctx(ENC_SYM_MERROR);
-          return FM_NO_MATCH; // PHONY for SA
-        }
       }
       curr_p = get_cdr(curr_p);
     }
@@ -3453,7 +3456,6 @@ static void cont_if(eval_context_t *ctx) {
 
 static void cont_match(eval_context_t *ctx) {
   lbm_value e = ctx->r;
-  bool  do_gc = false;
 
   lbm_uint *sptr = get_stack_ptr(ctx, 2);
   lbm_value patterns = (lbm_value)sptr[0];
@@ -3478,19 +3480,7 @@ static void cont_match(eval_context_t *ctx) {
       body = get_car(n2);
       check_guard = true;
     }
-#ifdef LBM_ALWAYS_GC
-    gc();
-#endif
-    bool is_match = match(pattern, e, &new_env, &do_gc);
-    if (do_gc) {
-      gc();
-      do_gc = false;
-      new_env = orig_env;
-      is_match = match(pattern, e, &new_env, &do_gc);
-      if (do_gc) {
-        error_ctx(ENC_SYM_MERROR);
-      }
-    }
+    bool is_match = match(pattern, e, &new_env);
     if (is_match) {
       if (check_guard) {
         lbm_value *rptr = stack_reserve(ctx,5);
