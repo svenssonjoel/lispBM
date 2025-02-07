@@ -877,9 +877,13 @@ static void print_error_message(lbm_value error,
     printf_callback("   Current intermediate result: %s\n\n", buf);
 
     print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
-    printf_callback("\n\n");
 
-    printf_callback("   Stack:\n");
+    printf_callback("\n   Mailbox:\n");
+    for (unsigned int i = 0; i < ctx_running->num_mail; i ++) {
+      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->mailbox[i]);
+      printf_callback("     %s\n", buf);
+    }
+    printf_callback("\n   Stack:\n");
     for (unsigned int i = 0; i < ctx_running->K.sp; i ++) {
       lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->K.data[i]);
       printf_callback("     %s\n", buf);
