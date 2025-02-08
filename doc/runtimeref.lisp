@@ -102,9 +102,19 @@
                       ))
               end)))
 
+(define gc-is-always-gc
+    (ref-entry "is-always-gc"
+	       (list
+		(para (list "The `is-always-gc` predicate is true if LBM is built with the LBM_ALWAYS_GC debug flag."
+			    ))
+		(code '((is-always-gc)
+			))
+		end)))
+
 (define chapter-gc
   (section 2 "GC"
-           (list gc-stack)))
+           (list gc-stack
+		 gc-is-always-gc)))
 
 
 
