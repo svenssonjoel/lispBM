@@ -213,12 +213,27 @@ lbm_value ext_symbol_table_size_names_flash(lbm_uint *args, lbm_uint argn) {
   return lbm_enc_u(lbm_get_symbol_table_size_names_flash());
 }
 
+lbm_value ext_is_always_gc(lbm_uint *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  #ifdef LBM_ALWAYS_GC
+  return ENC_SYM_TRUE;
+  #else
+  return ENC_SYM_NIL;
+  #endif
+}
+
+#endif
+
+#if defined(LBM_USE_EXT_MAILBOX_GET) || defined(FULL_RTS_LIB)
+
 void find_cid(eval_context_t *ctx, void *arg1, void *arg2) {
   lbm_cid id = (lbm_cid)arg1;
   if (ctx->id == id) {
     *(eval_context_t**)arg2 = ctx;
   }
 }
+
 
 lbm_value ext_mailbox_get(lbm_uint *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
@@ -244,8 +259,8 @@ lbm_value ext_mailbox_get(lbm_uint *args, lbm_uint argn) {
   }
   return res;
 }
-
 #endif
+
 
 void lbm_runtime_extensions_init(void) {
 
@@ -270,6 +285,7 @@ void lbm_runtime_extensions_init(void) {
     lbm_add_extension("hide-trapped-error", ext_hide_trapped_error);
     lbm_add_extension("show-trapped-error", ext_show_trapped_error);
 #else
+    lbm_add_extension("is-always-gc",ext_is_always_gc);
     lbm_add_extension("set-eval-quota", ext_eval_set_quota);
     lbm_add_extension("hide-trapped-error", ext_hide_trapped_error);
     lbm_add_extension("show-trapped-error", ext_show_trapped_error);

@@ -8,7 +8,10 @@
 (define test-ok t)
 
 ;; Always gc takes ages on this test if loop over 2 iterations.
-(loopfor i 0 (< i 2) (+ i 1)
+
+(define iterations (if (is-always-gc) 2 100))
+
+(loopfor i 0 (< i iterations) (+ i 1)
       (match (list (rnd-sym) (random) (random))
 	     ( (apa (? x) (? y) ) (and (> x 1000) (eq (type-of y) type-u)) (setq test-ok (and t test-ok)))
 	     ( (apa (? x) (? y) ) (and (<= x 1000) (eq (type-of y) type-u)) (setq test-ok (and t test-ok)))

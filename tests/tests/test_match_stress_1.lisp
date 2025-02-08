@@ -9,7 +9,9 @@
 (define test-ok t)
 
 ;; Always gc takes ages on this test if loop over 10 iterations.
-(loopfor i 0 (< i 10) (+ i 1)
+(define iterations (if (is-always-gc) 10 100))
+
+(loopfor i 0 (< i iterations) (+ i 1)
       (match (list (rnd-sym) (random))
 	     ( (apa (? x)) (> x 1000) (setq test-ok (and t test-ok)))
 	     ( (apa (? x)) (<= x 1000) (setq test-ok (and t test-ok)))
