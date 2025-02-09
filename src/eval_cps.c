@@ -1641,8 +1641,7 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env) {
     lbm_value c1 = ls;
     lbm_value c2 = lbm_cdr(ls);
     lbm_set_cdr(c1, e);
-    lbm_set_car(c2, c1);
-    lbm_set_cdr(c2, *env);
+    lbm_set_car_and_cdr(c2, c1, *env);
     *env = c2;
     r = true;
   } else  if (lbm_is_symbol(p)) {
@@ -2048,54 +2047,36 @@ static void eval_app_cont(eval_context_t *ctx) {
 }
 
 // Create a named location in an environment to later receive a value.
-static binding_location_status create_binding_location_internal(lbm_value key, lbm_value *env) {
-  if (lbm_type_of(key) == LBM_TYPE_SYMBOL) { // default case
-    if (key == ENC_SYM_NIL || key == ENC_SYM_DONTCARE) return BL_OK;
-    lbm_value binding;
-    lbm_value new_env_tmp;
-    binding = lbm_cons(key, ENC_SYM_PLACEHOLDER);
-    new_env_tmp = lbm_cons(binding, *env);
-    if (lbm_is_symbol(binding) || lbm_is_symbol(new_env_tmp)) {
-      return BL_NO_MEMORY;
-    }
-    *env = new_env_tmp;
-  } else if (lbm_is_cons(key)) { // deconstruct case
-    int r = create_binding_location_internal(get_car(key), env);
-    if (r == BL_OK) {
-      r = create_binding_location_internal(get_cdr(key), env);
-    }
-    return r;
-  }
-  return BL_OK;
-}
-
+// Protects env from GC, other data is the obligation of the called.
 static void create_binding_location(lbm_value key, lbm_value *env) {
-
-  lbm_value env_tmp = *env;
+  if (lbm_type_of(key) == LBM_TYPE_SYMBOL) { // default case
+    if (key == ENC_SYM_NIL || key == ENC_SYM_DONTCARE) return;
 #ifdef LBM_ALWAYS_GC
-  lbm_gc_mark_phase(env_tmp);
-  gc();
+    lbm_gc_mark_phase(*env);
+    gc();
 #endif
-  binding_location_status r = create_binding_location_internal(key, &env_tmp);
-  if (r != BL_OK) {
-    if (r == BL_NO_MEMORY) {
-      env_tmp = *env;
-      lbm_gc_mark_phase(env_tmp);
+    lbm_value ls = lbm_heap_allocate_list_init(2,
+                                               key,
+                                               ENC_SYM_NIL);
+    if (!lbm_is_ptr(ls)) {
+      lbm_gc_mark_phase(*env);
       gc();
-      r = create_binding_location_internal(key, &env_tmp);
+      ls = lbm_heap_allocate_list_init(2,
+                                       key,
+                                       ENC_SYM_NIL);
+      if (!lbm_is_ptr(ls)) ERROR_CTX(ENC_SYM_MERROR);
     }
-    switch(r) {
-    case BL_OK:
-      break;
-    case BL_NO_MEMORY:
-      ERROR_CTX(ENC_SYM_MERROR);
-      break;
-    case BL_INCORRECT_KEY:
-      ERROR_CTX(ENC_SYM_TERROR);
-      break;
-    }
+    lbm_value binding = ls;
+    lbm_value new_env = lbm_cdr(ls);
+    lbm_set_cdr(binding, ENC_SYM_PLACEHOLDER);
+    lbm_set_car_and_cdr(new_env,binding, *env);
+    *env = new_env;
+  } else if (lbm_is_cons(key)) { // deconstruct case
+    create_binding_location(get_car(key), env);
+    create_binding_location(get_cdr(key), env);
+  } else {
+    ERROR_CTX(ENC_SYM_EERROR);
   }
-  *env = env_tmp;
 }
 
 static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, eval_context_t *ctx) {
