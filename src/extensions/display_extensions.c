@@ -479,7 +479,7 @@ static const uint8_t indexed16_mask[4] = {0x0F, 0xF0};
 static const uint8_t indexed16_shift[4] = {0, 4};
 
 
-static void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
+void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
   uint16_t w = img->width;
   uint16_t h = img->height;
   uint16_t x = (uint16_t)x_i; // negative numbers become really large.
@@ -1731,14 +1731,14 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
   }
 }
 
-static void blit_rot_scale(
-                           image_buffer_t *img_dest,
-                           image_buffer_t *img_src,
-                           int x, int y, // Where on display
-                           float xr, float yr, // Pixel to rotate around
-                           float rot, // Rotation angle in degrees
-                           float scale, // Scale factor
-                           int32_t transparent_color) {
+void blit_rot_scale(
+                    image_buffer_t *img_dest,
+                    image_buffer_t *img_src,
+                    int x, int y, // Where on display
+                    float xr, float yr, // Pixel to rotate around
+                    float rot, // Rotation angle in degrees
+                    float scale, // Scale factor
+                    int32_t transparent_color) {
 
   int src_w = img_src->width;
   int src_h = img_src->height;
