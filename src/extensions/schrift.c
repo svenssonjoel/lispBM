@@ -1459,8 +1459,8 @@ static void post_process(Raster buf, image_buffer_t *image)
       uint16_t g = (uint16_t)(value * 63);
       uint16_t b = (uint16_t)(value * 31);
       uint16_t c = r << 11 | g << 5 | b;
-      image_data[(i << 1)] = c >> 8;
-      image_data[(i << 1) + 1] = c;
+      image_data[i * 2] = (uint8_t)(c >> 8);
+      image_data[i * 2 + 1] = (uint8_t)c;
       accum += cell.cover;
     }
   } break;

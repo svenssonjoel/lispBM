@@ -385,8 +385,8 @@ static uint8_t rgb888to332(uint32_t rgb) {
   uint8_t r = (uint8_t)(rgb >> (16 + 5));
   uint8_t g = (uint8_t)(rgb >> (8 + 5));
   uint8_t b = (uint8_t)(rgb >> 6);
-  r = (uint8_t)(r << 5);
-  g = (g & 0x7) << 2;  ;
+  r = (r & 0x7) << 5;
+  g = (g & 0x7) << 2;
   b = (b & 0x3);
   uint8_t res_rgb332 = r | g | b;
   return res_rgb332;
@@ -396,7 +396,7 @@ static uint16_t rgb888to565(uint32_t rgb) {
   uint16_t r = (uint16_t)(rgb >> (16 + 3));
   uint16_t g = (uint16_t)(rgb >> (8 + 2));
   uint16_t b = (uint16_t)(rgb >> 3);
-  r = (uint8_t)(r << 11);
+  r = r << 11;
   g = (g & 0x3F) << 5;
   b = (b & 0x1F);
   uint16_t res_rgb565 = r | g | b;
