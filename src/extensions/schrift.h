@@ -81,7 +81,6 @@ struct SFT_Kerning
 
 const char *sft_version(void);
 
-int utf8_to_utf32(const uint8_t *utf8, uint32_t *utf32, int max);
 bool get_utf32(uint8_t *utf8, uint32_t *utf32, uint32_t ix, uint32_t *next_ix);
   
 int init_font(SFT_Font *font);

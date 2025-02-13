@@ -102,43 +102,6 @@ struct Raster
 // ////////////////////////////////////////////////////////////
 // Utils
 
-int utf8_to_utf32(const uint8_t *utf8, uint32_t *utf32, int max)
-{
-  // TODO: Seems like max = 2 really means max = 1... 
-  unsigned int c;
-  int i = 0;
-  --max;
-  while (*utf8) {
-    if (i >= max) // <- 
-      return 0;
-    if (!(*utf8 & 0x80U)) {
-      utf32[i++] = *utf8++;
-    } else if ((*utf8 & 0xe0U) == 0xc0U) {
-      c = (*utf8++ & 0x1fU) << 6;
-      if ((*utf8 & 0xc0U) != 0x80U) return 0;
-      utf32[i++] = c + (*utf8++ & 0x3fU);
-    } else if ((*utf8 & 0xf0U) == 0xe0U) {
-      c = (*utf8++ & 0x0fU) << 12;
-      if ((*utf8 & 0xc0U) != 0x80U) return 0;
-      c += (*utf8++ & 0x3fU) << 6;
-      if ((*utf8 & 0xc0U) != 0x80U) return 0;
-      utf32[i++] = c + (*utf8++ & 0x3fU);
-    } else if ((*utf8 & 0xf8U) == 0xf0U) {
-      c = (*utf8++ & 0x07U) << 18;
-      if ((*utf8 & 0xc0U) != 0x80U) return 0;
-      c += (*utf8++ & 0x3fU) << 12;
-      if ((*utf8 & 0xc0U) != 0x80U) return 0;
-      c += (*utf8++ & 0x3fU) << 6;
-      if ((*utf8 & 0xc0U) != 0x80U) return 0;
-      c += (*utf8++ & 0x3fU);
-      if ((c & 0xFFFFF800U) == 0xD800U) return 0;
-      utf32[i++] = c;
-    } else return 0;
-  }
-  utf32[i] = 0;
-  return i;
-}
-
 // extract an utf32 value from an utf8 string starting at index ix.
 bool get_utf32(uint8_t *utf8, uint32_t *utf32, uint32_t ix, uint32_t *next_ix) {
   uint8_t *u = &utf8[ix];
@@ -523,7 +486,6 @@ free_outline(Outline *outl)
 static int
 grow_points(Outline *outl)
 {
-	void *mem;
 	uint_fast16_t cap;
 	assert(outl->capPoints);
 	/* Since we use uint_fast16_t for capacities, we have to be extra careful not to trigger integer overflow. */
@@ -544,7 +506,6 @@ grow_points(Outline *outl)
 static int
 grow_curves(Outline *outl)
 {
-	void *mem;
 	uint_fast16_t cap;
 	assert(outl->capCurves);
 	if (outl->capCurves > UINT16_MAX / 2)
@@ -564,7 +525,6 @@ grow_curves(Outline *outl)
 static int
 grow_lines(Outline *outl)
 {
-	void *mem;
 	uint_fast16_t cap;
 	assert(outl->capLines);
 	if (outl->capLines > UINT16_MAX / 2)
@@ -1422,6 +1382,11 @@ draw_lines(Outline *outl, Raster buf)
 	}
 }
 
+static const uint8_t indexed4_mask[4] = {0x03, 0x0C, 0x30, 0xC0};
+static const uint8_t indexed4_shift[4] = {0, 2, 4, 6};
+static const uint8_t indexed16_mask[2] = {0x0F, 0xF0};
+static const uint8_t indexed16_shift[2] = {0, 4};
+
 /* Integrate the values in the buffer to arrive at the final grayscale image. */
 static void post_process(Raster buf, image_buffer_t *image)
 {
@@ -1437,19 +1402,84 @@ static void post_process(Raster buf, image_buffer_t *image)
       cell     = buf.cells[i];
       value    = fabs(accum + cell.area);
       value    = MIN(value, 1.0);
-      // plot it
       uint32_t byte = i >> 3;
       uint32_t bit  = 7 - (i & 0x7);
       if (value > 0.5) {
-       image_data[byte] |= (uint8_t)(1 << bit);
+        image_data[byte] |= (uint8_t)(1 << bit);
       } else {
         image_data[byte] &= (uint8_t)~(1 << bit);
       }
-      accum   += cell.cover;
+      accum += cell.cover;
     }
+  } break;
+  case indexed4: {
+    for (i = 0; i < num; ++i) {
+      cell     = buf.cells[i];
+      value    = fabs(accum + cell.area);
+      value    = MIN(value, 1.0);
+      uint32_t byte = i >> 2;
+      uint32_t ix  = 3 - (i & 0x3);
+      uint8_t c = (uint8_t)(value * 4);
+      if (c == 4) c = 3;
+      image_data[byte] = (uint8_t)((uint8_t)(image_data[byte] & ~indexed4_mask[ix]) | (uint8_t)(c << indexed4_shift[ix]));
+      accum += cell.cover;
+    }
+  } break;
+  case indexed16: {
+    for (i = 0; i < num; ++i) {
+      cell     = buf.cells[i];
+      value    = fabs(accum + cell.area);
+      value    = MIN(value, 1.0);
+      uint32_t byte = i >> 1;
+      uint32_t ix  = 1 - (i & 0x1);
+      uint8_t c = (uint8_t)(value * 16);
+      if (c == 16) c = 15;
+      image_data[byte] = (uint8_t)((uint8_t)(image_data[byte] & ~indexed16_mask[ix]) | (uint8_t)(c << indexed16_shift[ix]));
+      accum += cell.cover;
+    }
+  } break;
+  case rgb332: {
+    for (i = 0; i < num; ++i) {
+      cell     = buf.cells[i];
+      value    = fabs(accum + cell.area);
+      value    = MIN(value, 1.0);
+      uint8_t r = (uint8_t)(value * 7);
+      uint8_t g = (uint8_t)(value * 7);
+      uint8_t b = (uint8_t)(value * 3);
+      image_data[i] = r << 5 | g << 2 | b;
+      accum += cell.cover;
+    }
+  } break;
+  case rgb565: {
+    for (i = 0; i < num; ++i) {
+      cell     = buf.cells[i];
+      value    = fabs(accum + cell.area);
+      value    = MIN(value, 1.0);
+      uint16_t r = (uint16_t)(value * 31);
+      uint16_t g = (uint16_t)(value * 63);
+      uint16_t b = (uint16_t)(value * 31);
+      uint16_t c = r << 11 | g << 5 | b;
+      image_data[(i << 1)] = c >> 8;
+      image_data[(i << 1) + 1] = c;
+      accum += cell.cover;
+    }
+  } break;
+  case rgb888: {
+    for (i = 0; i < num; ++i) {
+      cell     = buf.cells[i];
+      value    = fabs(accum + cell.area);
+      value    = MIN(value, 1.0);
+      uint8_t r = (uint8_t)(value * 255);
+      uint8_t g = (uint8_t)(value * 255);
+      uint8_t b = (uint8_t)(value * 255);
+      image_data[(i * 3)] = r;
+      image_data[(i * 3) + 1] = g;
+      image_data[(i * 3) + 2] = b;
+      accum += cell.cover;
+    }
+  } break;
+  default:
     break;
-  }
-    // others silently ignore for now.
   }
 }
 

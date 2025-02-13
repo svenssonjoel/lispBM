@@ -213,8 +213,8 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
     double x = lbm_dec_as_double(args[1]);
     double y = lbm_dec_as_double(args[2]);
     uint8_t *utf8 = (uint8_t*)lbm_dec_str(args[4]);
-    int i = 0;
-    int next_i = 0;
+    uint32_t i = 0;
+    uint32_t next_i = 0;
     SFT_Glyph prev = 0;
     bool has_prev = false;
     uint32_t utf32;
@@ -269,7 +269,7 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
         src.mem_base = (uint8_t*)arr->data;
         src.data = image_buffer_data((uint8_t*)arr->data);
 
-        blit_rot_scale(&tgt,&src, (uint32_t)x_n, (uint32_t)y_n, 0, 0, 0, 1.0, -1);
+        blit_rot_scale(&tgt,&src, (int)x_n, (int)y_n, 0, 0, 0, 1.0, -1);
       }
 
       x = x_n + gmtx.advanceWidth;
