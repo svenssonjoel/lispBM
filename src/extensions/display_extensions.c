@@ -403,11 +403,26 @@ static uint16_t rgb888to565(uint32_t rgb) {
   return res_rgb565;
 }
 
+// One problem with rgb332 is that
+// if you take 3 most significant bits of 255 you get 7.
+// There is no whole number that you can multiply 7 with to get 255.
+//
+// Another issue is that 2 bits (the blue channel) yields steps of 85 (255 / 3)
+// while 3 bits yields steps of 36.4 (255 / 7)
+//
+// 36.4 72.8 109.3 145.7 182.1 218.6 254.99
+//         85          170               255
+//
+// The multiples of 85 never coincide with the multiples of 36.4 except
+// for at 0 and 255
 static uint32_t rgb332to888(uint8_t rgb) {
   uint32_t r = (uint32_t)((rgb>>5) & 0x7);
   uint32_t g = (uint32_t)((rgb>>2) & 0x7);
   uint32_t b = (uint32_t)(rgb & 0x3);
-  uint32_t res_rgb888 = r << (16 + 5) | g << (8 + 5) | b << 6;
+  r = (r == 7) ? 255 : 36 * r; // 36 is an approximation (36.4)
+  g = (g == 7) ? 255 : 36 * g;
+  b = 85 * b;
+  uint32_t res_rgb888 = r << 16 | g << 8 | b;
   return res_rgb888;
 }
 

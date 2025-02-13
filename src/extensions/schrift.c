@@ -1443,9 +1443,23 @@ static void post_process(Raster buf, image_buffer_t *image)
       cell     = buf.cells[i];
       value    = fabs(accum + cell.area);
       value    = MIN(value, 1.0);
-      uint8_t r = (uint8_t)(value * 7);
-      uint8_t g = (uint8_t)(value * 7);
-      uint8_t b = (uint8_t)(value * 3);
+      uint8_t r = 0;
+      uint8_t g = 0;
+      uint8_t b = 0;
+      if (value < 0.24) {
+      } else if (value < 0.50) {
+        R = 2;
+        g = 2;
+        b = 1;
+      } else if (value < 0.75) {
+        r = 4;
+        g = 4;
+        b = 2;
+      } else {
+        r = 7;
+        g = 7;
+        b = 3;
+      }
       image_data[i] = r << 5 | g << 2 | b;
       accum += cell.cover;
     }
