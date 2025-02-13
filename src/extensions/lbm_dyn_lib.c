@@ -18,7 +18,7 @@
 
 #include <extensions.h>
 
-#if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)
+#if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS) || defined(LBM_USE_DYN_TTF)
 static const char* lbm_dyn_fun[] = {
 #ifdef LBM_USE_DYN_FUNS
   "(defun str-merge () (str-join (rest-args)))",
@@ -90,6 +90,20 @@ static const char* lbm_dyn_fun[] = {
   "(loopfor i (- n 1) (>= i 0) (- i 1) { (setq ls (cons (ix arr i) ls)) }) ls }))",
 
   "(defun array? (a) (eq (type-of a) type-lisparray))",
+#endif
+#ifdef LBM_USE_DYN_TTF
+  "(defun insert-nub (x xs) (if xs (if (= x (car xs)) xs (if (< x (car xs))"
+  "(cons x xs) (cons (car xs) (insert-nub x (cdr xs))))) (list x)))",
+  "(defun ttf-prepare (ttf str) (let ((glyph-ids (lambda (str i)"
+  "(let ((g  (ttf-glyph-id ttf str i)))"
+  "(if g (insert-nub (car g) (glyph-ids str (car (cdr g)))) nil))))"
+  "(pre-render-glyph (lambda (gid)"
+  "(let (( (width height) (ttf-glyph-dims ttf gid)))"
+  "(if (and (> width 0) (> height 0))"
+  "(let (( img (img-buffer 'indexed2 width height))"
+  "( _   (ttf-glyph-render img ttf gid)))"
+  "(list gid img)) (list gid nil))))))"
+  "(append ttf (list (map pre-render-glyph (glyph-ids str 0))))))"
 #endif
 };
 #endif // defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)
@@ -362,8 +376,7 @@ bool lbm_dyn_lib_find(const char *str, const char **code) {
   }
 #endif
 
-
-#if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)
+#if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS) || defined(LBM_USE_DYN_TTF)
   for (unsigned int i = 0; i < (sizeof(lbm_dyn_fun) / sizeof(lbm_dyn_fun[0]));i++) {
     if (strmatch(str, lbm_dyn_fun[i] + 7)) { // defun is 5
       *code = lbm_dyn_fun[i];
