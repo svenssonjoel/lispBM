@@ -16,14 +16,14 @@
 
 (sdl-set-active-renderer rend) ;; Connect the renderer to the display library
 
-(define img  (img-buffer 'indexed2 32 32))
-(define disp (img-buffer 'indexed2 400 200))
+(define img  (img-buffer 'rgb332 32 32))
+(define disp (img-buffer 'rgb332 400 200))
 
 ;;(define font-file (fopen "HelveticaNeue-Bold.ttf" "r"))
 (define font-file (fopen "Ubuntu-Regular.ttf" "r"))
 (define font (load-file font-file))
 (define ttf (ttf-font 32 32 font))
-(setq ttf (ttf-prepare ttf 'indexed2 "Åke fryser om öronen"))
+(setq ttf (ttf-prepare ttf 'rgb332 "Åke fryser om öronen"))
 (ttf-text disp 10 40 ttf "Åke fryser om öronen")
 
 (disp-render disp 0 0 (list 0x000000

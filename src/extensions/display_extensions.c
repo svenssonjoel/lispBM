@@ -418,10 +418,11 @@ static uint16_t rgb888to565(uint32_t rgb) {
 static uint32_t rgb332to888(uint8_t rgb) {
   uint32_t r = (uint32_t)((rgb>>5) & 0x7);
   uint32_t g = (uint32_t)((rgb>>2) & 0x7);
-  uint32_t b = (uint32_t)(rgb & 0x3);
+  uint32_t b = 2 * (uint32_t)(rgb & 0x3) + 1; // turn 2 bits into 3 having value 0 3 5 or 7
+                                              // so that 4 points match up when doing greyscale.
   r = (r == 7) ? 255 : 36 * r; // 36 is an approximation (36.4)
   g = (g == 7) ? 255 : 36 * g;
-  b = 85 * b;
+  b = (b == 7) ? 255 : 36 * b;
   uint32_t res_rgb888 = r << 16 | g << 8 | b;
   return res_rgb888;
 }
