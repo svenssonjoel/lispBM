@@ -23,8 +23,8 @@
 (define font-file (fopen "Ubuntu-Regular.ttf" "r"))
 (define font (load-file font-file))
 (define ttf (ttf-font 32 32 font))
-(setq ttf (ttf-prepare ttf 'rgb332 "Åke fryser om öronen"))
-(ttf-text disp 10 40 ttf "Åke fryser om öronen")
+(setq ttf (ttf-prepare ttf 'rgb332 "TTF Font"))
+(ttf-text disp 10 80 ttf "TTF Font")
 
 (disp-render disp 0 0 (list 0x000000
                             0xFFFFFF))

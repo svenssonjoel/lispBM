@@ -364,8 +364,11 @@ static void blast_rgb332(uint8_t *dest, int dest_pitch,image_buffer_t *img) {
     uint8_t pix = data[i];
     uint32_t r = (uint32_t)((pix >> 5) & 0x7);
     uint32_t g = (uint32_t)((pix >> 2) & 0x7);
-    uint32_t b = (uint32_t)(pix & 0x3);
-    uint32_t rgb888 = r << (16 + 5) | g << (8 + 5) | b << 6;
+    uint32_t b = 2 * (uint32_t)(pix & 0x3) + 1;
+    r = (r == 7) ? 255 : r * 36;
+    g = (g == 7) ? 255 : g * 36;
+    b = (b == 7) ? 255 : b * 36;
+    uint32_t rgb888 = r << 16 | g << 8| b;
     w_dest[i] = rgb888;
   }
 }

@@ -1447,13 +1447,13 @@ static void post_process(Raster buf, image_buffer_t *image)
       uint8_t g = 0;
       uint8_t b = 0;
       if (value < 0.24) {
-      } else if (value < 0.50) {
-        r = 2;
-        g = 2;
+      } else if (value < 0.30) {
+        r = 3;
+        g = 3;
         b = 1;
-      } else if (value < 0.75) {
-        r = 4;
-        g = 4;
+      } else if (value < 0.55) {
+        r = 5;
+        g = 5;
         b = 2;
       } else {
         r = 7;
