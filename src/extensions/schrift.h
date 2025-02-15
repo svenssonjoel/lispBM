@@ -55,8 +55,11 @@ struct SFT_Font
 	uint_least16_t unitsPerEm;
 	int_least16_t  locaFormat;
 	uint_least16_t numLongHmtx;
+        int            pairAdjustCoverageOffset;
+        int            pairAdjustOffset;
+
 };
-  
+
 struct SFT_LMetrics
 {
 	double ascender;
@@ -82,15 +85,17 @@ struct SFT_Kerning
 const char *sft_version(void);
 
 bool get_utf32(uint8_t *utf8, uint32_t *utf32, uint32_t ix, uint32_t *next_ix);
-  
+
 int init_font(SFT_Font *font);
 
 int sft_lmetrics(const SFT *sft, SFT_LMetrics *metrics);
 int sft_lookup  (const SFT *sft, SFT_UChar codepoint, SFT_Glyph *glyph);
 int sft_gmetrics(const SFT *sft, SFT_Glyph glyph, SFT_GMetrics *metrics);
-int sft_kerning (const SFT *sft, SFT_Glyph leftGlyph, SFT_Glyph rightGlyph,
-                 SFT_Kerning *kerning);
+int sft_kerning (const SFT *sft, SFT_Glyph leftGlyph, SFT_Glyph rightGlyph, SFT_Kerning *kerning);
 int sft_render  (const SFT *sft, SFT_Glyph glyph, image_buffer_t *image);
+
+bool sft_gpos_kerning(const SFT *sft, SFT_Glyph leftGlyph, SFT_Glyph rightGlyph, SFT_Kerning *kerning);
+
 
 #ifdef __cplusplus
 }

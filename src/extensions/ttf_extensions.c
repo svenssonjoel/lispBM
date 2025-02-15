@@ -45,9 +45,10 @@ static lbm_value ext_ttf_font(lbm_value *args, lbm_value argn) {
         ft->unitsPerEm = 0;
         ft->locaFormat = 0;
         ft->numLongHmtx = 0;
-        if (init_font(ft) < 0)
+        if (init_font(ft) < 0) {
+          printf("init font fail\n");
           res = ENC_SYM_NIL; // gc will clean up the allocations.
-        else {
+        } else {
           lbm_value cddr = lbm_cdr(lbm_cdr(font_val));
           lbm_set_car(cddr, font_data); // The font object used in schrift.
           lbm_set_car(lbm_cdr(cddr), args[2]); // In order to remember the data if not global.
@@ -244,9 +245,10 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
       double y_shift = 0;
       if (has_prev) {
         SFT_Kerning kern;
-        if (sft_kerning(&sft, prev, gid, &kern) < 0) {
-          res = ENC_SYM_EERROR;
-          goto ttf_print_done;
+        if (sft.font->pairAdjustOffset) {
+          sft_gpos_kerning(&sft, prev, gid, &kern);
+        } else {
+          sft_kerning(&sft, prev, gid, &kern);
         }
         x_shift = kern.xShift;
         y_shift = kern.yShift;
