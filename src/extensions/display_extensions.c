@@ -406,6 +406,10 @@ static uint16_t rgb888to565(uint32_t rgb) {
 // One problem with rgb332 is that
 // if you take 3 most significant bits of 255 you get 7.
 // There is no whole number that you can multiply 7 with to get 255.
+// This is fundamental for any conversion from RGB888 that just uses the
+// N < 8 most significant bits. And it means that conversion to this format
+// and then back to rgb888 will not (without tricks) map highest intensity
+// back to highest intensity.
 //
 // Another issue is that 2 bits (the blue channel) yields steps of 85 (255 / 3)
 // while 3 bits yields steps of 36.4 (255 / 7)
@@ -430,6 +434,19 @@ static uint32_t rgb332to888(uint8_t rgb) {
   uint32_t res_rgb888 = r << 16 | g << 8 | b;
   return res_rgb888;
 }
+
+// RGB 565
+// 2^5 = 32
+// 2^6 = 64
+// 255 / 31 = 8.226
+// 255 / 63 = 4.18
+//         0   1     2     3     4     5     6     7     8       ...  31   63
+// 5 bits  0   8.226 16.45 24.67 32.9  41.13 49.35 57.58 65.81   ...  254.9
+// 6 bits  0   4.047 8.09  12.14 16.19 20.24 24.29 28.33 32.38      ...    254.9
+//
+// For RGB 565 the 6 and 5 bit channels match up very nicely such
+// index i in the 5 bit channel is equal to index (2 * i) in the 6 bit channel.
+// RGB 565 will have nice grayscales.
 
 static uint32_t  rgb565to888(uint16_t rgb) {
   uint32_t r = (uint32_t)(rgb >> 11);
