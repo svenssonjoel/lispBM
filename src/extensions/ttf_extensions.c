@@ -172,6 +172,7 @@ lbm_value ext_ttf_glyph_render(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+// TODO: If an array was used, we could bsearch the glyph.
 static lbm_value lookup_glyph_image(uint32_t gid, lbm_value ls) {
   lbm_value curr = ls;
   lbm_value res = ENC_SYM_NO_MATCH;
@@ -191,113 +192,143 @@ static lbm_value lookup_glyph_image(uint32_t gid, lbm_value ls) {
   return res;
 }
 
-
 lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
   lbm_array_header_t *img_arr;
-  if (argn == 5 &&
+  lbm_value font;
+  lbm_value utf8_str;
+  uint32_t colors[16];
+  if (argn == 7 &&
       (img_arr = get_image_buffer(args[0])) &&
       lbm_is_number(args[1]) && // x position
       lbm_is_number(args[2]) && // y position
-      is_prepared_font_value(args[3]) &&
-      lbm_is_array_r(args[4])) { // sequence of utf8 characters
+      lbm_is_number(args[3]) && // fg color
+      lbm_is_number(args[4]) && // bg color
+      is_prepared_font_value(args[5]) &&
+      lbm_is_array_r(args[6])) { // sequence of utf8 characters
+    colors[0] = lbm_dec_as_u32(args[4]);
+    colors[1] = lbm_dec_as_u32(args[3]);
+    font = args[5];
+    utf8_str = args[6];
+  } else if (argn == 6 &&
+             (img_arr = get_image_buffer(args[0])) &&
+             lbm_is_number(args[1]) && // x position
+             lbm_is_number(args[2]) && // y position
+             lbm_is_cons(args[3]) &&   // list of colors
+             is_prepared_font_value(args[4]) &&
+             lbm_is_array_r(args[5])) { // sequence of utf8 characters
+    lbm_value curr = args[3];
+    int i = 0;
+    while(lbm_is_cons(curr) && i < 16) {
+      colors[i] = lbm_dec_as_u32(lbm_car(curr));
+      curr = lbm_cdr(curr);
+      i ++;
+    }
+    font = args[4];
+    utf8_str = args[5];
+  } else {
+    return res;
+  }
 
-    SFT sft = mk_sft(args[3]);
+  SFT sft = mk_sft(font);
 
-    image_buffer_t tgt;
-    tgt.width = image_buffer_width((uint8_t*)img_arr->data);
-    tgt.height = image_buffer_height((uint8_t*)img_arr->data);
-    tgt.fmt = image_buffer_format((uint8_t*)img_arr->data);
-    tgt.mem_base = (uint8_t*)img_arr->data;
-    tgt.data = image_buffer_data((uint8_t*)img_arr->data);
+  image_buffer_t tgt;
+  tgt.width = image_buffer_width((uint8_t*)img_arr->data);
+  tgt.height = image_buffer_height((uint8_t*)img_arr->data);
+  tgt.fmt = image_buffer_format((uint8_t*)img_arr->data);
+  tgt.mem_base = (uint8_t*)img_arr->data;
+  tgt.data = image_buffer_data((uint8_t*)img_arr->data);
 
-    double x = lbm_dec_as_double(args[1]);
-    double y = lbm_dec_as_double(args[2]);
-    uint8_t *utf8 = (uint8_t*)lbm_dec_str(args[4]);
-    uint32_t i = 0;
-    uint32_t next_i = 0;
-    SFT_Glyph prev = 0;
-    bool has_prev = false;
-    uint32_t utf32;
+  double x = lbm_dec_as_double(args[1]);
+  double y = lbm_dec_as_double(args[2]);
+  uint8_t *utf8 = (uint8_t*)lbm_dec_str(utf8_str);
+  uint32_t i = 0;
+  uint32_t next_i = 0;
+  SFT_Glyph prev = 0;
+  bool has_prev = false;
+  uint32_t utf32;
 
-    lbm_value glyph_tab = lbm_index_list(args[3], 4);
+  lbm_value glyph_tab = lbm_index_list(font, 4);
 
-    while (get_utf32(utf8, &utf32, i, &next_i)) {
+  while (get_utf32(utf8, &utf32, i, &next_i)) {
 
-      SFT_Glyph gid;
-      if (sft_lookup(&sft, utf32, &gid) < 0) {
-        res = ENC_SYM_EERROR;
-        goto ttf_print_done;
+    SFT_Glyph gid;
+    if (sft_lookup(&sft, utf32, &gid) < 0) {
+      res = ENC_SYM_EERROR;
+      goto ttf_print_done;
+    }
+    SFT_GMetrics gmtx;
+    if (sft_gmetrics(&sft, gid, &gmtx) < 0) {
+      res = ENC_SYM_EERROR;
+      goto ttf_print_done;
+    }
+
+    lbm_value glyph = lookup_glyph_image(gid, glyph_tab);
+    if (!(lbm_is_array_r(glyph) || lbm_is_symbol_nil(glyph))) {
+      res = ENC_SYM_EERROR;
+      goto ttf_print_done;
+    }
+
+    double x_shift = 0;
+    double y_shift = 0;
+    if (has_prev) {
+      SFT_Kerning kern;
+      kern.xShift = 0.0;
+      kern.yShift = 0.0;
+      // silly kerning lookup by first trying to get
+      // the kern from GPOS and if we are unable, we try kern table.
+      if (sft.font->pairAdjustOffset) {
+        sft_gpos_kerning(&sft, prev, gid, &kern);
       }
-      SFT_GMetrics gmtx;
-      if (sft_gmetrics(&sft, gid, &gmtx) < 0) {
-        res = ENC_SYM_EERROR;
-        goto ttf_print_done;
+      if (kern.xShift == 0.0 && kern.yShift == 0.0) {
+        sft_kerning(&sft, prev, gid, &kern);
       }
 
-      lbm_value glyph = lookup_glyph_image(gid, glyph_tab);
-      if (!(lbm_is_array_r(glyph) || lbm_is_symbol_nil(glyph))) {
-        res = ENC_SYM_EERROR;
-        goto ttf_print_done;
-      }
+      x_shift = kern.xShift;
+      y_shift = kern.yShift;
+    }
 
-      double x_shift = 0;
-      double y_shift = 0;
-      if (has_prev) {
-        SFT_Kerning kern;
-        kern.xShift = 0.0;
-        kern.yShift = 0.0;
-        // silly kerning lookup by first trying to get
-        // the kern from GPOS and if we are unable, we try kern table.
-        if (sft.font->pairAdjustOffset) {
-          sft_gpos_kerning(&sft, prev, gid, &kern);
-        }
-        if (kern.xShift == 0.0 && kern.yShift == 0.0) {
-          sft_kerning(&sft, prev, gid, &kern);
-        }
+    double x_n = x;
+    double y_n = y;
 
-        x_shift = kern.xShift;
-        y_shift = kern.yShift;
-      }
+    x_n+=gmtx.leftSideBearing;
+    y_n+=gmtx.yOffset;
+    x_n+=x_shift;
+    y_n+=y_shift;
 
-      double x_n = x;
-      double y_n = y;
+    if (!lbm_is_symbol_nil(glyph)) { // whitespaces have no pre-rendered glyph
+      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(glyph);
+      image_buffer_t src;
+      src.width = image_buffer_width((uint8_t*)arr->data);
+      src.height = image_buffer_height((uint8_t*)arr->data);
+      src.fmt = image_buffer_format((uint8_t*)arr->data);
+      src.mem_base = (uint8_t*)arr->data;
+      src.data = image_buffer_data((uint8_t*)arr->data);
 
-      x_n+=gmtx.leftSideBearing;
-      y_n+=gmtx.yOffset;
-      x_n+=x_shift;
-      y_n+=y_shift;
+      uint32_t num_colors = 1 << src.fmt;
+      printf("%d\n", num_colors);
+      for (int j = 0; j < src.height; j++) {
+        for (int i = 0; i < src.width; i ++) {
+          int xi = (int)x_n;
+          int yi = (int)y_n;
+          if (yi + j > 0 && yi + j < tgt.height &&
+              xi + i > 0 && xi + i < tgt.width) {
 
-      if (!lbm_is_symbol_nil(glyph)) { // whitespaces have no pre-rendered glyph
-        lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(glyph);
-        image_buffer_t src;
-        src.width = image_buffer_width((uint8_t*)arr->data);
-        src.height = image_buffer_height((uint8_t*)arr->data);
-        src.fmt = image_buffer_format((uint8_t*)arr->data);
-        src.mem_base = (uint8_t*)arr->data;
-        src.data = image_buffer_data((uint8_t*)arr->data);
-
-        for (int j = 0; j < src.height; j++) {
-          for (int i = 0; i < src.width; i ++) {
-            int xi = (int)x_n;
-            int yi = (int)y_n;
-            if (yi + j > 0 && yi + j < tgt.height &&
-                xi + i > 0 && xi + i < tgt.width) {
-              uint32_t p = getpixel(&src, i, j);
-              // TODO transform indexed format according to a mapping
-              putpixel(&tgt, xi + i, yi + j, p);
-            }
+            uint32_t p = getpixel(&src, i, j);
+            uint32_t c = colors[p & (num_colors-1)]; // ceiled
+            // TODO transform indexed format according to a mapping
+            putpixel(&tgt, xi + i, yi + j, c);
           }
         }
       }
-
-      x = x_n + gmtx.advanceWidth;
-      i = next_i;
-      prev = gid;
-      has_prev = true;
     }
-    res = ENC_SYM_TRUE;
+
+    x = x_n + gmtx.advanceWidth;
+    i = next_i;
+    prev = gid;
+    has_prev = true;
   }
+  res = ENC_SYM_TRUE;
  ttf_print_done:
   return res;
 }
