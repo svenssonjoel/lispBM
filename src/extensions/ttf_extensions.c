@@ -245,11 +245,17 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
       double y_shift = 0;
       if (has_prev) {
         SFT_Kerning kern;
+        kern.xShift = 0.0;
+        kern.yShift = 0.0;
+        // silly kerning lookup by first trying to get
+        // the kern from GPOS and if we are unable, we try kern table.
         if (sft.font->pairAdjustOffset) {
           sft_gpos_kerning(&sft, prev, gid, &kern);
-        } else {
+        }
+        if (kern.xShift == 0.0 && kern.yShift == 0.0) {
           sft_kerning(&sft, prev, gid, &kern);
         }
+
         x_shift = kern.xShift;
         y_shift = kern.yShift;
       }
