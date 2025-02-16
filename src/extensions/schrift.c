@@ -277,12 +277,12 @@ static int is_glyph_covered(const SFT *sft, uint32_t coverage_table_offset, SFT_
   uint32_t offset = coverage_table_offset;
   if (!is_safe_offset(sft->font, offset, 6)) // jump into header at pos
     return -1;
-  uint16_t format = getu16(sft->font, offset);
+  //uint16_t format = getu16(sft->font, offset);
   uint16_t num    = getu16(sft->font, offset+2);
 
-  for (int i = 0; i < num; i ++) {
+  for (uint16_t i = 0; i < num; i ++) {
     uint16_t glyphid = getu16(sft->font, offset+4+(i * 2));
-    if (glyphid == g) return i; //lookup index
+    if (glyphid == g) return (int)i; //lookup index
   }
   return -1;
 }
@@ -293,7 +293,7 @@ static int get_pair_x_adjustment(const SFT *sft, uint32_t pair_set_offset, SFT_G
 
   uint16_t numPairs = getu16(sft->font, offset);
 
-  for (int i = 0; i < numPairs; i ++) {
+  for (uint16_t i = 0; i < numPairs; i ++) {
     uint16_t glyph = getu16(sft->font, offset + 2 +  (i * 4));
     int16_t x_adjust = geti16(sft->font, offset + 2 + (i * 4) + 2);
     if (glyph == g) {
@@ -306,10 +306,11 @@ static int get_pair_x_adjustment(const SFT *sft, uint32_t pair_set_offset, SFT_G
 
 // -1 if there is no pair adjustment table
 // or if it is in a format we are not concerned with.
-static int locate_pair_adjustment_table(const SFT_Font *font)
+// TODO: font should be a const SFT_Font * here I think.
+// but gettable discards the constness
+static int locate_pair_adjustment_table(SFT_Font *font)
 {
   uint_fast32_t offset;
-  unsigned int numTables, numPairs, length, format;
 
   if (gettable(font, "GPOS", &offset) < 0)
     return -1;
@@ -328,7 +329,7 @@ static int locate_pair_adjustment_table(const SFT_Font *font)
     uint16_t table = getu16(font, tmp_offs);
     uint32_t loffset = offset + table;
     uint16_t lookupType = getu16(font, loffset );
-    uint16_t lookupFlag = getu16(font, loffset + 2);
+    //uint16_t lookupFlag = getu16(font, loffset + 2);
     uint16_t subTableCount = getu16(font, loffset + 4);
 
     if (lookupType == PAIR_ADJUSTMENT) {
@@ -341,18 +342,21 @@ static int locate_pair_adjustment_table(const SFT_Font *font)
       }
       // pair adjustment subtable found
       uint16_t subtableOffset = getu16(font, loffset + 6);
-      return loffset + subtableOffset;
+      return (int)(loffset + subtableOffset);
     }
   }
   return -1;
 }
 
-static int locate_pair_adjust_coverage_table(const SFT_Font *font) {
-  if (font->pairAdjustOffset < 0) return -1;
+// TODO: font should probably have type const SFT_Font * but getu16 discards.
+static int locate_pair_adjust_coverage_table(SFT_Font *font) {
+  if ((font->pairAdjustOffset < 0) ||
+      (font->pairAdjustCoverageOffset < 0)) return -1;
 
-  uint32_t offset = font->pairAdjustOffset;
+  // If this function is called, pairAdjustOffset will be > 0
+  uint32_t offset = (uint32_t)font->pairAdjustOffset;
   uint16_t coverageOffset = getu16(font, offset + 2); // coverage index in pair adjust header
-  return offset + coverageOffset;
+  return (int)(offset + coverageOffset);
 }
 
 bool sft_gpos_kerning(const SFT *sft, SFT_Glyph leftGlyph, SFT_Glyph rightGlyph, SFT_Kerning *kerning) {
@@ -364,12 +368,12 @@ bool sft_gpos_kerning(const SFT *sft, SFT_Glyph leftGlyph, SFT_Glyph rightGlyph,
 
   memset(kerning, 0, sizeof *kerning);
 
-  uint32_t coverage_tab = sft->font->pairAdjustCoverageOffset;
-  uint32_t pair_adj_tab = sft->font->pairAdjustOffset;
+  uint32_t coverage_tab = (uint32_t)sft->font->pairAdjustCoverageOffset;
+  uint32_t pair_adj_tab = (uint32_t)sft->font->pairAdjustOffset;
 
   int glyph_cover = is_glyph_covered(sft, coverage_tab, leftGlyph);
   if (glyph_cover >= 0) {
-    uint16_t pairSetOffset = getu16(sft->font, pair_adj_tab + 10 + (glyph_cover * 2));
+    uint16_t pairSetOffset = getu16(sft->font, pair_adj_tab + 10 + ((uint32_t)glyph_cover * 2));
     uint32_t coffset = pair_adj_tab + pairSetOffset;
 
     double x_adjust = 0;
