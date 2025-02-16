@@ -170,15 +170,8 @@ static inline uint32_t color_apply_precalc(color_t color, int x, int y) {
 
 // Interface
 
-void blit_rot_scale(
-                    image_buffer_t *img_dest,
-                    image_buffer_t *img_src,
-                    int x, int y, // Where on display
-                    float xr, float yr, // Pixel to rotate around
-                    float rot, // Rotation angle in degrees
-                    float scale, // Scale factor
-                    int32_t transparent_color);
-
+void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c);
+uint32_t getpixel(image_buffer_t* img, int x_i, int y_i);
 
 bool lbm_display_is_color(lbm_value v);
 uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y);

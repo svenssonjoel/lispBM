@@ -576,7 +576,7 @@ void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
   }
 }
 
-static uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
+uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
   uint16_t w = img->width;
   uint16_t h = img->height;
   uint16_t x = (uint16_t)x_i;

@@ -277,7 +277,18 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
         src.mem_base = (uint8_t*)arr->data;
         src.data = image_buffer_data((uint8_t*)arr->data);
 
-        blit_rot_scale(&tgt,&src, (int)x_n, (int)y_n, 0, 0, 0, 1.0, -1);
+        for (int j = 0; j < src.height; j++) {
+          for (int i = 0; i < src.width; i ++) {
+            int xi = (int)x_n;
+            int yi = (int)y_n;
+            if (yi + j > 0 && yi + j < tgt.height &&
+                xi + i > 0 && xi + i < tgt.width) {
+              uint32_t p = getpixel(&src, i, j);
+              // TODO transform indexed format according to a mapping
+              putpixel(&tgt, xi + i, yi + j, p);
+            }
+          }
+        }
       }
 
       x = x_n + gmtx.advanceWidth;
