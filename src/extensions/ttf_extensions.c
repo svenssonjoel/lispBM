@@ -314,7 +314,6 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
 
             uint32_t p = getpixel(&src, i, j);
             uint32_t c = colors[p & (num_colors-1)]; // ceiled
-            // TODO transform indexed format according to a mapping
             putpixel(&tgt, xi + i, yi + j, c);
           }
         }
