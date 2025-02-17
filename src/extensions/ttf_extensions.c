@@ -197,7 +197,8 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
   lbm_value font;
   lbm_value utf8_str;
   uint32_t colors[16];
-  if (argn == 7 &&
+  uint32_t next_arg = 0;
+  if (argn >= 7 &&
       (img_arr = get_image_buffer(args[0])) &&
       lbm_is_number(args[1]) && // x position
       lbm_is_number(args[2]) && // y position
@@ -209,7 +210,8 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
     colors[1] = lbm_dec_as_u32(args[3]);
     font = args[5];
     utf8_str = args[6];
-  } else if (argn == 6 &&
+    next_arg = 7;
+  } else if (argn >= 6 &&
              (img_arr = get_image_buffer(args[0])) &&
              lbm_is_number(args[1]) && // x position
              lbm_is_number(args[2]) && // y position
@@ -225,8 +227,16 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
     }
     font = args[4];
     utf8_str = args[5];
+    next_arg = 6;
   } else {
     return res;
+  }
+
+  bool up = false;
+  bool down = false;
+  if (next_arg < argn) {
+    up = display_is_symbol_up(args[next_arg]);
+    down = display_is_symbol_down(args[next_arg]);
   }
 
   SFT sft = mk_sft(font);
@@ -238,8 +248,8 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
   tgt.mem_base = (uint8_t*)img_arr->data;
   tgt.data = image_buffer_data((uint8_t*)img_arr->data);
 
-  double x = lbm_dec_as_double(args[1]);
-  double y = lbm_dec_as_double(args[2]);
+  double x_pos = lbm_dec_as_double(args[1]);
+  double y_pos = lbm_dec_as_double(args[2]);
   uint8_t *utf8 = (uint8_t*)lbm_dec_str(utf8_str);
   uint32_t i = 0;
   uint32_t next_i = 0;
@@ -247,9 +257,23 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
   bool has_prev = false;
   uint32_t utf32;
 
+  SFT_LMetrics lmtx;
+  if (sft_lmetrics(&sft, &lmtx) < 0) {
+    res = ENC_SYM_EERROR;
+    goto ttf_print_done;
+  }
   lbm_value glyph_tab = lbm_index_list(font, 4);
+  double x = x_pos;
+  double y = y_pos;
 
   while (get_utf32(utf8, &utf32, i, &next_i)) {
+
+    if (utf32 == '\n') {
+      x = x_pos;
+      y = y_pos + 1.2 * (lmtx.ascender + lmtx.descender + lmtx.lineGap);
+      i++;
+      continue; // next iteration
+    }
 
     SFT_Glyph gid;
     if (sft_lookup(&sft, utf32, &gid) < 0) {
@@ -290,10 +314,19 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
     double x_n = x;
     double y_n = y;
 
-    x_n+=gmtx.leftSideBearing;
-    y_n+=gmtx.yOffset;
-    x_n+=x_shift;
-    y_n+=y_shift;
+    if (up) {
+      y_n -= x_shift;
+      x_n += y_shift;
+      x_n += gmtx.yOffset;
+    } else if (down) {
+      y_n += x_shift;
+      x_n -= y_shift;
+      x_n -= gmtx.yOffset;
+    } else {
+      x_n += x_shift;
+      y_n += y_shift;
+      y_n += gmtx.yOffset;
+    }
 
     if (!lbm_is_symbol_nil(glyph)) { // whitespaces have no pre-rendered glyph
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(glyph);
@@ -305,22 +338,33 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
       src.data = image_buffer_data((uint8_t*)arr->data);
 
       uint32_t num_colors = 1 << src.fmt;
+
       for (int j = 0; j < src.height; j++) {
         for (int i = 0; i < src.width; i ++) {
-          int xi = (int)x_n;
-          int yi = (int)y_n;
-          if (yi + j > 0 && yi + j < tgt.height &&
-              xi + i > 0 && xi + i < tgt.width) {
+          // the bearing should not be accumulated into the advances
 
-            uint32_t p = getpixel(&src, i, j);
+          uint32_t p = getpixel(&src, i, j);
+          if (p) { // only draw colored
             uint32_t c = colors[p & (num_colors-1)]; // ceiled
-            putpixel(&tgt, xi + i, yi + j, c);
+
+            if (up) {
+              putpixel(&tgt,(int)x_n + j, (int)(y_n + gmtx.leftSideBearing) + (src.width - i - 1), c);
+            } else if (down) {
+              putpixel(&tgt,(int)x_n + (src.height - j - 1), (int)(y_n + gmtx.leftSideBearing) + i, c);
+            } else {
+              putpixel(&tgt, i + (int)(x_n + gmtx.leftSideBearing), j + (int)y_n, c);
+            }
           }
         }
       }
     }
-
-    x = x_n + gmtx.advanceWidth;
+    if (up) {
+      y = y_n - gmtx.advanceWidth;
+    } else if (down) {
+      y = y_n + gmtx.advanceWidth;
+    } else {
+      x = x_n + gmtx.advanceWidth;
+    }
     i = next_i;
     prev = gid;
     has_prev = true;

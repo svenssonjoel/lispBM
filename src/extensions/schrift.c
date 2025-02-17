@@ -1746,15 +1746,6 @@ static void post_process(Raster buf, image_buffer_t *image)
   }
 }
 
-/* for (i = 0; i < num; ++i) { */
-/*   cell     = buf.cells[i]; */
-/*   value    = fabs(accum + cell.area); */
-/*   value    = MIN(value, 1.0); */
-/*   value    = value * 255.0 + 0.5; */
-/*   image[i] = (uint8_t) value; */
-/*   accum   += cell.cover; */
-/*  } */
-
 static int render_outline(Outline *outl, double transform[6], image_buffer_t * image) {
   Cell *cells = NULL;
   Raster buf;

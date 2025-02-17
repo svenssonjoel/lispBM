@@ -170,6 +170,9 @@ static inline uint32_t color_apply_precalc(color_t color, int x, int y) {
 
 // Interface
 
+bool display_is_symbol_up(lbm_value v);
+bool display_is_symbol_down(lbm_value v);
+
 void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c);
 uint32_t getpixel(image_buffer_t* img, int x_i, int y_i);
 

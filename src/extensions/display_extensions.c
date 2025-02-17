@@ -120,6 +120,22 @@ static lbm_uint symbol_repeat_type = 0;
 static lbm_uint symbol_down = 0;
 static lbm_uint symbol_up = 0;
 
+bool display_is_symbol_up(lbm_value v) {
+  if (lbm_is_symbol(v)) {
+    lbm_uint s = lbm_dec_sym(v);
+    return (s == symbol_up);
+  }
+  return false;
+}
+
+bool display_is_symbol_down(lbm_value v) {
+  if (lbm_is_symbol(v)) {
+    lbm_uint s = lbm_dec_sym(v);
+    return (s == symbol_down);
+  }
+  return false;
+}
+
 static color_format_t sym_to_color_format(lbm_value v) {
   lbm_uint s = lbm_dec_sym(v);
   if (s == symbol_indexed2) return indexed2;
