@@ -367,7 +367,6 @@ lbm_value ext_ttf_glyph_id(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-
 void lbm_ttf_extensions_init(void) {
 
   // Low level utilities
