@@ -568,6 +568,7 @@ sft_render(const SFT *sft, SFT_Glyph glyph, image_buffer_t * image)
   float transform[6];
   int bbox[4];
   Outline outl;
+  int r = 0;
 
   if (outline_offset(sft->font, glyph, &outline) < 0)
     return -1;
@@ -591,12 +592,12 @@ sft_render(const SFT *sft, SFT_Glyph glyph, image_buffer_t * image)
   }
 
   memset(&outl, 0, sizeof outl);
-  if (init_outline(&outl) < 0)
+  if ((r = init_outline(&outl)) < 0)
     goto failure;
 
-  if (decode_outline(sft->font, outline, 0, &outl) < 0)
+  if ((r = decode_outline(sft->font, outline, 0, &outl)) < 0)
     goto failure;
-  if (render_outline(&outl, transform, image) < 0)
+  if ((r = render_outline(&outl, transform, image)) < 0)
     goto failure;
 
   free_outline(&outl);
@@ -604,7 +605,7 @@ sft_render(const SFT *sft, SFT_Glyph glyph, image_buffer_t * image)
 
  failure:
   free_outline(&outl);
-  return -1;
+  return r;
 }
 
 /* TODO maybe we should use long here instead of int. */
@@ -711,15 +712,15 @@ init_outline(Outline *outl)
   outl->numPoints = 0;
   outl->capPoints = 64;
   if (!(outl->points = lbm_malloc(outl->capPoints * sizeof *outl->points)))
-    return -1;
+    return SFT_MEM_ERROR;
   outl->numCurves = 0;
   outl->capCurves = 64;
   if (!(outl->curves = lbm_malloc(outl->capCurves * sizeof *outl->curves)))
-    return -1;
+    return SFT_MEM_ERROR;
   outl->numLines = 0;
   outl->capLines = 64;
   if (!(outl->lines = lbm_malloc(outl->capLines * sizeof *outl->lines)))
-    return -1;
+    return SFT_MEM_ERROR;
   return 0;
 }
 
@@ -742,7 +743,7 @@ grow_points(Outline *outl)
   cap = (uint_fast16_t) (2U * outl->capPoints);
   Point *ps;
   if (!(ps = (Point*)lbm_malloc(cap * sizeof(Point))))
-    return -1;
+    return SFT_MEM_ERROR;
   memset(ps,0, sizeof(Point) * cap);
   memcpy(ps,outl->points, sizeof(Point) * outl->capPoints);
   lbm_free(outl->points);
@@ -761,7 +762,7 @@ grow_curves(Outline *outl)
   cap = (uint_fast16_t) (2U * outl->capCurves);
   Curve *cs;
   if (!(cs = (Curve*)lbm_malloc(cap * sizeof(Curve))))
-    return -1;
+    return SFT_MEM_ERROR;
   memset(cs, 0, sizeof(Curve) * cap);
   memcpy(cs,outl->curves, sizeof(Curve) * outl->capCurves);
   lbm_free(outl->curves);
@@ -780,7 +781,7 @@ grow_lines(Outline *outl)
   cap = (uint_fast16_t) (2U * outl->capLines);
   Line *ls;
   if (!(ls = lbm_malloc(cap * sizeof(Line))))
-    return -1;
+    return SFT_MEM_ERROR;
   memset(ls, 0, sizeof(Line) * cap);
   memcpy(ls, outl->lines, sizeof(Line) * outl->capLines);
   lbm_free(outl->lines);
@@ -1227,6 +1228,7 @@ decode_contour(uint8_t *flags, uint_fast16_t basePoint, uint_fast16_t count, Out
   uint_fast16_t i;
   uint_least16_t looseEnd, beg, ctrl, center, cur;
   unsigned int gotCtrl;
+  int r = 0;
 
   /* Skip contours with less than two points, since the following algorithm can't handle them and
    * they should appear invisible either way (because they don't have any area). */
@@ -1241,8 +1243,8 @@ decode_contour(uint8_t *flags, uint_fast16_t basePoint, uint_fast16_t count, Out
   } else if (flags[count - 1] & POINT_IS_ON_CURVE) {
     looseEnd = (uint_least16_t) (basePoint + --count);
   } else {
-    if (outl->numPoints >= outl->capPoints && grow_points(outl) < 0)
-      return -1;
+    if (outl->numPoints >= outl->capPoints && (r = grow_points(outl)) < 0)
+      return r;
 
     looseEnd = outl->numPoints;
     outl->points[outl->numPoints++] = midpoint(
@@ -1260,12 +1262,12 @@ decode_contour(uint8_t *flags, uint_fast16_t basePoint, uint_fast16_t count, Out
      * http://clang-developers.42468.n3.nabble.com/StaticAnalyzer-False-positive-with-loop-handling-td4053875.html */
     if (flags[i] & POINT_IS_ON_CURVE) {
       if (gotCtrl) {
-        if (outl->numCurves >= outl->capCurves && grow_curves(outl) < 0)
-          return -1;
+        if (outl->numCurves >= outl->capCurves && (r = grow_curves(outl)) < 0)
+          return r;
         outl->curves[outl->numCurves++] = (Curve) { beg, cur, ctrl };
       } else {
-        if (outl->numLines >= outl->capLines && grow_lines(outl) < 0)
-          return -1;
+        if (outl->numLines >= outl->capLines && (r = grow_lines(outl)) < 0)
+          return r;
         outl->lines[outl->numLines++] = (Line) { beg, cur };
       }
       beg = cur;
@@ -1273,13 +1275,13 @@ decode_contour(uint8_t *flags, uint_fast16_t basePoint, uint_fast16_t count, Out
     } else {
       if (gotCtrl) {
         center = outl->numPoints;
-        if (outl->numPoints >= outl->capPoints && grow_points(outl) < 0)
-          return -1;
+        if (outl->numPoints >= outl->capPoints && (r = grow_points(outl)) < 0)
+          return r;
         outl->points[center] = midpoint(outl->points[ctrl], outl->points[cur]);
         ++outl->numPoints;
 
-        if (outl->numCurves >= outl->capCurves && grow_curves(outl) < 0)
-          return -1;
+        if (outl->numCurves >= outl->capCurves && (r = grow_curves(outl)) < 0)
+          return r;
         outl->curves[outl->numCurves++] = (Curve) { beg, center, ctrl };
 
         beg = center;
@@ -1289,12 +1291,12 @@ decode_contour(uint8_t *flags, uint_fast16_t basePoint, uint_fast16_t count, Out
     }
   }
   if (gotCtrl) {
-    if (outl->numCurves >= outl->capCurves && grow_curves(outl) < 0)
-      return -1;
+    if (outl->numCurves >= outl->capCurves && (r = grow_curves(outl)) < 0)
+      return r;
     outl->curves[outl->numCurves++] = (Curve) { beg, looseEnd, ctrl };
   } else {
-    if (outl->numLines >= outl->capLines && grow_lines(outl) < 0)
-      return -1;
+    if (outl->numLines >= outl->capLines && (r = grow_lines(outl)) < 0)
+      return r;
     outl->lines[outl->numLines++] = (Line) { beg, looseEnd };
   }
 
@@ -1308,6 +1310,8 @@ simple_outline(SFT_Font *font, uint_fast32_t offset, unsigned int numContours, O
   uint8_t *flags = NULL;
   uint_fast16_t numPts;
   unsigned int i;
+
+  int fail_r = -1;
 
   assert(numContours > 0);
 
@@ -1328,14 +1332,18 @@ simple_outline(SFT_Font *font, uint_fast32_t offset, unsigned int numContours, O
   }
 
   endPts = lbm_malloc(numContours * sizeof(uint_fast16_t));
-  if (endPts == NULL)
+  if (endPts == NULL) {
+    fail_r = SFT_MEM_ERROR;
     goto failure;
+  }
 
   memset(endPts,0,numContours * sizeof(uint_fast16_t));
   flags = lbm_malloc(numPts);
 
-  if (flags == NULL)
+  if (flags == NULL) {
+    fail_r = SFT_MEM_ERROR;
     goto failure;
+  }
   memset(flags, 0, numPts);
 
   for (i = 0; i < numContours; ++i) {
@@ -1371,7 +1379,7 @@ simple_outline(SFT_Font *font, uint_fast32_t offset, unsigned int numContours, O
  failure:
   lbm_free(endPts);
   lbm_free(flags);
-  return -1;
+  return fail_r;
 }
 
 static int
@@ -1703,7 +1711,7 @@ static int render_outline(Outline *outl, float transform[6], image_buffer_t * im
   cells = (Cell *)lbm_malloc(numPixels * sizeof(Cell));
 
   if (!cells) {
-    return -1;
+    return SFT_MEM_ERROR;
   }
   memset(cells, 0, numPixels * sizeof *cells);
   buf.cells  = cells;
