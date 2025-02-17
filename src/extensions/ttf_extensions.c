@@ -46,7 +46,6 @@ static lbm_value ext_ttf_font(lbm_value *args, lbm_value argn) {
         ft->locaFormat = 0;
         ft->numLongHmtx = 0;
         if (init_font(ft) < 0) {
-          printf("init font fail\n");
           res = ENC_SYM_NIL; // gc will clean up the allocations.
         } else {
           lbm_value cddr = lbm_cdr(lbm_cdr(font_val));
@@ -306,7 +305,6 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
       src.data = image_buffer_data((uint8_t*)arr->data);
 
       uint32_t num_colors = 1 << src.fmt;
-      printf("%d\n", num_colors);
       for (int j = 0; j < src.height; j++) {
         for (int i = 0; i < src.width; i ++) {
           int xi = (int)x_n;
