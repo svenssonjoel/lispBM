@@ -126,7 +126,9 @@ static const char* lbm_dyn_fun[] = {
   "(defun img-color-indexed? (x) (or (eq x 'indexed2) (eq x 'indexed4) (eq x 'indexed16)))",
   "(defun insert-nub (x xs) (if xs (if (= x (car xs)) xs (if (< x (car xs))"
   "(cons x xs) (cons (car xs) (insert-nub x (cdr xs))))) (list x)))",
-  "(defun ttf-prepare (ttf img-fmt str) (if (img-color-indexed? img-fmt) (let ((glyph-ids (lambda (str i)"
+  "(defun ttf-prepare (font scale img-fmt str) "
+  "(let ((ttf (if (list? scale) (ttf-font (ix scale 0) (ix scale 1) font) (ttf-font scale scale font))))"
+  "(if (img-color-indexed? img-fmt) (let ((glyph-ids (lambda (str i)"
   "(let ((g  (ttf-glyph-id ttf str i)))"
   "(if g (insert-nub (car g) (glyph-ids str (car (cdr g)))) nil))))"
   "(pre-render-glyph (lambda (gid)"
@@ -136,7 +138,7 @@ static const char* lbm_dyn_fun[] = {
   "( _   (ttf-glyph-render img ttf gid)))"
   "(list gid img)) (list gid nil))))))"
   "(append ttf (list (map pre-render-glyph (glyph-ids str 0)))))"
-  "(exit-error (cons 'type-error \"Only indexed modes allowed.\"))))"
+  "(exit-error (cons 'type-error \"Only indexed modes allowed.\")))))"
 #endif
 };
 #endif // defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)

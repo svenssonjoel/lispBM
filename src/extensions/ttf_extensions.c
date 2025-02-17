@@ -125,7 +125,7 @@ lbm_value ext_ttf_glyph_dims(lbm_value *args, lbm_uint argn) {
       goto glyph_dims_done;
     }
     res = lbm_heap_allocate_list_init(2,
-                                      lbm_enc_u((uint32_t)((gmtx.minWidth + 3) & ~3)),
+                                      lbm_enc_u((uint32_t)(gmtx.minWidth)), // + 3) & ~3)),
                                       lbm_enc_u((uint32_t)gmtx.minHeight));
   }
  glyph_dims_done:
@@ -156,7 +156,7 @@ lbm_value ext_ttf_glyph_render(lbm_value *args, lbm_uint argn) {
     img.mem_base = (uint8_t*)img_arr->data;
     img.data = image_buffer_data((uint8_t*)img_arr->data);
 
-    if ((img.width < ((gmtx.minWidth + 3) & ~3)) ||
+    if ((img.width < gmtx.minWidth) || // ((gmtx.minWidth + 3) & ~3)) ||
         (img.height < gmtx.minHeight)) {
       res = ENC_SYM_EERROR;
       goto glyph_render_done;
