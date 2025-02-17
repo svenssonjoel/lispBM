@@ -273,7 +273,7 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
 
     if (utf32 == '\n') {
       x = 0.0;
-      y += 1.2f * (lmtx.ascender + lmtx.descender + lmtx.lineGap);
+      y += (lmtx.ascender - lmtx.descender + lmtx.lineGap);
       i++;
       continue; // next iteration
     }
