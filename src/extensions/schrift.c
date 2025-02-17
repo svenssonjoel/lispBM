@@ -343,6 +343,7 @@ static int locate_pair_adjustment_table(SFT_Font *font)
       uint16_t subtableOffset = getu16(font, loffset + 6);
       return (int)(loffset + subtableOffset);
     }
+    lookupListCount--
   }
   return -1;
 }
@@ -645,7 +646,6 @@ init_font(SFT_Font *font)
   if (!is_safe_offset(font, hhea, 36))
     return -1;
   font->numLongHmtx = getu16(font, hhea + 34);
-
 
   int pairAdjust = locate_pair_adjustment_table(font);
   font->pairAdjustOffset = pairAdjust;
