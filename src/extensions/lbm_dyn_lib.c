@@ -101,9 +101,11 @@ static const char* lbm_dyn_fun[] = {
 //             (cons (car xs) (insert-nub x (cdr xs)))))
 //       (list x)))
 
+
+
 // (defun ttf-prepare (ttf str)
 //   (let ((glyph-ids
-//            (lambda (str i)
+//            (lambda (acc str i)
 //              (let ((g  (ttf-glyph-id ttf str i)))
 //                (if g
 //                    (insert-nub (car g) (glyph-ids str (car (cdr g))))
@@ -122,22 +124,30 @@ static const char* lbm_dyn_fun[] = {
 //       (append ttf (list (map pre-render-glyph (glyph-ids str 0))))
 //       ))
 
+
+
 #ifdef LBM_USE_DYN_TTF
   "(defun img-color-indexed? (x) (or (eq x 'indexed2) (eq x 'indexed4) (eq x 'indexed16)))",
-  "(defun insert-nub (x xs) (if xs (if (= x (car xs)) xs (if (< x (car xs))"
-  "(cons x xs) (cons (car xs) (insert-nub x (cdr xs))))) (list x)))",
-  "(defun ttf-prepare (font scale img-fmt str) "
+  "(defun insert-nub (x xs)"
+  "(let ((insert-nub-tail (lambda (x acc xs)"
+  "(if xs"
+  "        (if ( < x (car xs))"
+  "          (append (reverse (cons x acc)) xs)"
+  "            (insert-nub-tail x (cons (car xs) acc) (cdr xs)))"
+  "  (reverse (cons x acc))))))"
+  "   (insert-nub-tail x nil xs)))",
+  "(defun ttf-prepare (font scale img-fmt str)"
   "(let ((ttf (if (list? scale) (ttf-font (ix scale 0) (ix scale 1) font) (ttf-font scale scale font))))"
-  "(if (img-color-indexed? img-fmt) (let ((glyph-ids (lambda (str i)"
+  "(if (img-color-indexed? img-fmt) (let ((glyph-ids (lambda (acc str i)"
   "(let ((g  (ttf-glyph-id ttf str i)))"
-  "(if g (insert-nub (car g) (glyph-ids str (car (cdr g)))) nil))))"
+  "(if g (glyph-ids (insert-nub (car g) acc) str (car (cdr g))) acc))))"
   "(pre-render-glyph (lambda (gid)"
   "(let (( (width height) (ttf-glyph-dims ttf gid)))"
   "(if (and (> width 0) (> height 0))"
   "(let (( img (img-buffer img-fmt width height))"
   "( _   (ttf-glyph-render img ttf gid)))"
   "(list gid img)) (list gid nil))))))"
-  "(append ttf (list (map pre-render-glyph (glyph-ids str 0)))))"
+  "(append ttf (list (map pre-render-glyph (glyph-ids nil str 0)))))"
   "(exit-error (cons 'type-error \"Only indexed modes allowed.\")))))"
 #endif
 };
