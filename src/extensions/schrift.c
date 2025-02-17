@@ -77,7 +77,6 @@
 #define X_ADVANCE_DEVICE   0x0040 // Includes Device table (non-variable font) / VariationIndex table (variable font) for horizontal advance.
 #define Y_ADVANCE_DEVICE   0x0080 // Includes Device table (non-variable font) / VariationIndex table (variable font) for vertical advance.
 
-
 /* macros */
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define SIGN(x)   (((x) > 0) - ((x) < 0))
@@ -90,10 +89,10 @@ typedef struct Cell    Cell;
 typedef struct Outline Outline;
 typedef struct Raster  Raster;
 
-struct Point { double x, y; };
+struct Point { float x, y; };
 struct Line  { uint_least16_t beg, end; };
 struct Curve { uint_least16_t beg, end, ctrl; };
-struct Cell  { double area, cover; };
+struct Cell  { float area, cover; };
 
 struct Outline
 {
@@ -159,11 +158,11 @@ bool get_utf32(uint8_t *utf8, uint32_t *utf32, uint32_t ix, uint32_t *next_ix) {
 
 /* function declarations */
 /* generic utility functions */
-static inline int fast_floor(double x);
-static inline int fast_ceil (double x);
+static inline int fast_floor(float x);
+static inline int fast_ceil (float x);
 /* simple mathematical operations */
 static Point midpoint(Point a, Point b);
-static void transform_points(unsigned int numPts, Point *points, double trf[6]);
+static void transform_points(unsigned int numPts, Point *points, float trf[6]);
 static void clip_points(unsigned int numPts, Point *points, int width, int height);
 /* 'outline' data structure management */
 static int  init_outline(Outline *outl);
@@ -208,7 +207,7 @@ static void draw_lines(Outline *outl, Raster buf);
 /* post-processing */
 static void post_process(Raster buf, image_buffer_t *image);
 /* glyph rendering */
-static int  render_outline(Outline *outl, double transform[6], image_buffer_t * image);
+static int  render_outline(Outline *outl, float transform[6], image_buffer_t * image);
 
 /* function implementations */
 
@@ -221,7 +220,7 @@ sft_version(void)
 int
 sft_lmetrics(const SFT *sft, SFT_LMetrics *metrics)
 {
-  double factor;
+  float factor;
   uint_fast32_t hhea;
   memset(metrics, 0, sizeof *metrics);
   if (gettable(sft->font, "hhea", &hhea) < 0)
@@ -245,7 +244,7 @@ int
 sft_gmetrics(const SFT *sft, SFT_Glyph glyph, SFT_GMetrics *metrics)
 {
   int adv, lsb;
-  double xScale = sft->xScale / sft->font->unitsPerEm;
+  float xScale = sft->xScale / sft->font->unitsPerEm;
   uint_fast32_t outline;
   int bbox[4];
 
@@ -288,7 +287,7 @@ static int is_glyph_covered(const SFT *sft, uint32_t coverage_table_offset, SFT_
 }
 
 // given glyph 2 of a pair and a pair-set related to glyp 1 you get pair-adjustment value
-static int get_pair_x_adjustment(const SFT *sft, uint32_t pair_set_offset, SFT_Glyph g, double *x_adj) {
+static int get_pair_x_adjustment(const SFT *sft, uint32_t pair_set_offset, SFT_Glyph g, float *x_adj) {
   uint32_t offset = pair_set_offset;
 
   uint16_t numPairs = getu16(sft->font, offset);
@@ -297,7 +296,7 @@ static int get_pair_x_adjustment(const SFT *sft, uint32_t pair_set_offset, SFT_G
     uint16_t glyph = getu16(sft->font, offset + 2 +  (i * 4));
     int16_t x_adjust = geti16(sft->font, offset + 2 + (i * 4) + 2);
     if (glyph == g) {
-      *x_adj = ((double) x_adjust) / sft->font->unitsPerEm * sft->xScale;
+      *x_adj = ((float) x_adjust) / sft->font->unitsPerEm * sft->xScale;
       return 1;
     }
   }
@@ -376,7 +375,7 @@ bool sft_gpos_kerning(const SFT *sft, SFT_Glyph leftGlyph, SFT_Glyph rightGlyph,
     uint16_t pairSetOffset = getu16(sft->font, pair_adj_tab + 10 + ((uint32_t)glyph_cover * 2));
     uint32_t coffset = pair_adj_tab + pairSetOffset;
 
-    double x_adjust = 0;
+    float x_adjust = 0;
     get_pair_x_adjustment(sft, coffset, rightGlyph, &x_adjust);
     kerning->xShift = x_adjust;
     return true;
@@ -565,7 +564,7 @@ int
 sft_render(const SFT *sft, SFT_Glyph glyph, image_buffer_t * image)
 {
   uint_fast32_t outline;
-  double transform[6];
+  float transform[6];
   int bbox[4];
   Outline outl;
 
@@ -579,8 +578,8 @@ sft_render(const SFT *sft, SFT_Glyph glyph, image_buffer_t * image)
    * the transformed bounding boxes min corner lines
    * up with the (0, 0) point. */
   transform[0] = sft->xScale / sft->font->unitsPerEm;
-  transform[1] = 0.0;
-  transform[2] = 0.0;
+  transform[1] = 0.0f;
+  transform[2] = 0.0f;
   transform[4] = sft->xOffset - bbox[0];
   if (sft->flags & SFT_DOWNWARD_Y) {
     transform[3] = -sft->yScale / sft->font->unitsPerEm;
@@ -609,14 +608,14 @@ sft_render(const SFT *sft, SFT_Glyph glyph, image_buffer_t * image)
 
 /* TODO maybe we should use long here instead of int. */
 static inline int
-fast_floor(double x)
+fast_floor(float x)
 {
   int i = (int) x;
   return i - (i > x);
 }
 
 static inline int
-fast_ceil(double x)
+fast_ceil(float x)
 {
   int i = (int) x;
   return i + (i < x);
@@ -661,14 +660,14 @@ static Point
 midpoint(Point a, Point b)
 {
   return (Point) {
-    0.5 * (a.x + b.x),
-      0.5 * (a.y + b.y)
+    0.5f * (a.x + b.x),
+      0.5f * (a.y + b.y)
       };
 }
 
 /* Applies an affine linear transformation matrix to a set of points. */
 static void
-transform_points(unsigned int numPts, Point *points, double trf[6])
+transform_points(unsigned int numPts, Point *points, float trf[6])
 {
   Point pt;
   unsigned int i;
@@ -690,17 +689,17 @@ clip_points(unsigned int numPts, Point *points, int width, int height)
   for (i = 0; i < numPts; ++i) {
     pt = points[i];
 
-    if (pt.x < 0.0) {
-      points[i].x = 0.0;
+    if (pt.x < 0.0f) {
+      points[i].x = 0.0f;
     }
     if (pt.x >= width) {
-      points[i].x = nextafter(width, 0.0);
+      points[i].x = nextafterf((float)width, 0.0f);
     }
-    if (pt.y < 0.0) {
-      points[i].y = 0.0;
+    if (pt.y < 0.0f) {
+      points[i].y = 0.0f;
     }
     if (pt.y >= height) {
-      points[i].y = nextafter(height, 0.0);
+      points[i].y = nextafterf((float)height, 0.0f);
     }
   }
 }
@@ -1098,7 +1097,7 @@ hor_metrics(SFT_Font *font, SFT_Glyph glyph, int *advanceWidth, int *leftSideBea
 static int
 glyph_bbox(const SFT *sft, uint_fast32_t outline, int box[4])
 {
-  double xScale, yScale;
+  float xScale, yScale;
   /* Read the bounding box from the font file verbatim. */
   if (!is_safe_offset(sft->font, outline, 10))
     return -1;
@@ -1199,7 +1198,7 @@ simple_points(SFT_Font *font, uint_fast32_t offset, uint_fast16_t numPts, uint8_
       accum += geti16(font, offset);
       offset += 2;
     }
-    points[i].x = (double) accum;
+    points[i].x = (float) accum;
   }
 
   accum = 0L;
@@ -1216,7 +1215,7 @@ simple_points(SFT_Font *font, uint_fast32_t offset, uint_fast16_t numPts, uint8_
       accum += geti16(font, offset);
       offset += 2;
     }
-    points[i].y = (double) accum;
+    points[i].y = (float) accum;
   }
 
   return 0;
@@ -1329,13 +1328,15 @@ simple_outline(SFT_Font *font, uint_fast32_t offset, unsigned int numContours, O
   }
 
   endPts = lbm_malloc(numContours * sizeof(uint_fast16_t));
-  memset(endPts,0,numContours * sizeof(uint_fast16_t));
   if (endPts == NULL)
     goto failure;
+
+  memset(endPts,0,numContours * sizeof(uint_fast16_t));
   flags = lbm_malloc(numPts);
-  memset(flags, 0, numPts);
+
   if (flags == NULL)
     goto failure;
+  memset(flags, 0, numPts);
 
   for (i = 0; i < numContours; ++i) {
     endPts[i] = getu16(font, offset);
@@ -1376,7 +1377,7 @@ simple_outline(SFT_Font *font, uint_fast32_t offset, unsigned int numContours, O
 static int
 compound_outline(SFT_Font *font, uint_fast32_t offset, int recDepth, Outline *outl)
 {
-  double local[6];
+  float local[6];
   uint_fast32_t outline;
   unsigned int flags, glyph, basePoint;
   /* Guard against infinite recursion (compound glyphs that have themselves as component). */
@@ -1409,26 +1410,26 @@ compound_outline(SFT_Font *font, uint_fast32_t offset, int recDepth, Outline *ou
     if (flags & GOT_A_SINGLE_SCALE) {
       if (!is_safe_offset(font, offset, 2))
         return -1;
-      local[0] = geti16(font, offset) / 16384.0;
+      local[0] = geti16(font, offset) / 16384.0f;
       local[3] = local[0];
       offset += 2;
     } else if (flags & GOT_AN_X_AND_Y_SCALE) {
       if (!is_safe_offset(font, offset, 4))
         return -1;
-      local[0] = geti16(font, offset + 0) / 16384.0;
-      local[3] = geti16(font, offset + 2) / 16384.0;
+      local[0] = geti16(font, offset + 0) / 16384.0f;
+      local[3] = geti16(font, offset + 2) / 16384.0f;
       offset += 4;
     } else if (flags & GOT_A_SCALE_MATRIX) {
       if (!is_safe_offset(font, offset, 8))
         return -1;
-      local[0] = geti16(font, offset + 0) / 16384.0;
-      local[1] = geti16(font, offset + 2) / 16384.0;
-      local[2] = geti16(font, offset + 4) / 16384.0;
-      local[3] = geti16(font, offset + 6) / 16384.0;
+      local[0] = geti16(font, offset + 0) / 16384.0f;
+      local[1] = geti16(font, offset + 2) / 16384.0f;
+      local[2] = geti16(font, offset + 4) / 16384.0f;
+      local[3] = geti16(font, offset + 6) / 16384.0f;
       offset += 8;
     } else {
-      local[0] = 1.0;
-      local[3] = 1.0;
+      local[0] = 1.0f;
+      local[3] = 1.0f;
     }
     /* At this point, Apple's spec more or less tells you to scale the matrix by its own L1 norm.
      * But stb_truetype scales by the L2 norm. And FreeType2 doesn't scale at all.
@@ -1469,13 +1470,13 @@ decode_outline(SFT_Font *font, uint_fast32_t offset, int recDepth, Outline *outl
 static int
 is_flat(Outline *outl, Curve curve)
 {
-  const double maxArea2 = 2.0;
+  const float maxArea2 = 2.0f;
   Point a = outl->points[curve.beg];
   Point b = outl->points[curve.ctrl];
   Point c = outl->points[curve.end];
   Point g = { b.x-a.x, b.y-a.y };
   Point h = { c.x-a.x, c.y-a.y };
-  double area2 = fabs(g.x*h.y-h.x*g.y);
+  float area2 = fabsf(g.x*h.y-h.x*g.y);
   return area2 <= maxArea2;
 }
 
@@ -1541,9 +1542,9 @@ draw_line(Raster buf, Point origin, Point goal)
   Point delta;
   Point nextCrossing;
   Point crossingIncr;
-  double halfDeltaX;
-  double prevDistance = 0.0, nextDistance;
-  double xAverage, yDifference;
+  float halfDeltaX;
+  float prevDistance = 0.0f, nextDistance;
+  float xAverage, yDifference;
   struct { int x, y; } pixel;
   struct { int x, y; } dir;
   int step, numSteps = 0;
@@ -1558,12 +1559,12 @@ draw_line(Raster buf, Point origin, Point goal)
     return;
   }
 
-  crossingIncr.x = dir.x ? fabs(1.0 / delta.x) : 1.0;
-  crossingIncr.y = fabs(1.0 / delta.y);
+  crossingIncr.x = dir.x ? fabsf(1.0f / delta.x) : 1.0f;
+  crossingIncr.y = fabsf(1.0f / delta.y);
 
   if (!dir.x) {
     pixel.x = fast_floor(origin.x);
-    nextCrossing.x = 100.0;
+    nextCrossing.x = 100.0f;
   } else {
     if (dir.x > 0) {
       pixel.x = fast_floor(origin.x);
@@ -1589,7 +1590,7 @@ draw_line(Raster buf, Point origin, Point goal)
   }
 
   nextDistance = MIN(nextCrossing.x, nextCrossing.y);
-  halfDeltaX = 0.5 * delta.x;
+  halfDeltaX = 0.5f * delta.x;
 
   for (step = 0; step < numSteps; ++step) {
     xAverage = origin.x + (prevDistance + nextDistance) * halfDeltaX;
@@ -1597,25 +1598,25 @@ draw_line(Raster buf, Point origin, Point goal)
     cptr = &buf.cells[pixel.y * buf.width + pixel.x];
     cell = *cptr;
     cell.cover += yDifference;
-    xAverage -= (double) pixel.x;
-    cell.area += (1.0 - xAverage) * yDifference;
+    xAverage -= (float) pixel.x;
+    cell.area += (1.0f - xAverage) * yDifference;
     *cptr = cell;
     prevDistance = nextDistance;
     int alongX = nextCrossing.x < nextCrossing.y;
     pixel.x += alongX ? dir.x : 0;
     pixel.y += alongX ? 0 : dir.y;
-    nextCrossing.x += alongX ? crossingIncr.x : 0.0;
-    nextCrossing.y += alongX ? 0.0 : crossingIncr.y;
+    nextCrossing.x += alongX ? crossingIncr.x : 0.0f;
+    nextCrossing.y += alongX ? 0.0f : crossingIncr.y;
     nextDistance = MIN(nextCrossing.x, nextCrossing.y);
   }
 
-  xAverage = origin.x + (prevDistance + 1.0) * halfDeltaX;
-  yDifference = (1.0 - prevDistance) * delta.y;
+  xAverage = origin.x + (prevDistance + 1.0f) * halfDeltaX;
+  yDifference = (1.0f - prevDistance) * delta.y;
   cptr = &buf.cells[pixel.y * buf.width + pixel.x];
   cell = *cptr;
   cell.cover += yDifference;
-  xAverage -= (double) pixel.x;
-  cell.area += (1.0 - xAverage) * yDifference;
+  xAverage -= (float) pixel.x;
+  cell.area += (1.0f - xAverage) * yDifference;
   *cptr = cell;
 }
 
@@ -1640,7 +1641,7 @@ static const uint8_t indexed16_shift[2] = {0, 4};
 static void post_process(Raster buf, image_buffer_t *image)
 {
   Cell cell;
-  double accum = 0.0, value;
+  float accum = 0.0f, value;
   unsigned int i, num;
   num = (unsigned int) buf.width * (unsigned int) buf.height;
   uint8_t *image_data = image->data;
@@ -1649,11 +1650,11 @@ static void post_process(Raster buf, image_buffer_t *image)
   case indexed2: {
     for (i = 0; i < num; ++i) {
       cell     = buf.cells[i];
-      value    = fabs(accum + cell.area);
-      value    = MIN(value, 1.0);
+      value    = fabsf(accum + cell.area);
+      value    = MIN(value, 1.0f);
       uint32_t byte = i >> 3;
       uint32_t bit  = 7 - (i & 0x7);
-      if (value > 0.5) {
+      if (value > 0.5f) {
         image_data[byte] |= (uint8_t)(1 << bit);
       } else {
         image_data[byte] &= (uint8_t)~(1 << bit);
@@ -1664,8 +1665,8 @@ static void post_process(Raster buf, image_buffer_t *image)
   case indexed4: {
     for (i = 0; i < num; ++i) {
       cell     = buf.cells[i];
-      value    = fabs(accum + cell.area);
-      value    = MIN(value, 1.0);
+      value    = fabsf(accum + cell.area);
+      value    = MIN(value, 1.0f);
       uint32_t byte = i >> 2;
       uint32_t ix  = 3 - (i & 0x3);
       uint8_t c = (uint8_t)(value * 4);
@@ -1677,8 +1678,8 @@ static void post_process(Raster buf, image_buffer_t *image)
   case indexed16: {
     for (i = 0; i < num; ++i) {
       cell     = buf.cells[i];
-      value    = fabs(accum + cell.area);
-      value    = MIN(value, 1.0);
+      value    = fabsf(accum + cell.area);
+      value    = MIN(value, 1.0f);
       uint32_t byte = i >> 1;
       uint32_t ix  = 1 - (i & 0x1);
       uint8_t c = (uint8_t)(value * 16);
@@ -1687,66 +1688,12 @@ static void post_process(Raster buf, image_buffer_t *image)
       accum += cell.cover;
     }
   } break;
-  case rgb332: {
-    for (i = 0; i < num; ++i) {
-      cell     = buf.cells[i];
-      value    = fabs(accum + cell.area);
-      value    = MIN(value, 1.0);
-      uint8_t r = 0;
-      uint8_t g = 0;
-      uint8_t b = 0;
-      if (value < 0.24) {
-      } else if (value < 0.30) {
-        r = 3;
-        g = 3;
-        b = 1;
-      } else if (value < 0.5) {
-        r = 5;
-        g = 5;
-        b = 2;
-      } else {
-        r = 7;
-        g = 7;
-        b = 3;
-      }
-      image_data[i] = r << 5 | g << 2 | b;
-      accum += cell.cover;
-    }
-  } break;
-  case rgb565: {
-    for (i = 0; i < num; ++i) {
-      cell     = buf.cells[i];
-      value    = fabs(accum + cell.area);
-      value    = MIN(value, 1.0);
-      uint16_t r = (uint16_t)(value * 31);
-      uint16_t g = (uint16_t)(value * 63);
-      uint16_t b = (uint16_t)(value * 31);
-      uint16_t c = r << 11 | g << 5 | b;
-      image_data[i * 2] = (uint8_t)(c >> 8);
-      image_data[i * 2 + 1] = (uint8_t)c;
-      accum += cell.cover;
-    }
-  } break;
-  case rgb888: {
-    for (i = 0; i < num; ++i) {
-      cell     = buf.cells[i];
-      value    = fabs(accum + cell.area);
-      value    = MIN(value, 1.0);
-      uint8_t r = (uint8_t)(value * 255);
-      uint8_t g = (uint8_t)(value * 255);
-      uint8_t b = (uint8_t)(value * 255);
-      image_data[(i * 3)] = r;
-      image_data[(i * 3) + 1] = g;
-      image_data[(i * 3) + 2] = b;
-      accum += cell.cover;
-    }
-  } break;
   default:
     break;
   }
 }
 
-static int render_outline(Outline *outl, double transform[6], image_buffer_t * image) {
+static int render_outline(Outline *outl, float transform[6], image_buffer_t * image) {
   Cell *cells = NULL;
   Raster buf;
   unsigned int numPixels;
@@ -1754,7 +1701,7 @@ static int render_outline(Outline *outl, double transform[6], image_buffer_t * i
   numPixels = (unsigned int) image->width * (unsigned int) image->height;
 
   cells = (Cell *)lbm_malloc(numPixels * sizeof(Cell));
-  
+
   if (!cells) {
     return -1;
   }

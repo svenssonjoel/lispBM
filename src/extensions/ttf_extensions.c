@@ -100,8 +100,8 @@ SFT mk_sft(lbm_value font_val) {
   SFT_Font *ft = font_get_font(font_val);
   SFT sft;
   sft.font = ft;
-  sft.xScale = font_get_x_scale(font_val);
-  sft.yScale = font_get_y_scale(font_val);
+  sft.xScale = (float)font_get_x_scale(font_val);
+  sft.yScale = (float)font_get_y_scale(font_val);
   sft.xOffset = 0;
   sft.yOffset = 0;
   sft.flags = SFT_DOWNWARD_Y;
@@ -161,8 +161,11 @@ lbm_value ext_ttf_glyph_render(lbm_value *args, lbm_uint argn) {
       res = ENC_SYM_EERROR;
       goto glyph_render_done;
     }
-    if (sft_render(&sft, gid, &img) < 0) {
-      res = ENC_SYM_EERROR;
+    int r = sft_render(&sft, gid, &img);
+
+    // Approximation of when to run GC.
+    if (r < 0) {
+      res = ENC_SYM_MERROR;
       goto glyph_render_done;
     }
     res = ENC_SYM_TRUE;
@@ -248,8 +251,8 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
   tgt.mem_base = (uint8_t*)img_arr->data;
   tgt.data = image_buffer_data((uint8_t*)img_arr->data);
 
-  double x_pos = lbm_dec_as_double(args[1]);
-  double y_pos = lbm_dec_as_double(args[2]);
+  int x_pos = lbm_dec_as_i32(args[1]);
+  int y_pos = lbm_dec_as_i32(args[2]);
   uint8_t *utf8 = (uint8_t*)lbm_dec_str(utf8_str);
   uint32_t i = 0;
   uint32_t next_i = 0;
@@ -263,14 +266,14 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
     goto ttf_print_done;
   }
   lbm_value glyph_tab = lbm_index_list(font, 4);
-  double x = x_pos;
-  double y = y_pos;
+  float x = 0.0;
+  float y = 0.0;
 
   while (get_utf32(utf8, &utf32, i, &next_i)) {
 
     if (utf32 == '\n') {
-      x = x_pos;
-      y = y_pos + 1.2 * (lmtx.ascender + lmtx.descender + lmtx.lineGap);
+      x = 0.0;
+      y += 1.2f * (lmtx.ascender + lmtx.descender + lmtx.lineGap);
       i++;
       continue; // next iteration
     }
@@ -292,8 +295,8 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
       goto ttf_print_done;
     }
 
-    double x_shift = 0;
-    double y_shift = 0;
+    float x_shift = 0;
+    float y_shift = 0;
     if (has_prev) {
       SFT_Kerning kern;
       kern.xShift = 0.0;
@@ -311,22 +314,12 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
       y_shift = kern.yShift;
     }
 
-    double x_n = x;
-    double y_n = y;
+    float x_n = x;
+    float y_n = y;
 
-    if (up) {
-      y_n -= x_shift;
-      x_n += y_shift;
-      x_n += gmtx.yOffset;
-    } else if (down) {
-      y_n += x_shift;
-      x_n -= y_shift;
-      x_n -= gmtx.yOffset;
-    } else {
-      x_n += x_shift;
-      y_n += y_shift;
-      y_n += gmtx.yOffset;
-    }
+    x_n += x_shift;
+    y_n += y_shift;
+    y_n += gmtx.yOffset;
 
     if (!lbm_is_symbol_nil(glyph)) { // whitespaces have no pre-rendered glyph
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(glyph);
@@ -348,23 +341,17 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
             uint32_t c = colors[p & (num_colors-1)]; // ceiled
 
             if (up) {
-              putpixel(&tgt,(int)x_n + j, (int)(y_n + gmtx.leftSideBearing) + (src.width - i - 1), c);
+              putpixel(&tgt, x_pos + (j + (int)y_n), y_pos - (i + (int)(x_n + gmtx.leftSideBearing)), c);
             } else if (down) {
-              putpixel(&tgt,(int)x_n + (src.height - j - 1), (int)(y_n + gmtx.leftSideBearing) + i, c);
+              putpixel(&tgt, x_pos - (j + (int)y_n), y_pos + (i + (int)(x_n + gmtx.leftSideBearing)), c);
             } else {
-              putpixel(&tgt, i + (int)(x_n + gmtx.leftSideBearing), j + (int)y_n, c);
+              putpixel(&tgt, x_pos + (i + (int)(x_n + gmtx.leftSideBearing)), y_pos + (j + (int)y_n), c);
             }
           }
         }
       }
     }
-    if (up) {
-      y = y_n - gmtx.advanceWidth;
-    } else if (down) {
-      y = y_n + gmtx.advanceWidth;
-    } else {
-      x = x_n + gmtx.advanceWidth;
-    }
+    x = x_n + gmtx.advanceWidth;
     i = next_i;
     prev = gid;
     has_prev = true;
@@ -382,7 +369,6 @@ lbm_value ext_ttf_glyph_id(lbm_value *args, lbm_uint argn) {
       lbm_is_array_r(args[1]) &&
       lbm_is_number(args[2])) {
     res = ENC_SYM_EERROR;
-
 
     uint32_t ix = lbm_dec_as_u32(args[2]);
 

@@ -27,7 +27,7 @@
 extern "C" {
 #endif
 
-#define SFT_DOWNWARD_Y 0x01
+#define SFT_DOWNWARD_Y       0x01
 
 typedef struct SFT          SFT;
 typedef struct SFT_Font     SFT_Font;
@@ -41,10 +41,10 @@ typedef struct SFT_Image    SFT_Image;
 struct SFT
 {
 	SFT_Font *font;
-	double    xScale;
-	double    yScale;
-	double    xOffset;
-	double    yOffset;
+	float     xScale;
+	float     yScale;
+	float     xOffset;
+	float     yOffset;
 	int       flags;
 };
 
@@ -62,24 +62,24 @@ struct SFT_Font
 
 struct SFT_LMetrics
 {
-	double ascender;
-	double descender;
-	double lineGap;
+	float ascender;
+	float descender;
+	float lineGap;
 };
 
 struct SFT_GMetrics
 {
-	double advanceWidth;
-	double leftSideBearing;
-	int    yOffset;
-	int    minWidth;
-	int    minHeight;
+	float advanceWidth;
+	float leftSideBearing;
+	int   yOffset;
+	int   minWidth;
+	int   minHeight;
 };
 
 struct SFT_Kerning
 {
-	double xShift;
-	double yShift;
+	float xShift;
+	float yShift;
 };
 
 const char *sft_version(void);
