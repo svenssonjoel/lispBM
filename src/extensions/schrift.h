@@ -29,6 +29,9 @@ extern "C" {
 
 #define SFT_DOWNWARD_Y       0x01
 
+
+#define SFT_MEM_ERROR        -2
+
 typedef struct SFT          SFT;
 typedef struct SFT_Font     SFT_Font;
 typedef uint_least32_t      SFT_UChar; /* Guaranteed to be compatible with char32_t. */

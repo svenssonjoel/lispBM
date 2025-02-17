@@ -162,11 +162,10 @@ lbm_value ext_ttf_glyph_render(lbm_value *args, lbm_uint argn) {
       goto glyph_render_done;
     }
     int r = sft_render(&sft, gid, &img);
-
-    // Approximation of when to run GC.
-    if (r < 0) {
+    if (r == SFT_MEM_ERROR) {
       res = ENC_SYM_MERROR;
-      goto glyph_render_done;
+    } else if (r < 0) {
+      res = ENC_SYM_EERROR;
     }
     res = ENC_SYM_TRUE;
   }

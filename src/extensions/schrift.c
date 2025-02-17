@@ -343,7 +343,7 @@ static int locate_pair_adjustment_table(SFT_Font *font)
       uint16_t subtableOffset = getu16(font, loffset + 6);
       return (int)(loffset + subtableOffset);
     }
-    lookupListCount--
+    lookupListCount--;
   }
   return -1;
 }
