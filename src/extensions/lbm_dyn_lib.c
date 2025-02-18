@@ -127,6 +127,7 @@ static const char* lbm_dyn_fun[] = {
 
 
 #ifdef LBM_USE_DYN_TTF
+  "(defun ttf-font (scale-x scale-y font) (list scale-x scale-y font))",
   "(defun img-color-indexed? (x) (or (eq x 'indexed2) (eq x 'indexed4) (eq x 'indexed16)))",
   "(defun insert-nub (x xs)"
   "(let ((insert-nub-tail (lambda (x acc xs)"
