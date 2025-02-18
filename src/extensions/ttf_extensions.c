@@ -395,7 +395,73 @@ lbm_value ext_ttf_glyph_id(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+lbm_value ext_ttf_line_height(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_prepared_font_value(args[0])) {
+    SFT sft = mk_sft(args[0]);
+    SFT_LMetrics lmtx;
+    if (sft_lmetrics(&sft, &lmtx) < 0) {
+      res = ENC_SYM_EERROR;
+    } else {
+      res = lbm_enc_float(lmtx.ascender - lmtx.descender + lmtx.lineGap);
+    }
+  }
+  return res;
+}
+
+lbm_value ext_ttf_ascender(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_prepared_font_value(args[0])) {
+    SFT sft = mk_sft(args[0]);
+    SFT_LMetrics lmtx;
+    if (sft_lmetrics(&sft, &lmtx) < 0) {
+      res = ENC_SYM_EERROR;
+    } else {
+      res = lbm_enc_float(lmtx.ascender);
+    }
+  }
+  return res;
+}
+
+lbm_value ext_ttf_descender(lbm_value *args, lbm_uint argn) {
+    lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_prepared_font_value(args[0])) {
+    SFT sft = mk_sft(args[0]);
+    SFT_LMetrics lmtx;
+    if (sft_lmetrics(&sft, &lmtx) < 0) {
+      res = ENC_SYM_EERROR;
+    } else {
+      res = lbm_enc_float(lmtx.descender);
+    }
+  }
+  return res;
+}
+
+lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
+    lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_prepared_font_value(args[0])) {
+    SFT sft = mk_sft(args[0]);
+    SFT_LMetrics lmtx;
+    if (sft_lmetrics(&sft, &lmtx) < 0) {
+      res = ENC_SYM_EERROR;
+    } else {
+      res = lbm_enc_float(lmtx.lineGap);
+    }
+  }
+  return res;
+}
+
 void lbm_ttf_extensions_init(void) {
+
+  // metrics
+  lbm_add_extension("ttf-line-height", ext_ttf_line_height);
+  lbm_add_extension("ttf-ascender", ext_ttf_ascender);
+  lbm_add_extension("ttf-descender", ext_ttf_descender);
+  lbm_add_extension("ttf-line-gap", ext_ttf_line_gap);
 
   // Low level utilities
   lbm_add_extension("ttf-glyph-dims",ext_ttf_glyph_dims);
