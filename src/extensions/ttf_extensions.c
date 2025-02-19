@@ -161,6 +161,135 @@ static lbm_value lookup_glyph_image(uint32_t gid, lbm_value ls) {
   return res;
 }
 
+lbm_value ext_ttf_wh(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  lbm_value font;
+  uint32_t next_arg = 0;
+  lbm_value utf8_str;
+  if (argn >= 2 &&
+             is_prepared_font_value(args[0]) &&
+             lbm_is_array_r(args[1])) { // sequence of utf8 characters
+    font = args[0];
+    utf8_str = args[1];
+    next_arg = 2;
+  } else {
+    return res;
+  }
+
+  float line_spacing = 1.0f;
+  bool up = false;
+  bool down = false;
+  for (int i = next_arg; i < argn; i ++) {
+    if (lbm_is_symbol(args[i])) {
+      up = display_is_symbol_up(args[i]);
+      down = display_is_symbol_down(args[i]);
+    } else if (lbm_is_number(args[i])) {
+      line_spacing = lbm_dec_as_float(args[i]);
+    }
+  }
+
+  lbm_value r_list = lbm_heap_allocate_list(2);
+  if (lbm_is_symbol(r_list)) return r_list;
+
+  SFT_Font ft;
+  if (!mk_font(&ft,font)) {
+    return ENC_SYM_EERROR;
+  }
+  SFT sft = mk_sft(&ft, font_get_x_scale(font), font_get_y_scale(font));
+
+  int x_pos = lbm_dec_as_i32(args[1]);
+  int y_pos = lbm_dec_as_i32(args[2]);
+  uint8_t *utf8 = (uint8_t*)lbm_dec_str(utf8_str);
+  uint32_t i = 0;
+  uint32_t next_i = 0;
+  SFT_Glyph prev = 0;
+  bool has_prev = false;
+  uint32_t utf32;
+
+  SFT_LMetrics lmtx;
+  if (sft_lmetrics(&sft, &lmtx) < 0) {
+    res = ENC_SYM_EERROR;
+    goto ttf_wh_done;
+  }
+  lbm_value glyph_tab = lbm_index_list(font, 3);
+  float x = 0.0;
+  float y = 0.0;
+
+  float max_x = 0.0;
+
+  while (get_utf32(utf8, &utf32, i, &next_i)) {
+
+    if (utf32 == '\n') {
+      if (x > max_x) max_x = x;
+      x = 0.0;
+      y += line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap);
+      i++;
+      continue; // next iteration
+    }
+
+    SFT_Glyph gid;
+    if (sft_lookup(&sft, utf32, &gid) < 0) {
+      res = ENC_SYM_EERROR;
+      goto ttf_wh_done;
+    }
+    SFT_GMetrics gmtx;
+    if (sft_gmetrics(&sft, gid, &gmtx) < 0) {
+      res = ENC_SYM_EERROR;
+      goto ttf_wh_done;
+    }
+
+    lbm_value glyph = lookup_glyph_image(gid, glyph_tab);
+    if (!(lbm_is_array_r(glyph) || lbm_is_symbol_nil(glyph))) {
+      res = ENC_SYM_EERROR;
+      goto ttf_wh_done;
+    }
+
+    float x_shift = 0;
+    float y_shift = 0;
+    if (has_prev) {
+      SFT_Kerning kern;
+      kern.xShift = 0.0;
+      kern.yShift = 0.0;
+      // silly kerning lookup by first trying to get
+      // the kern from GPOS and if we are unable, we try kern table.
+      if (sft.font->pairAdjustOffset) {
+        sft_gpos_kerning(&sft, prev, gid, &kern);
+      }
+      if (kern.xShift == 0.0 && kern.yShift == 0.0) {
+        sft_kerning(&sft, prev, gid, &kern);
+      }
+
+      x_shift = kern.xShift;
+      y_shift = kern.yShift;
+    }
+
+    float x_n = x;
+    float y_n = y;
+
+    x_n += x_shift;
+    y_n += y_shift;
+    y_n += gmtx.yOffset;
+
+    x = x_n + gmtx.advanceWidth;
+    i = next_i;
+    prev = gid;
+    has_prev = true;
+  }
+
+  if (max_x < x) max_x = x;
+  lbm_value rest = lbm_cdr(r_list);
+  if (up || down) {
+    lbm_set_car(r_list, lbm_enc_u((uint32_t)(y + line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap))));
+    lbm_set_car(rest, lbm_enc_u((uint32_t)max_x));
+  } else {
+    lbm_set_car(r_list, lbm_enc_u((uint32_t)max_x));
+    lbm_set_car(rest, lbm_enc_u((uint32_t)(y + line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap))));
+  }
+  return r_list;
+ ttf_wh_done:
+  return ENC_SYM_EERROR;
+}
+
 lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
   lbm_array_header_t *img_arr;
@@ -448,6 +577,7 @@ void lbm_ttf_extensions_init(void) {
   lbm_add_extension("ttf-ascender", ext_ttf_ascender);
   lbm_add_extension("ttf-descender", ext_ttf_descender);
   lbm_add_extension("ttf-line-gap", ext_ttf_line_gap);
+  lbm_add_extension("ttf-wh",ext_ttf_wh);
 
   // Low level utilities
   lbm_add_extension("ttf-glyph-dims",ext_ttf_glyph_dims);
