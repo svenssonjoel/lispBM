@@ -577,7 +577,7 @@ void lbm_ttf_extensions_init(void) {
   lbm_add_extension("ttf-ascender", ext_ttf_ascender);
   lbm_add_extension("ttf-descender", ext_ttf_descender);
   lbm_add_extension("ttf-line-gap", ext_ttf_line_gap);
-  lbm_add_extension("ttf-wh",ext_ttf_wh);
+  lbm_add_extension("ttf-text-dims",ext_ttf_wh);
 
   // Low level utilities
   lbm_add_extension("ttf-glyph-dims",ext_ttf_glyph_dims);
