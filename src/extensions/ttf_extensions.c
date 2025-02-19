@@ -168,20 +168,7 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
   lbm_value utf8_str;
   uint32_t colors[16];
   uint32_t next_arg = 0;
-  if (argn >= 7 &&
-      (img_arr = get_image_buffer(args[0])) &&
-      lbm_is_number(args[1]) && // x position
-      lbm_is_number(args[2]) && // y position
-      lbm_is_number(args[3]) && // fg color
-      lbm_is_number(args[4]) && // bg color
-      is_prepared_font_value(args[5]) &&
-      lbm_is_array_r(args[6])) { // sequence of utf8 characters
-    colors[0] = lbm_dec_as_u32(args[4]);
-    colors[1] = lbm_dec_as_u32(args[3]);
-    font = args[5];
-    utf8_str = args[6];
-    next_arg = 7;
-  } else if (argn >= 6 &&
+  if (argn >= 6 &&
              (img_arr = get_image_buffer(args[0])) &&
              lbm_is_number(args[1]) && // x position
              lbm_is_number(args[2]) && // y position
@@ -202,12 +189,19 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
     return res;
   }
 
+  float line_spacing = 1.0f;
   bool up = false;
   bool down = false;
-  if (next_arg < argn) {
-    up = display_is_symbol_up(args[next_arg]);
-    down = display_is_symbol_down(args[next_arg]);
+  for (int i = next_arg; i < argn; i ++) {
+    if (lbm_is_symbol(args[i])) {
+      up = display_is_symbol_up(args[i]);
+      down = display_is_symbol_down(args[i]);
+    } else if (lbm_is_number(args[i])) {
+      line_spacing = lbm_dec_as_float(args[i]);
+    }
+
   }
+
   SFT_Font ft;
   if (!mk_font(&ft,font)) {
     return ENC_SYM_EERROR;
@@ -243,7 +237,7 @@ lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
 
     if (utf32 == '\n') {
       x = 0.0;
-      y += (lmtx.ascender - lmtx.descender + lmtx.lineGap);
+      y += line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap);
       i++;
       continue; // next iteration
     }
