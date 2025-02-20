@@ -570,6 +570,114 @@ lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+// Binary prerendered font format
+// contents:
+// Line-metrics
+// Kerning table
+// Glyphs
+//   Glyph-metrics
+
+// Format font type identification
+// uint16_t : 0x0             (rule out string)
+// uint16_t : version number  (expect to not have to maintain different versions of this)
+// uint32_t : 0x666F6E74      (magic number that makes us fairly sure the data is a font)
+
+// format Line-metrics
+// - float : ascender
+// - float : descender
+// - float : lineGap
+
+// Format kerning table
+// - uint : numRows
+// - kernTableRow[]
+
+// format kerning table row
+// - UTF32 : leftGlyph
+// - uint  : numKernPairs
+// - KernPair[]
+
+// format KernPair
+// - UTF32 : rightGlyph
+// - float : xShift
+// - float : yShift
+
+// format glyph table
+// - numberOfGlyphs
+// - image format of glyphs
+// - glyph[]
+
+// format glyph
+// - UTF32 : glyph
+// - float : advanceWidth
+// - float : leftSideBearing
+// - int32 : yOffset          - can prob be int16
+// - int32 : width            - can be int16
+// - int32 : height           - can be int16
+// - uint8[] : width * height number data
+
+// If we are not bin searching then sorting the UTF32 codes is not needed.
+
+//returns the increment for n
+static int insert_nub(uint32_t *arr, uint32_t n, uint32_t new_elt) {
+  uint32_t i;
+  for (i = 0; i < n; i ++) {
+    if (arr[i] == new_elt) return 0;
+    if (arr[i] > new_elt) {
+      memmove(&arr[i+1], &arr[i], (n - i) * 4);
+      arr[i] = new_elt;
+      return 1;
+    }
+  }
+  arr[i] = new_elt;
+  return 1;
+}
+
+// (ttf-prepare-bin font font-scale img-fmt chars-string)
+lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
+  if (argn == 4 &&
+      lbm_is_array_r(args[0]) && // font file data
+      lbm_is_number(args[1])  &&
+      lbm_is_symbol(args[2])  &&
+      lbm_is_array_r(args[3])) {
+
+    lbm_value result_array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
+
+    if (result_array_cell == ENC_SYM_MERROR) return result_array_cell;
+    lbm_array_header_t *result_array_header = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
+    if (!result_array_header) return ENC_SYM_MERROR;
+
+    lbm_array_header_t *utf8_array_header = (lbm_array_header_t*)(lbm_car(args[3]));
+
+    // Try to keep the utf8 array as nubbed as possible or there will be waste of mem.
+    // Unfortunate dynamic tmp storage...
+    uint32_t* unique_utf32 = lbm_malloc(utf8_array_header->size * sizeof(uint32_t));
+
+    if (unique_utf32) {
+
+      uint32_t i = 0;
+      uint32_t next_i = 0;
+      uint32_t utf32;
+      int n = 0;
+      while (get_utf32(utf8_array_header->data, &utf32, i, &next_i)) {
+        n += insert_nub(unique_utf32, n, utf32);
+        i = next_i;
+      }
+      // Number of characters to prerender is now known.
+
+      result_array_header->size = n * sizeof(uint32_t);
+      result_array_header->data = unique_utf32;
+      lbm_set_car(result_array_cell, (lbm_uint)result_array_header);
+      result_array_cell = lbm_set_ptr_type(result_array_cell, LBM_TYPE_ARRAY);
+      return result_array_cell;
+    } else {
+      return ENC_SYM_MERROR;
+    }
+  }
+  return ENC_SYM_TERROR;
+}
+
+
+
 void lbm_ttf_extensions_init(void) {
 
   // metrics
@@ -580,6 +688,7 @@ void lbm_ttf_extensions_init(void) {
   lbm_add_extension("ttf-text-dims",ext_ttf_wh);
 
   // Low level utilities
+  lbm_add_extension("ttf-prepare-bin", ext_ttf_prepare_bin);
   lbm_add_extension("ttf-glyph-dims",ext_ttf_glyph_dims);
   lbm_add_extension("ttf-glyph-render", ext_ttf_glyph_render);
   lbm_add_extension("ttf-glyph-id", ext_ttf_glyph_id);
