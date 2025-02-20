@@ -17,6 +17,7 @@
 
 #include <extensions/ttf_extensions.h>
 #include <extensions.h>
+#include <buffer.h>
 
 #include "schrift.h"
 
@@ -43,9 +44,23 @@ static uint32_t font_get_y_scale(lbm_value font_val) {
   return lbm_dec_u(lbm_car(lbm_cdr(font_val)));
 }
 
+static bool mk_font_raw(SFT_Font *ft, lbm_value font_val) {
+  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(font_val);
+  ft->memory = (uint8_t*)arr->data;
+  ft->size = (uint_fast32_t)arr->size;
+  ft->unitsPerEm = 0;
+  ft->locaFormat = 0;
+  ft->numLongHmtx = 0;
+  if (init_font(ft) < 0) {
+    return false;
+  }
+  return true;
+}
+
+
 static bool mk_font(SFT_Font *ft, lbm_value font_val) {
   lbm_value font_file = lbm_car(lbm_cdr(lbm_cdr(font_val)));
-
+  
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(font_file);
   ft->memory = (uint8_t*)arr->data;
   ft->size = (uint_fast32_t)arr->size;
@@ -583,17 +598,21 @@ lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
 // uint32_t : 0x666F6E74      (magic number that makes us fairly sure the data is a font)
 
 // format Line-metrics
+// - "lmtx"
+// - uint32 : size
 // - float : ascender
 // - float : descender
 // - float : lineGap
 
 // Format kerning table
-// - uint : numRows
+// - "kern"
+// - uint32 : kern-table-total-size 
+// - uint32 : numRows
 // - kernTableRow[]
 
 // format kerning table row
 // - UTF32 : leftGlyph
-// - uint  : numKernPairs
+// - uint32 : numKernPairs
 // - KernPair[]
 
 // format KernPair
@@ -616,6 +635,117 @@ lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
 // - uint8[] : width * height number data
 
 // If we are not bin searching then sorting the UTF32 codes is not needed.
+
+#define FONT_VERSION                0
+#define FONT_MAGIC_STRING           "font"
+#define FONT_LINE_METRICS_STRING    "lmtx"
+#define FONT_KERNING_STRING         "kern"
+
+// sizeof when used on string literals include the the terminating 0
+#define FONT_PREAMBLE_SIZE          sizeof(uint16_t) * 2 + sizeof(FONT_MAGIC_STRING)
+#define FONT_LINE_METRICS_SIZE      sizeof(uint32_t) + (sizeof(float) * 3) + sizeof(FONT_LINE_METRICS_STRING)
+
+#define FONT_KERN_PAIR_SIZE         4 + 4 + 4
+#define FONT_KERN_ROW_SIZE          4 + 4
+#define FONT_KERN_TABLE_SIZE        sizeof(FONT_KERNING_STRING) + 4 + 4
+
+
+static int num_kern_pairs_row(SFT *sft, uint32_t utf32, uint32_t *codes, uint32_t num_codes) {
+
+  int num = 0;
+
+  SFT_Glyph lgid;
+  if (sft_lookup(sft, utf32, &lgid) < 0) {
+    return -1;
+  }
+
+  for (uint32_t i = 0; i < num_codes; i ++) {
+    uint32_t right_utf32 = codes[i];
+    SFT_Kerning kern;
+    kern.xShift = 0.0;
+    kern.yShift = 0.0;
+
+    SFT_Glyph rgid;
+    if (sft_lookup(sft, right_utf32, &rgid) < 0) {
+      return -1;
+    }
+
+    if (sft->font->pairAdjustOffset) {
+      sft_gpos_kerning(sft, lgid, rgid, &kern); //TODO: can it fail?
+    }
+    if (kern.xShift == 0.0 && kern.yShift == 0.0) {
+      sft_kerning(sft, lgid, rgid, &kern); //TODO: can it fail?
+    }
+    if (kern.xShift != 0.0 || kern.yShift != 0.0) {
+      num++;
+    }
+  }
+  return num;
+}
+
+static bool kern_table_dims(SFT *sft, uint32_t *codes, uint32_t num_codes, int *rows, int *tot_pairs) {
+
+  int num_rows = 0;
+  int tot_kern_pairs = 0;
+  for (uint32_t i = 0; i < num_codes; i ++) {
+    int r = num_kern_pairs_row(sft, codes[i], codes, num_codes);
+    if (r > 0) {
+      num_rows ++;
+      tot_kern_pairs += r;
+    } else if (r < 0) {
+      return false;
+    }
+  }
+  *rows = num_rows;
+  *tot_pairs = tot_kern_pairs;
+  return true;
+}
+
+static int kern_table_size_bytes(SFT *sft, uint32_t *codes, uint32_t num_codes) {
+  int rows = 0;
+  int tot_pairs = 0;
+
+  int size_bytes;
+  if (kern_table_dims(sft, codes, num_codes, &rows, &tot_pairs)) {
+    size_bytes =
+      FONT_KERN_PAIR_SIZE * tot_pairs +
+      FONT_KERN_ROW_SIZE * rows +
+      FONT_KERN_TABLE_SIZE;
+  } else {
+    return -1;
+  }
+  return size_bytes;
+}
+
+
+static void buffer_append_string(uint8_t *buffer, char *str, int32_t *index) {
+  size_t n = strlen(str);
+  printf("writing %d bytes at index %d\n", n + 1, *index);
+  memcpy(&buffer[*index], str, n + 1); // include the 0
+  *index = *index + n + 1;
+}
+
+static void buffer_append_font_preamble(uint8_t *buffer, int32_t *index) {
+  buffer_append_uint16(buffer, 0, index); // 2 leading zero bytes
+  buffer_append_uint16(buffer, 0, index); // version 0
+  buffer_append_string(buffer, FONT_MAGIC_STRING, index);
+}
+
+static void buffer_append_line_metrics(uint8_t *buffer, float ascender, float descender, float line_gap, int32_t *index) {
+  buffer_append_string(buffer, FONT_LINE_METRICS_STRING, index);
+  buffer_append_uint32(buffer, sizeof(float) * 3, index);
+  buffer_append_float32_auto(buffer, ascender, index);
+  buffer_append_float32_auto(buffer, descender, index);
+  buffer_append_float32_auto(buffer, line_gap, index);
+}
+
+static bool buffer_append_kerning_table(uint8_t *buffer, SFT *sft, uint32_t *codes, uint32_t num_codes, int32_t *index) {
+
+  int num_rows = 0;
+  int32_t num_rows_index = 0;
+
+}
+
 
 //returns the increment for n
 static int insert_nub(uint32_t *arr, uint32_t n, uint32_t new_elt) {
@@ -640,6 +770,9 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
       lbm_is_symbol(args[2])  &&
       lbm_is_array_r(args[3])) {
 
+    float x_scale = lbm_dec_as_float(args[1]);
+    float y_scale = x_scale;
+
     lbm_value result_array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
 
     if (result_array_cell == ENC_SYM_MERROR) return result_array_cell;
@@ -654,18 +787,71 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
 
     if (unique_utf32) {
 
+      SFT_Font ft;
+      if (!mk_font_raw(&ft,args[0])) {
+        lbm_free(unique_utf32);
+        return ENC_SYM_EERROR;
+      }
+      SFT sft = mk_sft(&ft, x_scale, y_scale);
+
+      // We know which glyphs to prerender...
+      // So time to start collecting information to put into the binary prerender format
+      // and to figure out how much prerender space to allocate!
+
       uint32_t i = 0;
       uint32_t next_i = 0;
       uint32_t utf32;
       int n = 0;
+
       while (get_utf32(utf8_array_header->data, &utf32, i, &next_i)) {
         n += insert_nub(unique_utf32, n, utf32);
         i = next_i;
       }
-      // Number of characters to prerender is now known.
 
+      int kern_tab_bytes = kern_table_size_bytes(&sft, unique_utf32, n);
+      if (kern_tab_bytes > 0) {
+        printf("kern table size bytes: %d\n", kern_tab_bytes);
+      } else {
+        lbm_free(unique_utf32);
+        return ENC_SYM_
+      }
+
+      uint32_t bytes_required =
+        FONT_PREAMBLE_SIZE +
+        FONT_LINE_METRICS_SIZE +
+        kern_tab_bytes;
+
+      uint8_t *buffer = (uint8_t*)lbm_malloc(bytes_required);
+      if (!buffer) {
+        lbm_free(unique_utf32);
+        return ENC_SYM_MERROR;
+      }
+      printf("allocated %d\n", bytes_required);
+
+      SFT_LMetrics lmtx;
+      if (sft_lmetrics(&sft, &lmtx) < 0) {
+        return ENC_SYM_EERROR;
+      }
+      int32_t index = 0;
+
+      buffer_append_font_preamble(buffer, &index);
+      buffer_append_line_metrics(buffer,
+                                 lmtx.ascender,
+                                 lmtx.descender,
+                                 lmtx.lineGap,
+                                 &index);
+
+
+      // testing buffer append function.
+      for (i = 0; i < n; i ++ ) {
+        uint32_t w = unique_utf32[i];
+        int32_t ix = i * sizeof(uint32_t);
+        buffer_append_uint32((uint8_t*)unique_utf32, w, &ix);
+      }
+
+      lbm_free(unique_utf32); // tmp data nolonger needed
       result_array_header->size = n * sizeof(uint32_t);
-      result_array_header->data = unique_utf32;
+      result_array_header->data = buffer;
       lbm_set_car(result_array_cell, (lbm_uint)result_array_header);
       result_array_cell = lbm_set_ptr_type(result_array_cell, LBM_TYPE_ARRAY);
       return result_array_cell;

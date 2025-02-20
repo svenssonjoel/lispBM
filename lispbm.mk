@@ -18,6 +18,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/lbm_flags.c\
              $(LISPBM)/src/lbm_prof.c\
              $(LISPBM)/src/lbm_defrag_mem.c\
+             $(LISPBM)/src/buffer.c \
              $(LISPBM)/src/extensions/array_extensions.c \
              $(LISPBM)/src/extensions/string_extensions.c \
              $(LISPBM)/src/extensions/math_extensions.c \
@@ -56,6 +57,7 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/stack.h \
            $(LISPBM)/include/symrepr.h \
            $(LISPBM)/include/tokpar.h \
+           $(LISPBM)/include/buffer.h \
            $(LISPBM)/include/extensions/array_extensions.h \
            $(LISPBM)/include/extensions/display_extensions.h \
            $(LISPBM)/include/extensions/lbm_dyn_lib.h \
