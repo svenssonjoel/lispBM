@@ -350,8 +350,7 @@ static int locate_pair_adjustment_table(SFT_Font *font)
 
 // TODO: font should probably have type const SFT_Font * but getu16 discards.
 static int locate_pair_adjust_coverage_table(SFT_Font *font) {
-  if ((font->pairAdjustOffset < 0) ||
-      (font->pairAdjustCoverageOffset < 0)) return -1;
+  if (font->pairAdjustOffset < 0) return -1;
 
   // If this function is called, pairAdjustOffset will be > 0
   uint32_t offset = (uint32_t)font->pairAdjustOffset;

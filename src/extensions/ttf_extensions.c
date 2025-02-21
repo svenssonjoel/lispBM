@@ -606,10 +606,14 @@ lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
 
 // Format kerning table
 // - "kern"
-// - uint32 : kern-table-total-size 
+// - uint32 : kern-table-total-size
 // - uint32 : numRows
 // - kernTableRow[]
 
+// 13 + (8 * 4) + (10 * 6)
+// 13 + 16 + 60
+// 29 + 60
+// 89
 // format kerning table row
 // - UTF32 : leftGlyph
 // - uint32 : numKernPairs
@@ -642,12 +646,12 @@ lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
 #define FONT_KERNING_STRING         "kern"
 
 // sizeof when used on string literals include the the terminating 0
-#define FONT_PREAMBLE_SIZE          sizeof(uint16_t) * 2 + sizeof(FONT_MAGIC_STRING)
-#define FONT_LINE_METRICS_SIZE      sizeof(uint32_t) + (sizeof(float) * 3) + sizeof(FONT_LINE_METRICS_STRING)
+#define FONT_PREAMBLE_SIZE          (sizeof(uint16_t) * 2 + sizeof(FONT_MAGIC_STRING))
+#define FONT_LINE_METRICS_SIZE      (sizeof(uint32_t) + (sizeof(float) * 3) + sizeof(FONT_LINE_METRICS_STRING))
 
-#define FONT_KERN_PAIR_SIZE         4 + 4 + 4
-#define FONT_KERN_ROW_SIZE          4 + 4
-#define FONT_KERN_TABLE_SIZE        sizeof(FONT_KERNING_STRING) + 4 + 4
+#define FONT_KERN_PAIR_SIZE         (4 + 4 + 4)
+#define FONT_KERN_ROW_SIZE          (4 + 4)
+#define FONT_KERN_TABLE_SIZE        (sizeof(FONT_KERNING_STRING) + 4 + 4)
 
 
 static int num_kern_pairs_row(SFT *sft, uint32_t utf32, uint32_t *codes, uint32_t num_codes) {
@@ -720,7 +724,6 @@ static int kern_table_size_bytes(SFT *sft, uint32_t *codes, uint32_t num_codes) 
 
 static void buffer_append_string(uint8_t *buffer, char *str, int32_t *index) {
   size_t n = strlen(str);
-  printf("writing %d bytes at index %d\n", n + 1, *index);
   memcpy(&buffer[*index], str, n + 1); // include the 0
   *index = *index + n + 1;
 }
@@ -739,11 +742,83 @@ static void buffer_append_line_metrics(uint8_t *buffer, float ascender, float de
   buffer_append_float32_auto(buffer, line_gap, index);
 }
 
+/* static int num_kern_pairs_row(SFT *sft, uint32_t utf32, uint32_t *codes, uint32_t num_codes) { */
+
+/*   int num = 0; */
+
+/*   return num; */
+/* } */
+
+
 static bool buffer_append_kerning_table(uint8_t *buffer, SFT *sft, uint32_t *codes, uint32_t num_codes, int32_t *index) {
 
   int num_rows = 0;
-  int32_t num_rows_index = 0;
+  int tot_pairs = 0;
 
+  if (kern_table_dims(sft, codes, num_codes, &num_rows, &tot_pairs)) {
+
+    printf("total pairs: %d = %d\n", tot_pairs, FONT_KERN_PAIR_SIZE * tot_pairs);
+    printf("num rows: %d = %d\n", num_rows, FONT_KERN_ROW_SIZE * num_rows);
+    printf("kern tab: %d\n", FONT_KERN_TABLE_SIZE);
+    uint32_t size_bytes =
+      FONT_KERN_PAIR_SIZE * tot_pairs +
+      FONT_KERN_ROW_SIZE * num_rows +
+      FONT_KERN_TABLE_SIZE;
+    printf("size bytes: %d\n", size_bytes);
+
+    buffer_append_string(buffer, FONT_KERNING_STRING, index);
+    buffer_append_uint32(buffer, size_bytes, index);
+    buffer_append_uint32(buffer, num_rows, index);
+
+    for (uint32_t left_ix = 0; left_ix < num_codes; left_ix ++) { // loop over all codes
+      int32_t row_len = num_kern_pairs_row(sft, codes[left_ix], codes, num_codes);
+      if ( row_len > 0) {
+        printf("row_len %d\n", row_len);
+        SFT_Glyph lgid;
+        if (sft_lookup(sft, codes[left_ix], &lgid) < 0) {
+          return false;
+        }
+
+        // format kerning table row
+        // - UTF32 : leftGlyph
+        // - uint32 : numKernPairs
+        // - KernPair[]
+
+        buffer_append_uint32(buffer, codes[left_ix],index);
+        buffer_append_uint32(buffer, row_len, index);
+
+        for (uint32_t right_ix = 0; right_ix < num_codes; right_ix ++) { // and all codes
+          uint32_t right_utf32 = codes[right_ix];
+          SFT_Kerning kern;
+          kern.xShift = 0.0;
+          kern.yShift = 0.0;
+
+          // format KernPair
+          // - UTF32 : rightGlyph
+          // - float : xShift
+          // - float : yShift
+
+          SFT_Glyph rgid;
+          if (sft_lookup(sft, right_utf32, &rgid) < 0) {
+            return false;
+          }
+
+          if (sft->font->pairAdjustOffset) {
+            sft_gpos_kerning(sft, lgid, rgid, &kern); //TODO: can it fail?
+          }
+          if (kern.xShift == 0.0 && kern.yShift == 0.0) {
+            sft_kerning(sft, lgid, rgid, &kern); //TODO: can it fail?
+          }
+          if (kern.xShift != 0.0 || kern.yShift != 0.0) {
+            buffer_append_uint32(buffer, right_utf32, index);
+            buffer_append_float32_auto(buffer, kern.xShift, index);
+            buffer_append_float32_auto(buffer, kern.yShift, index);
+          }
+        }
+      }
+    }
+  }
+  return true;
 }
 
 
@@ -813,7 +888,7 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
         printf("kern table size bytes: %d\n", kern_tab_bytes);
       } else {
         lbm_free(unique_utf32);
-        return ENC_SYM_
+        return ENC_SYM_MERROR;
       }
 
       uint32_t bytes_required =
@@ -834,13 +909,17 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
       }
       int32_t index = 0;
 
+      printf("index %d\n",index);
       buffer_append_font_preamble(buffer, &index);
+      printf("index %d\n",index);
       buffer_append_line_metrics(buffer,
                                  lmtx.ascender,
                                  lmtx.descender,
                                  lmtx.lineGap,
                                  &index);
-
+      printf("index %d\n",index);
+      buffer_append_kerning_table(buffer, &sft, unique_utf32, n, &index);
+      printf("index %d\n",index);
 
       // testing buffer append function.
       for (i = 0; i < n; i ++ ) {
@@ -850,7 +929,8 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
       }
 
       lbm_free(unique_utf32); // tmp data nolonger needed
-      result_array_header->size = n * sizeof(uint32_t);
+      printf("result array of lenght %d\n", index);
+      result_array_header->size = index;
       result_array_header->data = buffer;
       lbm_set_car(result_array_cell, (lbm_uint)result_array_header);
       result_array_cell = lbm_set_ptr_type(result_array_cell, LBM_TYPE_ARRAY);
