@@ -136,7 +136,7 @@ bool display_is_symbol_down(lbm_value v) {
   return false;
 }
 
-static color_format_t sym_to_color_format(lbm_value v) {
+color_format_t sym_to_color_format(lbm_value v) {
   lbm_uint s = lbm_dec_sym(v);
   if (s == symbol_indexed2) return indexed2;
   if (s == symbol_indexed4) return indexed4;
@@ -147,7 +147,7 @@ static color_format_t sym_to_color_format(lbm_value v) {
   return format_not_supported;
 }
 
-static uint32_t image_dims_to_size_bytes(color_format_t fmt, uint16_t width, uint16_t height) {
+uint32_t image_dims_to_size_bytes(color_format_t fmt, uint16_t width, uint16_t height) {
   uint32_t num_pix = (uint32_t)width * (uint32_t)height;
   switch(fmt) {
   case indexed2:

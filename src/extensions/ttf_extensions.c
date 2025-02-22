@@ -60,7 +60,7 @@ static bool mk_font_raw(SFT_Font *ft, lbm_value font_val) {
 
 static bool mk_font(SFT_Font *ft, lbm_value font_val) {
   lbm_value font_file = lbm_car(lbm_cdr(lbm_cdr(font_val)));
-  
+
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(font_file);
   ft->memory = (uint8_t*)arr->data;
   ft->size = (uint_fast32_t)arr->size;
@@ -625,6 +625,8 @@ lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
 // - float : yShift
 
 // format glyph table
+// "glyphs"
+// uint32 : total size bytes
 // - numberOfGlyphs
 // - image format of glyphs
 // - glyph[]
@@ -644,15 +646,18 @@ lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
 #define FONT_MAGIC_STRING           "font"
 #define FONT_LINE_METRICS_STRING    "lmtx"
 #define FONT_KERNING_STRING         "kern"
+#define FONT_GLYPHS_STRING          "glyphs"
 
 // sizeof when used on string literals include the the terminating 0
 #define FONT_PREAMBLE_SIZE          (sizeof(uint16_t) * 2 + sizeof(FONT_MAGIC_STRING))
 #define FONT_LINE_METRICS_SIZE      (sizeof(uint32_t) + (sizeof(float) * 3) + sizeof(FONT_LINE_METRICS_STRING))
 
+// "header sizes" excluding data payload
 #define FONT_KERN_PAIR_SIZE         (4 + 4 + 4)
 #define FONT_KERN_ROW_SIZE          (4 + 4)
 #define FONT_KERN_TABLE_SIZE        (sizeof(FONT_KERNING_STRING) + 4 + 4)
-
+#define FONT_GLYPH_TABLE_SIZE       (sizeof(FONT_GLYPHS_STRING) + 4 + 4)
+#define FONT_GLYPH_SIZE             (4 + 4 + 4 + 4 + 4 + 4)
 
 static int num_kern_pairs_row(SFT *sft, uint32_t utf32, uint32_t *codes, uint32_t num_codes) {
 
@@ -742,13 +747,6 @@ static void buffer_append_line_metrics(uint8_t *buffer, float ascender, float de
   buffer_append_float32_auto(buffer, line_gap, index);
 }
 
-/* static int num_kern_pairs_row(SFT *sft, uint32_t utf32, uint32_t *codes, uint32_t num_codes) { */
-
-/*   int num = 0; */
-
-/*   return num; */
-/* } */
-
 
 static bool buffer_append_kerning_table(uint8_t *buffer, SFT *sft, uint32_t *codes, uint32_t num_codes, int32_t *index) {
 
@@ -760,14 +758,16 @@ static bool buffer_append_kerning_table(uint8_t *buffer, SFT *sft, uint32_t *cod
     printf("total pairs: %d = %d\n", tot_pairs, FONT_KERN_PAIR_SIZE * tot_pairs);
     printf("num rows: %d = %d\n", num_rows, FONT_KERN_ROW_SIZE * num_rows);
     printf("kern tab: %d\n", FONT_KERN_TABLE_SIZE);
+
+    // TODO: compute size of "payload" only
     uint32_t size_bytes =
       FONT_KERN_PAIR_SIZE * tot_pairs +
       FONT_KERN_ROW_SIZE * num_rows +
-      FONT_KERN_TABLE_SIZE;
+      + 4; // number of rows field
     printf("size bytes: %d\n", size_bytes);
 
     buffer_append_string(buffer, FONT_KERNING_STRING, index);
-    buffer_append_uint32(buffer, size_bytes, index);
+    buffer_append_uint32(buffer, size_bytes, index); // distance to jump ahead from index if not interested in kerning.
     buffer_append_uint32(buffer, num_rows, index);
 
     for (uint32_t left_ix = 0; left_ix < num_codes; left_ix ++) { // loop over all codes
@@ -821,6 +821,67 @@ static bool buffer_append_kerning_table(uint8_t *buffer, SFT *sft, uint32_t *cod
   return true;
 }
 
+int glyphs_img_data_size(SFT *sft, color_format_t fmt, uint32_t *codes, uint32_t num_codes) {
+  int total_size = 0;
+  for (uint32_t i = 0; i < num_codes; i ++) {
+    SFT_Glyph gid;
+    if (sft_lookup(sft, codes[i], &gid) < 0)  return -1;
+    SFT_GMetrics gmtx;
+    if (sft_gmetrics(sft, gid, &gmtx) < 0) return -1;
+    total_size += image_dims_to_size_bytes(fmt, gmtx.minWidth, gmtx.minHeight);
+  }
+  return total_size;
+}
+
+static int buffer_append_glyph(uint8_t *buffer, SFT *sft, color_format_t fmt, uint32_t utf32, int32_t *index){
+  SFT_Glyph gid;
+  if (sft_lookup(sft, utf32, &gid) < 0)  return -1;
+  SFT_GMetrics gmtx;
+  if (sft_gmetrics(sft, gid, &gmtx) < 0) return -1;
+
+  buffer_append_uint32(buffer, utf32, index);
+  buffer_append_float32_auto(buffer, gmtx.advanceWidth, index);
+  buffer_append_float32_auto(buffer, gmtx.leftSideBearing, index);
+  buffer_append_int32(buffer,gmtx.yOffset,index);
+  buffer_append_int32(buffer,gmtx.minWidth, index);
+  buffer_append_int32(buffer,gmtx.minHeight, index);
+
+  image_buffer_t img;
+  img.width = gmtx.minWidth;
+  img.height = gmtx.minHeight;
+  img.fmt = fmt;
+  img.mem_base = &buffer[*index];
+  img.data = &buffer[*index];
+
+  printf("rendering glyph\n");
+  int r = sft_render(sft, gid, &img);
+  printf("result: %d\n", r);
+  *index += image_dims_to_size_bytes(fmt, gmtx.minWidth, gmtx.minHeight);
+  return r;
+}
+
+static int buffer_append_glyph_table(uint8_t *buffer, SFT *sft, color_format_t fmt, uint32_t *codes, uint32_t num_codes, int32_t *index) {
+
+  int size_bytes =
+    4 + // number of glyphs
+    4 + // image format
+    num_codes * 24 + // glyph metrics
+    glyphs_img_data_size(sft,fmt,codes,num_codes);
+
+  buffer_append_string(buffer, FONT_GLYPHS_STRING, index);
+  buffer_append_uint32(buffer, size_bytes, index); // distance to jump ahead from index if not interested in kerning.
+  buffer_append_uint32(buffer, num_codes, index);
+  buffer_append_uint32(buffer, (uint32_t)fmt, index);
+
+  int r = 0;
+  for (uint32_t i = 0; i < num_codes; i ++) {
+    r = buffer_append_glyph(buffer,sft,fmt,codes[i], index);
+    if (r < 0) return r;
+  }
+  return r;
+}
+
+
 
 //returns the increment for n
 static int insert_nub(uint32_t *arr, uint32_t n, uint32_t new_elt) {
@@ -847,6 +908,8 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
 
     float x_scale = lbm_dec_as_float(args[1]);
     float y_scale = x_scale;
+
+    color_format_t fmt = sym_to_color_format(args[2]);
 
     lbm_value result_array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
 
@@ -891,35 +954,56 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
         return ENC_SYM_MERROR;
       }
 
+      int glyph_gfx_size = glyphs_img_data_size(&sft, fmt, unique_utf32, n);
+      if (glyph_gfx_size > 0) {
+        printf("glyph gfx size: %d\n", glyph_gfx_size);
+      } else {
+        lbm_free(unique_utf32);
+        return ENC_SYM_EERROR;
+      }
+
       uint32_t bytes_required =
         FONT_PREAMBLE_SIZE +
         FONT_LINE_METRICS_SIZE +
-        kern_tab_bytes;
+        kern_tab_bytes +
+        FONT_GLYPH_TABLE_SIZE +
+        n * 24 + // glyph metrics
+        glyph_gfx_size;
 
       uint8_t *buffer = (uint8_t*)lbm_malloc(bytes_required);
       if (!buffer) {
         lbm_free(unique_utf32);
         return ENC_SYM_MERROR;
       }
-      printf("allocated %d\n", bytes_required);
 
       SFT_LMetrics lmtx;
       if (sft_lmetrics(&sft, &lmtx) < 0) {
+        lbm_free(unique_utf32);
         return ENC_SYM_EERROR;
       }
       int32_t index = 0;
 
-      printf("index %d\n",index);
       buffer_append_font_preamble(buffer, &index);
-      printf("index %d\n",index);
       buffer_append_line_metrics(buffer,
                                  lmtx.ascender,
                                  lmtx.descender,
                                  lmtx.lineGap,
                                  &index);
-      printf("index %d\n",index);
       buffer_append_kerning_table(buffer, &sft, unique_utf32, n, &index);
-      printf("index %d\n",index);
+
+      int r = buffer_append_glyph_table(buffer, &sft, fmt, unique_utf32, n, &index);
+      if ( r == SFT_MEM_ERROR) {
+        lbm_free(unique_utf32);
+        lbm_free(buffer);
+        lbm_set_car_and_cdr(result_array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
+        return ENC_SYM_MERROR;
+      } else if (r < 0) {
+        printf("error in buffer_append_glyph_table\n");
+        lbm_free(unique_utf32);
+        lbm_free(buffer);
+        lbm_set_car_and_cdr(result_array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
+        return ENC_SYM_EERROR;
+      }
 
       // testing buffer append function.
       for (i = 0; i < n; i ++ ) {
@@ -929,7 +1013,6 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
       }
 
       lbm_free(unique_utf32); // tmp data nolonger needed
-      printf("result array of lenght %d\n", index);
       result_array_header->size = index;
       result_array_header->data = buffer;
       lbm_set_car(result_array_cell, (lbm_uint)result_array_header);
