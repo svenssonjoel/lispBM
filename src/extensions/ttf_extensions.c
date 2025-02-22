@@ -854,6 +854,8 @@ static int buffer_append_glyph(uint8_t *buffer, SFT *sft, color_format_t fmt, ui
   img.data = &buffer[*index];
 
   printf("rendering glyph\n");
+  printf("W: %d\nH: %d\n", img.width, img.height);
+  printf("G: %x\n", utf32);
   int r = sft_render(sft, gid, &img);
   printf("result: %d\n", r);
   *index += image_dims_to_size_bytes(fmt, gmtx.minWidth, gmtx.minHeight);
@@ -1023,6 +1025,38 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
     }
   }
   return ENC_SYM_TERROR;
+}
+
+
+lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  lbm_array_header_t *img_arr;
+  lbm_value font;
+  lbm_value utf8_str;
+  uint32_t colors[16];
+  uint32_t next_arg = 0;
+  if (argn >= 6 &&
+      (img_arr = get_image_buffer(args[0])) &&
+      lbm_is_number(args[1]) &&  // x position
+      lbm_is_number(args[2]) &&  // y position
+      lbm_is_cons(args[3]) &&    // list of colors
+      lbm_is_array_r(args[4]) && // Binary font
+      lbm_is_array_r(args[5])) { // sequence of utf8 characters
+    lbm_value curr = args[3];
+    int i = 0;
+    while(lbm_is_cons(curr) && i < 16) {
+      colors[i] = lbm_dec_as_u32(lbm_car(curr));
+      curr = lbm_cdr(curr);
+      i ++;
+    }
+    font = args[4];
+    utf8_str = args[5];
+    next_arg = 6;
+  } else {
+    return res;
+  }
+
+  return res;
 }
 
 
