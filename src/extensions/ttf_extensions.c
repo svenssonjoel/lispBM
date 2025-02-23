@@ -1270,17 +1270,12 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
 
           uint32_t p = getpixel(&src, i, j);
           if (p) { // only draw colored
-            printf("colored pixel\n");
             uint32_t c = colors[p & (num_colors-1)]; // ceiled
-            printf("color: %x\n",c);
-
             if (up) {
               putpixel(&tgt, x_pos + (j + (int)y_n), y_pos - (i + (int)(x_n + left_side_bearing)), c);
             } else if (down) {
               putpixel(&tgt, x_pos - (j + (int)y_n), y_pos + (i + (int)(x_n + left_side_bearing)), c);
             } else {
-              printf("x: %d\n", x_pos + (i + (int)(x_n + left_side_bearing)));
-              printf("y: %d\n", y_pos + (j + (int)y_n));
               putpixel(&tgt, x_pos + (i + (int)(x_n + left_side_bearing)), y_pos + (j + (int)y_n), c);
             }
           }
