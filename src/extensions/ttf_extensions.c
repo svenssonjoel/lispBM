@@ -854,11 +854,7 @@ static int buffer_append_glyph(uint8_t *buffer, SFT *sft, color_format_t fmt, ui
   img.mem_base = &buffer[*index];
   img.data = &buffer[*index];
 
-  printf("rendering glyph\n");
-  printf("W: %d\nH: %d\n", img.width, img.height);
-  printf("G: %x\n", utf32);
   int r = sft_render(sft, gid, &img);
-  printf("result: %d\n", r);
   *index += image_dims_to_size_bytes(fmt, gmtx.minWidth, gmtx.minHeight);
   return r;
 }
@@ -883,8 +879,6 @@ static int buffer_append_glyph_table(uint8_t *buffer, SFT *sft, color_format_t f
   }
   return r;
 }
-
-
 
 //returns the increment for n
 static int insert_nub(uint32_t *arr, uint32_t n, uint32_t new_elt) {
@@ -971,13 +965,14 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
         kern_tab_bytes +
         FONT_GLYPH_TABLE_SIZE +
         n * 24 + // glyph metrics
-        glyph_gfx_size;
+        glyph_gfx_size + 50; // TODO: CALCULATE THIS CORRECTLY
 
       uint8_t *buffer = (uint8_t*)lbm_malloc(bytes_required);
       if (!buffer) {
         lbm_free(unique_utf32);
         return ENC_SYM_MERROR;
       }
+      memset(buffer,0, bytes_required);
 
       SFT_LMetrics lmtx;
       if (sft_lmetrics(&sft, &lmtx) < 0) {
@@ -1006,13 +1001,6 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
         lbm_free(buffer);
         lbm_set_car_and_cdr(result_array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
         return ENC_SYM_EERROR;
-      }
-
-      // testing buffer append function.
-      for (i = 0; i < n; i ++ ) {
-        uint32_t w = unique_utf32[i];
-        int32_t ix = i * sizeof(uint32_t);
-        buffer_append_uint32((uint8_t*)unique_utf32, w, &ix);
       }
 
       lbm_free(unique_utf32); // tmp data nolonger needed
@@ -1259,11 +1247,10 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
       src.width = width;
       src.height = height;
       src.fmt = fmt;
-      src.mem_base = gfx;
+      //src.mem_base = gfx;
       src.data = gfx;
 
       uint32_t num_colors = 1 << src.fmt;
-      printf("plotting\n");
       for (int j = 0; j < src.height; j++) {
         for (int i = 0; i < src.width; i ++) {
           // the bearing should not be accumulated into the advances
