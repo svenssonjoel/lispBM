@@ -642,6 +642,7 @@ lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
 
 // If we are not bin searching then sorting the UTF32 codes is not needed.
 
+#define FONT_MAX_ID_STRING_LENGTH   10
 #define FONT_VERSION                0
 #define FONT_MAGIC_STRING           "font"
 #define FONT_LINE_METRICS_STRING    "lmtx"
@@ -1027,12 +1028,46 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TERROR;
 }
 
+bool buffer_get_font_preamble(uint8_t* buffer, uint16_t *version, int32_t *index) {
+
+  int16_t zero = buffer_get_uint16(buffer, index);
+  if (zero == 0) {
+    *version = buffer_get_uint16(buffer, index);
+    if (strncmp(&buffer[*index], "font", 4) == 0) {
+      *index += sizeof("font"); // includes 0 for constant string
+      return true;
+    }
+  }
+  return false;
+}
+
+bool font_get_line_metrics(uint8_t *buffer, int32_t buffer_size, float *ascender, float *descender, float *line_gap ,int32_t index) {
+
+  while(index < buffer_size) {
+
+    char *str = &buffer[index];
+
+    printf("inspecting: %s\n", str);
+
+    if (strncmp(str, "lmtx", 4) == 0) {
+      int32_t i = index + 5 + 4; // skip over string and size field;
+      *ascender = buffer_get_float32_auto(buffer, &i);
+      *descender = buffer_get_float32_auto(buffer, &i);
+      *line_gap = buffer_get_float32_auto(buffer, &i);
+      return true;
+    } else {
+      size_t n = strlen(str);
+      index += n;
+    }
+  }
+  return false;
+}
 
 lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
   lbm_array_header_t *img_arr;
   lbm_value font;
-  lbm_value utf8_str;
+  char *utf8_str;
   uint32_t colors[16];
   uint32_t next_arg = 0;
   if (argn >= 6 &&
@@ -1050,13 +1085,60 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
       i ++;
     }
     font = args[4];
-    utf8_str = args[5];
+    utf8_str = lbm_dec_str(args[5]);
     next_arg = 6;
   } else {
     return res;
   }
 
-  return res;
+  float line_spacing = 1.0f;
+  bool up = false;
+  bool down = false;
+  for (int i = next_arg; i < argn; i ++) {
+    if (lbm_is_symbol(args[i])) {
+      up = display_is_symbol_up(args[i]);
+      down = display_is_symbol_down(args[i]);
+    } else if (lbm_is_number(args[i])) {
+      line_spacing = lbm_dec_as_float(args[i]);
+    }
+  }
+
+  lbm_array_header_t *font_arr = lbm_dec_array_r(font);
+  if (font_arr->size < 10) return ENC_SYM_EERROR;
+
+  int32_t index = 0;
+  uint16_t version;
+
+  if (buffer_get_font_preamble(font_arr->data, &version, &index)) {
+    printf("font preamble ok: %d\n", version);
+  } else {
+    printf("font preamble is NOT ok!\n");
+  }
+
+  float ascender;
+  float descender;
+  float line_gap;
+
+  if(font_get_line_metrics(font_arr->data, font_arr->size, &ascender, &descender, &line_gap , index)) {
+    printf("Line metrix ok: %f, %f, %f\n", ascender, descender, line_gap);
+  } else {
+    printf("error getting line metrix\n");
+  }
+
+  color_format_t fmt;
+
+  uint32_t utf32;
+  uint32_t i = 0;
+  uint32_t next_i = 0;
+  while (get_utf32(utf8_str, &utf32, i, &next_i)) {
+    if (utf32 == '\n') {
+      i++;
+      continue; // next iteration
+    }
+
+    i = next_i;
+  }
+  return ENC_SYM_TRUE;
 }
 
 
@@ -1076,6 +1158,7 @@ void lbm_ttf_extensions_init(void) {
   lbm_add_extension("ttf-glyph-render", ext_ttf_glyph_render);
   lbm_add_extension("ttf-glyph-id", ext_ttf_glyph_id);
 
-  // Create font and draw text.
+  // Draw text.
+  lbm_add_extension("ttf-text-bin", ttf_text_bin);
   lbm_add_extension("ttf-text",ext_ttf_print);
 }
