@@ -18,7 +18,7 @@
 
 #include <extensions.h>
 
-#if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS) || defined(LBM_USE_DYN_TTF)
+#if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)
 static const char* lbm_dyn_fun[] = {
 #ifdef LBM_USE_DYN_FUNS
   "(defun str-merge () (str-join (rest-args)))",
@@ -90,66 +90,6 @@ static const char* lbm_dyn_fun[] = {
   "(loopfor i (- n 1) (>= i 0) (- i 1) { (setq ls (cons (ix arr i) ls)) }) ls }))",
 
   "(defun array? (a) (eq (type-of a) type-lisparray))",
-#endif
-
-
-// (defun insert-nub (x xs)
-//     (if xs
-//         (if (= x (car xs)) xs
-//           (if (< x (car xs))
-//               (cons x xs)
-//             (cons (car xs) (insert-nub x (cdr xs)))))
-//       (list x)))
-
-
-
-// (defun ttf-prepare (ttf str)
-//   (let ((glyph-ids
-//            (lambda (acc str i)
-//              (let ((g  (ttf-glyph-id ttf str i)))
-//                (if g
-//                    (insert-nub (car g) (glyph-ids str (car (cdr g))))
-//                  nil))))
-//           (pre-render-glyph
-//            (lambda (gid)
-//              (let (( (width height) (ttf-glyph-dims ttf gid))
-//                    )
-//                (if (and (> width 0) (> height 0))
-//                    (let (
-//                          ( img (img-buffer 'indexed2 width height))
-//                          ( _   (ttf-glyph-render img ttf gid)))
-//                      (list gid img))
-//                  (list gid nil)))))
-//           )
-//       (append ttf (list (map pre-render-glyph (glyph-ids str 0))))
-//       ))
-
-
-
-#ifdef LBM_USE_DYN_TTF
-  "(defun ttf-font (scale-x scale-y font) (list scale-x scale-y font))",
-  "(defun img-color-indexed? (x) (or (eq x 'indexed2) (eq x 'indexed4) (eq x 'indexed16)))",
-  "(defun insert-nub (x xs)"
-  "(let ((insert-nub-tail (lambda (x acc xs)"
-  "(if xs"
-  "        (if ( < x (car xs))"
-  "          (append (reverse (cons x acc)) xs)"
-  "            (insert-nub-tail x (cons (car xs) acc) (cdr xs)))"
-  "  (reverse (cons x acc))))))"
-  "   (insert-nub-tail x nil xs)))",
-  "(defun ttf-prepare (font scale img-fmt str)"
-  "(let ((ttf (if (list? scale) (ttf-font (ix scale 0) (ix scale 1) font) (ttf-font scale scale font))))"
-  "(if (img-color-indexed? img-fmt) (let ((glyph-ids (lambda (acc str i)"
-  "(let ((g  (ttf-glyph-id ttf str i)))"
-  "(if g (glyph-ids (insert-nub (car g) acc) str (car (cdr g))) acc))))"
-  "(pre-render-glyph (lambda (gid)"
-  "(let (( (width height) (ttf-glyph-dims ttf gid)))"
-  "(if (and (> width 0) (> height 0))"
-  "(let (( img (img-buffer img-fmt width height))"
-  "( _   (ttf-glyph-render img ttf gid)))"
-  "(list gid img)) (list gid nil))))))"
-  "(append ttf (list (map pre-render-glyph (glyph-ids nil str 0)))))"
-  "(exit-error (cons 'type-error \"Only indexed modes allowed.\")))))"
 #endif
 };
 #endif // defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)
@@ -422,7 +362,7 @@ bool lbm_dyn_lib_find(const char *str, const char **code) {
   }
 #endif
 
-#if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS) || defined(LBM_USE_DYN_TTF)
+#if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)
   for (unsigned int i = 0; i < (sizeof(lbm_dyn_fun) / sizeof(lbm_dyn_fun[0]));i++) {
     if (strmatch(str, lbm_dyn_fun[i] + 7)) { // defun is 5
       *code = lbm_dyn_fun[i];
