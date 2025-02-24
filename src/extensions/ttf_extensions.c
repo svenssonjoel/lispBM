@@ -768,6 +768,143 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+lbm_value ext_ttf_wh(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  lbm_value font;
+  char *utf8_str;
+  uint32_t colors[16];
+  uint32_t next_arg = 0;
+  if (argn >= 2 &&
+      lbm_is_array_r(args[0]) && // Binary font
+      lbm_is_array_r(args[1])) { // sequence of utf8 characters
+    font = args[0];
+    utf8_str = lbm_dec_str(args[1]);
+    next_arg = 2;
+  } else {
+    return res;
+  }
+
+  float line_spacing = 1.0f;
+  bool up = false;
+  bool down = false;
+  for (int i = next_arg; i < argn; i ++) {
+    if (lbm_is_symbol(args[i])) {
+      up = display_is_symbol_up(args[i]);
+      down = display_is_symbol_down(args[i]);
+    } else if (lbm_is_number(args[i])) {
+      line_spacing = lbm_dec_as_float(args[i]);
+    }
+  }
+
+  lbm_value r_list = lbm_heap_allocate_list(2);
+  if (lbm_is_symbol(r_list)) return r_list;
+
+  lbm_array_header_t *font_arr = lbm_dec_array_r(font);
+  if (font_arr->size < 10) return ENC_SYM_EERROR;
+
+  int32_t index = 0;
+  uint16_t version;
+
+  if (!buffer_get_font_preamble(font_arr->data, &version, &index)) {
+    return ENC_SYM_EERROR;
+  }
+
+  float ascender;
+  float descender;
+  float line_gap;
+
+  if(!font_get_line_metrics(font_arr->data, font_arr->size, &ascender, &descender, &line_gap , index)) {
+    return ENC_SYM_EERROR;
+  }
+
+  int32_t kern_index = 0;
+
+  if (!font_get_kerning_table_index(font_arr->data, font_arr->size, &kern_index, index)) {
+    return ENC_SYM_EERROR;
+  }
+
+  int32_t glyphs_index = 0;
+  uint32_t num_codes;
+  uint32_t color_fmt;
+
+  if (!font_get_glyphs_table_index(font_arr->data, font_arr->size, &glyphs_index, &num_codes, &color_fmt, index)) {
+    return ENC_SYM_EERROR;
+  }
+
+  float x = 0.0;
+  float y = 0.0;
+  float max_x = 0.0;
+
+  uint32_t utf32;
+  uint32_t prev;
+  bool has_prev = false;
+  uint32_t i = 0;
+  uint32_t next_i = 0;
+  while (get_utf32(utf8_str, &utf32, i, &next_i)) {
+    if (utf32 == '\n') {
+      if (x > max_x) max_x = x;
+      x = 0.0;
+      y += line_spacing * (ascender - descender + line_gap);
+      i++;
+      continue; // next iteration
+    }
+
+    float x_n = x;
+    float y_n = y;
+
+    float advance_width;
+    float left_side_bearing;
+    int32_t y_offset;
+    int32_t width;
+    int32_t height;
+    uint8_t *gfx;
+
+    if (font_get_glyph(font_arr->data,
+                       font_arr->size,
+                       &advance_width,
+                       &left_side_bearing,
+                       &y_offset,
+                       &width,
+                       &height,
+                       &gfx,
+                       utf32,
+                       num_codes,
+                       (color_format_t)color_fmt,
+                       glyphs_index)) {
+
+      float x_shift = 0;
+      float y_shift = 0;
+      if (has_prev) {
+        font_get_kerning(font_arr->data,
+                         font_arr->size,
+                         prev,
+                         utf32,
+                         &x_shift,
+                         &y_shift,
+                         kern_index);
+      }
+      x_n += x_shift;
+      y_n += y_shift;
+      y_n += y_offset;
+    } else {
+      return ENC_SYM_EERROR;
+    }
+    x = x_n + advance_width;
+    i = next_i;
+    prev = utf32;
+    has_prev = true;
+  }
+  if (max_x < x) max_x = x;
+  lbm_value rest = lbm_cdr(r_list);
+  if (up || down) {
+    lbm_set_car(r_list, lbm_enc_u((uint32_t)(y + line_spacing * (ascender - descender + line_gap))));
+    lbm_set_car(rest, lbm_enc_u((uint32_t)max_x));
+  } else {
+    lbm_set_car(r_list, lbm_enc_u((uint32_t)max_x));
+    lbm_set_car(rest, lbm_enc_u((uint32_t)(y + line_spacing * (ascender - descender + line_gap))));
+  }
+  return r_list;
+}
 
 lbm_value ext_ttf_glyph_dims(lbm_value *args, lbm_uint argn) {
   if (argn == 1 &&
@@ -1074,7 +1211,7 @@ void lbm_ttf_extensions_init(void) {
   lbm_add_extension("ttf-ascender", ext_ttf_ascender);
   lbm_add_extension("ttf-descender", ext_ttf_descender);
   lbm_add_extension("ttf-line-gap", ext_ttf_line_gap);
-  //lbm_add_extension("ttf-text-dims",ext_ttf_wh);
+  lbm_add_extension("ttf-text-dims",ext_ttf_wh);
   lbm_add_extension("ttf-glyph-dims",ext_ttf_glyph_dims);
 
   // Prepare
