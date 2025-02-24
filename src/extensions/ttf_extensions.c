@@ -657,8 +657,8 @@ lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
 #define FONT_KERN_PAIR_SIZE         (4 + 4 + 4)
 #define FONT_KERN_ROW_SIZE          (4 + 4)
 #define FONT_KERN_TABLE_SIZE        (sizeof(FONT_KERNING_STRING) + 4 + 4)
-#define FONT_GLYPH_TABLE_SIZE       (sizeof(FONT_GLYPHS_STRING) + 4 + 4)
-#define FONT_GLYPH_SIZE             (4 + 4 + 4 + 4 + 4 + 4)
+#define FONT_GLYPH_TABLE_SIZE       (sizeof(FONT_GLYPHS_STRING) + 4 + 4 + 4)
+#define FONT_GLYPH_SIZE             (6*4)
 
 static int num_kern_pairs_row(SFT *sft, uint32_t utf32, uint32_t *codes, uint32_t num_codes) {
 
@@ -964,8 +964,8 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
         FONT_LINE_METRICS_SIZE +
         kern_tab_bytes +
         FONT_GLYPH_TABLE_SIZE +
-        n * 24 + // glyph metrics
-        glyph_gfx_size + 50; // TODO: CALCULATE THIS CORRECTLY
+        n * FONT_GLYPH_SIZE + // per glyph metrics
+        glyph_gfx_size;
 
       uint8_t *buffer = (uint8_t*)lbm_malloc(bytes_required);
       if (!buffer) {
