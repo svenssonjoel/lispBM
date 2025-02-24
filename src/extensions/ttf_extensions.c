@@ -21,28 +21,6 @@
 
 #include "schrift.h"
 
-bool is_font_value(lbm_value font) {
-  return (lbm_is_cons(font) &&
-          lbm_is_number(lbm_car(font)) &&
-          lbm_is_number(lbm_car(lbm_cdr(font))) &&
-          lbm_is_array_r(lbm_car(lbm_cdr(lbm_cdr(font)))));
-}
-
-bool is_prepared_font_value(lbm_value font) {
-  return (lbm_is_cons(font) &&
-          lbm_is_number(lbm_car(font)) &&
-          lbm_is_number(lbm_cadr(font)) &&
-          lbm_is_array_r(lbm_cadr(lbm_cdr(font))) &&
-          lbm_is_cons(lbm_cadr(lbm_cdr(lbm_cdr(font)))));
-}
-
-static uint32_t font_get_x_scale(lbm_value font_val) {
-  return lbm_dec_u(lbm_car(font_val));
-}
-
-static uint32_t font_get_y_scale(lbm_value font_val) {
-  return lbm_dec_u(lbm_car(lbm_cdr(font_val)));
-}
 
 static bool mk_font_raw(SFT_Font *ft, lbm_value font_val) {
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(font_val);
@@ -57,23 +35,6 @@ static bool mk_font_raw(SFT_Font *ft, lbm_value font_val) {
   return true;
 }
 
-
-static bool mk_font(SFT_Font *ft, lbm_value font_val) {
-  lbm_value font_file = lbm_car(lbm_cdr(lbm_cdr(font_val)));
-
-  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(font_file);
-  ft->memory = (uint8_t*)arr->data;
-  ft->size = (uint_fast32_t)arr->size;
-  ft->unitsPerEm = 0;
-  ft->locaFormat = 0;
-  ft->numLongHmtx = 0;
-  if (init_font(ft) < 0) {
-    return false;
-  }
-  return true;
-}
-
-
 static SFT mk_sft(SFT_Font *ft, float x_scale, float y_scale) {
   SFT sft;
   sft.font = ft;
@@ -84,505 +45,6 @@ static SFT mk_sft(SFT_Font *ft, float x_scale, float y_scale) {
   sft.flags = SFT_DOWNWARD_Y;
 
   return sft;
-}
-
-lbm_value ext_ttf_glyph_dims(lbm_value *args, lbm_uint argn) {
-
-  lbm_value res = ENC_SYM_TERROR;
-  if (argn == 2 &&
-      is_font_value(args[0]) &&
-      lbm_is_number(args[1])) { // glyph id
-    SFT_Font ft;
-    if (!mk_font(&ft,args[0])) {
-      return ENC_SYM_EERROR;
-    }
-    SFT sft = mk_sft(&ft, font_get_x_scale(args[0]), font_get_y_scale(args[0]));
-    SFT_GMetrics gmtx;
-    SFT_Glyph gid = lbm_dec_as_u32(args[1]);
-
-    if (sft_gmetrics(&sft, gid, &gmtx) < 0) {
-      res = ENC_SYM_EERROR;
-      goto glyph_dims_done;
-    }
-    res = lbm_heap_allocate_list_init(2,
-                                      lbm_enc_u((uint32_t)(gmtx.minWidth)), // + 3) & ~3)),
-                                      lbm_enc_u((uint32_t)gmtx.minHeight));
-  }
- glyph_dims_done:
-  return res;
-}
-
-lbm_value ext_ttf_glyph_render(lbm_value *args, lbm_uint argn) {
-  lbm_value res = ENC_SYM_TERROR;
-  lbm_array_header_t *img_arr;
-  if (argn == 3 &&
-      (img_arr = get_image_buffer(args[0])) &&
-      is_font_value(args[1]) &&
-      lbm_is_number(args[2])) { // glyph id
-
-    SFT_Font ft;
-    if (!mk_font(&ft,args[1])) {
-      return ENC_SYM_EERROR;
-    }
-    SFT sft = mk_sft(&ft, font_get_x_scale(args[1]), font_get_y_scale(args[1]));
-    SFT_GMetrics gmtx;
-    SFT_Glyph gid = lbm_dec_as_u32(args[2]);
-
-    if (sft_gmetrics(&sft, gid, &gmtx) < 0) {
-      res = ENC_SYM_EERROR;
-      goto glyph_render_done;
-    }
-
-    image_buffer_t img;
-    img.width = image_buffer_width((uint8_t*)img_arr->data);
-    img.height = image_buffer_height((uint8_t*)img_arr->data);
-    img.fmt = image_buffer_format((uint8_t*)img_arr->data);
-    img.mem_base = (uint8_t*)img_arr->data;
-    img.data = image_buffer_data((uint8_t*)img_arr->data);
-
-    if ((img.width < gmtx.minWidth) || // ((gmtx.minWidth + 3) & ~3)) ||
-        (img.height < gmtx.minHeight)) {
-      res = ENC_SYM_EERROR;
-      goto glyph_render_done;
-    }
-    int r = sft_render(&sft, gid, &img);
-    if (r == SFT_MEM_ERROR) {
-      res = ENC_SYM_MERROR;
-    } else if (r < 0) {
-      res = ENC_SYM_EERROR;
-    }
-    res = ENC_SYM_TRUE;
-  }
- glyph_render_done:
-  return res;
-}
-
-static lbm_value lookup_glyph_image(uint32_t gid, lbm_value ls) {
-  lbm_value curr = ls;
-  lbm_value res = ENC_SYM_NO_MATCH;
-  while (lbm_is_cons(curr)) {
-    lbm_value c = lbm_ref_cell(curr)->car;
-    if (lbm_is_cons(c)) {
-      if (lbm_dec_as_u32(lbm_ref_cell(c)->car) == gid) { // regular equality should work fine!
-        res = lbm_car(lbm_ref_cell(c)->cdr);
-        break;
-      }
-    } else {
-      res = ENC_SYM_EERROR;
-      break;
-    }
-    curr = lbm_ref_cell(curr)->cdr;
-  }
-  return res;
-}
-
-lbm_value ext_ttf_wh(lbm_value *args, lbm_uint argn) {
-  lbm_value res = ENC_SYM_TERROR;
-  lbm_value font;
-  uint32_t next_arg = 0;
-  lbm_value utf8_str;
-  if (argn >= 2 &&
-             is_prepared_font_value(args[0]) &&
-             lbm_is_array_r(args[1])) { // sequence of utf8 characters
-    font = args[0];
-    utf8_str = args[1];
-    next_arg = 2;
-  } else {
-    return res;
-  }
-
-  float line_spacing = 1.0f;
-  bool up = false;
-  bool down = false;
-  for (int i = next_arg; i < argn; i ++) {
-    if (lbm_is_symbol(args[i])) {
-      up = display_is_symbol_up(args[i]);
-      down = display_is_symbol_down(args[i]);
-    } else if (lbm_is_number(args[i])) {
-      line_spacing = lbm_dec_as_float(args[i]);
-    }
-  }
-
-  lbm_value r_list = lbm_heap_allocate_list(2);
-  if (lbm_is_symbol(r_list)) return r_list;
-
-  SFT_Font ft;
-  if (!mk_font(&ft,font)) {
-    return ENC_SYM_EERROR;
-  }
-  SFT sft = mk_sft(&ft, font_get_x_scale(font), font_get_y_scale(font));
-
-  int x_pos = lbm_dec_as_i32(args[1]);
-  int y_pos = lbm_dec_as_i32(args[2]);
-  uint8_t *utf8 = (uint8_t*)lbm_dec_str(utf8_str);
-  uint32_t i = 0;
-  uint32_t next_i = 0;
-  SFT_Glyph prev = 0;
-  bool has_prev = false;
-  uint32_t utf32;
-
-  SFT_LMetrics lmtx;
-  if (sft_lmetrics(&sft, &lmtx) < 0) {
-    res = ENC_SYM_EERROR;
-    goto ttf_wh_done;
-  }
-  lbm_value glyph_tab = lbm_index_list(font, 3);
-  float x = 0.0;
-  float y = 0.0;
-
-  float max_x = 0.0;
-
-  while (get_utf32(utf8, &utf32, i, &next_i)) {
-
-    if (utf32 == '\n') {
-      if (x > max_x) max_x = x;
-      x = 0.0;
-      y += line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap);
-      i++;
-      continue; // next iteration
-    }
-
-    SFT_Glyph gid;
-    if (sft_lookup(&sft, utf32, &gid) < 0) {
-      res = ENC_SYM_EERROR;
-      goto ttf_wh_done;
-    }
-    SFT_GMetrics gmtx;
-    if (sft_gmetrics(&sft, gid, &gmtx) < 0) {
-      res = ENC_SYM_EERROR;
-      goto ttf_wh_done;
-    }
-
-    lbm_value glyph = lookup_glyph_image(gid, glyph_tab);
-    if (!(lbm_is_array_r(glyph) || lbm_is_symbol_nil(glyph))) {
-      res = ENC_SYM_EERROR;
-      goto ttf_wh_done;
-    }
-
-    float x_shift = 0;
-    float y_shift = 0;
-    if (has_prev) {
-      SFT_Kerning kern;
-      kern.xShift = 0.0;
-      kern.yShift = 0.0;
-      // silly kerning lookup by first trying to get
-      // the kern from GPOS and if we are unable, we try kern table.
-      if (sft.font->pairAdjustOffset) {
-        sft_gpos_kerning(&sft, prev, gid, &kern);
-      }
-      if (kern.xShift == 0.0 && kern.yShift == 0.0) {
-        sft_kerning(&sft, prev, gid, &kern);
-      }
-
-      x_shift = kern.xShift;
-      y_shift = kern.yShift;
-    }
-
-    float x_n = x;
-    float y_n = y;
-
-    x_n += x_shift;
-    y_n += y_shift;
-    y_n += gmtx.yOffset;
-
-    x = x_n + gmtx.advanceWidth;
-    i = next_i;
-    prev = gid;
-    has_prev = true;
-  }
-
-  if (max_x < x) max_x = x;
-  lbm_value rest = lbm_cdr(r_list);
-  if (up || down) {
-    lbm_set_car(r_list, lbm_enc_u((uint32_t)(y + line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap))));
-    lbm_set_car(rest, lbm_enc_u((uint32_t)max_x));
-  } else {
-    lbm_set_car(r_list, lbm_enc_u((uint32_t)max_x));
-    lbm_set_car(rest, lbm_enc_u((uint32_t)(y + line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap))));
-  }
-  return r_list;
- ttf_wh_done:
-  return ENC_SYM_EERROR;
-}
-
-lbm_value ext_ttf_print(lbm_value *args, lbm_uint argn) {
-  lbm_value res = ENC_SYM_TERROR;
-  lbm_array_header_t *img_arr;
-  lbm_value font;
-  lbm_value utf8_str;
-  uint32_t colors[16];
-  uint32_t next_arg = 0;
-  if (argn >= 6 &&
-             (img_arr = get_image_buffer(args[0])) &&
-             lbm_is_number(args[1]) && // x position
-             lbm_is_number(args[2]) && // y position
-             lbm_is_cons(args[3]) &&   // list of colors
-             is_prepared_font_value(args[4]) &&
-             lbm_is_array_r(args[5])) { // sequence of utf8 characters
-    lbm_value curr = args[3];
-    int i = 0;
-    while(lbm_is_cons(curr) && i < 16) {
-      colors[i] = lbm_dec_as_u32(lbm_car(curr));
-      curr = lbm_cdr(curr);
-      i ++;
-    }
-    font = args[4];
-    utf8_str = args[5];
-    next_arg = 6;
-  } else {
-    return res;
-  }
-
-  float line_spacing = 1.0f;
-  bool up = false;
-  bool down = false;
-  for (int i = next_arg; i < argn; i ++) {
-    if (lbm_is_symbol(args[i])) {
-      up = display_is_symbol_up(args[i]);
-      down = display_is_symbol_down(args[i]);
-    } else if (lbm_is_number(args[i])) {
-      line_spacing = lbm_dec_as_float(args[i]);
-    }
-
-  }
-
-  SFT_Font ft;
-  if (!mk_font(&ft,font)) {
-    return ENC_SYM_EERROR;
-  }
-  SFT sft = mk_sft(&ft, font_get_x_scale(font), font_get_y_scale(font));
-
-  image_buffer_t tgt;
-  tgt.width = image_buffer_width((uint8_t*)img_arr->data);
-  tgt.height = image_buffer_height((uint8_t*)img_arr->data);
-  tgt.fmt = image_buffer_format((uint8_t*)img_arr->data);
-  tgt.mem_base = (uint8_t*)img_arr->data;
-  tgt.data = image_buffer_data((uint8_t*)img_arr->data);
-
-  int x_pos = lbm_dec_as_i32(args[1]);
-  int y_pos = lbm_dec_as_i32(args[2]);
-  uint8_t *utf8 = (uint8_t*)lbm_dec_str(utf8_str);
-  uint32_t i = 0;
-  uint32_t next_i = 0;
-  SFT_Glyph prev = 0;
-  bool has_prev = false;
-  uint32_t utf32;
-
-  SFT_LMetrics lmtx;
-  if (sft_lmetrics(&sft, &lmtx) < 0) {
-    res = ENC_SYM_EERROR;
-    goto ttf_print_done;
-  }
-  lbm_value glyph_tab = lbm_index_list(font, 3);
-  float x = 0.0;
-  float y = 0.0;
-
-  while (get_utf32(utf8, &utf32, i, &next_i)) {
-
-    if (utf32 == '\n') {
-      x = 0.0;
-      y += line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap);
-      i++;
-      continue; // next iteration
-    }
-
-    SFT_Glyph gid;
-    if (sft_lookup(&sft, utf32, &gid) < 0) {
-      res = ENC_SYM_EERROR;
-      goto ttf_print_done;
-    }
-    SFT_GMetrics gmtx;
-    if (sft_gmetrics(&sft, gid, &gmtx) < 0) {
-      res = ENC_SYM_EERROR;
-      goto ttf_print_done;
-    }
-
-    lbm_value glyph = lookup_glyph_image(gid, glyph_tab);
-    if (!(lbm_is_array_r(glyph) || lbm_is_symbol_nil(glyph))) {
-      res = ENC_SYM_EERROR;
-      goto ttf_print_done;
-    }
-
-    float x_shift = 0;
-    float y_shift = 0;
-    if (has_prev) {
-      SFT_Kerning kern;
-      kern.xShift = 0.0;
-      kern.yShift = 0.0;
-      // silly kerning lookup by first trying to get
-      // the kern from GPOS and if we are unable, we try kern table.
-      if (sft.font->pairAdjustOffset) {
-        sft_gpos_kerning(&sft, prev, gid, &kern);
-      }
-      if (kern.xShift == 0.0 && kern.yShift == 0.0) {
-        sft_kerning(&sft, prev, gid, &kern);
-      }
-
-      x_shift = kern.xShift;
-      y_shift = kern.yShift;
-    }
-
-    float x_n = x;
-    float y_n = y;
-
-    x_n += x_shift;
-    y_n += y_shift;
-    y_n += gmtx.yOffset;
-
-    if (!lbm_is_symbol_nil(glyph)) { // whitespaces have no pre-rendered glyph
-      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(glyph);
-      image_buffer_t src;
-      src.width = image_buffer_width((uint8_t*)arr->data);
-      src.height = image_buffer_height((uint8_t*)arr->data);
-      src.fmt = image_buffer_format((uint8_t*)arr->data);
-      src.mem_base = (uint8_t*)arr->data;
-      src.data = image_buffer_data((uint8_t*)arr->data);
-
-      uint32_t num_colors = 1 << src.fmt;
-
-      for (int j = 0; j < src.height; j++) {
-        for (int i = 0; i < src.width; i ++) {
-          // the bearing should not be accumulated into the advances
-
-          uint32_t p = getpixel(&src, i, j);
-          if (p) { // only draw colored
-            uint32_t c = colors[p & (num_colors-1)]; // ceiled
-
-            if (up) {
-              putpixel(&tgt, x_pos + (j + (int)y_n), y_pos - (i + (int)(x_n + gmtx.leftSideBearing)), c);
-            } else if (down) {
-              putpixel(&tgt, x_pos - (j + (int)y_n), y_pos + (i + (int)(x_n + gmtx.leftSideBearing)), c);
-            } else {
-              putpixel(&tgt, x_pos + (i + (int)(x_n + gmtx.leftSideBearing)), y_pos + (j + (int)y_n), c);
-            }
-          }
-        }
-      }
-    }
-    x = x_n + gmtx.advanceWidth;
-    i = next_i;
-    prev = gid;
-    has_prev = true;
-  }
-  res = ENC_SYM_TRUE;
- ttf_print_done:
-  return res;
-}
-
-// Extract a glyph starting at an index in a byte array (string)
-lbm_value ext_ttf_glyph_id(lbm_value *args, lbm_uint argn) {
-  lbm_value res = ENC_SYM_TERROR;
-  if (argn == 3 &&
-      is_font_value(args[0]) &&
-      lbm_is_array_r(args[1]) &&
-      lbm_is_number(args[2])) {
-    res = ENC_SYM_EERROR;
-
-    uint32_t ix = lbm_dec_as_u32(args[2]);
-
-    SFT_Font ft;
-    if (!mk_font(&ft, args[0])) {
-      res = ENC_SYM_EERROR;
-      goto glyph_id_done;
-    }
-    SFT sft = mk_sft(&ft, font_get_x_scale(args[0]),font_get_y_scale(args[0]));
-
-    uint8_t *utf8 = (uint8_t*)lbm_dec_str(args[1]);
-    uint32_t utf32 = 0;
-    uint32_t next_ix = 0;
-    if (get_utf32(utf8, &utf32, ix, &next_ix)) {
-      SFT_Glyph gid;
-      if (sft_lookup(&sft, utf32, &gid) < 0) {
-        res = ENC_SYM_EERROR;
-        goto glyph_id_done;
-      }
-      // If encoding gid fails, allocate list should too.
-      lbm_value ls = lbm_heap_allocate_list_init(2,
-                                                 lbm_enc_u32(gid),
-                                                 lbm_enc_u(next_ix));
-      res = ls;
-    } else {
-      res = ENC_SYM_NIL;
-    }
-  }
- glyph_id_done:
-  return res;
-}
-
-lbm_value ext_ttf_line_height(lbm_value *args, lbm_uint argn) {
-  lbm_value res = ENC_SYM_TERROR;
-  if (argn == 1 &&
-      is_prepared_font_value(args[0])) {
-    SFT_Font ft;
-    if (!mk_font(&ft, args[0])) {
-      return ENC_SYM_EERROR;
-    }
-    SFT sft = mk_sft(&ft, font_get_x_scale(args[0]), font_get_y_scale(args[0]));
-    SFT_LMetrics lmtx;
-    if (sft_lmetrics(&sft, &lmtx) < 0) {
-      res = ENC_SYM_EERROR;
-    } else {
-      res = lbm_enc_float(lmtx.ascender - lmtx.descender + lmtx.lineGap);
-    }
-  }
-  return res;
-}
-
-lbm_value ext_ttf_ascender(lbm_value *args, lbm_uint argn) {
-  lbm_value res = ENC_SYM_TERROR;
-  if (argn == 1 &&
-      is_prepared_font_value(args[0])) {
-    SFT_Font ft;
-    if (!mk_font(&ft, args[0])) {
-      return ENC_SYM_EERROR;
-    }
-    SFT sft = mk_sft(&ft, font_get_x_scale(args[0]), font_get_y_scale(args[0]));
-    SFT_LMetrics lmtx;
-    if (sft_lmetrics(&sft, &lmtx) < 0) {
-      res = ENC_SYM_EERROR;
-    } else {
-      res = lbm_enc_float(lmtx.ascender);
-    }
-  }
-  return res;
-}
-
-lbm_value ext_ttf_descender(lbm_value *args, lbm_uint argn) {
-    lbm_value res = ENC_SYM_TERROR;
-  if (argn == 1 &&
-      is_prepared_font_value(args[0])) {
-    SFT_Font ft;
-    if (!mk_font(&ft, args[0])) {
-      return ENC_SYM_EERROR;
-    }
-    SFT sft = mk_sft(&ft,font_get_x_scale(args[0]),font_get_y_scale(args[0]));
-    SFT_LMetrics lmtx;
-    if (sft_lmetrics(&sft, &lmtx) < 0) {
-      res = ENC_SYM_EERROR;
-    } else {
-      res = lbm_enc_float(lmtx.descender);
-    }
-  }
-  return res;
-}
-
-lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
-    lbm_value res = ENC_SYM_TERROR;
-  if (argn == 1 &&
-      is_prepared_font_value(args[0])) {
-    SFT_Font ft;
-    if (!mk_font(&ft,args[0])) {
-      return ENC_SYM_EERROR;
-    }
-    SFT sft = mk_sft(&ft,font_get_x_scale(args[0]),font_get_y_scale(args[0]));
-    SFT_LMetrics lmtx;
-    if (sft_lmetrics(&sft, &lmtx) < 0) {
-      res = ENC_SYM_EERROR;
-    } else {
-      res = lbm_enc_float(lmtx.lineGap);
-    }
-  }
-  return res;
 }
 
 // Binary prerendered font format
@@ -756,16 +218,11 @@ static bool buffer_append_kerning_table(uint8_t *buffer, SFT *sft, uint32_t *cod
 
   if (kern_table_dims(sft, codes, num_codes, &num_rows, &tot_pairs)) {
 
-    printf("total pairs: %d = %d\n", tot_pairs, FONT_KERN_PAIR_SIZE * tot_pairs);
-    printf("num rows: %d = %d\n", num_rows, FONT_KERN_ROW_SIZE * num_rows);
-    printf("kern tab: %d\n", FONT_KERN_TABLE_SIZE);
-
     // TODO: compute size of "payload" only
     uint32_t size_bytes =
       FONT_KERN_PAIR_SIZE * tot_pairs +
       FONT_KERN_ROW_SIZE * num_rows +
       + 4; // number of rows field
-    printf("size bytes: %d\n", size_bytes);
 
     buffer_append_string(buffer, FONT_KERNING_STRING, index);
     buffer_append_uint32(buffer, size_bytes, index); // distance to jump ahead from index if not interested in kerning.
@@ -774,7 +231,6 @@ static bool buffer_append_kerning_table(uint8_t *buffer, SFT *sft, uint32_t *cod
     for (uint32_t left_ix = 0; left_ix < num_codes; left_ix ++) { // loop over all codes
       int32_t row_len = num_kern_pairs_row(sft, codes[left_ix], codes, num_codes);
       if ( row_len > 0) {
-        printf("row_len %d\n", row_len);
         SFT_Glyph lgid;
         if (sft_lookup(sft, codes[left_ix], &lgid) < 0) {
           return false;
@@ -943,18 +399,20 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
         i = next_i;
       }
 
+      // There could be zero kerning pairs and then we dont
+      // need the kerning table at all.
+      // TODO: Fix this.
       int kern_tab_bytes = kern_table_size_bytes(&sft, unique_utf32, n);
-      if (kern_tab_bytes > 0) {
-        printf("kern table size bytes: %d\n", kern_tab_bytes);
-      } else {
+      if (kern_tab_bytes <  0) {
+        lbm_free(unique_utf32);
+        return ENC_SYM_MERROR;
+      } else if (kern_tab_bytes == 0) {
         lbm_free(unique_utf32);
         return ENC_SYM_MERROR;
       }
 
       int glyph_gfx_size = glyphs_img_data_size(&sft, fmt, unique_utf32, n);
-      if (glyph_gfx_size > 0) {
-        printf("glyph gfx size: %d\n", glyph_gfx_size);
-      } else {
+      if (glyph_gfx_size <= 0) {
         lbm_free(unique_utf32);
         return ENC_SYM_EERROR;
       }
@@ -996,7 +454,6 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
         lbm_set_car_and_cdr(result_array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
         return ENC_SYM_MERROR;
       } else if (r < 0) {
-        printf("error in buffer_append_glyph_table\n");
         lbm_free(unique_utf32);
         lbm_free(buffer);
         lbm_set_car_and_cdr(result_array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
@@ -1090,10 +547,8 @@ static bool font_get_glyph(uint8_t *buffer,
                            int32_t index) {
 
   uint32_t i = 0;
-  printf("num_codes = %d\n",num_codes);
   while (i < num_codes) {
     uint32_t c = buffer_get_uint32(buffer, &index);
-    printf("looking for %d, at %d\n", utf32, c);
     if (c == utf32) {
       *advance_width = buffer_get_float32_auto(buffer, &index);
       *left_side_bearing = buffer_get_float32_auto(buffer, &index);
@@ -1109,6 +564,33 @@ static bool font_get_glyph(uint8_t *buffer,
       index += image_dims_to_size_bytes(fmt, w, h);
     }
     i++;
+  }
+  return false;
+}
+
+bool font_get_kerning(uint8_t *buffer, uint32_t buffer_size, uint32_t left, uint32_t right, float *x_shift, float *y_shift, int32_t index) {
+
+  uint32_t num_rows = buffer_get_uint32(buffer, &index);
+
+  for (uint32_t row = 0; row < num_rows; row ++) {
+
+    uint32_t row_code = buffer_get_uint32(buffer, &index);
+    uint32_t row_len  = buffer_get_uint32(buffer, &index);
+
+    if (row_code == left) {
+      for (uint32_t col = 0; col < row_len; col ++) {
+        uint32_t col_code = buffer_get_uint32(buffer, &index);
+        if (col_code == right) {
+          *x_shift = buffer_get_float32_auto(buffer, &index);
+          *y_shift = buffer_get_float32_auto(buffer, &index);
+          return true;
+        } else {
+          index += 8;
+        }
+      }
+    } else {
+      index += row_len * FONT_KERN_PAIR_SIZE;
+    }
   }
   return false;
 }
@@ -1162,39 +644,30 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
   int32_t index = 0;
   uint16_t version;
 
-  if (buffer_get_font_preamble(font_arr->data, &version, &index)) {
-    printf("font preamble ok: %d\n", version);
-  } else {
-    printf("font preamble is NOT ok!\n");
+  if (!buffer_get_font_preamble(font_arr->data, &version, &index)) {
+    return ENC_SYM_EERROR;
   }
 
   float ascender;
   float descender;
   float line_gap;
 
-  if(font_get_line_metrics(font_arr->data, font_arr->size, &ascender, &descender, &line_gap , index)) {
-    printf("Line metrix ok: %f, %f, %f\n", ascender, descender, line_gap);
-  } else {
-    printf("error getting line metrix\n");
+  if(!font_get_line_metrics(font_arr->data, font_arr->size, &ascender, &descender, &line_gap , index)) {
+    return ENC_SYM_EERROR;
   }
 
+  int32_t kern_index = 0;
 
-  int32_t kern_index;
-
-  if (font_get_kerning_table_index(font_arr->data, font_arr->size, &kern_index, index)) {
-    printf("Kerning table index found!\n");
-  } else {
-    printf("error getting kerning table index\n");
+  if (!font_get_kerning_table_index(font_arr->data, font_arr->size, &kern_index, index)) {
+    return ENC_SYM_EERROR;
   }
 
-  int32_t glyphs_index;
+  int32_t glyphs_index = 0;
   uint32_t num_codes;
   uint32_t color_fmt;
 
-  if (font_get_glyphs_table_index(font_arr->data, font_arr->size, &glyphs_index, &num_codes, &color_fmt, index)) {
-    printf("Glyph table index found! %u : %u\n", num_codes, color_fmt);
-  } else {
-    printf("error getting glyph table index\n");
+  if (!font_get_glyphs_table_index(font_arr->data, font_arr->size, &glyphs_index, &num_codes, &color_fmt, index)) {
+    return ENC_SYM_EERROR;
   }
 
   color_format_t fmt = (color_format_t)color_fmt;
@@ -1209,10 +682,14 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
   tgt.data = image_buffer_data((uint8_t*)img_arr->data);
 
   uint32_t utf32;
+  uint32_t prev;
+  bool has_prev = false;
   uint32_t i = 0;
   uint32_t next_i = 0;
   while (get_utf32(utf8_str, &utf32, i, &next_i)) {
     if (utf32 == '\n') {
+      x = 0.0;
+      y += line_spacing * (ascender - descender + line_gap);
       i++;
       continue; // next iteration
     }
@@ -1239,8 +716,20 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
                        num_codes,
                        fmt,
                        glyphs_index)) {
-      //x_n += x_shift;
-      //y_n += y_shift;
+
+      float x_shift = 0;
+      float y_shift = 0;
+      if (has_prev) {
+        font_get_kerning(font_arr->data,
+                         font_arr->size,
+                         prev,
+                         utf32,
+                         &x_shift,
+                         &y_shift,
+                         kern_index);
+      }
+      x_n += x_shift;
+      y_n += y_shift;
       y_n += y_offset;
 
       image_buffer_t src;
@@ -1269,12 +758,313 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
         }
       }
     } else {
-      printf("GLYPH NOT FOUND\n");
+      return ENC_SYM_EERROR;
     }
     x = x_n + advance_width;
     i = next_i;
+    prev = utf32;
+    has_prev = true;
   }
   return ENC_SYM_TRUE;
+}
+
+
+lbm_value ext_ttf_glyph_dims(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 &&
+      lbm_is_array_r(args[0]) &&
+      lbm_is_array_r(args[1])) { // string utf8,
+
+    lbm_array_header_t *font_arr = lbm_dec_array_r(args[0]);
+    if (font_arr->size < 10) return ENC_SYM_EERROR;
+
+    int32_t index = 0;
+    uint16_t version;
+
+    if (!buffer_get_font_preamble(font_arr->data, &version, &index)) {
+      return ENC_SYM_EERROR;
+    }
+
+    int32_t glyphs_index = 0;
+    uint32_t num_codes;
+    uint32_t color_fmt;
+
+    if (!font_get_glyphs_table_index(font_arr->data, font_arr->size, &glyphs_index, &num_codes, &color_fmt, index)) {
+      return ENC_SYM_EERROR;
+    }
+
+    lbm_array_header_t *utf8_array_header = (lbm_array_header_t*)(lbm_car(args[1]));
+
+    uint32_t next_i = 0;
+    uint32_t utf32 = 0;
+    get_utf32(utf8_array_header->data, &utf32, 0, &next_i);
+
+    float advance_width;
+    float left_side_bearing;
+    int32_t y_offset;
+    int32_t width;
+    int32_t height;
+    uint8_t *gfx;
+
+    if (font_get_glyph(font_arr->data,
+                       font_arr->size,
+                       &advance_width,
+                       &left_side_bearing,
+                       &y_offset,
+                       &width,
+                       &height,
+                       &gfx,
+                       utf32,
+                       num_codes,
+                       (color_format_t)color_fmt,
+                       glyphs_index)) {
+
+      return lbm_heap_allocate_list_init(2,
+                                        lbm_enc_u((uint32_t)(width)),
+                                        lbm_enc_u((uint32_t)height));
+    }
+  }
+  return ENC_SYM_TERROR;
+}
+
+/*
+lbm_value ext_ttf_wh(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  lbm_value font;
+  uint32_t next_arg = 0;
+  lbm_value utf8_str;
+  if (argn >= 2 &&
+             is_prepared_font_value(args[0]) &&
+             lbm_is_array_r(args[1])) { // sequence of utf8 characters
+    font = args[0];
+    utf8_str = args[1];
+    next_arg = 2;
+  } else {
+    return res;
+  }
+
+  float line_spacing = 1.0f;
+  bool up = false;
+  bool down = false;
+  for (int i = next_arg; i < argn; i ++) {
+    if (lbm_is_symbol(args[i])) {
+      up = display_is_symbol_up(args[i]);
+      down = display_is_symbol_down(args[i]);
+    } else if (lbm_is_number(args[i])) {
+      line_spacing = lbm_dec_as_float(args[i]);
+    }
+  }
+
+  lbm_value r_list = lbm_heap_allocate_list(2);
+  if (lbm_is_symbol(r_list)) return r_list;
+
+  SFT_Font ft;
+  if (!mk_font(&ft,font)) {
+    return ENC_SYM_EERROR;
+  }
+  SFT sft = mk_sft(&ft, font_get_x_scale(font), font_get_y_scale(font));
+
+  int x_pos = lbm_dec_as_i32(args[1]);
+  int y_pos = lbm_dec_as_i32(args[2]);
+  uint8_t *utf8 = (uint8_t*)lbm_dec_str(utf8_str);
+  uint32_t i = 0;
+  uint32_t next_i = 0;
+  SFT_Glyph prev = 0;
+  bool has_prev = false;
+  uint32_t utf32;
+
+  SFT_LMetrics lmtx;
+  if (sft_lmetrics(&sft, &lmtx) < 0) {
+    res = ENC_SYM_EERROR;
+    goto ttf_wh_done;
+  }
+  lbm_value glyph_tab = lbm_index_list(font, 3);
+  float x = 0.0;
+  float y = 0.0;
+
+  float max_x = 0.0;
+
+  while (get_utf32(utf8, &utf32, i, &next_i)) {
+
+    if (utf32 == '\n') {
+      if (x > max_x) max_x = x;
+      x = 0.0;
+      y += line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap);
+      i++;
+      continue; // next iteration
+    }
+
+    SFT_Glyph gid;
+    if (sft_lookup(&sft, utf32, &gid) < 0) {
+      res = ENC_SYM_EERROR;
+      goto ttf_wh_done;
+    }
+    SFT_GMetrics gmtx;
+    if (sft_gmetrics(&sft, gid, &gmtx) < 0) {
+      res = ENC_SYM_EERROR;
+      goto ttf_wh_done;
+    }
+
+    lbm_value glyph = lookup_glyph_image(gid, glyph_tab);
+    if (!(lbm_is_array_r(glyph) || lbm_is_symbol_nil(glyph))) {
+      res = ENC_SYM_EERROR;
+      goto ttf_wh_done;
+    }
+
+    float x_shift = 0;
+    float y_shift = 0;
+    if (has_prev) {
+      SFT_Kerning kern;
+      kern.xShift = 0.0;
+      kern.yShift = 0.0;
+      // silly kerning lookup by first trying to get
+      // the kern from GPOS and if we are unable, we try kern table.
+      if (sft.font->pairAdjustOffset) {
+        sft_gpos_kerning(&sft, prev, gid, &kern);
+      }
+      if (kern.xShift == 0.0 && kern.yShift == 0.0) {
+        sft_kerning(&sft, prev, gid, &kern);
+      }
+
+      x_shift = kern.xShift;
+      y_shift = kern.yShift;
+    }
+
+    float x_n = x;
+    float y_n = y;
+
+    x_n += x_shift;
+    y_n += y_shift;
+    y_n += gmtx.yOffset;
+
+    x = x_n + gmtx.advanceWidth;
+    i = next_i;
+    prev = gid;
+    has_prev = true;
+  }
+
+  if (max_x < x) max_x = x;
+  lbm_value rest = lbm_cdr(r_list);
+  if (up || down) {
+    lbm_set_car(r_list, lbm_enc_u((uint32_t)(y + line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap))));
+    lbm_set_car(rest, lbm_enc_u((uint32_t)max_x));
+  } else {
+    lbm_set_car(r_list, lbm_enc_u((uint32_t)max_x));
+    lbm_set_car(rest, lbm_enc_u((uint32_t)(y + line_spacing * (lmtx.ascender - lmtx.descender + lmtx.lineGap))));
+  }
+  return r_list;
+ ttf_wh_done:
+  return ENC_SYM_EERROR;
+}
+*/
+
+lbm_value ext_ttf_line_height(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_array_r(args[0])) {
+
+    lbm_array_header_t *font_arr = lbm_dec_array_r(args[0]);
+    if (font_arr->size < 10) return ENC_SYM_EERROR;
+
+    int32_t index = 0;
+    uint16_t version;
+
+    if (!buffer_get_font_preamble(font_arr->data, &version, &index)) {
+      return ENC_SYM_EERROR;
+    }
+
+    float ascender;
+    float descender;
+    float line_gap;
+
+    if(!font_get_line_metrics(font_arr->data, font_arr->size, &ascender, &descender, &line_gap , index)) {
+      return ENC_SYM_EERROR;
+    }
+
+    res = lbm_enc_float(ascender - descender + line_gap);
+  }
+  return res;
+}
+
+lbm_value ext_ttf_ascender(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_array_r(args[0])) {
+
+    lbm_array_header_t *font_arr = lbm_dec_array_r(args[0]);
+    if (font_arr->size < 10) return ENC_SYM_EERROR;
+
+    int32_t index = 0;
+    uint16_t version;
+
+    if (!buffer_get_font_preamble(font_arr->data, &version, &index)) {
+      return ENC_SYM_EERROR;
+    }
+
+    float ascender;
+    float descender;
+    float line_gap;
+
+    if(!font_get_line_metrics(font_arr->data, font_arr->size, &ascender, &descender, &line_gap , index)) {
+      return ENC_SYM_EERROR;
+    }
+
+    res = lbm_enc_float(ascender);
+  }
+  return res;
+}
+
+lbm_value ext_ttf_descender(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_array_r(args[0])) {
+
+    lbm_array_header_t *font_arr = lbm_dec_array_r(args[0]);
+    if (font_arr->size < 10) return ENC_SYM_EERROR;
+
+    int32_t index = 0;
+    uint16_t version;
+
+    if (!buffer_get_font_preamble(font_arr->data, &version, &index)) {
+      return ENC_SYM_EERROR;
+    }
+
+    float ascender;
+    float descender;
+    float line_gap;
+
+    if(!font_get_line_metrics(font_arr->data, font_arr->size, &ascender, &descender, &line_gap , index)) {
+      return ENC_SYM_EERROR;
+    }
+
+    res = lbm_enc_float(descender);
+  }
+}
+
+lbm_value ext_ttf_line_gap(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_array_r(args[0])) {
+
+    lbm_array_header_t *font_arr = lbm_dec_array_r(args[0]);
+    if (font_arr->size < 10) return ENC_SYM_EERROR;
+
+    int32_t index = 0;
+    uint16_t version;
+
+    if (!buffer_get_font_preamble(font_arr->data, &version, &index)) {
+      return ENC_SYM_EERROR;
+    }
+
+    float ascender;
+    float descender;
+    float line_gap;
+
+    if(!font_get_line_metrics(font_arr->data, font_arr->size, &ascender, &descender, &line_gap , index)) {
+      return ENC_SYM_EERROR;
+    }
+
+    res = lbm_enc_float(line_gap);
+  }
 }
 
 void lbm_ttf_extensions_init(void) {
@@ -1284,15 +1074,12 @@ void lbm_ttf_extensions_init(void) {
   lbm_add_extension("ttf-ascender", ext_ttf_ascender);
   lbm_add_extension("ttf-descender", ext_ttf_descender);
   lbm_add_extension("ttf-line-gap", ext_ttf_line_gap);
-  lbm_add_extension("ttf-text-dims",ext_ttf_wh);
-
-  // Low level utilities
-  lbm_add_extension("ttf-prepare-bin", ext_ttf_prepare_bin);
+  //lbm_add_extension("ttf-text-dims",ext_ttf_wh);
   lbm_add_extension("ttf-glyph-dims",ext_ttf_glyph_dims);
-  lbm_add_extension("ttf-glyph-render", ext_ttf_glyph_render);
-  lbm_add_extension("ttf-glyph-id", ext_ttf_glyph_id);
+
+  // Prepare
+  lbm_add_extension("ttf-prepare", ext_ttf_prepare_bin);
 
   // Draw text.
-  lbm_add_extension("ttf-text-bin", ttf_text_bin);
-  lbm_add_extension("ttf-text",ext_ttf_print);
+  lbm_add_extension("ttf-text", ttf_text_bin);
 }
