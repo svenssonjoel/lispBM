@@ -901,7 +901,7 @@ lbm_value ext_ttf_wh(lbm_value *args, lbm_uint argn) {
 }
 
 lbm_value ext_ttf_glyph_dims(lbm_value *args, lbm_uint argn) {
-  if (argn == 1 &&
+  if (argn == 2 &&
       lbm_is_array_r(args[0]) &&
       lbm_is_array_r(args[1])) { // string utf8,
 
