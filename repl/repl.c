@@ -46,6 +46,7 @@
 
 #include "repl_exts.h"
 #include "repl_defines.h"
+#include "lbm_image.h"
 #ifdef CLEAN_UP_CLOSURES
 #include "clean_cl.h"
 #endif
@@ -81,7 +82,6 @@ static lbm_char_channel_t string_tok;
 static lbm_buffered_channel_state_t buffered_tok_state;
 static lbm_char_channel_t buffered_string_tok;
 
-
 // ////////////////////////////////////////////////////////////
 // LBM
 #define GC_STACK_SIZE 256
@@ -102,11 +102,17 @@ static volatile lbm_cid startup_cid = -1;
 static volatile lbm_cid store_result_cid = -1;
 static volatile bool silent_mode = false;
 
+static char *image_input_file = NULL;
+
 static size_t lbm_memory_size = LBM_MEMORY_SIZE_10K;
 static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
 static size_t constants_memory_size = 4096;
 
 static lbm_uint *constants_memory = NULL;
+
+static size_t   image_storage_size = 128*1024;
+static uint8_t *image_storage = NULL;
+
 static lbm_uint *memory=NULL;
 static lbm_uint *bitmap=NULL;
 
@@ -186,6 +192,26 @@ bool const_heap_write(lbm_uint ix, lbm_uint w) {
   }
   return false;
 }
+
+bool image_write(lbm_uint ix, uint8_t b) {
+  if (ix >= image_storage_size) return false;
+  if (image_storage[ix] == 0xff) {
+    image_storage[ix] = b;
+    return true;
+  } else if (image_storage[ix] == b) {
+    return true;
+  } else {
+    printf("image_storage[%u] = %x\n", ix, image_storage[ix]);
+    printf("when trying to write %x\n", b);
+  }
+  return false;
+}
+
+bool image_clear(void) {
+  memset(image_storage, 0xff, image_storage_size);
+  return true;
+}
+
 
 static volatile bool allow_print = true;
 
@@ -412,9 +438,10 @@ lbm_const_heap_t const_heap;
 #define STORE_RESULT         0x0403
 #define TERMINATE            0x0404
 #define SILENT_MODE          0x0405
-#define VESCTCP              0x0406
-#define VESCTCP_PORT         0x0407
-#define VESCTCP_PROGRAM_FLASH_SIZE   0x0408
+#define LOAD_IMAGE           0x0406
+#define VESCTCP              0x0407
+#define VESCTCP_PORT         0x0408
+#define VESCTCP_PROGRAM_FLASH_SIZE   0x0409
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -427,6 +454,7 @@ struct option options[] = {
   {"store_env", required_argument, NULL, STORE_ENVIRONMENT},
   {"store_res", required_argument, NULL, STORE_RESULT},
   {"terminate", no_argument, NULL, TERMINATE},
+  {"load_image", required_argument, NULL, LOAD_IMAGE},
   {"silent", no_argument, NULL, SILENT_MODE},
   {"vesctcp",no_argument, NULL, VESCTCP},
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
@@ -585,12 +613,15 @@ void parse_opts(int argc, char **argv) {
              "                                      upon exit.\n");
       printf("    --store_res=FILEPATH              Store the result of the last program\n"\
              "                                      specified with the --src/-s options.\n");
+      printf("    --terminate                       Terminate the REPL after evaluating the\n" \
+             "                                      source files specified with --src/-s\n");
+      printf("    --load_image=FILEPATH             load an image-file at startup\n");
+      printf("\n");
       printf("    --vesctcp                         Open a TCP server talking the VESC\n"\
              "                                      protocol on port %d\n", DEFAULT_VESCIF_TCP_PORT);
       printf("    --vesctcp_port=PORT               open the TCP server on this port instead.\n");
       printf("    --vesctcp_program_flash_size=SIZE Size of memory for program storage.\n");
-      printf("    --terminate                       Terminate the REPL after evaluating the\n"\
-             "                                      source files specified with --src/-s\n");
+
       printf("Memory-size-indices: \n"          \
              "Index | Words\n"                  \
              "  1   - %d\n"                     \
@@ -651,6 +682,9 @@ void parse_opts(int argc, char **argv) {
       break;
     case SILENT_MODE:
       silent_mode = true;
+      break;
+    case LOAD_IMAGE:
+      image_input_file = (char*)optarg;
       break;
     case VESCTCP:
       vesctcp = true;
@@ -767,13 +801,37 @@ int init_repl() {
     return 0;
   }
 
-  constants_memory = (lbm_uint*)malloc(constants_memory_size * sizeof(lbm_uint));
-  memset(constants_memory, 0xFF, constants_memory_size * sizeof(lbm_uint));
-  if (!lbm_const_heap_init(const_heap_write,
-                           &const_heap,constants_memory,
-                           constants_memory_size)) {
-    return 0;
+  lbm_image_set_callbacks(image_clear,
+                          image_write);
+
+  //Load an image
+  if (image_input_file) {
+    FILE *f = fopen(image_input_file, "rb");
+    fseek(f, 0, SEEK_END);
+    size_t fsize = (size_t)ftell(f);
+    rewind(f);
+    if (fsize > 0) { 
+      image_storage = (uint8_t*)malloc(fsize);
+      printf("heap pos: %x\n",(uint32_t)image_storage);
+      if (!image_storage) {
+        fclose(f);
+        return 0;
+      }
+      size_t n = fread(image_storage, fsize, 1, f);
+      if ( n <= 0) {
+        printf("Error: empty image!\n");
+      }
+    }
+    fclose(f);
+  } else {
+    image_storage = (uint8_t*)malloc(image_storage_size);
+    printf("heap pos: %x\n",(uint32_t)image_storage);
+    if (!image_storage) return 0;
+    image_clear();
+    lbm_image_create_const_heap(constants_memory_size);
   }
+  lbm_image_init(image_storage,
+                 image_storage_size);
 
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
@@ -798,6 +856,7 @@ int init_repl() {
   }
 #endif
 
+  printf("creating eval thread\n");
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 0;

@@ -33,6 +33,9 @@
 #include "extensions/lbm_dyn_lib.h"
 #include "extensions/ttf_extensions.h"
 
+#include "lbm_image.h"
+#include "lbm_flat_value.h"
+
 #include <png.h>
 
 // Math
@@ -350,6 +353,24 @@ static lbm_value ext_fwrite_value(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+static lbm_value ext_fwrite_image(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    uint8_t *image_data = lbm_image_get_image();
+    if (image_data) {
+      size_t size = (size_t)lbm_image_get_size();
+      fwrite(image_data, 1, size, h->fp);
+      fflush(h->fp);
+      res = ENC_SYM_TRUE;
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+  return res;
+}
 
 static bool all_arrays(lbm_value *args, lbm_uint argn) {
   bool r = true;
@@ -685,9 +706,56 @@ static lbm_value ext_display_to_image(lbm_value *args, lbm_uint argn) {
 
   return ENC_SYM_TRUE;
 }
+// boot images, snapshots, workspaces....
+lbm_value ext_image_has_startup(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  if (argn != 0)
+    return ENC_SYM_TERROR;
 
+  return lbm_image_has_startup() ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
 
+lbm_value ext_image_save_env(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  if (argn != 0) return ENC_SYM_TERROR;
+  return lbm_image_save_global_env();
+}
 
+lbm_value ext_image_get_startup_fv(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  if (argn != 0) return ENC_SYM_TERROR;
+  lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
+  if (lbm_is_symbol(array_cell)) return array_cell;
+  lbm_array_header_t *array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
+  if (array == NULL) return ENC_SYM_MERROR;
+
+  array->data = (lbm_uint*)lbm_image_startup_address();
+  array->size = lbm_image_startup_size();
+  lbm_set_car(array_cell, (lbm_uint)array);
+  array_cell = lbm_set_ptr_type(array_cell, LBM_TYPE_ARRAY);
+  return array_cell;
+}
+
+lbm_value ext_image_save_startup(lbm_value *args, lbm_uint argn) {
+  if (argn == 1) {
+    int32_t fv_size = flatten_value_size(args[0], 0);
+    if (fv_size > 0) {
+      lbm_flat_value_t fv;
+      fv.buf = lbm_malloc((uint32_t)fv_size);
+      if (!fv.buf) return ENC_SYM_MERROR;
+      fv.buf_size = (uint32_t)fv_size;
+      fv.buf_pos = 0;
+      int r = flatten_value_c(&fv, args[0]);
+      if (r != FLATTEN_VALUE_OK) return ENC_SYM_EERROR;
+      lbm_image_save_startup_fv((uint8_t*)(fv.buf), fv_size);
+      lbm_free(fv.buf);
+      return ENC_SYM_TRUE;
+    } else {
+      return ENC_SYM_EERROR;
+    }
+  }
+  return ENC_SYM_TERROR;
+}
 
 // ------------------------------------------------------------
 // Init
@@ -712,10 +780,16 @@ int init_exts(void) {
   lbm_add_extension("fwrite", ext_fwrite);
   lbm_add_extension("fwrite-str", ext_fwrite_str);
   lbm_add_extension("fwrite-value", ext_fwrite_value);
+  lbm_add_extension("fwrite-image", ext_fwrite_image);
   lbm_add_extension("print", ext_print);
   lbm_add_extension("systime", ext_systime);
   lbm_add_extension("secs-since", ext_secs_since);
 
+  // boot images, snapshots, workspaces.... 
+  lbm_add_extension("image-has-startup",ext_image_has_startup);
+  lbm_add_extension("image-get-startup-fv", ext_image_get_startup_fv);
+  lbm_add_extension("image-save-env", ext_image_save_env);
+  lbm_add_extension("image-save-startup", ext_image_save_startup);
   // Math
   lbm_add_extension("rand", ext_rand);
   lbm_add_extension("rand-max", ext_rand_max);
@@ -725,10 +799,9 @@ int init_exts(void) {
   lbm_add_extension("bits-dec-int", ext_bits_dec_int);
 
   //displaying to active image
-  lbm_add_extension("set-active-image", ext_set_active_image);
-  lbm_add_extension("save-active-image", ext_save_active_image);
-  lbm_add_extension("display-to-image", ext_display_to_image);
-
+  lbm_add_extension("set-active-img", ext_set_active_image);
+  lbm_add_extension("save-active-img", ext_save_active_image);
+  lbm_add_extension("display-to-img", ext_display_to_image);
 
   if (lbm_get_num_extensions() < lbm_get_max_extensions()) {
     return 1;

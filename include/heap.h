@@ -833,6 +833,11 @@ static inline bool lbm_is_ptr(lbm_value x) {
   return (x & LBM_PTR_BIT);
 }
 
+static inline bool lbm_is_constant(lbm_value x) {
+  return ((x & LBM_PTR_BIT && x & LBM_PTR_TO_CONSTANT_BIT) ||
+          (!(x & LBM_PTR_BIT)));
+}
+
 /**
  * Check if a value is a Read/Writeable cons cell
  * \param x Value to check
