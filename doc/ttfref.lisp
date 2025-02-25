@@ -141,6 +141,21 @@
   )
                     
 
+(define font-example
+  (ref-entry "Example: Using a font"
+             (list
+              (code '((img-clear disp)))
+              (program-disp '(((import "Roboto-Regular.ttf" 'roboto)
+                               (define ft (ttf-prepare roboto 32 'indexed4 "helo wrd"))
+                               (define aa-green '(0x000000 0x004400 0x009900 0x00FF00))
+                               (ttf-text disp 40 40 aa-green ft "hello world")
+                               (disp-render disp 0 0)
+                               ))
+                            )
+              end)
+             )
+  )
+
 
 (define manual
   (list
@@ -160,6 +175,11 @@
              font-ttf-line-gap
              font-ttf-glyph-dims
              font-ttf-text-dims
+             )
+            )
+   (section 1 "Examples"
+            (list
+             font-example
              )
             )
    info

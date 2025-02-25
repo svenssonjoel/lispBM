@@ -25,7 +25,7 @@ Note that only characters mentioned in the `utf-string` will be usable.
 <td>
 
 ```clj
-(define b (ttf-prepare font 32 'indexed4 helo wrd!))
+(define b (ttf-prepare font 32 'indexed4 "helo wrd!"))
 ```
 
 
@@ -361,7 +361,7 @@ Obtain the dimensions of a glyph from a prepared font object.
 <td>
 
 ```clj
-(ttf-glyph-dims b o)
+(ttf-glyph-dims b "o")
 ```
 
 
@@ -395,7 +395,7 @@ Obtain the dimensions of a string of text rendered using a prepared font object.
 <td>
 
 ```clj
-(ttf-text-dims b hello)
+(ttf-text-dims b "hello")
 ```
 
 
@@ -404,6 +404,75 @@ Obtain the dimensions of a string of text rendered using a prepared font object.
 
 ```clj
 (72u 36u)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+# Examples
+
+
+### Example: Using a font
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-clear disp)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+ (import "Roboto-Regular.ttf" 'roboto)
+ (define ft (ttf-prepare roboto 32 'indexed4 "helo wrd"))
+ (define aa-green '(0 17408 39168 65280))
+ (ttf-text disp 40 40 aa-green ft "hello world")
+ (disp-render disp 0 0)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img6.png >
+
+</td>
+<td>
+
+
+```clj
+t
 ```
 
 
