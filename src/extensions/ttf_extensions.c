@@ -403,13 +403,10 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
       // need the kerning table at all.
       // TODO: Fix this.
       int kern_tab_bytes = kern_table_size_bytes(&sft, unique_utf32, n);
-      if (kern_tab_bytes <  0) {
+      if (kern_tab_bytes <=  0) {
         lbm_free(unique_utf32);
-        return ENC_SYM_MERROR;
-      } else if (kern_tab_bytes == 0) {
-        lbm_free(unique_utf32);
-        return ENC_SYM_MERROR;
-      }
+        return ENC_SYM_EERROR;
+      } 
 
       int glyph_gfx_size = glyphs_img_data_size(&sft, fmt, unique_utf32, n);
       if (glyph_gfx_size <= 0) {
@@ -755,6 +752,7 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
         }
       }
     } else {
+      lbm_set_error_reason("Character is not one of those listed in ttf-prepare\n");
       return ENC_SYM_EERROR;
     }
     x = x_n + advance_width;
