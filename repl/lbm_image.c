@@ -71,6 +71,20 @@
 // - ...
 
 
+// Endianess woes...
+// - little endian     least-significant byte at least address
+// - big endian        most-significant byte at least address
+// - all platforms we target currently are little-endian
+//
+//  0x11223344
+//     | | | '--- [44] addr
+//     | | '----- [33] addr + 1
+//     | '------- [22] addr + 2
+//     '--------- [11] addr + 3
+//
+// Images are going to be mainly little endian.  (what endianess does flatvalues use? I think BE)
+
+
 
 // constant heap should be 4byte aligned so that the are 2 unused low end bits
 // in all cell-pointers into constant heap. Constant heap should be the first thing
@@ -189,10 +203,9 @@ uint8_t read_u8(uint32_t index) {
   return *(image_address+index);
 }
 
+// Endianess sensitive read functions.
 uint16_t read_u16(uint32_t index) {
-  uint16_t b0 = (uint16_t)read_u8(index);
-  uint16_t b1 = (uint16_t)read_u8(index+1);
-  return b0 << 8 | b1;
+  return *((uint16_t*)(image_address+index));
 }
 
 uint32_t read_u32(uint32_t index) {
@@ -203,6 +216,40 @@ uint64_t read_u64(uint32_t index) {
   return *((uint64_t*)(image_address + index));
 }
 
+// Byte order dependent write functions.
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+bool write_u16(uint16_t w, uint32_t i) {
+  uint8_t * bytes = (uint8_t*)&w;
+  bool b = image_write(i,   bytes[0]);
+  b = b && image_write(i+1, bytes[1]);
+  return b;
+}
+
+bool write_u32(uint32_t w, uint32_t i) {
+  uint8_t * bytes = (uint8_t*)&w;
+  bool b = image_write(i,   bytes[0]);
+  b = b && image_write(i+1, bytes[1]);
+  b = b && image_write(i+2, bytes[2]);
+  b = b && image_write(i+3, bytes[3]);
+  return b;
+}
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+bool write_u16(uint16_t w, uint32_t i) {
+  uint8_t * bytes = (uint8_t*)&w;
+  bool b = image_write(i,   bytes[1]);
+  b = b && image_write(i+1, bytes[0]);
+  return b;
+}
+
+bool write_u32(uint32_t w, uint32_t i) {
+  uint8_t * bytes = (uint8_t*)&w;
+  bool b = image_write(i,   bytes[3]);
+  b = b && image_write(i+1, bytes[2]);
+  b = b && image_write(i+2, bytes[1]);
+  b = b && image_write(i+3, bytes[0]);
+  return b;
+}
+#endif
 
 
 // Constant heaps as part of an image.
@@ -211,14 +258,8 @@ lbm_const_heap_t image_const_heap;
 lbm_uint image_const_heap_start_ix = 0;
 
 bool image_const_heap_write(lbm_uint ix, lbm_uint w) { // ix is in lbm_uint sized steps
-  uint8_t * bytes = (uint8_t*)&w;
   lbm_uint i = image_const_heap_start_ix + (ix * 4);
-  bool b = true;
-  b =      image_write(i,   bytes[0]);
-  b = b && image_write(i+1, bytes[1]);
-  b = b && image_write(i+2, bytes[2]);
-  b = b && image_write(i+3, bytes[3]);
-  return b;
+  return write_u32(w, i);
 }
 
 bool lbm_image_is_empty(void) {
