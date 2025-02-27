@@ -2155,7 +2155,7 @@ int main(int argc, char **argv) {
     printf("error mapping fixed location for flash emulation\n");
     terminate_repl(REPL_EXIT_CRITICAL_ERROR);
   }
-  
+
   parse_opts(argc, argv);
 
   using_history();
