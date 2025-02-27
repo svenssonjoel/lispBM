@@ -16,12 +16,14 @@
 */
 
 #define _POSIX_C_SOURCE 200809L // nanosleep?
+#define _GNU_SOURCE // MAP_ANON
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <getopt.h>
@@ -83,6 +85,23 @@ static lbm_buffered_channel_state_t buffered_tok_state;
 static lbm_char_channel_t buffered_string_tok;
 
 // ////////////////////////////////////////////////////////////
+// Image
+
+#define IMAGE_STORAGE_SIZE              (128 * 1024)
+#ifdef LBM64
+#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA000000000000000
+#else
+#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+#endif
+// todo: is there a good way to pick a fixed virtual address ?
+
+static char *image_input_file = NULL;
+static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
+static uint8_t *image_storage = NULL;
+
+
+
+// ////////////////////////////////////////////////////////////
 // LBM
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
@@ -102,16 +121,12 @@ static volatile lbm_cid startup_cid = -1;
 static volatile lbm_cid store_result_cid = -1;
 static volatile bool silent_mode = false;
 
-static char *image_input_file = NULL;
-
 static size_t lbm_memory_size = LBM_MEMORY_SIZE_10K;
 static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
 static size_t constants_memory_size = 4096;
 
 static lbm_uint *constants_memory = NULL;
 
-static size_t   image_storage_size = 128*1024;
-static uint8_t *image_storage = NULL;
 
 static lbm_uint *memory=NULL;
 static lbm_uint *bitmap=NULL;
@@ -804,35 +819,6 @@ int init_repl() {
   lbm_image_set_callbacks(image_clear,
                           image_write);
 
-  //Load an image
-  if (image_input_file) {
-    FILE *f = fopen(image_input_file, "rb");
-    fseek(f, 0, SEEK_END);
-    size_t fsize = (size_t)ftell(f);
-    rewind(f);
-    if (fsize > 0) { 
-      image_storage = (uint8_t*)malloc(fsize);
-      printf("heap pos: %x\n",(uint32_t)image_storage);
-      if (!image_storage) {
-        fclose(f);
-        return 0;
-      }
-      size_t n = fread(image_storage, fsize, 1, f);
-      if ( n <= 0) {
-        printf("Error: empty image!\n");
-      }
-    }
-    fclose(f);
-  } else {
-    image_storage = (uint8_t*)malloc(image_storage_size);
-    printf("heap pos: %x\n",(uint32_t)image_storage);
-    if (!image_storage) return 0;
-    image_clear();
-    lbm_image_create_const_heap(constants_memory_size);
-  }
-  lbm_image_init(image_storage,
-                 image_storage_size);
-
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp);
@@ -855,6 +841,27 @@ int init_repl() {
     return 1;
   }
 #endif
+  //Load an image
+  if (image_input_file) {
+    FILE *f = fopen(image_input_file, "rb");
+    fseek(f, 0, SEEK_END);
+    size_t fsize = (size_t)ftell(f);
+    rewind(f);
+    // assume image files <= 128k
+    if (fsize > 0) {
+      // Load file into mapped reqion. Could map file instead.
+      size_t n = fread(image_storage, fsize, 1, f);
+      if ( n <= 0) {
+        printf("Error: empty image!\n");
+      }
+    }
+    fclose(f);
+  } else {
+    image_clear();
+    lbm_image_create_const_heap(constants_memory_size);
+  }
+  lbm_image_init(image_storage,
+                 image_storage_size);
 
   printf("creating eval thread\n");
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
@@ -2139,6 +2146,16 @@ void *vesctcp_client_handler(void *arg) {
 // ////////////////////////////////////////////////////////////
 //
 int main(int argc, char **argv) {
+
+  image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
+                       IMAGE_STORAGE_SIZE,
+                       PROT_READ | PROT_WRITE,
+                       MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+  if (((int)image_storage) == -1) {
+    printf("error mapping fixed location for flash emulation\n");
+    terminate_repl(REPL_EXIT_CRITICAL_ERROR);
+  }
+  
   parse_opts(argc, argv);
 
   using_history();
@@ -2235,6 +2252,7 @@ int main(int argc, char **argv) {
         printf("Size: %"PRI_UINT" words\n", const_heap.size);
         printf("Used words: %"PRI_UINT"\n", const_heap.next);
         printf("Free words: %"PRI_UINT"\n", const_heap.size - const_heap.next);
+        printf("image location: %x \n", (lbm_uint)image_storage);
         free(str);
       } else if (strncmp(str, ":prof start", 11) == 0) {
         lbm_prof_init(prof_data,

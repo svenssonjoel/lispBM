@@ -718,7 +718,7 @@ lbm_value ext_image_has_startup(lbm_value *args, lbm_uint argn) {
 lbm_value ext_image_save_env(lbm_value *args, lbm_uint argn) {
   (void) args;
   if (argn != 0) return ENC_SYM_TERROR;
-  return lbm_image_save_global_env();
+  return lbm_image_save_global_env() ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
 lbm_value ext_image_get_startup_fv(lbm_value *args, lbm_uint argn) {

@@ -23,7 +23,7 @@
 
 // Assumptions of about the image memory:
 // * It is part of the address space.
-// * It is a write-once memory. 
+// * It is a write-once memory.
 // * Can be cleared in its entirety.
 
 // Details
@@ -42,13 +42,51 @@
 //   This startup-entry can spawn threads and initialize resources.
 // * Will we have a heap-image or will all bindings move into the const heap.
 
+// FEB 26:
+// -- There will be no "heap-image" or "memory-image"
+//    Just flattened and stored bindings from the environment (which is as good but likely smaller).
+// -- There will be an image of the const-heap. in fact the const heap lives in the image always.
+//    A bit problematic with building on image incrementally as it is in flash and the contents cannot be changed.
+//    Contents can be added though!  (keep track of const-heap write-ptr is an issue)
+// -- Maybe we should implement image for a read-write memory and then make the flash situation a special case?
+// -- Maybe size fields should always be in bytes.
+// -- TODO: a flatten function that flattens a value directly to flash and also does not flatten things that are
+//          already in flash, but rather then just refers to them.
 
-#define CONSTANT_HEAP 0x01 // [0x01 | size words | pad | data]
-#define HEAP_IMAGE    0x02 // [0x02 | size TBD   | pad | data]
-#define MEMORY_IMAGE  0x03 // [0x03 | size TBD   | pad | data] 
-#define BINDING_CONST 0x04 // TBD
-#define BINDING_FLAT  0x05 // TBD
-#define STARTUP_ENTRY 0x06 // [0x06 | size bytes| flatval])
+// FEB 27:
+// -- Symbol numbering will be an issue.
+//    * Store the symboltable in the image and restore it on boot.
+//    * Names already in flash can be refered to.
+//    * Names in ram can be copied.
+//    * Entire subtable may already be in flash - leave in place and refer to it.
+// -- loading an image and then adding to it can be tricky to make possible.
+//    * const-heap write pointer needs to be stored. (but if it is stored then it cannot be changed)
+//      Could allow multiple "const-heap-write-pointer" fields in the image and use the one that appears last...
+//    * Symboltable could be created incrementally in a similar way. Append later symbol_table data fields
+//      to the previously loaded.
+
+// Offline image tools
+// - Image compaction: remove overwrite fields and compact the image.
+// - Change of base address: relabel all memory accesses.
+// - ...
+
+
+
+// constant heap should be 4byte aligned so that the are 2 unused low end bits
+// in all cell-pointers into constant heap. Constant heap should be the first thing
+// to occur in all images to easily ensure this.
+//                             BYTE
+#define CONSTANT_HEAP 0x01 // [0x01 | size bytes | pad | data]
+#define SYMBOL_TABLE  0x02 // [0x02 | size bytes | data]
+#define BINDING_CONST 0x03 // TBD
+#define BINDING_FLAT  0x04 // TBD
+#define STARTUP_ENTRY 0x05 // [0x04 | size bytes | flatval])
+
+#ifdef LBM64
+#define CONSTANT_HEAP_ALIGN_PAD 3
+#else
+#define CONSTANT_HEAP_ALIGN_PAD 3
+#endif
 
 static lbm_image_write_fun image_write = NULL;
 static lbm_image_clear_fun image_clear = NULL;
@@ -61,13 +99,12 @@ static bool image_startup = false;
 static uint32_t image_startup_position;
 static uint32_t image_startup_size;
 
-
 uint8_t *lbm_image_get_image(void) {
   return image_address;
 }
 
 uint32_t lbm_image_get_size(void) {
-  return image_size; 
+  return image_size;
 }
 
 bool lbm_image_has_startup(void) {
@@ -102,13 +139,13 @@ bool write_lbm_value(lbm_value v, uint32_t *i) {
   }
   return false;
 #endif
-  
+
 }
 
 bool lbm_image_save_global_env(void) {
   lbm_value *env = lbm_get_global_env();
 
-  if (env) { 
+  if (env) {
     for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
       lbm_value curr = env[i];
       while(lbm_is_cons(curr)) {
@@ -123,25 +160,27 @@ bool lbm_image_save_global_env(void) {
             image_write(write_index, name[str_i]); write_index++;
           }
           write_lbm_value(val_field, &write_index);
+        } else {
+          printf("%s is not constant, not storing env binding\n", name);
         }
         curr = lbm_cdr(curr);
       }
     }
     return true;
-  } 
+  }
   return false;
 }
 
 bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size) {
-  uint8_t b0 = (uint8_t)(size >> 8);
-  uint8_t b1 = (uint8_t)size;
+  uint8_t *b = (uint8_t*)&size;
 
-  bool r = image_write(write_index, STARTUP_ENTRY);
-  r = r && image_write(write_index+1, b0);
-  r = r && image_write(write_index+2, b1);
-
+  bool r = image_write(write_index++, STARTUP_ENTRY);
+  r = r && image_write(write_index++, b[0]);
+  r = r && image_write(write_index++, b[1]);
+  r = r && image_write(write_index++, b[2]);
+  r = r && image_write(write_index++, b[3]);
   for (int i = 0; i < size; i ++) {
-    r = r && image_write(write_index+3+i, data[i]);
+    r = r && image_write(write_index++, data[i]);
   }
   return r;
 }
@@ -159,6 +198,11 @@ uint16_t read_u16(uint32_t index) {
 uint32_t read_u32(uint32_t index) {
   return *((uint32_t*)(image_address + index));
 }
+
+uint64_t read_u64(uint32_t index) {
+  return *((uint64_t*)(image_address + index));
+}
+
 
 
 // Constant heaps as part of an image.
@@ -187,18 +231,21 @@ void lbm_image_clear(void) {
   write_index = 0;
 }
 
-void lbm_image_create_const_heap(uint32_t size) {
+// you probably want to specify const heap size in number of words ?
+void lbm_image_create_const_heap(uint32_t size_words) {
 
-  // size in the const heap is multiples of lbm_uint size
+  uint32_t size_bytes = size_words * sizeof(lbm_uint);
 
-  uint8_t b0 = (uint8_t)(size >> 8);
-  uint8_t b1 = (uint8_t)size;
+  uint8_t *b = (uint8_t*)&size_bytes;
 
   image_write(write_index, CONSTANT_HEAP);
-  image_write(write_index+1, b0);
-  image_write(write_index+2, b1);
-  write_index+=4;
-  write_index+= size * sizeof(lbm_uint);
+  image_write(write_index+1, b[0]); // what byte order does this end up being?
+  image_write(write_index+2, b[1]);
+  image_write(write_index+3, b[2]);
+  image_write(write_index+4, b[3]);
+  write_index += 5;
+  write_index += CONSTANT_HEAP_ALIGN_PAD;
+  write_index += size_bytes;
 }
 
 void lbm_image_set_callbacks(lbm_image_clear_fun   image_clear_fun,
@@ -212,7 +259,7 @@ void lbm_image_init(uint8_t* image_mem_address,
 
   image_address = image_mem_address;
   image_size = image_size_bytes;
-  
+
   //process image
   uint32_t pos = 0;
 
@@ -221,42 +268,52 @@ void lbm_image_init(uint8_t* image_mem_address,
     // TODO: loop until done reading image
     switch(read_u8(pos)) {
     case CONSTANT_HEAP: {
+      pos ++; // Skip over tag
       image_is_empty = false;
-      uint16_t size = read_u16(pos+1); // in number of words
-      pos += 4; // skip over pad
+      uint32_t size = read_u32(pos); // BYTES!
+      pos += 4; //sizeof
+      pos += CONSTANT_HEAP_ALIGN_PAD; // skip over pad
       // TODO: const_heap_init argument order is not ideal.
       image_const_heap_start_ix = pos;
       lbm_const_heap_init(image_const_heap_write,
                           &image_const_heap,
                           (lbm_uint*)(image_address + pos),
-                          (lbm_uint)size);
-      pos += sizeof(lbm_uint)*size; 
+                          (lbm_uint)(size / (sizeof(lbm_uint)))); // size in words
+      pos += size; // PAD already skipped
     } break;
     case BINDING_CONST: {
       lbm_uint sym_id;
-      lbm_uint name_size = strlen((char*)(image_address + pos + 1)) + 1;
-      if (!lbm_add_symbol((char *)(image_address + pos + 1), &sym_id)) {
+      pos ++; //Jump past the BINDING_CONST Tag
+      lbm_uint name_size = strlen((char*)(image_address + pos)) + 1;
+      if (!lbm_add_symbol((char *)(image_address + pos), &sym_id)) {
         printf("error reading image\n");
         goto done_loading_image;
       }
-      lbm_uint val = read_u32(pos+name_size+1); // TODO: Incorrect on 64bit
+#ifdef LBM64
+      lbm_uint val = read_u64(pos+name_size);
+#else
+      lbm_uint val = read_u32(pos+name_size);
+#endif
       lbm_uint ix_key  = sym_id & GLOBAL_ENV_MASK;
       lbm_value *global_env = lbm_get_global_env();
       lbm_uint orig_env = global_env[ix_key];
       lbm_value new_env = lbm_env_set(orig_env,lbm_enc_sym(sym_id),val);
-      
+
       if (lbm_is_symbol(new_env)) {
         printf("error restoring binding from image\n");
       }
       global_env[ix_key] = new_env;
-      pos += 5 + name_size;
+      pos += sizeof(lbm_uint) + name_size;
     } break;
     case STARTUP_ENTRY: {
+      pos ++; // skip tag
+      printf("startup entry found\n");
       image_startup = true;
-      uint16_t size = read_u16(pos+1); // in bytes
+      uint32_t size = read_u32(pos); // in bytes
+      pos += 4; // jump over size
       image_startup_size = size;
-      image_startup_position = pos+3;
-      pos += 3 + size;
+      image_startup_position = pos;
+        pos += size; // jump past entire block
     } break;
     default:
       goto done_loading_image;
@@ -267,8 +324,3 @@ void lbm_image_init(uint8_t* image_mem_address,
   return;
 
 }
-
- 
-
-
-
