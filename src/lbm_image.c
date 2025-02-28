@@ -21,7 +21,7 @@
 #include <heap.h>
 #include <env.h>
 
-// Assumptions of about the image memory:
+// Assumptions about the image memory:
 // * It is part of the address space.
 // * Image is always available at the same address (across reboots)
 // * It is a write-once memory.
@@ -145,72 +145,11 @@ uint8_t *lbm_image_startup_address(void) {
 uint32_t lbm_image_startup_size(void) {
   return image_startup_size;
 }
+
 // TODO: Add bounds checks here and there and everywhere.
 // TODO: Needs a new flatten that does not flatten constant values.
 // constant values are already in the flash heap and part of the image.
 // TODO: 32bit / 64bit will be highly incompatible.
-
-bool write_lbm_value(lbm_value v, uint32_t *i) {
-
-#ifdef LBM64
-  return false;
-#else
-  if (*i + 4 < image_size) {
-    uint8_t *bytes = (uint8_t*)&v;
-    bool b = true;
-    b =      image_write(*i, bytes[0]); (*i) ++;
-    b = b && image_write(*i, bytes[1]); (*i) ++;
-    b = b && image_write(*i, bytes[2]); (*i) ++;
-    b = b && image_write(*i, bytes[3]); (*i) ++;
-    return b;
-  }
-  return false;
-#endif
-
-}
-
-bool lbm_image_save_global_env(void) {
-  lbm_value *env = lbm_get_global_env();
-
-  if (env) {
-    for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
-      lbm_value curr = env[i];
-      while(lbm_is_cons(curr)) {
-        lbm_value name_field = lbm_caar(curr);
-        lbm_value val_field  = lbm_cdr(lbm_car(curr));
-        char *name = (char*)lbm_get_name_by_symbol(lbm_dec_sym(name_field));
-        if (!name) return false;
-        if (lbm_is_constant(val_field)) {
-          image_write(write_index, BINDING_CONST); write_index++;
-          size_t n = strlen(name) + 1; // write the 0
-          for (size_t str_i = 0; str_i < n; str_i ++) {
-            image_write(write_index, name[str_i]); write_index++;
-          }
-          write_lbm_value(val_field, &write_index);
-        } else {
-          printf("%s is not constant, not storing env binding\n", name);
-        }
-        curr = lbm_cdr(curr);
-      }
-    }
-    return true;
-  }
-  return false;
-}
-
-bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size) {
-  uint8_t *b = (uint8_t*)&size;
-
-  bool r = image_write(write_index++, STARTUP_ENTRY);
-  r = r && image_write(write_index++, b[0]);
-  r = r && image_write(write_index++, b[1]);
-  r = r && image_write(write_index++, b[2]);
-  r = r && image_write(write_index++, b[3]);
-  for (int i = 0; i < size; i ++) {
-    r = r && image_write(write_index++, data[i]);
-  }
-  return r;
-}
 
 uint8_t read_u8(uint32_t index) {
   return *(image_address+index);
@@ -233,37 +172,134 @@ uint64_t read_u64(uint32_t index) {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 bool write_u16(uint16_t w, uint32_t i) {
   uint8_t * bytes = (uint8_t*)&w;
-  bool b = image_write(i,   bytes[0]);
-  b = b && image_write(i+1, bytes[1]);
+  bool b = image_write(bytes[0], i);
+  b = b && image_write(bytes[1], i+1);
   return b;
 }
 
 bool write_u32(uint32_t w, uint32_t i) {
   uint8_t * bytes = (uint8_t*)&w;
-  bool b = image_write(i,   bytes[0]);
-  b = b && image_write(i+1, bytes[1]);
-  b = b && image_write(i+2, bytes[2]);
-  b = b && image_write(i+3, bytes[3]);
+  bool b = image_write(bytes[0], i);
+  b = b && image_write(bytes[1], i+1);
+  b = b && image_write(bytes[2], i+2);
+  b = b && image_write(bytes[3], i+3);
   return b;
 }
+
+bool write_u64(uint64_t dw, uint32_t i) {
+  uint8_t * bytes = (uint8_t*)&dw;
+  bool b = image_write(bytes[0], i);
+  b = b && image_write(bytes[1], i+1);
+  b = b && image_write(bytes[2], i+2);
+  b = b && image_write(bytes[3], i+3);
+  b = b && image_write(bytes[4], i+4);
+  b = b && image_write(bytes[5], i+5);
+  b = b && image_write(bytes[6], i+6);
+  b = b && image_write(bytes[7], i+7);
+  return b;
+}
+
+
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 bool write_u16(uint16_t w, uint32_t i) {
   uint8_t * bytes = (uint8_t*)&w;
-  bool b = image_write(i,   bytes[1]);
-  b = b && image_write(i+1, bytes[0]);
+  bool b = image_write(bytes[1], i);
+  b = b && image_write(bytes[0], i+1);
   return b;
 }
 
 bool write_u32(uint32_t w, uint32_t i) {
   uint8_t * bytes = (uint8_t*)&w;
-  bool b = image_write(i,   bytes[3]);
-  b = b && image_write(i+1, bytes[2]);
-  b = b && image_write(i+2, bytes[1]);
-  b = b && image_write(i+3, bytes[0]);
+  bool b = image_write(bytes[3], i);
+  b = b && image_write(bytes[2], i+1);
+  b = b && image_write(bytes[1], i+2);
+  b = b && image_write(bytes[0], i+3);
+  return b;
+}
+
+bool write_u64(uint64_t dw, uint32_t i) {
+  uint8_t * bytes = (uint8_t*)&dw;
+  bool b = image_write(bytes[7], i);
+  b = b && image_write(bytes[6], i+1);
+  b = b && image_write(bytes[5], i+2);
+  b = b && image_write(bytes[4], i+3);
+  b = b && image_write(bytes[3], i+4);
+  b = b && image_write(bytes[2], i+5);
+  b = b && image_write(bytes[1], i+6);
+  b = b && image_write(bytes[0], i+7);
   return b;
 }
 #endif
 
+bool write_lbm_uint(lbm_uint ptr_val, uint32_t i) {
+#ifdef LBM64
+  return write_u64(ptr_val, i);
+#else
+  return write_u32(ptr_val, i);
+#endif
+}
+
+bool write_lbm_value(lbm_value v, uint32_t i) {
+#ifdef LBM64
+  return write_u64(v, i);
+#else
+  return write_u32(v, i);
+#endif
+}
+
+lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
+  bool r = image_write(SYMBOL_ENTRY, write_index++);
+  lbm_uint entry_ptr = (lbm_uint)image_address + write_index;
+  r = r && write_lbm_uint((lbm_uint)name, write_index); write_index += sizeof(lbm_uint);
+  r = r && write_lbm_uint(id, write_index); write_index += sizeof(lbm_uint);
+  r = r && write_lbm_uint(symlist, write_index); write_index += sizeof(lbm_uint);
+  if (r)
+    return entry_ptr;
+  return NULL;
+}
+
+bool lbm_image_save_global_env(void) {
+  lbm_value *env = lbm_get_global_env();
+
+  if (env) {
+    for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+      lbm_value curr = env[i];
+      while(lbm_is_cons(curr)) {
+        lbm_value name_field = lbm_caar(curr);
+        lbm_value val_field  = lbm_cdr(lbm_car(curr));
+        char *name = (char*)lbm_get_name_by_symbol(lbm_dec_sym(name_field));
+        if (!name) return false;
+        if (lbm_is_constant(val_field)) {
+          image_write(BINDING_CONST, write_index); write_index++;
+          size_t n = strlen(name) + 1; // write the 0
+          for (size_t str_i = 0; str_i < n; str_i ++) {
+            image_write(name[str_i], write_index); write_index++;
+          }
+          write_lbm_value(val_field, write_index); write_index+=sizeof(lbm_uint);
+        } else {
+          printf("%s is not constant, not storing env binding\n", name);
+        }
+        curr = lbm_cdr(curr);
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size) {
+  uint8_t *b = (uint8_t*)&size;
+
+  bool r = image_write(STARTUP_ENTRY, write_index++);
+  r = r && image_write(b[0], write_index++);
+  r = r && image_write(b[1], write_index++);
+  r = r && image_write(b[2], write_index++);
+  r = r && image_write(b[3], write_index++);
+  for (int i = 0; i < size; i ++) {
+    r = r && image_write(data[i], write_index++);
+  }
+  return r;
+}
 
 // Constant heaps as part of an image.
 
@@ -293,11 +329,11 @@ bool lbm_image_create_const_heap(uint32_t size_words) {
   if (size_bytes < image_size) {
     uint8_t *b = (uint8_t*)&size_bytes;
 
-    image_write(write_index, CONSTANT_HEAP);
-    image_write(write_index+1, b[0]); // what byte order does this end up being?
-    image_write(write_index+2, b[1]);
-    image_write(write_index+3, b[2]);
-    image_write(write_index+4, b[3]);
+    image_write(CONSTANT_HEAP, write_index);
+    image_write(b[0], write_index+1); // what byte order does this end up being?
+    image_write(b[1], write_index+2);
+    image_write(b[2], write_index+3);
+    image_write(b[3], write_index+4);
     write_index += 5;
     write_index += CONSTANT_HEAP_ALIGN_PAD;
     write_index += size_bytes;

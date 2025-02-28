@@ -27,6 +27,7 @@
 #include "symrepr.h"
 #include "extensions.h"
 #include "lbm_utils.h"
+#include "lbm_image.h"
 
 #define NUM_SPECIAL_SYMBOLS (sizeof(special_symbols) / sizeof(special_sym))
 #define NAME   0
@@ -446,15 +447,24 @@ static bool add_symbol_to_symtab_flash(lbm_uint name, lbm_uint id) {
 
 int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash) {
   lbm_uint symbol_name_storage;
-  if (flash) {
-    if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
-    if (!add_symbol_to_symtab_flash(symbol_name_storage, next_symbol_id)) return 0;
-  } else {
-    if (!add_symbol_to_symtab(name, next_symbol_id)) {
-      return 0;
-    }
+  if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
+  lbm_uint *new_symlist = lbm_image_add_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist);
+  if (!new_symlist) {
+    printf("add symbol failed\n");
+    return 0;
   }
+  symlist = new_symlist;
   *id = next_symbol_id ++;
+
+
+  /* if (flash) { */
+
+  /*   if (!add_symbol_to_symtab_flash(symbol_name_storage, next_symbol_id)) return 0; */
+  /* } else { */
+  /*   if (!add_symbol_to_symtab(name, next_symbol_id)) { */
+  /*     return 0; */
+  /*   } */
+  /* } */
   return 1;
 }
 
