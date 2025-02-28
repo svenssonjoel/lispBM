@@ -23,8 +23,10 @@
 
 // Assumptions of about the image memory:
 // * It is part of the address space.
+// * Image is always available at the same address (across reboots)
 // * It is a write-once memory.
 // * Can be cleared in its entirety.
+// * Can check on a byte-level is "is-writable" (has a known initial state when cleared)
 
 // Details
 // * @const_start @const_end is tricky.
@@ -65,6 +67,17 @@
 //    * Symboltable could be created incrementally in a similar way. Append later symbol_table data fields
 //      to the previously loaded.
 
+// FEB 28:
+// -- Symbol numbering problem. The structure of the symboltable may
+//    need to change. It is currently impossible to append a symbol list stored
+//    in flash to the global symbol table. A richer structure is needed.
+// -- The symbols in the SYMTAB can all be in flash (all in the image) and
+//    all name strings can be written to flash as well.
+//    * May be easiest if names go to the flash heap (as it is now)
+//      and table entries are a tagged field in the image (1 extra byte per symbol...)
+//    * Means the image must be initialized (to a degree) before symbols are created.
+
+
 // Offline image tools
 // - Image compaction: remove overwrite fields and compact the image.
 // - Change of base address: relabel all memory accesses.
@@ -84,17 +97,17 @@
 //
 // Images are going to be mainly little endian.  (what endianess does flatvalues use? I think BE)
 
-
-
 // constant heap should be 4byte aligned so that the are 2 unused low end bits
 // in all cell-pointers into constant heap. Constant heap should be the first thing
 // to occur in all images to easily ensure this.
-//                             BYTE
+//                             uint8|   uint32   |  ..... 
 #define CONSTANT_HEAP 0x01 // [0x01 | size bytes | pad | data]
-#define SYMBOL_TABLE  0x02 // [0x02 | size bytes | data]
-#define BINDING_CONST 0x03 // TBD
-#define BINDING_FLAT  0x04 // TBD
-#define STARTUP_ENTRY 0x05 // [0x04 | size bytes | flatval])
+#define BINDING_CONST 0x02 // TBD
+#define BINDING_FLAT  0x03 // TBD
+#define STARTUP_ENTRY 0x04 // [0x04 | size bytes | flatval])
+#define SYMBOL_ENTRY  0x05 // [0x5 | ID | NAME PTR | NEXT_PTR] // symbol_entry with highest address is root.
+// tagged data  that can vary in size has a size bytes field.
+// Fixed size data does not.
 
 #ifdef LBM64
 #define CONSTANT_HEAP_ALIGN_PAD 3
@@ -273,20 +286,24 @@ void lbm_image_clear(void) {
 }
 
 // you probably want to specify const heap size in number of words ?
-void lbm_image_create_const_heap(uint32_t size_words) {
+bool lbm_image_create_const_heap(uint32_t size_words) {
 
   uint32_t size_bytes = size_words * sizeof(lbm_uint);
 
-  uint8_t *b = (uint8_t*)&size_bytes;
+  if (size_bytes < image_size) {
+    uint8_t *b = (uint8_t*)&size_bytes;
 
-  image_write(write_index, CONSTANT_HEAP);
-  image_write(write_index+1, b[0]); // what byte order does this end up being?
-  image_write(write_index+2, b[1]);
-  image_write(write_index+3, b[2]);
-  image_write(write_index+4, b[3]);
-  write_index += 5;
-  write_index += CONSTANT_HEAP_ALIGN_PAD;
-  write_index += size_bytes;
+    image_write(write_index, CONSTANT_HEAP);
+    image_write(write_index+1, b[0]); // what byte order does this end up being?
+    image_write(write_index+2, b[1]);
+    image_write(write_index+3, b[2]);
+    image_write(write_index+4, b[3]);
+    write_index += 5;
+    write_index += CONSTANT_HEAP_ALIGN_PAD;
+    write_index += size_bytes;
+    return true;
+  }
+  return false;
 }
 
 void lbm_image_set_callbacks(lbm_image_clear_fun   image_clear_fun,
@@ -295,12 +312,15 @@ void lbm_image_set_callbacks(lbm_image_clear_fun   image_clear_fun,
   image_write = image_write_fun;
 }
 
+
 void lbm_image_init(uint8_t* image_mem_address,
                     uint32_t image_size_bytes) {
 
   image_address = image_mem_address;
   image_size = image_size_bytes;
+}
 
+void lbm_image_boot(void) {
   //process image
   uint32_t pos = 0;
 

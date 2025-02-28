@@ -816,9 +816,6 @@ int init_repl() {
     return 0;
   }
 
-  lbm_image_set_callbacks(image_clear,
-                          image_write);
-
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp);
@@ -842,6 +839,14 @@ int init_repl() {
   }
 #endif
   //Load an image
+
+  // TODO: Combine set callbacks and init.
+  lbm_image_set_callbacks(image_clear,
+                          image_write);
+
+  lbm_image_init(image_storage,
+                 image_storage_size);
+
   if (image_input_file) {
     FILE *f = fopen(image_input_file, "rb");
     fseek(f, 0, SEEK_END);
@@ -858,10 +863,13 @@ int init_repl() {
     fclose(f);
   } else {
     image_clear();
-    lbm_image_create_const_heap(constants_memory_size);
+    if (!lbm_image_create_const_heap(constants_memory_size)) {
+      printf("Failed to create const heap in image\n");
+      return 0;
+    }
   }
-  lbm_image_init(image_storage,
-                 image_storage_size);
+
+  lbm_image_boot();
 
   printf("creating eval thread\n");
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {

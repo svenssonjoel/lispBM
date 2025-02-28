@@ -40,7 +40,6 @@ extern "C" {
 
 typedef void (*symrepr_name_iterator_fun)(const char *);
 
-
 /** Initialize the symbol table.
  *
  * \return 1

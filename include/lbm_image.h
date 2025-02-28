@@ -30,16 +30,17 @@ uint32_t lbm_image_startup_size(void);
 bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size);
 bool lbm_image_save_global_env(void);
 
-
 bool lbm_image_is_empty(void);
 void lbm_image_clear(void);
-void lbm_image_create_const_heap(uint32_t size);
-
+bool lbm_image_create_const_heap(uint32_t size_words);
 
 // startup initialization
 void lbm_image_set_callbacks(lbm_image_clear_fun   image_clear_fun,
                              lbm_image_write_fun   image_write_fun);
+
 void lbm_image_init(uint8_t *             image_mem_addr,
                     uint32_t              max_index);
+
+void lbm_image_boot(void);
 
 #endif

@@ -27,7 +27,6 @@ LISPBM_SRC += $(LISPBM_EVAL_CPS_SRC)
 REPL_SRC= repl.c \
 	  repl_exts.c \
           crc.c \
-          lbm_image.c \
           packet.c
 
 
