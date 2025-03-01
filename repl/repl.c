@@ -852,6 +852,10 @@ int init_repl() {
 
   if (image_input_file) {
     FILE *f = fopen(image_input_file, "rb");
+    if (!f) {
+      printf("Error opening file: %s\n", image_input_file);
+      return 0;
+    }
     fseek(f, 0, SEEK_END);
     size_t fsize = (size_t)ftell(f);
     rewind(f);

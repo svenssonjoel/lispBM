@@ -248,6 +248,7 @@ bool write_lbm_value(lbm_value v, uint32_t i) {
 }
 
 lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
+  printf("adding symbol with name at address: %x\n", (lbm_uint)name);
   bool r = image_write(SYMBOL_ENTRY, write_index++);
   lbm_uint entry_ptr = (lbm_uint)image_address + write_index;
   r = r && write_lbm_uint((lbm_uint)name, write_index); write_index += sizeof(lbm_uint);
@@ -410,7 +411,13 @@ void lbm_image_boot(void) {
       pos += 4; // jump over size
       image_startup_size = size;
       image_startup_position = pos;
-        pos += size; // jump past entire block
+      pos += size; // jump past entire block
+    } break;
+    case SYMBOL_ENTRY: {
+      pos ++;
+      printf("symbol entry found\n");
+      lbm_symrepr_set_symlist((lbm_uint*)(image_address + pos));
+      pos += 3 * sizeof(lbm_uint);
     } break;
     default:
       goto done_loading_image;

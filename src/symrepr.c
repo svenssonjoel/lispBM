@@ -263,6 +263,11 @@ static lbm_uint symbol_table_size_strings_flash = 0;
 lbm_value symbol_x = ENC_SYM_NIL;
 lbm_value symbol_y = ENC_SYM_NIL;
 
+// When rebooting an image...
+void lbm_symrepr_set_symlist(lbm_uint *ls) {
+  symlist = ls;
+}
+
 int lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = RUNTIME_SYMBOLS_START;
@@ -361,6 +366,7 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
   lbm_uint *curr = symlist;
   while (curr) {
     char *str = (char*)curr[NAME];
+    printf("looking for %s at %x\n",name, (lbm_uint)str);
     if (str_eq(name, str)) {
       *id = curr[ID];
       return 1;
