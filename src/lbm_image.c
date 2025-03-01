@@ -77,6 +77,12 @@
 //      and table entries are a tagged field in the image (1 extra byte per symbol...)
 //    * Means the image must be initialized (to a degree) before symbols are created.
 
+// MARCH 1:
+// -- Symbols are added to and restored from the image.
+// -- lbm_add_symbol_const, still creates a lbm_memory list structure.
+//    Const symbols should also be stored into the image and add_symbol_const
+//    should check and reuse stored symbol id.
+//    Check order of initialization to see how easy this is to fix.
 
 // Offline image tools
 // - Image compaction: remove overwrite fields and compact the image.
