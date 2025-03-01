@@ -254,7 +254,7 @@ bool write_lbm_value(lbm_value v, uint32_t i) {
 }
 
 lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
-  printf("adding symbol with name at address: %x\n", (lbm_uint)name);
+  printf("adding symbol %s at address: %x\n", name, (lbm_uint)name);
   bool r = image_write(SYMBOL_ENTRY, write_index++);
   lbm_uint entry_ptr = (lbm_uint)image_address + write_index;
   r = r && write_lbm_uint((lbm_uint)name, write_index); write_index += sizeof(lbm_uint);

@@ -826,21 +826,7 @@ int init_repl() {
   lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(error_print);
 
-  init_exts();
 
-#ifdef WITH_SDL
-  if (!lbm_sdl_init()) {
-    return 0;
-  }
-#endif
-
-  /* Load clean_cl library into heap */
-#ifdef CLEAN_UP_CLOSURES
-  if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
-    printf("Error loading a flat library\n");
-    return 1;
-  }
-#endif
   //Load an image
 
   // TODO: Combine set callbacks and init.
@@ -877,6 +863,22 @@ int init_repl() {
   }
 
   lbm_image_boot();
+
+  init_exts();
+
+#ifdef WITH_SDL
+  if (!lbm_sdl_init()) {
+    return 0;
+  }
+#endif
+
+  /* Load clean_cl library into heap */
+#ifdef CLEAN_UP_CLOSURES
+  if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
+    printf("Error loading a flat library\n");
+    return 1;
+  }
+#endif
 
   printf("creating eval thread\n");
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {

@@ -496,16 +496,30 @@ int lbm_add_symbol_flash(char *name, lbm_uint* id) {
   return 0;
 }
 
+// TODO: constant symbol names move around between launches
+//       on linux.
+//       On embedded, this is most likely not the case.
+//       Simple solution is as done here, copy the name into the image
+//       even in the case when the name is a constant.
 int lbm_add_symbol_const_base(char *name, lbm_uint* id) {
-  lbm_uint *m = lbm_memory_allocate(3);
-  if (m == NULL) return 0;
-  symbol_table_size_list += 3;
-  m[NAME] = (lbm_uint) name;
-  m[NEXT] = (lbm_uint) symlist;
-  symlist = m;
-  m[ID] = next_symbol_id;
-  *id = next_symbol_id ++;
-  return 1;
+  lbm_uint symbol_name_storage;
+  if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
+  lbm_uint *new_symlist = lbm_image_add_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist);
+  if (new_symlist) {
+    symlist = new_symlist;
+    *id = next_symbol_id ++;
+    return 1;
+  }
+  return 0;
+  /* lbm_uint *m = lbm_memory_allocate(3); */
+  /* if (m == NULL) return 0; */
+  /* symbol_table_size_list += 3; */
+  /* m[NAME] = (lbm_uint) name; */
+  /* m[NEXT] = (lbm_uint) symlist; */
+  /* symlist = m; */
+  /* m[ID] = next_symbol_id; */
+  /* *id = next_symbol_id ++; */
+  /* return 1; */
 }
 
 int lbm_add_symbol_const(char *name, lbm_uint* id) {
