@@ -366,7 +366,7 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
   lbm_uint *curr = symlist;
   while (curr) {
     char *str = (char*)curr[NAME];
-    printf("looking for %s at %x\n",name, (lbm_uint)str);
+    //printf("looking for %s at %x\n",name, (lbm_uint)str);
     if (str_eq(name, str)) {
       *id = curr[ID];
       return 1;

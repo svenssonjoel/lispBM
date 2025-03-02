@@ -106,14 +106,21 @@
 // constant heap should be 4byte aligned so that the are 2 unused low end bits
 // in all cell-pointers into constant heap. Constant heap should be the first thing
 // to occur in all images to easily ensure this.
-//                             uint8|   uint32   |  ..... 
-#define CONSTANT_HEAP 0x01 // [0x01 | size bytes | pad | data]
-#define BINDING_CONST 0x02 // TBD
-#define BINDING_FLAT  0x03 // TBD
-#define STARTUP_ENTRY 0x04 // [0x04 | size bytes | flatval])
-#define SYMBOL_ENTRY  0x05 // [0x5 | ID | NAME PTR | NEXT_PTR] // symbol_entry with highest address is root.
+//                                      uint8|   uint32   |  .....
+#define CONSTANT_HEAP    0x01       // [0x01 | size bytes | pad | data]
+#define CONSTANT_HEAP_IX 0x02       // [0x02 | uint32]
+#define BINDING_CONST    0x03       // TBD
+#define BINDING_FLAT     0x04       // TBD
+#define STARTUP_ENTRY    0x05       // [0x05 | size bytes | flatval])
+#define SYMBOL_ENTRY     0x06       // [0x06 | ID | NAME PTR | NEXT_PTR] // symbol_entry with highest address is root.
 // tagged data  that can vary in size has a size bytes field.
 // Fixed size data does not.
+
+// To be able to work on an image incrementally (even though it is not recommended)
+// many fields are allowed to be duplicated and the later ones have priority
+// over earlier ones.
+
+
 
 #ifdef LBM64
 #define CONSTANT_HEAP_ALIGN_PAD 3
@@ -253,6 +260,20 @@ bool write_lbm_value(lbm_value v, uint32_t i) {
 #endif
 }
 
+// ////////////////////////////////////////////////////////////
+// Constant heaps as part of an image.
+
+lbm_const_heap_t image_const_heap;
+lbm_uint image_const_heap_start_ix = 0;
+
+bool image_const_heap_write(lbm_uint ix, lbm_uint w) {
+  lbm_uint i = image_const_heap_start_ix + (ix * 4);
+  return write_u32(w, i);
+}
+
+// ////////////////////////////////////////////////////////////
+// Image manipulation
+
 lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
   printf("adding symbol %s at address: %x\n", name, (lbm_uint)name);
   bool r = image_write(SYMBOL_ENTRY, write_index++);
@@ -297,7 +318,7 @@ bool lbm_image_save_global_env(void) {
 bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size) {
 
   bool r = image_write(STARTUP_ENTRY, write_index++);
-  r = write_u32(size, write_index);
+  r = r && write_u32(size, write_index);
   write_index += 4;
   for (uint32_t i = 0; i < size; i ++) {
     r = r && image_write(data[i], write_index++);
@@ -305,14 +326,11 @@ bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size) {
   return r;
 }
 
-// Constant heaps as part of an image.
-
-lbm_const_heap_t image_const_heap;
-lbm_uint image_const_heap_start_ix = 0;
-
-bool image_const_heap_write(lbm_uint ix, lbm_uint w) { // ix is in lbm_uint sized steps
-  lbm_uint i = image_const_heap_start_ix + (ix * 4);
-  return write_u32(w, i);
+bool lbm_image_save_constant_heap_ix(void) {
+  bool r = image_write(CONSTANT_HEAP_IX, write_index++);
+  r = r && write_u32(image_const_heap.next, write_index);
+  write_index += 4;
+  return r;
 }
 
 bool lbm_image_is_empty(void) {
@@ -360,8 +378,10 @@ void lbm_image_boot(void) {
   while (pos < image_size) {
 
     // TODO: loop until done reading image
-    switch(read_u8(pos)) {
+    uint8_t val = read_u8(pos);
+    switch(val) {
     case CONSTANT_HEAP: {
+      printf("constant heap found\n");
       pos ++; // Skip over tag
       image_is_empty = false;
       uint32_t size = read_u32(pos); // BYTES!
@@ -375,7 +395,15 @@ void lbm_image_boot(void) {
                           (lbm_uint)(size / (sizeof(lbm_uint)))); // size in words
       pos += size; // PAD already skipped
     } break;
+    case CONSTANT_HEAP_IX: {
+      printf("restoring write index\n");
+      pos ++;
+      uint32_t next = read_u32(pos);
+      pos += 4;
+      image_const_heap.next = next;
+    } break;
     case BINDING_CONST: {
+      printf("binding const\n");
       lbm_uint sym_id;
       pos ++; //Jump past the BINDING_CONST Tag
       lbm_uint name_size = strlen((char*)(image_address + pos)) + 1;
@@ -416,6 +444,9 @@ void lbm_image_boot(void) {
       pos += 3 * sizeof(lbm_uint);
     } break;
     default:
+      // Remember that this case is evaluated on a fresh image
+      // as well at startup.
+      write_index = pos;
       goto done_loading_image;
       break;
     }

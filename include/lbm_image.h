@@ -29,6 +29,7 @@ uint8_t *lbm_image_startup_address(void);
 uint32_t lbm_image_startup_size(void);
 bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size);
 bool lbm_image_save_global_env(void);
+bool lbm_image_save_constant_heap_ix(void);
 
 lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist);
 
