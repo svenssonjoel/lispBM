@@ -747,7 +747,7 @@ lbm_value ext_image_save_startup(lbm_value *args, lbm_uint argn) {
       fv.buf_pos = 0;
       int r = flatten_value_c(&fv, args[0]);
       if (r != FLATTEN_VALUE_OK) return ENC_SYM_EERROR;
-      lbm_image_save_startup_fv((uint8_t*)(fv.buf), fv_size);
+      lbm_image_save_startup_fv((uint8_t*)(fv.buf), (uint32_t)fv_size);
       lbm_free(fv.buf);
       return ENC_SYM_TRUE;
     } else {

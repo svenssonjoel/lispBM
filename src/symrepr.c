@@ -415,41 +415,41 @@ static bool store_symbol_name_flash(char *name, lbm_uint *res) {
 //       |
 //        [name n-bytes]
 //
-static bool add_symbol_to_symtab(char* name, lbm_uint id) {
-  bool r = false;
-  size_t n = strlen(name) + 1;
-  if (n > 1 && n <= 257) {
-    size_t alloc_size = n + (3 * sizeof(lbm_uint));
-    char *storage = lbm_malloc(alloc_size);
-    if (storage) {
-      memcpy(storage + (3 * sizeof(lbm_uint)), name, n);
-      lbm_uint *m = (lbm_uint*)storage;
+/* static bool add_symbol_to_symtab(char* name, lbm_uint id) { */
+/*   bool r = false; */
+/*   size_t n = strlen(name) + 1; */
+/*   if (n > 1 && n <= 257) { */
+/*     size_t alloc_size = n + (3 * sizeof(lbm_uint)); */
+/*     char *storage = lbm_malloc(alloc_size); */
+/*     if (storage) { */
+/*       memcpy(storage + (3 * sizeof(lbm_uint)), name, n); */
+/*       lbm_uint *m = (lbm_uint*)storage; */
 
-      symbol_table_size_list += 3 * sizeof(lbm_uint); // Bytes
-      symbol_table_size_strings += n; // Bytes
-      m[NAME] = (lbm_uint)&m[3];
-      m[NEXT] = (lbm_uint) symlist;
-      symlist = m;
-      m[ID] =id;
-      r = true;
-    }
-  }
-  return r;
-}
+/*       symbol_table_size_list += 3 * sizeof(lbm_uint); // Bytes */
+/*       symbol_table_size_strings += n; // Bytes */
+/*       m[NAME] = (lbm_uint)&m[3]; */
+/*       m[NEXT] = (lbm_uint) symlist; */
+/*       symlist = m; */
+/*       m[ID] =id; */
+/*       r = true; */
+/*     } */
+/*   } */
+/*   return r; */
+/* } */
 
-static bool add_symbol_to_symtab_flash(lbm_uint name, lbm_uint id) {
-  lbm_uint entry[3];
-  entry[NAME] = name;
-  entry[NEXT] = (lbm_uint) symlist;
-  entry[ID]   = id;
-  lbm_uint entry_addr = 0;
-  if (lbm_write_const_raw(entry,3, &entry_addr) == LBM_FLASH_WRITE_OK) {
-    symlist = (lbm_uint*)entry_addr;
-    symbol_table_size_list_flash += 3;
-    return true;
-  }
-  return false;
-}
+/* static bool add_symbol_to_symtab_flash(lbm_uint name, lbm_uint id) { */
+/*   lbm_uint entry[3]; */
+/*   entry[NAME] = name; */
+/*   entry[NEXT] = (lbm_uint) symlist; */
+/*   entry[ID]   = id; */
+/*   lbm_uint entry_addr = 0; */
+/*   if (lbm_write_const_raw(entry,3, &entry_addr) == LBM_FLASH_WRITE_OK) { */
+/*     symlist = (lbm_uint*)entry_addr; */
+/*     symbol_table_size_list_flash += 3; */
+/*     return true; */
+/*   } */
+/*   return false; */
+/* } */
 
 int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash) {
   lbm_uint symbol_name_storage;
@@ -496,14 +496,13 @@ int lbm_add_symbol_flash(char *name, lbm_uint* id) {
   return 0;
 }
 
-// TODO: constant symbol names move around between launches
-//       on linux.
-//       On embedded, this is most likely not the case.
-//       Simple solution is as done here, copy the name into the image
-//       even in the case when the name is a constant.
+// on Linux, win, etc a const and string need not be at
+// the same address between runs.
 int lbm_add_symbol_const_base(char *name, lbm_uint* id) {
-  lbm_uint symbol_name_storage;
+  lbm_uint symbol_name_storage = (lbm_uint)name;
+#ifdef __PIC__
   if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
+#endif
   lbm_uint *new_symlist = lbm_image_add_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist);
   if (new_symlist) {
     symlist = new_symlist;
@@ -511,15 +510,6 @@ int lbm_add_symbol_const_base(char *name, lbm_uint* id) {
     return 1;
   }
   return 0;
-  /* lbm_uint *m = lbm_memory_allocate(3); */
-  /* if (m == NULL) return 0; */
-  /* symbol_table_size_list += 3; */
-  /* m[NAME] = (lbm_uint) name; */
-  /* m[NEXT] = (lbm_uint) symlist; */
-  /* symlist = m; */
-  /* m[ID] = next_symbol_id; */
-  /* *id = next_symbol_id ++; */
-  /* return 1; */
 }
 
 int lbm_add_symbol_const(char *name, lbm_uint* id) {

@@ -261,7 +261,7 @@ lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
   r = r && write_lbm_uint(id, write_index); write_index += sizeof(lbm_uint);
   r = r && write_lbm_uint(symlist, write_index); write_index += sizeof(lbm_uint);
   if (r)
-    return entry_ptr;
+    return (lbm_uint*)entry_ptr;
   return NULL;
 }
 
@@ -280,7 +280,7 @@ bool lbm_image_save_global_env(void) {
           image_write(BINDING_CONST, write_index); write_index++;
           size_t n = strlen(name) + 1; // write the 0
           for (size_t str_i = 0; str_i < n; str_i ++) {
-            image_write(name[str_i], write_index); write_index++;
+            image_write((uint8_t)name[str_i], write_index); write_index++;
           }
           write_lbm_value(val_field, write_index); write_index+=sizeof(lbm_uint);
         } else {
@@ -302,7 +302,7 @@ bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size) {
   r = r && image_write(b[1], write_index++);
   r = r && image_write(b[2], write_index++);
   r = r && image_write(b[3], write_index++);
-  for (int i = 0; i < size; i ++) {
+  for (uint32_t i = 0; i < size; i ++) {
     r = r && image_write(data[i], write_index++);
   }
   return r;
@@ -330,17 +330,10 @@ void lbm_image_clear(void) {
 
 // you probably want to specify const heap size in number of words ?
 bool lbm_image_create_const_heap(uint32_t size_words) {
-
   uint32_t size_bytes = size_words * sizeof(lbm_uint);
-
   if (size_bytes < image_size) {
-    uint8_t *b = (uint8_t*)&size_bytes;
-
     image_write(CONSTANT_HEAP, write_index);
-    image_write(b[0], write_index+1); // what byte order does this end up being?
-    image_write(b[1], write_index+2);
-    image_write(b[2], write_index+3);
-    image_write(b[3], write_index+4);
+    write_u32(size_bytes, write_index+1);
     write_index += 5;
     write_index += CONSTANT_HEAP_ALIGN_PAD;
     write_index += size_bytes;
