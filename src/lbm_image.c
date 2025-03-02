@@ -295,13 +295,10 @@ bool lbm_image_save_global_env(void) {
 }
 
 bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size) {
-  uint8_t *b = (uint8_t*)&size;
 
   bool r = image_write(STARTUP_ENTRY, write_index++);
-  r = r && image_write(b[0], write_index++);
-  r = r && image_write(b[1], write_index++);
-  r = r && image_write(b[2], write_index++);
-  r = r && image_write(b[3], write_index++);
+  r = write_u32(size, write_index);
+  write_index += 4;
   for (uint32_t i = 0; i < size; i ++) {
     r = r && image_write(data[i], write_index++);
   }

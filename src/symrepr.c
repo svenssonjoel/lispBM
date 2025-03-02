@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021, 2022, 2024 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022, 2024, 2025 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -496,7 +496,7 @@ int lbm_add_symbol_flash(char *name, lbm_uint* id) {
   return 0;
 }
 
-// on Linux, win, etc a const and string need not be at
+// on Linux, win, etc a const string may not be at
 // the same address between runs.
 int lbm_add_symbol_const_base(char *name, lbm_uint* id) {
   lbm_uint symbol_name_storage = (lbm_uint)name;
