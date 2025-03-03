@@ -376,8 +376,6 @@ void lbm_image_boot(void) {
   uint32_t pos = 0;
 
   while (pos < image_size) {
-
-    // TODO: loop until done reading image
     uint8_t val = read_u8(pos);
     switch(val) {
     case CONSTANT_HEAP: {
@@ -412,14 +410,14 @@ void lbm_image_boot(void) {
         goto done_loading_image;
       }
 #ifdef LBM64
-      lbm_uint val = read_u64(pos+name_size);
+      lbm_uint bind_val = read_u64(pos+name_size);
 #else
-      lbm_uint val = read_u32(pos+name_size);
+      lbm_uint bind_val = read_u32(pos+name_size);
 #endif
       lbm_uint ix_key  = sym_id & GLOBAL_ENV_MASK;
       lbm_value *global_env = lbm_get_global_env();
       lbm_uint orig_env = global_env[ix_key];
-      lbm_value new_env = lbm_env_set(orig_env,lbm_enc_sym(sym_id),val);
+      lbm_value new_env = lbm_env_set(orig_env,lbm_enc_sym(sym_id),bind_val);
 
       if (lbm_is_symbol(new_env)) {
         printf("error restoring binding from image\n");

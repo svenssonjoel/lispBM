@@ -260,9 +260,6 @@ static lbm_uint symbol_table_size_list_flash = 0;
 static lbm_uint symbol_table_size_strings = 0;
 static lbm_uint symbol_table_size_strings_flash = 0;
 
-lbm_value symbol_x = ENC_SYM_NIL;
-lbm_value symbol_y = ENC_SYM_NIL;
-
 // When rebooting an image...
 void lbm_symrepr_set_symlist(lbm_uint *ls) {
   symlist = ls;
@@ -275,13 +272,6 @@ int lbm_symrepr_init(void) {
   symbol_table_size_list_flash = 0;
   symbol_table_size_strings = 0;
   symbol_table_size_strings_flash = 0;
-
-  lbm_uint x = 0;
-  lbm_uint y = 0;
-  lbm_add_symbol("x", &x);
-  lbm_add_symbol("y", &y);
-  symbol_x = lbm_enc_sym(x);
-  symbol_y = lbm_enc_sym(y);
   return 1;
 }
 
