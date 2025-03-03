@@ -81,6 +81,7 @@ lbm_value flatten_value(lbm_value v);
 int flatten_value_c(lbm_flat_value_t *fv, lbm_value v);
 int flatten_value_size(lbm_value v, int depth);
 void lbm_set_max_flatten_depth(int depth);
+int lbm_get_max_flatten_depth(void);
 
 /** Unflatten a flat value stored in an lbm_memory array onto the heap
  *

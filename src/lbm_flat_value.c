@@ -247,6 +247,10 @@ void lbm_set_max_flatten_depth(int depth) {
   flatten_maximum_depth = depth;
 }
 
+int lbm_get_max_flatten_depth(void) {
+  return flatten_maximum_depth;
+}
+
 void flatten_error(jmp_buf jb, int val) {
   longjmp(jb, val);
 }
