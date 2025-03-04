@@ -21,6 +21,7 @@
 #include <heap.h>
 #include <env.h>
 #include <lbm_flat_value.h>
+#include <eval_cps.h>
 
 // Assumptions about the image memory:
 // * It is part of the address space.
@@ -110,8 +111,8 @@
 //                                      uint8|   uint32   |  .....
 #define CONSTANT_HEAP    0x01       // [0x01 | size bytes | pad | data]
 #define CONSTANT_HEAP_IX 0x02       // [0x02 | uint32]
-#define BINDING_CONST    0x03       // [0x03 | string | lbm_uint ]
-#define BINDING_FLAT     0x04       // [0x04 | TBD
+#define BINDING_CONST    0x03       // [0x03 | key | lbm_uint ]
+#define BINDING_FLAT     0x04       // [0x04 | size bytes | key | flatval ]
 #define STARTUP_ENTRY    0x05       // [0x05 | size bytes | flatval])
 #define SYMBOL_ENTRY     0x06       // [0x06 | ID | NAME PTR | NEXT_PTR] // symbol_entry with highest address is root.
 // tagged data  that can vary in size has a size bytes field.
@@ -120,8 +121,6 @@
 // To be able to work on an image incrementally (even though it is not recommended)
 // many fields are allowed to be duplicated and the later ones have priority
 // over earlier ones.
-
-
 
 #ifdef LBM64
 #define CONSTANT_HEAP_ALIGN_PAD 3
@@ -286,30 +285,32 @@ static bool i_f_lisp_array(uint32_t size) {
   return r;
 }
 
-/* static bool i_f_sym(lbm_uint sym_id) { */
-/*   bool r = && image_write(write_index++,S_SYM_VALUE); */
-/*   #ifndef LBM64 */
-/*   r = r && write_u32(sym_id); */
-/*   write_index+=4; */
-/*   #else */
-/*   r = r && write_u64(sym_id); */
-/*   write_index+=8; */
-/*   #endif */
-/*   return r; */
-/* } */
-
-static bool i_f_sym_string(char *str) {
-  if (str) {
-    lbm_uint sym_bytes = strlen(str) + 1;
-    if (image_write(S_SYM_STRING, write_index++)) {
-      for (lbm_uint i = 0; i <sym_bytes; i ++) {
-        if (!image_write((uint8_t)str[i], write_index++)) return false;
-      }
-      return true;
-    }
-  }
-  return false;
+static bool i_f_sym(lbm_value sym) {
+  lbm_uint sym_id = lbm_dec_sym(sym);
+  printf("flattening sym value %x\n", sym_id);
+  bool r = image_write(S_SYM_VALUE, write_index++);
+  #ifndef LBM64
+  r = r && write_u32(sym_id, write_index);
+  write_index+=4;
+  #else
+  r = r && write_u64(sym_id, write_index);
+  write_index+=8;
+  #endif
+  return r;
 }
+
+/* static bool i_f_sym_string(char *str) { */
+/*   if (str) { */
+/*     lbm_uint sym_bytes = strlen(str) + 1; */
+/*     if (image_write(S_SYM_STRING, write_index++)) { */
+/*       for (lbm_uint i = 0; i <sym_bytes; i ++) { */
+/*         if (!image_write((uint8_t)str[i], write_index++)) return false; */
+/*       } */
+/*       return true; */
+/*     } */
+/*   } */
+/*   return false; */
+/* } */
 
 static bool i_f_i(lbm_int i) {
   bool res = true;
@@ -483,8 +484,8 @@ static bool image_flatten_value(lbm_value v) {
     }
     break;
   case LBM_TYPE_SYMBOL: {
-    char *sym_str = (char*)lbm_get_name_by_symbol(lbm_dec_sym(v));
-    if (i_f_sym_string(sym_str)) {
+    //char *sym_str = (char*)lbm_get_name_by_symbol(lbm_dec_sym(v));
+    if (i_f_sym(v)) {
       return true;
     }
   } break;
@@ -539,27 +540,21 @@ bool lbm_image_save_global_env(void) {
       while(lbm_is_cons(curr)) {
         lbm_value name_field = lbm_caar(curr);
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
-        char *name = (char*)lbm_get_name_by_symbol(lbm_dec_sym(name_field));
-        if (!name) return false;
         if (lbm_is_constant(val_field)) {
+          printf("storing constant binding\n");
           image_write(BINDING_CONST, write_index); write_index++;
-          size_t n = strlen(name) + 1; // write the 0
-          for (size_t str_i = 0; str_i < n; str_i ++) {
-            image_write((uint8_t)name[str_i], write_index); write_index++;
-          }
+          write_lbm_value(name_field, write_index); write_index+=sizeof(lbm_uint);
           write_lbm_value(val_field, write_index); write_index+=sizeof(lbm_uint);
         } else {
-          size_t n = strlen(name) + 1;
           int fv_size = flatten_value_size(val_field, lbm_get_max_flatten_depth());
-          int tot_size = (int)n + fv_size + 1;
+          int tot_size = sizeof(lbm_uint) + fv_size + 1;
           if (write_index + tot_size >= image_size) {
             printf("out of room in image\n");
             return false;
           }
           image_write(BINDING_FLAT, write_index++);
-          for (size_t str_i = 0; str_i < n; str_i ++) {
-            image_write((uint8_t)name[str_i], write_index++);
-          }
+          write_u32(fv_size + sizeof(lbm_uint), write_index); write_index += 4;
+          write_lbm_value(name_field, write_index); write_index+=sizeof(lbm_uint);
           image_flatten_value(val_field);
           printf("flattened env field into image\n");
         }
@@ -658,28 +653,56 @@ void lbm_image_boot(void) {
     } break;
     case BINDING_CONST: {
       printf("binding const\n");
-      lbm_uint sym_id;
       pos ++; //Jump past the BINDING_CONST Tag
-      lbm_uint name_size = strlen((char*)(image_address + pos)) + 1;
-      if (!lbm_add_symbol((char *)(image_address + pos), &sym_id)) {
-        printf("error reading image\n");
-        goto done_loading_image;
-      }
 #ifdef LBM64
-      lbm_uint bind_val = read_u64(pos+name_size);
+      lbm_uint bind_key = read_u64(pos);
+      lbm_uint bind_val = read_u64(pos+8);
 #else
-      lbm_uint bind_val = read_u32(pos+name_size);
+      lbm_uint bind_key = read_u32(pos);
+      lbm_uint bind_val = read_u32(pos+4);
 #endif
-      lbm_uint ix_key  = sym_id & GLOBAL_ENV_MASK;
+      lbm_uint ix_key  = lbm_dec_sym(bind_key) & GLOBAL_ENV_MASK;
       lbm_value *global_env = lbm_get_global_env();
       lbm_uint orig_env = global_env[ix_key];
-      lbm_value new_env = lbm_env_set(orig_env,lbm_enc_sym(sym_id),bind_val);
+      lbm_value new_env = lbm_env_set(orig_env,bind_key,bind_val);
 
       if (lbm_is_symbol(new_env)) {
         printf("error restoring binding from image\n");
       }
       global_env[ix_key] = new_env;
-      pos += sizeof(lbm_uint) + name_size;
+      pos += sizeof(lbm_uint) * 2;
+    } break;
+    case BINDING_FLAT: {
+      printf("binding flat\n");
+      pos ++; // skip tag
+      uint32_t s = read_u32(pos); pos += 4;
+#ifdef LBM64
+      lbm_uint bind_key = read_u64(pos);
+#else
+      lbm_uint bind_key = read_u32(pos);
+#endif
+      pos += sizeof(lbm_uint);
+      lbm_flat_value_t fv;
+      fv.buf = (uint8_t*)(image_address + pos);
+      fv.buf_size = s - 4;
+      fv.buf_pos = 0;
+      lbm_value unflattened;
+      lbm_unflatten_value(&fv, &unflattened);
+      if (lbm_is_symbol_merror(unflattened)) {
+        lbm_perform_gc();
+        lbm_unflatten_value(&fv, &unflattened);
+      }
+
+      lbm_uint ix_key  = lbm_dec_sym(bind_key) & GLOBAL_ENV_MASK;
+      lbm_value *global_env = lbm_get_global_env();
+      lbm_uint orig_env = global_env[ix_key];
+      lbm_value new_env = lbm_env_set(orig_env,bind_key,unflattened);
+
+      if (lbm_is_symbol(new_env)) {
+        printf("error restoring binding from image\n");
+      }
+      global_env[ix_key] = new_env;
+      pos += s - 4;
     } break;
     case STARTUP_ENTRY: {
       pos ++; // skip tag
