@@ -603,7 +603,6 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     b = extract_dword(v, &tmp);
 #endif
     if (b) {
-      printf("unflattening sym value %x\n", tmp);
       *res = lbm_enc_sym(tmp);
       return UNFLATTEN_OK;
     }

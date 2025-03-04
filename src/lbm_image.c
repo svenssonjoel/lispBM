@@ -182,82 +182,90 @@ uint64_t read_u64(uint32_t index) {
 }
 
 
-bool write_u16_be(uint16_t w, uint32_t i) {
-  uint8_t * bytes = (uint8_t*)&w;
-  bool b = image_write(bytes[1], i);
-  b = b && image_write(bytes[0], i+1);
-  return b;
+bool write_u8(uint8_t b, uint32_t *i) {
+  bool r = false;
+  if (*i <= image_size) {
+    r = image_write(b, *i); (*i)++;
+  }
+  return r;
 }
 
-bool write_u32_be(uint32_t w, uint32_t i) {
+bool write_u16_be(uint16_t w, uint32_t *i) {
   uint8_t * bytes = (uint8_t*)&w;
-  bool b = image_write(bytes[3], i);
-  b = b && image_write(bytes[2], i+1);
-  b = b && image_write(bytes[1], i+2);
-  b = b && image_write(bytes[0], i+3);
-  return b;
+  return
+    write_u8(bytes[1], i) &&
+    write_u8(bytes[0], i);
 }
 
-bool write_u64_be(uint64_t dw, uint32_t i) {
+bool write_u32_be(uint32_t w, uint32_t *i) {
+  uint8_t * bytes = (uint8_t*)&w;
+  return
+    write_u8(bytes[3], i) &&
+    write_u8(bytes[2], i) &&
+    write_u8(bytes[1], i) &&
+    write_u8(bytes[0], i);
+}
+
+bool write_u64_be(uint64_t dw, uint32_t *i) {
   uint8_t * bytes = (uint8_t*)&dw;
-  bool b = image_write(bytes[7], i);
-  b = b && image_write(bytes[6], i+1);
-  b = b && image_write(bytes[5], i+2);
-  b = b && image_write(bytes[4], i+3);
-  b = b && image_write(bytes[3], i+4);
-  b = b && image_write(bytes[2], i+5);
-  b = b && image_write(bytes[1], i+6);
-  b = b && image_write(bytes[0], i+7);
-  return b;
+   return
+     write_u8(bytes[7], i) &&
+     write_u8(bytes[6], i) &&
+     write_u8(bytes[5], i) &&
+     write_u8(bytes[4], i) &&
+     write_u8(bytes[3], i) &&
+     write_u8(bytes[2], i) &&
+     write_u8(bytes[1], i) &&
+     write_u8(bytes[0], i);
 }
 
 // Byte order dependent write functions.
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-bool write_u16(uint16_t w, uint32_t i) {
+bool write_u16(uint16_t w, uint32_t *i) {
   uint8_t * bytes = (uint8_t*)&w;
-  bool b = image_write(bytes[0], i);
-  b = b && image_write(bytes[1], i+1);
-  return b;
+  return
+    write_u8(bytes[0], i) &&
+    write_u8(bytes[1], i);
 }
 
-bool write_u32(uint32_t w, uint32_t i) {
+bool write_u32(uint32_t w, uint32_t *i) {
   uint8_t * bytes = (uint8_t*)&w;
-  bool b = image_write(bytes[0], i);
-  b = b && image_write(bytes[1], i+1);
-  b = b && image_write(bytes[2], i+2);
-  b = b && image_write(bytes[3], i+3);
-  return b;
+  return
+    write_u8(bytes[0], i) &&
+    write_u8(bytes[1], i) &&
+    write_u8(bytes[2], i) &&
+    write_u8(bytes[3], i);
 }
 
-bool write_u64(uint64_t dw, uint32_t i) {
+bool write_u64(uint64_t dw, uint32_t *i) {
   uint8_t * bytes = (uint8_t*)&dw;
-  bool b = image_write(bytes[0], i);
-  b = b && image_write(bytes[1], i+1);
-  b = b && image_write(bytes[2], i+2);
-  b = b && image_write(bytes[3], i+3);
-  b = b && image_write(bytes[4], i+4);
-  b = b && image_write(bytes[5], i+5);
-  b = b && image_write(bytes[6], i+6);
-  b = b && image_write(bytes[7], i+7);
-  return b;
+  return
+    write_u8(bytes[0], i) &&
+    write_u8(bytes[1], i) &&
+    write_u8(bytes[2], i) &&
+    write_u8(bytes[3], i) &&
+    write_u8(bytes[4], i) &&
+    write_u8(bytes[5], i) &&
+    write_u8(bytes[6], i) &&
+    write_u8(bytes[7], i);
 }
 
 
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-bool write_u16(uint16_t w, uint32_t i) {
+bool write_u16(uint16_t w, uint32_t *i) {
   return write_u16_be(w,i);
 }
 
-bool write_u32(uint32_t w, uint32_t i) {
+bool write_u32(uint32_t w, uint32_t *i) {
   write_u32_be(w,i);
 }
 
-bool write_u64(uint64_t dw, uint32_t i) {
+bool write_u64(uint64_t dw, uint32_t *i) {
   write_u64_be(dw, i);
 }
 #endif
 
-bool write_lbm_uint(lbm_uint ptr_val, uint32_t i) {
+bool write_lbm_uint(lbm_uint ptr_val, uint32_t *i) {
 #ifdef LBM64
   return write_u64(ptr_val, i);
 #else
@@ -265,7 +273,7 @@ bool write_lbm_uint(lbm_uint ptr_val, uint32_t i) {
 #endif
 }
 
-bool write_lbm_value(lbm_value v, uint32_t i) {
+bool write_lbm_value(lbm_value v, uint32_t *i) {
 #ifdef LBM64
   return write_u64(v, i);
 #else
@@ -285,54 +293,35 @@ bool write_lbm_value(lbm_value v, uint32_t i) {
 //       its numerical representation rather than its string rep.
 
 static bool i_f_cons(void ) {
-  if (write_index < image_size) {
-    return image_write(S_CONS, write_index++);
-  }
-  return false;
+  return write_u8(S_CONS, &write_index);
 }
 
 static bool i_f_lisp_array(uint32_t size) {
   // arrays are smaller than 2^32 elements long
-  bool r = image_write(S_LBM_LISP_ARRAY, write_index++);
-  r = r && write_u32_be(size, write_index); write_index+=4;
+  bool r = write_u8(S_LBM_LISP_ARRAY, &write_index);
+  r = r && write_u32_be(size, &write_index);
   return r;
 }
 
 static bool i_f_sym(lbm_value sym) {
   lbm_uint sym_id = lbm_dec_sym(sym);
-  printf("flattening sym value %x\n", sym_id);
-  bool r = image_write(S_SYM_VALUE, write_index++);
+  bool r = write_u8(S_SYM_VALUE, &write_index);
   #ifndef LBM64
-  r = r && write_u32_be(sym_id, write_index);
-  write_index+=4;
+  r = r && write_u32_be(sym_id, &write_index);
   #else
-  r = r && write_u64_be(sym_id, write_index);
-  write_index+=8;
+  r = r && write_u64_be(sym_id, &write_index);
   #endif
   return r;
 }
 
-/* static bool i_f_sym_string(char *str) { */
-/*   if (str) { */
-/*     lbm_uint sym_bytes = strlen(str) + 1; */
-/*     if (image_write(S_SYM_STRING, write_index++)) { */
-/*       for (lbm_uint i = 0; i <sym_bytes; i ++) { */
-/*         if (!image_write((uint8_t)str[i], write_index++)) return false; */
-/*       } */
-/*       return true; */
-/*     } */
-/*   } */
-/*   return false; */
-/* } */
-
 static bool i_f_i(lbm_int i) {
   bool res = true;
 #ifndef LBM64
-  res = res && image_write(S_I28_VALUE, write_index++);
-  res = res && write_u32_be((uint32_t)i, write_index); write_index += 4;
+  res = res && write_u8(S_I28_VALUE, &write_index);
+  res = res && write_u32_be((uint32_t)i, &write_index);
 #else
-  res = res && image_write(S_I56_VALUE, write_index++);
-  res = res && write_u64_be((uint64_t)i,write_index); write_index +=8;
+  res = res && write_u8(S_I56_VALUE, &write_index);
+  res = res && write_u64_be((uint64_t)i,&write_index);
 #endif
   return res;
 }
@@ -340,74 +329,74 @@ static bool i_f_i(lbm_int i) {
 static bool i_f_u(lbm_uint u) {
   bool res = true;
 #ifndef LBM64
-  res = res && image_write(S_U28_VALUE, write_index++);
-  res = res && write_u32_be((uint32_t)u,write_index); write_index += 4;
+  res = res && write_u8(S_U28_VALUE, &write_index);
+  res = res && write_u32_be((uint32_t)u,&write_index);
 #else
-  res = res && image_write(S_U56_VALUE, write_index++);
-  res = res && write_64_be((uint64_t)u, write_index); write_index += 4;
+  res = res && write_u8(S_U56_VALUE, &write_index);
+  res = res && write_64_be((uint64_t)u, &write_index);
 #endif
   return res;
 }
 
 static bool i_f_b(uint8_t b) {
   bool res = true;
-  res = res && image_write(S_BYTE_VALUE, write_index++);
-  res = res && image_write(b,write_index++);
+  res = res && write_u8(S_BYTE_VALUE, &write_index);
+  res = res && write_u8(b, &write_index);
   return res;
 }
 
 static bool i_f_i32(int32_t w) {
   bool res = true;
-  res = res && image_write(S_I32_VALUE,write_index++);
-  res = res && write_u32_be((uint32_t)w,write_index); write_index+=4;
+  res = res && write_u8(S_I32_VALUE,&write_index);
+  res = res && write_u32_be((uint32_t)w,&write_index);
   return res;
 }
 
 static bool i_f_u32(uint32_t w) {
   bool res = true;
-  res = res && image_write(S_U32_VALUE, write_index++);
-  res = res && write_u32_be(w, write_index); write_index+=4;
+  res = res && write_u8(S_U32_VALUE, &write_index);
+  res = res && write_u32_be(w, &write_index);
   return res;
 }
 
 static bool i_f_float(float f) {
   bool res = true;
-  res = res && image_write(S_FLOAT_VALUE, write_index++);
+  res = res && write_u8(S_FLOAT_VALUE, &write_index);
   uint32_t u;
   memcpy(&u, &f, sizeof(uint32_t));
-  res = res && write_u32_be((uint32_t)u, write_index); write_index+=4;
+  res = res && write_u32_be((uint32_t)u, &write_index);
   return res;
 }
 
 static bool i_f_double(double d) {
   bool res = true;
-  res = res && image_write(S_DOUBLE_VALUE, write_index++);
+  res = res && write_u8(S_DOUBLE_VALUE, &write_index);
   uint64_t u;
   memcpy(&u, &d, sizeof(uint64_t));
-  res = res && write_u64_be(u, write_index); write_index += 8;
+  res = res && write_u64_be(u, &write_index);
   return res;
 }
 
 static bool i_f_i64(int64_t w) {
   bool res = true;
-  res = res && image_write(S_I64_VALUE, write_index++);
-  res = res && write_u64_be((uint64_t)w,write_index); write_index += 8;
+  res = res && write_u8(S_I64_VALUE, &write_index);
+  res = res && write_u64_be((uint64_t)w, &write_index);
   return res;
 }
 
 static bool i_f_u64(uint64_t w) {
   bool res = true;
-  res = res && image_write(S_U64_VALUE, write_index++);
-  res = res && write_u64_be(w, write_index); write_index += 8;
+  res = res && write_u8(S_U64_VALUE, &write_index);
+  res = res && write_u64_be(w, &write_index);
   return res;
 }
 
 // num_bytes is specifically an uint32_t
 static bool i_f_lbm_array(uint32_t num_bytes, uint8_t *data) {
-  bool res = image_write(S_LBM_ARRAY, write_index++);
-  res = res && write_u32_be(num_bytes, write_index); write_index+=4;
+  bool res = write_u8(S_LBM_ARRAY, &write_index);
+  res = res && write_u32_be(num_bytes, &write_index);
   for (uint32_t i = 0; i < num_bytes; i ++ ) {
-    if (!image_write(data[i], write_index++)) return false;
+    if (!write_u8(data[i], &write_index)) return false;
   }
   return true;
 }
@@ -526,7 +515,7 @@ lbm_uint image_const_heap_start_ix = 0;
 
 bool image_const_heap_write(lbm_uint ix, lbm_uint w) {
   lbm_uint i = image_const_heap_start_ix + (ix * 4);
-  return write_u32(w, i);
+  return write_u32(w, &i);
 }
 
 // ////////////////////////////////////////////////////////////
@@ -534,11 +523,11 @@ bool image_const_heap_write(lbm_uint ix, lbm_uint w) {
 
 lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
   printf("adding symbol %s at address: %x\n", name, (lbm_uint)name);
-  bool r = image_write(SYMBOL_ENTRY, write_index++);
+  bool r = write_u8(SYMBOL_ENTRY, &write_index);
   lbm_uint entry_ptr = (lbm_uint)image_address + write_index;
-  r = r && write_lbm_uint((lbm_uint)name, write_index); write_index += sizeof(lbm_uint);
-  r = r && write_lbm_uint(id, write_index); write_index += sizeof(lbm_uint);
-  r = r && write_lbm_uint(symlist, write_index); write_index += sizeof(lbm_uint);
+  r = r && write_lbm_uint((lbm_uint)name, &write_index);
+  r = r && write_lbm_uint(id, &write_index);
+  r = r && write_lbm_uint(symlist, &write_index);
   if (r)
     return (lbm_uint*)entry_ptr;
   return NULL;
@@ -555,9 +544,9 @@ bool lbm_image_save_global_env(void) {
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
         if (lbm_is_constant(val_field)) {
           printf("storing constant binding\n");
-          image_write(BINDING_CONST, write_index); write_index++;
-          write_lbm_value(name_field, write_index); write_index+=sizeof(lbm_uint);
-          write_lbm_value(val_field, write_index); write_index+=sizeof(lbm_uint);
+          write_u8(BINDING_CONST, &write_index);
+          write_lbm_value(name_field, &write_index);
+          write_lbm_value(val_field, &write_index);
         } else {
           int fv_size = flatten_value_size(val_field, lbm_get_max_flatten_depth());
           int tot_size = sizeof(lbm_uint) + fv_size + 1;
@@ -565,9 +554,9 @@ bool lbm_image_save_global_env(void) {
             printf("out of room in image\n");
             return false;
           }
-          image_write(BINDING_FLAT, write_index++);
-          write_u32(fv_size + sizeof(lbm_uint), write_index); write_index += 4;
-          write_lbm_value(name_field, write_index); write_index+=sizeof(lbm_uint);
+          write_u8(BINDING_FLAT, &write_index);
+          write_u32(fv_size + sizeof(lbm_uint), &write_index);
+          write_lbm_value(name_field, &write_index);
           image_flatten_value(val_field);
           printf("flattened env field into image\n");
         }
@@ -581,19 +570,17 @@ bool lbm_image_save_global_env(void) {
 
 bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size) {
 
-  bool r = image_write(STARTUP_ENTRY, write_index++);
-  r = r && write_u32(size, write_index);
-  write_index += 4;
+  bool r = write_u8(STARTUP_ENTRY, &write_index);
+  r = r && write_u32(size, &write_index);
   for (uint32_t i = 0; i < size; i ++) {
-    r = r && image_write(data[i], write_index++);
+    r = r && write_u8(data[i], &write_index);
   }
   return r;
 }
 
 bool lbm_image_save_constant_heap_ix(void) {
-  bool r = image_write(CONSTANT_HEAP_IX, write_index++);
-  r = r && write_u32(image_const_heap.next, write_index);
-  write_index += 4;
+  bool r = write_u8(CONSTANT_HEAP_IX, &write_index);
+  r = r && write_u32(image_const_heap.next, &write_index);
   return r;
 }
 
@@ -611,11 +598,12 @@ void lbm_image_clear(void) {
 bool lbm_image_create_const_heap(uint32_t size_words) {
   uint32_t size_bytes = size_words * sizeof(lbm_uint);
   if (size_bytes < image_size) {
-    image_write(CONSTANT_HEAP, write_index);
-    write_u32(size_bytes, write_index+1);
-    write_index += 5;
+    write_u8(CONSTANT_HEAP, &write_index);
+    write_u32(size_bytes, &write_index);
     write_index += CONSTANT_HEAP_ALIGN_PAD;
     write_index += size_bytes;
+    printf("const heap created %d\n", write_index);
+
     return true;
   }
   return false;
@@ -658,7 +646,6 @@ void lbm_image_boot(void) {
       pos += size; // PAD already skipped
     } break;
     case CONSTANT_HEAP_IX: {
-      printf("restoring write index\n");
       pos ++;
       uint32_t next = read_u32(pos);
       pos += 4;

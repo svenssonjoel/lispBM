@@ -209,10 +209,6 @@ bool const_heap_write(lbm_uint ix, lbm_uint w) {
 }
 
 bool image_write(uint8_t b, lbm_uint ix) {
-  if (ix >= image_storage_size) {
-    printf("write outside of image %d %d\n", ix, image_storage_size);
-    return false;
-  }
   if (image_storage[ix] == 0xff) {
     image_storage[ix] = b;
     return true;
