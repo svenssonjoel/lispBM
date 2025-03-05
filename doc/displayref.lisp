@@ -1,4 +1,5 @@
 
+(set-pic-prefix "disp")
 
 (define font-file (fopen "font_15_18.bin" "r"))
 (define font (load-file font-file))

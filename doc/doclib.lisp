@@ -1,6 +1,11 @@
 
+(define pic-prefix "")
+
 (define png-count 0)
 (define gif-count 0)
+
+(defun set-pic-prefix (s)
+  (setq pic-prefix s))
 
 (defun leading-zeroes (n)
   (if (< n 10) (str-merge "000" (to-str n))
@@ -16,13 +21,13 @@
 (defun png-file () {
        (var n png-count)
        (setq png-count (+ png-count 1))
-       (str-merge "./images/img" (to-str png-count) ".png")
+       (str-merge "./images/" pic-prefix "-img" (to-str png-count) ".png")
        })
 
 (defun gif-file () {
        (var n gif-count)
        (setq gif-count (+ gif-count 1))
-       (str-merge "./images/anm" (to-str gif-count) ".gif")
+       (str-merge "./images/" pic prefix "-anm" (to-str gif-count) ".gif")
        })
 
 (defun is-read-eval-txt (x)
