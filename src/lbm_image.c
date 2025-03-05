@@ -92,6 +92,11 @@
 // - ...
 
 
+// MARCH 5
+// -- Can constants (anything on const heap) contain references into non-constant heap?
+//    - I think not, but should verify this.
+//    - eval_cps move_to_flash performs a deep copy into flash.
+
 // Endianess woes...
 // - little endian     least-significant byte at least address
 // - big endian        most-significant byte at least address
@@ -684,7 +689,7 @@ void lbm_image_boot(void) {
       pos += sizeof(lbm_uint);
       lbm_flat_value_t fv;
       fv.buf = (uint8_t*)(image_address + pos);
-      fv.buf_size = s - 4;
+      fv.buf_size = s - 4 - sizeof(lbm_uint);
       fv.buf_pos = 0;
       lbm_value unflattened;
       lbm_unflatten_value(&fv, &unflattened);
@@ -702,7 +707,7 @@ void lbm_image_boot(void) {
         printf("error restoring binding from image\n");
       }
       global_env[ix_key] = new_env;
-      pos += s - 4;
+      pos += s - 4 - sizeof(lbm_uint);
     } break;
     case STARTUP_ENTRY: {
       pos ++; // skip tag
