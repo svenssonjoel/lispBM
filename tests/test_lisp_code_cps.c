@@ -62,7 +62,7 @@ lbm_uint constants_memory_size = CONSTANT_MEMORY_SIZE;
 #endif
 
 static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
-static uint8_t *image_storage = NULL;
+static uint32_t *image_storage = NULL;
 
 #ifndef LONGER_DELAY
 static uint32_t timeout = 10;
@@ -70,19 +70,15 @@ static uint32_t timeout = 10;
 static uint32_t timeout = 30;
 #endif
 
-bool image_write(uint8_t b, lbm_uint ix) {
-  if (ix >= image_storage_size) {
-    printf("write outside of image %d %d\n", ix, image_storage_size);
-    return false;
-  }
-  if (image_storage[ix] == 0xff) {
-    image_storage[ix] = b;
+bool image_write(uint32_t w, lbm_uint ix) {
+  if (image_storage[ix] == 0xffffffff) {
+    image_storage[ix] = w;
     return true;
-  } else if (image_storage[ix] == b) {
+  } else if (image_storage[ix] == w) {
     return true;
   } else {
     printf("image_storage[%u] = %x\n", ix, image_storage[ix]);
-    printf("when trying to write %x\n", b);
+    printf("when trying to write %x\n", w);
   }
   return false;
 }
@@ -586,7 +582,10 @@ int main(int argc, char **argv) {
     printf("Failed to create const heap in image\n");
     return 0;
   }
-  lbm_image_boot();
+  if (!lbm_image_boot()) {
+    printf("Error booting image\n");
+    return 0;
+  }
 
   res = lbm_eval_init_events(20);
   if (res)
