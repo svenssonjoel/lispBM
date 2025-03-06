@@ -517,22 +517,12 @@ bool lbm_image_save_startup(lbm_value sym) {
 
 bool lbm_image_save_global_env(void) {
   lbm_value *env = lbm_get_global_env();
-  bool has_main = false;
-  lbm_value main_sym = ENC_SYM_NIL;
   if (env) {
     for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
       lbm_value curr = env[i];
       while(lbm_is_cons(curr)) {
         lbm_value name_field = lbm_caar(curr);
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
-
-        const char *name_str = lbm_get_name_by_symbol(lbm_dec_sym(name_field));
-        if (name_str) {
-          if (strcmp(name_str, "main") == 0) {
-            has_main = true;
-            main_sym = name_field;
-          }
-        }
 
         if (lbm_is_constant(val_field)) {
           write_u32(BINDING_CONST, &write_index);
@@ -554,10 +544,6 @@ bool lbm_image_save_global_env(void) {
         }
         curr = lbm_cdr(curr);
       }
-    }
-
-    if (has_main) {
-      lbm_image_save_startup(main_sym);
     }
     return true;
   }

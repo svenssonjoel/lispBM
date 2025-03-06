@@ -725,12 +725,25 @@ lbm_value ext_image_get_startup(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_NIL;
 }
 
-
 lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
   (void) args;
   (void) argn;
 
   bool r = lbm_image_save_global_env();
+
+  lbm_uint main_sym = ENC_SYM_NIL;
+  if (lbm_get_symbol_by_name("main", &main_sym)) {
+    lbm_value binding;
+    if ( lbm_global_env_lookup(&binding, lbm_enc_sym(main_sym))) {
+      if (lbm_is_cons(binding) && lbm_car(binding) == ENC_SYM_CLOSURE) {
+        lbm_image_save_startup(lbm_enc_sym(main_sym));
+        goto image_has_main;
+      }
+    }
+  }
+  lbm_set_error_reason("No main function in image\n");
+  return ENC_SYM_EERROR;
+ image_has_main:
   bool r1 = lbm_image_save_constant_heap_ix();
   return r && r1 ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
