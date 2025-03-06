@@ -136,7 +136,6 @@ static uint32_t *image_address = NULL;
 static uint32_t write_index = 0;
 static uint32_t image_size = 0;
 static bool image_startup = false;
-static uint32_t image_startup_position;
 static uint32_t image_startup_size;
 static lbm_value image_startup_symbol = ENC_SYM_NIL;
 
@@ -156,19 +155,9 @@ lbm_value lbm_image_get_startup(void) {
   return image_startup_symbol;
 }
 
-uint8_t *lbm_image_startup_address(void) {
-  return image_address + image_startup_position;
-}
-
 uint32_t lbm_image_startup_size(void) {
   return image_startup_size;
 }
-
-uint8_t read_u8(uint32_t index) {
-  return *(image_address+index);
-}
-
-// Endianess sensitive read functions.
 
 uint32_t read_u32(uint32_t index) {
   return *((uint32_t*)(image_address + index));
@@ -190,6 +179,8 @@ bool write_u64(uint64_t dw, uint32_t *i) {
     write_u32(words[0], i) &&
     write_u32(words[1], i);
 }
+
+// fv_write function write values as big endian.
 
 uint32_t fv_buf_ix = 0;
 uint8_t  fv_buf[4] = {0};
@@ -214,7 +205,6 @@ bool fv_write_flush(void) {
     return r;
   }
 }
-
 
 bool fv_write_u32(uint32_t w) {
   uint8_t * bytes = (uint8_t*)&w;
@@ -530,17 +520,21 @@ bool lbm_image_save_global_env(void) {
           write_lbm_value(val_field, &write_index);
         } else {
           int fv_size = flatten_value_size(val_field, false);
-          fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1;
-          int tot_size =  fv_size + 1 + (sizeof(lbm_uint) / 4);
+          if (fv_size > 0) {
+            fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1;
+            int tot_size =  fv_size + 1 + (int)(sizeof(lbm_uint) / 4);
 
-          if (write_index + tot_size >= image_size) {
+            if (write_index + (uint32_t)tot_size >=  image_size) {
+              return false;
+            }
+            write_u32(BINDING_FLAT, &write_index);
+            write_u32((uint32_t)fv_size + (sizeof(lbm_uint) / 4), &write_index);
+            write_lbm_value(name_field, &write_index);
+            image_flatten_value(val_field);
+            fv_write_flush();
+          } else {
             return false;
           }
-          write_u32(BINDING_FLAT, &write_index);
-          write_u32(fv_size + (sizeof(lbm_uint) / 4), &write_index);
-          write_lbm_value(name_field, &write_index);
-          image_flatten_value(val_field);
-          fv_write_flush();
         }
         curr = lbm_cdr(curr);
       }
