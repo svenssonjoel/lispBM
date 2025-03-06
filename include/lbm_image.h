@@ -18,16 +18,16 @@
 #ifndef LBM_IMAGE_H_
 #define LBM_IMAGE_H_
 
-typedef bool (*lbm_image_write_fun)(uint8_t data, uint32_t index);
+typedef bool (*lbm_image_write_fun)(uint32_t data, uint32_t index);
 typedef bool (*lbm_image_clear_fun)(void);
 
 // C interface to image manipulation
-uint8_t *lbm_image_get_image(void);
+uint32_t *lbm_image_get_image(void);
+lbm_value lbm_image_get_startup(void);
+
 uint32_t lbm_image_get_size(void);
 bool lbm_image_has_startup(void);
-uint8_t *lbm_image_startup_address(void);
-uint32_t lbm_image_startup_size(void);
-bool lbm_image_save_startup_fv(uint8_t *data, uint32_t size);
+bool lbm_image_save_startup(lbm_value sym);
 bool lbm_image_save_global_env(void);
 bool lbm_image_save_constant_heap_ix(void);
 
@@ -41,9 +41,9 @@ bool lbm_image_create_const_heap(uint32_t size_words);
 void lbm_image_set_callbacks(lbm_image_clear_fun   image_clear_fun,
                              lbm_image_write_fun   image_write_fun);
 
-void lbm_image_init(uint8_t *             image_mem_addr,
-                    uint32_t              max_index);
+void lbm_image_init(uint32_t *image_mem_addr,
+                    uint32_t  image_size);
 
-void lbm_image_boot(void);
+bool lbm_image_boot(void);
 
 #endif

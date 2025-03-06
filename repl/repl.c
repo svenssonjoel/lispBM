@@ -87,7 +87,7 @@ static lbm_char_channel_t buffered_string_tok;
 // ////////////////////////////////////////////////////////////
 // Image
 
-#define IMAGE_STORAGE_SIZE              (128 * 1024)
+#define IMAGE_STORAGE_SIZE              (128 * 256)
 #ifdef LBM64
 #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA000000000000000
 #else
@@ -97,8 +97,9 @@ static lbm_char_channel_t buffered_string_tok;
 
 static char *image_input_file = NULL;
 static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
-static uint8_t *image_storage = NULL;
+static uint32_t *image_storage = NULL;
 
+static size_t constants_memory_size = 4096;  // size words
 
 
 // ////////////////////////////////////////////////////////////
@@ -123,7 +124,7 @@ static volatile bool silent_mode = false;
 
 static size_t lbm_memory_size = LBM_MEMORY_SIZE_10K;
 static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
-static size_t constants_memory_size = 4096;
+
 
 static lbm_uint *constants_memory = NULL;
 
@@ -208,15 +209,15 @@ bool const_heap_write(lbm_uint ix, lbm_uint w) {
   return false;
 }
 
-bool image_write(uint8_t b, lbm_uint ix) {
-  if (image_storage[ix] == 0xff) {
-    image_storage[ix] = b;
+bool image_write(uint32_t w, lbm_uint ix) {
+  if (image_storage[ix] == 0xffffffff) {
+    image_storage[ix] = w;
     return true;
-  } else if (image_storage[ix] == b) {
+  } else if (image_storage[ix] == w) {
     return true;
   } else {
     printf("image_storage[%u] = %x\n", ix, image_storage[ix]);
-    printf("when trying to write %x\n", b);
+    printf("when trying to write %x\n", w);
   }
   return false;
 }
@@ -858,6 +859,7 @@ int init_repl() {
     }
   }
 
+  printf("booting image\n");
   lbm_image_boot();
 
   init_exts();

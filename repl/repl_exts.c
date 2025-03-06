@@ -1,5 +1,5 @@
 /*
-  Copyright 2024 Joel Svensson  svenssonjoel@yahoo.se
+  Copyright 2024 2025 Joel Svensson  svenssonjoel@yahoo.se
             2022 Benjamin Vedder benjamin@vedder.se
 
   This program is free software: you can redistribute it and/or modify
@@ -359,10 +359,10 @@ static lbm_value ext_fwrite_image(lbm_value *args, lbm_uint argn) {
   if (argn == 1 &&
       is_file_handle(args[0])) {
     lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
-    uint8_t *image_data = lbm_image_get_image();
+    uint32_t *image_data = lbm_image_get_image();
     if (image_data) {
       size_t size = (size_t)lbm_image_get_size();
-      fwrite(image_data, 1, size, h->fp);
+      fwrite((uint8_t*)image_data, 1, size * sizeof(uint32_t), h->fp);
       fflush(h->fp);
       res = ENC_SYM_TRUE;
     } else {
@@ -450,7 +450,7 @@ static void buffer_blast_indexed4(uint8_t *dest, uint8_t *img, color_t *colors) 
   uint16_t w    = image_buffer_width(img);
   uint16_t h    = image_buffer_height(img);
   int num_pix = w * h;
-  
+
   uint32_t t_pos = 0;
   for (int i = 0; i < num_pix; i ++) {
     int byte = i >> 2;
@@ -539,8 +539,8 @@ void copy_image_area(uint8_t*target, uint16_t tw, uint16_t th, uint16_t x, uint1
     int end_y = y + h > th ? th : y + h;
     int start_y = y;
 
-    int len = (x + w > tw) ? w - (tw - (x + w)) : w;    
-    int read_y = 0;    
+    int len = (x + w > tw) ? w - (tw - (x + w)) : w;
+    int read_y = 0;
     for (int i = start_y; i < end_y; i ++){
       memcpy(target + (i * tw * 3) + (x * 3), buffer + (read_y * w * 3), (size_t)(len * 3));
       read_y++;
@@ -668,9 +668,9 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
       uint16_t t_w = image_buffer_width(target_image);
       uint16_t t_h = image_buffer_height(target_image);
       if (t_w == w && t_h == h) {
-	memcpy(image_buffer_data(target_image), buffer, (size_t)w * h * 3);
+        memcpy(image_buffer_data(target_image), buffer, (size_t)w * h * 3);
       } else {
-	copy_image_area(image_buffer_data(target_image), t_w, t_h, x, y, buffer, w, h);
+        copy_image_area(image_buffer_data(target_image), t_w, t_h, x, y, buffer, w, h);
       }
       free(buffer);
       r = true;
@@ -715,41 +715,16 @@ lbm_value ext_image_has_startup(lbm_value *args, lbm_uint argn) {
   return lbm_image_has_startup() ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
-lbm_value ext_image_get_startup_fv(lbm_value *args, lbm_uint argn) {
+lbm_value ext_image_get_startup(lbm_value *args, lbm_uint argn) {
   (void) args;
   if (argn != 0) return ENC_SYM_TERROR;
-  lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
-  if (lbm_is_symbol(array_cell)) return array_cell;
-  lbm_array_header_t *array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
-  if (array == NULL) return ENC_SYM_MERROR;
-
-  array->data = (lbm_uint*)lbm_image_startup_address();
-  array->size = lbm_image_startup_size();
-  lbm_set_car(array_cell, (lbm_uint)array);
-  array_cell = lbm_set_ptr_type(array_cell, LBM_TYPE_ARRAY);
-  return array_cell;
-}
-
-lbm_value ext_image_save_startup(lbm_value *args, lbm_uint argn) {
-  if (argn == 1) {
-    int32_t fv_size = flatten_value_size(args[0], 0);
-    if (fv_size > 0) {
-      lbm_flat_value_t fv;
-      fv.buf = lbm_malloc((uint32_t)fv_size);
-      if (!fv.buf) return ENC_SYM_MERROR;
-      fv.buf_size = (uint32_t)fv_size;
-      fv.buf_pos = 0;
-      int r = flatten_value_c(&fv, args[0]);
-      if (r != FLATTEN_VALUE_OK) return ENC_SYM_EERROR;
-      lbm_image_save_startup_fv((uint8_t*)(fv.buf), (uint32_t)fv_size);
-      lbm_free(fv.buf);
-      return ENC_SYM_TRUE;
-    } else {
-      return ENC_SYM_EERROR;
-    }
+  lbm_value res;
+  if ( lbm_global_env_lookup(&res, lbm_image_get_startup())) {
+    return res;
   }
-  return ENC_SYM_TERROR;
+  return ENC_SYM_NIL;
 }
+
 
 lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
   (void) args;
@@ -790,9 +765,8 @@ int init_exts(void) {
 
   // boot images, snapshots, workspaces.... 
   lbm_add_extension("image-has-startup",ext_image_has_startup);
-  lbm_add_extension("image-get-startup-fv", ext_image_get_startup_fv);
+  lbm_add_extension("image-get-startup", ext_image_get_startup);
   lbm_add_extension("image-save", ext_image_save);
-  lbm_add_extension("image-save-startup", ext_image_save_startup);
   // Math
   lbm_add_extension("rand", ext_rand);
   lbm_add_extension("rand-max", ext_rand_max);
