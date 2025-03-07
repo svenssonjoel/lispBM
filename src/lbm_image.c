@@ -581,7 +581,6 @@ void lbm_image_init(uint32_t* image_mem_address,
 
 bool lbm_image_exists(void) {
   uint32_t val = read_u32(0);
-  printf("%d\n", val);
   return val == CONSTANT_HEAP; // constant heap always first thing in image
 }
 
