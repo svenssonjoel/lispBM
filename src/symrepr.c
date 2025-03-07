@@ -447,7 +447,6 @@ int lbm_add_symbol_base(char *name, lbm_uint *id) {
   if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
   lbm_uint *new_symlist = lbm_image_add_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist);
   if (!new_symlist) {
-    printf("add symbol failed\n");
     return 0;
   }
   symlist = new_symlist;
