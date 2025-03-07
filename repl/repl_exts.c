@@ -748,6 +748,12 @@ lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
   return r ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
+lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  return lbm_image_save_constant_heap_ix() ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
 // ------------------------------------------------------------
 // Init
 
@@ -779,6 +785,7 @@ int init_exts(void) {
   // boot images, snapshots, workspaces.... 
   lbm_add_extension("image-has-startup",ext_image_has_startup);
   lbm_add_extension("image-get-startup", ext_image_get_startup);
+  lbm_add_extension("image-save-const-heap-ix", ext_image_save_const_heap_ix);
   lbm_add_extension("image-save", ext_image_save);
   // Math
   lbm_add_extension("rand", ext_rand);

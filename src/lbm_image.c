@@ -542,9 +542,14 @@ bool lbm_image_save_global_env(void) {
   return false;
 }
 
+static uint32_t last_const_heap_ix = 0;
+
 bool lbm_image_save_constant_heap_ix(void) {
-  bool r = write_u32(CONSTANT_HEAP_IX, &write_index);
-  r = r && write_u32(image_const_heap.next, &write_index);
+  bool r = true; // saved or no need to save it.
+  if (image_const_heap.next != last_const_heap_ix) { 
+    r = write_u32(CONSTANT_HEAP_IX, &write_index);
+    r = r && write_u32(image_const_heap.next, &write_index);
+  }
   return r;
 }
 
@@ -587,6 +592,7 @@ bool lbm_image_exists(void) {
 bool lbm_image_boot(void) {
   //process image
   uint32_t pos = 0;
+  last_const_heap_ix = 0;
 
   while (pos < image_size) {
     uint32_t val = read_u32(pos);
@@ -606,6 +612,7 @@ bool lbm_image_boot(void) {
     case CONSTANT_HEAP_IX: {
       uint32_t next = read_u32(pos);
       pos ++;
+      last_const_heap_ix = next;
       image_const_heap.next = next;
     } break;
     case BINDING_CONST: {

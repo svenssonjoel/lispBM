@@ -850,17 +850,14 @@ int init_repl() {
       }
     }
     fclose(f);
-  } else {
+  }
+
+  if (!lbm_image_exists()) {
     image_clear();
     if (!lbm_image_create_const_heap(constants_memory_size)) {
       printf("Failed to create const heap in image\n");
       return 0;
     }
-  }
-
-  if (!lbm_image_exists()) {
-    printf("ERROR: No image!\n");
-    return 0;
   }
   printf("booting image\n");
   lbm_image_boot();
