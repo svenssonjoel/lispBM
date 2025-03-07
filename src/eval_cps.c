@@ -4167,10 +4167,10 @@ static void cont_read_next_token(eval_context_t *ctx) {
           ERROR_CTX(ENC_SYM_MERROR);
         }
       } else {
-        r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false);
+        r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id);
         if (!r) { // this should just fail. GC wont help
           gc();
-          r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false);
+          r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id);
         }
       }
       if (!r) {

@@ -442,7 +442,7 @@ static bool store_symbol_name_flash(char *name, lbm_uint *res) {
 /*   return false; */
 /* } */
 
-int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash) {
+int lbm_add_symbol_base(char *name, lbm_uint *id) {
   lbm_uint symbol_name_storage;
   if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
   lbm_uint *new_symlist = lbm_image_add_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist);
@@ -452,7 +452,6 @@ int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash) {
   }
   symlist = new_symlist;
   *id = next_symbol_id ++;
-
 
   /* if (flash) { */
 
@@ -468,18 +467,7 @@ int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash) {
 int lbm_add_symbol(char *name, lbm_uint* id) {
   lbm_uint sym_id;
   if (!lbm_get_symbol_by_name(name, &sym_id)) {
-    return lbm_add_symbol_base(name, id, false);
-  } else {
-    *id = sym_id;
-    return 1;
-  }
-  return 0;
-}
-
-int lbm_add_symbol_flash(char *name, lbm_uint* id) {
-  lbm_uint sym_id;
-  if (!lbm_get_symbol_by_name(name, &sym_id)) {
-    return lbm_add_symbol_base(name, id, true);
+    return lbm_add_symbol_base(name, id);
   } else {
     *id = sym_id;
     return 1;

@@ -91,7 +91,7 @@ lbm_cid eval_cps_load_and_define(lbm_char_channel_t *tokenizer, char *symbol, bo
   lbm_uint sym_id;
 
   if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
-    if (!lbm_add_symbol_base(symbol, &sym_id,false)) { //ram
+    if (!lbm_add_symbol_base(symbol, &sym_id)) { //ram
       return -1;
     }
   }
