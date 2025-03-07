@@ -584,6 +584,7 @@ int main(int argc, char **argv) {
     printf("Error booting image\n");
     return 0;
   }
+  lbm_add_eval_symbols();
 
   res = lbm_eval_init_events(20);
   if (res)

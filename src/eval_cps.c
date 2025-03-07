@@ -5602,19 +5602,22 @@ static void process_events(void) {
   }
 }
 
-/* eval_cps_run can be paused
-   I think it would be better use a mailbox for
-   communication between other threads and the run_eval
-   but for now a set of variables will be used. */
-void lbm_run_eval(void){
 
+void lbm_add_eval_symbols(void) {
   lbm_uint x = 0;
   lbm_uint y = 0;
   lbm_add_symbol("x", &x);
   lbm_add_symbol("y", &y);
   symbol_x = lbm_enc_sym(x);
   symbol_y = lbm_enc_sym(y);
+}
 
+
+/* eval_cps_run can be paused
+   I think it would be better use a mailbox for
+   communication between other threads and the run_eval
+   but for now a set of variables will be used. */
+void lbm_run_eval(void){
   if (setjmp(critical_error_jmp_buf) > 0) {
     printf_callback("GC stack overflow!\n");
     critical_error_callback();

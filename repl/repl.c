@@ -860,7 +860,9 @@ int init_repl() {
 
   printf("booting image\n");
   lbm_image_boot();
-
+  // Recreate symbol list from image before adding.
+  lbm_add_eval_symbols();
+  // Image must be booted before adding any symbol.
   init_exts();
 
 #ifdef WITH_SDL
@@ -1348,7 +1350,6 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
                 EXTENSION_STORAGE_SIZE)) {
     return 0;
   }
-
 
   if (!lbm_eval_init_events(20)) {
     return 0;

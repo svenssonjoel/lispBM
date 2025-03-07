@@ -470,7 +470,6 @@ static bool image_flatten_value(lbm_value v) {
   return false;
 }
 
-
 // ////////////////////////////////////////////////////////////
 // Constant heaps as part of an image.
 
