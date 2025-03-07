@@ -38,11 +38,9 @@ void lbm_image_clear(void);
 bool lbm_image_create_const_heap(uint32_t size_words);
 
 // startup initialization
-void lbm_image_set_callbacks(lbm_image_clear_fun   image_clear_fun,
-                             lbm_image_write_fun   image_write_fun);
-
 void lbm_image_init(uint32_t *image_mem_addr,
-                    uint32_t  image_size);
+                    uint32_t  image_size,
+                    lbm_image_write_fun   image_write_fun);
 
 bool lbm_image_boot(void);
 

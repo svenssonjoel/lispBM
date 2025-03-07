@@ -477,7 +477,6 @@ static bool image_flatten_value(lbm_value v) {
 lbm_const_heap_t image_const_heap;
 lbm_uint image_const_heap_start_ix = 0;
 
-
 bool image_const_heap_write(lbm_uint ix, uint32_t w) {
   lbm_uint i = image_const_heap_start_ix + ix;
   return write_u32(w, &i);
@@ -571,15 +570,10 @@ bool lbm_image_create_const_heap(uint32_t size_words) {
   return false;
 }
 
-void lbm_image_set_callbacks(lbm_image_clear_fun image_clear_fun,
-                             lbm_image_write_fun image_write_fun) {
-  image_clear = image_clear_fun;
-  image_write = image_write_fun;
-}
-
-
 void lbm_image_init(uint32_t* image_mem_address,
-                    uint32_t image_size_words) {
+                    uint32_t image_size_words,
+                    lbm_image_write_fun image_write_fun) {
+  image_write = image_write_fun;
   image_address = image_mem_address;
   image_size = image_size_words;
 }

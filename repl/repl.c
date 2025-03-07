@@ -827,11 +827,10 @@ int init_repl() {
   //Load an image
 
   // TODO: Combine set callbacks and init.
-  lbm_image_set_callbacks(image_clear,
-                          image_write);
 
   lbm_image_init(image_storage,
-                 image_storage_size);
+                 image_storage_size,
+                 image_write);
 
   if (image_input_file) {
     FILE *f = fopen(image_input_file, "rb");

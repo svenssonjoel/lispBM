@@ -452,15 +452,6 @@ int lbm_add_symbol_base(char *name, lbm_uint *id) {
   }
   symlist = new_symlist;
   *id = next_symbol_id ++;
-
-  /* if (flash) { */
-
-  /*   if (!add_symbol_to_symtab_flash(symbol_name_storage, next_symbol_id)) return 0; */
-  /* } else { */
-  /*   if (!add_symbol_to_symtab(name, next_symbol_id)) { */
-  /*     return 0; */
-  /*   } */
-  /* } */
   return 1;
 }
 

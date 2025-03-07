@@ -571,11 +571,9 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
-  lbm_image_set_callbacks(image_clear,
-                          image_write);
-
   lbm_image_init(image_storage,
-                 image_storage_size);
+                 image_storage_size,
+                 image_write);
 
   image_clear();
   if (!lbm_image_create_const_heap(constants_memory_size)) {
