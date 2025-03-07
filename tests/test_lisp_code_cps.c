@@ -16,6 +16,7 @@
 */
 
 #define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE // MAP_ANON
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -23,6 +24,7 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <sys/mman.h>
 
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
@@ -35,13 +37,14 @@
 #include "extensions/lbm_dyn_lib.h"
 #include "lbm_channel.h"
 #include "lbm_flat_value.h"
+#include "lbm_image.h"
 
 #define WAIT_TIMEOUT 2500
 
 #define GC_STACK_SIZE 96
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 200
-#define CONSTANT_MEMORY_SIZE 32*1024
+#define CONSTANT_MEMORY_SIZE 4*1024 // in words
 
 
 #define FAIL 0
@@ -49,6 +52,17 @@
 
 lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
+lbm_uint constants_memory_size = CONSTANT_MEMORY_SIZE;
+
+#define IMAGE_STORAGE_SIZE              (128 * 1024)
+#ifdef LBM64
+#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA000000000000000
+#else
+#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+#endif
+
+static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
+static uint32_t *image_storage = NULL;
 
 #ifndef LONGER_DELAY
 static uint32_t timeout = 10;
@@ -56,19 +70,21 @@ static uint32_t timeout = 10;
 static uint32_t timeout = 30;
 #endif
 
-void const_heap_init(void) {
-  for (int i = 0; i < CONSTANT_MEMORY_SIZE; i ++) {
-    constants_memory[i] = (lbm_uint)-1;
+bool image_write(uint32_t w, lbm_uint ix) {
+  if (image_storage[ix] == 0xffffffff) {
+    image_storage[ix] = w;
+    return true;
+  } else if (image_storage[ix] == w) {
+    return true;
+  } else {
+    printf("image_storage[%u] = %x\n", ix, image_storage[ix]);
+    printf("when trying to write %x\n", w);
   }
+  return false;
 }
 
-bool const_heap_write(lbm_uint ix, lbm_uint w) {
-  if (ix >= CONSTANT_MEMORY_SIZE) return false;
-  if (constants_memory[ix] != ((lbm_uint)-1)) {
-    printf("Writing to same flash location more than once\n");
-    return false;
-  }
-  constants_memory[ix] = w;
+bool image_clear(void) {
+  memset(image_storage, 0xff, image_storage_size);
   return true;
 }
 
@@ -431,6 +447,15 @@ int main(int argc, char **argv) {
 
   int res = 0;
 
+  image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
+                       IMAGE_STORAGE_SIZE,
+                       PROT_READ | PROT_WRITE,
+                       MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+  if (((int)image_storage) == -1) {
+    printf("error mapping fixed location for flash emulation\n");
+    return 0;
+  }
+
   unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard
   //  bool compress_decompress = false;
 
@@ -439,10 +464,6 @@ int main(int argc, char **argv) {
 
   pthread_t lispbm_thd;
   lbm_cons_t *heap_storage = NULL;
-
-  lbm_const_heap_t const_heap;
-
-  const_heap_init();
 
   int c;
   opterr = 1;
@@ -550,12 +571,20 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
-  if (!lbm_const_heap_init(const_heap_write,
-                           &const_heap,constants_memory,
-                           CONSTANT_MEMORY_SIZE)) {
-    return FAIL;
-  } else {
-    printf("Constants memory initialized\n");
+  lbm_image_set_callbacks(image_clear,
+                          image_write);
+
+  lbm_image_init(image_storage,
+                 image_storage_size);
+
+  image_clear();
+  if (!lbm_image_create_const_heap(constants_memory_size)) {
+    printf("Failed to create const heap in image\n");
+    return 0;
+  }
+  if (!lbm_image_boot()) {
+    printf("Error booting image\n");
+    return 0;
   }
 
   res = lbm_eval_init_events(20);

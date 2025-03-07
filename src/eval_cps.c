@@ -123,6 +123,13 @@ typedef enum {
 #define READ_ERROR_CTX(row, col) read_error_ctx(row, col)
 #endif
 
+// ////////////////////////////////////////////////////////////
+// Local variables used in sort and merge
+lbm_value symbol_x = ENC_SYM_NIL;
+lbm_value symbol_y = ENC_SYM_NIL;
+
+
+
 // Infer canarie
 //
 // In some cases Infer incorrectly complains about null pointer
@@ -4160,22 +4167,10 @@ static void cont_read_next_token(eval_context_t *ctx) {
           ERROR_CTX(ENC_SYM_MERROR);
         }
       } else {
-        if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST &&
-            ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
-          r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id, true); //flash
-          if (!r) {
-            lbm_set_error_reason((char*)lbm_error_str_flash_error);
-            ERROR_CTX(ENC_SYM_FATAL_ERROR);
-          }
-        } else {
-#ifdef LBM_ALWAYS_GC
+        r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false);
+        if (!r) { // this should just fail. GC wont help
           gc();
-#endif
-          r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false); //ram
-          if (!r) {
-            gc();
-            r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false); //ram
-          }
+          r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false);
         }
       }
       if (!r) {
@@ -5612,6 +5607,13 @@ static void process_events(void) {
    communication between other threads and the run_eval
    but for now a set of variables will be used. */
 void lbm_run_eval(void){
+
+  lbm_uint x = 0;
+  lbm_uint y = 0;
+  lbm_add_symbol("x", &x);
+  lbm_add_symbol("y", &y);
+  symbol_x = lbm_enc_sym(x);
+  symbol_y = lbm_enc_sym(y);
 
   if (setjmp(critical_error_jmp_buf) > 0) {
     printf_callback("GC stack overflow!\n");

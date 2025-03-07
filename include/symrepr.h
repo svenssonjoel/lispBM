@@ -40,6 +40,7 @@ extern "C" {
 
 typedef void (*symrepr_name_iterator_fun)(const char *);
 
+void lbm_symrepr_set_symlist(lbm_uint *ls);
 
 /** Initialize the symbol table.
  *

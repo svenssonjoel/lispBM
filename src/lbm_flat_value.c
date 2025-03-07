@@ -1,5 +1,5 @@
 /*
-    Copyright 2023, 2024 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2023, 2024, 2025 Joel Svensson    svenssonjoel@yahoo.se
               2023       Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -247,11 +247,15 @@ void lbm_set_max_flatten_depth(int depth) {
   flatten_maximum_depth = depth;
 }
 
+int lbm_get_max_flatten_depth(void) {
+  return flatten_maximum_depth;
+}
+
 void flatten_error(jmp_buf jb, int val) {
   longjmp(jb, val);
 }
 
-int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
+int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool symbol_strings) {
   if (depth > flatten_maximum_depth) {
     flatten_error(jb, FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH);
   }
@@ -265,9 +269,9 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
   switch (t) {
   case LBM_TYPE_CONS: {
     int res = 0;
-    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1);
+    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1, symbol_strings);
     if (s1 > 0) {
-      int s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1);
+      int s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1, symbol_strings);
       if (s2 > 0) {
         res = (1 + s1 + s2);
       }
@@ -281,7 +285,7 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
       lbm_value *arrdata = (lbm_value*)header->data;
       lbm_uint size = header->size / sizeof(lbm_value);
       for (lbm_uint i = 0; i < size; i ++ ) {
-        sum += flatten_value_size_internal(jb, arrdata[i], depth + 1);
+        sum += flatten_value_size_internal(jb, arrdata[i], depth + 1, symbol_strings);
       }
     } else {
       flatten_error(jb, FLATTEN_VALUE_ERROR_ARRAY);
@@ -306,9 +310,13 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
   case LBM_TYPE_DOUBLE:
     return 1 + 8;
   case LBM_TYPE_SYMBOL: {
-    int s = f_sym_string_bytes(v);
-    if (s > 0) return 1 + s;
-    flatten_error(jb, (int)s);
+    if (symbol_strings) {
+      int s = f_sym_string_bytes(v);
+      if (s > 0) return 1 + s;
+      flatten_error(jb, (int)s);
+    } else {
+      return 1 + sizeof(lbm_uint);
+    }
   } return 0; // already terminated with error
   case LBM_TYPE_ARRAY: {
     // Platform dependent size.
@@ -323,13 +331,13 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
   }
 }
 
-int flatten_value_size(lbm_value v, int depth) {
+int flatten_value_size(lbm_value v, bool symbol_strings) {
   jmp_buf jb;
   int r = setjmp(jb);
   if (r != 0) {
     return r;
   }
-  return flatten_value_size_internal(jb, v, depth);
+  return flatten_value_size_internal(jb, v, 0, symbol_strings);
 }
 
 int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
@@ -467,7 +475,7 @@ lbm_value flatten_value(lbm_value v) {
   lbm_flat_value_t fv;
 
   lbm_array_header_t *array = NULL;
-  int required_mem = flatten_value_size(v, 0);
+  int required_mem = flatten_value_size(v, true);
   if (required_mem > 0) {
     array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
     if (array == NULL) {

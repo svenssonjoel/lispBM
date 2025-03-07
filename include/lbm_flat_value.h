@@ -79,8 +79,9 @@ bool f_u64(lbm_flat_value_t *v, uint64_t w);
 bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_bytes, uint8_t *data);
 lbm_value flatten_value(lbm_value v);
 int flatten_value_c(lbm_flat_value_t *fv, lbm_value v);
-int flatten_value_size(lbm_value v, int depth);
+int flatten_value_size(lbm_value v, bool symbol_strings);
 void lbm_set_max_flatten_depth(int depth);
+int lbm_get_max_flatten_depth(void);
 
 /** Unflatten a flat value stored in an lbm_memory array onto the heap
  *
