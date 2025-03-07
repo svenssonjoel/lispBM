@@ -858,6 +858,10 @@ int init_repl() {
     }
   }
 
+  if (!lbm_image_exists()) {
+    printf("ERROR: No image!\n");
+    return 0;
+  }
   printf("booting image\n");
   lbm_image_boot();
   // Recreate symbol list from image before adding.

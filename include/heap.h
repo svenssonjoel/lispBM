@@ -230,7 +230,7 @@ typedef struct {
 
 extern lbm_heap_state_t lbm_heap_state;
 
-typedef bool (*const_heap_write_fun)(lbm_uint ix, lbm_uint w);
+  typedef bool (*const_heap_write_fun)(lbm_uint w, lbm_uint ix);
 
 typedef struct {
   lbm_uint *heap;

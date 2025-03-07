@@ -5612,7 +5612,6 @@ void lbm_add_eval_symbols(void) {
   symbol_y = lbm_enc_sym(y);
 }
 
-
 /* eval_cps_run can be paused
    I think it would be better use a mailbox for
    communication between other threads and the run_eval

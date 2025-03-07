@@ -42,6 +42,7 @@ void lbm_image_init(uint32_t *image_mem_addr,
                     uint32_t  image_size,
                     lbm_image_write_fun   image_write_fun);
 
+bool lbm_image_exists(void);
 bool lbm_image_boot(void);
 
 #endif
