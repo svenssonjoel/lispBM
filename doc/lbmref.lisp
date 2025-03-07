@@ -1,4 +1,6 @@
 
+(set-pic-prefix "lbmref")
+
 (def ch-symbols
      (section 2 "About Symbols"
               ( list

@@ -1,4 +1,5 @@
 
+(set-pic-prefix "ttf")
 
 (display-to-image)
 (define render-target (img-buffer 'rgb888 320 200))
