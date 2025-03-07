@@ -24,6 +24,7 @@ typedef bool (*lbm_image_clear_fun)(void);
 // C interface to image manipulation
 uint32_t *lbm_image_get_image(void);
 lbm_value lbm_image_get_startup(void);
+uint32_t lbm_image_get_write_index(void);
 
 uint32_t lbm_image_get_size(void);
 bool lbm_image_has_startup(void);

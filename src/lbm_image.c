@@ -147,6 +147,10 @@ uint32_t lbm_image_get_size(void) {
   return image_size;
 }
 
+uint32_t lbm_image_get_write_index(void) {
+  return write_index;
+}
+
 bool lbm_image_has_startup(void) {
   return image_startup;
 }
