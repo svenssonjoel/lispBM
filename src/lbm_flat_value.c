@@ -255,7 +255,7 @@ void flatten_error(jmp_buf jb, int val) {
   longjmp(jb, val);
 }
 
-int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool symbol_strings) {
+int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool image) {
   if (depth > flatten_maximum_depth) {
     flatten_error(jb, FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH);
   }
@@ -266,12 +266,17 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool symbol_
     t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
   }
 
+  if (image && lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
+    // If flattening to image, constants can be stored by reference.
+    return (sizeof(lbm_uint) + 1); // one byte tag, one word ptr
+  }
+
   switch (t) {
   case LBM_TYPE_CONS: {
     int res = 0;
-    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1, symbol_strings);
+    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1, image);
     if (s1 > 0) {
-      int s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1, symbol_strings);
+      int s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1, image);
       if (s2 > 0) {
         res = (1 + s1 + s2);
       }
@@ -285,7 +290,7 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool symbol_
       lbm_value *arrdata = (lbm_value*)header->data;
       lbm_uint size = header->size / sizeof(lbm_value);
       for (lbm_uint i = 0; i < size; i ++ ) {
-        sum += flatten_value_size_internal(jb, arrdata[i], depth + 1, symbol_strings);
+        sum += flatten_value_size_internal(jb, arrdata[i], depth + 1, image);
       }
     } else {
       flatten_error(jb, FLATTEN_VALUE_ERROR_ARRAY);
@@ -310,7 +315,7 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool symbol_
   case LBM_TYPE_DOUBLE:
     return 1 + 8;
   case LBM_TYPE_SYMBOL: {
-    if (symbol_strings) {
+    if (!image) {
       int s = f_sym_string_bytes(v);
       if (s > 0) return 1 + s;
       flatten_error(jb, (int)s);
@@ -331,13 +336,13 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool symbol_
   }
 }
 
-int flatten_value_size(lbm_value v, bool symbol_strings) {
+int flatten_value_size(lbm_value v, bool image) {
   jmp_buf jb;
   int r = setjmp(jb);
   if (r != 0) {
     return r;
   }
-  return flatten_value_size_internal(jb, v, 0, symbol_strings);
+  return flatten_value_size_internal(jb, v, 0, image);
 }
 
 int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
@@ -475,7 +480,7 @@ lbm_value flatten_value(lbm_value v) {
   lbm_flat_value_t fv;
 
   lbm_array_header_t *array = NULL;
-  int required_mem = flatten_value_size(v, true);
+  int required_mem = flatten_value_size(v, false);
   if (required_mem > 0) {
     array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
     if (array == NULL) {
@@ -597,6 +602,20 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
       *res = array;
     }
     return r;
+  }
+  case S_CONSTANT_REF: {
+    lbm_uint tmp;
+    bool b;
+#ifndef LBM64
+    b = extract_word(v, &tmp);
+#else
+    b = extract_dword(v, &tmp);
+#endif
+    if (b) {
+      *res = tmp;
+      return UNFLATTEN_OK;
+    }
+    return UNFLATTEN_MALFORMED;
   }
   case S_SYM_VALUE: {
     lbm_uint tmp;

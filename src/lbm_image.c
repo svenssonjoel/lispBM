@@ -110,8 +110,15 @@
 //
 // Images are going to be mainly little endian.  (what endianess does flatvalues use? I think BE)
 
-// constant heap should be 4byte aligned so that the are 2 unused low end bits
+// constant heap should be 4byte aligned so that there are 2 unused low end bits
 // in all cell-pointers into constant heap.
+
+// March 8
+// -- flattening lead to duplication of shared nodes.
+//    if a = '(1 2 3) and b = (cons 4 a) and c = (cons 5 a)
+//    then the result of flattening a b c each contains a full copy of a.
+// -- flattening a value that in turn points to a constant value, duplicates
+//    the constant value.
 
 
 
@@ -377,6 +384,16 @@ static bool image_flatten_value(lbm_value v) {
     t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
   }
 
+  if (lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
+    bool r = fv_write_u8(S_CONSTANT_REF);
+#ifdef LBM64
+    r = r && fv_write_u64((lbm_uint)v);
+#else
+    r = r && fv_write_u32((lbm_uint)v);
+#endif
+    return r;
+  }
+
   switch (t) {
   case LBM_TYPE_CONS: {
     bool res = true;
@@ -521,7 +538,7 @@ bool lbm_image_save_global_env(void) {
           write_lbm_value(name_field, &write_index);
           write_lbm_value(val_field, &write_index);
         } else {
-          int fv_size = flatten_value_size(val_field, false);
+          int fv_size = flatten_value_size(val_field, true);
           if (fv_size > 0) {
             fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1;
             int tot_size =  fv_size + 1 + (int)(sizeof(lbm_uint) / 4);
@@ -550,7 +567,7 @@ static uint32_t last_const_heap_ix = 0;
 
 bool lbm_image_save_constant_heap_ix(void) {
   bool r = true; // saved or no need to save it.
-  if (image_const_heap.next != last_const_heap_ix) { 
+  if (image_const_heap.next != last_const_heap_ix) {
     r = write_u32(CONSTANT_HEAP_IX, &write_index);
     r = r && write_u32(image_const_heap.next, &write_index);
   }
@@ -585,7 +602,6 @@ void lbm_image_init(uint32_t* image_mem_address,
   image_address = image_mem_address;
   image_size = image_size_words;
   write_index = 0;
-  
 }
 
 bool lbm_image_exists(void) {
