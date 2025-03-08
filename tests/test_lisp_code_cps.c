@@ -406,12 +406,12 @@ LBM_EXTENSION(ext_check, args, argn) {
 
 char *const_prg = "(define a 10) (+ a 1)";
 
-LBM_EXTENSION(ext_const_prg, args, argn) {
+LBM_EXTENSION(ext_flash_prg, args, argn) {
   (void) args;
   (void) argn;
   lbm_value v = ENC_SYM_NIL;
 
-  if (!lbm_share_const_array(&v, const_prg, strlen(const_prg)+1))
+  if (!lbm_share_array_const(&v, const_prg, strlen(const_prg)+1))
     return ENC_SYM_NIL;
   return v;
 }
@@ -616,7 +616,7 @@ int main(int argc, char **argv) {
 
   lbm_add_extension("unblock-rmbr", ext_unblock_rmbr);
   lbm_add_extension("unblock-error", ext_unblock_error);
-  lbm_add_extension("const-prg", ext_const_prg);
+  lbm_add_extension("flash-prg", ext_flash_prg);
   lbm_add_extension("check", ext_check);
   lbm_add_extension("load-inc-i", ext_load_inc_i);
   lbm_add_extension("flatten-depth", ext_flatten_depth);

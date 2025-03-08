@@ -1425,6 +1425,20 @@ static lbm_value fundamental_is_string(lbm_value *args, lbm_uint argn, eval_cont
   return res;
 }
 
+// Check if a value is a constant (stored in flash)
+// Only half true for some shared arrays.. maybe rethink that.
+// constant? is true for constant pointers.
+// atoms could be considered constant in general but are not by constant?
+static lbm_value fundamental_is_constant(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1) {
+    lbm_type t = lbm_type_of(args[0]);
+    return (((args[0] & LBM_PTR_BIT) && (t & LBM_PTR_TO_CONSTANT_BIT)) ? ENC_SYM_TRUE : ENC_SYM_NIL);
+  }
+  return res;
+}
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1492,5 +1506,6 @@ const fundamental_fun fundamental_table[] =
    fundamental_int_div,
    fundamental_identity,
    fundamental_array,
-   fundamental_is_string
+   fundamental_is_string,
+   fundamental_is_constant
   };

@@ -237,7 +237,11 @@ char *lbm_dec_str(lbm_value val) {
   char *res = 0;
   if (lbm_is_array_r(val)) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
-    if (array) res = (char *)array->data;
+    printf("decoding string header: %x\n", (lbm_uint)array);
+    printf("decoding array data at: %x\n", (lbm_uint)array->data);
+    if (array) {
+      res = (char *)array->data;
+    }
   }
   return res;
 }
@@ -1273,8 +1277,6 @@ int lbm_heap_allocate_lisp_array(lbm_value *res, lbm_uint size) {
   return lbm_heap_allocate_array_base(res, false, size);
 }
 
-// Convert a C array into an lbm_array.
-// if the array is in LBM_MEMORY, the lifetime will be managed by the GC after lifting.
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
