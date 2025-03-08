@@ -237,8 +237,6 @@ char *lbm_dec_str(lbm_value val) {
   char *res = 0;
   if (lbm_is_array_r(val)) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
-    printf("decoding string header: %x\n", (lbm_uint)array);
-    printf("decoding array data at: %x\n", (lbm_uint)array->data);
     if (array) {
       res = (char *)array->data;
     }
