@@ -4168,10 +4168,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
         }
       } else {
         r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id);
-        if (!r) { // this should just fail. GC wont help
-          gc();
-          r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id);
-        }
       }
       if (!r) {
         READ_ERROR_CTX(lbm_channel_row(chan), lbm_channel_column(chan));

@@ -1376,7 +1376,7 @@ static lbm_value fundamental_is_list(lbm_value *args, lbm_uint argn, eval_contex
   (void) ctx;
   lbm_value res = ENC_SYM_TERROR;
   if (argn == 1) {
-    res = lbm_is_list_rw(args[0]) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+    res = lbm_is_list(args[0]) ? ENC_SYM_TRUE : ENC_SYM_NIL;
   }
   return res;
 }
