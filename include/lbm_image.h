@@ -36,13 +36,13 @@ lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist);
 
 bool lbm_image_is_empty(void);
 void lbm_image_clear(void);
-bool lbm_image_create_const_heap(uint32_t size_words);
 
 // startup initialization
 void lbm_image_init(uint32_t *image_mem_addr,
                     uint32_t  image_size,
-                    lbm_image_write_fun   image_write_fun);
+                    lbm_image_write_fun  image_write_fun);
 
+void lbm_image_create(void);
 bool lbm_image_exists(void);
 bool lbm_image_boot(void);
 

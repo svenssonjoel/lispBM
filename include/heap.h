@@ -664,8 +664,7 @@ lbm_uint lbm_size_of(lbm_type t);
 
 int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,
-                        lbm_uint *addr,
-                        lbm_uint num_words);
+                        lbm_uint *addr);
 
 lbm_flash_status lbm_allocate_const_cell(lbm_value *res);
 lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res);

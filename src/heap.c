@@ -24,6 +24,8 @@
 #include <lbm_memory.h>
 #include <lbm_custom_type.h>
 #include <lbm_defrag_mem.h>
+#include <lbm_image.h>
+
 
 #include "heap.h"
 #include "symrepr.h"
@@ -1404,10 +1406,8 @@ static const_heap_write_fun const_heap_write = dummy_flash_write;
 
 int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,
-                        lbm_uint *addr,
-                        lbm_uint  num_words) {
+                        lbm_uint *addr) {
   if (((uintptr_t)addr % 4) != 0) return 0;
-  if ((num_words % 2) != 0) return 0;
 
   if (!lbm_const_heap_mutex_initialized) {
     mutex_init(&lbm_const_heap_mutex);
@@ -1422,7 +1422,7 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
   const_heap_write = w_fun;
 
   heap->heap = addr;
-  heap->size = num_words;
+  heap->size = 0;
   heap->next = 0;
 
   lbm_const_heap_state = heap;
@@ -1441,7 +1441,7 @@ lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
   }
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next+1) < lbm_const_heap_state->size) {
+      (lbm_const_heap_state->next+1) < lbm_image_get_write_index()) {
     // A cons cell uses two words.
     lbm_value cell = lbm_const_heap_state->next;
     lbm_const_heap_state->next += 2;
@@ -1456,7 +1456,7 @@ lbm_flash_status lbm_allocate_const_raw(lbm_uint nwords, lbm_uint *res) {
   lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next + nwords) < lbm_const_heap_state->size) {
+      (lbm_const_heap_state->next + nwords) < lbm_image_get_write_index()) {
     lbm_uint ix = lbm_const_heap_state->next;
     *res = (lbm_uint)&lbm_const_heap_state->heap[ix];
     lbm_const_heap_state->next += nwords;
@@ -1470,7 +1470,7 @@ lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res) 
   lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next + n) < lbm_const_heap_state->size) {
+      (lbm_const_heap_state->next + n) < lbm_image_get_write_index()) {
     lbm_uint ix = lbm_const_heap_state->next;
 
     for (unsigned int i = 0; i < n; i ++) {

@@ -87,7 +87,7 @@ static lbm_char_channel_t buffered_string_tok;
 // ////////////////////////////////////////////////////////////
 // Image
 
-#define IMAGE_STORAGE_SIZE              (128 * 256)
+#define IMAGE_STORAGE_SIZE              (128 * 1024) // bytes:
 #ifdef LBM64
 #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA000000000000000
 #else
@@ -829,7 +829,7 @@ int init_repl() {
   // TODO: Combine set callbacks and init.
 
   lbm_image_init(image_storage,
-                 image_storage_size,
+                 image_storage_size / sizeof(lbm_uint),
                  image_write);
 
   if (image_input_file) {
@@ -850,15 +850,11 @@ int init_repl() {
       }
     }
     fclose(f);
+  } else {
+    image_clear();
+    lbm_image_create();
   }
 
-  if (!lbm_image_exists()) {
-    image_clear();
-    if (!lbm_image_create_const_heap(constants_memory_size)) {
-      printf("Failed to create const heap in image\n");
-      return 0;
-    }
-  }
   printf("booting image\n");
   lbm_image_boot();
   // Recreate symbol list from image before adding.
@@ -1359,8 +1355,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   constants_memory = (lbm_uint*)malloc(constants_memory_size * sizeof(lbm_uint));
   memset(constants_memory, 0xFF, constants_memory_size * sizeof(lbm_uint));
   if (!lbm_const_heap_init(const_heap_write,
-                           &const_heap,constants_memory,
-                           constants_memory_size)) {
+                           &const_heap,constants_memory)) {
     return 0;
   }
 
