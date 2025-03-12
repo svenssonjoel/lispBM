@@ -1441,7 +1441,7 @@ lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
   }
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next+1) < lbm_image_get_write_index()) {
+      (lbm_const_heap_state->next+1) < (uint32_t)lbm_image_get_write_index()) {
     // A cons cell uses two words.
     lbm_value cell = lbm_const_heap_state->next;
     lbm_const_heap_state->next += 2;
@@ -1456,7 +1456,7 @@ lbm_flash_status lbm_allocate_const_raw(lbm_uint nwords, lbm_uint *res) {
   lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next + nwords) < lbm_image_get_write_index()) {
+      (lbm_const_heap_state->next + nwords) < (uint32_t)lbm_image_get_write_index()) {
     lbm_uint ix = lbm_const_heap_state->next;
     *res = (lbm_uint)&lbm_const_heap_state->heap[ix];
     lbm_const_heap_state->next += nwords;
@@ -1470,7 +1470,7 @@ lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res) 
   lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next + n) < lbm_image_get_write_index()) {
+      (lbm_const_heap_state->next + n) < (uint32_t)lbm_image_get_write_index()) {
     lbm_uint ix = lbm_const_heap_state->next;
 
     for (unsigned int i = 0; i < n; i ++) {
