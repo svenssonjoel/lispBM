@@ -928,16 +928,17 @@ static bool set_assoc(lbm_value *res, lbm_value keyval, lbm_value assocs) {
 }
 
 static lbm_value fundamental_set_assoc(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void)ctx;
   lbm_value result = ENC_SYM_TERROR;
   lbm_value keyval = ENC_SYM_NIL;
   lbm_value assocs = ENC_SYM_NIL;
   if (nargs == 3) {
-    keyval = lbm_cons(args[0], args[1]);
+    keyval = lbm_cons(args[1], args[2]);
     if (lbm_is_symbol(keyval)) return keyval;
-    assocs = args[2];
+    assocs = args[0];
   } else if (nargs == 2 && lbm_is_cons(args[1])) {
-    assocs = args[1];
-    keyval = args[0];
+    assocs = args[0];
+    keyval = args[1];
   } else return result;
   if (!set_assoc(&result, keyval, assocs)) {
     result = ENC_SYM_EERROR;

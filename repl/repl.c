@@ -825,9 +825,6 @@ int init_repl() {
 
 
   //Load an image
-
-  // TODO: Combine set callbacks and init.
-
   lbm_image_init(image_storage,
                  image_storage_size / sizeof(lbm_uint),
                  image_write);
