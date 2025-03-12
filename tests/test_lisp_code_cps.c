@@ -51,8 +51,8 @@
 #define SUCCESS 1
 
 lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
-lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
-lbm_uint constants_memory_size = CONSTANT_MEMORY_SIZE;
+//lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
+//lbm_uint constants_memory_size = CONSTANT_MEMORY_SIZE;
 
 #define IMAGE_STORAGE_SIZE              (128 * 1024)
 #ifdef LBM64
@@ -572,14 +572,12 @@ int main(int argc, char **argv) {
   }
 
   lbm_image_init(image_storage,
-                 image_storage_size,
+                 image_storage_size / sizeof(lbm_uint),
                  image_write);
 
   image_clear();
-  if (!lbm_image_create_const_heap(constants_memory_size)) {
-    printf("Failed to create const heap in image\n");
-    return 0;
-  }
+  lbm_image_create();
+
   if (!lbm_image_boot()) {
     printf("Error booting image\n");
     return 0;

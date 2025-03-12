@@ -897,7 +897,7 @@ static lbm_value fundamental_assoc(lbm_value *args, lbm_uint nargs, eval_context
 
 static lbm_value fundamental_acons(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
+  lbm_value result = ENC_SYM_TERROR;
   if (nargs == 3) {
     lbm_value keyval = lbm_cons(args[0], args[1]);
     lbm_value new_alist = lbm_cons(keyval, args[2]);
@@ -913,15 +913,34 @@ static lbm_value fundamental_acons(lbm_value *args, lbm_uint nargs, eval_context
   return result;
 }
 
+static bool set_assoc(lbm_value *res, lbm_value keyval, lbm_value assocs) {
+  lbm_value curr = assocs;
+  lbm_value key = lbm_car(keyval);
+  while (lbm_is_cons(curr)) {
+    if (struct_eq(key, lbm_caar(curr))) {
+      lbm_set_car(curr, keyval);
+      *res = assocs;
+      return true;
+    }
+    curr = lbm_cdr(curr);
+  }
+  return false;
+}
+
 static lbm_value fundamental_set_assoc(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
+  lbm_value result = ENC_SYM_TERROR;
+  lbm_value keyval = ENC_SYM_NIL;
+  lbm_value assocs = ENC_SYM_NIL;
   if (nargs == 3) {
-    result = lbm_env_set_functional(args[0], args[1], args[2]);
+    keyval = lbm_cons(args[0], args[1]);
+    if (lbm_is_symbol(keyval)) return keyval;
+    assocs = args[2];
   } else if (nargs == 2 && lbm_is_cons(args[1])) {
-    lbm_value x = lbm_car(args[1]);
-    lbm_value xs = lbm_cdr(args[1]);
-    result = lbm_env_set(args[0], x, xs);
+    assocs = args[1];
+    keyval = args[0];
+  } else return result;
+  if (!set_assoc(&result, keyval, assocs)) {
+    result = ENC_SYM_EERROR;
   }
   return result;
 }
