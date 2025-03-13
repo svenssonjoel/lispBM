@@ -588,6 +588,12 @@ bool lbm_image_save_dynamic_extensions(void) {
 
       char *name_ptr = extension_table[i].name;
       lbm_uint addr;
+      // when PIC, name pointers may move around
+      // between restarts. It is also the case that
+      // the FPTRs will move around as well.
+      // This makes dynamic extensions useless on Linux.
+      // Static extensions are fine as they will be re-added after image-boot
+      // and faulty FPTRs will be replaced.
 #ifdef __PIC__
       r = store_symbol_name_flash(name_ptr, &addr);
       if (!r) return r;
