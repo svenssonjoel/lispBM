@@ -22,6 +22,8 @@
 
 @const-end
 
+(define t000 'ext-apa)
+
 (define ls0 (list 1 2 3 ))
 
 @const-start
@@ -39,20 +41,8 @@
   (print "booting image")
   )
 
-
 (define my-buffer [1 2 3 4 5 6])
 
-
-;; (image-save-env)
-
-;; (define startup '(progn
-;;                    (print (eq (type-of a3) type-i32))
-;;                    (print (eq (type-of a4) type-u32))
-;;                    (print (eq (type-of a1) type-i))
-;;                    (print (eq (type-of a2) type-u))
-;;                    (print ls)))
-
-;; (image-save-startup startup)
-
+(image-save-dynamic-extensions)
 (image-save)
 (fwrite-image (fopen "image.lbm" "w"))

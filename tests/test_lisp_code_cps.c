@@ -51,8 +51,6 @@
 #define SUCCESS 1
 
 lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
-//lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
-//lbm_uint constants_memory_size = CONSTANT_MEMORY_SIZE;
 
 #define IMAGE_STORAGE_SIZE              (128 * 1024)
 #ifdef LBM64

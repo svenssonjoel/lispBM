@@ -121,12 +121,13 @@
 // -- flattening a value that in turn points to a constant value, duplicates
 //    the constant value.
 
-#define IMAGE_INITIALIZED (uint32_t)0x01    // [0x01]
-#define CONSTANT_HEAP_IX  (uint32_t)0x02    // [0x02   | uint32]
-#define BINDING_CONST     (uint32_t)0x03    // [0x03   | key | lbm_uint ]
-#define BINDING_FLAT      (uint32_t)0x04    // [0x04   | size bytes | key | flatval ]
-#define STARTUP_ENTRY     (uint32_t)0x05    // [0x05   | symbol ])
-#define SYMBOL_ENTRY      (uint32_t)0x06    // [0x06   | ID | NAME PTR | NEXT_PTR] // symbol_entry with highest address is root.
+#define IMAGE_INITIALIZED (uint32_t)0x01    // [ 0x01 ]
+#define CONSTANT_HEAP_IX  (uint32_t)0x02    // [ 0x02 | uint32]
+#define BINDING_CONST     (uint32_t)0x03    // [ 0x03 | key | lbm_uint ]
+#define BINDING_FLAT      (uint32_t)0x04    // [ 0x04 | size bytes | key | flatval ]
+#define STARTUP_ENTRY     (uint32_t)0x05    // [ 0x05 | symbol ])
+#define SYMBOL_ENTRY      (uint32_t)0x06    // [ 0x06 | ID | NAME PTR | NEXT_PTR] // symbol_entry with highest address is root.
+#define EXTENSION_TABLE   (uint32_t)0x07    // [ 0x07 | NUM | EXT ...]
 // tagged data  that can vary in size has a size bytes field.
 // Fixed size data does not.
 
@@ -566,12 +567,47 @@ bool lbm_image_save_global_env(void) {
   return false;
 }
 
-bool lbm_image_save_dynamic_extensions(void) {
-  lbm_uint num = lbm_get_num_extensions();
+// The extension table is created at system startup.
+// Extensions can also be added dynamically.
+// Dynamically added extensions have names starting with "ext-"
+// and their names are placed in RAM by the reader.
+//
+// Symbol_id -> index in extension table mapping
+// is created as extensions are added.
+// dynamic extensions are added after "built-in" extensions
+// and have higher indices.
 
-  for (lbm_uint i = 0; i < num; i ++) {
-    // TODO: check if dynamic and store.
-    // name, fptr ...
+bool lbm_image_save_dynamic_extensions(void) {
+  bool r = true;
+  lbm_uint num = lbm_get_num_extensions();
+  if (num > 0) {
+    r = r && write_u32(EXTENSION_TABLE, &write_index, DOWNWARDS);
+    r = r && write_u32((uint32_t)num , &write_index, DOWNWARDS);
+    for (lbm_uint i = 0; i < num; i ++) {
+      if (!r) return r;
+
+      char *name_ptr = extension_table[i].name;
+      lbm_uint addr;
+#ifdef __PIC__
+      r = store_symbol_name_flash(name_ptr, &addr);
+      if (!r) return r;
+      name_ptr = (char *)addr;
+#else
+      if (lbm_memory_ptr_inside((lbm_uint *)name_ptr)) {
+        r = store_symbol_name_flash(name_ptr, &addr);
+        if (!r) return r;
+        name_ptr = (char *)addr;
+      }
+#endif
+#ifdef LBM64
+      r = r && write_u64((uint64_t)name_ptr, &write_index, DOWNWARDS);
+      r = r && write_u64((uint64_t)extension_table[i].fptr, &write_index, DOWNWARDS);
+#else
+      r = r && write_u32((uint32_t)name_ptr, &write_index, DOWNWARDS);
+      r = r && write_u32((uint32_t)extension_table[i].fptr, &write_index, DOWNWARDS);
+#endif
+      // TODO: check if dynamic and store.
+    }
   }
   return true;
 }
@@ -699,6 +735,23 @@ bool lbm_image_boot(void) {
       int32_t entry_pos = pos - (int32_t)(2 * (sizeof(lbm_uint) / 4));
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
       pos -= 3 * (int32_t)(sizeof(lbm_uint) / 4);
+    } break;
+    case EXTENSION_TABLE: {
+      int32_t num = (int32_t)read_u32(pos); pos --;
+
+      for (int32_t i = 0; i < num; i ++) {
+        lbm_uint name;
+        lbm_uint fptr;
+#ifdef LBM64
+        name = read_u64(pos); pos -= 2;
+        fptr = read_u64(pos); pos -= 2;
+#else
+        name = read_u32(pos); pos -= 1;
+        fptr = read_u32(pos); pos -= 1;
+#endif
+        extension_table[i].name = (char*)name;
+        extension_table[i].fptr = (extension_fptr)fptr;
+      }
     } break;
     default:
       write_index = pos+1;
