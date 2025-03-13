@@ -612,7 +612,6 @@ bool lbm_image_save_dynamic_extensions(void) {
       r = r && write_u32((uint32_t)name_ptr, &write_index, DOWNWARDS);
       r = r && write_u32((uint32_t)extension_table[i].fptr, &write_index, DOWNWARDS);
 #endif
-      // TODO: check if dynamic and store.
     }
   }
   return true;
