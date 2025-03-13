@@ -22,6 +22,7 @@
 #include <env.h>
 #include <lbm_flat_value.h>
 #include <eval_cps.h>
+#include <extensions.h>
 
 // Assumptions about the image memory:
 // * It is part of the address space.
@@ -138,7 +139,6 @@
 #define UPWARDS   false
 
 static lbm_image_write_fun image_write = NULL;
-static lbm_image_clear_fun image_clear = NULL;
 
 static bool image_is_empty = true;
 static uint32_t *image_address = NULL;
@@ -181,7 +181,7 @@ uint64_t read_u64(int32_t index) {
 }
 
 bool write_u32(uint32_t w, int32_t *i, bool direction) {
-  bool r = image_write(w, *i);
+  bool r = image_write(w, *i, false);
   (*i) += direction ? -1 : 1;
   return r;
 }
@@ -501,7 +501,7 @@ lbm_uint image_const_heap_start_ix = 0;
 
 bool image_const_heap_write(uint32_t w, uint32_t ix) {
   int32_t i = (int32_t)(image_const_heap_start_ix + ix);
-  return write_u32(w, &i, UPWARDS);
+  return image_write(w, i, true);
 }
 
 // ////////////////////////////////////////////////////////////
@@ -524,7 +524,6 @@ bool lbm_image_save_startup(lbm_value sym) {
   r = r && write_lbm_value(sym, &write_index, DOWNWARDS);
   return r;
 }
-
 
 bool lbm_image_save_global_env(void) {
   lbm_value *env = lbm_get_global_env();
@@ -567,6 +566,16 @@ bool lbm_image_save_global_env(void) {
   return false;
 }
 
+bool lbm_image_save_dynamic_extensions(void) {
+  lbm_uint num = lbm_get_num_extensions();
+
+  for (lbm_uint i = 0; i < num; i ++) {
+    // TODO: check if dynamic and store.
+    // name, fptr ...
+  }
+  return true;
+}
+
 static uint32_t last_const_heap_ix = 0;
 
 bool lbm_image_save_constant_heap_ix(void) {
@@ -580,12 +589,6 @@ bool lbm_image_save_constant_heap_ix(void) {
 
 bool lbm_image_is_empty(void) {
   return image_is_empty;
-}
-
-void lbm_image_clear(void) {
-  image_clear();
-  image_is_empty = true;
-  write_index = 0;
 }
 
 bool lbm_image_exists(void) {
@@ -685,10 +688,10 @@ bool lbm_image_boot(void) {
       lbm_value sym;
 #ifdef LBM64
       sym = read_u64(pos);
-      pos  -= 2;
+      pos -= 2;
 #else
       sym = read_u32(pos);
-      pos  --;
+      pos --;
 #endif
       image_startup_symbol = sym;
     } break;

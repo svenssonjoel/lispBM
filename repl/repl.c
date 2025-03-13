@@ -209,7 +209,7 @@ bool const_heap_write(lbm_uint ix, lbm_uint w) {
   return false;
 }
 
-bool image_write(uint32_t w, int32_t ix) { // ix >= 0 and ix <= image_size
+bool image_write(uint32_t w, int32_t ix, bool const_heap) { // ix >= 0 and ix <= image_size
   if (image_storage[ix] == 0xffffffff) {
     image_storage[ix] = w;
     return true;

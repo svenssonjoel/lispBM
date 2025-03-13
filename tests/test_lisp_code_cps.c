@@ -70,7 +70,8 @@ static uint32_t timeout = 10;
 static uint32_t timeout = 30;
 #endif
 
-bool image_write(uint32_t w, lbm_uint ix) {
+bool image_write(uint32_t w, int32_t ix, bool const_heap) {
+  (void) const_heap;
   if (image_storage[ix] == 0xffffffff) {
     image_storage[ix] = w;
     return true;
