@@ -48,14 +48,16 @@ extern lbm_extension_t *extension_table;
 #define LBM_EXTENSION(name, argv, argn)                                 \
   __attribute__((aligned(LBM_STORABLE_ADDRESS_ALIGNMENT))) lbm_value name(lbm_value *(argv), lbm_uint (argn))
 
-void lbm_extensions_set_next(lbm_uint i);
-
 /** Initialize the extensions subsystem. Extension storage is allocated on lbm_memory.
  *
  * \param extension_storage_size Size of function pointer array.
  * \return 1 on success and 0 for failure
  */
-  int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size);
+int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size);
+/** Set the next index to be given out to the next added extension.
+ * \param i Next index.
+ */
+void lbm_extensions_set_next(lbm_uint i);
 /** The number of extensions that can be allocated.
  * \return The maximum number of extensions that can be added.
  */

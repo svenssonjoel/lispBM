@@ -40,7 +40,16 @@ extern "C" {
 
 typedef void (*symrepr_name_iterator_fun)(const char *);
 
+/** Sets the symlist root element.
+ * \param ls Root element to set as the symlist.
+ */
 void lbm_symrepr_set_symlist(lbm_uint *ls);
+
+/** Store a symbol name on the constant heap (flash).
+ * \param name Symbol name.
+ * \param res Pointer where result address in flash is returned.
+ * \return true on success and false otherwise.
+ */
 bool store_symbol_name_flash(char *name, lbm_uint *res);
 
 /** Initialize the symbol table.
