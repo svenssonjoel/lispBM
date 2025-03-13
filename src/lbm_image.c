@@ -739,7 +739,8 @@ bool lbm_image_boot(void) {
     case EXTENSION_TABLE: {
       int32_t num = (int32_t)read_u32(pos); pos --;
 
-      for (int32_t i = 0; i < num; i ++) {
+      int32_t i = 0;
+      for (i = 0; i < num; i ++) {
         lbm_uint name;
         lbm_uint fptr;
 #ifdef LBM64
@@ -752,6 +753,7 @@ bool lbm_image_boot(void) {
         extension_table[i].name = (char*)name;
         extension_table[i].fptr = (extension_fptr)fptr;
       }
+      lbm_extensions_set_next((lbm_uint)i);
     } break;
     default:
       write_index = pos+1;

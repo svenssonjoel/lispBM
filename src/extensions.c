@@ -32,6 +32,10 @@ static lbm_uint next_extension_ix = 0;
 
 lbm_extension_t *extension_table = NULL;
 
+void lbm_extensions_set_next(lbm_uint i) {
+  next_extension_ix = i;
+}
+
 lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
   (void)args;
   (void)argn;
