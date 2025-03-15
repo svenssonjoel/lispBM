@@ -100,6 +100,11 @@ bool lbm_lookup_extension_id(char *sym_str, lbm_uint *ix) {
 bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   lbm_value symbol;
 
+  // symbol_by_name loops through all symbols. It may be enough
+  // to search only the extension table, but unsure what the effect will
+  // be if adding an extension with same str-name as a built-in or special
+  // form. The extension may override built-in...
+  //
   // Check if symbol already exists.
   if (lbm_get_symbol_by_name(sym_str, &symbol)) {
     if (lbm_is_extension(lbm_enc_sym(symbol))) {
