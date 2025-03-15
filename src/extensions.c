@@ -104,11 +104,8 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   if (lbm_get_symbol_by_name(sym_str, &symbol)) {
     if (lbm_is_extension(lbm_enc_sym(symbol))) {
       // update the extension entry.
-      if (str_eq(extension_table[SYMBOL_IX(symbol)].name, sym_str)) {
-        // Do not replace name ptr.
-        extension_table[SYMBOL_IX(symbol)].fptr = ext;
-        return true;
-      }
+      extension_table[SYMBOL_IX(symbol)].fptr = ext;
+      return true;
     }
     return false;
   }
