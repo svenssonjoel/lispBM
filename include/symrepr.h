@@ -78,7 +78,14 @@ int lbm_add_symbol(char *name, lbm_uint *id);
     \return 1 for success and 0 for failure.
 */
 int lbm_str_to_symbol(char *name, lbm_uint *sym_id);
-int lbm_add_symbol_const_base(char *name, lbm_uint* id);
+/** Add a symbol to the symbol table. The name is assumed to be a statically allocated string.
+ *
+ * \param name Statically allocated name string.
+ * \param id Resulting id is returned through this argument.
+ * \param link If The variable assigned the ID is restored upon an image-boot.
+ * \return 1 for success and 0 for failure.
+ */
+int lbm_add_symbol_const_base(char *name, lbm_uint* id, bool link);
 /** Add a symbol to the symbol table. The name is assumed to be a statically allocated string.
  *
  * \param name Statically allocated name string.
