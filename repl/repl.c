@@ -855,9 +855,11 @@ int init_repl() {
   printf("booting image\n");
   lbm_image_boot();
   // Recreate symbol list from image before adding.
-  lbm_add_eval_symbols();
   // Image must be booted before adding any symbol.
-  init_exts();
+  lbm_add_eval_symbols();
+  if (!lbm_image_has_extensions()) {
+    init_exts();
+  }
 
 #ifdef WITH_SDL
   if (!lbm_sdl_init()) {

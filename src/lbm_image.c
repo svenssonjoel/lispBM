@@ -153,6 +153,7 @@ static uint32_t image_size = 0;
 static bool image_startup = false;
 static uint32_t image_startup_size;
 static lbm_value image_startup_symbol = ENC_SYM_NIL;
+static bool image_has_extensions = false;
 
 uint32_t *lbm_image_get_image(void) {
   return image_address;
@@ -170,6 +171,10 @@ bool lbm_image_has_startup(void) {
   return image_startup;
 }
 
+bool lbm_image_has_extensions(void) {
+  return image_has_extensions;
+}
+
 lbm_value lbm_image_get_startup(void) {
   return image_startup_symbol;
 }
@@ -185,8 +190,6 @@ uint32_t read_u32(int32_t index) {
 uint64_t read_u64(int32_t index) {
   return *((uint64_t*)(image_address + index));
 }
-
-
 
 bool write_u32(uint32_t w, int32_t *i, bool direction) {
   bool r = image_write(w, *i, false);
@@ -614,17 +617,17 @@ bool lbm_image_save_dynamic_extensions(void) {
       // This makes dynamic extensions useless on Linux.
       // Static extensions are fine as they will be re-added after image-boot
       // and faulty FPTRs will be replaced.
-#ifdef __PIC__
-      r = store_symbol_name_flash(name_ptr, &addr);
-      if (!r) return r;
-      name_ptr = (char *)addr;
-#else
+      //#ifdef __PIC__
+      //r = store_symbol_name_flash(name_ptr, &addr);
+      //if (!r) return r;
+      //name_ptr = (char *)addr;
+      //#else
       if (lbm_memory_ptr_inside((lbm_uint *)name_ptr)) {
         r = store_symbol_name_flash(name_ptr, &addr);
         if (!r) return r;
         name_ptr = (char *)addr;
       }
-#endif
+      //#endif
 #ifdef LBM64
       r = r && write_u64((uint64_t)name_ptr, &write_index, DOWNWARDS);
       r = r && write_u64((uint64_t)extension_table[i].fptr, &write_index, DOWNWARDS);
@@ -773,11 +776,11 @@ bool lbm_image_boot(void) {
       link_ptr = read_u32(tmp);
       sym_id   = read_u32(tmp-2);
 #endif
-#ifdef __PIC__
-      printf("write symbol id %u to address %x\n", sym_id, link_ptr);
-#else
+      //#ifdef __PIC__
+      //printf("write symbol id %u to address %x\n", sym_id, link_ptr);
+      //#else
       *((lbm_uint*)link_ptr) = sym_id;
-#endif
+      //#endif
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
       pos -= 4 * (int32_t)(sizeof(lbm_uint) / 4);
     } break;
@@ -799,6 +802,7 @@ bool lbm_image_boot(void) {
         extension_table[i].fptr = (extension_fptr)fptr;
       }
       lbm_extensions_set_next((lbm_uint)i);
+      image_has_extensions = true;
     } break;
     default:
       write_index = pos+1;

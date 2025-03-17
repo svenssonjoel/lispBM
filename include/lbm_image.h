@@ -34,6 +34,7 @@ int32_t lbm_image_get_write_index(void);
 
 uint32_t lbm_image_get_size(void);
 bool lbm_image_has_startup(void);
+bool lbm_image_has_extensions(void);
 bool lbm_image_save_startup(lbm_value sym);
 bool lbm_image_save_global_env(void);
 bool lbm_image_save_dynamic_extensions(void);
