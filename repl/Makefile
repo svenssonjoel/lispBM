@@ -18,7 +18,7 @@ LBMFLAGS = -DFULL_RTS_LIB \
 
 
 
-CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
+CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
 
 PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11
 
