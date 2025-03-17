@@ -27,7 +27,6 @@
 #include "lbm_utils.h"
 
 static lbm_uint ext_max    = 0;
-static lbm_uint ext_num    = 0;
 static lbm_uint next_extension_ix = 0;
 
 lbm_extension_t *extension_table = NULL;
@@ -52,7 +51,6 @@ int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_s
     extension_storage[i].fptr = lbm_extensions_default;
   }
 
-  ext_num = 0;
   next_extension_ix = 0;
   ext_max = (lbm_uint)extension_storage_size;
 
@@ -64,7 +62,7 @@ lbm_uint lbm_get_max_extensions(void) {
 }
 
 lbm_uint lbm_get_num_extensions(void) {
-  return ext_num;
+  return next_extension_ix;
 }
 
 extension_fptr lbm_get_extension(lbm_uint sym) {
@@ -119,7 +117,6 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext) {
     lbm_uint sym_ix = next_extension_ix ++;
     extension_table[sym_ix].name = sym_str;
     extension_table[sym_ix].fptr = ext;
-    ext_num ++;
     return true;
   }
   return false;

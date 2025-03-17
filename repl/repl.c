@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021, 2022, 2024 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022, 2024, 2025 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
