@@ -89,7 +89,7 @@ static lbm_char_channel_t buffered_string_tok;
 
 #define IMAGE_STORAGE_SIZE              (128 * 1024) // bytes:
 #ifdef LBM64
-#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA000000000000000
+#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
 #else
 #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
 #endif
@@ -852,13 +852,15 @@ int init_repl() {
     lbm_image_create();
   }
 
-  printf("booting image\n");
+  printf("Booting image\n");
   lbm_image_boot();
   // Recreate symbol list from image before adding.
   // Image must be booted before adding any symbol.
   lbm_add_eval_symbols();
   if (!lbm_image_has_extensions()) {
     init_exts();
+  } else {
+    printf("Image contains extensions\n");
   }
 
 #ifdef WITH_SDL

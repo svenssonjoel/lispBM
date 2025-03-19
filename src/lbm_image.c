@@ -321,7 +321,7 @@ static bool i_f_u(lbm_uint u) {
   res = res && fv_write_u32((uint32_t)u);
 #else
   res = res && fv_write_u8(S_U56_VALUE);
-  res = res && fv_write_64((uint64_t)u);
+  res = res && fv_write_u64((uint64_t)u);
 #endif
   return res;
 }
@@ -424,7 +424,7 @@ static bool image_flatten_value(lbm_value v) {
     if (header) {
       lbm_value *arrdata = (lbm_value*)header->data;
       // always exact multiple of sizeof(lbm_value)
-      lbm_uint size = header->size / sizeof(lbm_value);
+      uint32_t size = (uint32_t)(header->size / sizeof(lbm_value));
       if (!i_f_lisp_array(size)) return FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY;
       int fv_r = true;
       for (lbm_uint i = 0; i < size; i ++ ) {
@@ -510,9 +510,13 @@ static bool image_flatten_value(lbm_value v) {
 lbm_const_heap_t image_const_heap;
 lbm_uint image_const_heap_start_ix = 0;
 
-bool image_const_heap_write(uint32_t w, uint32_t ix) {
+bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
   int32_t i = (int32_t)(image_const_heap_start_ix + ix);
-  return image_write(w, i, true);
+#ifdef LBM64
+  return write_u64(w, &i, true);
+#else
+  return write_u32(w, &i, true);
+#endif
 }
 
 // ////////////////////////////////////////////////////////////
@@ -600,7 +604,7 @@ bool lbm_image_save_global_env(void) {
 // dynamic extensions are added after "built-in" extensions
 // and have higher indices.
 
-bool lbm_image_save_dynamic_extensions(void) {
+bool lbm_image_save_extensions(void) {
   bool r = true;
   lbm_uint num = lbm_get_num_extensions();
   if (num > 0) {
@@ -646,7 +650,7 @@ bool lbm_image_save_constant_heap_ix(void) {
   bool r = true; // saved or no need to save it.
   if (image_const_heap.next != last_const_heap_ix) {
     r = write_u32(CONSTANT_HEAP_IX, &write_index, DOWNWARDS);
-    r = r && write_u32(image_const_heap.next, &write_index, DOWNWARDS);
+    r = r && write_u32((uint32_t)image_const_heap.next, &write_index, DOWNWARDS);
   }
   return r;
 }

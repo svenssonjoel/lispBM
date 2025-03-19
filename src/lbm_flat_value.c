@@ -370,7 +370,7 @@ int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
     if (header) {
       lbm_value *arrdata = (lbm_value*)header->data;
       // always exact multiple of sizeof(lbm_value)
-      lbm_uint size = header->size / sizeof(lbm_value);
+      uint32_t size = (uint32_t)(header->size / sizeof(lbm_value));
       if (!f_lisp_array(fv, size)) return FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY;
       int fv_r = FLATTEN_VALUE_OK;
       for (lbm_uint i = 0; i < size; i ++ ) {

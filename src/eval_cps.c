@@ -819,7 +819,7 @@ void print_environments(char *buf, unsigned int size) {
   }
 }
 
-void print_error_value(char *buf, lbm_uint bufsize, char *pre, lbm_value v, bool lookup) {
+void print_error_value(char *buf, uint32_t bufsize, char *pre, lbm_value v, bool lookup) {
 
   lbm_print_value(buf, bufsize, v);
   printf_callback("%s %s\n",pre, buf);

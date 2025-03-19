@@ -43,6 +43,5 @@
 
 (define my-buffer [1 2 3 4 5 6])
 
-(image-save-dynamic-extensions)
 (image-save)
 (fwrite-image (fopen "image.lbm" "w"))

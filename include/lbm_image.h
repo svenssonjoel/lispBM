@@ -37,7 +37,7 @@ bool lbm_image_has_startup(void);
 bool lbm_image_has_extensions(void);
 bool lbm_image_save_startup(lbm_value sym);
 bool lbm_image_save_global_env(void);
-bool lbm_image_save_dynamic_extensions(void);
+bool lbm_image_save_extensions(void);
 bool lbm_image_save_constant_heap_ix(void);
 /**
  * Add a symbol to the image.
