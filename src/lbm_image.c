@@ -513,9 +513,9 @@ lbm_uint image_const_heap_start_ix = 0;
 bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
   int32_t i = (int32_t)(image_const_heap_start_ix + ix);
 #ifdef LBM64
-  return write_u64(w, &i, true);
+  return write_u64(w, &i, false);
 #else
-  return write_u32(w, &i, true);
+  return write_u32(w, &i, false);
 #endif
 }
 

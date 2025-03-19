@@ -125,9 +125,7 @@ static volatile bool silent_mode = false;
 static size_t lbm_memory_size = LBM_MEMORY_SIZE_10K;
 static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
 
-
 static lbm_uint *constants_memory = NULL;
-
 
 static lbm_uint *memory=NULL;
 static lbm_uint *bitmap=NULL;
@@ -826,7 +824,7 @@ int init_repl() {
 
   //Load an image
   lbm_image_init(image_storage,
-                 image_storage_size / sizeof(lbm_uint),
+                 image_storage_size / sizeof(uint32_t), //sizeof(lbm_uint),
                  image_write);
 
   if (image_input_file) {
@@ -854,6 +852,7 @@ int init_repl() {
 
   printf("Booting image\n");
   lbm_image_boot();
+
   // Recreate symbol list from image before adding.
   // Image must be booted before adding any symbol.
   lbm_add_eval_symbols();
@@ -2264,7 +2263,7 @@ int main(int argc, char **argv) {
         printf("Size: %"PRI_UINT" words\n", const_heap.size);
         printf("Used words: %"PRI_UINT"\n", const_heap.next);
         printf("Free words: %"PRI_UINT"\n", const_heap.size - const_heap.next);
-        printf("image location: %x \n", (lbm_uint)image_storage);
+        printf("image location: %p \n", (void*)image_storage);
         free(str);
       } else if (strncmp(str, ":prof start", 11) == 0) {
         lbm_prof_init(prof_data,
