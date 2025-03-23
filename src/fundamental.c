@@ -361,25 +361,36 @@ static lbm_value fundamental_add(lbm_value *args, lbm_uint nargs, eval_context_t
 #ifdef LBM64
         case LBM_TYPE_I: sum = lbm_enc_i(lbm_dec_i(sum) + lbm_dec_as_i64(v)); break;
         case LBM_TYPE_U: sum = lbm_enc_u(lbm_dec_u(sum) + lbm_dec_as_u64(v)); break;
-#else
-        case LBM_TYPE_I: sum = lbm_enc_i(lbm_dec_i(sum) + lbm_dec_as_i32(v)); break;
-        case LBM_TYPE_U: sum = lbm_enc_u(lbm_dec_u(sum) + lbm_dec_as_u32(v)); break;
-#endif
         case LBM_TYPE_U32: sum = lbm_enc_u32(lbm_dec_u32(sum) + lbm_dec_as_u32(v)); break;
         case LBM_TYPE_I32: sum = lbm_enc_i32(lbm_dec_i32(sum) + lbm_dec_as_i32(v)); break;
         case LBM_TYPE_FLOAT: sum = lbm_enc_float(lbm_dec_float(sum) + lbm_dec_as_float(v)); break;
-          // extra check only in the cases that require it. (on 32bit, some wasted cycles on 64 bit)
+#else
+        case LBM_TYPE_I: sum = lbm_enc_i(lbm_dec_i(sum) + lbm_dec_as_i32(v)); break;
+        case LBM_TYPE_U: sum = lbm_enc_u(lbm_dec_u(sum) + lbm_dec_as_u32(v)); break;
+        case LBM_TYPE_U32:
+          sum = lbm_enc_u32(lbm_dec_u32(sum) + lbm_dec_as_u32(v));
+          if (lbm_is_symbol(sum)) goto add_end;
+          break;
+        case LBM_TYPE_I32:
+          sum = lbm_enc_i32(lbm_dec_i32(sum) + lbm_dec_as_i32(v));
+          if (lbm_is_symbol(sum)) goto add_end;
+          break;
+        case LBM_TYPE_FLOAT:
+          sum = lbm_enc_float(lbm_dec_float(sum) + lbm_dec_as_float(v));
+          if (lbm_is_symbol(sum)) goto add_end;
+          break;
+#endif
         case LBM_TYPE_U64:
           sum = lbm_enc_u64(lbm_dec_u64(sum) + lbm_dec_as_u64(v));
-          if (lbm_is_symbol_merror(sum)) goto add_end;
+          if (lbm_is_symbol(sum)) goto add_end;
           break;
         case LBM_TYPE_I64:
           sum = lbm_enc_i64(lbm_dec_i64(sum) + lbm_dec_as_i64(v));
-          if (lbm_is_symbol_merror(sum)) goto add_end;
+          if (lbm_is_symbol(sum)) goto add_end;
           break;
         case LBM_TYPE_DOUBLE:
           sum = lbm_enc_double(lbm_dec_double(sum) + lbm_dec_as_double(v));
-          if (lbm_is_symbol_merror(sum)) goto add_end;
+          if (lbm_is_symbol(sum)) goto add_end;
           break;
         }
     } else {
@@ -387,7 +398,7 @@ static lbm_value fundamental_add(lbm_value *args, lbm_uint nargs, eval_context_t
       sum = ENC_SYM_TERROR;
       break; // out of loop
     }
-  }
+    }
  add_end:
   return sum;
 }

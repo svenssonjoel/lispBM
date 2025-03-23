@@ -388,7 +388,6 @@ bool lbm_event_handler_exists(void) {
   return(lbm_event_handler_pid > 0);
 }
 
-
 static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_uint buf_ptr, lbm_uint buf_len) {
   bool r = false;
   if (lbm_events) {
@@ -2056,7 +2055,7 @@ static void eval_app_cont(eval_context_t *ctx) {
 // Create a named location in an environment to later receive a value.
 // Protects env from GC, other data is the obligation of the called.
 static void create_binding_location(lbm_value key, lbm_value *env) {
-  if (lbm_type_of(key) == LBM_TYPE_SYMBOL) { // default case
+  if (lbm_is_symbol(key)) { // default case
     if (key == ENC_SYM_NIL || key == ENC_SYM_DONTCARE) return;
 #ifdef LBM_ALWAYS_GC
     lbm_gc_mark_phase(*env);
@@ -2145,7 +2144,6 @@ static void eval_var(eval_context_t *ctx) {
       lbm_value new_env = ctx->K.data[sp-4];
       lbm_value args = get_cdr(ctx->curr_exp);
       lbm_value key = get_car(args);
-
       create_binding_location(key, &new_env);
 
       ctx->K.data[sp-4] = new_env;
@@ -3116,7 +3114,7 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_rest_args(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  lbm_value res;
+  lbm_value res = ENC_SYM_NIL; //TODO: lbm_env_lookup does not set res in all cases.
   if (lbm_env_lookup_b(&res, ENC_SYM_REST_ARGS, ctx->curr_env)) {
     if (nargs == 1 && lbm_is_number(args[0])) {
       int32_t ix = lbm_dec_as_i32(args[0]);
@@ -3309,7 +3307,6 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   }
 }
 
-
 static void cont_closure_args_rest(eval_context_t *ctx) {
   lbm_uint* sptr = get_stack_ptr(ctx, 5);
   lbm_value arg_env = (lbm_value)sptr[0];
@@ -3333,7 +3330,6 @@ static void cont_closure_args_rest(eval_context_t *ctx) {
   heap[binding_ix].car = ctx->r;
   heap[binding_ix].cdr = ENC_SYM_NIL;
 
-
   lbm_set_cdr(last, binding);
   sptr[4] = binding;
 
@@ -3343,7 +3339,7 @@ static void cont_closure_args_rest(eval_context_t *ctx) {
     ctx->curr_exp = exp;
   } else {
     stack_reserve(ctx,1)[0] = CLOSURE_ARGS_REST;
-    sptr[3] = get_cdr(args);
+    sptr[3] = get_cdr(args);  
     ctx->curr_exp = get_car(args);
     ctx->curr_env = arg_env;
   }
@@ -4802,7 +4798,7 @@ static void cont_progn_var(eval_context_t* ctx) {
     lbm_set_error_reason("Incorrect type of name/key in let-binding");
     ERROR_AT_CTX(ENC_SYM_TERROR, key);
   }
-
+  ctx->curr_env = env; // evaluating value may build upon local env.
   ctx->app_cont = true;
 }
 
@@ -5668,6 +5664,7 @@ void lbm_run_eval(void){
     }
     while (true) {
 #ifdef LBM_USE_TIME_QUOTA
+
       // use a fast implementation of timestamp where possible.
       if (timestamp_us_callback() < eval_current_quota && ctx_running) {
         evaluation_step();

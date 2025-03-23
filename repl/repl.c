@@ -850,9 +850,8 @@ int init_repl() {
     lbm_image_create();
   }
 
-  printf("Booting image\n");
   lbm_image_boot();
-
+  
   // Recreate symbol list from image before adding.
   // Image must be booted before adding any symbol.
   lbm_add_eval_symbols();

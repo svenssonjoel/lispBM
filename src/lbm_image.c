@@ -197,11 +197,23 @@ bool write_u32(uint32_t w, int32_t *i, bool direction) {
   return r;
 }
 
+
 bool write_u64(uint64_t dw, int32_t *i, bool direction) {
-  uint32_t * words = (uint32_t*)&dw;
-  return
-    write_u32(words[0], i, direction) &&
-    write_u32(words[1], i, direction);
+  uint32_t *words = (uint32_t*)&dw;
+  
+  // downwards   ... hw   lw      
+  //                 ix  ix-1   
+  // upwards     hw   lw ... 
+  //            ix+1  ix
+  bool r = true;
+  if (direction) {
+    r = r && write_u32(words[0], i, direction);
+    r = r && write_u32(words[1], i, direction);
+  } else {
+    r = r && write_u32(words[1], i, direction);
+    r = r && write_u32(words[0], i, direction);
+  }
+  return r;
 }
 
 // fv_write function write values as big endian.
@@ -526,8 +538,8 @@ lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
   bool r = write_u32(SYMBOL_ENTRY, &write_index,DOWNWARDS);
   r = r && write_lbm_uint(symlist, &write_index, DOWNWARDS);
   r = r && write_lbm_uint(id, &write_index, DOWNWARDS);
-  r = r && write_lbm_uint((lbm_uint)name, &write_index, DOWNWARDS);
-  lbm_uint entry_ptr = (lbm_uint)(image_address + write_index + 1);
+  lbm_uint entry_ptr = (lbm_uint)(image_address + write_index);
+  r = r && write_lbm_uint((lbm_uint)name, &write_index, DOWNWARDS);  
   if (r)
     return (lbm_uint*)entry_ptr;
   return NULL;
@@ -539,8 +551,8 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
   r = r && write_lbm_uint((lbm_uint)link, &write_index, DOWNWARDS);
   r = r && write_lbm_uint(symlist, &write_index, DOWNWARDS);
   r = r && write_lbm_uint(id, &write_index, DOWNWARDS);
+  lbm_uint entry_ptr = (lbm_uint)(image_address + write_index);
   r = r && write_lbm_uint((lbm_uint)name, &write_index, DOWNWARDS);
-  lbm_uint entry_ptr = (lbm_uint)(image_address + write_index + 1);
   if (r)
     return (lbm_uint*)entry_ptr;
   return NULL;
@@ -780,11 +792,7 @@ bool lbm_image_boot(void) {
       link_ptr = read_u32(tmp);
       sym_id   = read_u32(tmp-2);
 #endif
-      //#ifdef __PIC__
-      //printf("write symbol id %u to address %x\n", sym_id, link_ptr);
-      //#else
       *((lbm_uint*)link_ptr) = sym_id;
-      //#endif
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
       pos -= 4 * (int32_t)(sizeof(lbm_uint) / 4);
     } break;
