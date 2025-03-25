@@ -17,6 +17,7 @@
 (define a2 2u)
 (define a3 3i32)
 (define a4 4u32)
+(define a5 0xDEADBEEFC0FFFEEEu64)
 
 (define ls (list 'a1 'a2 'a3 'a4))
 

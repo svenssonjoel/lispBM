@@ -188,6 +188,7 @@ uint32_t read_u32(int32_t index) {
 }
 
 uint64_t read_u64(int32_t index) {
+  // image_addres is an u32 ptr. so addr + i is a step of i * 4 bytes
   return *((uint64_t*)(image_address + index));
 }
 
@@ -207,11 +208,11 @@ bool write_u64(uint64_t dw, int32_t *i, bool direction) {
   //            ix+1  ix
   bool r = true;
   if (direction) {
-    r = r && write_u32(words[0], i, direction);
     r = r && write_u32(words[1], i, direction);
+    r = r && write_u32(words[0], i, direction);
   } else {
-    r = r && write_u32(words[1], i, direction);
     r = r && write_u32(words[0], i, direction);
+    r = r && write_u32(words[1], i, direction);
   }
   return r;
 }
@@ -523,10 +524,14 @@ lbm_const_heap_t image_const_heap;
 lbm_uint image_const_heap_start_ix = 0;
 
 bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
-  int32_t i = (int32_t)(image_const_heap_start_ix + ix);
 #ifdef LBM64
-  return write_u64(w, &i, false);
+  int32_t i = (int32_t)(image_const_heap_start_ix + (ix * 2));
+  uint32_t *words = (uint32_t*)&w;
+  bool r = image_write(words[0], i, false);
+  r = r && image_write(words[1], i + 1, false);
+  return r;
 #else
+  int32_t i = (int32_t)(image_const_heap_start_ix + ix);
   return write_u32(w, &i, false);
 #endif
 }
@@ -535,11 +540,19 @@ bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
 // Image manipulation
 
 lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
+  // 64 bit                             | 32 bit
+  // image[i] = SYMBOL_ENTRY            | image[i] = SYMBOL_ENTRY
+  // image[i-1] = symlist_ptr_high_word | image[i-1] = symlist_ptr
+  // image[i-2] = symlist_ptr_low_word  | image[i-2] = id
+  // image[i-3] = id_high_word          | image[i-3] = name_ptr
+  // image[i-4] = id_low_word
+  // image[i-5] = name_ptr_high_word
+  // image[i-6] = name_ptr_low_word
   bool r = write_u32(SYMBOL_ENTRY, &write_index,DOWNWARDS);
   r = r && write_lbm_uint(symlist, &write_index, DOWNWARDS);
   r = r && write_lbm_uint(id, &write_index, DOWNWARDS);
-  lbm_uint entry_ptr = (lbm_uint)(image_address + write_index);
-  r = r && write_lbm_uint((lbm_uint)name, &write_index, DOWNWARDS);  
+  r = r && write_lbm_uint((lbm_uint)name, &write_index, DOWNWARDS);
+  lbm_uint entry_ptr = (lbm_uint)(image_address + write_index + 1);
   if (r)
     return (lbm_uint*)entry_ptr;
   return NULL;
@@ -547,12 +560,22 @@ lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
 
 // The symbol id is written to the link address upon image-boot
 lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlist, lbm_uint *link) {
+  // 64 bit                             | 32 bit
+  // image[i] = SYMBOL_ENTRY            | image[i] = SYMBOL_ENTRY
+  // image[i-1] = link_ptr_high         | image[i-1] link_ptr
+  // image[i-2] = link_ptr_low          | image[i-2] = symlist_ptr
+  // image[i-3] = symlist_ptr_high_word | image[i-3] = id
+  // image[i-4] = symlist_ptr_low_word  | image[i-4] = name_ptr
+  // image[i-5] = id_high_word
+  // image[i-6] = id_low_word
+  // image[i-7] = name_ptr_high_word
+  // image[i-8] = name_ptr_low_word
   bool r = write_u32(SYMBOL_LINK_ENTRY, &write_index,DOWNWARDS);
   r = r && write_lbm_uint((lbm_uint)link, &write_index, DOWNWARDS);
   r = r && write_lbm_uint(symlist, &write_index, DOWNWARDS);
   r = r && write_lbm_uint(id, &write_index, DOWNWARDS);
-  lbm_uint entry_ptr = (lbm_uint)(image_address + write_index);
   r = r && write_lbm_uint((lbm_uint)name, &write_index, DOWNWARDS);
+    lbm_uint entry_ptr = (lbm_uint)(image_address + write_index + 1);
   if (r)
     return (lbm_uint*)entry_ptr;
   return NULL;
@@ -776,9 +799,22 @@ bool lbm_image_boot(void) {
       image_startup_symbol = sym;
     } break;
     case SYMBOL_ENTRY: {
+      // on 64 bit                         | on 32 bit
+      // pos     -> symlist_addr_high_word | pos     -> symlist_ptr
+      // pos - 1 -> symlist_addr_low_word  | pos - 1 -> id
+      // pos - 2 -> id_high_word           | pos - 2 -> name_ptr
+      // pos - 3 -> id_low_word            |
+      // pos - 4 -> name_ptr_high_word     |
+      // pos - 5 -> name_ptr_low_word      |
+      #ifdef LBM64
+      int32_t entry_pos = pos - 5;
+      lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
+      pos -= 6;
+      #else
       int32_t entry_pos = pos - (int32_t)(2 * (sizeof(lbm_uint) / 4));
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
       pos -= 3 * (int32_t)(sizeof(lbm_uint) / 4);
+      #endif
     } break;
     case SYMBOL_LINK_ENTRY: {
       int32_t entry_pos = pos - (int32_t)(3 * (sizeof(lbm_uint) / 4));
