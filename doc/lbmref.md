@@ -8463,7 +8463,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 129829 kurt-russel)
+(exit-ok 128699 kurt-russel)
 ```
 
 
