@@ -789,7 +789,6 @@ lbm_value ext_ttf_wh(lbm_value *args, lbm_uint argn) {
     }
 
     float x_n = x;
-    float y_n = y;
 
     float advance_width;
     float left_side_bearing;
@@ -821,8 +820,6 @@ lbm_value ext_ttf_wh(lbm_value *args, lbm_uint argn) {
                          kern_index);
       }
       x_n += x_shift;
-      y_n += y_shift;
-      y_n += y_offset;
     } else {
       return ENC_SYM_EERROR;
     }

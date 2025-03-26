@@ -1,3 +1,4 @@
+(define n (if (is-always-gc) 100 100000))
 
 (defun additions ()
   (and (> (+ (* (+ 1.0f32 2) 2) 1) 1)
@@ -19,6 +20,6 @@
 
 ;;(define thd-id (spawn mem-waster))
 
-(check (test-it 100000 t))
+(check (test-it n t))
 
 ;;(kill thd-id t)

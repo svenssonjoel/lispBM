@@ -33,6 +33,8 @@ cd ..
 
 cd tests
 
+ls -al tests/ > ../$reportdir/tests_list.txt
+
 ############################################################
 # 32bit tests
 unit_tests_log_file="unit_tests_log_${release}.txt"

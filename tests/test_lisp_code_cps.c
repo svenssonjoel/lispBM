@@ -54,7 +54,8 @@ lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 
 #define IMAGE_STORAGE_SIZE              (128 * 1024)
 #ifdef LBM64
-#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA000000000000000
+// Cannot map address above 2^48 so use same as for 32 bit...
+#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
 #else
 #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
 #endif

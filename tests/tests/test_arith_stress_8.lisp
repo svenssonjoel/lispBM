@@ -1,4 +1,6 @@
 
+(define n (if (is-always-gc) 100 100000))
+
 (defun apply (f args)
   (eval (cons f args)))
 
@@ -11,6 +13,6 @@
 (defun arith (a b c d e f g h i j)
   (+ a b c d e f g h i j))
 
-(def res (test-it 100000 arith '(1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0) 55.0 t))
+(def res (test-it n arith '(1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0) 55.0 t))
 
 (check res)

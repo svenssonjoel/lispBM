@@ -396,10 +396,12 @@ static bool i_f_u64(uint64_t w) {
 static bool i_f_lbm_array(uint32_t num_bytes, uint8_t *data) {
   bool res = fv_write_u8(S_LBM_ARRAY);
   res = res && fv_write_u32(num_bytes);
-  for (uint32_t i = 0; i < num_bytes; i ++ ) {
-    if (!fv_write_u8(data[i])) return false;
+  if (res) {
+    for (uint32_t i = 0; i < num_bytes; i ++ ) {
+      if (!fv_write_u8(data[i])) return false;
+    }
   }
-  return true;
+  return res;
 }
 
 static bool image_flatten_value(lbm_value v) {
@@ -438,7 +440,7 @@ static bool image_flatten_value(lbm_value v) {
       lbm_value *arrdata = (lbm_value*)header->data;
       // always exact multiple of sizeof(lbm_value)
       uint32_t size = (uint32_t)(header->size / sizeof(lbm_value));
-      if (!i_f_lisp_array(size)) return FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY;
+      if (!i_f_lisp_array(size)) return false;
       int fv_r = true;
       for (lbm_uint i = 0; i < size; i ++ ) {
         fv_r =  image_flatten_value(arrdata[i]);
