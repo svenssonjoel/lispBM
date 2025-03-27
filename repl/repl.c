@@ -847,7 +847,11 @@ int init_repl() {
     fclose(f);
   } else {
     image_clear();
-    lbm_image_create();
+    lbm_image_create("apa_1");
+  }
+
+  if (lbm_image_get_version()) {
+    printf("image version string: %s\n", lbm_image_get_version());
   }
 
   lbm_image_boot();

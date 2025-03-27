@@ -65,8 +65,19 @@ void lbm_image_init(uint32_t *image_mem_addr,
                     uint32_t  image_size,
                     lbm_image_write_fun  image_write_fun);
 
-void lbm_image_create(void);
+/**
+ * Create an image at the address and of the size given to lbm_image_init.
+ * \param version_str a zero terminated version string or NULL.
+ */
+void lbm_image_create(char *version_str);
 bool lbm_image_exists(void);
 bool lbm_image_boot(void);
+
+/**
+ * Get the version string that was stored in the image.
+ * If no version string was stored in the image, the result is NULL.
+ * \return pointer to version string or NULL.
+ */
+char *lbm_image_get_version(void);
 
 #endif

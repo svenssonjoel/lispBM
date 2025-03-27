@@ -124,17 +124,21 @@
 //  TODO: Put more info into the IMAGE_INITIALIZED FIELD
 //        - 32/64 bit  etc
 
-#define IMAGE_INITIALIZED (uint32_t)0x01    // [ 0x01 ]
+#ifdef LBM64
+#define IMAGE_INITIALIZED (uint32_t)0xBEEF4001    // [ 0xBEEF4001 ]
+#else
+#define IMAGE_INITIALIZED (uint32_t)0xBEEF2001    // [ 0xBEEF2001 ]
+#endif
                                             // Address downwards ->
 #define CONSTANT_HEAP_IX  (uint32_t)0x02    // [ 0x02 | uint32]
 #define BINDING_CONST     (uint32_t)0x03    // [ 0x03 | key | lbm_uint ]
-#define BINDING_FLAT      (uint32_t)0x04    // [ 0x04 | size bytes | key | flatval ]
+#define BINDING_FLAT      (uint32_t)0x04    // [ 0x04 | size | key | flatval ]
 #define STARTUP_ENTRY     (uint32_t)0x05    // [ 0x05 | symbol ])
 #define SYMBOL_ENTRY      (uint32_t)0x06    // [ 0x06 | NEXT_PTR |  ID | NAME PTR ] // symbol_entry with highest address is root.
 #define SYMBOL_LINK_ENTRY (uint32_t)0x07    // [ 0x07 | C_LINK_PTR | NEXT_PTR | ID | NAME PTR ]
 #define EXTENSION_TABLE   (uint32_t)0x08    // [ 0x08 | NUM | EXT ...]
-// tagged data  that can vary in size has a size bytes field.
-// Fixed size data does not.
+#define VERSION_ENTRY     (uint32_t)0x09    // [ 0x09 | size | string ]
+// Size is in number of 32bit words, even on 64 bit images.
 
 // To be able to work on an image incrementally (even though it is not recommended)
 // many fields are allowed to be duplicated and the later ones have priority
@@ -154,6 +158,7 @@ static bool image_startup = false;
 static uint32_t image_startup_size;
 static lbm_value image_startup_symbol = ENC_SYM_NIL;
 static bool image_has_extensions = false;
+static char* image_version = NULL;
 
 uint32_t *lbm_image_get_image(void) {
   return image_address;
@@ -523,6 +528,24 @@ static bool image_flatten_value(lbm_value v) {
 }
 
 // ////////////////////////////////////////////////////////////
+//
+
+char *lbm_image_get_version(void) {
+  if (image_version) {
+    return image_version;
+  } else {
+    int32_t pos = (int32_t)image_size-2; // fixed position version string.
+    uint32_t val = read_u32(pos); pos --;
+    if (val == VERSION_ENTRY) {
+      int32_t size = (int32_t)read_u32(pos);
+      image_version = (char*)(image_address + (pos - size));
+      return image_version;
+    }
+  }
+  return NULL;
+}
+
+// ////////////////////////////////////////////////////////////
 // Constant heaps as part of an image.
 
 lbm_const_heap_t image_const_heap;
@@ -609,7 +632,7 @@ bool lbm_image_save_global_env(void) {
         } else {
           int fv_size = flatten_value_size(val_field, true);
           if (fv_size > 0) {
-            fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1;
+            fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1; // num 32bit words
             int tot_size =  fv_size; //+ 1 + (int)(sizeof(lbm_uint) / 4);
 
             if (write_index + tot_size >= (int32_t)image_size) {
@@ -701,7 +724,7 @@ bool lbm_image_is_empty(void) {
 
 bool lbm_image_exists(void) {
   uint32_t val = read_u32((int32_t)image_size - 1);
-  return val == IMAGE_INITIALIZED; // constant heap always first thing in image
+  return val == IMAGE_INITIALIZED;
 }
 
 void lbm_image_init(uint32_t* image_mem_address,
@@ -713,8 +736,34 @@ void lbm_image_init(uint32_t* image_mem_address,
   write_index = (int32_t)image_size_words -1;
 }
 
-void lbm_image_create(void) {
+void lbm_image_create(char *version_str) {
   write_u32(IMAGE_INITIALIZED, &write_index, DOWNWARDS);
+  if (version_str) {
+    uint32_t bytes = strlen(version_str) + 1;
+    uint32_t words = (bytes % 4 == 0) ? bytes / 4 : (bytes / 4) + 1;
+    write_u32(VERSION_ENTRY, &write_index, DOWNWARDS);
+    write_u32(words, &write_index, DOWNWARDS);
+    uint32_t w = 0;
+    char *buf = (char*)&w;
+    int i = 0;
+    int32_t ix = write_index - (int32_t)(words -1);
+    while (*version_str) {
+      if (i == 4 ) {
+        w = 0;
+        i = 0;
+      }
+      buf[i] = *version_str;
+      if (i == 3) {
+        write_u32(w, &ix, UPWARDS);
+      }
+      version_str++;
+      i ++;
+    }
+    if (i != 0) {
+      write_u32(w, &ix, UPWARDS);
+    }
+    write_index -= (int32_t)words;
+  }
 }
 
 
@@ -734,6 +783,11 @@ bool lbm_image_boot(void) {
                           &image_const_heap,
                           (lbm_uint*)(image_address));
       // initialized is a one word field
+    } break;
+    case VERSION_ENTRY: {
+      uint32_t size = read_u32(pos); pos --;
+      image_version = (char*)(image_address + (pos - (int32_t)size + 1));
+      pos -= (int32_t)size;
     } break;
     case CONSTANT_HEAP_IX: {
       uint32_t next = read_u32(pos);
@@ -782,10 +836,10 @@ bool lbm_image_boot(void) {
       pos -= 2;
 #endif
 
-      pos -= s;//(s * (sizeof(lbm_uint) / 4));
+      pos -= s;
       lbm_flat_value_t fv;
       fv.buf = (uint8_t*)(image_address + pos);
-      fv.buf_size = (uint32_t)(s * 4); // larger than actual buf
+      fv.buf_size = (uint32_t)(s * 4); // GEQ than actual buf
       fv.buf_pos = 0;
       lbm_value unflattened;
       lbm_unflatten_value(&fv, &unflattened);
