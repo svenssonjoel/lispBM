@@ -201,11 +201,14 @@ bool write_u32(uint32_t w, int32_t *i, bool direction) {
 
 bool write_u64(uint64_t dw, int32_t *i, bool direction) {
   uint32_t *words = (uint32_t*)&dw;
-  
-  // downwards   ... hw   lw      
-  //                 ix  ix-1   
-  // upwards     hw   lw ... 
+
+  // downwards   ... hw   lw
+  //                 ix  ix-1
+  // upwards     hw   lw ...
   //            ix+1  ix
+
+  // true = downwards
+
   bool r = true;
   if (direction) {
     r = r && write_u32(words[1], i, direction);
@@ -739,12 +742,19 @@ bool lbm_image_boot(void) {
       image_const_heap.next = next;
     } break;
     case BINDING_CONST: {
+      // on 64 bit           | on 32 bit
+      // pos     -> key_high | pos     -> key
+      // pos - 1 -> key_low  | pos - 1 -> val
+      // pos - 2 -> val_high
+      // pos - 3 -> val_low
 #ifdef LBM64
-      lbm_uint bind_key = read_u64(pos);
-      lbm_uint bind_val = read_u64(pos-2);
+      lbm_uint bind_key = read_u64(pos-1);
+      lbm_uint bind_val = read_u64(pos-3);
+      pos -= 4;
 #else
       lbm_uint bind_key = read_u32(pos);
       lbm_uint bind_val = read_u32(pos-1);
+      pos -= 2;
 #endif
       lbm_uint ix_key  = lbm_dec_sym(bind_key) & GLOBAL_ENV_MASK;
       lbm_value *global_env = lbm_get_global_env();
@@ -755,17 +765,24 @@ bool lbm_image_boot(void) {
         return false;
       }
       global_env[ix_key] = new_env;
-      pos -= (int32_t)(sizeof(lbm_uint)/4) * 2;
     } break;
     case BINDING_FLAT: {
-      int32_t s = (int32_t)read_u32(pos); pos -=1;
+      // on 64 bit           | on 32 bit
+      // pos     -> size     | pos     -> size
+      // pos - 1 -> key_high | pos - 1 -> key
+      // pos - 2 -> key_low
+      //
+      int32_t s = (int32_t)read_u32(pos);
+      // size in 32 or 64 bit words.
 #ifdef LBM64
-      lbm_uint bind_key = read_u64(pos);
+      lbm_uint bind_key = read_u64(pos-2);
+      pos -= 3;
 #else
-      lbm_uint bind_key = read_u32(pos);
+      lbm_uint bind_key = read_u32(pos-1);
+      pos -= 2;
 #endif
-      pos -= (int32_t)(sizeof(lbm_uint) / 4);
-      pos -= s;
+
+      pos -= s;//(s * (sizeof(lbm_uint) / 4));
       lbm_flat_value_t fv;
       fv.buf = (uint8_t*)(image_address + pos);
       fv.buf_size = (uint32_t)(s * 4); // larger than actual buf
@@ -808,33 +825,49 @@ bool lbm_image_boot(void) {
       // pos - 3 -> id_low_word            |
       // pos - 4 -> name_ptr_high_word     |
       // pos - 5 -> name_ptr_low_word      |
-      #ifdef LBM64
+#ifdef LBM64
       int32_t entry_pos = pos - 5;
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
       pos -= 6;
-      #else
-      int32_t entry_pos = pos - (int32_t)(2 * (sizeof(lbm_uint) / 4));
+#else
+      int32_t entry_pos = pos - 2;
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
-      pos -= 3 * (int32_t)(sizeof(lbm_uint) / 4);
-      #endif
+      pos -= 3;
+#endif
     } break;
     case SYMBOL_LINK_ENTRY: {
-      int32_t entry_pos = pos - (int32_t)(3 * (sizeof(lbm_uint) / 4));
-      int32_t tmp = pos;
+      // on 64 bits                        | on 32 bit
+      // pos     -> link_ptr_high          | pos     -> link_ptr
+      // pos - 1 -> link_ptr_low           | pos - 1 -> symlist_ptr
+      // pos - 2 -> symlist_addr_high_word | pos - 2 -> id
+      // pos - 3 -> symlist_addr_low_word  | pos - 3 -> name_ptr;
+      // pos - 4 -> id_high_word
+      // pos - 5 -> id_low_word
+      // pos - 6 -> name_ptr_high_word
+      // pos - 7 -> name_ptr_low_word
+      //int32_t entry_pos = pos - (int32_t)(3 * (sizeof(lbm_uint) / 4));
       lbm_uint link_ptr;
       lbm_uint sym_id;
 #ifdef LBM64
-      link_ptr = read_u64(tmp);
-      sym_id   = read_u64(tmp-4);
-#else
-      link_ptr = read_u32(tmp);
-      sym_id   = read_u32(tmp-2);
-#endif
+      link_ptr = read_u64(pos-1);
+      sym_id   = read_u64(pos-5);
       *((lbm_uint*)link_ptr) = sym_id;
-      lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
-      pos -= 4 * (int32_t)(sizeof(lbm_uint) / 4);
+      lbm_symrepr_set_symlist((lbm_uint*)(image_address + (pos - 7)));
+      pos -= 8;
+#else
+      link_ptr = read_u32(pos);
+      sym_id   = read_u32(pos-2);
+      *((lbm_uint*)link_ptr) = sym_id;
+      lbm_symrepr_set_symlist((lbm_uint*)(image_address + (pos - 3)));
+      pos -= 4;
+#endif
     } break;
     case EXTENSION_TABLE: {
+      // on 64 bit                | on 32 bit
+      // pos     -> name_ptr_high | pos     -> name_ptr
+      // pos - 1 -> name_ptr_low  | pos - 1 -> fptr
+      // pos - 2 -> fptr_high
+      // pos - 3 -> fptr_low
       int32_t num = (int32_t)read_u32(pos); pos --;
 
       int32_t i = 0;
@@ -842,11 +875,13 @@ bool lbm_image_boot(void) {
         lbm_uint name;
         lbm_uint fptr;
 #ifdef LBM64
-        name = read_u64(pos); pos -= 2;
-        fptr = read_u64(pos); pos -= 2;
+        name = read_u64(pos-1);
+        fptr = read_u64(pos-3);
+        pos -= 4;
 #else
-        name = read_u32(pos); pos -= 1;
-        fptr = read_u32(pos); pos -= 1;
+        name = read_u32(pos);
+        fptr = read_u32(pos-1);
+        pos -= 2;
 #endif
         extension_table[i].name = (char*)name;
         extension_table[i].fptr = (extension_fptr)fptr;
