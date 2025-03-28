@@ -576,7 +576,7 @@ int main(int argc, char **argv) {
                  image_write);
 
   image_clear();
-  lbm_image_create();
+  lbm_image_create("test-image");
 
   if (!lbm_image_boot()) {
     printf("Error booting image\n");
