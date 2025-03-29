@@ -154,9 +154,6 @@ static bool image_is_empty = true;
 static uint32_t *image_address = NULL;
 static int32_t write_index = 0;
 static uint32_t image_size = 0;
-static bool image_startup = false;
-static uint32_t image_startup_size;
-static lbm_value image_startup_symbol = ENC_SYM_NIL;
 static bool image_has_extensions = false;
 static char* image_version = NULL;
 
@@ -172,20 +169,8 @@ int32_t lbm_image_get_write_index(void) {
   return write_index;
 }
 
-bool lbm_image_has_startup(void) {
-  return image_startup;
-}
-
 bool lbm_image_has_extensions(void) {
   return image_has_extensions;
-}
-
-lbm_value lbm_image_get_startup(void) {
-  return image_startup_symbol;
-}
-
-uint32_t lbm_image_startup_size(void) {
-  return image_startup_size;
 }
 
 uint32_t read_u32(int32_t index) {
@@ -609,13 +594,6 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
   return NULL;
 }
 
-// Set the name of the startup function from the env.
-bool lbm_image_save_startup(lbm_value sym) {
-  bool r = write_u32(STARTUP_ENTRY, &write_index, DOWNWARDS);
-  r = r && write_lbm_value(sym, &write_index, DOWNWARDS);
-  return r;
-}
-
 bool lbm_image_save_global_env(void) {
   lbm_value *env = lbm_get_global_env();
   if (env) {
@@ -858,18 +836,6 @@ bool lbm_image_boot(void) {
       }
       global_env[ix_key] = new_env;
       pos --;
-    } break;
-    case STARTUP_ENTRY: {
-      image_startup = true;
-      lbm_value sym;
-#ifdef LBM64
-      sym = read_u64(pos);
-      pos -= 2;
-#else
-      sym = read_u32(pos);
-      pos --;
-#endif
-      image_startup_symbol = sym;
     } break;
     case SYMBOL_ENTRY: {
       // on 64 bit                         | on 32 bit

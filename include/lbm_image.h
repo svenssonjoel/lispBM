@@ -27,15 +27,20 @@
  */
 typedef bool (*lbm_image_write_fun)(uint32_t data, int32_t index, bool const_heap);
 
-// C interface to image manipulation
+/**
+ * lbm_image_get_image provides a pointer to the
+ * starting point of an image. The starting point
+ * of an image is the lowest address, even though
+ * writing to an image is done top-down.
+ *
+ * \return pointer to image.
+ */
 uint32_t *lbm_image_get_image(void);
-lbm_value lbm_image_get_startup(void);
+
 int32_t lbm_image_get_write_index(void);
 
 uint32_t lbm_image_get_size(void);
-bool lbm_image_has_startup(void);
 bool lbm_image_has_extensions(void);
-bool lbm_image_save_startup(lbm_value sym);
 bool lbm_image_save_global_env(void);
 bool lbm_image_save_extensions(void);
 bool lbm_image_save_constant_heap_ix(void);

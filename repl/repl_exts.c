@@ -707,23 +707,6 @@ static lbm_value ext_display_to_image(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 // boot images, snapshots, workspaces....
-lbm_value ext_image_has_startup(lbm_value *args, lbm_uint argn) {
-  (void) args;
-  if (argn != 0)
-    return ENC_SYM_TERROR;
-
-  return lbm_image_has_startup() ? ENC_SYM_TRUE : ENC_SYM_NIL;
-}
-
-lbm_value ext_image_get_startup(lbm_value *args, lbm_uint argn) {
-  (void) args;
-  if (argn != 0) return ENC_SYM_TERROR;
-  lbm_value res;
-  if ( lbm_global_env_lookup(&res, lbm_image_get_startup())) {
-    return res;
-  }
-  return ENC_SYM_NIL;
-}
 
 lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
   (void) args;
@@ -736,7 +719,6 @@ lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
     lbm_value binding;
     if ( lbm_global_env_lookup(&binding, lbm_enc_sym(main_sym))) {
       if (lbm_is_cons(binding) && lbm_car(binding) == ENC_SYM_CLOSURE) {
-        lbm_image_save_startup(lbm_enc_sym(main_sym));
         goto image_has_main;
       }
     }
@@ -784,8 +766,6 @@ int init_exts(void) {
   lbm_add_extension("secs-since", ext_secs_since);
 
   // boot images, snapshots, workspaces.... 
-  lbm_add_extension("image-has-startup",ext_image_has_startup);
-  lbm_add_extension("image-get-startup", ext_image_get_startup);
   lbm_add_extension("image-save-const-heap-ix", ext_image_save_const_heap_ix);
   lbm_add_extension("image-save", ext_image_save);
   // Math
