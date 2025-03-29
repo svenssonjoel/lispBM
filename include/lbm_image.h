@@ -37,13 +37,52 @@ typedef bool (*lbm_image_write_fun)(uint32_t data, int32_t index, bool const_hea
  */
 uint32_t *lbm_image_get_image(void);
 
+/**
+ * Images are written from the top towards the bottom.
+ * The write_index is the next free location of (32bit) word size
+ * in the image.
+ * \return write index.
+ */
 int32_t lbm_image_get_write_index(void);
 
+/**
+ * Get the size of an image.
+ * \return The size of the image in 32bit words
+ */
 uint32_t lbm_image_get_size(void);
+
+/**
+ * Is the image empty?
+ * Do not try to boot an empty image.
+ * \return true for empty image, otherwise false.
+ */
+bool lbm_image_is_empty(void);
+
+/**
+ * Does the image have a stored extension table?
+ * \return true if image contains extension table, false otherwise.
+ */
 bool lbm_image_has_extensions(void);
+
+/**
+ * Save the global environment to the image.
+ * \return true on success otherwise false.
+ */
 bool lbm_image_save_global_env(void);
+
+/**
+ * Save the extension table to the image.
+ * \return true on success otherwise false.
+ */
 bool lbm_image_save_extensions(void);
+
+/**
+ * Save the current constant_heap index into the
+ * image for recovery upon restart.
+ * \return true on success otherwise false.
+ */
 bool lbm_image_save_constant_heap_ix(void);
+
 /**
  * Add a symbol to the image.
  * Symbols added to the image are restored upon image-boot.
@@ -53,6 +92,7 @@ bool lbm_image_save_constant_heap_ix(void);
  * \return pointer to head of symbol list.
  */
 lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist);
+
 /**
  * Add a symbol to the image and "link" it to a C address (variable).
  * \param name Symbol name.
@@ -62,8 +102,6 @@ lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist);
  * \return pointer to head of symbol list.
  */
 lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlist, lbm_uint *link);
-
-bool lbm_image_is_empty(void);
 
 // startup initialization
 void lbm_image_init(uint32_t *image_mem_addr,
@@ -75,7 +113,19 @@ void lbm_image_init(uint32_t *image_mem_addr,
  * \param version_str a zero terminated version string or NULL.
  */
 void lbm_image_create(char *version_str);
+
+/**
+ * An image exists the memory area given to lbm_image_init to store the
+ * image in contains the IMAGE_INITIALIZED field at the start (top) of the image area.
+ * \return true if image exists, false otherwise.
+ */
 bool lbm_image_exists(void);
+
+/**
+ * Boot an existing image.
+ * Restores the datastructures stored in the image.
+ * \return true on success, false otherwise.
+ */
 bool lbm_image_boot(void);
 
 /**
