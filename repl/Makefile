@@ -51,13 +51,13 @@ cov: repl_cov
 all64: 	CCFLAGS += -DLBM64
 all64: repl
 
-sdl64: CCFLAGS += -DLBM64 -DWITH_SDL -I/usr/include/SDL2
-sdl64: LIBS += -lSDL2_image -lSDL2
+sdl64: CCFLAGS += -DLBM64 -DWITH_SDL $(shell pkg-config --cflags libpng sdl2 SDL2_image)
+sdl64: LIBS += $(shell pkg-config --libs libpng sdl2 SDL2_image)
 sdl64: REPL_SRC += lbm_sdl.c
 sdl64: repl
 
-sdl: CCFLAGS += -DWITH_SDL -m32 -I/usr/include/SDL2
-sdl: LIBS += -lSDL2_image -lSDL2
+sdl: CCFLAGS += -DWITH_SDL -m32 $(shell pkg-config --cflags libpng sdl2 SDL2_image)
+sdl: LIBS += $(shell pkg-config --libs libpng sdl2 SDL2_image)
 sdl: REPL_SRC += lbm_sdl.c
 sdl: repl
 

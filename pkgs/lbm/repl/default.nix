@@ -8,10 +8,13 @@
 , readline
 , libpng
 , gcc_multi
+, SDL2
+, SDL2_image
+, pkg-config
 }:
 
 let
-  makeTarget = if build32 then "all" else "all64";
+  makeTarget = if build32 then "sdl" else "sdl64";
   name = if build32 then "lbm" else "lbm64";
 in multiStdenv.mkDerivation {
   pname = name;
@@ -52,9 +55,14 @@ in multiStdenv.mkDerivation {
   buildInputs = [
     readline
     libpng
+    SDL2
+    SDL2_image
   ];
   
   nativeBuildInputs = [
     gcc_multi
+    SDL2
+    SDL2_image
+    pkg-config
   ];
 }
