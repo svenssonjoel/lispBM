@@ -52,13 +52,6 @@ int32_t lbm_image_get_write_index(void);
 uint32_t lbm_image_get_size(void);
 
 /**
- * Is the image empty?
- * Do not try to boot an empty image.
- * \return true for empty image, otherwise false.
- */
-bool lbm_image_is_empty(void);
-
-/**
  * Does the image have a stored extension table?
  * \return true if image contains extension table, false otherwise.
  */

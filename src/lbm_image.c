@@ -150,7 +150,6 @@
 
 static lbm_image_write_fun image_write = NULL;
 
-static bool image_is_empty = true;
 static uint32_t *image_address = NULL;
 static int32_t write_index = 0;
 static uint32_t image_size = 0;
@@ -696,10 +695,6 @@ bool lbm_image_save_constant_heap_ix(void) {
   return r;
 }
 
-bool lbm_image_is_empty(void) {
-  return image_is_empty;
-}
-
 bool lbm_image_exists(void) {
   uint32_t val = read_u32((int32_t)image_size - 1);
   return val == IMAGE_INITIALIZED;
@@ -755,7 +750,6 @@ bool lbm_image_boot(void) {
     pos --;
     switch(val) {
     case IMAGE_INITIALIZED: {
-      image_is_empty = false;
       image_const_heap_start_ix = 0; // const heap starts at 0
       lbm_const_heap_init(image_const_heap_write,
                           &image_const_heap,
