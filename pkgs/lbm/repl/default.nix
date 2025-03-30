@@ -20,12 +20,12 @@ in multiStdenv.mkDerivation {
   pname = name;
   # IDK what pattern should be used to get ahold of the version number...
   version = self.shortRev or self.rev or self.dirtyShortRev or "unknown";
-  
+
   meta = {
     description = "LispBM repl";
     platforms = supportedSystems;
   };
-  
+
   src = nix-filter {
     root = self;
     include = with nix-filter.lib; [
@@ -40,25 +40,25 @@ in multiStdenv.mkDerivation {
       "lispbm.mk"
     ];
   };
-  
+
   buildPhase = ''
     cd repl/
-    
+
     make ${makeTarget}
   '';
   installPhase = ''
     mkdir -p $out/bin
-    
+
     cp repl $out/bin/${name}
   '';
-  
+
   buildInputs = [
     readline
     libpng
     SDL2
     SDL2_image
   ];
-  
+
   nativeBuildInputs = [
     gcc_multi
     SDL2
