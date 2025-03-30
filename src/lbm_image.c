@@ -707,6 +707,8 @@ void lbm_image_init(uint32_t* image_mem_address,
   image_address = image_mem_address;
   image_size = image_size_words;
   write_index = (int32_t)image_size_words -1;
+  image_has_extensions = false;
+  image_version = NULL;
 }
 
 void lbm_image_create(char *version_str) {
@@ -811,7 +813,7 @@ bool lbm_image_boot(void) {
       pos -= s;
       lbm_flat_value_t fv;
       fv.buf = (uint8_t*)(image_address + pos);
-      fv.buf_size = (uint32_t)(s * 4); // GEQ than actual buf
+      fv.buf_size = (uint32_t)s * sizeof(lbm_uint); // GEQ to actual buf
       fv.buf_pos = 0;
       lbm_value unflattened;
       lbm_unflatten_value(&fv, &unflattened);

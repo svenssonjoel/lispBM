@@ -18,6 +18,7 @@
 (define a3 3i32)
 (define a4 4u32)
 (define a5 0xDEADBEEFC0FFFEEEu64)
+(define str0 "constant string")
 
 (define ls (list 'a1 'a2 'a3 'a4))
 
@@ -37,6 +38,8 @@
 (define b2 2u)
 
 (define ls2 (cons 75 ls))
+(define str1 "hello world")
+(define tree (list "hello world" "apa" 1000u64 (list 100i64 "kurt" "russel" (list "bepa"))))
 
 (defun main ()
   (print "booting image")
