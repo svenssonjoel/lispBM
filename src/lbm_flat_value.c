@@ -557,51 +557,14 @@ static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
   return res;
 }
 
-/* Recursive and potentially stack hungry for large flat values */
-static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
+static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
   if (v->buf_size == v->buf_pos) return UNFLATTEN_MALFORMED;
 
   uint8_t curr = v->buf[v->buf_pos++];
 
   switch(curr) {
   case S_CONS: {
-    lbm_value a;
-    lbm_value b;
-    int r = lbm_unflatten_value_internal(v, &a);
-    if (r == UNFLATTEN_OK) {
-      r = lbm_unflatten_value_internal(v, &b);
-      if (r == UNFLATTEN_OK) {
-        lbm_value c;
-        c = lbm_cons(a,b);
-        if (lbm_is_symbol_merror(c)) return UNFLATTEN_GC_RETRY;
-        *res = c;
-        r = UNFLATTEN_OK;
-      }
-    }
-    return r;
-  }
-  case S_LBM_LISP_ARRAY: {
-    uint32_t size;
-    bool b = extract_word(v, &size);
-    int r = UNFLATTEN_MALFORMED;
-    if (b) {
-      lbm_value array;
-      lbm_heap_allocate_lisp_array(&array, size);
-      lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(array);
-      lbm_value *arrdata = (lbm_value*)header->data;
-      if (lbm_is_symbol_merror(array)) return UNFLATTEN_GC_RETRY;
-      lbm_value a;
-      for (uint32_t i = 0; i < size; i ++) {
-        r = lbm_unflatten_value_internal(v, &a);
-        if (r == UNFLATTEN_OK) {
-          arrdata[i] = a;
-        } else {
-          break;
-        }
-      }
-      *res = array;
-    }
-    return r;
+    return UNFLATTEN_MALFORMED;
   }
   case S_CONSTANT_REF: {
     lbm_uint tmp;
@@ -798,16 +761,145 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   }
 }
 
+/* Recursive and potentially stack hungry for large flat values */
+/* static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) { */
+/*   if (v->buf_size == v->buf_pos) return UNFLATTEN_MALFORMED; */
+
+/*   uint8_t curr = v->buf[v->buf_pos++]; */
+
+/*   switch(curr) { */
+/*   case S_CONS: { */
+/*     lbm_value a; */
+/*     lbm_value b; */
+/*     int r = lbm_unflatten_value_internal(v, &a); */
+/*     if (r == UNFLATTEN_OK) { */
+/*       r = lbm_unflatten_value_internal(v, &b); */
+/*       if (r == UNFLATTEN_OK) { */
+/*         lbm_value c; */
+/*         c = lbm_cons(a,b); */
+/*         if (lbm_is_symbol_merror(c)) return UNFLATTEN_GC_RETRY; */
+/*         *res = c; */
+/*         r = UNFLATTEN_OK; */
+/*       } */
+/*     } */
+/*     return r; */
+/*   } */
+/*   case S_LBM_LISP_ARRAY: { */
+/*     uint32_t size; */
+/*     bool b = extract_word(v, &size); */
+/*     int r = UNFLATTEN_MALFORMED; */
+/*     if (b) { */
+/*       lbm_value array; */
+/*       lbm_heap_allocate_lisp_array(&array, size); */
+/*       lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(array); */
+/*       lbm_value *arrdata = (lbm_value*)header->data; */
+/*       if (lbm_is_symbol_merror(array)) return UNFLATTEN_GC_RETRY; */
+/*       lbm_value a; */
+/*       for (uint32_t i = 0; i < size; i ++) { */
+/*         r = lbm_unflatten_value_internal(v, &a); */
+/*         if (r == UNFLATTEN_OK) { */
+/*           arrdata[i] = a; */
+/*         } else { */
+/*           break; */
+/*         } */
+/*       } */
+/*       *res = array; */
+/*     } */
+/*     return r; */
+/*   } */
+/*   default: */
+/*     return lbm_unflatten_value_atom(v, res); */
+/*   } */
+/* } */
+
+
+// Pointer-reversal-esque "stackless" deserialization of
+// flattened (serialized) trees.
+
+static int lbm_unflatten_value_nostack(lbm_flat_value_t *v, lbm_value *res) {
+  bool done = false;
+
+  lbm_value curr = lbm_enc_cons_ptr(LBM_PTR_NULL);
+  while (!done) {
+    if (v->buf[v->buf_pos] == S_CONS) {
+      lbm_value tmp = curr;
+      curr = lbm_cons(tmp, ENC_SYM_PLACEHOLDER);
+      if (lbm_is_symbol_merror(curr)) return UNFLATTEN_GC_RETRY;
+      v->buf_pos ++;
+    } else if (v->buf[v->buf_pos] == S_LBM_LISP_ARRAY) {
+      uint32_t size;
+      v->buf_pos ++;
+      bool b = extract_word(v, &size);
+      if (b) {
+        lbm_value array;
+        lbm_heap_allocate_lisp_array(&array, size);
+        lbm_array_header_extended_t *header = (lbm_array_header_extended_t*)lbm_car(array);
+        lbm_value *arrdata = (lbm_value*)header->data;
+        if (lbm_is_symbol_merror(array)) return UNFLATTEN_GC_RETRY;
+        header->index = 0;
+        arrdata[size-1] = curr; // backptr
+        curr = array;
+      } else {
+        return UNFLATTEN_MALFORMED;
+      }
+    } else if (v->buf[v->buf_pos] == 0) {
+      return UNFLATTEN_MALFORMED;
+    } else {
+      lbm_value unflattened;
+      if (lbm_unflatten_value_atom(v, &unflattened) != UNFLATTEN_OK) {
+        return UNFLATTEN_MALFORMED;
+      }
+      lbm_value val0 = unflattened;
+      while (lbm_dec_ptr(curr) != LBM_PTR_NULL &&
+             lbm_cdr(curr) != ENC_SYM_PLACEHOLDER) { // has done left
+        if ( lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
+          lbm_array_header_extended_t *header = (lbm_array_header_extended_t*)lbm_car(curr);
+          lbm_value *arrdata = (lbm_value*)header->data;
+          uint32_t arrlen = header->size / sizeof(lbm_value);
+          if (header->index == arrlen - 1) {
+            lbm_value prev = arrdata[arrlen-1];
+            header->index = 0;
+            arrdata[arrlen-1] = val0;
+            val0 = curr;
+            curr = prev;
+          } else {
+            arrdata[header->index++] = val0;
+            break;
+          }
+        } else {
+          lbm_value prev = lbm_car(curr);
+          lbm_value r0   = lbm_cdr(curr);
+          lbm_set_cdr(curr, val0);
+          lbm_set_car(curr, r0);
+          val0 = curr;
+          curr = prev;
+        }
+      }
+      if (lbm_dec_ptr(curr) == LBM_PTR_NULL) {
+        *res = val0; // done
+        break;
+      } else if (lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
+        // Do nothing in this case. It has been arranged..
+      } else if (lbm_cdr(curr) == ENC_SYM_PLACEHOLDER) {
+        lbm_set_cdr(curr, val0);
+      } else {
+        return UNFLATTEN_MALFORMED;
+      }
+    }
+  }
+  return UNFLATTEN_OK;
+}
+
 bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
   bool b = false;
 #ifdef LBM_ALWAYS_GC
   lbm_perform_gc();
 #endif
-  int r = lbm_unflatten_value_internal(v,res);
+  int r = lbm_unflatten_value_nostack(v,res);
   if (r == UNFLATTEN_GC_RETRY) {
     lbm_perform_gc();
     v->buf_pos = 0;
-    r = lbm_unflatten_value_internal(v,res);
+    r = lbm_unflatten_value_nostack(v,res);
   }
   if (r == UNFLATTEN_MALFORMED) {
     *res = ENC_SYM_EERROR;

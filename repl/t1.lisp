@@ -22,6 +22,8 @@
 
 (define ls (list 'a1 'a2 'a3 'a4))
 
+(define a (range 1000))
+
 @const-end
 
 (define t000 'ext-apa)
