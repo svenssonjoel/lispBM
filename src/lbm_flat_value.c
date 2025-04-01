@@ -761,61 +761,68 @@ static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
   }
 }
 
-/* Recursive and potentially stack hungry for large flat values */
-/* static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) { */
-/*   if (v->buf_size == v->buf_pos) return UNFLATTEN_MALFORMED; */
-
-/*   uint8_t curr = v->buf[v->buf_pos++]; */
-
-/*   switch(curr) { */
-/*   case S_CONS: { */
-/*     lbm_value a; */
-/*     lbm_value b; */
-/*     int r = lbm_unflatten_value_internal(v, &a); */
-/*     if (r == UNFLATTEN_OK) { */
-/*       r = lbm_unflatten_value_internal(v, &b); */
-/*       if (r == UNFLATTEN_OK) { */
-/*         lbm_value c; */
-/*         c = lbm_cons(a,b); */
-/*         if (lbm_is_symbol_merror(c)) return UNFLATTEN_GC_RETRY; */
-/*         *res = c; */
-/*         r = UNFLATTEN_OK; */
-/*       } */
-/*     } */
-/*     return r; */
-/*   } */
-/*   case S_LBM_LISP_ARRAY: { */
-/*     uint32_t size; */
-/*     bool b = extract_word(v, &size); */
-/*     int r = UNFLATTEN_MALFORMED; */
-/*     if (b) { */
-/*       lbm_value array; */
-/*       lbm_heap_allocate_lisp_array(&array, size); */
-/*       lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(array); */
-/*       lbm_value *arrdata = (lbm_value*)header->data; */
-/*       if (lbm_is_symbol_merror(array)) return UNFLATTEN_GC_RETRY; */
-/*       lbm_value a; */
-/*       for (uint32_t i = 0; i < size; i ++) { */
-/*         r = lbm_unflatten_value_internal(v, &a); */
-/*         if (r == UNFLATTEN_OK) { */
-/*           arrdata[i] = a; */
-/*         } else { */
-/*           break; */
-/*         } */
-/*       } */
-/*       *res = array; */
-/*     } */
-/*     return r; */
-/*   } */
-/*   default: */
-/*     return lbm_unflatten_value_atom(v, res); */
-/*   } */
-/* } */
-
-
+// ////////////////////////////////////////////////////////////
 // Pointer-reversal-esque "stackless" deserialization of
 // flattened (serialized) trees.
-
+//
+// Initially:
+//   curr = LBM_NULL;    v->buf = { ... }
+//
+// FORWARDS PHASE: 
+// Cons case:
+//   Reading conses from the buffer builds a backpointing list.
+//   Placeholder element acts as a 1 bit "visited" field.
+//
+//   curr = p;   v->buf = {S_CONS, ... }
+//   =>
+//   curr = [p, placeholder]; v->buf = { ... }
+//
+// Lisp array case:
+//   An Array tag in the buffer leads to the creation of an array
+//   with a backptr in the last element position. Placeholder element
+//   is not needed as LBM-Arrays have a built in index field (used by GC)
+//   that can keep a count of how far along the array we have progressed.
+//
+//   curr = p;  v->buf = {S_LBM_LISP_ARRAY, ... }
+//   =>
+//   curr = [| nil ... p |]; v->buf = { ... }
+//
+// Atom case:
+//   Reading an atom triggers a backwards traversal along the backpointer
+//   structure.
+//
+//   curr = X;   v->buf = {any_atom, ... } example integer, string.
+//   =>
+//   val = unflatten_atom(v->buf);      v->buf = { ... }
+//
+//   BACKWARDS PHASE: Start the backwards traversal:
+//
+//   Case on X
+//     LBM_NULL;
+//     => Done! result = val
+//
+//     [p, placeholder];
+//     =>
+//     [p, val]   Base case. Finishes back traversal.
+//                Go back to FORWARDS PHASE.
+//
+//
+//     [p, val0];
+//     =>
+//     tmp = [val0, val];  val = tmp;  curr = p;   continue backwards with value pointing to recently constructed final subresult.
+//
+//
+//     [| a b nil ... p |]
+//     =>
+//     [| a b val ... p |]   Base case. Finishes back traversal.
+//                           Array internal index field keeps track of write position.
+//                           Go back to FORWARDS PHASE.
+//
+//
+//    [| a0 a1 ... an p |]
+//    =>
+//    tmp =  [| a0 a1 ... an val |];  val = tmp; curr = p; continue backwards
+//
 static int lbm_unflatten_value_nostack(lbm_flat_value_t *v, lbm_value *res) {
   bool done = false;
 
