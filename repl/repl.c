@@ -847,7 +847,7 @@ int init_repl() {
     fclose(f);
   } else {
     image_clear();
-    lbm_image_create("apa_1");
+    lbm_image_create("bepa");
   }
 
   if (lbm_image_get_version()) {
