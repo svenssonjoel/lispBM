@@ -720,7 +720,7 @@ void lbm_image_create(char *version_str) {
     write_u32(words, &write_index, DOWNWARDS);
     uint32_t w = 0;
     char *buf = (char*)&w;
-    int i = 0;
+    uint32_t i = 0;
     int32_t ix = write_index - (int32_t)(words -1);
     int wi = 0;
     while (i < bytes) {
