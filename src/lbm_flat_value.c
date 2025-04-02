@@ -29,7 +29,6 @@ int lbm_perform_gc(void);
 
 // ------------------------------------------------------------
 // Flatteners
-
 bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size) {
   bool res = false;
   uint8_t *data = lbm_malloc_reserve(buffer_size);

@@ -115,7 +115,7 @@ make sdl64
 
 <p> Or for 32bit.</p>
 
-<p><b>WARNING</b> if you are using UBUNTY 24.04(.0/.2) lts <b>DO NOT</b> "sudo atp install" the 32 bit sdl libraries.
+<p><b>WARNING</b> if you are using UBUNTU 24.04(.0/.2) lts <b>DO NOT</b> "sudo atp install" the 32 bit sdl libraries.
 Doing so may render your system unusable as the apt solver is incorrectly deciding to uninstall key operating system
 packages. Instead do the following: <p>
 
