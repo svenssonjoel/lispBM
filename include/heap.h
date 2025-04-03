@@ -997,7 +997,8 @@ static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
 }
 
 
-void lbm_ptr_rev_trav(lbm_value v);  
+  void lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg);
+
 
 // lbm_uint a = lbm_heaps[0];
 // lbm_uint b = lbm_heaps[1];

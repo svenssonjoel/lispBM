@@ -737,9 +737,20 @@ lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
   return lbm_image_save_constant_heap_ix() ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
+
+void dummy_f(lbm_value v, void *arg) {
+  char buf[256];
+  if (lbm_is_cons(v)) {
+    printf("cons\n");
+  } else {
+    lbm_print_value(buf,256, v);
+    printf("atom: %s\n", buf);
+  }
+}
+
 lbm_value ext_rt(lbm_value *args, lbm_uint argn) {
   if (argn == 1) {
-    lbm_ptr_rev_trav(args[0]);
+    lbm_ptr_rev_trav(dummy_f, args[0], NULL);
     return ENC_SYM_TRUE;
   } 
   return ENC_SYM_TERROR;
