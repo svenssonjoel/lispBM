@@ -41,13 +41,31 @@ static inline lbm_value lbm_set_gc_mark(lbm_value x) {
   return x | LBM_GC_MARKED;
 }
 
+static inline void gc_mark(lbm_value c) {
+  //c must be a cons cell.
+  lbm_cons_t *cell = lbm_ref_cell(c);
+  cell->cdr = lbm_set_gc_mark(cell->cdr);
+}
+
 static inline lbm_value lbm_clr_gc_mark(lbm_value x) {
   return x & ~LBM_GC_MASK;
+}
+
+static inline void gc_clear(lbm_value c) {
+  //c must be a cons cell.
+  lbm_cons_t *cell = lbm_ref_cell(c);
+  cell->cdr = lbm_clr_gc_mark(cell->cdr);
 }
 
 static inline bool lbm_get_gc_mark(lbm_value x) {
   return x & LBM_GC_MASK;
 }
+
+static inline bool gc_marked(lbm_value c) {
+  lbm_cons_t *cell = lbm_ref_cell(c);
+  return lbm_get_gc_mark(cell->cdr);
+}
+
 
 // flag is the same bit as mark, but in car
 static inline bool lbm_get_gc_flag(lbm_value x) {
@@ -689,6 +707,11 @@ lbm_uint lbm_get_gc_stack_size(void) {
   return lbm_heap_state.gc_stack.size;
 }
 
+static inline void value_assign(lbm_value *a, lbm_value b) {
+  lbm_value a_old = *a & LBM_GC_MASK;
+  *a = a_old | (b & ~LBM_GC_MASK);
+}
+
 #ifdef LBM_USE_GC_PTR_REV
 /* ************************************************************
    Deutch-Schorr-Waite (DSW) pointer reversal GC for 2-ptr cells
@@ -710,10 +733,6 @@ lbm_uint lbm_get_gc_stack_size(void) {
    to mark arrays without resorting to recursive mark calls.
 */
 
-static inline void value_assign(lbm_value *a, lbm_value b) {
-  lbm_value a_old = *a & LBM_GC_MASK;
-  *a = a_old | (b & ~LBM_GC_MASK);
-}
 
 void lbm_gc_mark_phase_nm(lbm_value root) {
   bool work_to_do = true;
@@ -760,7 +779,7 @@ void lbm_gc_mark_phase_nm(lbm_value root) {
       value_assign(&cell->cdr, curr);
       value_assign(&curr, prev);
       value_assign(&prev, next);
-    }
+    } 
     if (lbm_is_ptr(prev) &&
         lbm_dec_ptr(prev) == LBM_PTR_NULL) {
       work_to_do = false;
@@ -1513,4 +1532,131 @@ lbm_flash_status write_const_car(lbm_value cell, lbm_value val) {
 
 lbm_uint lbm_flash_memory_usage(void) {
   return lbm_const_heap_state->next;
+}
+
+
+// ////////////////////////////////////////////////////////////
+// pointer reversal traversal
+//
+// Initally curr = v
+//          prev = LBM_NULL
+//
+
+
+void lbm_ptr_rev_trav(lbm_value v) {
+  char buf[256];
+  if (!lbm_is_cons(v)) {
+    lbm_print_value(buf, 256, v);
+    printf("atom: %s\n", buf);
+    return;
+  }
+  bool done = false;
+
+  lbm_value curr = v;
+  lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
+
+  while (!done) {
+
+    // Run leftwards and process conses until
+    // hitting a leaf in the left direction.
+    while (lbm_is_cons(curr)) {
+      gc_mark(curr); printf("marking\n");
+      // In-order traversal
+      printf("cons\n");
+      // As we keep going leftwards a leftwards pointer could potentially
+      // form a loop back to some visited node.
+      lbm_cons_t *cell = lbm_ref_cell(curr);
+      if (gc_marked(cell->car)) {
+        gc_clear(curr); printf("clearing\n");
+        printf("loop found leftwards\n");
+        break;
+      }
+      lbm_value next = 0;
+      value_assign(&next, cell->car);
+      value_assign(&cell->car, prev);
+      value_assign(&prev, curr);
+      value_assign(&curr, next);
+    }
+
+    // Leaf found.
+    if (!lbm_is_cons(curr)) {
+      lbm_print_value(buf, 256, curr);
+      printf("atom: %s\n", buf);
+    }
+
+    // Now either prev has the "flag" set or it doesnt.
+    // If the flag is set that means that the prev node
+    // have had both its car and cdr visited. So that node is done!
+    //
+    // If the flag is not set, jump down to SWAP
+
+  backwards:
+    while (lbm_is_cons(prev) &&
+           (lbm_dec_ptr(prev) != LBM_PTR_NULL) &&
+           lbm_get_gc_flag(lbm_car(prev)) ) {
+      // clear the flag
+      gc_clear(prev); printf("clearing\n");
+      lbm_cons_t *cell = lbm_ref_cell(prev);
+      cell->car = lbm_clr_gc_flag(cell->car);
+      // Move on downwards until
+      //   finding a cons cell without flag or NULL
+      lbm_value next = 0;
+      value_assign(&next, cell->cdr);
+      value_assign(&cell->cdr, curr);
+      value_assign(&curr, prev);
+      value_assign(&prev, next);
+    }
+
+    // SWAP
+
+    // if the prev node is NULL we have traced backwards all the
+    // way back to where curr == v. Another alternative is that
+    // the input v was an Atom.  We are done!
+    if (lbm_is_ptr(prev) &&
+        lbm_dec_ptr(prev) == LBM_PTR_NULL) {
+      printf("done\n");
+      done = true;
+    }
+
+    // if the prev node is not NULL then we should move
+    // down to the prev node and start process its remaining child.
+    else if (lbm_is_cons(prev)) {
+      printf("switching to CDR\n");
+
+      lbm_cons_t *cell = lbm_ref_cell(prev);
+      lbm_value next = 0;
+       
+      if (gc_marked(cell->cdr)) {
+        // continuing the backtraversal should loop back around
+        // and clear the GC bit of cell->cdr when it gets there
+        // again.
+        //gc_clear(prev);
+        //gc_clear(cell->cdr);
+
+        lbm_print_value(buf, 256, curr);
+        printf("curr: %s\n",buf);
+        
+        // Restore the cell pointer structure.
+        // Take a step backwards.
+        printf("loop found rightwards\n");
+        value_assign(&next, cell->car);
+        value_assign(&cell->car, curr); // restore element
+        value_assign(&curr, prev);
+        value_assign(&prev, next); // step backwards one and keep restoring.
+        goto backwards;
+      }
+      
+      //
+      //  prev = [ p , cdr ][0]
+      //  =>
+      //  prev = [ p , cdr ][1]
+
+      cell->car = lbm_set_gc_flag(cell->car);
+      
+      value_assign(&next, cell->car);
+      value_assign(&cell->car, curr);
+      value_assign(&curr, cell->cdr);
+      value_assign(&cell->cdr, next);
+    }
+  }
 }
