@@ -997,7 +997,13 @@ static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
 }
 
 
-  void lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg);
+ /**
+  * \param f pointer to function to execute at each node in tree.
+  * \param v Tree to traverses.
+  * \param arg Extra argument to pass to f when applied.
+  * \return true if successful traversal and false if there is a cycle in the data.
+  */
+bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg);
 
 
 // lbm_uint a = lbm_heaps[0];

@@ -779,7 +779,7 @@ void lbm_gc_mark_phase_nm(lbm_value root) {
       value_assign(&cell->cdr, curr);
       value_assign(&curr, prev);
       value_assign(&prev, next);
-    } 
+    }
     if (lbm_is_ptr(prev) &&
         lbm_dec_ptr(prev) == LBM_PTR_NULL) {
       work_to_do = false;
@@ -1538,19 +1538,27 @@ lbm_uint lbm_flash_memory_usage(void) {
 // ////////////////////////////////////////////////////////////
 // pointer reversal traversal
 //
-// Initally curr = v
-//          prev = LBM_NULL
-//
+// Caveats:
+//   * Structures on the constant heap cannot be traversed using
+//     pointer reversal. If a dynamic structure is pointing into the
+//     constant heap, the 'f' will be applied to the constant cons cell on
+//     the border and then traversal will retreat.
+//   * Traversal is for trees and graphs without cycles.
+//     - Note that if used to "flatten" a graph, the resulting flat
+//       value will encode a tree where sharing is duplicated.
+//     - NOT suitable for flattening in general, but should be
+//       a perfect for the flattening we do into images.
 
-
-
-void lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
-  if (!lbm_is_cons(v)) {
+bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
+  // if v is ATOM or constant, run f and exit.
+  if (!lbm_is_cons(v)  ||
+      (v & LBM_PTR_TO_CONSTANT_BIT)) {
     f(v, arg);
-    return;
+    return true;
   }
-  bool done = false;
 
+  bool cyclic = false;
+  bool done = false;
   lbm_value curr = v;
   lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
 
@@ -1558,7 +1566,8 @@ void lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
 
     // Run leftwards and process conses until
     // hitting a leaf in the left direction.
-    while (lbm_is_cons(curr)) {
+    while (lbm_is_cons(curr) &&
+           ((curr & LBM_PTR_TO_CONSTANT_BIT) == 0)) { // do not step into the constant heap
       gc_mark(curr);
       // In-order traversal
       f(curr, arg);
@@ -1568,6 +1577,7 @@ void lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       if (lbm_is_cons(cell->car) && // Only if a cons,
           gc_marked(cell->car)) {   // a loop is possible.
         // leftwards loop, turn back!
+        cyclic = true;
         gc_clear(curr);
         break;
       }
@@ -1580,7 +1590,8 @@ void lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
 
   backwards:
     // Leaf found.
-    if (!lbm_is_cons(curr)) {
+    if (!lbm_is_cons(curr) ||
+        (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       f(curr, arg);
     }
 
@@ -1589,7 +1600,6 @@ void lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
     // have had both its car and cdr visited. So that node is done!
     //
     // If the flag is not set, jump down to SWAP
-
 
     while (lbm_is_cons(prev) &&
            (lbm_dec_ptr(prev) != LBM_PTR_NULL) &&
@@ -1617,7 +1627,6 @@ void lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       if (lbm_is_cons(curr)) {
         gc_clear(curr);
       }
-
       done = true;
       break;
     }
@@ -1634,7 +1643,7 @@ void lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
         // and clear the GC bit of cell->cdr when it gets there
         // again.
         //gc_clear(cell->cdr);
-
+        cyclic = true;
         // Restore the cell pointer structure.
         // Take a step backwards.
         value_assign(&next, cell->car);
@@ -1657,4 +1666,5 @@ void lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       value_assign(&cell->cdr, next);
     }
   }
+  return !cyclic;
 }
