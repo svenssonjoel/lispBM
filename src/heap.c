@@ -1550,12 +1550,6 @@ lbm_uint lbm_flash_memory_usage(void) {
 //       a perfect for the flattening we do into images.
 
 bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
-  // if v is ATOM or constant, run f and exit.
-  if (!lbm_is_cons(v)  ||
-      (v & LBM_PTR_TO_CONSTANT_BIT)) {
-    f(v, arg);
-    return true;
-  }
 
   bool cyclic = false;
   bool done = false;
@@ -1574,8 +1568,8 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       // As we keep going leftwards a leftwards pointer could potentially
       // form a loop back to some visited node.
       lbm_cons_t *cell = lbm_ref_cell(curr);
-      if (lbm_is_cons(cell->car) && // Only if a cons,
-          gc_marked(cell->car)) {   // a loop is possible.
+      if (lbm_is_cons(cell->car) && // a loop is only possible if a cons.
+          gc_marked(cell->car)) {
         // leftwards loop, turn back!
         cyclic = true;
         gc_clear(curr);
@@ -1588,12 +1582,15 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       value_assign(&curr, next);
     }
 
-  backwards:
-    // Leaf found.
-    if (!lbm_is_cons(curr) ||
+    // Not a leaf, but an array!
+    if (lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
+      f(curr, arg);
+    } else if (!lbm_is_cons(curr) || // a leaf
         (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       f(curr, arg);
     }
+
+  backwards:
 
     // Now either prev has the "flag" set or it doesnt.
     // If the flag is set that means that the prev node

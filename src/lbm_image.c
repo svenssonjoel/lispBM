@@ -396,6 +396,74 @@ static bool i_f_lbm_array(uint32_t num_bytes, uint8_t *data) {
   return res;
 }
 
+
+static void size_acc(lbm_value v, void *acc) {
+  int32_t *s = (int32_t*)acc;
+
+  lbm_uint t = lbm_type_of(v);
+
+  // for now, ignore constant
+  if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) {
+    t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
+  }
+
+  if (lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
+    *s += (int32_t)sizeof(lbm_uint) + 1;
+    return;
+  }
+
+  switch (t) {
+  case LBM_TYPE_CONS:
+    *s += 1;
+    break;
+  case LBM_TYPE_BYTE:
+    *s += 2;
+    break;
+  case LBM_TYPE_U:
+    *s += (int32_t)sizeof(lbm_uint) + 1;
+    break;
+  case LBM_TYPE_I:
+    *s += (int32_t)sizeof(lbm_uint) + 1;
+    break;
+  case LBM_TYPE_U32:
+    *s += 4 + 1;
+    break;
+  case LBM_TYPE_I32:
+    *s += 4 + 1;
+    break;
+  case LBM_TYPE_U64:
+    *s += 8 + 1;
+    break;
+  case LBM_TYPE_I64:
+    *s += 8 + 1;
+    break;
+  case LBM_TYPE_FLOAT:
+    *s += 4 + 1;
+    break;
+  case LBM_TYPE_DOUBLE:
+    *s += 8 + 1;
+    break;
+  case LBM_TYPE_SYMBOL:
+    *s += (int32_t)sizeof(lbm_uint) + 1;
+    break;
+  case LBM_TYPE_ARRAY: {
+    lbm_int arr_size = lbm_heap_array_get_size(v);
+    const uint8_t *d = lbm_heap_array_get_data_ro(v);
+    if (arr_size > 0 && d != NULL) {
+      *s += 1 + 4 + arr_size;
+    }
+  }break;
+  }
+}
+
+static int32_t image_flatten_size(lbm_value v) {
+  int32_t s = 0;
+  if (lbm_ptr_rev_trav(size_acc, v, &s))
+    return s;
+
+  return -1;
+}
+
 static bool image_flatten_value(lbm_value v) {
   lbm_uint t = lbm_type_of(v);
 
@@ -607,7 +675,10 @@ bool lbm_image_save_global_env(void) {
           write_lbm_value(name_field, &write_index, DOWNWARDS);
           write_lbm_value(val_field, &write_index, DOWNWARDS);
         } else {
+
           int fv_size = flatten_value_size(val_field, true);
+          int test_size = image_flatten_size(val_field);
+          printf(" %d : %d\n", fv_size, test_size);
           if (fv_size > 0) {
             fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1; // num 32bit words
             int tot_size =  fv_size; //+ 1 + (int)(sizeof(lbm_uint) / 4);

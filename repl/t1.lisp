@@ -42,6 +42,7 @@
 (define ls2 (cons 75 ls))
 (define str1 "hello world")
 (define tree (list "hello world" "apa" 1000u64 (list 100i64 "kurt" "russel" (list "bepa"))))
+;;(define arr [|  1 2 3 |])
 
 (defun main ()
   (print "booting image")
