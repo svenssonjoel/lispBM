@@ -1560,32 +1560,50 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
 
     // Run leftwards and process conses until
     // hitting a leaf in the left direction.
-    while (lbm_is_cons(curr) &&
-           ((curr & LBM_PTR_TO_CONSTANT_BIT) == 0)) { // do not step into the constant heap
-      gc_mark(curr);
-      // In-order traversal
-      f(curr, arg);
-      // As we keep going leftwards a leftwards pointer could potentially
-      // form a loop back to some visited node.
+    while (lbm_is_cons_rw(curr) ||
+           lbm_is_lisp_array_rw(curr)) { // do not step into the constant heap
       lbm_cons_t *cell = lbm_ref_cell(curr);
-      if (lbm_is_cons(cell->car) && // a loop is only possible if a cons.
-          gc_marked(cell->car)) {
-        // leftwards loop, turn back!
-        cyclic = true;
-        gc_clear(curr);
-        break;
+      if (lbm_is_cons(curr)) {
+        gc_mark(curr);
+        // In-order traversal
+        f(curr, arg);
+        // As we keep going leftwards a leftwards pointer could potentially
+        // form a loop back to some visited node.
+        if (lbm_is_cons(cell->car) && // a loop is only possible if a cons.
+            gc_marked(cell->car)) {
+          // leftwards loop, turn back!
+          cyclic = true;
+          gc_clear(curr);
+          break;
+        }
+        lbm_value next = 0;
+        value_assign(&next, cell->car);
+        value_assign(&cell->car, prev);
+        value_assign(&prev, curr);
+        value_assign(&curr, next);
+      } else { // it is an array
+        lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
+        lbm_value *arr_data = (lbm_value *)arr->data;
+        uint32_t index = arr->index;
+        if (arr->size == 0) break;
+        //size_t arr_size = (size_t)arr->size / sizeof(lbm_value);
+        if (index == 0) { // index should only be 0 or there is a potential cycle
+          f(curr, arg);
+          arr->index = 1;
+
+          lbm_value next = 0;
+          value_assign(&next, arr_data[0]);
+          value_assign(&arr_data[0], prev);
+          value_assign(&prev, curr);
+          value_assign(&curr, next);
+        } else {
+          cyclic = true;
+          break;
+        }
       }
-      lbm_value next = 0;
-      value_assign(&next, cell->car);
-      value_assign(&cell->car, prev);
-      value_assign(&prev, curr);
-      value_assign(&curr, next);
     }
 
-    // Not a leaf, but an array!
-    if (lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
-      f(curr, arg);
-    } else if (!lbm_is_cons(curr) || // a leaf
+    if (!lbm_is_cons(curr) || // Found a leaf
         (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       f(curr, arg);
     }
@@ -1598,20 +1616,37 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
     //
     // If the flag is not set, jump down to SWAP
 
-    while (lbm_is_cons(prev) &&
-           (lbm_dec_ptr(prev) != LBM_PTR_NULL) &&
-           lbm_get_gc_flag(lbm_car(prev)) ) {
-      // clear the flag
-      gc_clear(curr);
+    while ((lbm_is_cons(prev) &&
+            (lbm_dec_ptr(prev) != LBM_PTR_NULL) && // is LBM_NULL a cons type?
+            lbm_get_gc_flag(lbm_car(prev))) ||
+           lbm_is_lisp_array_rw(prev)) {
       lbm_cons_t *cell = lbm_ref_cell(prev);
-      cell->car = lbm_clr_gc_flag(cell->car);
-      // Move on downwards until
-      //   finding a cons cell without flag or NULL
-      lbm_value next = 0;
-      value_assign(&next, cell->cdr);
-      value_assign(&cell->cdr, curr);
-      value_assign(&curr, prev);
-      value_assign(&prev, next);
+      if (lbm_is_cons(prev)) {
+        // clear the flag
+        gc_clear(curr);
+        cell->car = lbm_clr_gc_flag(cell->car);
+        // Move on downwards until
+        //   finding a cons cell without flag or NULL
+        lbm_value next = 0;
+        value_assign(&next, cell->cdr);
+        value_assign(&cell->cdr, curr);
+        value_assign(&curr, prev);
+        value_assign(&prev, next);
+      } else { // is an array
+        lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
+        lbm_value *arr_data = (lbm_value *)arr->data;
+        size_t arr_size = (size_t)arr->size / sizeof(lbm_value);
+        lbm_value next = 0;
+        if (arr->index == arr_size) {
+          value_assign(&next, arr_data[arr->index-1]);
+          value_assign(&arr_data[arr->index-1], curr);
+          value_assign(&curr, prev);
+          value_assign(&prev, next);
+          arr->index = 0;
+        } else {
+          break;
+        }
+      }
     }
 
     // SWAP
@@ -1661,6 +1696,18 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       value_assign(&cell->car, curr);
       value_assign(&curr, cell->cdr);
       value_assign(&cell->cdr, next);
+    } else if (lbm_is_lisp_array_rw(prev)) {
+      lbm_cons_t *cell = lbm_ref_cell(prev);
+      lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
+      lbm_value *arr_data = (lbm_value *)arr->data;
+      //size_t arr_size = (size_t)arr->size / sizeof(lbm_value);
+      lbm_value next = 0;
+
+      value_assign(&next, arr_data[arr->index-1]);
+      value_assign(&arr_data[arr->index-1], curr);
+      value_assign(&curr, arr_data[arr->index]);
+      value_assign(&arr_data[arr->index], next);
+      arr->index = arr->index + 1;
     }
   }
   return !cyclic;

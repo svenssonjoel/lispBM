@@ -416,6 +416,9 @@ static void size_acc(lbm_value v, void *acc) {
   case LBM_TYPE_CONS:
     *s += 1;
     break;
+  case LBM_TYPE_LISPARRAY:
+    *s += 4 + 1;
+    break;
   case LBM_TYPE_BYTE:
     *s += 2;
     break;
