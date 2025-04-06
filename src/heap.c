@@ -1560,22 +1560,14 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
 
     // Run leftwards and process conses until
     // hitting a leaf in the left direction.
-    while (lbm_is_cons_rw(curr) ||
+    while ((lbm_is_cons_rw(curr) &&
+	    !gc_marked(curr)) ||         // do not step into a loop
            lbm_is_lisp_array_rw(curr)) { // do not step into the constant heap
       lbm_cons_t *cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
-        //gc_mark(curr);
+        gc_mark(curr);
         // In-order traversal
         f(curr, arg);
-        // As we keep going leftwards a leftwards pointer could potentially
-        // form a loop back to some visited node.
-        //if (lbm_is_cons(cell->car) && // a loop is only possible if a cons.
-        //    gc_marked(cell->car)) {
-          // leftwards loop, turn back!
-        //  cyclic = true;
-        //  gc_clear(curr);
-        //  break;
-        //}
         lbm_value next = 0;
         value_assign(&next, cell->car);
         value_assign(&cell->car, prev);
@@ -1606,6 +1598,9 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
     if (!lbm_is_cons(curr) || // Found a leaf
         (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       f(curr, arg);
+    } else if (gc_marked(curr)) {
+      cyclic = true;
+      gc_clear(curr);
     }
 
     //backwards:
@@ -1623,7 +1618,7 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       lbm_cons_t *cell = lbm_ref_cell(prev);
       if (lbm_is_cons(prev)) {
         // clear the flag
-        gc_clear(curr);
+	gc_clear(prev);
         cell->car = lbm_clr_gc_flag(cell->car);
         // Move on downwards until
         //   finding a cons cell without flag or NULL
@@ -1670,21 +1665,6 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       lbm_cons_t *cell = lbm_ref_cell(prev);
       lbm_value next = 0;
 
-      /* if (gc_marked(cell->cdr)) { */
-      /*   // continuing the backtraversal should loop back around */
-      /*   // and clear the GC bit of cell->cdr when it gets there */
-      /*   // again. */
-      /*   //gc_clear(cell->cdr); */
-      /*   cyclic = true; */
-      /*   // Restore the cell pointer structure. */
-      /*   // Take a step backwards. */
-      /*   value_assign(&next, cell->car); */
-      /*   value_assign(&cell->car, curr); // restore element */
-      /*   value_assign(&curr, prev); */
-      /*   value_assign(&prev, next); // step backwards one and keep restoring. */
-      /*   goto backwards; */
-      /* } */
-
       //
       //  prev = [ p , cdr ][0]
       //  =>
@@ -1700,7 +1680,6 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       lbm_cons_t *cell = lbm_ref_cell(prev);
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arr_data = (lbm_value *)arr->data;
-      //size_t arr_size = (size_t)arr->size / sizeof(lbm_value);
       lbm_value next = 0;
 
       value_assign(&next, arr_data[arr->index-1]);
