@@ -398,11 +398,10 @@ static bool i_f_lbm_array(uint32_t num_bytes, uint8_t *data) {
 
 
 static void size_acc(lbm_value v, void *acc) {
-  int32_t *s = (int32_t*)acc;
+ int32_t *s = (int32_t*)acc;
 
   lbm_uint t = lbm_type_of(v);
 
-  // for now, ignore constant
   if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) {
     t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
   }
@@ -459,128 +458,207 @@ static void size_acc(lbm_value v, void *acc) {
   }
 }
 
-static int32_t image_flatten_size(lbm_value v) {
-  int32_t s = 0;
-  if (lbm_ptr_rev_trav(size_acc, v, &s))
-    return s;
-
-  return -1;
-}
-
-static bool image_flatten_value(lbm_value v) {
+static void flatten_node(lbm_value v, void *res) {
+  bool *acc = (bool*)res;
   lbm_uint t = lbm_type_of(v);
 
-  // for now, ignore constant
   if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) {
     t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
   }
 
   if (lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
-    bool r = fv_write_u8(S_CONSTANT_REF);
+    *acc = *acc && fv_write_u8(S_CONSTANT_REF);
 #ifdef LBM64
-    r = r && fv_write_u64((lbm_uint)v);
+    *acc = *acc && fv_write_u64((lbm_uint)v);
 #else
-    r = r && fv_write_u32((lbm_uint)v);
+    *acc = *acc && fv_write_u32((lbm_uint)v);
 #endif
-    return r;
+    return;
   }
 
   switch (t) {
-  case LBM_TYPE_CONS: {
-    bool res = true;
-    res = res && i_f_cons();
-    if (res) {
-      int fv_r = image_flatten_value(lbm_car(v));
-      if (fv_r) {
-        fv_r = image_flatten_value(lbm_cdr(v));
-      }
-      return fv_r;
-    }
-  }break;
+  case LBM_TYPE_CONS:
+    *acc = *acc && i_f_cons();
+    break;
   case LBM_TYPE_LISPARRAY: {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v);
     if (header) {
-      lbm_value *arrdata = (lbm_value*)header->data;
-      // always exact multiple of sizeof(lbm_value)
       uint32_t size = (uint32_t)(header->size / sizeof(lbm_value));
-      if (!i_f_lisp_array(size)) return false;
-      int fv_r = true;
-      for (lbm_uint i = 0; i < size; i ++ ) {
-        fv_r =  image_flatten_value(arrdata[i]);
-        if (!fv_r) {
-          break;
-        }
-      }
-      return fv_r;
+      *acc = *acc && i_f_lisp_array(size);
     } else {
-      return false;
+      // hmm
     }
   } break;
   case LBM_TYPE_BYTE:
-    if (i_f_b((uint8_t)lbm_dec_as_char(v))) {
-      return true;
-    }
+    *acc = *acc && i_f_b((uint8_t)lbm_dec_as_char(v));
     break;
   case LBM_TYPE_U:
-    if (i_f_u(lbm_dec_u(v))) {
-      return true;
-    }
+    *acc = *acc && i_f_u(lbm_dec_u(v));
     break;
   case LBM_TYPE_I:
-    if (i_f_i(lbm_dec_i(v))) {
-      return true;
-    }
+    *acc = *acc && i_f_i(lbm_dec_i(v));
     break;
   case LBM_TYPE_U32:
-    if (i_f_u32(lbm_dec_as_u32(v))) {
-      return true;
-    }
+    *acc = *acc && i_f_u32(lbm_dec_as_u32(v));
     break;
   case LBM_TYPE_I32:
-    if (i_f_i32(lbm_dec_as_i32(v))) {
-      return true;
-    }
+    *acc = *acc && i_f_i32(lbm_dec_as_i32(v));
     break;
   case LBM_TYPE_U64:
-    if (i_f_u64(lbm_dec_as_u64(v))) {
-      return true;
-    }
+    *acc = *acc && i_f_u64(lbm_dec_as_u64(v));
     break;
   case LBM_TYPE_I64:
-    if (i_f_i64(lbm_dec_as_i64(v))) {
-      return true;
-    }
+    *acc = *acc && i_f_i64(lbm_dec_as_i64(v));
     break;
   case LBM_TYPE_FLOAT:
-    if (i_f_float(lbm_dec_as_float(v))) {
-      return true;
-    }
+    *acc = *acc && i_f_float(lbm_dec_as_float(v));
     break;
   case LBM_TYPE_DOUBLE:
-    if (i_f_double(lbm_dec_as_double(v))) {
-      return true;
-    }
+    *acc = *acc && i_f_double(lbm_dec_as_double(v));
     break;
-  case LBM_TYPE_SYMBOL: {
-    //char *sym_str = (char*)lbm_get_name_by_symbol(lbm_dec_sym(v));
-    if (i_f_sym(v)) {
-      return true;
-    }
-  } break;
+  case LBM_TYPE_SYMBOL:
+    *acc = *acc && i_f_sym(v);
+    break;
   case LBM_TYPE_ARRAY: {
     lbm_int s = lbm_heap_array_get_size(v);
     const uint8_t *d = lbm_heap_array_get_data_ro(v);
     if (s > 0 && d != NULL) {
-      if (i_f_lbm_array((uint32_t)s, (uint8_t*)d)) {
-        return true;
-      }
-    } else {
-      return false;
+      *acc = *acc && i_f_lbm_array((uint32_t)s, (uint8_t*)d);
     }
   }break;
+  default:
+    break;
   }
-  return false;
 }
+
+static int32_t image_flatten_size(lbm_value v) {
+  int32_t s = 0;
+  if (lbm_ptr_rev_trav(size_acc, v, &s))
+    return s;
+  return -1;
+}
+
+static bool image_flatten_value(lbm_value v) {
+  bool ok = true;
+  bool trav_ok = lbm_ptr_rev_trav(flatten_node, v, &ok);
+  return trav_ok && ok; // ok = enough space in image for flat val.
+                        // trav_ok = no cycles in input value.
+}
+
+/* static bool image_flatten_value(lbm_value v) { */
+/*   lbm_uint t = lbm_type_of(v); */
+
+/*   // for now, ignore constant */
+/*   if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) { */
+/*     t = t & ~(LBM_PTR_TO_CONSTANT_BIT); */
+/*   } */
+
+/*   if (lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) { */
+/*     bool r = fv_write_u8(S_CONSTANT_REF); */
+/* #ifdef LBM64 */
+/*     r = r && fv_write_u64((lbm_uint)v); */
+/* #else */
+/*     r = r && fv_write_u32((lbm_uint)v); */
+/* #endif */
+/*     return r; */
+/*   } */
+
+/*   switch (t) { */
+/*   case LBM_TYPE_CONS: { */
+/*     bool res = true; */
+/*     res = res && i_f_cons(); */
+/*     if (res) { */
+/*       int fv_r = image_flatten_value(lbm_car(v)); */
+/*       if (fv_r) { */
+/*         fv_r = image_flatten_value(lbm_cdr(v)); */
+/*       } */
+/*       return fv_r; */
+/*     } */
+/*   }break; */
+/*   case LBM_TYPE_LISPARRAY: { */
+/*     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v); */
+/*     if (header) { */
+/*       lbm_value *arrdata = (lbm_value*)header->data; */
+/*       // always exact multiple of sizeof(lbm_value) */
+/*       uint32_t size = (uint32_t)(header->size / sizeof(lbm_value)); */
+/*       if (!i_f_lisp_array(size)) return false; */
+/*       int fv_r = true; */
+/*       for (lbm_uint i = 0; i < size; i ++ ) { */
+/*         fv_r =  image_flatten_value(arrdata[i]); */
+/*         if (!fv_r) { */
+/*           break; */
+/*         } */
+/*       } */
+/*       return fv_r; */
+/*     } else { */
+/*       return false; */
+/*     } */
+/*   } break; */
+/*   case LBM_TYPE_BYTE: */
+/*     if (i_f_b((uint8_t)lbm_dec_as_char(v))) { */
+/*       return true; */
+/*     } */
+/*     break; */
+/*   case LBM_TYPE_U: */
+/*     if (i_f_u(lbm_dec_u(v))) { */
+/*       return true; */
+/*     } */
+/*     break; */
+/*   case LBM_TYPE_I: */
+/*     if (i_f_i(lbm_dec_i(v))) { */
+/*       return true; */
+/*     } */
+/*     break; */
+/*   case LBM_TYPE_U32: */
+/*     if (i_f_u32(lbm_dec_as_u32(v))) { */
+/*       return true; */
+/*     } */
+/*     break; */
+/*   case LBM_TYPE_I32: */
+/*     if (i_f_i32(lbm_dec_as_i32(v))) { */
+/*       return true; */
+/*     } */
+/*     break; */
+/*   case LBM_TYPE_U64: */
+/*     if (i_f_u64(lbm_dec_as_u64(v))) { */
+/*       return true; */
+/*     } */
+/*     break; */
+/*   case LBM_TYPE_I64: */
+/*     if (i_f_i64(lbm_dec_as_i64(v))) { */
+/*       return true; */
+/*     } */
+/*     break; */
+/*   case LBM_TYPE_FLOAT: */
+/*     if (i_f_float(lbm_dec_as_float(v))) { */
+/*       return true; */
+/*     } */
+/*     break; */
+/*   case LBM_TYPE_DOUBLE: */
+/*     if (i_f_double(lbm_dec_as_double(v))) { */
+/*       return true; */
+/*     } */
+/*     break; */
+/*   case LBM_TYPE_SYMBOL: { */
+/*     //char *sym_str = (char*)lbm_get_name_by_symbol(lbm_dec_sym(v)); */
+/*     if (i_f_sym(v)) { */
+/*       return true; */
+/*     } */
+/*   } break; */
+/*   case LBM_TYPE_ARRAY: { */
+/*     lbm_int s = lbm_heap_array_get_size(v); */
+/*     const uint8_t *d = lbm_heap_array_get_data_ro(v); */
+/*     if (s > 0 && d != NULL) { */
+/*       if (i_f_lbm_array((uint32_t)s, (uint8_t*)d)) { */
+/*         return true; */
+/*       } */
+/*     } else { */
+/*       return false; */
+/*     } */
+/*   }break; */
+/*   } */
+/*   return false; */
+/* } */
 
 // ////////////////////////////////////////////////////////////
 //
@@ -679,9 +757,7 @@ bool lbm_image_save_global_env(void) {
           write_lbm_value(val_field, &write_index, DOWNWARDS);
         } else {
 
-          int fv_size = flatten_value_size(val_field, true);
-          int test_size = image_flatten_size(val_field);
-          printf(" %d : %d\n", fv_size, test_size);
+          int fv_size = image_flatten_size(val_field);
           if (fv_size > 0) {
             fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1; // num 32bit words
             int tot_size =  fv_size; //+ 1 + (int)(sizeof(lbm_uint) / 4);
@@ -693,7 +769,7 @@ bool lbm_image_save_global_env(void) {
             write_u32((uint32_t)fv_size , &write_index, DOWNWARDS);
             write_lbm_value(name_field, &write_index, DOWNWARDS);
             write_index = write_index - fv_size; // subtract fv_size
-            image_flatten_value(val_field);      // adds fv_size back
+            bool b = image_flatten_value(val_field);      // adds fv_size back
             fv_write_flush();
             write_index = write_index - fv_size - 1; // subtract fv_size
           } else {

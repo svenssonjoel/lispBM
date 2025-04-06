@@ -1547,7 +1547,7 @@ lbm_uint lbm_flash_memory_usage(void) {
 //     - Note that if used to "flatten" a graph, the resulting flat
 //       value will encode a tree where sharing is duplicated.
 //     - NOT suitable for flattening in general, but should be
-//       a perfect for the flattening we do into images.
+//       a perfect fit for the flattening we do into images.
 
 bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
 
@@ -1564,18 +1564,18 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
            lbm_is_lisp_array_rw(curr)) { // do not step into the constant heap
       lbm_cons_t *cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
-        gc_mark(curr);
+        //gc_mark(curr);
         // In-order traversal
         f(curr, arg);
         // As we keep going leftwards a leftwards pointer could potentially
         // form a loop back to some visited node.
-        if (lbm_is_cons(cell->car) && // a loop is only possible if a cons.
-            gc_marked(cell->car)) {
+        //if (lbm_is_cons(cell->car) && // a loop is only possible if a cons.
+        //    gc_marked(cell->car)) {
           // leftwards loop, turn back!
-          cyclic = true;
-          gc_clear(curr);
-          break;
-        }
+        //  cyclic = true;
+        //  gc_clear(curr);
+        //  break;
+        //}
         lbm_value next = 0;
         value_assign(&next, cell->car);
         value_assign(&cell->car, prev);
@@ -1608,7 +1608,7 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       f(curr, arg);
     }
 
-  backwards:
+    //backwards:
 
     // Now either prev has the "flag" set or it doesnt.
     // If the flag is set that means that the prev node
@@ -1670,20 +1670,20 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       lbm_cons_t *cell = lbm_ref_cell(prev);
       lbm_value next = 0;
 
-      if (gc_marked(cell->cdr)) {
-        // continuing the backtraversal should loop back around
-        // and clear the GC bit of cell->cdr when it gets there
-        // again.
-        //gc_clear(cell->cdr);
-        cyclic = true;
-        // Restore the cell pointer structure.
-        // Take a step backwards.
-        value_assign(&next, cell->car);
-        value_assign(&cell->car, curr); // restore element
-        value_assign(&curr, prev);
-        value_assign(&prev, next); // step backwards one and keep restoring.
-        goto backwards;
-      }
+      /* if (gc_marked(cell->cdr)) { */
+      /*   // continuing the backtraversal should loop back around */
+      /*   // and clear the GC bit of cell->cdr when it gets there */
+      /*   // again. */
+      /*   //gc_clear(cell->cdr); */
+      /*   cyclic = true; */
+      /*   // Restore the cell pointer structure. */
+      /*   // Take a step backwards. */
+      /*   value_assign(&next, cell->car); */
+      /*   value_assign(&cell->car, curr); // restore element */
+      /*   value_assign(&curr, prev); */
+      /*   value_assign(&prev, next); // step backwards one and keep restoring. */
+      /*   goto backwards; */
+      /* } */
 
       //
       //  prev = [ p , cdr ][0]
