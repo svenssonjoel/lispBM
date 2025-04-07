@@ -1548,7 +1548,7 @@ lbm_uint lbm_flash_memory_usage(void) {
 //       a perfect fit for the flattening we do into images.
 
 bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
-x
+
   bool cyclic = false;
   bool done = false;
   lbm_value curr = v;
