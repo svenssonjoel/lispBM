@@ -40,6 +40,13 @@
 static inline lbm_value lbm_set_gc_mark(lbm_value x) {
   return x | LBM_GC_MARKED;
 }
+static inline lbm_value lbm_clr_gc_mark(lbm_value x) {
+  return x & ~LBM_GC_MASK;
+}
+
+static inline bool lbm_get_gc_mark(lbm_value x) {
+  return x & LBM_GC_MASK;
+}
 
 static inline void gc_mark(lbm_value c) {
   //c must be a cons cell.
@@ -47,25 +54,16 @@ static inline void gc_mark(lbm_value c) {
   cell->cdr = lbm_set_gc_mark(cell->cdr);
 }
 
-static inline lbm_value lbm_clr_gc_mark(lbm_value x) {
-  return x & ~LBM_GC_MASK;
-}
-
-static inline void gc_clear(lbm_value c) {
-  //c must be a cons cell.
-  lbm_cons_t *cell = lbm_ref_cell(c);
-  cell->cdr = lbm_clr_gc_mark(cell->cdr);
-}
-
-static inline bool lbm_get_gc_mark(lbm_value x) {
-  return x & LBM_GC_MASK;
-}
-
 static inline bool gc_marked(lbm_value c) {
   lbm_cons_t *cell = lbm_ref_cell(c);
   return lbm_get_gc_mark(cell->cdr);
 }
 
+static inline void gc_clear_mark(lbm_value c) {
+  //c must be a cons cell.
+  lbm_cons_t *cell = lbm_ref_cell(c);
+  cell->cdr = lbm_clr_gc_mark(cell->cdr);
+}
 
 // flag is the same bit as mark, but in car
 static inline bool lbm_get_gc_flag(lbm_value x) {
@@ -1550,7 +1548,7 @@ lbm_uint lbm_flash_memory_usage(void) {
 //       a perfect fit for the flattening we do into images.
 
 bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
-
+x
   bool cyclic = false;
   bool done = false;
   lbm_value curr = v;
@@ -1561,7 +1559,7 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
     // Run leftwards and process conses until
     // hitting a leaf in the left direction.
     while ((lbm_is_cons_rw(curr) &&
-	    !gc_marked(curr)) ||         // do not step into a loop
+            !gc_marked(curr)) ||         // do not step into a loop
            lbm_is_lisp_array_rw(curr)) { // do not step into the constant heap
       lbm_cons_t *cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
@@ -1578,7 +1576,6 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
         lbm_value *arr_data = (lbm_value *)arr->data;
         uint32_t index = arr->index;
         if (arr->size == 0) break;
-        //size_t arr_size = (size_t)arr->size / sizeof(lbm_value);
         if (index == 0) { // index should only be 0 or there is a potential cycle
           f(curr, arg);
           arr->index = 1;
@@ -1600,10 +1597,8 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       f(curr, arg);
     } else if (gc_marked(curr)) {
       cyclic = true;
-      gc_clear(curr);
+      gc_clear_mark(curr);
     }
-
-    //backwards:
 
     // Now either prev has the "flag" set or it doesnt.
     // If the flag is set that means that the prev node
@@ -1617,11 +1612,25 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
            lbm_is_lisp_array_rw(prev)) {
       lbm_cons_t *cell = lbm_ref_cell(prev);
       if (lbm_is_cons(prev)) {
+
         // clear the flag
-	gc_clear(prev);
+        // This means that we are done with a "CDR" child.
+        // prev = [ a , b ][flag = 1]
+        // =>
+        // prev = [ a , b ][flag = 0]
+
+        gc_clear_mark(prev);
         cell->car = lbm_clr_gc_flag(cell->car);
         // Move on downwards until
         //   finding a cons cell without flag or NULL
+
+        // curr = c
+        // prev = [ a , b ][flag = 0]
+        // =>
+        // prev = [ a , c ][flag = 0]
+        // curr = prev
+        // prev = b
+
         lbm_value next = 0;
         value_assign(&next, cell->cdr);
         value_assign(&cell->cdr, curr);
@@ -1652,7 +1661,7 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
     if (lbm_is_ptr(prev) &&
         lbm_dec_ptr(prev) == LBM_PTR_NULL) {
       if (lbm_is_cons(curr)) {
-        gc_clear(curr);
+        gc_clear_mark(curr);
       }
       done = true;
       break;
@@ -1665,12 +1674,19 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       lbm_cons_t *cell = lbm_ref_cell(prev);
       lbm_value next = 0;
 
-      //
-      //  prev = [ p , cdr ][0]
+
+      //  prev = [ p , cdr ][flag = 0]
       //  =>
-      //  prev = [ p , cdr ][1]
+      //  prev = [ p , cdr ][flag = 1]
 
       cell->car = lbm_set_gc_flag(cell->car);
+
+      // switch to processing the cdr field and set the flag.
+      // curr = c
+      // prev = [ a, b ][flag = 1]
+      // =>
+      // prev = [ c, a ][flag = 1]
+      // curr = b
 
       value_assign(&next, cell->car);
       value_assign(&cell->car, curr);
