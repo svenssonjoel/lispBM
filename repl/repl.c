@@ -214,7 +214,7 @@ bool image_write(uint32_t w, int32_t ix, bool const_heap) { // ix >= 0 and ix <=
   } else if (image_storage[ix] == w) {
     return true;
   } else {
-    printf("image_storage[%u] = %x\n", ix, image_storage[ix]);
+    printf("image_storage[%u] = %x\n", (uint32_t)ix, image_storage[ix]);
     printf("when trying to write %x\n", w);
   }
   return false;
@@ -840,7 +840,7 @@ int init_repl() {
     if (fsize > 0) {
       // Load file into mapped reqion. Could map file instead.
       size_t n = fread(image_storage, fsize, 1, f);
-      if ( n <= 0) {
+      if ( n == 0) {
         printf("Error: empty image!\n");
       }
     }

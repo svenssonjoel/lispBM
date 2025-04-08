@@ -739,10 +739,10 @@ lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
 
 
 void dummy_f(lbm_value v, void *arg) {
-  char buf[256];
   if (lbm_is_cons(v)) {
     printf("cons\n");
   } else {
+    char buf[256];
     lbm_print_value(buf,256, v);
     printf("atom: %s\n", buf);
   }

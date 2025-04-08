@@ -1550,11 +1550,10 @@ lbm_uint lbm_flash_memory_usage(void) {
 bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
 
   bool cyclic = false;
-  bool done = false;
   lbm_value curr = v;
   lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
 
-  while (!done) {
+  while (true) {
 
     // Run leftwards and process conses until
     // hitting a leaf in the left direction.
@@ -1663,7 +1662,7 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       if (lbm_is_cons(curr)) {
         gc_clear_mark(curr);
       }
-      done = true;
+      //done = true;
       break;
     }
 

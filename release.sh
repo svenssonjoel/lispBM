@@ -107,29 +107,30 @@ cp -r tests/coverage $reportdir/coverage
 echo "" >> ./$reportdir/$release_readme
 make clean
 if command -v scan-build-19
+then
     echo "## scan-build version 19" >> ./$reportdir/$release_readme
     scan-build-18 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
-   else
-       if command -v scan-build-18
-       then
-           echo "## scan-build version 18" >> ./$reportdir/$release_readme
-           scan-build-18 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
-       else
-           if command -v scan-build-14
-           then
-               echo "## scan-build version 14" >> ./$reportdir/$release_readme
-               scan-build-14 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
-           else
-               if command -v scan-build-10
-               then
-                   echo "## scan-build version 10" >> ./$reportdir/$release_readme
-                   scan-build-10 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
-               else
-                   echo "scan-build could not be found"
-                   exit 1
-               fi
-           fi
-       fi
+else
+    if command -v scan-build-18
+    then
+        echo "## scan-build version 18" >> ./$reportdir/$release_readme
+        scan-build-18 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
+    else
+        if command -v scan-build-14
+        then
+            echo "## scan-build version 14" >> ./$reportdir/$release_readme
+            scan-build-14 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
+        else
+            if command -v scan-build-10
+            then
+                echo "## scan-build version 10" >> ./$reportdir/$release_readme
+                scan-build-10 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
+            else
+                echo "scan-build could not be found"
+                exit 1
+            fi
+        fi
+    fi
 fi
 tail -n 1 $reportdir/scan_build_$release.txt >> ./$reportdir/$release_readme
 
