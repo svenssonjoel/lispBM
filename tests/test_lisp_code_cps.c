@@ -456,8 +456,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard
-  //  bool compress_decompress = false;
+  unsigned int heap_size = 8 * 1024;  // 8k cells 
 
   bool stream_source = false;
   bool incremental = false;
