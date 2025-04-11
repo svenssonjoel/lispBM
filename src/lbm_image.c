@@ -722,7 +722,7 @@ static uint32_t last_const_heap_ix = 0;
 bool lbm_image_save_constant_heap_ix(void) {
   bool r = true; // saved or no need to save it.
   if (image_const_heap.next != last_const_heap_ix) {
-    image_const_heap.next = last_const_heap_ix;
+    last_const_heap_ix = image_const_heap.next;
     r = write_u32(CONSTANT_HEAP_IX, &write_index, DOWNWARDS);
     r = r && write_u32((uint32_t)image_const_heap.next, &write_index, DOWNWARDS);
   }
