@@ -708,7 +708,7 @@
 ;; Boolean operators
 
 (define bool-and
-  (ref-entry "and"
+  (ref-entry "and" '("Special form")
              (list
               (para (list "Boolean `and` operation between n arguments. The form of an `and`"
                           "expression is `(and expr1 ... exprN)`.  This operation treats all"
@@ -722,7 +722,7 @@
               end)))
 
 (define bool-or
-  (ref-entry "or"
+  (ref-entry "or" '("Special form")
              (list
               (para (list "Boolean `or` operation between n arguments. The form of an `or`"
                           "expression is `(or expr1 ... exprN)`.  This operation treats all"
@@ -945,11 +945,11 @@
 ;; Quotes and quasiquotation
 
 (define op-quote
-  (ref-entry "quote"
+  (ref-entry "quote" '("Special form")
              (list
-              (para (list "Usages of the `'` quote symbol in input code is replaced with the"
-                          "symbol quote by the reader.  Evaluating a quoted expression, (quote"
-                          "a), results in a unevaluated."
+              (para (list "When the `'` quote operator is encountered by the reader it is removed"
+                          "and the code to the right is wrapped in `(quote ...)`. Evaluating a"
+                          "quoted expression `(quote a)` results in `a` unevaluated."
                           ))
               (code '((read-eval "'(+ 1 2)")
                       (read-eval "(eval '(+ 1 2))")
@@ -963,9 +963,10 @@
 (define op-quasi
   (ref-entry "`"
              (list
-              (para (list "The backwards tick `` ` `` is called the quasiquote. It is similar to"
-                          "the `'` but allows splicing in results of computations using the <a"
-                          "href=\"#,\">,</a> and the <a href=\"#commaat\">,@</a> operators."
+              (para (list "The backwards tick operator `` ` `` is called the quasiquote. It is similar to"
+                          "`'` but allows splicing in results of computations using the"
+                          (code-entry-ref "," "comma") "and the" (code-entry-ref ",@" "commaat")
+                          "operators."
                           ))
               (para (list "The result of `'(+ 1 2)` and `` `(+ 1 2)`` are similar in effect. Both"
                           "result in the result value of `(+ 1 2)`, that is a list containing +,"
@@ -980,7 +981,7 @@
               end)))
 
 (define op-comma
-  (ref-entry ","
+  (ref-entry ", <a name=\"comma\"></a>"
              (list
               (para (list "The comma is used to splice the result of a computation into a quasiquotation."
                           ))
@@ -993,7 +994,7 @@
               end)))
 
 (define op-commaat
-  (ref-entry ",@"
+  (ref-entry ",@ <a name=\"commaat\"></a>"
              (list
               (para (list "The comma-at operation is used to splice in the result of a computation (that"
                           "returns a list) into a list when quasiquoting."
@@ -1035,6 +1036,62 @@
                       ))
               end)))
 
+(define built-in-set
+  (ref-entry "set"
+             (list
+              (para (list "The `set` form is used to change the value of some variable in an environment."
+                          "You can use `set` to change the value of a global definition or a local definition."
+                          "An application of the `set` form looks like `(set var-expr val-expr)` where"
+                          "`var-expr` should evaluate to a symbol. The `val-expr` is evaluated before"
+                          "rebinding the variable. `set` returns the value that `val-expr` evaluates to."
+                          ))
+              (program '(((define a 10)
+                          (set 'a 20)
+                          a)
+                         ))
+              (para (list "`set` works in local environments too such as in the body of a `let`"
+                          "or in a `progn`-local variable created using `var`."
+                          ))
+              (program '(((progn (var a 10) (set 'a 20) a))
+                          ))
+              (para (list "See " (code-entry-ref "setq") " for a version which does't evaluate"
+                          "`var-expr`, similarly to "
+                          (str-merge (code-entry-ref "define") ".")
+                          ))
+
+              end)))
+
+(define built-in-setvar
+  (ref-entry "setvar"
+             (list
+              (para (list "`setvar` is an alias of " (str-merge (code-entry-ref "set") ".")
+                          ))
+              end)))
+
+(define built-in-undefine
+  (ref-entry "undefine"
+             (list
+              (para (list "A definition in the global environment can be removed using undefine. "
+                          "The form of an undefine expression is `(undefine name-expr)` where"
+                          "`name-expr` should evaluate to a symbol (for example `'apa`)."
+                          ))
+              {
+              (define apa 10)
+              (code '((undefine 'apa)
+                      ))
+              }
+              (para (list "It is also possible to undefine several bindings at the same time by"
+                          "providing a list of names."
+                          ))
+              {
+              (define apa 10)
+              (define bepa 20)
+              (define cepa 30)
+              (code '((undefine '(apa bepa cepa))
+                      ))
+              }
+              end)))
+
 (define built-in-eval
   (ref-entry "eval"
              (list
@@ -1066,6 +1123,48 @@
                       (eval-program '( (+ 1 2) (+ 3 4)))
                       (eval-program (list (list define 'a 10) (list + 'a 1)))
                       (read-eval "(eval-program '( (define a 10) (+ a 1)))")
+                      ))
+              end)))
+
+(define built-in-read
+  (ref-entry "read"
+             (list
+              (para (list "Parses a string resulting in either an expression or the <a href=\"#read_error\">read_error</a> in case"
+                          "the string can not be parsed into an expression. The form of a read expression is"
+                          "`(read string)`."
+                          ))
+              (code '((read-eval "(read \"1\")")
+                      (read-eval "(read \"(+ 1 2)\")")
+                      (read-eval "(read \"(lambda (x) (+ x 1))\")")
+                      ))
+              end)))
+
+
+(define built-in-read-program
+  (ref-entry "read-program"
+             (list
+              (para (list "Parses a string containing multiple sequenced expressions. The resulting list of"
+                          "expressions can be evaluated as a program using <a href=\"#eval-program\">eval-program</a>."
+                          "The form of a read-program expression is `(read-program string)`."
+                          ))
+              (code '((read-eval "(read-program \"(define apa 1) (+ 2 apa)\")")
+                      ))
+              end)))
+
+(define built-in-read-eval-program
+  (ref-entry "read-eval-program"
+             (list
+              (para (list "Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression"
+                          "then evaluates it before reading the next."
+                          ))
+              (code '((read-eval "(read-eval-program \"(define a 10) (+ a 10)\")")
+                      ))
+              (para (list "`read-eval-program` supports the "
+                          (code-entry-ref "@const-start" "const-start") "and"
+                          (code-entry-ref "@const-end" "const-end") "annotations which move all"
+                          "global definitions created in the program to constant memory (flash)."
+                          ))
+              (code '((read-eval "(read-eval-program \"@const-start (define a 10) (+ a 10) @const-end\")")
                       ))
               end)))
 
@@ -1210,8 +1309,14 @@
            (list 'hline
                  built-in-identity
                  built-in-rest-args
+                 built-in-set
+                 built-in-setvar
+                 built-in-undefine
                  built-in-eval
                  built-in-eval-program
+                 built-in-read
+                 built-in-read-program
+                 built-in-read-eval-program
                  built-in-type-of
                  built-in-sym2str
                  built-in-str2sym
@@ -1223,11 +1328,11 @@
 ;; Special forms
 
 (define special-form-if
-  (ref-entry "if"
+  (ref-entry "if" '("Special form")
              (list
-              (para (list "Conditionals are written as `(if cond-expr then-expr else-exp)`.  If"
-                          "the cond-expr evaluates to <a href=\"#nil\"> nil </a> the else-expr will"
-                          "be evaluated.  for any other value of cond-expr the then-expr will be"
+              (para (list "Conditionals are written as `(if cond-expr then-expr else-exp)`. If"
+                          "the `cond-expr` evaluates to" (code-entry-ref "nil") "the `else-expr` will"
+                          "be evaluated. For any other value of `cond-expr` the `then-expr` will be"
                           "evaluated."
                           ))
               (code '((if t 1 2)
@@ -1236,7 +1341,7 @@
               end)))
 
 (define special-form-cond
-  (ref-entry "cond"
+  (ref-entry "cond" '("Special form")
              (list
               (para (list "`cond` is a generalization of `if` to discern between n different cases"
                           "based on boolean expressions. The form of a `cond` expression is:"
@@ -1261,7 +1366,7 @@
               end)))
 
 (define special-form-lambda
-  (ref-entry "lambda"
+  (ref-entry "lambda" '("Special form")
              (list
               (para (list "You create an anonymous function with lambda. The function can be given a name by binding the lambda expression using <a href=\"#define\">define</a>"
                           "or <a href=\"#let\">let</a>. A lambda expression has the form `(lambda param-list body-expr)`."
@@ -1286,7 +1391,7 @@
               end)))
 
 (define special-form-closure
-  (ref-entry "closure"
+  (ref-entry "closure" '("Special form")
              (list
               (para (list "A <a href=\"#lambda\"> lambda </a> expression evaluates into a closure"
                           "which is very similar to a <a href=\"#lambda\">lambda</a> but extended"
@@ -1301,7 +1406,7 @@
               end)))
 
 (define special-form-let
-  (ref-entry "let"
+  (ref-entry "let" '("Special form")
              (list
               (para (list "Local environments are created using let. The let binding in lispbm"
                           "allows for mutually recursive bindings. The form of a let is `(let"
@@ -1325,7 +1430,7 @@
               end)))
 
 (define special-form-loop
-  (ref-entry "loop"
+  (ref-entry "loop" '("Special form")
              (list
               (para (list "loop allows to repeatedly evaluate an expression for as long as a condition"
                           "holds. The form of a loop is `(loop list-of-local-bindings condition-exp body-exp)`."
@@ -1341,64 +1446,21 @@
               end)))
 
 (define special-form-define
-  (ref-entry "define"
+  (ref-entry "define" '("Special form")
              (list
               (para (list "You can give names to values in a global scope by using define."
-                          "The form of define is `(define name expr)`. The expr is evaluated and it is the"
-                          "result of the evaluated expr that is stored in the environment."
-                          "In lispbm you can redefine already defined values."
+                          "The form of define is `(define name expr)`. The given expression is"
+                          "evaluated and the result is stored in the global environment under"
+                          "`name`. In lispbm you can redefine already defined values. It is also"
+                          "possible to remove bindings from the global environment, see"
+                          (str-merge (code-entry-ref "undefine") ".")
                           ))
               (code '((define apa 10)
                       ))
               end)))
 
-(define special-form-undefine
-  (ref-entry "undefine"
-             (list
-              (para (list "A definition in the global can be removed using undefine.  The form of"
-                          "an undefine expression is `(undefine name-expr)` where name-expr"
-                          "should evaluate to a symbol (for example `'apa`)."
-                          ))
-              {
-              (define apa 10)
-              (code '((undefine 'apa)
-                      ))
-              }
-              (para (list "It is also possible to undefine several bindings at the same time by"
-                          "providing a list of names."
-                          ))
-              {
-              (define apa 10)
-              (define bepa 20)
-              (define cepa 30)
-              (code '((undefine '(apa bepa cepa))
-                      ))
-              }
-              end)))
-
-(define special-form-set
-  (ref-entry "set"
-             (list
-              (para (list "The `set` form is used to change the value of some variable in an environment."
-                          "You can use `set` to change the value of a global definition or a local definition."
-                          "An application of the `set` form looks like `(set var-expr val-expr)` where"
-                          "`var-expr` should evaluate to a symbol. The `val-expr` is evaluated before"
-                          "rebinding the variable. `set` returns the value that `val-expr` evaluates to."
-                          ))
-              (program '(((define a 10)
-                          (set 'a 20)
-                          a)
-                         ))
-              (para (list "`set` works in local environments too such as in the body of a `let`"
-                          "or in a `progn`-local variable created using `var`."
-                          ))
-              (program '(((progn (var a 10) (set 'a 20) a))
-                          ))
-
-              end)))
-
 (define special-form-setq
-  (ref-entry "setq"
+  (ref-entry "setq" '("Special form")
              (list
               (para (list "The `setq` special-form is similar to `set` and to `setvar` but expects the first argument"
                           "to be a symbol. The first argument to `setq` is NOT evaluated."
@@ -1415,15 +1477,8 @@
                          ))
               end)))
 
-(define special-form-setvar
-  (ref-entry "setvar"
-             (list
-              (para (list "`setvar` is the exact same thing as `set`"
-                          ))
-              end)))
-
 (define special-form-progn
-  (ref-entry "progn"
+  (ref-entry "progn" '("Special form")
              (list
               (para (list "The progn special form allows you to sequence a number of expressions."
                           "The form of a progn expression is `(progn expr1 ... exprN)`."
@@ -1437,10 +1492,10 @@
               end)))
 
 (define special-form-brack
-  (ref-entry "{"
+  (ref-entry "{" '("Special form")
              (list
               (para (list "The curlybrace `{` syntax is a short-form (syntactic sugar) for `(progn`."
-                          "The parser replaces occurrences of `{` with `(progn`. The `{` should be"
+                          "The reader replaces occurrences of `{` with `(progn`. The `{` should be"
                           "closed with an `}`."
                           ))
               (para (list "These two programs are thus equivalent:"
@@ -1478,7 +1533,7 @@
 
 
 (define special-form-var
-  (ref-entry "var"
+  (ref-entry "var" '("Special form")
              (list
               (para (list "The var special form allows local bindings in a progn expression. A"
                           "var expression is of the form (var symbol expr) and the symbol `symbol`"
@@ -1495,55 +1550,14 @@
                       ))
               end)))
 
-
-(define special-form-read
-  (ref-entry "read"
-             (list
-              (para (list "Parses a string resulting in either an expression or the <a href=\"#read_error\">read_error</a> in case"
-                          "the string can not be parsed into an expression. The form of a read expression is"
-                          "`(read string)`."
-                          ))
-              (code '((read-eval "(read \"1\")")
-                      (read-eval "(read \"(+ 1 2)\")")
-                      (read-eval "(read \"(lambda (x) (+ x 1))\")")
-                      ))
-              end)))
-
-
-(define special-form-read-program
-  (ref-entry "read-program"
-             (list
-              (para (list "Parses a string containing multiple sequenced expressions. The resulting list of"
-                          "expressions can be evaluated as a program using <a href=\"#eval-program\">eval-program</a>."
-                          "The form of a read-program expression is `(read-program string)`."
-                          ))
-              (code '((read-eval "(read-program \"(define apa 1) (+ 2 apa)\")")
-                      ))
-              end)))
-
-(define special-form-read-eval-program
-  (ref-entry "read-eval-program"
-             (list
-              (para (list "Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression"
-                          "then evaluates it before reading the next."
-                          ))
-              (code '((read-eval "(read-eval-program \"(define a 10) (+ a 10)\")")
-                      ))
-              (para (list "`read-eval-program` supports the `@const-start` and `@const-end` annotations which move all"
-                          "global definitions created in the program to constant memory (flash)."
-                          ))
-              (code '((read-eval "(read-eval-program \"@const-start (define a 10) (+ a 10) @const-end\")")
-                      ))
-              end)))
-
 (define special-form-trap
-  (ref-entry "trap"
+  (ref-entry "trap" '("Special form")
              (list
               (para (list "`trap` lets you catch an error rather than have the evaluation context terminate."
                           "The form of a trap expression is `(trap expr)`."
                           "If expr crashes with an error `e` then `(trap expr)` evaluates"
                           "to `(exit-error e)`. If expr successfully runs and returns `r`,"
-                          "then `(trap expr)` evaluates to (exit-ok r)."
+                          "then `(trap expr)` evaluates to `(exit-ok r)`."
                           ))
               (code '((trap (/ 1 0))
                       (trap (+ 1 2))
@@ -1556,11 +1570,25 @@
 (define special-forms
   (section 2 "Special forms"
            (list
-            (para (list "Special forms looks a lot like functions but they are allowed to"
-                        "break the norms when it comes to evaluation order of arguments."
-                        "a special form may choose to evaluate or not, freely, from its"
-                        "list of arguments."
+            (para (list "Special forms are like functions except that they choose what arguments"
+                        "are evaluated. This is in contrast to \"normal functions\", usually"
+                        "referred to as *\"forms\"* in other Lisps, which always evaluate every"
+                        "argument they are given."
                         ))
+            (para (list "Note that some special forms are located in other sections to improve the"
+                        "document flow. These are:"))
+            (bullet (list (code-entry-ref "quote")
+                          (code-entry-ref "and")
+                          (code-entry-ref "or")
+                          (code-entry-ref "match")
+                          (code-entry-ref "recv")
+                          (code-entry-ref "recv-to")
+                          (code-entry-ref "call-cc")
+                          (code-entry-ref "call-cc-unsafe")
+                          (code-entry-ref "atomic")
+                          (code-entry-ref "macro")
+                          (code-entry-ref "move-to-flash")
+                          ))
             (list 'hline
                   special-form-if
                   special-form-cond
@@ -1569,17 +1597,11 @@
                   special-form-let
                   special-form-loop
                   special-form-define
-                  special-form-undefine
-                  special-form-set
                   special-form-setq
-                  special-form-setvar
                   special-form-progn
                   special-form-brack
                   special-form-close-brack
                   special-form-var
-                  special-form-read
-                  special-form-read-program
-                  special-form-read-eval-program
                   special-form-trap
                   )
             )))
@@ -2066,7 +2088,7 @@
              (list
               (para (list "Byte buffer literals can be created using the `[` and `]` syntax to enclose"
                           "values to initialize the array with. The `[` and `]` syntax is complete"
-                          "resolved in the parser and thus cannot contain arbitrary lisp terms."
+                          "resolved in the reader and thus cannot contain arbitrary lisp terms."
                           "the values listed between the `[` and the `]` must be literals!"
                           ))
               (para (list "The form of the `[` and `]` syntax is `[ val1 ... valN ]`."
@@ -2257,7 +2279,7 @@
 ;; Pattern matching
 
 (define pm-match
-  (ref-entry "match"
+  (ref-entry "match" '("Special form")
              (list
               (para (list "Pattern-matching is expressed using match. The form of a match expression is"
                           "`(match expr (pat1 expr1) ... (patN exprN))`. Pattern-matching compares"
@@ -2418,7 +2440,7 @@
               end)))
 
 (define conc-atomic
-  (ref-entry "atomic"
+  (ref-entry "atomic" '("Special form")
              (list
               (para (list "`atomic` can be used to execute a LispBM one or more expression without allowing"
                           "the runtime system to switch process during that time. `atomic` is similar to"
@@ -2524,7 +2546,7 @@
               end)))
 
 (define mp-recv
-  (ref-entry "recv"
+  (ref-entry "recv" '("Special form")
              (list
               (para (list "To receive a message use the `recv` command. A process"
                           "will block on a `recv` until there is a matching message in"
@@ -2538,7 +2560,7 @@
               end)))
 
 (define mp-recv-to
-  (ref-entry "recv-to"
+  (ref-entry "recv-to" '("Special form")
              (list
               (para (list "Like [recv](#recv), `recv-to` is used to receive"
                           "messages but `recv-to` takes an extra timeout argument."
@@ -2684,7 +2706,7 @@
 ;; MACRO!
 
 (define m-macro
-  (ref-entry "macro"
+  (ref-entry "macro" '("Special form")
              (list
               (para (list "The form of a `macro` expression is: `(macro args body)`"
                           ))
@@ -2697,8 +2719,8 @@
 (define macros
   (section 2 "Macros"
            (list
-            (para (list "lispBM macros are created using the `macro` keyword. A macro"
-                        "is quite similar to [lambda](#lambda) in lispBM except that"
+            (para (list "LispBM macros are created using the `macro` keyword. A macro"
+                        "is quite similar to" (code-entry-ref "lambda") "in lispBM except that"
                         "arguments are passed in unevaluated. Together with the code-splicing"
                         "capabilities given by [quasiquotation](#quasiquotation), this"
                         "provides a powerful code-generation tool."
@@ -2761,7 +2783,7 @@
                         "```\n\n"
                         ))
                   
-            (ref-entry "call-cc"
+            (ref-entry "call-cc" '("Special form")
                        (list
                         (para (list "The form of a `call-cc` expression is `(call-cc f)`, where f is a function taking a continuation k."
                                     "In code most uses of call-cc will have the form `(call-cc (lambda (k) expr ))`."
@@ -2769,7 +2791,7 @@
                                     ))
                         )
                        )           
-           (ref-entry "call-cc-unsafe"
+           (ref-entry "call-cc-unsafe" '("Special form")
                       (list
                        (para (list "`call-cc-unsafe` is similar to `call-cc` in form. `(call-cc-unsafe f)`"
                                    "and in code usually as `(call-cc-unsafe (lambda (k) expr))`."
@@ -2928,7 +2950,7 @@
               end)))
 
 (define flash-move
-  (ref-entry "move-to-flash"
+  (ref-entry "move-to-flash" '("Special form")
              (list
               (para (list "A value can be moved to flash storage to save space on the normal"
                           "evaluation heap or lbm memory.  A `move-to-flash` expression is of the"
