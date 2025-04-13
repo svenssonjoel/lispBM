@@ -34,7 +34,7 @@
 (define create_image1
   (ref-entry "img-buffer"
              (list
-              (para (list "Allocate an image buffer from lbm memory or from a compactible region."
+              (para (list "Allocate an image buffer from lbm memory or from a compactable region."
                           "The form of an `img-buffer` expression is `(img-buffer opt-dm format width height)`."
                           ))
               (code '((define my-img (img-buffer 'indexed2 320 200))
@@ -163,8 +163,8 @@
                           ))
               end)))
 
-(define sierpinsky
-  (ref-entry "Example: Sierpinsky triangle"
+(define sierpinski
+  (ref-entry "Example: Sierpinski triangle"
              (list
               (program-disp '(((define w 320)
                                (define h 200)
@@ -262,7 +262,7 @@
 		       "rgb565 : 16bit color"
 		       "rgb888 : 24bit color"
 		       ))
-	     (para (list "Note that the RAM requirenment of a 100x100 image is;"
+	     (para (list "Note that the RAM requirement of a 100x100 image is;"
 			 ))
 	     (bullet '("at indexed2: 1250 Bytes"
 		       "at indexed4: 2500 Bytes"
@@ -283,7 +283,7 @@
 	     (para (list "the display library is specifically designed to allow for using many"
 			 "colors simultaneously on screen, without needing to use full screen high-color"
 			 "buffers."
-			 "This is done by delaying the choice of collor mapping in the `indexed2`, `indexed4` and `indexed16`"
+			 "This is done by delaying the choice of color mapping in the `indexed2`, `indexed4` and `indexed16`"
 			 "images until they are presented on screen."
 			 ))
 	     (para (list "images are rendered onto a display using the function `disp-render`."
@@ -332,7 +332,7 @@
                          "see [vesc_express display documentation](https://github.com/vedderb/vesc_express/tree/main/main/display)."
                          ))
              
-             sierpinsky
+             sierpinski
              rotated-llama))
    info
    )

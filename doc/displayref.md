@@ -11,7 +11,7 @@ The values stored in image buffers represents colors via an encoding determined 
    - rgb565 : 16bit color
    - rgb888 : 24bit color
 
-Note that the RAM requirenment of a 100x100 image is; 
+Note that the RAM requirement of a 100x100 image is; 
 
    - at indexed2: 1250 Bytes
    - at indexed4: 2500 Bytes
@@ -24,7 +24,7 @@ So on an embedded platform you most likely not be able to be working with rgb565
 
 At the low-level end of things you will want to display graphics onto an display. The interface towards the low-level end needs to be implemented for the particular hardware platform and display. For examples of this see [vesc_express](https://github.com/vedderb/vesc_express/tree/main/main/display). The LBM linux REPL has SDL and png backends for the display library. 
 
-the display library is specifically designed to allow for using many colors simultaneously on screen, without needing to use full screen high-color buffers. This is done by delaying the choice of collor mapping in the `indexed2`, `indexed4` and `indexed16` images until they are presented on screen. 
+the display library is specifically designed to allow for using many colors simultaneously on screen, without needing to use full screen high-color buffers. This is done by delaying the choice of color mapping in the `indexed2`, `indexed4` and `indexed16` images until they are presented on screen. 
 
 images are rendered onto a display using the function `disp-render`. `disp-render` takes an image, a position (x,y) where to draw the image, and a colormapping that can be expressed as a list of colors. for example: 
 
@@ -299,7 +299,7 @@ t
 
 ### img-buffer
 
-Allocate an image buffer from lbm memory or from a compactible region. The form of an `img-buffer` expression is `(img-buffer opt-dm format width height)`. 
+Allocate an image buffer from lbm memory or from a compactable region. The form of an `img-buffer` expression is `(img-buffer opt-dm format width height)`. 
 
 <table>
 <tr>
@@ -1302,7 +1302,7 @@ t
 These examples are leaving out the details on how to setup and initialize any particular display you may have connected to your embedded system. For information on how to initialize a display on a VESC EXPRESS platform see [vesc_express display documentation](https://github.com/vedderb/vesc_express/tree/main/main/display). 
 
 
-### Example: Sierpinsky triangle
+### Example: Sierpinski triangle
 
 <table>
 <tr>

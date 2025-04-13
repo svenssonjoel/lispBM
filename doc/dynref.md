@@ -1343,7 +1343,7 @@ t
 </tr>
 </table>
 
-Now instances of `my-struct` can be creted using `make-my-struct`. 
+Now instances of `my-struct` can be created using `make-my-struct`. 
 
 <table>
 <tr>

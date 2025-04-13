@@ -114,7 +114,7 @@
             (para (list "The chart below shows the time it takes to perform 10 million"
                         "additions on the x86 architecture (a i7-6820HQ) in 32 and 64 Bit mode."
                         ))
-            (image "Perfomance of 10 million additions at various types on X86"
+            (image "Performance of 10 million additions at various types on X86"
                    "./images/lbm_arith_pc.png"
                    )
             (para (list "In 64Bit mode the x86 version of LBM shows negligible differences in"
@@ -321,7 +321,7 @@
 			"`if` evaluates first the condition expression and then"
 			"either the true or false branch. `progn` evaluates all of the expressions in sequence."
 			"In the case of `and`, `or`, `progn` and `if`, the constituent expressions are all evaluated in the same local environment."
-			"Any extensions to the local environment performed by an expresison in the sequence is only visible within that expression itself."
+			"Any extensions to the local environment performed by an expression in the sequence is only visible within that expression itself."
 			))
 	    (bullet (list "**let**: `(let ((s1 e1) (s2 e2) ... (sN eN) e)` eI are evaluated in order into `vI`. The local environment is extended with `(sI . vI)`. `sI` is visible in `eJ` for `J >= I`. `e` is then evaluated in the extended local environment."
 			  "**setq**: `(setq s e)` is evaluated by first evaluating `e` into `v`. The environments are then scanned for a bining of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`."
@@ -408,7 +408,7 @@
             (para (list "There are no two different trees that correspond to a given S-expression and thus parsing of S-expressions is unambiguous."
                         "The unambiguous nature of S-expressions is useful in areas other than lisp programming as well."
                         "[KiCad](https://dev-docs.kicad.org/en/file-formats/sexpr-intro/) uses S-expressions to represent tree data in some of its"
-                        "file formats. Apperantly [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format)"
+                        "file formats. Apparently [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format)"
                         "uses S-expressions as well to describe WebAssembly modules"
                         ))
             (newline)
@@ -453,11 +453,11 @@
                         "Most languages are a mix of functional and imperative and"
                         "differ in what style it makes most convenient."
                         "At one end of this spectrum we find C which makes imperative easy and functional hard, "
-                        "and in the other end Haskell with the opposite favouritism."
+                        "and in the other end Haskell with the opposite favoritism."
                         "In LispBM we try to not unfairly favour any particular style over the other."
                         ))
             (para (list "Picking a functional or an imperative style does have consequences though."
-                        "Functional LispBM programs have properties such as persistance of data, that"
+                        "Functional LispBM programs have properties such as persistence of data, that"
                         "can be broken using the imperative part of the language."
                         ))
             (para (list "With the imperative features of the language it is also in some "
@@ -487,7 +487,7 @@
 (define arith-add
   (ref-entry "+"
            (list
-            (para (list "Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1 ... exprN)`."
+            (para (list "Adds up an arbitrary number of values. The form of a `+` expression is `(+ expr1 ... exprN)`."
                         ))
 
             (code '((+ 1 2)
@@ -580,7 +580,7 @@
   (ref-entry "eq"
             (list
              (para (list "Compare values for equality. The `eq` operation implements structural"
-                         "equiality. The form of an 'eq` expression is `(eq expr1 ... exprN)`."
+                         "equality. The form of an 'eq` expression is `(eq expr1 ... exprN)`."
                          "\n"
                          "Structural equality means that the values must have the identical in"
                          "memory representations to be considered equal."
@@ -942,7 +942,7 @@
                  )
            ))
 
-;; Quotes and quasiqoutation
+;; Quotes and quasiquotation
 
 (define op-quote
   (ref-entry "quote"
@@ -1059,7 +1059,7 @@
                           "A `program-expr` is a list of expressions where each element in the list"
                           "can be evaluated by `eval`."
                           ))
-              (para (list "An optional environment can be passed in as the first arguement:"
+              (para (list "An optional environment can be passed in as the first argument:"
                           "`(eval-program env-expr program-expr)`."
                           ))
               (code '((eval-program (list (list + 1 2) (list + 3 4)))
@@ -1135,7 +1135,7 @@
   (ref-entry "gc"
              (list
               (para (list "The `gc` function runs the garbage collector so that it can reclaim"
-                          "values from the heap and LBM memory that are nolonger needed."
+                          "values from the heap and LBM memory that are no longer needed."
                           ))
               (para (list "**Note** that one should not need to run this function. GC is run"
                           "automatically when needed."
@@ -1468,7 +1468,7 @@
   (ref-entry "}"
              (list
               (para (list "The closing curlybrace `}` should be used to close an opening `{` but purely"
-                          "for esthetical reasons. The `}` is treated identically to a regular closing parenthesis `)`."
+                          "for esthetic reasons. The `}` is treated identically to a regular closing parenthesis `)`."
                           ))
               (para (list
                           "The opening `{` and closing `}` curlybraces are used as a short-form for `progn`-blocks"
@@ -1721,7 +1721,7 @@
   (ref-entry "setix"
              (list
               (para (list "Destructively update an element in a list. The form of a `setix` expression"
-                          "is `(setix list-expr index-extr value-expr)`. Indexing starts from 0 and"
+                          "is `(setix list-expr index-expr value-expr)`. Indexing starts from 0 and"
                           "if you index out of bounds the result is nil."
                           "A negative value -n will update the nth value from the end of the list."
                           ))
@@ -1973,7 +1973,7 @@
               (code '((define data (bufcreate 10))
 		      (define empty-array (bufcreate 0))
                       ))
-              (para (list "Alternatively a buffer can be allocated from a compactible memory region (defrag mem)."
+              (para (list "Alternatively a buffer can be allocated from a compactable memory region (defrag mem)."
                           ))
               (code '((define dm (dm-create 1000))
                       (define data-in-dm (bufcreate dm 10))
@@ -2132,7 +2132,7 @@
    (list
     (para (list "Allocate an array with `mkarray`. Arrays are allocated in arrays and byte buffer memory."
                 "The form an `mkarray` expression is `(mkarray num-expr)`."
-                ;;"but can also be allocated in a compactible (defrag mem) area."
+                ;;"but can also be allocated in a compactable (defrag mem) area."
                 ;;"The form of an `mkarray` expression is either `(mkarray num)` or `(mkarray dm num)` where"
                 ;;"`dm` is a defrag-mem area and num is the size of the array to allocate."
                 ))
@@ -2142,7 +2142,7 @@
                 ))
     (code '((define my-arr (mkarray 10))
             ))
-    ;;(para (list "Below is an example allocating an array from a compactible memory area."
+    ;;(para (list "Below is an example allocating an array from a compactable memory area."
     ;;            ))
     ;;(code '((define my-dm (dm-create 1000))
     ;;        (define my-arr (mkarray my-dm 10))
@@ -2171,7 +2171,7 @@
   (ref-entry "setix"
              (list
                (para (list "Destructively update an element in an array. The form of a `setix` expression"
-                          "is `(setix arr-expr index-extr value-expr)`. Indexing starts from 0 and"
+                          "is `(setix arr-expr index-expr value-expr)`. Indexing starts from 0 and"
                           "if you index out of bounds the result is nil."
                           "A negative value -n will update the nth value from the end of the list."
                           ))
@@ -2204,8 +2204,8 @@
     (list 
      (para (list "LBM has two types of memory, the HEAP and the LBM_MEMORY. Lists and pairs are all stored on the heap."
 		 "Arrays and large values (such as 64bit numbers are stored on LBM_MEMORY."
-		 "The HEAP has a nice property that all allocations on it are the same size and therefore the HEAP is imune"
-		 "the problems caused by fragmentation."
+		 "The HEAP has a nice property that all allocations on it are the same size and therefore the HEAP is immune"
+		 "to the problems caused by fragmentation."
 		 "On LBM_MEMORY arbitrarily sized arrays can be allocated and fragmentation can cause an allocation to fail even"
 		 "though there is enough free bytes."
 		 ))
@@ -2239,7 +2239,7 @@
 		(para (list "`dm-alloc` is used to allocate a byte-array from a region of defragmentable memory."
 			    "The form of a `dm-alloc` expression is `(dm-alloc DM-expr size-expr)`."
 			    "where `DM-expr` evaluates to the defragmentable region to allocate from and `size-expr` is the number of bytes to allocate."
-			    "Each allocation uses up 12 extre bytes of header that you do not include in `size-expr`."
+			    "Each allocation uses up 12 extra bytes of header that you do not include in `size-expr`."
 		      ))
 		(code '((define arr10 (dm-alloc dm 10))
 			(define arr100 (dm-alloc dm 100))))
@@ -2422,7 +2422,7 @@
              (list
               (para (list "`atomic` can be used to execute a LispBM one or more expression without allowing"
                           "the runtime system to switch process during that time. `atomic` is similar to"
-                          "progn with the addition of being uninterruptable."
+                          "progn with the addition of being uninterruptible."
                           ))
               (code '((atomic (+ 1 2) (+ 3 4) (+ 4 5))
                       ))
@@ -2432,7 +2432,7 @@
   (ref-entry "exit-ok"
              (list
               (para (list "The `exit-ok` function terminates the thread in a \"successful\" way and"
-                          "returnes a result specified by the programmer. The form of an"
+                          "returns a result specified by the programmer. The form of an"
                           "`exit-ok` expression is `(exit-ok value)`.  If the process that calls"
                           "`exit-ok` was created using `spawn-trap` a message of the form"
                           "`(exit-ok tid value)` is be sent to the parent of this process."
@@ -2483,7 +2483,7 @@
   (section 2 "Concurrency"
            (list
             (para (list "The concurrency support in LispBM is provided by the set of functions,"
-                        "`spawn`, `wait`, `yeild` and `atomic` described below.  Concurrency in"
+                        "`spawn`, `wait`, `yield` and `atomic` described below.  Concurrency in"
                         "LispBM is scheduled by a round-robin scheduler that splits the runtime"
                         "system evaluator fairly (with caveats, below) between all running processes."
                         ))
@@ -2718,7 +2718,7 @@
            ))
 
 (define cc
-  (section 2 "Call with current continutation"
+  (section 2 "Call with current continuation"
            (list
             (para (list "\"Call with current continuation\" is called `call-cc` in LBM."
                         "Call with current continuation saves the \"current continuation\", which encodes what"
@@ -2973,7 +2973,7 @@
 
 ;; Type convertion function
 
-(define type-conv
+(define type-convertions
   (section 2 "Type convertions"
            (list
             (ref-entry "to-byte"
@@ -3100,7 +3100,7 @@
                                  cc
                                  error-handling
                                  flash
-                                 type-conv
+                                 type-convertions
                                  info
                                  ))
                   )

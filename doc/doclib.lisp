@@ -57,31 +57,31 @@
          ( (import (? txt) (? sym))
            (str-merge (ind-spaces n) "(import \"" txt "\" '" (to-str (eval sym)) ")"))
          ( (loop (? e) . (? es))
-           (str-merge (ind-spaces n) "(loop " (pretty nil e) (pretty-aligned-ontop (+ n 6) es) ")" ))
+           (str-merge (ind-spaces n) "(loop " (pretty nil e) (pretty-aligned-on-top (+ n 6) es) ")" ))
          ( (atomic (? e) . (? es))
-           (str-merge (ind-spaces n) "(atomic " (pretty nil e) (pretty-aligned-ontop (+ n 8) es) ")" ))
+           (str-merge (ind-spaces n) "(atomic " (pretty nil e) (pretty-aligned-on-top (+ n 8) es) ")" ))
          ( (recv  (? e) . (? es))
-           (str-merge (ind-spaces n) "(recv " (pretty nil e) (pretty-aligned-ontop (+ n 6) es) ")" ))
+           (str-merge (ind-spaces n) "(recv " (pretty nil e) (pretty-aligned-on-top (+ n 6) es) ")" ))
          ( (recv-to  (? e) . (? es))
-           (str-merge (ind-spaces n) "(recv-to " (pretty nil e) (pretty-aligned-ontop (+ n 9) es) ")" ))
+           (str-merge (ind-spaces n) "(recv-to " (pretty nil e) (pretty-aligned-on-top (+ n 9) es) ")" ))
          ( (match (? e) . (? es))
-           (str-merge (ind-spaces n) "(match " (pretty nil e) (pretty-aligned-ontop (+ n 7) es) ")" ))
+           (str-merge (ind-spaces n) "(match " (pretty nil e) (pretty-aligned-on-top (+ n 7) es) ")" ))
          ( (progn (? e ) . (? es))
-           (str-merge (ind-spaces n) "(progn " (pretty-aligned-ontop (+ n 4) (cons e es)) ")" ))
+           (str-merge (ind-spaces n) "(progn " (pretty-aligned-on-top (+ n 4) (cons e es)) ")" ))
          ( (quote (? e)) (str-merge (ind-spaces n) "'" (pretty nil e)))
          ( (let ((? b0) . (? brest)) (? body)) ;; pattern
            (str-merge (ind-spaces n)
                       "(let ("
 
                       (pretty nil b0)
-                      (pretty-aligned-ontop (+ n 6) brest)
+                      (pretty-aligned-on-top (+ n 6) brest)
                       ")\n"
 
                       (pretty-ind (+ n 5) body)
                       ")"
                       ))
          ( (cond (? x) . (? xs) )
-           (let ( (conds (pretty-aligned-ontop (+ n 6) xs))
+           (let ( (conds (pretty-aligned-on-top (+ n 6) xs))
                   (cond0 (pretty nil x)))
              (str-merge (ind-spaces n) "(cond " cond0 conds ")")
              )
@@ -113,11 +113,11 @@
            )
          ( (? x) (str-merge " . " (pretty nil x)))))
 
-(defun pretty-aligned-ontop (n cs)
+(defun pretty-aligned-on-top (n cs)
   (match cs
          (nil "")
          ( ( (? x ) . (? xs))
-           (str-merge "\n" (pretty-ind n x) (pretty-aligned-ontop n xs))))
+           (str-merge "\n" (pretty-ind n x) (pretty-aligned-on-top n xs))))
   )
 
 (defun render-code-res-pairs (rend cs)
@@ -131,7 +131,7 @@
                              (read (ix x 1))
                            x))
                  (res (eval nil x-code))
-                 (rstr (to-str res)))
+                 (res-str (to-str res)))
              {
              (rend "<tr>\n")
              (rend "<td>\n\n")
@@ -141,7 +141,7 @@
              (rend "\n\n</td>\n")
              (rend "<td>\n\n")
              (rend "```clj\n")
-             (rend rstr)
+             (rend res-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "</tr>\n")
@@ -173,7 +173,7 @@
 	     {
 	     (img-clear img 0)
 	     (var res (eval nil x-code))
-	     (var rstr (to-str res))
+	     (var res-str (to-str res))
 	     (disp-render img 0 0 colors) 
 	     (save-active-img png)
              (disp-clear)
@@ -189,7 +189,7 @@
 	     (rend "\n\n</td>\n")	     
 	     (rend "<td>\n\n")
 	     (rend "```clj\n")
-	     (rend rstr)
+	     (rend res-str)
 	     (rend "\n```\n")
 	     (rend "\n\n</td>\n")
 	     (rend "</tr>\n")
@@ -220,7 +220,7 @@
 		 )
 	     {
 	     (var res (eval nil x-code))
-	     (var rstr (to-str res))
+	     (var res-str (to-str res))
 	     (save-active-img png)
 	     (rend "<tr>\n")
 	     (rend "<td>\n\n")
@@ -234,7 +234,7 @@
 	     (rend "\n\n</td>\n")	     
 	     (rend "<td>\n\n")
 	     (rend "```clj\n")
-	     (rend rstr)
+	     (rend res-str)
 	     (rend "\n```\n")
 	     (rend "\n\n</td>\n")
 	     (rend "</tr>\n")
@@ -252,15 +252,15 @@
     })
 
 
-(defun intersperse (str strs)
-  (match strs
+(defun intersperse (str strings)
+  (match strings
          ( ((? s) . nil) s)
          ( ((? s) . (? ss))
            (str-merge s str (intersperse str ss)))))
     
 
-(defun tableize (strs)
-  (str-merge "|" (intersperse "|" strs) "|\n" )
+(defun tableize (strings)
+  (str-merge "|" (intersperse "|" strings) "|\n" )
   )
 
 (defun render-table (rend h d)
@@ -284,21 +284,21 @@
                              (read-program (ix x 1))
                            x))
                  (res (eval-program nil x-code))
-                 (rstr (to-str res)))
-           ;(let ((cstrs (map (lambda (c) (str-merge (pretty c) "\n"))  x))
+                 (res-str (to-str res)))
+           ;(let ((c-strings (map (lambda (c) (str-merge (pretty c) "\n"))  x))
            ;      (res (eval-program nil x))
-           ;      (rstr (to-str res)))
+           ;      (res-str (to-str res)))
              {
              (rend "<tr>\n")
              (rend "<td>\n\n")
              (rend "\n```clj\n")
-                                        ;(map rend cstrs)
+                                        ;(map rend c-strings)
              (rend x-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "<td>\n\n")
              (rend "\n```clj\n")
-             (rend rstr)
+             (rend res-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "</tr>\n")
@@ -326,14 +326,14 @@
                              (read-program (ix x 1))
                            x))
                  (res (eval-program nil x-code))
-                 (rstr (to-str res))
+                 (res-str (to-str res))
                  (png (png-file)))
              {
              (save-active-img png)
              (rend "<tr>\n")
              (rend "<td>\n\n")
              (rend "\n```clj\n")
-                                        ;(map rend cstrs)
+                                        ;(map rend c-strings)
              (rend x-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
@@ -343,7 +343,7 @@
              (rend "\n\n</td>\n")	     
              (rend "<td>\n\n")
              (rend "\n```clj\n")
-             (rend rstr)
+             (rend res-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "</tr>\n")
@@ -361,9 +361,9 @@
   })
 
 
-;; assumes existance of frame-i value
-;; assumes existance of frame-max value
-;; assumes existance of yeet continuation 
+;; assumes existence of frame-i value
+;; assumes existence of frame-max value
+;; assumes existence of yeet continuation 
 (define disp-render-mac (macro (img x y color)
   `(if (= frame-i frame-max)
        (glob-yeet nil)
@@ -402,12 +402,12 @@
                  (x-code (car (cdr x)))
                  (gif (gif-file))
                  (res (eval-animation gif x-code (car x)))
-                 (rstr (to-str res)))
+                 (res-str (to-str res)))
              {
              (rend "<tr>\n")
              (rend "<td>\n\n")
              (rend "\n```clj\n")
-                                        ;(map rend cstrs)
+                                        ;(map rend c-strings)
              (rend x-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
@@ -417,7 +417,7 @@
              (rend "\n\n</td>\n")	     
              ;;(rend "<td>\n\n")
              ;;(rend "\n```clj\n")
-             ;;(rend rstr)
+             ;;(rend res-str)
              ;;(rend "\n```\n")
              ;;(rend "\n\n</td>\n")
              (rend "</tr>\n")
@@ -436,8 +436,8 @@
 
 
 
-(defun str-merge-list (strs)
-  (match strs
+(defun str-merge-list (strings)
+  (match strings
          ( nil "" )
          ( ((? s) . (? ss)) (str-merge s (str-merge-list ss)))))
 
@@ -481,7 +481,7 @@
            (render-dot img-name code)
            (if ra
                (rend (str-merge "![" ra  "](./images/" img-name ".png)\n\n"))
-             (rend (str-merge "![Graph representaion of s-expression](./images/" img-name ".png)\n\n"))
+             (rend (str-merge "![Graph representation of s-expression](./images/" img-name ".png)\n\n"))
              )
              
            })
@@ -508,13 +508,13 @@
 (defun s+ (s ss)
   (cons s ss))
 
-(defun section (i str strs)
-  (list 'section i str strs))
+(defun section (i str strings)
+  (list 'section i str strings))
 
-(defun ref-entry (str strs)
+(defun ref-entry (str strings)
   (list
    'newline
-   (section 3 str strs)
+   (section 3 str strings)
    'newline
    'hline
    ))

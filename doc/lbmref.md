@@ -362,7 +362,7 @@ All Values in LBM are encoded in one way or another. The encoded value holds add
 
 The chart below shows the time it takes to perform 10 million additions on the x86 architecture (a i7-6820HQ) in 32 and 64 Bit mode. 
 
-![Perfomance of 10 million additions at various types on X86](./images/lbm_arith_pc.png "Perfomance of 10 million additions at various types on X86")
+![Performance of 10 million additions at various types on X86](./images/lbm_arith_pc.png "Performance of 10 million additions at various types on X86")
 
 In 64Bit mode the x86 version of LBM shows negligible differences in cost of additions at different types. 
 
@@ -383,23 +383,23 @@ Opinions on Lisp syntax varies widely depending on a persons programming experie
 
 Lisp programs are written using S-expressions, a notation introduced by [McCarthy](http://www-formal.stanford.edu/jmc/recursive.pdf). An S-expression describes a tree in an unambiguous way. An example of an S-expression is `(+ 1 2)` and the tree it represents is shown below: 
 
-![Graph representaion of s-expression](./images/add_one_two.png)
+![Graph representation of s-expression](./images/add_one_two.png)
 
 Another example `(+ (* a a) (* b b))` which as a lisp program means $a^2 + b^2$: 
 
-![Graph representaion of s-expression](./images/sum_of_squares.png)
+![Graph representation of s-expression](./images/sum_of_squares.png)
 
 In Lisp, which stands for "LISt Processor", a list is a right leaning tree ending in the symbol "nil". By convention these right leaning expressions are easy to write and requires only a few parentheses. The example below shows how the list created by lisp program `(list 1 2 3 4)` is represented as a tree: 
 
-![Graph representaion of s-expression](./images/list_1234.png)
+![Graph representation of s-expression](./images/list_1234.png)
 
 A left leaning structure requires full parenthesization and can be expressed in lisp as `(cons (cons (cons (cons nil 4) 3) 2) 1)`. 
 
-![Graph representaion of s-expression](./images/snoc_1234.png)
+![Graph representation of s-expression](./images/snoc_1234.png)
 
 The conventions strongly favor the right leaning case. 
 
-There are no two different trees that correspond to a given S-expression and thus parsing of S-expressions is unambiguous. The unambiguous nature of S-expressions is useful in areas other than lisp programming as well. [KiCad](https://dev-docs.kicad.org/en/file-formats/sexpr-intro/) uses S-expressions to represent tree data in some of its file formats. Apperantly [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format) uses S-expressions as well to describe WebAssembly modules 
+There are no two different trees that correspond to a given S-expression and thus parsing of S-expressions is unambiguous. The unambiguous nature of S-expressions is useful in areas other than lisp programming as well. [KiCad](https://dev-docs.kicad.org/en/file-formats/sexpr-intro/) uses S-expressions to represent tree data in some of its file formats. Apparently [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format) uses S-expressions as well to describe WebAssembly modules 
 
 
 S-expressions are built from two things, **Atoms** and **Pairs** of S-expressions. So an S-expression is either: 
@@ -643,7 +643,7 @@ Below are a selection of basic special-forms in lispBM together with their evalu
    - **and**: `(and e1 e2 ... eN)` evaluates the `eI` expressions from left to right as long as they result in a non-nil value.
    - **or**: `(or e1 e2 ... eN)` evaluates the `eI` expressions from left to right until there is a non-nil result.
 
-`and`, `or`, `progn` and `if` evaluates expressions in sequence. `if` evaluates first the condition expression and then either the true or false branch. `progn` evaluates all of the expressions in sequence. In the case of `and`, `or`, `progn` and `if`, the constituent expressions are all evaluated in the same local environment. Any extensions to the local environment performed by an expresison in the sequence is only visible within that expression itself. 
+`and`, `or`, `progn` and `if` evaluates expressions in sequence. `if` evaluates first the condition expression and then either the true or false branch. `progn` evaluates all of the expressions in sequence. In the case of `and`, `or`, `progn` and `if`, the constituent expressions are all evaluated in the same local environment. Any extensions to the local environment performed by an expression in the sequence is only visible within that expression itself. 
 
    - **let**: `(let ((s1 e1) (s2 e2) ... (sN eN) e)` eI are evaluated in order into `vI`. The local environment is extended with `(sI . vI)`. `sI` is visible in `eJ` for `J >= I`. `e` is then evaluated in the extended local environment.
    - **setq**: `(setq s e)` is evaluated by first evaluating `e` into `v`. The environments are then scanned for a bining of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`.
@@ -672,9 +672,9 @@ TODO: Finish section.
 
 To differentiate from Imperative and Functional, think of imperative programs  as sequences of operations that update a state and  functional programs as transformations of values through application  of compositions of functions. Functional programming languages often let functions be values, which means that functions  can be stored in lists, returned from other functions and so on 
 
-LispBM is a multiparadigm programming language. Most languages are a mix of functional and imperative and differ in what style it makes most convenient. At one end of this spectrum we find C which makes imperative easy and functional hard,  and in the other end Haskell with the opposite favouritism. In LispBM we try to not unfairly favour any particular style over the other. 
+LispBM is a multiparadigm programming language. Most languages are a mix of functional and imperative and differ in what style it makes most convenient. At one end of this spectrum we find C which makes imperative easy and functional hard,  and in the other end Haskell with the opposite favoritism. In LispBM we try to not unfairly favour any particular style over the other. 
 
-Picking a functional or an imperative style does have consequences though. Functional LispBM programs have properties such as persistance of data, that can be broken using the imperative part of the language. 
+Picking a functional or an imperative style does have consequences though. Functional LispBM programs have properties such as persistence of data, that can be broken using the imperative part of the language. 
 
 With the imperative features of the language it is also in some  places possible to peek under the hood of the runtime system. you can detect when and how environments are shared or copied for example. Please avoid exploiting the power of destructive updates for evil purposes. 
 
@@ -701,7 +701,7 @@ The list below shows imperative operations from the core of LispBM. In the exten
 
 ### +
 
-Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1 ... exprN)`. 
+Adds up an arbitrary number of values. The form of a `+` expression is `(+ expr1 ... exprN)`. 
 
 <table>
 <tr>
@@ -1183,7 +1183,7 @@ Integer division operation. Like normal division except if the result is a float
 
 ### eq
 
-Compare values for equality. The `eq` operation implements structural equiality. The form of an 'eq` expression is `(eq expr1 ... exprN)`. 
+Compare values for equality. The `eq` operation implements structural equality. The form of an 'eq` expression is `(eq expr1 ... exprN)`. 
  Structural equality means that the values must have the identical in memory representations to be considered equal. 
 
 <table>
@@ -3812,7 +3812,7 @@ Evaluate data as an expression. The data must represent a valid expression. The 
 
 Evaluate a list of data where each element represents an expression. The form of an `eval-program` expression is `(eval-program program-expr)`. A `program-expr` is a list of expressions where each element in the list can be evaluated by `eval`. 
 
-An optional environment can be passed in as the first arguement: `(eval-program env-expr program-expr)`. 
+An optional environment can be passed in as the first argument: `(eval-program env-expr program-expr)`. 
 
 <table>
 <tr>
@@ -4286,7 +4286,7 @@ lambda
 
 ### gc
 
-The `gc` function runs the garbage collector so that it can reclaim values from the heap and LBM memory that are nolonger needed. 
+The `gc` function runs the garbage collector so that it can reclaim values from the heap and LBM memory that are no longer needed. 
 
 **Note** that one should not need to run this function. GC is run automatically when needed. 
 
@@ -5173,7 +5173,7 @@ And
 
 ### }
 
-The closing curlybrace `}` should be used to close an opening `{` but purely for esthetical reasons. The `}` is treated identically to a regular closing parenthesis `)`. 
+The closing curlybrace `}` should be used to close an opening `{` but purely for esthetic reasons. The `}` is treated identically to a regular closing parenthesis `)`. 
 
 The opening `{` and closing `}` curlybraces are used as a short-form for `progn`-blocks of sequences expressions. 
 
@@ -5518,7 +5518,7 @@ A cons cell can be used to store a pair of values. You create a pair by sticking
 
 A list is a number of cons cells linked together where the car fields hold values and the cdr fields hold pointers (the last cdr field is nil). The list below can be created either as `'(1 2 3)` or as `(list 1 2 3)`. 
 
-![Graph representaion of s-expression](./images/list_1_2_3.png)
+![Graph representation of s-expression](./images/list_1_2_3.png)
 
 
 ### car
@@ -6097,7 +6097,7 @@ Index into a list using the `ix` function. The form of an `ix` expression is `(i
 
 ### setix
 
-Destructively update an element in a list. The form of a `setix` expression is `(setix list-expr index-extr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
+Destructively update an element in a list. The form of a `setix` expression is `(setix list-expr index-expr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
 
 <table>
 <tr>
@@ -6761,7 +6761,7 @@ Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate si
 </tr>
 </table>
 
-Alternatively a buffer can be allocated from a compactible memory region (defrag mem). 
+Alternatively a buffer can be allocated from a compactable memory region (defrag mem). 
 
 <table>
 <tr>
@@ -7819,7 +7819,7 @@ Index into an array using the `ix` function. The form of an `ix` expression is `
 
 ### setix
 
-Destructively update an element in an array. The form of a `setix` expression is `(setix arr-expr index-extr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
+Destructively update an element in an array. The form of a `setix` expression is `(setix arr-expr index-expr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
 
 <table>
 <tr>
@@ -7870,7 +7870,7 @@ Destructively update an element in an array. The form of a `setix` expression is
 
 ## Defragmentable memory
 
-LBM has two types of memory, the HEAP and the LBM_MEMORY. Lists and pairs are all stored on the heap. Arrays and large values (such as 64bit numbers are stored on LBM_MEMORY. The HEAP has a nice property that all allocations on it are the same size and therefore the HEAP is imune the problems caused by fragmentation. On LBM_MEMORY arbitrarily sized arrays can be allocated and fragmentation can cause an allocation to fail even though there is enough free bytes. 
+LBM has two types of memory, the HEAP and the LBM_MEMORY. Lists and pairs are all stored on the heap. Arrays and large values (such as 64bit numbers are stored on LBM_MEMORY. The HEAP has a nice property that all allocations on it are the same size and therefore the HEAP is immune to the problems caused by fragmentation. On LBM_MEMORY arbitrarily sized arrays can be allocated and fragmentation can cause an allocation to fail even though there is enough free bytes. 
 
 One way to resolve the fragmentation problem is to use a compacting garbage collector. We have opted to not use a compacting garbage collector on the LBM_MEMORY as it is quite complicated. It is extra complicated given how this memory is a shared resource between C extensions and the lisp runtime system. 
 
@@ -7917,7 +7917,7 @@ DM
 
 ### dm-alloc
 
-`dm-alloc` is used to allocate a byte-array from a region of defragmentable memory. The form of a `dm-alloc` expression is `(dm-alloc DM-expr size-expr)`. where `DM-expr` evaluates to the defragmentable region to allocate from and `size-expr` is the number of bytes to allocate. Each allocation uses up 12 extre bytes of header that you do not include in `size-expr`. 
+`dm-alloc` is used to allocate a byte-array from a region of defragmentable memory. The form of a `dm-alloc` expression is `(dm-alloc DM-expr size-expr)`. where `DM-expr` evaluates to the defragmentable region to allocate from and `size-expr` is the number of bytes to allocate. Each allocation uses up 12 extra bytes of header that you do not include in `size-expr`. 
 
 <table>
 <tr>
@@ -8150,7 +8150,7 @@ greater-than-zero
 
 ## Concurrency
 
-The concurrency support in LispBM is provided by the set of functions, `spawn`, `wait`, `yeild` and `atomic` described below.  Concurrency in LispBM is scheduled by a round-robin scheduler that splits the runtime system evaluator fairly (with caveats, below) between all running processes. 
+The concurrency support in LispBM is provided by the set of functions, `spawn`, `wait`, `yield` and `atomic` described below.  Concurrency in LispBM is scheduled by a round-robin scheduler that splits the runtime system evaluator fairly (with caveats, below) between all running processes. 
 
 When a process is scheduled to run, made active, it is given a quota of evaluator "steps" to use up. The process then runs until that quota is exhausted or the process itself has signaled it wants to sleep by yielding or blocking (for example by waiting for a message using the message passing system). 
 
@@ -8258,7 +8258,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-3927
+3933
 ```
 
 
@@ -8354,7 +8354,7 @@ t
 
 ### atomic
 
-`atomic` can be used to execute a LispBM one or more expression without allowing the runtime system to switch process during that time. `atomic` is similar to progn with the addition of being uninterruptable. 
+`atomic` can be used to execute a LispBM one or more expression without allowing the runtime system to switch process during that time. `atomic` is similar to progn with the addition of being uninterruptible. 
 
 <table>
 <tr>
@@ -8390,7 +8390,7 @@ t
 
 ### exit-ok
 
-The `exit-ok` function terminates the thread in a "successful" way and returnes a result specified by the programmer. The form of an `exit-ok` expression is `(exit-ok value)`.  If the process that calls `exit-ok` was created using `spawn-trap` a message of the form `(exit-ok tid value)` is be sent to the parent of this process. 
+The `exit-ok` function terminates the thread in a "successful" way and returns a result specified by the programmer. The form of an `exit-ok` expression is `(exit-ok value)`.  If the process that calls `exit-ok` was created using `spawn-trap` a message of the form `(exit-ok tid value)` is be sent to the parent of this process. 
 
 
 
@@ -8463,7 +8463,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 130017 kurt-russel)
+(exit-ok 128971 kurt-russel)
 ```
 
 
@@ -8967,7 +8967,7 @@ The form of a `macro` expression is: `(macro args body)`
 
 ---
 
-## Call with current continutation
+## Call with current continuation
 
 "Call with current continuation" is called `call-cc` in LBM. Call with current continuation saves the "current continuation", which encodes what the evaluator will do next, into an object in the language. This encoded continuation object behaves as a function taking one argument. 
 
