@@ -6,6 +6,10 @@
         "stdlib.h": "c",
         "errno.h": "c"
     },
+    "editor.rulers": [
+		80,
+        100,
+	],
     "cSpell.words": [
         "acont",
         "alist",
