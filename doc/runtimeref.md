@@ -149,7 +149,7 @@ t
 <td>
 
 ```clj
-((memory-size newline (section 3 "mem-size" ((para ("`mem-size` returns the size of the LBM memory.")) (code ((mem-size))) nil)) newline hline) (image closure (alt url) (list (quote image) alt url) nil) (intersperse closure (str strs) (match strs (((? s))
+((memory-size newline (section 3 "mem-size" ((para ("`mem-size` returns the size of the LBM memory.")) (code ((mem-size))) nil)) newline hline) (image closure (alt url) (list (quote image) alt url) nil) (intersperse closure (str strings) (match strings ((
 ```
 
 
@@ -473,7 +473,7 @@ nil
 <td>
 
 ```clj
-((word newline (section 3 "word-size" ((para ("`word-size` returns 4 on 32bit LBM  and 8 on 64bits.")) (code ((word-size))) nil)) newline hline) (bold closure (str) (list (quote bold) str) nil) (ref-entry closure (str strs) (list (quote newline) (section 
+((word newline (section 3 "word-size" ((para ("`word-size` returns 4 on 32bit LBM  and 8 on 64bits.")) (code ((word-size))) nil)) newline hline) (bold closure (str) (list (quote bold) str) nil) (ref-entry closure (str strings) (list (quote newline) (secti
 ```
 
 
@@ -1353,7 +1353,7 @@ t
 <td>
 
 ```clj
-20673
+20601
 ```
 
 

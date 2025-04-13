@@ -5,7 +5,7 @@ The LispBM TTF font extensions are based on the [libschrift](https://github.com/
 
 # Binary format description
 
-The LispBM TrueType font support works in two phases. The first phase is called prepare and it prerenders selected glyphs into a custom binary format that we feel are more suitable for small embedded systems. This prerendering can be done offline and then only the binary blob be uploaded to the embedded system or it can be used on-demand if there is resourses and a need for that. 
+The LispBM TrueType font support works in two phases. The first phase is called prepare and it prerenders selected glyphs into a custom binary format that we feel are more suitable for small embedded systems. This prerendering can be done offline and then only the binary blob be uploaded to the embedded system or it can be used on-demand if there is resources and a need for that. 
 
 The binary format starts with a preamble 
 
@@ -74,7 +74,7 @@ glyph:
 
 ### ttf-prepare
 
-`ttf-prepare` intializes font and prerenders glyphs. The result of `ttf-prepare` is a binary blob conaining all the information needed to print text using the prepared glyphs The form of a `ttf-prepare` expression is: `(ttf-prepare font-data scale img-format utf8-str)`. 
+`ttf-prepare` initializes font and prerenders glyphs. The result of `ttf-prepare` is a binary blob conaining all the information needed to print text using the prepared glyphs The form of a `ttf-prepare` expression is: `(ttf-prepare font-data scale img-format utf8-str)`. 
 
    - font-data : A ttf font file loaded or imported
    - scale : Floating point value specifying text size scaling.
