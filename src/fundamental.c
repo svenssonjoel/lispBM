@@ -509,7 +509,7 @@ static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context
         res = ENC_SYM_TERROR;
         break;
       }
-      if (!compare_num(a, b) == 0) {
+      if (!(compare_num(a, b) == 0)) {
         res = ENC_SYM_NIL;
         break;
       }
