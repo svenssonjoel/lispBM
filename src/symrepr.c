@@ -83,7 +83,6 @@ special_sym const special_symbols[] =  {
   {"rest-args"    , SYM_REST_ARGS},
   {"rotate"       , SYM_ROTATE},
   {"call-cc-unsafe", SYM_CALL_CC_UNSAFE},
-  {"apply"        , SYM_APPLY},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},

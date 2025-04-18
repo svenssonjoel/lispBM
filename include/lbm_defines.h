@@ -255,8 +255,7 @@
 #define SYM_TRAP                0x116
 #define SYM_CALL_CC_UNSAFE      0x117
 #define SYM_CONT_SP             0x118
-#define SYM_APPLY               0x119
-#define SPECIAL_FORMS_END       0x119
+#define SPECIAL_FORMS_END       0x118
 
 #ifndef LBM64
 #define SPECIAL_FORMS_MASK        0xFFFFFF00

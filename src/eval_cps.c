@@ -2339,30 +2339,6 @@ static void eval_receive(eval_context_t *ctx) {
     ERROR_AT_CTX(ENC_SYM_EERROR,ctx->curr_exp);
   }
 }
-
-/* special form apply */
-static void eval_apply(eval_context_t *ctx) {
-  // some check on curr_exp;
-  char buf[256];
-  lbm_print_value(buf, 256, ctx->curr_exp);
-  printf("%s\n", buf);
-  lbm_value fun = lbm_car(lbm_cdr(ctx->curr_exp));
-  lbm_value ls = lbm_car(lbm_cdr(lbm_cdr(ctx->curr_exp)));
-
-  lbm_print_value(buf, 256, fun);
-  printf("fun: %s\n", buf);
-  lbm_print_value(buf, 256, ls);
-  printf("ls: %s\n", buf);
-
-  lbm_value ap = lbm_cons(fun, ls); // check error
-  lbm_print_value(buf, 256, ap);
-  printf("ap: %s\n", buf);
-
-  
-  ctx->curr_exp = ap;
-}
- 
-
  
 /*********************************************************/
 /*  Continuation functions                               */
@@ -5449,7 +5425,6 @@ static const evaluator_fun evaluators[] =
    eval_trap,
    eval_call_cc_unsafe,
    eval_selfevaluating, // cont_sp
-   eval_apply
   };
 
 
