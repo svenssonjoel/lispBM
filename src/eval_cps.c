@@ -2419,7 +2419,7 @@ static void cont_wait(eval_context_t *ctx) {
  * @return lbm_value The resulting argument value which should either be
  *   evaluated or passed on directly depending on how you use this.
  */
-static lbm_value setup_cont(eval_context_t *ctx, lbm_value args) {
+static inline __attribute__ ((always_inline)) lbm_value setup_cont(eval_context_t *ctx, lbm_value args) {
   /* Continuation created using call-cc.
    * ((SYM_CONT . cont-array) arg0 )
    */
@@ -2466,7 +2466,7 @@ static lbm_value setup_cont(eval_context_t *ctx, lbm_value args) {
  * @return lbm_value The resulting argument value which should either be
  *   evaluated or passed on directly depending on how you use this.
  */
-static lbm_value setup_cont_sp(eval_context_t *ctx, lbm_value args) {
+static inline __attribute__ ((always_inline)) lbm_value setup_cont_sp(eval_context_t *ctx, lbm_value args) {
   // continuation created using call-cc-unsafe
   // ((SYM_CONT_SP . stack_ptr) arg0 )
   lbm_value c = get_cadr(ctx->r); /* should be the stack_ptr*/
@@ -2511,7 +2511,7 @@ static lbm_value setup_cont_sp(eval_context_t *ctx, lbm_value args) {
  * @param curr_env The environment to re-evaluate the result of the macro
  *   experssion in. 
  */
-static void setup_macro(eval_context_t *ctx, lbm_value args, lbm_value curr_env) {
+static inline __attribute__ ((always_inline)) void setup_macro(eval_context_t *ctx, lbm_value args, lbm_value curr_env) {
   /*
    * Perform macro expansion.
    * Macro expansion is really just evaluation in an
