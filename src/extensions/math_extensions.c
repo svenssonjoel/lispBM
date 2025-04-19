@@ -22,11 +22,9 @@
 #include <math.h>
 
 #ifdef LBM_OPT_MATH_EXTENSIONS_SIZE
-#pragma GCC push_options
 #pragma GCC optimize ("-Os")
 #endif
 #ifdef LBM_OPT_MATH_EXTENSIONS_SIZE_AGGRESSIVE
-#pragma GCC push_options
 #pragma GCC optimize ("-Oz")
 #endif
 
@@ -225,7 +223,3 @@ void lbm_math_extensions_init(void) {
   lbm_add_extension("is-nan", ext_is_nan);
   lbm_add_extension("is-inf", ext_is_inf);
 }
-
-#if defined(LBM_OPT_MATH_EXTENSIONS_SIZE) || defined(LBM_OPT_MATH_EXTENSIONS_SIZE_AGGRESSIVE)
-#pragma GCC pop_options
-#endif

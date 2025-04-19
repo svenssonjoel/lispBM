@@ -24,11 +24,9 @@
 #include <env.h>
 
 #ifdef LBM_OPT_RUNTIME_EXTENSIONS_SIZE
-#pragma GCC push_options
 #pragma GCC optimize ("-Os")
 #endif
 #ifdef LBM_OPT_RUNTIME_EXTENSIONS_SIZE_AGGRESSIVE
-#pragma GCC push_options
 #pragma GCC optimize ("-Oz")
 #endif
 
@@ -316,7 +314,3 @@ void lbm_runtime_extensions_init(void) {
     lbm_add_extension("symtab-size-names-flash", ext_symbol_table_size_names_flash);
 #endif
 }
-
-#if defined(LBM_OPT_RUNTIME_EXTENSIONS_SIZE) || defined(LBM_OPT_RUNTIME_EXTENSIONS_SIZE_AGGRESSIVE)
-#pragma GCC pop_options
-#endif

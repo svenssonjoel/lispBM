@@ -19,11 +19,9 @@
 #include <lbm_utils.h>
 
 #ifdef LBM_OPT_RANDOM_EXTENSIONS_SIZE
-#pragma GCC push_options
 #pragma GCC optimize ("-Os")
 #endif
 #ifdef LBM_OPT_RANDOM_EXTENSIONS_SIZE_AGGRESSIVE
-#pragma GCC push_options
 #pragma GCC optimize ("-Oz")
 #endif
 
@@ -55,7 +53,3 @@ void lbm_random_extensions_init(void) {
   lbm_add_extension("seed", ext_seed);
   lbm_add_extension("random", ext_random);
 }
-
-#if defined(LBM_OPT_RANDOM_EXTENSIONS_SIZE) || defined(LBM_OPT_RANDOM_EXTENSIONS_SIZE_AGGRESSIVE)
-#pragma GCC pop_options
-#endif

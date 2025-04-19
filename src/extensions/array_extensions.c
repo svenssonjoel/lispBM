@@ -1,6 +1,6 @@
 /*
-    Copyright 2022, 2023, 2024 Joel Svensson        svenssonjoel@yahoo.se
-    Copyright 2022, 2023 Benjamin Vedder
+    Copyright 2022 - 2025 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2023  Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,11 +25,9 @@
 #include <math.h>
 
 #ifdef LBM_OPT_ARRAY_EXTENSIONS_SIZE
-#pragma GCC push_options
 #pragma GCC optimize ("-Os")
 #endif
 #ifdef LBM_OPT_ARRAY_EXTENSIONS_SIZE_AGGRESSIVE
-#pragma GCC push_options
 #pragma GCC optimize ("-Oz")
 #endif
 
@@ -691,7 +689,3 @@ static lbm_value array_extensions_bufset_bit(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
-
-#if defined(LBM_OPT_ARRAY_EXTENSIONS_SIZE) || defined(LBM_OPT_ARRAY_EXTENSIONS_SIZE_AGGRESSIVE)
-#pragma GCC pop_options
-#endif

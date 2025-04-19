@@ -28,11 +28,9 @@
 #include <ctype.h>
 
 #ifdef LBM_OPT_STRING_EXTENSIONS_SIZE
-#pragma GCC push_options
 #pragma GCC optimize ("-Os")
 #endif
 #ifdef LBM_OPT_STRING_EXTENSIONS_SIZE_AGGRESSIVE
-#pragma GCC push_options
 #pragma GCC optimize ("-Oz")
 #endif
 
@@ -754,7 +752,3 @@ void lbm_string_extensions_init(void) {
   lbm_add_extension("str-replicate", ext_str_replicate);
   lbm_add_extension("str-find", ext_str_find);
 }
-
-#if defined(LBM_OPT_STRING_EXTENSIONS_SIZE) || defined(LBM_OPT_STRING_EXTENSIONS_SIZE_AGGRESSIVE)
-#pragma GCC pop_options
-#endif

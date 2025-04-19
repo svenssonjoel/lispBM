@@ -1,7 +1,7 @@
 /*
-  Copyright 2023, 2024       Benjamin Vedder            benjamin@vedder.se
-  Copyright 2023, 2024, 2025 Joel Svensson              svenssonjoel@yahoo.se
-  Copyright 2023             Rasmus Söderhielm          rasmus.soderhielm@gmail.com
+  Copyright 2023, 2024  Benjamin Vedder            benjamin@vedder.se
+  Copyright 2023 - 2025 Joel Svensson              svenssonjoel@yahoo.se
+  Copyright 2023        Rasmus Söderhielm          rasmus.soderhielm@gmail.com
 
   This file is part of LispBM. (Originally a part of the vesc_express FW)
 
@@ -28,11 +28,9 @@
 #include <lbm_defrag_mem.h>
 
 #ifdef LBM_OPT_DISPLAY_EXTENSIONS_SIZE
-#pragma GCC push_options
 #pragma GCC optimize ("-Os")
 #endif
 #ifdef LBM_OPT_DISPLAY_EXTENSIONS_SIZE_AGGRESSIVE
-#pragma GCC push_options
 #pragma GCC optimize ("-Oz")
 #endif
 
@@ -2953,7 +2951,3 @@ void lbm_display_extensions_set_callbacks(
   disp_clear = clear ? clear : display_dummy_clear;
   disp_reset = reset ? reset : display_dummy_reset;
 }
-
-#if defined(LBM_OPT_DISPLAY_EXTENSIONS_SIZE) || defined(LBM_OPT_DISPLAY_EXTENSIONS_SIZE_AGGRESSIVE)
-#pragma GCC pop_options
-#endif
