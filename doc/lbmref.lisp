@@ -712,7 +712,7 @@
              (list
               (para (list "Boolean `and` operation between n arguments. The form of an `and`"
                           "expression is `(and expr1 ... exprN)`.  This operation treats all"
-                          "non-nil values as true. Boolean `and` is \"shirt-circuiting\" and only"
+                          "non-nil values as true. Boolean `and` is \"short-circuiting\" and only"
                           "evaluates until a false is encountered."
                           ))
               (code '((and t t)
@@ -1126,6 +1126,73 @@
                       ))
               end)))
 
+(define built-in-apply
+  (ref-entry "apply"
+             (list
+              (para (list "An apply expression has the form `(apply fun-expr args-expr)`, and it "
+                          "applies `args-expr` to `fun-expr`. It can loosely be emulated by "
+                          "`(eval (cons fun-expr args-expr))`, except for the property that the"
+                          "elements of `args-expr` aren't evaluated when you use `apply`. "
+                          "`args-expr` itself is of course evaluated, but given the emulated form,"
+                          "the individual elements of the list would be evaluated again. This is a"
+                          "problem when your argument list may include symbols or any other values"
+                          "which change when evaluated."
+                          ))
+              (para (list "Note that `fun-expr` doesn't necessarily have to be a user defined"
+                          "function, but can be any value which can be applied, that is, a value"
+                          "which can be the first item in a list expression: `(fun ...)`. This"
+                          "includes (but is not limited to) user define functions (which end up as"
+                          (code-entry-ref "closure") "values), built-in functions, extensions,"
+                          (str-merge (code-entry-ref "macro") "s,") "and even special forms"
+                          " (but see **Footgun: Special forms**"
+                          "below)."
+                          ))
+              (code '((defun my-fun (arg1 arg2) (str-join (list (to-str arg1) (to-str arg2)) " "))
+                      (apply my-fun '(a b))
+                      (apply + (list 1 2 3 4 5))
+                      (apply list '(a b c))
+                      (trap (eval (cons my-fun '(symbol-a symbol-b))))
+                      (call-cc (fn (return) (apply return '(return-through-apply))))
+                      ))
+              (para (list "**Footgun: Special forms** "
+                          "\n[Special forms](#special-forms) are built in functions which control how"
+                          "their arguments are evaluated. This means that their implementations has"
+                          "custom logic for how to evaluate the arguments, which has the"
+                          "unfortunate consequence that to apply a list of arguments to them"
+                          "\"without evaluating\" said arguments would require specific logic for"
+                          "each special form's implementation. Given LispBM's nature of running in"
+                          "an embedded environment where binary size is a luxury this becomes"
+                          "highly impractical. Therefore the argument list is passed on unmodified"
+                          "to special forms. So `(apply def '(a 'symbol))` is *precisely*"
+                          "equivalent to `(eval (cons def '(a 'symbol)))`, `'symbol` will be"
+                          "evaluated!."
+                          ))
+              (para (list "This is most noticeable with `and` and `or`. They are special forms due"
+                          "to their short-circuiting behavior, where later arguments may not be"
+                          "evaluated depending on the previous arguments. Given that you only given"
+                          "them the symbol `t` or `nil` their special form status isn't a problem"
+                          "when it comes to `apply` since those symbols evaluate to themselves."
+                          "The problem appears when you give `and` or `or` other \"unstable\""
+                          "values like arbitrary symbols. Since they're special forms they will"
+                          "evaluate them another time."
+                          ))
+              (para (list "This behavior may be changed in the future, so please avoid writing"
+                          "programs which depend on this behavior. For the case of `and` and `or`"
+                          "you can define your own function which re-implement their behavior,"
+                          "which would be subject to `apply`'s non-evaluating property (see example"
+                          "below)."))
+              (program '(((apply or '(false true)))
+                         ((trap (apply and '(symbol-a symbol-b))))
+                         ((trap (apply or '(false symbol-b))))
+                         ((defun safe-and ()
+                            (foldl (fn (acc x) (and acc x))
+                                   true
+                                   (rest-args)))
+                          (apply safe-and '(symbol-a symbol-b))
+                          )
+                         ))
+              end)))
+
 (define built-in-read
   (ref-entry "read"
              (list
@@ -1314,6 +1381,7 @@
                  built-in-undefine
                  built-in-eval
                  built-in-eval-program
+                 built-in-apply
                  built-in-read
                  built-in-read-program
                  built-in-read-eval-program
