@@ -11,7 +11,7 @@ The values stored in image buffers represents colors via an encoding determined 
    - rgb565 : 16bit color
    - rgb888 : 24bit color
 
-Note that the RAM requirenment of a 100x100 image is; 
+Note that the RAM requirement of a 100x100 image is; 
 
    - at indexed2: 1250 Bytes
    - at indexed4: 2500 Bytes
@@ -24,7 +24,7 @@ So on an embedded platform you most likely not be able to be working with rgb565
 
 At the low-level end of things you will want to display graphics onto an display. The interface towards the low-level end needs to be implemented for the particular hardware platform and display. For examples of this see [vesc_express](https://github.com/vedderb/vesc_express/tree/main/main/display). The LBM linux REPL has SDL and png backends for the display library. 
 
-the display library is specifically designed to allow for using many colors simultaneously on screen, without needing to use full screen high-color buffers. This is done by delaying the choice of collor mapping in the `indexed2`, `indexed4` and `indexed16` images until they are presented on screen. 
+the display library is specifically designed to allow for using many colors simultaneously on screen, without needing to use full screen high-color buffers. This is done by delaying the choice of color mapping in the `indexed2`, `indexed4` and `indexed16` images until they are presented on screen. 
 
 images are rendered onto a display using the function `disp-render`. `disp-render` takes an image, a position (x,y) where to draw the image, and a colormapping that can be expressed as a list of colors. for example: 
 
@@ -299,7 +299,7 @@ t
 
 ### img-buffer
 
-Allocate an image buffer from lbm memory or from a compactible region. The form of an `img-buffer` expression is `(img-buffer opt-dm format width height)`. 
+Allocate an image buffer from lbm memory or from a compactable region. The form of an `img-buffer` expression is `(img-buffer opt-dm format width height)`. 
 
 <table>
 <tr>
@@ -334,8 +334,8 @@ Allocate an image buffer from lbm memory or from a compactible region. The form 
 
 
 ```clj
- (define my-dm (dm-create 10000))
- (define my-img (img-buffer my-dm 'indexed2 320 200))
+(define my-dm (dm-create 10000))
+(define my-img (img-buffer my-dm 'indexed2 320 200))
 ```
 
 
@@ -1302,7 +1302,7 @@ t
 These examples are leaving out the details on how to setup and initialize any particular display you may have connected to your embedded system. For information on how to initialize a display on a VESC EXPRESS platform see [vesc_express display documentation](https://github.com/vedderb/vesc_express/tree/main/main/display). 
 
 
-### Example: Sierpinsky triangle
+### Example: Sierpinski triangle
 
 <table>
 <tr>
@@ -1313,23 +1313,26 @@ These examples are leaving out the details on how to setup and initialize any pa
 
 
 ```clj
- (define w 320)
- (define h 200)
- (define corners (list (cons 10 (- h 10)) (cons (- w 10) (- h 10)) (cons (/ w 2) 10)))
- (define s-img (img-buffer 'indexed2 w h))
- (defun point (p) (img-setpix s-img (car p) (cdr p) 1))
- (defun mid-point (p1 p2) (progn 
-    (let ((x (/ (+ (car p1) (car p2)) 2))
-          (y (/ (+ (cdr p1) (cdr p2)) 2)))
-         (cons x y))))
- (defun sierp (n corners p) (if (= n 0) nil (let ((i (mod (rand) 3))
-      (target (ix corners i))
-      (mid (mid-point p target)))
-     (progn 
-         (point mid)
-         (sierp (- n 1) corners mid)))))
- (sierp 25000 corners (car corners))
- (disp-render s-img 0 0 '(0 16777215))
+(define w 320)
+(define h 200)
+(define corners (list (cons 10 (- h 10)) (cons (- w 10) (- h 10)) (cons (/ w 2) 10)))
+(define s-img (img-buffer 'indexed2 w h))
+(defun point (p)
+  (img-setpix s-img (car p) (cdr p) 1))
+(defun mid-point (p1 p2)
+  (progn 
+      (let ((x (/ (+ (car p1) (car p2)) 2))
+            (y (/ (+ (cdr p1) (cdr p2)) 2)))
+           (cons x y))))
+(defun sierp (n corners p)
+  (if (= n 0) nil (let ((i (mod (rand) 3))
+                        (target (ix corners i))
+                        (mid (mid-point p target)))
+                       (progn 
+                           (point mid)
+                           (sierp (- n 1) corners mid)))))
+(sierp 25000 corners (car corners))
+(disp-render s-img 0 0 '(0 16777215))
 ```
 
 
@@ -1368,10 +1371,10 @@ t
 
 
 ```clj
- (import "images/lama2.bin" 'pic)
- (define img (img-buffer 'indexed2 320 200))
- (img-blit img pic 10 10 -1 '(rotate 128 128 45))
- (disp-render img 0 0 '(0 16711680))
+(import "images/lama2.bin" 'pic)
+(define img (img-buffer 'indexed2 320 200))
+(img-blit img pic 10 10 -1 '(rotate 128 128 45))
+(disp-render img 0 0 '(0 16711680))
 ```
 
 
@@ -1406,10 +1409,10 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
 
 
 ```clj
- (define pic (load-file (fopen "images/lama2.bin" "r")))
- (define img (img-buffer 'indexed2 320 200))
- (img-blit img pic 10 10 -1 '(rotate 128 128 45))
- (disp-render img 100 0 '(0 16711680))
+(define pic (load-file (fopen "images/lama2.bin" "r")))
+(define img (img-buffer 'indexed2 320 200))
+(img-blit img pic 10 10 -1 '(rotate 128 128 45))
+(disp-render img 100 0 '(0 16711680))
 ```
 
 
@@ -1434,14 +1437,14 @@ t
 
 
 ```clj
- (disp-clear)
- (define pic (load-file (fopen "images/lama2.bin" "r")))
- (define img128x128 (img-buffer 'indexed2 128 128))
- (img-blit img128x128 pic 0 0 -1 '(scale 0.500000f32) '(rotate 128 128 45))
- (disp-render img128x128 10 10 '(0 16711680))
- (img-clear img128x128)
- (img-blit img128x128 pic 0 0 -1 '(scale 0.500000f32) '(rotate 128 128 -45))
- (disp-render img128x128 148 10 '(0 65280))
+(disp-clear)
+(define pic (load-file (fopen "images/lama2.bin" "r")))
+(define img128x128 (img-buffer 'indexed2 128 128))
+(img-blit img128x128 pic 0 0 -1 '(scale 0.500000f32) '(rotate 128 128 45))
+(disp-render img128x128 10 10 '(0 16711680))
+(img-clear img128x128)
+(img-blit img128x128 pic 0 0 -1 '(scale 0.500000f32) '(rotate 128 128 -45))
+(disp-render img128x128 148 10 '(0 65280))
 ```
 
 
@@ -1472,15 +1475,15 @@ t
 
 
 ```clj
- (define pic (load-file (fopen "images/lama2.bin" "r")))
- (define img (img-buffer 'indexed2 128 128))
- (define m (/ 360.000000f32 100.000000f32))
- (disp-clear)
- (loopfor i 0 (< i 100) (+ i 1)
-      (progn 
-          (var rot (list 'rotate 128 128 (* i m)))
-          (img-blit img pic 0 0 -1 '(scale 0.500000f32) rot)
-          (disp-render img 10 10 '(0 16711680))))
+(define pic (load-file (fopen "images/lama2.bin" "r")))
+(define img (img-buffer 'indexed2 128 128))
+(define m (/ 360.000000f32 100.000000f32))
+(disp-clear)
+(loopfor i 0 (< i 100) (+ i 1)
+         (progn 
+             (var rot (list 'rotate 128 128 (* i m)))
+             (img-blit img pic 0 0 -1 '(scale 0.500000f32) rot)
+             (disp-render img 10 10 '(0 16711680))))
 ```
 
 
@@ -1498,5 +1501,5 @@ t
 
 ---
 
-This document was generated by LispBM version 0.30.3 
+This document was generated by LispBM version 0.32.0 
 

@@ -37,6 +37,13 @@
 
 #include <setjmp.h>
 #include <stdarg.h>
+#include <stdnoreturn.h>
+
+#if __STDC_VERSION__ < 201112L
+// Lower than C11
+#undef noreturn
+#define noreturn __attribute__ ((__noreturn__))
+#endif
 
 static jmp_buf error_jmp_buf;
 static jmp_buf critical_error_jmp_buf;
@@ -1102,9 +1109,9 @@ void lbm_set_error_reason(char *error_str) {
 
 // Not possible to CONS_WITH_GC in error_ctx_base (potential loop)
 #ifdef LBM_USE_ERROR_LINENO
-static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column, int line_no) {
+static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column, int line_no) {
 #else
-static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column) {
+static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column) {
 #endif
   if (!check_infer_canary()) {
     // If this happens the Runtime system is likely corrupt and
@@ -1169,27 +1176,27 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
 }
 
 #ifdef LBM_USE_ERROR_LINENO
-static void error_at_ctx(lbm_value err_val, lbm_value at, int line_no) {
+static noreturn void error_at_ctx(lbm_value err_val, lbm_value at, int line_no) {
   error_ctx_base(err_val, true, at, 0, 0, line_no);
 }
 
-static void error_ctx(lbm_value err_val, int line_no) {
+static noreturn void error_ctx(lbm_value err_val, int line_no) {
   error_ctx_base(err_val, false, 0, 0, 0, line_no);
 }
 
-static void read_error_ctx(unsigned int row, unsigned int column, int line_no) {
+static noreturn void read_error_ctx(unsigned int row, unsigned int column, int line_no) {
   error_ctx_base(ENC_SYM_RERROR, false, 0, row, column, line_no);
 }
 #else
-static void error_at_ctx(lbm_value err_val, lbm_value at) {
+static noreturn void error_at_ctx(lbm_value err_val, lbm_value at) {
   error_ctx_base(err_val, true, at, 0, 0);
 }
 
-static void error_ctx(lbm_value err_val) {
+static noreturn void error_ctx(lbm_value err_val) {
   error_ctx_base(err_val, false, 0, 0, 0);
 }
 
-static void read_error_ctx(unsigned int row, unsigned int column) {
+static noreturn void read_error_ctx(unsigned int row, unsigned int column) {
   error_ctx_base(ENC_SYM_RERROR, false, 0, row, column);
 }
 #endif

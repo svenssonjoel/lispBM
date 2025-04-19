@@ -497,7 +497,7 @@
                              ))
                  (code '((defstruct my-struct (a b c))
                          ))
-                 (para (list "Now instances of `my-struct` can be creted using `make-my-struct`."
+                 (para (list "Now instances of `my-struct` can be created using `make-my-struct`."
                              ))
                  (code '((define s1 (make-my-struct))
                          ))
@@ -527,7 +527,7 @@
                          (my-struct-b s1)
                          (my-struct-c s1)
                          ))
-                 ;; (para (list "Instances of a struct can also be allocated in a compactible memory region (defrag mem)."
+                 ;; (para (list "Instances of a struct can also be allocated in a compactable memory region (defrag mem)."
                  ;;             ))
                  ;; (code '((define dm (dm-create 1000))
                  ;;         (define s2 (make-my-struct dm))
