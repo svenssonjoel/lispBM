@@ -1,5 +1,5 @@
 /*
-    Copyright 2024 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2024, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,6 +19,16 @@
 
 #include "extensions.h"
 #include "fundamental.h"
+
+#ifdef LBM_OPT_SET_EXTENSIONS_SIZE
+#pragma GCC push_options
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_SET_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC push_options
+#pragma GCC optimize ("-Oz")
+#endif
+
 
 #define ABORT_ON_MERROR(X) if ((X) == ENC_SYM_MERROR) return ENC_SYM_MERROR;
 
@@ -106,3 +116,8 @@ static lbm_value ext_set_union(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
+
+
+#if defined(LBM_OPT_SET_EXTENSIONS_SIZE) || defined(LBM_OPT_SET_EXTENSIONS_SIZE_AGGRESSIVE)
+#pragma GCC pop_options
+#endif

@@ -24,6 +24,15 @@
 
 #include <math.h>
 
+#ifdef LBM_OPT_ARRAY_EXTENSIONS_SIZE
+#pragma GCC push_options
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_ARRAY_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC push_options
+#pragma GCC optimize ("-Oz")
+#endif
+
 static lbm_uint little_endian = 0;
 static lbm_uint big_endian = 0;
 
@@ -682,3 +691,7 @@ static lbm_value array_extensions_bufset_bit(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
+
+#if defined(LBM_OPT_ARRAY_EXTENSIONS_SIZE) || defined(LBM_OPT_ARRAY_EXTENSIONS_SIZE_AGGRESSIVE)
+#pragma GCC pop_options
+#endif

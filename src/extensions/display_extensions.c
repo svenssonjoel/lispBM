@@ -27,6 +27,16 @@
 #include <lbm_utils.h>
 #include <lbm_defrag_mem.h>
 
+#ifdef LBM_OPT_DISPLAY_EXTENSIONS_SIZE
+#pragma GCC push_options
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_DISPLAY_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC push_options
+#pragma GCC optimize ("-Oz")
+#endif
+
+
 #define MAX_WIDTH 32000
 #define MAX_HEIGHT 32000
 
@@ -2943,3 +2953,7 @@ void lbm_display_extensions_set_callbacks(
   disp_clear = clear ? clear : display_dummy_clear;
   disp_reset = reset ? reset : display_dummy_reset;
 }
+
+#if defined(LBM_OPT_DISPLAY_EXTENSIONS_SIZE) || defined(LBM_OPT_DISPLAY_EXTENSIONS_SIZE_AGGRESSIVE)
+#pragma GCC pop_options
+#endif

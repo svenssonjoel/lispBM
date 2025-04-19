@@ -31,6 +31,14 @@
 #include <stdio.h>
 #include <math.h>
 
+#ifdef LBM_OPT_FUNDAMENTALS_SIZE
+#pragma GCC push_options
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_FUNDAMENTALS_SIZE_AGGRESSIVE
+#pragma GCC push_options
+#pragma GCC optimize ("-Oz")
+#endif
 /* Type promotion ranks
 
    32bit LBM:
@@ -1537,3 +1545,7 @@ const fundamental_fun fundamental_table[] =
    fundamental_is_string,
    fundamental_is_constant
   };
+
+#if defined(LBM_OPT_FUNDAMENTALS_SIZE) || defined(LBM_OPT_FUNDAMENTALS_SIZE_AGGRESSIVE)
+#pragma GCC pop_options
+#endif

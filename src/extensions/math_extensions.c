@@ -1,6 +1,6 @@
 /*
-    Copyright 2022, 2023 Joel Svensson        svenssonjoel@yahoo.se
-    Copyright 2022, 2023 Benjamin Vedder
+    Copyright 2022, 2023, 2025 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2023       Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,6 +20,16 @@
 #include "lbm_utils.h"
 
 #include <math.h>
+
+#ifdef LBM_OPT_MATH_EXTENSIONS_SIZE
+#pragma GCC push_options
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_MATH_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC push_options
+#pragma GCC optimize ("-Oz")
+#endif
+
 
 #ifdef __STRICT_ANSI__
 #define isnanf isnan
@@ -215,3 +225,7 @@ void lbm_math_extensions_init(void) {
   lbm_add_extension("is-nan", ext_is_nan);
   lbm_add_extension("is-inf", ext_is_inf);
 }
+
+#if defined(LBM_OPT_MATH_EXTENSIONS_SIZE) || defined(LBM_OPT_MATH_EXTENSIONS_SIZE_AGGRESSIVE)
+#pragma GCC pop_options
+#endif

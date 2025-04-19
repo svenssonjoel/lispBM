@@ -21,6 +21,14 @@
 
 #include "schrift.h"
 
+#ifdef LBM_OPT_TTF_EXTENSIONS_SIZE
+#pragma GCC push_options
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_TTF_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC push_options
+#pragma GCC optimize ("-Oz")
+#endif
 
 static bool mk_font_raw(SFT_Font *ft, lbm_value font_val) {
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(font_val);
@@ -1030,3 +1038,7 @@ void lbm_ttf_extensions_init(void) {
   // Draw text.
   lbm_add_extension("ttf-text", ttf_text_bin);
 }
+
+#if defined(LBM_OPT_TTF_EXTENSIONS_SIZE) || defined(LBM_OPT_TTF_EXTENSIONS_SIZE_AGGRESSIVE)
+#pragma GCC pop_options
+#endif
