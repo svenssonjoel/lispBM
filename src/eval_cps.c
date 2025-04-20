@@ -135,33 +135,6 @@ typedef enum {
 lbm_value symbol_x = ENC_SYM_NIL;
 lbm_value symbol_y = ENC_SYM_NIL;
 
-
-
-// Infer canarie
-//
-// In some cases Infer incorrectly complains about null pointer
-// derefences that cannot happen. In these cases the longjmp
-// error system aborts execution before the potential null
-// pointer dereference can occur.
-//
-// Functions such as stack_reserve does not return NULL,
-// instead it executes a longjmp and does not return at all.
-// Infer does not seem to understand this abrubt code flow.
-#ifdef LBM64
-#define INFER_CANARY_BITS (lbm_uint)0xAAAAAAAAAAAAAAAA
-#else
-#define INFER_CANARY_BITS 0xAAAAAAAAu
-#endif
-lbm_uint INFER_CANARY[1];
-
-bool check_infer_canary(void) {
-  return INFER_CANARY[0] == INFER_CANARY_BITS;
-}
-
-void reset_infer_canary(void) {
-  INFER_CANARY[0] = INFER_CANARY_BITS;
-}
-
 const char* lbm_error_str_parse_eof = "End of parse stream.";
 const char* lbm_error_str_parse_dot = "Incorrect usage of '.'.";
 const char* lbm_error_str_parse_close = "Expected closing parenthesis.";
@@ -559,7 +532,6 @@ static lbm_uint *get_stack_ptr(eval_context_t *ctx, unsigned int n) {
     return &ctx->K.data[index];
   }
   ERROR_CTX(ENC_SYM_STACK_ERROR);
-  return (lbm_uint*)INFER_CANARY; // dead code cannot be reached, but C compiler doesn't realise.
 }
 
 // pop_stack_ptr is safe when no GC is performed and
@@ -570,7 +542,6 @@ static lbm_uint *pop_stack_ptr(eval_context_t *ctx, unsigned int n) {
     return &ctx->K.data[ctx->K.sp];
   }
   ERROR_CTX(ENC_SYM_STACK_ERROR);
-  return (lbm_uint*)INFER_CANARY; // dead code cannot be reached, but C compiler doesn't realise.
 }
 
 static inline lbm_uint *stack_reserve(eval_context_t *ctx, unsigned int n) {
@@ -580,7 +551,6 @@ static inline lbm_uint *stack_reserve(eval_context_t *ctx, unsigned int n) {
     return ptr;
   }
   ERROR_CTX(ENC_SYM_STACK_ERROR);
-  return (lbm_uint*)INFER_CANARY; // dead code cannot be reached, but C compiler doesn't realise.
 }
 
 static void handle_flash_status(lbm_flash_status s) {
@@ -630,7 +600,6 @@ static lbm_value get_car(lbm_value a) {
     return a;
   }
   ERROR_CTX(ENC_SYM_TERROR);
-  return(ENC_SYM_TERROR);
 }
 
 static lbm_value get_cdr(lbm_value a) {
@@ -641,7 +610,6 @@ static lbm_value get_cdr(lbm_value a) {
     return a;
   }
   ERROR_CTX(ENC_SYM_TERROR);
-  return(ENC_SYM_TERROR);
 }
 
 static lbm_value get_cadr(lbm_value a) {
@@ -657,7 +625,6 @@ static lbm_value get_cadr(lbm_value a) {
     return a;
   }
   ERROR_CTX(ENC_SYM_TERROR);
-  return(ENC_SYM_TERROR);
 }
 
 // Allocate a binding and attach it to a list (if so desired)
@@ -1113,14 +1080,6 @@ static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at
 #else
 static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column) {
 #endif
-  if (!check_infer_canary()) {
-    // If this happens the Runtime system is likely corrupt and
-    // a crash is imminent.
-    // A critical error is issued so that the crash can be handled.
-    // At a minimum the lbm runtime should be restarted.
-    lbm_critical_error();
-  }
-
   bool print_trapped = !lbm_hide_trapped_error && (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN);
 
   if (!(lbm_hide_trapped_error &&
@@ -1648,7 +1607,6 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env) {
       ls = lbm_heap_allocate_list_init(2, var, ENC_SYM_NIL);
       if (!lbm_is_ptr(ls)) {
         ERROR_CTX(ls);
-        return false; // Phony for SA
       }
     }
     lbm_value c1 = ls;
@@ -5764,8 +5722,6 @@ int lbm_eval_init() {
 
   mutex_unlock(&lbm_events_mutex);
   mutex_unlock(&qmutex);
-
-  reset_infer_canary();
 
   if (!lbm_init_env()) return 0;
   eval_running = true;
