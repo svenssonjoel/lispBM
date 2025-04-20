@@ -3004,39 +3004,35 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value cl[3]; // Comparator closure
     extract_n(lbm_cdr(args[0]), cl, 3);
     lbm_value cmp_env = cl[CLO_ENV];
-    lbm_value par1 = ENC_SYM_NIL;
-    lbm_value par2 = ENC_SYM_NIL;
     lbm_uint len = lbm_list_length(cl[CLO_PARAMS]);
     if (len == 2) {
-      par1 = get_car(cl[CLO_PARAMS]);
-      par2 = get_cadr(cl[CLO_PARAMS]);
+      lbm_value par1 = get_car(cl[CLO_PARAMS]);
+      lbm_value par2 = get_cadr(cl[CLO_PARAMS]);
       lbm_value new_env0;
       lbm_value new_env;
       WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a_1)));
       WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b_1)),new_env0);
       cmp_env = new_env;
-    } else {
-      ERROR_AT_CTX(ENC_SYM_TERROR, args[0]);
-    }
-    lbm_set_cdr(a_1, b_1);
-    lbm_set_cdr(b_1, ENC_SYM_NIL);
-    lbm_value cmp = cl[CLO_BODY];
+      lbm_set_cdr(a_1, b_1);
+      lbm_set_cdr(b_1, ENC_SYM_NIL);
+      lbm_value cmp = cl[CLO_BODY];
 
-    lbm_stack_drop(&ctx->K, 4); // TODO: Optimize drop 4 alloc 10 into alloc 6
-    lbm_uint *sptr = stack_reserve(ctx, 10);
-    sptr[0] = ENC_SYM_NIL; // head of merged list
-    sptr[1] = ENC_SYM_NIL; // last of merged list
-    sptr[2] = a_1;
-    sptr[3] = a_rest;
-    sptr[4] = b_rest;
-    sptr[5] = cmp;
-    sptr[6] = cmp_env;
-    sptr[7] = par1;
-    sptr[8] = par2;
-    sptr[9] = MERGE_REST;
-    ctx->curr_exp = cl[CLO_BODY];
-    ctx->curr_env = cmp_env;
-    return;
+      lbm_stack_drop(&ctx->K, 4); // TODO: Optimize drop 4 alloc 10 into alloc 6
+      lbm_uint *sptr = stack_reserve(ctx, 10);
+      sptr[0] = ENC_SYM_NIL; // head of merged list
+      sptr[1] = ENC_SYM_NIL; // last of merged list
+      sptr[2] = a_1;
+      sptr[3] = a_rest;
+      sptr[4] = b_rest;
+      sptr[5] = cmp;
+      sptr[6] = cmp_env;
+      sptr[7] = par1;
+      sptr[8] = par2;
+      sptr[9] = MERGE_REST;
+      ctx->curr_exp = cl[CLO_BODY];
+      ctx->curr_env = cmp_env;
+      return;
+    }
   }
   ERROR_AT_CTX(ENC_SYM_TERROR, ENC_SYM_MERGE);
 }
@@ -3072,52 +3068,50 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value cl[3]; // Comparator closure
     extract_n(lbm_cdr(args[0]), cl, 3);
     lbm_value cmp_env = cl[CLO_ENV];
-    lbm_value par1 = ENC_SYM_NIL;
-    lbm_value par2 = ENC_SYM_NIL;
+
     lbm_uint cl_len = lbm_list_length(cl[CLO_PARAMS]);
     if (cl_len == 2) {
-      par1 = get_car(cl[CLO_PARAMS]);
-      par2 = get_cadr(cl[CLO_PARAMS]);
+      lbm_value par1 = get_car(cl[CLO_PARAMS]);
+      lbm_value par2 = get_cadr(cl[CLO_PARAMS]);
       lbm_value new_env0;
       lbm_value new_env;
       WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a)));
       WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b)), new_env0);
       cmp_env = new_env;
-    } else {
-      ERROR_AT_CTX(ENC_SYM_TERROR, args[0]);
+
+      lbm_value cmp = cl[CLO_BODY];
+
+      // Terminate the comparator argument list.
+      lbm_set_cdr(b, ENC_SYM_NIL);
+
+      lbm_stack_drop(&ctx->K, 3);  //TODO: optimize drop 3, alloc 20 into alloc 17
+      lbm_uint *sptr = stack_reserve(ctx, 20);
+      sptr[0] = cmp;
+      sptr[1] = cmp_env;
+      sptr[2] = par1;
+      sptr[3] = par2;
+      sptr[4] = ENC_SYM_NIL; // head of merged accumulation of sublists
+      sptr[5] = ENC_SYM_NIL; // last of merged accumulation of sublists
+      sptr[6] = rest;
+      sptr[7] = lbm_enc_i(1);
+      sptr[8] = lbm_enc_i(len); //TODO: 28 bit i vs 32 bit i
+      sptr[9] = MERGE_LAYER;
+      sptr[10] = ENC_SYM_NIL; // head of merged sublist
+      sptr[11] = ENC_SYM_NIL; // last of merged sublist
+      sptr[12] = a;
+      sptr[13] = ENC_SYM_NIL; // no a_rest, 1 element lists in layer 1.
+      sptr[14] = ENC_SYM_NIL; // no b_rest, 1 element lists in layer 1.
+      sptr[15] = cmp;
+      sptr[16] = cmp_env;
+      sptr[17] = par1;
+      sptr[18] = par2;
+      sptr[19] = MERGE_REST;
+      ctx->curr_exp = cmp;
+      ctx->curr_env = cmp_env;
+      return;
     }
-    lbm_value cmp = cl[CLO_BODY];
-
-    // Terminate the comparator argument list.
-    lbm_set_cdr(b, ENC_SYM_NIL);
-
-    lbm_stack_drop(&ctx->K, 3);  //TODO: optimize drop 3, alloc 20 into alloc 17
-    lbm_uint *sptr = stack_reserve(ctx, 20);
-    sptr[0] = cmp;
-    sptr[1] = cmp_env;
-    sptr[2] = par1;
-    sptr[3] = par2;
-    sptr[4] = ENC_SYM_NIL; // head of merged accumulation of sublists
-    sptr[5] = ENC_SYM_NIL; // last of merged accumulation of sublists
-    sptr[6] = rest;
-    sptr[7] = lbm_enc_i(1);
-    sptr[8] = lbm_enc_i(len); //TODO: 28 bit i vs 32 bit i
-    sptr[9] = MERGE_LAYER;
-    sptr[10] = ENC_SYM_NIL; // head of merged sublist
-    sptr[11] = ENC_SYM_NIL; // last of merged sublist
-    sptr[12] = a;
-    sptr[13] = ENC_SYM_NIL; // no a_rest, 1 element lists in layer 1.
-    sptr[14] = ENC_SYM_NIL; // no b_rest, 1 element lists in layer 1.
-    sptr[15] = cmp;
-    sptr[16] = cmp_env;
-    sptr[17] = par1;
-    sptr[18] = par2;
-    sptr[19] = MERGE_REST;
-    ctx->curr_exp = cmp;
-    ctx->curr_env = cmp_env;
-    return;
   }
-  ERROR_CTX(ENC_SYM_TERROR);
+  ERROR_AT_CTX(ENC_SYM_TERROR, ENC_SYM_SORT);
 }
 
 static void apply_rest_args(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -4684,7 +4678,7 @@ static void cont_application_start(eval_context_t *ctx) {
       }
 
       lbm_uint arg_count = lbm_list_length(args);
-      lbm_value arg = ENC_SYM_NIL;
+      lbm_value arg;
       switch (arg_count) {
       case 0:
         arg = ENC_SYM_NIL;
@@ -4721,7 +4715,7 @@ static void cont_application_start(eval_context_t *ctx) {
       lbm_uint sp = (lbm_uint)lbm_dec_i(c);
 
       lbm_uint arg_count = lbm_list_length(args);
-      lbm_value arg = ENC_SYM_NIL;
+      lbm_value arg;
       switch (arg_count) {
       case 0:
         arg = ENC_SYM_NIL;
