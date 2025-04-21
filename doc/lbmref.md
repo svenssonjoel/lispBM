@@ -1918,7 +1918,7 @@ t
 
 > ***Special form***
 
-Boolean `and` operation between n arguments. The form of an `and` expression is `(and expr1 ... exprN)`.  This operation treats all non-nil values as true. Boolean `and` is "shirt-circuiting" and only evaluates until a false is encountered. 
+Boolean `and` operation between n arguments. The form of an `and` expression is `(and expr1 ... exprN)`.  This operation treats all non-nil values as true. Boolean `and` is "short-circuiting" and only evaluates until a false is encountered. 
 
 <table>
 <tr>
@@ -4049,6 +4049,232 @@ An optional environment can be passed in as the first argument: `(eval-program e
 
 ```clj
 11
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### apply
+
+An apply expression has the form `(apply fun-expr args-expr)`, and it  applies `args-expr` to `fun-expr`. It can loosely be emulated by  `(eval (cons fun-expr args-expr))`, except for the property that the elements of `args-expr` aren't evaluated when you use `apply`.  `args-expr` itself is of course evaluated, but given the emulated form, the individual elements of the list would be evaluated again. This is a problem when your argument list may include symbols or any other values which change when evaluated. 
+
+Note that `fun-expr` doesn't necessarily have to be a user defined function, but can be any value which can be applied, that is, a value which can be the first item in a list expression: `(fun ...)`. This includes (but is not limited to) user define functions (which end up as [`closure`](#closure) values), built-in functions, extensions, [`macro`](#macro)s, and even special forms  (but see **Footgun: Special forms** below). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (arg1 arg2)
+  (str-join (list (to-str arg1) (to-str arg2)) " "))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (arg1 arg2) 
+  (str-join (list (to-str arg1) (to-str arg2)) " ")
+  nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(apply my-fun '(a b))
+```
+
+
+</td>
+<td>
+
+```clj
+"a b"
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(apply + (list 1 2 3 4 5))
+```
+
+
+</td>
+<td>
+
+```clj
+15
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(apply list '(a b c))
+```
+
+
+</td>
+<td>
+
+```clj
+(a b c)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(trap (eval (cons my-fun '(symbol-a symbol-b))))
+```
+
+
+</td>
+<td>
+
+```clj
+(exit-error variable_not_bound)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(call-cc (lambda (return)
+           (apply return '(return-through-apply))))
+```
+
+
+</td>
+<td>
+
+```clj
+return-through-apply
+```
+
+
+</td>
+</tr>
+</table>
+
+**Footgun: Special forms**  
+[Special forms](#special-forms) are built in functions which control how their arguments are evaluated. This means that their implementations has custom logic for how to evaluate the arguments, which has the unfortunate consequence that to apply a list of arguments to them "without evaluating" said arguments would require specific logic for each special form's implementation. Given LispBM's nature of running in an embedded environment where binary size is a luxury this becomes highly impractical. Therefore the argument list is passed on unmodified to special forms. So `(apply def '(a 'symbol))` is *precisely* equivalent to `(eval (cons def '(a 'symbol)))`, `'symbol` will be evaluated!. 
+
+This is most noticeable with `and` and `or`. They are special forms due to their short-circuiting behavior, where later arguments may not be evaluated depending on the previous arguments. Given that you only given them the symbol `t` or `nil` their special form status isn't a problem when it comes to `apply` since those symbols evaluate to themselves. The problem appears when you give `and` or `or` other "unstable" values like arbitrary symbols. Since they're special forms they will evaluate them another time. 
+
+This behavior may be changed in the future, so please avoid writing programs which depend on this behavior. For the case of `and` and `or` you can define your own function which re-implement their behavior, which would be subject to `apply`'s non-evaluating property (see example below). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(apply or '(nil t))
+```
+
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(trap (apply and '(symbol-a symbol-b)))
+```
+
+
+</td>
+<td>
+
+
+```clj
+(exit-error variable_not_bound)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(trap (apply or '(nil symbol-b)))
+```
+
+
+</td>
+<td>
+
+
+```clj
+(exit-error variable_not_bound)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun safe-and nil
+  (foldl (lambda (acc x)
+           (and acc x)) t (rest-args)))
+(apply safe-and '(symbol-a symbol-b))
+```
+
+
+</td>
+<td>
+
+
+```clj
+symbol-b
 ```
 
 
@@ -8556,7 +8782,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 76571 kurt-russel)
+(exit-ok 77326 kurt-russel)
 ```
 
 

@@ -126,40 +126,6 @@ Compute the absolute value
 ---
 
 
-### apply
-
-Apply a function taking n arguments to a list of n elements 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(apply + (list 1 2 3))
-```
-
-
-</td>
-<td>
-
-```clj
-6
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
 ### filter
 
 Filter a list from unwanted elements as decided by a predicate 

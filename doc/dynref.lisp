@@ -14,21 +14,7 @@
               )
              )
   )
-              
-             
 
-(define df-apply
-  (ref-entry "apply"
-             (list
-              (para (list "Apply a function taking n arguments to a list of n elements"
-                          ))
-              (code '((apply + (list 1 2 3))
-                      ))
-              end
-              )
-             )
-  )
-  
 (define df-filter
   (ref-entry "filter"
              (list
@@ -183,7 +169,6 @@
   (section 2 "functions"
            (list 'hline
                  df-abs
-                 df-apply
                  df-filter
                  df-foldl
                  df-foldr
