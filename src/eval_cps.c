@@ -2522,6 +2522,8 @@ static inline __attribute__ ((always_inline)) void setup_macro(eval_context_t *c
   lbm_uint *sptr = stack_reserve(ctx, 2);
   // For EVAL_R, placed here already to protect from GC
   sptr[0] = curr_env;
+  // Placed here only to protect from GC, will be overriden.
+  sptr[1] = args;
 
   lbm_value curr_param = get_cadr(ctx->r);
   lbm_value curr_arg = args;
@@ -5505,118 +5507,122 @@ static void evaluation_step(void){
 // Placed down here since it depends on a lot of things.
 // (apply fun arg-list)
 static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (nargs != 2 || !lbm_is_list(args[1])) {
-    ERROR_CTX(ENC_SYM_EERROR);
-  }
-  
-  lbm_value fun = args[0];
-  lbm_value arg_list = args[1];
+  if (nargs == 2 || lbm_is_list(args[1])) {
+    lbm_value fun = args[0];
+    lbm_value arg_list = args[1];
 
-  lbm_stack_drop(&ctx->K, nargs+1);
-  
-  if (lbm_is_symbol(fun) && ((fun & ENC_SPECIAL_FORMS_MASK) == ENC_SPECIAL_FORMS_BIT)) {
-    // Since the special form evaluators are responsible for conditionally
-    // evaluating their arguments there is no easy way to prevent them
-    // evaluating their arguments. Therefore we compromise and allow them to do
-    // so, even if this isn't always how you would expect apply to work.
-    // For instance, `(apply and '(a))` would try evaluating the symbol `a`,
-    // instead of just returning the symbol `a` outright.
-    
-    // Evaluator functions expect the current expression to equal the special
-    // form, i.e. including the function symbol.
-    lbm_value fun_and_args = cons_with_gc(fun, arg_list, ENC_SYM_NIL);
-    ctx->curr_exp = fun_and_args;
-    lbm_uint eval_index = lbm_dec_sym(fun) & SPECIAL_FORMS_INDEX_MASK;
-    evaluators[eval_index](ctx);
-    return;
-  } else if (lbm_is_symbol(fun)) {
-    stack_reserve(ctx, 1)[0] = fun;
-    size_t arg_count = 0;
-    for (lbm_value current = arg_list; lbm_is_cons(current); current = get_cdr(current)) {
-      stack_reserve(ctx, 1)[0] = get_car(current);
-      arg_count++;
-    }
-    lbm_value *fun_and_args = get_stack_ptr(ctx, arg_count + 1);
-    application(ctx, fun_and_args, arg_count);
-    return;
-  } else if (lbm_is_cons(fun)) {
-    switch (get_car(fun)) {
-      case ENC_SYM_CLOSURE: {
-        lbm_value closure[3];
-        extract_n(get_cdr(fun), closure, 3);
+    lbm_stack_drop(&ctx->K, nargs+1);
+
+    if (lbm_is_symbol(fun)) {
+      if ((fun & ENC_SPECIAL_FORMS_MASK) == ENC_SPECIAL_FORMS_BIT) {
+        // Since the special form evaluators are responsible for conditionally
+        // evaluating their arguments there is no easy way to prevent them
+        // evaluating their arguments. Therefore we compromise and allow them to do
+        // so, even if this isn't always how you would expect apply to work.
+        // For instance, `(apply and '(a))` would try evaluating the symbol `a`,
+        // instead of just returning the symbol `a` outright.
         
-        lbm_value env = closure[CLO_ENV];
-        
-        lbm_value current_params = closure[CLO_PARAMS];
-        lbm_value current_args = arg_list;
-        
-        while (true) {
-          bool params_empty = !lbm_is_cons(current_params);
-          bool args_empty = !lbm_is_cons(current_args);
-          if (!params_empty && !args_empty) {
-            lbm_value car_params;
-            lbm_value car_args;
-            lbm_value cdr_params;
-            lbm_value cdr_args;
-            get_car_and_cdr(current_params, &car_params, &cdr_params);
-            get_car_and_cdr(current_args, &car_args, &cdr_args);
-            
-            // More parameters to bind
-            env = allocate_binding(
-              car_params,
-              car_args,
-              env
-            );
-            
-            current_params = cdr_params;
-            current_args = cdr_args;
-          } else if (params_empty && !args_empty) {
-            // More arguments but all parameters have been bound
-            env = allocate_binding(ENC_SYM_REST_ARGS, current_args, env);
-            break;
-          } else if (params_empty && args_empty) {
-            // All parameters and arguments have been bound
-            break;
-          } else {
-            // More parameters to bind but no arguments left
-            lbm_set_error_reason(lbm_error_str_num_args);
-            ERROR_CTX(ENC_SYM_EERROR);
-          }
+        // Evaluator functions expect the current expression to equal the special
+        // form, i.e. including the function symbol.
+        lbm_value fun_and_args = cons_with_gc(fun, arg_list, ENC_SYM_NIL);
+        ctx->curr_exp = fun_and_args;
+        lbm_uint eval_index = lbm_dec_sym(fun) & SPECIAL_FORMS_INDEX_MASK;
+        evaluators[eval_index](ctx);
+        return;
+      } else { // lbm_is_symbol(fun)
+        stack_reserve(ctx, 1)[0] = fun;
+        size_t arg_count = 0;
+        for (lbm_value current = arg_list; lbm_is_cons(current); current = get_cdr(current)) {
+          stack_reserve(ctx, 1)[0] = get_car(current);
+          arg_count++;
         }
-        
-        ctx->curr_env = env;
-        ctx->curr_exp = closure[CLO_BODY];
+        lbm_value *fun_and_args = get_stack_ptr(ctx, arg_count + 1);
+        application(ctx, fun_and_args, arg_count);
         return;
-      } break;
-      case ENC_SYM_CONT:{
-        ctx->r = fun;
-        ctx->r = setup_cont(ctx, arg_list);
-        ctx->app_cont = true;
-        return;
-      } break;
-      case ENC_SYM_CONT_SP: {
-        ctx->r = fun;
-        ctx->r = setup_cont_sp(ctx, arg_list);
-        ctx->app_cont = true;
-        return;
-      } break;
-      case ENC_SYM_MACRO:{
-        ctx->r = fun;
-        setup_macro(ctx, arg_list, ctx->curr_env);
-        return;
-      } break;
-      default: {
-        lbm_set_error_reason(lbm_error_str_not_applicable);
-        ERROR_AT_CTX(ENC_SYM_EERROR, fun);
-      } break;
+      }
+    } else if (lbm_is_cons(fun)) {
+      switch (get_car(fun)) {
+        case ENC_SYM_CLOSURE: {          
+          lbm_value closure[3];
+          extract_n(get_cdr(fun), closure, 3);
+          
+          // Only placed here to protect from GC. Will be overriden later.
+          // ctx->r = arg_list; // Should already be placed there.
+          ctx->curr_exp = fun;
+          
+          lbm_value env = closure[CLO_ENV];
+          
+          lbm_value current_params = closure[CLO_PARAMS];
+          lbm_value current_args = arg_list;
+          
+          while (true) {
+            bool params_empty = !lbm_is_cons(current_params);
+            bool args_empty = !lbm_is_cons(current_args);
+            if (!params_empty && !args_empty) {
+              lbm_value car_params;
+              lbm_value car_args;
+              lbm_value cdr_params;
+              lbm_value cdr_args;
+              get_car_and_cdr(current_params, &car_params, &cdr_params);
+              get_car_and_cdr(current_args, &car_args, &cdr_args);
+              
+              // More parameters to bind
+              env = allocate_binding(
+                car_params,
+                car_args,
+                env
+              );
+              
+              current_params = cdr_params;
+              current_args = cdr_args;
+            } else if (params_empty && !args_empty) {
+              // More arguments but all parameters have been bound
+              env = allocate_binding(ENC_SYM_REST_ARGS, current_args, env);
+              break;
+            } else if (params_empty && args_empty) {
+              // All parameters and arguments have been bound
+              break;
+            } else {
+              // More parameters to bind but no arguments left
+              lbm_set_error_reason(lbm_error_str_num_args);
+              ERROR_AT_CTX(ENC_SYM_EERROR, fun);
+            }
+          }
+          
+          ctx->curr_env = env;
+          ctx->curr_exp = closure[CLO_BODY];
+          return;
+        } break;
+        case ENC_SYM_CONT:{
+          ctx->r = fun;
+          ctx->r = setup_cont(ctx, arg_list);
+          ctx->app_cont = true;
+          return;
+        } break;
+        case ENC_SYM_CONT_SP: {
+          ctx->r = fun;
+          ctx->r = setup_cont_sp(ctx, arg_list);
+          ctx->app_cont = true;
+          return;
+        } break;
+        case ENC_SYM_MACRO:{
+          ctx->r = fun;
+          setup_macro(ctx, arg_list, ctx->curr_env);
+          return;
+        } break;
+        default: {
+          lbm_set_error_reason(lbm_error_str_not_applicable);
+          ERROR_AT_CTX(ENC_SYM_EERROR, fun);
+        } break;
+      }
+    } else {
+      lbm_set_error_reason(lbm_error_str_not_applicable);
+      ERROR_AT_CTX(ENC_SYM_EERROR, fun);
     }
   } else {
-    lbm_set_error_reason(lbm_error_str_not_applicable);
-    ERROR_AT_CTX(ENC_SYM_EERROR, fun);
+    lbm_set_error_reason(lbm_error_str_incorrect_arg);
+    ERROR_AT_CTX(ENC_SYM_EERROR, ENC_SYM_APPLY);
   }
-  
-  // Unreachable
-  ERROR_CTX(ENC_SYM_FATAL_ERROR);
 }
 
 // Reset has a built in pause.

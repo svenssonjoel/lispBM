@@ -9,5 +9,6 @@
         (eq (apply macro-eval '('a local)) '(a c))
     }
     (eq (apply macro-no-args nil) 'symbol)
+    (eq (apply (macro (arg1 arg2) `(list ,arg1 ,arg2)) (iota 2)) '(0 1))
 ))
 
