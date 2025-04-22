@@ -71,7 +71,7 @@ typedef void (*send_func_t)(unsigned char *, unsigned int);
 static char *history_file_path = NULL;
 
 void exit_on_alloc_failure(const void *mem) {
-  if (mem == NULL) {    
+  if (mem == NULL) {
     fprintf(stderr, "ERROR: Malloc failed.\n");
     exit(1);
   }
@@ -237,18 +237,16 @@ bool image_clear(void) {
 }
 
 
-static volatile bool allow_print = true;
-
 static lbm_char_channel_t string_tok;
 static lbm_string_channel_state_t string_tok_state;
 
-void new_prompt() {
+void new_prompt(void) {
   printf("\33[2K\r");
   printf("# ");
   fflush(stdout);
 }
 
-void erase() {
+void erase(void) {
   printf("\33[2K\r");
   fflush(stdout);
 }
@@ -734,7 +732,7 @@ void parse_opts(int argc, char **argv) {
     case VESCTCP_PROGRAM_FLASH_SIZE:
       vescif_program_flash_size= (unsigned int)atoi((char *)optarg);
       break;
-    case HISTORY_FILE: {      
+    case HISTORY_FILE: {
       size_t len = strlen(optarg);
       history_file_path = malloc(len + 1);
       exit_on_alloc_failure(history_file_path);
@@ -806,7 +804,7 @@ bool load_flat_library(unsigned char *lib, unsigned int size) {
   return true;
 }
 
-int init_repl() {
+int init_repl(void) {
 
   if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
     int thread_r = 0;
@@ -886,7 +884,7 @@ int init_repl() {
   }
 
   lbm_image_boot();
-  
+
   // Recreate symbol list from image before adding.
   // Image must be booted before adding any symbol.
   lbm_add_eval_symbols();
@@ -939,10 +937,8 @@ bool evaluate_sources(void) {
     }
     lbm_continue_eval();
 
-    int counter = 0;
     while (startup_cid != -1) {
       sleep_callback(10);
-      counter++;
     }
     curr = curr->next;
   }
@@ -970,10 +966,8 @@ bool evaluate_expressions(void) {
     }
     lbm_continue_eval();
 
-    int counter = 0;
     while (startup_cid != -1) {
       sleep_callback(10);
-      counter++;
     }
     curr = curr->next;
   }
@@ -1226,7 +1220,7 @@ int commands_printf_lisp(const char* format, ...) {
 
   va_list arg;
   va_start(arg, format);
-  
+
   len = vsnprintf(
                   print_buffer + offset, (size_t)(PRINT_BUFFER_SIZE - offset), format, arg
                   );
@@ -2201,7 +2195,7 @@ int main(int argc, char **argv) {
   }
 
   parse_opts(argc, argv);
-  
+
   if (history_file_path == NULL) {
     const char *path_env = getenv("LBM_HISTORY_FILE");
     if (path_env != NULL) {
