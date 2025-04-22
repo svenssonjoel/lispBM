@@ -2,7 +2,8 @@
   Copyright 2023, 2024  Benjamin Vedder            benjamin@vedder.se
   Copyright 2023 - 2025 Joel Svensson              svenssonjoel@yahoo.se
   Copyright 2023        Rasmus Söderhielm          rasmus.soderhielm@gmail.com
-
+  Copyright 2025        Joakim Lundborg            joakim.lundborg@gmail.com
+  
   This file is part of LispBM. (Originally a part of the vesc_express FW)
 
   LispBM is free software: you can redistribute it and/or modify
