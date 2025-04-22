@@ -156,11 +156,36 @@
 (define blitting
   (ref-entry "img-blit"
              (list
+              (para (list "```clj\n (img-blit dest src x y transparent ..option)\n```"))
+              (para (list "Copy pixels from `src` to `dest`. " 
+                          " `x` and `y` are coordinates in `dest`."
+                          "Pixels colored `transparent` in `src` will be skipped"
+                          "`transparent` can be set to `-1` to indicate no transparency"))
+              (para (list "|Options||\n"
+                          "|----|----|\n"
+                          "`'(rotate x y deg)` | Rotate `deg` degrees around `x` `y`\n"
+                          "`'(scale s)` | Scale by `s`\n"
+                          "`'(tile)` | Tile to fill `dest`\n"
+                          "`'(clip x y w h)`  | Clip output in destination coords"))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-blit my-img llama-bin 10 10 -1)
-                          (img-blit my-img llama-bin 10 10 -1 '(rotate 128 128 45))
-                          (img-blit my-img llama-bin 10 10 -1 '(scale 0.5))
-                          ))
+                          (img-blit my-img llama-bin 10 10 -1 
+                            '(rotate 128 128 45))
+                          (img-blit my-img llama-bin 10 10 -1 
+                            '(scale 0.5))
+                          (img-blit my-img llama-bin 10 10 -1 
+                            '(tile) 
+                            '(scale 0.2))
+                          (img-blit my-img llama-bin 10 10 -1 
+                            '(tile) 
+                            '(scale 0.2) 
+                            '(rotate 10 10 45))
+                          (img-blit my-img llama-bin 10 10 -1 
+                            '(tile) 
+                            '(scale 0.2) 
+                            '(rotate 10 10 45) 
+                            '(clip 50 50 250 150))
+                        ))
               end)))
 
 (define sierpinski
