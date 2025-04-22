@@ -1816,8 +1816,8 @@ static inline void copy_pixel(
     }
     
     if (src_x >= 0 && src_x < src_w && src_y >= 0 && src_y < src_h) {
-        int p = getpixel(img_src, src_x, src_y);
-        if (p != transparent_color) {
+        uint32_t p = getpixel(img_src, src_x, src_y);
+        if (transparent_color == -1 || p != (uint32_t)transparent_color) {
             putpixel(img_dest, dest_x, dest_y, p);
         }
     }
@@ -2730,10 +2730,10 @@ static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
         scale,
         lbm_dec_as_i32(arg_dec.args[2]),
         arg_dec.attr_tile.is_valid,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_float(arg_dec.attr_clip.args[0]) : lbm_dec_as_u32(arg_dec.args[0]),
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_float(arg_dec.attr_clip.args[1]) : lbm_dec_as_u32(arg_dec.args[1]),
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_float(arg_dec.attr_clip.args[2]) : dest_buf.width,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_float(arg_dec.attr_clip.args[3]) : dest_buf.height
+        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[0]) : lbm_dec_as_i32(arg_dec.args[0]),
+        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[1]) : lbm_dec_as_i32(arg_dec.args[1]),
+        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[2]) : dest_buf.width,
+        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[3]) : dest_buf.height
     );
     res = ENC_SYM_TRUE;
   }
