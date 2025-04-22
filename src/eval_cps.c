@@ -3456,7 +3456,7 @@ static void cont_closure_args_rest(eval_context_t *ctx) {
     ctx->curr_exp = exp;
   } else {
     stack_reserve(ctx,1)[0] = CLOSURE_ARGS_REST;
-    sptr[3] = get_cdr(args);  
+    sptr[3] = get_cdr(args);
     ctx->curr_exp = get_car(args);
     ctx->curr_env = arg_env;
   }
@@ -5005,7 +5005,7 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
 
   lbm_value new_lst = ENC_SYM_NIL;
   // Allocate element ptr storage after storing the element to flash.
-  handle_flash_status(request_flash_storage_cell(lbm_enc_cons_ptr(LBM_PTR_NULL), &new_lst)); 
+  handle_flash_status(request_flash_storage_cell(lbm_enc_cons_ptr(LBM_PTR_NULL), &new_lst));
 
   if (lbm_is_symbol_nil(fst)) {
     lst = new_lst;
@@ -5880,7 +5880,7 @@ lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size) {
   return lbm_create_ctx(lisp, ENC_SYM_NIL, stack_size, NULL);
 }
 
-int lbm_eval_init() {
+int lbm_eval_init(void) {
   if (!qmutex_initialized) {
     mutex_init(&qmutex);
     qmutex_initialized = true;
