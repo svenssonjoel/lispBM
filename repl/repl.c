@@ -2188,7 +2188,7 @@ int main(int argc, char **argv) {
   image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
                        IMAGE_STORAGE_SIZE,
                        PROT_READ | PROT_WRITE,
-                       MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   if (((int)image_storage) == -1) {
     printf("error mapping fixed location for flash emulation\n");
     terminate_repl(REPL_EXIT_CRITICAL_ERROR);
