@@ -412,6 +412,19 @@ nil
 
 ### img-blit
 
+```clj
+ (img-blit dest src x y transparent ..option)
+``` 
+
+Copy pixels from `src` to `dest`.   `x` and `y` are coordinates in `dest`. Pixels colored `transparent` in `src` will be skipped `transparent` can be set to `-1` to indicate no transparency 
+
+|Options||
+ |----|----|
+ `'(rotate x y deg)` | Rotate `deg` degrees around `x` `y`
+ `'(scale s)` | Scale by `s`
+ `'(tile)` | Tile to fill `dest`
+ `'(clip x y w h)`  | Clip output in destination coords 
+
 <table>
 <tr>
 <td> Example </td> <td> Image </td> <td> Result </td>
@@ -485,6 +498,75 @@ t
 
 </td>
 </tr>
+<tr>
+<td>
+
+```clj
+(img-blit my-img llama-bin 10 10 -1 '(tile) '(scale 0.200000f32))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img15.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-blit my-img llama-bin 10 10 -1 '(tile) '(scale 0.200000f32) '(rotate 10 10 45))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img16.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-blit my-img llama-bin 10 10 -1 '(tile) '(scale 0.200000f32) '(rotate 10 10 45) '(clip 50 50 250 150))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img17.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
 </table>
 
 
@@ -510,7 +592,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img15.png >
+<img src=./images/disp-img18.png >
 
 </td>
 <td>
@@ -533,7 +615,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img16.png >
+<img src=./images/disp-img19.png >
 
 </td>
 <td>
@@ -556,7 +638,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img17.png >
+<img src=./images/disp-img20.png >
 
 </td>
 <td>
@@ -579,7 +661,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img18.png >
+<img src=./images/disp-img21.png >
 
 </td>
 <td>
@@ -602,7 +684,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img19.png >
+<img src=./images/disp-img22.png >
 
 </td>
 <td>
@@ -631,7 +713,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img20.png >
+<img src=./images/disp-img23.png >
 
 </td>
 <td>
@@ -654,7 +736,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img21.png >
+<img src=./images/disp-img24.png >
 
 </td>
 <td>
@@ -691,7 +773,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img22.png >
+<img src=./images/disp-img25.png >
 
 </td>
 <td>
@@ -714,7 +796,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img23.png >
+<img src=./images/disp-img26.png >
 
 </td>
 <td>
@@ -737,7 +819,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img24.png >
+<img src=./images/disp-img27.png >
 
 </td>
 <td>
@@ -760,7 +842,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img25.png >
+<img src=./images/disp-img28.png >
 
 </td>
 <td>
@@ -789,7 +871,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img26.png >
+<img src=./images/disp-img29.png >
 
 </td>
 <td>
@@ -826,7 +908,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img27.png >
+<img src=./images/disp-img30.png >
 
 </td>
 <td>
@@ -849,7 +931,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img28.png >
+<img src=./images/disp-img31.png >
 
 </td>
 <td>
@@ -886,7 +968,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img29.png >
+<img src=./images/disp-img32.png >
 
 </td>
 <td>
@@ -909,7 +991,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img30.png >
+<img src=./images/disp-img33.png >
 
 </td>
 <td>
@@ -946,7 +1028,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img31.png >
+<img src=./images/disp-img34.png >
 
 </td>
 <td>
@@ -969,7 +1051,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img32.png >
+<img src=./images/disp-img35.png >
 
 </td>
 <td>
@@ -992,7 +1074,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img33.png >
+<img src=./images/disp-img36.png >
 
 </td>
 <td>
@@ -1029,7 +1111,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img34.png >
+<img src=./images/disp-img37.png >
 
 </td>
 <td>
@@ -1052,7 +1134,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img35.png >
+<img src=./images/disp-img38.png >
 
 </td>
 <td>
@@ -1075,7 +1157,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img36.png >
+<img src=./images/disp-img39.png >
 
 </td>
 <td>
@@ -1112,7 +1194,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img37.png >
+<img src=./images/disp-img40.png >
 
 </td>
 <td>
@@ -1149,7 +1231,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img38.png >
+<img src=./images/disp-img41.png >
 
 </td>
 <td>
@@ -1172,7 +1254,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img39.png >
+<img src=./images/disp-img42.png >
 
 </td>
 <td>
@@ -1195,7 +1277,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img40.png >
+<img src=./images/disp-img43.png >
 
 </td>
 <td>
@@ -1232,7 +1314,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img41.png >
+<img src=./images/disp-img44.png >
 
 </td>
 <td>
@@ -1255,7 +1337,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img42.png >
+<img src=./images/disp-img45.png >
 
 </td>
 <td>
@@ -1278,7 +1360,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img43.png >
+<img src=./images/disp-img46.png >
 
 </td>
 <td>
@@ -1339,7 +1421,7 @@ These examples are leaving out the details on how to setup and initialize any pa
 </td>
 <td>
 
-<img src=./images/disp-img44.png >
+<img src=./images/disp-img47.png >
 
 </td>
 <td>
@@ -1381,7 +1463,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img45.png >
+<img src=./images/disp-img48.png >
 
 </td>
 <td>
@@ -1419,7 +1501,7 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
 </td>
 <td>
 
-<img src=./images/disp-img46.png >
+<img src=./images/disp-img49.png >
 
 </td>
 <td>
@@ -1451,7 +1533,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img47.png >
+<img src=./images/disp-img50.png >
 
 </td>
 <td>
