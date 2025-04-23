@@ -60,6 +60,7 @@ special_sym const special_symbols[] =  {
   {"recv"         , SYM_RECEIVE},
   {"recv-to"      , SYM_RECEIVE_TIMEOUT},
   {"macro"        , SYM_MACRO},
+  {"syntax-macro" , SYM_SYNTAX_MACRO},
   {"call-cc"      , SYM_CALLCC},
   {"continuation" , SYM_CONT},
   {"var"          , SYM_PROGN_VAR},

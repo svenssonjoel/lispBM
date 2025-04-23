@@ -256,6 +256,7 @@
 #define SYM_TRAP                0x116
 #define SYM_CALL_CC_UNSAFE      0x117
 #define SYM_CONT_SP             0x118
+#define SYM_SYNTAX_MACRO        0x119
 #define SPECIAL_FORMS_END       0x118
 
 #ifndef LBM64
@@ -522,6 +523,7 @@
 #define ENC_SYM_TRAP                  ENC_SYM(SYM_TRAP)
 #define ENC_SYM_CALL_CC_UNSAFE        ENC_SYM(SYM_CALL_CC_UNSAFE)
 #define ENC_SYM_CONT_SP               ENC_SYM(SYM_CONT_SP)
+#define ENC_SYM_SYNTAX_MACRO          ENC_SYM(SYM_SYNTAX_MACRO)
 #define ENC_SYM_APPLY                 ENC_SYM(SYM_APPLY)
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)

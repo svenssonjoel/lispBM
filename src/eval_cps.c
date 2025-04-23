@@ -4795,6 +4795,18 @@ static void cont_application_start(eval_context_t *ctx) {
       pop_stack_ptr(ctx, 2);
       setup_macro(ctx, args, env);
     } break;
+    case ENC_SYM_SYNTAX_MACRO: {
+      // (syntax-macro form exp)
+      lbm_value env = (lbm_value)sptr[0];
+      lbm_value form_exp = lbm_cdr(ctx->r);
+      lbm_value param  = lbm_car(form_exp);
+      lbm_value exp    = lbm_car(lbm_cdr(form_exp));
+      lbm_value entry  = cons_with_gc(param, args,ENC_SYM_NIL);
+      lbm_value aug_env= cons_with_gc(entry, env, ENC_SYM_NIL);
+      sptr[1] = EVAL_R;
+      ctx->curr_exp = exp;
+      ctx->curr_env = aug_env;
+    }break;
     default:
       ERROR_CTX(ENC_SYM_EERROR);
     }
@@ -5449,6 +5461,7 @@ static const evaluator_fun evaluators[] =
    eval_trap,
    eval_call_cc_unsafe,
    eval_selfevaluating, // cont_sp
+   eval_selfevaluating,
   };
 
 
