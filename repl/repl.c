@@ -2192,6 +2192,8 @@ int main(int argc, char **argv) {
   if (((int)image_storage) == -1) {
     printf("error mapping fixed location for flash emulation\n");
     terminate_repl(REPL_EXIT_CRITICAL_ERROR);
+  } else if (image_storage != IMAGE_FIXED_VIRTUAL_ADDRESS) {
+    printf("Warning: Image is located at nonstandard address %p\n", (void*)image_storage);
   }
 
   parse_opts(argc, argv);
