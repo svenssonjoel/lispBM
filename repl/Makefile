@@ -28,7 +28,7 @@ endif
 CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
 
 PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11
-PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11 -DLBM64
+PI64CCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11 -DLBM64
 
 LISPBM_SRC += $(LISPBM_EVAL_CPS_SRC)
 
