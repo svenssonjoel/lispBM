@@ -28,6 +28,7 @@ endif
 CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
 
 PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11
+PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11 -DLBM64
 
 LISPBM_SRC += $(LISPBM_EVAL_CPS_SRC)
 
@@ -88,6 +89,9 @@ repl_cov: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
 
 pirepl: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
 	gcc $(PICCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) $(LIBS)
+
+pirepl64: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
+	gcc $(PI64CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) $(LIBS)
 
 clean:
 	rm -f repl
