@@ -41,3 +41,21 @@
 
 (defun test3 () (>>= listmonad (mret listmonad "bunny") (generation 3)))
 (defun test4 () (>>= listmonad (list "bunny" "rabbit") (generation 2)))
+
+;; macro
+(defmacro do (m body)
+  (match body
+         ( (((? a) <- (? b)) . (? xs)) 
+           `(>>= ,m ,b (lambda (,a) (do ,m ,xs))))
+         ( ((? a) . nil) a)
+         ( ((? a) . (? xs))
+           `(progn ,a (do m ,xs)))
+         ))
+
+(do listmonad
+    (
+     (a <- (list 1 2 3 4))
+     (b <- (list 5 6 7 8))
+     (mret listmonad (* a b))
+     )
+    )
