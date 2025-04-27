@@ -19,7 +19,6 @@
   (lambda (a) (replicate a n)))
 
 (defun test1 () (bindlist (returnlist "bunny") (generation 5)))
-
 (defun test2 () (bindlist (list "bunny" "rabbit") (generation 5)))
 
 ;; a monad object
