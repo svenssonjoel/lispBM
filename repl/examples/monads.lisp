@@ -1,7 +1,7 @@
 
 (defun concatacc (acc ls)
   (if (eq ls nil) acc
-    (concatacc (appenc acc (car ls)) (cdr ls))))
+    (concatacc (append acc (car ls)) (cdr ls))))
 
 (defun replicate (a n)
   (if (= n 0) nil
@@ -11,7 +11,7 @@
 
 (defun returnlist (a) (list a))
 (defun bindlist (la f)
-  (map f la))
+  (concatacc '() (map f la)))
 
 ;; Bunnies example
 
