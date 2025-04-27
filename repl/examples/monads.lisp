@@ -27,16 +27,16 @@
 (defstruct monad (ret bind))
 
 (define listmonad (make-monad))
-(setix listmonad 1 returnlist)
-(setix listmonad 2 bindlist)
+(monad-ret listmonad returnlist)
+(monad-bind listmonad bindlist)
 
 ;; Generic monad operations
 
 (defun mret (m a)
-  ((ix m 1) a))
+  ((monad-ret m) a))
 
 (defun >>= (m a f)
-  ((ix m 2) a f))
+  ((monad-bind m) a f)) 
                 
 ;; Bunnies again
 
