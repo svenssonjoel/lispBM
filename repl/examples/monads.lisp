@@ -49,7 +49,7 @@
            `(>>= ,m ,b (lambda (,a) (do ,m ,xs))))
          ( ((? a) . nil) a)
          ( ((? a) . (? xs))
-           `(progn ,a (do ,m ,xs)))
+           `(>>= ,m ,a (lambda (_) (do ,m ,xs))))
          ))
 
 (defun test5 ()
@@ -102,3 +102,46 @@
   )
 
 
+;; state monad
+
+(define statemonad (make-monad))
+(monad-ret statemonad (lambda (x) (lambda (s) (cons s x))))
+
+;; (>>=) :: State s a -> (a -> State s b) -> State s b
+;; (act1 >>= fact2) s = runState act2 is 
+;;     where (iv,is) = runState act1 s
+;;           act2 = fact2 iv
+(defun runstate (sa s)
+  (s sa)
+  )
+
+(monad-bind statemonad (lambda (sa f)
+                         (lambda (s)
+                           (let (((is . iv) (runstate s sa))
+                                 (r1 (f iv)))
+                             (runstate is r1)))))
+
+(defun get ()
+  (lambda (s) (cons s s)))
+
+(defun put (x)
+  (lambda (s) (cons x nil)))
+
+
+(defun test10 ()
+  (do statemonad
+      (
+       (a <- (get))
+       (mret statemonad (print "state0 is " a))
+       (put 1)
+       (a <- (get))
+       (mret statemonad (print "state1 is " a))
+       (put 10)
+       (a <- (get))
+       (mret statemonad (print "state2 is " a))
+       (put 100)
+       (a <- (get))
+       (mret statemonad (print "state3 is " a))
+       )
+      ))
+       
