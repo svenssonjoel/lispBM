@@ -144,4 +144,20 @@
        (mret statemonad (print "state3 is " a))
        )
       ))
-       
+
+
+;; lift1 :: (a -> b) -> ma -> mb
+(defun lift1 (m f)
+  (lambda (ma)
+    (do m
+        (
+         (a <- ma)
+         (mret m (f a))
+         ))))
+
+(defun test11 ()
+  (do statemonad
+      (
+       (put 111)
+       ((lift1 statemonad (lambda (x) (print "state is " x))) (get))
+       )))
