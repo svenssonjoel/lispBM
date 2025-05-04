@@ -399,6 +399,7 @@ static bool i_f_lbm_array(uint32_t num_bytes, uint8_t *data) {
 static void size_acc(lbm_value v, bool shared, void *acc) {
   int32_t *s = (int32_t*)acc;
   if (shared) {
+    printf("size: shared node\n");
     return;
   }
 
@@ -464,6 +465,7 @@ static void flatten_node(lbm_value v, bool shared, void *res) {
   bool *acc = (bool*)res;
 
   if (shared) {
+    printf("flatten: shared node\n");
     return;
   }
   lbm_uint t = lbm_type_of(v);
@@ -544,9 +546,9 @@ static void flatten_node(lbm_value v, bool shared, void *res) {
 
 static int32_t image_flatten_size(lbm_value v) {
   int32_t s = 0;
-  lbm_ptr_rev_trav(size_acc, v, &s);
+  bool ok = lbm_ptr_rev_trav(size_acc, v, &s);
   lbm_perform_gc();
-  return s;
+  return ok ? s : 0;
 }
 
 static bool image_flatten_value(lbm_value v) {

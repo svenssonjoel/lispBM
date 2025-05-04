@@ -1560,6 +1560,10 @@ lbm_uint lbm_flash_memory_usage(void) {
 //    to detect cycles that happen in multiple steps accross values
 //    in the environment.
 //
+//  * lbm_ptr_rev_trav with the "do_nothing" travfun is the same thing
+//    as a GC mark phase! Maybe utilize this for code-size purposes,
+//    atleast in the ptr_rev_gc version. This also increases the amount
+//    of testing the ptr_rev_trav function is subjected to.
 
 bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
 
