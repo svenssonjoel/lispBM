@@ -738,7 +738,10 @@ lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
 }
 
 
-void dummy_f(lbm_value v, void *arg) {
+void dummy_f(lbm_value v, bool shared, void *arg) {
+  if (shared) {
+    printf("shared node detected\n");
+  }
   if (lbm_is_cons(v)) {
     printf("cons\n");
   } else {

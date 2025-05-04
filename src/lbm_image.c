@@ -15,7 +15,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include <extensions.h>
 #include <lbm_image.h>
 #include <heap.h>
@@ -397,8 +396,11 @@ static bool i_f_lbm_array(uint32_t num_bytes, uint8_t *data) {
 }
 
 
-static void size_acc(lbm_value v, void *acc) {
- int32_t *s = (int32_t*)acc;
+static void size_acc(lbm_value v, bool shared, void *acc) {
+  int32_t *s = (int32_t*)acc;
+  if (shared) {
+    return;
+  }
 
   lbm_uint t = lbm_type_of(v);
 
@@ -458,8 +460,12 @@ static void size_acc(lbm_value v, void *acc) {
   }
 }
 
-static void flatten_node(lbm_value v, void *res) {
+static void flatten_node(lbm_value v, bool shared, void *res) {
   bool *acc = (bool*)res;
+
+  if (shared) {
+    return;
+  }
   lbm_uint t = lbm_type_of(v);
 
   if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) {
@@ -531,16 +537,22 @@ static void flatten_node(lbm_value v, void *res) {
   }
 }
 
+// Performing GC after using the ptr_rev_trav to restore the
+// GC-bit in the value traversed.
+//
+// This is a temporary step towards proper sharing and cycle detection.
+
 static int32_t image_flatten_size(lbm_value v) {
   int32_t s = 0;
-  if (lbm_ptr_rev_trav(size_acc, v, &s))
-    return s;
-  return -1;
+  lbm_ptr_rev_trav(size_acc, v, &s);
+  lbm_perform_gc();
+  return s;
 }
 
 static bool image_flatten_value(lbm_value v) {
   bool ok = true;
   bool trav_ok = lbm_ptr_rev_trav(flatten_node, v, &ok);
+  lbm_perform_gc();
   return trav_ok && ok; // ok = enough space in image for flat val.
                         // trav_ok = no cycles in input value.
 }
