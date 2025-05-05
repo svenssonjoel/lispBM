@@ -132,7 +132,6 @@
 #define CONSTANT_HEAP_IX  (uint32_t)0x02    // [ 0x02 | uint32]
 #define BINDING_CONST     (uint32_t)0x03    // [ 0x03 | key | lbm_uint ]
 #define BINDING_FLAT      (uint32_t)0x04    // [ 0x04 | size | key | flatval ]
-#define STARTUP_ENTRY     (uint32_t)0x05    // [ 0x05 | symbol ])
 #define SYMBOL_ENTRY      (uint32_t)0x06    // [ 0x06 | NEXT_PTR |  ID | NAME PTR ] // symbol_entry with highest address is root.
 #define SYMBOL_LINK_ENTRY (uint32_t)0x07    // [ 0x07 | C_LINK_PTR | NEXT_PTR | ID | NAME PTR ]
 #define EXTENSION_TABLE   (uint32_t)0x08    // [ 0x08 | NUM | EXT ...]
