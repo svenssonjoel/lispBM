@@ -123,6 +123,44 @@
 //  TODO: Put more info into the IMAGE_INITIALIZED FIELD
 //        - 32/64 bit  etc
 
+// Sharing recovery:
+//
+// Construct a mapping of cons-cell address to key and flat value offset
+// | Address | KEY | Offset |
+// | addr0   | k0  | offs0  |
+//
+// Flat value needs a new reference values. Potentially one new for each kind of cons-cell (cons, byte-array etc)
+// so that correct pointer can be created.
+//  [ REF_X | addr0 ]
+//
+
+// unflatten will create the column "new address"
+// When unflattening k0 at offset offs0, fill in the new address field with the cons-cell address created.
+// | Address | KEY | Offset | new address |
+// | addr0   | k1  | offs0  | newaddr0    |
+
+// Unflattening needs to check:
+//  - for each cell type thing, if it is at an offset that is shared.
+//    If it is, we need to fill in the "new address" field.
+//  - A shared node will only be created once! but there may be many REF_X pointing to it.
+//  - When unflattening a REF_X field, search through the mapping for a match on the "address" field.
+//  - Ordering is needed so that unflattening of a ref to X happens only after X has been assigned a
+//    a new address.
+// Cost: search through the mapping for each unflattened cons-cell (including array etc).
+//  - Not all keys will exist in the mapping. Can check once and then not perform per lookup check.
+
+// Flattening:
+//   - phase 0: find sharing and create collect the set of shared addresses into a table:
+//      | addr  | k | empty |
+//   - phase 1: flatten, while flattening a cell see if it is at an address that exists in the table.
+//      if the address is in the table,
+//         see if offset = empty => set offset to current pos in flat value and flatten value as usual.
+//         see if offset = offs  => create a REFX: to addr
+
+// The key field is needed so that one knows when unflattening  a cell at a pos in the flat value, that it is a shared node.
+// Alternatively we can encode the "is a shared node" into into a bit of the flat value tag.
+
+
 #ifdef LBM64
 #define IMAGE_INITIALIZED (uint32_t)0xBEEF4001    // [ 0xBEEF4001 ]
 #else
