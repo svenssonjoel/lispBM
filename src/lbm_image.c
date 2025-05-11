@@ -157,9 +157,11 @@
 //         see if offset = empty => set offset to current pos in flat value and flatten value as usual.
 //         see if offset = offs  => create a REFX: to addr
 
-// The key field is needed so that one knows when unflattening  a cell at a pos in the flat value, that it is a shared node.
-// Alternatively we can encode the "is a shared node" into into a bit of the flat value tag.
-
+// The key field is needed so that one knows when unflattening that a node is shared and the
+// new address should be added to the table at key , offset.
+// Possibly flattening a shared node could be a special field in the flat value.
+// the flat value could hold [ Shared node | orig_address | flat_val ].
+// Then no key field is needed in the sharing mapping table.
 
 #ifdef LBM64
 #define IMAGE_INITIALIZED (uint32_t)0xBEEF4001    // [ 0xBEEF4001 ]
