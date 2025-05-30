@@ -415,6 +415,15 @@ void sleep_callback(uint32_t us) {
 
 static bool prof_running = false;
 
+#ifdef LBM_WIN
+DWORD WINAPI prof_thd(LPVOID lpParam) {
+  while (prof_running) {
+    lbm_prof_sample();
+    sleep_callback(200);
+  }
+  return 0;
+}
+#else
 void *prof_thd(void *v) {
   while (prof_running) {
     lbm_prof_sample();
@@ -422,6 +431,7 @@ void *prof_thd(void *v) {
   }
   return NULL;
 }
+#endif
 
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
@@ -890,7 +900,7 @@ int init_repl(void) {
     int thread_r = 0;
     lbm_kill_eval();
 #ifdef LBM_WIN
-    //TODO: WAITFOR
+    WaitForSingleObject(lispbm_thd, INFINITE);
 #else 
     pthread_join(lispbm_thd, (void*)&thread_r);
 #endif 
@@ -996,11 +1006,11 @@ int init_repl(void) {
 #ifdef LBM_WIN
   lispbm_thd = CreateThread( 
                            NULL,                   // default security attributes
-                           0,                      // use default stack size  
+                           0,                      // use default stack size
                            eval_thd_wrapper_win,   // thread function name
-                           NULL,                   // argument to thread function 
-                           0,                      // use default creation flags 
-                           NULL);                  // returns the thread identifier 
+                           NULL,                   // argument to thread function
+                           0,                      // use default creation flags
+                           NULL);                  // returns the thread identifier
 #else 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
@@ -1516,11 +1526,11 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 #ifdef LBM_WIN
   lispbm_thd = CreateThread( 
                             NULL,                   // default security attributes
-                            0,                      // use default stack size  
+                            0,                      // use default stack size
                             eval_thd_wrapper_win,   // thread function name
-                            NULL,                   // argument to thread function 
-                            0,                      // use default creation flags 
-                            NULL);                  // returns the thread identifier 
+                            NULL,                   // argument to thread function
+                            0,                      // use default creation flags
+                            NULL);                  // returns the thread identifier
 #else
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
@@ -1892,6 +1902,13 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         lbm_prof_init(prof_data, PROF_DATA_NUM);
           
 #ifdef LBM_WIN
+        prof_thread = CreateThread(
+                                   NULL,
+                                   0,
+                                   prof_thd,
+                                   NULL,
+                                   0,
+                                   NULL);
 #else
         if (pthread_create(&prof_thread, NULL, prof_thd, NULL)) {
           prof_running = true;
@@ -1906,6 +1923,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         if (prof_running) {
           prof_running = false;
 #ifdef LBM_WIN
+          WaitForSingleObject(prof_thread, INFINITE);
 #else 
           pthread_join(prof_thread,&a);
 #endif
@@ -2208,7 +2226,41 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
 
 // ////////////////////////////////////////////////////////////
 //
-#ifndef LBM_WIN
+#ifdef LBM_WIN
+DWORD WINAPI udp_broadcast_task(LPVOID lpParam) {
+   SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+   char hostbuffer[256];
+   char *ip;
+   gethostname(hostbuffer, sizeof(hostbuffer));
+   struct hostent *host_entry;
+
+   host_entry = gethostbyname(hostbuffer);
+
+   ip = inet_ntoa(*((struct in_addr*)
+                   host_entry->h_addr_list[0]));
+
+   int bc = 1;
+   setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &bc, sizeof(bc));
+
+   struct sockaddr_in sDestAddr;
+   memset(&sDestAddr, 0, sizeof(sDestAddr));
+   sDestAddr.sin_family = AF_INET;
+   sDestAddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+   sDestAddr.sin_port = htons(65109);
+
+   char sendbuf[50];
+   int ind = sprintf(sendbuf, "%s::%s::%u", "LBM-REPL",  ip, vesctcp_port) + 1;
+
+   if (ind > 0) {
+     for (;;) {
+       sendto(sock, sendbuf, (size_t)ind, 0, (struct sockaddr *)&sDestAddr, sizeof(sDestAddr));
+       Sleep(2000);
+       printf("broadcasting: %s\n", sendbuf);
+     }
+   }
+}
+#else
 void *udp_broadcast_task(void *arg) {
   (void)arg;
 
@@ -2322,7 +2374,7 @@ int main(int argc, char **argv) {
   if (image_address) {
     printf("Image storage successfully allocated at %p\n", image_address);
   } else {
-    printf("Failed allocating image memory\n");
+    printf("error mapping fixed location for flash emulation\n");
     terminate_repl(REPL_EXIT_CRITICAL_ERROR);
   }
   image_storage = (lbm_uint)image_address;
@@ -2378,7 +2430,28 @@ int main(int argc, char **argv) {
   startup_procedure();
 
   if (vesctcp) {
-#ifndef LBM_WIN
+#ifdef LBM_WIN
+    HANDLE broadcast_thread;
+    HANDLE client_thread;
+    WSADATA wsaData;
+
+    int r;
+
+    // Initialize Winsock
+    r = WSAStartup(MAKEWORD(2,2), &wsaData);
+    if (r != 0) {
+      printf("WSAStartup failed: %d\n", r);
+      exit(1);
+    }
+
+    broadcast_thread = CreateThread(
+                                    NULL,
+                                    0,
+                                    udp_broadcast_task,
+                                    NULL,
+                                    0,
+                                    NULL);
+#else
     pthread_t broadcast_thread;
     pthread_t client_thread;
     pthread_create(&broadcast_thread, NULL, udp_broadcast_task, NULL);
