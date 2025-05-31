@@ -40,9 +40,7 @@
 #include "lbm_image.h"
 #include "lbm_flat_value.h"
 
-#ifndef LBM_WIN
 #include <png.h>
-#endif
 
 #ifdef LBM_WIN
 #include <windows.h>
@@ -603,7 +601,6 @@ static lbm_value ext_set_active_image(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-#ifndef LBM_WIN
 static lbm_value ext_save_active_image(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
   if (argn == 1 &&
@@ -666,7 +663,6 @@ static lbm_value ext_save_active_image(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
-#endif
 
 static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors) {
 
@@ -843,9 +839,7 @@ int init_exts(void) {
 
   //displaying to active image
   lbm_add_extension("set-active-img", ext_set_active_image);
-#ifndef LBM_WIN
   lbm_add_extension("save-active-img", ext_save_active_image);
-#endif
   lbm_add_extension("display-to-img", ext_display_to_image);
 
   if (lbm_get_num_extensions() < lbm_get_max_extensions()) {
