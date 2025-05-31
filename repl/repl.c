@@ -40,6 +40,8 @@
 #ifdef LBM_WIN
 #include <windows.h>
 #include <memoryapi.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #endif
 
 //network
@@ -1293,7 +1295,11 @@ void shutdown_procedure(void) {
 #define SEND_MAX_RETRY 10
 
 static send_func_t send_func = 0;
+#ifdef LBM_WIN
+static SOCKET connected_socket = 0;
+#else
 static int connected_socket = 0;
+#endif
 
 
 char *lispif_print_prefix(void) {
@@ -2256,9 +2262,9 @@ DWORD WINAPI udp_broadcast_task(LPVOID lpParam) {
      for (;;) {
        sendto(sock, sendbuf, (size_t)ind, 0, (struct sockaddr *)&sDestAddr, sizeof(sDestAddr));
        Sleep(2000);
-       printf("broadcasting: %s\n", sendbuf);
      }
    }
+   return 0;
 }
 #else
 void *udp_broadcast_task(void *arg) {
@@ -2297,13 +2303,19 @@ void *udp_broadcast_task(void *arg) {
   }
   return (void*)0;
 }
+#endif
 
 void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
   int to_write = (int)len;
   int error_cnt = 0;
 
   while (to_write > 0) {
+#ifdef LBM_WIN
+    ssize_t written = send(connected_socket, buffer + ((int)len - to_write), (size_t)to_write, 0);
+#else
     ssize_t written = write(connected_socket, buffer + ((int)len - to_write), (size_t)to_write);
+#endif
+    
     if (written < 0) {
       error_cnt ++;
       if (error_cnt > SEND_MAX_RETRY) {
@@ -2314,7 +2326,6 @@ void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
     to_write -= (int)written;
   }
 }
-#endif
 
 PACKET_STATE_t packet;
 
@@ -2326,9 +2337,39 @@ void process_packet_local(unsigned char *data, unsigned int len) {
   repl_process_cmd(data,len, send_packet_local);
 }
 
-#ifndef LBM_WIN
+#ifdef LBM_WIN
+DWORD WINAPI vesctcp_client_handler(LPVOID lpParam) {
+  uint8_t buffer[1024];
+  packet_init(send_tcp_bytes, process_packet_local,&packet);
+  send_func = send_packet_local;
+  ssize_t len;
+
+  struct sockaddr_in addr;
+  size_t addr_size = sizeof(struct sockaddr_in);
+  getpeername(connected_socket, (struct sockaddr *)&addr, &addr_size);
+  char ip[256];
+  memset(ip,0,256);
+  strncpy(ip, inet_ntoa(addr.sin_addr), 255);
+
+  printf("Client %s connected\n",ip);
+ 
+  vescif_restart(false,false,false);
+
+  do {
+    len = recv(connected_socket, buffer, 1024,0);
+    for (int i = 0; i < len; i ++) {
+      packet_process_byte(buffer[i], &packet);
+    }
+  } while (len > 0);
+
+  closesocket(connected_socket);
+  send_func = NULL;
+  printf("Client %s disconnected\n",ip);
+  vesctcp_server_in_use = false;
+  return 0;
+}
+#else
 void *vesctcp_client_handler(void *arg) {
-  connected_socket = (int)arg;
   uint8_t buffer[1024];
   packet_init(send_tcp_bytes, process_packet_local,&packet);
   send_func = send_packet_local;
@@ -2451,6 +2492,80 @@ int main(int argc, char **argv) {
                                     NULL,
                                     0,
                                     NULL);
+
+    vescif_program_flash_code_len = 0;
+    vescif_program_flash=(uint8_t*)malloc(vescif_program_flash_size);
+    if (vescif_program_flash == NULL) return 0;
+
+    struct addrinfo *result = NULL;
+    struct addrinfo hints;
+
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_PASSIVE;
+
+    char vesctcp_port_str[30];
+    ZeroMemory(vesctcp_port_str, 30);
+    snprintf(vesctcp_port_str, 30, "%u", vesctcp_port);
+    printf("Starting server on port: %s\n", vesctcp_port_str);
+
+    // Resolve the server address and port
+    int addr_r = getaddrinfo(NULL, vesctcp_port_str, &hints, &result);
+    if ( addr_r != 0 ) {
+        printf("getaddrinfo failed with error: %d\n", addr_r);
+        return 1;
+    }
+
+    // Create a SOCKET for the server to listen for client connections.
+    SOCKET ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    if (ListenSocket == INVALID_SOCKET) {
+        printf("socket failed with error: %ld\n", WSAGetLastError());
+        freeaddrinfo(result);
+        WSACleanup();
+        return 1;
+    }
+
+    // Setup the TCP listening socket
+    int bind_r = bind( ListenSocket, result->ai_addr, (int)result->ai_addrlen);
+    if (bind_r == SOCKET_ERROR) {
+        printf("bind failed with error: %d\n", WSAGetLastError());
+        freeaddrinfo(result);
+        closesocket(ListenSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    int listen_r = listen(ListenSocket, SOMAXCONN);
+    if (listen_r == SOCKET_ERROR) {
+        printf("listen failed with error: %d\n", WSAGetLastError());
+        closesocket(ListenSocket);
+        WSACleanup();
+        return 1;
+    }
+    
+      
+    for (;;) {
+      SOCKET client_socket = accept(ListenSocket, NULL, NULL);
+
+      if (client_socket >= 0 && !vesctcp_server_in_use ) {
+        printf("Connected, spawning handler\n");
+        vesctcp_server_in_use = true;
+        // TODO: is this cast really ok?
+        connected_socket = client_socket;
+        client_thread = CreateThread(NULL, 0, vesctcp_client_handler, NULL, 0, NULL);
+      } else if (client_socket >= 0) {
+        char ip[256];
+        memset(ip,0,256);
+        //strncpy(ip, inet_ntoa(client_sockaddr_in.sin_addr), 255);
+        printf("Refusing connection from\n");
+        ssize_t r = send(client_socket, vesctcp_in_use, strlen(vesctcp_in_use), 0);
+        if (r < 0) {
+          printf("Unable to write to refused client\n");
+        }
+      }
+    }
 #else
     pthread_t broadcast_thread;
     pthread_t client_thread;
@@ -2482,7 +2597,8 @@ int main(int argc, char **argv) {
       if (client_socket >= 0 && !vesctcp_server_in_use ) {
         vesctcp_server_in_use = true;
         // TODO: is this cast really ok?
-        pthread_create(&client_thread, NULL, vesctcp_client_handler, (void*)client_socket);
+        connected_socket = client_socket;
+        pthread_create(&client_thread, NULL, vesctcp_client_handler, NULL);
 
       } else if (client_socket >= 0) {
         char ip[256];
