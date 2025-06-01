@@ -38,9 +38,9 @@
 #include <readline/history.h>
 
 #ifdef LBM_WIN
+#include <winsock2.h>
 #include <windows.h>
 #include <memoryapi.h>
-#include <winsock2.h>
 #include <ws2tcpip.h>
 #endif
 
@@ -85,20 +85,11 @@ typedef void (*send_func_t)(unsigned char *, unsigned int);
 // win util
 
 #ifdef LBM_WIN
-#ifndef __has_c_attribute
-#define __has_c_attribute(x) 0
-#endif
-
-#if __has_c_attribute(maybe_unused)
-#define MAYBE_UNUSED [[maybe_unused]]
-#else
-#define MAYBE_UNUSED
-#endif
 
 #define G 1000000000L
 
 
-int nanosleep(const struct timespec* ts, MAYBE_UNUSED struct timespec* rem){
+int nanosleep(const struct timespec* ts, struct timespec* rem){
   HANDLE timer = CreateWaitableTimer(NULL, TRUE, NULL);
   if(!timer)
     return -1;
@@ -175,7 +166,6 @@ static size_t constants_memory_size = 4096;  // size words
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 1024
-#define WAIT_TIMEOUT 2500
 #define STR_SIZE 1024
 #define PROF_DATA_NUM 100
 
@@ -899,11 +889,12 @@ bool load_flat_library(unsigned char *lib, unsigned int size) {
 int init_repl(void) {
 
   if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
-    int thread_r = 0;
+    
     lbm_kill_eval();
 #ifdef LBM_WIN
     WaitForSingleObject(lispbm_thd, INFINITE);
-#else 
+#else
+    int thread_r = 0;
     pthread_join(lispbm_thd, (void*)&thread_r);
 #endif 
     lispbm_thd = 0;
@@ -1457,19 +1448,20 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   bool res = false;
   if (prof_running) {
     prof_running = false;
-    void *a;
 #ifdef LBM_WIN
-    // TODO: WAITFOR
-#else 
+    WaitForSingleObject(lispbm_thd, INFINITE);
+#else
+    void *a;
     pthread_join(prof_thread, &a);
 #endif
   }
 
   if (lispbm_thd) {
-    int thread_r = 0;
     lbm_kill_eval();
 #ifdef LBM_WIN
-#else 
+    WaitForSingleObject(lispbm_thd, INFINITE);
+#else
+    int thread_r = 0;
     pthread_join(lispbm_thd, (void *)&thread_r);
 #endif
     lispbm_thd = 0;
@@ -1899,9 +1891,10 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
       } else if (strncmp(str, ":prof start", 11) == 0) {
         if (prof_running) {
           prof_running = false;
-          void *a;
 #ifdef LBM_WIN
+          WaitForSingleObject(prof_thread, INFINITE);
 #else
+          void *a;
           pthread_join(prof_thread,&a);
 #endif
         }
@@ -1924,13 +1917,13 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         }
 #endif
       } else if (strncmp(str, ":prof stop", 10) == 0) {
-        void *a;
         commands_printf_lisp("TODO :prof stop\n");
         if (prof_running) {
           prof_running = false;
 #ifdef LBM_WIN
           WaitForSingleObject(prof_thread, INFINITE);
-#else 
+#else
+          void *a;
           pthread_join(prof_thread,&a);
 #endif
         }
@@ -2245,7 +2238,6 @@ DWORD WINAPI udp_broadcast_task(LPVOID lpParam) {
 
    ip = inet_ntoa(*((struct in_addr*)
                    host_entry->h_addr_list[0]));
-
    int bc = 1;
    setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &bc, sizeof(bc));
 
@@ -2260,7 +2252,7 @@ DWORD WINAPI udp_broadcast_task(LPVOID lpParam) {
 
    if (ind > 0) {
      for (;;) {
-       sendto(sock, sendbuf, (size_t)ind, 0, (struct sockaddr *)&sDestAddr, sizeof(sDestAddr));
+       sendto(sock, sendbuf, ind, 0, (struct sockaddr *)&sDestAddr, sizeof(sDestAddr));
        Sleep(2000);
      }
    }
@@ -2311,7 +2303,7 @@ void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
 
   while (to_write > 0) {
 #ifdef LBM_WIN
-    ssize_t written = send(connected_socket, buffer + ((int)len - to_write), (size_t)to_write, 0);
+    ssize_t written = send(connected_socket,(const char *)(buffer + ((int)len - to_write)), to_write, 0);
 #else
     ssize_t written = write(connected_socket, buffer + ((int)len - to_write), (size_t)to_write);
 #endif
@@ -2339,13 +2331,13 @@ void process_packet_local(unsigned char *data, unsigned int len) {
 
 #ifdef LBM_WIN
 DWORD WINAPI vesctcp_client_handler(LPVOID lpParam) {
-  uint8_t buffer[1024];
+  char buffer[1024];
   packet_init(send_tcp_bytes, process_packet_local,&packet);
   send_func = send_packet_local;
   ssize_t len;
 
   struct sockaddr_in addr;
-  size_t addr_size = sizeof(struct sockaddr_in);
+  ssize_t addr_size = sizeof(struct sockaddr_in);
   getpeername(connected_socket, (struct sockaddr *)&addr, &addr_size);
   char ip[256];
   memset(ip,0,256);
@@ -2358,7 +2350,7 @@ DWORD WINAPI vesctcp_client_handler(LPVOID lpParam) {
   do {
     len = recv(connected_socket, buffer, 1024,0);
     for (int i = 0; i < len; i ++) {
-      packet_process_byte(buffer[i], &packet);
+      packet_process_byte((uint8_t)buffer[i], &packet);
     }
   } while (len > 0);
 
@@ -2418,7 +2410,7 @@ int main(int argc, char **argv) {
     printf("error mapping fixed location for flash emulation\n");
     terminate_repl(REPL_EXIT_CRITICAL_ERROR);
   }
-  image_storage = (lbm_uint)image_address;
+  image_storage = (uint32_t *)image_address;
 #else 
   image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
                        IMAGE_STORAGE_SIZE,
@@ -2521,7 +2513,7 @@ int main(int argc, char **argv) {
     // Create a SOCKET for the server to listen for client connections.
     SOCKET ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
     if (ListenSocket == INVALID_SOCKET) {
-        printf("socket failed with error: %ld\n", WSAGetLastError());
+        printf("socket failed with error: %d\n", WSAGetLastError());
         freeaddrinfo(result);
         WSACleanup();
         return 1;
@@ -2560,7 +2552,7 @@ int main(int argc, char **argv) {
         memset(ip,0,256);
         //strncpy(ip, inet_ntoa(client_sockaddr_in.sin_addr), 255);
         printf("Refusing connection from\n");
-        ssize_t r = send(client_socket, vesctcp_in_use, strlen(vesctcp_in_use), 0);
+        ssize_t r = send(client_socket, vesctcp_in_use, (int)strlen(vesctcp_in_use), 0);
         if (r < 0) {
           printf("Unable to write to refused client\n");
         }
