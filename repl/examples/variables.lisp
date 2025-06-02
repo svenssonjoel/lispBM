@@ -91,7 +91,7 @@
 ;; capabilities.
 
 
-;; LBM support deconstructive bindinds. This means that a let or progn var binding
+;; LBM support deconstructive bindings. This means that a let or progn var binding
 ;; can be used to deconstruct datastructures.
 
 ;; as an example define a pair

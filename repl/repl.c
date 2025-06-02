@@ -2427,6 +2427,9 @@ int main(int argc, char **argv) {
   parse_opts(argc, argv);
 
   if (history_file_path == NULL) {
+#ifdef LBM_WIN
+    history_file_path = "lbm_history";
+#else
     const char *path_env = getenv("LBM_HISTORY_FILE");
     if (path_env != NULL) {
       size_t len = strlen(path_env);
@@ -2446,6 +2449,7 @@ int main(int argc, char **argv) {
         // history_file_path is already NULL.
       }
     }
+#endif
   }
   if (history_file_path != NULL && history_file_path[0] == '\0') {
     history_file_path = NULL;
