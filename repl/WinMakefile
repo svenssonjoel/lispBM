@@ -1,4 +1,6 @@
 
+$(shell mkdir -p windows/build)
+
 CC64 = x86_64-w64-mingw32-gcc
 CC32 = i686-w64-mingw32-gcc
 
@@ -25,6 +27,12 @@ LIBS = -lws2_32 \
 	windows/readline/lib/libhistory.dll.a \
 	windows/readline/lib/libreadline.dll.a
 
+DLLS = windows/build/SDL2.dll \
+       windows/build/SDL2_image.dll \
+       windows/build/history.dll \
+       windows/build/readline.dll \
+       windows/build/libpng16-16.dll
+
 INC = -Iwindows/readline/include \
       -Iwindows/libpng/include \
       -Iwindows/SDL2/include \
@@ -41,11 +49,26 @@ REPL_SRC= repl.c \
           packet.c \
 	  lbm_sdl.c
 
+
 all:  windows/build/lbm32.exe
 
-windows/build/lbm32.exe: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
+windows/build/lbm32.exe: $(DLLS) $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
 	$(CC32) -DLBM_WIN -DWITH_SDL $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(REPL_SRC) -o windows/build/lbm32.exe $(PLATFORM_INCLUDE) $(LISPBM_INC) $(INC) $(LIBS)
 
+windows/build/SDL2.dll:
+	cp windows/SDL2/bin/*.dll windows/build
+
+windows/build/SDL2_image.dll:
+	cp windows/SDL2_image/bin/*.dll windows/build
+
+windows/build/history.dll:
+	cp windows/readline/bin/*.dll windows/build
+
+windows/build/readline.dll:
+	cp windows/readline/bin/*.dll windows/build
+
+windows/build/libpng16-16.dll:
+	cp windows/libpng/bin/*.dll windows/build
 
 # Think this may need 64bit variant of libreadline.
 # TODO: Try to build libreadline for 64bit windows.
