@@ -419,7 +419,6 @@ bool lbm_event(lbm_flat_value_t *fv) {
 }
 
 static bool lbm_event_pop(lbm_event_t *event) {
-  mutex_lock(&lbm_events_mutex);
   if (lbm_events_head == lbm_events_tail && !lbm_events_full) {
     mutex_unlock(&lbm_events_mutex);
     return false;
@@ -427,7 +426,6 @@ static bool lbm_event_pop(lbm_event_t *event) {
   *event = lbm_events[lbm_events_tail];
   lbm_events_tail = (lbm_events_tail + 1) % lbm_events_max;
   lbm_events_full = false;
-  mutex_unlock(&lbm_events_mutex);
   return true;
 }
 
@@ -5711,33 +5709,52 @@ static lbm_value get_event_value(lbm_event_t *e) {
 }
 
 static void process_events(void) {
+  if (lbm_events) {
+    lbm_event_t e;
 
-  if (!lbm_events) {
-    return;
-  }
+    // Lock the mutex while processing events:
+    mutex_lock(&lbm_events_mutex);
+    // To guarantee that an event that has been popped in this loop,
+    // can be pushed back with no possibility of out of space.
 
-  lbm_event_t e;
-  while (lbm_event_pop(&e)) {
-    lbm_value event_val = get_event_value(&e);
-    switch(e.type) {
-    case LBM_EVENT_UNBLOCK_CTX:
-      handle_event_unblock_ctx((lbm_cid)e.parameter, event_val);
-      break;
-    case LBM_EVENT_DEFINE:
-      handle_event_define((lbm_value)e.parameter, event_val);
-      break;
-    case LBM_EVENT_FOR_HANDLER:
-      if (lbm_event_handler_pid >= 0) {
-        lbm_find_receiver_and_send(lbm_event_handler_pid, event_val);
+    // If the event handler's mailbox is full the event is stuffed back
+    // at end of event queue and the loop is exited.
+
+    // Concerns. If handler events are the most common, exiting this
+    // loop at the first failing delivery is preferable.
+    // But if the workload is such that other events are equally likely,
+    // then continuing processing the events is perhaps desirable.
+    while (lbm_event_pop(&e)) {
+      lbm_value event_val = get_event_value(&e);
+      switch(e.type) {
+      case LBM_EVENT_UNBLOCK_CTX:
+        handle_event_unblock_ctx((lbm_cid)e.parameter, event_val);
+        break;
+      case LBM_EVENT_DEFINE:
+        handle_event_define((lbm_value)e.parameter, event_val);
+        break;
+      case LBM_EVENT_FOR_HANDLER:
+        if (lbm_event_handler_pid >= 0) {
+          if (!lbm_find_receiver_and_send(lbm_event_handler_pid, event_val)) {
+            // put the event back if mailbox at receiver is full.
+            lbm_events[lbm_events_head] = e;
+            lbm_events_head = (lbm_events_head + 1) % lbm_events_max;
+            lbm_events_full = lbm_events_head == lbm_events_tail;
+            mutex_unlock(&lbm_events_mutex);
+            // Let the evaluator run for a while and then try again.
+            return;
+          }
+        }
+        // If there is no event handler, the event is dropped.
+        break;
+      case LBM_EVENT_RUN_USER_CALLBACK:
+        user_callback((void*)e.parameter);
+        break;
       }
-      break;
-    case LBM_EVENT_RUN_USER_CALLBACK:
-      user_callback((void*)e.parameter);
-      break;
     }
+    mutex_unlock(&lbm_events_mutex);
   }
 }
-
 
 void lbm_add_eval_symbols(void) {
   lbm_uint x = 0;
