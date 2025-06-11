@@ -358,6 +358,18 @@ static mutex_t      lbm_events_mutex;
 static bool         lbm_events_mutex_initialized = false;
 static volatile lbm_cid  lbm_event_handler_pid = -1;
 
+unsigned int lbm_event_queue_item_count(void) {
+  unsigned int res = lbm_events_max;
+  if (!lbm_events_full) {
+    if (lbm_events_head >= lbm_events_tail) {
+      res = lbm_events_head - lbm_events_tail;
+    } else {
+      res = lbm_events_max - lbm_events_tail + lbm_events_head;
+    }
+  }
+  return res;
+}
+
 lbm_cid lbm_get_event_handler_pid(void) {
   return lbm_event_handler_pid;
 }
@@ -398,6 +410,9 @@ bool lbm_event_run_user_callback(void *arg) {
   return event_internal(LBM_EVENT_RUN_USER_CALLBACK, (lbm_uint)arg, 0, 0);
 }
 
+// TODO: Look if we should collect some of these local helper prototypes somewhere.
+static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid);
+
 bool lbm_event_unboxed(lbm_value unboxed) {
   lbm_uint t = lbm_type_of(unboxed);
   if (t == LBM_TYPE_SYMBOL ||
@@ -405,6 +420,9 @@ bool lbm_event_unboxed(lbm_value unboxed) {
       t == LBM_TYPE_U ||
       t == LBM_TYPE_CHAR) {
     if (lbm_event_handler_pid > 0) {
+      if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) <= lbm_event_queue_item_count()) {
+        return false;
+      }
       return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)unboxed, 0);
     }
   }
@@ -413,28 +431,25 @@ bool lbm_event_unboxed(lbm_value unboxed) {
 
 bool lbm_event(lbm_flat_value_t *fv) {
   if (lbm_event_handler_pid > 0) {
+    if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) <= lbm_event_queue_item_count()) {
+      return false;
+    }
     return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
   }
   return false;
 }
 
-/** Peek at the top element int the event queue.
- * \param event Pointer to event struct for result.
- * \return true if there is an element to peek, otherwise false.
- */
-static bool lbm_event_peek(lbm_event_t *event) {
+static bool lbm_event_pop(lbm_event_t *event) {
+  mutex_lock(&lbm_events_mutex);
   if (lbm_events_head == lbm_events_tail && !lbm_events_full) {
+    mutex_unlock(&lbm_events_mutex);
     return false;
   }
   *event = lbm_events[lbm_events_tail];
-  return true;
-}
-
-/** drop an event, Only run if there actually are events to drop.
- */
-static void lbm_event_drop(void) {
   lbm_events_tail = (lbm_events_tail + 1) % lbm_events_max;
   lbm_events_full = false;
+  mutex_unlock(&lbm_events_mutex);
+  return true;
 }
 
 bool lbm_event_queue_is_empty(void) {
@@ -1459,10 +1474,6 @@ static void mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
   ctx->num_mail ++;
 }
 
-static bool mailbox_full(eval_context_t *ctx) {
-  return (ctx->num_mail >= ctx->mailbox_size);
-}
-
 /**************************************************************
  * Advance execution to the next expression in the program.
  * Assumes programs are not malformed. Apply_eval_program
@@ -1556,6 +1567,34 @@ void lbm_undo_block_ctx_from_extension(void) {
   blocking_extension_timeout_us = 0;
   blocking_extension_timeout = false;
   mutex_unlock(&blocking_extension_mutex);
+}
+
+// TODO: very similar iteration patterns.
+//       Try to break out common part from free_space and from find_and_send
+/** mailbox_free_space_for_cid is used to get the available
+ * space in a given context's mailbox.
+ */
+static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid) {
+  eval_context_t *found = NULL;
+  uint32_t res = 0;
+
+  mutex_lock(&qmutex);
+
+  found = lookup_ctx_nm(&blocked, cid);
+  if (!found) {
+    found = lookup_ctx_nm(&queue, cid);
+  }
+  if (!found && ctx_running && ctx_running->id == cid) {
+    found = ctx_running;
+  }
+
+  if (found) {
+    res = found->mailbox_size - found->num_mail;
+  }
+
+  mutex_unlock(&qmutex);
+
+  return res;
 }
 
 /** find_receiver_and_send is used for message passing where
@@ -5725,66 +5764,38 @@ static lbm_value get_event_value(lbm_event_t *e) {
   return v;
 }
 
+// In a scenario where C is enqueuing events and other LBM threads
+// are sendind mail to event handler concurrently, old events will
+// be dropped as the backpressure mechanism wont detect this scenario.
+// TODO: Low prio pondering on robust solutions.
 static void process_events(void) {
-  if (lbm_events) {
-    lbm_event_t e;
 
-    // Lock the mutex while processing events:
-    mutex_lock(&lbm_events_mutex);
-    // the event queue is locked so that we can peek and drop safely
-    // without risking new events added in between.
-    while (lbm_event_peek(&e)) {
-      switch(e.type) {
-      case LBM_EVENT_UNBLOCK_CTX: {
-        lbm_value event_val = get_event_value(&e);
-        handle_event_unblock_ctx((lbm_cid)e.parameter, event_val);
-      } break;
-      case LBM_EVENT_DEFINE: {
-        lbm_value event_val = get_event_value(&e);
-        handle_event_define((lbm_value)e.parameter, event_val);
-      } break;
-      case LBM_EVENT_FOR_HANDLER:
-        if (lbm_event_handler_pid >= 0) {
-          mutex_lock(&qmutex);
-          eval_context_t *handler = NULL;
-          bool handler_blocked = false;
-          handler = lookup_ctx_nm(&blocked, lbm_event_handler_pid);
-          if (!handler) {
-            handler = lookup_ctx_nm(&queue, lbm_event_handler_pid);
-            if (!handler && ctx_running->id == lbm_event_handler_pid) {
-              handler = ctx_running;
-            }
-          } else {
-            handler_blocked = true;
-          }
+  if (!lbm_events) {
+    return;
+  }
 
-          if (handler) {
-            if (!mailbox_full(handler)) {
-              // There is room in handler so unflatten event.
-              lbm_value event_val = get_event_value(&e);
-              mailbox_add_mail(handler, event_val);
-              if (handler_blocked) {
-                drop_ctx_nm(&blocked,handler);
-                handler->state = LBM_THREAD_STATE_READY;
-                enqueue_ctx_nm(&queue,handler);
-              }
-            } else {
-              // no room to receive an event. let the event handler catch up.
-              mutex_unlock(&qmutex);
-              goto process_events_exit;
-            }
-          }
-          mutex_unlock(&qmutex);
-        }
-        break;
-      case LBM_EVENT_RUN_USER_CALLBACK:
-        user_callback((void*)e.parameter);
-        break;
+  lbm_event_t e;
+  while (lbm_event_pop(&e)) {
+    lbm_value event_val = get_event_value(&e);
+    switch(e.type) {
+    case LBM_EVENT_UNBLOCK_CTX:
+      handle_event_unblock_ctx((lbm_cid)e.parameter, event_val);
+      break;
+    case LBM_EVENT_DEFINE:
+      handle_event_define((lbm_value)e.parameter, event_val);
+      break;
+    case LBM_EVENT_FOR_HANDLER:
+      if (lbm_event_handler_pid >= 0) {
+        //If multiple events for handler, this is wasteful!
+        // TODO: Find the event_handler once and send all mails.
+        // However, do it with as little new code as possible.
+        lbm_find_receiver_and_send(lbm_event_handler_pid, event_val);
       }
-      lbm_event_drop();
+      break;
+    case LBM_EVENT_RUN_USER_CALLBACK:
+      user_callback((void*)e.parameter);
+      break;
     }
-  process_events_exit:
-    mutex_unlock(&lbm_events_mutex);
   }
 }
 
