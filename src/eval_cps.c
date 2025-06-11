@@ -106,7 +106,8 @@ static jmp_buf critical_error_jmp_buf;
 #define RECV_TO_RETRY              CONTINUATION(48)
 #define READ_START_ARRAY           CONTINUATION(49)
 #define READ_APPEND_ARRAY          CONTINUATION(50)
-#define NUM_CONTINUATIONS          51
+#define LOOP_ENV_PREP              CONTINUATION(51)
+#define NUM_CONTINUATIONS          52
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -155,6 +156,7 @@ const char* lbm_error_str_not_applicable = "Value is not applicable.";
 
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
+
 
 // ////////////////////////////////////////////////////////////
 // Prototypes for locally used functions (static)
@@ -2219,10 +2221,11 @@ static void eval_loop(eval_context_t *ctx) {
   lbm_value env              = ctx->curr_env;
   lbm_value parts[3];
   extract_n(get_cdr(ctx->curr_exp), parts, 3);
-  lbm_value *sptr = stack_reserve(ctx, 3);
+  lbm_value *sptr = stack_reserve(ctx, 4);
   sptr[0] = parts[LOOP_BODY];
   sptr[1] = parts[LOOP_COND];
-  sptr[2] = LOOP_CONDITION;
+  sptr[2] = ENC_SYM_NIL;
+  sptr[3] = LOOP_ENV_PREP;
   let_bind_values_eval(parts[LOOP_BINDS], parts[LOOP_COND], env, ctx);
 }
 
@@ -3764,22 +3767,30 @@ static void cont_terminate(eval_context_t *ctx) {
 }
 
 static void cont_loop(eval_context_t *ctx) {
-  lbm_value *sptr = get_stack_ptr(ctx, 2);
+  lbm_value *sptr = get_stack_ptr(ctx, 3);
   stack_reserve(ctx,1)[0] = LOOP_CONDITION;
+  ctx->curr_env = sptr[2];
   ctx->curr_exp = sptr[1];
 }
 
 static void cont_loop_condition(eval_context_t *ctx) {
   if (lbm_is_symbol_nil(ctx->r)) {
-    lbm_stack_drop(&ctx->K, 2);
+    lbm_stack_drop(&ctx->K, 3);
     ctx->app_cont = true;  // A loop returns nil? Makes sense to me... but in general?
     return;
   }
-  lbm_value *sptr = get_stack_ptr(ctx, 2);
+  lbm_value *sptr = get_stack_ptr(ctx, 3);
   stack_reserve(ctx,1)[0] = LOOP;
+  ctx->curr_env = sptr[2];
   ctx->curr_exp = sptr[0];
 }
 
+static void cont_loop_env_prep(eval_context_t *ctx) {
+  lbm_value *sptr = get_stack_ptr(ctx, 3);
+  sptr[2] = ctx->curr_env;
+  stack_reserve(ctx,1)[0] = LOOP_CONDITION;
+}
+ 
 static void cont_merge_rest(eval_context_t *ctx) {
   lbm_uint *sptr = get_stack_ptr(ctx, 9);
 
@@ -5469,6 +5480,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_recv_to_retry,
     cont_read_start_array,
     cont_read_append_array,
+    cont_loop_env_prep,
   };
 
 /*********************************************************/
