@@ -155,7 +155,11 @@ const char* lbm_error_str_not_applicable = "Value is not applicable.";
 
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
-#ifdef LBM_ALWAYS_GC
+
+// ////////////////////////////////////////////////////////////
+// Prototypes for locally used functions (static)
+static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid);
+static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx);
 
 // TODO: Optimize, In a large number of cases
 // where WITH_GC is used, it is not really required to check is_symbol_merror.
@@ -163,7 +167,7 @@ static bool lbm_error_has_suspect = false;
 // Given the number of calls to WITH_GC this could save some code
 // space and potentially also be a slight speedup.
 // TODO: profile.
-
+#ifdef LBM_ALWAYS_GC
 #define WITH_GC(y, x)                           \
   gc();                                         \
   (y) = (x);                                    \
@@ -358,7 +362,7 @@ static mutex_t      lbm_events_mutex;
 static bool         lbm_events_mutex_initialized = false;
 static volatile lbm_cid  lbm_event_handler_pid = -1;
 
-unsigned int lbm_event_queue_item_count(void) {
+static unsigned int lbm_event_queue_item_count(void) {
   unsigned int res = lbm_events_max;
   if (!lbm_events_full) {
     if (lbm_events_head >= lbm_events_tail) {
@@ -409,9 +413,6 @@ bool lbm_event_define(lbm_value key, lbm_flat_value_t *fv) {
 bool lbm_event_run_user_callback(void *arg) {
   return event_internal(LBM_EVENT_RUN_USER_CALLBACK, (lbm_uint)arg, 0, 0);
 }
-
-// TODO: Look if we should collect some of these local helper prototypes somewhere.
-static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid);
 
 bool lbm_event_unboxed(lbm_value unboxed) {
   lbm_uint t = lbm_type_of(unboxed);
@@ -3338,8 +3339,6 @@ static void apply_rotate(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   }
   ERROR_CTX(ENC_SYM_EERROR);
 }
-
-static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx);
 
 /***************************************************/
 /* Application lookup table                        */
