@@ -2226,7 +2226,7 @@ static void eval_loop(eval_context_t *ctx) {
   sptr[1] = parts[LOOP_COND];
   sptr[2] = ENC_SYM_NIL;
   sptr[3] = LOOP_ENV_PREP;
-  let_bind_values_eval(parts[LOOP_BINDS], parts[LOOP_COND], env, ctx);
+  let_bind_values_eval(parts[LOOP_BINDS], ENC_SYM_NIL, env, ctx);
 }
 
 /* (trap expression)
@@ -3789,6 +3789,7 @@ static void cont_loop_env_prep(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 3);
   sptr[2] = ctx->curr_env;
   stack_reserve(ctx,1)[0] = LOOP_CONDITION;
+  ctx->curr_exp = sptr[1];
 }
  
 static void cont_merge_rest(eval_context_t *ctx) {
