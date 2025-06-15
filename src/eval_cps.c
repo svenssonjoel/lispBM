@@ -136,7 +136,12 @@ typedef enum {
 // Local variables used in sort and merge
 lbm_value symbol_x = ENC_SYM_NIL;
 lbm_value symbol_y = ENC_SYM_NIL;
+#ifdef CLEAN_UP_CLOSURES
+static lbm_value clean_cl_env_symbol = ENC_SYM_NIL;
+#endif
 
+// ////////////////////////////////////////////////////////////
+// Error strings
 const char* lbm_error_str_parse_eof = "End of parse stream.";
 const char* lbm_error_str_parse_dot = "Incorrect usage of '.'.";
 const char* lbm_error_str_parse_close = "Expected closing parenthesis.";
@@ -162,6 +167,15 @@ static bool lbm_error_has_suspect = false;
 // Prototypes for locally used functions (static)
 static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid);
 static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx);
+static int gc(void);
+#ifdef LBM_USE_ERROR_LINENO
+static void error_ctx(lbm_value, int line_no);
+static void error_at_ctx(lbm_value err_val, lbm_value at, int line_no);
+#else
+static void error_ctx(lbm_value);
+static void error_at_ctx(lbm_value err_val, lbm_value at);
+#endif
+static void mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
 
 // TODO: Optimize, In a large number of cases
 // where WITH_GC is used, it is not really required to check is_symbol_merror.
@@ -211,27 +225,20 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx);
 
 #endif
 
-/**************************************************************/
-/* */
+// ////////////////////////////////////////////////////////////
+// Context queues
 typedef struct {
   eval_context_t *first;
   eval_context_t *last;
 } eval_context_queue_t;
 
-#ifdef CLEAN_UP_CLOSURES
-static lbm_value clean_cl_env_symbol = ENC_SYM_NIL;
-#endif
+static eval_context_queue_t blocked  = {NULL, NULL};
+static eval_context_queue_t queue    = {NULL, NULL};
 
-static int gc(void);
-#ifdef LBM_USE_ERROR_LINENO
-static void error_ctx(lbm_value, int line_no);
-static void error_at_ctx(lbm_value err_val, lbm_value at, int line_no);
-#else
-static void error_ctx(lbm_value);
-static void error_at_ctx(lbm_value err_val, lbm_value at);
-#endif
+mutex_t qmutex;
+bool    qmutex_initialized = false;
+
 static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx);
-static void mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
 
 // The currently executing context.
 eval_context_t *ctx_running = NULL;
@@ -473,15 +480,6 @@ static lbm_uint          blocking_extension_timeout_us = 0;
 static bool              blocking_extension_timeout = false;
 
 static bool              is_atomic = false;
-
-/* Process queues */
-static eval_context_queue_t blocked  = {NULL, NULL};
-static eval_context_queue_t queue    = {NULL, NULL};
-
-/* one mutex for all queue operations */
-mutex_t qmutex;
-bool    qmutex_initialized = false;
-
 
 // MODES
 static volatile bool lbm_verbose = false;
