@@ -681,6 +681,38 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
 // ////////////////////////////////////////////////////////////
 // Construction site
 
+// Sharing is detected and annotated by:
+// 1. Generate an array of addresses of shared structures. (sharing table)
+//    Sharing table will contain a boolean field where "having been flattened"
+//    status is tracked.
+// 2. Flatten values and for each ptr-cell, check if it's address is in the
+//    sharing table. If the cell is in the sharing table and the boolean
+//    flag is not set: Set the flag and flatten the value with a shared tag
+//          is set: Do not flatten value, create a REF tag. 
+
+// The sharing table could be a temporary list on the LBM heap
+// if only it wasn't for GC. GC cannot be run while doing pointer
+// reversal traversals.
+// Another option would be to allocate an area in LBM mem and fill that
+// that with temporary sharing data. Only problem is that we do not know how much
+// temporary data is needed until after doing at least one traversal where we
+// also need to accumulate shared addresses in order to not count them doubly.
+// ** allocating lbm_memory_longest_free amount of temp data at flattening
+//    could be a good solution. But even then the final number of shared
+//    nodes could be written to the image so that the unflattener does not need
+//    guess and allocate in chunks.
+//    - Very little lbm mem could be available here.
+
+// Sharing is restored by:
+// 1. Allocate a new column for the sharing table in LBM mem, the size is now known.
+// 2. Unflatten flat values:
+//       if a value has a shared tag, fill in the address it is unflattened to into the
+//       new sharing table column.
+//       if a value has the ref tag, look it up in sharing table and read out the new address.
+//
+// The process is order dependent and shared tag for address 'a' must the unflattened
+// before a ref tag for the same address 'a'.
+
 typedef struct {
   int32_t start;
   int32_t num;
@@ -688,7 +720,7 @@ typedef struct {
 
 
 // Search sharing table, O(N) where N shared nodes
-static bool sharing_table_contains(sharing_table *st, uint32_t addr) {
+static int32_t sharing_table_contains(sharing_table *st, uint32_t addr) {
   int32_t si = st->start;
   int32_t num = st->num;
   uint32_t st_tag = read_u32(si);
@@ -697,15 +729,14 @@ static bool sharing_table_contains(sharing_table *st, uint32_t addr) {
     printf("sharing table found\n");
     printf("num: %d\n", num);
     for (int32_t i = 0; i < num; i ++ ) {
-      
-      uint32_t a = read_u32(si - 2 - (i * 2));
+      int32_t ix = si - 2 - (i * 2);
+      uint32_t a = read_u32(ix);
       if (addr == a) {
-        printf("exists\n");
-        return true;
+        return ix;
       }
     }
   }
-  return false;
+  return -1;
 }
 
 static void detect_shared(lbm_value v, bool shared, void *acc) {
@@ -716,15 +747,16 @@ static void detect_shared(lbm_value v, bool shared, void *acc) {
     lbm_uint addr = 0;
     if (lbm_is_ptr(v)) {
       addr = lbm_dec_ptr(v);
-      if (sharing_table_contains(st,addr)) {
-        printf("shared node exists in table.\n");
+      int32_t ix = sharing_table_contains(st,addr);
+      if (ix >= 0) {
+        uint32_t b = read_u32(ix - 1);
+        printf("shared node exists in table. bool field: %x\n", b);
       } else {
         write_u32(addr, &write_index, DOWNWARDS);
         write_index -= 1; // skip a word. Figure out, definitely, what data is needed.
         st->num++;
       }
     }
-    printf("--\n");
     printf("Shared node: %"PRI_UINT"\n", addr);
     printf("%s\n", buf);
   }
