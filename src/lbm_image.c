@@ -678,7 +678,43 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
   return NULL;
 }
 
+// ////////////////////////////////////////////////////////////
+// Construction site
+
+static void detect_shared(lbm_value v, bool shared, void *acc) {
+  if (shared) {
+    char buf[1024];
+    lbm_print_value(buf,1024, v);
+    printf("--\n");
+    printf("Shared node: \n");
+    printf("%s\n", buf);
+  }
+}
+
+
+void lbm_image_sharing(void) {
+  lbm_value *env = lbm_get_global_env();
+  if (env) {
+    for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+      lbm_value curr = env[i];
+      while(lbm_is_cons(curr)) {
+        //        lbm_value name_field = lbm_caar(curr);
+        lbm_value val_field  = lbm_cdr(lbm_car(curr));
+        if (!lbm_is_constant(val_field)) {
+          lbm_ptr_rev_trav(detect_shared, val_field, NULL);
+        }
+        curr = lbm_cdr(curr);
+      }
+    }
+    // clean out all mark-bits
+    lbm_perform_gc();
+  }
+}
+
+// ////////////////////////////////////////////////////////////
+//
 bool lbm_image_save_global_env(void) {
+  lbm_image_sharing();
   lbm_value *env = lbm_get_global_env();
   if (env) {
     for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
