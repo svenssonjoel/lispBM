@@ -176,6 +176,7 @@
 #define SYMBOL_LINK_ENTRY (uint32_t)0x07    // [ 0x07 | C_LINK_PTR | NEXT_PTR | ID | NAME PTR ]
 #define EXTENSION_TABLE   (uint32_t)0x08    // [ 0x08 | NUM | EXT ...]
 #define VERSION_ENTRY     (uint32_t)0x09    // [ 0x09 | size | string ]
+#define SHARING_TABLE     (uint32_t)0x10    // [ 0x10 | n    | n-entries}
 // Size is in number of 32bit words, even on 64 bit images.
 
 // To be able to work on an image incrementally (even though it is not recommended)
@@ -224,7 +225,6 @@ bool write_u32(uint32_t w, int32_t *i, bool direction) {
   (*i) += direction ? -1 : 1;
   return r;
 }
-
 
 bool write_u64(uint64_t dw, int32_t *i, bool direction) {
   uint32_t *words = (uint32_t*)&dw;
@@ -681,30 +681,65 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
 // ////////////////////////////////////////////////////////////
 // Construction site
 
+typedef struct {
+  int32_t start;
+  int32_t num;
+} sharing_table;
+
+
+// Search sharing table, O(N) where N shared nodes
+static bool sharing_table_contains(sharing_table *st, uint32_t addr) {
+  int32_t si = st->start;
+  int32_t num = st->num;
+  uint32_t st_tag = read_u32(si);
+  if (st_tag == SHARING_TABLE) {
+    // sharing table tag exists but not the num field.
+    printf("sharing table found\n");
+    printf("num: %d\n", num);
+    for (int32_t i = 0; i < num; i ++ ) {
+      
+      uint32_t a = read_u32(si - 2 - (i * 2));
+      if (addr == a) {
+        printf("exists\n");
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 static void detect_shared(lbm_value v, bool shared, void *acc) {
+  sharing_table *st = (sharing_table*)acc;
   char buf[1024];
   if (shared) {
     lbm_print_value(buf,1024, v);
     lbm_uint addr = 0;
     if (lbm_is_ptr(v)) {
       addr = lbm_dec_ptr(v);
+      if (sharing_table_contains(st,addr)) {
+        printf("shared node exists in table.\n");
+      } else {
+        write_u32(addr, &write_index, DOWNWARDS);
+        write_index -= 1; // skip a word. Figure out, definitely, what data is needed.
+        st->num++;
+      }
     }
     printf("--\n");
     printf("Shared node: %"PRI_UINT"\n", addr);
     printf("%s\n", buf);
   }
-
-  /* lbm_uint t = lbm_type_of(v); */
-  /* if (t == LBM_TYPE_LISPARRAY) { */
-  /*   lbm_print_value(buf,1024, v); */
-  /*   printf("Array (%s): %s\n", shared ? "SHARED" : "NOT SHARED", buf); */
-  /* } */
 }
-
-
 
 void lbm_image_sharing(void) {
   lbm_value *env = lbm_get_global_env();
+
+  sharing_table st;
+  st.start = write_index;
+  st.num = 0;
+  
+  write_u32(SHARING_TABLE, &write_index, DOWNWARDS);
+  write_index -= 1; // skip a word where size is to be written out of order.
+
   if (env) {
     for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
       lbm_value curr = env[i];
@@ -712,7 +747,7 @@ void lbm_image_sharing(void) {
         //        lbm_value name_field = lbm_caar(curr);
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
         if (!lbm_is_constant(val_field)) {
-          lbm_ptr_rev_trav(detect_shared, val_field, NULL);
+          lbm_ptr_rev_trav(detect_shared, val_field, &st);
         }
         curr = lbm_cdr(curr);
       }

@@ -13,6 +13,9 @@
 (define arr0 [| 1 2 3 |])
 (define arr_pair (cons arr0 [| 9 8 7 |]))
 
+(define b1 (cons 2 a))
+(define e1 (list c d))
+
 (defun main ()
   (print "booting image")
   )
