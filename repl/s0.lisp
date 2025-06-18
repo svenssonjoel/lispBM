@@ -7,6 +7,11 @@
 
 (define e (list c d))
 
+(define barr0 [1 2 3 4])
+(define barr_pair (cons barr0 [0 0 0 0]))
+
+(define arr0 [| 1 2 3 |])
+(define arr_pair (cons arr0 [| 9 8 7 |]))
 
 (defun main ()
   (print "booting image")

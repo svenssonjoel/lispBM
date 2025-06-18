@@ -1575,9 +1575,9 @@ bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
 
     // Run leftwards and process conses until
     // hitting a leaf in the left direction.
-    while ((lbm_is_cons_rw(curr) &&
-            !gc_marked(curr)) ||         // do not step into a loop
-           lbm_is_lisp_array_rw(curr)) { // do not step into the constant heap
+
+    while (((lbm_is_cons_rw(curr)) ||
+            (lbm_is_lisp_array_rw(curr))) && !gc_marked(curr)) {
       lbm_cons_t *cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
         gc_mark(curr);

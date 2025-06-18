@@ -682,14 +682,25 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
 // Construction site
 
 static void detect_shared(lbm_value v, bool shared, void *acc) {
+  char buf[1024];
   if (shared) {
-    char buf[1024];
     lbm_print_value(buf,1024, v);
+    lbm_uint addr = 0;
+    if (lbm_is_ptr(v)) {
+      addr = lbm_dec_ptr(v);
+    }
     printf("--\n");
-    printf("Shared node: \n");
+    printf("Shared node: %"PRI_UINT"\n", addr);
     printf("%s\n", buf);
   }
+
+  lbm_uint t = lbm_type_of(v);
+  if (t == LBM_TYPE_LISPARRAY) {
+    lbm_print_value(buf,1024, v);
+    printf("Array (%s): %s\n", shared ? "SHARED" : "NOT SHARED", buf);
+  }
 }
+
 
 
 void lbm_image_sharing(void) {
