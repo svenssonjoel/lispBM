@@ -16,6 +16,15 @@
 (define b1 (cons 2 a))
 (define e1 (list c d))
 
+;; boxed values are shared.
+(define f0 3.14)
+(define f_pair (cons f0 f0))
+(define f_pair2 (cons 3.14 3.14))
+
+;; non-boxed values are not shared.
+(define i0 23)
+(define i_pair (cons i0 i0))
+
 (defun main ()
   (print "booting image")
   )

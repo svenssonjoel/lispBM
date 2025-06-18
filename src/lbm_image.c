@@ -688,7 +688,7 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
 // 2. Flatten values and for each ptr-cell, check if it's address is in the
 //    sharing table. If the cell is in the sharing table and the boolean
 //    flag is not set: Set the flag and flatten the value with a shared tag
-//          is set: Do not flatten value, create a REF tag. 
+//          is set: Do not flatten value, create a REF tag.
 
 // The sharing table could be a temporary list on the LBM heap
 // if only it wasn't for GC. GC cannot be run while doing pointer
@@ -762,15 +762,16 @@ static void detect_shared(lbm_value v, bool shared, void *acc) {
   }
 }
 
-void lbm_image_sharing(void) {
+sharing_table lbm_image_sharing(void) {
   lbm_value *env = lbm_get_global_env();
 
   sharing_table st;
   st.start = write_index;
   st.num = 0;
-  
+
   write_u32(SHARING_TABLE, &write_index, DOWNWARDS);
   write_index -= 1; // skip a word where size is to be written out of order.
+                    // index is now correct for starting to write sharing table rows.
 
   if (env) {
     for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
@@ -787,6 +788,11 @@ void lbm_image_sharing(void) {
     // clean out all mark-bits
     lbm_perform_gc();
   }
+  // Write the number of shared nodes 0 or more to table entry.
+  int32_t wix = st.start - 1;
+  write_u32((uint32_t)st.num,&wix, DOWNWARDS);
+
+  return st;
 }
 
 // ////////////////////////////////////////////////////////////
