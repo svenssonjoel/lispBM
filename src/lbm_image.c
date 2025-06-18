@@ -694,11 +694,11 @@ static void detect_shared(lbm_value v, bool shared, void *acc) {
     printf("%s\n", buf);
   }
 
-  lbm_uint t = lbm_type_of(v);
-  if (t == LBM_TYPE_LISPARRAY) {
-    lbm_print_value(buf,1024, v);
-    printf("Array (%s): %s\n", shared ? "SHARED" : "NOT SHARED", buf);
-  }
+  /* lbm_uint t = lbm_type_of(v); */
+  /* if (t == LBM_TYPE_LISPARRAY) { */
+  /*   lbm_print_value(buf,1024, v); */
+  /*   printf("Array (%s): %s\n", shared ? "SHARED" : "NOT SHARED", buf); */
+  /* } */
 }
 
 
