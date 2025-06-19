@@ -690,6 +690,11 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
 //    flag is not set: Set the flag and flatten the value with a shared tag
 //          is set: Do not flatten value, create a REF tag.
 
+// Note: the boolean field may not be needed, it may be possible to recreate that
+//       information on the fly during flattening using the GC bit.
+//       But since all complete traversals require a GC this change just moves the
+//       bookkeeping cost forward (first to the size phase).
+
 // The sharing table could be a temporary list on the LBM heap
 // if only it wasn't for GC. GC cannot be run while doing pointer
 // reversal traversals.
@@ -717,7 +722,6 @@ typedef struct {
   int32_t start;
   int32_t num;
 } sharing_table;
-
 
 // Search sharing table, O(N) where N shared nodes
 static int32_t sharing_table_contains(sharing_table *st, uint32_t addr) {
