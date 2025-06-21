@@ -630,6 +630,12 @@ static void detect_shared(lbm_value v, bool shared, void *acc) {
 sharing_table lbm_image_sharing(void) {
   lbm_value *env = lbm_get_global_env();
 
+  lbm_uint num_free = lbm_memory_longest_free();
+  printf("Longest free %u\n", num_free);
+  lbm_perform_gc();
+  num_free = lbm_memory_longest_free();
+  printf("Longest free %u\n", num_free);
+
   sharing_table st;
   st.start = write_index;
   st.num = 0;
@@ -672,14 +678,24 @@ static void size_acc(lbm_value v, bool shared, void *acc) {
   size_accumulator *sa = (size_accumulator*)acc;
   
   if (shared) {
-    printf("*** Locally shared node %"PRI_UINT"\n",v);  
+    printf("*** Locally shared node %"PRI_UINT"\n",v);
+    // sizeof S_REF and addr
+    #ifdef LBM64
+    sa->s += 9;
+    #else
+    sa->s += 5;
+    #endif
     return;
   }
 
-  /* if (lbm_is_ptr(v) && sharing_table_contains(sa->st, v)) { */
-  /*   printf("*** Shared %"PRI_UINT"\n",v); */
-  /*   return; */
-  /* } */
+  if (lbm_is_ptr(v) && sharing_table_contains(sa->st, v)) {
+    printf("*** Shared %"PRI_UINT"\n",v);
+
+    // This case needs bookkeeping!
+    // The first time something in the table is found, the size
+    // should be computed and added to the size of a S_SHARED tag.
+    // Any future times, an S_REF should be added to the size calc.
+  }
 
   lbm_uint t = lbm_type_of(v);
 
