@@ -558,13 +558,22 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
 // The process is order dependent and shared tag for address 'a' must the unflattened
 // before a ref tag for the same address 'a'.
 
+// Tricky:  The traversals for size computation and flattening has to be
+//    made aware of sharing in some way. The traversal always must fully traverse
+//    a value in order to not just partially mark it (it will then be destroyed by GC).
+//  Options:
+//    1: run GC after a complete traversal of all values in env for size and flattening.
+//       This means that all the sizes must be stored temporarily...
+//    2: Give a sharing table to the traversal and have the traversal switch to gc_mark_phace
+//       at each shared node to bookkeep it and keep it safe from upcomming gc.
+
 typedef struct {
   int32_t start;
   int32_t num;
 } sharing_table;
 
 // Search sharing table, O(N) where N shared nodes
-static int32_t sharing_table_contains(sharing_table *st, uint32_t addr) {
+static int32_t sharing_table_contains(sharing_table *st, lbm_uint addr) {
   int32_t si = st->start;
   int32_t num = st->num;
   uint32_t st_tag = read_u32(si);
@@ -573,8 +582,15 @@ static int32_t sharing_table_contains(sharing_table *st, uint32_t addr) {
     printf("sharing table found\n");
     printf("num: %d\n", num);
     for (int32_t i = 0; i < num; i ++ ) {
-      int32_t ix = si - 2 - (i * 2);
-      uint32_t a = read_u32(ix);
+      int32_t ix;
+      lbm_uint a;
+#ifdef LBM64
+      ix = si - 2 - (i * 3);
+      a = read_u64(ix);
+#else
+      ix = si - 2 - (i * 2);
+      a = read_u32(ix);
+#endif
       if (addr == a) {
         printf("match found %u at index %d \n", addr, i);
         return ix;
@@ -597,8 +613,12 @@ static void detect_shared(lbm_value v, bool shared, void *acc) {
         uint32_t b = read_u32(ix - 1);
         printf("shared node exists in table. bool field: %x\n", b);
       } else {
+#ifdef LBM64
+        write_u64(addr, &write_index, DOWNWARDS);
+#else
         write_u32(addr, &write_index, DOWNWARDS);
-        write_index -= 1; // skip a word. Figure out, definitely, what data is needed.
+#endif
+        write_index -= 1; // skip a word for "flattened" boolean.
         st->num++;
       }
     }
@@ -642,11 +662,24 @@ sharing_table lbm_image_sharing(void) {
 
 // ////////////////////////////////////////////////////////////
 //
+
+typedef struct {
+  int32_t s;
+  sharing_table *st;
+} size_accumulator;
+
 static void size_acc(lbm_value v, bool shared, void *acc) {
-  int32_t *s = (int32_t*)acc;
+  size_accumulator *sa = (size_accumulator*)acc;
+  
   if (shared) {
+    printf("*** Locally shared node %"PRI_UINT"\n",v);  
     return;
   }
+
+  /* if (lbm_is_ptr(v) && sharing_table_contains(sa->st, v)) { */
+  /*   printf("*** Shared %"PRI_UINT"\n",v); */
+  /*   return; */
+  /* } */
 
   lbm_uint t = lbm_type_of(v);
 
@@ -655,52 +688,52 @@ static void size_acc(lbm_value v, bool shared, void *acc) {
   }
 
   if (lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
-    *s += (int32_t)sizeof(lbm_uint) + 1;
+    sa->s += (int32_t)sizeof(lbm_uint) + 1;
     return;
   }
 
   switch (t) {
   case LBM_TYPE_CONS:
-    *s += 1;
+    sa->s += 1;
     break;
   case LBM_TYPE_LISPARRAY:
-    *s += 4 + 1;
+    sa->s += 4 + 1;
     break;
   case LBM_TYPE_BYTE:
-    *s += 2;
+    sa->s += 2;
     break;
   case LBM_TYPE_U:
-    *s += (int32_t)sizeof(lbm_uint) + 1;
+    sa->s += (int32_t)sizeof(lbm_uint) + 1;
     break;
   case LBM_TYPE_I:
-    *s += (int32_t)sizeof(lbm_uint) + 1;
+    sa->s += (int32_t)sizeof(lbm_uint) + 1;
     break;
   case LBM_TYPE_U32:
-    *s += 4 + 1;
+    sa->s += 4 + 1;
     break;
   case LBM_TYPE_I32:
-    *s += 4 + 1;
+    sa->s += 4 + 1;
     break;
   case LBM_TYPE_U64:
-    *s += 8 + 1;
+    sa->s += 8 + 1;
     break;
   case LBM_TYPE_I64:
-    *s += 8 + 1;
+    sa->s += 8 + 1;
     break;
   case LBM_TYPE_FLOAT:
-    *s += 4 + 1;
+    sa->s += 4 + 1;
     break;
   case LBM_TYPE_DOUBLE:
-    *s += 8 + 1;
+    sa->s += 8 + 1;
     break;
   case LBM_TYPE_SYMBOL:
-    *s += (int32_t)sizeof(lbm_uint) + 1;
+    sa->s += (int32_t)sizeof(lbm_uint) + 1;
     break;
   case LBM_TYPE_ARRAY: {
     lbm_int arr_size = lbm_heap_array_get_size(v);
     const uint8_t *d = lbm_heap_array_get_data_ro(v);
     if (arr_size > 0 && d != NULL) {
-      *s += 1 + 4 + arr_size;
+      sa->s += 1 + 4 + arr_size;
     }
   }break;
   }
@@ -788,14 +821,17 @@ static void flatten_node(lbm_value v, bool shared, void *res) {
 //
 // This is a temporary step towards proper sharing and cycle detection.
 
-static int32_t image_flatten_size(lbm_value v) {
-  int32_t s = 0;
-  bool ok = lbm_ptr_rev_trav(size_acc, v, &s);
+static int32_t image_flatten_size(sharing_table *st, lbm_value v) {
+  size_accumulator sa;
+  sa.s = 0;
+  sa.st = st;
+  bool ok = lbm_ptr_rev_trav(size_acc, v, &sa);
   lbm_perform_gc();
-  return ok ? s : 0;
+  printf("size: %d\n",sa.s);
+  return ok ? sa.s : 0;
 }
 
-static bool image_flatten_value(lbm_value v) {
+static bool image_flatten_value(sharing_table *st, lbm_value v) {
   bool ok = true;
   bool trav_ok = lbm_ptr_rev_trav(flatten_node, v, &ok);
   lbm_perform_gc();
@@ -811,16 +847,22 @@ bool lbm_image_save_global_env(void) {
   if (env) {
     for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
       lbm_value curr = env[i];
+      char buf[1024];
+      lbm_print_value(buf,1024, curr);
+      printf("env[%d] = %s\n", i, buf);
       while(lbm_is_cons(curr)) {
         lbm_value name_field = lbm_caar(curr);
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
 
         if (lbm_is_constant(val_field)) {
+          printf("constant value\n");
           write_u32(BINDING_CONST, &write_index, DOWNWARDS);
           write_lbm_value(name_field, &write_index, DOWNWARDS);
           write_lbm_value(val_field, &write_index, DOWNWARDS);
         } else {
-          int fv_size = image_flatten_size(val_field);
+          printf("HEAP value\n");
+          int fv_size = image_flatten_size(&st, val_field);
+          printf("fv_size: %d\n",fv_size);
           if (fv_size > 0) {
             fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1; // num 32bit words
             if ((write_index - fv_size) <= (int32_t)image_const_heap.next) {
@@ -830,12 +872,13 @@ bool lbm_image_save_global_env(void) {
             write_u32((uint32_t)fv_size , &write_index, DOWNWARDS);
             write_lbm_value(name_field, &write_index, DOWNWARDS);
             write_index = write_index - fv_size;  // subtract fv_size
-            if (image_flatten_value(val_field)) { // adds fv_size backq
+            if (image_flatten_value(&st, val_field)) { // adds fv_size backq
               // TODO: What error handling makes sense?
               fv_write_flush();
             }
             write_index = write_index - fv_size - 1; // subtract fv_size
           } else {
+            printf("exiting flatten env\n"); 
             return false;
           }
         }
@@ -1139,6 +1182,14 @@ bool lbm_image_boot(void) {
       }
       lbm_extensions_set_next((lbm_uint)i);
       image_has_extensions = true;
+    } break;
+    case SHARING_TABLE: {
+      uint32_t num = read_u32(pos); pos --;
+#ifdef LBM64
+      pos -= (int32_t)(num * 3);
+#else
+      pos -= (int32_t)(num * 2);
+#endif
     } break;
     default:
       write_index = pos+1;
