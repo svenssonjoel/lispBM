@@ -46,6 +46,9 @@ typedef struct {
 #define S_CONSTANT_REF    0x10
 #define S_LBM_LISP_ARRAY  0x1F
 
+#define S_SHARED          0x20
+#define S_REF             0x21
+
 
 // Maximum number of recursive calls
 #define FLATTEN_VALUE_MAXIMUM_DEPTH 2000

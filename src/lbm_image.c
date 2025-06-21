@@ -435,6 +435,213 @@ static bool i_f_lbm_array(uint32_t num_bytes, uint8_t *data) {
 }
 
 
+
+// ////////////////////////////////////////////////////////////
+//
+
+char *lbm_image_get_version(void) {
+  if (image_version) {
+    return image_version;
+  } else {
+    int32_t pos = (int32_t)image_size-2; // fixed position version string.
+    uint32_t val = read_u32(pos); pos --;
+    if (val == VERSION_ENTRY) {
+      int32_t size = (int32_t)read_u32(pos);
+      image_version = (char*)(image_address + (pos - size));
+      return image_version;
+    }
+  }
+  return NULL;
+}
+
+// ////////////////////////////////////////////////////////////
+// Constant heaps as part of an image.
+
+lbm_const_heap_t image_const_heap;
+lbm_uint image_const_heap_start_ix = 0;
+
+bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
+#ifdef LBM64
+  int32_t i = (int32_t)(image_const_heap_start_ix + (ix * 2));
+  uint32_t *words = (uint32_t*)&w;
+  bool r = image_write(words[0], i, false);
+  r = r && image_write(words[1], i + 1, false);
+  return r;
+#else
+  int32_t i = (int32_t)(image_const_heap_start_ix + ix);
+  return write_u32(w, &i, false);
+#endif
+}
+
+// ////////////////////////////////////////////////////////////
+// Image manipulation
+
+lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
+  // 64 bit                             | 32 bit
+  // image[i] = SYMBOL_ENTRY            | image[i] = SYMBOL_ENTRY
+  // image[i-1] = symlist_ptr_high_word | image[i-1] = symlist_ptr
+  // image[i-2] = symlist_ptr_low_word  | image[i-2] = id
+  // image[i-3] = id_high_word          | image[i-3] = name_ptr
+  // image[i-4] = id_low_word
+  // image[i-5] = name_ptr_high_word
+  // image[i-6] = name_ptr_low_word
+  bool r = write_u32(SYMBOL_ENTRY, &write_index,DOWNWARDS);
+  r = r && write_lbm_uint(symlist, &write_index, DOWNWARDS);
+  r = r && write_lbm_uint(id, &write_index, DOWNWARDS);
+  r = r && write_lbm_uint((lbm_uint)name, &write_index, DOWNWARDS);
+  lbm_uint entry_ptr = (lbm_uint)(image_address + write_index + 1);
+  if (r)
+    return (lbm_uint*)entry_ptr;
+  return NULL;
+}
+
+// The symbol id is written to the link address upon image-boot
+lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlist, lbm_uint *link) {
+  // 64 bit                             | 32 bit
+  // image[i] = SYMBOL_ENTRY            | image[i] = SYMBOL_ENTRY
+  // image[i-1] = link_ptr_high         | image[i-1] link_ptr
+  // image[i-2] = link_ptr_low          | image[i-2] = symlist_ptr
+  // image[i-3] = symlist_ptr_high_word | image[i-3] = id
+  // image[i-4] = symlist_ptr_low_word  | image[i-4] = name_ptr
+  // image[i-5] = id_high_word
+  // image[i-6] = id_low_word
+  // image[i-7] = name_ptr_high_word
+  // image[i-8] = name_ptr_low_word
+  bool r = write_u32(SYMBOL_LINK_ENTRY, &write_index,DOWNWARDS);
+  r = r && write_lbm_uint((lbm_uint)link, &write_index, DOWNWARDS);
+  r = r && write_lbm_uint(symlist, &write_index, DOWNWARDS);
+  r = r && write_lbm_uint(id, &write_index, DOWNWARDS);
+  r = r && write_lbm_uint((lbm_uint)name, &write_index, DOWNWARDS);
+    lbm_uint entry_ptr = (lbm_uint)(image_address + write_index + 1);
+  if (r)
+    return (lbm_uint*)entry_ptr;
+  return NULL;
+}
+
+// ////////////////////////////////////////////////////////////
+// Construction site
+
+// Sharing is detected and annotated by:
+// 1. Generate an array of addresses of shared structures. (sharing table)
+//    Sharing table will contain a boolean field where "having been flattened"
+//    status is tracked.
+// 2. Flatten values and for each ptr-cell, check if it's address is in the
+//    sharing table. If the cell is in the sharing table and the boolean
+//    flag is not set: Set the flag and flatten the value with a shared tag
+//          is set: Do not flatten value, create a REF tag.
+
+// Note: the boolean field may not be needed, it may be possible to recreate that
+//       information on the fly during flattening using the GC bit.
+//       But since all complete traversals require a GC this change just moves the
+//       bookkeeping cost forward (first to the size phase).
+
+// The sharing table could be a temporary list on the LBM heap
+// if only it wasn't for GC. GC cannot be run while doing pointer
+// reversal traversals.
+// Another option would be to allocate an area in LBM mem and fill that
+// that with temporary sharing data. Only problem is that we do not know how much
+// temporary data is needed until after doing at least one traversal where we
+// also need to accumulate shared addresses in order to not count them doubly.
+// ** allocating lbm_memory_longest_free amount of temp data at flattening
+//    could be a good solution. But even then the final number of shared
+//    nodes could be written to the image so that the unflattener does not need
+//    guess and allocate in chunks.
+//    - Very little lbm mem could be available here.
+
+// Sharing is restored by:
+// 1. Allocate a new column for the sharing table in LBM mem, the size is now known.
+// 2. Unflatten flat values:
+//       if a value has a shared tag, fill in the address it is unflattened to into the
+//       new sharing table column.
+//       if a value has the ref tag, look it up in sharing table and read out the new address.
+//
+// The process is order dependent and shared tag for address 'a' must the unflattened
+// before a ref tag for the same address 'a'.
+
+typedef struct {
+  int32_t start;
+  int32_t num;
+} sharing_table;
+
+// Search sharing table, O(N) where N shared nodes
+static int32_t sharing_table_contains(sharing_table *st, uint32_t addr) {
+  int32_t si = st->start;
+  int32_t num = st->num;
+  uint32_t st_tag = read_u32(si);
+  if (st_tag == SHARING_TABLE) {
+    // sharing table tag exists but not the num field.
+    printf("sharing table found\n");
+    printf("num: %d\n", num);
+    for (int32_t i = 0; i < num; i ++ ) {
+      int32_t ix = si - 2 - (i * 2);
+      uint32_t a = read_u32(ix);
+      if (addr == a) {
+        printf("match found %u at index %d \n", addr, i);
+        return ix;
+      }
+    }
+  }
+  return -1;
+}
+
+static void detect_shared(lbm_value v, bool shared, void *acc) {
+  sharing_table *st = (sharing_table*)acc;
+  char buf[1024];
+  if (shared) {
+    lbm_print_value(buf,1024, v);
+    lbm_uint addr = 0;
+    if (lbm_is_ptr(v)) {
+      addr = v;
+      int32_t ix = sharing_table_contains(st,addr);
+      if (ix >= 0) {
+        uint32_t b = read_u32(ix - 1);
+        printf("shared node exists in table. bool field: %x\n", b);
+      } else {
+        write_u32(addr, &write_index, DOWNWARDS);
+        write_index -= 1; // skip a word. Figure out, definitely, what data is needed.
+        st->num++;
+      }
+    }
+    printf("Shared node: %"PRI_UINT"\n", addr);
+    printf("%s\n", buf);
+  }
+}
+
+sharing_table lbm_image_sharing(void) {
+  lbm_value *env = lbm_get_global_env();
+
+  sharing_table st;
+  st.start = write_index;
+  st.num = 0;
+
+  write_u32(SHARING_TABLE, &write_index, DOWNWARDS);
+  write_index -= 1; // skip a word where size is to be written out of order.
+                    // index is now correct for starting to write sharing table rows.
+
+  if (env) {
+    for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+      lbm_value curr = env[i];
+      while(lbm_is_cons(curr)) {
+        //        lbm_value name_field = lbm_caar(curr);
+        lbm_value val_field  = lbm_cdr(lbm_car(curr));
+        if (!lbm_is_constant(val_field)) {
+          lbm_ptr_rev_trav(detect_shared, val_field, &st);
+        }
+        curr = lbm_cdr(curr);
+      }
+    }
+    // clean out all mark-bits
+    lbm_perform_gc();
+  }
+  // Write the number of shared nodes, 0 or more, to table entry.
+  int32_t wix = st.start - 1;
+  write_u32((uint32_t)st.num,&wix, DOWNWARDS);
+
+  return st;
+}
+
+// ////////////////////////////////////////////////////////////
+//
 static void size_acc(lbm_value v, bool shared, void *acc) {
   int32_t *s = (int32_t*)acc;
   if (shared) {
@@ -598,211 +805,8 @@ static bool image_flatten_value(lbm_value v) {
 
 // ////////////////////////////////////////////////////////////
 //
-
-char *lbm_image_get_version(void) {
-  if (image_version) {
-    return image_version;
-  } else {
-    int32_t pos = (int32_t)image_size-2; // fixed position version string.
-    uint32_t val = read_u32(pos); pos --;
-    if (val == VERSION_ENTRY) {
-      int32_t size = (int32_t)read_u32(pos);
-      image_version = (char*)(image_address + (pos - size));
-      return image_version;
-    }
-  }
-  return NULL;
-}
-
-// ////////////////////////////////////////////////////////////
-// Constant heaps as part of an image.
-
-lbm_const_heap_t image_const_heap;
-lbm_uint image_const_heap_start_ix = 0;
-
-bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
-#ifdef LBM64
-  int32_t i = (int32_t)(image_const_heap_start_ix + (ix * 2));
-  uint32_t *words = (uint32_t*)&w;
-  bool r = image_write(words[0], i, false);
-  r = r && image_write(words[1], i + 1, false);
-  return r;
-#else
-  int32_t i = (int32_t)(image_const_heap_start_ix + ix);
-  return write_u32(w, &i, false);
-#endif
-}
-
-// ////////////////////////////////////////////////////////////
-// Image manipulation
-
-lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
-  // 64 bit                             | 32 bit
-  // image[i] = SYMBOL_ENTRY            | image[i] = SYMBOL_ENTRY
-  // image[i-1] = symlist_ptr_high_word | image[i-1] = symlist_ptr
-  // image[i-2] = symlist_ptr_low_word  | image[i-2] = id
-  // image[i-3] = id_high_word          | image[i-3] = name_ptr
-  // image[i-4] = id_low_word
-  // image[i-5] = name_ptr_high_word
-  // image[i-6] = name_ptr_low_word
-  bool r = write_u32(SYMBOL_ENTRY, &write_index,DOWNWARDS);
-  r = r && write_lbm_uint(symlist, &write_index, DOWNWARDS);
-  r = r && write_lbm_uint(id, &write_index, DOWNWARDS);
-  r = r && write_lbm_uint((lbm_uint)name, &write_index, DOWNWARDS);
-  lbm_uint entry_ptr = (lbm_uint)(image_address + write_index + 1);
-  if (r)
-    return (lbm_uint*)entry_ptr;
-  return NULL;
-}
-
-// The symbol id is written to the link address upon image-boot
-lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlist, lbm_uint *link) {
-  // 64 bit                             | 32 bit
-  // image[i] = SYMBOL_ENTRY            | image[i] = SYMBOL_ENTRY
-  // image[i-1] = link_ptr_high         | image[i-1] link_ptr
-  // image[i-2] = link_ptr_low          | image[i-2] = symlist_ptr
-  // image[i-3] = symlist_ptr_high_word | image[i-3] = id
-  // image[i-4] = symlist_ptr_low_word  | image[i-4] = name_ptr
-  // image[i-5] = id_high_word
-  // image[i-6] = id_low_word
-  // image[i-7] = name_ptr_high_word
-  // image[i-8] = name_ptr_low_word
-  bool r = write_u32(SYMBOL_LINK_ENTRY, &write_index,DOWNWARDS);
-  r = r && write_lbm_uint((lbm_uint)link, &write_index, DOWNWARDS);
-  r = r && write_lbm_uint(symlist, &write_index, DOWNWARDS);
-  r = r && write_lbm_uint(id, &write_index, DOWNWARDS);
-  r = r && write_lbm_uint((lbm_uint)name, &write_index, DOWNWARDS);
-    lbm_uint entry_ptr = (lbm_uint)(image_address + write_index + 1);
-  if (r)
-    return (lbm_uint*)entry_ptr;
-  return NULL;
-}
-
-// ////////////////////////////////////////////////////////////
-// Construction site
-
-// Sharing is detected and annotated by:
-// 1. Generate an array of addresses of shared structures. (sharing table)
-//    Sharing table will contain a boolean field where "having been flattened"
-//    status is tracked.
-// 2. Flatten values and for each ptr-cell, check if it's address is in the
-//    sharing table. If the cell is in the sharing table and the boolean
-//    flag is not set: Set the flag and flatten the value with a shared tag
-//          is set: Do not flatten value, create a REF tag.
-
-// Note: the boolean field may not be needed, it may be possible to recreate that
-//       information on the fly during flattening using the GC bit.
-//       But since all complete traversals require a GC this change just moves the
-//       bookkeeping cost forward (first to the size phase).
-
-// The sharing table could be a temporary list on the LBM heap
-// if only it wasn't for GC. GC cannot be run while doing pointer
-// reversal traversals.
-// Another option would be to allocate an area in LBM mem and fill that
-// that with temporary sharing data. Only problem is that we do not know how much
-// temporary data is needed until after doing at least one traversal where we
-// also need to accumulate shared addresses in order to not count them doubly.
-// ** allocating lbm_memory_longest_free amount of temp data at flattening
-//    could be a good solution. But even then the final number of shared
-//    nodes could be written to the image so that the unflattener does not need
-//    guess and allocate in chunks.
-//    - Very little lbm mem could be available here.
-
-// Sharing is restored by:
-// 1. Allocate a new column for the sharing table in LBM mem, the size is now known.
-// 2. Unflatten flat values:
-//       if a value has a shared tag, fill in the address it is unflattened to into the
-//       new sharing table column.
-//       if a value has the ref tag, look it up in sharing table and read out the new address.
-//
-// The process is order dependent and shared tag for address 'a' must the unflattened
-// before a ref tag for the same address 'a'.
-
-typedef struct {
-  int32_t start;
-  int32_t num;
-} sharing_table;
-
-// Search sharing table, O(N) where N shared nodes
-static int32_t sharing_table_contains(sharing_table *st, uint32_t addr) {
-  int32_t si = st->start;
-  int32_t num = st->num;
-  uint32_t st_tag = read_u32(si);
-  if (st_tag == SHARING_TABLE) {
-    // sharing table tag exists but not the num field.
-    printf("sharing table found\n");
-    printf("num: %d\n", num);
-    for (int32_t i = 0; i < num; i ++ ) {
-      int32_t ix = si - 2 - (i * 2);
-      uint32_t a = read_u32(ix);
-      if (addr == a) {
-        return ix;
-      }
-    }
-  }
-  return -1;
-}
-
-static void detect_shared(lbm_value v, bool shared, void *acc) {
-  sharing_table *st = (sharing_table*)acc;
-  char buf[1024];
-  if (shared) {
-    lbm_print_value(buf,1024, v);
-    lbm_uint addr = 0;
-    if (lbm_is_ptr(v)) {
-      addr = lbm_dec_ptr(v);
-      int32_t ix = sharing_table_contains(st,addr);
-      if (ix >= 0) {
-        uint32_t b = read_u32(ix - 1);
-        printf("shared node exists in table. bool field: %x\n", b);
-      } else {
-        write_u32(addr, &write_index, DOWNWARDS);
-        write_index -= 1; // skip a word. Figure out, definitely, what data is needed.
-        st->num++;
-      }
-    }
-    printf("Shared node: %"PRI_UINT"\n", addr);
-    printf("%s\n", buf);
-  }
-}
-
-sharing_table lbm_image_sharing(void) {
-  lbm_value *env = lbm_get_global_env();
-
-  sharing_table st;
-  st.start = write_index;
-  st.num = 0;
-
-  write_u32(SHARING_TABLE, &write_index, DOWNWARDS);
-  write_index -= 1; // skip a word where size is to be written out of order.
-                    // index is now correct for starting to write sharing table rows.
-
-  if (env) {
-    for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
-      lbm_value curr = env[i];
-      while(lbm_is_cons(curr)) {
-        //        lbm_value name_field = lbm_caar(curr);
-        lbm_value val_field  = lbm_cdr(lbm_car(curr));
-        if (!lbm_is_constant(val_field)) {
-          lbm_ptr_rev_trav(detect_shared, val_field, &st);
-        }
-        curr = lbm_cdr(curr);
-      }
-    }
-    // clean out all mark-bits
-    lbm_perform_gc();
-  }
-  // Write the number of shared nodes 0 or more to table entry.
-  int32_t wix = st.start - 1;
-  write_u32((uint32_t)st.num,&wix, DOWNWARDS);
-
-  return st;
-}
-
-// ////////////////////////////////////////////////////////////
-//
 bool lbm_image_save_global_env(void) {
-  lbm_image_sharing();
+  sharing_table st = lbm_image_sharing();
   lbm_value *env = lbm_get_global_env();
   if (env) {
     for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
