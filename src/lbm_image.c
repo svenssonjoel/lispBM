@@ -605,10 +605,34 @@ static int32_t sharing_table_contains(sharing_table *st, lbm_uint addr) {
   return -1;
 }
 
+#define SHARING_TABLE_SIZED_FIELD     0
+#define SHARING_TABLE_FLATTENED_FIELD 1
+
+static bool sharing_table_set_field(int32_t ix, int32_t field, uint32_t value) {
+  int32_t wix;
+#ifdef LBM64
+  wix = ix - 2 - field;
+#else
+  wix = ix - 1 - field;
+#endif
+  return write_u32(value, &wix, DOWNWARDS); // Dir irrelevant
+}
+
+static uint32_t sharing_table_get_field(int32_t ix, int32_t field) {
+  int32_t wix;
+#ifdef LBM64
+  wix = ix - 2 - field;
+#else
+  wix = ix - 1 - field;
+#endif
+  return read_u32(wix);
+}
+
 static void detect_shared(lbm_value v, bool shared, void *acc) {
   sharing_table *st = (sharing_table*)acc;
   char buf[1024];
   if (shared) {
+    printf("shared\n");
     lbm_print_value(buf,1024, v);
     lbm_uint addr = 0;
     if (lbm_is_ptr(v)) {
@@ -616,7 +640,8 @@ static void detect_shared(lbm_value v, bool shared, void *acc) {
       int32_t ix = sharing_table_contains(st,addr);
       if (ix >= 0) {
         uint32_t b = read_u32(ix - 1);
-        printf("shared node exists in table. bool field: %x\n", b);
+        uint32_t b2 = read_u32(ix - 2);
+        printf("shared node exists in table. bool fields: %x %x\n", b, b2);
       } else {
 #ifdef LBM64
         write_u64(addr, &write_index, DOWNWARDS);
@@ -635,11 +660,11 @@ static void detect_shared(lbm_value v, bool shared, void *acc) {
 sharing_table lbm_image_sharing(void) {
   lbm_value *env = lbm_get_global_env();
 
-  lbm_uint num_free = lbm_memory_longest_free();
-  printf("Longest free %u\n", num_free);
-  lbm_perform_gc();
-  num_free = lbm_memory_longest_free();
-  printf("Longest free %u\n", num_free);
+  /* lbm_uint num_free = lbm_memory_longest_free(); */
+  /* printf("Longest free %u\n", num_free); */
+  /* lbm_perform_gc(); */
+  /* num_free = lbm_memory_longest_free(); */
+  /* printf("Longest free %u\n", num_free); */
 
   sharing_table st;
   st.start = write_index;
@@ -656,6 +681,7 @@ sharing_table lbm_image_sharing(void) {
         //        lbm_value name_field = lbm_caar(curr);
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
         if (!lbm_is_constant(val_field)) {
+          printf("detecting shared\n");
           lbm_ptr_rev_trav(detect_shared, val_field, &st);
         }
         curr = lbm_cdr(curr);
@@ -693,13 +719,47 @@ static void size_acc(lbm_value v, bool shared, void *acc) {
     return;
   }
 
-  if (lbm_is_ptr(v) && sharing_table_contains(sa->st, v)) {
+  int32_t sharing_ix = sharing_table_contains(sa->st, v);
+  if (lbm_is_ptr(v) && (sharing_ix >= 0)) {
+
+    uint32_t sized = sharing_table_get_field(sharing_ix,
+                                             SHARING_TABLE_SIZED_FIELD);
+    uint32_t flattened = sharing_table_get_field(sharing_ix,
+                                                 SHARING_TABLE_FLATTENED_FIELD);
+
+    if (sized != 0xDEADBEEF) {
+      sharing_table_set_field(sharing_ix, SHARING_TABLE_SIZED_FIELD, 0xDEADBEEF);
+      // sizeof S_SHARED and addr
+#ifdef LBM64
+      sa->s += 9;
+#else
+      sa->s += 5;
+#endif
+      // continue to size the value
+    } else {
+      // This case is a bit tricky. Traversal needs to be terminated here.
+      // It is possible that running lbm_gc_mark_phase on the value has the desired
+      // effect.
+      //
+      // sizeof S_REF and addr
+#ifdef LBM64
+      sa->s += 9;
+#else
+      sa->s += 5;
+#endif
+      lbm_gc_mark_phase(v);
+    }
+
+    printf("sized: %x\n", sized);
+    printf("flattened: %x\n", flattened);
     printf("*** Shared %"PRI_UINT"\n",v);
 
     // This case needs bookkeeping!
     // The first time something in the table is found, the size
     // should be computed and added to the size of a S_SHARED tag.
     // Any future times, an S_REF should be added to the size calc.
+  } else {
+    printf("value not in sharing table\n");
   }
 
   lbm_uint t = lbm_type_of(v);
