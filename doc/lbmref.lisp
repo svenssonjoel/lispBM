@@ -1866,6 +1866,34 @@
                       ))
               end)))
 
+(define lists-in
+  (ref-entry "in"
+             (list
+              (para (list "Check if value is included in list. The form of an `in` expression is"
+                          "`(in value-expr list-expr)`. Equality is checked structurally, in the"
+                          "same way as" (str-merge (code-entry-ref "eq") ",") "meaning if you're"
+                          "checking numbers the types must match (see the following examples)."
+                          ))
+              (code '((in 3 (list 1 2 3))
+                      (in 3u (list 1 2 3))
+                      (in '(b c) '((a b) (b c)))
+                      ))
+              (para (list "This function can be used as a readable and efficient way of checking"
+                          "if a value is in some constant set of values. This often results in"
+                          "significantly less code than unrolling it as a series of"
+                          (str-merge (code-entry-ref "eq") "s") "inside an" (code-entry-ref "or")
+                          "expression."
+                          ))
+              (program '(((defun is-pet? (thing)
+                            (in thing '(cat dog)))
+                          (is-pet? 'cat)
+                          )
+                         ((is-pet? 'car))
+                         ((defun is-pet-unrolled? (thing)
+                            (or (eq thing 'cat) (eq thing 'dog)))
+                          (eq (is-pet? 'cat) (is-pet-unrolled? 'cat)))
+                         ))
+              end)))
 
 (define lists-setix
   (ref-entry "setix"
@@ -2030,6 +2058,7 @@
             lists-range
             lists-append
             lists-ix
+            lists-in
             lists-setix
             lists-setcar
             lists-setcdr

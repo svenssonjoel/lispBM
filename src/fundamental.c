@@ -1473,6 +1473,30 @@ static lbm_value fundamental_is_constant(lbm_value *args, lbm_uint argn, eval_co
   return res;
 }
 
+// signature: (in value lst)
+// Check if value is in list using structural equality.
+static lbm_value fundamental_in(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
+  (void) ctx;
+  
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 && lbm_is_list(args[1])) {
+    res = ENC_SYM_NIL;
+
+    lbm_value value = args[0];
+    lbm_value current = args[1];
+    while (lbm_is_cons(current)) {
+      // Safety: Already checked that current is cons
+      lbm_cons_t *cell = lbm_ref_cell(current);
+      if (struct_eq(value, cell->car)) {
+        res = ENC_SYM_TRUE;
+        break;
+      }
+      current = cell->cdr;
+    }
+  }
+  return res;
+}
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1541,5 +1565,6 @@ const fundamental_fun fundamental_table[] =
    fundamental_identity,
    fundamental_array,
    fundamental_is_string,
-   fundamental_is_constant
+   fundamental_is_constant,
+   fundamental_in,
   };

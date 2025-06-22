@@ -6552,6 +6552,148 @@ Index into a list using the `ix` function. The form of an `ix` expression is `(i
 ---
 
 
+### in
+
+Check if value is included in list. The form of an `in` expression is `(in value-expr list-expr)`. Equality is checked structurally, in the same way as [`eq`](#eq), meaning if you're checking numbers the types must match (see the following examples). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(in 3 (list 1 2 3))
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(in 3u (list 1 2 3))
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(in '(b c) '((a b) (b c)))
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+This function can be used as a readable and efficient way of checking if a value is in some constant set of values. This often results in significantly less code than unrolling it as a series of [`eq`](#eq)s inside an [`or`](#or) expression. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun is-pet? (thing)
+  (in thing '(cat dog)))
+(is-pet? 'cat)
+```
+
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(is-pet? 'car)
+```
+
+
+</td>
+<td>
+
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun is-pet-unrolled? (thing)
+  (or (eq thing 'cat) (eq thing 'dog)))
+(eq (is-pet? 'cat) (is-pet-unrolled? 'cat))
+```
+
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
 ### setix
 
 Destructively update an element in a list. The form of a `setix` expression is `(setix list-expr index-expr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
@@ -8928,7 +9070,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 79659 kurt-russel)
+(exit-ok 81541 kurt-russel)
 ```
 
 
