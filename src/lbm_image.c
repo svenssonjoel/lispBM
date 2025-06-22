@@ -572,6 +572,13 @@ typedef struct {
   int32_t num;
 } sharing_table;
 
+#ifdef LBM64
+#define SHARING_TABLE_ENTRY_SIZE (2 + 1 + 1)
+#else
+#define SHARING_TABLE_ENTRY_SIZE (1 + 1 + 1)
+#endif
+
+
 // Search sharing table, O(N) where N shared nodes
 static int32_t sharing_table_contains(sharing_table *st, lbm_uint addr) {
   int32_t si = st->start;
@@ -582,13 +589,11 @@ static int32_t sharing_table_contains(sharing_table *st, lbm_uint addr) {
     printf("sharing table found\n");
     printf("num: %d\n", num);
     for (int32_t i = 0; i < num; i ++ ) {
-      int32_t ix;
       lbm_uint a;
+      int32_t ix = si - 2 - (i * SHARING_TABLE_ENTRY_SIZE);
 #ifdef LBM64
-      ix = si - 2 - (i * 3);
       a = read_u64(ix);
 #else
-      ix = si - 2 - (i * 2);
       a = read_u32(ix);
 #endif
       if (addr == a) {
@@ -618,7 +623,7 @@ static void detect_shared(lbm_value v, bool shared, void *acc) {
 #else
         write_u32(addr, &write_index, DOWNWARDS);
 #endif
-        write_index -= 1; // skip a word for "flattened" boolean.
+        write_index -= 2; // skip 2 words for "sized" and "flattened" booleans.
         st->num++;
       }
     }
@@ -858,6 +863,12 @@ static bool image_flatten_value(sharing_table *st, lbm_value v) {
 // ////////////////////////////////////////////////////////////
 //
 bool lbm_image_save_global_env(void) {
+
+  lbm_uint ncells = lbm_heap_size();
+  printf("Num heap cells: %d\n", ncells);
+  printf("Theoretical max sharing: %d\n", (ncells * 2) / 3);
+  printf("longest free lbm_mem: %d\n", lbm_memory_longest_free());
+
   sharing_table st = lbm_image_sharing();
   lbm_value *env = lbm_get_global_env();
   if (env) {
@@ -1201,11 +1212,7 @@ bool lbm_image_boot(void) {
     } break;
     case SHARING_TABLE: {
       uint32_t num = read_u32(pos); pos --;
-#ifdef LBM64
-      pos -= (int32_t)(num * 3);
-#else
-      pos -= (int32_t)(num * 2);
-#endif
+      pos -= (int32_t)(num * SHARING_TABLE_ENTRY_SIZE);
     } break;
     default:
       write_index = pos+1;
