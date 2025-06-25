@@ -930,13 +930,13 @@ static lbm_value fundamental_acons(lbm_value *args, lbm_uint nargs, eval_context
   return result;
 }
 
-static bool set_assoc(lbm_value *res, lbm_value keyval, lbm_value assocs) {
-  lbm_value curr = assocs;
+static bool set_assoc(lbm_value *res, lbm_value keyval, lbm_value assoc_list) {
+  lbm_value curr = assoc_list;
   lbm_value key = lbm_car(keyval);
   while (lbm_is_cons(curr)) {
     if (struct_eq(key, lbm_caar(curr))) {
       lbm_set_car(curr, keyval);
-      *res = assocs;
+      *res = assoc_list;
       return true;
     }
     curr = lbm_cdr(curr);
