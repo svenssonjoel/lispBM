@@ -1635,6 +1635,12 @@ bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   return res;
 }
 
+// Returns if symbol is allowed to be bound and if it will be looked up when
+// evaluated.
+static inline bool is_symbol_lookup_allowed(lbm_uint symbol) {
+  return symbol != SYM_REST_ARGS;
+}
+
 // a match binder looks like (? x) or (? _) for example.
 // It is a list of two elements where the first is a ? and the second is a symbol.
 static inline lbm_value get_match_binder_variable(lbm_value exp) {
@@ -1787,14 +1793,17 @@ int lbm_perform_gc(void) {
 
 static void eval_symbol(eval_context_t *ctx) {
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
+  
+  lbm_value res = ENC_SYM_NIL;
+  if (is_symbol_lookup_allowed(s) &&
+      (lbm_env_lookup_b(&res, ctx->curr_exp, ctx->curr_env) ||
+       lbm_global_env_lookup(&res, ctx->curr_exp))) {
+    ctx->r = res;
+    ctx->app_cont = true;
+    return;
+  }
+  
   if (s >= RUNTIME_SYMBOLS_START) {
-    lbm_value res = ENC_SYM_NIL;
-    if (lbm_env_lookup_b(&res, ctx->curr_exp, ctx->curr_env) ||
-        lbm_global_env_lookup(&res, ctx->curr_exp)) {
-      ctx->r =  res;
-      ctx->app_cont = true;
-      return;
-    }
     // Dynamic load attempt
     // Only symbols of kind RUNTIME can be dynamically loaded.
     const char *sym_str = lbm_get_name_by_symbol(s);
@@ -1944,7 +1953,7 @@ static void eval_define(eval_context_t *ctx) {
   if (lbm_is_symbol(parts[KEY]) && lbm_is_symbol_nil(rest)) {
     lbm_uint sym_val = lbm_dec_sym(parts[KEY]);
     sptr[0] = parts[KEY];
-    if (sym_val >= RUNTIME_SYMBOLS_START) {
+    if (is_symbol_lookup_allowed(sym_val)) {
       sptr[1] = SET_GLOBAL_ENV;
       if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST) {
         stack_reserve(ctx, 1)[0] = MOVE_VAL_TO_FLASH_DISPATCH;

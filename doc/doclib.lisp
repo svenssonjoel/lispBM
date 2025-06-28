@@ -130,18 +130,41 @@
            (str-merge "\n" (ind-spaces n) (pretty-ind n x) (pretty-aligned-on-top n xs))))
   )
 
+; There are three different "wrappers" you can place around code for special
+; formatting behaviors:
+; - ('read-eval str): The string is displayed as is for the source and read
+;   before evaluating.
+; - ('!manual code str): Code is stringified for the source; str is display as
+;   is for the result.
+; - ('!hidden code): The code is evaluated, but no row is rendered. Use to clean
+;   up after examples.
+; - code: Any other code is stringified for the source and evaluated for the
+;   result.
 (defun render-code-res-pairs (rend cs)
   (match cs
          (nil t)
+         ( ((!hidden (? x)) . (? xs))
+           (progn
+             ; Evaluate code without rendering to output.
+             (eval nil x)
+             (render-program-res-pairs rend xs)))
          ( ((? x) . (? xs))
-           (let ((x-str (if (is-read-eval-txt x)
-                            (ix x 1)
-                          (pretty nil 0 x)))
-                 (x-code (if (is-read-eval-txt x)
-                             (read (ix x 1))
-                           x))
-                 (res (eval nil x-code))
-                 (res-str (pretty nil 0 res)))
+           (let ((x-str (match x
+                               ( (read-eval (? x)) x)
+                               ( (!manual (? display) _)
+                                 (pretty nil 0 display))
+                               ( (? code)
+                                 (pretty nil 0 code))))
+                 (x-code (match x
+                                ( (read-eval (? x))
+                                  (read x))
+                                ( (!manual _ (? str))
+                                  (list '!raw str))
+                                ( (? code) code)))
+                 (res-str (match x-code
+                                 ( (!raw (? str)) str)
+                                 ( (? code)
+                                   (pretty nil 0 (eval nil code))))))
              {
              (rend "<tr>\n")
              (rend "<td>\n\n")
@@ -322,18 +345,42 @@
   }
   )
 
+; There are three different "wrappers" you can place around programs for special
+; formatting behaviors:
+; - ('read-eval str): The string is displayed as is for the source and read
+;   before evaluating.
+; - ('!manual program str): The program is stringified for the source; str is
+;   display as is for the result.
+; - ('!hidden program): The program is evaluated but no row is rendered. Use to
+;   clean up after examples.
+; - program: Any other program is stringified for the source and evaluated for
+;   the result.
 (defun render-program-res-pairs (rend cs)
   (match cs
          (nil t)
+         ( ((!hidden (? x)) . (? xs))
+           (progn
+             ; Evaluate program without rendering to output.
+             (eval-program nil x)
+             (render-program-res-pairs rend xs))
+           )
          ( ((? x) . (? xs))
-           (let ((x-str (if (is-read-eval-txt x)
-                            (ix x 1)
-                          (pretty 't 0 x)))
-                 (x-code (if (is-read-eval-txt x)
-                             (read-program (ix x 1))
-                           x))
-                 (res (eval-program nil x-code))
-                 (res-str (to-str res)))
+           (let ((x-str (match x
+                               ( (read-eval (? x)) x)
+                               ( (!manual (? display) _)
+                                 (pretty 't 0 display))
+                               ( (? code) (pretty 't 0 code))))
+                 (x-code (match x
+                                ( (read-eval (? x))
+                                  (read-program x))
+                                ( (!manual _ (? str))
+                                  (list '!raw str))
+                                ( (? code) code)))
+                 (res-str (match x-code
+                                 ( (!raw (? str)) str)
+                                 ( (? code)
+                                   (pretty nil 0 (eval-program nil code)))))
+                 )
            ;(let ((c-strings (map (lambda (c) (str-merge (pretty c) "\n"))  x))
            ;      (res (eval-program nil x))
            ;      (res-str (to-str res)))

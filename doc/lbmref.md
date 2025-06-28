@@ -18,9 +18,7 @@ Symbols are expressed as strings in your program such as `a`, `let`, `define`, `
 
 You associate values with symbols using, <a href="#define">define</a>, <a href="#let">let</a> and you can change the value bound to a "variable" using <a href="#set">set</a>, <a href="#setvar">setq</a> or <a href="#setvar">setvar</a>. 
 
-Not all symbols are treated the same in LBM. Some symbols are treated as special because of their very fundamental nature. Among these special symbols you find `define`, `let` and `lambda` for example. These are things that you should not be able to redefine and trying to redefine them leads to an error. Symbols that start with `ext-` are special and reserved for use together with extensions that are loaded and bound at runtime. 
-
-Examples of symbols used as data are `nil` and `t`. `nil` represents "nothing", the empty list or other similar things and `t` represents true.  But any symbol can be used as data by quoting it `'`, see <a href="#quotes-and-quasiquotation"> Quotes and Quasiquotation </a>. 
+The other way of thinking about symbols is as data. Examples of this are `nil` and `t`. `nil` represents "nothing", the empty list or other similar things and `t` represents true.  But any symbol can be used as data by quoting it `'`, see <a href="#quotes-and-quasiquotation"> Quotes and Quasiquotation </a>. 
 
 ### Valid Symbol Names
 
@@ -29,6 +27,132 @@ A symbol is a string of characters following the rules: 1. The first character i
 Note that lower-case and upper-case alphabetical letters are considered identical so the symbol `apa` is the same symbol as `APA`. 
 
 examples of valid symbols: ``` apa apa? !apa kurt_russel_is_great ``` 
+
+
+### Built-in Symbols
+
+Not all symbols are treated the same in LBM. Built-in symbols are treated as special because of their very fundamental nature. Among these special symbols you find `nil`  and `t`, but also those representing built-in functions like `define`, `let` and `lambda`. Their defining property is that they result in themselves when evaluated. Evaluation is a tricky concept to wrap your head around, but you can think of it as what happens when you enter some experssion into a REPL. If you try to type `nil` and press enter it will print out `nil` again. This means that the original `nil` was evaluated which resulted in the symbol `nil` again. Contrast this with normal symbols. If you were to type `my-undefined-symbol` into the repl and press enter then you'd get an error message about the variable not being bound (assuming you hadn't defined it previously of course). 
+
+Here you can reference what happens when evaluating: 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+nil
+```
+
+
+</td>
+<td>
+
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define my-var 1)
+my-var
+```
+
+
+</td>
+<td>
+
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+my-undefined-symbol
+```
+
+
+</td>
+<td>
+
+
+```clj
+Error: variable_not_bound
+```
+
+
+</td>
+</tr>
+</table>
+
+However, nothing stops you from binding your own values to these special symbols. Once you've done that they start behaving like any other symbol. Here you can see an example where we've redefined the [`list`](#list) function to instead return the symbol `im-not-a-list`. But we can still access the old function by quoting it. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define list (lambda (a b c)
+               'im-not-a-list))
+(list 1 2 3)
+```
+
+
+</td>
+<td>
+
+
+```clj
+im-not-a-list
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+('list 1 2 3)
+```
+
+
+</td>
+<td>
+
+
+```clj
+(1 2 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+Finally, symbols that start with `ext-` are used for C extension names that are loaded and bound at runtime. This means they behave like other built-in symbols; They evaluate to themself but you can still bind them. 
 
 
 
@@ -8719,7 +8843,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4279
+4276
 ```
 
 
@@ -8928,7 +9052,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 79659 kurt-russel)
+(exit-ok 82065 kurt-russel)
 ```
 
 

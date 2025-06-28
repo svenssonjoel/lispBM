@@ -32,18 +32,11 @@
                             "<a href=\"#let\">let</a> and you can change the value bound to a \"variable\""
                             "using <a href=\"#set\">set</a>, <a href=\"#setvar\">setq</a> or <a href=\"#setvar\">setvar</a>."
                             ))
-
-                (para (list "Not all symbols are treated the same in LBM. Some symbols are treated as"
-                            "special because of their very fundamental nature. Among these special symbols"
-                            "you find `define`, `let` and `lambda` for example. These are things that you"
-                            "should not be able to redefine and trying to redefine them leads to an error."
-                            "Symbols that start with `ext-` are special and reserved for use together"
-                            "with extensions that are loaded and bound at runtime."
-                            ))
-                (para (list "Examples of symbols used as data are `nil` and `t`. `nil` represents"
-                            "\"nothing\", the empty list or other similar things and `t`"
-                            "represents true.  But any symbol can be used as data by quoting it"
-                            "`'`, see <a href=\"#quotes-and-quasiquotation\"> Quotes and Quasiquotation </a>."
+                (para (list "The other way of thinking about symbols is as data. Examples of this"
+                            "are `nil` and `t`. `nil` represents \"nothing\", the empty list or"
+                            "other similar things and `t` represents true.  But any symbol can be"
+                            "used as data by quoting it `'`, see"
+                            "<a href=\"#quotes-and-quasiquotation\"> Quotes and Quasiquotation </a>."
                             ))
 
                 (section 3 "Valid Symbol Names"
@@ -67,6 +60,54 @@
                                       ))
                           end))
 
+                (section 3 "Built-in Symbols"
+                         (list
+                          (para (list "Not all symbols are treated the same in LBM. Built-in"
+                                      "symbols are treated as special because of their very"
+                                      "fundamental nature. Among these special symbols you find"
+                                      "`nil`  and `t`, but also those representing built-in"
+                                      "functions like `define`, `let` and `lambda`. Their defining"
+                                      "property is that they result in themselves when evaluated."
+                                      "Evaluation is a tricky concept to wrap your head around, but"
+                                      "you can think of it as what happens when you enter some"
+                                      "experssion into a REPL. If you try to type `nil` and press"
+                                      "enter it will print out `nil` again. This means that the"
+                                      "original `nil` was evaluated which resulted in the symbol"
+                                      "`nil` again. Contrast this with normal symbols. If you were"
+                                      "to type `my-undefined-symbol` into the repl and press enter"
+                                      "then you'd get an error message about the variable not being"
+                                      "bound (assuming you hadn't defined it previously of course)."
+                                      ))
+                          (para (list "Here you can reference what happens when evaluating:"
+                                      ))
+                          (program '((nil)
+                                     ((def my-var 1)
+                                      my-var
+                                      )
+                                     (!manual (my-undefined-symbol) "Error: variable_not_bound")
+                                     ))
+                          (para (list "However, nothing stops you from binding your own values to"
+                                      "these special symbols. Once you've done that they start"
+                                      "behaving like any other symbol. Here you can see an example"
+                                      "where we've redefined the" (code-entry-ref "list") "function"
+                                      "to instead return the symbol `im-not-a-list`. But we can"
+                                      "still access the old function by quoting it."
+                                      ))
+                          (program '(((def list (fn (a b c) 'im-not-a-list))
+                                      (list 1 2 3)
+                                      )
+                                     (('list 1 2 3))
+                                     ; Make sure we don't break `list` for later
+                                     ; code. ._.
+                                     (!hidden ((def list 'list)))
+                                     ))
+                          (para (list "Finally, symbols that start with `ext-` are used for C"
+                                      "extension names that are loaded and bound at runtime. This"
+                                      "means they behave like other built-in symbols; They evaluate"
+                                      "to themself but you can still bind them."
+                                      ))
+                          end))
+                
                 end)))
 
 (define overflow-behaviour
