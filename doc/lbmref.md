@@ -6604,6 +6604,148 @@ Destructively update an element in a list. The form of a `setix` expression is `
 ---
 
 
+### member
+
+Check if a value is included in list. The form of an `member` expression is `(member value-expr list-expr)`. Equality is checked structurally, in the same way as [`eq`](#eq), meaning if you're checking numbers the types must match (see the following examples). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(member 3 (list 1 2 3))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(member 3u (list 1 2 3))
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(member '(b c) '((a b) (b c)))
+```
+
+
+</td>
+<td>
+
+```clj
+((a b) (b c))
+```
+
+
+</td>
+</tr>
+</table>
+
+This function can be used as a readable and efficient way of checking if a value is in some constant set of values. This often results in significantly less code than unrolling it as a series of [`eq`](#eq)s inside an [`or`](#or) expression. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun is-pet? (thing)
+  (member thing '(cat dog)))
+(is-pet? 'cat)
+```
+
+
+</td>
+<td>
+
+
+```clj
+(cat dog)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(is-pet? 'car)
+```
+
+
+</td>
+<td>
+
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun is-pet-unrolled? (thing)
+  (or (eq thing 'cat) (eq thing 'dog)))
+(eq (is-pet? 'cat) (is-pet-unrolled? 'cat))
+```
+
+
+</td>
+<td>
+
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
 ### setcar
 
 The `setcar` is a destructive update of the car field of a cons-cell. 
@@ -7132,7 +7274,7 @@ The `cossa` function looks up the first key in an alist that matches a given val
 
 ### setassoc
 
-The `setassoc` function destructively updates a key-value mapping in an alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. 
+The `setassoc` function destructively updates a key-value mapping in an alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. If you assign a key which doesn't exist in the original alist, it is left unchanged, while another association pair is added to the returned list. 
 
 <table>
 <tr>
@@ -7145,6 +7287,46 @@ The `setassoc` function destructively updates a key-value mapping in an alist. T
 ```clj
 (define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
 (setassoc apa 2 'llama)
+```
+
+
+</td>
+<td>
+
+
+```clj
+((1 . horse) (2 . llama) (3 . shark))
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(setassoc apa 4 'mouse)
+```
+
+
+</td>
+<td>
+
+
+```clj
+((4 . mouse) (1 . horse) (2 . llama) (3 . shark))
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+apa
 ```
 
 
@@ -8928,7 +9110,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 79659 kurt-russel)
+(exit-ok 81799 kurt-russel)
 ```
 
 

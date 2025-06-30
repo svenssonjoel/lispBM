@@ -1880,6 +1880,35 @@
                       ))
               end)))
 
+(define lists-member
+  (ref-entry "member"
+             (list
+              (para (list "Check if a value is included in list. The form of an `member` expression is"
+                          "`(member value-expr list-expr)`. Equality is checked structurally, in the"
+                          "same way as" (str-merge (code-entry-ref "eq") ",") "meaning if you're"
+                          "checking numbers the types must match (see the following examples)."
+                          ))
+              (code '((member 3 (list 1 2 3))
+                      (member 3u (list 1 2 3))
+                      (member '(b c) '((a b) (b c)))
+                      ))
+              (para (list "This function can be used as a readable and efficient way of checking"
+                          "if a value is in some constant set of values. This often results in"
+                          "significantly less code than unrolling it as a series of"
+                          (str-merge (code-entry-ref "eq") "s") "inside an" (code-entry-ref "or")
+                          "expression."
+                          ))
+              (program '(((defun is-pet? (thing)
+                            (member thing '(cat dog)))
+                          (is-pet? 'cat)
+                          )
+                         ((is-pet? 'car))
+                         ((defun is-pet-unrolled? (thing)
+                            (or (eq thing 'cat) (eq thing 'dog)))
+                          (eq (is-pet? 'cat) (is-pet-unrolled? 'cat)))
+                         ))
+              end)))
+
 (define lists-setcar
   (ref-entry "setcar"
              (list
@@ -2031,6 +2060,7 @@
             lists-append
             lists-ix
             lists-setix
+            lists-member
             lists-setcar
             lists-setcdr
             lists-take
@@ -2084,10 +2114,14 @@
              (list
               (para (list "The `setassoc` function destructively updates a key-value mapping in an"
                           "alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`."
+                          "If you assign a key which doesn't exist in the original alist, it is"
+                          "left unchanged, while another association pair is added to the returned list."
                           ))
               (program '(((define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
                           (setassoc apa 2 'llama)
                           )
+                         ((setassoc apa 4 'mouse))
+                         (apa)
                          ))
               end)))
 
