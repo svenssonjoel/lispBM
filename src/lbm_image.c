@@ -567,10 +567,22 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
 //    2: Give a sharing table to the traversal and have the traversal switch to gc_mark_phace
 //       at each shared node to bookkeep it and keep it safe from upcomming gc.
 
-typedef struct {
-  int32_t start;
-  int32_t num;
-} sharing_table;
+//
+// NOTE about sharing detection: It should be possible to traverse the
+//       heap structures using the same explicit stack algorithm as
+//       lbm_gc_mark_phase uses. Because if a structure is too large
+//       to be GC'd it cannot be used anyway, so no point in
+//       serialising/deserialising it.
+//
+//       There are probably pros/cons to both approaches (ptr-rev vs
+//       explicit stack).
+//       ptr-rev -> correct
+//       explicit stack -> fast, simple but sensitive to programming style and limits
+//       programmer.
+//
+//       For full benefit of pointer reversal the -DLBM_USE_GC_PTR_REV
+//       build flag is needed.
+
 
 #ifdef LBM64
 #define SHARING_TABLE_ENTRY_SIZE (2 + 1 + 1)
@@ -578,27 +590,30 @@ typedef struct {
 #define SHARING_TABLE_ENTRY_SIZE (1 + 1 + 1)
 #endif
 
+#define SHARING_TABLE_TRUE   0xDEADBEEFu
+#define SHARING_TABLE_FALSE  0xDEADBEEFu
+
+int32_t index_sharing_table(sharing_table *st, int32_t i) {
+  if (i < 0) return i; // maybe check if more than num?
+  return st->start - 2 - (i * SHARING_TABLE_ENTRY_SIZE);
+}
 
 // Search sharing table, O(N) where N shared nodes
-static int32_t sharing_table_contains(sharing_table *st, lbm_uint addr) {
-  int32_t si = st->start;
+int32_t sharing_table_contains(sharing_table *st, lbm_uint addr) {
   int32_t num = st->num;
-  uint32_t st_tag = read_u32(si);
+  uint32_t st_tag = read_u32(st->start);
   if (st_tag == SHARING_TABLE) {
     // sharing table tag exists but not the num field.
-    printf("sharing table found\n");
-    printf("num: %d\n", num);
     for (int32_t i = 0; i < num; i ++ ) {
       lbm_uint a;
-      int32_t ix = si - 2 - (i * SHARING_TABLE_ENTRY_SIZE);
+      int32_t ix = index_sharing_table(st, i); 
 #ifdef LBM64
       a = read_u64(ix);
 #else
       a = read_u32(ix);
 #endif
       if (addr == a) {
-        printf("match found %u at index %d \n", addr, i);
-        return ix;
+        return i;
       }
     }
   }
@@ -608,41 +623,37 @@ static int32_t sharing_table_contains(sharing_table *st, lbm_uint addr) {
 #define SHARING_TABLE_SIZED_FIELD     0
 #define SHARING_TABLE_FLATTENED_FIELD 1
 
-static bool sharing_table_set_field(int32_t ix, int32_t field, uint32_t value) {
+bool sharing_table_set_field(sharing_table *st, int32_t ix, int32_t field, uint32_t value) {
   int32_t wix;
 #ifdef LBM64
-  wix = ix - 2 - field;
+  wix = index_sharing_table(st, ix) - 2 - field;
 #else
-  wix = ix - 1 - field;
+  wix = index_sharing_table(st, ix) - 1 - field;
 #endif
   return write_u32(value, &wix, DOWNWARDS); // Dir irrelevant
 }
 
-static uint32_t sharing_table_get_field(int32_t ix, int32_t field) {
+uint32_t sharing_table_get_field(sharing_table *st, int32_t ix, int32_t field) {
   int32_t wix;
 #ifdef LBM64
-  wix = ix - 2 - field;
+  wix = index_sharing_table(st, ix) - 2 - field;
 #else
-  wix = ix - 1 - field;
+  wix = index_sharing_table(st, ix) - 1 - field;
 #endif
   return read_u32(wix);
 }
 
-static void detect_shared(lbm_value v, bool shared, void *acc) {
+static int detect_shared(lbm_value v, bool shared, void *acc) {
   sharing_table *st = (sharing_table*)acc;
   char buf[1024];
   if (shared) {
-    printf("shared\n");
-    lbm_print_value(buf,1024, v);
     lbm_uint addr = 0;
     if (lbm_is_ptr(v)) {
       addr = v;
       int32_t ix = sharing_table_contains(st,addr);
-      if (ix >= 0) {
-        uint32_t b = read_u32(ix - 1);
-        uint32_t b2 = read_u32(ix - 2);
-        printf("shared node exists in table. bool fields: %x %x\n", b, b2);
-      } else {
+      if (ix < 0) {
+        // Create place in table for a shared address and skip
+        // enough words for boolean fields.
 #ifdef LBM64
         write_u64(addr, &write_index, DOWNWARDS);
 #else
@@ -652,9 +663,10 @@ static void detect_shared(lbm_value v, bool shared, void *acc) {
         st->num++;
       }
     }
-    printf("Shared node: %"PRI_UINT"\n", addr);
-    printf("%s\n", buf);
+    lbm_print_value(buf,1024, v);
+    printf("Shared node: %"PRI_UINT"\nValue: %s\n", addr, buf);
   }
+  return TRAV_FUN_SUBTREE_PROCEED;
 }
 
 sharing_table lbm_image_sharing(void) {
@@ -681,8 +693,7 @@ sharing_table lbm_image_sharing(void) {
         //        lbm_value name_field = lbm_caar(curr);
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
         if (!lbm_is_constant(val_field)) {
-          printf("detecting shared\n");
-          lbm_ptr_rev_trav(detect_shared, val_field, &st);
+          lbm_ptr_rev_trav(NULL, detect_shared, val_field, &st);
         }
         curr = lbm_cdr(curr);
       }
@@ -705,30 +716,46 @@ typedef struct {
   sharing_table *st;
 } size_accumulator;
 
-static void size_acc(lbm_value v, bool shared, void *acc) {
+static int size_acc(lbm_value v, bool shared, void *acc) {
   size_accumulator *sa = (size_accumulator*)acc;
+
+  int32_t ix = sharing_table_contains(sa->st, v);
   
-  if (shared) {
-    printf("*** Locally shared node %"PRI_UINT"\n",v);
-    // sizeof S_REF and addr
-    #ifdef LBM64
-    sa->s += 9;
-    #else
-    sa->s += 5;
-    #endif
-    return;
+  if (ix >= 0) {
+    if (SHARING_TABLE_TRUE == sharing_table_get_field(sa->st, ix, SHARING_TABLE_SIZED_FIELD)) {
+      // shared node has been sized already and should return size of a ref node
+       printf("*** Locally shared node %"PRI_UINT"\n",v);
+       // sizeof S_REF and addr
+#ifdef LBM64
+       sa->s += 9;
+#else
+       sa->s += 5;
+#endif
+       return TRAV_FUN_SUBTREE_DONE;
+    } else {
+      // setting the sized field to not include the size in future occurrances.
+      sharing_table_set_field(sa->st, ix, SHARING_TABLE_SIZED_FIELD,  SHARING_TABLE_TRUE);
+#ifdef LBM64
+      sa->s += 9;
+#else
+      sa->s += 5;
+#endif
+    }
+
   }
 
   int32_t sharing_ix = sharing_table_contains(sa->st, v);
   if (lbm_is_ptr(v) && (sharing_ix >= 0)) {
 
-    uint32_t sized = sharing_table_get_field(sharing_ix,
+    uint32_t sized = sharing_table_get_field(sa->st,
+                                             sharing_ix,
                                              SHARING_TABLE_SIZED_FIELD);
-    uint32_t flattened = sharing_table_get_field(sharing_ix,
+    uint32_t flattened = sharing_table_get_field(sa->st,
+                                                 sharing_ix,
                                                  SHARING_TABLE_FLATTENED_FIELD);
 
     if (sized != 0xDEADBEEF) {
-      sharing_table_set_field(sharing_ix, SHARING_TABLE_SIZED_FIELD, 0xDEADBEEF);
+      sharing_table_set_field(sa->st, sharing_ix, SHARING_TABLE_SIZED_FIELD, 0xDEADBEEF);
       // sizeof S_SHARED and addr
 #ifdef LBM64
       sa->s += 9;
@@ -747,9 +774,13 @@ static void size_acc(lbm_value v, bool shared, void *acc) {
 #else
       sa->s += 5;
 #endif
-      lbm_gc_mark_phase(v);
     }
-
+    // Sizeof S_SHARED and addr followed by recursion determining rest size.
+#ifdef LBM64
+    sa->s += 9;
+#else
+    sa->s += 5;
+#endif
     printf("sized: %x\n", sized);
     printf("flattened: %x\n", flattened);
     printf("*** Shared %"PRI_UINT"\n",v);
@@ -770,7 +801,7 @@ static void size_acc(lbm_value v, bool shared, void *acc) {
 
   if (lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
     sa->s += (int32_t)sizeof(lbm_uint) + 1;
-    return;
+    return TRAV_FUN_SUBTREE_DONE;
   }
 
   switch (t) {
@@ -818,13 +849,14 @@ static void size_acc(lbm_value v, bool shared, void *acc) {
     }
   }break;
   }
+  return TRAV_FUN_SUBTREE_CONTINUE;
 }
 
-static void flatten_node(lbm_value v, bool shared, void *res) {
+static int flatten_node(lbm_value v, bool shared, void *res) {
   bool *acc = (bool*)res;
 
   if (shared) {
-    return;
+    return TRAV_FUN_SUBTREE_DONE;
   }
   lbm_uint t = lbm_type_of(v);
 
@@ -839,7 +871,7 @@ static void flatten_node(lbm_value v, bool shared, void *res) {
 #else
     *acc = *acc && fv_write_u32((lbm_uint)v);
 #endif
-    return;
+    return TRAV_FUN_SUBTREE_DONE;
   }
 
   switch (t) {
@@ -895,6 +927,7 @@ static void flatten_node(lbm_value v, bool shared, void *res) {
   default:
     break;
   }
+  return TRAV_FUN_SUBTREE_CONTINUE;
 }
 
 // Performing GC after using the ptr_rev_trav to restore the
@@ -906,15 +939,14 @@ static int32_t image_flatten_size(sharing_table *st, lbm_value v) {
   size_accumulator sa;
   sa.s = 0;
   sa.st = st;
-  bool ok = lbm_ptr_rev_trav(size_acc, v, &sa);
+  lbm_ptr_rev_trav(st, size_acc, v, &sa);
   lbm_perform_gc();
-  printf("size: %d\n",sa.s);
-  return ok ? sa.s : 0;
+  return sa.s; // Should always be "ok" now.
 }
 
 static bool image_flatten_value(sharing_table *st, lbm_value v) {
   bool ok = true;
-  bool trav_ok = lbm_ptr_rev_trav(flatten_node, v, &ok);
+  bool trav_ok = lbm_ptr_rev_trav(st, flatten_node, v, &ok);
   lbm_perform_gc();
   return trav_ok && ok; // ok = enough space in image for flat val.
                         // trav_ok = no cycles in input value.
@@ -955,6 +987,7 @@ bool lbm_image_save_global_env(void) {
             if ((write_index - fv_size) <= (int32_t)image_const_heap.next) {
               return false;
             }
+            printf(" *** FLAT BINDING STARTS *** \n");
             write_u32(BINDING_FLAT, &write_index, DOWNWARDS);
             write_u32((uint32_t)fv_size , &write_index, DOWNWARDS);
             write_lbm_value(name_field, &write_index, DOWNWARDS);
@@ -963,6 +996,7 @@ bool lbm_image_save_global_env(void) {
               // TODO: What error handling makes sense?
               fv_write_flush();
             }
+            printf(" *** FLAT BINDING DONE *** \n");
             write_index = write_index - fv_size - 1; // subtract fv_size
           } else {
             printf("exiting flatten env\n"); 

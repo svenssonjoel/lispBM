@@ -774,7 +774,7 @@ lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
 }
 
 
-void dummy_f(lbm_value v, bool shared, void *arg) {
+int dummy_f(lbm_value v, bool shared, void *arg) {
   if (shared) {
     printf("shared node detected\n");
   }
@@ -785,11 +785,12 @@ void dummy_f(lbm_value v, bool shared, void *arg) {
     lbm_print_value(buf,256, v);
     printf("atom: %s\n", buf);
   }
+  return TRAV_FUN_SUBTREE_CONTINUE;
 }
 
 lbm_value ext_rt(lbm_value *args, lbm_uint argn) {
   if (argn == 1) {
-    return lbm_ptr_rev_trav(dummy_f, args[0], NULL) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+    return lbm_ptr_rev_trav(NULL,dummy_f, args[0], NULL) ? ENC_SYM_TRUE : ENC_SYM_NIL;
   } 
   return ENC_SYM_TERROR;
 }

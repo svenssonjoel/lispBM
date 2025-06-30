@@ -26,7 +26,6 @@
 #include <lbm_defrag_mem.h>
 #include <lbm_image.h>
 
-
 #include "heap.h"
 #include "symrepr.h"
 #include "stack.h"
@@ -1565,7 +1564,7 @@ lbm_uint lbm_flash_memory_usage(void) {
 //    atleast in the ptr_rev_gc version. This also increases the amount
 //    of testing the ptr_rev_trav function is subjected to.
 
-bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
+bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
 
   bool cyclic = false;
   lbm_value curr = v;
@@ -1575,10 +1574,21 @@ bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
 
     // Run leftwards and process conses until
     // hitting a leaf in the left direction.
-
+    bool shared = false;
     while (((lbm_is_cons_rw(curr)) ||
             (lbm_is_lisp_array_rw(curr))) && !gc_marked(curr)) {
-      lbm_cons_t *cell = lbm_ref_cell(curr);
+      lbm_cons_t *cell;
+      
+      if (st) {
+        if (sharing_table_contains(st, curr) >= 0) {
+          shared = true;
+          break;
+        }
+      }
+      // Stretching it a bit ..
+    continue_process_subtree:
+      
+      cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
         gc_mark(curr);
         // In-order traversal
@@ -1609,16 +1619,19 @@ bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
         }
       }
     }
-
-    if (lbm_is_ptr(curr) && gc_marked(curr)) {
-      f(curr, true, arg); // run on shared node as well.
-      cyclic = true;
+    if (lbm_is_ptr(curr) && (gc_marked(curr) || shared)) {
+      int r = f(curr, true, arg);
+      if (r == TRAV_FUN_SUBTREE_DONE) {
+        lbm_gc_mark_phase(curr); // Mark if not already marked.
+      } else if (r == TRAV_FUN_SUBTREE_CONTINUE) {
+        goto continue_process_subtree;
+      }
     } else if (!lbm_is_cons(curr) || // Found a leaf
-        (curr & LBM_PTR_TO_CONSTANT_BIT)) {
+               (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       if (lbm_is_ptr(curr) && !(curr & LBM_PTR_TO_CONSTANT_BIT)) gc_mark(curr); // Mark it so that the mandatory GC does not swipe it.
       f(curr, false, arg);
-    }
-
+    } 
+      
     // Now either prev has the "flag" set or it doesnt.
     // If the flag is set that means that the prev node
     // have had both its car and cdr visited. So that node is done!
