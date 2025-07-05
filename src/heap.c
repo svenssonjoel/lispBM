@@ -1569,16 +1569,17 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
   bool cyclic = false;
   lbm_value curr = v;
   lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
-
+  bool run_f = true;
   while (true) {
 
     // Run leftwards and process conses until
     // hitting a leaf in the left direction.
     bool shared = false;
+
     while (((lbm_is_cons_rw(curr)) ||
             (lbm_is_lisp_array_rw(curr))) && !gc_marked(curr)) {
       lbm_cons_t *cell;
-      
+      run_f = true;
       if (st) {
         if (sharing_table_contains(st, curr) >= 0) {
           shared = true;
@@ -1587,12 +1588,17 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
       }
       // Stretching it a bit ..
     continue_process_subtree:
-      
+      char buf[1024];
+      lbm_print_value(buf,1024, curr);
+      printf("step: %s\n", buf);
       cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
         gc_mark(curr);
         // In-order traversal
-        f(curr, false, arg);
+        if (run_f) // only call if not already
+          f(curr, false, arg);
+        run_f = true;
+        
         lbm_value next = 0;
         value_assign(&next, cell->car);
         value_assign(&cell->car, prev);
@@ -1613,17 +1619,17 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
           value_assign(&arr_data[0], prev);
           value_assign(&prev, curr);
           value_assign(&curr, next);
-        } else {
-          cyclic = true;
-          break;
-        }
+        } 
       }
     }
     if (lbm_is_ptr(curr) && (gc_marked(curr) || shared)) {
       int r = f(curr, true, arg);
       if (r == TRAV_FUN_SUBTREE_DONE) {
+        printf("Subtree done marking\n");
         lbm_gc_mark_phase(curr); // Mark if not already marked.
       } else if (r == TRAV_FUN_SUBTREE_CONTINUE) {
+        printf("Subtree continue\n");
+        run_f = false;// SUPERSPAGHETTI!
         goto continue_process_subtree;
       }
     } else if (!lbm_is_cons(curr) || // Found a leaf

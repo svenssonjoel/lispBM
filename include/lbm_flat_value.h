@@ -21,6 +21,7 @@
 #include <heap.h>
 #include <symrepr.h>
 #include <lbm_memory.h>
+#include <lbm_image.h>
 
 typedef struct {
   uint8_t *buf;
@@ -62,6 +63,8 @@ typedef struct {
 #define FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY   -6
 #define FLATTEN_VALUE_ERROR_FATAL               -7
 
+#define UNFLATTEN_SHARING_TABLE_ERROR -4
+#define UNFLATTEN_SHARING_TABLE_REQUIRED -3
 #define UNFLATTEN_MALFORMED     -2
 #define UNFLATTEN_GC_RETRY      -1
 #define UNFLATTEN_OK             0
@@ -95,4 +98,5 @@ int lbm_get_max_flatten_depth(void);
  *  \return True on success and false otherwise.
  */
 bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res);
+bool lbm_unflatten_value_sharing(sharing_table *st, lbm_uint *target_map, lbm_flat_value_t *v, lbm_value *res);
 #endif

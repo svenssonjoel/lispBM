@@ -822,15 +822,49 @@ static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
 //    =>
 //    tmp =  [| a0 a1 ... an val |];  val = tmp; curr = p; continue backwards
 //
-static int lbm_unflatten_value_nostack(lbm_flat_value_t *v, lbm_value *res) {
-  bool done = false;
 
+static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, lbm_flat_value_t *v, lbm_value *res) {
+  bool done = false;
+  lbm_value val0 = ENC_SYM_NIL;
   lbm_value curr = lbm_enc_cons_ptr(LBM_PTR_NULL);
   while (!done) {
+    printf("looping\n");
+    int32_t set_ix = -1;
+    if (v->buf[v->buf_pos] == S_SHARED) {
+      printf("Unflatten shared node\n");
+      v->buf_pos++;
+      if (st && target_map) {
+        bool b = false;
+        lbm_uint tmp;
+#ifndef LBM64
+        b = extract_word(v, &tmp);
+#else
+        b = extract_dword(v, &tmp);
+#endif
+        if (b) {
+          int32_t ix = sharing_table_contains(st, tmp);
+          if (ix >= 0) {
+            printf("index found\n");
+            set_ix = ix;
+          } else {
+            printf("NO INDEX\n");
+            return UNFLATTEN_SHARING_TABLE_ERROR;
+          }  
+        } else {
+          return UNFLATTEN_MALFORMED;
+        }
+      } else {
+        return UNFLATTEN_SHARING_TABLE_REQUIRED;
+      }
+      printf("proceeding\n");
+    }
+
     if (v->buf[v->buf_pos] == S_CONS) {
+      printf("S_CONS case\n");
       lbm_value tmp = curr;
       curr = lbm_cons(tmp, ENC_SYM_PLACEHOLDER);
       if (lbm_is_symbol_merror(curr)) return UNFLATTEN_GC_RETRY;
+      if (set_ix >= 0) target_map[set_ix] = curr;
       v->buf_pos ++;
     } else if (v->buf[v->buf_pos] == S_LBM_LISP_ARRAY) {
       uint32_t size;
@@ -845,20 +879,68 @@ static int lbm_unflatten_value_nostack(lbm_flat_value_t *v, lbm_value *res) {
         header->index = 0;
         arrdata[size-1] = curr; // backptr
         curr = array;
+        if (set_ix >= 0) target_map[set_ix] = curr;
       } else {
+        printf("MALFORMED 1\n");
         return UNFLATTEN_MALFORMED;
       }
     } else if (v->buf[v->buf_pos] == 0) {
+      printf("MALFORMED 0\n");
       return UNFLATTEN_MALFORMED;
     } else {
       lbm_value unflattened;
-      int e_val = lbm_unflatten_value_atom(v, &unflattened);
-      if (e_val != UNFLATTEN_OK) {
-        return e_val;
+
+      // An S_REF is a leaf node
+      if (v->buf[v->buf_pos] == S_REF) {
+        v->buf_pos++;
+        if (st && target_map) {
+          bool b = false;
+          lbm_uint tmp;
+#ifndef LBM64
+          b = extract_word(v, &tmp);
+#else
+          b = extract_dword(v, &tmp);
+#endif
+          if (b) {
+            // Shared should have been hit before S_REF. So just look up index and copy from
+            // the target_map.
+            int32_t ix = sharing_table_contains(st, tmp);
+            if (ix >= 0) {
+              //curr = target_map[ix];
+              unflattened = target_map[ix];
+              goto unflatten_leaf_found; 
+            } else {
+              return UNFLATTEN_SHARING_TABLE_ERROR;
+            }
+          } else {
+            printf("MALFORMED 2\n");
+            return UNFLATTEN_MALFORMED;
+          }
+        } else {
+          return UNFLATTEN_SHARING_TABLE_REQUIRED;
+        }
+      } else { 
+        
+        int e_val = lbm_unflatten_value_atom(v, &unflattened);
+        if (set_ix >= 0) {
+          target_map[set_ix] = unflattened;
+        }
+        if (e_val != UNFLATTEN_OK) {
+          return e_val;
+        }
       }
-      lbm_value val0 = unflattened;
+      val0 = unflattened;
+      char buf[1024];
+      lbm_print_value(buf,1024, unflattened);
+      printf("unflattened atom: %s\n", buf);
+      lbm_print_value(buf,1024, curr);
+      printf("curr is: %s\n", buf);
+             
+    unflatten_leaf_found: 
       while (lbm_dec_ptr(curr) != LBM_PTR_NULL &&
              lbm_cdr(curr) != ENC_SYM_PLACEHOLDER) { // has done left
+        //lbm_print_value(buf,1024, curr);
+        //printf("curr is: %s\n", buf);
         if ( lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
           lbm_array_header_extended_t *header = (lbm_array_header_extended_t*)lbm_car(curr);
           lbm_value *arrdata = (lbm_value*)header->data;
@@ -910,11 +992,36 @@ bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
 #ifdef LBM_ALWAYS_GC
   lbm_perform_gc();
 #endif
-  int r = lbm_unflatten_value_nostack(v,res);
+  int r = lbm_unflatten_value_nostack(NULL,NULL, v,res);
   if (r == UNFLATTEN_GC_RETRY) {
     lbm_perform_gc();
     v->buf_pos = 0;
-    r = lbm_unflatten_value_nostack(v,res);
+    r = lbm_unflatten_value_nostack(NULL,NULL,v,res);
+  }
+  if (r == UNFLATTEN_MALFORMED) {
+    *res = ENC_SYM_EERROR;
+  } else if (r == UNFLATTEN_GC_RETRY) {
+    *res = ENC_SYM_MERROR;
+  } else {
+    b = true;
+  }
+  // Do not free the flat value buffer here.
+  // there are 2 cases:
+  // 1: unflatten was called from lisp code -> GC removes the buffer.
+  // 2: unflatten called from event processing -> event processor frees buffer.
+  return b;
+}
+
+bool lbm_unflatten_value_sharing(sharing_table *st, lbm_uint *target_map, lbm_flat_value_t *v, lbm_value *res) {
+  bool b = false;
+#ifdef LBM_ALWAYS_GC
+  lbm_perform_gc();
+#endif
+  int r = lbm_unflatten_value_nostack(st,target_map, v,res);
+  if (r == UNFLATTEN_GC_RETRY) {
+    lbm_perform_gc();
+    v->buf_pos = 0;
+    r = lbm_unflatten_value_nostack(st,target_map,v,res);
   }
   if (r == UNFLATTEN_MALFORMED) {
     *res = ENC_SYM_EERROR;
