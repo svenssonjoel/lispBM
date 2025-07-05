@@ -908,7 +908,6 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
             if (ix >= 0) {
               //curr = target_map[ix];
               unflattened = target_map[ix];
-              goto unflatten_leaf_found; 
             } else {
               return UNFLATTEN_SHARING_TABLE_ERROR;
             }
@@ -936,7 +935,6 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
       lbm_print_value(buf,1024, curr);
       printf("curr is: %s\n", buf);
              
-    unflatten_leaf_found: 
       while (lbm_dec_ptr(curr) != LBM_PTR_NULL &&
              lbm_cdr(curr) != ENC_SYM_PLACEHOLDER) { // has done left
         //lbm_print_value(buf,1024, curr);
