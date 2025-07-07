@@ -606,7 +606,7 @@ int32_t sharing_table_contains(sharing_table *st, lbm_uint addr) {
     // sharing table tag exists but not the num field.
     for (int32_t i = 0; i < num; i ++ ) {
       lbm_uint a;
-      int32_t ix = index_sharing_table(st, i); 
+      int32_t ix = index_sharing_table(st, i);
 #ifdef LBM64
       a = read_u64(ix);
 #else
@@ -711,7 +711,7 @@ static int size_acc(lbm_value v, bool shared, void *acc) {
   size_accumulator *sa = (size_accumulator*)acc;
 
   int32_t ix = sharing_table_contains(sa->st, v);
-  
+
   if (ix >= 0) {
     if (SHARING_TABLE_TRUE == sharing_table_get_field(sa->st, ix, SHARING_TABLE_SIZED_FIELD)) {
       // shared node has been sized already and should return size of a ref node
@@ -802,7 +802,7 @@ static int flatten_node(lbm_value v, bool shared, void *arg) {
 
   flatten_node_meta_data *md = (flatten_node_meta_data*)arg;
   bool *acc = &md->res;
-  
+
   int32_t ix = sharing_table_contains(md->st, v);
 
   if (ix >= 0) {
@@ -810,9 +810,9 @@ static int flatten_node(lbm_value v, bool shared, void *arg) {
       // Shared node already flattened.
       fv_write_u8(S_REF);
 #ifdef LBM64
-      fv_write_u64((lbm_uint)v); 
+      fv_write_u64((lbm_uint)v);
 #else
-      fv_write_u32((lbm_uint)v); 
+      fv_write_u32((lbm_uint)v);
 #endif
       return TRAV_FUN_SUBTREE_DONE;
     } else {
@@ -820,9 +820,9 @@ static int flatten_node(lbm_value v, bool shared, void *arg) {
       sharing_table_set_field(md->st, ix, SHARING_TABLE_FLATTENED_FIELD, SHARING_TABLE_TRUE);
       fv_write_u8(S_SHARED);
 #ifdef LBM64
-      fv_write_u64((lbm_uint)v); 
+      fv_write_u64((lbm_uint)v);
 #else
-      fv_write_u32((lbm_uint)v); 
+      fv_write_u32((lbm_uint)v);
 #endif
       // Continue flattening along this subtree.
     }
@@ -1290,7 +1290,7 @@ bool lbm_image_boot(void) {
 
       target_map = lbm_malloc(num * sizeof(lbm_uint));
       if (!target_map) {
-        return false; 
+        return false;
       }
       memset(target_map, 0, num * sizeof(lbm_uint));
 #ifdef LBM64
