@@ -1611,7 +1611,8 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
         uint32_t index = arr->index;
         if (arr->size == 0) break;
         if (index == 0) { // index should only be 0 or there is a potential cycle
-          f(curr, false, arg);
+          if (run_f)
+            f(curr, false, arg);
           arr->index = 1;
 
           lbm_value next = 0;
