@@ -1161,6 +1161,13 @@ bool lbm_image_boot(void) {
         if (!lbm_unflatten_value_sharing(&st, target_map, &fv, &unflattened)) {
           return false;
         }
+        // TODO: What will happen to target_map if GC is needed during unflattening?
+        //       I have a feeling some potentially very tricky cleanup could be needed
+        //       if gc is needed in the middle of a shared node at first unflattening.
+        //       The target map may then contain the info that the node has been unflattened
+        //       but then gc has reclaimed it.
+        //       Easiest solution is to store a copy of the target map before an call
+        //       unflatten_value_sharing and then restore the stored copy if GC is needed.
         if (lbm_is_symbol_merror(unflattened)) {
           //memset(target_map, 0, st.num * sizeof(lbm_uint));
           lbm_perform_gc();

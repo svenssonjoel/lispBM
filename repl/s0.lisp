@@ -25,6 +25,12 @@
 (define b1 (cons 2 a))
 (define e1 (list c d))
 
+(define ls (list 1 2 3))
+(setcdr (cdr (cdr ls)) ls)
+
+(define ls1 (list 1))
+(setcdr ls1 ls1)
+
 ;; boxed values are shared.
 (define f0 3.14)
 (define f-pair (cons f0 f0))
@@ -45,6 +51,10 @@
   (print (eq e1 (list (list 4 5 6) (list 7 8 9))))
   (print (eq f-pair (cons 3.14 3.14)))
   (print (eq f-pair2 (cons 3.14 3.14)))
+  (print (eq (ix ls 3) 1))
+  (print (eq (ix ls 4) 2))
+  (print (eq (ix ls 5) 3))
+  (print (eq (ix ls1 100) 1))
   }
   )
 
