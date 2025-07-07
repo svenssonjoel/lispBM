@@ -1588,9 +1588,6 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
       }
       // Stretching it a bit ..
     continue_process_subtree:
-      char buf[1024];
-      lbm_print_value(buf,1024, curr);
-      printf("step: %s\n", buf);
       cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
         gc_mark(curr);
@@ -1626,10 +1623,8 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
     if (lbm_is_ptr(curr) && (gc_marked(curr) || shared)) {
       int r = f(curr, true, arg);
       if (r == TRAV_FUN_SUBTREE_DONE) {
-        printf("Subtree done marking\n");
         lbm_gc_mark_phase(curr); // Mark if not already marked.
       } else if (r == TRAV_FUN_SUBTREE_CONTINUE) {
-        printf("Subtree continue\n");
         run_f = false;// SUPERSPAGHETTI!
         goto continue_process_subtree;
       }

@@ -645,7 +645,6 @@ uint32_t sharing_table_get_field(sharing_table *st, int32_t ix, int32_t field) {
 
 static int detect_shared(lbm_value v, bool shared, void *acc) {
   sharing_table *st = (sharing_table*)acc;
-  char buf[1024];
   if (shared) {
     lbm_uint addr = 0;
     if (lbm_is_ptr(v)) {
@@ -663,20 +662,12 @@ static int detect_shared(lbm_value v, bool shared, void *acc) {
         st->num++;
       }
     }
-    lbm_print_value(buf,1024, v);
-    printf("Shared node: %"PRI_UINT"\nValue: %s\n", addr, buf);
   }
   return TRAV_FUN_SUBTREE_PROCEED;
 }
 
 sharing_table lbm_image_sharing(void) {
   lbm_value *env = lbm_get_global_env();
-
-  /* lbm_uint num_free = lbm_memory_longest_free(); */
-  /* printf("Longest free %u\n", num_free); */
-  /* lbm_perform_gc(); */
-  /* num_free = lbm_memory_longest_free(); */
-  /* printf("Longest free %u\n", num_free); */
 
   sharing_table st;
   st.start = write_index;
@@ -724,14 +715,13 @@ static int size_acc(lbm_value v, bool shared, void *acc) {
   if (ix >= 0) {
     if (SHARING_TABLE_TRUE == sharing_table_get_field(sa->st, ix, SHARING_TABLE_SIZED_FIELD)) {
       // shared node has been sized already and should return size of a ref node
-       printf("*** Locally shared node %"PRI_UINT"\n",v);
-       // sizeof S_REF and addr
+      // sizeof S_REF and addr
 #ifdef LBM64
-       sa->s += 9;
+      sa->s += 9;
 #else
-       sa->s += 5;
+      sa->s += 5;
 #endif
-       return TRAV_FUN_SUBTREE_DONE;
+      return TRAV_FUN_SUBTREE_DONE;
     } else {
       // setting the sized field to not include the size in future occurrances.
       sharing_table_set_field(sa->st, ix, SHARING_TABLE_SIZED_FIELD,  SHARING_TABLE_TRUE);
@@ -816,12 +806,8 @@ static int flatten_node(lbm_value v, bool shared, void *arg) {
   int32_t ix = sharing_table_contains(md->st, v);
 
   if (ix >= 0) {
-    char buf[1024];
-    lbm_print_value(buf, 1024, v);
-    printf("Val: %s\n", buf);
     if (SHARING_TABLE_TRUE == sharing_table_get_field(md->st, ix, SHARING_TABLE_FLATTENED_FIELD)) {
       // Shared node already flattened.
-      printf("Node has been flattened already, create a ref field\n");
       fv_write_u8(S_REF);
 #ifdef LBM64
       fv_write_u64((lbm_uint)v); 
@@ -831,7 +817,6 @@ static int flatten_node(lbm_value v, bool shared, void *arg) {
       return TRAV_FUN_SUBTREE_DONE;
     } else {
       // Shared node not yet flattened.
-      printf("Note NOT flattened but shared\n");
       sharing_table_set_field(md->st, ix, SHARING_TABLE_FLATTENED_FIELD, SHARING_TABLE_TRUE);
       fv_write_u8(S_SHARED);
 #ifdef LBM64
@@ -944,38 +929,26 @@ static bool image_flatten_value(sharing_table *st, lbm_value v) {
 //
 bool lbm_image_save_global_env(void) {
 
-  lbm_uint ncells = lbm_heap_size();
-  printf("Num heap cells: %d\n", ncells);
-  printf("Theoretical max sharing: %d\n", (ncells * 2) / 3);
-  printf("longest free lbm_mem: %d\n", lbm_memory_longest_free());
-
   sharing_table st = lbm_image_sharing();
   lbm_value *env = lbm_get_global_env();
   if (env) {
     for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
       lbm_value curr = env[i];
-      char buf[1024];
-      lbm_print_value(buf,1024, curr);
-      printf("env[%d] = %s\n", i, buf);
       while(lbm_is_cons(curr)) {
         lbm_value name_field = lbm_caar(curr);
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
 
         if (lbm_is_constant(val_field)) {
-          printf("constant value\n");
           write_u32(BINDING_CONST, &write_index, DOWNWARDS);
           write_lbm_value(name_field, &write_index, DOWNWARDS);
           write_lbm_value(val_field, &write_index, DOWNWARDS);
         } else {
-          printf("HEAP value\n");
           int fv_size = image_flatten_size(&st, val_field);
-          printf("fv_size: %d\n",fv_size);
           if (fv_size > 0) {
             fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1; // num 32bit words
             if ((write_index - fv_size) <= (int32_t)image_const_heap.next) {
               return false;
             }
-            printf(" *** FLAT BINDING STARTS *** \n");
             write_u32(BINDING_FLAT, &write_index, DOWNWARDS);
             write_u32((uint32_t)fv_size , &write_index, DOWNWARDS);
             write_lbm_value(name_field, &write_index, DOWNWARDS);
@@ -984,10 +957,8 @@ bool lbm_image_save_global_env(void) {
               // TODO: What error handling makes sense?
               fv_write_flush();
             }
-            printf(" *** FLAT BINDING DONE *** \n");
             write_index = write_index - fv_size - 1; // subtract fv_size
           } else {
-            printf("exiting flatten env\n"); 
             return false;
           }
         }
@@ -1187,18 +1158,15 @@ bool lbm_image_boot(void) {
       fv.buf_pos = 0;
       lbm_value unflattened;
       if (target_map) {
-        printf("Unflattening with sharing recovery\n");
         if (!lbm_unflatten_value_sharing(&st, target_map, &fv, &unflattened)) {
-          printf("ERROR UNFLATTENING\n");
+          return false;
         }
-          
         if (lbm_is_symbol_merror(unflattened)) {
           //memset(target_map, 0, st.num * sizeof(lbm_uint));
           lbm_perform_gc();
           lbm_unflatten_value_sharing(&st, target_map, &fv, &unflattened);
         }
       } else {
-        printf("Unflattening\n");
         lbm_unflatten_value(&fv, &unflattened);
         if (lbm_is_symbol_merror(unflattened)) {
           lbm_perform_gc();
@@ -1318,23 +1286,11 @@ bool lbm_image_boot(void) {
         return false; 
       }
       memset(target_map, 0, num * sizeof(lbm_uint));
-      printf("Sharing table found with %d entries:\n", num);
-      for (uint32_t i = 0; i < num; i ++) {
-        lbm_uint addr;
-        #ifdef lbm64
-        addr = read_u64(pos); pos -= 2;
-        #else
-        addr = read_u32(pos); pos --;
-        #endif
-        uint32_t sized = read_u32(pos); pos --;
-        uint32_t flattened = read_u32(pos); pos --;
-        printf("%x\t%x\t%x\n", addr, sized, flattened);
-      }
-      #ifdef LBM64
-      //pos -= (num * 2);
-      #else
-      // pos -= num;
-      #endif
+#ifdef LBM64
+      pos -= (int32_t)(num + (num * 3));
+#else
+      pos -= (int32_t)num * 3;
+#endif
     } break;
     default:
       write_index = pos+1;
