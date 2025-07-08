@@ -45,7 +45,7 @@ endif
 improved_closures: CCFLAGS += -m32 -DCLEAN_UP_CLOSURES
 improved_closures: repl clean_cl.h
 
-CCFLAGS_COV = -g -coverage -O0 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 -m32
+CCFLAGS_COV = -g -coverage -O0 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 -m32 $(LBMFLAGS)
 
 LIBS = -lpthread -lreadline -lhistory -lpng
 
@@ -103,3 +103,8 @@ clean:
 	rm -f repl_cov
 	rm -f *.gcda
 	rm -f *.gcno
+
+clean_coverage:
+	rm -f coverage/*
+
+

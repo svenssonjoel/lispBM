@@ -637,7 +637,7 @@ void parse_opts(int argc, char **argv) {
   int c;
   opterr = 1;
   int opt_index = 0;
-  while ((c = getopt_long(argc, argv, "H:M:C:hse:",options, &opt_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "H:M:C:hs:e:",options, &opt_index)) != -1) {
     switch (c) {
     case 'H':
       heap_size = (size_t)atoi((char*)optarg);
@@ -1382,7 +1382,7 @@ static void vesc_lbm_done_callback(eval_context_t *ctx) {
 }
 
 static lbm_value ext_vescif_print(lbm_value *args, lbm_uint argn) {
-  const int str_len = 256;
+  const unsigned int str_len = 256;
   char *print_val_buffer = malloc(str_len);
   if (!print_val_buffer) {
     return ENC_SYM_MERROR;
