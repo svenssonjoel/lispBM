@@ -45,7 +45,7 @@ endif
 improved_closures: CCFLAGS += -m32 -DCLEAN_UP_CLOSURES
 improved_closures: repl clean_cl.h
 
-CCFLAGS_COV = -g -coverage -O0 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 -m32 $(LBMFLAGS)
+CCFLAGS_COV = -g -coverage -O0 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 -m32 $(LBMFLAGS) -fno-pie -no-pie
 
 LIBS = -lpthread -lreadline -lhistory -lpng
 

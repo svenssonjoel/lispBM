@@ -1300,12 +1300,13 @@ bool lbm_image_boot(void) {
       st.start = pos +1;
       uint32_t num = read_u32(pos); pos --;
       st.num = (int32_t)num;
-
-      target_map = lbm_malloc(num * sizeof(lbm_uint));
-      if (!target_map) {
-        return false;
+      if (num > 0) { 
+        target_map = lbm_malloc(num * sizeof(lbm_uint));
+        if (!target_map ) {
+          return false;
+        }
+        memset(target_map, 0, num * sizeof(lbm_uint));
       }
-      memset(target_map, 0, num * sizeof(lbm_uint));
 #ifdef LBM64
       pos -= (int32_t)(num + (num * 3));
 #else
