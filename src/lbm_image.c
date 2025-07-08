@@ -708,6 +708,7 @@ typedef struct {
 } size_accumulator;
 
 static int size_acc(lbm_value v, bool shared, void *acc) {
+  (void) shared;
   size_accumulator *sa = (size_accumulator*)acc;
 
   int32_t ix = sharing_table_contains(sa->st, v);
@@ -799,7 +800,7 @@ typedef struct {
 } flatten_node_meta_data;
 
 static int flatten_node(lbm_value v, bool shared, void *arg) {
-
+  (void)shared;
   flatten_node_meta_data *md = (flatten_node_meta_data*)arg;
   bool *acc = &md->res;
 
@@ -1161,13 +1162,25 @@ bool lbm_image_boot(void) {
         if (!lbm_unflatten_value_sharing(&st, target_map, &fv, &unflattened)) {
           return false;
         }
-        // TODO: What will happen to target_map if GC is needed during unflattening?
-        //       I have a feeling some potentially very tricky cleanup could be needed
-        //       if gc is needed in the middle of a shared node at first unflattening.
-        //       The target map may then contain the info that the node has been unflattened
-        //       but then gc has reclaimed it.
-        //       Easiest solution is to store a copy of the target map before an call
-        //       unflatten_value_sharing and then restore the stored copy if GC is needed.
+        // When a value is unflattened it may contain shared subvalues
+        // and references to shared values. A reference may point to either
+        // values that are shared within the value that is currently unflattened
+        // or to a value that has previously been unflattened.
+        //
+        // There is an ordering property that must be maintained that the node
+        // with the S_SHARED tag is always processed before any corresponding S_REF tags.
+        // This means that if a ref node is unflattened the target to point it to will
+        // already exist.
+        //
+        // If GC needs to happen while unflattening a value, there is no danger of messing
+        // up the addresses to point references to because:
+        // 1. The S_SHARED node is local to the same value and will be recreated after GC
+        //    and the ref value in target map will be overwritten. Any local refs will be also
+        //    be recreated. Any refs to the S_Shared outside of this value, will be in values
+        //    processed in the future.
+        // 2. S_SHARED nodes that have been created as part of prvious value are untouched
+        //    by running GC as they have already been unflattened and should be reachable
+        //    on the environment. Their mapping in the target map is still valid.
         if (lbm_is_symbol_merror(unflattened)) {
           //memset(target_map, 0, st.num * sizeof(lbm_uint));
           lbm_perform_gc();

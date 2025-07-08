@@ -36,6 +36,12 @@
 (define f-pair (cons f0 f0))
 (define f-pair2 (cons 3.14 3.14))
 
+(define ls2 (list 10 11 12))
+(define ls3 (cons 100 ls2))
+(define ls4 (cons 200 ls3))
+(define ls5 (cons 300 ls4))
+
+
 ;; non-boxed values are not shared.
 ;(define i0 23)
 ;(define i_pair (cons i0 i0))
@@ -55,6 +61,15 @@
   (print (eq (ix ls 4) 2))
   (print (eq (ix ls 5) 3))
   (print (eq (ix ls1 100) 1))
+  (print (eq ls2 (list 10 11 12)))
+  (print (eq ls3 (list 100 10 11 12)))
+  (print (eq ls4 (list 200 100 10 11 12)))
+  (print (eq ls5 (list 300 200 100 10 11 12)))
+  (setix ls5 4 1000)
+  (print (eq ls2 (list 10 1000 12)))
+  (print (eq ls3 (list 100 10 1000 12)))
+  (print (eq ls4 (list 200 100 10 1000 12)))
+  (print (eq ls5 (list 300 200 100 10 1000 12)))
   }
   )
 
