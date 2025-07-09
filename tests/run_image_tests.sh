@@ -1,3 +1,4 @@
+#!/bin/bash
 
 success_count=0
 fail_count=0
@@ -8,12 +9,18 @@ make clean
 make cov
 cd ../tests
 
+date=$(date +"%Y-%m-%d_%H-%M")
+logfile="log_image_tests_${date}.log"
+
+if [ -n "$1" ]; then
+   logfile=$1
+fi
 
 for fn in image_tests/*.lisp
 do
     ok=false
-    ../repl/repl_cov --terminate -s $fn 
-    ../repl/repl_cov --terminate --load_image=image.lbm -e "(main)" | grep 'SUCCESS' &> /dev/null
+    ../repl/repl_cov --silent --terminate -s $fn
+    ../repl/repl_cov --silent --terminate --load_image=image.lbm -e "(main)" | grep 'SUCCESS' &> /dev/null
     if [ $? == 0 ]; then
         ok=true
     fi
@@ -25,6 +32,7 @@ do
         fail_count=$((fail_count+1))
         failing_tests+=("$fn")
         echo "Test failed: $fn"
+        echo $fn >> $logfile
     fi
 done
 
@@ -34,8 +42,6 @@ echo Tests failed: $fail_count
 
 ## Go to repl directory and collect the coverage data
 cd ../repl
-make clean_coverage ## being careful
-gcovr 
-rm -rf image_tests_coverage
-cp -r coverage image_tests_coverage
+rm -f image_tests_cov.json
+gcovr --gcov-ignore-parse-errors --json image_tests_cov.json
 cd ../tests

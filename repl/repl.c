@@ -968,7 +968,8 @@ int init_repl(void) {
   }
 
   if (lbm_image_get_version()) {
-    printf("image version string: %s\n", lbm_image_get_version());
+    if (!silent_mode)
+      printf("image version string: %s\n", lbm_image_get_version());
   }
 
   lbm_image_boot();
@@ -979,7 +980,8 @@ int init_repl(void) {
   if (!lbm_image_has_extensions()) {
     init_exts();
   } else {
-    printf("Image contains extensions\n");
+    if (!silent_mode)
+      printf("Image contains extensions\n");
   }
 
 #ifdef WITH_SDL
@@ -996,7 +998,8 @@ int init_repl(void) {
   }
 #endif
 
-  printf("creating eval thread\n");
+  if (!silent_mode)
+    printf("creating eval thread\n");
 #ifdef LBM_WIN
   lispbm_thd = CreateThread( 
                            NULL,                   // default security attributes
