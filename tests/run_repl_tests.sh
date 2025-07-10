@@ -1,8 +1,10 @@
-
+#!/bin/bash
 
 success_count=0
 fail_count=0
 failing_tests=()
+
+timeout_val=10
 
 cd ../repl
 make clean
@@ -15,9 +17,15 @@ logfile="log_repl_tests_${date}.log"
 for fn in repl_tests/*.lisp
 do
     ok=false
-    ../repl/repl_cov --terminate -s $fn | grep 'SUCCESS' &> /dev/null
-    if [ $? == 0 ]; then
-        ok=true
+    fail_timeout=false;
+    timeout $timeout_val ../repl/repl_cov --terminate -s $fn | grep 'SUCCESS' &> /dev/null
+    res=$?
+    if [ $res == 124 ]; then
+        fail_timeout=true;
+    else
+        if [ $res == 0 ]; then
+            ok=true
+        fi
     fi
 
     if $ok; then
@@ -26,8 +34,13 @@ do
     else
         fail_count=$((fail_count+1))
         failing_tests+=("$fn")
-        echo "Test failed: $fn"
-        echo $fn >> $logfile
+        if [ $fail_timeout == true ]; then
+            echo "Timeout: $fn"
+            echo "Timeout: $fn" >> $logfile
+        else
+            echo "FAIL: $fn"
+            echo "FAIL: $fn" >> $logfile
+        fi
     fi
 done
 
@@ -40,5 +53,4 @@ cd ../repl
 rm -f repl_tests_cov.json
 gcovr --gcov-ignore-parse-errors --json repl_tests_cov.json
 cd ../tests
-
 

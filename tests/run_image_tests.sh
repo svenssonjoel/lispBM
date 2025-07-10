@@ -22,7 +22,7 @@ for fn in image_tests/*.lisp
 do
     fail_timeout=false;
     ok=false
-    timeout $timeout_val ../repl/repl_cov --silent --terminate -s $fn
+    timeout $timeout_val ../repl/repl_cov --silent --terminate -s $fn &> /dev/null
     if [ $? == 124 ]; then
         fail_timeout=true;
     else
@@ -41,7 +41,7 @@ do
     else
         fail_count=$((fail_count+1))
         failing_tests+=("$fn")
-        
+
         if [ $fail_timeout == true ]; then ## not a real boolean...
             echo "TIMEOUT: $fn"
             echo "TIMEOUT:  $fn" >> logfile
