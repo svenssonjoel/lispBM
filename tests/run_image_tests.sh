@@ -4,6 +4,8 @@ success_count=0
 fail_count=0
 failing_tests=()
 
+timeout_val=10
+
 cd ../repl
 make clean
 make cov
@@ -18,11 +20,19 @@ fi
 
 for fn in image_tests/*.lisp
 do
+    fail_timeout=false;
     ok=false
-    ../repl/repl_cov --silent --terminate -s $fn
-    ../repl/repl_cov --silent --terminate --load_image=image.lbm -e "(main)" | grep 'SUCCESS' &> /dev/null
-    if [ $? == 0 ]; then
-        ok=true
+    timeout $timeout_val ../repl/repl_cov --silent --terminate -s $fn
+    if [ $? == 124 ]; then
+        fail_timeout=true;
+    else
+        timeout $timeout_val ../repl/repl_cov --silent --terminate --load_image=image.lbm -e "(main)" | grep 'SUCCESS' &> /dev/null
+        res=$?
+        if [ $res == 0 ]; then
+            ok=true
+        elif [ $res == 124 ]; then
+            fail_timeout=true
+        fi
     fi
 
     if $ok; then
@@ -31,8 +41,14 @@ do
     else
         fail_count=$((fail_count+1))
         failing_tests+=("$fn")
-        echo "Test failed: $fn"
-        echo $fn >> $logfile
+        
+        if [ $fail_timeout == true ]; then ## not a real boolean...
+            echo "TIMEOUT: $fn"
+            echo "TIMEOUT:  $fn" >> logfile
+        else
+            echo "FAIL: $fn"
+            echo "FAIL: $fn" >> $logfile
+        fi
     fi
 done
 
