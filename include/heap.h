@@ -521,7 +521,7 @@ unsigned int lbm_list_length_pred(lbm_value c, bool *pres, bool (*pred)(lbm_valu
  * \param list A list
  * \return The list reversed or enc_sym(SYM_MERROR) if heap is full.
  */
-lbm_value lbm_list_reverse(lbm_value list);
+//lbm_value lbm_list_reverse(lbm_value list);
 /** Reverse a proper list destroying the original.
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
  * may lead to the function not terminating.

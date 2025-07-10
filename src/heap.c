@@ -1122,24 +1122,24 @@ unsigned int lbm_list_length_pred(lbm_value c, bool *pres, bool (*pred)(lbm_valu
 }
 
 /* reverse a proper list */
-lbm_value lbm_list_reverse(lbm_value list) {
-  if (lbm_type_of(list) == LBM_TYPE_SYMBOL) {
-    return list;
-  }
+/* lbm_value lbm_list_reverse(lbm_value list) { */
+/*   if (lbm_type_of(list) == LBM_TYPE_SYMBOL) { */
+/*     return list; */
+/*   } */
 
-  lbm_value curr = list;
+/*   lbm_value curr = list; */
 
-  lbm_value new_list = ENC_SYM_NIL;
-  while (lbm_is_cons(curr)) {
+/*   lbm_value new_list = ENC_SYM_NIL; */
+/*   while (lbm_is_cons(curr)) { */
 
-    new_list = lbm_cons(lbm_car(curr), new_list);
-    if (lbm_type_of(new_list) == LBM_TYPE_SYMBOL) {
-      return ENC_SYM_MERROR;
-    }
-    curr = lbm_cdr(curr);
-  }
-  return new_list;
-}
+/*     new_list = lbm_cons(lbm_car(curr), new_list); */
+/*     if (lbm_type_of(new_list) == LBM_TYPE_SYMBOL) { */
+/*       return ENC_SYM_MERROR; */
+/*     } */
+/*     curr = lbm_cdr(curr); */
+/*   } */
+/*   return new_list; */
+/* } */
 
 lbm_value lbm_list_destructive_reverse(lbm_value list) {
   if (lbm_type_of(list) == LBM_TYPE_SYMBOL) {

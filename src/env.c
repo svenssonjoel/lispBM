@@ -129,26 +129,26 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
 }
 
 // TODO: same remark as lbm_set_env
-lbm_value lbm_env_set_functional(lbm_value env, lbm_value key, lbm_value val) {
+/* lbm_value lbm_env_set_functional(lbm_value env, lbm_value key, lbm_value val) { */
 
-  lbm_value keyval = lbm_cons(key, val);
-  if (lbm_type_of(keyval) == LBM_TYPE_SYMBOL) {
-    return keyval;
-  }
+/*   lbm_value keyval = lbm_cons(key, val); */
+/*   if (lbm_type_of(keyval) == LBM_TYPE_SYMBOL) { */
+/*     return keyval; */
+/*   } */
 
-  lbm_value curr = env;
+/*   lbm_value curr = env; */
 
-  while(lbm_type_of(curr) == LBM_TYPE_CONS) {
-    if (lbm_caar(curr) == key) {
-      lbm_set_car(curr,keyval);
-      return env;
-    }
-    curr = lbm_cdr(curr);
-  }
+/*   while(lbm_type_of(curr) == LBM_TYPE_CONS) { */
+/*     if (lbm_caar(curr) == key) { */
+/*       lbm_set_car(curr,keyval); */
+/*       return env; */
+/*     } */
+/*     curr = lbm_cdr(curr); */
+/*   } */
 
-  lbm_value new_env = lbm_cons(keyval, env);
-  return new_env;
-}
+/*   lbm_value new_env = lbm_cons(keyval, env); */
+/*   return new_env; */
+/* } */
 
 lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
 
