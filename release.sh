@@ -146,6 +146,7 @@ echo "Running REPL based tests"
 failing_repl_tests_log_file="failing_repl_tests_log_${release}.txt"
 repl_tests_log_file="repl_tests_log_${release}.txt"
 ./run_repl_tests.sh ../$reportdir/$failing_repl_tests_log_file >> ../$reportdir/$repl_tests_log_file 2> /dev/null
+echo "" >> ../$reportdir/$release_readme
 echo "## REPL TESTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$repl_tests_log_file >> ../$reportdir/$release_readme
 
@@ -159,6 +160,7 @@ echo "Running Image tests"
 failing_image_tests_log_file="failing_image_tests_log_${release}.txt"
 image_tests_log_file="image_tests_log_${release}.txt"
 ./run_image_tests.sh ../$reportdir/$failing_image_tests_log_file >> ../$reportdir/$image_tests_log_file 2> /dev/null
+echo "" >> ../$reportdir/$release_readme
 echo "## IMAGE TESTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$image_tests_log_file >> ../$reportdir/$release_readme
 
