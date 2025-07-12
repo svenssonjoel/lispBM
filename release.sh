@@ -49,7 +49,7 @@ ls -al tests/ > ../$reportdir/tests_list.txt
 ############################################################
 # 32bit tests
 unit_tests_log_file="32bit_unit_tests_log_${release}.txt"
-failing_unit_tests_log_file="failing_32_bit_unit_tests_log_${release}.txt"
+failing_unit_tests_log_file="failing_32bit_unit_tests_log_${release}.txt"
 
 echo "Running 32bit tests"
 
@@ -63,7 +63,7 @@ print_elapsed
 ############################################################
 # 32bit time based scheduler tests
 unit_tests_time_log_file="32bit_time_unit_tests_log_${release}.txt"
-failing_unit_tests_time_log_file="failing_32_bit_time_unit_tests_log_${release}.txt"
+failing_unit_tests_time_log_file="failing_32bit_time_unit_tests_log_${release}.txt"
 
 echo "Running 32bit tests with time scheduler"
 
@@ -130,13 +130,13 @@ tail -n 4 ../$reportdir/$revgc_unit_tests_log_file >> ../$reportdir/$release_rea
 
 print_elapsed
 
-############################################################
-# Run the 32bit tests for a coverage report.
-echo "Collecting coverage data for tests"
+# ############################################################
+# # Run the 32bit tests for a coverage report.
+# echo "Collecting coverage data for tests"
 
-./run_tests_cov.sh &> /dev/null
+# ./run_tests_cov.sh &> /dev/null
 
-print_elapsed
+# print_elapsed
 
 ############################################################
 #

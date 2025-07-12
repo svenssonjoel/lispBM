@@ -661,7 +661,7 @@ int lbm_heap_explicit_free_array(lbm_value arr);
  * \param t Type
  * \return Size in bytes of type or 0 if the type represents a composite.
  */
-lbm_uint lbm_size_of(lbm_type t);
+//lbm_uint lbm_size_of(lbm_type t);
 
 int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,

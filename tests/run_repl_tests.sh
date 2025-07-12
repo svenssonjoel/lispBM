@@ -51,6 +51,6 @@ echo Tests failed: $fail_count
 ## Go to repl directory and collect the coverage data
 cd ../repl
 rm -f repl_tests_cov.json
-gcovr --gcov-ignore-parse-errors --json repl_tests_cov.json
+gcovr --filter ../src --gcov-ignore-parse-errors --json repl_tests_cov.json
 cd ../tests
 
