@@ -30,7 +30,6 @@
 #include "print.h"
 #include "platform_mutex.h"
 #include "lbm_flat_value.h"
-#include "lbm_flags.h"
 
 #ifdef VISUALIZE_HEAP
 #include "heap_vis.h"
@@ -5767,7 +5766,6 @@ static lbm_value get_event_value(lbm_event_t *e) {
     fv.buf_size = e->buf_len;
     fv.buf_pos = 0;
     if (!lbm_unflatten_value(&fv, &v)) {
-      lbm_set_flags(LBM_FLAG_HANDLER_EVENT_DELIVERY_FAILED);
       v = ENC_SYM_EERROR;
     }
     // Free the flat value buffer. GC is unaware of its existence.
