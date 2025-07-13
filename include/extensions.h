@@ -102,12 +102,6 @@ static inline bool lbm_is_extension(lbm_value exp) {
           (lbm_get_extension(lbm_dec_sym(exp)) != NULL));
 }
 
-
-/** Check if a value is the symbol t or the symbol nil
- * \param v The value.
- * \return true if the value is t or nil otherwise false.
- */
-bool lbm_check_true_false(lbm_value v);
 /** Check if all arguments are numbers. Sets error-reason if result is false.
  * \param args The argument array.
  * \param argn The number of arguments.

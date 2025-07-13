@@ -133,12 +133,6 @@ static bool lbm_is_number_all(lbm_value *args, lbm_uint argn) {
   return true;
 }
 
-bool lbm_check_true_false(lbm_value v) {
-  bool res = lbm_is_symbol_true(v) || lbm_is_symbol_nil(v);
-  lbm_set_error_reason((char*)lbm_error_str_not_a_boolean);
-  return res;
-}
-
 bool lbm_check_number_all(lbm_value *args, lbm_uint argn) {
   if (!lbm_is_number_all(args, argn)) {
     lbm_set_error_reason((char*)lbm_error_str_no_number);

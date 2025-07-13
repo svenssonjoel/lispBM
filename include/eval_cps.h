@@ -90,8 +90,7 @@ typedef struct eval_context_s{
 typedef enum {
   LBM_EVENT_FOR_HANDLER = 0,
   LBM_EVENT_UNBLOCK_CTX,
-  LBM_EVENT_DEFINE,
-  LBM_EVENT_RUN_USER_CALLBACK,
+  LBM_EVENT_DEFINE
 } lbm_event_type_t;
 
 typedef struct {
@@ -167,10 +166,6 @@ bool lbm_event_handler_exists(void);
    * \return true if event is successfully added to queue.
    */
 bool lbm_event_define(lbm_value key, lbm_flat_value_t *fv);
-/** Send an event causing the user_callback to be run at the next convenience.
-    \return true if event is successfully added to queue.
-  */
-bool lbm_event_run_user_callback(void *arg);
 /** Send an event to the registered event handler process.
  * If lbm_event returns false the C code will still be responsible for
  * the flat_value passed into lbm_event. If lbm_event returns true,
@@ -269,8 +264,6 @@ void lbm_set_error_suspect(lbm_value suspect);
   *  error that it is not possible to recover from.
   */
 void lbm_critical_error(void);
-/** Set the arbitrary user function callback */
-void lbm_set_user_callback(void (*fptr)(void *));
 /** Set the critical error callback */
 void lbm_set_critical_error_callback(void (*fptr)(void));
 /** Create a context and enqueue it as runnable.
