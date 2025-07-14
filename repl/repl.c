@@ -275,10 +275,6 @@ bool image_write(uint32_t w, int32_t ix, bool const_heap) { // ix >= 0 and ix <=
     return true;
   } else if (image_storage[ix] == w) {
     return true;
-  } else {
-    printf("image_storage[%u] = %x\n", (uint32_t)ix, image_storage[ix]);
-    printf("when trying to write %x\n", w);
-    exit(EXIT_FAILURE);
   }
   return false;
 }

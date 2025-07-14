@@ -1576,10 +1576,16 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
     // hitting a leaf in the left direction.
     bool shared = false;
 
+    // If curr is marked here there is a cycle in the graph.
+    // In case of a cycle or leaf, this first loop is exited.
     while (((lbm_is_cons_rw(curr)) ||
             (lbm_is_lisp_array_rw(curr))) && !gc_marked(curr)) {
       lbm_cons_t *cell;
       run_f = true;
+
+      // if the sharing table contains information about curr,
+      // then curr is a shared node.
+      // Jump out of the loop.
       if (st) {
         if (sharing_table_contains(st, curr) >= 0) {
           shared = true;
@@ -1595,7 +1601,7 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
         if (run_f) // only call if not already
           f(curr, false, arg);
         run_f = true;
-        
+
         lbm_value next = 0;
         value_assign(&next, cell->car);
         value_assign(&cell->car, prev);
@@ -1617,9 +1623,17 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
           value_assign(&arr_data[0], prev);
           value_assign(&prev, curr);
           value_assign(&curr, next);
-        } 
+        }
       }
     }
+    // Currently there are a few different users of this traversal.
+    // size, flatten and detect_sharing.
+    // detect_sharing make use of the shared (true) argument in f(curr, true, arg)
+    // while the other do not. detect_sharing also assumes it is run once per env item
+    // while not resetting any GC-bits in between. This detects global sharing.
+
+    // TODO: I dont like that this code is so confusing.
+    //       Try to clean up the logic.
     if (lbm_is_ptr(curr) && (gc_marked(curr) || shared)) {
       int r = f(curr, true, arg);
       if (r == TRAV_FUN_SUBTREE_DONE) {
@@ -1632,8 +1646,8 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
                (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       if (lbm_is_ptr(curr) && !(curr & LBM_PTR_TO_CONSTANT_BIT)) gc_mark(curr); // Mark it so that the mandatory GC does not swipe it.
       f(curr, false, arg);
-    } 
-      
+    }
+
     // Now either prev has the "flag" set or it doesnt.
     // If the flag is set that means that the prev node
     // have had both its car and cdr visited. So that node is done!
@@ -1739,5 +1753,7 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
       arr->index = arr->index + 1;
     }
   }
+  // TODO: The cyclic return value is nolonger of much value as
+  // cyclic values are handled ok.
   return !cyclic;
 }
