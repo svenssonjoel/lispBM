@@ -137,3 +137,10 @@
 (define test7 '(progn (define f (lambda (x) (+ x 10)))
                       (define g (lambda (x) (* x 5)))
                       (g (f 10))))
+
+(if (eq (evald nil test6 'done) 60)
+    (print "SUCCESS")
+  (print "FAILURE")
+  )
+
+          
