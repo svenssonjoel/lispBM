@@ -275,9 +275,6 @@ bool image_write(uint32_t w, int32_t ix, bool const_heap) { // ix >= 0 and ix <=
     return true;
   } else if (image_storage[ix] == w) {
     return true;
-  } else {
-    printf("image_storage[%u] = %x\n", (uint32_t)ix, image_storage[ix]);
-    printf("when trying to write %x\n", w);
   }
   return false;
 }
@@ -636,7 +633,7 @@ void parse_opts(int argc, char **argv) {
   int c;
   opterr = 1;
   int opt_index = 0;
-  while ((c = getopt_long(argc, argv, "H:M:C:hse:",options, &opt_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "H:M:C:hs:e:",options, &opt_index)) != -1) {
     switch (c) {
     case 'H':
       heap_size = (size_t)atoi((char*)optarg);
@@ -967,7 +964,8 @@ int init_repl(void) {
   }
 
   if (lbm_image_get_version()) {
-    printf("image version string: %s\n", lbm_image_get_version());
+    if (!silent_mode)
+      printf("image version string: %s\n", lbm_image_get_version());
   }
 
   lbm_image_boot();
@@ -978,7 +976,8 @@ int init_repl(void) {
   if (!lbm_image_has_extensions()) {
     init_exts();
   } else {
-    printf("Image contains extensions\n");
+    if (!silent_mode)
+      printf("Image contains extensions\n");
   }
 
 #ifdef WITH_SDL
@@ -995,7 +994,8 @@ int init_repl(void) {
   }
 #endif
 
-  printf("creating eval thread\n");
+  if (!silent_mode)
+    printf("creating eval thread\n");
 #ifdef LBM_WIN
   lispbm_thd = CreateThread( 
                            NULL,                   // default security attributes
@@ -1381,7 +1381,7 @@ static void vesc_lbm_done_callback(eval_context_t *ctx) {
 }
 
 static lbm_value ext_vescif_print(lbm_value *args, lbm_uint argn) {
-  const int str_len = 256;
+  const unsigned int str_len = 256;
   char *print_val_buffer = malloc(str_len);
   if (!print_val_buffer) {
     return ENC_SYM_MERROR;

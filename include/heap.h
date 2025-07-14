@@ -28,6 +28,7 @@
 #include "lbm_memory.h"
 #include "lbm_defines.h"
 #include "lbm_channel.h"
+#include "lbm_image.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -520,7 +521,7 @@ unsigned int lbm_list_length_pred(lbm_value c, bool *pres, bool (*pred)(lbm_valu
  * \param list A list
  * \return The list reversed or enc_sym(SYM_MERROR) if heap is full.
  */
-lbm_value lbm_list_reverse(lbm_value list);
+//lbm_value lbm_list_reverse(lbm_value list);
 /** Reverse a proper list destroying the original.
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
  * may lead to the function not terminating.
@@ -660,7 +661,7 @@ int lbm_heap_explicit_free_array(lbm_value arr);
  * \param t Type
  * \return Size in bytes of type or 0 if the type represents a composite.
  */
-lbm_uint lbm_size_of(lbm_type t);
+//lbm_uint lbm_size_of(lbm_type t);
 
 int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,
@@ -998,16 +999,20 @@ static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
   //return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
 }
 
-typedef void (*trav_fun)(lbm_value, bool, void*);
+#define TRAV_FUN_SUBTREE_DONE 0
+#define TRAV_FUN_SUBTREE_CONTINUE 1
+#define TRAV_FUN_SUBTREE_PROCEED 2
+  
+typedef int (*trav_fun)(lbm_value, bool, void*);
 
 /**
+ * \param st pointer to sharing table or null if no table exists.
  * \param f pointer to function to execute at each node in tree.
  * \param v Tree to traverses.
  * \param arg Extra argument to pass to f when applied.
  * \return true if successful traversal and false if there is a cycle in the data.
  */
-bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg);
-
+bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg);
 
 // lbm_uint a = lbm_heaps[0];
 // lbm_uint b = lbm_heaps[1];

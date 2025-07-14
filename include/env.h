@@ -82,7 +82,7 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
  * \param val The value.
  * \return The modified environment or lbm_enc_sym(SYM_MERROR) if GC needs to be run.
  */
-lbm_value lbm_env_set_functional(lbm_value env, lbm_value key, lbm_value val);
+//lbm_value lbm_env_set_functional(lbm_value env, lbm_value key, lbm_value val);
 /** Modifies an existing binding on the environment.
  *
  * \param env The environment to modify.
