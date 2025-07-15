@@ -9,7 +9,6 @@
                 "Hello8"
                 "Hello9"
                 ))
-(define c (list 
 
 (defun sixth-char (x)
   (bufget-u8 x 5))

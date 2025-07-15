@@ -22,6 +22,7 @@ for fn in image_tests/*.lisp
 do
     fail_timeout=false;
     ok=false
+    rm -f image.lbm
     timeout $timeout_val ../repl/repl_cov --silent --terminate -s $fn &> /dev/null
     if [ $? == 124 ]; then
         fail_timeout=true;
