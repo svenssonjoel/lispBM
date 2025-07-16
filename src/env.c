@@ -26,11 +26,11 @@
 
 static lbm_value env_global[GLOBAL_ENV_ROOTS];
 
-int lbm_init_env(void) {
+bool lbm_init_env(void) {
   for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
     env_global[i] = ENC_SYM_NIL;
   }
-  return 1;
+  return true;
 }
 
 lbm_uint lbm_get_global_env_size(void) {

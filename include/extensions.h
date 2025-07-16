@@ -51,9 +51,9 @@ extern lbm_extension_t *extension_table;
 /** Initialize the extensions subsystem. Extension storage is allocated on lbm_memory.
  *
  * \param extension_storage_size Size of function pointer array.
- * \return 1 on success and 0 for failure
+ * \return true on success and false for failure
  */
-int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size);
+bool lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size);
 /** Set the next index to be given out to the next added extension.
  * \param i Next index.
  */

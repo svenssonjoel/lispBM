@@ -41,8 +41,8 @@ lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_EERROR;
 }
 
-int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size) {
-  if (extension_storage == NULL || extension_storage_size == 0) return 0;
+bool lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size) {
+  if (extension_storage == NULL || extension_storage_size == 0) return false;
 
   extension_table = extension_storage;
   memset(extension_table, 0, sizeof(lbm_extension_t) * extension_storage_size);
@@ -54,7 +54,7 @@ int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_s
   next_extension_ix = 0;
   ext_max = (lbm_uint)extension_storage_size;
 
-  return 1;
+  return true;
 }
 
 lbm_uint lbm_get_max_extensions(void) {

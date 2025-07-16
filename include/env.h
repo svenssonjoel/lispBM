@@ -31,9 +31,9 @@ extern "C" {
 //environment interface
 /** Initialize the global environment. This sets the global environment to NIL
  *
- * \return 1
+ * \return true on success and false on failure.
  */
-int lbm_init_env(void);
+bool lbm_init_env(void);
 /**
  *
  * \return the global environment

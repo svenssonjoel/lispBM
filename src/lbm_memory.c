@@ -51,7 +51,7 @@ static mutex_t lbm_mem_mutex;
 static bool    lbm_mem_mutex_initialized;
 static lbm_uint alloc_offset = 0;
 
-int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
+bool lbm_memory_init(lbm_uint *data, lbm_uint data_size,
                     lbm_uint *bits, lbm_uint bits_size) {
 
   if (!lbm_mem_mutex_initialized) {
@@ -62,7 +62,7 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
   alloc_offset = 0;
 
   mutex_lock(&lbm_mem_mutex);
-  int res = 0;
+  bool res = false;
   if (data == NULL || bits == NULL) return 0;
 
   if (((lbm_uint)data % sizeof(lbm_uint) != 0) ||
@@ -89,7 +89,7 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
     memory_min_free = data_size;
     memory_num_free = data_size;
     memory_reserve_level = (lbm_uint)(0.1 * (lbm_float)data_size);
-    res = 1;
+    res = true;
   }
   mutex_unlock(&lbm_mem_mutex);
   return res;

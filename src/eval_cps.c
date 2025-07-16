@@ -5939,7 +5939,7 @@ lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size) {
   return lbm_create_ctx(lisp, ENC_SYM_NIL, stack_size, NULL);
 }
 
-int lbm_eval_init(void) {
+bool lbm_eval_init(void) {
   if (!qmutex_initialized) {
     mutex_init(&qmutex);
     qmutex_initialized = true;
@@ -5967,9 +5967,9 @@ int lbm_eval_init(void) {
   mutex_unlock(&lbm_events_mutex);
   mutex_unlock(&qmutex);
 
-  if (!lbm_init_env()) return 0;
+  if (!lbm_init_env()) return false;
   eval_running = true;
-  return 1;
+  return true;
 }
 
 bool lbm_eval_init_events(unsigned int num_events) {

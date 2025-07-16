@@ -537,10 +537,10 @@ double lbm_dec_as_double(lbm_value a) {
 /****************************************************/
 /* HEAP MANAGEMENT                                  */
 
-static int generate_freelist(size_t num_cells) {
+static bool generate_freelist(size_t num_cells) {
   size_t i = 0;
 
-  if (!lbm_heap_state.heap) return 0;
+  if (!lbm_heap_state.heap) return false;
 
   lbm_heap_state.freelist = lbm_enc_cons_ptr(0);
 
@@ -557,7 +557,7 @@ static int generate_freelist(size_t num_cells) {
   t = lbm_ref_cell(lbm_enc_cons_ptr(num_cells-1));
   t->cdr = ENC_SYM_NIL;
 
-  return 1;
+  return true;
 }
 
 void lbm_nil_freelist(void) {
@@ -590,10 +590,10 @@ void lbm_heap_new_freelist_length(void) {
     lbm_heap_state.gc_least_free = l;
 }
 
-int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
+bool lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
                   lbm_uint gc_stack_size) {
 
-  if (((uintptr_t)addr % 8) != 0) return 0;
+  if (((uintptr_t)addr % 8) != 0) return false;
 
   memset(addr,0, sizeof(lbm_cons_t) * num_cells);
 

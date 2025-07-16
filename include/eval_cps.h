@@ -127,9 +127,9 @@ void lbm_add_eval_symbols(void);
 /* Concurrent interface */
 /** Initialize the evaluator.
  *
- * \return 1 on success and 0 on failure.
+ * \return true on success and false on failure.
  */
-int lbm_eval_init(void);
+bool lbm_eval_init(void);
 #ifdef LBM_USE_TIME_QUOTA
 /**  Set a new value to use as time quota.
  *   This changes the scheduling interval.
