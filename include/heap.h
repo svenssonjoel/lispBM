@@ -1005,6 +1005,14 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg);
 // lbm_uint i = (addr & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT) - 1;
 // lbm_uint h = (a & i) | (b & ~i);
 
+#ifdef LBM64
+#define lbm_dec_as_int lbm_dec_as_i64
+#define lbm_dec_as_uint lbm_dec_as_u64
+#else 
+#define lbm_dec_as_int lbm_dec_as_i32
+#define lbm_dec_as_uint lbm_dec_as_u32
+#endif
+  
 #ifdef __cplusplus
 }
 #endif
