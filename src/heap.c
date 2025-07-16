@@ -1121,26 +1121,6 @@ unsigned int lbm_list_length_pred(lbm_value c, bool *pres, bool (*pred)(lbm_valu
   return len;
 }
 
-/* reverse a proper list */
-/* lbm_value lbm_list_reverse(lbm_value list) { */
-/*   if (lbm_type_of(list) == LBM_TYPE_SYMBOL) { */
-/*     return list; */
-/*   } */
-
-/*   lbm_value curr = list; */
-
-/*   lbm_value new_list = ENC_SYM_NIL; */
-/*   while (lbm_is_cons(curr)) { */
-
-/*     new_list = lbm_cons(lbm_car(curr), new_list); */
-/*     if (lbm_type_of(new_list) == LBM_TYPE_SYMBOL) { */
-/*       return ENC_SYM_MERROR; */
-/*     } */
-/*     curr = lbm_cdr(curr); */
-/*   } */
-/*   return new_list; */
-/* } */
-
 lbm_value lbm_list_destructive_reverse(lbm_value list) {
   if (lbm_type_of(list) == LBM_TYPE_SYMBOL) {
     return list;
@@ -1386,31 +1366,6 @@ int lbm_heap_explicit_free_array(lbm_value arr) {
 
   return r;
 }
-
-/* lbm_uint lbm_size_of(lbm_type t) { */
-/*   lbm_uint s = 0; */
-/*   switch(t) { */
-/*   case LBM_TYPE_BYTE: */
-/*     s = 1; */
-/*     break; */
-/*   case LBM_TYPE_I: /\* fall through *\/ */
-/*   case LBM_TYPE_U: */
-/*   case LBM_TYPE_SYMBOL: */
-/*     s = sizeof(lbm_uint); */
-/*     break; */
-/*   case LBM_TYPE_I32: /\* fall through *\/ */
-/*   case LBM_TYPE_U32: */
-/*   case LBM_TYPE_FLOAT: */
-/*     s = 4; */
-/*     break; */
-/*   case LBM_TYPE_I64: /\* fall through *\/ */
-/*   case LBM_TYPE_U64: */
-/*   case LBM_TYPE_DOUBLE: */
-/*     s = 8; */
-/*     break; */
-/*   } */
-/*   return s; */
-/* } */
 
 static bool dummy_flash_write(lbm_uint ix, lbm_uint val) {
   (void)ix;

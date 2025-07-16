@@ -514,14 +514,6 @@ lbm_uint lbm_list_length(lbm_value c);
  * \param pred Predicate to evaluate for each element of the list.
  */
 unsigned int lbm_list_length_pred(lbm_value c, bool *pres, bool (*pred)(lbm_value));
-/** Reverse a proper list
- * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
- * may lead to the function not terminating.
- *
- * \param list A list
- * \return The list reversed or enc_sym(SYM_MERROR) if heap is full.
- */
-//lbm_value lbm_list_reverse(lbm_value list);
 /** Reverse a proper list destroying the original.
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
  * may lead to the function not terminating.
@@ -656,12 +648,6 @@ uint8_t *lbm_heap_array_get_data_rw(lbm_value arr);
  * \param arr Array value.
  */
 int lbm_heap_explicit_free_array(lbm_value arr);
-
-/** Query the size in bytes of an lbm_type.
- * \param t Type
- * \return Size in bytes of type or 0 if the type represents a composite.
- */
-//lbm_uint lbm_size_of(lbm_type t);
 
 int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,
