@@ -1495,13 +1495,7 @@ lbm_uint lbm_flash_memory_usage(void) {
 //     pointer reversal. If a dynamic structure is pointing into the
 //     constant heap, the 'f' will be applied to the constant cons cell on
 //     the border and then traversal will retreat.
-//   * Traversal is for trees and graphs without cycles.
-//     - Note that if used to "flatten" a graph, the resulting flat
-//       value will encode a tree where sharing is duplicated.
-//     - NOT suitable for flattening in general, but should be
-//       a perfect fit for the flattening we do into images.
-
-// May 3 2025
+//
 //  * It may be impossible to detect all kinds of cycles
 //    if attempting to use and restore the GC in a single pass
 //    over the tree. To detect cycles all visited nodes must
@@ -1515,47 +1509,35 @@ lbm_uint lbm_flash_memory_usage(void) {
 //    in the environment.
 //
 //  * lbm_ptr_rev_trav with the "do_nothing" travfun is the same thing
-//    as a GC mark phase! Maybe utilize this for code-size purposes,
-//    atleast in the ptr_rev_gc version. This also increases the amount
-//    of testing the ptr_rev_trav function is subjected to.
+//    as a GC mark phase! Maybe utilize this for code-size
+//    purposes. This also increases the amount of testing the
+//    ptr_rev_trav function is subjected to.
 
-bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
+void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
 
-  bool cyclic = false;
   lbm_value curr = v;
   lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
-  bool run_f = true;
   while (true) {
 
     // Run leftwards and process conses until
     // hitting a leaf in the left direction.
-    bool shared = false;
 
     // If curr is marked here there is a cycle in the graph.
     // In case of a cycle or leaf, this first loop is exited.
     while (((lbm_is_cons_rw(curr)) ||
             (lbm_is_lisp_array_rw(curr))) && !gc_marked(curr)) {
       lbm_cons_t *cell;
-      run_f = true;
 
-      // if the sharing table contains information about curr,
-      // then curr is a shared node.
-      // Jump out of the loop.
-      if (st) {
-        if (sharing_table_contains(st, curr) >= 0) {
-          shared = true;
-          break;
-        }
-      }
       // Stretching it a bit ..
-    continue_process_subtree:
+      //continue_process_subtree:
       cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
-        gc_mark(curr);
         // In-order traversal
-        if (run_f) // only call if not already
-          f(curr, false, arg);
-        run_f = true;
+        if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
+          lbm_gc_mark_phase(curr);
+          break;
+        }
+        gc_mark(curr);
 
         lbm_value next = 0;
         value_assign(&next, cell->car);
@@ -1563,15 +1545,18 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
         value_assign(&prev, curr);
         value_assign(&curr, next);
       } else { // it is an array
-        gc_mark(curr);
+
         lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
         lbm_value *arr_data = (lbm_value *)arr->data;
         uint32_t index = arr->index;
         if (arr->size == 0) break;
         if (index == 0) { // index should only be 0 or there is a potential cycle
-          if (run_f)
-            f(curr, false, arg);
+          if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
+            lbm_gc_mark_phase(curr);
+            break;
+          }
           arr->index = 1;
+          gc_mark(curr);
 
           lbm_value next = 0;
           value_assign(&next, arr_data[0]);
@@ -1587,16 +1572,13 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
     // while the other do not. detect_sharing also assumes it is run once per env item
     // while not resetting any GC-bits in between. This detects global sharing.
 
-    // TODO: I dont like that this code is so confusing.
-    //       Try to clean up the logic.
-    if (lbm_is_ptr(curr) && (gc_marked(curr) || shared)) {
-      int r = f(curr, true, arg);
-      if (r == TRAV_FUN_SUBTREE_DONE) {
-        lbm_gc_mark_phase(curr); // Mark if not already marked.
-      } else if (r == TRAV_FUN_SUBTREE_CONTINUE) {
-        run_f = false;// SUPERSPAGHETTI!
-        goto continue_process_subtree;
-      }
+    if (lbm_is_ptr(curr) && gc_marked(curr)) {
+      // gc bit set so this subtree is already traversed.
+      // f is called with true to indicate visited node.
+      // if this happens during a sharing discovery phase, curr will be added to sharing table.
+      f(curr, true, arg);
+      // In this case f should not be able to return subtree continue.
+      // The only correct return value from f is PROCEED.
     } else if (!lbm_is_cons(curr) || // Found a leaf
                (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       if (lbm_is_ptr(curr) && !(curr & LBM_PTR_TO_CONSTANT_BIT)) gc_mark(curr); // Mark it so that the mandatory GC does not swipe it.
@@ -1708,7 +1690,4 @@ bool lbm_ptr_rev_trav(sharing_table *st, trav_fun f, lbm_value v, void* arg) {
       arr->index = arr->index + 1;
     }
   }
-  // TODO: The cyclic return value is nolonger of much value as
-  // cyclic values are handled ok.
-  return !cyclic;
 }

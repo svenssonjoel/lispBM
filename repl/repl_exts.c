@@ -790,7 +790,8 @@ int dummy_f(lbm_value v, bool shared, void *arg) {
 
 lbm_value ext_rt(lbm_value *args, lbm_uint argn) {
   if (argn == 1) {
-    return lbm_ptr_rev_trav(NULL,dummy_f, args[0], NULL) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+    lbm_ptr_rev_trav(dummy_f, args[0], NULL);
+    return ENC_SYM_TRUE;
   } 
   return ENC_SYM_TERROR;
 }

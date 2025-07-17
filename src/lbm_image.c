@@ -684,7 +684,7 @@ sharing_table lbm_image_sharing(void) {
         //        lbm_value name_field = lbm_caar(curr);
         lbm_value val_field  = lbm_cdr(lbm_car(curr));
         if (!lbm_is_constant(val_field)) {
-          lbm_ptr_rev_trav(NULL, detect_shared, val_field, &st);
+          lbm_ptr_rev_trav(detect_shared, val_field, &st);
         }
         curr = lbm_cdr(curr);
       }
@@ -910,7 +910,7 @@ static int32_t image_flatten_size(sharing_table *st, lbm_value v) {
   size_accumulator sa;
   sa.s = 0;
   sa.st = st;
-  lbm_ptr_rev_trav(st, size_acc, v, &sa);
+  lbm_ptr_rev_trav(size_acc, v, &sa);
   lbm_perform_gc();
   return sa.s; // Should always be "ok" now.
 }
@@ -920,10 +920,9 @@ static bool image_flatten_value(sharing_table *st, lbm_value v) {
   md.res = true;
   md.st = st;
   md.arg = 0;
-  bool trav_ok = lbm_ptr_rev_trav(st, flatten_node, v, &md);
+  lbm_ptr_rev_trav(flatten_node, v, &md);
   lbm_perform_gc();
-  return trav_ok && md.res; // ok = enough space in image for flat val.
-                        // trav_ok = no cycles in input value.
+  return md.res; // ok = enough space in image for flat val.
 }
 
 // ////////////////////////////////////////////////////////////
