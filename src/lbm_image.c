@@ -903,9 +903,6 @@ static int flatten_node(lbm_value v, bool shared, void *arg) {
 
 // Performing GC after using the ptr_rev_trav to restore the
 // GC-bit in the value traversed.
-//
-// This is a temporary step towards proper sharing and cycle detection.
-
 static int32_t image_flatten_size(sharing_table *st, lbm_value v) {
   size_accumulator sa;
   sa.s = 0;

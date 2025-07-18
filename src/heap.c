@@ -725,77 +725,18 @@ static inline void value_assign(lbm_value *a, lbm_value b) {
    Since the heap will be "messed up" while marking, a mutex
    is introuded to keep other processes out of the heap while
    marking.
-
-   TODO: See if the extra index field in arrays can be used
-   to mark arrays without resorting to recursive mark calls.
 */
 
-
-void lbm_gc_mark_phase_nm(lbm_value root) {
-  bool work_to_do = true;
-  if (!lbm_is_ptr(root)) return;
-
-  lbm_value curr = root;
-  lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
-
-  while (work_to_do) {
-    // follow leftwards pointers
-    while (lbm_is_ptr(curr) &&
-           (lbm_dec_ptr(curr) != LBM_PTR_NULL) &&
-           ((curr & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
-           !lbm_get_gc_mark(lbm_cdr(curr))) {
-      // Mark the cell if not a constant cell
-      lbm_cons_t *cell = lbm_ref_cell(curr);
-      cell->cdr = lbm_set_gc_mark(cell->cdr);
-      if (lbm_is_cons_rw(curr)) {
-        lbm_value next = 0;
-        value_assign(&next, cell->car);
-        value_assign(&cell->car, prev);
-        value_assign(&prev,curr);
-        value_assign(&curr, next);
-      } else if (lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
-        lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
-        lbm_value *arr_data = (lbm_value *)arr->data;
-        size_t  arr_size = (size_t)arr->size / sizeof(lbm_value);
-        // C stack recursion as deep as there are nested arrays.
-        // TODO: Try to do this without recursion on the C side.
-        for (size_t i = 0; i < arr_size; i ++) {
-          lbm_gc_mark_phase_nm(arr_data[i]);
-        }
-      }
-      // Will jump out next iteration as gc mark is set in curr.
-    }
-    while (lbm_is_ptr(prev) &&
-           (lbm_dec_ptr(prev) != LBM_PTR_NULL) &&
-           lbm_get_gc_flag(lbm_car(prev)) ) {
-      // clear the flag
-      lbm_cons_t *cell = lbm_ref_cell(prev);
-      cell->car = lbm_clr_gc_flag(cell->car);
-      lbm_value next = 0;
-      value_assign(&next, cell->cdr);
-      value_assign(&cell->cdr, curr);
-      value_assign(&curr, prev);
-      value_assign(&prev, next);
-    }
-    if (lbm_is_ptr(prev) &&
-        lbm_dec_ptr(prev) == LBM_PTR_NULL) {
-      work_to_do = false;
-    } else if (lbm_is_ptr(prev)) {
-      // set the flag
-      lbm_cons_t *cell = lbm_ref_cell(prev);
-      cell->car = lbm_set_gc_flag(cell->car);
-      lbm_value next = 0;
-      value_assign(&next, cell->car);
-      value_assign(&cell->car, curr);
-      value_assign(&curr, cell->cdr);
-      value_assign(&cell->cdr, next);
-    }
-  }
+static int do_nothing(lbm_value v, bool shared, void *arg) {
+  (void) v;
+  (void) shared;
+  (void) arg;
+  return TRAV_FUN_SUBTREE_CONTINUE;
 }
 
 void lbm_gc_mark_phase(lbm_value root) {
     mutex_lock(&lbm_const_heap_mutex);
-    lbm_gc_mark_phase_nm(root);
+    lbm_ptr_rev_trav(do_nothing, root, NULL);
     mutex_unlock(&lbm_const_heap_mutex);
 }
 
@@ -1526,11 +1467,7 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
     // In case of a cycle or leaf, this first loop is exited.
     while (((lbm_is_cons_rw(curr)) ||
             (lbm_is_lisp_array_rw(curr))) && !gc_marked(curr)) {
-      lbm_cons_t *cell;
-
-      // Stretching it a bit ..
-      //continue_process_subtree:
-      cell = lbm_ref_cell(curr);
+      lbm_cons_t *cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
         // In-order traversal
         if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
