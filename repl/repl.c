@@ -2628,17 +2628,17 @@ int main(int argc, char **argv) {
       if (n > 0 && !(state->length > 0 && strcmp(state->entries[state->length - 1]->line, str) == 0)) {
         add_history(str);
         if (history_file_path != NULL) {
-          int append_result = append_history(1, history_file_path);
-          if (append_result != 0) {
+          int result = append_history(1, history_file_path);
+          if (result != 0) {
             // History file probably doesn't exist yet.
-            int append_result = write_history(history_file_path);
-            if (append_result != 0) {
+            result = write_history(history_file_path);
+            if (result != 0) {
               fprintf(
                       stderr,
                       "Couldn't write to history file '%s': %s (%d)\n",
                       history_file_path,
-                      strerror(append_result),
-                      append_result
+                      strerror(result),
+                      result
                       );
               exit(1);
             }
