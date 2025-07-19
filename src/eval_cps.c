@@ -3152,16 +3152,15 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     args[1] = a; // keep safe by replacing the original on stack.
     args[2] = b;
 
-    lbm_value a_1 = a;
-    lbm_value a_rest = lbm_cdr(a);
-    lbm_value b_1 = b;
-    lbm_value b_rest = lbm_cdr(b);
-
     lbm_value cl[3]; // Comparator closure
     extract_n(lbm_cdr(args[0]), cl, 3);
     lbm_value cmp_env = cl[CLO_ENV];
     lbm_uint len = lbm_list_length(cl[CLO_PARAMS]);
     if (len == 2) {
+      lbm_value a_1 = a;
+      lbm_value b_1 = b;
+      lbm_value a_rest = lbm_cdr(a);
+      lbm_value b_rest = lbm_cdr(b);
       lbm_value par1 = get_car(cl[CLO_PARAMS]);
       lbm_value par2 = get_cadr(cl[CLO_PARAMS]);
       lbm_value new_env0;

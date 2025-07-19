@@ -825,7 +825,7 @@ static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
 
 static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, lbm_flat_value_t *v, lbm_value *res) {
   bool done = false;
-  lbm_value val0 = ENC_SYM_NIL;
+  lbm_value val0;
   lbm_value curr = lbm_enc_cons_ptr(LBM_PTR_NULL);
   while (!done) {
     int32_t set_ix = -1;

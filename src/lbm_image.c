@@ -646,9 +646,8 @@ uint32_t sharing_table_get_field(sharing_table *st, int32_t ix, int32_t field) {
 static int detect_shared(lbm_value v, bool shared, void *acc) {
   sharing_table *st = (sharing_table*)acc;
   if (shared) {
-    lbm_uint addr = 0;
     if (lbm_is_ptr(v)) {
-      addr = v;
+      lbm_uint addr = v;
       int32_t ix = sharing_table_contains(st,addr);
       if (ix < 0) {
         // Create place in table for a shared address and skip

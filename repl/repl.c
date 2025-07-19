@@ -2437,9 +2437,9 @@ int main(int argc, char **argv) {
       exit_on_alloc_failure(history_file_path);
       memcpy(history_file_path, path_env, len + 1);
     } else {
-      static const char *suffix = "/.lbm_history";
       const char *home_path = getenv("HOME");
       if (home_path != NULL) {
+        static const char *suffix = "/.lbm_history";
         history_file_path = calloc(strlen(home_path) + strlen(suffix) + 1, sizeof(char));
         exit_on_alloc_failure(history_file_path);
         strcat(history_file_path, home_path);
@@ -2628,17 +2628,17 @@ int main(int argc, char **argv) {
       if (n > 0 && !(state->length > 0 && strcmp(state->entries[state->length - 1]->line, str) == 0)) {
         add_history(str);
         if (history_file_path != NULL) {
-          int result = append_history(1, history_file_path);
-          if (result != 0) {
+          int append_result = append_history(1, history_file_path);
+          if (append_result != 0) {
             // History file probably doesn't exist yet.
-            int result = write_history(history_file_path);
-            if (result != 0) {
+            int append_result = write_history(history_file_path);
+            if (append_result != 0) {
               fprintf(
                       stderr,
                       "Couldn't write to history file '%s': %s (%d)\n",
                       history_file_path,
-                      strerror(result),
-                      result
+                      strerror(append_result),
+                      append_result
                       );
               exit(1);
             }
@@ -2729,8 +2729,7 @@ int main(int argc, char **argv) {
         }
         free(str);
       } else if (strncmp(str, ":state", 6) == 0) {
-        lbm_uint state = lbm_get_eval_state();
-        switch (state) {
+        switch (lbm_get_eval_state()) {
         case EVAL_CPS_STATE_DEAD:
           printf("DEAD\n");
           break;
