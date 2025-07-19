@@ -986,12 +986,16 @@ bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
     v->buf_pos = 0;
     r = lbm_unflatten_value_nostack(NULL,NULL,v,res);
   }
-  if (r == UNFLATTEN_MALFORMED) {
-    *res = ENC_SYM_EERROR;
-  } else if (r == UNFLATTEN_GC_RETRY) {
-    *res = ENC_SYM_MERROR;
-  } else {
+  switch(r) {
+  case UNFLATTEN_OK:
     b = true;
+    break;
+  case UNFLATTEN_GC_RETRY:
+    *res = ENC_SYM_MERROR;
+    break;
+  default:
+    *res = ENC_SYM_EERROR;
+    break;
   }
   // Do not free the flat value buffer here.
   // there are 2 cases:
@@ -1011,12 +1015,16 @@ bool lbm_unflatten_value_sharing(sharing_table *st, lbm_uint *target_map, lbm_fl
     v->buf_pos = 0;
     r = lbm_unflatten_value_nostack(st,target_map,v,res);
   }
-  if (r == UNFLATTEN_MALFORMED) {
-    *res = ENC_SYM_EERROR;
-  } else if (r == UNFLATTEN_GC_RETRY) {
-    *res = ENC_SYM_MERROR;
-  } else {
+  switch(r) {
+  case UNFLATTEN_OK:
     b = true;
+    break;
+  case UNFLATTEN_GC_RETRY:
+    *res = ENC_SYM_MERROR;
+    break;
+  default:
+    *res = ENC_SYM_EERROR;
+    break;
   }
   // Do not free the flat value buffer here.
   // there are 2 cases:
