@@ -128,28 +128,6 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
   return new_env;
 }
 
-// TODO: same remark as lbm_set_env
-/* lbm_value lbm_env_set_functional(lbm_value env, lbm_value key, lbm_value val) { */
-
-/*   lbm_value keyval = lbm_cons(key, val); */
-/*   if (lbm_type_of(keyval) == LBM_TYPE_SYMBOL) { */
-/*     return keyval; */
-/*   } */
-
-/*   lbm_value curr = env; */
-
-/*   while(lbm_type_of(curr) == LBM_TYPE_CONS) { */
-/*     if (lbm_caar(curr) == key) { */
-/*       lbm_set_car(curr,keyval); */
-/*       return env; */
-/*     } */
-/*     curr = lbm_cdr(curr); */
-/*   } */
-
-/*   lbm_value new_env = lbm_cons(keyval, env); */
-/*   return new_env; */
-/* } */
-
 lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
 
   lbm_value curr = env;
@@ -166,11 +144,18 @@ lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
   return ENC_SYM_NOT_FOUND;
 }
 
+
+// TODO: Drop binding should really return a new environment
+//       where the drop key/val is missing.
+//  
+//       The internal use of drop_binding in fundamental undefine
+//       is probably fine as we do not generally treat environments
+//       as first order values. If we did, drop_binding is too destructive!
 lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key) {
 
   lbm_value curr = env;
   // If key is first in env
-  if (lbm_car(lbm_car(curr)) == key) {
+  if (lbm_caar(curr) == key) {
     return lbm_cdr(curr);
   }
 

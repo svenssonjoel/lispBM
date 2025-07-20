@@ -1110,7 +1110,9 @@ static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at
                         );
   }
 #ifdef LBM_USE_ERROR_LINENO
-  printf_callback("eval_cps.c line number: %d\n", line_no);
+  if (!lbm_hide_trapped_error) {
+    printf_callback("eval_cps.c line number: %d\n", line_no);
+  }
 #endif
   if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
     if (lbm_heap_num_free() < 3) {
