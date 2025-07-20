@@ -2301,7 +2301,7 @@ static void eval_match(eval_context_t *ctx) {
     sptr[1] = ctx->curr_env;
     sptr[2] = MATCH;
   } else {
-    // syntax error to not include at least one pattern
+    // someone wrote the program (match)
     ERROR_CTX(ENC_SYM_EERROR);
   }
 }
