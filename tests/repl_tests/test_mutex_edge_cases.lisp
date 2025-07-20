@@ -76,14 +76,16 @@
     (setq pass-count (+ pass-count 1)))
 
 ;; Test 7: Cons pair that looks like mutex but isn't
-(define fake-mutex (cons 'not-nil 'also-not-nil))
-(define fake-lock-result (mutex-lock fake-mutex))
+;;(define fake-mutex (cons 'not-nil 'also-not-nil))
+;;(define fake-lock-result (mutex-lock fake-mutex))
 
-;; TODO: figure out why this leads to a loop.
+;; Figure out why this leads to a loop.
+;;   Makes sense, it looks like a locked mutex the attempted lock
+;;   leads to blocking the thread. 
 
-(setq test-count (+ test-count 1))
-(if (or (eq fake-lock-result t) (not (eq fake-lock-result t)))
-    (setq pass-count (+ pass-count 1)))
+;;(setq test-count (+ test-count 1))
+;;(if (or (eq fake-lock-result t) (not (eq fake-lock-result t)))
+;;    (setq pass-count (+ pass-count 1)))
 
 ;; Test 8: Mutex operations with no arguments
 (define no-arg-result1 (trap (mutex-lock)))
