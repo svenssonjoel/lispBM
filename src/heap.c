@@ -277,22 +277,6 @@ lbm_array_header_t *lbm_dec_array_rw(lbm_value val) {
   return array;
 }
 
-lbm_array_header_t *lbm_dec_lisp_array_r(lbm_value val) {
-  lbm_array_header_t *array = NULL;
-  if (lbm_is_lisp_array_r(val)) {
-    array = (lbm_array_header_t *)lbm_car(val);
-  }
-  return array;
-}
-
-lbm_array_header_t *lbm_dec_lisp_array_rw(lbm_value val) {
-  lbm_array_header_t *array = NULL;
-  if (lbm_is_lisp_array_rw(val)) {
-    array = (lbm_array_header_t *)lbm_car(val);
-  }
-  return array;
-}
-
 lbm_char_channel_t *lbm_dec_channel(lbm_value val) {
   lbm_char_channel_t *res = NULL;
 
