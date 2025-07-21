@@ -1031,21 +1031,6 @@ lbm_uint lbm_list_length(lbm_value c) {
   return len;
 }
 
-/* calculate the length of a list and check that each element
-   fullfills the predicate pred */
-unsigned int lbm_list_length_pred(lbm_value c, bool *pres, bool (*pred)(lbm_value)) {
-  bool res = true;
-  unsigned int len = 0;
-
-  while (lbm_is_cons(c)){
-    len ++;
-    res = res && pred(lbm_car(c));
-    c = lbm_cdr(c);
-  }
-  *pres = res;
-  return len;
-}
-
 lbm_value lbm_list_destructive_reverse(lbm_value list) {
   if (lbm_type_of(list) == LBM_TYPE_SYMBOL) {
     return list;
