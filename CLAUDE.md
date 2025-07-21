@@ -102,6 +102,34 @@ Located in `src/extensions/`:
 - `doc/lbmref.md`: Language reference documentation
 - `repl/examples/`: Example LispBM programs
 
+### LispBM Language Features
+
+#### Error Handling
+- **`trap` function**: Returns a list with error handling results
+  - Success: `'(exit-ok value)` where `value` is the result
+  - Error: `'(exit-error error-symbol)` where `error-symbol` is the specific error type
+  - Common error symbols: `eval_error`, `type_error`, `out_of_memory`, etc.
+  - Example: `(trap (sin "string"))` returns `'(exit-error eval_error)`
+
+#### Expression Sequences
+- **`progn`**: Traditional syntax for evaluating multiple expressions in sequence
+  - `(progn expr1 expr2 expr3)` evaluates all expressions and returns the last value
+  - Allows context switches between expressions (concurrent processes can interleave)
+- **Brace syntax `{}`**: Alternative syntax for `progn`
+  - `{ expr1 expr2 expr3 }` is equivalent to `(progn expr1 expr2 expr3)`
+  - More concise and readable than traditional `progn`
+- **`atomic`**: Like `progn` but prevents context switches
+  - `(atomic expr1 expr2 expr3)` evaluates expressions atomically
+  - Disallows context switches between expressions (critical sections)
+  - Only 3 constructs in LispBM allow expression sequences: `progn`, `{}`, and `atomic`
+
+#### Data Types
+- **Arrays**: Two types available
+  - Byte arrays: `[1 2 3]` syntax
+  - Lisp arrays: `[| 1 2 3 |]` syntax
+- **Variable Assignment**: Use `setq` instead of `set!`
+- **Lists**: Standard Lisp lists with `'(...)` syntax
+
 ### Common Development Workflow
 1. Modify core code in `src/`
 2. Build library: `make clean && make`
