@@ -36,6 +36,7 @@
 #include "extensions/mutex_extensions.h"
 #include "extensions/lbm_dyn_lib.h"
 #include "extensions/ttf_extensions.h"
+#include "extensions/random_extensions.h"
 
 #include "lbm_image.h"
 #include "lbm_flat_value.h"
@@ -810,6 +811,7 @@ int init_exts(void) {
   lbm_mutex_extensions_init();
   lbm_dyn_lib_init();
   lbm_ttf_extensions_init();
+  lbm_random_extensions_init();
 
   lbm_add_extension("rt", ext_rt);
   
