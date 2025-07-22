@@ -60,6 +60,18 @@ Built in `tests/` via Makefile:
 - `tests/image_tests/` - Heap image serialization tests
 - Test scripts automatically build required binaries before running
 
+### Edge Case Tests
+The REPL test suite includes comprehensive edge case tests for fundamental operations:
+- **test_arithmetic_edge_cases.lisp** - Tests +, -, *, /, mod with wrong types and edge cases
+- **test_comparison_edge_cases.lisp** - Tests =, !=, <, >, <=, >= with invalid arguments
+- **test_list_operations_edge_cases.lisp** - Tests cons, car, cdr, list, append, length, ix edge cases
+- **test_type_operations_edge_cases.lisp** - Tests type-of, list?, number?, conversions with edge cases
+- **test_integer_division_float_args.lisp** - Tests integer division // with floating-point arguments
+- **test_random_extensions_edge_cases.lisp** - Tests seed and random functions with invalid inputs
+- **test_runtime_extensions_edge_cases.lisp** - Tests runtime introspection functions with edge cases
+
+These tests ensure robust error handling and predictable behavior for embedded applications.
+
 ## Architecture
 
 ### Core Components
@@ -108,8 +120,10 @@ Located in `src/extensions/`:
 - **`trap` function**: Returns a list with error handling results
   - Success: `'(exit-ok value)` where `value` is the result
   - Error: `'(exit-error error-symbol)` where `error-symbol` is the specific error type
-  - Common error symbols: `eval_error`, `type_error`, `out_of_memory`, etc.
+  - Common error symbols: `eval_error`, `type_error`, `division_by_zero`, `out_of_memory`, etc.
   - Example: `(trap (sin "string"))` returns `'(exit-error eval_error)`
+  - **Important**: `trap` always returns either `'(exit-ok something)` or `'(exit-error something)`
+  - Some functions return error symbols directly (like `'type-symbol`) without needing `trap`
 
 #### Expression Sequences
 - **`progn`**: Traditional syntax for evaluating multiple expressions in sequence
@@ -129,6 +143,18 @@ Located in `src/extensions/`:
   - Lisp arrays: `[| 1 2 3 |]` syntax
 - **Variable Assignment**: Use `setq` instead of `set!`
 - **Lists**: Standard Lisp lists with `'(...)` syntax
+- **Type names**: Use correct LispBM type names in tests
+  - `'type-i` for integers, `'type-u` for unsigned integers
+  - `'type-array` for strings, `'type-list` for lists
+  - `'type-symbol` for symbols
+
+#### Function Behaviors
+- **Single argument arithmetic**: `(+ 5)` returns `5`, `(- 5)` returns `-5`, `(* 7)` returns `7`
+- **Single argument comparisons**: `(= 5)` and `(<= 5)` return `t`, others return `nil`
+- **Random functions**: `random` returns unsigned integers (`type-u`), ignores all arguments
+- **Integer division**: `//` properly converts floating-point arguments to integer results
+- **Type conversions**: `to-i` and `to-float` return `0`/`0.0f32` for invalid types (no errors)
+- **Runtime functions**: Most ignore arguments; `lbm-heap-state` returns `nil` for invalid symbols
 
 ### Common Development Workflow
 1. Modify core code in `src/`
