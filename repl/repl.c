@@ -963,9 +963,14 @@ int init_repl(void) {
     lbm_image_create("bepa_1");
   }
 
+  if (lbm_image_exists()) {
+     if (!silent_mode)
+       printf("Image initialized!\n");
+  }
+  
   if (lbm_image_get_version()) {
     if (!silent_mode)
-      printf("image version string: %s\n", lbm_image_get_version());
+      printf("Image version string: %s\n", lbm_image_get_version());
   }
 
   lbm_image_boot();
