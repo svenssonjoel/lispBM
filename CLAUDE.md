@@ -156,6 +156,39 @@ Located in `src/extensions/`:
 - **Type conversions**: `to-i` and `to-float` return `0`/`0.0f32` for invalid types (no errors)
 - **Runtime functions**: Most ignore arguments; `lbm-heap-state` returns `nil` for invalid symbols
 
+## Code Style Guidelines
+
+### C Code Indentation Style
+When writing or modifying C code in this project, use the following indentation style (consistent with eval_cps.c):
+
+- **2-space indentation** for all code blocks (no tabs)
+- **Consistent spacing** throughout all nesting levels
+- **Compact style** suitable for deeply nested continuation-passing style code
+
+**Examples:**
+```c
+static void function_name(params) {
+  if (condition) {
+    while (loop_condition) {
+      if (nested_condition) {
+        statement;
+      }
+    }
+  }
+}
+
+switch (value) {
+case CONSTANT:
+  statement;
+  break;
+case OTHER:
+  statement;
+  break;
+default:
+  statement;
+}
+```
+
 ### Common Development Workflow
 1. Modify core code in `src/`
 2. Build library: `make clean && make`

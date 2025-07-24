@@ -190,6 +190,7 @@ int lbm_send_message(lbm_cid cid, lbm_value msg) {
 
 int lbm_define(char *symbol, lbm_value value) {
   int res = 0;
+  if (!symbol) return res;
 
   lbm_uint sym_id;
   if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
@@ -201,6 +202,7 @@ int lbm_define(char *symbol, lbm_value value) {
     lbm_uint ix_key = sym_id & GLOBAL_ENV_MASK;
     lbm_value *glob_env = lbm_get_global_env();
     glob_env[ix_key] = lbm_env_set(glob_env[ix_key], lbm_enc_sym(sym_id), value);
+    res = 1;
   }
   return res;
 }
