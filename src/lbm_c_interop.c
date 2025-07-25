@@ -209,7 +209,7 @@ int lbm_define(char *symbol, lbm_value value) {
 
 int lbm_undefine(char *symbol) {
   lbm_uint sym_id;
-  if (!lbm_get_symbol_by_name(symbol, &sym_id))
+  if (!symbol || !lbm_get_symbol_by_name(symbol, &sym_id))
     return 0;
 
   lbm_value *glob_env = lbm_get_global_env();
@@ -254,6 +254,8 @@ int lbm_share_array_const(lbm_value *res, char *flash_ptr, lbm_uint num_elt) {
   return r;
 }
 
+// TODO: There is no NULL check in lbm_heap_allocate_array.
+//       Users must provide a valid pointer.
 int lbm_create_array(lbm_value *value, lbm_uint num_elt) {
   return lbm_heap_allocate_array(value, num_elt);
 }

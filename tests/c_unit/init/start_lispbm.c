@@ -49,15 +49,57 @@ uint32_t timestamp(void) {
   return (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec);
 }
 
+typedef struct done_cid_s {
+  lbm_cid id;
+  lbm_value r;
+  struct done_cid_s *next;
+} done_cid_t;
+
+done_cid_t *done_list = NULL;
+
+void sleep_callback(uint32_t us); // Forward declaration
+
+lbm_value wait_cid(lbm_cid id) {
+
+  if (id < 0) return ENC_SYM_NIL;
+  
+  while (true) {
+
+    done_cid_t *prev = NULL;
+    done_cid_t *curr = done_list;
+    while (curr) {
+      if (curr->id == id) {
+        if (prev != NULL) {
+          prev->next = curr->next;
+        } else {
+          done_list = curr->next;
+        }
+        lbm_value result = curr->r;
+        free(curr);
+        return result; // only still valid if no GC has happened.
+      }
+      prev = curr;
+      curr = curr->next;
+    }
+    sleep_callback(100);
+  }
+}
+
 void done_callback(eval_context_t *ctx) {
 
-  // fails silently if unable to generate result file.
-  // TODO: report failure in some way.
-  char output[1024];
-  lbm_value t = ctx->r;
-  lbm_print_value(output, 1024, t);
+  //char output[1024];
+  //lbm_value t = ctx->r;
+  //lbm_print_value(output, 1024, t);
+  //printf("done: %d, %s\n", ctx->id, output);
+
+  done_cid_t *new = malloc(sizeof(done_cid_t));
+  new->id = ctx->id;
+  new->r = ctx->r;
+  new->next = done_list;
+
+  done_list = new;
   
-  printf("ctx %d exits with value: %s\n", ctx->id, output);
+  //printf("ctx %d exits with value: %s\n", ctx->id, output);
 }
 
 int error_print(const char *format, ...) {
