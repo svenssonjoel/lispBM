@@ -551,9 +551,14 @@ int test_lbm_eval_defined_program(void) {
 }
 
 int test_lbm_send_message(void) {
-  int r = start_lispbm_for_tests();
-  if (!r) return 0;
-  
+  if (!start_lispbm_for_tests()) return 0;
+
+  char *expr1 = "(recv ( (? x) x))";
+  lbm_string_channel_state_t st1;
+  lbm_char_channel_t chan1;
+  lbm_create_string_char_channel(&st1, &chan1, expr1);
+  lbm_cid cid = lbm_load_and_eval_expression(&chan1);
+
   lbm_pause_eval();
   int timeout = 0;
   while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout < 5) {
@@ -562,33 +567,30 @@ int test_lbm_send_message(void) {
   }
   if (timeout >= 5) return 0;
   
-  // Test 1: Send message while paused to a made-up context (should work)
+  // Test 1: Send a message to an existing receiver.
   lbm_value msg1 = lbm_enc_i(42);
-  int result1 = lbm_send_message(1, msg1);  // Context 1 (may not exist, but function should handle gracefully)
-  
-  // Test 2: Try to send to non-existent context (should fail)
-  int result2 = lbm_send_message(999999, msg1);
-  
+  int result1 = lbm_send_message(cid, msg1);
+   
   lbm_continue_eval();
   timeout = 0;
   while (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED && timeout < 5) {
     sleep_callback(1000);
     timeout++;
   }
+
+  // Test 2: Send a message while not paused. Should fail.
+  int result2 = lbm_send_message(cid, msg1);
   
-  // Test 3: Try to send while not paused (should fail)
-  int result3 = lbm_send_message(1, msg1);
+  lbm_value r = wait_cid(cid);
   
-  // Test basic functionality - sending while paused should succeed (even if recipient doesn't exist)
-  // sending while not paused should fail
-  if (result1 != 1) {
+  if (result1 != 1 || result2 != 0) {
     return 0;
   }
-  
-  if (result2 != 1 || result3 != 0) {  // Both result1 and result2 may succeed, result3 should fail
+
+  if (r != lbm_enc_i(42)) {
     return 0;
   }
-  
+
   return 1;
 }
 
@@ -849,15 +851,13 @@ int main(void) {
     printf("test_lbm_eval_defined_program FAILED\n");
   }
   
-  /* printf("Testing send_message...\n"); */
-  /* total_tests++; if (test_lbm_send_message()) { */
-  /*   tests_passed++; */
-  /*   printf("test_lbm_send_message passed\n"); */
-  /* } else { */
-  /*   printf("test_lbm_send_message FAILED\n"); */
-  /* } */
-
-
+  printf("Testing send_message...\n");
+  total_tests++; if (test_lbm_send_message()) {
+    tests_passed++;
+    printf("test_lbm_send_message passed\n");
+  } else {
+    printf("test_lbm_send_message FAILED\n");
+  }
   
   if (tests_passed == total_tests) {
     printf("SUCCESS\n");
