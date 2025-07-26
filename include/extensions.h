@@ -99,7 +99,7 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext);
  */
 static inline bool lbm_is_extension(lbm_value exp) {
   return ((lbm_type_of(exp) == LBM_TYPE_SYMBOL) &&
-          (lbm_get_extension(lbm_dec_sym(exp)) != NULL));
+          ((lbm_dec_sym(exp) - EXTENSION_SYMBOLS_START) < lbm_get_num_extensions()));
 }
 
 /** Check if all arguments are numbers. Sets error-reason if result is false.

@@ -66,11 +66,12 @@ lbm_uint lbm_get_num_extensions(void) {
 }
 
 extension_fptr lbm_get_extension(lbm_uint sym) {
-  lbm_uint ext_next = sym - EXTENSION_SYMBOLS_START;
-  if (ext_next >= ext_max) {
-    return NULL;
+  lbm_uint ext_id = sym - EXTENSION_SYMBOLS_START;
+  extension_fptr res = lbm_extensions_default;
+  if (ext_id < ext_max) {
+    res = extension_table[ext_id].fptr; 
   }
-  return extension_table[ext_next].fptr;
+  return res;
 }
 
 bool lbm_clr_extension(lbm_uint sym_id) {
