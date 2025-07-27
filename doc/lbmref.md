@@ -794,7 +794,7 @@ Below are a selection of basic special-forms in lispBM together with their evalu
 `and`, `or`, `progn` and `if` evaluates expressions in sequence. `if` evaluates first the condition expression and then either the true or false branch. `progn` evaluates all of the expressions in sequence. In the case of `and`, `or`, `progn` and `if`, the constituent expressions are all evaluated in the same local environment. Any extensions to the local environment performed by an expression in the sequence is only visible within that expression itself. 
 
    - **let**: `(let ((s1 e1) (s2 e2) ... (sN eN) e)` eI are evaluated in order into `vI`. The local environment is extended with `(sI . vI)`. `sI` is visible in `eJ` for `J >= I`. `e` is then evaluated in the extended local environment.
-   - **setq**: `(setq s e)` is evaluated by first evaluating `e` into `v`. The environments are then scanned for a bining of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`.
+   - **setq**: `(setq s e)` is evaluated by first evaluating `e` into `v`. The environments are then scanned for a binding of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`.
 
 If no binding of `s` is found when evaluating `(setq s e)` a `variable_not_bound` error is triggered. 
 
@@ -3145,60 +3145,6 @@ When the `'` quote operator is encountered by the reader it is removed and the c
 <table>
 <tr>
 <td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-'(+ 1 2)
-```
-
-
-</td>
-<td>
-
-```clj
-(+ 1 2)
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(eval '(+ 1 2))
-```
-
-
-</td>
-<td>
-
-```clj
-3
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-'kurt
-```
-
-
-</td>
-<td>
-
-```clj
-kurt
-```
-
-
-</td>
 </tr>
 <tr>
 <td>
@@ -9110,7 +9056,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 81808 kurt-russel)
+(exit-ok 82090 kurt-russel)
 ```
 
 
