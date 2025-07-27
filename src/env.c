@@ -69,22 +69,22 @@ lbm_value lbm_env_copy_spine(lbm_value env) {
   return r;
 }
 
-// TODO: if the env is incorrect here which could be the result
-// of creating it manually, this function may incorrectly treat
-// something that is not a reference as one and lead to segfault.
-// The double lbm_ref_cell(lbm_ref_cell(curr)->car) is not guaranteed
-// ok in presense of manually created closure.
+// env_lookup that should be safe even in the presence of incorrectly
+// structured env. Could be the case when user manually creates closure.
 bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
   lbm_value curr = env;
 
   while (lbm_is_ptr(curr)) {
-    lbm_cons_t *pair = lbm_ref_cell(lbm_ref_cell(curr)->car);
-    if ((pair->car == sym)
-        && (pair->cdr != ENC_SYM_PLACEHOLDER)) {
-      *res = pair->cdr;
-      return true;
+    lbm_cons_t *cr = lbm_ref_cell(curr);
+    if (lbm_is_ptr(cr->car)) {
+      lbm_cons_t *pair = lbm_ref_cell(cr->car);
+      if ((pair->car == sym)
+          && (pair->cdr != ENC_SYM_PLACEHOLDER)) {
+        *res = pair->cdr;
+        return true;
+      }
     }
-    curr = lbm_ref_cell(curr)->cdr;
+    curr = cr->cdr;
   }
   return false;
 }

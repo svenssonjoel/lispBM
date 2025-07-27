@@ -56,7 +56,7 @@ cov: CCFLAGS += -m32
 cov: repl_cov
 
 
-all64: 	CCFLAGS += -DLBM64
+all64: CCFLAGS += -DLBM64
 all64: repl
 
 sdl64: CCFLAGS += -DLBM64 -DWITH_SDL $(shell pkg-config --cflags libpng sdl2 SDL2_image)
@@ -74,7 +74,6 @@ sdl_old: LIBS += -lSDL2 -lSDL2_image
 sdl_old: REPL_SRC += lbm_sdl.c
 sdl_old: repl
 
-
 clean_cl.h: ./scripts/clean.lisp
 	./repl --store_env="clean_cl.env" --src=./scripts/clean.lisp --terminate
 	xxd -i clean_cl.env clean_cl.h
@@ -90,7 +89,7 @@ repl: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
 	gcc $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) $(LIBS) $(LDFLAGS)
 
 repl_cov: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
-	gcc $(CCFLAGS_COV) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl_cov $(LISPBM_INC) $(PLATFORM_INCLUDE) $(LIBS) $(LDFLAGS)
+	gcc $(CCFLAGS_COV) -DWITH_SDL $(LISPBM_SRC) $(PLATFORM_SRC) lbm_sdl.c $(LISPBM_FLAGS) $(REPL_SRC) -o repl_cov $(LISPBM_INC) $(PLATFORM_INCLUDE) $(LIBS) -lSDL2 -lSDL2_image $(LDFLAGS)
 
 pirepl: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
 	gcc $(PICCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) $(LIBS)
