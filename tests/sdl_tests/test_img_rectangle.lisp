@@ -37,13 +37,15 @@
 ;; Test with negative dimensions (should handle gracefully)
 (define r8 (img-rectangle img400x200 100 100 -20 20 1))
 
-;; Test with invalid image buffer - function doesn't validate, returns t
-(define r9 (img-rectangle "not-an-image" 0 0 10 10 1))
-(define r10 (img-rectangle nil 0 0 10 10 1))
+;; Test with invalid image buffer
+(define r9 (trap (img-rectangle "not-an-image" 0 0 10 10 1)))
+(define r10 (trap (img-rectangle nil 0 0 10 10 1)))
 
 ;; Display the result
 (disp-render img400x200 0 0 '(0x000000 0xFFFFFF))
 
-(if (and r1 r2 r3 r4 r5 r6 r7 r8 r9 r10)
+(if (and r1 r2 r3 r4 r5 r6 r7 r8
+         (eq r9 '(exit-error type_error))
+         (eq r10 '(exit-error type_error)))
     (print "SUCCESS")
     (print "FAILURE"))

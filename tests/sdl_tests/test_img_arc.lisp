@@ -41,13 +41,15 @@
 ;; Test with zero radius
 (define r8 (img-arc img400x200 50 50 0 0 90 1))
 
-;; Test with invalid image buffer - function doesn't validate, returns t
-(define r9 (img-arc "not-an-image" 100 100 20 0 90 1))
-(define r10 (img-arc nil 100 100 20 0 90 1))
+;; Test with invalid image buffer
+(define r9 (trap (img-arc "not-an-image" 100 100 20 0 90 1)))
+(define r10 (trap (img-arc nil 100 100 20 0 90 1)))
 
 ;; Display the result
 (disp-render img400x200 0 0 '(0x000000 0xFFFFFF))
 
-(if (and r1 r2 r3 r4 r5 r6 r7 r8 r9 r10)
+(if (and r1 r2 r3 r4 r5 r6 r7 r8
+         (eq r9 '(exit-error type_error))
+         (eq r10 '(exit-error type_error)))
     (print "SUCCESS")
     (print "FAILURE"))

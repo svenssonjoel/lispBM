@@ -35,13 +35,15 @@
 ;; Test with negative coordinates (should still work)
 (define r6 (img-circle img400x200 -10 50 20 1))
 
-;; Test with invalid image buffer - function doesn't validate, returns t
-(define r7 (img-circle "not-an-image" 100 100 20 1))
-(define r8 (img-circle nil 100 100 20 1))
+;; Test with invalid image buffer 
+(define r7 (trap (img-circle "not-an-image" 100 100 20 1)))
+(define r8 (trap (img-circle nil 100 100 20 1)))
 
 ;; Display the result
 (disp-render img400x200 0 0 '(0x000000 0xFFFFFF))
 
-(if (and r1 r2 r3 r4 r5 r6 r7 r8)
+(if (and r1 r2 r3 r4 r5 r6
+         (eq r7 '(exit-error type_error))
+         (eq r8 '(exit-error type_error)))
     (print "SUCCESS")
     (print "FAILURE"))

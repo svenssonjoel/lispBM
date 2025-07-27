@@ -26,16 +26,16 @@
 (define dims2 (img-dims img200x100))
 (define dims3 (img-dims img10x10))
 
-;; Test with invalid argument - returns (0 0) instead of error
-(define dims4 (img-dims "not-an-image"))
-(define dims5 (img-dims nil))
+;; Test with invalid argument 
+(define dims4 (trap (img-dims "not-an-image")))
+(define dims5 (trap (img-dims nil)))
 
 ;; Verify results
 (define r1 (and (eq (car dims1) 400) (eq (car (cdr dims1)) 200)))
 (define r2 (and (eq (car dims2) 200) (eq (car (cdr dims2)) 100)))
 (define r3 (and (eq (car dims3) 10) (eq (car (cdr dims3)) 10)))
-(define r4 (and (eq (car dims4) 0) (eq (car (cdr dims4)) 0)))
-(define r5 (and (eq (car dims5) 0) (eq (car (cdr dims5)) 0)))
+(define r4 (eq dims4 '(exit-error type_error)))
+(define r5 (eq dims5 '(exit-error type_error)))
 
 (if (and r1 r2 r3 r4 r5)
     (print "SUCCESS")

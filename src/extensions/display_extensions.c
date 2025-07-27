@@ -2042,8 +2042,9 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
     if (num_dec != num_expected) {
       return res;
     }
+    // I think this should go here ???
+    res.is_valid = true;
   }
-  res.is_valid = true;
   return res;
 }
 

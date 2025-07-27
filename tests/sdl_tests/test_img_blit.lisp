@@ -39,8 +39,8 @@
 (define r5 (img-blit dst_img dst_img 100 20 -1))
 
 ;; Test with invalid source image - returns t (doesn't validate source properly)
-(define r6 (img-blit dst_img "not-an-image" 0 0 -1))
-(define r7 (img-blit dst_img nil 0 0 -1))
+(define r6 (trap (img-blit dst_img "not-an-image" 0 0 -1)))
+(define r7 (trap (img-blit dst_img nil 0 0 -1)))
 
 ;; Test with invalid destination image - does validate destination
 (define r8 (trap (img-blit "not-an-image" src_img 0 0 -1)))
@@ -49,7 +49,9 @@
 ;; Display the result
 (disp-render dst_img 0 0 '(0x000000 0xFFFFFF))
 
-(if (and r1 r2 r3 r4 r5 r6 r7
+(if (and r1 r2 r3 r4 r5
+         (eq r6 '(exit-error type_error))
+         (eq r7 '(exit-error type_error))
          (eq r8 '(exit-error type_error)) (eq r9 '(exit-error type_error)))
     (print "SUCCESS")
     (print "FAILURE"))

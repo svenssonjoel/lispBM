@@ -32,9 +32,9 @@
 (define r4 (img-line img400x200 -10 -10 50 50 1))
 (define r5 (img-line img400x200 350 150 450 250 1))
 
-;; Test with invalid image buffer - function doesn't validate, returns t
-(define r6 (img-line "not-an-image" 0 0 10 10 1))
-(define r7 (img-line nil 0 0 10 10 1))
+;; Test with invalid image buffer
+(define r6 (trap (img-line "not-an-image" 0 0 10 10 1)))
+(define r7 (trap (img-line nil 0 0 10 10 1)))
 
 ;; Test with invalid color for indexed2 (should work with any value)
 (define r8 (img-line img400x200 200 100 250 100 5))
@@ -42,6 +42,9 @@
 ;; Display the result
 (disp-render img400x200 0 0 '(0x000000 0xFFFFFF))
 
-(if (and r1 r2 r3 r4 r5 r6 r7 r8)
+(if (and r1 r2 r3 r4 r5
+         (eq r6 '(exit-error type_error))
+         (eq r7 '(exit-error type_error))
+         r8)
     (print "SUCCESS")
     (print "FAILURE"))

@@ -35,13 +35,15 @@
 ;; Draw triangle with same points (degenerate)
 (define r6 (img-triangle img400x200 50 50 50 50 50 50 1))
 
-;; Test with invalid image buffer - function doesn't validate, returns t
-(define r7 (img-triangle "not-an-image" 0 0 10 0 5 10 1))
-(define r8 (img-triangle nil 0 0 10 0 5 10 1))
+;; Test with invalid image buffer
+(define r7 (trap (img-triangle "not-an-image" 0 0 10 0 5 10 1)))
+(define r8 (trap (img-triangle nil 0 0 10 0 5 10 1)))
 
 ;; Display the result
 (disp-render img400x200 0 0 '(0x000000 0xFFFFFF))
 
-(if (and r1 r2 r3 r4 r5 r6 r7 r8)
+(if (and r1 r2 r3 r4 r5 r6
+         (eq r7 '(exit-error type_error))
+         (eq r8 '(exit-error type_error)))
     (print "SUCCESS")
     (print "FAILURE"))
