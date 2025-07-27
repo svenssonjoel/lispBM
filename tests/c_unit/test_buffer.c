@@ -183,6 +183,24 @@ int test_float32_round_trip() {
   return 1;
 }
 
+// test designed to hit all cases in if (e != 0 || sig_i != 0)
+// The read back floats are not that interesting.
+int test_uint32_to_float32_round_trip() {
+  uint8_t buffer[TEST_BUFFER_SIZE];
+  int32_t index = 0;
+  
+  uint32_t test_values[] = {0, 1 << 30, 0xFFFFFFFF, 0x7FFFFF, 0xFFFFFF, 2 << 24, 0x2 };
+  int num_values = sizeof(test_values) / sizeof(test_values[0]);
+  
+  for (int i = 0; i < num_values; i++) {
+    index = 0;
+    buffer_append_uint32(buffer, test_values[i], &index);
+    index = 0;
+    buffer_get_float32_auto(buffer, &index);
+  }
+  return 1;
+}
+
 int test_double64_round_trip() {
   uint8_t buffer[TEST_BUFFER_SIZE];
   int32_t index = 0;
@@ -211,7 +229,7 @@ int test_float32_auto_round_trip() {
   uint8_t buffer[TEST_BUFFER_SIZE];
   int32_t index = 0;
   
-  float test_values[] = {0.0f, 1.0f, -1.0f, 3.14159f, -3.14159f, 1.5e-38f, -1.5e-38f, 1e10f, -1e10f, 0.123456789f};
+  float test_values[] = {0.0f, 1.0f, -1.0f, 3.14159f, -3.14159f, 1.5e-38f, -1.5e-38f, 1e10f, -1e10f, 0.123456789f, -0.0f, 8388608.0f, -8388608.0f};
   int num_tests = sizeof(test_values) / sizeof(test_values[0]);
   
   for (int i = 0; i < num_tests; i++) {
@@ -323,7 +341,8 @@ int main(void) {
   total_tests++; if (test_endianness()) tests_passed++;
   total_tests++; if (test_sequential_operations()) tests_passed++;
   total_tests++; if (test_subnormal_float_handling()) tests_passed++;
-
+  total_tests++; if (test_uint32_to_float32_round_trip()) tests_passed++;
+  
   if (tests_passed == total_tests) {
     printf("SUCCESS\n");
     return 0;
