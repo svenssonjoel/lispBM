@@ -69,7 +69,11 @@ lbm_value lbm_env_copy_spine(lbm_value env) {
   return r;
 }
 
-// A less safe version of lookup. It should be fine unless env is corrupted.
+// TODO: if the env is incorrect here which could be the result
+// of creating it manually, this function may incorrectly treat
+// something that is not a reference as one and lead to segfault.
+// The double lbm_ref_cell(lbm_ref_cell(curr)->car) is not guaranteed
+// ok in presense of manually created closure.
 bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
   lbm_value curr = env;
 

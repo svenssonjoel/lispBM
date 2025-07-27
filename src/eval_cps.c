@@ -2067,7 +2067,7 @@ static void eval_app_cont(eval_context_t *ctx) {
 }
 
 // Create a named location in an environment to later receive a value.
-// Protects env from GC, other data is the obligation of the called.
+// Protects env from GC, other data is the obligation of the caller.
 static void create_binding_location(lbm_value key, lbm_value *env) {
   if (lbm_is_symbol(key)) { // default case
     if (key == ENC_SYM_NIL || key == ENC_SYM_DONTCARE) return;
