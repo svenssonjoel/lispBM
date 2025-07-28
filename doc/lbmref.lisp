@@ -1173,9 +1173,7 @@
                           "A `program-expr` is a list of expressions where each element in the list"
                           "can be evaluated by `eval`."
                           ))
-              (para (list "An optional environment can be passed in as the first argument:"
-                          "`(eval-program env-expr program-expr)`."
-                          ))
+              (para (list "Note that eval-program can not take any extra environment argument."))
               (code '((eval-program (list (list + 1 2) (list + 3 4)))
                       (eval-program '( (+ 1 2) (+ 3 4)))
                       (eval-program (list (list define 'a 10) (list + 'a 1)))

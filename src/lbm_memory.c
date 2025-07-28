@@ -187,6 +187,7 @@ lbm_uint lbm_memory_longest_free(void) {
   lbm_uint curr_length = 0;
   for (unsigned int i = 0; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
 
+    // The status field is 2 bits and this 4 cases is exhaustive!
     switch(status(i)) {
     case FREE_OR_USED:
       switch (state) {
@@ -210,12 +211,8 @@ lbm_uint lbm_memory_longest_free(void) {
     case START:
       state = SKIP;
       break;
-    case START_END:
+    default: // START_END
       state = INIT;
-      break;
-    default:
-      mutex_unlock(&lbm_mem_mutex);
-      return 0;
       break;
     }
   }
@@ -274,12 +271,9 @@ static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
     case START:
       state = SKIP;
       break;
-    case START_END:
+    default: // START_END
       state = INIT;
       break;
-    default: // error case
-      mutex_unlock(&lbm_mem_mutex);
-      return NULL;
     }
 
     if (state == ALLOC_DONE) break;

@@ -2853,13 +2853,8 @@ static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  int prg_pos = 0;
-  if (nargs == 2) {
-    prg_pos = 1;
-    ctx->curr_env = args[0]; // No check that args[0] is an actual env.
-  }
-  if (nargs == 1 || nargs == 2) {
-    lbm_value prg = args[prg_pos]; // No check that this is a program.
+  if (nargs == 1) {
+    lbm_value prg = args[0]; // No check that this is a program.
     lbm_value app_cont;
     lbm_value app_cont_prg;
     lbm_value new_prg;

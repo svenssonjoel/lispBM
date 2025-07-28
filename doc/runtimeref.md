@@ -787,7 +787,7 @@ nil
 
 
 ```clj
-((a . 50))
+((a . 50) (res-str . $placeholder) (res (a . 50) (res-str . $placeholder) (res (a . 50) (res-str . $placeholder) (res (a . 50) (res-str . $placeholder) (res (a . 50) (res-str . $placeholder) (res (a . 50) (res-str . $placeholder) (res (a . 50) (res-str . 
 ```
 
 
@@ -927,7 +927,7 @@ nil
 <td>
 
 ```clj
-255131
+255070
 ```
 
 
@@ -961,7 +961,7 @@ nil
 <td>
 
 ```clj
-255067
+255006
 ```
 
 
@@ -1065,7 +1065,7 @@ nil
 <td>
 
 ```clj
-13773u
+13771u
 ```
 
 
@@ -1119,7 +1119,7 @@ nil
 <td>
 
 ```clj
-4579u
+4577u
 ```
 
 
@@ -1137,7 +1137,7 @@ nil
 <td>
 
 ```clj
-9995421u
+9995423u
 ```
 
 
@@ -1173,7 +1173,7 @@ nil
 <td>
 
 ```clj
-9995421u
+9995423u
 ```
 
 
@@ -1191,7 +1191,7 @@ nil
 <td>
 
 ```clj
-9995421u
+9995423u
 ```
 
 
@@ -1426,7 +1426,7 @@ t
 <td>
 
 ```clj
-14099
+14159
 ```
 
 
