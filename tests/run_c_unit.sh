@@ -87,7 +87,7 @@ echo "Actual fails: $((fail_count - expected_count))"
 # Generate coverage report if gcovr is available
 if command -v gcovr &> /dev/null; then
     echo "Generating coverage report..."
-    gcovr --filter ../../src --gcov-ignore-parse-errors --json c_unit_tests_cov.json
+    gcovr --filter ../../src --gcov-ignore-parse-errors=negative_hits.warn --json c_unit_tests_cov.json
 fi
 
 cd ..

@@ -89,6 +89,6 @@ fi
 ## Go to repl directory and collect the coverage data
 cd ../repl
 rm -f sdl_tests_cov.json
-gcovr --filter ../src --gcov-ignore-parse-errors --json sdl_tests_cov.json
+gcovr --filter ../src --gcov-ignore-parse-errors=negative_hits.warn --json sdl_tests_cov.json
 cd ../tests
 
