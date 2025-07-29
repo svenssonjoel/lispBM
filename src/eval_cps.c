@@ -2609,7 +2609,9 @@ static lbm_value perform_setvar(lbm_value key, lbm_value val, lbm_value env) {
       lbm_uint ix_key = lbm_dec_sym(key) & GLOBAL_ENV_MASK;
       lbm_value *glob_env = lbm_get_global_env();
       new_env = lbm_env_modify_binding(glob_env[ix_key], key, val);
-      glob_env[ix_key] = new_env;
+      if (new_env != ENC_SYM_NOT_FOUND) {
+        glob_env[ix_key] = new_env;
+      }
     }
     if (lbm_is_symbol(new_env) && new_env == ENC_SYM_NOT_FOUND) {
       lbm_set_error_reason((char*)lbm_error_str_variable_not_bound);
