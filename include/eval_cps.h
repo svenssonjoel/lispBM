@@ -195,21 +195,6 @@ bool lbm_event_queue_is_empty(void);
  */
 int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v);
 
-/** Creates a context and initializes it with the provided program. The context
- * is added to the ready queue and will start executing when the evaluator is free.
- *
- * \param lisp Program to launch
- * \return a context id on success and 0 on failure to launch a context.
- */
-lbm_cid lbm_eval_program(lbm_value lisp);
-/** An extended version of lbm_eval_program that allows specification of stack size to use.
- *
- * \param lisp Program to launch.
- * \param stack_size Size of the continuation stack for this context.
- * \return a context id on success and 0 on failure to launch a context.
- */
-lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size);
-
 /** This function executes the evaluation loop and does not return.
  *  lbm_run_eval should be started in a new thread provided by the underlying HAL or OS.
  */

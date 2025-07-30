@@ -359,6 +359,59 @@ int test_lbm_event_unboxed_multiple_calls() {
   return 1; // Success if no crash
 }
 
+// Test lbm_event_queue_is_empty function
+int test_lbm_event_queue_is_empty() {
+  if (!start_lispbm_for_tests()) return 0;
+  
+  if (!lbm_eval_init_events(20)) return 0;
+  
+  // Initially, event queue should be empty
+  if (!lbm_event_queue_is_empty()) return 0;
+  
+  // Create and register an event handler
+  char *handler_code = "(let ((running t)) (loopwhile running (recv ((? msg) msg))))";
+  lbm_string_channel_state_t st;
+  lbm_char_channel_t chan;
+  lbm_create_string_char_channel(&st, &chan, handler_code);
+  lbm_cid handler_cid = lbm_load_and_eval_expression(&chan);
+
+  if (handler_cid < 0) return 0;
+  
+  lbm_set_event_handler_pid(handler_cid);
+  
+  // Verify event handler exists
+  if (!lbm_event_handler_exists()) return 0;
+  
+  // Queue should still be empty before adding events
+  if (!lbm_event_queue_is_empty()) return 0;
+  
+  // Pause the evaluator so events won't be processed
+  lbm_pause_eval();
+  sleep_callback(5000); // Give time for pause to take effect
+  
+  // Verify evaluator is paused
+  uint32_t state = lbm_get_eval_state();
+  if (state != EVAL_CPS_STATE_PAUSED) return 0;
+  
+  // Add some events to the queue while paused
+  lbm_event_unboxed(lbm_enc_i(42));
+  lbm_event_unboxed(lbm_enc_u(123));
+  lbm_event_unboxed(lbm_enc_char('A'));
+  
+  // Since evaluator is paused, events should remain in queue
+  if (lbm_event_queue_is_empty()) return 0; // Should NOT be empty now
+  
+  // Continue the evaluator to let events process
+  lbm_continue_eval();
+  sleep_callback(5000); // Give time for events to process
+  
+  // After processing, queue should be empty again
+  if (!lbm_event_queue_is_empty()) return 0;
+  
+  kill_eval_after_tests();
+  return 1;
+}
+
 // Test interaction between reset and surrender quota
 int test_reset_and_surrender_interaction() {
   if (!start_lispbm_for_tests()) return 0;
@@ -462,6 +515,7 @@ int main(void) {
   total_tests++; if (test_lbm_event_unboxed_invalid_types()) { printf("✓ test_lbm_event_unboxed_invalid_types\n"); tests_passed++; } else { printf("✗ test_lbm_event_unboxed_invalid_types\n"); }
   total_tests++; if (test_lbm_event_unboxed_no_handler()) { printf("✓ test_lbm_event_unboxed_no_handler\n"); tests_passed++; } else { printf("✗ test_lbm_event_unboxed_no_handler\n"); }
   total_tests++; if (test_lbm_event_unboxed_multiple_calls()) { printf("✓ test_lbm_event_unboxed_multiple_calls\n"); tests_passed++; } else { printf("✗ test_lbm_event_unboxed_multiple_calls\n"); }
+  total_tests++; if (test_lbm_event_queue_is_empty()) { printf("✓ test_lbm_event_queue_is_empty\n"); tests_passed++; } else { printf("✗ test_lbm_event_queue_is_empty\n"); }
   total_tests++; if (test_reset_and_surrender_interaction()) { printf("✓ test_reset_and_surrender_interaction\n"); tests_passed++; } else { printf("✗ test_reset_and_surrender_interaction\n"); }
   total_tests++; if (test_verbose_with_reset_continue()) { printf("✓ test_verbose_with_reset_continue\n"); tests_passed++; } else { printf("✗ test_verbose_with_reset_continue\n"); }
   total_tests++; if (test_all_functions_sequence()) { printf("✓ test_all_functions_sequence\n"); tests_passed++; } else { printf("✗ test_all_functions_sequence\n"); }

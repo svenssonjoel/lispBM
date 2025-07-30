@@ -5929,14 +5929,6 @@ void lbm_run_eval(void){
   }
 }
 
-lbm_cid lbm_eval_program(lbm_value lisp) {
-  return lbm_create_ctx(lisp, ENC_SYM_NIL, 256, NULL);
-}
-
-lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size) {
-  return lbm_create_ctx(lisp, ENC_SYM_NIL, stack_size, NULL);
-}
-
 bool lbm_eval_init(void) {
   if (!qmutex_initialized) {
     mutex_init(&qmutex);
