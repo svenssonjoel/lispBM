@@ -1,4 +1,6 @@
 
+#include "extensions/lbm_dyn_lib.h"
+
 #define IMAGE_STORAGE_SIZE              (128 * 1024) // bytes:
 #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
 static uint32_t *image_storage = NULL;
@@ -118,6 +120,10 @@ void sleep_callback(uint32_t us) {
   nanosleep(&s, &r);
 }
 
+bool dynamic_loader(const char *str, const char **code) {
+  return lbm_dyn_lib_find(str, code);
+}
+
 pthread_t lispbm_thd = 0;
 
 int start_lispbm_for_tests(void) {
@@ -164,7 +170,8 @@ int start_lispbm_for_tests(void) {
   lbm_set_timestamp_us_callback(timestamp);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_printf_callback(error_print);
-
+  lbm_set_dynamic_load_callback(dynamic_loader);
+  
   lbm_image_init(image_storage,
                  image_storage_size / sizeof(uint32_t), //sizeof(lbm_uint),
                  image_write);
@@ -173,11 +180,23 @@ int start_lispbm_for_tests(void) {
    lbm_image_boot();
 
    lbm_add_eval_symbols();
-
+   lbm_dyn_lib_init();
+   
    if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
      printf("Error creating evaluation thread\n");
      return 0;
    }
 
    return 1;  
+}
+
+void kill_eval_after_tests() {
+
+  if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
+     lbm_kill_eval();
+     int thread_r = 0;
+     pthread_join(lispbm_thd, (void*)&thread_r);
+     lispbm_thd = 0;
+  }
+
 }
