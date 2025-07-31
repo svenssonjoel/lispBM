@@ -1836,6 +1836,7 @@ void blit(
     int clip_x, int clip_y,    // Clip start in dest
     int clip_w, int clip_h     // Clip width and height
 ) {
+  if (scale == 0.0) return;
   int src_w = img_src->width;
   int src_h = img_src->height;
 

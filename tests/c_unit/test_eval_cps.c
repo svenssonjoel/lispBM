@@ -466,6 +466,66 @@ int test_verbose_with_reset_continue() {
   return 1;
 }
 
+// Test event queue full condition
+int test_lbm_event_queue_full() {
+  if (!start_lispbm_for_tests()) return 0;
+  
+  // Initialize events with a small queue size to make it easier to fill
+  if (!lbm_eval_init_events(5)) return 0;
+  
+  // Pause the evaluator so events won't be processed immediately
+  lbm_pause_eval();
+  sleep_callback(5000); // Give time for pause to take effect
+  
+  // Verify evaluator is paused
+  uint32_t state = lbm_get_eval_state();
+  if (state != EVAL_CPS_STATE_PAUSED) return 0;
+  
+  // Create and register an event handler (but since evaluator is paused, 
+  // it won't process events from the queue)
+  char *handler_code = "(let ((running t)) (loopwhile running (recv ((? msg) msg))))";
+  lbm_string_channel_state_t st;
+  lbm_char_channel_t chan;
+  lbm_create_string_char_channel(&st, &chan, handler_code);
+  lbm_cid handler_cid = lbm_load_and_eval_expression(&chan);
+
+  if (handler_cid < 0) return 0;
+  
+  lbm_set_event_handler_pid(handler_cid);
+  
+  // Verify event handler exists
+  if (!lbm_event_handler_exists()) return 0;
+  
+  // Fill the event queue (size 5) by adding more events than capacity
+  bool results[10];
+  for (int i = 0; i < 10; i++) {
+    results[i] = lbm_event_unboxed(lbm_enc_i(i));
+  }
+  
+  // First 5 events should succeed (fill the queue)
+  for (int i = 0; i < 5; i++) {
+    if (!results[i]) return 0; // Should succeed
+  }
+  
+  // Remaining events should fail (queue is full)
+  for (int i = 5; i < 10; i++) {
+    if (results[i]) return 0; // Should fail when queue is full
+  }
+  
+  // Queue should not be empty (it's full)
+  if (lbm_event_queue_is_empty()) return 0;
+  
+  // Continue the evaluator to process events
+  lbm_continue_eval();
+  sleep_callback(5000); // Give time for events to process
+  
+  // After processing, queue should be empty again
+  if (!lbm_event_queue_is_empty()) return 0;
+  
+  kill_eval_after_tests();
+  return 1;
+}
+
 // Test all functions in proper sequence
 int test_all_functions_sequence() {
   if (!start_lispbm_for_tests()) return 0;
@@ -516,6 +576,7 @@ int main(void) {
   total_tests++; if (test_lbm_event_unboxed_no_handler()) { printf("✓ test_lbm_event_unboxed_no_handler\n"); tests_passed++; } else { printf("✗ test_lbm_event_unboxed_no_handler\n"); }
   total_tests++; if (test_lbm_event_unboxed_multiple_calls()) { printf("✓ test_lbm_event_unboxed_multiple_calls\n"); tests_passed++; } else { printf("✗ test_lbm_event_unboxed_multiple_calls\n"); }
   total_tests++; if (test_lbm_event_queue_is_empty()) { printf("✓ test_lbm_event_queue_is_empty\n"); tests_passed++; } else { printf("✗ test_lbm_event_queue_is_empty\n"); }
+  total_tests++; if (test_lbm_event_queue_full()) { printf("✓ test_lbm_event_queue_full\n"); tests_passed++; } else { printf("✗ test_lbm_event_queue_full\n"); }
   total_tests++; if (test_reset_and_surrender_interaction()) { printf("✓ test_reset_and_surrender_interaction\n"); tests_passed++; } else { printf("✗ test_reset_and_surrender_interaction\n"); }
   total_tests++; if (test_verbose_with_reset_continue()) { printf("✓ test_verbose_with_reset_continue\n"); tests_passed++; } else { printf("✗ test_verbose_with_reset_continue\n"); }
   total_tests++; if (test_all_functions_sequence()) { printf("✓ test_all_functions_sequence\n"); tests_passed++; } else { printf("✗ test_all_functions_sequence\n"); }
