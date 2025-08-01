@@ -972,7 +972,7 @@ static void fill_triangle(image_buffer_t *img, int x0, int y0,
 }
 
 static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
-                        int thickness, bool filled, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color) {
+                        int thickness, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color) {
   ang_start *= (float)M_PI / 180.0f;
   ang_end *= (float)M_PI / 180.0f;
 
@@ -1009,27 +1009,11 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
     px = px * ca - py * sa;
     py = py * ca + px_before * sa;
 
-    if (filled) {
-      if (sector) {
-        fill_triangle(img,
-                      x + (int)px_before, y + (int)py_before,
-                      x + (int)px, y + (int)py,
-                      x, y,
-                      color);
-      } else {
-        fill_triangle(img,
-                      x + (int)px_before, y + (int)py_before,
-                      x + (int)px, y + (int)py,
-                      x + (int)px_start, y + (int)py_start,
-                      color);
-      }
-    } else {
-      line(img, x + (int)px_before, y + (int)py_before,
-           x + (int)px, y + (int)py, thickness, dot1, dot2, color);
-    }
+    line(img, x + (int)px_before, y + (int)py_before,
+         x + (int)px, y + (int)py, thickness, dot1, dot2, color);
   }
 
-  if (!filled && sector) {
+  if (sector) {
     line(img, x + (int)px, y + (int)py,
          x, y,
          thickness, dot1, dot2, color);
@@ -1038,7 +1022,7 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
          thickness, dot1, dot2, color);
   }
 
-  if (!filled && segment) {
+  if (segment) {
     line(img, x + (int)px, y + (int)py,
          x + (int)px_start, y + (int)py_start,
          thickness, dot1, dot2, color);
@@ -1518,7 +1502,7 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
       thickness = 1;
     }
 
-    generic_arc(img, c_x, c_y, radius, angle0, angle1, thickness, false, dot1, dot2, resolution, sector, segment, color);
+    generic_arc(img, c_x, c_y, radius, angle0, angle1, thickness, dot1, dot2, resolution, sector, segment, color);
 
     return;
   }
