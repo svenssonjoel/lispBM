@@ -68,6 +68,10 @@ TODO:  extraxt_n uses lbm_is_ptr and then extracts car, cdr etc.
 
 TODO: look at test_lbm_prof and figure out how to improve it.
 
+TODO: generic_arc only runs if non-filled, dotted.
+TODO: dead code inside generic_arc as filled arcs go through a totally
+      different algorithm (in handle_arc_slice).
+
 
 The exported API that accepts channels is:
 * lift_char_channel  in eval_cps.c/h
