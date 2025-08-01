@@ -373,16 +373,6 @@ void lbm_surrender_quota(void);
  */
 bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size);
 
-/** Create a string channel from a C string. 
- * \param str Zero terminated C string.
- * \param res Resulting string channel.
- * \param dep Dependency that must be kept alive for as long as string channel is alive.
- * \ return true on success and false otherwise. 
- */
-bool create_string_channel(char *str, lbm_value *res, lbm_value dep);
-
-bool lift_char_channel(lbm_char_channel_t *ch, lbm_value *res);
-
 lbm_flash_status request_flash_storage_cell(lbm_value val, lbm_value *res);
   //bool lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt);
 

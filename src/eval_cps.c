@@ -902,7 +902,7 @@ static void print_error_message(lbm_value error,
 /****************************************************/
 /* Tokenizing and parsing                           */
 
-bool create_string_channel(char *str, lbm_value *res, lbm_value dep) {
+static bool create_string_channel(char *str, lbm_value *res, lbm_value dep) {
 
   lbm_char_channel_t *chan = NULL;
   lbm_string_channel_state_t *st = NULL;
@@ -930,16 +930,6 @@ bool create_string_channel(char *str, lbm_value *res, lbm_value dep) {
   *res = cell;
   return true;
 }
-
-bool lift_char_channel(lbm_char_channel_t *chan , lbm_value *res) {
-  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE);
-  if (cell == ENC_SYM_MERROR) {
-    return false;
-  }
-  *res = cell;
-  return true;
-}
-
 
 /****************************************************/
 /* Queue functions                                  */

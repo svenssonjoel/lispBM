@@ -67,3 +67,12 @@ TODO:  extraxt_n uses lbm_is_ptr and then extracts car, cdr etc.
 
 
 TODO: look at test_lbm_prof and figure out how to improve it.
+
+
+The exported API that accepts channels is:
+* lift_char_channel  in eval_cps.c/h
+* lbm_load_and_eval_program in lbm_c_interop
+* lbm_load_and_eval_program_incremental in lbm_c_interop
+* lbm_load_and_eval_expression in lbm_c_interop
+* lbm_load_and_define_program in lbm_c_interop
+* lbm_load_and_define_expression in lbm_c_interop

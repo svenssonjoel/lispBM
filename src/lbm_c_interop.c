@@ -17,6 +17,19 @@
 
 #include "lbm_c_interop.h"
 
+/* Utility */
+
+static bool lift_char_channel(lbm_char_channel_t *chan , lbm_value *res) {
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE);
+  if (cell == ENC_SYM_MERROR) {
+    return false;
+  }
+  *res = cell;
+  return true;
+}
+
+
+
 /****************************************************/
 /* Interface for loading and running programs and   */
 /* expressions                                      */
