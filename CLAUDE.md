@@ -72,6 +72,56 @@ The REPL test suite includes comprehensive edge case tests for fundamental opera
 
 These tests ensure robust error handling and predictable behavior for embedded applications.
 
+### Test Output Conventions
+All test suites should print **"SUCCESS"** when all tests pass:
+- **C unit tests** (`tests/c_unit/`) - Each test executable should print "SUCCESS" on completion
+- **REPL tests** (`tests/repl_tests/`) - Each `.lisp` test file should print "SUCCESS" when passing
+- **Image tests** (`tests/image_tests/`) - Should print "SUCCESS" when serialization/deserialization works
+- **SDL tests** (`tests/sdl_tests/`) - Should print "SUCCESS" when graphics operations complete
+
+### C Unit Test Development
+When creating C unit tests in `tests/c_unit/`, use the standard initialization pattern:
+
+```c
+#define _GNU_SOURCE // MAP_ANON
+#define _POSIX_C_SOURCE 200809L // nanosleep?
+#include <stdlib.h>
+#include <stdio.h>
+// ... other standard includes
+
+#include "lispbm.h"
+#include "init/start_lispbm.c"
+
+static int test_init(void) {
+  return start_lispbm_for_tests();
+}
+```
+
+The `start_lispbm_for_tests()` function:
+- Handles complete LispBM system initialization
+- Sets up heap, memory management, and all subsystems
+- Provides a clean environment for testing LispBM C API functions
+- Should be called at the beginning of each test function that requires LispBM
+- Automatically manages cleanup and reinitialization between tests
+
+**Important**: Use `kill_eval_after_tests()` at the end of C unit tests that start threads (such as evaluation threads) which are not explicitly killed or waited for during the test. This function ensures proper cleanup by:
+- Killing the evaluator thread before test function scope ends
+- Preventing use-after-free errors when evaluator threads access test function local variables
+- Ensuring clean test isolation and preventing state leakage between tests
+
+Example usage:
+```c
+int test_something_with_threads() {
+  if (!test_init()) return 0;
+  
+  // Test code that may start evaluator threads
+  // ...
+  
+  kill_eval_after_tests(); // Clean up before function returns
+  return 1;
+}
+```
+
 ## Architecture
 
 ### Core Components
