@@ -2345,6 +2345,19 @@ static lbm_value ext_putpixel(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_getpixel(lbm_value *args, lbm_uint argn) {
+  img_args_t arg_dec = decode_args(args, argn, 2);
+
+  if (!arg_dec.is_valid) {
+    return ENC_SYM_TERROR;
+  }
+
+  uint32_t c = getpixel(&arg_dec.img,
+                        lbm_dec_as_i32(arg_dec.args[0]),
+                        lbm_dec_as_i32(arg_dec.args[1]));
+  return lbm_enc_u32(c);
+}
+
 // lisp args: img x1 y1 x2 y2 color opt-attr1 ... opt-attrN
 static lbm_value ext_line(lbm_value *args, lbm_uint argn) {
   img_args_t arg_dec = decode_args(args, argn, 5);
@@ -2935,6 +2948,7 @@ void lbm_display_extensions_init(void) {
   lbm_add_extension("img-color-getpre", ext_color_getpre);
   lbm_add_extension("img-dims", ext_image_dims);
   lbm_add_extension("img-setpix", ext_putpixel);
+  lbm_add_extension("img-getpix", ext_getpixel);
   lbm_add_extension("img-line", ext_line);
   lbm_add_extension("img-text", ext_text);
   lbm_add_extension("img-clear", ext_clear);

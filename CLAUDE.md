@@ -206,6 +206,37 @@ Located in `src/extensions/`:
 - **Type conversions**: `to-i` and `to-float` return `0`/`0.0f32` for invalid types (no errors)
 - **Runtime functions**: Most ignore arguments; `lbm-heap-state` returns `nil` for invalid symbols
 
+#### Equality and Comparison Operators
+- **`=` (numerical equality)**: Use for comparing numbers
+  - Example: `(= 42 42)` returns `t`
+  - Example: `(= 3.14 3.14)` returns `t`
+  - Preferred for all numerical comparisons in tests and code
+- **`eq` (identity equality)**: Use for comparing symbols, booleans, and object identity
+  - Example: `(eq 'symbol 'symbol)` returns `t`
+  - Example: `(eq t t)` returns `t`
+  - Example: `(eq nil nil)` returns `t`
+- **Rule**: Always use `=` for numbers and `eq` for non-numerical values
+
+#### Advanced Color System
+LispBM provides an advanced color system for use with `disp-render`:
+
+- **`img-color`**: Creates color objects for advanced rendering
+  - `'regular`: Simple 1-1 color mapping `(img-color 'regular 0xRRGGBB)`
+  - `'gradient_x`/`'gradient_y`: Dynamic gradients calculated at render time
+  - `'gradient_x_pre`/`'gradient_y_pre`: Pre-calculated gradient buffers (max width 512)
+  - Gradients support `'repeat` or `'mirrored` repeat modes
+  
+- **`img-color-setpre`**: Modify colors in pre-calculated gradient buffers
+  - `(img-color-setpre color pos new-color)`
+  - Position is relative to gradient start (ignores offset)
+  - Only works with `gradient_x_pre`/`gradient_y_pre` color objects
+  
+- **`img-color-getpre`**: Read colors from pre-calculated gradient buffers
+  - `(img-color-getpre color pos)`
+  - Useful for testing and validating gradient color mappings
+
+**Important**: Advanced color objects can only be used with `disp-render`, not with regular drawing functions.
+
 ## Code Style Guidelines
 
 ### C Code Indentation Style
