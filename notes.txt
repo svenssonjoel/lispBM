@@ -80,3 +80,7 @@ The exported API that accepts channels is:
 * lbm_load_and_eval_expression in lbm_c_interop
 * lbm_load_and_define_program in lbm_c_interop
 * lbm_load_and_define_expression in lbm_c_interop
+
+TODO: Think about closure creation and if there is something simple that can
+      be done to improve the handling of the captured environment. Sometimes
+      Useful patterns lead to expression size explosion (such as lambda creation inside of looprange).
