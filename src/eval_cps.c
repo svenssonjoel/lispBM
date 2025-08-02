@@ -31,10 +31,6 @@
 #include "platform_mutex.h"
 #include "lbm_flat_value.h"
 
-#ifdef VISUALIZE_HEAP
-#include "heap_vis.h"
-#endif
-
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stdnoreturn.h>
@@ -1738,10 +1734,6 @@ static int gc(void) {
     mark_context(ctx_running, NULL, NULL);
   }
   mutex_unlock(&qmutex);
-
-#ifdef ZE_HEAP
-  heap_vis_gen_image();
-#endif
 
   int r = lbm_gc_sweep_phase();
   lbm_heap_new_freelist_length();
@@ -5499,9 +5491,6 @@ static const evaluator_fun evaluators[] =
 
 static void evaluation_step(void){
   eval_context_t *ctx = ctx_running;
-#ifdef VISUALIZE_HEAP
-  heap_vis_gen_image();
-#endif
 
   if (ctx->app_cont) {
     lbm_value k;
