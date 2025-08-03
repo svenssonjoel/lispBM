@@ -1926,6 +1926,7 @@ static void eval_define(eval_context_t *ctx) {
   ERROR_AT_CTX(ENC_SYM_EERROR, ctx->curr_exp);
 }
 
+#if false
 /* Allocate closure is only used in eval_lambda currently.
    Inlining it should use no extra storage.
  */
@@ -1976,6 +1977,8 @@ static inline lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_v
    work properly due to this cheating.
  */
 // (lambda param-list body-exp) -> (closure param-list body-exp env)
+
+
 static void eval_lambda(eval_context_t *ctx) {
   lbm_value vals[3];
   extract_n(ctx->curr_exp, vals, 3);
@@ -1998,6 +2001,53 @@ static void eval_lambda(eval_context_t *ctx) {
   ctx->app_cont = true;
 #endif
 }
+#else
+static void eval_lambda(eval_context_t *ctx) {
+#ifdef LBM_ALWAYS_GC
+  gc();
+#endif
+  for (int retry = 0; retry < 2; retry ++) {
+    if (lbm_heap_num_free() >= 4) {
+      lbm_value clo = lbm_heap_state.freelist;
+      lbm_value lam = get_cdr(ctx->curr_exp);
+      lbm_uint ix = lbm_dec_ptr(clo);
+      lbm_cons_t *heap = lbm_heap_state.heap;
+      heap[ix].car = ENC_SYM_CLOSURE;
+      ix = lbm_dec_ptr(heap[ix].cdr);
+      get_car_and_cdr(lam, &heap[ix].car, &lam); // params
+      ix = lbm_dec_ptr(heap[ix].cdr);
+      get_car_and_cdr(lam, &heap[ix].car, &lam); // body
+      ix = lbm_dec_ptr(heap[ix].cdr);
+      heap[ix].car = ctx->curr_env;
+      lbm_heap_state.freelist = heap[ix].cdr;
+      heap[ix].cdr = ENC_SYM_NIL;
+      lbm_heap_state.num_alloc+=4;
+      ctx->r = clo;
+#ifdef CLEAN_UP_CLOSURES
+      lbm_uint sym_id  = 0;
+      if (clean_cl_env_symbol) {
+        lbm_value tail = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+        lbm_value app = cons_with_gc(clean_cl_env_symbol, tail, tail);
+        ctx->curr_exp = app;
+      } else if (lbm_get_symbol_by_name("clean-cl-env", &sym_id)) {
+        clean_cl_env_symbol = lbm_enc_sym(sym_id);
+        lbm_value tail = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+        lbm_value app = cons_with_gc(clean_cl_env_symbol, tail, tail);
+        ctx->curr_exp = app;
+      } else {
+        ctx->app_cont = true;
+      }
+#else
+      ctx->app_cont = true;
+#endif
+      return;
+    } else {
+      gc();
+    }
+  }
+  ERROR_CTX(ENC_SYM_MERROR);
+}
+#endif
 
 // (if cond-expr then-expr else-expr)
 static void eval_if(eval_context_t *ctx) {
