@@ -218,7 +218,6 @@ static void mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
     }                                           \
     /* continue executing statements below */   \
   }
-
 #endif
 
 // ////////////////////////////////////////////////////////////
@@ -531,22 +530,47 @@ static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember
   return res;
 }
 
-static lbm_uint *get_stack_ptr(eval_context_t *ctx, unsigned int n) {
-  if (n <= ctx->K.sp) {
-    lbm_uint index = ctx->K.sp - n;
-    return &ctx->K.data[index];
-  }
-  ERROR_CTX(ENC_SYM_STACK_ERROR);
+// ////////////////////////////////////////////////////////////
+// Stack and CPS
+
+// The CPS system is dependent on a diciplined use of a continuation
+// stack! Continuations are pushed and popped from this stack and
+// between the point in time when a continuation is pushed and when it is popped
+// significant stack "traffic" may have occurred.
+//
+// In the evaluator, functions called things line "eval_X" usually sets up
+// a stack-frame for a future exection of a "cont_X" continuation.
+// Some kind of proof is needed that Things that pushed in a continuation setup-phase
+// are all popped (no more, no less) in a continuation execution phase.
+// continuations "cont_X" also may set up more continuations and in that
+// case they may modify the stack in place or reuse in part or full the
+// stack-frame associated with "cont_X"
+//
+// TODO: for each "eval_X" and "cont_X" pair write an argument or some kind
+// of test that illustrates correct usage of the stack discipline.
+//
+// For now the argument of stack discipline being honored is that all tests
+// pass and no tests end up in stack underflow.
+//
+// Stack overflow is easy to end up in, just write a non-tail-recursive but recursive funtions
+// and run it for a suitably large input.
+//
+// * Potentially tricky situation is "trap" used on a call to a non-tail-recursive function that
+// ends out exhausting stack.
+// # Trap rewinds the stack to the point of trap so it should be perfectly safe to trap even in this situation.
+
+// get_stack_ptr and pop_stack_ptr does in no tests reach
+// the error condition. The check n <= sp is not really needed.
+static inline lbm_uint *get_stack_ptr(eval_context_t *ctx, unsigned int n) {
+  lbm_uint index = ctx->K.sp - n;
+  return &ctx->K.data[index];
 }
 
 // pop_stack_ptr is safe when no GC is performed and
 // the values of the stack will be dropped.
-static lbm_uint *pop_stack_ptr(eval_context_t *ctx, unsigned int n) {
-  if (n <= ctx->K.sp) {
-    ctx->K.sp -= n;
-    return &ctx->K.data[ctx->K.sp];
-  }
-  ERROR_CTX(ENC_SYM_STACK_ERROR);
+static inline lbm_uint *pop_stack_ptr(eval_context_t *ctx, unsigned int n) {
+  ctx->K.sp -= n;
+  return &ctx->K.data[ctx->K.sp];
 }
 
 static inline lbm_uint *stack_reserve(eval_context_t *ctx, unsigned int n) {
@@ -584,7 +608,7 @@ static void lift_array_flash(lbm_value flash_cell, bool bytearray,  char *data, 
 }
 
 static void get_car_and_cdr(lbm_value a, lbm_value *a_car, lbm_value *a_cdr) {
-  if (lbm_is_ptr(a)) {
+  if (lbm_is_cons(a)) {
     lbm_cons_t *cell = lbm_ref_cell(a);
     *a_car = cell->car;
     *a_cdr = cell->cdr;
@@ -597,7 +621,7 @@ static void get_car_and_cdr(lbm_value a, lbm_value *a_car, lbm_value *a_cdr) {
 
 /* car cdr caar cadr replacements that are evaluator safe. */
 static lbm_value get_car(lbm_value a) {
-  if (lbm_is_ptr(a)) {
+  if (lbm_is_cons(a)) {
     lbm_cons_t *cell = lbm_ref_cell(a);
     return cell->car;
   } else if (lbm_is_symbol_nil(a)) {
@@ -607,7 +631,7 @@ static lbm_value get_car(lbm_value a) {
 }
 
 static lbm_value get_cdr(lbm_value a) {
-  if (lbm_is_ptr(a)) {
+  if (lbm_is_cons(a)) {
     lbm_cons_t *cell = lbm_ref_cell(a);
     return cell->cdr;
   } else if (lbm_is_symbol_nil(a)) {
@@ -617,10 +641,10 @@ static lbm_value get_cdr(lbm_value a) {
 }
 
 static lbm_value get_cadr(lbm_value a) {
-  if (lbm_is_ptr(a)) {
+  if (lbm_is_cons(a)) {
     lbm_cons_t *cell = lbm_ref_cell(a);
     lbm_value tmp = cell->cdr;
-    if (lbm_is_ptr(tmp)) {
+    if (lbm_is_cons(tmp)) {
       return lbm_ref_cell(tmp)->car;
     } else if (lbm_is_symbol_nil(tmp)) {
       return tmp;
@@ -1115,9 +1139,8 @@ static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at
     // context dies.
   } else if ((ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN) &&
       (err_val != ENC_SYM_FATAL_ERROR)) {
-    lbm_uint v;
     while (ctx_running->K.sp > 0) {
-      lbm_pop(&ctx_running->K, &v);
+      lbm_uint v = ctx_running->K.data[--ctx_running->K.sp];
       if (v == EXCEPTION_HANDLER) { // context continues executing.
         lbm_value *sptr = get_stack_ptr(ctx_running, 2);
         lbm_set_car(sptr[0], ENC_SYM_EXIT_ERROR);
@@ -1677,16 +1700,15 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
     lbm_value curr_e = earr[i];
     while (!lbm_is_symbol_nil(curr_p)) {
       lbm_value p[3];
-      extract_n(get_car(curr_p), p, 3);
-      lbm_value me = get_car(curr_p);
+      lbm_value curr = get_car(curr_p);
+      extract_n(curr, p, 3);
       if (!lbm_is_symbol_nil(p[2])) { // A rare syntax check. maybe drop?
         lbm_set_error_reason("Incorrect pattern format for recv");
-        ERROR_AT_CTX(ENC_SYM_EERROR,me);
-        return FM_NO_MATCH; // PHONY for SA
+        ERROR_AT_CTX(ENC_SYM_EERROR,curr);
       }
       if (match(p[0], curr_e, env)) {
         *e = p[1];
-         return n;
+        return n;
       }
       curr_p = get_cdr(curr_p);
     }
@@ -2053,10 +2075,9 @@ static void eval_lambda(eval_context_t *ctx) {
 static void eval_if(eval_context_t *ctx) {
   lbm_value cdr = get_cdr(ctx->curr_exp);
   lbm_value *sptr = stack_reserve(ctx, 3);
-  sptr[0] = get_cdr(cdr);
+  get_car_and_cdr(cdr, &ctx->curr_exp, &sptr[0]);
   sptr[1] = ctx->curr_env;
   sptr[2] = IF;
-  ctx->curr_exp = get_car(cdr);
 }
 
 // (cond (cond-expr-1 expr-1)
@@ -2287,9 +2308,7 @@ static void eval_and(eval_context_t *ctx) {
     lbm_value *sptr = stack_reserve(ctx, 3);
     get_car_and_cdr(rest, &ctx->curr_exp, &sptr[1]);
     sptr[0] = ctx->curr_env;
-    //sptr[1] = get_cdr(rest);
     sptr[2] = AND;
-    //ctx->curr_exp = get_car(rest);
   }
 }
 
@@ -2303,9 +2322,7 @@ static void eval_or(eval_context_t *ctx) {
     lbm_value *sptr = stack_reserve(ctx, 3);
     get_car_and_cdr(rest, &ctx->curr_exp, &sptr[1]);
     sptr[0] = ctx->curr_env;
-    //sptr[1] = get_cdr(rest);
     sptr[2] = OR;
-    //ctx->curr_exp = get_car(rest);
   }
 }
 
@@ -2398,10 +2415,9 @@ static void eval_receive(eval_context_t *ctx) {
 //   ctx->r = Value
 static void cont_set_global_env(eval_context_t *ctx){
 
-  lbm_value key;
   lbm_value val = ctx->r;
 
-  lbm_pop(&ctx->K, &key);
+  lbm_value key = ctx->K.data[--ctx->K.sp];
   lbm_uint dec_key = lbm_dec_sym(key);
   lbm_uint ix_key  = dec_key & GLOBAL_ENV_MASK;
   lbm_value *global_env = lbm_get_global_env();
@@ -2425,7 +2441,8 @@ static void cont_set_global_env(eval_context_t *ctx){
 //
 // ctx->r = Irrelevant.
 static void cont_resume(eval_context_t *ctx) {
-  lbm_pop_2(&ctx->K, &ctx->curr_env, &ctx->curr_exp);
+  ctx->curr_env = ctx->K.data[--ctx->K.sp];
+  ctx->curr_exp = ctx->K.data[--ctx->K.sp];
 }
 
 // cont_progn_rest:
@@ -2457,8 +2474,7 @@ static void cont_progn_rest(eval_context_t *ctx) {
 
 static void cont_wait(eval_context_t *ctx) {
 
-  lbm_value cid_val;
-  lbm_pop(&ctx->K, &cid_val);
+  lbm_value cid_val = ctx->K.data[--ctx->K.sp];
   lbm_cid cid = (lbm_cid)lbm_dec_i(cid_val);
 
   bool exists = false;
@@ -2527,8 +2543,7 @@ static lbm_value setup_cont(eval_context_t *ctx, lbm_value args) {
   ctx->K.sp = arr->size / sizeof(lbm_uint);
   memcpy(ctx->K.data, arr->data, arr->size);
 
-  lbm_value atomic;
-  lbm_pop(&ctx->K, &atomic);
+  lbm_value atomic = ctx->K.data[--ctx->K.sp];
   is_atomic = atomic ? 1 : 0;
   
   return arg;
@@ -3561,10 +3576,9 @@ static void cont_application_args(eval_context_t *ctx) {
 }
 
 static void cont_and(eval_context_t *ctx) {
-  lbm_value env;
-  lbm_value rest;
   lbm_value arg = ctx->r;
-  lbm_pop_2(&ctx->K, &rest, &env);
+  lbm_value rest = ctx->K.data[--ctx->K.sp];
+  lbm_value env = ctx->K.data[--ctx->K.sp];
   if (lbm_is_symbol_nil(arg)) {
     ctx->app_cont = true;
     ctx->r = ENC_SYM_NIL;
@@ -3581,10 +3595,9 @@ static void cont_and(eval_context_t *ctx) {
 }
 
 static void cont_or(eval_context_t *ctx) {
-  lbm_value env;
-  lbm_value rest;
   lbm_value arg = ctx->r;
-  lbm_pop_2(&ctx->K, &rest, &env);
+  lbm_value rest = ctx->K.data[--ctx->K.sp];
+  lbm_value env = ctx->K.data[--ctx->K.sp];
   if (!lbm_is_symbol_nil(arg)) {
     ctx->app_cont = true;
   } else if (lbm_is_symbol_nil(rest)) {
@@ -3766,16 +3779,14 @@ static void cont_map(eval_context_t *ctx) {
 
 static void cont_match_guard(eval_context_t *ctx) {
   if (lbm_is_symbol_nil(ctx->r)) {
-    lbm_value e;
-    lbm_pop(&ctx->K, &e);
+    lbm_value e = ctx->K.data[--ctx->K.sp];
     lbm_stack_drop(&ctx->K, 2);
     ctx->r = e;
     ctx->app_cont = true;
   } else {
-    lbm_value body;
-    lbm_value env;
     lbm_stack_drop(&ctx->K, 1);
-    lbm_pop_2(&ctx->K, &body, &env);
+    lbm_value body = ctx->K.data[--ctx->K.sp];
+    lbm_value env = ctx->K.data[--ctx->K.sp];
     lbm_stack_drop(&ctx->K, 3);
     ctx->curr_env = env;
     ctx->curr_exp = body;
@@ -4060,10 +4071,9 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
   if (ctx->K.sp > 4  && (ctx->K.data[ctx->K.sp - 4] == READ_DONE) &&
       (ctx->K.data[ctx->K.sp - 5] == READING_PROGRAM_INCREMENTALLY)) {
     /* read and evaluate is done */
-    lbm_value env;
-    lbm_value s;
-    lbm_value sym;
-    lbm_pop_3(&ctx->K, &sym, &env, &s);
+    --ctx->K.sp; // Pop but do not use
+    lbm_value env = ctx->K.data[--ctx->K.sp];
+    --ctx->K.sp; // Pop but do not use
     ctx->curr_env = env;
     ctx->app_cont = true; // Program evaluated and result is in ctx->r.
   } else if (ctx->K.sp > 5 && (ctx->K.data[ctx->K.sp - 5] == READ_DONE) &&
@@ -4721,10 +4731,8 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
 }
 
 static void cont_read_expect_closepar(eval_context_t *ctx) {
-  lbm_value res;
-  lbm_value stream;
-
-  lbm_pop_2(&ctx->K, &res, &stream);
+  lbm_value res = ctx->K.data[--ctx->K.sp];
+  lbm_value stream = ctx->K.data[--ctx->K.sp];
 
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) { // TODO: De Morgan these conditions.
@@ -4777,10 +4785,10 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
 }
 
 static void cont_read_done(eval_context_t *ctx) {
-  lbm_value stream;
-  lbm_value f_val;
-  lbm_value reader_mode;
-  lbm_pop_3(&ctx->K, &reader_mode, &stream, &f_val);
+  //lbm_value reader_mode = ctx->K.data[--ctx->K.sp];
+  --ctx->K.sp;
+  lbm_value stream = ctx->K.data[--ctx->K.sp];
+  lbm_value f_val = ctx->K.data[--ctx->K.sp];
 
   uint32_t flags = lbm_dec_as_u32(f_val);
   ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
@@ -4810,8 +4818,7 @@ static void cont_read_done(eval_context_t *ctx) {
 
 static void cont_wrap_result(eval_context_t *ctx) {
   lbm_value cell;
-  lbm_value wrapper;
-  lbm_pop(&ctx->K, &wrapper);
+  lbm_value wrapper = ctx->K.data[--ctx->K.sp];
   WITH_GC(cell, lbm_heap_allocate_list_init(2,
                                             wrapper,
                                             ctx->r));
@@ -4891,18 +4898,15 @@ static void cont_application_start(eval_context_t *ctx) {
 }
 
 static void cont_eval_r(eval_context_t* ctx) {
-  lbm_value env;
-  lbm_pop(&ctx->K, &env);
+  lbm_value env = ctx->K.data[--ctx->K.sp];
   ctx->curr_exp = ctx->r;
   ctx->curr_env = env;
 }
 
 static void cont_progn_var(eval_context_t* ctx) {
 
-  lbm_value key;
-  lbm_value env;
-
-  lbm_pop_2(&ctx->K, &key, &env);
+  lbm_value key = ctx->K.data[--ctx->K.sp];
+  lbm_value env = ctx->K.data[--ctx->K.sp];
   fill_binding_location(key, ctx->r, env);
 
   ctx->curr_env = env; // evaluating value may build upon local env.
@@ -4910,9 +4914,8 @@ static void cont_progn_var(eval_context_t* ctx) {
 }
 
 static void cont_setq(eval_context_t *ctx) {
-  lbm_value sym;
-  lbm_value env;
-  lbm_pop_2(&ctx->K, &sym, &env);
+  lbm_value sym = ctx->K.data[--ctx->K.sp];
+  lbm_value env = ctx->K.data[--ctx->K.sp];
   lbm_value res;
   WITH_GC(res, perform_setvar(sym, ctx->r, env));
   ctx->r = res;
@@ -4935,8 +4938,7 @@ lbm_flash_status request_flash_storage_cell(lbm_value val, lbm_value *res) {
 
 static void cont_move_to_flash(eval_context_t *ctx) {
 
-  lbm_value args;
-  lbm_pop(&ctx->K, &args);
+  lbm_value args = ctx->K.data[--ctx->K.sp];
 
   if (lbm_is_symbol_nil(args)) {
     // Done looping over arguments. return true.
@@ -5119,9 +5121,8 @@ static void cont_move_list_to_flash(eval_context_t *ctx) {
 }
 
 static void cont_close_list_in_flash(eval_context_t *ctx) {
-  lbm_value fst;
-  lbm_value lst;
-  lbm_pop_2(&ctx->K, &lst, &fst);
+  lbm_value lst = ctx->K.data[--ctx->K.sp];
+  lbm_value fst = ctx->K.data[--ctx->K.sp];
   lbm_value val = ctx->r;
   handle_flash_status(write_const_cdr(lst, val));
   ctx->r = fst;
@@ -5241,8 +5242,7 @@ lbm_value append(lbm_value front, lbm_value back) {
         (else `',x)))
  */
 static void cont_qq_expand(eval_context_t *ctx) {
-  lbm_value qquoted;
-  lbm_pop(&ctx->K, &qquoted);
+  lbm_value qquoted = ctx->K.data[--ctx->K.sp];
 
   switch(lbm_type_of(qquoted)) {
   case LBM_TYPE_CONS: {
@@ -5278,8 +5278,7 @@ static void cont_qq_expand(eval_context_t *ctx) {
 }
 
 static void cont_qq_append(eval_context_t *ctx) {
-  lbm_value head;
-  lbm_pop(&ctx->K, &head);
+  lbm_value head = ctx->K.data[--ctx->K.sp];
   ctx->r = append(head, ctx->r);
   ctx->app_cont = true;
 }
@@ -5302,8 +5301,7 @@ static void cont_qq_append(eval_context_t *ctx) {
 */
 
 static void cont_qq_expand_list(eval_context_t* ctx) {
-  lbm_value l;
-  lbm_pop(&ctx->K, &l);
+  lbm_value l = ctx->K.data[--ctx->K.sp];
 
   ctx->app_cont = true;
   switch(lbm_type_of(l)) {
@@ -5357,8 +5355,7 @@ static void cont_kill(eval_context_t *ctx) {
 }
 
 static void cont_pop_reader_flags(eval_context_t *ctx) {
-  lbm_value flags;
-  lbm_pop(&ctx->K, &flags);
+  lbm_value flags = ctx->K.data[--ctx->K.sp];
   ctx->flags = ctx->flags & ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
   ctx->flags |= (lbm_dec_as_u32(flags) & EVAL_CPS_CONTEXT_READER_FLAGS_MASK);
   // r is unchanged.
@@ -5543,8 +5540,7 @@ static void evaluation_step(void){
   eval_context_t *ctx = ctx_running;
 
   if (ctx->app_cont) {
-    lbm_value k;
-    lbm_pop(&ctx->K, &k);
+    lbm_value k = ctx->K.data[--ctx->K.sp];
     ctx->app_cont = false;
 
     lbm_uint decoded_k = DEC_CONTINUATION(k);
