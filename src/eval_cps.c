@@ -5316,7 +5316,7 @@ static void cont_qq_expand_list(eval_context_t* ctx) {
       return;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                car_val == ENC_SYM_COMMAAT) {
-      lbm_value cadr_val = lbm_car(cdr_val);
+      lbm_value cadr_val = get_car(cdr_val);
       ctx->r = cadr_val;
       return;
     } else {
