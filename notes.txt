@@ -84,3 +84,5 @@ The exported API that accepts channels is:
 TODO: Think about closure creation and if there is something simple that can
       be done to improve the handling of the captured environment. Sometimes
       Useful patterns lead to expression size explosion (such as lambda creation inside of looprange).
+
+TODO: lbm_car uses the lbm_is_ptr condition.

@@ -607,7 +607,14 @@ static void lift_array_flash(lbm_value flash_cell, bool bytearray,  char *data, 
   handle_flash_status(write_const_cdr(flash_cell, t));
 }
 
-static void get_car_and_cdr(lbm_value a, lbm_value *a_car, lbm_value *a_cdr) {
+// ////////////////////////////////////////////////////////////
+// get_car and lbm_car
+
+// lbm_car is a lower level operation that extracts a car field from a cons cell
+// without any consideration of any additional type-tags associated with the cell.
+// get_car is for list cons-cells only.
+
+static inline void get_car_and_cdr(lbm_value a, lbm_value *a_car, lbm_value *a_cdr) {
   if (lbm_is_cons(a)) {
     lbm_cons_t *cell = lbm_ref_cell(a);
     *a_car = cell->car;
@@ -620,7 +627,7 @@ static void get_car_and_cdr(lbm_value a, lbm_value *a_car, lbm_value *a_cdr) {
 }
 
 /* car cdr caar cadr replacements that are evaluator safe. */
-static lbm_value get_car(lbm_value a) {
+static inline lbm_value get_car(lbm_value a) {
   if (lbm_is_cons(a)) {
     lbm_cons_t *cell = lbm_ref_cell(a);
     return cell->car;
@@ -630,7 +637,7 @@ static lbm_value get_car(lbm_value a) {
   ERROR_CTX(ENC_SYM_TERROR);
 }
 
-static lbm_value get_cdr(lbm_value a) {
+static inline lbm_value get_cdr(lbm_value a) {
   if (lbm_is_cons(a)) {
     lbm_cons_t *cell = lbm_ref_cell(a);
     return cell->cdr;
@@ -640,7 +647,7 @@ static lbm_value get_cdr(lbm_value a) {
   ERROR_CTX(ENC_SYM_TERROR);
 }
 
-static lbm_value get_cadr(lbm_value a) {
+static inline lbm_value get_cadr(lbm_value a) {
   if (lbm_is_cons(a)) {
     lbm_cons_t *cell = lbm_ref_cell(a);
     lbm_value tmp = cell->cdr;
@@ -2139,9 +2146,14 @@ static void create_binding_location(lbm_value key, lbm_value *env) {
       if (!lbm_is_ptr(ls)) ERROR_CTX(ENC_SYM_MERROR);
     }
     lbm_value binding = ls;
-    lbm_value new_env = lbm_cdr(ls);
-    lbm_set_cdr(binding, ENC_SYM_PLACEHOLDER);
-    lbm_set_car_and_cdr(new_env,binding, *env);
+    lbm_cons_t *ls_ref = lbm_ref_cell(ls);
+    lbm_value new_env = ls_ref->cdr;
+    ls_ref->cdr = ENC_SYM_PLACEHOLDER; // known cons
+    //lbm_set_cdr(binding, ENC_SYM_PLACEHOLDER);
+    lbm_cons_t *new_env_ref = lbm_ref_cell(new_env); //known cons
+    new_env_ref->car = binding;
+    new_env_ref->cdr = *env;
+    //lbm_set_car_and_cdr(new_env,binding, *env);
     *env = new_env;
   } else if (lbm_is_cons(key)) { // deconstruct case
     create_binding_location(lbm_ref_cell(key)->car, env);
@@ -2280,7 +2292,8 @@ static void eval_trap(eval_context_t *ctx) {
   lbm_value expr = get_cadr(ctx->curr_exp);
   lbm_value retval;
   WITH_GC(retval, lbm_heap_allocate_list(2));
-  lbm_set_car(retval, ENC_SYM_EXIT_OK); // Assume things will go well.
+  lbm_ref_cell(retval)->car = ENC_SYM_EXIT_OK;
+  // lbm_set_car(retval, ENC_SYM_EXIT_OK); // Assume things will go well.
   lbm_uint *sptr = stack_reserve(ctx,3);
   sptr[0] = retval;
   sptr[1] = ctx->flags;
@@ -2430,8 +2443,6 @@ static void cont_set_global_env(eval_context_t *ctx){
   ctx->r = val;
 
   ctx->app_cont = true;
-
-  return;
 }
 
 // cont_resume:
@@ -2472,6 +2483,9 @@ static void cont_progn_rest(eval_context_t *ctx) {
   }
 }
 
+// cont_wait
+//
+// s[sp-1] = cid
 static void cont_wait(eval_context_t *ctx) {
 
   lbm_value cid_val = ctx->K.data[--ctx->K.sp];
@@ -3022,11 +3036,21 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
     lbm_value appli_0 = get_cdr(appli_1);
 
-    lbm_set_car_and_cdr(appli_0, h, ENC_SYM_NIL);
-    lbm_set_car(appli_1, ENC_SYM_QUOTE);
-
-    lbm_set_car_and_cdr(get_cdr(appli), appli_1, ENC_SYM_NIL);
-    lbm_set_car(appli, f);
+    // appli is a list of length 2 here, so a cons
+    lbm_cons_t *cell = lbm_ref_cell(appli_0);
+    cell->car = h;
+    cell->cdr = ENC_SYM_NIL;
+    //lbm_set_car_and_cdr(appli_0, h, ENC_SYM_NIL);
+    cell = lbm_ref_cell(appli_1);
+    cell->car = ENC_SYM_QUOTE;
+    //lbm_set_car(appli_1, ENC_SYM_QUOTE);
+    lbm_cons_t *appli_cell = lbm_ref_cell(appli);
+    cell = lbm_ref_cell(appli_cell->cdr);
+    cell->car = appli_1;
+    cell->cdr = ENC_SYM_NIL;
+    //lbm_set_car_and_cdr(get_cdr(appli), appli_1, ENC_SYM_NIL);
+    appli_cell->car = f;
+    //lbm_set_car(appli, f);
 
     lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, appli);
     sptr[0] = t;     // reuse stack space
@@ -3466,6 +3490,15 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
   }
 }
 
+// cont_cloure_application_args
+//
+// s[sp-5]  = environment to evaluate the args in.
+// s[sp-4]  = body
+// s[sp-3]  = closure environment
+// s[sp-2]  = parameter list
+// s[sp-1]  = args list
+//
+// ctx->r  = evaluated argument.
 static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_uint* sptr = get_stack_ptr(ctx, 5);
 
@@ -3511,6 +3544,13 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   }
 }
 
+// cont_closure_args_rest
+//
+// s[sp-5] = environment to evaluate args in
+// s[sp-4] = body
+// s[sp-3] = closure environment
+// s[sp-2] = argument list 
+// s[sp-1] = last cell in rest-args list so far.
 static void cont_closure_args_rest(eval_context_t *ctx) {
   lbm_uint* sptr = get_stack_ptr(ctx, 5);
   lbm_value arg_env = (lbm_value)sptr[0];
@@ -3754,18 +3794,21 @@ static void cont_map(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 6);
   lbm_value ls  = sptr[0];
   lbm_value env = sptr[1];
-  lbm_value t   = sptr[3];
-  lbm_set_car(t, ctx->r); // update car field tailmost position.
+  lbm_value t   = sptr[3]; // known cons!
+  lbm_ref_cell(t)->car = ctx->r;
+  //lbm_set_car(t, ctx->r); // update car field tailmost position.
   if (lbm_is_cons(ls)) {
     lbm_cons_t *cell = lbm_ref_cell(ls); // already checked that cons.
     lbm_value next = cell->car;
     lbm_value rest = cell->cdr;
     sptr[0] = rest;
     stack_reserve(ctx,1)[0] = MAP;
-    lbm_set_car(sptr[5], next); // new arguments
+    lbm_ref_cell(sptr[5])->car = next; // update known cons
+    //lbm_set_car(sptr[5], next); // new arguments
 
     lbm_value elt = cons_with_gc(ENC_SYM_NIL, ENC_SYM_NIL, ENC_SYM_NIL);
-    lbm_set_cdr(t, elt);
+    lbm_ref_cell(t)->cdr = elt;
+    //lbm_set_cdr(t, elt);
     sptr[3] = elt;  // (r1 ... rN . (nil . nil))
     ctx->curr_exp = sptr[4];
     ctx->curr_env = env;
@@ -5362,6 +5405,11 @@ static void cont_pop_reader_flags(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+// cont_exception_handler
+//
+// s[sp-2] retval  - a list of 2 elements created by eval_trap
+// s[sp-1] flags   - context flags stored by eval_trap
+// 
 static void cont_exception_handler(eval_context_t *ctx) {
   lbm_value *sptr = pop_stack_ptr(ctx, 2);
   lbm_value retval = sptr[0];
