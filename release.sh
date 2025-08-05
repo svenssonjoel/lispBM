@@ -175,7 +175,7 @@ failing_sdl_tests_log_file="failing_sdl_tests_log_${release}.txt"
 sdl_tests_log_file="sdl_tests_log_${release}.txt"
 ./run_sdl_tests.sh ../$reportdir/$failing_sdl_tests_log_file >> ../$reportdir/$sdl_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
-echo "## IMAGE TESTS" >> ../$reportdir/$release_readme
+echo "## SDL TESTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$sdl_tests_log_file >> ../$reportdir/$release_readme
 
 print_elapsed
@@ -187,7 +187,7 @@ echo "Running c_unit tests"
 
 failing_c_unit_tests_log_file="failing_c_unit_tests_log_${release}.txt"
 c_unit_tests_log_file="c_unit_tests_log_${release}.txt"
-./run_c_unit_tests.sh ../$reportdir/$failing_c_unit_tests_log_file >> ../$reportdir/$c_unit_tests_log_file 2> /dev/null
+./run_c_unit.sh ../$reportdir/$failing_c_unit_tests_log_file >> ../$reportdir/$c_unit_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## C UNIT TESTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$c_unit_tests_log_file >> ../$reportdir/$release_readme

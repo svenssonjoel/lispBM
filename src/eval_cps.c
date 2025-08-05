@@ -3589,6 +3589,15 @@ static void cont_closure_args_rest(eval_context_t *ctx) {
   }
 }
 
+
+// cont_application_args
+//  Functions that take arguments passed on the stack, fundamental and apply_f.
+//
+// s[sp-3] = environment to evaluate arguments in.
+// s[sp-2] = argument list (user input syntax)
+// s[sp-1] = count
+//
+// ctx->r  = function
 static void cont_application_args(eval_context_t *ctx) {
   lbm_uint *sptr = get_stack_ptr(ctx, 3);
 
@@ -3598,15 +3607,15 @@ static void cont_application_args(eval_context_t *ctx) {
 
   ctx->curr_env = env;
   sptr[0] = ctx->r; // Function 1st then Arguments
-  if (lbm_is_cons(rest)) {
+  if (lbm_is_cons(rest)) { // rest is user input syntax, expensive check needed
     lbm_cons_t *cell = lbm_ref_cell(rest);
     sptr[1] = env;
     sptr[2] = cell->cdr;
     lbm_value *rptr = stack_reserve(ctx,2);
-    rptr[0] = count + (1 << LBM_VAL_SHIFT);
+    rptr[0] = count + (1 << LBM_VAL_SHIFT); // arithmetic on encoded value
     rptr[1] = APPLICATION_ARGS;
     ctx->curr_exp = cell->car;
-  } else {
+  } else { // tollerant for incorrect list termination.
     // No more arguments
     lbm_stack_drop(&ctx->K, 2);
     lbm_uint nargs = lbm_dec_u(count);
@@ -3615,41 +3624,49 @@ static void cont_application_args(eval_context_t *ctx) {
   }
 }
 
+// cont_and
+//
+// s[sp-2] = environment to evaluate args in.
+// s[sp-1] = rest of argument list (user input syntax)
 static void cont_and(eval_context_t *ctx) {
-  lbm_value arg = ctx->r;
   lbm_value rest = ctx->K.data[--ctx->K.sp];
   lbm_value env = ctx->K.data[--ctx->K.sp];
-  if (lbm_is_symbol_nil(arg)) {
+  if (lbm_is_symbol_nil(ctx->r)) {
     ctx->app_cont = true;
-    ctx->r = ENC_SYM_NIL;
-  } else if (lbm_is_symbol_nil(rest)) {
-    ctx->app_cont = true;
-  } else {
+  } else if (lbm_is_cons(rest)) {
+    lbm_cons_t *r_cell = lbm_ref_cell(rest);
     lbm_value *sptr = stack_reserve(ctx, 3);
     sptr[0] = env;
-    sptr[1] = get_cdr(rest);
+    sptr[1] = r_cell->cdr;
     sptr[2] = AND;
     ctx->curr_env = env;
-    ctx->curr_exp = get_car(rest);
+    ctx->curr_exp = r_cell->car;
+  } else {
+    ctx->app_cont = true;
   }
 }
 
+// cont_or
+//
+// s[sp-2] = environment to evaluate args in.
+// s[sp-1] = rest of argument list (user input syntax)
 static void cont_or(eval_context_t *ctx) {
-  lbm_value arg = ctx->r;
   lbm_value rest = ctx->K.data[--ctx->K.sp];
   lbm_value env = ctx->K.data[--ctx->K.sp];
-  if (!lbm_is_symbol_nil(arg)) {
+  if (!lbm_is_symbol_nil(ctx->r)) {
     ctx->app_cont = true;
-  } else if (lbm_is_symbol_nil(rest)) {
-    ctx->app_cont = true;
-    ctx->r = ENC_SYM_NIL;
-  } else {
+  } else if (lbm_is_cons(rest)) {
     lbm_value *sptr = stack_reserve(ctx, 3);
+    lbm_cons_t *r_cell = lbm_ref_cell(rest);
     sptr[0] = env;
-    sptr[1] = get_cdr(rest);
+    sptr[1] = r_cell->cdr;
     sptr[2] = OR;
-    ctx->curr_exp = get_car(rest);
+    ctx->curr_exp = r_cell->car;
     ctx->curr_env = env;
+  } else {
+    // if we end up here we have traversed all arguments
+    // and seen no non-nil. (see top case).
+    ctx->app_cont = true;
   }
 }
 
@@ -3676,6 +3693,14 @@ static void fill_binding_location(lbm_value key, lbm_value value, lbm_value env)
   }
 }
 
+// cont_bind_to_key_rest
+//
+// s[sp-4] = expression to evaluate in final env
+// s[sp-3] = rest of list of bindings
+// s[sp-2] = env to evaluate values in (Modified along the way)
+// s[sp-1] = key
+//
+// ctx->r  = evaluated value to bind to key
 static void cont_bind_to_key_rest(eval_context_t *ctx) {
 
   lbm_value *sptr = get_stack_ptr(ctx, 4);
@@ -3704,6 +3729,12 @@ static void cont_bind_to_key_rest(eval_context_t *ctx) {
   }
 }
 
+// cont_if
+//
+// s[sp-2] = then/else list (user input syntax)
+// s[sp-1] = environment
+//
+// ctx->r = evaluated condition
 static void cont_if(eval_context_t *ctx) {
 
   lbm_value arg = ctx->r;
