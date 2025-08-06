@@ -113,6 +113,8 @@ extern const fundamental_fun fundamental_table[];
  */
 typedef void (*ctx_fun)(eval_context_t *, void*, void*);
 
+extern int (*lbm_printf_callback)(const char *, ...);
+
 /* Common interface */
 /** Get the global environment
  *

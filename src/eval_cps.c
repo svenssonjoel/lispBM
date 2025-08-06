@@ -313,7 +313,7 @@ static void (*critical_error_callback)(void) = critical_nonsense;
 static void (*usleep_callback)(uint32_t) = usleep_nonsense;
 static uint32_t (*timestamp_us_callback)(void) = timestamp_nonsense;
 static void (*ctx_done_callback)(eval_context_t *) = ctx_done_nonsense;
-static int (*printf_callback)(const char *, ...) = printf_nonsense;
+int (*lbm_printf_callback)(const char *, ...) = printf_nonsense;
 static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
 
 void lbm_set_critical_error_callback(void (*fptr)(void)) {
@@ -337,8 +337,8 @@ void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
 }
 
 void lbm_set_printf_callback(int (*fptr)(const char*, ...)){
-  if (fptr == NULL) printf_callback = printf_nonsense;
-  else printf_callback = fptr;
+  if (fptr == NULL) lbm_printf_callback = printf_nonsense;
+  else lbm_printf_callback = fptr;
 }
 
 void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
@@ -804,15 +804,15 @@ lbm_flash_status lbm_write_const_array_padded(uint8_t *data, lbm_uint n, lbm_uin
 void print_environments(char *buf, unsigned int size) {
 
   lbm_value curr_l = ctx_running->curr_env;
-  printf_callback("\tCurrent local environment:\n");
+  lbm_printf_callback("\tCurrent local environment:\n");
   while (lbm_type_of(curr_l) == LBM_TYPE_CONS) {
     lbm_print_value(buf, (size/2) - 1, lbm_caar(curr_l));
     lbm_print_value(buf + (size/2),size/2, lbm_cdr(lbm_car(curr_l)));
-    printf_callback("\t%s = %s\n", buf, buf+(size/2));
+    lbm_printf_callback("\t%s = %s\n", buf, buf+(size/2));
     curr_l = lbm_cdr(curr_l);
   }
-  printf_callback("\n\n");
-  printf_callback("\tCurrent global environment:\n");
+  lbm_printf_callback("\n\n");
+  lbm_printf_callback("\tCurrent global environment:\n");
   lbm_value *glob_env = lbm_get_global_env();
 
   for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
@@ -821,7 +821,7 @@ void print_environments(char *buf, unsigned int size) {
 
       lbm_print_value(buf, (size/2) - 1, lbm_caar(curr_g));
       lbm_print_value(buf + (size/2),size/2, lbm_cdr(lbm_car(curr_g)));
-      printf_callback("\t%s = %s\n", buf, buf+(size/2));
+      lbm_printf_callback("\t%s = %s\n", buf, buf+(size/2));
       curr_g = lbm_cdr(curr_g);
     }
   }
@@ -830,7 +830,7 @@ void print_environments(char *buf, unsigned int size) {
 void print_error_value(char *buf, uint32_t bufsize, char *pre, lbm_value v, bool lookup) {
 
   lbm_print_value(buf, bufsize, v);
-  printf_callback("%s %s\n",pre, buf);
+  lbm_printf_callback("%s %s\n",pre, buf);
   if (lookup) {
     if (lbm_is_symbol(v)) {
       if (lbm_dec_sym(v) >= RUNTIME_SYMBOLS_START) {
@@ -838,9 +838,9 @@ void print_error_value(char *buf, uint32_t bufsize, char *pre, lbm_value v, bool
         if (lbm_env_lookup_b(&res, v, ctx_running->curr_env) ||
             lbm_global_env_lookup(&res, v)) {
           lbm_print_value(buf, bufsize, res);
-          printf_callback("      bound to: %s\n", buf);
+          lbm_printf_callback("      bound to: %s\n", buf);
         } else {
-          printf_callback("      UNDEFINED\n");
+          lbm_printf_callback("      UNDEFINED\n");
         }
       }
     }
@@ -860,7 +860,7 @@ static void print_error_message(lbm_value error,
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
   char *buf = lbm_malloc_reserve(ERROR_MESSAGE_BUFFER_SIZE_BYTES);
   if (!buf) {
-    printf_callback("Error: Not enough memory to show a human readable error message\n");
+    lbm_printf_callback("Error: Not enough memory to show a human readable error message\n");
     return;
   }
   if (trapped) {
@@ -869,13 +869,13 @@ static void print_error_message(lbm_value error,
     print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Error:", error, false);
   }
   if (lbm_is_symbol_merror(error)) {
-    printf_callback("\n   Heap cells free:  %d\n", lbm_heap_state.heap_size - lbm_heap_state.num_alloc);
-    printf_callback("   Mem longest free: %d\n\n", lbm_memory_longest_free());
+    lbm_printf_callback("\n   Heap cells free:  %d\n", lbm_heap_state.heap_size - lbm_heap_state.num_alloc);
+    lbm_printf_callback("   Mem longest free: %d\n\n", lbm_memory_longest_free());
   }
   if (name) {
-    printf_callback(  "   CTX: %d \"%s\"\n", cid, name);
+    lbm_printf_callback(  "   CTX: %d \"%s\"\n", cid, name);
   } else {
-    printf_callback(  "   CTX: %d\n", cid);
+    lbm_printf_callback(  "   CTX: %d\n", cid);
   }
   print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Current:", ctx_running->curr_exp, true);
   // An error can have both a set suspect that can be more detailed than the "at"
@@ -890,37 +890,37 @@ static void print_error_message(lbm_value error,
     print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   In:", at, true);
   }
 
-  printf_callback("\n");
+  lbm_printf_callback("\n");
 
   if (lbm_is_symbol(error) &&
       error == ENC_SYM_RERROR) {
-    printf_callback("   Line:   %u\n", row);
-    printf_callback("   Column: %u\n", col);
+    lbm_printf_callback("   Line:   %u\n", row);
+    lbm_printf_callback("   Column: %u\n", col);
   } else if (row0 >= 0) {
-    if (row1 < 0) printf_callback("   Starting at row: %d\n", row0);
-    else printf_callback("   Between row %d and %d\n", row0, row1);
+    if (row1 < 0) lbm_printf_callback("   Starting at row: %d\n", row0);
+    else lbm_printf_callback("   Between row %d and %d\n", row0, row1);
   }
 
-  printf_callback("\n");
+  lbm_printf_callback("\n");
 
   if (ctx_running->error_reason) {
-    printf_callback("   Reason: %s\n\n", ctx_running->error_reason);
+    lbm_printf_callback("   Reason: %s\n\n", ctx_running->error_reason);
   }
   if (lbm_verbose) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->r);
-    printf_callback("   Current intermediate result: %s\n\n", buf);
+    lbm_printf_callback("   Current intermediate result: %s\n\n", buf);
 
     print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
 
-    printf_callback("\n   Mailbox:\n");
+    lbm_printf_callback("\n   Mailbox:\n");
     for (unsigned int i = 0; i < ctx_running->num_mail; i ++) {
       lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->mailbox[i]);
-      printf_callback("     %s\n", buf);
+      lbm_printf_callback("     %s\n", buf);
     }
-    printf_callback("\n   Stack:\n");
+    lbm_printf_callback("\n   Stack:\n");
     for (unsigned int i = 0; i < ctx_running->K.sp; i ++) {
       lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->K.data[i]);
-      printf_callback("     %s\n", buf);
+      lbm_printf_callback("     %s\n", buf);
     }
   }
   lbm_free(buf);
@@ -1127,7 +1127,7 @@ static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at
   }
 #ifdef LBM_USE_ERROR_LINENO
   if (!lbm_hide_trapped_error) {
-    printf_callback("eval_cps.c line number: %d\n", line_no);
+    lbm_printf_callback("eval_cps.c line number: %d\n", line_no);
   }
 #endif
   if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
@@ -5911,7 +5911,7 @@ void lbm_add_eval_symbols(void) {
    but for now a set of variables will be used. */
 void lbm_run_eval(void){
   if (setjmp(critical_error_jmp_buf) > 0) {
-    printf_callback("GC stack overflow!\n");
+    lbm_printf_callback("GC stack overflow!\n");
     critical_error_callback();
     // terminate evaluation thread.
     return;

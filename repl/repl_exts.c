@@ -38,6 +38,7 @@
 #include "extensions/ttf_extensions.h"
 #include "extensions/random_extensions.h"
 
+#include "eval_cps.h"
 #include "lbm_image.h"
 #include "lbm_flat_value.h"
 
@@ -198,13 +199,13 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
     if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
       char *data = (char*)array->data;
-      printf("%s", data);
+      lbm_printf_callback("%s", data);
     } else {
       lbm_print_value(output, 1024, t);
-      printf("%s", output);
+      lbm_printf_callback("%s", output);
     }
   }
-  printf("\n");
+  lbm_printf_callback("\n");
   return lbm_enc_sym(SYM_TRUE);
 }
 
@@ -377,13 +378,13 @@ static lbm_value ext_fwrite_value(lbm_value *args, lbm_uint argn) {
           fflush(h->fp);
           res = ENC_SYM_TRUE;
         } else {
-          printf("ALERT: Unable to flatten result value\n");
+          lbm_printf_callback("ALERT: Unable to flatten result value\n");
         }
       } else {
-        printf("ALERT: Out of memory to allocate result buffer\n");
+        lbm_printf_callback("ALERT: Out of memory to allocate result buffer\n");
       }
     } else {
-      printf("ALERT: Incorrect FV size: %d \n", fv_size);
+      lbm_printf_callback("ALERT: Incorrect FV size: %d \n", fv_size);
     }
   }
   return res;
@@ -777,14 +778,14 @@ lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
 
 int dummy_f(lbm_value v, bool shared, void *arg) {
   if (shared) {
-    printf("shared node detected\n");
+    lbm_printf_callback("shared node detected\n");
   }
   if (lbm_is_cons(v)) {
-    printf("cons\n");
+    lbm_printf_callback("cons\n");
   } else {
     char buf[256];
     lbm_print_value(buf,256, v);
-    printf("atom: %s\n", buf);
+    lbm_printf_callback("atom: %s\n", buf);
   }
   return TRAV_FUN_SUBTREE_CONTINUE;
 }
