@@ -248,6 +248,47 @@ bool drop_reader(lbm_cid cid) {
   return r;
 }
 
+typedef struct ctx_list_s {
+  lbm_cid cid;
+  struct ctx_list_s *next;
+} ctx_list_t;
+
+static void add_ctx(ctx_list_t **list, lbm_cid cid) {
+  ctx_list_t *new_head = (ctx_list_t*)malloc(sizeof(ctx_list_t));
+  if (new_head) {
+    new_head->cid = cid;
+    new_head->next = *list;
+    *list = new_head;
+  } else {
+    printf("Couldn't allocate ctx list\n");
+  }
+}
+
+static bool drop_ctx(ctx_list_t **list, lbm_cid cid) {
+  bool r = false;
+  ctx_list_t *prev = NULL;
+  ctx_list_t *curr = *list;
+
+  while (curr) {
+    if (curr->cid == cid) {
+      if (prev) {
+        prev->next = curr->next;
+      } else {
+        *list = curr->next;
+      }
+
+      free(curr);
+      r = true;
+      break;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+  return r;
+}
+
+// List of contexts directly started by the REPL.
+static ctx_list_t *repl_ctxs = NULL;
 
 void shutdown_procedure(void);
 
@@ -366,15 +407,19 @@ void done_callback(eval_context_t *ctx) {
       printf("ALERT: Unable to flatten result value\n");
     }
   }
-  char output[1024];
-  lbm_value t = ctx->r;
-  lbm_print_value(output, 1024, t);
-  erase();
-  if (!silent_mode) {
-    printf("> %s\n", output);
-    new_prompt();
-  } else {
-    printf("%s\n", output);
+  
+  // Only print result from contexts directly started by the REPL.
+  if (drop_ctx(&repl_ctxs, ctx->id)) {
+    char output[1024];
+    lbm_value t = ctx->r;
+    lbm_print_value(output, 1024, t);
+    erase();
+    if (!silent_mode) {
+      printf("> %s\n", output);
+      new_prompt();
+    } else {
+      printf("%s\n", output);
+    }
   }
 
   if (startup_cid != -1) {
@@ -2879,7 +2924,8 @@ int main(int argc, char **argv) {
         lbm_create_string_char_channel(&string_tok_state,
                                        &string_tok,
                                        str);
-        (void)lbm_load_and_eval_expression(&string_tok);
+        lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
+        add_ctx(&repl_ctxs, cid);
         lbm_continue_eval();
       }
     }
