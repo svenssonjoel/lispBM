@@ -618,11 +618,7 @@ lbm_int lbm_heap_array_get_size(lbm_value arr);
  * \return NULL or valid pointer.
  */
 const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr);
-/** Get a pointer to the data of an array for read/write purposes.
- * \param arr lbm_value array to get pointer from.
- * \return NULL or valid pointer.
- */
-uint8_t *lbm_heap_array_get_data_rw(lbm_value arr);
+
 /** Explicitly free an array.
  *  This function needs to be used with care and knowledge.
  * \param arr Array value.

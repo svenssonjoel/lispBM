@@ -1230,16 +1230,6 @@ const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr) {
   return r;
 }
 
-uint8_t *lbm_heap_array_get_data_rw(lbm_value arr) {
-  uint8_t *r = NULL;
-  lbm_array_header_t *header = lbm_dec_array_rw(arr);
-  if (header) {
-    r = (uint8_t*)header->data;
-  }
-  return r;
-}
-
-
 /* Explicitly freeing an array.
 
    This is a highly unsafe operation and can only be safely

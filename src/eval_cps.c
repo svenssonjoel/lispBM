@@ -5853,9 +5853,7 @@ static lbm_value get_event_value(lbm_event_t *e) {
     fv.buf = (uint8_t*)e->buf_ptr;
     fv.buf_size = e->buf_len;
     fv.buf_pos = 0;
-    if (!lbm_unflatten_value(&fv, &v)) {
-      v = ENC_SYM_EERROR;
-    }
+    lbm_unflatten_value(&fv, &v);
     // Free the flat value buffer. GC is unaware of its existence.
     lbm_free(fv.buf);
   } else {
