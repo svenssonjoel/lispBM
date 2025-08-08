@@ -15,6 +15,14 @@
 
 #include "init/start_lispbm.c"
 
+// String channels are used by the print functionality
+// to render lisp expressions. This use case sets up a sized string channel and
+// fills it with text.
+// String channels are a bit limited and are either used with a given input string
+// to read from or an empty sized array to write to.
+// The use case where a string_channel is used for both reading and writing
+// is NOT recommended as there is no synchronization. 
+
 int test_string_char_channel_peek(void) {
   
   char *expr1 = "abcd";
@@ -180,7 +188,6 @@ int test_string_char_channel_is_full(void) {
 
 int test_string_char_channel_write(void) {
 
-
   char my_str[5]; 
 
   memcpy(my_str,"abcd",5);
@@ -194,6 +201,7 @@ int test_string_char_channel_write(void) {
   
 
   if (lbm_channel_is_full(&chan1)) return 0;
+
   
   if (lbm_channel_write(&chan1, 'i') != CHANNEL_SUCCESS) return 0;
 
@@ -202,8 +210,6 @@ int test_string_char_channel_write(void) {
   if (lbm_channel_write(&chan1, 'k') != CHANNEL_SUCCESS) return 0;
 
   if (lbm_channel_write(&chan1, 'l') != CHANNEL_SUCCESS) return 0;
-
-    //if (!lbm_channel_is_full(&chan1)) return 0;
 
   r = lbm_channel_read(&chan1,  &read_r); 
   if ( !r || read_r != 'i') return 0;
@@ -214,8 +220,9 @@ int test_string_char_channel_write(void) {
   r = lbm_channel_read(&chan1, &read_r);
   if ( !r || read_r != 'k') return 0;
 
-    //r = lbm_channel_read(&chan1, &read_r);
-    //if ( !r || read_r != 'l') return 0;
+  r = lbm_channel_read(&chan1, &read_r);
+  if ( !r || read_r != 'l') return 0;
+
   return 1;
 }
 
@@ -330,8 +337,39 @@ int test_string_char_channel_set_comment_comment(void) {
   return 1;
 }
 
+// ////////////////////////////////////////////////////////////
+// Buffered channels
+
+// buffered channels are for reading and writing. Usually the reading
+// and writing sides will be in two different thread and the
+// channel is acting a data transfer conduit between those two threads.
+
+int test_create_buffered_char_channel(void) {
+  lbm_buffered_channel_state_t bs;
+  lbm_char_channel_t chan1;
+
+  lbm_create_buffered_char_channel(&bs, &chan1);
+
+  // Just test it doesn't crash.
+  return 1;
+}
+
+int test_buffered_char_channel_may_block(void) {
+  lbm_buffered_channel_state_t bs;
+  lbm_char_channel_t chan1;
+
+  lbm_create_buffered_char_channel(&bs, &chan1);
+
+  if (!lbm_channel_may_block(&chan1)) return 0;
+
+  return 1;
+}
 
 
+
+
+// ////////////////////////////////////////////////////////////
+// run the tests
 int main(void) {
   int tests_passed = 0;
   int total_tests = 0;
@@ -346,7 +384,10 @@ int main(void) {
   total_tests++; if (test_string_char_channel_drop()) tests_passed++;
   total_tests++; if (test_string_char_channel_reader_close_closed()) tests_passed++;
   total_tests++; if (test_string_char_channel_writer_close_closed()) tests_passed++;
-  total_tests++; if (test_string_char_channel_set_comment_comment()) tests_passed++;  
+  total_tests++; if (test_string_char_channel_set_comment_comment()) tests_passed++;
+
+  total_tests++; if (test_create_buffered_char_channel()) tests_passed++;
+  total_tests++; if (test_buffered_char_channel_may_block()) tests_passed++;
   
   if (tests_passed == total_tests) {
     printf("SUCCESS\n");
