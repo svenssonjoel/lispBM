@@ -220,6 +220,45 @@ int test_string_char_channel_write(void) {
 }
 
 
+int test_string_char_channel_row_column(void) {
+  
+  char *expr1 = "\n\n\n\naaaa";
+  lbm_string_channel_state_t st1;
+  lbm_char_channel_t chan1;
+  lbm_create_string_char_channel(&st1, &chan1, expr1);
+
+  char read_r;
+
+  for (int i = 0; i < 8; i ++) {
+    lbm_channel_read(&chan1,  &read_r);
+  }
+
+  unsigned int row = lbm_channel_row(&chan1);
+  unsigned int col = lbm_channel_column(&chan1);
+  
+  if (row != 5 || col != 5) return 0;
+  
+  return 1;
+}
+
+int test_string_char_channel_drop(void) {
+  
+  char *expr1 = "abcdefghijkl";
+  lbm_string_channel_state_t st1;
+  lbm_char_channel_t chan1;
+  lbm_create_string_char_channel(&st1, &chan1, expr1);
+
+  char read_r;
+
+  lbm_channel_drop(&chan1, 6);
+  lbm_channel_read(&chan1,  &read_r);
+
+  if (read_r != 'g') return 0;
+  
+  return 1;
+}
+
+
 
 int main(void) {
   int tests_passed = 0;
@@ -230,7 +269,9 @@ int main(void) {
   total_tests++; if (test_string_char_channel_more()) tests_passed++;
   total_tests++; if (test_string_char_channel_is_empty()) tests_passed++;
   total_tests++; if (test_string_char_channel_is_full()) tests_passed++;
-  total_tests++; if (test_string_char_channel_write()) tests_passed++;  
+  total_tests++; if (test_string_char_channel_write()) tests_passed++;
+  total_tests++; if (test_string_char_channel_row_column()) tests_passed++;
+  total_tests++; if (test_string_char_channel_drop()) tests_passed++;  
   
   if (tests_passed == total_tests) {
     printf("SUCCESS\n");
