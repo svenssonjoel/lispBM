@@ -248,6 +248,47 @@ bool drop_reader(lbm_cid cid) {
   return r;
 }
 
+typedef struct ctx_list_s {
+  lbm_cid cid;
+  struct ctx_list_s *next;
+} ctx_list_t;
+
+static void add_ctx(ctx_list_t **list, lbm_cid cid) {
+  ctx_list_t *new_head = (ctx_list_t*)malloc(sizeof(ctx_list_t));
+  if (new_head) {
+    new_head->cid = cid;
+    new_head->next = *list;
+    *list = new_head;
+  } else {
+    printf("Couldn't allocate ctx list\n");
+  }
+}
+
+static bool drop_ctx(ctx_list_t **list, lbm_cid cid) {
+  bool r = false;
+  ctx_list_t *prev = NULL;
+  ctx_list_t *curr = *list;
+
+  while (curr) {
+    if (curr->cid == cid) {
+      if (prev) {
+        prev->next = curr->next;
+      } else {
+        *list = curr->next;
+      }
+
+      free(curr);
+      r = true;
+      break;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+  return r;
+}
+
+// List of contexts directly started by the REPL.
+static ctx_list_t *repl_ctxs = NULL;
 
 void shutdown_procedure(void);
 
@@ -288,15 +329,68 @@ bool image_clear(void) {
 static lbm_char_channel_t string_tok;
 static lbm_string_channel_state_t string_tok_state;
 
-void new_prompt(void) {
-  printf("\33[2K\r");
-  printf("# ");
-  fflush(stdout);
+static int vsprintf_allocate(char **result, const char *format, va_list args) {
+  va_list args_copy;
+  va_copy(args_copy, args);
+  int len_result = vsnprintf(NULL, 0, format, args_copy);
+  va_end(args_copy);
+
+  if (len_result < 0) {
+    return len_result;
+  }
+  
+  // Allocate buffer
+  *result = malloc((size_t)len_result + 1);
+  if (!*result) {
+      return -1;
+  }
+  
+  len_result = vsnprintf(*result, (size_t)len_result + 1, format, args);
+  
+  return len_result;
 }
 
-void erase(void) {
-  printf("\33[2K\r");
-  fflush(stdout);
+static volatile _Atomic bool readline_started = false;
+static volatile _Atomic bool prompt_printed_last = false;
+
+/**
+ * Printf wrapper which redraws the readline prompt correctly.
+ * 
+ * Automatically removes the previous prompt if it's safe to do so, prints the
+ * result, and redraws the prompt below if the result ended in a newline
+ * character.
+ * 
+ * Makes sure that no non-readline text which was output via this function is
+ * replaced. The thread which is drawing the readline prompt can call `printf`
+ * safely, as long as it makes sure that the current line was empty when it
+ * starts the new prompt, i.e. it should end every `printf` call with '\n'.
+ */
+static int printf_redraw_prompt(const char *format, ...) {
+  // Print string to buffer
+  va_list args;
+  va_start(args, format);
+  char *buffer;
+  int len = vsprintf_allocate(&buffer, format, args);
+  va_end(args);
+  if (len < 0) {
+    return len;
+  }
+  
+  if (prompt_printed_last) {
+    rl_clear_visible_line();
+  }
+  
+  fputs(buffer, stdout);
+  prompt_printed_last = false;
+  
+  // Redraw prompt if output ends with a newline.
+  if (len > 0 && buffer[len - 1] == '\n' && readline_started) {
+    rl_redraw_prompt_last_line();
+    prompt_printed_last = true;
+  }
+  free(buffer);
+  
+  return len;
 }
 
 #ifdef LBM_WIN
@@ -366,15 +460,17 @@ void done_callback(eval_context_t *ctx) {
       printf("ALERT: Unable to flatten result value\n");
     }
   }
-  char output[1024];
-  lbm_value t = ctx->r;
-  lbm_print_value(output, 1024, t);
-  erase();
-  if (!silent_mode) {
-    printf("> %s\n", output);
-    new_prompt();
-  } else {
-    printf("%s\n", output);
+  
+  // Only print result from contexts directly started by the REPL.
+  if (drop_ctx(&repl_ctxs, ctx->id)) {
+    char output[1024];
+    lbm_value t = ctx->r;
+    lbm_print_value(output, 1024, t);
+    if (!silent_mode) {
+      printf_redraw_prompt("> %s\n", output);
+    } else {
+      printf_redraw_prompt("%s\n", output);
+    }
   }
 
   if (startup_cid != -1) {
@@ -382,16 +478,6 @@ void done_callback(eval_context_t *ctx) {
       startup_cid = -1;
     }
   }
-}
-
-int error_print(const char *format, ...) {
-  va_list args;
-  va_start (args, format);
-  erase();
-  int n = vprintf(format, args);
-  va_end(args);
-  new_prompt();
-  return n;
 }
 
 void sleep_callback(uint32_t us) {
@@ -932,7 +1018,7 @@ int init_repl(void) {
   lbm_set_timestamp_us_callback(timestamp);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
-  lbm_set_printf_callback(error_print);
+  lbm_set_printf_callback(printf_redraw_prompt);
 
 
   //Load an image
@@ -2618,8 +2704,9 @@ int main(int argc, char **argv) {
     char output[1024];
 
     while (1) {
-      erase();
       char *str;
+      prompt_printed_last = true;
+      readline_started = true;
       if (silent_mode) {
         str = readline("");
       } else {
@@ -2879,7 +2966,8 @@ int main(int argc, char **argv) {
         lbm_create_string_char_channel(&string_tok_state,
                                        &string_tok,
                                        str);
-        (void)lbm_load_and_eval_expression(&string_tok);
+        lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
+        add_ctx(&repl_ctxs, cid);
         lbm_continue_eval();
       }
     }
