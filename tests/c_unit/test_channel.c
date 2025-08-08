@@ -365,6 +365,52 @@ int test_buffered_char_channel_may_block(void) {
   return 1;
 }
 
+int test_buffered_char_channel_set_comment_comment(void) {
+  lbm_buffered_channel_state_t bs;
+  lbm_char_channel_t chan1;
+
+  lbm_create_buffered_char_channel(&bs, &chan1);
+
+  if (lbm_channel_comment(&chan1)) return 0;
+
+  lbm_channel_set_comment(&chan1, true);
+
+  if (!lbm_channel_comment(&chan1)) return 0;
+
+  lbm_channel_set_comment(&chan1, false);
+
+  if (lbm_channel_comment(&chan1)) return 0;
+  
+  return 1;
+}
+
+int test_buffered_char_channel_read_on_empty(void) {
+  lbm_buffered_channel_state_t bs;
+  lbm_char_channel_t chan1;
+
+  lbm_create_buffered_char_channel(&bs, &chan1);
+  
+  char read_r;
+  if (lbm_channel_read(&chan1, &read_r)) return 0;
+  
+  return 1;
+}
+
+
+int test_buffered_char_channel_write_read(void) {
+  lbm_buffered_channel_state_t bs;
+  lbm_char_channel_t chan1;
+
+  lbm_create_buffered_char_channel(&bs, &chan1);
+
+  lbm_channel_write(&chan1, 'a');
+  char read_r;
+  if (!lbm_channel_read(&chan1, &read_r)) return 0;
+  if (read_r != 'a') return 0;
+  
+  return 1;
+}
+
 
 
 
@@ -388,6 +434,8 @@ int main(void) {
 
   total_tests++; if (test_create_buffered_char_channel()) tests_passed++;
   total_tests++; if (test_buffered_char_channel_may_block()) tests_passed++;
+  total_tests++; if (test_buffered_char_channel_set_comment_comment()) tests_passed++;
+  total_tests++; if (test_buffered_char_channel_read_on_empty()) tests_passed++;
   
   if (tests_passed == total_tests) {
     printf("SUCCESS\n");
