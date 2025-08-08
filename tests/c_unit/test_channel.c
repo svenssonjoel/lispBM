@@ -258,6 +258,78 @@ int test_string_char_channel_drop(void) {
   return 1;
 }
 
+int test_string_char_channel_reader_close_closed(void) {
+  
+  char *expr1 = "abcdefghijkl";
+  lbm_string_channel_state_t st1;
+  lbm_char_channel_t chan1;
+  lbm_create_string_char_channel(&st1, &chan1, expr1);
+
+  char read_r;
+
+  lbm_channel_reader_close(&chan1);
+  bool closed = lbm_channel_reader_is_closed(&chan1);
+  
+  // string reader allows reading from closed channel.
+  lbm_channel_read(&chan1,  &read_r);
+
+  if (!closed) return 0;
+  
+  return 1;
+}
+
+int test_string_char_channel_writer_close_closed(void) {
+  
+  char *expr1 = "abcdefghijkl";
+  lbm_string_channel_state_t st1;
+  lbm_char_channel_t chan1;
+  lbm_create_string_char_channel(&st1, &chan1, expr1);
+
+  char read_r;
+
+  lbm_channel_writer_close(&chan1);
+  bool more = lbm_channel_more(&chan1);
+  
+  // string reader allows reading from closed channel.
+  lbm_channel_read(&chan1,  &read_r);
+
+  if (more) return 0;
+  
+  return 1;
+}
+
+int test_string_char_channel_may_block(void) {
+  
+  char *expr1 = "abcdefghijkl";
+  lbm_string_channel_state_t st1;
+  lbm_char_channel_t chan1;
+  lbm_create_string_char_channel(&st1, &chan1, expr1);
+
+  bool may_block = lbm_channel_may_block(&chan1);
+  
+  if (may_block) return 0;
+  
+  return 1;
+}
+
+int test_string_char_channel_set_comment_comment(void) {
+  
+  char *expr1 = "abcdefghijkl";
+  lbm_string_channel_state_t st1;
+  lbm_char_channel_t chan1;
+  lbm_create_string_char_channel(&st1, &chan1, expr1);
+
+  lbm_channel_set_comment(&chan1,true);
+
+  if (!lbm_channel_comment(&chan1)) return 0;
+
+  lbm_channel_set_comment(&chan1,false);
+
+  if (lbm_channel_comment(&chan1)) return 0;
+  
+  return 1;
+}
+
 
 
 int main(void) {
@@ -271,7 +343,10 @@ int main(void) {
   total_tests++; if (test_string_char_channel_is_full()) tests_passed++;
   total_tests++; if (test_string_char_channel_write()) tests_passed++;
   total_tests++; if (test_string_char_channel_row_column()) tests_passed++;
-  total_tests++; if (test_string_char_channel_drop()) tests_passed++;  
+  total_tests++; if (test_string_char_channel_drop()) tests_passed++;
+  total_tests++; if (test_string_char_channel_reader_close_closed()) tests_passed++;
+  total_tests++; if (test_string_char_channel_writer_close_closed()) tests_passed++;
+  total_tests++; if (test_string_char_channel_set_comment_comment()) tests_passed++;  
   
   if (tests_passed == total_tests) {
     printf("SUCCESS\n");
