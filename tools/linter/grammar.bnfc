@@ -1,0 +1,140 @@
+-- LispBM Grammar for BNFC (BNF Converter)
+-- Converted from grammar.txt
+-- This grammar generates parsers for the LispBM embedded Lisp language
+
+-- ==============================================================================
+-- TOP-LEVEL STRUCTURE
+-- ==============================================================================
+
+Prog.     Program ::= [Expression] ;
+
+-- ==============================================================================
+-- CORE EXPRESSIONS
+-- ==============================================================================
+
+-- Expression types
+AtomExpr.   Expression ::= Atom ;
+ListExpr.   Expression ::= List ;
+ArrayExpr.  Expression ::= Array ;
+ByteExpr.   Expression ::= ByteArray ;
+PrognExpr.  Expression ::= PrognBlock ;
+QuotedExpr. Expression ::= QuotedExpression ;
+
+-- ==============================================================================
+-- ATOMIC VALUES
+-- ==============================================================================
+
+-- Atoms
+NumAtom.    Atom ::= Number ;
+StrAtom.    Atom ::= String ;
+CharAtom.   Atom ::= LbmCharacter ;
+SymAtom.    Atom ::= LbmSymbol ;
+SpecAtom.   Atom ::= SpecialSymbol ;
+
+-- Numbers with optional qualifiers and signs
+IntNum.     Number ::= SignedInteger ;
+FloatNum.   Number ::= SignedFloat ;
+IntQual.    Number ::= SignedInteger TypeQualifier ;
+FloatQual.  Number ::= SignedFloat TypeQualifier ;
+
+-- Signed numbers
+PosInt.     SignedInteger ::= Integer ;
+NegInt.     SignedInteger ::= "-" Integer ;
+
+PosFloat.   SignedFloat ::= LbmFloat ;
+NegFloat.   SignedFloat ::= "-" LbmFloat ;
+
+-- Type qualifiers for numeric literals
+ByteType.   TypeQualifier ::= "b" ;
+IntType.    TypeQualifier ::= "i" ;
+UIntType.   TypeQualifier ::= "u" ;
+Int32Type.  TypeQualifier ::= "i32" ;
+UInt32Type. TypeQualifier ::= "u32" ;
+Int64Type.  TypeQualifier ::= "i64" ;
+UInt64Type. TypeQualifier ::= "u64" ;
+Float32Type. TypeQualifier ::= "f32" ;
+Float64Type. TypeQualifier ::= "f64" ;
+
+-- Special symbols for pattern matching and memory management
+DotSym.     SpecialSymbol ::= "." ;
+DontCare.   SpecialSymbol ::= "_" ;
+MatchAny.   SpecialSymbol ::= "?" ;
+ConstStart. SpecialSymbol ::= "@const-start" ;
+ConstEnd.   SpecialSymbol ::= "@const-end" ;
+
+-- ==============================================================================
+-- COMPOUND DATA STRUCTURES
+-- ==============================================================================
+
+-- Lists
+EmptyList.  List ::= "(" ")" ;
+ExprList.   List ::= "(" [Expression] ")" ;
+DottedList. List ::= "(" [Expression] "." Expression ")" ;
+
+-- Lisp arrays (contain unevaluated expressions)
+EmptyArray. Array ::= "[|" "|]" ;
+ExprArray.  Array ::= "[|" [Expression] "|]" ;
+
+-- Byte arrays (contain only literal values)
+EmptyByteArray. ByteArray ::= "[" "]" ;
+LiteralArray.   ByteArray ::= "[" [LiteralValue] "]" ;
+
+-- Progn blocks (syntactic sugar for (progn ...))
+EmptyProgn. PrognBlock ::= "{" "}" ;
+ExprProgn.  PrognBlock ::= "{" [Expression] "}" ;
+
+-- Literal values (only integers and characters allowed in byte arrays)
+IntLit.     LiteralValue ::= Integer ;
+CharLit.    LiteralValue ::= LbmCharacter ;
+
+-- ==============================================================================
+-- QUOTING AND METAPROGRAMMING
+-- ==============================================================================
+
+-- Quoted expressions
+Quote.      QuotedExpression ::= "'" Expression ;
+Quasiquote. QuotedExpression ::= "`" Expression ;
+Unquote.    QuotedExpression ::= "," Expression ;
+UnquoteSplice. QuotedExpression ::= ",@" Expression ;
+
+-- ==============================================================================
+-- LEXICAL TOKENS
+-- ==============================================================================
+
+-- Use BNFC built-in Integer and String, define custom tokens for others
+-- BNFC built-in Integer handles basic integers
+-- BNFC built-in String handles quoted strings
+
+-- Floating point numbers
+token LbmFloat (digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) ;
+
+-- Characters with escape sequences  
+token LbmCharacter ('\\' '#' ((char - '\\') | ('\\' ["0abtnvfres\"\\d"]))) ;
+
+-- Symbols (identifiers)
+token LbmSymbol (["a-zA-Z+\\-*/=<>#!"] ["a-zA-Z0-9+\\-*/=<>!?_"]*) ;
+
+-- ==============================================================================
+-- COMMENTS AND WHITESPACE  
+-- ==============================================================================
+
+-- Line comments (start with ; and continue to end of line)
+comment ";" ;
+
+-- ==============================================================================
+-- LISTS AND SEPARATORS
+-- ==============================================================================
+
+-- Expression lists (used in multiple contexts)
+separator Expression " " ;
+
+-- Literal value lists (for byte arrays)
+separator LiteralValue " " ;
+
+-- ==============================================================================
+-- ADDITIONAL BNFC DIRECTIVES
+-- ==============================================================================
+
+-- Terminator directives (empty lists allowed)
+terminator Expression "" ;
+terminator LiteralValue "" ;

@@ -237,6 +237,186 @@ LispBM provides an advanced color system for use with `disp-render`:
 
 **Important**: Advanced color objects can only be used with `disp-render`, not with regular drawing functions.
 
+## LispBM Function Reference Index
+
+This comprehensive index contains **106 distinct functions and operations** organized by category for quick reference:
+
+### Arithmetic Operations
+- **`+`** - Addition of arbitrary number of values - `(+ expr1 ... exprN)`
+- **`-`** - Subtraction from a value - `(- expr1 ... exprN)`
+- **`*`** - Multiplication of arbitrary number of values - `(* expr1 ... exprN)`
+- **`/`** - Division - `(/ expr1 ... exprN)`
+- **`mod`** - Modulo operation - `(mod expr1 expr2)`
+- **`//`** - Integer division (floors floating point results) - `(// expr1 ... exprN)`
+
+### Comparison Operations
+- **`eq`** - Structural equality comparison - `(eq expr1 ... exprN)`
+- **`not-eq`** - Structural inequality comparison - `(not-eq expr1 ... exprN)`
+- **`=`** - Numerical equality comparison - `(= expr1 ... exprN)`
+- **`>`** - Greater than comparison - `(> expr1 ... exprN)`
+- **`<`** - Less than comparison - `(< expr1 ... exprN)`
+- **`>=`** - Greater than or equal comparison - `(>= expr1 ... exprN)`
+- **`<=`** - Less than or equal comparison - `(<= expr1 ... exprN)`
+
+### Boolean Operations
+- **`and`** - Logical AND with short-circuit evaluation - `(and expr1 ... exprN)`
+- **`or`** - Logical OR with short-circuit evaluation - `(or expr1 ... exprN)`
+- **`not`** - Logical negation - `(not expr)`
+
+### Type Predicates
+- **`list?`** - Test if value is a list - `(list? expr)`
+- **`number?`** - Test if value is a number - `(number? expr)`
+
+### Bit-level Operations
+- **`shl`** - Shift left operation - `(shl value positions)`
+- **`shr`** - Shift right operation - `(shr value positions)`
+- **`bitwise-and`** - Bitwise AND - `(bitwise-and val1 val2)`
+- **`bitwise-or`** - Bitwise OR - `(bitwise-or val1 val2)`
+- **`bitwise-xor`** - Bitwise XOR - `(bitwise-xor val1 val2)`
+- **`bitwise-not`** - Bitwise negation - `(bitwise-not value)`
+
+### Constants and Literals
+- **`nil`** - Empty list and false value
+- **`t`** - True value
+- **`true`** - Alias for `t`
+- **`false`** - Alias for `nil`
+
+### Quoting and Metaprogramming
+- **`quote`** - Prevent evaluation of expression - `(quote expr)` or `'expr`
+- **`` ` ``** - Quasiquotation for templating - `` `expr``
+- **`,`** - Unquote within quasiquotation - `,expr`
+- **`,@`** - Unquote-splicing within quasiquotation - `,@expr`
+
+### Built-in Operations
+- **`identity`** - Returns argument unchanged - `(identity expr)`
+- **`rest-args`** - Access extra arguments in functions - `(rest-args)` or `(rest-args index)`
+- **`set`** - Destructively update a binding - `(set symbol-expr value-expr)`
+- **`setvar`** - Set variable value - `(setvar symbol-expr value-expr)`
+- **`undefine`** - Remove global binding - `(undefine symbol)`
+- **`eval`** - Evaluate expression - `(eval expr)`
+- **`eval-program`** - Evaluate program with multiple expressions - `(eval-program expr-list)`
+- **`apply`** - Apply function to argument list - `(apply func arg-list)`
+- **`read`** - Parse string into expression - `(read string)`
+- **`read-program`** - Parse string into program - `(read-program string)`
+- **`read-eval-program`** - Parse and evaluate string - `(read-eval-program string)`
+- **`type-of`** - Get type of value - `(type-of expr)`
+- **`sym2str`** - Convert symbol to string - `(sym2str symbol)`
+- **`str2sym`** - Convert string to symbol - `(str2sym string)`
+- **`sym2u`** - Convert symbol to unsigned integer - `(sym2u symbol)`
+- **`u2sym`** - Convert unsigned integer to symbol - `(u2sym uint)`
+- **`gc`** - Trigger garbage collection - `(gc)`
+
+### Special Forms
+- **`if`** - Conditional expression - `(if condition then-expr else-expr)`
+- **`cond`** - Multi-branch conditional - `(cond (test1 expr1) ... (testN exprN))`
+- **`lambda`** - Create anonymous function - `(lambda params body)`
+- **`closure`** - Function with captured environment - `(closure params body env)`
+- **`let`** - Local variable binding - `(let bindings body)`
+- **`loop`** - Iterative loop construct - `(loop bindings condition body)`
+- **`define`** - Global variable definition - `(define symbol expr)`
+- **`setq`** - Set variable (symbol not evaluated) - `(setq symbol expr)`
+- **`progn`** - Sequential evaluation - `(progn expr1 ... exprN)`
+- **`{`** - Shorthand for `progn` - `{ expr1 ... exprN }`
+- **`}`** - Closing brace for `{`
+- **`var`** - Local binding in progn - `(var symbol expr)`
+- **`trap`** - Error handling - `(trap expr)`
+- **`atomic`** - Uninterruptible execution - `(atomic expr1 ... exprN)`
+
+### List Operations
+- **`car`** - Get first element of list/pair - `(car list)`
+- **`first`** - Alias for `car` - `(first list)`
+- **`cdr`** - Get rest of list/pair - `(cdr list)`
+- **`rest`** - Alias for `cdr` - `(rest list)`
+- **`cons`** - Create cons cell - `(cons car cdr)`
+- **`.`** - Dot notation for pairs - `(expr1 . expr2)`
+- **`list`** - Create proper list - `(list expr1 ... exprN)`
+- **`length`** - Get list length - `(length list)`
+- **`range`** - Generate range of integers - `(range start end)`
+- **`append`** - Concatenate lists - `(append list1 list2)`
+- **`ix`** - Index into list - `(ix list index)`
+- **`setix`** - Destructively update list element - `(setix list index value)`
+- **`member`** - Test membership in list - `(member value list)`
+- **`setcar`** - Destructively update car - `(setcar cons value)`
+- **`setcdr`** - Destructively update cdr - `(setcdr cons value)`
+- **`take`** - Take first n elements - `(take list n)`
+- **`drop`** - Drop first n elements - `(drop list n)`
+- **`reverse`** - Reverse list - `(reverse list)`
+- **`rotate`** - Rotate list elements - `(rotate list distance)`
+- **`merge`** - Merge sorted lists - `(merge comparator list1 list2)`
+- **`sort`** - Sort list - `(sort comparator list)`
+
+### Association Lists (alists)
+- **`acons`** - Add key-value pair to alist - `(acons key value alist)`
+- **`assoc`** - Look up value by key - `(assoc alist key)`
+- **`cossa`** - Look up key by value - `(cossa alist value)`
+- **`setassoc`** - Destructively update alist - `(setassoc alist key value)`
+
+### Byte Buffers
+- **`bufcreate`** - Create byte buffer - `(bufcreate size)`
+- **`buflen`** - Get buffer length - `(buflen buffer)`
+- **`bufget-[X]`** - Get value from buffer (various types) - `(bufget-u8 buffer index)`
+- **`bufset-[X]`** - Set value in buffer (various types) - `(bufset-u8 buffer index value)`
+- **`bufclear`** - Clear buffer - `(bufclear buffer value start end)`
+
+### Arrays
+- **`array`** - Create array from list - `(array type list)`
+- **`mkarray`** - Create array with initial value - `(mkarray type size init-val)`
+
+### Defragmentable Memory
+- **`dm-create`** - Create defragmentable memory - `(dm-create size)`
+- **`dm-alloc`** - Allocate from defragmentable memory - `(dm-alloc dm size)`
+
+### Pattern Matching
+- **`match`** - Pattern matching - `(match expr (pattern1 result1) ... (patternN resultN))`
+- **`no_match`** - Default match case
+- **`_`** - Wildcard pattern
+- **`?`** - Variable binding pattern - `(? var)`
+
+### Concurrency
+- **`spawn`** - Create concurrent process - `(spawn closure arg1 ... argN)`
+- **`spawn-trap`** - Spawn with exit trapping - `(spawn-trap closure arg1 ... argN)`
+- **`self`** - Get current thread ID - `(self)`
+- **`wait`** - Wait for process to finish - `(wait pid)`
+- **`yield`** - Yield execution for microseconds - `(yield microseconds)`
+- **`sleep`** - Sleep for seconds - `(sleep seconds)`
+- **`exit-ok`** - Exit thread successfully - `(exit-ok value)`
+- **`exit-error`** - Exit thread with error - `(exit-error error)`
+- **`kill`** - Terminate another thread - `(kill thread-id value)`
+
+### Message Passing
+- **`send`** - Send message to process - `(send pid message)`
+- **`recv`** - Receive message (blocking) - `(recv (pattern1 result1) ... (patternN resultN))`
+- **`recv-to`** - Receive with timeout - `(recv-to timeout (pattern1 result1) ... (patternN resultN))`
+- **`set-mailbox-size`** - Change mailbox size - `(set-mailbox-size size)`
+
+### Serialization
+- **`flatten`** - Serialize value to byte array - `(flatten value)`
+- **`unflatten`** - Deserialize from byte array - `(unflatten flat-value)`
+
+### Macros
+- **`macro`** - Define macro - `(macro params body)`
+
+### Call/CC
+- **`call-cc`** - Call with current continuation - `(call-cc func)`
+- **`call-cc-unsafe`** - Unsafe call with current continuation - `(call-cc-unsafe func)`
+
+### Error Symbols
+- **`read_error`** - Reading/parsing error
+- **`type_error`** - Type mismatch error
+- **`eval_error`** - Evaluation error
+- **`out_of_memory`** - Memory exhaustion error
+- **`fatal_error`** - Fatal system error
+- **`out_of_stack`** - Stack overflow error
+- **`division_by_zero`** - Division by zero error
+- **`variable_not_bound`** - Unbound variable error
+
+### Flash Memory
+- **`@const-start`** - Start of constants section
+- **`@const-end`** - End of constants section
+- **`move-to-flash`** - Move value to flash memory - `(move-to-flash symbol ...)`
+
+**Note**: Special forms (like `if`, `cond`, `lambda`, `let`, etc.) are evaluated differently than regular functions. Many functions support variable arguments. Destructive operations modify data in-place.
+
 ## Code Style Guidelines
 
 ### C Code Indentation Style
