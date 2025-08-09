@@ -555,6 +555,30 @@ int test_all_functions_sequence() {
   return 1;
 }
 
+// Test callback setters with NULL - only testing that they don't crash
+int test_callback_setters_null() {
+  // Test lbm_set_critical_error_callback with NULL
+  lbm_set_critical_error_callback(NULL);
+  
+  // Test lbm_set_usleep_callback with NULL
+  lbm_set_usleep_callback(NULL);
+  
+  // Test lbm_set_timestamp_us_callback with NULL
+  lbm_set_timestamp_us_callback(NULL);
+  
+  // Test lbm_set_ctx_done_callback with NULL
+  lbm_set_ctx_done_callback(NULL);
+  
+  // Test lbm_set_printf_callback with NULL
+  lbm_set_printf_callback(NULL);
+  
+  // Test lbm_set_dynamic_load_callback with NULL
+  lbm_set_dynamic_load_callback(NULL);
+  
+  // If we get here without crashing, the test passes
+  return 1;
+}
+
 int main(void) {
   int tests_passed = 0;
   int total_tests = 0;
@@ -567,7 +591,7 @@ int main(void) {
   total_tests++; if (test_lbm_toggle_verbose_basic()) { printf("✓ test_lbm_toggle_verbose_basic\n"); tests_passed++; } else { printf("✗ test_lbm_toggle_verbose_basic\n"); }
   total_tests++; if (test_lbm_surrender_quota_basic()) { printf("✓ test_lbm_surrender_quota_basic\n"); tests_passed++; } else { printf("✗ test_lbm_surrender_quota_basic\n"); }
   total_tests++; if (test_lbm_surrender_quota_multiple()) { printf("✓ test_lbm_surrender_quota_multiple\n"); tests_passed++; } else { printf("✗ test_lbm_surrender_quota_multiple\n"); }
-  total_tests++; if (test_lbm_eval_init_events()) tests_passed++;
+  total_tests++; if (test_lbm_eval_init_events()) { printf("✓ test_lbm_eval_init_events\n"); tests_passed++; } else { printf("✗ test_lbm_eval_init_events\n"); }
   total_tests++; if (test_lbm_event_handler_exists()) { printf("✓ test_lbm_event_handler_exists\n"); tests_passed++; } else { printf("✗ test_lbm_event_handler_exists\n"); }
   total_tests++; if (test_lbm_event_define_basic()) { printf("✓ test_lbm_event_define_basic\n"); tests_passed++; } else { printf("✗ test_lbm_event_define_basic\n"); }
   total_tests++; if (test_lbm_event_define_different_keys()) { printf("✓ test_lbm_event_define_different_keys\n"); tests_passed++; } else { printf("✗ test_lbm_event_define_different_keys\n"); }
@@ -580,6 +604,7 @@ int main(void) {
   total_tests++; if (test_reset_and_surrender_interaction()) { printf("✓ test_reset_and_surrender_interaction\n"); tests_passed++; } else { printf("✗ test_reset_and_surrender_interaction\n"); }
   total_tests++; if (test_verbose_with_reset_continue()) { printf("✓ test_verbose_with_reset_continue\n"); tests_passed++; } else { printf("✗ test_verbose_with_reset_continue\n"); }
   total_tests++; if (test_all_functions_sequence()) { printf("✓ test_all_functions_sequence\n"); tests_passed++; } else { printf("✗ test_all_functions_sequence\n"); }
+  total_tests++; if (test_callback_setters_null()) { printf("✓ test_callback_setters_null\n"); tests_passed++; } else { printf("✗ test_callback_setters_null\n"); }
 
   printf("\n");
   if (tests_passed == total_tests) {

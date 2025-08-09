@@ -42,7 +42,7 @@ Aug 8 2025: VERSION 0.33.0
   - Fix behavior of apply (laxsjo).
   - Macos-arm platfrom files (Josef).
   - Tile and clip in display library (Joakim).
-  - consistent escape sequences for strings (laxsjo).
+  - Consistent escape sequences for strings (laxsjo).
   - Sharing and cycle detection for serialization into image.
   - Increased testing effort.
   - Repl prompt persistance improvements. (laxsjo)

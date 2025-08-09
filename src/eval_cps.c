@@ -1705,9 +1705,9 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
   int n = 0;
   for (int i = 0; i < (int)num; i ++ ) {
     lbm_value curr_e = earr[i];
-    while (!lbm_is_symbol_nil(curr_p)) {
+    while (lbm_is_cons(curr_p)) {
       lbm_value p[3];
-      lbm_value curr = get_car(curr_p);
+      lbm_value curr = lbm_ref_cell(curr_p)->car;
       extract_n(curr, p, 3);
       if (!lbm_is_symbol_nil(p[2])) { // A rare syntax check. maybe drop?
         lbm_set_error_reason("Incorrect pattern format for recv");
@@ -1717,7 +1717,7 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
         *e = p[1];
         return n;
       }
-      curr_p = get_cdr(curr_p);
+      curr_p = lbm_ref_cell(curr_p)->cdr;
     }
     curr_p = plist;       /* search all patterns against next exp */
     n ++;
@@ -3034,7 +3034,8 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     WITH_GC(appli_1, lbm_heap_allocate_list(2));
     WITH_GC_RMBR_1(appli, lbm_heap_allocate_list(2), appli_1);
 
-    lbm_value appli_0 = get_cdr(appli_1);
+    // appli_1 is a list of length 2 here.
+    lbm_value appli_0 = lbm_ref_cell(appli_1)->cdr;
 
     // appli is a list of length 2 here, so a cons
     lbm_cons_t *cell = lbm_ref_cell(appli_0);
@@ -3749,6 +3750,12 @@ static void cont_if(eval_context_t *ctx) {
   }
 }
 
+// cont_match
+//
+// s[sp-1] = patterns (user input syntax)
+// s[sp-1] = orig_env
+//
+// ctx->r = expression to match against patterns
 static void cont_match(eval_context_t *ctx) {
   lbm_value e = ctx->r;
 
@@ -4900,13 +4907,13 @@ static void cont_wrap_result(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+// cont_application_start
+//
+// sptr[0] = env
+// sptr[1] = args
+//
+// ctx->r  = function
 static void cont_application_start(eval_context_t *ctx) {
-
-  /* sptr[0] = env
-   * sptr[1] = args
-   * ctx->r  = function
-   */
-
   if (lbm_is_symbol(ctx->r)) {
     stack_reserve(ctx,1)[0] = lbm_enc_u(0);
     cont_application_args(ctx);
@@ -5694,10 +5701,11 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
         return;
       }
     } else if (lbm_is_cons(fun)) {
-      switch (lbm_ref_cell(fun)->car) {
+      lbm_cons_t *fun_cell = lbm_ref_cell(fun);
+      switch (fun_cell->car) {
         case ENC_SYM_CLOSURE: {          
           lbm_value closure[3];
-          extract_n(get_cdr(fun), closure, 3);
+          extract_n(fun_cell->cdr, closure, 3);
           
           // Only placed here to protect from GC. Will be overriden later.
           // ctx->r = arg_list; // Should already be placed there.
@@ -5709,17 +5717,15 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
           lbm_value current_args = arg_list;
           
           while (true) {
-            bool params_empty = !lbm_is_cons(current_params);
-            bool args_empty = !lbm_is_cons(current_args);
-            if (!params_empty && !args_empty) {
+            bool more_params = lbm_is_cons(current_params);
+            bool more_args = lbm_is_cons(current_args);
+            if (more_params && more_args) {
               lbm_cons_t *p_cell = lbm_ref_cell(current_params);
               lbm_cons_t *a_cell = lbm_ref_cell(current_args);
               lbm_value car_params = p_cell->car;
               lbm_value car_args = a_cell->car;
               lbm_value cdr_params = p_cell->cdr;
               lbm_value cdr_args = a_cell->cdr;
-              //get_car_and_cdr(current_params, &car_params, &cdr_params);
-              //get_car_and_cdr(current_args, &car_args, &cdr_args);
               
               // More parameters to bind
               env = allocate_binding(
@@ -5730,11 +5736,11 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
               
               current_params = cdr_params;
               current_args = cdr_args;
-            } else if (params_empty && !args_empty) {
+            } else if (!more_params && more_args) {
               // More arguments but all parameters have been bound
               env = allocate_binding(ENC_SYM_REST_ARGS, current_args, env);
               break;
-            } else if (params_empty && args_empty) {
+            } else if (!more_params && !more_args) {
               // All parameters and arguments have been bound
               break;
             } else {
