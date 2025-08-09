@@ -56,7 +56,7 @@ int gettimeofday(struct timeval * tp, struct timezone * tzp)
 {
     // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
     // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
-    // until 00:00:00 January 1, 1970 
+    // until 00:00:00 January 1, 1970
     static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
 
     SYSTEMTIME  system_time;
@@ -314,6 +314,72 @@ static lbm_value ext_load_file(lbm_value *args, lbm_uint argn) {
       }
     }
   }
+  return res;
+}
+
+
+lbm_value sym_seek_set;
+lbm_value sym_seek_cur;
+lbm_value sym_seek_end;
+
+static lbm_value ext_fseek(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 3 &&
+      is_file_handle(args[0]) &&
+      lbm_is_number(args[1]) &&
+      lbm_is_symbol(args[2])) {
+
+    int whence;
+    if (args[2] == sym_seek_set) {
+      whence = SEEK_SET;
+    } else if (args[2] == sym_seek_cur) {
+      whence = SEEK_CUR;
+    } else if (args[2] == sym_seek_end) {
+      whence = SEEK_END;
+    } else {
+      return res;
+    }
+
+    long offset = (long)lbm_dec_as_i64(args[1]);
+
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+
+    if (fseek(h->fp, offset, whence) == 0) {
+      res =  ENC_SYM_TRUE;
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+  return res;
+}
+
+static lbm_value ext_ftell(lbm_value *args, lbm_uint argn) {
+ lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_file_handle(args[0])) {
+
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+
+    long pos = ftell(h->fp);
+    res = lbm_enc_i64((int64_t)pos);
+  }
+  return res;
+}
+
+static lbm_value ext_fread_byte(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    char c;
+    size_t num = fread(&c, 1, 1, h->fp);
+    if (num == 1) {
+      res =  lbm_enc_char((uint8_t) c);
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+
   return res;
 }
 
@@ -794,7 +860,7 @@ lbm_value ext_rt(lbm_value *args, lbm_uint argn) {
   if (argn == 1) {
     lbm_ptr_rev_trav(dummy_f, args[0], NULL);
     return ENC_SYM_TRUE;
-  } 
+  }
   return ENC_SYM_TERROR;
 }
 
@@ -814,8 +880,24 @@ int init_exts(void) {
   lbm_ttf_extensions_init();
   lbm_random_extensions_init();
 
+  //lbm_value sym_seek_set;
+  //lbm_value sym_seek_cur;
+  //lbm_value sym_seem_end;
+
+  lbm_uint seek_set = 0;
+  lbm_uint seek_cur = 0;
+  lbm_uint seek_end = 0;
+
+  lbm_add_symbol("seek-set", &seek_set);
+  lbm_add_symbol("seek-cur", &seek_cur);
+  lbm_add_symbol("seek-end", &seek_end);
+
+  sym_seek_set = lbm_enc_sym(seek_set);
+  sym_seek_cur = lbm_enc_sym(seek_cur);
+  sym_seek_end = lbm_enc_sym(seek_end);
+
   lbm_add_extension("rt", ext_rt);
-  
+
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
 #ifndef LBM_WIN
   lbm_add_extension("exec", ext_exec);
@@ -827,11 +909,14 @@ int init_exts(void) {
   lbm_add_extension("fwrite-str", ext_fwrite_str);
   lbm_add_extension("fwrite-value", ext_fwrite_value);
   lbm_add_extension("fwrite-image", ext_fwrite_image);
+  lbm_add_extension("fread-byte", ext_fread_byte);
+  lbm_add_extension("fseek", ext_fseek);
+  lbm_add_extension("ftell", ext_ftell);
   lbm_add_extension("print", ext_print);
   lbm_add_extension("systime", ext_systime);
   lbm_add_extension("secs-since", ext_secs_since);
 
-  // boot images, snapshots, workspaces.... 
+  // boot images, snapshots, workspaces....
   lbm_add_extension("image-save-const-heap-ix", ext_image_save_const_heap_ix);
   lbm_add_extension("image-save", ext_image_save);
   // Math
