@@ -31,32 +31,25 @@ CharAtom.   Atom ::= LbmCharacter ;
 SymAtom.    Atom ::= LbmSymbol ;
 SpecAtom.   Atom ::= SpecialSymbol ;
 
--- Numbers with optional qualifiers and signs
-IntNum.     Number ::= SignedInteger ;
-FloatNum.   Number ::= SignedFloat ;
-IntQual.    Number ::= SignedInteger TypeQualifier ;
-FloatQual.  Number ::= SignedFloat TypeQualifier ;
+-- Number types with built-in type information (direct token mapping)
+Num_I.      Number ::= SignedInteger ;        -- Default integer (e.g., 42, -17)
+Num_F32.    Number ::= SignedFloat ;          -- Default float (e.g., 3.14, -2.5)
+Num_B.      Number ::= LbmByteInt ;           -- Byte integers (e.g., 255b)  
+Num_U.      Number ::= LbmUnsignedInt ;       -- Unsigned integers (e.g., 42u)
+Num_I32.    Number ::= LbmI32Int ;            -- 32-bit signed (e.g., 42i32)
+Num_U32.    Number ::= LbmU32Int ;            -- 32-bit unsigned (e.g., 42u32)
+Num_I64.    Number ::= LbmI64Int ;            -- 64-bit signed (e.g., 42i64)
+Num_U64.    Number ::= LbmU64Int ;            -- 64-bit unsigned (e.g., 42u64)
+Num_F64.    Number ::= LbmF64Float ;          -- 64-bit float (e.g., 3.14f64)
 
--- Signed numbers
+-- Base signed integers and floats (no qualifier)  
 PosInt.     SignedInteger ::= Integer ;
-NegInt.     SignedInteger ::= "-" Integer ;
+NegInt.     SignedInteger ::= NegativeInteger ;
+HexInt.     SignedInteger ::= LbmHexInteger ;
 
-PosFloat.   SignedFloat ::= LbmFloat ;
-NegFloat.   SignedFloat ::= "-" LbmFloat ;
-
--- Type qualifiers for numeric literals
-ByteType.   TypeQualifier ::= "b" ;
-IntType.    TypeQualifier ::= "i" ;
-UIntType.   TypeQualifier ::= "u" ;
-Int32Type.  TypeQualifier ::= "i32" ;
-UInt32Type. TypeQualifier ::= "u32" ;
-Int64Type.  TypeQualifier ::= "i64" ;
-UInt64Type. TypeQualifier ::= "u64" ;
-Float32Type. TypeQualifier ::= "f32" ;
-Float64Type. TypeQualifier ::= "f64" ;
+Float.      SignedFloat ::= LbmFloat ;
 
 -- Special symbols for pattern matching and memory management
-DotSym.     SpecialSymbol ::= "." ;
 DontCare.   SpecialSymbol ::= "_" ;
 MatchAny.   SpecialSymbol ::= "?" ;
 ConstStart. SpecialSymbol ::= "@const-start" ;
@@ -85,6 +78,7 @@ ExprProgn.  PrognBlock ::= "{" [Expression] "}" ;
 
 -- Literal values (only integers and characters allowed in byte arrays)
 IntLit.     LiteralValue ::= Integer ;
+HexLit.     LiteralValue ::= LbmHexInteger ;
 CharLit.    LiteralValue ::= LbmCharacter ;
 
 -- ==============================================================================
@@ -105,14 +99,33 @@ UnquoteSplice. QuotedExpression ::= ",@" Expression ;
 -- BNFC built-in Integer handles basic integers
 -- BNFC built-in String handles quoted strings
 
--- Floating point numbers
-token LbmFloat (digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) ;
+-- Basic floating point numbers (default to f32) - now includes negative
+token LbmFloat (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) ;
+
+-- Negative integers (to prevent them from being parsed as symbols)
+token NegativeInteger ('-' digit+) ;
+
+-- Qualified integer tokens (single tokens with no spaces, including negative)
+-- Now include hex alternatives: either decimal digits or hex (0x + hex digits)
+token LbmByteInt (('-')? digit+ 'b') ;
+token LbmUnsignedInt (('-')? digit+ 'u' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u') ;  
+token LbmI32Int (('-')? digit+ 'i' '3' '2' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'i' '3' '2') ;
+token LbmU32Int (('-')? digit+ 'u' '3' '2' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u' '3' '2') ;
+token LbmI64Int (('-')? digit+ 'i' '6' '4' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'i' '6' '4') ;
+token LbmU64Int (('-')? digit+ 'u' '6' '4' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u' '6' '4') ;
+
+
+-- Qualified float token (64-bit float, including negative)
+token LbmF64Float (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)? 'f' '6' '4') ;
+
+-- Hexadecimal integer token (for base integers without qualifiers)
+token LbmHexInteger ('0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+) ;
 
 -- Characters with escape sequences  
 token LbmCharacter ('\\' '#' ((char - '\\') | ('\\' ["0abtnvfres\"\\d"]))) ;
 
--- Symbols (identifiers)
-token LbmSymbol (["a-zA-Z+\\-*/=<>#!"] ["a-zA-Z0-9+\\-*/=<>!?_"]*) ;
+-- Symbols (identifiers) - use upper/lower/digit instead of character classes
+token LbmSymbol ((letter | ["+-*/<>=!#"]) (letter | digit | ["+-*/<>=!?_"])*) ;
 
 -- ==============================================================================
 -- COMMENTS AND WHITESPACE  
@@ -125,16 +138,8 @@ comment ";" ;
 -- LISTS AND SEPARATORS
 -- ==============================================================================
 
--- Expression lists (used in multiple contexts)
+-- Expression lists (used in multiple contexts) - space separated
 separator Expression " " ;
 
--- Literal value lists (for byte arrays)
+-- Literal value lists (for byte arrays) - space separated  
 separator LiteralValue " " ;
-
--- ==============================================================================
--- ADDITIONAL BNFC DIRECTIVES
--- ==============================================================================
-
--- Terminator directives (empty lists allowed)
-terminator Expression "" ;
-terminator LiteralValue "" ;
