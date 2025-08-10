@@ -9,15 +9,15 @@
 (define merge_test6 (eq (merge > '(5 3 1) '(6 4 2)) '(6 5 4 3 2 1)))
 
 ; merge with invalid argument count
-(define merge_test7 (eq (trap (merge)) '(exit-error eval_error)))
-(define merge_test8 (eq (trap (merge <)) '(exit-error eval_error)))
-(define merge_test9 (eq (trap (merge < '(1 2))) '(exit-error eval_error)))
-(define merge_test10 (eq (trap (merge < '(1 2) '(3 4) '(5 6))) '(exit-error eval_error)))
+(define merge_test7 (eq (trap (merge)) '(exit-error type_error)))
+(define merge_test8 (eq (trap (merge <)) '(exit-error type_error)))
+(define merge_test9 (eq (trap (merge < '(1 2))) '(exit-error type_error)))
+(define merge_test10 (eq (trap (merge < '(1 2) '(3 4) '(5 6))) '(exit-error type_error)))
 
 ; merge with invalid comparator
-(define merge_test11 (eq (trap (merge "not-function" '(1 2) '(3 4))) '(exit-error type_error)))
-(define merge_test12 (eq (trap (merge 42 '(1 2) '(3 4))) '(exit-error type_error)))
-(define merge_test13 (eq (trap (merge 'symbol '(1 2) '(3 4))) '(exit-error type_error)))
+(define merge_test11 (eq (trap (merge "not-function" '(1 2) '(3 4))) '(exit-error eval_error)))
+(define merge_test12 (eq (trap (merge 42 '(1 2) '(3 4))) '(exit-error eval_error)))
+(define merge_test13 (eq (trap (merge 'symbol '(1 2) '(3 4))) '(exit-error variable_not_bound)))
 
 ; merge with invalid list arguments
 (define merge_test14 (eq (trap (merge < "not-list" '(1 2))) '(exit-error type_error)))
@@ -41,6 +41,7 @@
 ; merge with string elements
 (define str_cmp (lambda (x y) (< (str-cmp x y) 0)))
 (define merge_test26 (eq (merge str_cmp '("a" "c") '("b" "d")) '("a" "b" "c" "d")))
+
 
 (if (and merge_test1 merge_test2 merge_test3 merge_test4 merge_test5 merge_test6
         merge_test7 merge_test8 merge_test9 merge_test10
