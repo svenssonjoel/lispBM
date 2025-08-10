@@ -32,22 +32,19 @@ SymAtom.    Atom ::= LbmSymbol ;
 SpecAtom.   Atom ::= SpecialSymbol ;
 
 -- Number types with built-in type information (direct token mapping)
-Num_I.      Number ::= SignedInteger ;        -- Default integer (e.g., 42, -17)
-Num_F32.    Number ::= SignedFloat ;          -- Default float (e.g., 3.14, -2.5)
-Num_B.      Number ::= LbmByteInt ;           -- Byte integers (e.g., 255b)  
-Num_U.      Number ::= LbmUnsignedInt ;       -- Unsigned integers (e.g., 42u)
-Num_I32.    Number ::= LbmI32Int ;            -- 32-bit signed (e.g., 42i32)
-Num_U32.    Number ::= LbmU32Int ;            -- 32-bit unsigned (e.g., 42u32)
-Num_I64.    Number ::= LbmI64Int ;            -- 64-bit signed (e.g., 42i64)
-Num_U64.    Number ::= LbmU64Int ;            -- 64-bit unsigned (e.g., 42u64)
-Num_F64.    Number ::= LbmF64Float ;          -- 64-bit float (e.g., 3.14f64)
+Num_I.      Number ::= I_Num    ;        -- Default integer (e.g., 42, -17)
+Num_F32.    Number ::= F32_Num  ;              -- _SignedFloat ;          -- Default float (e.g., 3.14, -2.5)
+Num_B.      Number ::= Byte_Num ;           -- Byte integers (e.g., 255b)  
+Num_U.      Number ::= U_Num    ;       -- Unsigned integers (e.g., 42u)
+Num_I32.    Number ::= I32_Num  ;            -- 32-bit signed (e.g., 42i32)
+Num_U32.    Number ::= U32_Num  ;            -- 32-bit unsigned (e.g., 42u32)
+Num_I64.    Number ::= I64_Num  ;            -- 64-bit signed (e.g., 42i64)
+Num_U64.    Number ::= U64_Num  ;            -- 64-bit unsigned (e.g., 42u64)
+Num_F64.    Number ::= F64_Num  ;          -- 64-bit float (e.g., 3.14f64)
 
 -- Base signed integers and floats (no qualifier)  
-PosInt.     SignedInteger ::= Integer ;
-NegInt.     SignedInteger ::= NegativeInteger ;
-HexInt.     SignedInteger ::= LbmHexInteger ;
 
-Float.      SignedFloat ::= LbmFloat ;
+Float.      SignedFloat ::= F32_Num ;
 
 -- Special symbols for pattern matching and memory management
 DontCare.   SpecialSymbol ::= "_" ;
@@ -78,8 +75,7 @@ ExprProgn.  PrognBlock ::= "{" [Expression] "}" ;
 
 -- Literal values (only integers and characters allowed in byte arrays)
 -- Seems to be some built in support in BNFC for basic integer lexemes.
-IntLit.     LiteralValue ::= Integer ;
-HexLit.     LiteralValue ::= LbmHexInteger ;
+IntLit.     LiteralValue ::= I_Num ;
 CharLit.    LiteralValue ::= LbmCharacter ;
 
 -- ==============================================================================
@@ -97,31 +93,26 @@ UnquoteSplice. QuotedExpression ::= ",@" Expression ;
 -- ==============================================================================
 
 -- Use BNFC built-in Integer and String, define custom tokens for others
--- BNFC built-in Integer handles basic integers
 -- BNFC built-in String handles quoted strings
 
 -- Basic floating point numbers (default to f32) - now includes negative
 -- Allow float to have f32 qualifer.
-token LbmFloat (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) | (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) 'f' '3' '2'  ;
+token F32_Num (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) | (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) 'f' '3' '2'  ;
+token F64_Num (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)? 'f' '6' '4') ;
 
--- Negative integers (to prevent them from being parsed as symbols)
-token NegativeInteger ('-' digit+) ;
+-- Negative integers are now handled by I_Num token
 
 -- Qualified integer tokens (single tokens with no spaces, including negative)
 -- Now include hex alternatives: either decimal digits or hex (0x + hex digits)
-token LbmByteInt (('-')? digit+ 'b') ;
-token LbmUnsignedInt (('-')? digit+ 'u' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u') ;  
-token LbmI32Int (('-')? digit+ 'i' '3' '2' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'i' '3' '2') ;
-token LbmU32Int (('-')? digit+ 'u' '3' '2' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u' '3' '2') ;
-token LbmI64Int (('-')? digit+ 'i' '6' '4' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'i' '6' '4') ;
-token LbmU64Int (('-')? digit+ 'u' '6' '4' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u' '6' '4') ;
+token Byte_Num (('-')? digit+ 'b') ;
+token U_Num (('-')? digit+ 'u' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u') ;
+token I_Num ((('-')? digit+ | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+) | (('-')? digit+ 'i' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'i')) ; 
+token I32_Num (('-')? digit+ 'i' '3' '2' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'i' '3' '2') ;
+token U32_Num (('-')? digit+ 'u' '3' '2' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u' '3' '2') ;
+token I64_Num (('-')? digit+ 'i' '6' '4' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'i' '6' '4') ;
+token U64_Num (('-')? digit+ 'u' '6' '4' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u' '6' '4') ;
 
-
--- Qualified float token (64-bit float, including negative)
-token LbmF64Float (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)? 'f' '6' '4') ;
-
--- Hexadecimal integer token (for base integers without qualifiers)
-token LbmHexInteger ('0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+) ;
+-- Hexadecimal integers are now handled by I_Num and type-specific tokens
 
 -- Characters with escape sequences  
 token LbmCharacter ('\\' '#' ((char - '\\') | ('\\' ["0abtnvfres\"\\d"]))) ;
