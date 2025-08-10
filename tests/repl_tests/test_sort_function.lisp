@@ -65,11 +65,11 @@
 (define sort_test24 (let ((result (sort < '(1 2 1 2 1))))
                       (and (is-sorted t < result) (= (length result) 5))))
 
-if (and sort_test1 sort_test2 sort_test3 sort_test4 sort_test5
-        sort_test6 sort_test7 sort_test8
-        sort_test9 sort_test10 sort_test11 sort_test12
-        sort_test13 sort_test14 sort_test15 sort_test16
-        sort_test17 sort_test18
-        sort_test19 sort_test20 sort_test21 sort_test22 sort_test23 sort_test24)
+(if (and sort_test1 sort_test2 sort_test3 sort_test4 sort_test5
+         sort_test6 sort_test7 sort_test8
+         sort_test9 sort_test10 sort_test11 sort_test12
+         sort_test13 sort_test14 sort_test15 sort_test16
+         sort_test17 sort_test18
+         sort_test19 sort_test20 sort_test21 sort_test22 sort_test23 sort_test24)
     (print "SUCCESS")
     (print "FAILURE"))

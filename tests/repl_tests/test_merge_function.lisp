@@ -42,7 +42,7 @@
 (define str_cmp (lambda (x y) (< (str-cmp x y) 0)))
 (define merge_test26 (eq (merge str_cmp '("a" "c") '("b" "d")) '("a" "b" "c" "d")))
 
-if (and merge_test1 merge_test2 merge_test3 merge_test4 merge_test5 merge_test6
+(if (and merge_test1 merge_test2 merge_test3 merge_test4 merge_test5 merge_test6
         merge_test7 merge_test8 merge_test9 merge_test10
         merge_test11 merge_test12 merge_test13
         merge_test14 merge_test15 merge_test16 merge_test17 merge_test18 merge_test19 merge_test20 merge_test21

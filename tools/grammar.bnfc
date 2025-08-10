@@ -77,6 +77,7 @@ EmptyProgn. PrognBlock ::= "{" "}" ;
 ExprProgn.  PrognBlock ::= "{" [Expression] "}" ;
 
 -- Literal values (only integers and characters allowed in byte arrays)
+-- Seems to be some built in support in BNFC for basic integer lexemes.
 IntLit.     LiteralValue ::= Integer ;
 HexLit.     LiteralValue ::= LbmHexInteger ;
 CharLit.    LiteralValue ::= LbmCharacter ;
@@ -100,7 +101,8 @@ UnquoteSplice. QuotedExpression ::= ",@" Expression ;
 -- BNFC built-in String handles quoted strings
 
 -- Basic floating point numbers (default to f32) - now includes negative
-token LbmFloat (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) ;
+-- Allow float to have f32 qualifer.
+token LbmFloat (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) | (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) 'f' '3' '2'  ;
 
 -- Negative integers (to prevent them from being parsed as symbols)
 token NegativeInteger ('-' digit+) ;
