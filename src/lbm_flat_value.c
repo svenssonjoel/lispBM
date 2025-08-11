@@ -733,7 +733,8 @@ static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
   }
   case S_LBM_ARRAY: {
     uint32_t num_elt;
-    if (extract_word(v, &num_elt) && v->buf_pos + num_elt < v->buf_size) {  
+    // TODO: Feels slightly wrong with <= here.
+    if (extract_word(v, &num_elt) && v->buf_pos + num_elt <= v->buf_size) {  
       if (lbm_heap_allocate_array(res, num_elt)) {
         lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(*res);
         lbm_uint num_bytes = num_elt;
@@ -881,6 +882,8 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
       bool b = extract_word(v, &size);
       if (b) {
         // Abort if buffer cannot possibly hold that size array.
+        // a flattened byte occupies 2 bytes in fv. so smallest possible
+        // array is array of bytes. 
         if (size > 0 && v->buf_pos + (size * 2) > v->buf_size) return UNFLATTEN_MALFORMED;
         lbm_value array;
         lbm_heap_allocate_lisp_array(&array, size);
