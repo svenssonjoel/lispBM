@@ -21,6 +21,10 @@
 (define r3 (print win))
 (define r4 (print rend))
 
+(define r5 (eq (type-of rend) 'type-custom))
+(define r6 (eq (type-of win) 'type-custom))
+
+
 (if (and r r1 r2 r3 r4) (print "SUCCESS")
     (print "FAILURE"))
 
