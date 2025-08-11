@@ -21,7 +21,7 @@
 #include <stack.h>
 
 #include <setjmp.h>
-
+ 
 // ------------------------------------------------------------
 // Access to GC from eval_cps
 int lbm_perform_gc(void);
@@ -557,9 +557,10 @@ static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
 }
 
 static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
-  if (v->buf_size == v->buf_pos) return UNFLATTEN_MALFORMED;
 
   uint8_t curr = v->buf[v->buf_pos++];
+
+  if (v->buf_size <= v->buf_pos) return UNFLATTEN_MALFORMED;
 
   switch(curr) {
   case S_CONS: {
@@ -732,7 +733,7 @@ static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
   }
   case S_LBM_ARRAY: {
     uint32_t num_elt;
-    if (extract_word(v, &num_elt)) {
+    if (extract_word(v, &num_elt) && v->buf_pos + num_elt < v->buf_size) {  
       if (lbm_heap_allocate_array(res, num_elt)) {
         lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(*res);
         lbm_uint num_bytes = num_elt;
@@ -747,8 +748,18 @@ static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
   }
   case S_SYM_STRING: {
     lbm_uint sym_id;
+    lbm_uint max_bytes = v->buf_size - v->buf_pos;
+    lbm_uint num_bytes = max_bytes;
+    bool found_null = false;
+    for (lbm_uint i = 0; i < max_bytes; i ++) {
+      if (v->buf[v->buf_pos + i] == 0) {
+        num_bytes = i + 1;
+        found_null = true;
+        break;
+      }
+    }
+    if (!found_null) return UNFLATTEN_MALFORMED;
     if (lbm_add_symbol((char *)(v->buf + v->buf_pos), &sym_id)) {
-      lbm_uint num_bytes = strlen((char*)(v->buf + v->buf_pos)) + 1;
       v->buf_pos += num_bytes;
       *res = lbm_enc_sym(sym_id);
       return UNFLATTEN_OK;
@@ -869,6 +880,8 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
       v->buf_pos ++;
       bool b = extract_word(v, &size);
       if (b) {
+        // Abort if buffer cannot possibly hold that size array.
+        if (size > 0 && v->buf_pos + (size * 2) > v->buf_size) return UNFLATTEN_MALFORMED;
         lbm_value array;
         lbm_heap_allocate_lisp_array(&array, size);
         lbm_array_header_extended_t *header = (lbm_array_header_extended_t*)lbm_car(array);

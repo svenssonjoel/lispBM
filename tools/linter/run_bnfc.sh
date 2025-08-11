@@ -1,3 +1,3 @@
 #!/bin/bash
 
-bnfc --c -l -m ../grammar.bnfc
+bnfc --haskell --functor -m ../grammar.bnfc
