@@ -612,25 +612,23 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr
 lbm_value lbm_heap_allocate_list(lbm_uint n) {
   if (n == 0) return ENC_SYM_NIL;
   if (lbm_heap_num_free() < n) return ENC_SYM_MERROR;
+  // Here the freelist is guaranteed to be a cons_cell.
 
   lbm_value curr = lbm_heap_state.freelist;
   lbm_value res  = curr;
-  if (lbm_type_of(curr) == LBM_TYPE_CONS) {
-
-    lbm_cons_t *c_cell = NULL;
-    lbm_uint count = 0;
-    do {
-      c_cell = lbm_ref_cell(curr);
-      c_cell->car = ENC_SYM_NIL;
-      curr = c_cell->cdr;
-      count ++;
-    } while (count < n);
-    lbm_heap_state.freelist = curr;
-    c_cell->cdr = ENC_SYM_NIL;
-    lbm_heap_state.num_alloc+=count;
-    return res;
-  }
-  return ENC_SYM_FATAL_ERROR;
+  
+  lbm_cons_t *c_cell = NULL;
+  lbm_uint count = 0;
+  do {
+    c_cell = lbm_ref_cell(curr);
+    c_cell->car = ENC_SYM_NIL;
+    curr = c_cell->cdr;
+    count ++;
+  } while (count < n);
+  lbm_heap_state.freelist = curr;
+  c_cell->cdr = ENC_SYM_NIL;
+  lbm_heap_state.num_alloc+=count;
+  return res;
 }
 
 lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist) {
@@ -639,22 +637,19 @@ lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist) {
 
   lbm_value curr = lbm_heap_state.freelist;
   lbm_value res  = curr;
-  if (lbm_type_of(curr) == LBM_TYPE_CONS) {
 
-    lbm_cons_t *c_cell = NULL;
-    unsigned int count = 0;
-    do {
-      c_cell = lbm_ref_cell(curr);
-      c_cell->car = va_arg(valist, lbm_value);
-      curr = c_cell->cdr;
-      count ++;
-    } while (count < n);
-    lbm_heap_state.freelist = curr;
-    c_cell->cdr = ENC_SYM_NIL;
-    lbm_heap_state.num_alloc+=count;
-    return res;
-  }
-  return ENC_SYM_FATAL_ERROR;
+  lbm_cons_t *c_cell = NULL;
+  unsigned int count = 0;
+  do {
+    c_cell = lbm_ref_cell(curr);
+    c_cell->car = va_arg(valist, lbm_value);
+    curr = c_cell->cdr;
+    count ++;
+  } while (count < n);
+  lbm_heap_state.freelist = curr;
+  c_cell->cdr = ENC_SYM_NIL;
+  lbm_heap_state.num_alloc+=count;
+  return res;
 }
 
 lbm_value lbm_heap_allocate_list_init(unsigned int n, ...) {

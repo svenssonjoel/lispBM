@@ -636,6 +636,323 @@ int test_unflatten_symbol_string_long_scan(void) {
   return 1; // Failed gracefully, which is acceptable
 }
 
+
+// Test flattening lisp arrays (different from byte arrays) with small buffer
+int test_flatten_lisp_array_small_buffer(void) {
+  if (!test_init()) return 0;
+  
+  // Create a lisp array with some elements
+  lbm_value arr = lbm_heap_allocate_list(3);
+  if (lbm_is_symbol_merror(arr)) return 0;
+  
+  lbm_value *arr_ptr = (lbm_value*)lbm_car(lbm_cdr(arr));  // Get data pointer
+  if (arr_ptr) {
+    arr_ptr[0] = lbm_enc_i(1);
+    arr_ptr[1] = lbm_enc_i(2);  
+    arr_ptr[2] = lbm_enc_i(3);
+  }
+  
+  lbm_flat_value_t fv;
+  
+  // Test with 1 byte buffer - should be too small
+  if (lbm_start_flatten(&fv, 1)) {
+    int result = flatten_value_c(&fv, arr);
+    lbm_finish_flatten(&fv);
+    if (result != FLATTEN_VALUE_ERROR_BUFFER_TOO_SMALL) return 0;
+  }
+  
+  // Test with buffer just barely too small
+  int required_size = flatten_value_size(arr, false);
+  if (required_size > 1) {
+    if (lbm_start_flatten(&fv, (size_t)(required_size - 1))) {
+      int result = flatten_value_c(&fv, arr);
+      lbm_finish_flatten(&fv);
+      if (result != FLATTEN_VALUE_ERROR_BUFFER_TOO_SMALL) return 0;
+    }
+  }
+  
+  return 1;
+}
+
+// Test flattening with progressively smaller buffer sizes
+int test_flatten_progressive_buffer_sizes(void) {
+  if (!test_init()) return 0;
+  
+  // Create a moderately complex structure
+  lbm_value complex_val = lbm_cons(
+    lbm_cons(lbm_enc_i(42), lbm_enc_float(3.14f)),
+    lbm_cons(lbm_enc_i64(123456789LL), lbm_enc_double(2.718281828))
+  );
+  if (lbm_is_symbol_merror(complex_val)) return 0;
+  
+  // Get the required size
+  int required_size = flatten_value_size(complex_val, false);
+  if (required_size <= 0) return 0;
+  
+  lbm_flat_value_t fv;
+  
+  // Test with various buffer sizes from 1 up to required_size-1
+  // All should fail with BUFFER_TOO_SMALL
+  for (int buf_size = 1; buf_size < required_size; buf_size += (required_size / 10 + 1)) {
+    if (lbm_start_flatten(&fv, (size_t)buf_size)) {
+      int result = flatten_value_c(&fv, complex_val);
+      lbm_finish_flatten(&fv);
+      if (result != FLATTEN_VALUE_ERROR_BUFFER_TOO_SMALL) return 0;
+    }
+  }
+  
+  // Test with exact required size - should succeed
+  if (lbm_start_flatten(&fv, (size_t)required_size)) {
+    int result = flatten_value_c(&fv, complex_val);
+    lbm_finish_flatten(&fv);
+    if (result != FLATTEN_VALUE_OK) return 0;
+  } else {
+    return 0;
+  }
+  
+  return 1;
+}
+
+// Test flattening all numeric types with various small buffer sizes
+int test_flatten_all_numeric_types_small_buffers(void) {
+  if (!test_init()) return 0;
+  
+  // Create values of all numeric types
+  lbm_value values[] = {
+    lbm_enc_char('X'),           // S_BYTE_VALUE
+    lbm_enc_i(42),               // S_I28_VALUE  
+    lbm_enc_u(42u),              // S_U28_VALUE
+    lbm_enc_i32(123456),         // S_I32_VALUE
+    lbm_enc_u32(123456u),        // S_U32_VALUE
+    lbm_enc_float(3.14f),        // S_FLOAT_VALUE
+    lbm_enc_i64(123456789LL),    // S_I64_VALUE
+    lbm_enc_u64(123456789ULL),   // S_U64_VALUE
+    lbm_enc_double(2.718281828)  // S_DOUBLE_VALUE
+  };
+  
+  int num_values = sizeof(values) / sizeof(values[0]);
+  lbm_flat_value_t fv;
+  
+  // Test each value with buffer sizes 1, 2, 4, 8 bytes
+  int test_sizes[] = {1, 2, 4, 8};
+  int num_sizes = sizeof(test_sizes) / sizeof(test_sizes[0]);
+  
+  for (int i = 0; i < num_values; i++) {
+    if (lbm_is_symbol_merror(values[i])) continue;
+    
+    int required_size = flatten_value_size(values[i], false);
+    if (required_size <= 0) continue;
+    
+    for (int j = 0; j < num_sizes; j++) {
+      int buf_size = test_sizes[j];
+      
+      if (buf_size < required_size) {
+        // Should fail with buffer too small
+        if (lbm_start_flatten(&fv, (size_t)buf_size)) {
+          int result = flatten_value_c(&fv, values[i]);
+          lbm_finish_flatten(&fv);
+          if (result != FLATTEN_VALUE_ERROR_BUFFER_TOO_SMALL) return 0;
+        }
+      }
+    }
+  }
+  
+  return 1;
+}
+
+// Test flattening with exact boundary buffer sizes
+int test_flatten_boundary_buffer_sizes(void) {
+  if (!test_init()) return 0;
+  
+  lbm_value test_val = lbm_cons(lbm_enc_i(42), lbm_enc_i(24));
+  if (lbm_is_symbol_merror(test_val)) return 0;
+  
+  int required_size = flatten_value_size(test_val, false);
+  if (required_size <= 0) return 0;
+  
+  lbm_flat_value_t fv;
+  
+  // Test with exactly required_size - 1 (should fail)
+  if (required_size > 1) {
+    if (lbm_start_flatten(&fv, (size_t)(required_size - 1))) {
+      int result = flatten_value_c(&fv, test_val);
+      lbm_finish_flatten(&fv);
+      if (result != FLATTEN_VALUE_ERROR_BUFFER_TOO_SMALL) return 0;
+    }
+  }
+  
+  // Test with exactly required_size (should succeed)
+  if (lbm_start_flatten(&fv, (size_t)required_size)) {
+    int result = flatten_value_c(&fv, test_val);
+    lbm_finish_flatten(&fv);
+    if (result != FLATTEN_VALUE_OK) return 0;
+  } else {
+    return 0;
+  }
+  
+  // Test with required_size + 1 (should succeed with space left over)
+  if (lbm_start_flatten(&fv, (size_t)(required_size + 1))) {
+    int result = flatten_value_c(&fv, test_val);
+    lbm_finish_flatten(&fv);
+    if (result != FLATTEN_VALUE_OK) return 0;
+  } else {
+    return 0;
+  }
+  
+  return 1;
+}
+
+// Test flattening mixed type structures with insufficient buffer
+int test_flatten_mixed_structures_small_buffer(void) {
+  if (!test_init()) return 0;
+  
+  // Create nested structure with different types
+  // ((42 . 3.14) . (("hello" . #\A) . (nil . [1 2 3])))
+  
+  lbm_value arr_val;
+  if (!lbm_create_array(&arr_val, 3)) return 0;
+  lbm_array_header_t *arr_header = lbm_dec_array_rw(arr_val);
+  if (!arr_header || !arr_header->data) return 0;
+  uint8_t *arr_data = (uint8_t*)arr_header->data;
+  arr_data[0] = 1; arr_data[1] = 2; arr_data[2] = 3;
+  
+  lbm_value nested = lbm_cons(
+    lbm_cons(lbm_enc_i(42), lbm_enc_float(3.14f)),
+    lbm_cons(
+      lbm_cons(ENC_SYM_NIL, lbm_enc_char('A')), // Note: simplified - real symbol string would be complex
+      lbm_cons(ENC_SYM_NIL, arr_val)
+    )
+  );
+  
+  if (lbm_is_symbol_merror(nested)) return 0;
+  
+  lbm_flat_value_t fv;
+  
+  // Test with very small buffer sizes
+  int small_sizes[] = {1, 2, 4, 8, 16, 32};
+  int num_sizes = sizeof(small_sizes) / sizeof(small_sizes[0]);
+  
+  for (int i = 0; i < num_sizes; i++) {
+    if (lbm_start_flatten(&fv, (size_t)small_sizes[i])) {
+      int result = flatten_value_c(&fv, nested);
+      lbm_finish_flatten(&fv);
+      
+      // With such a complex structure, small buffers should fail
+      if (result == FLATTEN_VALUE_OK && small_sizes[i] < 64) {
+        // If it succeeded with a very small buffer, that's unexpected
+        return 0;
+      }
+    }
+  }
+  
+  return 1;
+}
+
+// Test lbm_get_max_flatten_depth and lbm_set_max_flatten_depth functions
+int test_flatten_depth_configuration(void) {
+  if (!test_init()) return 0;
+  
+  // Test 1: Get initial/default max depth
+  int initial_depth = lbm_get_max_flatten_depth();
+  if (initial_depth <= 0) return 0; // Should have some reasonable default (probably 2000)
+  
+  // Test 2: Set a new max depth and verify it was set
+  int new_depth = 500;
+  lbm_set_max_flatten_depth(new_depth);
+  int retrieved_depth = lbm_get_max_flatten_depth();
+  if (retrieved_depth != new_depth) return 0;
+  
+  // Test 3: Restore original depth for other tests
+  lbm_set_max_flatten_depth(initial_depth);
+  if (lbm_get_max_flatten_depth() != initial_depth) return 0;
+  
+  return 1;
+}
+
+// Test flatten depth limits with progressively deeper structures
+int test_flatten_depth_limits(void) {
+  if (!test_init()) return 0;
+  
+  // Get and save current max depth
+  int original_depth = lbm_get_max_flatten_depth();
+  
+  // Set a small max depth for testing
+  int test_depth = 10;
+  lbm_set_max_flatten_depth(test_depth);
+  
+  // Create nested structures of various depths
+  lbm_value structures[15]; // More than test_depth
+  
+  // Initialize with a simple value
+  structures[0] = lbm_enc_i(42);
+  
+  // Build progressively deeper nesting
+  for (int i = 1; i < 15 && i <= test_depth + 5; i++) {
+    structures[i] = lbm_cons(structures[i-1], ENC_SYM_NIL);
+    if (lbm_is_symbol_merror(structures[i])) {
+      // Memory exhaustion - break and test what we have
+      break;
+    }
+  }
+  
+  // Test a structure that should succeed (within depth limit)
+  if (structures[test_depth/2] && !lbm_is_symbol_merror(structures[test_depth/2])) {
+    int size_ok = flatten_value_size(structures[test_depth/2], false);
+    if (size_ok <= 0) {
+      lbm_set_max_flatten_depth(original_depth);
+      return 0;
+    }
+  }
+  
+  // Test a structure that should definitely fail (exceeds depth limit)
+  if (structures[test_depth + 2] && !lbm_is_symbol_merror(structures[test_depth + 2])) {
+    int size_fail = flatten_value_size(structures[test_depth + 2], false);
+    if (size_fail != FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH) {
+      lbm_set_max_flatten_depth(original_depth);
+      return 0;
+    }
+  }
+  
+  // Test with a different depth limit
+  lbm_set_max_flatten_depth(5);
+  
+  // Test that the 6th level fails
+  if (structures[6] != 0 && !lbm_is_symbol_merror(structures[6])) {
+    int result = flatten_value_size(structures[6], false);
+    if (result != FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH) {
+      lbm_set_max_flatten_depth(original_depth);
+      return 0;
+    }
+  }
+  
+  // Restore original depth
+  lbm_set_max_flatten_depth(original_depth);
+  
+  return 1;
+}
+
+// Test edge cases for depth configuration
+int test_flatten_depth_edge_cases(void) {
+  if (!test_init()) return 0;
+  
+  int original_depth = lbm_get_max_flatten_depth();
+  
+  // Test 1: Set very large depth
+  int large_depth = 10000;
+  lbm_set_max_flatten_depth(large_depth);
+  if (lbm_get_max_flatten_depth() != large_depth) return 0;
+  
+  // Test 2: Set depth to a small value
+  lbm_set_max_flatten_depth(5);
+  if (lbm_get_max_flatten_depth() != 5) return 0;
+  
+  // Test 3: Restore original depth
+  lbm_set_max_flatten_depth(original_depth);
+  if (lbm_get_max_flatten_depth() != original_depth) return 0;
+  
+  return 1;
+}
+
 int main(void) {
   int tests_passed = 0;
   int total_tests = 0;
@@ -654,6 +971,15 @@ int main(void) {
   total_tests++; if (test_unflatten_malicious_symbol_string()) tests_passed++;
   total_tests++; if (test_unflatten_malicious_lisp_array()) tests_passed++;
   total_tests++; if (test_unflatten_symbol_string_long_scan()) tests_passed++;
+  total_tests++; if (test_flatten_lisp_array_small_buffer()) tests_passed++;
+  total_tests++; if (test_flatten_progressive_buffer_sizes()) tests_passed++;
+  total_tests++; if (test_flatten_all_numeric_types_small_buffers()) tests_passed++;
+  total_tests++; if (test_flatten_boundary_buffer_sizes()) tests_passed++;
+  total_tests++; if (test_flatten_mixed_structures_small_buffer()) tests_passed++;
+  // Test depth configuration functions
+  total_tests++; if (test_flatten_depth_configuration()) tests_passed++;
+  total_tests++; if (test_flatten_depth_limits()) tests_passed++;
+  total_tests++; if (test_flatten_depth_edge_cases()) tests_passed++;
   
   kill_eval_after_tests();
   

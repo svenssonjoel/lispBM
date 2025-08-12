@@ -13,15 +13,10 @@ LispBM is an embeddable Lisp/Scheme-like programming language designed for micro
 
 ## Build System
 
-### Library Build (Root Makefile)
-- **Default build**: `make` (builds 32-bit Linux library)
-- **64-bit build**: `make PLATFORM=linux-x64`
-- **Cross-compilation**: Use `PLATFORM` variable (stm32f4, nrf52840, zynq, pi, macos-arm64)
-- **Debug build**: `make debug`
-- **Clean**: `make clean`
-- **Test**: `make test` (runs tests/run_tests.sh)
-
-Output: `build/<platform>/liblispbm.a` static library
+The project uses multiple Makefiles in different directories for various build targets:
+- **`repl/Makefile`** - Builds the REPL application and interactive tools
+- **`tests/Makefile`** - Builds test binaries for the main test suite
+- **`tests/c_unit/Makefile`** - Builds C unit test executables
 
 ### REPL Build (repl/ directory)
 - **32-bit REPL**: `make` or `make all`
@@ -45,6 +40,7 @@ Located in `tests/` directory:
 - **Time quota tests**: `./run_tests_time.sh` and `./run_tests64_time.sh`
 - **Image tests**: `./run_image_tests.sh`
 - **REPL tests**: `./run_repl_tests.sh`
+- **SDL tests**: `./run_sdl_tests.sh`
 
 ### Test Binaries
 Built in `tests/` via Makefile:
