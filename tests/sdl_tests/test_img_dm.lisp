@@ -19,6 +19,8 @@
 ;; Create a DM region (defragmentable memory)
 (define dm (dm-create (* 400 200 )))
 
+(define r3 (eq (type-of dm) type-dm))
+
 ;; create 2 images in the DM
 (define img1 (img-buffer dm 'indexed2 50 50))
 (define img2 (img-buffer 'indexed2 100 100))
@@ -31,6 +33,6 @@
 (disp-render img1 0 0 '(0x000000 0xFFFFFF))
 (disp-render img2 50 50 '(0x000000 0xFFFFFF))
 
-(if (and r1 r2)
+(if (and r1 r2 r3)
     (print "SUCCESS")
     (print "FAILURE"))
