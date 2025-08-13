@@ -148,9 +148,17 @@ static lbm_char_channel_t buffered_string_tok;
 
 #define IMAGE_STORAGE_SIZE              (128 * 1024) // bytes:
 #ifdef LBM64
-#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+  #ifdef LBM_WIN
+    #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0x30000000  // Windows-safe address
+  #else
+    #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+  #endif
 #else
-#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+  #ifdef LBM_WIN
+    #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0x30000000  // Windows-safe address
+  #else
+    #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+  #endif
 #endif
 // todo: is there a good way to pick a fixed virtual address ?
 
@@ -375,17 +383,21 @@ static int printf_redraw_prompt(const char *format, ...) {
   if (len < 0) {
     return len;
   }
-  
+
+#ifndef LBM_WIN
   if (prompt_printed_last) {
     rl_clear_visible_line();
   }
+#endif
   
   fputs(buffer, stdout);
   prompt_printed_last = false;
   
   // Redraw prompt if output ends with a newline.
   if (len > 0 && buffer[len - 1] == '\n' && readline_started) {
+#ifndef LBM_WIN
     rl_redraw_prompt_last_line();
+#endif
     prompt_printed_last = true;
   }
   free(buffer);
@@ -2498,7 +2510,10 @@ int main(int argc, char **argv) {
   if (image_address) {
     printf("Image storage successfully allocated at %p\n", image_address);
   } else {
-    printf("error mapping fixed location for flash emulation\n");
+    DWORD error = GetLastError();
+    printf("VirtualAlloc failed for address %p: Windows error %lu\n", 
+           IMAGE_FIXED_VIRTUAL_ADDRESS, error);
+    printf("Try running with Administrator privileges or disable Windows ASLR\n");
     terminate_repl(REPL_EXIT_CRITICAL_ERROR);
   }
   image_storage = (uint32_t *)image_address;
