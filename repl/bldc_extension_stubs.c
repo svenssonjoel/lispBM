@@ -212,6 +212,11 @@ static lbm_value ext_can_local_id(lbm_value *args, lbm_uint argn) {
     return lbm_enc_sym(SYM_EERROR);
 }
 
+static lbm_value ext_can_update_baud(lbm_value *args, lbm_uint argn) {
+    // TODO: Implement ext_can_update_baud
+    return lbm_enc_sym(SYM_EERROR);
+}
+
 static lbm_value ext_app_adc_detach(lbm_value *args, lbm_uint argn) {
     // TODO: Implement ext_app_adc_detach
     return lbm_enc_sym(SYM_EERROR);
@@ -304,6 +309,16 @@ static lbm_value ext_set_pos(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_foc_openloop(lbm_value *args, lbm_uint argn) {
     // TODO: Implement ext_foc_openloop
+    return lbm_enc_sym(SYM_EERROR);
+}
+
+static lbm_value ext_foc_openloop_phase(lbm_value *args, lbm_uint argn) {
+    // TODO: Implement ext_foc_openloop_phase
+    return lbm_enc_sym(SYM_EERROR);
+}
+
+static lbm_value ext_set_kill_sw(lbm_value *args, lbm_uint argn) {
+    // TODO: Implement ext_set_kill_sw
     return lbm_enc_sym(SYM_EERROR);
 }
 
@@ -877,8 +892,23 @@ static lbm_value ext_conf_dc_cal(lbm_value *args, lbm_uint argn) {
     return lbm_enc_sym(SYM_EERROR);
 }
 
+static lbm_value ext_conf_dc_cal_set(lbm_value *args, lbm_uint argn) {
+    // TODO: Implement ext_conf_dc_cal_set
+    return lbm_enc_sym(SYM_EERROR);
+}
+
+static lbm_value ext_conf_enc_sincos(lbm_value *args, lbm_uint argn) {
+    // TODO: Implement ext_conf_enc_sincos
+    return lbm_enc_sym(SYM_EERROR);
+}
+
 static lbm_value ext_conf_get_limits(lbm_value *args, lbm_uint argn) {
     // TODO: Implement ext_conf_get_limits
+    return lbm_enc_sym(SYM_EERROR);
+}
+
+static lbm_value ext_conf_detect_lambda_enc(lbm_value *args, lbm_uint argn) {
+    // TODO: Implement ext_conf_detect_lambda_enc
     return lbm_enc_sym(SYM_EERROR);
 }
 
@@ -1047,8 +1077,8 @@ static lbm_value ext_shutdown_hold(lbm_value *args, lbm_uint argn) {
     return lbm_enc_sym(SYM_EERROR);
 }
 
-static lbm_value ext_const_heap_erase(lbm_value *args, lbm_uint argn) {
-    // TODO: Implement ext_const_heap_erase
+static lbm_value ext_override_speed(lbm_value *args, lbm_uint argn) {
+    // TODO: Implement ext_override_speed
     return lbm_enc_sym(SYM_EERROR);
 }
 
@@ -1074,6 +1104,21 @@ static lbm_value ext_pwm_stop(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_pwm_set_duty(lbm_value *args, lbm_uint argn) {
     // TODO: Implement ext_pwm_set_duty
+    return lbm_enc_sym(SYM_EERROR);
+}
+
+static lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
+    // TODO: Implement ext_image_save
+    return lbm_enc_sym(SYM_EERROR);
+}
+
+static lbm_value ext_cmds_start_stop(lbm_value *args, lbm_uint argn) {
+    // TODO: Implement ext_cmds_start_stop
+    return lbm_enc_sym(SYM_EERROR);
+}
+
+static lbm_value ext_cmds_proc(lbm_value *args, lbm_uint argn) {
+    // TODO: Implement ext_cmds_proc
     return lbm_enc_sym(SYM_EERROR);
 }
 
@@ -1122,6 +1167,7 @@ void load_bldc_extensions(void) {
     lbm_add_extension("stats-reset", ext_stats_reset);
     lbm_add_extension("can-cmd", ext_can_cmd);
     lbm_add_extension("can-local-id", ext_can_local_id);
+    lbm_add_extension("can-update-baud", ext_can_update_baud);
     lbm_add_extension("app-adc-detach", ext_app_adc_detach);
     lbm_add_extension("app-adc-override", ext_app_adc_override);
     lbm_add_extension("app-adc-range-ok", ext_app_adc_range_ok);
@@ -1141,6 +1187,8 @@ void load_bldc_extensions(void) {
     lbm_add_extension("set-rpm", ext_set_rpm);
     lbm_add_extension("set-pos", ext_set_pos);
     lbm_add_extension("foc-openloop", ext_foc_openloop);
+    lbm_add_extension("foc-openloop-phase", ext_foc_openloop_phase);
+    lbm_add_extension("set-kill-sw", ext_set_kill_sw);
     lbm_add_extension("foc-beep", ext_foc_beep);
     lbm_add_extension("foc-play-tone", ext_foc_play_tone);
     lbm_add_extension("foc-play-samples", ext_foc_play_samples);
@@ -1255,7 +1303,10 @@ void load_bldc_extensions(void) {
     lbm_add_extension("conf-restore-mc", ext_conf_restore_mc);
     lbm_add_extension("conf-restore-app", ext_conf_restore_app);
     lbm_add_extension("conf-dc-cal", ext_conf_dc_cal);
+    lbm_add_extension("conf-dc-cal-set", ext_conf_dc_cal_set);
+    lbm_add_extension("conf-enc-sincos", ext_conf_enc_sincos);
     lbm_add_extension("conf-get-limits", ext_conf_get_limits);
+    lbm_add_extension("conf-detect-lambda-enc", ext_conf_detect_lambda_enc);
     lbm_add_extension("uavcan-last-rawcmd", ext_uavcan_last_rawcmd);
     lbm_add_extension("uavcan-last-rpmcmd", ext_uavcan_last_rpmcmd);
     lbm_add_extension("lbm-set-quota", ext_lbm_set_quota);
@@ -1289,10 +1340,13 @@ void load_bldc_extensions(void) {
     lbm_add_extension("crc32", ext_crc32);
     lbm_add_extension("buf-resize", ext_buf_resize);
     lbm_add_extension("shutdown-hold", ext_shutdown_hold);
-    lbm_add_extension("const-heap-erase", ext_const_heap_erase);
+    lbm_add_extension("override-speed", ext_override_speed);
     lbm_add_extension("canmsg-recv", ext_canmsg_recv);
     lbm_add_extension("canmsg-send", ext_canmsg_send);
     lbm_add_extension("pwm-start", ext_pwm_start);
     lbm_add_extension("pwm-stop", ext_pwm_stop);
     lbm_add_extension("pwm-set-duty", ext_pwm_set_duty);
+    lbm_add_extension("image-save", ext_image_save);
+    lbm_add_extension("cmds-start-stop", ext_cmds_start_stop);
+    lbm_add_extension("cmds-proc", ext_cmds_proc);
 }
