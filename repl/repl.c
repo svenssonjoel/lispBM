@@ -81,6 +81,12 @@
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
 
+
+// ////////////////////////////////////////////////////////////
+// Stub loaders
+void load_vesc_express_extensions(void);
+void load_bldc_extensions(void);
+
 // ////////////////////////////////////////////////////////////
 // win util
 
@@ -173,7 +179,7 @@ static size_t constants_memory_size = 4096;  // size words
 // LBM
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
-#define EXTENSION_STORAGE_SIZE 1024
+#define EXTENSION_STORAGE_SIZE 4096
 #define STR_SIZE 1024
 #define PROF_DATA_NUM 100
 
@@ -641,7 +647,13 @@ lbm_const_heap_t const_heap;
 #define VESCTCP              0x0407
 #define VESCTCP_PORT         0x0408
 #define VESCTCP_PROGRAM_FLASH_SIZE   0x0409
-#define HISTORY_FILE         0x0410
+#define HISTORY_FILE         0x040A
+
+#define BLDC_STUBS           0x040B
+#define VESC_EXPRESS_STUBS   0x040C
+
+bool use_bldc_stubs = false;
+bool use_vesc_express_stubs = false;
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -660,6 +672,8 @@ struct option options[] = {
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
   {"vesctcp_program_flash_size", required_argument, NULL, VESCTCP_PROGRAM_FLASH_SIZE},
   {"history_file", required_argument, NULL, HISTORY_FILE},
+  {"bldc_stubs", no_argument, NULL, BLDC_STUBS},
+  {"vesc_express_stubs", no_argument, NULL, VESC_EXPRESS_STUBS},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -826,6 +840,10 @@ void parse_opts(int argc, char **argv) {
       printf("    --history_file=FILEPATH           Path to file used for the repl history.\n");
       printf("                                      An empty string disables loading or\n");
       printf("                                      writing the history. (see HISTORY FILE)\n");
+      printf("\n");
+      printf("    --bldc_stubs                      Load BLDC extension stub files\n");
+      printf("    --vesc_express_stubs              Load Vesc Express extension stub files\n");
+      printf("\n");
 
       printf("memory-size-indices: \n"          \
              "Index | Words\n"                  \
@@ -915,6 +933,12 @@ void parse_opts(int argc, char **argv) {
       exit_on_alloc_failure(history_file_path);
       memcpy(history_file_path, optarg, len + 1);
     } break;
+    case BLDC_STUBS:
+      use_bldc_stubs = true;
+      break;
+    case VESC_EXPRESS_STUBS:
+      use_vesc_express_stubs = false;
+      break;
     default:
       break;
     }
@@ -1078,6 +1102,12 @@ int init_repl(void) {
   lbm_add_eval_symbols();
   if (!lbm_image_has_extensions()) {
     init_exts();
+    if (use_bldc_stubs) {
+      load_bldc_extensions();
+    }
+    if (use_vesc_express_stubs) {
+      load_vesc_express_extensions();
+    }
   } else {
     if (!silent_mode)
       printf("Image contains extensions\n");
@@ -1406,7 +1436,6 @@ void commands_send_packet(unsigned char *data, unsigned int len) {
   }
 }
 
-
 int commands_printf_lisp(const char* format, ...) {
   int len;
 
@@ -1592,13 +1621,13 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
     return 0;
   }
 
-  constants_memory = (lbm_uint*)malloc(constants_memory_size * sizeof(lbm_uint));
-  memset(constants_memory, 0xFF, constants_memory_size * sizeof(lbm_uint));
-  if (!lbm_const_heap_init(const_heap_write,
-                           &const_heap,constants_memory)) {
-    return 0;
-  }
-
+  lbm_image_init(image_storage,
+                 image_storage_size / sizeof(uint32_t), //sizeof(lbm_uint),
+                 image_write);
+  image_clear();
+  lbm_image_create("bepa_1");
+  lbm_image_boot();
+  
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(vesc_lbm_done_callback);
   lbm_set_timestamp_us_callback(timestamp);
@@ -1607,9 +1636,17 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   lbm_set_printf_callback(commands_printf_lisp);
 
   init_exts();
+  lbm_add_eval_symbols();
   lbm_add_extension("print", ext_vescif_print); // replace print
   lbm_add_extension("import", ext_vescif_import); // dummy import
 
+  if (use_bldc_stubs) {
+    load_bldc_extensions();
+  }
+  if (use_vesc_express_stubs) {
+    load_vesc_express_extensions();
+  }
+  
 #ifdef WITH_SDL
   if (!lbm_sdl_init()) {
     return 0;

@@ -35,7 +35,9 @@ LISPBM_SRC += $(LISPBM_EVAL_CPS_SRC)
 REPL_SRC= repl.c \
 	  repl_exts.c \
           crc.c \
-          packet.c
+          packet.c \
+          vesc_express_extension_stubs.c \
+          bldc_extension_stubs.c
 
 
 ifdef HEAP_VIS
