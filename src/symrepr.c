@@ -237,12 +237,16 @@ special_sym const special_symbols[] =  {
   {"number?"        , SYM_IS_NUMBER},
   {"string?"        , SYM_IS_STRING},
   {"constant?"      , SYM_IS_CONSTANT},
-
+  
   // fast access in list
   {"ix"             , SYM_IX},
 
   {"identity"       , SYM_IDENTITY},
   {"array"          , SYM_ARRAY},
+
+#ifdef LBM_BC
+  {"bytecode"       , SYM_BYTECODE},
+#endif 
 
   // aliases
   {"first"          , SYM_CAR},

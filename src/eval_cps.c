@@ -104,6 +104,20 @@ static jmp_buf critical_error_jmp_buf;
 #define LOOP_ENV_PREP              CONTINUATION(51)
 #define NUM_CONTINUATIONS          52
 
+#ifdef LBM_BC
+#define BC_DONE                0x30 
+#define BC_LOAD_CONST          0x31 
+#define BC_LOAD_VAR            0x32 
+#define BC_CALL_BUILTIN        0x33 
+#define BC_JUMP                0x34 
+#define BC_JUMP_IF_FALSE       0x35
+
+#define GET_OPCODE(instr)    ((instr) & 0xFF)
+#define GET_IMM24(instr)     ((instr) >> 8)
+#define GET_IMM16(instr)     (((instr) >> 8) & 0xFFFF) 
+#define GET_IMM8_HIGH(instr) ((instr) >> 24)
+#endif
+
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
 #define FM_PATTERN_ERROR -3
@@ -1419,6 +1433,13 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
     lbm_memory_free((lbm_uint*)ctx);
     return -1;
   }
+
+#ifdef LBM_BC
+  ctx->bc_pc = 0;
+  ctx->bc_constants = NULL;
+  ctx->bc = NULL;
+  ctx->bc_mode = false; 
+#endif
 
   enqueue_ctx(&queue,ctx);
 
@@ -3483,6 +3504,19 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     fun_table[SYMBOL_IX(fun_val)](&fun_args[1], arg_count, ctx);
     break;
   default:
+#ifdef LBM_BC
+    if (lbm_is_bytecode(fun)) {
+      ctx->bc_mode = true;
+      lbm_value array = get_car(get_cdr(fun));
+      lbm_array_header_extended_t *constants_arr = (lbm_array_header_extended_t*)lbm_car(array);
+      lbm_value *constants = (lbm_value *)constants_arr->data;
+      ctx->bc_constants = constants;
+      lbm_array_header_t *bc_arr = lbm_dec_array_r(get_car(get_cdr(get_cdr(fun))));
+      ctx->bc = (lbm_uint*)bc_arr->data;
+      ctx->bc_pc = 0;
+      break;
+    }
+#endif
     // Symbols that are "special" but not in the way caught above
     // ends up here.
     lbm_set_error_reason("Symbol does not represent a function");
@@ -4957,6 +4991,13 @@ static void cont_application_start(eval_context_t *ctx) {
         ERROR_AT_CTX(ENC_SYM_EERROR, ctx->r);
       }
     } break;
+#ifdef LBM_BC
+    case ENC_SYM_BYTECODE:
+      // evaluate arguments and place on the stack. 
+      stack_reserve(ctx,1)[0] = lbm_enc_u(0);
+      cont_application_args(ctx);
+      break;
+#endif 
     case ENC_SYM_CONT:{  
       ctx->curr_exp = setup_cont(ctx, args);
     } break;
@@ -5618,12 +5659,112 @@ static const evaluator_fun evaluators[] =
    eval_selfevaluating, // cont_sp
   };
 
+// ////////////////////////////////////////////////////////////
+// Bytecode evaluator
 
+#ifdef LBM_BC
+static void eval_bytecode(eval_context_t *ctx) {
+  uint32_t *bytecode = ctx->bc;
+  lbm_value *constants_data = ctx->bc_constants;
+
+  while (true) {
+    uint32_t instruction = bytecode[ctx->bc_pc++];
+    uint8_t opcode = GET_OPCODE(instruction);
+
+    switch (opcode) {
+    case BC_LOAD_CONST: {
+      uint32_t const_idx = GET_IMM24(instruction);
+      lbm_value val = constants_data[const_idx];
+      lbm_push(&ctx->K, val);
+      break;
+    }
+
+    case BC_LOAD_VAR: {
+      uint32_t var_const_idx = GET_IMM24(instruction);
+      lbm_value var_sym = constants_data[var_const_idx];
+
+      lbm_value val;
+      if (lbm_env_lookup_b(&val, var_sym, ctx->curr_env) ||
+          lbm_global_env_lookup(&val, var_sym)) {
+      }
+      if (val == ENC_SYM_NOT_FOUND) {
+        ERROR_CTX(ENC_SYM_NOT_FOUND);
+        return;
+      }
+      lbm_push(&ctx->K, val);
+      break;
+    }
+
+    case BC_CALL_BUILTIN: {
+      uint32_t fun_const_idx = GET_IMM16(instruction);
+      uint8_t argc = GET_IMM8_HIGH(instruction);
+      lbm_value fun_sym = constants_data[fun_const_idx];
+      lbm_value *args = &ctx->K.data[ctx->K.sp - argc];
+      lbm_uint fun_idx = SYMBOL_IX(fun_sym);
+      lbm_value result = fundamental_table[fun_idx](args, argc, ctx);
+      ctx->K.sp -= argc;
+      lbm_push(&ctx->K, result);
+
+      break;
+    }
+
+    case BC_JUMP: {
+      uint32_t target_pc = GET_IMM24(instruction);
+      ctx->bc_pc = target_pc;
+      break;
+    }
+
+    case BC_JUMP_IF_FALSE: {
+      uint32_t target_pc = GET_IMM24(instruction);
+      lbm_value condition;
+      lbm_pop(&ctx->K, &condition);
+
+      if (lbm_is_symbol_nil(condition)) {
+        ctx->bc_pc = target_pc;
+      }
+      break;
+    }
+    case BC_DONE: {
+      if (ctx->K.sp > 0) {
+        lbm_pop(&ctx->K, &ctx->r);
+
+        // Drop the fun object (in this case bytecode) from stack.
+        lbm_stack_drop(&ctx->K, 1);
+      } else {
+        ctx->r = ENC_SYM_NIL;
+      }
+      ctx->bc_constants = NULL;
+      ctx->bc = NULL;
+      ctx->bc_mode = false;
+      ctx->app_cont = true;
+      return;
+    }
+
+    default:
+      lbm_set_error_reason("Unknown bytecode opcode");
+      ERROR_CTX(ENC_SYM_EERROR);
+      return;
+    }
+  }
+
+  // Shouldn't reach here - missing BC_DONE?
+  lbm_set_error_reason("Bytecode execution fell through");
+  ERROR_CTX(ENC_SYM_EERROR);
+}
+
+
+#endif
 /*********************************************************/
 /* Evaluator step function                               */
-
 static void evaluation_step(void){
   eval_context_t *ctx = ctx_running;
+
+#ifdef LBM_BC
+  if (ctx->bc_mode) {
+    eval_bytecode(ctx);
+    return;
+  }
+#endif
 
   if (ctx->app_cont) {
     lbm_value k = ctx->K.data[--ctx->K.sp];

@@ -82,6 +82,13 @@ typedef struct eval_context_s{
   /* while reading */
   lbm_int row0;
   lbm_int row1;
+  /* byte code mode */
+#ifdef LBM_BC
+  lbm_uint bc_pc;
+  lbm_value *bc_constants;
+  lbm_uint *bc; // pointer into bytearray for fast access
+  bool bc_mode;
+#endif
   /* List structure */
   struct eval_context_s *prev;
   struct eval_context_s *next;

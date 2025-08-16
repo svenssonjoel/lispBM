@@ -944,6 +944,16 @@ static inline bool lbm_is_quoted_list(lbm_value x) {
           lbm_is_cons(lbm_cadr(x)));
 }
 
+#ifdef LBM_BC
+// an "optimistic is_bytecode check 
+static inline bool lbm_is_bytecode(lbm_value x) {
+  return (lbm_is_cons(x) &&
+          lbm_is_symbol(lbm_car(x)) &&
+          lbm_car(x) == ENC_SYM_BYTECODE);
+}   
+#endif
+
+  
 #ifndef LBM64
 #define ERROR_SYMBOL_MASK 0xFFFFFFF0
 #else

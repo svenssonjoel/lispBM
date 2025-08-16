@@ -352,6 +352,9 @@
 #define SYM_IS_STRING           0x20042
 #define SYM_IS_CONSTANT         0x20043
 #define SYM_MEMBER              0x20044
+#ifdef LBM_BC
+#define SYM_BYTECODE            0x20045
+#endif
 
 // Apply funs:
 // Get their arguments in evaluated form on the stack.
@@ -595,5 +598,10 @@
 #define ENC_SYM_DM_ALLOC            ENC_SYM(SYM_DM_ALLOC)
 #define ENC_SYM_IS_LIST             ENC_SYM(SYM_IS_LIST)
 #define ENC_SYM_IS_NUMBER           ENC_SYM(SYM_IS_NUMBER)
+
+
+#ifdef LBM_BC
+#define ENC_SYM_BYTECODE            ENC_SYM(SYM_BYTECODE)
+#endif
 
 #endif
