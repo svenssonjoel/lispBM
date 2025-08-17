@@ -61,7 +61,7 @@ static const esp_partition_t *lbm_image_partition;
 
 static bool image_write(uint32_t w, int32_t ix, bool const_heap) {
   uint32_t offset = ix * 4; // byte location into partition
-  if (ESP_OK != esp_partition_write(lbm_image_partition, offset, &w, 4)) {
+  if (ESP_OK == esp_partition_write(lbm_image_partition, offset, &w, 4)) {
     return true;
   }
   return false;
@@ -162,6 +162,7 @@ void app_main(void)
     
   startup_lbm();
 
+
   while (true) {
     // HERE read user input 
       
@@ -195,6 +196,11 @@ void app_main(void)
                                          input_buffer);
           lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
           lbm_continue_eval();
+
+          // The input_buffer will now be read by the reader in another thread.
+          // Give it some time to do what it does!
+          // More robust handling of this inter-thread communication is deisrable.
+          vTaskDelay(100 / portTICK_PERIOD_MS);
           
           pos = 0; // Reset for next input
           printf(">"); fflush(stdout);
@@ -209,7 +215,6 @@ void app_main(void)
     vTaskDelay(10 / portTICK_PERIOD_MS);
   }
     
-  vTaskDelay(4000 / portTICK_PERIOD_MS);
   printf("Restarting now.\n");
     
   esp_restart();

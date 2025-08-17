@@ -7,4 +7,4 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 idf_build_set_property(MINIMAL_BUILD ON)
 
 idf_build_set_property(COMPILE_OPTIONS "-DLBM_USE_ERROR_LINENO" APPEND)
-project(hello_world)
+project(repl)
