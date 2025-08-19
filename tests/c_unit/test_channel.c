@@ -593,6 +593,49 @@ int test_buffered_char_channel_is_empty(void) {
   return 1;
 }
 
+int test_string_char_channel_goes_full(void) {
+
+  char str[10];
+  memset(str,0,10);
+  lbm_string_channel_state_t st1;
+  lbm_char_channel_t chan1;
+  lbm_create_string_char_channel_size(&st1, &chan1, str, 10);
+
+  if (lbm_channel_is_full(&chan1)) return 0;
+
+  for (int i = 0; i < 10; i ++) {
+    lbm_channel_write(&chan1, 'a');
+  }
+
+  if (!lbm_channel_is_full(&chan1)) return 0;
+
+  return 1;
+}
+
+int test_string_char_channel_read_0_no_more(void) {
+
+  char str[10];
+  memset(str,0,10);
+  lbm_string_channel_state_t st1;
+  lbm_char_channel_t chan1;
+  lbm_create_string_char_channel_size(&st1, &chan1, str, 10);
+
+  if (lbm_channel_is_full(&chan1)) return 0;
+
+  for (int i = 0; i < 5; i ++) {
+    lbm_channel_write(&chan1, 'a');
+  }
+
+  char read_r;
+  for (int i = 0; i < 7; i ++) {
+    lbm_channel_read(&chan1, &read_r);
+  }
+  
+  if (lbm_channel_more(&chan1)) return 0;
+
+  return 1;
+}
+
 
 // ////////////////////////////////////////////////////////////
 // run the tests
@@ -625,6 +668,9 @@ int main(void) {
   total_tests++; if (test_buffered_char_channel_reader_closed_closed()) tests_passed++;
   total_tests++; if (test_buffered_char_channel_is_empty()) tests_passed++;
 
+  total_tests++; if (test_string_char_channel_goes_full()) tests_passed++;
+  total_tests++; if (test_string_char_channel_read_0_no_more()) tests_passed++;
+  
   if (tests_passed == total_tests) {
     printf("SUCCESS\n");
     return 0;
