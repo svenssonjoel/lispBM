@@ -16,6 +16,48 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*
+  eval_cps uses setjmp/longjmp for error handling.
+
+  setjmp/longjmp behavior is undefined:
+  * If the function which  called  setjmp()  returns  before  longjmp()  is
+    called,  the  behavior  is  undefined.  Some kind of subtle or unsubtle
+    chaos is sure to result.
+
+  * If, in a multithreaded program, a longjmp() call employs an env  buffer
+    that  was  initialized by a call to setjmp() in a different thread, the
+    behavior is undefined.
+
+  As I understand it MISRA C guidelines prohibit (quite completely) any use
+  of setjmp/longjmp for safety-critical applications.
+
+  The LispBM eval_cps evaluator is careful to not fall into either of the
+  undefined behavior situations by:
+  1. setjmp is called in the lbm_run_eval() function which is responsible
+     for running all evaluation.
+  2. longjmp is called as part of the ERROR_CTX/ERROR_AT_CTX macros which
+     are executed by the evaluator in error cases.
+  3. the jump buffers are static (error_jmp_buf, critical_error_jmp_buf).
+  4. The error_ctx/error_at_ctx functions are static.
+  5. The ERROR_CTX/ERROR_AT_CTX/READ_ERROR_CTX macros are only called in
+     static functions.
+     TODO Check static functions that call ERROR_CTX are not called by any
+      non-static function, The only call-chain that leads to a longjmp must
+      originate in lbm_run_eval().
+  => (if the TODO is dealt with) it is impossible to trigger the undefined
+     conditions.
+
+  Possible alternative to setjmp/longjmp is to cram all of the stuff
+  that eval_cps does into a single function and use GOTO to jump between the
+  different continuation and evaluation and error cases. This would be even
+  worse from a "structured programming" viewpoint, but it would also possibly
+  be a bit a faster.
+
+  The setjmp/longjmp error handling applied here is well contained and has
+  been rigorously tested over time. There is a bit more to do in terms of
+  documenting the error handling choices and it would also be nice to statically
+  check/verify that we are ruling out the undefined use cases.
+*/
 #include <lbm_memory.h>
 #include <lbm_types.h>
 #include "symrepr.h"
