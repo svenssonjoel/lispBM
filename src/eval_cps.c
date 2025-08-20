@@ -5289,7 +5289,7 @@ static void cont_qq_expand_start(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-lbm_value quote_it(lbm_value qquoted) {
+static lbm_value quote_it(lbm_value qquoted) {
   if (lbm_is_symbol(qquoted) &&
       lbm_is_special(qquoted)) return qquoted;
 
@@ -5297,13 +5297,13 @@ lbm_value quote_it(lbm_value qquoted) {
   return cons_with_gc(ENC_SYM_QUOTE, val, ENC_SYM_NIL);
 }
 
-bool is_append(lbm_value a) {
+static bool is_append(lbm_value a) {
   return (lbm_is_cons(a) && 
           lbm_is_symbol(lbm_ref_cell(a)->car) &&
           (lbm_ref_cell(a)->car == ENC_SYM_APPEND));
 }
 
-lbm_value append(lbm_value front, lbm_value back) {
+static lbm_value append(lbm_value front, lbm_value back) {
   if (lbm_is_symbol_nil(front)) return back;
   if (lbm_is_symbol_nil(back)) return front;
 
