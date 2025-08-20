@@ -250,11 +250,34 @@ int lbm_get_max_flatten_depth(void) {
   return flatten_maximum_depth;
 }
 
-void flatten_error(jmp_buf jb, int val) {
+static void flatten_error(jmp_buf jb, int val) {
   longjmp(jb, val);
 }
 
-int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool image) {
+/* Use of setjmp/longjmp in flatten_value_size
+
+  setjmp/longjmp behavior is undefined:
+  * If the function which  called  setjmp()  returns  before  longjmp()  is
+    called,  the  behavior  is  undefined.  Some kind of subtle or unsubtle
+    chaos is sure to result.
+
+  * If, in a multithreaded program, a longjmp() call employs an env  buffer
+    that  was  initialized by a call to setjmp() in a different thread, the
+    behavior is undefined.
+
+  The use of setjmp/longjmp in in flatten_value_size_internal/flatten_value_size
+  is avoiding undefined behviour by:
+  1. flatten_value_size_internal is static.
+  2. flatten_error is static.
+  3. flatten_error is ONLY allowed to be called from flatten_value_size_internal.
+  4. The jmpbuf is created in flatten_value_size, which is exposed API.
+  5. Only flatten_value_size calls flatten_value_size_internal.
+
+  Changes to the flat value code MUST NOT change 1 - 5 properties mentioned
+  above.
+*/
+
+static int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool image) {
   if (depth > flatten_maximum_depth) {
     flatten_error(jb, FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH);
   }
