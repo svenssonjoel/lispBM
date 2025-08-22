@@ -452,10 +452,9 @@ bool lbm_event_unboxed(lbm_value unboxed) {
       t == LBM_TYPE_U ||
       t == LBM_TYPE_CHAR) {
     if (lbm_event_handler_pid > 0) {
-      if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) <= lbm_event_queue_item_count()) {
-        return false;
+      if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) > lbm_event_queue_item_count()) {
+        return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)unboxed, 0);
       }
-      return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)unboxed, 0);
     }
   }
   return false;
@@ -463,25 +462,24 @@ bool lbm_event_unboxed(lbm_value unboxed) {
 
 bool lbm_event(lbm_flat_value_t *fv) {
   if (lbm_event_handler_pid > 0) {
-    if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) <= lbm_event_queue_item_count()) {
-      return false;
+    if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) > lbm_event_queue_item_count()) {
+      return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
     }
-    return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
   }
   return false;
 }
 
 static bool lbm_event_pop(lbm_event_t *event) {
   mutex_lock(&lbm_events_mutex);
-  if (lbm_events_head == lbm_events_tail && !lbm_events_full) {
-    mutex_unlock(&lbm_events_mutex);
-    return false;
+  bool r = false;
+  if (lbm_events_head != lbm_events_tail || lbm_events_full) {
+    *event = lbm_events[lbm_events_tail];
+    lbm_events_tail = (lbm_events_tail + 1) % lbm_events_max;
+    lbm_events_full = false;
+    r = true;
   }
-  *event = lbm_events[lbm_events_tail];
-  lbm_events_tail = (lbm_events_tail + 1) % lbm_events_max;
-  lbm_events_full = false;
   mutex_unlock(&lbm_events_mutex);
-  return true;
+  return r;
 }
 
 bool lbm_event_queue_is_empty(void) {
@@ -520,10 +518,10 @@ void lbm_set_hide_trapped_error(bool hide) {
 }
 
 lbm_cid lbm_get_current_cid(void) {
+  lbm_cid cid = -1;
   if (ctx_running)
-    return ctx_running->id;
-  else
-    return -1;
+    cid = ctx_running->id;
+  return cid;
 }
 
 eval_context_t *lbm_get_current_context(void) {
