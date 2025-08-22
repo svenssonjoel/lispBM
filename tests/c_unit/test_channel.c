@@ -593,6 +593,58 @@ int test_buffered_char_channel_is_empty(void) {
   return 1;
 }
 
+int test_buffered_char_channel_need_more(void) {
+
+  const char *code = "(+ 1 2 3 (+ 1 2 3))";
+
+  char result[100];
+  memset(result,0, 100);
+  lbm_buffered_channel_state_t bs;
+  lbm_char_channel_t chan1;
+
+  lbm_create_buffered_char_channel(&bs, &chan1);
+
+  for (int i = 0; i < strlen(code); i ++)  {
+    lbm_channel_write(&chan1, code[i]);
+
+    lbm_channel_read(&chan1, &result[i]);
+    char dummy;
+    lbm_channel_read(&chan1,&dummy); // should fail in a resumable way
+  }
+  
+  //printf("%s\n", result);
+  if (strncmp(code, result, strlen(code)) == 0)
+    return 1;
+  return 0;
+}
+
+int test_buffered_char_channel_need_more_with_comment(void) {
+
+  const char *code = "(+ 1 2 3 (+ 1 2 3))\n;; Hello world\n(print apa)";
+
+  char result[100];
+  memset(result,0, 100);
+  lbm_buffered_channel_state_t bs;
+  lbm_char_channel_t chan1;
+
+  lbm_create_buffered_char_channel(&bs, &chan1);
+
+  for (int i = 0; i < strlen(code); i ++)  {
+    lbm_channel_write(&chan1, code[i]);
+
+    lbm_channel_read(&chan1, &result[i]);
+    char dummy;
+    lbm_channel_read(&chan1,&dummy); // should fail in a resumable way
+  }
+  
+  //printf("%s\n", result);
+  if (strncmp(code, result, strlen(code)) == 0)
+    return 1;
+  return 0;
+}
+
+
+
 int test_string_char_channel_goes_full(void) {
 
   char str[10];
@@ -667,7 +719,9 @@ int main(void) {
   total_tests++; if (test_buffered_char_channel_drop()) tests_passed++;
   total_tests++; if (test_buffered_char_channel_reader_closed_closed()) tests_passed++;
   total_tests++; if (test_buffered_char_channel_is_empty()) tests_passed++;
-
+  total_tests++; if (test_buffered_char_channel_need_more()) tests_passed++;
+  total_tests++; if (test_buffered_char_channel_need_more_with_comment()) tests_passed++;
+  
   total_tests++; if (test_string_char_channel_goes_full()) tests_passed++;
   total_tests++; if (test_string_char_channel_read_0_no_more()) tests_passed++;
   
