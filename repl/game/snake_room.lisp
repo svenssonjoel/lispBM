@@ -79,7 +79,7 @@
                   (print "To the north, behind the snake, there is a closed stone door.\n")
                   })
                   
-                 ((go north (? cid))
+                 ((go north)
                   (if (not (assoc snake-room-persistant-assoc 'door-open))
                       (print "The door is sealed shut.")
                       {

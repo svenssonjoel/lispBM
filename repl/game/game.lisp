@@ -58,7 +58,7 @@
                (send (assoc game-state 'room-cid) `(look ,x))))
 
 (define go (lambda (x)
-             (send (assoc game-state 'room-cid) `(go ,x ,(assoc game-state 'main-cid)))))
+             (send (assoc game-state 'room-cid) `(go ,x ))))
 
 (define open (lambda (x)
                (send (assoc game-state 'room-cid) `(open ,x))))
