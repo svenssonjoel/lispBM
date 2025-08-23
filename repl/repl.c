@@ -81,7 +81,6 @@
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
 
-
 // ////////////////////////////////////////////////////////////
 // Stub loaders
 void load_vesc_express_extensions(void);
@@ -379,6 +378,13 @@ static volatile _Atomic bool prompt_printed_last = false;
  * safely, as long as it makes sure that the current line was empty when it
  * starts the new prompt, i.e. it should end every `printf` call with '\n'.
  */
+
+/* readline is not a threadsafe library,
+   removing the rl functions from this function.
+   Keeping as comments so I remember to check if there is
+   a real solution.
+*/ 
+
 static int printf_redraw_prompt(const char *format, ...) {
   // Print string to buffer
   va_list args;
@@ -391,9 +397,9 @@ static int printf_redraw_prompt(const char *format, ...) {
   }
 
 #ifndef LBM_WIN
-  if (prompt_printed_last) {
-    rl_clear_visible_line();
-  }
+  //if (prompt_printed_last) {
+  //  rl_clear_visible_line();
+  //}
 #endif
   
   fputs(buffer, stdout);
@@ -402,7 +408,7 @@ static int printf_redraw_prompt(const char *format, ...) {
   // Redraw prompt if output ends with a newline.
   if (len > 0 && buffer[len - 1] == '\n' && readline_started) {
 #ifndef LBM_WIN
-    rl_redraw_prompt_last_line();
+    // rl_redraw_prompt_last_line();
 #endif
     prompt_printed_last = true;
   }

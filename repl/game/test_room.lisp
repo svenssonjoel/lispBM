@@ -11,9 +11,11 @@
                      1 0 0 0 0 0 0 1
                      1 1 1 1 1 1 1 1 ])
 
-(print "Room tiles loaded:")
-(print room-tiles)
-
+;; Test body function
+(define test-body (lambda (img x y)
+  {
+    (img-rectangle img (+ x 10) (+ y 20) 30 10 0x00AA00)
+  }))
 
 ;; room thread 
 (lambda (game-state)
@@ -25,6 +27,11 @@
 
         ;; Render the room using the consolidated function
         (render-room-from-tiles disp room-tiles 80 120 280 250)
+        
+          ;; Demo: test horizontal snake
+          (render-snake-from-path disp 50 50 '())
+          (render-snake-from-path disp 50 150 '(we wn ))
+          (render-snake-from-path disp 200 150 '(we ws ns ns))
         (disp-render disp 0 0 (list))
           
         ;; Handle messages

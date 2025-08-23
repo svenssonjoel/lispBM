@@ -418,6 +418,10 @@ bool sdl_render_image(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colo
     uint8_t  bpp = img->fmt;
 
     SDL_Texture* tex = SDL_CreateTexture(active_rend, SDL_PIXELFORMAT_RGB888,SDL_TEXTUREACCESS_STREAMING, w, h);
+    if (!tex) {
+      printf("lbm_sdl: Failed allocating texture\n");
+      return false;
+    }
     int pitch = 0;
 
     uint8_t* p = NULL;

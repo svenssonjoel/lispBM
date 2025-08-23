@@ -54,44 +54,23 @@
         
       ((eq tile-type 3)
         {
-          ;; Door - changes based on state
-          (var door-open (assoc test_room_persistant_assoc 'door-open))
-          (if door-open
-            ;; Open door - dark opening with depth
-            {
-              (img-rectangle img pixel-x pixel-y 50 50 0x000000)
-              ;; Add some depth shading
-              (img-rectangle img pixel-x pixel-y 50 8 0x404040)
-              (img-rectangle img pixel-x (+ pixel-y 42) 50 8 0x404040)
-            }
-            ;; Closed door - wall with large seal
-            {
-              (img-rectangle img pixel-x pixel-y 50 50 0x808080)
-              ;; Large golden seal in center
-              (img-rectangle img (+ pixel-x 12) (+ pixel-y 12) 26 26 0xFFFF00)
-              (img-rectangle img (+ pixel-x 18) (+ pixel-y 18) 14 14 0xFF4000)
-              ;; Inner detail
-              (img-rectangle img (+ pixel-x 22) (+ pixel-y 22) 6 6 0xFFFF00)
-            })
+          (img-rectangle img pixel-x pixel-y 50 50 0x808080)
+          ;; Large golden seal in center
+          (img-rectangle img (+ pixel-x 12) (+ pixel-y 12) 26 26 0xFFFF00)
+          (img-rectangle img (+ pixel-x 18) (+ pixel-y 18) 14 14 0xFF4000)
+          ;; Inner detail
+          (img-rectangle img (+ pixel-x 22) (+ pixel-y 22) 6 6 0xFFFF00)
         })
         
 )
   }))
 
 ;; Render entire room from tile array (8x8) with background and characters
-(define render-room-from-tiles (lambda (img tile-array wizard-x wizard-y player-x player-y)
+(define render-room-from-tiles (lambda (img tile-array)
   {
-    ;; Clear background
-    (img-rectangle img 0 0 400 400 0x202020)
-    
-    ;; Render tiles
     (var tile-index 0)
-    (var y 0)
-    (loopwhile (< y 8)
-      {
-        (var x 0)
-        (loopwhile (< x 8)
-          {
+    (looprange y 0 8 {
+        (looprange x 0 8{
             (var tile-type (bufget-u8 tile-array tile-index))
             (render-tile img x y tile-type)
             (setq x (+ x 1))
@@ -99,10 +78,6 @@
           })
         (setq y (+ y 1))
       })
-    
-    ;; Render characters at specified positions
-    (render-wizard img wizard-x wizard-y)
-    (render-player img player-x player-y)
   }))
 
 ;; Helper function to set a tile in the byte array
@@ -142,4 +117,214 @@
     ;; Legs - brown pants
     (img-rectangle img (+ x 20) (+ y 40) 4 8 0x654321)
     (img-rectangle img (+ x 26) (+ y 40) 4 8 0x654321)
+  }))
+
+;; Snake sprite system for representing lists
+;; Snake colors: head=red, body=green, different shades for depth
+
+;; Snake head with triangular snout for better direction indication
+(define render-snake-head
+    (lambda (img x y direction)
+      (cond 
+        ((eq direction 'east)
+         (progn
+           ;; Main head body (rectangular)
+           (img-rectangle img (+ x 17) (+ y 18) 18 14 0xFF0000)
+           ;; Eyes on the head body
+           (img-rectangle img (+ x 29) (+ y 21) 3 3 0xFFFFFF)
+           (img-rectangle img (+ x 29) (+ y 27) 3 3 0xFFFFFF)
+           ;; Triangular snout pointing west
+           (img-rectangle img (+ x 13) (+ y 22) 4 6 0xCC0000)  ; base of triangle
+           (img-rectangle img (+ x 11) (+ y 23) 2 4 0xCC0000)  ; middle of triangle  
+           (img-rectangle img (+ x 10) (+ y 24) 1 2 0xCC0000)  ; tip of triangle
+           ))
+        ((eq direction 'west)
+         (progn
+           ;; Main head body (rectangular)
+           (img-rectangle img (+ x 15) (+ y 18) 18 14 0xFF0000)
+           ;; Eyes on the head body
+           (img-rectangle img (+ x 18) (+ y 21) 3 3 0xFFFFFF)
+           (img-rectangle img (+ x 18) (+ y 27) 3 3 0xFFFFFF)
+           ;; Triangular snout pointing east (made with rectangles)
+           (img-rectangle img (+ x 33) (+ y 22) 4 6 0xCC0000)  ; base of triangle
+           (img-rectangle img (+ x 37) (+ y 23) 2 4 0xCC0000)  ; middle of triangle  
+           (img-rectangle img (+ x 39) (+ y 24) 1 2 0xCC0000)  ; tip of triangle
+           ))
+        ((eq direction 'north)
+         (progn
+           ;; Main head body (rectangular)
+           (img-rectangle img (+ x 18) (+ y 17) 14 18 0xFF0000)
+           ;; Eyes on the head body
+           (img-rectangle img (+ x 21) (+ y 29) 3 3 0xFFFFFF)
+           (img-rectangle img (+ x 27) (+ y 29) 3 3 0xFFFFFF)
+           ;; Triangular snout pointing north
+           (img-rectangle img (+ x 22) (+ y 13) 6 4 0xCC0000)  ; base of triangle
+           (img-rectangle img (+ x 23) (+ y 11) 4 2 0xCC0000)  ; middle of triangle  
+           (img-rectangle img (+ x 24) (+ y 10) 2 1 0xCC0000)  ; tip of triangle
+           ))
+        ((eq direction 'south)
+         (progn
+           ;; Main head body (rectangular)  
+           (img-rectangle img (+ x 18) (+ y 15) 14 18 0xFF0000)
+           ;; Eyes on the head body
+           (img-rectangle img (+ x 21) (+ y 18) 3 3 0xFFFFFF)
+           (img-rectangle img (+ x 27) (+ y 18) 3 3 0xFFFFFF)
+           ;; Triangular snout pointing south
+           (img-rectangle img (+ x 22) (+ y 33) 6 4 0xCC0000)  ; base of triangle
+           (img-rectangle img (+ x 23) (+ y 37) 4 2 0xCC0000)  ; middle of triangle  
+           (img-rectangle img (+ x 24) (+ y 39) 2 1 0xCC0000)  ; tip of triangle
+           ))
+        (t (img-rectangle img (+ x 20) (+ y 20) 10 10 0xFF0000)))))
+
+;; Snake body segment - horizontal
+(define render-snake-body-h (lambda (img x y)
+  (img-rectangle img (+ x 10) (+ y 20) 30 10 0x00AA00)))
+
+;; Snake body segment - vertical
+(define render-snake-body-v (lambda (img x y)
+  (img-rectangle img (+ x 20) (+ y 10) 10 30 0x00AA00)))
+
+;; Snake corner pieces - 4 basic shapes cover all 8 transitions
+;; NE corner (north-east turn and east-north turn)
+(define render-snake-corner-ne (lambda (img x y)
+  (progn
+    ;; Vertical part (north connection)
+    (img-rectangle img (+ x 20) (+ y 10) 10 20 0x00AA00)
+    ;; Horizontal part (east connection)  
+    (img-rectangle img (+ x 25) (+ y 20) 15 10 0x00AA00))))
+
+;; NW corner (north-west turn and west-north turn) 
+(define render-snake-corner-nw (lambda (img x y)
+  (progn
+    ;; Vertical part (north connection)
+    (img-rectangle img (+ x 20) (+ y 10) 10 20 0x00AA00)
+    ;; Horizontal part (west connection)
+    (img-rectangle img (+ x 10) (+ y 20) 15 10 0x00AA00))))
+
+;; SE corner (south-east turn and east-south turn)
+(define render-snake-corner-se (lambda (img x y)
+  (progn
+    ;; Vertical part (south connection)
+    (img-rectangle img (+ x 20) (+ y 20) 10 20 0x00AA00)
+    ;; Horizontal part (east connection)
+    (img-rectangle img (+ x 25) (+ y 20) 15 10 0x00AA00))))
+
+;; SW corner (south-west turn and west-south turn)
+(define render-snake-corner-sw (lambda (img x y)
+  (progn
+    ;; Vertical part (south connection)
+    (img-rectangle img (+ x 20) (+ y 20) 10 20 0x00AA00)
+    ;; Horizontal part (west connection)
+    (img-rectangle img (+ x 10) (+ y 20) 15 10 0x00AA00))))
+
+
+(define render-snake-tail (lambda (img x y)
+  (img-rectangle img (+ x 20) (+ y 20) 10 10 0x006600)))
+
+(define translate-snake-render-pos
+    (lambda (x y direction)
+      (match direction
+             ;; Straight segments
+             (ew (cons (- x 50) y))
+             (we (cons (+ x 50) y))
+             (ns (cons x (+ y 50)))
+             (sn (cons x (- y 50)))
+             ;; Corner transitions - position depends on turn direction
+             (ne (cons (+ x 50) y))
+             (en (cons x (- y 50)))
+             (nw (cons x (+ y 50)))
+             (wn (cons x (- y 50)))
+             (se (cons (+ x 50) y))
+             (sw (cons (- x 50) y))
+             (ws (cons x (+ y 50))))))
+                       
+(define render-snake-from-path (lambda (img head-x head-y directions)
+  (if (eq directions nil)
+    ;; Empty list - render tombstone (defeated snake) centered in 50x50 tile
+    (progn
+      ;; Tombstone base (dark gray stone) - centered in tile
+      (img-rectangle img (+ head-x 15) (+ head-y 20) 20 25 0x606060)
+      ;; Tombstone top (rounded with smaller rectangle)
+      (img-rectangle img (+ head-x 17) (+ head-y 15) 16 10 0x606060)
+      (img-rectangle img (+ head-x 19) (+ head-y 13) 12 6 0x606060)
+      ;; Inscription "RIP" - centered
+      (img-rectangle img (+ head-x 20) (+ head-y 23) 2 6 0xFFFFFF)  ; R - vertical
+      (img-rectangle img (+ head-x 20) (+ head-y 23) 4 2 0xFFFFFF)  ; R - top
+      (img-rectangle img (+ head-x 20) (+ head-y 26) 4 2 0xFFFFFF)  ; R - middle
+      (img-rectangle img (+ head-x 23) (+ head-y 24) 1 4 0xFFFFFF)  ; R - diagonal
+      (img-rectangle img (+ head-x 27) (+ head-y 23) 2 6 0xFFFFFF)   ; I - vertical
+      (img-rectangle img (+ head-x 30) (+ head-y 23) 4 2 0xFFFFFF)   ; P - top
+      (img-rectangle img (+ head-x 30) (+ head-y 26) 4 2 0xFFFFFF)   ; P - middle
+      (img-rectangle img (+ head-x 30) (+ head-y 23) 2 6 0xFFFFFF)   ; P - left
+      ;; Small cross on top - centered
+      (img-rectangle img (+ head-x 24) (+ head-y 10) 2 6 0x808080)  ; vertical
+      (img-rectangle img (+ head-x 22) (+ head-y 12) 6 2 0x808080)  ; horizontal
+    )
+    ;; Non-empty list - render snake from directions
+    (progn
+      ;; Draw head facing opposite of first direction
+      (var first-dir (car directions))
+      (var head-facing (cond 
+        ((eq first-dir 'ew) 'west)
+        ((eq first-dir 'we) 'east) 
+        ((eq first-dir 'ns) 'north)
+        ((eq first-dir 'sn) 'south)
+        ;; Corner transitions - head faces the "from" direction
+        ((eq first-dir 'ne) 'south)  ; north->east turn, head faces south
+        ((eq first-dir 'en) 'west)   ; east->north turn, head faces west  
+        ((eq first-dir 'nw) 'south)  ; north->west turn, head faces south
+        ((eq first-dir 'wn) 'east)   ; west->north turn, head faces east
+        ((eq first-dir 'se) 'north)  ; south->east turn, head faces north
+        ((eq first-dir 'es) 'west)   ; east->south turn, head faces west
+        ((eq first-dir 'sw) 'north)  ; south->west turn, head faces north  
+        ((eq first-dir 'ws) 'east)   ; west->south turn, head faces east
+        (t 'east)))
+      (render-snake-head img head-x head-y head-facing)
+      ;; Draw body segments
+      
+      (var (curr-x . curr-y) (translate-snake-render-pos head-x head-y first-dir))
+      
+      (var dir-list (cdr directions))
+      (loopwhile dir-list {
+            (var dir (car dir-list))
+            ;; Move to next position based on direction
+            ;; Draw appropriate segment
+            ;; Body segment or corner
+            (cond
+              ;; Corner pieces
+              ((eq dir 'ne) (render-snake-corner-ne img curr-x curr-y))
+              ((eq dir 'en) (render-snake-corner-ne img curr-x curr-y))
+              ((eq dir 'nw) (render-snake-corner-nw img curr-x curr-y))
+              ((eq dir 'wn) (render-snake-corner-nw img curr-x curr-y))
+              ((eq dir 'se) (render-snake-corner-se img curr-x curr-y))
+              ((eq dir 'es) (render-snake-corner-se img curr-x curr-y))
+              ((eq dir 'sw) (render-snake-corner-sw img curr-x curr-y))
+              ((eq dir 'ws) (render-snake-corner-sw img curr-x curr-y))
+              ;; Straight body segments
+              ((eq dir 'ew) (render-snake-body-h img curr-x curr-y))
+              ((eq dir 'we) (render-snake-body-h img curr-x curr-y))
+              ((eq dir 'ns) (render-snake-body-v img curr-x curr-y))
+              ((eq dir 'sn) (render-snake-body-v img curr-x curr-y)))
+
+            (var (new-x . new-y) (translate-snake-render-pos curr-x curr-y dir))
+            (setq curr-x new-x)
+            (setq curr-y new-y)  
+            
+            (setq dir-list (cdr dir-list))
+      })
+      (render-snake-tail img curr-x curr-y)
+      )
+    )))
+
+;; Demo function: render a sample snake representing list '(1 2 3)
+(define demo-snake (lambda (img)
+  {
+    ;; Simple L-shaped snake: head east, corner, body down, tail
+    (var snake-path '((50 100 'east 'head)
+                      (100 100 'east 'corner-se) 
+                      (100 150 'south 'body-v)
+                      (100 200 'south 'tail)))
+    (render-snake-from-path img snake-path)
+    (var a-dead-snake '())
+    (render-snake-from-path img a-dead-snake)
   }))
