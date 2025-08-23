@@ -2,7 +2,8 @@
 ;; grid of rooms
 ;; extract room x/y by (ix (ix map-of-rooms x) y)  
 (define map-of-rooms
-    '(("snake_room.lisp")))
+    '(("test_room.lisp" not-a-room)
+      ("snake_room.lisp" not-a-room)))
 
 (define game-state '((room-cid . -1)))
 
@@ -11,11 +12,11 @@
 (define load-room
     (lambda (pos)
       (let (((x . y) pos)
-            (room-file (ix (ix map-of-rooms x) y))
+            (room-file (ix (ix map-of-rooms y) x))
             (room-h (fopen room-file "r"))
             (room (load-file room-h))
             (room-fun (read-eval-program room))
-            (room-cid (spawn room-fun game-state)))
+            (room-cid (spawn room-file room-fun)))
         {
         (fclose room-h)
         (setq game-state (setassoc game-state 'room-cid room-cid))
@@ -51,13 +52,37 @@
           (event-loop w)))))
 
 
-(print "init SDL")
+;; Define player interface 
+
+(define look (lambda (x)
+               (send (assoc game-state 'room-cid) `(look ,x))))
+
+(define go (lambda (x)
+             (send (assoc game-state 'room-cid) `(go ,x ,(assoc game-state 'main-cid)))))
+
+(define open (lambda (x)
+               (send (assoc game-state 'room-cid) `(open ,x))))
+
+(define help
+    (lambda ()
+        {
+        (print "You interact with the environment by writing code in the REPL.")
+        (print "The following commands control the players interaction with the room.")
+        (print " - (look <argument>) : example (look 'wizard) to look at the wizard")
+        (print " - (go <argument>) : example (go 'north)")
+        (print " - (open <argument>) : example (open 'door)")
+        (print "")
+        (print "The arguments vary depending on room but should make sense if looking at the graphical representation")
+        (print "")
+        (print "Arbitrary lisp code can be entered into the REPL in order to solve the rooms.")
+        }))
+            
+
+
+;; Start the game 
 (sdl-init)
-(print "creating window")
 (define win (sdl-create-window "GAME" 400 400))
-(print "window opened")
 (define rend (sdl-create-soft-renderer win))
-(print "renderer created")
 
 (sdl-renderer-set-color rend 0 0 0)
 (sdl-clear rend)
@@ -73,9 +98,45 @@
 (spawn 100 event-loop win)
 
 (setq game-state (acons 'disp disp game-state))
-                                        ;(print game-state)
+
+;;(print game-state)
 
 ;; TODO: put everything needed by the room code into game-state.
 
 ;; testing and example
-(load-room '(0 . 0))
+
+(define room-x 0)
+(define room-y 1)
+(define done nil)
+
+(load-room (cons room-x  room-y))
+
+(define main-loop
+    (lambda () {
+      (setq game-state (acons 'main-cid (self) game-state))
+      (loopwhile (not done) {
+       (recv ((room-change (? dir))
+              (match dir
+                     (north (setq room-y (- room-y 1)))
+                     (south (setq room-y (+ room-y 1)))
+                     (east  (setq room-x (+ room-x 1)))
+                     (west  (setq room-x (- room-x 1)))))
+             (_ (print "You are a bit sneaky!"))
+             )
+       (if (and (< room-y (length map-of-rooms))
+                (< room-x (length (ix map-of-rooms room-y))))
+           (if (eq (type-of (ix (ix map-of-rooms room-y) room-x)) type-array)
+               (load-room (cons room-x  room-y))
+               (printf "Your magic is strong!"))
+           (print "Where are you going?"))
+       })
+      (print "exit main loop")
+      }))
+
+(spawn main-loop)
+                    
+        
+ 
+               
+                      
+                       

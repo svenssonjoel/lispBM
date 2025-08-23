@@ -1,6 +1,8 @@
 ;; Room Tile System
 ;; 8x8 grid = 64 bytes, each tile is 50x50 pixels (400x400 total)
-;; Tile types: 0=empty, 1=wall, 2=wall+hieroglyph, 3=door
+;; Tile types: 0=empty, 1=wall, 2=wall+hieroglyph, 3=door, 4=open_door,
+;; 5=door_left, 6=door_right, 7=door_top, 8=door_bottom,
+;; 9=open_door_left, 10=open_door_right, 11=open_door_top, 12=open_door_bottom
 
 ;; Tile rendering functions
 (define render-tile (lambda (img tile-x tile-y tile-type)
@@ -62,6 +64,112 @@
           (img-rectangle img (+ pixel-x 22) (+ pixel-y 22) 6 6 0xFFFF00)
         })
         
+      ((eq tile-type 4)
+        {
+          ;; Open door - dark opening with archway
+          (img-rectangle img pixel-x pixel-y 50 50 0x202020)
+          ;; Stone archway frame
+          (img-rectangle img pixel-x pixel-y 50 8 0x808080)
+          (img-rectangle img pixel-x (+ pixel-y 42) 50 8 0x808080)
+          (img-rectangle img pixel-x pixel-y 8 50 0x808080)
+          (img-rectangle img (+ pixel-x 42) pixel-y 8 50 0x808080)
+          ;; Archway details
+          (img-rectangle img (+ pixel-x 8) (+ pixel-y 8) 4 4 0x606060)
+          (img-rectangle img (+ pixel-x 38) (+ pixel-y 8) 4 4 0x606060)
+        })
+        
+      ((eq tile-type 5)
+        {
+          ;; Left part of horizontal double door - closed
+          (img-rectangle img pixel-x pixel-y 50 50 0x808080)
+          ;; Left half of golden seal
+          (img-rectangle img (+ pixel-x 18) (+ pixel-y 12) 20 26 0xFFFF00)
+          (img-rectangle img (+ pixel-x 24) (+ pixel-y 18) 14 14 0xFF4000)
+          ;; Left border detail
+          (img-rectangle img pixel-x pixel-y 8 50 0x606060)
+        })
+        
+      ((eq tile-type 6)
+        {
+          ;; Right part of horizontal double door - closed
+          (img-rectangle img pixel-x pixel-y 50 50 0x808080)
+          ;; Right half of golden seal
+          (img-rectangle img (+ pixel-x 12) (+ pixel-y 12) 20 26 0xFFFF00)
+          (img-rectangle img (+ pixel-x 12) (+ pixel-y 18) 14 14 0xFF4000)
+          ;; Right border detail
+          (img-rectangle img (+ pixel-x 42) pixel-y 8 50 0x606060)
+        })
+        
+      ((eq tile-type 7)
+        {
+          ;; Top part of vertical double door - closed
+          (img-rectangle img pixel-x pixel-y 50 50 0x808080)
+          ;; Top half of golden seal
+          (img-rectangle img (+ pixel-x 12) (+ pixel-y 18) 26 20 0xFFFF00)
+          (img-rectangle img (+ pixel-x 18) (+ pixel-y 24) 14 14 0xFF4000)
+          ;; Top border detail
+          (img-rectangle img pixel-x pixel-y 50 8 0x606060)
+        })
+        
+      ((eq tile-type 8)
+        {
+          ;; Bottom part of vertical double door - closed
+          (img-rectangle img pixel-x pixel-y 50 50 0x808080)
+          ;; Bottom half of golden seal
+          (img-rectangle img (+ pixel-x 12) (+ pixel-y 12) 26 20 0xFFFF00)
+          (img-rectangle img (+ pixel-x 18) (+ pixel-y 12) 14 14 0xFF4000)
+          ;; Bottom border detail
+          (img-rectangle img pixel-x (+ pixel-y 42) 50 8 0x606060)
+        })
+        
+      ((eq tile-type 9)
+        {
+          ;; Left part of horizontal double door - open
+          (img-rectangle img pixel-x pixel-y 50 50 0x202020)
+          ;; Left archway frame
+          (img-rectangle img pixel-x pixel-y 50 8 0x808080)
+          (img-rectangle img pixel-x (+ pixel-y 42) 50 8 0x808080)
+          (img-rectangle img pixel-x pixel-y 8 50 0x808080)
+          ;; Left archway detail
+          (img-rectangle img (+ pixel-x 8) (+ pixel-y 8) 4 4 0x606060)
+        })
+        
+      ((eq tile-type 10)
+        {
+          ;; Right part of horizontal double door - open
+          (img-rectangle img pixel-x pixel-y 50 50 0x202020)
+          ;; Right archway frame
+          (img-rectangle img pixel-x pixel-y 50 8 0x808080)
+          (img-rectangle img pixel-x (+ pixel-y 42) 50 8 0x808080)
+          (img-rectangle img (+ pixel-x 42) pixel-y 8 50 0x808080)
+          ;; Right archway detail
+          (img-rectangle img (+ pixel-x 38) (+ pixel-y 8) 4 4 0x606060)
+        })
+        
+      ((eq tile-type 11)
+        {
+          ;; Top part of vertical double door - open
+          (img-rectangle img pixel-x pixel-y 50 50 0x202020)
+          ;; Top archway frame
+          (img-rectangle img pixel-x pixel-y 50 8 0x808080)
+          (img-rectangle img pixel-x pixel-y 8 50 0x808080)
+          (img-rectangle img (+ pixel-x 42) pixel-y 8 50 0x808080)
+          ;; Top archway detail
+          (img-rectangle img (+ pixel-x 8) (+ pixel-y 8) 4 4 0x606060)
+        })
+        
+      ((eq tile-type 12)
+        {
+          ;; Bottom part of vertical double door - open
+          (img-rectangle img pixel-x pixel-y 50 50 0x202020)
+          ;; Bottom archway frame
+          (img-rectangle img pixel-x (+ pixel-y 42) 50 8 0x808080)
+          (img-rectangle img pixel-x pixel-y 8 50 0x808080)
+          (img-rectangle img (+ pixel-x 42) pixel-y 8 50 0x808080)
+          ;; Bottom archway detail
+          (img-rectangle img (+ pixel-x 8) (+ pixel-y 38) 4 4 0x606060)
+        })
+        
 )
   }))
 
@@ -87,6 +195,20 @@
 ;; Helper function to get a tile from the byte array  
 (define get-tile (lambda (tile-array x y)
   (bufget-u8 tile-array (+ (* y 8) x))))
+
+;; Helper function to open a door at specific position
+(define open-door (lambda (tile-array x y)
+  {
+    (var current-tile (bufget-u8 tile-array (+ (* y 8) x)))
+    (var new-tile (match current-tile
+                         (3 4)    ; door -> open_door
+                         (5 9)    ; door_left -> open_door_left
+                         (6 10)   ; door_right -> open_door_right
+                         (7 11)   ; door_top -> open_door_top
+                         (8 12)   ; door_bottom -> open_door_bottom
+                         (_ current-tile))) ; no change for non-door tiles
+    (bufset-u8 tile-array (+ (* y 8) x) new-tile)
+  }))
 
 ;; Character rendering functions (not bound to tile grid)
 (define render-wizard (lambda (img x y)
@@ -243,42 +365,29 @@
     ;; Empty list - render tombstone (defeated snake) centered in 50x50 tile
     (progn
       ;; Tombstone base (dark gray stone) - centered in tile
-      (img-rectangle img (+ head-x 15) (+ head-y 20) 20 25 0x606060)
+      (img-rectangle img (+ head-x 15) (+ head-y 20) 20 25 0x606060 '(filled))
       ;; Tombstone top (rounded with smaller rectangle)
-      (img-rectangle img (+ head-x 17) (+ head-y 15) 16 10 0x606060)
-      (img-rectangle img (+ head-x 19) (+ head-y 13) 12 6 0x606060)
-      ;; Inscription "RIP" - centered
-      (img-rectangle img (+ head-x 20) (+ head-y 23) 2 6 0xFFFFFF)  ; R - vertical
-      (img-rectangle img (+ head-x 20) (+ head-y 23) 4 2 0xFFFFFF)  ; R - top
-      (img-rectangle img (+ head-x 20) (+ head-y 26) 4 2 0xFFFFFF)  ; R - middle
-      (img-rectangle img (+ head-x 23) (+ head-y 24) 1 4 0xFFFFFF)  ; R - diagonal
-      (img-rectangle img (+ head-x 27) (+ head-y 23) 2 6 0xFFFFFF)   ; I - vertical
-      (img-rectangle img (+ head-x 30) (+ head-y 23) 4 2 0xFFFFFF)   ; P - top
-      (img-rectangle img (+ head-x 30) (+ head-y 26) 4 2 0xFFFFFF)   ; P - middle
-      (img-rectangle img (+ head-x 30) (+ head-y 23) 2 6 0xFFFFFF)   ; P - left
-      ;; Small cross on top - centered
-      (img-rectangle img (+ head-x 24) (+ head-y 10) 2 6 0x808080)  ; vertical
-      (img-rectangle img (+ head-x 22) (+ head-y 12) 6 2 0x808080)  ; horizontal
+      (img-arc img (+ head-x 25) (+ head-y 20) 10 180 360 0x606060 '(filled))
     )
     ;; Non-empty list - render snake from directions
     (progn
       ;; Draw head facing opposite of first direction
       (var first-dir (car directions))
-      (var head-facing (cond 
-        ((eq first-dir 'ew) 'west)
-        ((eq first-dir 'we) 'east) 
-        ((eq first-dir 'ns) 'north)
-        ((eq first-dir 'sn) 'south)
-        ;; Corner transitions - head faces the "from" direction
-        ((eq first-dir 'ne) 'south)  ; north->east turn, head faces south
-        ((eq first-dir 'en) 'west)   ; east->north turn, head faces west  
-        ((eq first-dir 'nw) 'south)  ; north->west turn, head faces south
-        ((eq first-dir 'wn) 'east)   ; west->north turn, head faces east
-        ((eq first-dir 'se) 'north)  ; south->east turn, head faces north
-        ((eq first-dir 'es) 'west)   ; east->south turn, head faces west
-        ((eq first-dir 'sw) 'north)  ; south->west turn, head faces north  
-        ((eq first-dir 'ws) 'east)   ; west->south turn, head faces east
-        (t 'east)))
+      (var head-facing (match first-dir 
+                              (ew 'west)
+                              (we 'east) 
+                              (ns 'north)
+                              (sn 'south)
+                              ;; Corner transitions - head faces the "from" direction
+                              (ne 'south)  ; north->east turn, head faces south
+                              (en 'west)   ; east->north turn, head faces west  
+                              (nw 'south)  ; north->west turn, head faces south
+                              (wn 'east)   ; west->north turn, head faces east
+                              (se 'north)  ; south->east turn, head faces north
+                              (es 'west)   ; east->south turn, head faces west
+                              (sw 'north)  ; south->west turn, head faces north  
+                              (ws 'east)   ; west->south turn, head faces east
+                              (_ 'east)))
       (render-snake-head img head-x head-y head-facing)
       ;; Draw body segments
       
@@ -290,21 +399,21 @@
             ;; Move to next position based on direction
             ;; Draw appropriate segment
             ;; Body segment or corner
-            (cond
+            (match dir
               ;; Corner pieces
-              ((eq dir 'ne) (render-snake-corner-ne img curr-x curr-y))
-              ((eq dir 'en) (render-snake-corner-ne img curr-x curr-y))
-              ((eq dir 'nw) (render-snake-corner-nw img curr-x curr-y))
-              ((eq dir 'wn) (render-snake-corner-nw img curr-x curr-y))
-              ((eq dir 'se) (render-snake-corner-se img curr-x curr-y))
-              ((eq dir 'es) (render-snake-corner-se img curr-x curr-y))
-              ((eq dir 'sw) (render-snake-corner-sw img curr-x curr-y))
-              ((eq dir 'ws) (render-snake-corner-sw img curr-x curr-y))
+              (ne (render-snake-corner-ne img curr-x curr-y))
+              (en (render-snake-corner-ne img curr-x curr-y))
+              (nw (render-snake-corner-nw img curr-x curr-y))
+              (wn (render-snake-corner-nw img curr-x curr-y))
+              (se (render-snake-corner-se img curr-x curr-y))
+              (es (render-snake-corner-se img curr-x curr-y))
+              (sw (render-snake-corner-sw img curr-x curr-y))
+              (ws (render-snake-corner-sw img curr-x curr-y))
               ;; Straight body segments
-              ((eq dir 'ew) (render-snake-body-h img curr-x curr-y))
-              ((eq dir 'we) (render-snake-body-h img curr-x curr-y))
-              ((eq dir 'ns) (render-snake-body-v img curr-x curr-y))
-              ((eq dir 'sn) (render-snake-body-v img curr-x curr-y)))
+              (ew (render-snake-body-h img curr-x curr-y))
+              (we (render-snake-body-h img curr-x curr-y))
+              (ns (render-snake-body-v img curr-x curr-y))
+              (sn (render-snake-body-v img curr-x curr-y)))
 
             (var (new-x . new-y) (translate-snake-render-pos curr-x curr-y dir))
             (setq curr-x new-x)
