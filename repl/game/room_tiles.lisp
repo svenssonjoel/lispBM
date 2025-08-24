@@ -359,7 +359,42 @@
              (se (cons (+ x 50) y))
              (sw (cons (- x 50) y))
              (ws (cons x (+ y 50))))))
-                       
+
+(define is-snake
+    (let ((is-snake-part
+           (lambda (x)
+             (match x
+                    (ew t)
+                    (we t) 
+                    (ns t)
+                    (sn t)
+                    (ne t)  ; north->east turn, head faces south
+                    (en t)   ; east->north turn, head faces west  
+                    (nw t)  ; north->west turn, head faces south
+                    (wn t)   ; west->north turn, head faces east
+                    (se t)  ; south->east turn, head faces north
+                    (es t)   ; east->south turn, head faces west
+                    (sw t)  ; south->west turn, head faces north  
+                    (ws t)))))              
+      (lambda (ls)
+        (cond ((eq ls nil) t)
+              ((eq (type-of ls) type-list)
+               (if (eq ls nil) t
+                   (and (is-snake-part (car ls)) (is-snake (cdr ls)))))))))
+                              
+
+(define is-prefix
+    (lambda (a b)
+      (if (eq a nil) t
+          (if (eq (car a) (car b))
+              (is-prefix (cdr a) (cdr b))
+              nil))))
+
+(define is-suffix
+    (lambda (a b)
+      (is-prefix (reverse a) (reverse b))))
+
+
 (define render-snake-from-path (lambda (img head-x head-y directions)
   (if (eq directions nil)
     ;; Empty list - render tombstone (defeated snake) centered in 50x50 tile
@@ -437,3 +472,4 @@
     (var a-dead-snake '())
     (render-snake-from-path img a-dead-snake)
   }))
+

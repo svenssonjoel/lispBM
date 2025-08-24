@@ -28,12 +28,11 @@
   {
   ;; Get display buffer from game state
   (var disp (assoc game-state 'disp))
-  
-  (print "An evil snake is blocking the exit of this room!")
-  (print "You must vanquish the evil monstrosity!")
-  (print "To defeat this foe, you must know its name!")
-  (print "Today you are lucky, I know the beast's name and it is ernst-hugo.")
-  (print "Free a path to the door by reciting the correct incantation in the LANGUAGE OF THE GODS!")
+
+  (print "The wizard leans towards you and whispers:")
+  (print "\"The door is blocked by a serpentine monstrosity.\"")
+  (print "\"To battle this beast you must determine its name.\"")
+  (print "\"look at the snake (look snake) for clues to its identity.\"")
 
   (loopwhile (not snake-room-done) {
 
@@ -42,11 +41,16 @@
                    (print "Excellent! You cleared a path to the door.")
                    (setassoc snake-room-persistant-assoc 'cleared t)
                    })
-                  ((<= (length ernst-hugo) 1) {
+                  ((and (is-snake ernst-hugo) (<= (length ernst-hugo) 1)) {
                    (print "Fantastic! You cleared a path to the door.")
                    (print "Virtously you let the snake live.")
                    (setassoc snake-room-persistant-assoc 'cleared t)
                    })
+                  ((or (not (is-snake ernst-hugo))
+                       (not (is-suffix ernst-hugo'(sn se we we ws)))) {
+                     (setq ernst-hugo '(sn se we we ws))
+                     (print "ernst-hugo is resisting your attack!")
+                     })
                   )
             )
         
@@ -66,17 +70,35 @@
 
         ;; Handle messages
         (recv-to 0.1  ; Wait 10ms for messages
-                 ((look wizard)
-                  (print "The wizard is old and wise."))
-                 ((look snake)
-                  (print "The snake is quite scary.\n"))
+                 ((look wizard) {
+                  (print "The wizard is old and wise.")
+                  (print "")
+                  (print "The wizard speaks:")
+                  (print "\"You can always look around for clues.\"")    
+                  })
+                 ((look snake) {
+                  (print "The snake is quite scary looking.")
+                  (print "")
+                  (print "The snake hisses:")
+                  (print "\"Who dares disturb ernst-hugo?\"")
+                  (print "")
+                  (print "The wizard exclaims:")
+                  (print "\"We are in luck the vicious serpent gives his name freely!\"")
+                  (print "")
+                  (print "ernst-hugo snaps back:")
+                  (print "\"Puny mortals, you are no danger to me.\"")
+                  (print "\"I was defined into existence by the ancient gods\"")
+                  (print "\"and can only be destroyed by equally powerful magic.\"")
+                  (print "")       
+                 })
                  ((look door)
                   (if (assoc snake-room-persistant-assoc 'door-open)
                       (print "The door towards the north is open.\n")
                       (print "The door towards the north is closed.\n")))
                  ((look _) {
-                  (print "There is a wizard and a snake in this room!")
-                  (print "To the north, behind the snake, there is a closed stone door.\n")
+                  (print "You stand in an ancient stone chamber.")
+                  (print "A wise wizard watches from the shadows.")
+                  (print "To the north, a scaled beast coils before sealed doors.")
                   })
                   
                  ((go north)

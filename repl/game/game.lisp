@@ -54,23 +54,23 @@
 
 ;; Define player interface 
 
-(define look (lambda (x)
-               (send (assoc game-state 'room-cid) `(look ,x))))
+(define look (macro (x)
+               `(send (assoc game-state 'room-cid) '(look ,x))))
 
-(define go (lambda (x)
-             (send (assoc game-state 'room-cid) `(go ,x ))))
+(define go (macro (x)
+             `(send (assoc game-state 'room-cid) '(go ,x ))))
 
-(define open (lambda (x)
-               (send (assoc game-state 'room-cid) `(open ,x))))
+(define open (macro (x)
+               `(send (assoc game-state 'room-cid) '(open ,x))))
 
 (define help
     (lambda ()
         {
         (print "You interact with the environment by writing code in the REPL.")
         (print "The following commands control the players interaction with the room.")
-        (print " - (look <argument>) : example (look 'wizard) to look at the wizard")
-        (print " - (go <argument>) : example (go 'north)")
-        (print " - (open <argument>) : example (open 'door)")
+        (print " - (look <argument>) : example (look wizard) to look at the wizard")
+        (print " - (go <argument>) : example (go north)")
+        (print " - (open <argument>) : example (open door)")
         (print "")
         (print "The arguments vary depending on room but should make sense if looking at the graphical representation")
         (print "")
