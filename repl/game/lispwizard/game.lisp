@@ -1,3 +1,11 @@
+(hide-trapped-error)
+(if (not (eq (trap sdl-init)
+             '(exit-ok sdl-init)))
+    {
+    (print "You need a the LispBM REPL compiled with SDL support to play this game.")
+    (exit-error 'no-sdl)
+    }
+    )
 
 ;; grid of rooms
 ;; extract room x/y by (ix (ix map-of-rooms x) y)  
@@ -36,20 +44,31 @@
 (define game-running t)
 
 (defun event-loop (w)
-  (let ((event (sdl-poll-event)))
-    (if (eq event 'sdl-quit-event) {
-        (var room-cid (assoc game-state 'room-cid))
-        (if (> room-cid 0) {
-            (print "killing the room thread")
-            (kill room-cid 0)
-            (wait room-cid)
-            })
-        (custom-destruct w)
-        (setq game-running nil)
-        }
-        (progn  
+  (let ((event-loop-running t))
+    (loopwhile event-loop-running
+          {
+          (match (sdl-poll-event)
+                 (sdl-quit-event
+                  {
+                  (var room-cid (assoc game-state 'room-cid))
+                  (if (> room-cid 0) {
+                      (print "killing the room thread")
+                      (print "':quit' to exit the REPL")
+                      (kill room-cid 0)
+                      (wait room-cid)
+                      (setq event-loop-running nil)
+                      })
+                  (custom-destruct w)
+                  (setq game-running nil)
+                  })
+                 ((sdl-key-down-event . (? k))
+                  nil) ;; Do not process keydown yet
+                 ((sdl-key-up-event . (? k))
+                  nil) ;; Do not process keyup yet
+                 (_ nil) ;; unused command
+                 )
           (yield 5000)
-          (event-loop w)))))
+          })))
 
 
 ;; Define player interface 
