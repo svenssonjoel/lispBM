@@ -331,28 +331,6 @@ bool image_clear(void) {
 static lbm_char_channel_t string_tok;
 static lbm_string_channel_state_t string_tok_state;
 
-static volatile _Atomic bool readline_started = false;
-static volatile _Atomic bool prompt_printed_last = false;
-
-/**
- * Printf wrapper which redraws the readline prompt correctly.
- * 
- * Automatically removes the previous prompt if it's safe to do so, prints the
- * result, and redraws the prompt below if the result ended in a newline
- * character.
- * 
- * Makes sure that no non-readline text which was output via this function is
- * replaced. The thread which is drawing the readline prompt can call `printf`
- * safely, as long as it makes sure that the current line was empty when it
- * starts the new prompt, i.e. it should end every `printf` call with '\n'.
- */
-
-/* readline is not a threadsafe library,
-   removing the rl functions from this function.
-   Keeping as comments so I remember to check if there is
-   a real solution.
-*/ 
-
 static int printf_callback(const char *format, ...) {
   va_list args;
   va_start(args, format);
