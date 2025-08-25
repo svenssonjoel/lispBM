@@ -3,23 +3,23 @@
 (define ernst-hugo '(sn se we we ws))
 
 (define snake-room-persistant-assoc
-    (acons 'player-y 300
-    (acons 'player-x 300
-    (acons 'wizard-y 300
-    (acons 'wizard-x 200
+    (acons 'player-y 200
+    (acons 'player-x 100
+    (acons 'wizard-y 150
+    (acons 'wizard-x 50
     (acons 'cleared nil
     (acons 'door-open nil              
                '())))))))
 
 ;; Create the room tile map with variety: 0=floor, 1=wall, 2=hieroglyph, 3=door
-(define room-tiles [ 1 2 1 5 6 1 2 1
-                     1 0 0 0 0 0 0 1
-                     1 0 0 0 0 0 0 1
-                     1 0 0 0 0 0 0 1
-                     1 0 0 0 0 0 0 1
-                     1 0 0 0 0 0 0 1
-                     1 0 0 0 0 0 0 1
-                     1 1 1 1 1 1 1 1 ])
+(define room-tiles [ 1  2 1 5 6 1 2 1
+                     1  0 0 0 0 0 0 1
+                     1  0 0 0 0 0 0 1
+                     11 0 0 0 0 0 0 1
+                     12 0 0 0 0 0 0 1
+                     1  0 0 0 0 0 0 1
+                     1  0 0 0 0 0 0 1
+                     1  1 1 1 1 1 1 1 ])
 
 (define snake-room-done nil)
 
@@ -109,7 +109,12 @@
                       (send  (assoc game-state 'main-cid) '(room-change north))
                       (setq snake-room-done t)
                       }
-                  ))
+                      )
+                  )
+                 ((go west)
+                  nil
+                  )
+                 
                  
                  ((open door)
                   {

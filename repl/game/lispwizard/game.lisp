@@ -10,8 +10,8 @@
 ;; grid of rooms
 ;; extract room x/y by (ix (ix map-of-rooms x) y)  
 (define map-of-rooms
-    '(("test_room.lisp" not-a-room)
-      ("snake_room.lisp" not-a-room)))
+    '((not-a-room "test_room.lisp" not-a-room)
+      ("start_room.lisp" "snake_room.lisp" not-a-room)))
 
 (define game-state '((room-cid . -1)))
 
@@ -146,7 +146,7 @@
                 (< room-x (length (ix map-of-rooms room-y))))
            (if (eq (type-of (ix (ix map-of-rooms room-y) room-x)) type-array)
                (load-room (cons room-x  room-y))
-               (printf "Your magic is strong!"))
+               (print "Your magic is strong!"))
            (print "Where are you going?"))
        })
       (print "exit main loop")
