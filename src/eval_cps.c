@@ -6020,11 +6020,7 @@ void lbm_run_eval(void){
       if (is_negative && ctx_running) {
         evaluation_step();
       } else {
-        if (eval_cps_state_changed) break;
-        // On overflow of timer, task will get a no-quota.
-        // Could lead to busy-wait here until timestamp and quota
-        // are on same side of overflow.
-        eval_current_quota = timestamp_us_callback() + eval_time_refill;
+        if (eval_cps_state_changed) break;  
         if (!is_atomic) {
           if (gc_requested) {
             gc();
@@ -6045,6 +6041,16 @@ void lbm_run_eval(void){
             lbm_system_sleeping = false;
           }
         }
+        // Assign a new quota last.
+        // This means that the time it takes in finding a context to dequeue
+        // and the other work above is not included in the woken up contexts quota.
+        //
+        // Earlier the new quota was assigned at the top of this branch,
+        // If that happened such that timestamp + eval_time_refil ends
+        // up to be just shy of an overflow, going through all the rest of
+        // logic could potentially overflow the timestamp and create a situation
+        // where the scheduled task has a humongous quota!
+        eval_current_quota = timestamp_us_callback() + eval_time_refill;
       }
 #else
       if (eval_steps_quota && ctx_running) {
