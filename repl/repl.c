@@ -82,6 +82,8 @@
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
 
+static void handle_repl_output(void);
+
 // ////////////////////////////////////////////////////////////
 // Stub loaders
 void load_vesc_express_extensions(void);
@@ -1392,6 +1394,8 @@ int store_env(char *filename) {
 
 void shutdown_procedure(void) {
 
+  handle_repl_output();
+
   if (env_output_file) {
     int r = store_env(env_output_file);
     if (r != REPL_EXIT_SUCCESS) terminate_repl(r);
@@ -2560,7 +2564,7 @@ void line_handler(char *line) {
   }
 }
 
-void handle_repl_output(void) {
+static void handle_repl_output(void) {
 
   // Save current readline state
   int saved_point = rl_point;

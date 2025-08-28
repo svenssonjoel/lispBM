@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021, 2022 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2022, 2025 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -187,10 +187,11 @@ int tok_symbol(lbm_char_channel_t *chan) {
 
   r = lbm_channel_peek(chan,(unsigned int)len, &c);
   while (r == CHANNEL_SUCCESS && symchar(c)) {
-    if (len >= 255) return TOKENIZER_SYMBOL_ERROR;
     c = (char)tolower(c);
     if (len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
       tokpar_sym_str[len] = (char)c;
+    } else {
+      return TOKENIZER_SYMBOL_ERROR;
     }
     len ++;
     r = lbm_channel_peek(chan,(unsigned int)len, &c);
@@ -287,10 +288,14 @@ int tok_char(lbm_char_channel_t *chan, char *res) {
   return 3;
 }
 
+
+#define TD_BUF_SIZE 128
+
+#define FBUF_ADD(X,N) if ((N) < TD_BUF_SIZE) { fbuf[(N)] = (X); N++; } else goto tok_double_no_tok;
 int tok_double(lbm_char_channel_t *chan, token_float *result) {
 
   unsigned int n = 0;
-  char fbuf[128];
+  char fbuf[TD_BUF_SIZE];
   char c;
   bool valid_num = false;
   int res;
@@ -300,12 +305,11 @@ int tok_double(lbm_char_channel_t *chan, token_float *result) {
   result->type = TOKTYPEF32;
   result->negative = false;
 
-  res = lbm_channel_peek(chan, 0, &c);
+  res = lbm_channel_peek(chan, n, &c);
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
   if (c == '-') {
-    n = 1;
-    fbuf[0] = '-';
+    FBUF_ADD('-', n);
     result->negative = true;
   }
 
@@ -313,18 +317,15 @@ int tok_double(lbm_char_channel_t *chan, token_float *result) {
   if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
   else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
   while (c >= '0' && c <= '9') {
-    fbuf[n] = c;
-    n++;
+    FBUF_ADD(c, n);
     res = lbm_channel_peek(chan, n, &c);
     if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     if (res == CHANNEL_END) break;
   }
 
   if (c == '.') {
-    fbuf[n] = c;
-    n ++;
+    FBUF_ADD(c, n);
   }
-
   else return TOKENIZER_NO_TOKEN;
 
   res = lbm_channel_peek(chan,n, &c);
@@ -333,24 +334,27 @@ int tok_double(lbm_char_channel_t *chan, token_float *result) {
   if (!(c >= '0' && c <= '9')) return TOKENIZER_NO_TOKEN;
 
   while (c >= '0' && c <= '9') {
-    fbuf[n] = c;
-    n++;
+    FBUF_ADD(c, n);
     res = lbm_channel_peek(chan, n, &c);
     if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     if (res == CHANNEL_END) break;
   }
 
   if (c == 'e') {
-    fbuf[n] = c;
-    n++;
+    FBUF_ADD(c, n);
     res = lbm_channel_peek(chan,n, &c);
     if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
     if (!((c >= '0' && c <= '9') || c == '-')) return TOKENIZER_NO_TOKEN;
 
-    while ((c >= '0' && c <= '9') || c == '-') {
-      fbuf[n] = c;
-      n++;
+    if (c == '-') {
+      FBUF_ADD(c, n);
+    }
+    res = lbm_channel_peek(chan,n, &c);
+    if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
+    else if (res == CHANNEL_END) return TOKENIZER_NO_TOKEN;
+    while ((c >= '0' && c <= '9')) {
+      FBUF_ADD(c,n);
       res = lbm_channel_peek(chan, n, &c);
       if (res == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
       if (res == CHANNEL_END) break;
@@ -370,14 +374,12 @@ int tok_double(lbm_char_channel_t *chan, token_float *result) {
   if ((result->negative && n > 1) ||
       (!result->negative && n > 0)) valid_num = true;
 
-  if (n > 127) {
-    return TOKENIZER_NO_TOKEN;
-  }
-
   if(valid_num) {
     result->value = (double)strtod(fbuf,NULL);
     return (int)n + type_len;
   }
+
+ tok_double_no_tok:
   return TOKENIZER_NO_TOKEN;
 }
 
