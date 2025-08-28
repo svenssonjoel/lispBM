@@ -2,7 +2,7 @@
 (if (not (eq (trap sdl-init)
              '(exit-ok sdl-init)))
     {
-    (print "You need a the LispBM REPL compiled with SDL support to play this game.")
+    (print "You need a LispBM REPL compiled with SDL support to play this game.")
     (exit-error 'no-sdl)
     }
     )

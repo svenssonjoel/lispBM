@@ -42,6 +42,7 @@
 #include <windows.h>
 #include <memoryapi.h>
 #include <ws2tcpip.h>
+#include <signal.h>
 #endif
 
 //network
@@ -89,6 +90,7 @@ void load_bldc_extensions(void);
 // ////////////////////////////////////////////////////////////
 // win util
 
+
 #ifdef LBM_WIN
 
 #define G 1000000000L
@@ -117,6 +119,91 @@ int nanosleep(const struct timespec* ts, struct timespec* rem){
   return 0;
 }
 #endif
+
+// ////////////////////////////////////////////////////////////
+// IO buffer
+
+#define IO_BUFFER_SIZE 8192
+
+static char iobuffer[IO_BUFFER_SIZE];
+static int iobuffer_head = 0;
+static int iobuffer_tail = 0;
+static bool iobuffer_full = false;
+static bool iobuffer_mutex_initialized = false;
+
+static mutex_t iobuffer_mutex; // use platform_mutex
+
+static void iobuffer_init(void) {
+
+  iobuffer_head = 0;
+  iobuffer_tail = 0;
+  iobuffer_full = false;
+  if (!iobuffer_mutex_initialized) {
+    mutex_init(&iobuffer_mutex);
+    iobuffer_mutex_initialized = true;
+  }
+}
+
+static int iobuffer_num(void) {
+  int res = IO_BUFFER_SIZE;
+  if (!iobuffer_full) {
+    if (iobuffer_head >= iobuffer_tail) {
+      res = iobuffer_head - iobuffer_tail;
+    } else {
+      res = IO_BUFFER_SIZE - iobuffer_tail + iobuffer_head;
+    }
+  }
+  return res;
+}
+
+static void iobuffer_put(char c) {
+
+  if (!iobuffer_full) {
+    iobuffer[iobuffer_head] = c;
+    iobuffer_head = (iobuffer_head + 1) % IO_BUFFER_SIZE;
+    iobuffer_full = iobuffer_head == iobuffer_tail;
+  } else {
+    iobuffer[iobuffer_head] = c;
+    iobuffer_head = (iobuffer_head + 1) % IO_BUFFER_SIZE;
+    iobuffer_tail = (iobuffer_tail + 1) % IO_BUFFER_SIZE;
+  }
+}
+
+static void iobuffer_print(void) {
+  mutex_lock(&iobuffer_mutex);
+  if ((iobuffer_tail == iobuffer_head) && !iobuffer_full) {
+    mutex_unlock(&iobuffer_mutex);
+    return; // empty
+  }
+
+  if (iobuffer_tail <= iobuffer_head) {
+    for (int i = iobuffer_tail; i < iobuffer_head; i++) {
+      putchar(iobuffer[i]);
+    }
+  } else {
+    for (int i = iobuffer_tail; i < IO_BUFFER_SIZE; i ++) {
+      putchar(iobuffer[i]);
+    }
+    for (int i = 0; i < iobuffer_head; i ++) {
+      putchar(iobuffer[i]);
+    }
+  }
+  iobuffer_head = 0;
+  iobuffer_tail = 0;
+  iobuffer_full = false;
+  mutex_unlock(&iobuffer_mutex);
+}
+
+static void iobuffer_write(char *str) {
+  mutex_lock(&iobuffer_mutex);
+  for (; *str != 0; str++) {
+    iobuffer_put(*str);
+  }
+  mutex_unlock(&iobuffer_mutex);
+}
+
+
+
 
 // ////////////////////////////////////////////////////////////
 // General
@@ -172,33 +259,6 @@ static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
 static uint32_t *image_storage = NULL;
 
 static size_t constants_memory_size = 4096;  // size words
-
-// ////////////////////////////////////////////////////////////
-// Output
-
-int output_pipe[2];
-FILE* output_pipe_fp = NULL;
-
-void setup_repl_output(void) {
-  if (pipe(output_pipe) != 0) {
-    printf("Error creating pipe\n");
-    exit(EXIT_FAILURE);
-  }
-  output_pipe_fp = fdopen(output_pipe[1], "w");
-  if (!output_pipe_fp) {
-    printf("Error create FILE * for repl output.\n");
-    exit(EXIT_FAILURE);
-  }
-  setbuf(output_pipe_fp, NULL);
-}
-
-void cleanup_repl_output(void) {
-  if (output_pipe_fp) {
-    fclose(output_pipe_fp);
-    output_pipe_fp = NULL;
-  }
-  close(output_pipe[0]);
-}
 
 // ////////////////////////////////////////////////////////////
 // LBM
@@ -296,7 +356,6 @@ void terminate_repl(int exit_code) {
   rl_cleanup_after_signal();
   rl_callback_handler_remove();
 
-  cleanup_repl_output();
   exit(exit_code);
 }
 
@@ -332,9 +391,13 @@ static lbm_char_channel_t string_tok;
 static lbm_string_channel_state_t string_tok_state;
 
 static int printf_callback(const char *format, ...) {
+  char buffer[2048];
   va_list args;
   va_start(args, format);
-  int len = vfprintf(output_pipe_fp, format, args);
+  memset(buffer,0, 2048);
+  int len = vsnprintf(buffer, 2048, format, args);
+  if (len == 2048) buffer[2047] = 0;
+  iobuffer_write(buffer);
   va_end(args);  
   return len;
 }
@@ -2466,7 +2529,6 @@ static char *current_line = NULL;
 static bool line_ready = false;
 void line_handler(char *line) {
   if (line) {
-    printf("read line: \n\n%s\n\n", line);
     current_line = line;
     line_ready = true;
     size_t n = strlen(line);
@@ -2498,37 +2560,31 @@ void line_handler(char *line) {
   }
 }
 
-void handle_repl_output(void) {  
-  fd_set readfds;
-  FD_ZERO(&readfds);
-  FD_SET(output_pipe[0], &readfds);
+void handle_repl_output(void) {
 
-  struct timeval timeout = {0, 0}; // Non-blocking
-  if (select(output_pipe[0] + 1, &readfds, NULL, NULL, &timeout) > 0) {
-    char buffer[1024];
-    int bytes = read(output_pipe[0], buffer, sizeof(buffer)-1);
-    if (bytes > 0) {
-      buffer[bytes] = '\0';
+  // Save current readline state
+  int saved_point = rl_point;
+  char *saved_line = rl_copy_text(0, rl_end);
+  mutex_lock(&iobuffer_mutex);
+  int num = iobuffer_num();
+  mutex_unlock(&iobuffer_mutex);
+  if (num > 0) {
 
-      // Save current readline state
-      int saved_point = rl_point;
-      char *saved_line = rl_copy_text(0, rl_end);
+    // Clear current line and print output to real stdout
+    rl_save_prompt();
+    rl_replace_line("", 0);
+    rl_redisplay();
 
-      // Clear current line and print output to real stdout
-      rl_save_prompt();
-      rl_replace_line("", 0);
-      rl_redisplay();
-      printf("%s", buffer);  // This goes to real stdout
-      fflush(stdout);
+    iobuffer_print();
+    fflush(stdout);
 
-      // Restore readline state
-      rl_restore_prompt();
-      rl_replace_line(saved_line, 0);
-      rl_point = saved_point;
-      rl_redisplay();
+    // Restore readline state
+    rl_restore_prompt();
+    rl_replace_line(saved_line, 0);
+    rl_point = saved_point;
+    rl_redisplay();
 
-      free(saved_line);
-    }
+    free(saved_line);
   }
 }
 
@@ -2537,9 +2593,8 @@ void handle_repl_output(void) {
 //
 int main(int argc, char **argv) {
 
-  setup_repl_output();
+  iobuffer_init();
 
-  
 #ifdef LBM_WIN
   LPVOID image_address = VirtualAlloc((LPVOID)IMAGE_FIXED_VIRTUAL_ADDRESS,
                                       IMAGE_STORAGE_SIZE,
@@ -2550,13 +2605,13 @@ int main(int argc, char **argv) {
     printf("Image storage successfully allocated at %p\n", image_address);
   } else {
     DWORD error = GetLastError();
-    printf("VirtualAlloc failed for address %p: Windows error %lu\n", 
+    printf("VirtualAlloc failed for address %p: Windows error %lu\n",
            IMAGE_FIXED_VIRTUAL_ADDRESS, error);
     printf("Try running with Administrator privileges or disable Windows ASLR\n");
     terminate_repl(REPL_EXIT_CRITICAL_ERROR);
   }
   image_storage = (uint32_t *)image_address;
-#else 
+#else
   image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
                        IMAGE_STORAGE_SIZE,
                        PROT_READ | PROT_WRITE,
@@ -2685,8 +2740,7 @@ int main(int argc, char **argv) {
         WSACleanup();
         return 1;
     }
-    
-      
+
     for (;;) {
       SOCKET client_socket = accept(ListenSocket, NULL, NULL);
 
@@ -2755,8 +2809,6 @@ int main(int argc, char **argv) {
   } else {
 
     char output[1024];
-    fd_set readfds;
-    int stdin_fd = fileno(stdin);
 
     if (silent_mode) {
         rl_callback_handler_install("", line_handler);
@@ -2766,6 +2818,15 @@ int main(int argc, char **argv) {
 
     while (1) {
 
+#ifdef LBM_WIN
+      // Windows: Use WaitForSingleObject with console input handle
+      if (kbhit()) {
+        rl_callback_read_char();
+      }
+#else
+      fd_set readfds;
+      int stdin_fd = fileno(stdin);
+
       FD_ZERO(&readfds);
       FD_SET(stdin_fd, &readfds);
 
@@ -2774,7 +2835,7 @@ int main(int argc, char **argv) {
       if (result > 0 && FD_ISSET(stdin_fd, &readfds)) {
         rl_callback_read_char();
       }
-
+#endif
       if (line_ready && current_line) {
         char *str = current_line;
         if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
@@ -2978,7 +3039,7 @@ int main(int argc, char **argv) {
           /* Get exclusive access to the heap */
           size_t len = strlen(str)+1;
           char *buffer = malloc(len);
-          if (buffer) { 
+          if (buffer) {
             memcpy(buffer, str, len);
             lbm_pause_eval_with_gc(50);
             while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
@@ -2993,7 +3054,7 @@ int main(int argc, char **argv) {
           } else {
             printf("Error allocating reader buffer.\n");
             goto repl_cleanup_and_exit;
-              
+
           }
         }
       repl_next_iteration:
