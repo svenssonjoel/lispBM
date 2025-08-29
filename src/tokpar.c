@@ -181,13 +181,13 @@ int tok_symbol(lbm_char_channel_t *chan) {
     return TOKENIZER_NO_TOKEN;
   }
   memset(tokpar_sym_str,0,TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH+1);
-  tokpar_sym_str[0] = (char)tolower(c);
+  tokpar_sym_str[0] = (c >= 'A' && c <= 'Z') ? c + 32 : c; // locale independent ASCII only tolower.
 
   int len = 1;
 
   r = lbm_channel_peek(chan,(unsigned int)len, &c);
   while (r == CHANNEL_SUCCESS && symchar(c)) {
-    c = (char)tolower(c);
+    c = (c >= 'A' && c <= 'Z') ? c + 32 : c; // locale independent ASCII only tolower.
     if (len < TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH) {
       tokpar_sym_str[len] = (char)c;
     } else {
@@ -300,7 +300,7 @@ int tok_double(lbm_char_channel_t *chan, token_float *result) {
   bool valid_num = false;
   int res;
 
-  memset(fbuf, 0, 128);
+  memset(fbuf, 0, TD_BUF_SIZE);
 
   result->type = TOKTYPEF32;
   result->negative = false;
@@ -503,7 +503,7 @@ int tok_integer(lbm_char_channel_t *chan, token_int *result) {
     }
   }
 
-  if (n == 0) return TOKENIZER_NO_TOKEN;
+  if (n == 0 || (hex && n == 2)) return TOKENIZER_NO_TOKEN;
 
   uint32_t tok_res;
   int type_len = tok_match_fixed_size_tokens(chan, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
