@@ -2952,8 +2952,12 @@ int main(int argc, char **argv) {
               sleep_callback(10);
             }
 
-            (void)lbm_load_and_eval_program_incremental(&string_tok, NULL);
+            lbm_cid loader = lbm_load_and_eval_program_incremental(&string_tok, NULL);
             lbm_continue_eval();
+
+            if (loader < 0) {
+              printf("Error starting loader thread\n");
+            }
 
             //printf("started ctx: %"PRI_UINT"\n", cid);
             // TODO: Should free the file_str at some point!!

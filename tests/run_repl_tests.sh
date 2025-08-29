@@ -23,7 +23,7 @@ for fn in repl_tests/*.lisp
 do
     ok=false
     fail_timeout=false;
-    timeout $timeout_val ../repl/repl_cov --terminate -s $fn | grep 'SUCCESS' &> /dev/null
+    timeout $timeout_val ../repl/repl_cov -H 32768 --terminate -s $fn | grep 'SUCCESS' &> /dev/null
     res=$?
     if [ $res == 124 ]; then
         fail_timeout=true;

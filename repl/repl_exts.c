@@ -298,14 +298,19 @@ static lbm_value ext_load_file(lbm_value *args, lbm_uint argn) {
           memset(data, 0, (unsigned int)size+1) ;
 
           lbm_value val;
-          lbm_lift_array(&val, (char*)data, (lbm_uint)size+1);
-          if (!lbm_is_symbol(val)) {
-            size_t n = fread(data, 1, (size_t)size, h->fp);
-            if ( n > 0) {
-              res = val;
-            } else {
-              res = ENC_SYM_NIL; // or some empty indicator?
+          if (lbm_lift_array(&val, (char*)data, (lbm_uint)size+1)) {
+            if (!lbm_is_symbol(val)) {
+              size_t n = fread(data, 1, (size_t)size, h->fp);
+              if ( n > 0) {
+                res = val;
+              } else {
+                lbm_free(data);
+                res = ENC_SYM_NIL; // or some empty indicator?
+              }
             }
+          } else {
+            lbm_free(data);
+            res = ENC_SYM_MERROR;
           }
         } else {
           res = ENC_SYM_MERROR;
