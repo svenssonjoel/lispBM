@@ -404,6 +404,17 @@ static int printf_callback(const char *format, ...) {
   return len;
 }
 
+// Direct print callback for use when the when not in "REPL" mode.
+static int printf_direct_callback(const char *format, ...) {
+
+  va_list args;
+  va_start(args, format);
+  int len = vprintf(format, args);
+  va_end(args);  
+  return len;
+}
+
+
 #ifdef LBM_WIN
 DWORD WINAPI eval_thd_wrapper_win(LPVOID lpParam) {
   if (!silent_mode) {
@@ -1047,7 +1058,9 @@ int init_repl(void) {
   lbm_set_timestamp_us_callback(timestamp);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
-  lbm_set_printf_callback(printf_callback);
+  lbm_set_printf_callback(printf_direct_callback);
+  // print directly to stdout until the REPL is running
+
 
 
   //Load an image
@@ -2815,11 +2828,14 @@ int main(int argc, char **argv) {
     char output[1024];
 
     if (silent_mode) {
-        rl_callback_handler_install("", line_handler);
+      rl_callback_handler_install("", line_handler);
     } else {
       rl_callback_handler_install("# ", line_handler);
-      }
-
+    }
+    
+    // REPL interaction starts here. print via the iobuffer.
+    lbm_set_printf_callback(printf_callback);
+    
     while (1) {
 
 #ifdef LBM_WIN
