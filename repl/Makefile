@@ -25,7 +25,8 @@ ifeq ($(PLATFORM), macos-arm64)
 endif
 
 
-CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
+# -Wjump-misses-init
+CCFLAGS =  -g -O2 -Wall -Wextra -Wshadow  -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
 
 PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11
 PI64CCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11 -DLBM64
