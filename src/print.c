@@ -44,6 +44,14 @@ static bool print_has_stack = false;
 
 const char *failed_str = "Error: print failed\n";
 
+static inline lbm_array_header_t *safe_dec_array_r(lbm_value val) {
+  lbm_array_header_t *array = NULL;
+  if (lbm_is_array_r(val)) {
+    array = (lbm_array_header_t *)(lbm_car(val)  & ~LBM_GC_MASK);
+  }
+  return array;
+}
+
 // is_printable_string is turning out to be a headache.
 // What do we want from this function???
 //
@@ -56,7 +64,7 @@ const char *failed_str = "Error: print failed\n";
 // [0 65 66 0]             | [0 65 66 0]             | position of first 0 after printable characters = array->size-1
 bool lbm_value_is_printable_string(lbm_value v, char **str) {
   bool is_a_string = false;
-  lbm_array_header_t *array = lbm_dec_array_r(v);
+  lbm_array_header_t *array = safe_dec_array_r(v);
   if (array) {
     char *c_data = (char *)array->data;
     if (array->size > 1) { // nonzero length
@@ -216,7 +224,7 @@ static int print_emit_continuation(lbm_char_channel_t *chan, lbm_value v) {
 }
 
 static int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
-  lbm_uint *custom = (lbm_uint*)lbm_car(v);
+  lbm_uint *custom = (lbm_uint*)(lbm_car(v) & ~LBM_GC_MASK);
   int r; // NULL checks works against SYM_NIL. 
   if (custom && custom[CUSTOM_TYPE_DESCRIPTOR]) {
     r = print_emit_string(chan, (char*)custom[CUSTOM_TYPE_DESCRIPTOR]);
@@ -261,7 +269,7 @@ static int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *a
 static int print_emit_bytearray(lbm_char_channel_t *chan, lbm_value v) {
   int r = 0;
   char *str;
-  lbm_array_header_t *array = lbm_dec_array_r(v);
+  lbm_array_header_t *array = safe_dec_array_r(v);
   if (array) {
     if (lbm_value_is_printable_string(v, &str)) {
       r = print_emit_char(chan, '"');
@@ -298,7 +306,7 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       lbm_pop(&print_stack, &curr);
       int res = 1;
       r = print_emit_string(chan, "[|");
-      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(curr);
+      lbm_array_header_t *arr = (lbm_array_header_t*)(lbm_car(curr) & ~LBM_GC_MASK);
       lbm_uint size = arr->size / sizeof(lbm_value);
       lbm_value *arrdata = (lbm_value*)arr->data;
       if (size >= 1) {
