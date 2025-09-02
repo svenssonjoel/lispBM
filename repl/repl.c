@@ -295,6 +295,18 @@ static pthread_t prof_thread;
 static HANDLE prof_thread;
 #endif
 
+#ifndef LBM_WIN
+pthread_t lispbm_thd = 0;
+#else
+HANDLE lispbm_thd;
+#endif
+
+unsigned int heap_size = 2048; // default
+lbm_cons_t *heap_storage = NULL;
+lbm_heap_state_t heap_state;
+lbm_const_heap_t const_heap;
+
+
 struct read_state_s {
   char *str;   // String being read.
   lbm_cid cid;    // Reader thread id.
@@ -352,12 +364,26 @@ bool drop_reader(lbm_cid cid) {
 void shutdown_procedure(void);
 
 void terminate_repl(int exit_code) {
+  if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
+    lbm_kill_eval();
+#ifdef LBM_WIN
+    WaitForSingleObject(lispbm_thd, INFINITE);
+#else
+    int thread_r = 0;
+    pthread_join(lispbm_thd, (void*)&thread_r);
+#endif
+    lispbm_thd = 0;
+  }
   if (!silent_mode) {
     printf("%s\n", repl_exit_message[exit_code]);
   }
   rl_cleanup_after_signal();
   rl_callback_handler_remove();
 
+  if (heap_storage) {
+    free(heap_storage);
+    heap_storage = NULL;
+  }
   exit(exit_code);
 }
 
@@ -411,7 +437,7 @@ static int printf_direct_callback(const char *format, ...) {
   va_list args;
   va_start(args, format);
   int len = vprintf(format, args);
-  va_end(args);  
+  va_end(args);
   return len;
 }
 
@@ -429,7 +455,7 @@ DWORD WINAPI eval_thd_wrapper_win(LPVOID lpParam) {
   }
   lbm_run_eval();
   return 0;
-} 
+}
 #else
 void *eval_thd_wrapper(void *v) {
   if (!silent_mode) {
@@ -483,7 +509,7 @@ void done_callback(eval_context_t *ctx) {
       printf("ALERT: Unable to flatten result value\n");
     }
   }
-  
+
   // Only print result from contexts directly started by the REPL.
   if (drop_reader(ctx->id)) {
     char output[1024];
@@ -627,18 +653,6 @@ void sym_it(const char *str) {
          sym_entry_flash ? "FLASH" : "LBM_MEM",
          str);
 }
-
-#ifndef LBM_WIN
-pthread_t lispbm_thd = 0;
-#else
-HANDLE lispbm_thd;
-#endif
-
-unsigned int heap_size = 2048; // default
-lbm_cons_t *heap_storage = NULL;
-lbm_heap_state_t heap_state;
-lbm_const_heap_t const_heap;
-
 
 // OPTIONS
 
@@ -1013,14 +1027,14 @@ bool load_flat_library(unsigned char *lib, unsigned int size) {
 int init_repl(void) {
 
   if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
-    
+
     lbm_kill_eval();
 #ifdef LBM_WIN
     WaitForSingleObject(lispbm_thd, INFINITE);
 #else
     int thread_r = 0;
     pthread_join(lispbm_thd, (void*)&thread_r);
-#endif 
+#endif
     lispbm_thd = 0;
   }
 
@@ -1096,7 +1110,7 @@ int init_repl(void) {
      if (!silent_mode)
        printf("Image initialized!\n");
   }
-  
+
   if (lbm_image_get_version()) {
     if (!silent_mode)
       printf("Image version string: %s\n", lbm_image_get_version());
@@ -1137,14 +1151,14 @@ int init_repl(void) {
   if (!silent_mode)
     printf("creating eval thread\n");
 #ifdef LBM_WIN
-  lispbm_thd = CreateThread( 
+  lispbm_thd = CreateThread(
                            NULL,                   // default security attributes
                            0,                      // use default stack size
                            eval_thd_wrapper_win,   // thread function name
                            NULL,                   // argument to thread function
                            0,                      // use default creation flags
                            NULL);                  // returns the thread identifier
-#else 
+#else
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 0;
@@ -1636,7 +1650,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   image_clear();
   lbm_image_create("bepa_1");
   lbm_image_boot();
-  
+
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(vesc_lbm_done_callback);
   lbm_set_timestamp_us_callback(timestamp);
@@ -1655,7 +1669,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   if (use_vesc_express_stubs) {
     load_vesc_express_extensions();
   }
-  
+
 #ifdef WITH_SDL
   if (!lbm_sdl_init()) {
     return 0;
@@ -1671,7 +1685,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 #endif
 
 #ifdef LBM_WIN
-  lispbm_thd = CreateThread( 
+  lispbm_thd = CreateThread(
                             NULL,                   // default security attributes
                             0,                      // use default stack size
                             eval_thd_wrapper_win,   // thread function name
@@ -2048,7 +2062,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
 #endif
         }
         lbm_prof_init(prof_data, PROF_DATA_NUM);
-          
+
 #ifdef LBM_WIN
         prof_thread = CreateThread(
                                    NULL,
@@ -2456,7 +2470,7 @@ void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
 #else
     ssize_t written = write(connected_socket, buffer + ((int)len - to_write), (size_t)to_write);
 #endif
-    
+
     if (written < 0) {
       error_cnt ++;
       if (error_cnt > SEND_MAX_RETRY) {
@@ -2493,7 +2507,7 @@ DWORD WINAPI vesctcp_client_handler(LPVOID lpParam) {
   strncpy(ip, inet_ntoa(addr.sin_addr), 255);
 
   printf("Client %s connected\n",ip);
- 
+
   vescif_restart(false,false,false);
 
   do {
@@ -2833,10 +2847,10 @@ int main(int argc, char **argv) {
     } else {
       rl_callback_handler_install("# ", line_handler);
     }
-    
+
     // REPL interaction starts here. print via the iobuffer.
     lbm_set_printf_callback(printf_callback);
-    
+
     while (1) {
 
 #ifdef LBM_WIN
@@ -3093,6 +3107,5 @@ int main(int argc, char **argv) {
   }
 
  repl_cleanup_and_exit:
-  free(heap_storage);
   terminate_repl(REPL_EXIT_SUCCESS);
 }
