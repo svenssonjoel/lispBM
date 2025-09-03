@@ -13,7 +13,8 @@ LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_DYN_ARRAYS \
            -DLBM_USE_DYN_DEFSTRUCT \
            -DLBM_USE_TIME_QUOTA \
-           -DLBM_USE_ERROR_LINENO
+           -DLBM_USE_ERROR_LINENO \
+           -DLBM_MACRO_REST_ARGS
 
 LDFLAGS =
 

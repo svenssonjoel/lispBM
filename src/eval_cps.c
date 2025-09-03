@@ -2691,6 +2691,12 @@ static inline __attribute__ ((always_inline)) void setup_macro(eval_context_t *c
     curr_param = cdr_curr_param;
     curr_arg   = cdr_curr_arg;
   }
+#ifdef LBM_MACRO_REST_ARGS
+  if (lbm_is_cons(curr_arg)) {
+    expand_env = allocate_binding(ENC_SYM_REST_ARGS, curr_arg, expand_env);
+  }
+#endif
+
   /* Two rounds of evaluation is performed.
    * First to instantiate the arguments into the macro body.
    * Second to evaluate the resulting program.

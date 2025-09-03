@@ -22,19 +22,19 @@
 (defstruct sg1 (daniel sam tealc jack))
 
 (define a (make-sg1 'michael 'amanda 'christopher 'richard))
-(define r3 (and (eq sg1-daniel 'michael)
-                (eq sg1-sam 'amanda)
-                (eq sg1-tealc 'christopher)
-                (eq sg1-jack richard)))
+(define r3 (and (eq (sg1-daniel a) 'michael)
+                (eq (sg1-sam a) 'amanda)
+                (eq (sg1-tealc a) 'christopher)
+                (eq (sg1-jack a) 'richard)))
 
 (debug_test r3 3)
 
 
 (define b (make-sg1))
-(define r4 (and (eq sg1-daniel nil)
-                (eq sg1-sam nil)
-                (eq sg1-tealc nil)
-                (eq sg1-jack nil)))
+(define r4 (and (eq (sg1-daniel b) nil)
+                (eq (sg1-sam b) nil)
+                (eq (sg1-tealc b)  nil)
+                (eq (sg1-jack b)nil)))
 
 (debug_test r4 4)
 
