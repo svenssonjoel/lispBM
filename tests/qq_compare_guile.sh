@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Test 10 is semantically equivalent if the environment would have a binding of a.
+
 # Array of test expressions
 test_expressions=(
     '`(,@(list 1 2 3))'
@@ -20,6 +22,11 @@ test_expressions=(
     "\`(1 2 ,@() ,@() 3)"
     "\`\`(,,@(list 0 1 2))"
     "\`\`(,,@(cdr '(0 1 2 3)) ,4)"
+    "\`\`(1 2 ,,@() ,,@())"
+    "\`\`(a ,,(+ 1 2) ,(+ 3 4))"
+    "\`5"
+    "\`,5"
+    "(let ((x 5)) \`(let ((x ,(+ x 10))) \`(list ,,x ,x)))"
     
 )
 
