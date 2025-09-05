@@ -306,6 +306,8 @@ lbm_cons_t *heap_storage = NULL;
 lbm_heap_state_t heap_state;
 lbm_const_heap_t const_heap;
 
+static bool repl_mode = false;
+
 
 struct read_state_s {
   char *str;   // String being read.
@@ -511,7 +513,8 @@ void done_callback(eval_context_t *ctx) {
   }
 
   // Only print result from contexts directly started by the REPL.
-  if (drop_reader(ctx->id)) {
+  bool dr = drop_reader(ctx->id);
+  if (!repl_mode || dr) {
     char output[1024];
     lbm_value t = ctx->r;
     lbm_print_value(output, 1024, t);
@@ -2852,7 +2855,7 @@ int main(int argc, char **argv) {
     lbm_set_printf_callback(printf_callback);
 
     while (1) {
-
+      repl_mode = true;
 #ifdef LBM_WIN
       // Windows: Use WaitForSingleObject with console input handle
       if (kbhit()) {
