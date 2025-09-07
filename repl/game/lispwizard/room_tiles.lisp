@@ -2,7 +2,8 @@
 ;; 8x8 grid = 64 bytes, each tile is 50x50 pixels (400x400 total)
 ;; Tile types: 0=empty, 1=wall, 2=wall+hieroglyph, 3=door, 4=open_door,
 ;; 5=door_left, 6=door_right, 7=door_top, 8=door_bottom,
-;; 9=open_door_left, 10=open_door_right, 11=open_door_top, 12=open_door_bottom
+;; 9=open_door_left, 10=open_door_right, 11=open_door_top, 12=open_door_bottom,
+;; 13=closed_chest, 14=open_chest
 
 ;; Tile rendering functions
 (define render-tile (lambda (img tile-x tile-y tile-type)
@@ -168,6 +169,42 @@
           (img-rectangle img (+ pixel-x 42) pixel-y 8 50 0x808080)
           ;; Bottom archway detail
           (img-rectangle img (+ pixel-x 8) (+ pixel-y 38) 4 4 0x606060)
+        })
+        
+      ((eq tile-type 13)
+        {
+          ;; Closed chest - dark stone floor background
+          (img-rectangle img pixel-x pixel-y 50 50 0x202020)
+          ;; Chest body - brown wood
+          (img-rectangle img (+ pixel-x 8) (+ pixel-y 20) 34 20 0x8B4513)
+          ;; Chest lid - darker brown
+          (img-rectangle img (+ pixel-x 8) (+ pixel-y 15) 34 8 0x654321)
+          ;; Metal bands - dark gray
+          (img-rectangle img (+ pixel-x 6) (+ pixel-y 18) 38 3 0x404040)
+          (img-rectangle img (+ pixel-x 6) (+ pixel-y 35) 38 3 0x404040)
+          ;; Lock - golden
+          (img-rectangle img (+ pixel-x 22) (+ pixel-y 22) 6 8 0xFFD700)
+          ;; Lock detail
+          (img-rectangle img (+ pixel-x 24) (+ pixel-y 24) 2 4 0x000000)
+        })
+        
+      ((eq tile-type 14)
+        {
+          ;; Open chest - dark stone floor background
+          (img-rectangle img pixel-x pixel-y 50 50 0x202020)
+          ;; Chest body - brown wood
+          (img-rectangle img (+ pixel-x 8) (+ pixel-y 25) 34 15 0x8B4513)
+          ;; Open lid - tilted back, darker brown
+          (img-rectangle img (+ pixel-x 10) (+ pixel-y 8) 30 12 0x654321)
+          ;; Lid hinge shadow
+          (img-rectangle img (+ pixel-x 8) (+ pixel-y 20) 34 3 0x404040)
+          ;; Metal bands on body
+          (img-rectangle img (+ pixel-x 6) (+ pixel-y 35) 38 3 0x404040)
+          ;; Interior - dark with golden glow
+          (img-rectangle img (+ pixel-x 10) (+ pixel-y 27) 30 10 0x1A1A1A)
+          ;; Golden treasure glow
+          (img-rectangle img (+ pixel-x 20) (+ pixel-y 30) 10 4 0xFFD700)
+          (img-rectangle img (+ pixel-x 22) (+ pixel-y 28) 6 2 0xFFF8DC)
         })
         
 )

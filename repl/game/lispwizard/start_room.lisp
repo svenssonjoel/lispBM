@@ -14,7 +14,7 @@
                      1 0 0 0 0 0 0 7
                      1 0 0 0 0 0 0 8
                      1 0 0 0 0 0 0 1
-                     2 0 0 0 0 0 0 2
+                     2 0 0 0 0 0 13 2
                      1 2 1 1 1 1 2 1 ])
 
 (define start-room-done nil)
@@ -25,70 +25,113 @@
   ;; Get display buffer from game state
   (var disp (assoc game-state 'disp))
 
-;;  (print "The wizard leans towards you and whispers:")
-;;  (print "\"The door is blocked by a serpentine monstrosity.\"")
-;;  (print "\"To battle this beast you must determine its name.\"")
-;;  (print "\"look at the snake (look snake) for clues to its identity.\"")
+  (print "The wizard speaks to you in a thundering voice:")
+  (print "\"I have brought you here because the world is in trouble.\"")
+  (print "\"The language of the gods is fading from memory.\"")
+  (print "\"But you still have the potential to learn the language...\"")
+  (print "\"and to save us from the evil that is poisoning the minds of our young.\"")
+  (print "")
 
-  (loopwhile (not start-room-done) {
+  (var t0 (systime))
+  (var help1-displayed nil)
+  (var help2-displayed nil)
+  (var looked-wizard nil)
+  (var looked-wizard-displayed nil)
+  
+  (loopwhile (not start-room-done)
+   {
 
-        (if (not (assoc start-room-persistant-assoc 'cleared))
-            () ;; room clear logic
-            )
-        
+   (if (and (not help1-displayed) (< 10 (secs-since t0)))
+       {
+       (setq help1-displayed t)
+       (print "The wizard sighs and says more gently:")
+       (print "\"The language of the gods requires precise incantations.\"")
+       (print "\"You need to first figure out how to interact with your surroundings.\"")
+       (print "\"We can only act in, and on, this magic realm through incantations.\"")
+       (print "\"I can teach you the basics...\"")
+       (print "")
+       })
+   
+   (if (and (not help2-displayed) (< 20 (secs-since t0)))
+       {
+       (setq help2-displayed t)
+       (print "The wizard continues:")
+       (print "\"First, try to perceive more details of your surroundings by looking at things.\"")
+       (print "\"Look at me by using the incantation (look wizard)\"")
+       (print "")
+              
+       })
 
-        (img-clear disp)
-        (render-room-from-tiles disp room-tiles)
+   (if (and looked-wizard (not looked-wizard-displayed))
+       {
+       (setq looked-wizard-displayed t)
+       (print "The wizard smiles:")
+       (print "\"Very good. Now try to look at other things.\"")
+       (print "")
+       }
+       )
+   
+   (if (not (assoc start-room-persistant-assoc 'cleared))
+       () ;; room clear logic
+       )
+   
 
-        (render-wizard disp
-                       (assoc start-room-persistant-assoc 'wizard-x)
-                       (assoc start-room-persistant-assoc 'wizard-y))
-        (render-player disp
-                       (assoc start-room-persistant-assoc 'player-x)
-                       (assoc start-room-persistant-assoc 'player-y))
+   (img-clear disp)
+   (render-room-from-tiles disp room-tiles)
 
-        (disp-render disp 0 0 (list))
+   (render-wizard disp
+                  (assoc start-room-persistant-assoc 'wizard-x)
+                  (assoc start-room-persistant-assoc 'wizard-y))
+   (render-player disp
+                  (assoc start-room-persistant-assoc 'player-x)
+                  (assoc start-room-persistant-assoc 'player-y))
 
-        ;; Handle messages
-        (recv-to 0.1  ; Wait 10ms for messages
-                 ((look wizard) {
-                  (print "The wizard is old and wise.")
-                  })
-                 ((look door)
-                  (print "There is a door leading east."))                  
-                 ((look _) {
-                  (print "ugga")
-                  })
-                  
-                 ((go east)
-                  (if (not (assoc start-room-persistant-assoc 'door-open))
-                      (print "The door is sealed shut.")
-                      {
-                      (send  (assoc game-state 'main-cid) '(room-change east))
-                      (setq start-room-done t)
-                      }
-                      )
-                  )
-                 ((go _)
-                  (print "There is no passage in that direction!"))
-                                  
-                 ((open door)
-                  {
-                  (if (assoc start-room-persistant-assoc 'cleared)
-                      {
-                      (open-door room-tiles 7 3)
-                      (open-door room-tiles 7 4)
-                      (setassoc start-room-persistant-assoc 'door-open t)
-                      (print "The door opens with a grinding sound of ancient stone.")
-                      }
-                      (print "Impossible! The door is locked!"))
-                  })
-                 
-                 (quit break)    ; Add quit message handler
-                 (no-more break)
-                 
-                 (timeout ())
-                 ((? x) (print x)))  ; Timeout - continue loop
-        })
+   (disp-render disp 0 0 (list))
+
+   ;; Handle messages
+   (recv-to 0.1  ; Wait 10ms for messages
+            ((look wizard) {
+             (setq looked-wizard t)
+             (print "The wizard is old and wise.\n")
+             })
+            ((look door)
+             (print "There is a door leading east.\n"))
+            ((look chest)
+             (print "The chest looks old. There does not seem to be any lock on it.\n"))
+            ((look _) {
+             (print "There is a wizard in the room and a door leading east. Strange runes are covering the walls")
+             (print "There is a chest in the corner of the room.")
+             })
+            
+            ((go east)
+             (if (not (assoc start-room-persistant-assoc 'door-open))
+                 (print "The door is sealed shut.")
+                 {
+                 (send  (assoc game-state 'main-cid) '(room-change east))
+                 (setq start-room-done t)
+                 }
+                 )
+             )
+            ((go _)
+             (print "There is no passage in that direction!"))
+            
+            ((open door)
+             {
+             (if (assoc start-room-persistant-assoc 'cleared)
+                 {
+                 (open-door room-tiles 7 3)
+                 (open-door room-tiles 7 4)
+                 (setassoc start-room-persistant-assoc 'door-open t)
+                 (print "The door opens with a grinding sound of ancient stone.")
+                 }
+                 (print "Impossible! The door is locked!"))
+             })
+            
+            (quit break)    ; Add quit message handler
+            (no-more break)
+            
+            (timeout ())
+            ((? x) (print x)))  ; Timeout - continue loop
+   })
   (print "Leaving the start room.")
   })
