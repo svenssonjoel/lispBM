@@ -278,6 +278,32 @@
     (img-rectangle img (+ x 26) (+ y 40) 4 8 0x654321)
   }))
 
+(define render-evil-snake-wielder (lambda (img x y)
+  {
+    ;; Corrupted wizard - dark robes with red accents
+    (img-rectangle img (+ x 18) (+ y 15) 14 30 0x2B2B2B)  ; Dark gray robe
+    ;; Evil red trim on robe
+    (img-rectangle img (+ x 17) (+ y 15) 16 2 0xFF0000)
+    (img-rectangle img (+ x 17) (+ y 43) 16 2 0xFF0000)
+    ;; Twisted pointed hat - dark with red tip
+    (img-rectangle img (+ x 22) (+ y 8) 6 12 0x2B2B2B)
+    (img-rectangle img (+ x 24) (+ y 5) 2 8 0x2B2B2B)
+    (img-rectangle img (+ x 24) (+ y 5) 2 3 0xFF0000)  ; Red tip
+    ;; Pale corrupted face
+    (img-rectangle img (+ x 22) (+ y 12) 6 6 0xDDDDDD)
+    ;; Red glowing eyes
+    (img-rectangle img (+ x 23) (+ y 13) 2 2 0xFF0000)
+    (img-rectangle img (+ x 27) (+ y 13) 2 2 0xFF0000)
+    ;; Snake staff - twisted with serpent head
+    (img-rectangle img (+ x 10) (+ y 10) 3 25 0x4A4A4A)  ; Dark staff
+    ;; Serpent head on staff
+    (img-rectangle img (+ x 8) (+ y 8) 7 6 0x006600)    ; Green snake head
+    (img-rectangle img (+ x 7) (+ y 9) 2 2 0xFF0000)    ; Red eyes
+    (img-rectangle img (+ x 6) (+ y 10) 2 1 0xFF6600)   ; Forked tongue
+    ;; Dark aura around feet
+    (img-rectangle img (+ x 16) (+ y 44) 18 4 0x1A1A1A)
+  }))
+
 ;; Snake sprite system for representing lists
 ;; Snake colors: head=red, body=green, different shades for depth
 

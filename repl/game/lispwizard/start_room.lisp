@@ -4,9 +4,10 @@
     (acons 'player-x 200
     (acons 'wizard-y 100
     (acons 'wizard-x 100
-    (acons 'cleared t
-    (acons 'door-open nil              
-               '())))))))
+    (acons 'cleared nil
+    (acons 'door-open nil
+    (acons 'chest-open nil              
+               '()))))))))
 
 (define room-tiles [ 1 2 1 1 1 1 2 1
                      2 0 0 0 0 0 0 2
@@ -79,6 +80,7 @@
    (img-clear disp)
    (render-room-from-tiles disp room-tiles)
 
+   ;(render-evil-snake-wielder disp 250 250)
    (render-wizard disp
                   (assoc start-room-persistant-assoc 'wizard-x)
                   (assoc start-room-persistant-assoc 'wizard-y))
@@ -98,8 +100,13 @@
              (print "There is a door leading east.\n"))
             ((look chest)
              (print "The chest looks old. There does not seem to be any lock on it.\n"))
+            ((look runes) {
+             (print "The runes read:")
+             (print "nil cons cdr lambda eval") 
+             })
             ((look _) {
-             (print "There is a wizard in the room and a door leading east. Strange runes are covering the walls")
+             (print "There is a wizard in the room and a door leading east.")
+             (print "Strange runes are covering the walls.")
              (print "There is a chest in the corner of the room.")
              })
             
@@ -114,7 +121,19 @@
              )
             ((go _)
              (print "There is no passage in that direction!"))
-            
+
+            ((open chest) {
+             (if (not (assoc start-room-persistant-assoc 'chest-open)) {
+                 (set-tile room-tiles 6 6 14)
+                 (setassoc start-room-persistant-assoc 'chest-open t)
+                 (setassoc start-room-persistant-assoc 'cleared t)
+                 (print "The chest opens with a creak. Inside you find the key to the door.")
+                 (print "")
+                 (print "The wizard nods approvingly:")
+                 (print "\"The door will open for you now.\"")
+                 }
+                 (print "The chest is already open"))
+             })
             ((open door)
              {
              (if (assoc start-room-persistant-assoc 'cleared)
@@ -126,6 +145,9 @@
                  }
                  (print "Impossible! The door is locked!"))
              })
+            ((open (? x))
+             (print "The " x " cannot be opened.")
+             )
             
             (quit break)    ; Add quit message handler
             (no-more break)
