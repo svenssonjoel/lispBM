@@ -247,8 +247,9 @@
     (bufset-u8 tile-array (+ (* y 8) x) new-tile)
   }))
 
-;; Character rendering functions (not bound to tile grid)
-(define render-wizard (lambda (img x y)
+;; Character rendering functions
+;; Legacy pixel-coordinate versions (deprecated - use tile versions instead)
+(define render-wizard-pixels (lambda (img x y)
   {
     ;; Wizard robe - dark blue
     (img-rectangle img (+ x 18) (+ y 15) 14 30 0x0000FF)
@@ -262,7 +263,12 @@
     (img-rectangle img (+ x 10) (+ y 8) 7 4 0x00FFFF)
   }))
 
-(define render-player (lambda (img x y)
+;; Tile-coordinate version (preferred)
+(define render-wizard (lambda (img tile-x tile-y)
+  (render-wizard-pixels img (* tile-x 50) (* tile-y 50))))
+
+;; Legacy pixel-coordinate version (deprecated - use tile version instead)
+(define render-player-pixels (lambda (img x y)
   {
     ;; Player body - green tunic
     (img-rectangle img (+ x 20) (+ y 18) 10 22 0x00AA00)
@@ -278,7 +284,12 @@
     (img-rectangle img (+ x 26) (+ y 40) 4 8 0x654321)
   }))
 
-(define render-evil-snake-wielder (lambda (img x y)
+;; Tile-coordinate version (preferred)
+(define render-player (lambda (img tile-x tile-y)
+  (render-player-pixels img (* tile-x 50) (* tile-y 50))))
+
+;; Legacy pixel-coordinate version (deprecated - use tile version instead)
+(define render-evil-snake-wielder-pixels (lambda (img x y)
   {
     ;; Corrupted wizard - dark robes with red accents
     (img-rectangle img (+ x 18) (+ y 15) 14 30 0x2B2B2B)  ; Dark gray robe
@@ -303,6 +314,10 @@
     ;; Dark aura around feet
     (img-rectangle img (+ x 16) (+ y 44) 18 4 0x1A1A1A)
   }))
+
+;; Tile-coordinate version (preferred)
+(define render-evil-snake-wielder (lambda (img tile-x tile-y)
+  (render-evil-snake-wielder-pixels img (* tile-x 50) (* tile-y 50))))
 
 ;; Snake sprite system for representing lists
 ;; Snake colors: head=red, body=green, different shades for depth
@@ -458,7 +473,8 @@
       (is-prefix (reverse a) (reverse b))))
 
 
-(define render-snake-from-path (lambda (img head-x head-y directions)
+;; Legacy pixel-coordinate version (deprecated - use tile version instead)
+(define render-snake-from-path-pixels (lambda (img head-x head-y directions)
   (if (eq directions nil)
     ;; Empty list - render tombstone (defeated snake) centered in 50x50 tile
     (progn
@@ -522,6 +538,10 @@
       (render-snake-tail img curr-x curr-y)
       )
     )))
+
+;; Tile-coordinate version (preferred)
+(define render-snake-from-path (lambda (img tile-x tile-y directions)
+  (render-snake-from-path-pixels img (* tile-x 50) (* tile-y 50) directions)))
 
 ;; Demo function: render a sample snake representing list '(1 2 3)
 (define demo-snake (lambda (img)

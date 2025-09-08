@@ -1,9 +1,9 @@
 
 (define start-room-persistant-assoc
-    (acons 'player-y 100
-    (acons 'player-x 200
-    (acons 'wizard-y 100
-    (acons 'wizard-x 100
+    (acons 'player-y 3
+    (acons 'player-x 4
+    (acons 'wizard-y 2
+    (acons 'wizard-x 2
     (acons 'cleared nil
     (acons 'door-open nil
     (acons 'chest-open nil              

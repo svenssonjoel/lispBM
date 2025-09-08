@@ -10,8 +10,8 @@
 ;; grid of rooms
 ;; extract room x/y by (ix (ix map-of-rooms x) y)  
 (define map-of-rooms
-    '((not-a-room "test_room.lisp" not-a-room)
-      ("start_room.lisp" "snake_room.lisp" not-a-room)))
+    '((not-a-room "test_room.lisp" not-a-room not-a-room)
+      ("start_room.lisp" "practice_room.lisp" "snake_room.lisp" not-a-room)))
 
 (define game-state '((room-cid . -1)))
 

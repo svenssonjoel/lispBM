@@ -3,10 +3,10 @@
 (define ernst-hugo '(sn se we we ws))
 
 (define snake-room-persistant-assoc
-    (acons 'player-y 200
-    (acons 'player-x 100
-    (acons 'wizard-y 150
-    (acons 'wizard-x 50
+    (acons 'player-y 4
+    (acons 'player-x 2
+    (acons 'wizard-y 3
+    (acons 'wizard-x 1
     (acons 'cleared nil
     (acons 'door-open nil              
                '())))))))
@@ -57,7 +57,7 @@
 
         (img-clear disp)
         (render-room-from-tiles disp room-tiles)
-        (render-snake-from-path disp 100 100 ernst-hugo)
+        (render-snake-from-path disp 2 2 ernst-hugo)
 
         (render-wizard disp
                        (assoc snake-room-persistant-assoc 'wizard-x)

@@ -25,10 +25,10 @@
           ;; Render the room using the consolidated function
           (render-room-from-tiles disp room-tiles)
           
-          ;; Demo: test horizontal snake
-          (render-snake-from-path disp 50 50 '())
-          (render-snake-from-path disp 50 150 '(we wn ))
-          (render-snake-from-path disp 200 150 '(we ws ns ns))
+          ;; Demo: test horizontal snake (using tile coordinates)
+          (render-snake-from-path disp 1 1 '())
+          (render-snake-from-path disp 1 3 '(we wn ))
+          (render-snake-from-path disp 4 3 '(we ws ns ns))
           (disp-render disp 0 0 (list))
           
           ;; Handle messages
