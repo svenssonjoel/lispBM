@@ -1,5 +1,4 @@
 
-
 (define ernst-hugo '(sn se we we ws))
 
 (define snake-room-persistant-assoc
@@ -8,7 +7,7 @@
     (acons 'wizard-y 3
     (acons 'wizard-x 1
     (acons 'cleared nil
-    (acons 'door-open nil              
+    (acons 'door-open nil
                '())))))))
 
 ;; Create the room tile map with variety: 0=floor, 1=wall, 2=hieroglyph, 3=door
@@ -53,7 +52,6 @@
                      })
                   )
             )
-        
 
         (img-clear disp)
         (render-room-from-tiles disp room-tiles)
@@ -74,7 +72,7 @@
                   (print "The wizard is old and wise.")
                   (print "")
                   (print "The wizard speaks:")
-                  (print "\"You can always look around for clues.\"")    
+                  (print "\"You can always look around for clues.\"")
                   })
                  ((look snake) {
                   (print "The snake is quite scary looking.")
@@ -89,8 +87,12 @@
                   (print "\"Puny mortals, you are no danger to me.\"")
                   (print "\"I was defined into existence by the ancient gods\"")
                   (print "\"and can only be destroyed by equally powerful magic.\"")
-                  (print "")       
-                 })
+                  (print "")
+                  })
+                 ((look grave)
+                  (if (eq ernst-hugo nil)
+                      (print "Here lies ernst-hugo loving father and caring husband.")
+                      (Print "What grave?");
                  ((look door)
                   (if (assoc snake-room-persistant-assoc 'door-open)
                       (print "The door towards the north is open.\n")
@@ -100,7 +102,7 @@
                   (print "A wise wizard watches from the shadows.")
                   (print "To the north, a scaled beast coils before sealed doors.")
                   })
-                  
+
                  ((go north)
                   (if (not (assoc snake-room-persistant-assoc 'door-open))
                       (print "The door is sealed shut.")
@@ -114,8 +116,8 @@
                  ((go west)
                   nil
                   )
-                 
-                 
+
+
                  ((open door)
                   {
                   (if (assoc snake-room-persistant-assoc 'cleared)
@@ -127,10 +129,10 @@
                       }
                       (print "Impossible, there is a giant snake in the way"))
                   })
-                 
+
                  (quit break)    ; Add quit message handler
                  (no-more break)
-                 
+
                  (timeout ())
                  ((? x) (print x)))  ; Timeout - continue loop
         })

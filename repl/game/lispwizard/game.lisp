@@ -8,7 +8,7 @@
     )
 
 ;; grid of rooms
-;; extract room x/y by (ix (ix map-of-rooms x) y)  
+;; extract room x/y by (ix (ix map-of-rooms x) y)
 (define map-of-rooms
     '((not-a-room "test_room.lisp" not-a-room not-a-room)
       ("start_room.lisp" "practice_room.lisp" "snake_room.lisp" not-a-room)))
@@ -16,7 +16,7 @@
 (define game-state '((room-cid . -1)))
 
 ;; Load and execute a room. after a room function completes to execute
-;; it can garbage collected. 
+;; it can garbage collected.
 (define load-room
     (lambda (pos)
       (let (((x . y) pos)
@@ -71,7 +71,11 @@
           })))
 
 
-;; Define player interface 
+;; Define player interface
+
+(defstruct stats (quota life))
+
+(define player (make-stats 10 100))
 
 (define look (macro (x)
                `(send (assoc game-state 'room-cid) '(look ,x))))
@@ -81,6 +85,21 @@
 
 (define open (macro (x)
                `(send (assoc game-state 'room-cid) '(open ,x))))
+
+(define move (macro (x y)
+                    `(send (assoc game-state 'room-cid) '(move ,x ,y))))
+
+;; Check if there is a wall in the currently loaded "room-tiles" at x y
+(define wall-at (lambda (x y)
+                  (= (eq (get-tile room-tiles x y) 0))))
+
+;; Display player stats
+(define stats (lambda ()
+                {
+                (print "quota: " (stats-quota player))
+                (print "life:  " (stats-life player))
+                }))
+
 
 (define help
     (lambda ()
@@ -95,10 +114,9 @@
         (print "")
         (print "Arbitrary lisp code can be entered into the REPL in order to solve the rooms.")
         }))
-            
 
 
-;; Start the game 
+;; Start the game
 (sdl-init)
 (define win (sdl-create-window "GAME" 400 400))
 (define rend (sdl-create-soft-renderer win))
@@ -153,9 +171,3 @@
       }))
 
 (spawn main-loop)
-                    
-        
- 
-               
-                      
-                       
