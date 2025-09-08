@@ -89,9 +89,14 @@
 (define move (macro (x y)
                     `(send (assoc game-state 'room-cid) '(move ,x ,y))))
 
+
+;; Manhattan distance is the cost of movement.
+(define manhattan-distance (lambda (x1 y1 x2 y2)
+                             (+ (abs (- x1 x2)) (abs (- y1 y2)))))
+
 ;; Check if there is a wall in the currently loaded "room-tiles" at x y
-(define wall-at (lambda (x y)
-                  (= (eq (get-tile room-tiles x y) 0))))
+(define walkable (lambda (x y)
+                   (= (eq (get-tile room-tiles x y) 0))))
 
 ;; Display player stats
 (define stats (lambda ()
@@ -99,7 +104,6 @@
                 (print "quota: " (stats-quota player))
                 (print "life:  " (stats-life player))
                 }))
-
 
 (define help
     (lambda ()
