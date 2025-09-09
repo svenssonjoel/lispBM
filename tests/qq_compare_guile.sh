@@ -66,7 +66,16 @@ test_expression() {
     total_tests=$((total_tests + 1))
     
     echo "Test $total_tests: $expr"
-    
+
+    #emacs lisp test
+    # echo -n "  Emacs:  "
+    # if emacs_result=$(emacs --batch --eval "(prin1 $expr)" 2>/dev/null); then
+    #     echo "$emacs_result"
+    # else
+    #     emacs_result="ERROR"
+    #     echo "ERROR or unsupported"
+    # fi
+
     # Guile test
     echo -n "  Guile:  "
     if guile_result=$(guile -c "(display $expr)" 2>/dev/null); then
