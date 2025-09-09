@@ -174,4 +174,28 @@
       (print "exit main loop")
       }))
 
+
+
+;; Rendering thread
+(define render-thd
+    (lambda () {
+      (var room-tiles (bufcreate (* 8 8))) ;; an initial buffer to not need to check for nil
+      (var player-x 1) ;; Maybe  list of characters to draw ?
+      (var player-y 1)
+      (var animations nil)
+      (loopwhile (not done) {
+       (recv-to 0.016
+                ((new-room-data (? d)) (setq room-tiles d))
+                ((player-pos (? x) (? y)) { (setq player-x x) (setq player-y y)})
+                )
+       (img-clear disp)
+       (render-room-from-tiles disp room-tiles)
+       (render-player disp player-x player-y)
+       (disp-render disp 0 0 (list))
+       })
+      }
+      )
+  )
+
+;;(define render-cid (spawn render-thd))
 (spawn main-loop)
