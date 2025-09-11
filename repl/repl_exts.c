@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <stdatomic.h>
 
 #ifndef LBM_WIN
 #include <sys/time.h>
@@ -156,11 +157,21 @@ static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
 
 
 // TIME
+extern void sleep_callback(uint32_t us);
+static atomic_uint_least32_t timestamp_cache = ATOMIC_VAR_INIT(0);
+
+void *timestamp_cacher(void *v) {
+  while(true) {
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    atomic_store(&timestamp_cache, (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec));
+    sleep_callback(100);
+  }
+}
 
 uint32_t timestamp(void) {
-  struct timeval tv;
-  gettimeofday(&tv,NULL);
-  return (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec);
+  return (uint32_t)atomic_load(&timestamp_cache);
+
 }
 
 static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {

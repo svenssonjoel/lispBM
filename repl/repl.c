@@ -296,6 +296,12 @@ static HANDLE prof_thread;
 #endif
 
 #ifndef LBM_WIN
+static pthread_t timestamp_thread;
+#else
+static HANDLE timestamp_thread;
+#endif
+
+#ifndef LBM_WIN
 pthread_t lispbm_thd = 0;
 #else
 HANDLE lispbm_thd;
@@ -2629,6 +2635,20 @@ static void handle_repl_output(void) {
 int main(int argc, char **argv) {
 
   iobuffer_init();
+
+  // ////////////////////////////////////////////////////////////
+  // start timestamp cacher
+#ifdef LBM_WIN
+  timestamp_thread = CreateThread(
+               NULL,
+               0,
+               timestamp_cacher,
+               NULL,
+               0,
+               NULL);
+#else
+  pthread_create(&timestamp_thread, NULL, timestamp_cacher, NULL);
+#endif
 
 #ifdef LBM_WIN
   LPVOID image_address = VirtualAlloc((LPVOID)IMAGE_FIXED_VIRTUAL_ADDRESS,
