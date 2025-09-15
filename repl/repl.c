@@ -74,6 +74,9 @@
 #include "lbm_sdl.h"
 #endif
 
+#include "platform_mutex.h"
+#include "platform_timestamp.h"
+
 // things directly copied from VESC_EXPRESS
 #include "packet.h"
 #include "comm_packet_id.h"
@@ -1079,7 +1082,6 @@ int init_repl(void) {
 
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
-  lbm_set_timestamp_us_callback(timestamp);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(printf_direct_callback);
@@ -1662,7 +1664,6 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(vesc_lbm_done_callback);
-  lbm_set_timestamp_us_callback(timestamp);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(commands_printf_lisp);

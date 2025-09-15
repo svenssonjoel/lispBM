@@ -171,13 +171,6 @@ void done_callback(eval_context_t *ctx) {
   }
 }
 
-uint32_t timestamp_callback(void) {
-  systime_t t = chVTGetSystemTime();
-  uint32_t ts = (uint32_t) ((1000000 / CH_CFG_ST_FREQUENCY) * t);
-  //chprintf(chp,"timestamp %d\r\n ", ts);
-  return ts;
-}
-
 static THD_FUNCTION(eval, arg) {
   (void) arg;
   lbm_run_eval();
@@ -268,7 +261,6 @@ int main(void) {
   }
 
   lbm_set_ctx_done_callback(done_callback);
-  lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
 
   lbm_set_verbose(true);

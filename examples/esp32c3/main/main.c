@@ -37,11 +37,6 @@ static lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 static lbm_string_channel_state_t string_tok_state;
 static lbm_char_channel_t string_tok;
 
-static uint32_t timestamp_callback(void) {
-  TickType_t t = xTaskGetTickCount();
-  return (uint32_t) ((1000 / portTICK_PERIOD_MS) * t);
-}
-
 static void done_callback(eval_context_t *ctx) {
   char buf[256];
   lbm_print_value(buf, 256, ctx->r);
@@ -86,8 +81,7 @@ static bool startup_lbm(void) {
     fflush(stdout);
     esp_restart();
   }
-  
-  lbm_set_timestamp_us_callback(timestamp_callback);
+
   lbm_set_usleep_callback(usleep_callback);
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_printf_callback(printf);
@@ -194,7 +188,7 @@ void app_main(void)
           lbm_create_string_char_channel(&string_tok_state,
                                          &string_tok,
                                          input_buffer);
-          lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
+          lbm_load_and_eval_expression(&string_tok);
           lbm_continue_eval();
 
           // The input_buffer will now be read by the reader in another thread.

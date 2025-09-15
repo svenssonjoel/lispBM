@@ -4,7 +4,8 @@ LISPBM := ../
 include $(LISPBM)/lispbm.mk
 
 PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
-PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c
+PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c \
+                   $(LISPBM)/platform/linux/src/platform_timestamp.c
 
 LBMFLAGS = -DFULL_RTS_LIB \
 	   -DLBM_USE_DYN_MACROS \

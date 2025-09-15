@@ -34,6 +34,19 @@ to maintain system safety and reliability.</p>
 instability, memory corruption, or unpredictable behavior. This document 
 provides safety-focused integration guidelines.</p>
 
+<h2> Sandboxed runtime system </h2>
+
+<p>The LispBM runtime system is designed such that it cannot access or manipulate any memory
+not explicitly assigned to the runtime system for use as Heap, Arrays memory or image storage.
+</p>
+
+<p>The programs running on the LispBM runtime system can communicate with the host application
+through usage of extensions or message-passing (via an events system). Note that extensions
+are implemented in C and can access, read/write, any memory. The extensions form the interface
+between the host application and the LispBM applications. The lispBM runtime system can do nothing
+to ensure that extensions are well behaved in relation to memory.
+</p>
+
 <h2>Integration requirements</h2>
 
 <p> LispBM requires the following functionality to be supplied by a HAL or RTOS: </p>
@@ -95,8 +108,21 @@ void mutex_unlock(mutex_t *m) {
 }
 @endcode
 
-<p> Porting LispBM to a different HAL or RTOS, X,  requires an
+<p>Porting LispBM to a different HAL or RTOS, X,  requires an
 implementation of <code>platform/X/include/platform_mutex.h</code>
 and <code>platform/X/src/platform_mutex.c</code>.
+
+<h2>Building the LispBM runtime system</h2>
+
+<p>LispBM is compiled into an application by the integrator. While the LispBM
+runtime system is thoroughly tested, differences in compiler version or libraries
+could reveal bugs. A final set of integration tests on the system as a whole is
+strongly recommended.</p>
+
+<p>Practical building instructions can be found here \ref Building.</p>
+
+<h2>Configuring the LispBM runtime system</h2>
+
+
 
 */

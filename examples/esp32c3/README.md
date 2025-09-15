@@ -1,8 +1,9 @@
 
-# Minimal LispBM REPL in FreeRTOS for esp32c3
+# LispBM REPL in FreeRTOS for esp32c3
 
 The purpose of this example is to get people who want to try/use LispBM
-started.
+started. This example sets up a thread for running LispBM programs
+concurrently to the main application written in C. 
 
 This example was developed using ESP-IDF v6.0-dev-1489-g4e036983a7.
 Are you using a newer ESP-IDF and this example is no longer compiling, let me know.
