@@ -143,10 +143,8 @@ static bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
     }
 
     if (exists) {
-       if (sleep_callback) {
-         sleep_callback(10);
-       }
-       if (timeout_ms > 0) i ++;
+      sleep_callback(10);
+      if (timeout_ms > 0) i ++;
     }
   } while (exists && i < timeout_ms);
 
