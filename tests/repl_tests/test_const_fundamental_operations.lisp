@@ -6,23 +6,19 @@
 
 @const-start
 
-; Boxed numeric constants (floats require boxing)
 (define pi 3.14159)
 (define e 2.71828f64)
 (define neg-pi -3.14159)
 (define large-float 1234567.89)
 
-; Integer constants (small integers may not be boxed, but larger ones might be)
 (define small-int 42)
 (define large-int 1000000)
 (define neg-int -123)
 
-; String constants (always boxed)
 (define hello "hello")
 (define world "world")
 (define empty-str "")
 
-; List constants (boxed)
 (define test-list '(1 2 3))
 (define nested-list '((a b) (c d)))
 
@@ -162,7 +158,6 @@
     (eq (ix test-list 10) nil)
   ))
 
-; Debug each test group
 (debug_test arith-tests 1)
 (debug_test comp-tests 2)
 (debug_test type-tests 3)
@@ -172,7 +167,6 @@
 (debug_test bit-tests 7)
 (debug_test error-tests 8)
 
-; Run all tests
 (if (and arith-tests comp-tests type-tests list-tests 
          string-tests bool-tests bit-tests error-tests)
     (print "SUCCESS")
