@@ -27,6 +27,9 @@
 
 (define thousand 1000u32)
 
+(define nan_val (sqrt neg_val))
+(define inf_val (exp 1000))
+
 @const-end
 
 ;; Test 1
@@ -128,6 +131,11 @@
     (is-nan (log neg_val))                   ; ln(-5.5) should be NaN (domain error)
     
     (is-inf (exp thousand))  ; overflows into infinity
+
+    (is-nan nan_val)
+    (is-inf inf_val)
+    
+    
   ))
 
 ; Debug each test group
