@@ -30,6 +30,9 @@
 (define nan_val (sqrt neg_val))
 (define inf_val (exp 1000))
 
+(define nan_double (to-double nan_val))
+(define inf_double (to-double inf_val))
+
 @const-end
 
 ;; Test 1
@@ -134,7 +137,9 @@
 
     (is-nan nan_val)
     (is-inf inf_val)
-    
+
+    (is-nan nan_double)
+    (is-inf inf_double)
     
   ))
 
