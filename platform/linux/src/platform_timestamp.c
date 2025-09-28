@@ -26,6 +26,7 @@
 static atomic_uint_least32_t timestamp_cache = ATOMIC_VAR_INIT(0);
 
 void *timestamp_cacher(void *v) {
+  (void) v;
   while(true) {
     struct timeval tv;
     gettimeofday(&tv,NULL);
