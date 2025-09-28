@@ -1,6 +1,6 @@
 [![Website](https://img.shields.io/badge/Website-lispbm.com-blue)](https://www.lispbm.com)
-[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen)](https://www.lispbm.com)
-[![Discord](https://img.shields.io/discord/1304708369013018707)](https://discord.gg/urtJUUMnwQ)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen)](https://www.lispbm.com/#documentation)
+[![Discord](https://img.shields.io/badge/Discord-Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/urtJUUMnwQ)
 
 # lispBM (LBM)
 
