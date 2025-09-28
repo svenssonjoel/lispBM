@@ -1,6 +1,7 @@
 [![Website](https://img.shields.io/badge/Website-lispbm.com-blue)](https://www.lispbm.com)
 [![Documentation](https://img.shields.io/badge/docs-latest-brightgreen)](https://www.lispbm.com/#documentation)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord&logoColor=white)](https://discord.gg/urtJUUMnwQ)
+[![Contributors](https://contrib.rocks/image?repo=svenssonjoel/lispbm)](https://www.lispbm.com/contributors.html)*Click to see our amazing contributors on [lispbm.com](https://www.lispbm.com/contributors.html)*
 
 
 # lispBM (LBM)
