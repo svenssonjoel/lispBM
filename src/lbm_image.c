@@ -1213,7 +1213,7 @@ bool lbm_image_boot(void) {
       uint32_t sym_id = (uint32_t)(p[1]);
       lbm_uint next_id = lbm_symrepr_get_next_id();
       if (sym_id >= RUNTIME_SYMBOLS_START && sym_id >= next_id ) {
-        lbm_symrepr_set_next_id(next_id + 1);
+        lbm_symrepr_set_next_id(sym_id + 1);
       }
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
       pos -= 6;
@@ -1223,7 +1223,7 @@ bool lbm_image_boot(void) {
       uint32_t sym_id = (uint32_t)(p[1]);
       lbm_uint next_id = lbm_symrepr_get_next_id();
       if (sym_id >= RUNTIME_SYMBOLS_START && sym_id >= next_id ) {
-        lbm_symrepr_set_next_id(next_id + 1);
+        lbm_symrepr_set_next_id(sym_id + 1);
       }
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
       pos -= 3;
