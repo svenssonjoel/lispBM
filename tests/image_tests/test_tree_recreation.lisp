@@ -1,4 +1,5 @@
 
+;; Test tree with sharing
 (def t1 (list 1 2 3))
 (def t11 (list 4 5 6))
 (def t2 (list t1 t11))

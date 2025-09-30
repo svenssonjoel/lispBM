@@ -1006,6 +1006,7 @@ bool lbm_image_save_global_env(void) {
       }
     }
 #if DEBUG
+    printf("Sharing table:\n");
     print_sharing_table(&st);
 #endif
     return true;
