@@ -43,6 +43,7 @@
 #include "lbm_image.h"
 #include "lbm_flat_value.h"
 #include "platform_timestamp.h"
+#include "print.h"
 
 #include <png.h>
 
@@ -192,11 +193,10 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
   for (unsigned int i = 0; i < argn; i ++) {
     lbm_value t = args[i];
-
-    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
-      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
-      char *data = (char*)array->data;
-      lbm_printf_callback("%s", data);
+    char *str;    
+    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY &&
+        lbm_value_is_printable_string(t, &str)) {
+      lbm_printf_callback("%s", str);
     } else {
       lbm_print_value(output, 1024, t);
       lbm_printf_callback("%s", output);
