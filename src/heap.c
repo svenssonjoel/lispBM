@@ -720,21 +720,38 @@ void lbm_gc_mark_phase(lbm_value root) {
 }
 
 #else
-/* ************************************************************
-   Explicit stack "recursive" mark phase
+// ////////////////////////////////////////////////////////////
+// Check if a value is currently on the stack
+// This is a temporary hack to make arrays with cycles work
+// with Garbage collection. It is an O(stack_size) sollution, there
+// are O(1) sollutions that has a constant cost even in non-array cases.
 
-   Trees are marked in a left subtree before rigth subtree, car first then cdr,
-   way to favor lisp lists. This means that stack will grow slowly when
-   marking right-leaning (cdr-recursive) data-structures while left-leaning
-   (car-recursive) structures uses a lot of stack.
+bool active_ptr(lbm_value p) {
+  lbm_stack_t *s = &lbm_heap_state.gc_stack;
+  bool r = false;
+  for (lbm_uint i = 0; i < s->sp; i ++) {
+    if (p == s->data[i]) {
+      r = true;
+      break;
+    }
+  }
+  return r;
+}
 
-   Lisp arrays contain an extra book-keeping field to keep track
-   of how far into the array the marking process has gone.
+// ////////////////////////////////////////////////////////////
+// Explicit stack "recursive" mark phase
 
-   TODO: DSW should be used as a last-resort if the GC stack is exhausted.
-         If we use DSW as last-resort can we get away with a way smaller
-         GC stack and unchanged performance (on sensible programs)?
-*/
+// Trees are marked in a left subtree before rigth subtree, car first then cdr,
+// way to favor lisp lists. This means that stack will grow slowly when
+// marking right-leaning (cdr-recursive) data-structures while left-leaning
+// (car-recursive) structures uses a lot of stack.
+
+// Lisp arrays contain an extra book-keeping field to keep track
+// of how far into the array the marking process has gone.
+
+// TODO: DSW should be used as a last-resort if the GC stack is exhausted.
+//       If we use DSW as last-resort can we get away with a way smaller
+//       GC stack and unchanged performance (on sensible programs)?
 
 extern eval_context_t *ctx_running;
 void lbm_gc_mark_phase(lbm_value root) {
@@ -776,7 +793,7 @@ void lbm_gc_mark_phase(lbm_value root) {
         if (lbm_is_ptr(arrdata[index]) && ((arrdata[index] & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
             !((arrdata[index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
           lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];
-          if (!lbm_get_gc_mark(elt->cdr)) {
+          if (!lbm_get_gc_mark(elt->cdr) && !(active_ptr(arrdata[index]))) {
             curr = arrdata[index];
             goto mark_shortcut;
           }
