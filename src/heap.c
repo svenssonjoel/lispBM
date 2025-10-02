@@ -782,6 +782,11 @@ void lbm_gc_mark_phase(lbm_value root) {
     // value per array that keeps track of how far into the array GC
     // has progressed.
     if (t_ptr == LBM_TYPE_LISPARRAY) {
+      // O(stack_size) cost when seeing array. This protects
+      // against gc recursing into arrays via cycles.
+      if (active_ptr(curr)) {
+        continue; // Already in process of marking this array, abort cycle!
+      }
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
       uint32_t index = arr->index;
@@ -793,8 +798,9 @@ void lbm_gc_mark_phase(lbm_value root) {
         if (lbm_is_ptr(arrdata[index]) && ((arrdata[index] & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
             !((arrdata[index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
           lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];
-          if (!lbm_get_gc_mark(elt->cdr) && !(active_ptr(arrdata[index]))) {
+          if (!lbm_get_gc_mark(elt->cdr)) {
             curr = arrdata[index];
+            arr->index++;
             goto mark_shortcut;
           }
         }
