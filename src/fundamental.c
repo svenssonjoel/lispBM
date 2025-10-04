@@ -245,6 +245,17 @@ static bool array_struct_equality(lbm_value a, lbm_value b) {
   return res;
 }
 
+// ////////////////////////////////////////////////////////////
+// Added pointer comparison before recurring on arrays and lists.
+// struct_eq can exhaust stack! but the the pointer check makes it
+// a highly unlikely event occurring normally.
+//
+// To run out of C stack now you would have to
+// create in memory two identical structures that are
+// large and pointer-wise unique but structuraly identical.
+//
+// Unknowns that impact this is argument is that
+// the stack depth is unknown to me (it is a result of the integrator's choices).
 bool struct_eq(lbm_value a, lbm_value b) {
 
   bool res = false;
@@ -262,6 +273,10 @@ bool struct_eq(lbm_value a, lbm_value b) {
     case LBM_TYPE_CHAR:
       res = (lbm_dec_char(a) == lbm_dec_char(b)); break;
     case LBM_TYPE_CONS:
+      if (a == b) { // quick path if pointers equal (pointers equal => structural equal)
+        res = true;
+        break;
+      }
       res = ( struct_eq(lbm_car(a),lbm_car(b)) &&
               struct_eq(lbm_cdr(a),lbm_cdr(b)) ); break;
     case LBM_TYPE_I32:
@@ -279,6 +294,10 @@ bool struct_eq(lbm_value a, lbm_value b) {
     case LBM_TYPE_ARRAY:
       res =  bytearray_equality(a, b); break;
     case LBM_TYPE_LISPARRAY:
+      if (a == b) { // quick path if pointers equal (pointers equal => structural equal)
+        res = true;
+        break;
+      }
       res =  array_struct_equality(a, b); break;
     }
   }
