@@ -546,7 +546,7 @@ static bool generate_freelist(size_t num_cells) {
 
 void lbm_nil_freelist(void) {
   lbm_heap_state.freelist = ENC_SYM_NIL;
-  lbm_heap_state.num_alloc = lbm_heap_state.heap_size;
+  lbm_heap_state.num_free = 0;
 }
 
 static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
@@ -557,7 +557,7 @@ static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
 
   lbm_stack_create(&lbm_heap_state.gc_stack, gc_stack_storage, gc_stack_size);
 
-  lbm_heap_state.num_alloc           = 0;
+  lbm_heap_state.num_free            = num_cells;
   lbm_heap_state.num_alloc_arrays    = 0;
   lbm_heap_state.gc_num              = 0;
   lbm_heap_state.gc_marked           = 0;
@@ -568,10 +568,9 @@ static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
 }
 
 void lbm_heap_new_freelist_length(void) {
-  lbm_uint l = lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
-  lbm_heap_state.gc_last_free = l;
-  if (l < lbm_heap_state.gc_least_free)
-    lbm_heap_state.gc_least_free = l;
+  lbm_heap_state.gc_last_free = lbm_heap_state.num_free;
+  if (lbm_heap_state.num_free < lbm_heap_state.gc_least_free)
+      lbm_heap_state.gc_least_free = lbm_heap_state.num_free;
 }
 
 bool lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
@@ -599,7 +598,7 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr
   if (cell) {
     lbm_uint heap_ix = lbm_dec_ptr(cell);
     lbm_heap_state.freelist = lbm_heap_state.heap[heap_ix].cdr;
-    lbm_heap_state.num_alloc++;
+    lbm_heap_state.num_free--;
     lbm_heap_state.heap[heap_ix].car = car;
     lbm_heap_state.heap[heap_ix].cdr = cdr;
     r = lbm_set_ptr_type(cell, ptr_type);
@@ -627,7 +626,7 @@ lbm_value lbm_heap_allocate_list(lbm_uint n) {
   } while (count < n);
   lbm_heap_state.freelist = curr;
   c_cell->cdr = ENC_SYM_NIL;
-  lbm_heap_state.num_alloc+=count;
+  lbm_heap_state.num_free-=count;
   return res;
 }
 
@@ -648,7 +647,7 @@ lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist) {
   } while (count < n);
   lbm_heap_state.freelist = curr;
   c_cell->cdr = ENC_SYM_NIL;
-  lbm_heap_state.num_alloc+=count;
+  lbm_heap_state.num_free-=count;
   return res;
 }
 
@@ -661,7 +660,7 @@ lbm_value lbm_heap_allocate_list_init(unsigned int n, ...) {
 }
 
 lbm_uint lbm_heap_num_allocated(void) {
-  return lbm_heap_state.num_alloc;
+  return lbm_heap_state.heap_size - lbm_heap_state.num_free;
 }
 lbm_uint lbm_heap_size(void) {
   return lbm_heap_state.heap_size;
@@ -935,7 +934,7 @@ int lbm_gc_sweep_phase(void) {
       heap[i].car = ENC_SYM_RECOVERED;
       heap[i].cdr = lbm_heap_state.freelist;
       lbm_heap_state.freelist = addr;
-      lbm_heap_state.num_alloc --;
+      lbm_heap_state.num_free++;
       lbm_heap_state.gc_recovered ++;
     }
   }

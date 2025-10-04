@@ -537,24 +537,25 @@ static inline lbm_array_header_t *assume_array(lbm_value a){
 }
 
 static lbm_value cons_with_gc(lbm_value head, lbm_value tail, lbm_value remember) {
+  lbm_value res;
 #ifdef LBM_ALWAYS_GC
   lbm_value always_gc_roots[3] = {head, tail, remember};
   lbm_gc_mark_roots(always_gc_roots,3);
   gc();
 #endif
-  lbm_value res = lbm_heap_state.freelist;
-  if (lbm_is_symbol_nil(res)) {
+  if (!lbm_heap_num_free()) {
     lbm_value roots[3] = {head, tail, remember};
     lbm_gc_mark_roots(roots,3);
     gc();
-    res = lbm_heap_state.freelist;
-    if (lbm_is_symbol_nil(res)) {
+    if (!lbm_heap_num_free()) {
       ERROR_CTX(ENC_SYM_MERROR);
     }
   }
+
+  res = lbm_heap_state.freelist;
   lbm_uint heap_ix = lbm_dec_ptr(res);
   lbm_heap_state.freelist = lbm_heap_state.heap[heap_ix].cdr;
-  lbm_heap_state.num_alloc++;
+  lbm_heap_state.num_free--;
   lbm_heap_state.heap[heap_ix].car = head;
   lbm_heap_state.heap[heap_ix].cdr = tail;
   res = lbm_set_ptr_type(res, LBM_TYPE_CONS);
@@ -721,7 +722,7 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
   lbm_value list_cell = heap[binding_cell_ix].cdr;
   lbm_uint list_cell_ix = lbm_dec_ptr(list_cell);
   lbm_heap_state.freelist = heap[list_cell_ix].cdr;
-  lbm_heap_state.num_alloc += 2;
+  lbm_heap_state.num_free -= 2;
   heap[binding_cell_ix].car = key;
   heap[binding_cell_ix].cdr = val;
   heap[list_cell_ix].car = binding_cell;
@@ -900,7 +901,7 @@ static void print_error_message(lbm_value error,
     print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Error:", error, false);
   }
   if (lbm_is_symbol_merror(error)) {
-    lbm_printf_callback("\n   Heap cells free:  %d\n", lbm_heap_state.heap_size - lbm_heap_state.num_alloc);
+    lbm_printf_callback("\n   Heap cells free:  %d\n", lbm_heap_state.num_free);
     lbm_printf_callback("   Mem longest free: %d\n\n", lbm_memory_longest_free());
   }
   if (name) {
@@ -2008,7 +2009,7 @@ static inline lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_v
   heap[ix].car = env;
   lbm_heap_state.freelist = heap[ix].cdr;
   heap[ix].cdr = ENC_SYM_NIL;
-  lbm_heap_state.num_alloc+=4;
+  lbm_heap_state.num_free-=4;
   return res;
 }
 
@@ -2069,7 +2070,7 @@ static void eval_lambda(eval_context_t *ctx) {
       heap[ix].car = ctx->curr_env;
       lbm_heap_state.freelist = heap[ix].cdr;
       heap[ix].cdr = ENC_SYM_NIL;
-      lbm_heap_state.num_alloc+=4;
+      lbm_heap_state.num_free-=4;
       ctx->r = clo;
 #ifdef CLEAN_UP_CLOSURES
       lbm_uint sym_id  = 0;
@@ -3597,7 +3598,7 @@ static void cont_closure_args_rest(eval_context_t *ctx) {
   }
   lbm_uint binding_ix = lbm_dec_ptr(binding);
   lbm_heap_state.freelist = heap[binding_ix].cdr;
-  lbm_heap_state.num_alloc += 1;
+  lbm_heap_state.num_free -= 1;
   heap[binding_ix].car = ctx->r;
   heap[binding_ix].cdr = ENC_SYM_NIL;
 
@@ -5717,7 +5718,7 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
         return;
       } else { // lbm_is_symbol(fun)
         stack_reserve(ctx, 1)[0] = fun;
-        size_t arg_count = 0;
+        unsigned int arg_count = 0;
         for (lbm_value current = arg_list; lbm_is_cons(current); current = lbm_ref_cell(current)->cdr) {
           stack_reserve(ctx, 1)[0] = lbm_ref_cell(current)->car;
           arg_count++;

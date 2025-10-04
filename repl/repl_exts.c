@@ -162,6 +162,8 @@ static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
 extern void sleep_callback(uint32_t us);
 
 static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
 
   uint32_t time = timestamp();
 
@@ -846,6 +848,7 @@ lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
 
 
 int dummy_f(lbm_value v, bool shared, void *arg) {
+  (void) arg;
   if (shared) {
     lbm_printf_callback("shared node detected\n");
   }

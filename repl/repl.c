@@ -409,8 +409,8 @@ bool const_heap_write(lbm_uint ix, lbm_uint w) {
   return false;
 }
 
-bool image_write(uint32_t w, int32_t ix, bool const_heap) { // ix >= 0 and ix <= image_size
-  (void) const_heap;
+bool image_write(uint32_t w, int32_t ix, bool is_const_heap) { // ix >= 0 and ix <= image_size
+  (void) is_const_heap;
   if (image_storage[ix] == 0xffffffff) {
     image_storage[ix] = w;
     return true;
@@ -469,6 +469,7 @@ DWORD WINAPI eval_thd_wrapper_win(LPVOID lpParam) {
 }
 #else
 void *eval_thd_wrapper(void *v) {
+  (void) v;
   if (!silent_mode) {
     printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
 #ifdef WITH_SDL
@@ -561,6 +562,7 @@ DWORD WINAPI prof_thd(LPVOID lpParam) {
 }
 #else
 void *prof_thd(void *v) {
+  (void) v;
   while (prof_running) {
     lbm_prof_sample();
     sleep_callback(200);
@@ -779,7 +781,7 @@ void parse_opts(int argc, char **argv) {
   while ((c = getopt_long(argc, argv, "H:M:C:hs:e:",options, &opt_index)) != -1) {
     switch (c) {
     case 'H':
-      heap_size = (size_t)atoi((char*)optarg);
+      heap_size = (unsigned int)atoi((char*)optarg);
       break;
     case 'C':
       constants_memory_size = (size_t)atoi((char*)optarg);
@@ -918,6 +920,7 @@ void parse_opts(int argc, char **argv) {
              "  If the path is set to the empty string, then writing the history is disabled.\n");
       printf("\n");
       terminate_repl(REPL_EXIT_SUCCESS);
+      break;
     case 's':
       if (!src_list_add((char*)optarg)) {
         printf("Error adding source file to source list\n");
@@ -1091,7 +1094,7 @@ int init_repl(void) {
 
   //Load an image
   lbm_image_init(image_storage,
-                 image_storage_size / sizeof(uint32_t), //sizeof(lbm_uint),
+                 (uint32_t)(image_storage_size / sizeof(uint32_t)), //sizeof(lbm_uint),
                  image_write);
 
   if (image_input_file) {
@@ -1367,7 +1370,7 @@ void startup_procedure(void) {
 }
 
 
-int store_env(char *filename) {
+int store_env(void) {
   FILE *fp = fopen(env_output_file, "w");
   if (!fp) {
     terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
@@ -1436,7 +1439,7 @@ void shutdown_procedure(void) {
   handle_repl_output();
 
   if (env_output_file) {
-    int r = store_env(env_output_file);
+    int r = store_env();
     if (r != REPL_EXIT_SUCCESS) terminate_repl(r);
   }
   return;
@@ -1656,7 +1659,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   }
 
   lbm_image_init(image_storage,
-                 image_storage_size / sizeof(uint32_t), //sizeof(lbm_uint),
+                 (uint32_t)(image_storage_size / sizeof(uint32_t)), //sizeof(lbm_uint),
                  image_write);
   image_clear();
   lbm_image_create("bepa_1");
@@ -2359,7 +2362,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     int result = 0;
     uint32_t offset = buffer_get_uint32(data, &ind);
 
-    size_t num = len - (size_t)ind; // length of data;
+    unsigned int num = (unsigned int)((int32_t)len - ind); // length of data;
     if (num + offset < vescif_program_flash_size) {
       memcpy((uint8_t*)vescif_program_flash+offset, data+ind, num);
       vescif_program_flash_code_len = num;
@@ -2535,6 +2538,7 @@ DWORD WINAPI vesctcp_client_handler(LPVOID lpParam) {
 }
 #else
 void *vesctcp_client_handler(void *arg) {
+  (void) arg;
   uint8_t buffer[1024];
   packet_init(send_tcp_bytes, process_packet_local,&packet);
   send_func = send_packet_local;

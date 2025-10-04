@@ -331,7 +331,7 @@ static lbm_value ext_str_split(lbm_value *args, lbm_uint argn) {
     // with byte-arrays.
     while (i_end < str_arr_size) {
 
-      while (str[i_end] != '\0' && !char_in(str[i_end], delim, delim_arr_size)) {
+      while (str[i_end] != '\0' && !char_in(str[i_end], delim, (unsigned int)delim_arr_size)) {
         i_end ++;
       }
 
@@ -690,7 +690,7 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
     for (int i = 0; i < (int)argn; i ++ ) {
       if (lbm_is_number(args[i]) && num_ix < 2) {
         nums_set[num_ix] = true;
-        nums[num_ix++] = lbm_dec_as_int(args[i]);
+        nums[num_ix++] = (int)lbm_dec_as_int(args[i]);
       }
       if (lbm_is_symbol(args[i])) {
         lbm_uint symbol = lbm_dec_sym(args[i]);

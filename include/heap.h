@@ -217,7 +217,7 @@ typedef struct {
   lbm_uint heap_size;          // In number of cells.
   lbm_uint heap_bytes;         // In bytes.
 
-  lbm_uint num_alloc;          // Number of cells allocated.
+  lbm_uint num_free;           // Number of free cells.
   lbm_uint num_alloc_arrays;   // Number of arrays allocated.
 
   lbm_uint gc_num;             // Number of times gc has been performed.
@@ -288,7 +288,7 @@ void lbm_heap_new_freelist_length(void);
  * \return Number of free lbm_cons_t cells.
  */
 static inline lbm_uint lbm_heap_num_free(void) {
-  return lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
+  return lbm_heap_state.num_free;
 }
 
 /** Check how many lbm_cons_t cells are allocated.

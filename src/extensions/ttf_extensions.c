@@ -384,12 +384,12 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
       }
 
       uint32_t bytes_required =
-        FONT_PREAMBLE_SIZE +
-        FONT_LINE_METRICS_SIZE +
-        (uint32_t)kern_tab_bytes +
-        FONT_GLYPH_TABLE_SIZE +
-        n * FONT_GLYPH_SIZE + // per glyph metrics
-        (uint32_t)glyph_gfx_size;
+        (uint32_t)(FONT_PREAMBLE_SIZE +
+                   FONT_LINE_METRICS_SIZE +
+                   (uint32_t)kern_tab_bytes +
+                   FONT_GLYPH_TABLE_SIZE +
+                   n * FONT_GLYPH_SIZE + // per glyph metrics
+                   (uint32_t)glyph_gfx_size);
 
       uint8_t *buffer = (uint8_t*)lbm_malloc(bytes_required);
       if (!buffer) {
