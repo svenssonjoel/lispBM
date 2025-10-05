@@ -136,7 +136,7 @@ static int iobuffer_tail = 0;
 static bool iobuffer_full = false;
 static bool iobuffer_mutex_initialized = false;
 
-static mutex_t iobuffer_mutex; // use platform_mutex
+static lbm_mutex_t iobuffer_mutex; // use platform_mutex
 
 static void iobuffer_init(void) {
 
@@ -144,7 +144,7 @@ static void iobuffer_init(void) {
   iobuffer_tail = 0;
   iobuffer_full = false;
   if (!iobuffer_mutex_initialized) {
-    mutex_init(&iobuffer_mutex);
+    lbm_mutex_init(&iobuffer_mutex);
     iobuffer_mutex_initialized = true;
   }
 }
@@ -175,9 +175,9 @@ static void iobuffer_put(char c) {
 }
 
 static void iobuffer_print(void) {
-  mutex_lock(&iobuffer_mutex);
+  lbm_mutex_lock(&iobuffer_mutex);
   if ((iobuffer_tail == iobuffer_head) && !iobuffer_full) {
-    mutex_unlock(&iobuffer_mutex);
+    lbm_mutex_unlock(&iobuffer_mutex);
     return; // empty
   }
 
@@ -196,15 +196,15 @@ static void iobuffer_print(void) {
   iobuffer_head = 0;
   iobuffer_tail = 0;
   iobuffer_full = false;
-  mutex_unlock(&iobuffer_mutex);
+  lbm_mutex_unlock(&iobuffer_mutex);
 }
 
 static void iobuffer_write(char *str) {
-  mutex_lock(&iobuffer_mutex);
+  lbm_mutex_lock(&iobuffer_mutex);
   for (; *str != 0; str++) {
     iobuffer_put(*str);
   }
-  mutex_unlock(&iobuffer_mutex);
+  lbm_mutex_unlock(&iobuffer_mutex);
 }
 
 
@@ -1536,7 +1536,7 @@ int commands_printf_lisp(const char* format, ...) {
   return len_to_print - 1;
 }
 
-#define UTILS_AGE_S(x)		((float)(timestamp() - x) / 1000.0f)
+#define UTILS_AGE_S(x)		((float)(lbm_timestamp() - x) / 1000.0f)
 //static uint32_t repl_time = 0;
 
 static void vesc_lbm_done_callback(eval_context_t *ctx) {
@@ -1811,7 +1811,7 @@ float get_cpu_usage(void) {
       long unsigned int tot_cpu = ucpu + scpu ;
 
       long unsigned int ticks = tot_cpu - get_cpu_last_ticks;
-      unsigned int t_now = timestamp();
+      unsigned int t_now = lbm_timestamp();
       unsigned int t_diff = t_now - get_cpu_last_time;
 
       // Not sure about this :)
@@ -2611,9 +2611,9 @@ static void handle_repl_output(void) {
   // Save current readline state
   int saved_point = rl_point;
   char *saved_line = rl_copy_text(0, rl_end);
-  mutex_lock(&iobuffer_mutex);
+  lbm_mutex_lock(&iobuffer_mutex);
   int num = iobuffer_num();
-  mutex_unlock(&iobuffer_mutex);
+  lbm_mutex_unlock(&iobuffer_mutex);
   if (num > 0) {
 
     // Clear current line and print output to real stdout
@@ -2647,12 +2647,12 @@ int main(int argc, char **argv) {
   timestamp_thread = CreateThread(
                NULL,
                0,
-               timestamp_cacher,
+               lbm_timestamp_cacher,
                NULL,
                0,
                NULL);
 #else
-  pthread_create(&timestamp_thread, NULL, timestamp_cacher, NULL);
+  pthread_create(&timestamp_thread, NULL, lbm_timestamp_cacher, NULL);
 #endif
 
 #ifdef LBM_WIN

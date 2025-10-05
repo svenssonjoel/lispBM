@@ -84,18 +84,18 @@ lbm_const_heap_t *lbm_const_heap_state;
 
 lbm_cons_t *lbm_heaps[2] = {NULL, NULL};
 
-static mutex_t lbm_const_heap_mutex;
+static lbm_mutex_t lbm_const_heap_mutex;
 static bool    lbm_const_heap_mutex_initialized = false;
 
-static mutex_t lbm_mark_mutex;
+static lbm_mutex_t lbm_mark_mutex;
 static bool    lbm_mark_mutex_initialized = false;
 
 #ifdef USE_GC_PTR_REV
 void lbm_gc_lock(void) {
-  mutex_lock(&lbm_mark_mutex);
+  lbm_mutex_lock(&lbm_mark_mutex);
 }
 void lbm_gc_unlock(void) {
-  mutex_unlock(&lbm_mark_mutex);
+  lbm_mutex_unlock(&lbm_mark_mutex);
 }
 #else
 void lbm_gc_lock(void) {
@@ -713,9 +713,9 @@ static int do_nothing(lbm_value v, bool shared, void *arg) {
 }
 
 void lbm_gc_mark_phase(lbm_value root) {
-    mutex_lock(&lbm_const_heap_mutex);
+    lbm_mutex_lock(&lbm_const_heap_mutex);
     lbm_ptr_rev_trav(do_nothing, root, NULL);
-    mutex_unlock(&lbm_const_heap_mutex);
+    lbm_mutex_unlock(&lbm_const_heap_mutex);
 }
 
 #else
@@ -1298,12 +1298,12 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
   if (((uintptr_t)addr % 4) != 0) return 0;
 
   if (!lbm_const_heap_mutex_initialized) {
-    mutex_init(&lbm_const_heap_mutex);
+    lbm_mutex_init(&lbm_const_heap_mutex);
     lbm_const_heap_mutex_initialized = true;
   }
 
   if (!lbm_mark_mutex_initialized) {
-    mutex_init(&lbm_mark_mutex);
+    lbm_mutex_init(&lbm_mark_mutex);
     lbm_mark_mutex_initialized = true;
   }
 
@@ -1322,7 +1322,7 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
 lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
   lbm_flash_status r = LBM_FLASH_FULL;
 
-  mutex_lock(&lbm_const_heap_mutex);
+  lbm_mutex_lock(&lbm_const_heap_mutex);
   // waste a cell if we have ended up unaligned after writing an array to flash.
   if (lbm_const_heap_state->next % 2 == 1) {
     lbm_const_heap_state->next++;
@@ -1336,7 +1336,7 @@ lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
     *res = (cell << LBM_ADDRESS_SHIFT) | LBM_PTR_BIT | LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT;
     r = LBM_FLASH_WRITE_OK;
   }
-  mutex_unlock(&lbm_const_heap_mutex);
+  lbm_mutex_unlock(&lbm_const_heap_mutex);
   return r;
 }
 

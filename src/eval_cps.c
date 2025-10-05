@@ -273,7 +273,7 @@ typedef struct {
 static eval_context_queue_t blocked  = {NULL, NULL};
 static eval_context_queue_t queue    = {NULL, NULL};
 
-mutex_t qmutex;
+lbm_mutex_t qmutex;
 bool    qmutex_initialized = false;
 
 static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx);
@@ -384,7 +384,7 @@ static unsigned int lbm_events_head = 0;
 static unsigned int lbm_events_tail = 0;
 static unsigned int lbm_events_max  = 0;
 static bool         lbm_events_full = false;
-static mutex_t      lbm_events_mutex;
+static lbm_mutex_t      lbm_events_mutex;
 static bool         lbm_events_mutex_initialized = false;
 static volatile lbm_cid  lbm_event_handler_pid = -1;
 
@@ -415,7 +415,7 @@ bool lbm_event_handler_exists(void) {
 static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_uint buf_ptr, lbm_uint buf_len) {
   bool r = false;
   if (lbm_events) {
-    mutex_lock(&lbm_events_mutex);
+    lbm_mutex_lock(&lbm_events_mutex);
     if (!lbm_events_full) {
       lbm_event_t event;
       event.type = event_type;
@@ -427,7 +427,7 @@ static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_
       lbm_events_full = lbm_events_head == lbm_events_tail;
       r = true;
     }
-    mutex_unlock(&lbm_events_mutex);
+    lbm_mutex_unlock(&lbm_events_mutex);
   }
   return r;
 }
@@ -461,7 +461,7 @@ bool lbm_event(lbm_flat_value_t *fv) {
 }
 
 static bool lbm_event_pop(lbm_event_t *event) {
-  mutex_lock(&lbm_events_mutex);
+  lbm_mutex_lock(&lbm_events_mutex);
   bool r = false;
   if (lbm_events_head != lbm_events_tail || lbm_events_full) {
     *event = lbm_events[lbm_events_tail];
@@ -469,23 +469,23 @@ static bool lbm_event_pop(lbm_event_t *event) {
     lbm_events_full = false;
     r = true;
   }
-  mutex_unlock(&lbm_events_mutex);
+  lbm_mutex_unlock(&lbm_events_mutex);
   return r;
 }
 
 bool lbm_event_queue_is_empty(void) {
-  mutex_lock(&lbm_events_mutex);
+  lbm_mutex_lock(&lbm_events_mutex);
   bool empty = false;
   if (lbm_events_head == lbm_events_tail && !lbm_events_full) {
     empty = true;
   }
-  mutex_unlock(&lbm_events_mutex);
+  lbm_mutex_unlock(&lbm_events_mutex);
   return empty;
 }
 
 static bool              eval_running = false;
 static volatile bool     blocking_extension = false;
-static mutex_t           blocking_extension_mutex;
+static lbm_mutex_t           blocking_extension_mutex;
 static bool              blocking_extension_mutex_initialized = false;
 static lbm_uint          blocking_extension_timeout_us = 0;
 static bool              blocking_extension_timeout = false;
@@ -787,7 +787,7 @@ static void atomic_error(void) {
 // Blocking while in an atomic block would have bad consequences.
 static void block_current_ctx(uint32_t state, lbm_uint sleep_us,  bool do_cont) {
   if (is_atomic) atomic_error();
-  ctx_running->timestamp = timestamp();
+  ctx_running->timestamp = lbm_timestamp();
   ctx_running->sleep_us = sleep_us;
   ctx_running->state  = state;
   ctx_running->app_cont = do_cont;
@@ -1004,23 +1004,23 @@ static void queue_iterator_nm(eval_context_queue_t *q, ctx_fun f, void *arg1, vo
 }
 
 void lbm_all_ctxs_iterator(ctx_fun f, void *arg1, void *arg2) {
-  mutex_lock(&qmutex);
+  lbm_mutex_lock(&qmutex);
   queue_iterator_nm(&blocked, f, arg1, arg2);
   queue_iterator_nm(&queue, f, arg1, arg2);
   if (ctx_running) f(ctx_running, arg1, arg2);
-  mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&qmutex);
 }
 
 void lbm_running_iterator(ctx_fun f, void *arg1, void *arg2){
-  mutex_lock(&qmutex);
+  lbm_mutex_lock(&qmutex);
   queue_iterator_nm(&queue, f, arg1, arg2);
-  mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&qmutex);
 }
 
 void lbm_blocked_iterator(ctx_fun f, void *arg1, void *arg2){
-  mutex_lock(&qmutex);
+  lbm_mutex_lock(&qmutex);
   queue_iterator_nm(&blocked, f, arg1, arg2);
-  mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&qmutex);
 }
 
 static void enqueue_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
@@ -1038,9 +1038,9 @@ static void enqueue_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
 }
 
 static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
-  mutex_lock(&qmutex);
+  lbm_mutex_lock(&qmutex);
   enqueue_ctx_nm(q,ctx);
-  mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&qmutex);
 }
 
 static eval_context_t *lookup_ctx_nm(eval_context_queue_t *q, lbm_cid cid) {
@@ -1260,7 +1260,7 @@ static eval_context_t *dequeue_ctx_nm(eval_context_queue_t *q) {
 
 static void wake_up_ctxs_nm(void) {
   lbm_uint t_now;
-  t_now = timestamp();
+  t_now = lbm_timestamp();
   eval_context_queue_t *q = &blocked;
   eval_context_t *curr = q->first;
 
@@ -1314,7 +1314,7 @@ static void wake_up_ctxs_nm(void) {
 
 static void yield_ctx(lbm_uint sleep_us) {
   if (is_atomic) atomic_error();
-  ctx_running->timestamp = timestamp();
+  ctx_running->timestamp = lbm_timestamp();
   ctx_running->sleep_us = sleep_us;
   ctx_running->state = LBM_THREAD_STATE_SLEEPING;
   ctx_running->r = ENC_SYM_TRUE;
@@ -1522,10 +1522,10 @@ bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
 }
 
 bool lbm_unblock_ctx_r(lbm_cid cid) {
-  mutex_lock(&blocking_extension_mutex);
+  lbm_mutex_lock(&blocking_extension_mutex);
   bool r = false;
   eval_context_t *found = NULL;
-  mutex_lock(&qmutex);
+  lbm_mutex_lock(&qmutex);
   found = lookup_ctx_nm(&blocked, cid);
   if (found && (LBM_IS_STATE_UNBLOCKABLE(found->state))) {
     drop_ctx_nm(&blocked,found);
@@ -1533,18 +1533,18 @@ bool lbm_unblock_ctx_r(lbm_cid cid) {
     enqueue_ctx_nm(&queue,found);
     r = true;
   }
-  mutex_unlock(&qmutex);
-  mutex_unlock(&blocking_extension_mutex);
+  lbm_mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&blocking_extension_mutex);
   return r;
 }
 
 // unblock unboxed is also safe for rmbr:ed things.
 // TODO: What happens if we unblock and the value is "merror"
 bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
-  mutex_lock(&blocking_extension_mutex);
+  lbm_mutex_lock(&blocking_extension_mutex);
   bool r = false;
   eval_context_t *found = NULL;
-  mutex_lock(&qmutex);
+  lbm_mutex_lock(&qmutex);
   found = lookup_ctx_nm(&blocked, cid);
   if (found && (LBM_IS_STATE_UNBLOCKABLE(found->state))) {
     drop_ctx_nm(&blocked,found);
@@ -1557,13 +1557,13 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
     enqueue_ctx_nm(&queue,found);
     r = true;
   }
-  mutex_unlock(&qmutex);
-  mutex_unlock(&blocking_extension_mutex);
+  lbm_mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&blocking_extension_mutex);
   return r;
 }
 
 static bool lbm_block_ctx_base(bool timeout, float t_s) {
-  mutex_lock(&blocking_extension_mutex);
+  lbm_mutex_lock(&blocking_extension_mutex);
   blocking_extension = true;
   if (timeout) {
     blocking_extension_timeout_us = S_TO_US(t_s);
@@ -1589,7 +1589,7 @@ void lbm_undo_block_ctx_from_extension(void) {
   blocking_extension = false;
   blocking_extension_timeout_us = 0;
   blocking_extension_timeout = false;
-  mutex_unlock(&blocking_extension_mutex);
+  lbm_mutex_unlock(&blocking_extension_mutex);
 }
 
 // TODO: very similar iteration patterns.
@@ -1601,7 +1601,7 @@ static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid) {
   eval_context_t *found = NULL;
   uint32_t res = 0;
 
-  mutex_lock(&qmutex);
+  lbm_mutex_lock(&qmutex);
 
   found = lookup_ctx_nm(&blocked, cid);
   if (!found) {
@@ -1615,7 +1615,7 @@ static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid) {
     res = found->mailbox_size - found->num_mail;
   }
 
-  mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&qmutex);
 
   return res;
 }
@@ -1625,7 +1625,7 @@ static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid) {
  * receiver mailbox is full.
  */
 bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
-  mutex_lock(&qmutex);
+  lbm_mutex_lock(&qmutex);
   eval_context_t *found = NULL;
   int res = true;
 
@@ -1653,7 +1653,7 @@ bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   }
   res = false;
  find_receiver_end:
-  mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&qmutex);
   return res;
 }
 
@@ -1773,7 +1773,7 @@ static int gc(void) {
     lbm_gc_mark_env(env[i]);
   }
 
-  mutex_lock(&qmutex); // Lock the queues.
+  lbm_mutex_lock(&qmutex); // Lock the queues.
                        // Any concurrent messing with the queues
                        // while doing GC cannot possibly be good.
   queue_iterator_nm(&queue, mark_context, NULL, NULL);
@@ -1782,7 +1782,7 @@ static int gc(void) {
   if (ctx_running) {
     mark_context(ctx_running, NULL, NULL);
   }
-  mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&qmutex);
 
   int r = lbm_gc_sweep_phase();
   lbm_heap_new_freelist_length();
@@ -3173,7 +3173,7 @@ static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       finish_ctx();
       return;
     }
-    mutex_lock(&qmutex);
+    lbm_mutex_lock(&qmutex);
     eval_context_t *found = NULL;
     found = lookup_ctx_nm(&blocked, cid);
     if (found)
@@ -3195,7 +3195,7 @@ static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     }
     lbm_stack_drop(&ctx->K, 3);
     ctx->app_cont = true;
-    mutex_unlock(&qmutex);
+    lbm_mutex_unlock(&qmutex);
     return;
   }
   ERROR_AT_CTX(ENC_SYM_TERROR, ENC_SYM_KILL);
@@ -3490,7 +3490,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
         // Check atomic_error explicitly so that the mutex
         // can be released if there is an error.
         blocking_extension = false;
-        mutex_unlock(&blocking_extension_mutex);
+        lbm_mutex_unlock(&blocking_extension_mutex);
         atomic_error();
       }
       blocking_extension = false;
@@ -3500,7 +3500,7 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
       } else {
         block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,true);
       }
-      mutex_unlock(&blocking_extension_mutex);
+      lbm_mutex_unlock(&blocking_extension_mutex);
     }
   }  break;
   case SYMBOL_KIND_FUNDAMENTAL:
@@ -5851,7 +5851,7 @@ uint32_t lbm_get_eval_state(void) {
 // A sleeping thread is not unblockable.
 static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   eval_context_t *found = NULL;
-  mutex_lock(&qmutex);
+  lbm_mutex_lock(&qmutex);
 
   found = lookup_ctx_nm(&blocked, cid);
   if (found && LBM_IS_STATE_UNBLOCKABLE(found->state)){
@@ -5864,7 +5864,7 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
     found->state = LBM_THREAD_STATE_READY;
     enqueue_ctx_nm(&queue,found);
   }
-  mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&qmutex);
 }
 
 static void handle_event_define(lbm_value key, lbm_value val) {
@@ -5970,7 +5970,7 @@ void lbm_run_eval(void){
           eval_cps_run_state = EVAL_CPS_STATE_RESET;
           if (blocking_extension) {
             blocking_extension = false;
-            mutex_unlock(&blocking_extension_mutex);
+            lbm_mutex_unlock(&blocking_extension_mutex);
           }
         }
         usleep_callback(EVAL_CPS_MIN_SLEEP);
@@ -6001,7 +6001,7 @@ void lbm_run_eval(void){
       // the current timestamp has overflowed back to being small, giving a
       // "positive" (closer to min value) result, meaning the context will be
       // switched.
-      uint32_t unsigned_difference = timestamp() - eval_current_quota;
+      uint32_t unsigned_difference = lbm_timestamp() - eval_current_quota;
       bool is_negative = unsigned_difference & (1u << 31);
       if (is_negative && ctx_running) {
         evaluation_step();
@@ -6012,14 +6012,14 @@ void lbm_run_eval(void){
             gc();
           }
           process_events();
-          mutex_lock(&qmutex);
+          lbm_mutex_lock(&qmutex);
           if (ctx_running) {
             enqueue_ctx_nm(&queue, ctx_running);
             ctx_running = NULL;
           }
           wake_up_ctxs_nm();
           ctx_running = dequeue_ctx_nm(&queue);
-          mutex_unlock(&qmutex);
+          lbm_mutex_unlock(&qmutex);
           if (!ctx_running) {
             lbm_system_sleeping = true;
             //Fixed sleep interval to poll events regularly.
@@ -6036,7 +6036,7 @@ void lbm_run_eval(void){
         // up to be just shy of an overflow, going through all the rest of
         // logic could potentially overflow the timestamp and create a situation
         // where the scheduled task has a humongous quota!
-        eval_current_quota = timestamp() + eval_time_refill;
+        eval_current_quota = lbm_timestamp() + eval_time_refill;
       }
 #else
       if (eval_steps_quota && ctx_running) {
@@ -6050,14 +6050,14 @@ void lbm_run_eval(void){
             gc();
           }
           process_events();
-          mutex_lock(&qmutex);
+          lbm_mutex_lock(&qmutex);
           if (ctx_running) {
             enqueue_ctx_nm(&queue, ctx_running);
             ctx_running = NULL;
           }
           wake_up_ctxs_nm();
           ctx_running = dequeue_ctx_nm(&queue);
-          mutex_unlock(&qmutex);
+          lbm_mutex_unlock(&qmutex);
           if (!ctx_running) {
             lbm_system_sleeping = true;
             //Fixed sleep interval to poll events regularly.
@@ -6073,20 +6073,20 @@ void lbm_run_eval(void){
 
 bool lbm_eval_init(void) {
   if (!qmutex_initialized) {
-    mutex_init(&qmutex);
+    lbm_mutex_init(&qmutex);
     qmutex_initialized = true;
   }
   if (!lbm_events_mutex_initialized) {
-    mutex_init(&lbm_events_mutex);
+    lbm_mutex_init(&lbm_events_mutex);
     lbm_events_mutex_initialized = true;
   }
   if (!blocking_extension_mutex_initialized) {
-    mutex_init(&blocking_extension_mutex);
+    lbm_mutex_init(&blocking_extension_mutex);
     blocking_extension_mutex_initialized = true;
   }
 
-  mutex_lock(&qmutex);
-  mutex_lock(&lbm_events_mutex);
+  lbm_mutex_lock(&qmutex);
+  lbm_mutex_lock(&lbm_events_mutex);
 
   blocked.first = NULL;
   blocked.last = NULL;
@@ -6096,8 +6096,8 @@ bool lbm_eval_init(void) {
 
   eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
 
-  mutex_unlock(&lbm_events_mutex);
-  mutex_unlock(&qmutex);
+  lbm_mutex_unlock(&lbm_events_mutex);
+  lbm_mutex_unlock(&qmutex);
 
   if (!lbm_init_env()) return false;
   eval_running = true;
@@ -6106,7 +6106,7 @@ bool lbm_eval_init(void) {
 
 bool lbm_eval_init_events(unsigned int num_events) {
 
-  mutex_lock(&lbm_events_mutex);
+  lbm_mutex_lock(&lbm_events_mutex);
   lbm_events = (lbm_event_t*)lbm_malloc(num_events * sizeof(lbm_event_t));
   bool r = false;
   if (lbm_events) {
@@ -6117,6 +6117,6 @@ bool lbm_eval_init_events(unsigned int num_events) {
     lbm_event_handler_pid = -1;
     r = true;
   }
-  mutex_unlock(&lbm_events_mutex);
+  lbm_mutex_unlock(&lbm_events_mutex);
   return r;
 }

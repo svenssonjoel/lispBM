@@ -165,13 +165,13 @@ static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
   (void) args;
   (void) argn;
 
-  uint32_t time = timestamp();
+  uint32_t time = lbm_timestamp();
 
   return lbm_enc_u32(time);
 }
 
 static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
-  uint32_t t_now = timestamp();
+  uint32_t t_now = lbm_timestamp();
 
   if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_EERROR;
 
