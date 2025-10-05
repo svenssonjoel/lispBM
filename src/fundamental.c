@@ -247,7 +247,7 @@ static bool array_struct_equality(lbm_value a, lbm_value b) {
 
 // ////////////////////////////////////////////////////////////
 // Added pointer comparison before recurring on arrays and lists.
-// struct_eq can exhaust stack! but the the pointer check makes it
+// struct_eq can exhaust stack! but the pointer check makes it
 // a highly unlikely event occurring normally.
 //
 // To run out of C stack now you would have to
