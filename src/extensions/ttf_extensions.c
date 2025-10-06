@@ -37,14 +37,14 @@
 // The font object does not own the font data pointer
 // GC will free it once it knows it can do so.
 // SFT_Font objects life-span is atomic in relation to GC.
+//
+// mk_font_raw is internal and only called with valid arrays.
+// No sensible "array is correct" check can be done here.
 static bool mk_font_raw(SFT_Font *ft, lbm_value font_val) {
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(font_val);
-  if (arr) {
-    ft->memory = (uint8_t*)arr->data;
-    ft->size = (uint_fast32_t)arr->size;
-    return (init_font(ft) >= 0) ? true : false;
-  }
-  return false;
+  ft->memory = (uint8_t*)arr->data;
+  ft->size = (uint_fast32_t)arr->size;
+  return (init_font(ft) >= 0) ? true : false;
 }
 
 static SFT mk_sft(SFT_Font *ft, float x_scale, float y_scale) {
