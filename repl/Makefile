@@ -5,7 +5,8 @@ include $(LISPBM)/lispbm.mk
 
 PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c \
-                   $(LISPBM)/platform/linux/src/platform_timestamp.c
+                   $(LISPBM)/platform/linux/src/platform_timestamp.c \
+	           $(LISPBM)/platform/linux/src/platform_thread.c
 
 LBMFLAGS = -DFULL_RTS_LIB \
 	   -DLBM_USE_DYN_MACROS \
@@ -114,6 +115,11 @@ sdl_old: CCFLAGS += -DWITH_SDL -m32
 sdl_old: LIBS += -lSDL2 -lSDL2_image
 sdl_old: REPL_SRC += lbm_sdl.c
 sdl_old: repl
+
+alsa: CCFLAGS += -DWITH_ALSA -m32
+alsa: LIBS += -lasound -lm
+alsa: REPL_SRC += lbm_sound.c lbm_midi.c
+alsa: repl
 
 clean_cl.h: ./scripts/clean.lisp
 	./repl --store_env="clean_cl.env" --src=./scripts/clean.lisp --terminate

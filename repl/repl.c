@@ -74,6 +74,11 @@
 #include "lbm_sdl.h"
 #endif
 
+#ifdef WITH_ALSA
+#include "lbm_sound.h"
+#include "lbm_midi.h"
+#endif
+
 #include "platform_mutex.h"
 #include "platform_timestamp.h"
 
@@ -2868,6 +2873,12 @@ int main(int argc, char **argv) {
 #endif
   } else {
 
+#ifdef WITH_ALSA
+    lbm_sound_init();
+    lbm_midi_init();
+#endif
+
+    
     char output[1024];
 
     if (silent_mode) {
