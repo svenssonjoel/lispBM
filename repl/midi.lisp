@@ -6,7 +6,10 @@
   (loopwhile t {
         (match (midi-read)
                (nil nil)
-               ((note-on (? n) (? v)) (note-on 0 n v))
+               ((note-on (? n) (? v)) {
+                (print "note on: " n " " v )
+                (note-on 0 n v)
+                })
                ((note-off (? n) _ )      (note-off 0 n))
                )
         }))

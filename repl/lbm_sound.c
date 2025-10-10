@@ -72,6 +72,8 @@ static snd_pcm_t *pcm_handle = NULL;
 static lbm_thread_t audio_thread;
 static bool audio_thread_running = false;
 
+static uint32_t voice_sequence_number = 0;
+
 // Default audio parameters
 #define SAMPLE_RATE 44100
 #define CHANNELS 2
@@ -151,6 +153,7 @@ typedef struct {
 } patch_t; 
 
 typedef struct {
+  uint32_t sequence_number; // Steal the oldest
   bool active;
   uint8_t patch;
   uint8_t note; // Midi note id.
@@ -262,7 +265,7 @@ static void audio_generation_thread(void *arg) {
         if (voices[v].active) {
           
           float base_freq = voices[v].freq;
-          float vel = voices[v].vel * 6000.0f;
+          float vel = voices[v].vel * 24000.0f;
 
           float env_val = update_envelope(&voices[v], &patches[voices[v].patch]);
           for (int o = 0; o < NUM_OSC; o ++) {
@@ -274,7 +277,15 @@ static void audio_generation_thread(void *arg) {
               float phase = voices[v].osc_phase[o] + w->phase_offset;
               WRAP1(phase);
               // TODO: check if modulator and modulate phase_increment (I think).
-              float osc = sinf(2.0f * M_PI * phase);              
+              float osc0 = sinf(2.0f * M_PI * phase);
+              
+              float osc1 = sinf(2.0f * M_PI * phase * 1.010f);
+              float osc2 = sinf(2.0f * M_PI * phase * 0.990f);
+              // float noise = ((float)rand() / RAND_MAX - 0.5f) * 0.05f;
+              float h2 = sinf(4.0f * M_PI * phase) * 0.15f;
+              float h3 = sinf(6.0f * M_PI * phase) * 0.08f;
+
+              float osc = (osc0 + osc1 + osc2) / 3.0f + h2 + h3;
               float s = osc * env_val * vel *w->vol;
 
               // In the future use the modulated frequence here
@@ -452,7 +463,26 @@ lbm_value ext_patch_adsr_set(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-// (note-on patch-no note-id vel) 
+static void start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, float vel) {
+  v->sequence_number = voice_sequence_number ++;
+  v->patch = patch;
+  v->note = note;
+  v->freq = freq;
+  v->vel = vel;
+
+  float phase = (float)rand() / RAND_MAX;
+  v->osc_phase[0] = phase;
+  v->osc_phase[1] = phase;
+  v->lfo_phase[0] = 0.0f;
+  v->lfo_phase[1] = 0.0f;
+  v->env_val = 0.0f;
+  v->env_state = ENV_ATTACK;
+  v->env_time_in_state = 0.0f;
+  v->release_start_level = 0.0f;
+  v->active = true;
+}
+
+// (note-on patch-no note-id vel)
 lbm_value ext_note_on(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 3 &&
@@ -462,31 +492,30 @@ lbm_value ext_note_on(lbm_value *args, lbm_uint argn) {
 
     uint8_t patch = lbm_dec_as_char(args[0]);
     uint8_t note = lbm_dec_as_char(args[1]);
-    float vel = lbm_dec_as_float(args[2]);
+    uint8_t vel = lbm_dec_as_char(args[2]);
+    float vel_f = (float)vel / 127.0; 
     float freq = 440.0f * powf(2.0f, (note - 69) / 12.0f);
 
     // replacement strategy needed.
-    // But need to keep track of which one to replace then.. 
+    // But need to keep track of which one to replace then..
+    uint32_t min_seq = UINT32_MAX;
+    int      min_seq_ix = -1;
+    int  slot_ix = -1;
     for (int i = 0; i < MAX_VOICES; i ++) {
-      if (!voices[i].active) {
-        voices[i].patch = patch;
-        voices[i].note = note;
-        voices[i].freq = freq;
-        voices[i].vel = vel;
-
-        float phase = (float)rand() / RAND_MAX; 
-        voices[i].osc_phase[0] = phase;
-        voices[i].osc_phase[1] = phase;
-        voices[i].lfo_phase[0] = 0.0f;
-        voices[i].lfo_phase[1] = 0.0f;
-        voices[i].env_val = 0.0f;
-        voices[i].env_state = ENV_ATTACK;
-        voices[i].env_time_in_state = 0.0f;
-        voices[i].release_start_level = 0.0f;
-        voices[i].active = true;
+      if (min_seq > voices[i].sequence_number) {
+        min_seq = voices[i].sequence_number;
+        min_seq_ix = i;
+      }
+      if (voices[i].active &&
+          voices[i].patch == patch &&
+          voices[i].note  == note) {
+        slot_ix = i;
         break;
       }
+      if (!voices[i].active) slot_ix = i;
     }
+    if (slot_ix < 0) slot_ix = min_seq_ix;
+    start_voice(&voices[slot_ix], patch, note, freq, vel_f);
     r = ENC_SYM_TRUE;
   }
   return r;
