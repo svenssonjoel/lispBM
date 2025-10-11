@@ -119,11 +119,18 @@ typedef struct {
   float amount;
 } modulator_t;
 
+typedef enum {
+  FREQ_NOTE = 0,
+  FREQ_FIXED
+} freq_source_t;
+
 // In every iteration, an oscillators frequency is computed as: 
 //  b + (m0 * a0) + (m1 * a1) .. + (m3 * a3)
 // where b is base frequency from note value.
 typedef struct {
   oscillator_type_t type;
+  freq_source_t freq_source;
+  float freq_value; // Repurpose depending on freq source.
   modulator_t modulators[NUM_MODULATORS];
   float phase_offset;
   float vol;
@@ -251,8 +258,7 @@ static void audio_generation_thread(void *arg) {
     fprintf(stderr, "Failed to allocate audio buffer\n");
     return;
   }
-  //  int buffer_fulls = 0;
-  
+
   while (audio_thread_running) {
 
     memset(buffer, 0, BUFFER_FRAMES * CHANNELS * sizeof(int16_t));
@@ -274,12 +280,14 @@ static void audio_generation_thread(void *arg) {
             float phase = voices[v].osc_phase[o] + w->phase_offset;
             WRAP1(phase);
 
+            float s = 0.0f;
+            
             switch (w->type) {
             case OSC_SAW: {
               // The saw wave jumps from 1.0 to -1.0
               // instantaneoulsy => lots of harmonics => aliasing
               float osc = 2.0f * phase - 1.0f; 
-              float s = osc * env_val * vel * w->vol;
+              s = osc * env_val * vel * w->vol;
 
               float phase_increment = base_freq / 44100.0f;
               voices[v].osc_phase[o] += phase_increment;
@@ -289,16 +297,7 @@ static void audio_generation_thread(void *arg) {
             } break;
             case OSC_SINE: {              
               // TODO: check if modulator and modulate phase_increment (I think).
-              float osc0 = sinf(2.0f * M_PI * phase);
-
-              // experimentation...
-              float osc1 = sinf(2.0f * M_PI * phase * 1.010f);
-              float osc2 = sinf(2.0f * M_PI * phase * 0.990f);
-              // float noise = ((float)rand() / RAND_MAX - 0.5f) * 0.05f;
-              float h2 = sinf(4.0f * M_PI * phase) * 0.15f;
-              float h3 = sinf(6.0f * M_PI * phase) * 0.08f;
-
-              float osc = (osc0 + osc1 + osc2) / 3.0f + h2 + h3;
+              float osc = sinf(2.0f * M_PI * phase);
               float s = osc * env_val * vel *w->vol;
 
               // In the future use the modulated frequency here
@@ -326,18 +325,6 @@ static void audio_generation_thread(void *arg) {
       buffer[i*2+1] = (int16_t)(mixed_r * 32767.0);
     }
  
-    /* buffer_fulls ++; */
-    /* if (buffer_fulls % 1000 == 0) { */
-    /*   snd_pcm_status_t *stat; */
-    /*   snd_pcm_status_alloca(&stat); */
-    /*   snd_pcm_status(pcm_handle, stat); */
-    /*   printf("Avail: %lu, delay %ld\n", */
-    /*          snd_pcm_status_get_avail(stat), */
-    /*          snd_pcm_status_get_delay(stat)); */
-    /*   printf("\n"); */
-      
-    /* } */
-
     // snd_pcm_writei blocks when the internal ALSA buffer is full
     // This is the only synchronization we will use in this thread.
     // Important to remember this when eventually writing and embedded
@@ -370,6 +357,9 @@ static lbm_uint sym_release = 0;
 
 static lbm_uint sym_envelope = 0;
 
+static lbm_uint sym_freq_src_note = 0;
+static lbm_uint sym_freq_src_fixed = 0;
+
 static lbm_uint sym_osc_none     = 0;
 static lbm_uint sym_osc_sine     = 0;
 static lbm_uint sym_osc_saw      = 0;
@@ -400,6 +390,9 @@ static void register_symbols(void) {
 
   lbm_add_symbol("envelope", &sym_envelope);
 
+  lbm_add_symbol("freq-src-note", &sym_freq_src_note);
+  lbm_add_symbol("freq-src-fixed", &sym_freq_src_fixed);
+  
   lbm_add_symbol("osc-none", &sym_osc_none);
   lbm_add_symbol("osc-sine", &sym_osc_sine);
   lbm_add_symbol("osc-saw", &sym_osc_saw);
@@ -459,6 +452,7 @@ lbm_value ext_patch_osc_set_tvp(lbm_value *args, lbm_uint argn) {
         o = OSC_SQUARE;
       }
       patches[patch].osc[osc].type = o;
+      patches[patch].osc[osc].freq_source = FREQ_NOTE; // by default
       patches[patch].osc[osc].vol = vol;
       patches[patch].osc[osc].phase_offset = phase_offset;
       r = ENC_SYM_TRUE;
