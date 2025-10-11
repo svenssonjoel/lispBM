@@ -427,14 +427,85 @@ static void register_symbols(void) {
 
 // ////////////////////////////////////////////////////////////
 // LBM extensions
-lbm_value ext_patch_get(lbm_value *args, lbm_uint argn) {
-  
+// (patch-osc-set-tvp p-num o-num o-type o-vol o-phase-offset)
+lbm_value ext_patch_osc_set_tvp(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+
+  if (argn == 5 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1]) &&
+      lbm_is_symbol(args[2]) &&
+      lbm_is_number(args[3]) &&
+      lbm_is_number(args[4])) {
+
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    float vol = lbm_dec_as_float(args[3]);
+    float phase_offset = lbm_dec_as_float(args[4]);
+    lbm_uint osc_type = lbm_dec_sym(args[2]);
+    uint32_t osc = lbm_dec_as_u32(args[1]);
+
+    if (osc < NUM_OSC && patch < MAX_PATCHES) {
+
+      oscillator_type_t o;
+      if (osc_type == sym_osc_none) {
+        o = OSC_NONE;     
+      } else if (osc_type == sym_osc_sine) {
+        o = OSC_SINE;
+      } else if (osc_type == sym_osc_saw) {
+        o = OSC_SAW;
+      } else if (osc_type == sym_osc_triangle) {
+        o = OSC_TRIANGLE;
+      } else if (osc_type == sym_osc_square) {
+        o = OSC_SQUARE;
+      }
+      patches[patch].osc[osc].type = o;
+      patches[patch].osc[osc].vol = vol;
+      patches[patch].osc[osc].phase_offset = phase_offset;
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
 }
 
-lbm_value ext_patch_set(lbm_value *args, lbm_uint argn) {
 
+lbm_value ext_patch_adsr_get(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      lbm_is_number(args[0])) {
+    
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    lbm_value a = lbm_enc_float(patches[patch].env.attack_time);
+    lbm_value d = lbm_enc_float(patches[patch].env.decay_time);
+    lbm_value s = lbm_enc_float(patches[patch].env.sustain_level);
+    lbm_value rel = lbm_enc_float(patches[patch].env.release_time);
+    if (a == ENC_SYM_MERROR ||
+        d == ENC_SYM_MERROR ||
+        s == ENC_SYM_MERROR ||
+        rel == ENC_SYM_MERROR) {
+      r = ENC_SYM_MERROR;
+      } else {
+      r = lbm_heap_allocate_list_init(4, a, d, s ,rel);
+    }
+  }
+  return r;
 }
 
+lbm_value ext_patch_clear(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_number(args[0])) {
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch < MAX_PATCHES) {
+      memset(&patches[patch], 0, sizeof(patch_t));
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
 
 // (set-adsr patch-no attack decay sustain-level release) 
 lbm_value ext_patch_adsr_set(lbm_value *args, lbm_uint argn) {
@@ -450,22 +521,6 @@ lbm_value ext_patch_adsr_set(lbm_value *args, lbm_uint argn) {
     float   decay  = lbm_dec_as_float(args[2]);
     float   sustain = lbm_dec_as_float(args[3]);
     float   release = lbm_dec_as_float(args[4]); 
-
-    patches[patch].osc[0].type = OSC_SINE;
-    patches[patch].osc[0].modulators[0].source = MOD_NONE;
-    patches[patch].osc[0].modulators[0].amount = 0.0f;
-    patches[patch].osc[0].modulators[1].source = MOD_NONE;
-    patches[patch].osc[0].modulators[1].amount = 0.0f;
-    patches[patch].osc[0].modulators[2].source = MOD_NONE;
-    patches[patch].osc[0].modulators[2].amount = 0.0f;
-    patches[patch].osc[0].modulators[3].source = MOD_NONE;
-    patches[patch].osc[0].modulators[3].amount = 0.0f;
-    
-    patches[patch].osc[1].type = OSC_NONE;
-
-    patches[patch].osc[0].vol = 1.0f;
-    patches[patch].osc[0].phase_offset = 0.0f;
-    
 
     patches[patch].env.attack_time = attack;
     patches[patch].env.decay_time = decay;
@@ -607,7 +662,11 @@ bool lbm_sound_init(void) {
   
   lbm_add_extension("note-on", ext_note_on);
   lbm_add_extension("note-off", ext_note_off);
+  lbm_add_extension("patch-clear", ext_patch_clear);
+  lbm_add_extension("patch-osc-set-tvp", ext_patch_osc_set_tvp);
   lbm_add_extension("patch-adsr-set", ext_patch_adsr_set);
+  lbm_add_extension("patch-adsr-get", ext_patch_adsr_get);
+  
 
   return true;
 }
