@@ -271,14 +271,27 @@ static void audio_generation_thread(void *arg) {
           for (int o = 0; o < NUM_OSC; o ++) {
 
             oscillator_t *w = &patches[voices[v].patch].osc[o];
-            
+            float phase = voices[v].osc_phase[o] + w->phase_offset;
+            WRAP1(phase);
+
             switch (w->type) {
-            case OSC_SINE: {
-              float phase = voices[v].osc_phase[o] + w->phase_offset;
-              WRAP1(phase);
+            case OSC_SAW: {
+              // The saw wave jumps from 1.0 to -1.0
+              // instantaneoulsy => lots of harmonics => aliasing
+              float osc = 2.0f * phase - 1.0f; 
+              float s = osc * env_val * vel * w->vol;
+
+              float phase_increment = base_freq / 44100.0f;
+              voices[v].osc_phase[o] += phase_increment;
+              WRAP1(voices[v].osc_phase[o]);
+              s_left  += s; 
+              s_right += s;
+            } break;
+            case OSC_SINE: {              
               // TODO: check if modulator and modulate phase_increment (I think).
               float osc0 = sinf(2.0f * M_PI * phase);
-              
+
+              // experimentation...
               float osc1 = sinf(2.0f * M_PI * phase * 1.010f);
               float osc2 = sinf(2.0f * M_PI * phase * 0.990f);
               // float noise = ((float)rand() / RAND_MAX - 0.5f) * 0.05f;
@@ -288,7 +301,7 @@ static void audio_generation_thread(void *arg) {
               float osc = (osc0 + osc1 + osc2) / 3.0f + h2 + h3;
               float s = osc * env_val * vel *w->vol;
 
-              // In the future use the modulated frequence here
+              // In the future use the modulated frequency here
               float phase_increment = base_freq / 44100.0f;
               voices[v].osc_phase[o] += phase_increment;
               WRAP1(voices[v].osc_phase[o]);
