@@ -176,6 +176,66 @@ typedef struct {
   float release_start_level; // Envelope level when release was triggered 
 } voice_t;
 
+// ////////////////////////////////////////////////////////////
+// LBM symbols
+
+static lbm_uint sym_attack  = 0;
+static lbm_uint sym_decay   = 0;
+static lbm_uint sym_sustain = 0;
+static lbm_uint sym_release = 0;
+
+static lbm_uint sym_envelope = 0;
+
+static lbm_uint sym_freq_src_note = 0;
+static lbm_uint sym_freq_src_fixed = 0;
+
+static lbm_uint sym_osc_none     = 0;
+static lbm_uint sym_osc_sine     = 0;
+static lbm_uint sym_osc_saw      = 0;
+static lbm_uint sym_osc_triangle = 0;
+static lbm_uint sym_osc_square   = 0;
+
+static lbm_uint sym_osc1 = 0;
+static lbm_uint sym_osc2 = 0;
+static lbm_uint sym_lfo1 = 0;
+static lbm_uint sym_lfo2 = 0;
+
+static lbm_uint sym_mod_none = 0;
+static lbm_uint sym_mod_lfo1 = 0;
+static lbm_uint sym_mod_lfo2 = 0;
+static lbm_uint sym_mod_env  = 0;
+static lbm_uint sym_mod_vel  = 0;
+
+static lbm_uint sym_mod1 = 0;
+static lbm_uint sym_mod2 = 0;
+static lbm_uint sym_mod3 = 0;
+static lbm_uint sym_mod4 = 0;
+
+
+
+lbm_value enc_osc_type(oscillator_type_t t) {
+  switch(t) {
+  case OSC_NONE:
+    return lbm_enc_sym(sym_osc_none);
+  case OSC_SINE:
+    return lbm_enc_sym(sym_osc_sine);
+  case OSC_SAW:
+    return lbm_enc_sym(sym_osc_saw);
+  case OSC_TRIANGLE:
+    return lbm_enc_sym(sym_osc_triangle);
+  case OSC_SQUARE:
+    return lbm_enc_sym(sym_osc_square);
+  }
+}
+
+lbm_value enc_osc_freq_source(freq_source_t s) {
+  switch(s) {
+  case FREQ_NOTE:
+    return lbm_enc_sym(sym_freq_src_note);
+  case FREQ_FIXED:
+    return lbm_enc_sym(sym_freq_src_fixed);
+  }
+}
 
 static patch_t patches[MAX_PATCHES];
 static voice_t voices[MAX_VOICES];
@@ -347,40 +407,6 @@ static void audio_generation_thread(void *arg) {
   printf("Audio generation thread stopped\n");
 }
 
-// ////////////////////////////////////////////////////////////
-// LBM symbols
-
-static lbm_uint sym_attack  = 0;
-static lbm_uint sym_decay   = 0;
-static lbm_uint sym_sustain = 0;
-static lbm_uint sym_release = 0;
-
-static lbm_uint sym_envelope = 0;
-
-static lbm_uint sym_freq_src_note = 0;
-static lbm_uint sym_freq_src_fixed = 0;
-
-static lbm_uint sym_osc_none     = 0;
-static lbm_uint sym_osc_sine     = 0;
-static lbm_uint sym_osc_saw      = 0;
-static lbm_uint sym_osc_triangle = 0;
-static lbm_uint sym_osc_square   = 0;
-
-static lbm_uint sym_osc1 = 0;
-static lbm_uint sym_osc2 = 0;
-static lbm_uint sym_lfo1 = 0;
-static lbm_uint sym_lfo2 = 0;
-
-static lbm_uint sym_mod_none = 0;
-static lbm_uint sym_mod_lfo1 = 0;
-static lbm_uint sym_mod_lfo2 = 0;
-static lbm_uint sym_mod_env  = 0;
-static lbm_uint sym_mod_vel  = 0;
-
-static lbm_uint sym_mod1 = 0;
-static lbm_uint sym_mod2 = 0;
-static lbm_uint sym_mod3 = 0;
-static lbm_uint sym_mod4 = 0;
 
 static void register_symbols(void) {
   lbm_add_symbol("attack", &sym_attack);
@@ -420,8 +446,34 @@ static void register_symbols(void) {
 
 // ////////////////////////////////////////////////////////////
 // LBM extensions
-// (patch-osc-set-tvp p-num o-num o-type o-vol o-phase-offset)
-lbm_value ext_patch_osc_set_tvp(lbm_value *args, lbm_uint argn) {
+// (patch-osc-tvp-set-tvp p-num o-num o-type o-vol o-phase-offset)
+
+lbm_value ext_patch_osc_tvp_get(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+
+  if (argn == 2 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1])) {
+
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    uint32_t osc = lbm_dec_as_u32(args[1]);
+    
+    if (osc < NUM_OSC && patch < MAX_PATCHES) {
+      patch_t *p = &patches[patch];
+      
+      lbm_value t = enc_osc_type(p->osc[osc].type);
+
+      lbm_value v = lbm_enc_float(p->osc[osc].vol);
+      lbm_value ph = lbm_enc_float(p->osc[osc].phase_offset);
+      if (v == ENC_SYM_MERROR ||
+          ph == ENC_SYM_MERROR) return ENC_SYM_MERROR;
+      r = lbm_heap_allocate_list_init(3, t, v, ph);
+    }
+  }
+  return r;
+}
+
+lbm_value ext_patch_osc_tvp_set(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
 
   if (argn == 5 &&
@@ -464,6 +516,7 @@ lbm_value ext_patch_osc_set_tvp(lbm_value *args, lbm_uint argn) {
 }
 
 
+
 lbm_value ext_patch_adsr_get(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 2 &&
@@ -481,21 +534,6 @@ lbm_value ext_patch_adsr_get(lbm_value *args, lbm_uint argn) {
       r = ENC_SYM_MERROR;
       } else {
       r = lbm_heap_allocate_list_init(4, a, d, s ,rel);
-    }
-  }
-  return r;
-}
-
-lbm_value ext_patch_clear(lbm_value *args, lbm_uint argn) {
-  lbm_value r = ENC_SYM_TERROR;
-  if (argn == 1 &&
-      lbm_is_number(args[0])) {
-    uint8_t patch = lbm_dec_as_char(args[0]);
-    if (patch < MAX_PATCHES) {
-      memset(&patches[patch], 0, sizeof(patch_t));
-      r = ENC_SYM_TRUE;
-    } else {
-      r = ENC_SYM_NIL;
     }
   }
   return r;
@@ -524,6 +562,23 @@ lbm_value ext_patch_adsr_set(lbm_value *args, lbm_uint argn) {
   }
   return r;
 }
+
+
+lbm_value ext_patch_clear(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_number(args[0])) {
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch < MAX_PATCHES) {
+      memset(&patches[patch], 0, sizeof(patch_t));
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
 
 static void start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, float vel) {
   v->sequence_number = voice_sequence_number ++;
@@ -657,7 +712,8 @@ bool lbm_sound_init(void) {
   lbm_add_extension("note-on", ext_note_on);
   lbm_add_extension("note-off", ext_note_off);
   lbm_add_extension("patch-clear", ext_patch_clear);
-  lbm_add_extension("patch-osc-set-tvp", ext_patch_osc_set_tvp);
+  lbm_add_extension("patch-osc-tvp-set", ext_patch_osc_tvp_set);
+  lbm_add_extension("patch-osc-tvp-get", ext_patch_osc_tvp_get);
   lbm_add_extension("patch-adsr-set", ext_patch_adsr_set);
   lbm_add_extension("patch-adsr-get", ext_patch_adsr_get);
   
