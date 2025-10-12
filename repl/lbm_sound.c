@@ -17,7 +17,7 @@
 
 /*
   Audio generation gotchas to be aware of:
-  
+
   aliasing: a manifestation of a lower frequency that
             that happens when the sampled sound frequency is above half of the
             sampling frequency.
@@ -111,7 +111,7 @@ typedef enum {
   MOD_LFO1,
   MOD_LFO2,
   MOD_ENV,
-  MOD_VELOCITY
+  MOD_VEL
 } modulator_source_t;
 
 typedef struct {
@@ -124,7 +124,7 @@ typedef enum {
   FREQ_FIXED
 } freq_source_t;
 
-// In every iteration, an oscillators frequency is computed as: 
+// In every iteration, an oscillators frequency is computed as:
 //  b + (m0 * a0) + (m1 * a1) .. + (m3 * a3)
 // where b is base frequency from note value.
 typedef struct {
@@ -135,7 +135,7 @@ typedef struct {
   float phase_offset;
   float vol;
 } oscillator_t;
-  
+
 typedef enum {
   ENV_OFF = 0,
   ENV_ATTACK,
@@ -157,7 +157,7 @@ typedef struct {
   oscillator_t lfo[NUM_LFO];
   oscillator_t osc[NUM_OSC];
   env_adsr_t   env;
-} patch_t; 
+} patch_t;
 
 typedef struct {
   uint32_t sequence_number; // Steal the oldest
@@ -322,46 +322,104 @@ static void audio_generation_thread(void *arg) {
   while (audio_thread_running) {
 
     memset(buffer, 0, BUFFER_FRAMES * CHANNELS * sizeof(int16_t));
-    
+
     for (int i = 0; i < BUFFER_FRAMES; i ++) {
       float s_left = 0.0;
       float s_right = 0.0;
 
       for (int v = 0; v < MAX_VOICES; v ++) {
         if (voices[v].active) {
-          
+
           float base_freq = voices[v].freq;
           float vel = voices[v].vel * 24000.0f;
-
           float env_val = update_envelope(&voices[v], &patches[voices[v].patch]);
+
+          float lfo_val[NUM_LFO];
+
+          // Modulation oscillators
+          for (int lfo = 0; lfo < NUM_LFO; lfo ++) {
+            lfo_val[lfo] = 0.0;
+            oscillator_t *w = &patches[voices[v].patch].lfo[lfo];
+            float phase = voices[v].lfo_phase[lfo] + w->phase_offset;
+            WRAP1(phase);
+            float freq = base_freq; // For now.
+            if (w->freq_source == FREQ_FIXED) {
+              freq = w->freq_value;
+            }
+            switch (w->type) {
+             case OSC_SAW: {
+               float osc = 2.0f * phase - 1.0f;
+               
+               float phase_increment = freq / (float)SAMPLE_RATE;
+               voices[v].lfo_phase[lfo] += phase_increment;
+               WRAP1(voices[v].lfo_phase[lfo]);
+               lfo_val[lfo] = osc;
+             } break;
+            case OSC_SINE: {
+              // TODO: check if modulator and modulate phase_increment (I think).
+              float osc = sinf(2.0f * M_PI * phase);
+              float phase_increment = freq / (float)SAMPLE_RATE;
+              voices[v].lfo_phase[lfo] += phase_increment;
+              WRAP1(voices[v].lfo_phase[lfo]);
+              lfo_val[lfo] = osc;
+            } break;
+            default:
+              break;
+            }
+          }
+          // Tone oscillators
           for (int o = 0; o < NUM_OSC; o ++) {
 
             oscillator_t *w = &patches[voices[v].patch].osc[o];
             float phase = voices[v].osc_phase[o] + w->phase_offset;
             WRAP1(phase);
 
+            // compute modulator contribution to
+            // the frequency of the tone.
+            float mod_val = 0.0f;
+            // mod_val = (m0 * a0) + (m1 * a1) ..
+            // for all active modulators.
+            for (int mod = 0; mod < NUM_MODULATORS; mod ++) {
+              modulator_t *ent = &patches[voices[v].patch].osc[o].modulators[mod];
+              switch (ent->source) {
+              case MOD_NONE:
+                break;
+              case MOD_LFO1:
+                mod_val += lfo_val[0] * ent->amount;
+                break;
+              case MOD_LFO2:
+                mod_val += lfo_val[1] * ent->amount;
+                break;
+              case MOD_ENV:
+                mod_val += env_val * ent->amount;
+                break;
+              case MOD_VEL:
+                mod_val += vel * ent->amount;
+                break;
+              }
+            }
             float s = 0.0f;
-            
+
             switch (w->type) {
             case OSC_SAW: {
               // The saw wave jumps from 1.0 to -1.0
               // instantaneoulsy => lots of harmonics => aliasing
-              float osc = 2.0f * phase - 1.0f; 
+              float osc = 2.0f * phase - 1.0f;
               s = osc * env_val * vel * w->vol;
 
-              float phase_increment = base_freq / 44100.0f;
+              float phase_increment = (base_freq + mod_val) / (float)SAMPLE_RATE;
               voices[v].osc_phase[o] += phase_increment;
               WRAP1(voices[v].osc_phase[o]);
-              s_left  += s; 
+              s_left  += s;
               s_right += s;
             } break;
-            case OSC_SINE: {              
+            case OSC_SINE: {
               // TODO: check if modulator and modulate phase_increment (I think).
               float osc = sinf(2.0f * M_PI * phase);
               float s = osc * env_val * vel *w->vol;
 
               // In the future use the modulated frequency here
-              float phase_increment = base_freq / 44100.0f;
+              float phase_increment = (base_freq + mod_val) / (float)SAMPLE_RATE;
               voices[v].osc_phase[o] += phase_increment;
               WRAP1(voices[v].osc_phase[o]);
 
@@ -372,19 +430,19 @@ static void audio_generation_thread(void *arg) {
               break;
             }
           }
-          
-        }    
+
+        }
       }
 
       // tanh based "soft clipping"
       // tanh(x) approaches 1.0 as x grows towards infinity
       float mixed_l = tanhf(s_left / 30000.0f);
       float mixed_r = tanhf(s_right / 30000.0f);
-      
+
       buffer[i*2]   = (int16_t)(mixed_l * 32767.0);
       buffer[i*2+1] = (int16_t)(mixed_r * 32767.0);
     }
- 
+
     // snd_pcm_writei blocks when the internal ALSA buffer is full
     // This is the only synchronization we will use in this thread.
     // Important to remember this when eventually writing and embedded
@@ -393,7 +451,7 @@ static void audio_generation_thread(void *arg) {
 
     // Normally frames will be equal to BUFFER_FRAMES (or negative).
     // A partial write will not happen using the blocking snd_pcm_writei (normally).
-    
+
     if (frames < 0) {
       frames = snd_pcm_recover(pcm_handle, frames, 0);
       if (frames < 0) {
@@ -418,7 +476,7 @@ static void register_symbols(void) {
 
   lbm_add_symbol("freq-src-note", &sym_freq_src_note);
   lbm_add_symbol("freq-src-fixed", &sym_freq_src_fixed);
-  
+
   lbm_add_symbol("osc-none", &sym_osc_none);
   lbm_add_symbol("osc-sine", &sym_osc_sine);
   lbm_add_symbol("osc-saw", &sym_osc_saw);
@@ -446,8 +504,89 @@ static void register_symbols(void) {
 
 // ////////////////////////////////////////////////////////////
 // LBM extensions
-// (patch-osc-tvp-set-tvp p-num o-num o-type o-vol o-phase-offset)
 
+//(patch-mod-set patch-no osc-no mod-no mod-source mod-amount)
+lbm_value ext_patch_mod_set(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 5 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1]) &&
+      lbm_is_number(args[2]) &&
+      lbm_is_symbol(args[3]) &&
+      lbm_is_number(args[4])) {
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    uint32_t osc  = lbm_dec_as_u32(args[1]);
+    uint32_t mod  = lbm_dec_as_u32(args[2]);
+    lbm_uint src  = lbm_dec_sym(args[3]);
+    float amount  = lbm_dec_as_float(args[4]);
+
+    if (patch < MAX_PATCHES && osc < NUM_OSC && mod < NUM_MODULATORS) {
+      modulator_source_t m;
+      if (src == sym_mod_none) {
+        m = MOD_NONE;
+      } else if (src == sym_mod_lfo1) {
+        m = MOD_LFO1;
+      } else if (src == sym_mod_lfo2) {
+        m = MOD_LFO2;
+      } else if (src == sym_mod_env) {
+        m = MOD_ENV;
+      } else if (src == sym_mod_vel) {
+        m = MOD_VEL;
+      }
+      modulator_t *ent = &patches[patch].osc[osc].modulators[mod];
+      ent->source = m;
+      ent->amount = amount;
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
+//(patch-lfo-set patch-no lfo-num lfo-type lfo-frequency)
+lbm_value ext_patch_lfo_set(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 4 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1]) &&
+      lbm_is_symbol(args[2]) &&
+      lbm_is_number(args[3])) {
+
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    uint32_t lfo  = lbm_dec_as_u32(args[1]);
+    lbm_uint osc_type = lbm_dec_sym(args[2]);
+    float    freq = lbm_dec_as_float(args[3]);
+
+    if (lfo < NUM_LFO && patch < MAX_PATCHES) {
+      oscillator_type_t o;
+      if (osc_type == sym_osc_none) {
+        o = OSC_NONE;
+      } else if (osc_type == sym_osc_sine) {
+        o = OSC_SINE;
+      } else if (osc_type == sym_osc_saw) {
+        o = OSC_SAW;
+      } else if (osc_type == sym_osc_triangle) {
+        o = OSC_TRIANGLE;
+      } else if (osc_type == sym_osc_square) {
+        o = OSC_SQUARE;
+      }
+      patch_t *p = &patches[patch];
+      p->lfo[lfo].freq_source = FREQ_FIXED;
+      p->lfo[lfo].freq_value = freq;
+      p->lfo[lfo].phase_offset = 0.0;
+      p->lfo[lfo].vol = 0.0;
+      p->lfo[lfo].type = o;
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
+
+// (patch-osc-tvp-set-tvp p-num o-num o-type o-vol o-phase-offset)
 lbm_value ext_patch_osc_tvp_get(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
 
@@ -457,10 +596,10 @@ lbm_value ext_patch_osc_tvp_get(lbm_value *args, lbm_uint argn) {
 
     uint8_t patch = lbm_dec_as_char(args[0]);
     uint32_t osc = lbm_dec_as_u32(args[1]);
-    
+
     if (osc < NUM_OSC && patch < MAX_PATCHES) {
       patch_t *p = &patches[patch];
-      
+
       lbm_value t = enc_osc_type(p->osc[osc].type);
 
       lbm_value v = lbm_enc_float(p->osc[osc].vol);
@@ -493,7 +632,7 @@ lbm_value ext_patch_osc_tvp_set(lbm_value *args, lbm_uint argn) {
 
       oscillator_type_t o;
       if (osc_type == sym_osc_none) {
-        o = OSC_NONE;     
+        o = OSC_NONE;
       } else if (osc_type == sym_osc_sine) {
         o = OSC_SINE;
       } else if (osc_type == sym_osc_saw) {
@@ -521,7 +660,7 @@ lbm_value ext_patch_adsr_get(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 2 &&
       lbm_is_number(args[0])) {
-    
+
     uint8_t patch = lbm_dec_as_char(args[0]);
     lbm_value a = lbm_enc_float(patches[patch].env.attack_time);
     lbm_value d = lbm_enc_float(patches[patch].env.decay_time);
@@ -539,7 +678,7 @@ lbm_value ext_patch_adsr_get(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-// (set-adsr patch-no attack decay sustain-level release) 
+// (set-adsr patch-no attack decay sustain-level release)
 lbm_value ext_patch_adsr_set(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 5 &&
@@ -552,7 +691,7 @@ lbm_value ext_patch_adsr_set(lbm_value *args, lbm_uint argn) {
     float   attack = lbm_dec_as_float(args[1]);
     float   decay  = lbm_dec_as_float(args[2]);
     float   sustain = lbm_dec_as_float(args[3]);
-    float   release = lbm_dec_as_float(args[4]); 
+    float   release = lbm_dec_as_float(args[4]);
 
     patches[patch].env.attack_time = attack;
     patches[patch].env.decay_time = decay;
@@ -610,7 +749,7 @@ lbm_value ext_note_on(lbm_value *args, lbm_uint argn) {
     uint8_t patch = lbm_dec_as_char(args[0]);
     uint8_t note = lbm_dec_as_char(args[1]);
     uint8_t vel = lbm_dec_as_char(args[2]);
-    float vel_f = (float)vel / 127.0; 
+    float vel_f = (float)vel / 127.0;
     float freq = 440.0f * powf(2.0f, (note - 69) / 12.0f);
 
     // replacement strategy needed.
@@ -655,7 +794,7 @@ lbm_value ext_note_off(lbm_value *args, lbm_uint argn) {
         voices[i].env_time_in_state = 0.0f;
         voices[i].release_start_level = voices[i].env_val;
         break;
-      }    
+      }
     }
     r = ENC_SYM_TRUE;
   }
@@ -708,15 +847,16 @@ bool lbm_sound_init(void) {
   }
 
   register_symbols();
-  
+
   lbm_add_extension("note-on", ext_note_on);
   lbm_add_extension("note-off", ext_note_off);
   lbm_add_extension("patch-clear", ext_patch_clear);
+  lbm_add_extension("patch-mod-set", ext_patch_mod_set);
+  lbm_add_extension("patch-lfo-set", ext_patch_lfo_set);
   lbm_add_extension("patch-osc-tvp-set", ext_patch_osc_tvp_set);
   lbm_add_extension("patch-osc-tvp-get", ext_patch_osc_tvp_get);
   lbm_add_extension("patch-adsr-set", ext_patch_adsr_set);
   lbm_add_extension("patch-adsr-get", ext_patch_adsr_get);
-  
 
   return true;
 }
@@ -734,5 +874,4 @@ void lbm_sound_cleanup(void) {
     printf("ALSA sound system cleanup complete\n");
   }
 }
-
 

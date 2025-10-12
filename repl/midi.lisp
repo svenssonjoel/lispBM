@@ -4,8 +4,14 @@
 ;; oscillator 0 saw
 (patch-osc-tvp-set 0 0 'osc-saw 0.5 0.0)
 ;; oscillator 1 sine
-(patch-osc-tvp-set 0 1 'osc-sine 0.5 0.0) 
+;;(patch-osc-tvp-set 0 1 'osc-sine 0.5 0.0) 
 (patch-adsr-set 0 0.01 0.1 0.7 0.2)
+
+;; patch 0 lfo 0 20.0hz sine wave
+(patch-lfo-set 0 0 'osc-sine 5.0) 
+
+;; Patch 0 oscillator 0 modulator 0 lfo1 0.1
+(patch-mod-set 0 0 0 'mod-lfo1 100.0) 
 
 (defun midi-thd ()
   (loopwhile t {
