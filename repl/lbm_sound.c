@@ -414,7 +414,6 @@ static void audio_generation_thread(void *arg) {
               s_right += s;
             } break;
             case OSC_SINE: {
-              // TODO: check if modulator and modulate phase_increment (I think).
               float osc = sinf(2.0f * M_PI * phase);
               float s = osc * env_val * vel *w->vol;
 
