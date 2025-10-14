@@ -741,6 +741,13 @@ static void start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, flo
   // But there is no real reason to synchronize as there are no pointers to chase
   // through the voice/patch, etc structs. We wont end up crashing, just potentially
   // glitch out the sound.
+  //
+  // atomic_store_explicit(&v->active, true, memory_order_release);
+  // atomic_load_explicit(&voices[v].active, memory_order_acquire);
+  // - memory_order_relaxed - No ordering guarantees (just atomicity)
+  // - memory_order_acquire - Reads after this can't be reordered before it
+  // - memory_order_release - Writes before this can't be reordered after it
+  // - memory_order_seq_cst - Full sequential consistency
   v->active = true;
 }
 
