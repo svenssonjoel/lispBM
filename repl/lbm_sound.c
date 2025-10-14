@@ -358,7 +358,6 @@ static void audio_generation_thread(void *arg) {
                lfo_val[lfo] = osc;
              } break;
             case OSC_SINE: {
-              // TODO: check if modulator and modulate phase_increment (I think).
               float osc = sinf(2.0f * M_PI * phase);
               float phase_increment = freq / (float)SAMPLE_RATE;
               voices[v].lfo_phase[lfo] += phase_increment;
