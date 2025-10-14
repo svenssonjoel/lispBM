@@ -226,6 +226,7 @@ lbm_value enc_osc_type(oscillator_type_t t) {
   case OSC_SQUARE:
     return lbm_enc_sym(sym_osc_square);
   }
+  return ENC_SYM_NIL;
 }
 
 lbm_value enc_osc_freq_source(freq_source_t s) {
@@ -235,6 +236,7 @@ lbm_value enc_osc_freq_source(freq_source_t s) {
   case FREQ_FIXED:
     return lbm_enc_sym(sym_freq_src_fixed);
   }
+  return ENC_SYM_NIL;
 }
 
 static patch_t patches[MAX_PATCHES];
@@ -398,14 +400,13 @@ static void audio_generation_thread(void *arg) {
                 break;
               }
             }
-            float s = 0.0f;
 
             switch (w->type) {
             case OSC_SAW: {
               // The saw wave jumps from 1.0 to -1.0
               // instantaneoulsy => lots of harmonics => aliasing
               float osc = 2.0f * phase - 1.0f;
-              s = osc * env_val * vel * w->vol;
+              float s = osc * env_val * vel * w->vol;
 
               float phase_increment = (base_freq + mod_val) / (float)SAMPLE_RATE;
               voices[v].osc_phase[o] += phase_increment;
@@ -522,9 +523,7 @@ lbm_value ext_patch_mod_set(lbm_value *args, lbm_uint argn) {
 
     if (patch < MAX_PATCHES && osc < NUM_OSC && mod < NUM_MODULATORS) {
       modulator_source_t m;
-      if (src == sym_mod_none) {
-        m = MOD_NONE;
-      } else if (src == sym_mod_lfo1) {
+      if (src == sym_mod_lfo1) {
         m = MOD_LFO1;
       } else if (src == sym_mod_lfo2) {
         m = MOD_LFO2;
@@ -532,6 +531,8 @@ lbm_value ext_patch_mod_set(lbm_value *args, lbm_uint argn) {
         m = MOD_ENV;
       } else if (src == sym_mod_vel) {
         m = MOD_VEL;
+      } else {
+        m = MOD_NONE;
       }
       modulator_t *ent = &patches[patch].osc[osc].modulators[mod];
       ent->source = m;
@@ -560,9 +561,7 @@ lbm_value ext_patch_lfo_set(lbm_value *args, lbm_uint argn) {
 
     if (lfo < NUM_LFO && patch < MAX_PATCHES) {
       oscillator_type_t o;
-      if (osc_type == sym_osc_none) {
-        o = OSC_NONE;
-      } else if (osc_type == sym_osc_sine) {
+      if (osc_type == sym_osc_sine) {
         o = OSC_SINE;
       } else if (osc_type == sym_osc_saw) {
         o = OSC_SAW;
@@ -570,6 +569,8 @@ lbm_value ext_patch_lfo_set(lbm_value *args, lbm_uint argn) {
         o = OSC_TRIANGLE;
       } else if (osc_type == sym_osc_square) {
         o = OSC_SQUARE;
+      } else {
+        o = OSC_NONE;
       }
       patch_t *p = &patches[patch];
       p->lfo[lfo].freq_source = FREQ_FIXED;
@@ -631,9 +632,7 @@ lbm_value ext_patch_osc_tvp_set(lbm_value *args, lbm_uint argn) {
     if (osc < NUM_OSC && patch < MAX_PATCHES) {
 
       oscillator_type_t o;
-      if (osc_type == sym_osc_none) {
-        o = OSC_NONE;
-      } else if (osc_type == sym_osc_sine) {
+      if (osc_type == sym_osc_sine) {
         o = OSC_SINE;
       } else if (osc_type == sym_osc_saw) {
         o = OSC_SAW;
@@ -641,6 +640,8 @@ lbm_value ext_patch_osc_tvp_set(lbm_value *args, lbm_uint argn) {
         o = OSC_TRIANGLE;
       } else if (osc_type == sym_osc_square) {
         o = OSC_SQUARE;
+      } else {
+        o = OSC_NONE;
       }
       patches[patch].osc[osc].type = o;
       patches[patch].osc[osc].freq_source = FREQ_NOTE; // by default
@@ -749,7 +750,7 @@ lbm_value ext_note_on(lbm_value *args, lbm_uint argn) {
     uint8_t patch = lbm_dec_as_char(args[0]);
     uint8_t note = lbm_dec_as_char(args[1]);
     uint8_t vel = lbm_dec_as_char(args[2]);
-    float vel_f = (float)vel / 127.0;
+    float vel_f = (float)vel / 127.0f;
     float freq = 440.0f * powf(2.0f, (note - 69) / 12.0f);
 
     // replacement strategy needed.

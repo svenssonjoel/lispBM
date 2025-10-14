@@ -11,7 +11,7 @@
 (patch-lfo-set 0 0 'osc-sine 5.0) 
 
 ;; Patch 0 oscillator 0 modulator 0 lfo1 0.1
-(patch-mod-set 0 0 0 'mod-lfo1 100.0) 
+(patch-mod-set 0 0 0 'mod-lfo1 5.0) 
 
 (defun midi-thd ()
   (loopwhile t {
