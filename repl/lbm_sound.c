@@ -144,7 +144,7 @@ typedef enum {
   ENV_RELEASE
 } env_adsr_state_t;
 
-// Attack, decay, sustan, release
+// Attack, decay, sustain, release
 typedef struct {
   float attack_time;
   float decay_time;
@@ -349,14 +349,14 @@ static void audio_generation_thread(void *arg) {
               freq = w->freq_value;
             }
             switch (w->type) {
-             case OSC_SAW: {
-               float osc = 2.0f * phase - 1.0f;
+            case OSC_SAW: {
+              float osc = 2.0f * phase - 1.0f;
                
-               float phase_increment = freq / (float)SAMPLE_RATE;
-               voices[v].lfo_phase[lfo] += phase_increment;
-               WRAP1(voices[v].lfo_phase[lfo]);
-               lfo_val[lfo] = osc;
-             } break;
+              float phase_increment = freq / (float)SAMPLE_RATE;
+              voices[v].lfo_phase[lfo] += phase_increment;
+              WRAP1(voices[v].lfo_phase[lfo]);
+              lfo_val[lfo] = osc;
+            } break;
             case OSC_SINE: {
               float osc = sinf(2.0f * M_PI * phase);
               float phase_increment = freq / (float)SAMPLE_RATE;
@@ -661,6 +661,7 @@ lbm_value ext_patch_adsr_get(lbm_value *args, lbm_uint argn) {
       lbm_is_number(args[0])) {
 
     uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch >= MAX_PATCHES) return ENC_SYM_NIL;
     lbm_value a = lbm_enc_float(patches[patch].env.attack_time);
     lbm_value d = lbm_enc_float(patches[patch].env.decay_time);
     lbm_value s = lbm_enc_float(patches[patch].env.sustain_level);
@@ -670,7 +671,7 @@ lbm_value ext_patch_adsr_get(lbm_value *args, lbm_uint argn) {
         s == ENC_SYM_MERROR ||
         rel == ENC_SYM_MERROR) {
       r = ENC_SYM_MERROR;
-      } else {
+    } else {
       r = lbm_heap_allocate_list_init(4, a, d, s ,rel);
     }
   }
@@ -687,6 +688,7 @@ lbm_value ext_patch_adsr_set(lbm_value *args, lbm_uint argn) {
       lbm_is_number(args[3]) &&
       lbm_is_number(args[4])) {
     uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch >= MAX_PATCHES) return ENC_SYM_NIL;
     float   attack = lbm_dec_as_float(args[1]);
     float   decay  = lbm_dec_as_float(args[2]);
     float   sustain = lbm_dec_as_float(args[3]);
@@ -734,6 +736,11 @@ static void start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, flo
   v->env_state = ENV_ATTACK;
   v->env_time_in_state = 0.0f;
   v->release_start_level = 0.0f;
+  // update active last.
+  // possibly make this a synchronization using _Atomic bool.
+  // But there is no real reason to synchronize as there are no pointers to chase
+  // through the voice/patch, etc structs. We wont end up crashing, just potentially
+  // glitch out the sound.
   v->active = true;
 }
 
