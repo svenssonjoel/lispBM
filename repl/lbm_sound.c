@@ -657,7 +657,7 @@ lbm_value ext_patch_osc_tvp_set(lbm_value *args, lbm_uint argn) {
 
 lbm_value ext_patch_adsr_get(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
-  if (argn == 2 &&
+  if (argn == 1 &&
       lbm_is_number(args[0])) {
 
     uint8_t patch = lbm_dec_as_char(args[0]);

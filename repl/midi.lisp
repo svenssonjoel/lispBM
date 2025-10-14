@@ -7,6 +7,8 @@
 ;;(patch-osc-tvp-set 0 1 'osc-sine 0.5 0.0) 
 (patch-adsr-set 0 0.01 0.1 0.7 0.2)
 
+(print (patch-adsr-get 0))
+
 ;; patch 0 lfo 0 20.0hz sine wave
 (patch-lfo-set 0 0 'osc-sine 5.0) 
 
