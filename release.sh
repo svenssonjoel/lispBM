@@ -216,7 +216,7 @@ make clean &> /dev/null
 if command -v scan-build-19
 then
     echo "## scan-build version 19" >> ./$reportdir/$release_readme
-    scan-build-18 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt 2> /dev/null
+    scan-build-19 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt 2> /dev/null
 else
     if command -v scan-build-18
     then
