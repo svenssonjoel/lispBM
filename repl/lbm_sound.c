@@ -51,6 +51,21 @@
            - Remedied by randomizing phase at note-on.
  */
 
+/* A list of possible TODOs
+1. Filter cutoff modulation - Most impactful for expressiveness
+2. Oscillator detune - Simple but huge improvement in sound quality
+3. Triangle/square oscillators - Complete the basic waveform set
+4. Filter resonance - Requires 2-pole filters but essential for "VA" character
+5. BLEP square waves - Reduces aliasing harshness
+6. Implement getter functions - API completeness (your TODO note)
+7. Oscillator hard sync - Classic aggressive lead sound
+8. Ring modulation - Metallic/bell tones
+9. Fix stereo processing - Proper L/R channels
+10. Pan control - Stereo width effects
+11. Noise generator - Percussion and texture
+12. Unison mode - Can be done in lisp!
+*/
+
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
@@ -169,47 +184,20 @@ typedef struct {
   float alpha; // 1.0f - expf(-2.0f * M_PI * fc / SAMPLE_RATE);
                // fc : Cutoff frequency
                // The expf function is a model of how an analog RC filter would behave.
-  float y_old;
-} lpf_1_pole_t;
+} filter_1_pole_t;
 
-// 1 pole high pass filter
 typedef struct {
-  bool active;
-  float alpha; // 1.0f - expf(-2.0f * M_PI * fc / SAMPLE_RATE);
-               // fc : Cutoff frequency
-  float y_old; // prev output
-  float x_old; // prev input
-} hpf_1_pole_t;
-
-// Low pass filter.
-// is a moving weighted average.
-float lpf_1_pole(lpf_1_pole_t *filter, float in) {
-  float y = filter->y_old + filter->alpha * (in - filter->y_old);
-  filter->y_old = y;
-  return y;
-}
-
-// High pass filter.
-// Measures the change in input between now and prev.
-// The measure is decreased by the (1.0f - alpha) factor (a value between 0 and 1).
-// alpha then is how strongly we suppress change....
-// small changes in input dissappar.
-// large changes in input remain.
-float hpf_1_pole(hpf_1_pole_t *filter, float in) {
-  float y = (1.0f - filter->alpha) * (filter->y_old + in - filter->x_old);
-  filter->y_old = y;
-  filter->x_old = in;
-  return y;
-}
-
+  float y_old;
+  float x_old;
+} filter_1_pole_state_t;
 
 // A synthesizer patch (Instrument)
 typedef struct {
   oscillator_t lfo[NUM_LFO];
   oscillator_t osc[NUM_OSC];
   env_adsr_t   env;
-  lpf_1_pole_t lpf;
-  hpf_1_pole_t hpf;
+  filter_1_pole_t lpf;
+  filter_1_pole_t hpf;
 
 } patch_t;
 
@@ -227,13 +215,51 @@ typedef struct {
   float osc_phase[NUM_OSC];
   float lfo_phase[NUM_LFO];
   float env_val;
+
+  // Envelope statemachine
   env_adsr_state_t env_state;
   float env_time_in_state;
   float release_start_level; // Envelope level when release was triggered
+
+  //filter state
+  filter_1_pole_state_t lpf_state;
+  filter_1_pole_state_t hpf_state;
 } voice_t;
 
 static patch_t patches[MAX_PATCHES];
 static voice_t voices[MAX_VOICES];
+
+// ////////////////////////////////////////////////////////////
+// Filter operations
+
+////////////////////
+// Low pass filter.
+// is a moving weighted average.
+float lpf_1_pole(voice_t *v, float in) {
+  float y_old = v->lpf_state.y_old;
+  filter_1_pole_t *filter = &patches[v->patch].lpf;
+  float y = y_old + filter->alpha * (in - y_old);
+  v->lpf_state.y_old = y;
+  return y;
+}
+
+////////////////////
+// High pass filter.
+// Measures the change in input between now and prev.
+// The measure is decreased by the (1.0f - alpha) factor (a value between 0 and 1).
+// alpha then is how strongly we suppress change....
+// small changes in input dissappar.
+// large changes in input remain.
+float hpf_1_pole(voice_t *v, float in) {
+  float y_old = v->hpf_state.y_old;
+  float x_old = v->hpf_state.x_old;
+  filter_1_pole_t *filter = &patches[v->patch].hpf;
+  float y = (1.0f - filter->alpha) * (y_old + in - x_old);
+  v->hpf_state.y_old = y;
+  v->hpf_state.x_old = in;
+  return y;
+}
+
 
 // ////////////////////////////////////////////////////////////
 // LBM symbols
@@ -269,6 +295,9 @@ static lbm_uint sym_mod1 = 0;
 static lbm_uint sym_mod2 = 0;
 static lbm_uint sym_mod3 = 0;
 static lbm_uint sym_mod4 = 0;
+
+static lbm_uint sym_simple_lpf = 0;
+static lbm_uint sym_simple_hpf = 0;
 
 lbm_value enc_osc_type(oscillator_type_t t) {
   switch(t) {
@@ -480,7 +509,7 @@ static void audio_generation_thread(void *arg) {
               voices[v].osc_phase[o] += phase_increment;
               WRAP1(voices[v].osc_phase[o]);
 
-              voice_r  += s; // for now the same.
+              voice_r += s; // for now the same.
               voice_l += s; // may change in future
             } break;
             default:
@@ -489,12 +518,12 @@ static void audio_generation_thread(void *arg) {
           }
           // need to duplicate filters for left/right channel.
           if (patches[patch].lpf.active) {
-            voice_r = lpf_1_pole(&patches[patch].lpf, voice_r);
+            voice_r = lpf_1_pole(&voices[v], voice_r);
             voice_l = voice_r; // bunch of cheating here. just for testing.
           }
 
           if (patches[patch].hpf.active) {
-            voice_r = hpf_1_pole(&patches[patch].hpf, voice_r);
+            voice_r = hpf_1_pole(&voices[v], voice_r);
             voice_l = voice_r; // cheating here too.
           }
           s_right += voice_r;
@@ -566,106 +595,94 @@ static void register_symbols(void) {
   lbm_add_symbol("mod2", &sym_mod2);
   lbm_add_symbol("mod3", &sym_mod3);
   lbm_add_symbol("mod4", &sym_mod4);
+
+  lbm_add_symbol("simple-lpf", &sym_simple_lpf);
+  lbm_add_symbol("simple-hpf", &sym_simple_hpf);
 }
 
 // ////////////////////////////////////////////////////////////
 // LBM extensions
-lbm_value ext_patch_lpf_set(lbm_value *args, lbm_uint argn) {
+
+// TODO: ext_patch_lfo_get and ext_patch_mod_get could use same
+//       return value idiom as filter_get. That is:
+//         not active -> nil
+//             active -> a truthy value containing the config data.
+
+
+
+lbm_value ext_patch_filter_set(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 3 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_symbol(args[1]) &&
+      lbm_is_number(args[2])) {  // In the future different filters could have more parameters here.
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch < MAX_PATCHES) {
+      lbm_uint sym = lbm_dec_sym(args[1]);
+      if (sym == sym_simple_lpf) {
+
+        float cutoff_freq = lbm_dec_as_float(args[2]);
+        float alpha = 1.0f - expf(-2.0f * M_PI * cutoff_freq / SAMPLE_RATE);
+        patches[patch].lpf.alpha = alpha;
+        if (cutoff_freq > 0.0f) {
+          patches[patch].lpf.active = true; // set last in case we want to make it an atomic operation.
+        } else {
+          patches[patch].lpf.active = false;
+        }
+        r = ENC_SYM_TRUE;
+      } else if (sym == sym_simple_hpf) {
+        float cutoff_freq = lbm_dec_as_float(args[2]);
+        float alpha = 1.0f - expf(-2.0f * M_PI * cutoff_freq / SAMPLE_RATE);
+        patches[patch].hpf.alpha = alpha;
+        if (cutoff_freq > 0.0f) {
+          patches[patch].hpf.active = true; // set last in case we want to make it an atomic operation.
+        } else {
+          patches[patch].hpf.active = false;
+        }
+        r = ENC_SYM_TRUE;
+      } else {
+        r = ENC_SYM_NIL;
+      }
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
+lbm_value ext_patch_filter_get(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 2 &&
       lbm_is_number(args[0]) &&
-      lbm_is_number(args[1])) {
+      lbm_is_symbol(args[1])) {
     uint8_t patch = lbm_dec_as_char(args[0]);
     if (patch < MAX_PATCHES) {
-      float cutoff_freq = lbm_dec_as_float(args[1]);
-      float alpha = 1.0f - expf(-2.0f * M_PI * cutoff_freq / SAMPLE_RATE);
-      patches[patch].lpf.alpha = alpha;
-      r = ENC_SYM_TRUE;
+      lbm_uint sym = lbm_dec_sym(args[1]);
+      if (sym == sym_simple_lpf) {
+        float cutoff_freq = -logf(1.0f - patches[patch].lpf.alpha) * SAMPLE_RATE / (2.0f * M_PI);
+        bool  active =  patches[patch].lpf.active;
+        if (active) {
+          r = lbm_enc_float(cutoff_freq);
+        } else {
+          r = ENC_SYM_NIL;
+        }
+      } else if (sym == sym_simple_hpf) {
+        float cutoff_freq = -logf(1.0f - patches[patch].hpf.alpha) * SAMPLE_RATE / (2.0f * M_PI);
+        bool  active =  patches[patch].hpf.active;
+        if (active) {
+          r = lbm_enc_float(cutoff_freq);
+        } else {
+          r = ENC_SYM_NIL;
+        }
+      } else {
+        r = ENC_SYM_NIL;
+      }
     } else {
       r = ENC_SYM_NIL;
     }
   }
   return r;
 }
-
-lbm_value ext_patch_hpf_set(lbm_value *args, lbm_uint argn) {
-  lbm_value r = ENC_SYM_TERROR;
-  if (argn == 2 &&
-      lbm_is_number(args[0]) &&
-      lbm_is_number(args[1])) {
-    uint8_t patch = lbm_dec_as_char(args[0]);
-    if (patch < MAX_PATCHES) {
-      float cutoff_freq = lbm_dec_as_float(args[1]);
-      float alpha = 1.0f - expf(-2.0f * M_PI * cutoff_freq / SAMPLE_RATE);
-      patches[patch].hpf.alpha = alpha;
-      r = ENC_SYM_TRUE;
-    } else {
-      r = ENC_SYM_NIL;
-    }
-  }
-  return r;
-}
-
-lbm_value ext_patch_lpf_enable(lbm_value *args, lbm_uint argn) {
-  lbm_value r = ENC_SYM_TERROR;
-  if (argn == 1 &&
-      lbm_is_number(args[0])) {
-    uint8_t patch = lbm_dec_as_char(args[0]);
-    if (patch < MAX_PATCHES) {
-      patches[patch].lpf.active = true;
-      r = ENC_SYM_TRUE;
-    } else {
-      r = ENC_SYM_NIL;
-    }
-  }
-  return r;
-}
-
-lbm_value ext_patch_hpf_enable(lbm_value *args, lbm_uint argn) {
-  lbm_value r = ENC_SYM_TERROR;
-  if (argn == 1 &&
-      lbm_is_number(args[0])) {
-    uint8_t patch = lbm_dec_as_char(args[0]);
-    if (patch < MAX_PATCHES) {
-      patches[patch].hpf.active = true;
-      r = ENC_SYM_TRUE;
-    } else {
-      r = ENC_SYM_NIL;
-    }
-  }
-  return r;
-}
-
-lbm_value ext_patch_lpf_disable(lbm_value *args, lbm_uint argn) {
-  lbm_value r = ENC_SYM_TERROR;
-  if (argn == 1 &&
-      lbm_is_number(args[0])) {
-    uint8_t patch = lbm_dec_as_char(args[0]);
-    if (patch < MAX_PATCHES) {
-      patches[patch].lpf.active = false;
-      r = ENC_SYM_TRUE;
-    } else {
-      r = ENC_SYM_NIL;
-    }
-  }
-  return r;
-}
-
-lbm_value ext_patch_hpf_disable(lbm_value *args, lbm_uint argn) {
-  lbm_value r = ENC_SYM_TERROR;
-  if (argn == 1 &&
-      lbm_is_number(args[0])) {
-    uint8_t patch = lbm_dec_as_char(args[0]);
-    if (patch < MAX_PATCHES) {
-      patches[patch].hpf.active = false;
-      r = ENC_SYM_TRUE;
-    } else {
-      r = ENC_SYM_NIL;
-    }
-  }
-  return r;
-}
-
 
 
 //(patch-mod-set patch-no osc-no mod-no mod-source mod-amount)
@@ -900,6 +917,12 @@ static void start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, flo
   v->env_state = ENV_ATTACK;
   v->env_time_in_state = 0.0f;
   v->release_start_level = 0.0f;
+
+  v->lpf_state.y_old = 0.0f;
+  v->lpf_state.x_old = 0.0f;
+  v->hpf_state.y_old = 0.0f;
+  v->hpf_state.x_old = 0.0f;
+
   // update active last.
   // possibly make this a synchronization using _Atomic bool.
   // But there is no real reason to synchronize as there are no pointers to chase
@@ -1023,6 +1046,10 @@ bool lbm_sound_init(void) {
     voices[i].active = false;
   }
 
+  for (int i = 0; i < MAX_PATCHES; i ++) {
+    memset(&patches[i], 0, sizeof(patch_t));
+  }
+
   register_symbols();
 
   lbm_add_extension("note-on", ext_note_on);
@@ -1034,13 +1061,8 @@ bool lbm_sound_init(void) {
   lbm_add_extension("patch-osc-tvp-get", ext_patch_osc_tvp_get);
   lbm_add_extension("patch-adsr-set", ext_patch_adsr_set);
   lbm_add_extension("patch-adsr-get", ext_patch_adsr_get);
-  lbm_add_extension("patch-lpf-set", ext_patch_lpf_set);
-  lbm_add_extension("patch-hpf-set", ext_patch_hpf_set);
-  lbm_add_extension("patch-lpf-enable", ext_patch_lpf_enable);
-  lbm_add_extension("patch-hpf-enable", ext_patch_hpf_enable);
-  lbm_add_extension("patch-lpf-disable", ext_patch_lpf_disable);
-  lbm_add_extension("patch-hpf-disable", ext_patch_hpf_disable);
-
+  lbm_add_extension("patch-filter-set", ext_patch_filter_set);
+  lbm_add_extension("patch-filter-get", ext_patch_filter_get);
   return true;
 }
 
