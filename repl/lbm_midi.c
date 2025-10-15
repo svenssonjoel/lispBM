@@ -52,8 +52,8 @@ bool midi_read(lbm_value res) {
   }
 
   switch (ev->type) {
-  case SND_SEQ_EVENT_NOTEON: /* fallthrough */
-    if (ev->data.note.velocity > 0) { 
+  case SND_SEQ_EVENT_NOTEON:
+    if (ev->data.note.velocity > 0) {
       lbm_value curr = res;
       lbm_set_car(curr, lbm_enc_sym(sym_note_on));
       curr = lbm_cdr(curr);
@@ -62,7 +62,8 @@ bool midi_read(lbm_value res) {
       lbm_set_car(curr, lbm_enc_i(ev->data.note.velocity));
       lbm_set_cdr(curr, ENC_SYM_NIL);
       break;
-    } // else fall through and be a note-off message
+    }
+    __attribute__((fallthrough));
   case SND_SEQ_EVENT_NOTEOFF:
     {
       lbm_value curr = res;
