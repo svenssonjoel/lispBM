@@ -152,13 +152,69 @@ typedef struct {
   float release_time;
 } env_adsr_t;
 
+// Filters
+//
+// My understanding of digital filters is quite shallow at the moment.
+// The filters below are simple and cost-efficient.
+// The 1-pole concept refers to them having 1 feedback term (remembers one old state).
+// But it apparently also refers to "poles" in the z-plane in relation to the transfer function.
+//
+// see https://youtu.be/j0wJBEZdwLs?si=mXei1QBgdgjzKMmz for intuiting about the laplace transform
+// which i think is related to the discrete Z-transform, which in turn is related to the concept
+// of poles in digital filters.
+
+// 1 pole low pass filter.
+typedef struct {
+  bool active;
+  float alpha; // 1.0f - expf(-2.0f * M_PI * fc / SAMPLE_RATE);
+               // fc : Cutoff frequency
+               // The expf function is a model of how an analog RC filter would behave.
+  float y_old;
+} lpf_1_pole_t;
+
+// 1 pole high pass filter
+typedef struct {
+  bool active;
+  float alpha; // 1.0f - expf(-2.0f * M_PI * fc / SAMPLE_RATE);
+               // fc : Cutoff frequency
+  float y_old; // prev output
+  float x_old; // prev input
+} hpf_1_pole_t;
+
+// Low pass filter.
+// is a moving weighted average.
+float lpf_1_pole(lpf_1_pole_t *filter, float in) {
+  float y = filter->y_old + filter->alpha * (in - filter->y_old);
+  filter->y_old = y;
+  return y;
+}
+
+// High pass filter.
+// Measures the change in input between now and prev.
+// The measure is decreased by the (1.0f - alpha) factor (a value between 0 and 1).
+// alpha then is how strongly we suppress change....
+// small changes in input dissappar.
+// large changes in input remain.
+float hpf_1_pole(hpf_1_pole_t *filter, float in) {
+  float y = (1.0f - filter->alpha) * (filter->y_old + in - filter->x_old);
+  filter->y_old = y;
+  filter->x_old = in;
+  return y;
+}
+
+
 // A synthesizer patch (Instrument)
 typedef struct {
   oscillator_t lfo[NUM_LFO];
   oscillator_t osc[NUM_OSC];
   env_adsr_t   env;
+  lpf_1_pole_t lpf;
+  hpf_1_pole_t hpf;
+
 } patch_t;
 
+// ////////////////////////////////////////////////////////////
+// Voice
 typedef struct {
   uint32_t sequence_number; // Steal the oldest
   bool active;
@@ -173,7 +229,7 @@ typedef struct {
   float env_val;
   env_adsr_state_t env_state;
   float env_time_in_state;
-  float release_start_level; // Envelope level when release was triggered 
+  float release_start_level; // Envelope level when release was triggered
 } voice_t;
 
 // ////////////////////////////////////////////////////////////
@@ -332,16 +388,18 @@ static void audio_generation_thread(void *arg) {
       for (int v = 0; v < MAX_VOICES; v ++) {
         if (voices[v].active) {
 
+          uint8_t patch = voices[v].patch;
+
           float base_freq = voices[v].freq;
           float vel = voices[v].vel * 24000.0f;
-          float env_val = update_envelope(&voices[v], &patches[voices[v].patch]);
+          float env_val = update_envelope(&voices[v], &patches[patch]);
 
           float lfo_val[NUM_LFO];
 
           // Modulation oscillators
           for (int lfo = 0; lfo < NUM_LFO; lfo ++) {
             lfo_val[lfo] = 0.0;
-            oscillator_t *w = &patches[voices[v].patch].lfo[lfo];
+            oscillator_t *w = &patches[patch].lfo[lfo];
             float phase = voices[v].lfo_phase[lfo] + w->phase_offset;
             WRAP1(phase);
             float freq = base_freq; // For now.
@@ -351,7 +409,7 @@ static void audio_generation_thread(void *arg) {
             switch (w->type) {
             case OSC_SAW: {
               float osc = 2.0f * phase - 1.0f;
-               
+
               float phase_increment = freq / (float)SAMPLE_RATE;
               voices[v].lfo_phase[lfo] += phase_increment;
               WRAP1(voices[v].lfo_phase[lfo]);
@@ -371,7 +429,7 @@ static void audio_generation_thread(void *arg) {
           // Tone oscillators
           for (int o = 0; o < NUM_OSC; o ++) {
 
-            oscillator_t *w = &patches[voices[v].patch].osc[o];
+            oscillator_t *w = &patches[patch].osc[o];
             float phase = voices[v].osc_phase[o] + w->phase_offset;
             WRAP1(phase);
 
@@ -381,7 +439,7 @@ static void audio_generation_thread(void *arg) {
             // mod_val = (m0 * a0) + (m1 * a1) ..
             // for all active modulators.
             for (int mod = 0; mod < NUM_MODULATORS; mod ++) {
-              modulator_t *ent = &patches[voices[v].patch].osc[o].modulators[mod];
+              modulator_t *ent = &patches[patch].osc[o].modulators[mod];
               switch (ent->source) {
               case MOD_NONE:
                 break;
@@ -429,7 +487,16 @@ static void audio_generation_thread(void *arg) {
               break;
             }
           }
+          // need to duplicate filters for left/right channel.
+          if (patches[patch].lpf.active) {
+            s_left = lpf_1_pole(&patches[patch].lpf, s_left);
+            s_right = s_left; // bunch of cheating here. just for testing.
+          }
 
+          if (patches[patch].hpf.active) {
+            s_left = hpf_1_pole(&patches[patch].hpf, s_left);
+            s_right = s_left; // cheating here too.
+          }
         }
       }
 
@@ -503,6 +570,103 @@ static void register_symbols(void) {
 
 // ////////////////////////////////////////////////////////////
 // LBM extensions
+lbm_value ext_patch_lpf_set(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1])) {
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch < MAX_PATCHES) {
+      float cutoff_freq = lbm_dec_as_float(args[1]);
+      float alpha = 1.0f - expf(-2.0f * M_PI * cutoff_freq / SAMPLE_RATE);
+      patches[patch].lpf.alpha = alpha;
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
+lbm_value ext_patch_hpf_set(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1])) {
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch < MAX_PATCHES) {
+      float cutoff_freq = lbm_dec_as_float(args[1]);
+      float alpha = 1.0f - expf(-2.0f * M_PI * cutoff_freq / SAMPLE_RATE);
+      patches[patch].hpf.alpha = alpha;
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
+lbm_value ext_patch_lpf_enable(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_number(args[0])) {
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch < MAX_PATCHES) {
+      patches[patch].lpf.active = true;
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
+lbm_value ext_patch_hpf_enable(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_number(args[0])) {
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch < MAX_PATCHES) {
+      patches[patch].hpf.active = true;
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
+lbm_value ext_patch_lpf_disable(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_number(args[0])) {
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch < MAX_PATCHES) {
+      patches[patch].lpf.active = false;
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
+lbm_value ext_patch_hpf_disable(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_number(args[0])) {
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    if (patch < MAX_PATCHES) {
+      patches[patch].hpf.active = false;
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
+
 
 //(patch-mod-set patch-no osc-no mod-no mod-source mod-amount)
 lbm_value ext_patch_mod_set(lbm_value *args, lbm_uint argn) {
@@ -870,6 +1034,12 @@ bool lbm_sound_init(void) {
   lbm_add_extension("patch-osc-tvp-get", ext_patch_osc_tvp_get);
   lbm_add_extension("patch-adsr-set", ext_patch_adsr_set);
   lbm_add_extension("patch-adsr-get", ext_patch_adsr_get);
+  lbm_add_extension("patch-lpf-set", ext_patch_lpf_set);
+  lbm_add_extension("patch-hpf-set", ext_patch_hpf_set);
+  lbm_add_extension("patch-lpf-enable", ext_patch_lpf_enable);
+  lbm_add_extension("patch-hpf-enable", ext_patch_lpf_enable);
+  lbm_add_extension("patch-lpf-disable", ext_patch_lpf_enable);
+  lbm_add_extension("patch-hpf-disable", ext_patch_lpf_enable);
 
   return true;
 }
