@@ -176,6 +176,9 @@ typedef struct {
   float release_start_level; // Envelope level when release was triggered 
 } voice_t;
 
+static patch_t patches[MAX_PATCHES];
+static voice_t voices[MAX_VOICES];
+
 // ////////////////////////////////////////////////////////////
 // LBM symbols
 
@@ -211,8 +214,6 @@ static lbm_uint sym_mod2 = 0;
 static lbm_uint sym_mod3 = 0;
 static lbm_uint sym_mod4 = 0;
 
-
-
 lbm_value enc_osc_type(oscillator_type_t t) {
   switch(t) {
   case OSC_NONE:
@@ -236,9 +237,6 @@ lbm_value enc_osc_freq_source(freq_source_t s) {
     return lbm_enc_sym(sym_freq_src_fixed);
   }
 }
-
-static patch_t patches[MAX_PATCHES];
-static voice_t voices[MAX_VOICES];
 
 // Update envelope state and return current envelope value
 static float update_envelope(voice_t *voice, patch_t *patch) {
@@ -499,8 +497,6 @@ static void register_symbols(void) {
   lbm_add_symbol("mod3", &sym_mod3);
   lbm_add_symbol("mod4", &sym_mod4);
 }
-
-
 
 // ////////////////////////////////////////////////////////////
 // LBM extensions
