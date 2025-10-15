@@ -425,6 +425,8 @@ static void audio_generation_thread(void *arg) {
             }
           }
           // Tone oscillators
+          float voice_r = 0.0;
+          float voice_l = 0.0;
           for (int o = 0; o < NUM_OSC; o ++) {
 
             oscillator_t *w = &patches[patch].osc[o];
@@ -466,8 +468,8 @@ static void audio_generation_thread(void *arg) {
               float phase_increment = (base_freq + mod_val) / (float)SAMPLE_RATE;
               voices[v].osc_phase[o] += phase_increment;
               WRAP1(voices[v].osc_phase[o]);
-              s_left  += s;
-              s_right += s;
+              voice_r  += s;
+              voice_l += s;
             } break;
             case OSC_SINE: {
               float osc = sinf(2.0f * M_PI * phase);
@@ -478,8 +480,8 @@ static void audio_generation_thread(void *arg) {
               voices[v].osc_phase[o] += phase_increment;
               WRAP1(voices[v].osc_phase[o]);
 
-              s_left  += s; // for now the same.
-              s_right += s; // may change in future
+              voice_r  += s; // for now the same.
+              voice_l += s; // may change in future
             } break;
             default:
               break;
@@ -487,14 +489,16 @@ static void audio_generation_thread(void *arg) {
           }
           // need to duplicate filters for left/right channel.
           if (patches[patch].lpf.active) {
-            s_left = lpf_1_pole(&patches[patch].lpf, s_left);
-            s_right = s_left; // bunch of cheating here. just for testing.
+            voice_r = lpf_1_pole(&patches[patch].lpf, voice_r);
+            voice_l = voice_r; // bunch of cheating here. just for testing.
           }
 
           if (patches[patch].hpf.active) {
-            s_left = hpf_1_pole(&patches[patch].hpf, s_left);
-            s_right = s_left; // cheating here too.
+            voice_r = hpf_1_pole(&patches[patch].hpf, voice_r);
+            voice_l = voice_r; // cheating here too.
           }
+          s_right += voice_r;
+          s_left  += voice_l;
         }
       }
 
@@ -1033,9 +1037,9 @@ bool lbm_sound_init(void) {
   lbm_add_extension("patch-lpf-set", ext_patch_lpf_set);
   lbm_add_extension("patch-hpf-set", ext_patch_hpf_set);
   lbm_add_extension("patch-lpf-enable", ext_patch_lpf_enable);
-  lbm_add_extension("patch-hpf-enable", ext_patch_lpf_enable);
-  lbm_add_extension("patch-lpf-disable", ext_patch_lpf_enable);
-  lbm_add_extension("patch-hpf-disable", ext_patch_lpf_enable);
+  lbm_add_extension("patch-hpf-enable", ext_patch_hpf_enable);
+  lbm_add_extension("patch-lpf-disable", ext_patch_lpf_disable);
+  lbm_add_extension("patch-hpf-disable", ext_patch_hpf_disable);
 
   return true;
 }

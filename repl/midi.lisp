@@ -10,10 +10,10 @@
 (print (patch-adsr-get 0))
 
 ;; patch 0 lfo 0 20.0hz sine wave
-(patch-lfo-set 0 0 'osc-sine 5.0) 
+;;(patch-lfo-set 0 0 'osc-sine 5.0) 
 
 ;; Patch 0 oscillator 0 modulator 0 lfo1 0.1
-(patch-mod-set 0 0 0 'mod-lfo1 5.0) 
+;;(patch-mod-set 0 0 0 'mod-lfo1 5.0) 
 
 (defun midi-thd ()
   (loopwhile t {
