@@ -52,16 +52,17 @@
  */
 
 /* A list of possible TODOs
-1. Filter cutoff modulation - Most impactful for expressiveness
-2. Oscillator detune - Simple but huge improvement in sound quality
-3. Triangle/square oscillators - Complete the basic waveform set
-4. Filter resonance - Requires 2-pole filters but essential for "VA" character
-5. BLEP square waves - Reduces aliasing harshness
-6. Implement getter functions - API completeness (your TODO note)
-7. Oscillator hard sync - Classic aggressive lead sound
-8. Ring modulation - Metallic/bell tones
+1. Filter cutoff modulation - change the filter cutoff freq dynamically
+2. Oscillator detune
+3. [X] Triangle/square oscillators
+4. Filter resonance - 2 pole filters and above
+5. BLEP square waves
+6. Implement getter functions
+7. Oscillator hard sync
+8. Ring modulation - bell sounds
 9. Fix stereo processing - Proper L/R channels
-10. Pan control - Stereo width effects
+10. Pan control
+    [X] simple fixed pan per oscillator.
 11. Noise generator - Percussion and texture
 12. Unison mode - Can be done in lisp!
 */
@@ -84,8 +85,8 @@
 
 static snd_pcm_t *pcm_handle = NULL;
 
-static lbm_thread_t audio_thread;
-static bool audio_thread_running = false;
+static lbm_thread_t synth_thread;
+static bool synth_thread_running = false;
 
 static uint32_t voice_sequence_number = 0;
 
@@ -149,6 +150,7 @@ typedef struct {
   modulator_t modulators[NUM_MODULATORS];
   float phase_offset;
   float vol;
+  float pan;
 } oscillator_t;
 
 typedef enum {
@@ -395,7 +397,7 @@ static float update_envelope(voice_t *voice, patch_t *patch) {
   return voice->env_val;
 }
 
-static void audio_generation_thread(void *arg) {
+static void synth_thd(void *arg) {
   (void)arg;
 
   int16_t *buffer = (int16_t *)malloc(BUFFER_FRAMES * CHANNELS * sizeof(int16_t));
@@ -404,7 +406,7 @@ static void audio_generation_thread(void *arg) {
     return;
   }
 
-  while (audio_thread_running) {
+  while (synth_thread_running) {
 
     memset(buffer, 0, BUFFER_FRAMES * CHANNELS * sizeof(int16_t));
 
@@ -430,28 +432,30 @@ static void audio_generation_thread(void *arg) {
             float phase = voices[v].lfo_phase[lfo] + w->phase_offset;
             WRAP1(phase);
             float freq = base_freq; // For now.
+            float osc = 0.0f;
             if (w->freq_source == FREQ_FIXED) {
               freq = w->freq_value;
             }
             switch (w->type) {
-            case OSC_SAW: {
-              float osc = 2.0f * phase - 1.0f;
-
-              float phase_increment = freq / (float)SAMPLE_RATE;
-              voices[v].lfo_phase[lfo] += phase_increment;
-              WRAP1(voices[v].lfo_phase[lfo]);
-              lfo_val[lfo] = osc;
-            } break;
-            case OSC_SINE: {
-              float osc = sinf(2.0f * M_PI * phase);
-              float phase_increment = freq / (float)SAMPLE_RATE;
-              voices[v].lfo_phase[lfo] += phase_increment;
-              WRAP1(voices[v].lfo_phase[lfo]);
-              lfo_val[lfo] = osc;
-            } break;
+            case OSC_SAW:
+              osc = 2.0f * phase - 1.0f;
+              break;
+            case OSC_SINE:
+              osc = sinf(2.0f * M_PI * phase);
+              break;
+            case OSC_SQUARE:
+              osc = phase > 0.5 ? -1.0f : 1.0f;
+              break;
+            case OSC_TRIANGLE:
+              osc = 1.0f - 4.0f * fabsf(phase - 0.5f);
+              break;
             default:
               break;
             }
+            float phase_increment = freq / (float)SAMPLE_RATE;
+            voices[v].lfo_phase[lfo] += phase_increment;
+            WRAP1(voices[v].lfo_phase[lfo]);
+            lfo_val[lfo] = osc;
           }
           // Tone oscillators
           float voice_r = 0.0;
@@ -487,34 +491,36 @@ static void audio_generation_thread(void *arg) {
               }
             }
 
+            float osc = 0.0f;
             switch (w->type) {
-            case OSC_SAW: {
+            case OSC_SAW:
               // The saw wave jumps from 1.0 to -1.0
               // instantaneoulsy => lots of harmonics => aliasing
-              float osc = 2.0f * phase - 1.0f;
-              float s = osc * env_val * vel * w->vol;
-
-              float phase_increment = (base_freq + mod_val) / (float)SAMPLE_RATE;
-              voices[v].osc_phase[o] += phase_increment;
-              WRAP1(voices[v].osc_phase[o]);
-              voice_r  += s;
-              voice_l += s;
-            } break;
-            case OSC_SINE: {
-              float osc = sinf(2.0f * M_PI * phase);
-              float s = osc * env_val * vel *w->vol;
-
-              // In the future use the modulated frequency here
-              float phase_increment = (base_freq + mod_val) / (float)SAMPLE_RATE;
-              voices[v].osc_phase[o] += phase_increment;
-              WRAP1(voices[v].osc_phase[o]);
-
-              voice_r += s; // for now the same.
-              voice_l += s; // may change in future
-            } break;
+              osc = 2.0f * phase - 1.0f;
+              break;
+            case OSC_SINE:
+              osc = sinf(2.0f * M_PI * phase);
+              break;
+            case OSC_SQUARE:
+              osc = phase > 0.5 ? -1.0f : 1.0f;
+              break;
+            case OSC_TRIANGLE:
+              osc = 1.0f - 4.0f * fabsf(phase - 0.5f);
+              break;
             default:
               break;
             }
+            float s = osc * env_val * vel * w->vol;
+            float phase_increment = (base_freq + mod_val) / (float)SAMPLE_RATE;
+            voices[v].osc_phase[o] += phase_increment;
+            WRAP1(voices[v].osc_phase[o]);
+
+            // If pan doesn't change dynamically these can be precomputed!
+            float pan_left = cosf((w->pan + 1.0f) * M_PI / 4.0f);
+            float pan_right = sinf((w->pan + 1.0f) * M_PI / 4.0f);
+            
+            voice_r += s * pan_right;
+            voice_l += s * pan_left;
           }
           // need to duplicate filters for left/right channel.
           if (patches[patch].lpf.active) {
@@ -835,6 +841,40 @@ lbm_value ext_patch_osc_tvp_set(lbm_value *args, lbm_uint argn) {
 }
 
 
+lbm_value ext_patch_osc_pan_set(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 3 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1]) &&
+      lbm_is_number(args[2])) {
+    r = ENC_SYM_NIL;
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    uint32_t osc  = lbm_dec_as_u32(args[1]);
+    float pan = lbm_dec_as_float(args[2]);
+    if (patch < MAX_PATCHES && osc < NUM_OSC) {
+      patches[patch].osc[osc].pan = pan;
+      r = ENC_SYM_TRUE;
+    }
+  }
+  return r;
+}
+
+lbm_value ext_patch_osc_pan_get(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1])) {
+    r = ENC_SYM_NIL;
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    uint32_t osc  = lbm_dec_as_u32(args[1]);
+    if (patch < MAX_PATCHES && osc < NUM_OSC) {
+      r = lbm_enc_float(patches[patch].osc[osc].pan);
+    }
+  }
+  return r;
+}
+
+
 
 lbm_value ext_patch_adsr_get(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
@@ -1033,10 +1073,10 @@ bool lbm_sound_init(void) {
   printf("ALSA sound system initialized: %d Hz, %d channels, %d-bit, %dms latency\n",
          SAMPLE_RATE, CHANNELS, BITS_PER_SAMPLE, LATENCY_US / 1000);
 
-  audio_thread_running = true;
-  if (!lbm_thread_create(&audio_thread, "audio_gen", audio_generation_thread,
+  synth_thread_running = true;
+  if (!lbm_thread_create(&synth_thread, "synth_thd", synth_thd,
                          NULL, LBM_THREAD_PRIO_HIGH, 32768)) {
-    fprintf(stderr, "Failed to create audio generation thread\n");
+    fprintf(stderr, "Failed to create synth thread\n");
     snd_pcm_close(pcm_handle);
     pcm_handle = NULL;
     return false;
@@ -1059,6 +1099,8 @@ bool lbm_sound_init(void) {
   lbm_add_extension("patch-lfo-set", ext_patch_lfo_set);
   lbm_add_extension("patch-osc-tvp-set", ext_patch_osc_tvp_set);
   lbm_add_extension("patch-osc-tvp-get", ext_patch_osc_tvp_get);
+  lbm_add_extension("patch-osc-pan-set", ext_patch_osc_pan_set);
+  lbm_add_extension("patch-osc-pan-get", ext_patch_osc_pan_get);
   lbm_add_extension("patch-adsr-set", ext_patch_adsr_set);
   lbm_add_extension("patch-adsr-get", ext_patch_adsr_get);
   lbm_add_extension("patch-filter-set", ext_patch_filter_set);
@@ -1067,9 +1109,9 @@ bool lbm_sound_init(void) {
 }
 
 void lbm_sound_cleanup(void) {
-  if (audio_thread_running) {
-    audio_thread_running = false;
-    lbm_thread_destroy(&audio_thread);
+  if (synth_thread_running) {
+    synth_thread_running = false;
+    lbm_thread_destroy(&synth_thread);
   }
 
   if (pcm_handle) {

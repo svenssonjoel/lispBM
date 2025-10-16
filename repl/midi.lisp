@@ -15,10 +15,65 @@
   (patch-filter-set patch-num 'simple-lpf 2800.0)
   })
 
-(patch-clear 0)
-(violin 0)
+(defun p1 (patch-num)
+  {
+  (patch-clear patch-num)
+  (patch-osc-tvp-set patch-num 0 'osc-triangle 0.5 0.0)
+  (patch-osc-pan-set patch-num 0 -0.9)
+  (patch-osc-tvp-set patch-num 1 'osc-triangle 0.5 0.25)
+  (patch-osc-pan-set patch-num 1 0.9)
+  (patch-adsr-set patch-num 0.001 0.1 0.0 0.2)
+  (patch-filter-set patch-num 'simple-hpf 500.0)
+  (patch-mod-set patch-num 0 3 'mod-vel 0.5)
+  })
 
-;; Play a simple melody
+(defun p2 (patch-num)
+  {
+  (patch-clear patch-num)
+  (patch-osc-tvp-set patch-num 0 'osc-saw 0.4 0.0)
+  (patch-osc-pan-set patch-num 0 -0.95)
+  (patch-osc-tvp-set patch-num 1 'osc-saw 0.4 0.33)
+  (patch-osc-pan-set patch-num 1 0.95)
+  (patch-adsr-set patch-num 0.005 0.3 0.0 0.3)
+  (patch-filter-set patch-num 'simple-hpf 500.0)       
+  })
+
+(violin 0)
+(p1 1)
+(p2 2)
+
+;; Play on p2
+(note-on 2 72 127)
+(sleep 1.5)
+(note-off 2 72)
+
+(note-on 2 64 127)
+(sleep 1.5)
+(note-off 2 64)
+
+(note-on 2 71 127)
+(sleep 1.5)
+(note-off 2 71)
+
+
+
+;; Play on p1
+(note-on 1 72 127)
+(sleep 0.5)
+(note-off 1 72)
+
+(note-on 1 64 127)
+(sleep 0.5)
+(note-off 1 64)
+
+(note-on 1 71 127)
+(sleep 0.5)
+(note-off 1 71)
+
+
+
+
+;; Play on "violin"
 (note-on 0 64 90)  ;; E4
 (sleep 0.5)
 (note-off 0 64)
