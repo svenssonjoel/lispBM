@@ -60,7 +60,7 @@
 6. Implement getter functions
 7. Oscillator hard sync
 8. Ring modulation - bell sounds
-9. Fix stereo processing - Proper L/R channels
+9. Fix stereo processing
 10. Pan control
     [X] simple fixed pan per oscillator.
 11. Noise generator - Percussion and texture
@@ -108,10 +108,12 @@ static uint32_t voice_sequence_number = 0;
 
 #define WRAP1(X) if ((X) >= 1.0f) (X) -= 1.0f
 
-
 #ifndef M_PI
 #define M_PI 3.14159265f
 #endif
+
+#define LEFT  0
+#define RIGHT 1
 
 // Oscilator types
 typedef enum {
@@ -224,8 +226,8 @@ typedef struct {
   float release_start_level; // Envelope level when release was triggered
 
   //filter state
-  filter_1_pole_state_t lpf_state;
-  filter_1_pole_state_t hpf_state;
+  filter_1_pole_state_t lpf_state[2];
+  filter_1_pole_state_t hpf_state[2];
 } voice_t;
 
 static patch_t patches[MAX_PATCHES];
@@ -237,11 +239,11 @@ static voice_t voices[MAX_VOICES];
 ////////////////////
 // Low pass filter.
 // is a moving weighted average.
-float lpf_1_pole(voice_t *v, float in) {
-  float y_old = v->lpf_state.y_old;
+float lpf_1_pole(voice_t *v, int channel, float in) {
+  float y_old = v->lpf_state[channel].y_old;
   filter_1_pole_t *filter = &patches[v->patch].lpf;
   float y = y_old + filter->alpha * (in - y_old);
-  v->lpf_state.y_old = y;
+  v->lpf_state[channel].y_old = y;
   return y;
 }
 
@@ -252,13 +254,13 @@ float lpf_1_pole(voice_t *v, float in) {
 // alpha then is how strongly we suppress change....
 // small changes in input dissappar.
 // large changes in input remain.
-float hpf_1_pole(voice_t *v, float in) {
-  float y_old = v->hpf_state.y_old;
-  float x_old = v->hpf_state.x_old;
+float hpf_1_pole(voice_t *v, int channel, float in) {
+  float y_old = v->hpf_state[channel].y_old;
+  float x_old = v->hpf_state[channel].x_old;
   filter_1_pole_t *filter = &patches[v->patch].hpf;
   float y = (1.0f - filter->alpha) * (y_old + in - x_old);
-  v->hpf_state.y_old = y;
-  v->hpf_state.x_old = in;
+  v->hpf_state[channel].y_old = y;
+  v->hpf_state[channel].x_old = in;
   return y;
 }
 
@@ -518,19 +520,19 @@ static void synth_thd(void *arg) {
             // If pan doesn't change dynamically these can be precomputed!
             float pan_left = cosf((w->pan + 1.0f) * M_PI / 4.0f);
             float pan_right = sinf((w->pan + 1.0f) * M_PI / 4.0f);
-            
+
             voice_r += s * pan_right;
             voice_l += s * pan_left;
           }
-          // need to duplicate filters for left/right channel.
+          // Apply filtering.
           if (patches[patch].lpf.active) {
-            voice_r = lpf_1_pole(&voices[v], voice_r);
-            voice_l = voice_r; // bunch of cheating here. just for testing.
+            voice_r = lpf_1_pole(&voices[v], RIGHT, voice_r);
+            voice_l = lpf_1_pole(&voices[v], LEFT, voice_l);
           }
 
           if (patches[patch].hpf.active) {
-            voice_r = hpf_1_pole(&voices[v], voice_r);
-            voice_l = voice_r; // cheating here too.
+            voice_r = hpf_1_pole(&voices[v], RIGHT,  voice_r);
+            voice_l = hpf_1_pole(&voices[v], LEFT,  voice_l);
           }
           s_right += voice_r;
           s_left  += voice_l;
@@ -958,10 +960,14 @@ static void start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, flo
   v->env_time_in_state = 0.0f;
   v->release_start_level = 0.0f;
 
-  v->lpf_state.y_old = 0.0f;
-  v->lpf_state.x_old = 0.0f;
-  v->hpf_state.y_old = 0.0f;
-  v->hpf_state.x_old = 0.0f;
+  v->lpf_state[LEFT].y_old = 0.0f;
+  v->lpf_state[LEFT].x_old = 0.0f;
+  v->hpf_state[LEFT].y_old = 0.0f;
+  v->hpf_state[LEFT].x_old = 0.0f;
+  v->lpf_state[RIGHT].y_old = 0.0f;
+  v->lpf_state[RIGHT].x_old = 0.0f;
+  v->hpf_state[RIGHT].y_old = 0.0f;
+  v->hpf_state[RIGHT].x_old = 0.0f;
 
   // update active last.
   // possibly make this a synchronization using _Atomic bool.
