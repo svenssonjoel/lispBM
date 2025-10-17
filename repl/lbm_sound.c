@@ -63,7 +63,7 @@
 9. Fix stereo processing
 10. Pan control
     [X] simple fixed pan per oscillator.
-11. Noise generator - Percussion and texture
+11. [X] Noise generator - Percussion and texture
 12. Unison mode - Can be done in lisp!
 */
 
@@ -121,7 +121,8 @@ typedef enum {
   OSC_SINE,
   OSC_SAW,
   OSC_TRIANGLE,
-  OSC_SQUARE
+  OSC_SQUARE,
+  OSC_NOISE
 } oscillator_type_t;
 
 typedef enum {
@@ -283,6 +284,7 @@ static lbm_uint sym_osc_sine     = 0;
 static lbm_uint sym_osc_saw      = 0;
 static lbm_uint sym_osc_triangle = 0;
 static lbm_uint sym_osc_square   = 0;
+static lbm_uint sym_osc_noise    = 0;
 
 static lbm_uint sym_osc1 = 0;
 static lbm_uint sym_osc2 = 0;
@@ -315,6 +317,8 @@ lbm_value enc_osc_type(oscillator_type_t t) {
     return lbm_enc_sym(sym_osc_triangle);
   case OSC_SQUARE:
     return lbm_enc_sym(sym_osc_square);
+  case OSC_NOISE:
+    return lbm_enc_sym(sym_osc_noise);
   }
   return ENC_SYM_NIL;
 }
@@ -451,6 +455,9 @@ static void synth_thd(void *arg) {
             case OSC_TRIANGLE:
               osc = 1.0f - 4.0f * fabsf(phase - 0.5f);
               break;
+            case OSC_NOISE:
+              osc = (2.0f * (float)rand() / RAND_MAX) - 1.0f;
+              break;
             default:
               break;
             }
@@ -509,9 +516,14 @@ static void synth_thd(void *arg) {
             case OSC_TRIANGLE:
               osc = 1.0f - 4.0f * fabsf(phase - 0.5f);
               break;
+            case OSC_NOISE:
+              osc = (2.0f * (float)rand() / RAND_MAX) - 1.0f;
+              break;
             default:
               break;
             }
+
+            // Phase increment makes no sense for Noise.
             float s = osc * env_val * vel * w->vol;
             float phase_increment = (base_freq + mod_val) / (float)SAMPLE_RATE;
             voices[v].osc_phase[o] += phase_increment;
@@ -587,6 +599,7 @@ static void register_symbols(void) {
   lbm_add_symbol("osc-saw", &sym_osc_saw);
   lbm_add_symbol("osc-triangle", &sym_osc_triangle);
   lbm_add_symbol("osc-square", &sym_osc_square);
+  lbm_add_symbol("osc-noise", &sym_osc_noise);
 
   lbm_add_symbol("osc1", &sym_osc1);
   lbm_add_symbol("osc2", &sym_osc2);
@@ -827,6 +840,8 @@ lbm_value ext_patch_osc_tvp_set(lbm_value *args, lbm_uint argn) {
         o = OSC_TRIANGLE;
       } else if (osc_type == sym_osc_square) {
         o = OSC_SQUARE;
+      } else if (osc_type == sym_osc_noise) {
+        o = OSC_NOISE;
       } else {
         o = OSC_NONE;
       }
