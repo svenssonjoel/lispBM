@@ -53,24 +53,25 @@ static inline uint32_t byte_order_swap(uint32_t w) {
   return r;
 }
 
-static void fft_f32(float *real, float *imag, int n, int inverse) {
-  int j = 0;
+
+void lbm_fft(float *real, float *imag, int n, int inverse) {
+  int k = 0;
   for (int i = 1; i < n; i++) {
     int bit = n >> 1;
-    while (j & bit) {
-      j ^= bit;
+    while (k & bit) {
+      k ^= bit;
       bit >>= 1;
     }
-    j ^= bit;
+    k ^= bit;
 
-    if (i < j) {
+    if (i < k) {
       float temp = real[i];
-      real[i] = real[j];
-      real[j] = temp;
+      real[i] = real[k];
+      real[k] = temp;
 
       temp = imag[i];
-      imag[i] = imag[j];
-      imag[j] = temp;
+      imag[i] = imag[k];
+      imag[k] = temp;
     }
   }
 
@@ -175,7 +176,7 @@ static lbm_value ext_fft_f32(lbm_value *args, lbm_uint argn) {
         memset(imag_copy_data, 0, padded_size * sizeof(float));
 
         if (swap_byte_order) {
-          for (int w = 0; w < n; w ++) {
+          for (lbm_uint w = 0; w < n; w ++) {
             uint32_t swapped = byte_order_swap(((uint32_t*)real_data)[w]);
             ((uint32_t*)real_copy_data)[w] = swapped;
             swapped = byte_order_swap(((uint32_t*)imag_data)[w]);
@@ -186,10 +187,10 @@ static lbm_value ext_fft_f32(lbm_value *args, lbm_uint argn) {
           memcpy(imag_copy_data, imag_data, real_arr->size);
         }
 
-        fft_f32(real_copy_data, imag_copy_data, (int)padded_size, inverse);
+        lbm_fft(real_copy_data, imag_copy_data, (int)padded_size, inverse);
 
         if (swap_byte_order) {
-          for (int w = 0; w < padded_size; w ++) {
+          for (lbm_uint w = 0; w < padded_size; w ++) {
             uint32_t swapped = byte_order_swap(((uint32_t*)real_copy_data)[w]);
             ((uint32_t*)real_copy_data)[w] = swapped;
             swapped = byte_order_swap(((uint32_t*)imag_copy_data)[w]);

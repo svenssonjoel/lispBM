@@ -23,7 +23,9 @@ extern "C" {
 #endif
 
 void lbm_dsp_extensions_init(void);
-  
+
+void lbm_fft(float *real, float *imag, int n, int inverse);
+
 #ifdef __cplusplus
 }
 #endif
