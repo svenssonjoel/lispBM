@@ -38,6 +38,7 @@
 #include "extensions/lbm_dyn_lib.h"
 #include "extensions/ttf_extensions.h"
 #include "extensions/random_extensions.h"
+#include "extensions/dsp_extensions.h"
 
 #include "eval_cps.h"
 #include "lbm_image.h"
@@ -885,6 +886,7 @@ int init_exts(void) {
   lbm_dyn_lib_init();
   lbm_ttf_extensions_init();
   lbm_random_extensions_init();
+  lbm_dsp_extensions_init();
 
   //lbm_value sym_seek_set;
   //lbm_value sym_seek_cur;
