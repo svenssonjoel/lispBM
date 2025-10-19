@@ -464,7 +464,14 @@ char *lbm_image_get_version(void) {
 lbm_const_heap_t image_const_heap;
 lbm_uint image_const_heap_start_ix = 0;
 
-bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
+// If an image is "present"
+// but the const_heap_index does not point to a free location
+// in flash, something is wrong!
+lbm_uint lbm_image_const_heap_index(void) {
+  return image_const_heap.next;
+}
+
+static bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
 #ifdef LBM64
   int32_t i = (int32_t)(image_const_heap_start_ix + (ix * 2));
   uint32_t *words = (uint32_t*)&w;

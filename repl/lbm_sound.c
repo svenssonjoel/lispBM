@@ -72,7 +72,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <alloca.h>
 
 #include <math.h>
 
