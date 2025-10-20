@@ -201,6 +201,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
       chprintf(chp,"%s", output);
     }
   }
+  chprintf(chp,"\r\n");
   return lbm_enc_sym(SYM_TRUE);
 }
 
@@ -372,6 +373,25 @@ int main(void) {
     return 0;
   }
   chprintf(chp,"Lisp REPL started (ChibiOS)!\r\n");
+
+  // Check if there is a main function in the env
+  // and launch it!
+  lbm_uint main_sym = ENC_SYM_NIL;
+  if (lbm_get_symbol_by_name("main", &main_sym)) {
+    lbm_value binding;
+    if (lbm_global_env_lookup(&binding, lbm_enc_sym(main_sym))) {
+      if (lbm_is_cons(binding) && lbm_car(binding) == ENC_SYM_CLOSURE) {
+        lbm_pause_eval();
+        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+        lbm_create_string_char_channel(&string_tok_state, &string_tok, "(main)");
+        lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
+        lbm_continue_eval();
+        lbm_wait_ctx((lbm_cid)cid, WAIT_TIMEOUT);
+      }
+    }
+  }
 
   while (true) {
     chprintf(chp, "# ");
