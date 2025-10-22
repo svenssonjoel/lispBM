@@ -39,14 +39,14 @@ The PCM5102A is connected to the STM32F4 as follows:
 
  | PCM5102A pin | STM32F4 pin |
  |--------------|-------------|
- | SCK          | PC6[1]        |
+ | SCK          | PC6*        |
  | LCK          | PB9         |
  | BCK          | PB10        |
  | DIN          | PB15        |
  | VIN          | 3V          |
  | GND          | GND         |
 
-[1]The SCK pin is optional on the PCM5102A and should be tied to GND if not used. If SCK is tied to GND the PCM5102A synthesizes its own master clock from the BCK (bit clock).
+\* The SCK pin is optional on the PCM5102A and should be tied to GND if not used. If SCK is tied to GND the PCM5102A synthesizes its own master clock from the BCK (bit clock).
 
 On the PCM5102A the FMT pin should be floating or tied to GND to select
 I2S transfer protocol and the XSMT pin should be connected to 3.3V to unmute
