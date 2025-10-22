@@ -25,13 +25,12 @@ bool lbm_thread_create(lbm_thread_t *t,
                        lbm_thread_prio_t prio,
                        uint32_t stack_size) {
 
-  platform_thread_t *thread = (platform_thread_t *)lbm_malloc(sizeof(platform_thread_t));
+  platform_thread_t *thread = (platform_thread_t *)t;
   if (!thread) return false;
 
   uint32_t stack_words = stack_size / sizeof(StackType_t);
   StackType_t *stack = (StackType_t *)lbm_malloc(stack_size);
   if (!stack) {
-    lbm_free(thread);
     return false;
   }
 

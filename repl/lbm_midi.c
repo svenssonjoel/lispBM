@@ -112,7 +112,7 @@ static lbm_value ext_midi_read(lbm_value *args, lbm_uint argn) {
   (void)argn;
 
   if (seq_handle == NULL) {
-    return lbm_enc_sym(SYM_EERROR);
+    return ENC_SYM_EERROR)
   }
 
   lbm_value result_list = lbm_heap_allocate_list(3);
@@ -133,7 +133,7 @@ static lbm_value ext_midi_enumerate_devices(lbm_value *args, lbm_uint argn) {
   (void) argn;
 
   if (seq_handle == NULL) {
-    return lbm_enc_sym(SYM_EERROR);
+    return ENC_SYM_EERROR;
   }
 
   snd_seq_client_info_t *cinfo;
@@ -185,15 +185,15 @@ static lbm_value ext_midi_enumerate_devices(lbm_value *args, lbm_uint argn) {
 // (midi-connect client port) -> t or error
 static lbm_value ext_midi_connect(lbm_value *args, lbm_uint argn) {
   if (argn != 2) {
-    return lbm_enc_sym(SYM_EERROR);
+    return ENC_SYM_EERROR;
   }
 
   if (seq_handle == NULL || seq_port < 0) {
-    return lbm_enc_sym(SYM_EERROR);
+    return ENC_SYM_EERROR;
   }
 
   if (!lbm_is_number(args[0]) || !lbm_is_number(args[1])) {
-    return lbm_enc_sym(SYM_TERROR);
+    return ENC_SYM_TERROR;
   }
 
   int client = lbm_dec_as_i32(args[0]);
@@ -201,24 +201,24 @@ static lbm_value ext_midi_connect(lbm_value *args, lbm_uint argn) {
 
   int err = snd_seq_connect_from(seq_handle, seq_port, client, port);
   if (err < 0) {
-    return lbm_enc_sym(SYM_EERROR);
+    return ENC_SYM_EERROR;
   }
 
-  return lbm_enc_sym(SYM_TRUE);
+  return ENC_SYM_TRUE;
 }
 
 // (midi-disconnect client port) -> t or error
 static lbm_value ext_midi_disconnect(lbm_value *args, lbm_uint argn) {
   if (argn != 2) {
-    return lbm_enc_sym(SYM_EERROR);
+    return ENC_SYM_EERROR;
   }
 
   if (seq_handle == NULL || seq_port < 0) {
-    return lbm_enc_sym(SYM_EERROR);
+    return ENC_SYM_EERROR;
   }
 
   if (!lbm_is_number(args[0]) || !lbm_is_number(args[1])) {
-    return lbm_enc_sym(SYM_TERROR);
+    return ENC_SYM_TERROR;
   }
 
   int client = lbm_dec_as_i32(args[0]);
@@ -226,10 +226,10 @@ static lbm_value ext_midi_disconnect(lbm_value *args, lbm_uint argn) {
 
   int err = snd_seq_disconnect_from(seq_handle, seq_port, client, port);
   if (err < 0) {
-    return lbm_enc_sym(SYM_EERROR);
+    return ENC_SYM_EERROR;
   }
 
-  return lbm_enc_sym(SYM_TRUE);
+  return ENC_SYM_TRUE;
 }
 
 
