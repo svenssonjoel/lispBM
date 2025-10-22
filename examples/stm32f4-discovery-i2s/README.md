@@ -32,15 +32,36 @@ as follows:
  | 3                | PB10        |
  | 4                | PB15        |
  | 5                | GND         |
- | 6                | 3V          | 
+ | 6                | 3V          |
 
+The code also support the PCM5102A dac. Can be found [here](https://www.amazon.se/VGOL-GY-PCM5102-kompatibel-Ardu-inos-Raspberry/dp/B0F631QSCH).
+The PCM5102A is connected to the STM32F4 as follows:
+
+ | PCM5102A pin | STM32F4 pin |
+ |--------------|-------------|
+ | SCK          | PC6[1]        |
+ | LCK          | PB9         |
+ | BCK          | PB10        |
+ | DIN          | PB15        |
+ | VIN          | 3V          |
+ | GND          | GND         |
+
+[1]The SCK pin is optional on the PCM5102A and should be tied to GND if not used. If SCK is tied to GND the PCM5102A synthesizes its own master clock from the BCK (bit clock).
+
+On the PCM5102A the FMT pin should be floating or tied to GND to select
+I2S transfer protocol and the XSMT pin should be connected to 3.3V to unmute
+the DAC.
 
 The example provides an extension for playing simple sine wave to
 the I2S dac:
 
 1. `(i2s-tone freq duration)`
 
-For example `(i2s-tone 440 5000)` plays an A for 5 seconds.  
+For example `(i2s-tone 440 5000)` plays an A for 5 seconds.
+NOTE that tone-generation is not perfect as the buffer is just
+repeated without being updated. So for frequencies where the
+number of samples for a period is not a perfect divisor of the
+buffer size, there will be artifacts caused by discontinuities.
 
 The example also shows how to set up image-storage on flash. When up
 and running you interact with the image via the extensions:
@@ -61,7 +82,7 @@ then LBM will (possibly/likely) not be able to load the image. Run the
 
 1. ChibiOS 21.11.3 located at `../../../ChibiOS_21.11.3` relative to this example (or modify the Makefile)
 2. arm-none-eabi-gcc compiler suite. 
-3. an I2S DAC CS4344
+3. an I2S DAC CS4344 or PCM5102A.
 
 # Building
 
