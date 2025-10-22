@@ -36,9 +36,12 @@ static uint32_t bitmap_array[LBM_MEMORY_BITMAP_SIZE_8K];
 
 static lbm_string_channel_state_t string_tok_state;
 static lbm_char_channel_t string_tok;
-// apa
 
-// I2S Configuration for CS4344
+// DAC Selection
+//#define USE_CS4344
+#define USE_PCM5102A
+
+// I2S Configuration
 #define I2S_SAMPLE_RATE 44100
 #define I2S_BUFFER_SIZE 512  // 256 stereo samples
 
@@ -49,13 +52,34 @@ static void i2s_callback(I2SDriver *i2sp) {
   (void)i2sp;
 }
 
+
+// I2S configuration,
+// the clock divisors (4 : CS4344 and 32: pcm5102a) have
+// been determined experimentally.
 static const I2SConfig i2scfg = {
   i2s_tx_buf,           // TX buffer
   NULL,                 // RX buffer
   I2S_BUFFER_SIZE,
   i2s_callback,
-  SPI_I2SCFGR_I2SSTD_0,
-  SPI_I2SPR_MCKOE | 4    // Enable MCLK, divider=4 (adjust based on actual freq)
+#if defined(USE_CS4344)
+  SPI_I2SCFGR_I2SSTD_0, // MSB/Left Justified (for CS4344)
+#elif defined(USE_PCM5102A)
+  0, // I2S Philips standard (for PCM5102A with FMT=Low)
+#else
+  0, // leave at zero if someone tries to use any other DAC.
+#endif
+
+#if defined(USE_CS4344)
+  SPI_I2SPR_MCKOE | 4  // Enable MCLK, divider=4 for 44.1kHz with PLLI2S=90MHz
+#elif defined(USE_PCM5102A)
+  32 // MCLK disabled, I2SDIV=32 for 44.1kHz with PLLI2S=90MHz
+     // MCLK is optional on PCM5102A (uses internal PLL)
+     // The divisor determines how bit-clock is derived from the MCLK
+     // and MCKOE determines wether MCLK is output on a pin or not.
+     // avoiding a high-frequency MCLK signal may make PCB design simpler.
+#else
+  32 // MCLK disabled, I2SDIV=32 for 44.1kHz
+#endif
 };
 
 // Flash sector 11 is 128KB (has to be cleared all in one go!)
@@ -349,11 +373,21 @@ int main(void) {
   chSysInit();
 
   // PLLI2S configured by ChibiOS from mcuconf.h
-  // Configure I2S2 GPIO pins (CS4344 on PC6, PB9, PB10, PB15)
+  // Configure I2S2 GPIO pins
+  // PCM5102A: SCK->PC6 (optional, here not used), LCK->PB9, BCK->PB10, DIN->PB15 (FMT=Low, XSMT=High)
+  // CS4344:   MCLK->PC6, LRCK->PB9, SCLK->PB10, SDIN->PB15
+#ifndef USE_PCM5102A
   palSetPadMode(GPIOC, 6, PAL_MODE_ALTERNATE(5));   // I2S2_MCK
-  palSetPadMode(GPIOB, 9, PAL_MODE_ALTERNATE(5));   // I2S2_WS (LRCK)
-  palSetPadMode(GPIOB, 10, PAL_MODE_ALTERNATE(5));  // I2S2_CK (SCLK)
-  palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5));  // I2S2_SD (SDIN)
+#endif
+  palSetPadMode(GPIOB, 9, PAL_MODE_ALTERNATE(5));   // I2S2_WS (LRCK/LCK)
+  palSetPadMode(GPIOB, 10, PAL_MODE_ALTERNATE(5));  // I2S2_CK (SCLK/BCK)
+  palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5));  // I2S2_SD (SDIN/DIN)
+
+#if defined (USE_PCM5102A)
+  // Grounding the MCLK pin, could be tied to ground directly
+  // at the DAC if making a custom PCB.
+  palClearPad(GPIOC, 6);
+#endif
 
   // Initialize I2S2 with ChibiOS driver
   i2sStart(&I2SD2, &i2scfg);
