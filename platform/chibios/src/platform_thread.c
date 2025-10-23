@@ -17,6 +17,7 @@
 
 #include "platform_thread.h"
 #include "lbm_memory.h"
+#include <stdint.h>
 
 bool lbm_thread_create(lbm_thread_t *t,
                        const char *name,
@@ -30,7 +31,8 @@ bool lbm_thread_create(lbm_thread_t *t,
   if (!thread) return false;
 
   uint32_t wa_size = THD_WORKING_AREA_SIZE(stack_size);
-  void *wa = lbm_malloc(wa_size);
+
+  void *wa = lbm_malloc(wa_size + 4);
   if (!wa) {
     return false;
   }
@@ -38,7 +40,11 @@ bool lbm_thread_create(lbm_thread_t *t,
   thread->working_area = wa;
   thread->wa_size = wa_size;
 
-  thread->handle = chThdCreateStatic(wa, wa_size, prio,
+  uintptr_t addr = (uintptr_t)wa;
+  uintptr_t aligned_addr = (addr + 7) & ~7;
+  void *aligned_wa = (void *)aligned_addr;
+
+  thread->handle = chThdCreateStatic(aligned_wa, wa_size, prio,
                                      (tfunc_t)func, arg);
 
   if (!thread->handle) {
