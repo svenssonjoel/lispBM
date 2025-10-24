@@ -19,6 +19,11 @@
 #include "lbm_memory.h"
 #include <stdint.h>
 
+THD_FUNCTION(platform_chibios_thd_fun, arg) {
+  platform_thread_t* pt = (platform_thread_t*)arg;
+  pt->tfun(pt->arg);
+}
+
 bool lbm_thread_create(lbm_thread_t *t,
                        const char *name,
                        lbm_thread_func_t func,
@@ -30,9 +35,12 @@ bool lbm_thread_create(lbm_thread_t *t,
   platform_thread_t *thread = (platform_thread_t *)t;
   if (!thread) return false;
 
+  thread->arg = arg;
+  thread->tfun = func;
+
   uint32_t wa_size = THD_WORKING_AREA_SIZE(stack_size);
 
-  void *wa = lbm_malloc(wa_size + 4);
+  void *wa = lbm_malloc(wa_size + 8);
   if (!wa) {
     return false;
   }
@@ -45,11 +53,10 @@ bool lbm_thread_create(lbm_thread_t *t,
   void *aligned_wa = (void *)aligned_addr;
 
   thread->handle = chThdCreateStatic(aligned_wa, wa_size, prio,
-                                     (tfunc_t)func, arg);
+                                     platform_chibios_thd_fun, arg);
 
   if (!thread->handle) {
     lbm_free(wa);
-    lbm_free(thread);
     return false;
   }
 

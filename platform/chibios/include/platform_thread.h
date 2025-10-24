@@ -22,15 +22,19 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef void (*lbm_thread_func_t)(void *arg);
+
 typedef struct {
   thread_t *handle;
   void *working_area;
   uint32_t wa_size;
+  lbm_thread_func_t tfun;
+  void *arg;
 } platform_thread_t;
 
 typedef platform_thread_t *lbm_thread_t;
 
-typedef void (*lbm_thread_func_t)(void *arg);
+
 
 typedef enum {
   LBM_THREAD_PRIO_LOW = LOWPRIO,
