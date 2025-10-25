@@ -46,12 +46,11 @@ bool lbm_thread_create(lbm_thread_t *t,
                        lbm_thread_prio_t prio,
                        uint32_t stack_size) {
 
-  platform_thread_t *thread = (platform_thread_t *)lbm_malloc(sizeof(platform_thread_t));
+  platform_thread_t *thread = (platform_thread_t *)t;
   if (!thread) return false;
 
   thread_start_data_t *start_data = (thread_start_data_t *)lbm_malloc(sizeof(thread_start_data_t));
   if (!start_data) {
-    lbm_free(thread);
     return false;
   }
 
@@ -75,14 +74,12 @@ bool lbm_thread_create(lbm_thread_t *t,
 
   if (result != 0) {
     lbm_free(start_data);
-    lbm_free(thread);
     return false;
   }
   // np apparently means "non-portable"
   // also requires the __GNU_SOURCE define.
   if (name) pthread_setname_np(thread->handle, name);
 
-  *t = thread;
   return true;
 }
 
@@ -98,8 +95,6 @@ void lbm_thread_yield(void) {
 }
 
 void lbm_thread_destroy(lbm_thread_t *thread) {
-  if (!thread || !*thread) return;
-  pthread_join((*thread)->handle, NULL);
-  lbm_free(*thread);
-  *thread = NULL;
+  if (!thread) return;
+  pthread_join(thread->handle, NULL);
 }

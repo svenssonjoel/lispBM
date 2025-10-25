@@ -112,7 +112,7 @@ static lbm_value ext_midi_read(lbm_value *args, lbm_uint argn) {
   (void)argn;
 
   if (seq_handle == NULL) {
-    return ENC_SYM_EERROR)
+    return ENC_SYM_EERROR;
   }
 
   lbm_value result_list = lbm_heap_allocate_list(3);

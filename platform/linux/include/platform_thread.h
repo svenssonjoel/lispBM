@@ -26,7 +26,7 @@ typedef struct {
   pthread_t handle;
 } platform_thread_t;
 
-typedef platform_thread_t *lbm_thread_t;
+typedef platform_thread_t lbm_thread_t;
 
 typedef void (*lbm_thread_func_t)(void *arg);
 

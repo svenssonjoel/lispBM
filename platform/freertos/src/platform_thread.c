@@ -62,14 +62,11 @@ bool lbm_thread_create(lbm_thread_t *t,
                                      freertos_prio,
                                      stack,
                                      &thread->task_buffer);
-
   if (!thread->handle) {
     lbm_free(stack);
-    lbm_free(thread);
     return false;
   }
 
-  *t = thread;
   return true;
 }
 
@@ -84,8 +81,8 @@ void lbm_thread_yield(void) {
 }
 
 void lbm_thread_destroy(lbm_thread_t *t) {
-  if (t && *t) {
-    platform_thread_t *thread = *t;
+  if (t) {
+    platform_thread_t *thread = t;
 
     if (thread->handle) {
       vTaskDelete(thread->handle);
@@ -94,8 +91,5 @@ void lbm_thread_destroy(lbm_thread_t *t) {
     if (thread->stack) {
       lbm_free(thread->stack);
     }
-    lbm_free(thread);
-
-    *t = NULL;
   }
 }

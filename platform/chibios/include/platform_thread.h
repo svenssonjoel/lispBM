@@ -32,7 +32,7 @@ typedef struct {
   void *arg;
 } platform_thread_t;
 
-typedef platform_thread_t *lbm_thread_t;
+typedef platform_thread_t lbm_thread_t;
 
 
 

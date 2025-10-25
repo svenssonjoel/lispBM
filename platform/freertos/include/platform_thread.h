@@ -30,7 +30,7 @@ typedef struct {
   uint32_t stack_size;
 } platform_thread_t;
 
-typedef platform_thread_t *lbm_thread_t;
+typedef platform_thread_t lbm_thread_t;
 
 typedef void (*lbm_thread_func_t)(void *arg);
 
