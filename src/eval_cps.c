@@ -5656,19 +5656,19 @@ static void evaluation_step(void){
     lbm_value k = ctx->K.data[--ctx->K.sp];
     ctx->app_cont = false;
 
-    lbm_uint decoded_k = DEC_CONTINUATION(k);
     // If app_cont is true, then top of stack must be a valid continuation!
     // If top of stack is not a valid continuation CRASH!
+
+    lbm_uint decoded_k = DEC_CONTINUATION(k);
     continuations[decoded_k](ctx);
     return;
   }
 
-  lbm_uint exp_type = lbm_type_of_functional(ctx->curr_exp);
-  switch (exp_type) {
-  case LBM_TYPE_SYMBOL:
+  if (lbm_is_symbol(ctx->curr_exp)) {
     eval_symbol(ctx);
     return;
-  case LBM_TYPE_CONS: {
+  }
+  if (lbm_is_cons(ctx->curr_exp)) {
     lbm_cons_t *cell = lbm_ref_cell(ctx->curr_exp);
     lbm_value h = cell->car;
     if (lbm_is_symbol(h) && ((h & ENC_SPECIAL_FORMS_MASK) == ENC_SPECIAL_FORMS_BIT)) {
@@ -5686,7 +5686,6 @@ static void evaluation_step(void){
     reserved[2] = APPLICATION_START;
     ctx->curr_exp = h; // evaluate the function
     return;
-  }
   }
 
   eval_selfevaluating(ctx);
