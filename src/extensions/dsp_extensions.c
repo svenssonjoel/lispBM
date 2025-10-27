@@ -165,21 +165,29 @@ static lbm_value ext_fft_f32(lbm_value *args, lbm_uint argn) {
       lbm_value imag_copy;
       if (lbm_heap_allocate_array(&real_copy, padded_size * sizeof(float)) &&
           lbm_heap_allocate_array(&imag_copy, padded_size * sizeof(float))) {
+        // cppcheck-suppress invalidPointerCast
         float *real_data = (float*)real_arr->data;
+        // cppcheck-suppress invalidPointerCast
         float *imag_data = (float*)imag_arr->data;
 
         lbm_array_header_t *real_copy_arr = lbm_dec_array_r(real_copy);
         lbm_array_header_t *imag_copy_arr = lbm_dec_array_r(imag_copy);
+        // cppcheck-suppress invalidPointerCast
         float *real_copy_data = (float*)real_copy_arr->data;
+        // cppcheck-suppress invalidPointerCast
         float *imag_copy_data = (float*)imag_copy_arr->data;
         memset(real_copy_data, 0, padded_size * sizeof(float));
         memset(imag_copy_data, 0, padded_size * sizeof(float));
 
         if (swap_byte_order) {
           for (lbm_uint w = 0; w < n; w ++) {
+            // cppcheck-suppress invalidPointerCast
             uint32_t swapped = byte_order_swap(((uint32_t*)real_data)[w]);
+            // cppcheck-suppress invalidPointerCast
             ((uint32_t*)real_copy_data)[w] = swapped;
+            // cppcheck-suppress invalidPointerCast
             swapped = byte_order_swap(((uint32_t*)imag_data)[w]);
+            // cppcheck-suppress invalidPointerCast
             ((uint32_t*)imag_copy_data)[w] = swapped;
           }
         } else {
@@ -191,9 +199,13 @@ static lbm_value ext_fft_f32(lbm_value *args, lbm_uint argn) {
 
         if (swap_byte_order) {
           for (lbm_uint w = 0; w < padded_size; w ++) {
+            // cppcheck-suppress invalidPointerCast
             uint32_t swapped = byte_order_swap(((uint32_t*)real_copy_data)[w]);
+            // cppcheck-suppress invalidPointerCast
             ((uint32_t*)real_copy_data)[w] = swapped;
+            // cppcheck-suppress invalidPointerCast
             swapped = byte_order_swap(((uint32_t*)imag_copy_data)[w]);
+            // cppcheck-suppress invalidPointerCast
             ((uint32_t*)imag_copy_data)[w] = swapped;
           }
         }
