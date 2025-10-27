@@ -5663,11 +5663,12 @@ static void evaluation_step(void){
     return;
   }
 
-  if (lbm_is_symbol(ctx->curr_exp)) {
+  lbm_uint exp_type = lbm_type_of_functional(ctx->curr_exp);
+  switch (exp_type) {
+  case LBM_TYPE_SYMBOL:
     eval_symbol(ctx);
     return;
-  }
-  if (lbm_is_cons(ctx->curr_exp)) {
+  case LBM_TYPE_CONS: {
     lbm_cons_t *cell = lbm_ref_cell(ctx->curr_exp);
     lbm_value h = cell->car;
     if (lbm_is_symbol(h) && ((h & ENC_SPECIAL_FORMS_MASK) == ENC_SPECIAL_FORMS_BIT)) {
@@ -5685,6 +5686,7 @@ static void evaluation_step(void){
     reserved[2] = APPLICATION_START;
     ctx->curr_exp = h; // evaluate the function
     return;
+  }
   }
 
   eval_selfevaluating(ctx);

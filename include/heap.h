@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2024 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2018, 2024, 2025  Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -646,7 +646,12 @@ static inline lbm_type lbm_type_of(lbm_value x) {
   return (x & LBM_PTR_BIT) ? (x & LBM_PTR_TYPE_MASK) : (x & LBM_VAL_TYPE_MASK);
 }
 
-// type-of check that is safe in functional code
+/** Query the type information of a value.
+ *  Discards information about constness of value.
+ *
+ * \param x Value to check the type of.
+ * \return The type information.
+ */
 static inline lbm_type lbm_type_of_functional(lbm_value x) {
   return (x & LBM_PTR_BIT) ?
     (x & (LBM_PTR_TO_CONSTANT_MASK & LBM_PTR_TYPE_MASK)) :
@@ -820,11 +825,29 @@ static inline bool lbm_is_cons(lbm_value x) {
   //return lbm_is_ptr(x) && ((x & LBM_CONS_TYPE_MASK) == LBM_TYPE_CONS);
 }
 
+/**
+ * Check if a value is a symbol
+ *
+ *  \param x Value to check
+ *  \return true if x is a symbol, false otherwise.
+ */
+static inline bool lbm_is_symbol(lbm_value exp) {
+  return !(exp & LBM_LOW_RESERVED_BITS);
+}
+
+/**
+ * Check if a value is a the nil symbol
+ *
+ *  \param x Value to check
+ *  \return true if x is a the nil symbol, false otherwise.
+ */
 static inline bool lbm_is_symbol_nil(lbm_value exp) {
   return !exp;
 }
-  
-/** Check if a value represents a number
+
+/**
+ * Check if a value represents a number
+ *
  * \param x Value to check.
  * \return true is x represents a number and false otherwise.
  */
@@ -836,6 +859,13 @@ static inline bool lbm_is_number(lbm_value x) {
 }
 
 // Check if an array is valid (an invalid array has been freed by someone explicitly)
+/**
+ * Check if a value represents a valid array.
+ * An invalid array has been freed by someone explicitly.
+ *
+ * \param arr Value to check
+ * \return true is arr represents a valid array, false otherwise.
+ */
 static inline bool lbm_heap_array_valid(lbm_value arr) {
   return !(lbm_is_symbol_nil(lbm_car(arr))); // this is an is_zero check similar to (a == NULL)
 }
@@ -869,7 +899,6 @@ static inline bool lbm_is_lisp_array_rw(lbm_value x) {
 
 static inline bool lbm_is_channel(lbm_value x) {
   return (lbm_type_of(x) == LBM_TYPE_CHANNEL &&
-          lbm_type_of(lbm_cdr(x)) == LBM_TYPE_SYMBOL &&
           lbm_cdr(x) == ENC_SYM_CHANNEL_TYPE);
 }
 static inline bool lbm_is_char(lbm_value x) {
@@ -877,55 +906,42 @@ static inline bool lbm_is_char(lbm_value x) {
 }
 
 static inline bool lbm_is_special(lbm_value symrep) {
-  return ((lbm_type_of(symrep) == LBM_TYPE_SYMBOL) &&
+  return (lbm_is_symbol(symrep) &&
           (lbm_dec_sym(symrep) < SPECIAL_SYMBOLS_END));
 }
 
 static inline bool lbm_is_closure(lbm_value exp) {
-  return ((lbm_is_cons(exp)) &&
-          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          (lbm_car(exp) == ENC_SYM_CLOSURE));
+  return ((lbm_is_cons(exp)) && (lbm_car(exp) == ENC_SYM_CLOSURE));
 }
 
 static inline bool lbm_is_continuation(lbm_value exp) {
-  return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
-          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          (lbm_car(exp) == ENC_SYM_CONT));
+  return ((lbm_type_of(exp) == LBM_TYPE_CONS) && (lbm_car(exp) == ENC_SYM_CONT));
 }
 
 static inline bool lbm_is_macro(lbm_value exp) {
-  return ((lbm_type_of(exp) == LBM_TYPE_CONS) &&
-          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          (lbm_car(exp) == ENC_SYM_MACRO));
+  return (lbm_is_cons(exp) && (lbm_car(exp) == ENC_SYM_MACRO));
 }
 
 static inline bool lbm_is_match_binder(lbm_value exp) {
-  return (lbm_is_cons(exp) &&
-          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
-          (lbm_car(exp) == ENC_SYM_MATCH_ANY));
+  return (lbm_is_cons(exp) && (lbm_car(exp) == ENC_SYM_MATCH_ANY));
 }
 
 static inline bool lbm_is_comma_qualified_symbol(lbm_value exp) {
   return (lbm_is_cons(exp) &&
-          (lbm_type_of(lbm_car(exp)) == LBM_TYPE_SYMBOL) &&
           (lbm_car(exp) == ENC_SYM_COMMA) &&
-          (lbm_type_of(lbm_cadr(exp)) == LBM_TYPE_SYMBOL));
-}
-
-static inline bool lbm_is_symbol(lbm_value exp) {
-  return !(exp & LBM_LOW_RESERVED_BITS);
+          (lbm_is_symbol(lbm_cadr(exp))));
 }
 
 static inline bool lbm_is_symbol_true(lbm_value exp) {
-  return (lbm_is_symbol(exp) && exp == ENC_SYM_TRUE);
+  return (exp == ENC_SYM_TRUE);
 }
 
 static inline bool lbm_is_symbol_eval(lbm_value exp) {
-  return (lbm_is_symbol(exp) && exp == ENC_SYM_EVAL);
+  return (exp == ENC_SYM_EVAL);
 }
 
 static inline bool lbm_is_symbol_merror(lbm_value exp) {
-  return lbm_is_symbol(exp) && (exp == ENC_SYM_MERROR);
+  return (exp == ENC_SYM_MERROR);
 }
 
 static inline bool lbm_is_list(lbm_value x) {
@@ -938,22 +954,26 @@ static inline bool lbm_is_list_rw(lbm_value x) {
 
 static inline bool lbm_is_quoted_list(lbm_value x) {
   return (lbm_is_cons(x) &&
-          lbm_is_symbol(lbm_car(x)) &&
           (lbm_car(x) == ENC_SYM_QUOTE) &&
           lbm_is_cons(lbm_cdr(x)) &&
           lbm_is_cons(lbm_cadr(x)));
 }
 
 #ifndef LBM64
-#define ERROR_SYMBOL_MASK 0xFFFFFFF0
+#define ERROR_SYMBOL_MASK 0xFFFFFF0F
 #else
-#define ERROR_SYMBOL_MASK 0xFFFFFFFFFFFFFFF0
+#define ERROR_SYMBOL_MASK 0xFFFFFFFFFFFFF0FF
 #endif
 
-/* all error signaling symbols are in the range 0x20 - 0x2F */
+// all error signaling symbols are in the range 0x20 - 0x2F
+// encoded that is 0x200 - 0x2F0 on 32bit and
+//                 0x2000 - 0x2F00 on 32bit
 static inline bool lbm_is_error(lbm_value v){
-  return (lbm_is_symbol(v) &&
-          ((lbm_dec_sym(v) & ERROR_SYMBOL_MASK) == 0x20));
+#ifndef LBM64
+  return (v & ERROR_SYMBOL_MASK) == 0x200;
+#else
+  return (v & ERROR_SYMBOL_MASK) == 0x2000;
+#endif
 }
 
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
@@ -966,7 +986,7 @@ static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
 #define TRAV_FUN_SUBTREE_DONE 0
 #define TRAV_FUN_SUBTREE_CONTINUE 1
 #define TRAV_FUN_SUBTREE_PROCEED 2
-  
+
 typedef int (*trav_fun)(lbm_value, bool, void*);
 
 /**
@@ -984,11 +1004,11 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg);
 #ifdef LBM64
 #define lbm_dec_as_int lbm_dec_as_i64
 #define lbm_dec_as_uint lbm_dec_as_u64
-#else 
+#else
 #define lbm_dec_as_int lbm_dec_as_i32
 #define lbm_dec_as_uint lbm_dec_as_u32
 #endif
-  
+
 #ifdef __cplusplus
 }
 #endif
