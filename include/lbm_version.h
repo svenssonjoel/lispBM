@@ -38,6 +38,10 @@ extern "C" {
 
 /*! \page changelog Changelog
 
+Oct 28 2025: Version 0.34.1
+  - Fix of c_unit tests.
+  - Parallelisation of test suites.
+
 Oct 27 2025: Version 0.34.0
   - Optimization of a bunch of typechecking bitmagic-functions in heap.h
   - Platform_thread for linux, windows, chibios, freertos, zephyr (need help testing all variants).
