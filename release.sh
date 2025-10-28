@@ -15,6 +15,14 @@ print_elapsed () {
     printf "elapsed: %s\n\n" "$(date -d@$ELAPSED -u +%H\ hours\ %M\ min\ %S\ sec)"
 }
 
+directories=("tests"
+             "tests/c_unit"
+             "repl")
+
+for d in "${directories[@]}"; do
+    echo "Running clean in: "$d""
+    (cd $d && make clean)
+done
 
 reportdir=./test_reports/version_$release
 
@@ -198,7 +206,7 @@ print_elapsed
 
 echo "Gathering coverage data and assembling report"
 
-./collect_coverage.sh
+./collect_coverage.sh  >> ../$reportdir/collect_coverage_log_${release}.txt
 
 cd ..
 cp -r tests/coverage $reportdir/coverage

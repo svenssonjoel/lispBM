@@ -77,7 +77,7 @@ int test_thread_create_execute(void) {
     .increment = 100
   };
 
-  lbm_thread_t thread = NULL;
+  lbm_thread_t thread = {0};
   if (!lbm_thread_create(&thread, "test_thread", counter_thread, &data,
                          LBM_THREAD_PRIO_NORMAL, 0)) {
     return 0;
@@ -87,11 +87,6 @@ int test_thread_create_execute(void) {
 
   if (counter != 100) {
     printf("Expected counter = 100, got %d\n", counter);
-    return 0;
-  }
-
-  if (thread != NULL) {
-    printf("Thread should be NULL after destroy\n");
     return 0;
   }
 
@@ -106,8 +101,8 @@ int test_thread_parameter_passing(void) {
   thread_data_t data1 = {.counter = &counter1, .increment = 50};
   thread_data_t data2 = {.counter = &counter2, .increment = 75};
 
-  lbm_thread_t thread1 = NULL;
-  lbm_thread_t thread2 = NULL;
+  lbm_thread_t thread1 = {0};
+  lbm_thread_t thread2 = {0};
 
   if (!lbm_thread_create(&thread1, "thread1", counter_thread, &data1,
                          LBM_THREAD_PRIO_NORMAL, 0)) {
@@ -138,7 +133,7 @@ int test_thread_sleep(void) {
   struct timespec start, end;
   clock_gettime(CLOCK_MONOTONIC, &start);
 
-  lbm_thread_t thread = NULL;
+  lbm_thread_t thread = {0};
   if (!lbm_thread_create(&thread, "sleep_test", sleep_thread, &sleep_duration,
                          LBM_THREAD_PRIO_NORMAL, 0)) {
     return 0;
@@ -164,7 +159,7 @@ int test_thread_sleep(void) {
 int test_thread_yield(void) {
   int yield_count = 100;
 
-  lbm_thread_t thread = NULL;
+  lbm_thread_t thread = {0};
   if (!lbm_thread_create(&thread, "yield_test", yield_thread, &yield_count,
                          LBM_THREAD_PRIO_NORMAL, 0)) {
     return 0;
@@ -175,17 +170,12 @@ int test_thread_yield(void) {
   return 1;
 }
 
-// Test 5: Thread cleanup with NULL handling
+// Test 5: Thread cleanup with zero-initialized thread
 int test_thread_null_handling(void) {
-  lbm_thread_t thread = NULL;
+  lbm_thread_t thread = {0};
 
-  // Destroying NULL thread should not crash
+  // Destroying zero-initialized thread should not crash
   lbm_thread_destroy(&thread);
-
-  // Still NULL after destroy
-  if (thread != NULL) {
-    return 0;
-  }
 
   return 1;
 }
@@ -205,7 +195,7 @@ int test_thread_priorities(void) {
   for (size_t i = 0; i < sizeof(priorities) / sizeof(priorities[0]); i++) {
     counter = 0;
 
-    lbm_thread_t thread = NULL;
+    lbm_thread_t thread = {0};
     if (!lbm_thread_create(&thread, "prio_test", counter_thread, &data,
                            priorities[i], 0)) {
       printf("Failed to create thread with priority %d\n", (int)priorities[i]);

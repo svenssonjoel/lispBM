@@ -1,4 +1,6 @@
 
+#define _POSIX_C_SOURCE 200809L // nanosleep
+
 #include "extensions/lbm_dyn_lib.h"
 #include "platform_timestamp.h"
 
