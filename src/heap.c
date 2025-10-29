@@ -1005,38 +1005,6 @@ lbm_value lbm_cddr(lbm_value c) {
   return c ? ENC_SYM_TERROR : c;
 }
 
-int lbm_set_car(lbm_value c, lbm_value v) {
-  int r = 0;
-
-  if (lbm_type_of(c) == LBM_TYPE_CONS) {
-    lbm_cons_t *cell = lbm_ref_cell(c);
-    cell->car = v;
-    r = 1;
-  }
-  return r;
-}
-
-int lbm_set_cdr(lbm_value c, lbm_value v) {
-  int r = 0;
-  if (lbm_is_cons_rw(c)){
-    lbm_cons_t *cell = lbm_ref_cell(c);
-    cell->cdr = v;
-    r = 1;
-  }
-  return r;
-}
-
-int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
-  int r = 0;
-  if (lbm_is_cons_rw(c)) {
-    lbm_cons_t *cell = lbm_ref_cell(c);
-    cell->car = car_val;
-    cell->cdr = cdr_val;
-    r = 1;
-  }
-  return r;
-}
-
 /* calculate length of a proper list */
 lbm_uint lbm_list_length(lbm_value c) {
   lbm_uint len = 0;

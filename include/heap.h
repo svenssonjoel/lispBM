@@ -463,28 +463,7 @@ lbm_value lbm_cdr(lbm_value cons);
  * if not cons or nil, the return value is enc_sym(SYM_TERROR) for type error.
  */
 lbm_value lbm_cddr(lbm_value c);
-/** Update the value stored in the car field of a heap cell.
- *
- * \param c Value referring to a heap cell.
- * \param v Value to replace the car field with.
- * \return 1 on success and 0 if the c value does not refer to a heap cell.
- */
-int lbm_set_car(lbm_value c, lbm_value v);
-/** Update the value stored in the cdr field of a heap cell.
- *
- * \param c Value referring to a heap cell.
- * \param v Value to replace the cdr field with.
- * \return 1 on success and 0 if the c value does not refer to a heap cell.
- */
-int lbm_set_cdr(lbm_value c, lbm_value v);
-/** Update the value stored in the car and cdr fields of a heap cell.
- *
- * \param c Value referring to a heap cell.
- * \param car_val Value to replace the car field with.
- * \param cdr_val Value to replace the cdr field with.
- * \return 1 on success and 0 if the c value does not refer to a heap cell.
- */
-int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val);
+
 // List functions
 /** Calculate the length of a proper list
  * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
@@ -981,6 +960,57 @@ static inline bool lbm_is_error(lbm_value v){
 static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
   return &lbm_dec_heap(addr)[lbm_dec_cons_cell_ptr(addr)];
   //return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
+}
+
+/** Update the value stored in the car field of a heap cell.
+ *
+ * \param c Value referring to a heap cell.
+ * \param v Value to replace the car field with.
+ * \return 1 on success and 0 if the c value does not refer to a heap cell.
+ */
+static inline int lbm_set_car(lbm_value c, lbm_value v) {
+  int r = 0;
+
+  if (lbm_is_cons_rw(c)) {
+    lbm_cons_t *cell = lbm_ref_cell(c);
+    cell->car = v;
+    r = 1;
+  }
+  return r;
+}
+
+/** Update the value stored in the cdr field of a heap cell.
+ *
+ * \param c Value referring to a heap cell.
+ * \param v Value to replace the cdr field with.
+ * \return 1 on success and 0 if the c value does not refer to a heap cell.
+ */
+static inline int lbm_set_cdr(lbm_value c, lbm_value v) {
+  int r = 0;
+  if (lbm_is_cons_rw(c)){
+    lbm_cons_t *cell = lbm_ref_cell(c);
+    cell->cdr = v;
+    r = 1;
+  }
+  return r;
+}
+
+/** Update the value stored in the car and cdr fields of a heap cell.
+ *
+ * \param c Value referring to a heap cell.
+ * \param car_val Value to replace the car field with.
+ * \param cdr_val Value to replace the cdr field with.
+ * \return 1 on success and 0 if the c value does not refer to a heap cell.
+ */
+static inline int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
+  int r = 0;
+  if (lbm_is_cons_rw(c)) {
+    lbm_cons_t *cell = lbm_ref_cell(c);
+    cell->car = car_val;
+    cell->cdr = cdr_val;
+    r = 1;
+  }
+  return r;
 }
 
 #define TRAV_FUN_SUBTREE_DONE 0
