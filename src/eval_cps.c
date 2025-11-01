@@ -2260,7 +2260,7 @@ static void eval_var(eval_context_t *ctx) {
     lbm_value sv = ctx->K.data[ctx->K.sp - 1];
     if (IS_CONTINUATION(sv) && (sv == PROGN_REST)) {
       lbm_uint sp = ctx->K.sp;
-      uint32_t is_copied = lbm_dec_as_u32(ctx->K.data[sp-3]);
+      uint32_t is_copied = lbm_dec_u(ctx->K.data[sp-3]);
       if (is_copied == 0) {
         lbm_value env;
         WITH_GC(env, lbm_env_copy_spine(ctx->K.data[sp-4]));
@@ -4625,8 +4625,8 @@ static void cont_read_append_bytearray(eval_context_t *ctx) {
   lbm_uint *sptr = get_stack_ptr(ctx, 4);
 
   lbm_value array  = sptr[0];
-  lbm_value size   = lbm_dec_as_u32(sptr[1]);
-  lbm_value ix     = lbm_dec_as_u32(sptr[2]);
+  lbm_value size   = lbm_dec_u(sptr[1]);
+  lbm_value ix     = lbm_dec_u(sptr[2]);
   lbm_value stream = sptr[3];
 
   if (ix >= (size - 1)) {
