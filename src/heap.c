@@ -961,21 +961,19 @@ lbm_uint lbm_list_length(lbm_value c) {
 
   while (lbm_is_cons(c)){
     len ++;
-    c = lbm_cdr(c);
+    c = lbm_ref_cell(c)->cdr;
   }
   return len;
 }
 
 lbm_value lbm_list_destructive_reverse(lbm_value list) {
-  if (lbm_type_of(list) == LBM_TYPE_SYMBOL) {
-    return list;
-  }
   lbm_value curr = list;
   lbm_value last_cell = ENC_SYM_NIL;
 
   while (lbm_is_cons_rw(curr)) {
-    lbm_value next = lbm_cdr(curr);
-    lbm_set_cdr(curr, last_cell);
+    lbm_cons_t *cell = lbm_ref_cell(curr);
+    lbm_value next = cell->cdr;
+    cell->cdr = last_cell;
     last_cell = curr;
     curr = next;
   }
@@ -998,13 +996,13 @@ lbm_value lbm_list_copy(int *m, lbm_value list) {
   lbm_value curr_targ = new_list;
 
   while (lbm_is_cons(curr) && copy_n > 0) {
-    lbm_value v = lbm_car(curr);
-    lbm_set_car(curr_targ, v);
-    curr_targ = lbm_cdr(curr_targ);
-    curr = lbm_cdr(curr);
+    lbm_cons_t *curr_cell = lbm_ref_cell(curr);
+    lbm_cons_t *targ_cell = lbm_ref_cell(curr_targ);
+    targ_cell->car = curr_cell->car;
+    curr_targ = targ_cell->cdr;
+    curr = curr_cell->cdr;
     copy_n --;
   }
-
   return new_list;
 }
 
@@ -1016,8 +1014,10 @@ lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
      lbm_is_list(list2)) {
 
     lbm_value curr = list1;
-    while(lbm_type_of(lbm_cdr(curr)) == LBM_TYPE_CONS) {
-      curr = lbm_cdr(curr);
+    lbm_cons_t *cell = lbm_ref_cell(curr);
+    while(lbm_is_cons_rw(cell->cdr)) {
+      curr = cell->cdr;
+      cell = lbm_ref_cell(cell->cdr);
     }
     if (lbm_is_symbol_nil(curr)) return list2;
     lbm_set_cdr(curr, list2);
@@ -1028,9 +1028,8 @@ lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
 
 lbm_value lbm_list_drop(unsigned int n, lbm_value ls) {
   lbm_value curr = ls;
-  while (lbm_type_of_functional(curr) == LBM_TYPE_CONS &&
-         n > 0) {
-    curr = lbm_cdr(curr);
+  while (lbm_is_cons(curr) && n > 0) {
+    curr = lbm_ref_cell(curr)->cdr;
     n --;
   }
   return curr;
@@ -1045,13 +1044,12 @@ lbm_value lbm_index_list(lbm_value l, int32_t n) {
     if (n < 0) return ENC_SYM_NIL;
   }
 
-  while (lbm_is_cons(curr) &&
-          n > 0) {
-    curr = lbm_cdr(curr);
+  while (lbm_is_cons(curr) && n > 0) {
+    curr = lbm_ref_cell(curr)->cdr;
     n --;
   }
   if (lbm_is_cons(curr)) {
-    return lbm_car(curr);
+    return lbm_ref_cell(curr)->car;
   } else {
     return ENC_SYM_NIL;
   }
