@@ -1405,7 +1405,7 @@
                           "Functions that make use of `rest-args` must, however, be written specifically to do so and"
                           "are themself responsible for the figuring out the positional semantics of extra arguments."
                           ))
-              (para (list "One was to explicitly carry the semantics of an optional argument into the function body"
+              (para (list "One way to explicitly carry the semantics of an optional argument into the function body"
                           "is to add optional arguments as key-value pairs where the key states the meaning."
                           "Then `rest-args` becomes essentially an association list that you query using `assoc`."
                           "For example:"
