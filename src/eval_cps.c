@@ -263,6 +263,35 @@ static void mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
   }
 #endif
 
+#define DROP(c) \
+  do {                                          \
+    if (lbm_is_ptr(c)) {                        \
+      lbm_cons_t *_cell = lbm_ref_cell(c);      \
+      c = _cell->cdr;                           \
+    }                                           \
+  } while (0)
+
+#define EXTRACT(c, a) \
+  do {                                          \
+    if (lbm_is_ptr(c)) {                        \
+      lbm_cons_t *_cell = lbm_ref_cell(c);      \
+      a = _cell->car;                           \
+      c = _cell->cdr;                           \
+    } else {                                    \
+      a = ENC_SYM_NIL;                          \
+    }                                           \
+  } while (0)
+
+#define EXTRACT_NO_ADVANCE(c, a) \
+  do {                                          \
+    if (lbm_is_ptr(c)) {                        \
+      lbm_cons_t *_cell = lbm_ref_cell(c);      \
+      a = _cell->car;                           \
+    } else {                                    \
+      a = ENC_SYM_NIL;                          \
+    }                                           \
+  } while (0)
+
 // ////////////////////////////////////////////////////////////
 // Context queues
 typedef struct {
@@ -744,25 +773,6 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
 #define LOOP_BINDS 0
 #define LOOP_COND  1
 #define LOOP_BODY  2
-
-// TODO: extract_n could be a good place to do some error checking.
-//       extract_n is often used to extract components of a list that
-//       makes up a special form application. If there are not n items
-//       present that could be an indication of a syntax error in the
-//       special form application.
-// (a b c) -> [a b c]
-static lbm_value extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
-  for (unsigned int i = 0; i < n; i ++) {
-    if (lbm_is_ptr(curr)) {
-      lbm_cons_t *cell = lbm_ref_cell(curr);
-      res[i] = cell->car;
-      curr = cell->cdr;
-    } else {
-      res[i] = ENC_SYM_NIL;
-    }
-  }
-  return curr; // Rest of list is returned here.
-}
 
 static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg_count, eval_context_t *ctx) {
   lbm_value res;
@@ -1754,15 +1764,18 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
   for (int i = 0; i < (int)num; i ++ ) {
     lbm_value curr_e = earr[i];
     while (lbm_is_cons(curr_p)) {
-      lbm_value p[3];
+
       lbm_value curr = lbm_ref_cell(curr_p)->car;
-      extract_n(curr, p, 3);
-      if (!lbm_is_symbol_nil(p[2])) { // A rare syntax check. maybe drop?
+      lbm_value p0, p1, p2;
+      EXTRACT(curr, p0);
+      EXTRACT(curr, p1);
+      EXTRACT_NO_ADVANCE(curr, p2);
+      if (!lbm_is_symbol_nil(p2)) { // A rare syntax check. maybe drop?
         lbm_set_error_reason("Incorrect pattern format for recv");
         ERROR_AT_CTX(ENC_SYM_EERROR,curr);
       }
-      if (match(p[0], curr_e, env)) {
-        *e = p[1];
+      if (match(p0, curr_e, env)) {
+        *e = p1;
         return n;
       }
       curr_p = lbm_ref_cell(curr_p)->cdr;
@@ -1980,21 +1993,23 @@ static void eval_call_cc_unsafe(eval_context_t *ctx) {
 }
 
 // (define sym exp)
-#define KEY 1
-#define VAL 2
 static void eval_define(eval_context_t *ctx) {
-  lbm_value parts[3];
-  lbm_value rest = extract_n(ctx->curr_exp, parts, 3);
+  lbm_value pKEY, pVAL;
+  lbm_value curr = ctx->curr_exp;
+  DROP(curr);
+  EXTRACT(curr, pKEY);
+  EXTRACT(curr, pVAL);
+  lbm_value rest = curr;
   lbm_uint *sptr = stack_reserve(ctx, 2);
-  if (lbm_is_symbol(parts[KEY]) && lbm_is_symbol_nil(rest)) {
-    lbm_uint sym_val = lbm_dec_sym(parts[KEY]);
-    sptr[0] = parts[KEY];
+  if (lbm_is_symbol(pKEY) && lbm_is_symbol_nil(rest)) {
+    lbm_uint sym_val = lbm_dec_sym(pKEY);
+    sptr[0] = pKEY;
     if (sym_val >= RUNTIME_SYMBOLS_START) {
       sptr[1] = SET_GLOBAL_ENV;
       if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST) {
         stack_reserve(ctx, 1)[0] = MOVE_VAL_TO_FLASH_DISPATCH;
       }
-      ctx->curr_exp = parts[VAL];
+      ctx->curr_exp = pVAL;
       return;
     } else {
       lbm_set_error_reason((char*)lbm_error_str_built_in);
@@ -2057,9 +2072,12 @@ static inline lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_v
 
 
 static void eval_lambda(eval_context_t *ctx) {
-  lbm_value vals[3];
-  extract_n(ctx->curr_exp, vals, 3);
-  ctx->r = allocate_closure(vals[1],vals[2], ctx->curr_env);
+  lbm_value v1, v2;
+  lbm_value curr = ctx->curr_ext;
+  DROP(curr);
+  EXTRACT(curr, v1);
+  EXTRACT_NO_ADVANCE(curr, v2);
+  ctx->r = allocate_closure(v1,v2, ctx->curr_env);
 #ifdef CLEAN_UP_CLOSURES
   lbm_uint sym_id  = 0;
   if (clean_cl_env_symbol) {
@@ -2139,32 +2157,37 @@ static void eval_if(eval_context_t *ctx) {
 //         ...
 //       (cond-expr-N expr-N))
 static void eval_cond(eval_context_t *ctx) {
-  lbm_value cond1[2];
-  lbm_value rest_conds = extract_n(ctx->curr_exp, cond1, 2);
+  lbm_value curr = ctx->curr_exp;
+  lbm_value c1;
+  DROP(curr);
+  EXTRACT(curr, c1);
+  lbm_value rest_conds = curr;
 
   // end recursion at (cond )
-  if (lbm_is_symbol_nil(cond1[1])) {
+  if (lbm_is_symbol_nil(c1)) {
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
   } else {
     // Cond is one of the few places where a bit of syntax checking takes place at runtime..
     // Maybe dont bother?
-    lbm_uint len = lbm_list_length(cond1[1]);
+    lbm_uint len = lbm_list_length(c1);
     if (len != 2) {
       lbm_set_error_reason("Incorrect syntax in cond");
       ERROR_CTX(ENC_SYM_EERROR);
     }
-    lbm_value cond_expr[2];
-    extract_n(cond1[1], cond_expr, 2);
+    lbm_value cond = c1;
+    lbm_value ce0, ce1;
+    EXTRACT(cond, ce0);
+    EXTRACT_NO_ADVANCE(cond, ce1);
     lbm_value rest;
     WITH_GC(rest, lbm_heap_allocate_list_init(2,
-                                              cond_expr[1], // Then branch
+                                              ce1, // Then branch
                                               cons_with_gc(ENC_SYM_COND, rest_conds , ENC_SYM_NIL)));
     lbm_value *sptr = stack_reserve(ctx, 3);
     sptr[0] = rest;
     sptr[1] = ctx->curr_env;
     sptr[2] = IF;
-    ctx->curr_exp = cond_expr[0]; //condition;
+    ctx->curr_exp = ce0; //condition;
   }
 }
 
@@ -2229,16 +2252,18 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
       lbm_cons_t *cell = lbm_ref_cell(binds); // already checked that cons.
       lbm_value car_binds = cell->car;
       lbm_value cdr_binds = cell->cdr;
-      lbm_value key_val[2];
-      extract_n(car_binds, key_val, 2);
+      lbm_value kv0, kv1;
+      lbm_value kv = car_binds;
+      EXTRACT(kv, kv0);
+      EXTRACT_NO_ADVANCE(kv, kv1);
 
       lbm_uint *sptr = stack_reserve(ctx, 5);
       sptr[0] = exp;
       sptr[1] = cdr_binds;
       sptr[2] = env;
-      sptr[3] = key_val[0];
+      sptr[3] = kv0;
       sptr[4] = BIND_TO_KEY_REST;
-      ctx->curr_exp = key_val[1];
+      ctx->curr_exp = kv1;
       ctx->curr_env = env;
     } else {
       ctx->curr_exp = exp;
@@ -2296,13 +2321,16 @@ static void eval_var(eval_context_t *ctx) {
 // (setq x (...)) - same as (set 'x (...)) or (setvar 'x (...))
 // does not error when given incorrect number of arguments.
 static void eval_setq(eval_context_t *ctx) {
-  lbm_value parts[3];
-  extract_n(ctx->curr_exp, parts, 3);
+  lbm_value p1, p2;
+  lbm_value curr = ctx->curr_exp;
+  DROP(curr);
+  EXTRACT(curr, p1);
+  EXTRACT_NO_ADVANCE(curr, p2);
   lbm_value *sptr = stack_reserve(ctx, 3);
   sptr[0] = ctx->curr_env;
-  sptr[1] = parts[1];
+  sptr[1] = p1;
   sptr[2] = SETQ;
-  ctx->curr_exp = parts[2];
+  ctx->curr_exp = p2;
 }
 
 static void eval_move_to_flash(eval_context_t *ctx) {
@@ -2317,15 +2345,19 @@ static void eval_move_to_flash(eval_context_t *ctx) {
 //       condition-exp
 //       body-exp)
 static void eval_loop(eval_context_t *ctx) {
-  lbm_value env              = ctx->curr_env;
-  lbm_value parts[3];
-  extract_n(get_cdr(ctx->curr_exp), parts, 3);
+  lbm_value env = ctx->curr_env;
+  lbm_value p0, p1, p2;
+  lbm_value curr = ctx->curr_exp;
+  DROP(curr);
+  EXTRACT(curr,p0); // LOOP BINDS
+  EXTRACT(curr,p1); // LOOP COND
+  EXTRACT_NO_ADVANCE(curr,p2); // LOOP BODY
   lbm_value *sptr = stack_reserve(ctx, 4);
-  sptr[0] = parts[LOOP_BODY];
-  sptr[1] = parts[LOOP_COND];
+  sptr[0] = p2;
+  sptr[1] = p1;
   sptr[2] = ENC_SYM_NIL;
   sptr[3] = LOOP_ENV_PREP;
-  let_bind_values_eval(parts[LOOP_BINDS], ENC_SYM_NIL, env, ctx);
+  let_bind_values_eval(p0, ENC_SYM_NIL, env, ctx);
 }
 
 /* (trap expression)
@@ -2354,9 +2386,12 @@ static void eval_trap(eval_context_t *ctx) {
 //      body-exp)
 static void eval_let(eval_context_t *ctx) {
   lbm_value env      = ctx->curr_env;
-  lbm_value parts[3];
-  extract_n(ctx->curr_exp, parts, 3);
-  let_bind_values_eval(parts[1], parts[2], env, ctx);
+  lbm_value p1, p2;
+  lbm_value curr = ctx->curr_exp;
+  DROP(curr);
+  EXTRACT(curr, p1);
+  EXTRACT_NO_ADVANCE(curr, p2);
+  let_bind_values_eval(p1, p2, env, ctx);
 }
 
 // (and exp0 ... expN)
@@ -2465,7 +2500,7 @@ static void eval_receive(eval_context_t *ctx) {
     ERROR_AT_CTX(ENC_SYM_EERROR,ctx->curr_exp);
   }
 }
- 
+
 /*********************************************************/
 /*  Continuation functions                               */
 
@@ -2883,10 +2918,13 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
       ERROR_AT_CTX(ENC_SYM_TERROR,ENC_SYM_SPAWN);
   }
 
-  lbm_value cl[3];
-  extract_n(get_cdr(args[closure_pos]), cl, 3);
-  lbm_value curr_param = cl[CLO_PARAMS];
-  lbm_value clo_env    = cl[CLO_ENV];
+  lbm_value cl0, cl1, cl2;
+  lbm_value cl = get_cdr(args[closure_pos]);
+  EXTRACT(cl, cl0); // CLO_PARAMS
+  EXTRACT(cl, cl1); // CLO_BODY
+  EXTRACT_NO_ADVANCE(cl, cl2); // CLO_ENV
+  lbm_value curr_param = cl0;
+  lbm_value clo_env    = cl2;
   lbm_uint i = closure_pos + 1;
   while (lbm_is_cons(curr_param) && i <= nargs) {
     lbm_value entry = cons_with_gc(lbm_ref_cell(curr_param)->car, args[i], clo_env);
@@ -2898,7 +2936,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 
   stack_drop(ctx, (unsigned int)nargs+1);
 
-  lbm_value program = cons_with_gc(cl[CLO_BODY], ENC_SYM_NIL, clo_env);
+  lbm_value program = cons_with_gc(cl1, ENC_SYM_NIL, clo_env);
 
   lbm_cid cid = lbm_create_ctx_parent(program,
                                       clo_env,
@@ -3279,17 +3317,21 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     args[1] = a; // keep safe by replacing the original on stack.
     args[2] = b;
 
-    lbm_value cl[3]; // Comparator closure
-    extract_n(lbm_cdr(args[0]), cl, 3);
-    lbm_value cmp_env = cl[CLO_ENV];
-    lbm_uint len = lbm_list_length(cl[CLO_PARAMS]);
+    lbm_value cl = lbm_cdr(args[0]);
+    lbm_value cl0, cl1, cl2;
+    EXTRACT(cl, cl0); // CLO_PARAMS
+    EXTRACT(cl, cl1); // CLO_BODY
+    EXTRACT_NO_ADVANCE(cl, cl2); // CLO_ENV
+
+    lbm_value cmp_env = cl2;
+    lbm_uint len = lbm_list_length(cl0);
     if (len == 2) {
       lbm_value a_1 = a;
       lbm_value b_1 = b;
       lbm_value a_rest = lbm_cdr(a);
       lbm_value b_rest = lbm_cdr(b);
-      lbm_value par1 = get_car(cl[CLO_PARAMS]);
-      lbm_value par2 = get_cadr(cl[CLO_PARAMS]);
+      lbm_value par1 = get_car(cl0);
+      lbm_value par2 = get_cadr(cl0);
       lbm_value new_env0;
       lbm_value new_env;
       WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a_1)));
@@ -3297,7 +3339,7 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       cmp_env = new_env;
       lbm_set_cdr(a_1, b_1);
       lbm_set_cdr(b_1, ENC_SYM_NIL);
-      lbm_value cmp = cl[CLO_BODY];
+      lbm_value cmp = cl1;
 
       stack_drop(ctx, 4); // TODO: Optimize drop 4 alloc 10 into alloc 6
       lbm_uint *sptr = stack_reserve(ctx, 10);
@@ -3311,7 +3353,7 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       sptr[7] = par1;
       sptr[8] = par2;
       sptr[9] = MERGE_REST;
-      ctx->curr_exp = cl[CLO_BODY];
+      ctx->curr_exp = cl1;
       ctx->curr_env = cmp_env;
       return;
     }
@@ -3347,21 +3389,24 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     // closure extraction.
     //lbm_set_cdr(a, b); // This is void
 
-    lbm_value cl[3]; // Comparator closure
-    extract_n(lbm_cdr(args[0]), cl, 3);
-    lbm_value cmp_env = cl[CLO_ENV];
+    lbm_value cl = lbm_cdr(args[0]);
+    lbm_value cl0, cl1, cl2;
+    EXTRACT(cl, cl0); // CLO_PARAMS
+    EXTRACT(cl, cl1); // CLO_BODY
+    EXTRACT_NO_ADVANCE(cl, cl2); // CLO_ENV
+    lbm_value cmp_env = cl2;
 
-    lbm_uint cl_len = lbm_list_length(cl[CLO_PARAMS]);
+    lbm_uint cl_len = lbm_list_length(cl0);
     if (cl_len == 2) {
-      lbm_value par1 = get_car(cl[CLO_PARAMS]);
-      lbm_value par2 = get_cadr(cl[CLO_PARAMS]);
+      lbm_value par1 = get_car(cl0);
+      lbm_value par2 = get_cadr(cl0);
       lbm_value new_env0;
       lbm_value new_env;
       WITH_GC(new_env0, lbm_env_set(cmp_env, par1, lbm_car(a)));
       WITH_GC_RMBR_1(new_env, lbm_env_set(new_env0, par2, lbm_car(b)), new_env0);
       cmp_env = new_env;
 
-      lbm_value cmp = cl[CLO_BODY];
+      lbm_value cmp = cl1;
 
       // Terminate the comparator argument list.
       lbm_set_cdr(b, ENC_SYM_NIL);
@@ -3769,13 +3814,15 @@ static void cont_bind_to_key_rest(eval_context_t *ctx) {
 
   if (lbm_is_cons(rest)) {
     lbm_value car_rest = lbm_ref_cell(rest)->car;
-    lbm_value key_val[2];
-    extract_n(car_rest, key_val, 2);
+    lbm_value cr = car_rest;
+    lbm_value kv0, kv1;
+    EXTRACT(cr, kv0);
+    EXTRACT_NO_ADVANCE(cr, kv1);
 
     sptr[1] = lbm_ref_cell(rest)->cdr;
-    sptr[3] = key_val[0];
+    sptr[3] = kv0;
     stack_reserve(ctx,1)[0] = BIND_TO_KEY_REST;
-    ctx->curr_exp = key_val[1];
+    ctx->curr_exp = kv1;
     ctx->curr_env = env;
   } else {
     // Otherwise evaluate the expression in the populated env
@@ -4977,19 +5024,22 @@ static void cont_application_start(eval_context_t *ctx) {
     lbm_value args = (lbm_value)sptr[1];
     switch (lbm_ref_cell(ctx->r)->car) { // Already checked that is_cons
     case ENC_SYM_CLOSURE: {
-      lbm_value cl[3];
-      extract_n(get_cdr(ctx->r), cl, 3);
+      lbm_value cl = get_cdr(ctx->r);
+      lbm_value cl0, cl1, cl2;
+      EXTRACT(cl, cl0); // CLO_PARAMS
+      EXTRACT(cl, cl1); // CLO_BODY
+      EXTRACT_NO_ADVANCE(cl, cl2); // CLO_ENV
       lbm_value arg_env = (lbm_value)sptr[0];
       lbm_value arg0, arg_rest;
       get_car_and_cdr(args, &arg0, &arg_rest);
-      sptr[1] = cl[CLO_BODY];
+      sptr[1] = cl1;
       bool a_nil = lbm_is_symbol_nil(args);
-      bool p_nil = lbm_is_symbol_nil(cl[CLO_PARAMS]);
+      bool p_nil = lbm_is_symbol_nil(cl0);
       lbm_value *reserved = stack_reserve(ctx, 4);
 
       if (!a_nil && !p_nil) {
-        reserved[0] = cl[CLO_ENV];
-        reserved[1] = cl[CLO_PARAMS];
+        reserved[0] = cl2;
+        reserved[1] = cl0;
         reserved[2] = arg_rest;
         reserved[3] = CLOSURE_ARGS;
         ctx->curr_exp = arg0;
@@ -4997,13 +5047,13 @@ static void cont_application_start(eval_context_t *ctx) {
       } else if (a_nil && p_nil) {
         // No params, No args
         stack_drop(ctx, 6);
-        ctx->curr_exp = cl[CLO_BODY];
-        ctx->curr_env = cl[CLO_ENV];
+        ctx->curr_exp = cl1;
+        ctx->curr_env = cl2;
       } else if (p_nil) {
         reserved[1] = get_cdr(args);      // protect cdr(args) from allocate_binding
         ctx->curr_exp = get_car(args);    // protect car(args) from allocate binding
         ctx->curr_env = arg_env;
-        lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, cl[CLO_ENV]);
+        lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, cl2);
         reserved[0] = rest_binder;
         reserved[2] = get_car(rest_binder);
         reserved[3] = CLOSURE_ARGS_REST;
@@ -5764,16 +5814,19 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       lbm_cons_t *fun_cell = lbm_ref_cell(fun);
       switch (fun_cell->car) {
         case ENC_SYM_CLOSURE: {
-          lbm_value closure[3];
-          extract_n(fun_cell->cdr, closure, 3);
+          lbm_value closure = fun_cell->cdr;
+          lbm_value cl0, cl1, cl2;
+          EXTRACT(closure, cl0); // CLO_PARAMS
+          EXTRACT(closure, cl1); // CLO_BODY
+          EXTRACT_NO_ADVANCE(closure, cl2); // CLO_ENV
 
           // Only placed here to protect from GC. Will be overriden later.
           // ctx->r = arg_list; // Should already be placed there.
           ctx->curr_exp = fun;
 
-          lbm_value env = closure[CLO_ENV];
+          lbm_value env = cl2;
 
-          lbm_value current_params = closure[CLO_PARAMS];
+          lbm_value current_params = cl0;
           lbm_value current_args = arg_list;
 
           while (true) {
@@ -5811,7 +5864,7 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
           }
 
           ctx->curr_env = env;
-          ctx->curr_exp = closure[CLO_BODY];
+          ctx->curr_exp = cl1;
           return;
         } break;
         case ENC_SYM_CONT:{
