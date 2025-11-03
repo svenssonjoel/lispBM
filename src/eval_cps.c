@@ -4532,11 +4532,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
     lbm_uint symbol_id;
     if (!lbm_get_symbol_by_name(tokpar_sym_str, &symbol_id)) {
       int r = 0;
-      if (n > 4 &&
-          tokpar_sym_str[0] == 'e' &&
-          tokpar_sym_str[1] == 'x' &&
-          tokpar_sym_str[2] == 't' &&
-          tokpar_sym_str[3] == '-') {
+      if (n > 4 && // Checked for every symbol read.
+          (memcmp(tokpar_sym_str, "ext-", 4) == 0)) {
         lbm_uint ext_id;
         lbm_uint ext_name_len = (lbm_uint)n + 1;
 #ifdef LBM_ALWAYS_GC
@@ -4827,18 +4824,20 @@ static void cont_read_append_continue(eval_context_t *ctx) {
             // jumps out on error_ctx with a longjmp.
   }
 
-  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
-
+  if (lbm_is_symbol(ctx->r)) {
     switch(ctx->r) {
     case ENC_SYM_CLOSEPAR:
-      if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
-        lbm_set_cdr(last_cell, ENC_SYM_NIL); // terminate the list
-        ctx->r = first_cell;
+      // last_cell is either nil or a rw cons cell.
+      if (lbm_is_symbol_nil(last_cell)) {
+        ctx->r = last_cell;
       } else {
-        ctx->r = ENC_SYM_NIL;
+        // Here we know, by the principled use of the stack, that last_cell is a rw cons cell.
+        lbm_ref_cell(last_cell)->cdr = ENC_SYM_NIL;
+        // Could even rewrite as: lbm_heap_state.heap[lbm_dec_ptr(last_cell)].cdr = ENC_SYM_NIL;
+        ctx->r = first_cell;
       }
       stack_drop(ctx, 3);
-      /* Skip reading another token and apply the continuation */
+      // Skip reading another token and apply the continuation.
       ctx->app_cont = true;
       return;
     case ENC_SYM_DOT: {
@@ -4859,12 +4858,13 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   //  read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
   //  return;
   //}
-  if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
-    lbm_set_cdr(last_cell, new_cell);
-    last_cell = new_cell;
-  } else {
+  if (lbm_is_symbol_nil(last_cell)) {
     first_cell = last_cell = new_cell;
+  } else {
+    lbm_ref_cell(last_cell)->cdr = new_cell;
+    last_cell = new_cell;
   }
+
   sptr[0] = first_cell;
   sptr[1] = last_cell;
   //sptr[2] = stream;    // unchanged.

@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 bench_files = glob('stored_results/*')
-headers = ('File','Eval time (s)')
 
 benches = ['q2.lisp', 'fibonacci_tail.lisp', 'dec_cnt3.lisp',
            'dec_cnt1.lisp', 'fibonacci.lisp', 'tak.lisp',
@@ -27,8 +26,8 @@ for bench, color in zip(benches,colors):
 
         if (bench in df.index):
             row = df.loc[bench]
-            # Use iloc[1] for second column (Eval time) - works with all file formats
-            dict.update({date : row.iloc[1]});
+            # Use iloc[0] for first column (Load time) - works with all file formats
+            dict.update({date : row.iloc[0]});
         # else:
         #     print("missing data point ", bench, file )
                         
@@ -46,8 +45,8 @@ n = 4  # Keeps every 7th label
 ax.tick_params(axis='both', which='major', labelsize=6)
 ax.tick_params(axis='both', which='minor', labelsize=4)
 ax.set_facecolor("lightgray");
-plt.ylabel("Eval Time (Sec)")
+plt.ylabel("Load Time (Sec)")
 plt.grid()
-plt.savefig('benchresults.png', dpi=600, bbox_extra_artists=(lgd,), bbox_inches='tight')     
+plt.savefig('load_time.png', dpi=600, bbox_extra_artists=(lgd,), bbox_inches='tight')     
 plt.yscale('log')
-plt.savefig('benchresults_log.png', dpi=600, bbox_extra_artists=(lgd,), bbox_inches='tight')     
+plt.savefig('load_time_log.png', dpi=600, bbox_extra_artists=(lgd,), bbox_inches='tight')     
