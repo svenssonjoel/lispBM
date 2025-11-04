@@ -10,8 +10,8 @@
 (defun leading-zeroes (n)
   (if (< n 10) (str-merge "000" (to-str n))
     (if (< n 100) (str-merge "00" (to-str n))
-      (if < n 1000) (str-merge "0" (to-str n))
-      ( to-str n))))
+      (if (< n 1000) (str-merge "0" (to-str n))
+        (to-str n)))))
 
 
 (defun gif-frame (n) 
@@ -554,7 +554,7 @@
                           ))
          ( (table (? h) (? d))
            (render-table rend h d))
-         ( _ (render rend ss))
+         ( _ (render rend ss)) ;; Not it is not a call to render-it
          ))
 
 
@@ -566,6 +566,7 @@
            (render-it rend x)
            (render rend xs)
            })
+         ( (? x) (print "RENDER ERROR: " x))
          ))
 
 (define end nil)
@@ -580,19 +581,28 @@
   (list 'tagged-section i str tags strings))
 
 ; signature: (ref-entry str [tags] strings)
-(defun ref-entry (str strings-or-tags)
-  (let ((tags (and (rest-args 0)
-                   strings-or-tags))
-        (strings (or (rest-args 0)
-                     strings-or-tags)))
+;; (defun ref-entry (str strings-or-tags)
+;;   (let ((tags (and (rest-args 0)
+;;                    strings-or-tags))
+;;         (strings (or (rest-args 0)
+;;                      strings-or-tags)))
+;;     (list
+;;      'newline
+;;      (if tags
+;;        (tagged-section 3 str tags strings)
+;;        (section 3 str strings))
+;;      'newline
+;;      'hline
+;;      )))
+
+(defun ref-entry (str strings)
     (list
      'newline
-     (if tags
-       (tagged-section 3 str tags strings)
-       (section 3 str strings))
+     (section 3 str strings)
      'newline
      'hline
-     )))
+     ))
+
 
 (defun hline ()
   'hline)
