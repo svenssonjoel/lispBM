@@ -581,28 +581,19 @@
   (list 'tagged-section i str tags strings))
 
 ; signature: (ref-entry str [tags] strings)
-;; (defun ref-entry (str strings-or-tags)
-;;   (let ((tags (and (rest-args 0)
-;;                    strings-or-tags))
-;;         (strings (or (rest-args 0)
-;;                      strings-or-tags)))
-;;     (list
-;;      'newline
-;;      (if tags
-;;        (tagged-section 3 str tags strings)
-;;        (section 3 str strings))
-;;      'newline
-;;      'hline
-;;      )))
-
-(defun ref-entry (str strings)
+(defun ref-entry (str strings-or-tags)
+  (let ((tags (and (rest-args 0)
+                   strings-or-tags))
+        (strings (or (rest-args 0)
+                     strings-or-tags)))
     (list
      'newline
-     (section 3 str strings)
+     (if tags
+       (tagged-section 3 str tags strings)
+       (section 3 str strings))
      'newline
      'hline
-     ))
-
+     )))
 
 (defun hline ()
   'hline)

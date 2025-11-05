@@ -768,7 +768,7 @@
 ;; Boolean operators
 
 (define bool-and
-  (ref-entry "and" ;; '("Special form")
+  (ref-entry "and" '("Special form")
              (list
               (para (list "Boolean `and` operation between n arguments. The form of an `and`"
                           "expression is `(and expr1 ... exprN)`.  This operation treats all"
@@ -782,7 +782,7 @@
               end)))
 
 (define bool-or
-  (ref-entry "or" ;'("Special form")
+  (ref-entry "or" '("Special form")
              (list
               (para (list "Boolean `or` operation between n arguments. The form of an `or`"
                           "expression is `(or expr1 ... exprN)`.  This operation treats all"
@@ -1005,7 +1005,7 @@
 ;; Quotes and quasiquotation
 
 (define op-quote
-  (ref-entry "quote" ;'("Special form")
+  (ref-entry "quote" '("Special form")
              (list
               (para (list "When the `'` quote operator is encountered by the reader it is removed"
                           "and the code to the right is wrapped in `(quote ...)`. Evaluating a"
@@ -1451,7 +1451,7 @@
 ;; Special forms
 
 (define special-form-if
-  (ref-entry "if" ;'("Special form")
+  (ref-entry "if" '("Special form")
              (list
               (para (list "Conditionals are written as `(if cond-expr then-expr else-exp)`. If"
                           "the `cond-expr` evaluates to" (code-entry-ref "nil") "the `else-expr` will"
@@ -1464,7 +1464,7 @@
               end)))
 
 (define special-form-cond
-  (ref-entry "cond" ;'("Special form")
+  (ref-entry "cond" '("Special form")
              (list
               (para (list "`cond` is a generalization of `if` to discern between n different cases"
                           "based on boolean expressions. The form of a `cond` expression is:"
@@ -1489,7 +1489,7 @@
               end)))
 
 (define special-form-lambda
-  (ref-entry "lambda" ;'("Special form")
+  (ref-entry "lambda" '("Special form")
              (list
               (para (list "You create an anonymous function with lambda. The function can be given a name by binding the lambda expression using <a href=\"#define\">define</a>"
                           "or <a href=\"#let\">let</a>. A lambda expression has the form `(lambda param-list body-expr)`."
@@ -1514,7 +1514,7 @@
               end)))
 
 (define special-form-closure
-  (ref-entry "closure" ;'("Special form")
+  (ref-entry "closure" '("Special form")
              (list
               (para (list "A <a href=\"#lambda\"> lambda </a> expression evaluates into a closure"
                           "which is very similar to a <a href=\"#lambda\">lambda</a> but extended"
@@ -1529,7 +1529,7 @@
               end)))
 
 (define special-form-let
-  (ref-entry "let" ;'("Special form")
+  (ref-entry "let" '("Special form")
              (list
               (para (list "Local environments are created using let. The let binding in lispbm"
                           "allows for mutually recursive bindings. The form of a let is `(let"
@@ -1553,7 +1553,7 @@
               end)))
 
 (define special-form-loop
-  (ref-entry "loop" ;'("Special form")
+  (ref-entry "loop" '("Special form")
              (list
               (para (list "loop allows to repeatedly evaluate an expression for as long as a condition"
                           "holds. The form of a loop is `(loop list-of-local-bindings condition-exp body-exp)`."
@@ -1569,7 +1569,7 @@
               end)))
 
 (define special-form-define
-  (ref-entry "define" ;'("Special form")
+  (ref-entry "define" '("Special form")
              (list
               (para (list "You can give names to values in a global scope by using define."
                           "The form of define is `(define name expr)`. The given expression is"
@@ -1583,7 +1583,7 @@
               end)))
 
 (define special-form-setq
-  (ref-entry "setq" ;'("Special form")
+  (ref-entry "setq" '("Special form")
              (list
               (para (list "The `setq` special-form is similar to `set` and to `setvar` but expects the first argument"
                           "to be a symbol. The first argument to `setq` is NOT evaluated."
@@ -1601,7 +1601,7 @@
               end)))
 
 (define special-form-progn
-  (ref-entry "progn" ;'("Special form")
+  (ref-entry "progn" '("Special form")
              (list
               (para (list "The progn special form allows you to sequence a number of expressions."
                           "The form of a progn expression is `(progn expr1 ... exprN)`."
@@ -1615,7 +1615,7 @@
               end)))
 
 (define special-form-brack
-  (ref-entry "{" ;'("Special form")
+  (ref-entry "{" '("Special form")
              (list
               (para (list "The curlybrace `{` syntax is a short-form (syntactic sugar) for `(progn`."
                           "The reader replaces occurrences of `{` with `(progn`. The `{` should be"
@@ -1656,7 +1656,7 @@
 
 
 (define special-form-var
-  (ref-entry "var" ;'("Special form")
+  (ref-entry "var" '("Special form")
              (list
               (para (list "The var special form allows local bindings in a progn expression. A"
                           "var expression is of the form (var symbol expr) and the symbol `symbol`"
@@ -1674,7 +1674,7 @@
               end)))
 
 (define special-form-trap
-  (ref-entry "trap" ;'("Special form")
+  (ref-entry "trap" '("Special form")
              (list
               (para (list "`trap` lets you catch an error rather than have the evaluation context terminate."
                           "The form of a trap expression is `(trap expr)`."
@@ -2436,7 +2436,7 @@
 ;; Pattern matching
 
 (define pm-match
-  (ref-entry "match" ;'("Special form")
+  (ref-entry "match" '("Special form")
              (list
               (para (list "Pattern-matching is expressed using match. The form of a match expression is"
                           "`(match expr (pat1 expr1) ... (patN exprN))`. Pattern-matching compares"
@@ -2597,7 +2597,7 @@
               end)))
 
 (define conc-atomic
-  (ref-entry "atomic" ; '("Special form")
+  (ref-entry "atomic" '("Special form")
              (list
               (para (list "`atomic` can be used to execute a LispBM one or more expression without allowing"
                           "the runtime system to switch process during that time. `atomic` is similar to"
@@ -2703,7 +2703,7 @@
               end)))
 
 (define mp-recv
-  (ref-entry "recv" ;'("Special form")
+  (ref-entry "recv" '("Special form")
              (list
               (para (list "To receive a message use the `recv` command. A process"
                           "will block on a `recv` until there is a matching message in"
@@ -2717,7 +2717,7 @@
               end)))
 
 (define mp-recv-to
-  (ref-entry "recv-to" ;'("Special form")
+  (ref-entry "recv-to" '("Special form")
              (list
               (para (list "Like [recv](#recv), `recv-to` is used to receive"
                           "messages but `recv-to` takes an extra timeout argument."
@@ -2863,7 +2863,7 @@
 ;; MACRO!
 
 (define m-macro
-  (ref-entry "macro" ;'("Special form")
+  (ref-entry "macro" '("Special form")
              (list
               (para (list "The form of a `macro` expression is: `(macro args body)`"
                           ))
@@ -2940,7 +2940,7 @@
                         "```\n\n"
                         ))
                   
-            (ref-entry "call-cc" ;'("Special form")
+            (ref-entry "call-cc" '("Special form")
                        (list
                         (para (list "The form of a `call-cc` expression is `(call-cc f)`, where f is a function taking a continuation k."
                                     "In code most uses of call-cc will have the form `(call-cc (lambda (k) expr ))`."
@@ -2948,7 +2948,7 @@
                                     ))
                         )
                        )           
-           (ref-entry "call-cc-unsafe" ;'("Special form")
+           (ref-entry "call-cc-unsafe" '("Special form")
                       (list
                        (para (list "`call-cc-unsafe` is similar to `call-cc` in form. `(call-cc-unsafe f)`"
                                    "and in code usually as `(call-cc-unsafe (lambda (k) expr))`."
@@ -3107,7 +3107,7 @@
               end)))
 
 (define flash-move
-  (ref-entry "move-to-flash" ; '("Special form")
+  (ref-entry "move-to-flash" '("Special form")
              (list
               (para (list "A value can be moved to flash storage to save space on the normal"
                           "evaluation heap or lbm memory.  A `move-to-flash` expression is of the"

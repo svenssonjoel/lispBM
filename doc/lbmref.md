@@ -2062,6 +2062,8 @@ t
 
 ### and
 
+> ***Special form***
+
 Boolean `and` operation between n arguments. The form of an `and` expression is `(and expr1 ... exprN)`.  This operation treats all non-nil values as true. Boolean `and` is "short-circuiting" and only evaluates until a false is encountered. 
 
 <table>
@@ -2131,6 +2133,8 @@ nil
 
 
 ### or
+
+> ***Special form***
 
 Boolean `or` operation between n arguments. The form of an `or` expression is `(or expr1 ... exprN)`.  This operation treats all non-nil values as true. Boolean `or` is "short-circuiting" and only evaluates until a true is encountered. 
 
@@ -3133,6 +3137,8 @@ Code and data share the same representation, it is only a matter of how you look
 
 
 ### quote
+
+> ***Special form***
 
 When the `'` quote operator is encountered by the reader it is removed and the code to the right is wrapped in `(quote ...)`. Evaluating a quoted expression `(quote a)` results in `a` unevaluated. 
 
@@ -4984,6 +4990,8 @@ Note that some special forms are located in other sections to improve the docume
 
 ### if
 
+> ***Special form***
+
 Conditionals are written as `(if cond-expr then-expr else-exp)`. If the `cond-expr` evaluates to [`nil`](#nil) the `else-expr` will be evaluated. For any other value of `cond-expr` the `then-expr` will be evaluated. 
 
 <table>
@@ -5035,6 +5043,8 @@ Conditionals are written as `(if cond-expr then-expr else-exp)`. If the `cond-ex
 
 
 ### cond
+
+> ***Special form***
 
 `cond` is a generalization of `if` to discern between n different cases based on boolean expressions. The form of a `cond` expression is: `(cond ( cond-expr1 expr1) (cond-expr2 expr2) ... (cond-exprN exprN))`. The conditions are checked from first to last and for the first `cond-exprN` that evaluates to true, the corresponding `exprN` is evaluated. 
 
@@ -5099,6 +5109,8 @@ nil
 
 
 ### lambda
+
+> ***Special form***
 
 You create an anonymous function with lambda. The function can be given a name by binding the lambda expression using <a href="#define">define</a> or <a href="#let">let</a>. A lambda expression has the form `(lambda param-list body-expr)`. 
 
@@ -5286,6 +5298,8 @@ You can give more arguments to a function created using lambda. The extra argume
 
 ### closure
 
+> ***Special form***
+
 A <a href="#lambda"> lambda </a> expression evaluates into a closure which is very similar to a <a href="#lambda">lambda</a> but extended with a captured environment for any names unbound in the param-list appearing in the body-expr.  The form of a closure is `(closure param-list body-exp environment)`. 
 
 <table>
@@ -5367,6 +5381,8 @@ A <a href="#lambda"> lambda </a> expression evaluates into a closure which is ve
 
 
 ### let
+
+> ***Special form***
 
 Local environments are created using let. The let binding in lispbm allows for mutually recursive bindings. The form of a let is `(let list-of-bindings body-expr)` and evaluating this expression means that body-expr is evaluted in an environment extended with the list-of-bindings. 
 
@@ -5472,6 +5488,8 @@ You can deconstruct composite values while let binding.
 
 ### loop
 
+> ***Special form***
+
 loop allows to repeatedly evaluate an expression for as long as a condition holds. The form of a loop is `(loop list-of-local-bindings condition-exp body-exp)`. 
 
 The  `list-of-local-bindings` are very similar to how `let` works, just that here the `body-exp` is repeated. 
@@ -5516,6 +5534,8 @@ sum
 
 ### define
 
+> ***Special form***
+
 You can give names to values in a global scope by using define. The form of define is `(define name expr)`. The given expression is evaluated and the result is stored in the global environment under `name`. In lispbm you can redefine already defined values. It is also possible to remove bindings from the global environment, see [`undefine`](#undefine). 
 
 <table>
@@ -5549,6 +5569,8 @@ You can give names to values in a global scope by using define. The form of defi
 
 
 ### setq
+
+> ***Special form***
 
 The `setq` special-form is similar to `set` and to `setvar` but expects the first argument to be a symbol. The first argument to `setq` is NOT evaluated. 
 
@@ -5619,6 +5641,8 @@ Just like `set` and `setvar`, `setq` can be used on variables that are bound loc
 
 ### progn
 
+> ***Special form***
+
 The progn special form allows you to sequence a number of expressions. The form of a progn expression is `(progn expr1 ... exprN)`. 
 
 The evaluation result of a progn sequence is the value that the last `exprN` evaluated to. This is useful for sequencing of side-effecting operations. 
@@ -5679,6 +5703,8 @@ The evaluation result of a progn sequence is the value that the last `exprN` eva
 
 ### {
 
+> ***Special form***
+
 The curlybrace `{` syntax is a short-form (syntactic sugar) for `(progn`. The reader replaces occurrences of `{` with `(progn`. The `{` should be closed with an `}`. 
 
 These two programs are thus equivalent: 
@@ -5721,6 +5747,8 @@ The opening `{` and closing `}` curlybraces are used as a short-form for `progn`
 
 
 ### var
+
+> ***Special form***
 
 The var special form allows local bindings in a progn expression. A var expression is of the form (var symbol expr) and the symbol `symbol` is bound to the value that `expr` evaluates to withing the rest of the progn expression. 
 
@@ -5827,6 +5855,8 @@ You can deconstruct composite value while var binding.
 
 
 ### trap
+
+> ***Special form***
 
 `trap` lets you catch an error rather than have the evaluation context terminate. The form of a trap expression is `(trap expr)`. If expr crashes with an error `e` then `(trap expr)` evaluates to `(exit-error e)`. If expr successfully runs and returns `r`, then `(trap expr)` evaluates to `(exit-ok r)`. 
 
@@ -8528,6 +8558,8 @@ DM
 
 ### match
 
+> ***Special form***
+
 Pattern-matching is expressed using match. The form of a match expression is `(match expr (pat1 expr1) ... (patN exprN))`. Pattern-matching compares the shape of an expression to each of the `pat1` ... `patN` and evaluates the expression `exprM` of the pattern that matches. In a pattern you can use a number of match-binders or wildcards: `_`, `?`, `?i`,`?u`,`?float`. 
 
 <table>
@@ -8815,7 +8847,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4209
+4172
 ```
 
 
@@ -8910,6 +8942,8 @@ t
 
 
 ### atomic
+
+> ***Special form***
 
 `atomic` can be used to execute a LispBM one or more expression without allowing the runtime system to switch process during that time. `atomic` is similar to progn with the addition of being uninterruptible. 
 
@@ -9022,7 +9056,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 110703 kurt-russel)
+(exit-ok 110655 kurt-russel)
 ```
 
 
@@ -9051,6 +9085,8 @@ Messages can be sent to a process by using `send`. The form of a `send` expressi
 
 
 ### recv
+
+> ***Special form***
 
 To receive a message use the `recv` command. A process will block on a `recv` until there is a matching message in the mailbox. The `recv` syntax is very similar to [match](#match). 
 
@@ -9088,6 +9124,8 @@ To receive a message use the `recv` command. A process will block on a `recv` un
 
 
 ### recv-to
+
+> ***Special form***
 
 Like [recv](#recv), `recv-to` is used to receive messages but `recv-to` takes an extra timeout argument. It then receives a message containing the symbol `timeout` after the timeout period ends. 
 
@@ -9406,6 +9444,8 @@ Given this repeated evaluation, macros are not a performance boost in lispbm.  M
 
 ### macro
 
+> ***Special form***
+
 The form of a `macro` expression is: `(macro args body)` 
 
 <table>
@@ -9516,6 +9556,8 @@ The example below creates a macro for a `progn` facility that allows returning a
 
 ### call-cc
 
+> ***Special form***
+
 The form of a `call-cc` expression is `(call-cc f)`, where f is a function taking a continuation k. In code most uses of call-cc will have the form `(call-cc (lambda (k) expr ))`. When using `call-cc` the expr above is allowed to bind `k` to a global variable. 
 
 
@@ -9524,6 +9566,8 @@ The form of a `call-cc` expression is `(call-cc f)`, where f is a function takin
 
 
 ### call-cc-unsafe
+
+> ***Special form***
 
 `call-cc-unsafe` is similar to `call-cc` in form. `(call-cc-unsafe f)` and in code usually as `(call-cc-unsafe (lambda (k) expr))`. When using call-cc-unsafe you must NOT let the `k` leak out of the scope created by the enclosing `call-cc-unsafe`! That is, if `k` is used at all, it must be within `expr`. Binding `k` (directly or indirectly) to a global is a violation of the trust I am putting in you. 
 
@@ -9680,6 +9724,8 @@ A `@const-start` opened block should be closed with a `@const-end`. Constant blo
 
 
 ### move-to-flash
+
+> ***Special form***
 
 A value can be moved to flash storage to save space on the normal evaluation heap or lbm memory.  A `move-to-flash` expression is of the form `(move-to-flash sym opt-sym1 ... opt-symN)`.  The symbols `sym`, `opt-sym1 ... opt-symN` should be globally bound to the values you want moved to flash. After the value has been moved, the environment binding is updated to point into flash memory. **CAUTION** This function should be used carefully. Ideally a value should be moved to flash immediately after it is created so there is no chance that other references to original value exists. 
 
