@@ -13,6 +13,12 @@
 (define t2-delta (/ (* 5000 (* 2 3.14159)) sample-rate)) 
 (define t2-now 0)
 
+;; the combination of the 220Hz and the 5kHz signals
+;; will show peaks at:
+;;   220Hz -> peak at (* (/ 220.0 20000.0) 1024) ~11
+;;   5kHz  -> peak at (* (/ 5000.0 20000.0) 1024) ~256
+;; after fft.
+
 (loopfor i 0 (< i 1024) (+ i 1) {
       (bufset-f32 data-r (* i 4) (+ (sin t1-now) (sin t2-now)) 'little-endian)
       (bufset-f32 data-im (* i 4) 0.0f32 'little-endian)
