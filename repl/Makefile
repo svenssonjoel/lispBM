@@ -42,6 +42,7 @@ REPL_SRC= repl.c \
           crc.c \
           packet.c \
           vesc_express_extension_stubs.c \
+	  lbm_gnuplot.c \
           bldc_extension_stubs.c
 
 

@@ -79,6 +79,10 @@
 #include "lbm_midi.h"
 #endif
 
+#ifndef LBM_WIN
+#include "lbm_gnuplot.h"
+#endif
+
 #include "platform_mutex.h"
 #include "platform_timestamp.h"
 
@@ -1159,7 +1163,11 @@ int init_repl(void) {
   }
 #endif
 
-  /* Load clean_cl library into heap */
+#ifndef LBM_WIN
+  lbm_gnuplot_init();
+#endif
+  
+/* Load clean_cl library into heap */
 #ifdef CLEAN_UP_CLOSURES
   if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
     printf("Error loading a flat library\n");
