@@ -1860,6 +1860,7 @@ static void eval_symbol(eval_context_t *ctx) {
     if (!dynamic_load_callback(sym_str, &code_str)) {
       ERROR_AT_CTX(ENC_SYM_NOT_FOUND, ctx->curr_exp);
     }
+    printf("dyn: %s\n", code_str);
     lbm_value *sptr = stack_reserve(ctx, 3);
     sptr[0] = ctx->curr_exp;
     sptr[1] = ctx->curr_env;
