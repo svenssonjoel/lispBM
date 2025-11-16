@@ -214,6 +214,7 @@ typedef struct {
   uint8_t note; // Midi note id.
   float   freq;
   float   vel;
+  float   bend; // Pitch bend.
 
   //dynamic state during playback;
   float osc_phase[NUM_OSC];
@@ -460,7 +461,8 @@ static void synth_thd(void *arg) {
             default:
               break;
             }
-            float phase_increment = freq / (float)SAMPLE_RATE;
+            
+            float phase_increment = (freq * voices[v].bend) / (float)SAMPLE_RATE;
             voices[v].lfo_phase[lfo] += phase_increment;
             WRAP1(voices[v].lfo_phase[lfo]);
             lfo_val[lfo] = osc;
@@ -956,13 +958,21 @@ lbm_value ext_patch_clear(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
+static voice_t *get_voice_by_seq_nr(uint32_t seq) {
+  for (int v = 0; v < MAX_VOICES; v++) {
+    if (voices[v].active && voices[v].sequence_number == seq)
+      return &voices[v];
+  }
+  return NULL;
+}
 
-static void start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, float vel) {
+static uint32_t start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, float vel) {
   v->sequence_number = voice_sequence_number ++;
   v->patch = patch;
   v->note = note;
   v->freq = freq;
   v->vel = vel;
+  v->bend = 0.0f;
 
   float phase = (float)rand() / RAND_MAX;
   v->osc_phase[0] = phase;
@@ -996,6 +1006,31 @@ static void start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, flo
   // - memory_order_release - Writes before this can't be reordered after it
   // - memory_order_seq_cst - Full sequential consistency
   v->active = true;
+  return v->sequence_number;
+}
+
+lbm_value ext_pitch_bend(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1])) {
+
+    uint32_t seq_nr = lbm_dec_as_u32(args[0]);
+    uint32_t bend_val = lbm_dec_as_u32(args[1]);
+
+    int signed_bend = ((int)bend_val) - 8192;
+    float semitones = (signed_bend / 8192.0f) * 2.0f;
+    float cents = semitones * 100.0f;
+    float bend_ratio = powf(2.0f, cents / 1200.0f);
+
+    voice_t *voice = get_voice_by_seq_nr(seq_nr);
+    if (voice) {
+        voice->bend = bend_ratio;
+        return ENC_SYM_TRUE;
+    }
+    return ENC_SYM_NIL;
+  }
+  return r;
 }
 
 // (note-on patch-no note-id vel)
@@ -1006,14 +1041,17 @@ lbm_value ext_note_on(lbm_value *args, lbm_uint argn) {
       lbm_is_number(args[1]) &&
       lbm_is_number(args[2])) {
 
+    lbm_value result = lbm_enc_u32(0);
+    if (lbm_is_symbol(result)) return result;
+    
     uint8_t patch = lbm_dec_as_char(args[0]);
     uint8_t note = lbm_dec_as_char(args[1]);
     uint8_t vel = lbm_dec_as_char(args[2]);
     float vel_f = (float)vel / 127.0f;
     float freq = 440.0f * powf(2.0f, (note - 69) / 12.0f);
 
-    // replacement strategy needed.
-    // But need to keep track of which one to replace then..
+    // If no free voice, replace the oldest playing note (by seq nr).
+    // Will steal out of sequence at point of overflow.
     uint32_t min_seq = UINT32_MAX;
     int      min_seq_ix = -1;
     int  slot_ix = -1;
@@ -1031,8 +1069,9 @@ lbm_value ext_note_on(lbm_value *args, lbm_uint argn) {
       if (!voices[i].active) slot_ix = i;
     }
     if (slot_ix < 0) slot_ix = min_seq_ix;
-    start_voice(&voices[slot_ix], patch, note, freq, vel_f);
-    r = ENC_SYM_TRUE;
+    uint32_t seq_nr = start_voice(&voices[slot_ix], patch, note, freq, vel_f);
+    lbm_set_u32(result, seq_nr);
+    r = result;
   }
   return r;
 }
@@ -1112,6 +1151,7 @@ bool lbm_sound_init(void) {
 
   register_symbols();
 
+  lbm_add_extension("pitch-bend", ext_pitch_bend);
   lbm_add_extension("note-on", ext_note_on);
   lbm_add_extension("note-off", ext_note_off);
   lbm_add_extension("patch-clear", ext_patch_clear);

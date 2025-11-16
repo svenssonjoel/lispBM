@@ -36,6 +36,7 @@ static volatile lbm_value awaiting_result;
 static volatile bool midi_thread_running = false;
 static lbm_thread_t midi_thread;
 
+static lbm_uint sym_pitch_bend = 0;
 static lbm_uint sym_note_on  = 0;
 static lbm_uint sym_note_off = 0;
 static lbm_uint sym_midi_unknown  = 0;
@@ -52,6 +53,13 @@ bool midi_read(lbm_value res) {
   }
 
   switch (ev->type) {
+  case SND_SEQ_EVENT_PITCHBEND: {
+    lbm_value curr = res;
+    lbm_set_car(curr, lbm_enc_sym(sym_pitch_bend));
+    curr = lbm_cdr(curr);
+    lbm_set_car(curr, lbm_enc_i(ev->data.control.value));
+    lbm_set_cdr(curr, ENC_SYM_NIL); // Cut off unused portion,
+  } break;
   case SND_SEQ_EVENT_NOTEON:
     if (ev->data.note.velocity > 0) {
       lbm_value curr = res;
@@ -74,19 +82,11 @@ bool midi_read(lbm_value res) {
       lbm_set_car(curr, lbm_enc_i(ev->data.note.channel));
       curr = lbm_cdr(curr);
       lbm_set_car(curr, lbm_enc_i(ev->data.note.note));
-      curr = lbm_cdr(curr);
-      lbm_set_car(curr, ENC_SYM_NIL);
       lbm_set_cdr(curr, ENC_SYM_NIL);
     } break;
   default: {
     lbm_value curr = res;
     lbm_set_car(curr, lbm_enc_sym(sym_midi_unknown));
-    curr = lbm_cdr(curr);
-    lbm_set_car(curr, ENC_SYM_NIL);
-    curr = lbm_cdr(curr);
-    lbm_set_car(curr, ENC_SYM_NIL);
-    curr = lbm_cdr(curr);
-    lbm_set_car(curr, ENC_SYM_NIL);
     lbm_set_cdr(curr, ENC_SYM_NIL);
   } break;
   }
@@ -268,6 +268,7 @@ bool lbm_midi_init(void) {
     return false;
   }
 
+  lbm_add_symbol("pitch-bend", &sym_pitch_bend);
   lbm_add_symbol("note-on", &sym_note_on);
   lbm_add_symbol("note-off", &sym_note_off);
   lbm_add_symbol("midi-unknown", &sym_midi_unknown);
