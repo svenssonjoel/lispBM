@@ -57,6 +57,8 @@ bool midi_read(lbm_value res) {
     lbm_value curr = res;
     lbm_set_car(curr, lbm_enc_sym(sym_pitch_bend));
     curr = lbm_cdr(curr);
+    lbm_set_car(curr, lbm_enc_i(ev->data.control.channel));
+    curr = lbm_cdr(curr);
     lbm_set_car(curr, lbm_enc_i(ev->data.control.value));
     lbm_set_cdr(curr, ENC_SYM_NIL); // Cut off unused portion,
   } break;
