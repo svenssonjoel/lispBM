@@ -36,6 +36,7 @@ static volatile lbm_value awaiting_result;
 static volatile bool midi_thread_running = false;
 static lbm_thread_t midi_thread;
 
+static lbm_uint sym_controller = 0;
 static lbm_uint sym_pitch_bend = 0;
 static lbm_uint sym_note_on  = 0;
 static lbm_uint sym_note_off = 0;
@@ -53,6 +54,15 @@ bool midi_read(lbm_value res) {
   }
 
   switch (ev->type) {
+  case SND_SEQ_EVENT_CONTROLLER: {
+    lbm_value curr = res;
+    lbm_set_car(curr, lbm_enc_sym(sym_controller));
+    curr = lbm_cdr(curr);
+    lbm_set_car(curr, lbm_enc_i((int)ev->data.control.param));
+    curr = lbm_cdr(curr);
+    lbm_set_car(curr, lbm_enc_i(ev->data.control.value));
+    lbm_set_cdr(curr, ENC_SYM_NIL);
+  } break;
   case SND_SEQ_EVENT_PITCHBEND: {
     lbm_value curr = res;
     lbm_set_car(curr, lbm_enc_sym(sym_pitch_bend));
@@ -270,6 +280,7 @@ bool lbm_midi_init(void) {
     return false;
   }
 
+  lbm_add_symbol("controller", &sym_controller);
   lbm_add_symbol("pitch-bend", &sym_pitch_bend);
   lbm_add_symbol("note-on", &sym_note_on);
   lbm_add_symbol("note-off", &sym_note_off);
