@@ -1006,6 +1006,7 @@ lbm_uint lbm_list_length(lbm_value c) {
 }
 
 lbm_value lbm_list_destructive_reverse(lbm_value list) {
+  if (!lbm_is_cons(list)) return list;
   lbm_value curr = list;
   lbm_value last_cell = ENC_SYM_NIL;
 
