@@ -1,4 +1,6 @@
 
+;; Uses up a bit of memory, launch with.
+;; ../repl -M 11 -s dsp_lang.lisp
 
 ;; EDSL for dsp programming/learning/experimenting
 
@@ -65,7 +67,59 @@
 
 (define buffer (bufcreate (* 4 1024)))
 
+(defun plot-signal (infile outfile title)
+  {
+  (define gp (gnuplot-open))
+  (gnuplot-cmd gp "set terminal pdf")
+  (gnuplot-cmd gp (str-join `("set output '" ,outfile  "'")))
+  (gnuplot-cmd gp (str-join `("set title '" ,title "'")))
+  (gnuplot-cmd gp "set xlabel 'Sample Number'")
+  (gnuplot-cmd gp "set ylabel 'Amplitude'")
+  (gnuplot-cmd gp "set grid")
+  (gnuplot-cmd gp (str-join `("plot '" ,infile "' binary array=1024 format='%float' with lines title 'Waveform'")))
+  (gnuplot-cmd gp "set output")
+  (gnuplot-close gp)
+  })
 
+(defun plot-spectrum (infile outfile title)
+  {
+  (define gp (gnuplot-open))
+  (gnuplot-cmd gp "set terminal pdf")
+  (gnuplot-cmd gp (str-join `("set output '" ,outfile "'")))
+  (gnuplot-cmd gp (str-join `("set title '" ,title "'")))
+  (gnuplot-cmd gp "set xlabel 'Frequency Bin'")
+  (gnuplot-cmd gp "set ylabel 'Magnitude'")
+  (gnuplot-cmd gp (str-join `("plot '" ,infile "' binary array=512 format='%float' with lines title 'Frequency Domain'")))
+  (gnuplot-cmd gp "set output")
+  (gnuplot-close gp)
+  })
+
+(defun plot-magnitude-phase (mag-file phase-file outfile title)
+  {
+  (define gp (gnuplot-open))
+  (gnuplot-cmd gp "set terminal pdf size 10,8")
+  (gnuplot-cmd gp (str-join `("set output '" ,outfile "'")))
+  (gnuplot-cmd gp (str-join `("set multiplot layout 2,1 title '" ,title "'")))
+
+  ;; Magnitude plot
+  (gnuplot-cmd gp "set title 'Magnitude Spectrum'")
+  (gnuplot-cmd gp "set xlabel 'Frequency Bin'")
+  (gnuplot-cmd gp "set ylabel 'Magnitude'")
+  (gnuplot-cmd gp "set grid")
+  (gnuplot-cmd gp (str-join `("plot '" ,mag-file "' binary array=512 format='%float' with lines lw 2 title 'Magnitude'")))
+
+  ;; Phase plot
+  (gnuplot-cmd gp "set title 'Phase Spectrum'")
+  (gnuplot-cmd gp "set xlabel 'Frequency Bin'")
+  (gnuplot-cmd gp "set ylabel 'Phase (degrees)'")
+  (gnuplot-cmd gp "set yrange [-200:200]")
+  (gnuplot-cmd gp "set grid")
+  (gnuplot-cmd gp (str-join `("plot '" ,phase-file "' binary array=512 format='%float' with points pt 7 ps 0.5 title 'Phase'")))
+
+  (gnuplot-cmd gp "unset multiplot")
+  (gnuplot-cmd gp "set output")
+  (gnuplot-close gp)
+  })
 
 ;; Example 1 plot a 440Hz sine
 (define sine-sig (signal-sin 440.0))
@@ -74,16 +128,8 @@
 ;; Example of bracket operation
 (with-file "wave.bin" "wb"
            (lambda (x) (fwrite x (sample-signal sine-sig 20000 buffer))))
-(define gp (gnuplot-open))
-(gnuplot-cmd gp "set terminal pdf")
-(gnuplot-cmd gp "set output 'sin440.pdf'")
-(gnuplot-cmd gp "set title 'DSP Signal (20kHz sample rate)'")
-(gnuplot-cmd gp "set xlabel 'Sample Number'")
-(gnuplot-cmd gp "set ylabel 'Amplitude'")
-(gnuplot-cmd gp "set grid")
-(gnuplot-cmd gp "plot 'wave.bin' binary array=1024 format='%float' with lines title 'Waveform'")
-(gnuplot-cmd gp "set output")
-(gnuplot-close gp)
+
+(plot-signal "wave.bin" "sin440.pdf" "440Hz sine (20kHz sample rate)")
 
 ;; Example 2 plot a sum signal
 (define sum-sig (signal-sum (signal-sin 440.0) (signal-sin 2400.0)))
@@ -92,16 +138,9 @@
 (fwrite f1 (sample-signal sum-sig 20000 buffer))
 (fclose f1)
 
-(define gp (gnuplot-open))
-(gnuplot-cmd gp "set terminal pdf")
-(gnuplot-cmd gp "set output 'sin440_plus_2400.pdf'")
-(gnuplot-cmd gp "set title 'DSP Signal (20kHz sample rate)'")
-(gnuplot-cmd gp "set xlabel 'Sample Number'")
-(gnuplot-cmd gp "set ylabel 'Amplitude'")
-(gnuplot-cmd gp "set grid")
-(gnuplot-cmd gp "plot 'wave.bin' binary array=1024 format='%float' with lines title 'Waveform'")
-(gnuplot-cmd gp "set output")
-(gnuplot-close gp)
+(plot-signal "wave.bin" "sin440_plus_2400.pdf" "440Hz + 2400Hz")
+
+
 ;; Example 3 fft
 
 (define zero-im (bufcreate (* 1024 4)))
@@ -121,36 +160,21 @@
 (fwrite f1 fft-r)
 (fclose f1)
 
-(define gp (gnuplot-open))
-(gnuplot-cmd gp "set terminal pdf")
-(gnuplot-cmd gp "set output 'fft_sin440_plus_2400.pdf'")
-(gnuplot-cmd gp "set title 'Frequency Spectrum: 440Hz + 2400Hz'")
-(gnuplot-cmd gp "set xlabel 'Frequency Bin'")
-(gnuplot-cmd gp "set ylabel 'Magnitude'")
-(gnuplot-cmd gp "plot 'wave.bin' binary array=512 format='%float' with lines title 'Frequency Domain'")
-(gnuplot-cmd gp "set output")
-(gnuplot-close gp)
+(plot-spectrum "wave.bin" "fft_sin440_plus_2400.pdf" "Frequency Spectrum: 440Hz + 2400Hz")
+
 ;; Example 4 plot a sum signal
-(define sum-sig (signal-sum (signal-sin 440.0) (signal-cos 440.0)))
+(define sum-sig (signal-sum (signal-sin 2000.0) (signal-cos 2000.0)))
 
 (define f1 (fopen "wave.bin" "wb"))
 (fwrite f1 (sample-signal sum-sig 20000 buffer))
 (fclose f1)
 
-(define gp (gnuplot-open))
-(gnuplot-cmd gp "set terminal pdf")
-(gnuplot-cmd gp "set output 'sin2000_plus_cos2000.pdf'")
-(gnuplot-cmd gp "set title 'DSP Signal (20kHz sample rate)'")
-(gnuplot-cmd gp "set xlabel 'Sample Number'")
-(gnuplot-cmd gp "set ylabel 'Amplitude'")
-(gnuplot-cmd gp "set grid")
-(gnuplot-cmd gp "plot 'wave.bin' binary array=1024 format='%float' with lines title 'Waveform'")
-(gnuplot-cmd gp "set output")
-(gnuplot-close gp)
-;; Example 4 fft
+(plot-signal "wave.bin" "sin2000_plus_cos2000.pdf" "sin + cos")
+
+;; Example 5 fft
 
 (define zero-im (bufcreate (* 1024 4)))
-;; buffer already contains the 440 + 2400 signal
+;; buffer already contains the sin2000 + cos2000
 (define fft-res (fft buffer zero-im 'little-endian))
 (define fft-r (car fft-res))
 (define fft-im (cdr fft-res))
@@ -166,17 +190,9 @@
 (fwrite f1 fft-r)
 (fclose f1)
 
-(define gp (gnuplot-open))
-(gnuplot-cmd gp "set terminal pdf")
-(gnuplot-cmd gp "set output 'fft_sin2000_plus_cos2000.pdf'")
-(gnuplot-cmd gp "set title 'Frequency Spectrum: 2000Hz'")
-(gnuplot-cmd gp "set xlabel 'Frequency Bin'")
-(gnuplot-cmd gp "set ylabel 'Magnitude'")
-(gnuplot-cmd gp "plot 'wave.bin' binary array=512 format='%float' with lines title 'Frequency Domain'")
-(gnuplot-cmd gp "set output")
-(gnuplot-close gp)
+(plot-spectrum "wave.bin" "fft_sin2000_plus_cos2000.pdf" "Frequency Spectrum: 2000Hz")
 
-;; Example 5: Magnitude and Phase plot
+;; Example 6: Magnitude and Phase plot
 ;; Generate sin(2000Hz) + cos(2000Hz) signal
 
 ;; 
@@ -228,6 +244,8 @@
 
 
 ;; Averaging around the peak-bin  and calculating phase shift
+;; Note that one does not need to divide the sums by 5 to "properly average them"
+;; as it is irrelevant to the angle between the real axis and the real, imag vector.
 (let ((peak-bin 102)
       (sum-real 0)
       (sum-imag 0)) {
@@ -250,29 +268,9 @@
 (fwrite fphase phase-buf)
 (fclose fphase)
 
-(define gp (gnuplot-open))
-(gnuplot-cmd gp "set terminal pdf size 10,8")
-(gnuplot-cmd gp "set output 'magnitude_phase_spectrum.pdf'")
-(gnuplot-cmd gp "set multiplot layout 2,1 title 'FFT Analysis: sin(2000Hz) + cos(2000Hz)'")
-
-;; Magnitude
-(gnuplot-cmd gp "set title 'Magnitude Spectrum'")
-(gnuplot-cmd gp "set xlabel 'Frequency Bin'")
-(gnuplot-cmd gp "set ylabel 'Magnitude'")
-(gnuplot-cmd gp "set grid")
-(gnuplot-cmd gp "plot 'magnitude.bin' binary array=512 format='%float' with lines lw 2 title 'Magnitude'")
-
-;; Phase
-(gnuplot-cmd gp "set title 'Phase Spectrum'")
-(gnuplot-cmd gp "set xlabel 'Frequency Bin'")
-(gnuplot-cmd gp "set ylabel 'Phase (degrees)'")
-(gnuplot-cmd gp "set yrange [-200:200]")
-(gnuplot-cmd gp "set grid")
-(gnuplot-cmd gp "plot 'phase.bin' binary array=512 format='%float' with points pt 7 ps 0.5 title 'Phase'")
-
-(gnuplot-cmd gp "unset multiplot")
-(gnuplot-cmd gp "set output")
-(gnuplot-close gp)
+(plot-magnitude-phase "magnitude.bin" "phase.bin"
+                      "magnitude_phase_spectrum.pdf"
+                      "FFT Analysis: sin(2000Hz) + cos(2000Hz)")
 
 ;; TODOs:
 ;; - Windows and FFT (Hann, Hamming, Blackman - compare side lobe reduction)
