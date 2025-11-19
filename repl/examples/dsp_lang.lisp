@@ -178,6 +178,30 @@
 
 ;; Example 5: Magnitude and Phase plot
 ;; Generate sin(2000Hz) + cos(2000Hz) signal
+
+;; 
+;; sin(2*pi*f*t) + cos(2*pi*f*t) = sqrt(2) * sin(2*pi*f*t + (pi/4))
+;;
+;; So plotting magnitude after the FFT will show one peak at 2000Hz
+;; The magnitude in point p is computed as sqrt((real[p] * real[p]) + (im[p] * im[p])).
+;;
+;; The information about the phase of this signal is also present
+;; in the output from FFT and is obtained as atan2(im[p], real[p]).
+;; 
+;; In this case the phase information should show the (pi/4) shift
+;; at the position corresponding to the 2000Hz peak.
+;;
+;; Each bin of the FFT is a filter. This filter is not "perfect"
+;; in the sense that it passes exactly the desired frequency.
+;; As the filters are not perfect, the 2KHz signal will show up
+;; in multiple bins (neighbouring bins). This is called spectral leakage.
+;;
+;; This imperfection will also mean that when we try to read out the
+;; (pi / 4) phase shift in the result it will not be exacly (pi / 4).
+;; 
+
+
+
 (define phase-test-sig (signal-sum (signal-sin 2000.0) (signal-cos 2000.0)))
 (sample-signal phase-test-sig 20000 buffer)
 
@@ -201,6 +225,22 @@
       (bufset-f32 mag-buf (* i 4) mag 'little-endian)
       (bufset-f32 phase-buf (* i 4) phase-deg 'little-endian)
       })
+
+
+;; Averaging around the peak-bin  and calculating phase shift
+(let ((peak-bin 102)
+      (sum-real 0)
+      (sum-imag 0)) {
+      (loopfor j (- peak-bin 2) (<= j (+ peak-bin 2)) (+ j 1) {
+            (var real (bufget-f32 fft-r2 (* j 4) 'little-endian))
+            (var imag (bufget-f32 fft-im2 (* j 4) 'little-endian))
+            (setq sum-real (+ sum-real real))
+            (setq sum-imag (+ sum-imag imag))
+            })
+      (print "phase shift: " (atan2 sum-imag sum-real))
+      }
+  )
+
 
 (define fmag (fopen "magnitude.bin" "wb"))
 (fwrite fmag mag-buf)
@@ -234,6 +274,18 @@
 (gnuplot-cmd gp "set output")
 (gnuplot-close gp)
 
-
-
-
+;; TODOs:
+;; - Windows and FFT (Hann, Hamming, Blackman - compare side lobe reduction)
+;; - Peak detection (req. mean, std_dev)
+;; - Examples illustrating dB (linear vs log magnitude plots)
+;; - Spectrogram (time-frequency visualization using sliding window FFT)
+;; - Frequency interpolation (parabolic/quadratic peak fitting for sub-bin accuracy)
+;; - Zero-padding FFT (increase frequency resolution artificially)
+;; - Inverse FFT (reconstruct time-domain signal from frequency domain)
+;; - Filter design (low-pass, high-pass, band-pass using frequency domain multiplication)
+;; - Cross-correlation and auto-correlation
+;; - Frequency modulation (FM synthesis)
+;; - Amplitude modulation (AM) and demodulation
+;; - Aliasing demonstration (sample signals above Nyquist frequency)
+;; - Phase unwrapping (remove discontinuities in phase plots)
+;; - Compare different FFT sizes (trade-off between freq/time resolution)
