@@ -1,4 +1,12 @@
 
+;; connect the midi-player to the LBM synth.
+;; aplaymidi -p 128:0 level1.mid
+;;
+;; check with 'aconnect -l' for seeing which port LBM is located at
+;; you will see something as
+;;   Client N: 'LispBM MIDI'
+;;        P 'LispBM MIDI In'
+;; use N  and P in the aplaymidi command 'aplaymidi -p N:P midi-file.mid'
 
 (midi-enumerate-devices)
 
