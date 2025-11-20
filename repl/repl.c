@@ -289,6 +289,8 @@ static char *env_input_file = NULL;
 static char *env_output_file = NULL;
 static volatile char *res_output_file = NULL;
 static bool terminate_after_startup = false;
+static bool shebang_mode = false;
+static int script_args_start_index = -1;
 static volatile lbm_cid startup_cid = -1;
 static volatile lbm_cid store_result_cid = -1;
 static volatile bool silent_mode = false;
@@ -498,6 +500,8 @@ void critical(void) {
   terminate_repl(REPL_EXIT_CRITICAL_ERROR);
 }
 
+static int done_status = 0; // exit success
+
 void done_callback(eval_context_t *ctx) {
 
   // fails silently if unable to generate result file.
@@ -546,6 +550,11 @@ void done_callback(eval_context_t *ctx) {
 
   if (startup_cid != -1) {
     if (ctx->id == startup_cid) {
+      if (lbm_is_error(ctx->r)) {
+        done_status = 1;
+      } else {
+        done_status = 0;
+      }
       startup_cid = -1;
     }
   }
@@ -695,6 +704,7 @@ void sym_it(const char *str) {
 #define VESC_EXPRESS_STUBS   0x040C
 
 #define SHEBANG_MODE         0x040D
+#define SCRIPT_ARGS_START    0x040E
 
 bool use_bldc_stubs = false;
 bool use_vesc_express_stubs = false;
@@ -719,6 +729,7 @@ struct option options[] = {
   {"bldc_stubs", no_argument, NULL, BLDC_STUBS},
   {"vesc_express_stubs", no_argument, NULL, VESC_EXPRESS_STUBS},
   {"shebang", required_argument, NULL, SHEBANG_MODE},
+  {"script_args_start", required_argument, NULL, SCRIPT_ARGS_START},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -890,6 +901,7 @@ void parse_opts(int argc, char **argv) {
       printf("    --vesc_express_stubs              Load Vesc Express extension stub files\n");
       printf("\n");
       printf("    --shebang                         Executable script mode\n");
+      printf("    --script_args_start               Index in argument list where arguments for the script starts\n");
       printf("\n");
 
       printf("memory-size-indices: \n"          \
@@ -988,11 +1000,15 @@ void parse_opts(int argc, char **argv) {
       use_vesc_express_stubs = false;
       break;
     case SHEBANG_MODE:
+      shebang_mode = true;
       terminate_after_startup = true;
       if (!src_list_add((char*)optarg)) {
         printf("Error adding source file to source list\n");
         terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
       }
+      break;
+    case SCRIPT_ARGS_START:
+      script_args_start_index = (int)atoi((char*)optarg);
       break;
     default:
       break;
@@ -1266,7 +1282,7 @@ bool evaluate_expressions(void) {
 
 #define NAME_BUF_SIZE 1024
 
-void startup_procedure(void) {
+void startup_procedure(int argc, char **argv) {
 
   if (env_input_file) {
     FILE *fp = fopen(env_input_file, "r");
@@ -1382,6 +1398,37 @@ void startup_procedure(void) {
     }
   }
   if (sources) {
+    if (shebang_mode) {
+      lbm_pause_eval();
+      int timeout_cnt = 1000;
+      while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+        sleep_callback(1000);
+        timeout_cnt--;
+      }
+      if (timeout_cnt <= 0) terminate_repl(REPL_EXIT_UNABLE_TO_PAUSE_EVALUATOR);
+
+      int num_args = argc - script_args_start_index;
+      lbm_value arg_list = ENC_SYM_NIL;
+      if (num_args > 0) {
+        arg_list = lbm_heap_allocate_list((lbm_uint)num_args);
+        if (lbm_is_symbol(arg_list)) {
+          printf("Error allocating argument list\n");
+          terminate_repl(REPL_EXIT_ERROR);
+        }
+        lbm_value curr = arg_list;
+        for (int i = script_args_start_index; i < argc; i ++) {
+          lbm_value arg_str;
+          char *str = argv[i];
+          unsigned int len = strlen(str) + 1;
+          if (lbm_share_array(&arg_str, str, len)) {
+            lbm_set_car(curr,arg_str);
+          }
+          curr = lbm_cdr(curr);
+        }
+      }
+      lbm_define("args", arg_list);
+      lbm_continue_eval();
+    }
     evaluate_sources();
   }
   if (expressions) {
@@ -1390,7 +1437,11 @@ void startup_procedure(void) {
 
   if(terminate_after_startup) {
     shutdown_procedure();
-    terminate_repl(REPL_EXIT_SUCCESS);
+    if (shebang_mode) {
+      terminate_repl(done_status);
+    } else {
+      terminate_repl(REPL_EXIT_SUCCESS);
+    }
   }
 }
 
@@ -2663,7 +2714,6 @@ static void handle_repl_output(void) {
 // ////////////////////////////////////////////////////////////
 //
 int main(int argc, char **argv) {
-
   iobuffer_init();
 
   // ////////////////////////////////////////////////////////////
@@ -2748,8 +2798,9 @@ int main(int argc, char **argv) {
   if (!init_repl()) {
     terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
   }
+
   // TODO: Should the startup procedure work together with the VESC tcp serv?
-  startup_procedure();
+  startup_procedure(argc,argv);
 
   if (vesctcp) {
 #ifdef LBM_WIN
@@ -2898,7 +2949,6 @@ int main(int argc, char **argv) {
     lbm_midi_init();
 #endif
 
-    
     char output[1024];
 
     if (silent_mode) {
