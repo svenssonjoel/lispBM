@@ -1229,6 +1229,7 @@ bool evaluate_sources(void) {
   while (curr) {
     if (file_str) free(file_str);
     file_str = load_file(curr->filename);
+    if (!file_str) return false; // load file returns NULL if no file
     lbm_create_string_char_channel(&string_tok_state,
                                    &string_tok,
                                    file_str);
@@ -1429,7 +1430,9 @@ void startup_procedure(int argc, char **argv) {
       lbm_define("args", arg_list);
       lbm_continue_eval();
     }
-    evaluate_sources();
+    if (!evaluate_sources()) {
+      terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
+    }
   }
   if (expressions) {
     evaluate_expressions();
