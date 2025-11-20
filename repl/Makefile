@@ -16,7 +16,8 @@ LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_DYN_DEFSTRUCT \
            -DLBM_USE_TIME_QUOTA \
            -DLBM_USE_ERROR_LINENO \
-           -DLBM_USE_MACRO_REST_ARGS
+           -DLBM_USE_MACRO_REST_ARGS \
+           -DLBM_USE_SHEBANG_COMMENTS
 
 LDFLAGS =
 
@@ -129,6 +130,8 @@ clean_cl.h: ./scripts/clean.lisp
 install: all
 	mkdir -p ~/.local/bin
 	cp repl ~/.local/bin/lbm
+	cp shlbm ~/.local/bin/shlbm
+	chmod a+x ~/.local/bin/shlbm
 
 debug: CCFLAGS += -g
 debug: repl

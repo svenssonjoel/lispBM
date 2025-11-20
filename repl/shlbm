@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+  echo "Usage: shlbm [flags] script.lisp" >&2
+  exit 1
+fi
+
+script="${!#}"
+
+flags=("${@:1:$#-1}")
+
+exec lbm "${flags[@]}" --shebang "$script"

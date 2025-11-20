@@ -1,3 +1,4 @@
+#!/usr/bin/env -S shlbm -M 11
 
 ;; Uses up a bit of memory, launch with.
 ;; ../repl -M 11 -s dsp_lang.lisp

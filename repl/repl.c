@@ -694,6 +694,8 @@ void sym_it(const char *str) {
 #define BLDC_STUBS           0x040B
 #define VESC_EXPRESS_STUBS   0x040C
 
+#define SHEBANG_MODE         0x040D
+
 bool use_bldc_stubs = false;
 bool use_vesc_express_stubs = false;
 
@@ -716,6 +718,7 @@ struct option options[] = {
   {"history_file", required_argument, NULL, HISTORY_FILE},
   {"bldc_stubs", no_argument, NULL, BLDC_STUBS},
   {"vesc_express_stubs", no_argument, NULL, VESC_EXPRESS_STUBS},
+  {"shebang", required_argument, NULL, SHEBANG_MODE},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -886,6 +889,8 @@ void parse_opts(int argc, char **argv) {
       printf("    --bldc_stubs                      Load BLDC extension stub files\n");
       printf("    --vesc_express_stubs              Load Vesc Express extension stub files\n");
       printf("\n");
+      printf("    --shebang                         Executable script mode\n");
+      printf("\n");
 
       printf("memory-size-indices: \n"          \
              "Index | Words\n"                  \
@@ -981,6 +986,13 @@ void parse_opts(int argc, char **argv) {
       break;
     case VESC_EXPRESS_STUBS:
       use_vesc_express_stubs = false;
+      break;
+    case SHEBANG_MODE:
+      terminate_after_startup = true;
+      if (!src_list_add((char*)optarg)) {
+        printf("Error adding source file to source list\n");
+        terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
+      }
       break;
     default:
       break;
