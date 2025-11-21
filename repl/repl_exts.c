@@ -16,6 +16,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include "repl_exts.h"
 
 #include <unistd.h>
@@ -26,6 +28,8 @@
 #ifndef LBM_WIN
 #include <sys/time.h>
 #include <sys/wait.h>
+#include <signal.h>
+#include <semaphore.h>
 #endif
 
 #include "extensions/array_extensions.h"
@@ -44,6 +48,7 @@
 #include "lbm_image.h"
 #include "lbm_flat_value.h"
 #include "platform_timestamp.h"
+#include "platform_thread.h"
 #include "print.h"
 
 #include <png.h>
@@ -489,9 +494,100 @@ static bool all_arrays(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-#ifndef LBM_WIN
-static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
+// ////////////////////////////////////////////////////////////
+// Child process management
 
+#ifndef LBM_WIN
+
+#define MAX_CHILD_PROCESSES 32
+
+typedef enum {
+  UNUSED = 0,
+  ACTIVE,
+  FINISHED
+} child_process_state;
+
+typedef struct {
+  child_process_state state;
+  pid_t pid;
+  int status;
+  lbm_cid waiting_cid;  // CID of context waiting for this process, or -1 if none
+} child_process_t;
+
+static child_process_t child_process[MAX_CHILD_PROCESSES];
+static sem_t child_exit_sem;
+static lbm_thread_t child_monitor_thread;
+static volatile bool child_monitor_running = false;
+
+static void sigchld_handler(int sig) {
+  (void)sig;
+  int status;
+  pid_t pid;
+
+  while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+    for (int i = 0; i < MAX_CHILD_PROCESSES; i++) {
+      if (child_process[i].state == ACTIVE &&
+          child_process[i].pid == pid) {
+        child_process[i].status = status;
+        child_process[i].state = FINISHED;
+      }
+    }
+  }
+  sem_post(&child_exit_sem);  // Wake monitor thread
+}
+
+// Monitor thread - wakes on SIGCHLD and unblocks waiting LispBM contexts
+static void child_monitor_thd(void *arg) {
+  (void)arg;
+  while (child_monitor_running) {
+    sem_wait(&child_exit_sem);
+    if (!child_monitor_running) break;
+
+    for (int i = 0; i < MAX_CHILD_PROCESSES; i++) {
+      if (child_process[i].state == FINISHED &&
+          child_process[i].waiting_cid != -1) {
+        lbm_unblock_ctx_unboxed(child_process[i].waiting_cid,
+                                lbm_enc_i(WEXITSTATUS(child_process[i].status)));
+        child_process[i].waiting_cid = -1;
+      }
+    }
+  }
+}
+
+static bool init_proc_management(void) {
+
+  for (int i = 0; i < MAX_CHILD_PROCESSES; i++) {
+    child_process[i].state = UNUSED;
+    child_process[i].pid = 0;
+    child_process[i].status = 0;
+    child_process[i].waiting_cid = -1;
+  }
+
+  if (sem_init(&child_exit_sem, 0, 0) == -1) {
+    return false;
+  }
+
+  child_monitor_running = true;
+  if (!lbm_thread_create(&child_monitor_thread, "child_monitor",
+                         child_monitor_thd, NULL, LBM_THREAD_PRIO_NORMAL, 0)) {
+    sem_destroy(&child_exit_sem);
+    return false;
+  }
+
+  struct sigaction sa;
+  sa.sa_handler = sigchld_handler;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+  if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+    child_monitor_running = false;
+    sem_post(&child_exit_sem);
+    sem_destroy(&child_exit_sem);
+    return false;
+  }
+  return true;
+}
+
+static lbm_value ext_proc_spawn(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
 
   if (all_arrays(args, argn) && argn >= 1) {
@@ -501,18 +597,107 @@ static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
     }
     strs[argn] = NULL;
     fflush(stdout);
-    int status = 0;
+
+    sigset_t mask, oldmask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+
+    // Critical section
+    sigprocmask(SIG_BLOCK, &mask, &oldmask);
+
+    // If no free slot in child array, do not fork!
+    int slot_ix = -1;
+    for (int i = 0; i < MAX_CHILD_PROCESSES; i ++ ) {
+      if (child_process[i].state == UNUSED) {
+        slot_ix = i;
+        break;
+      }
+    }
+    if (slot_ix < 0) {
+      sigprocmask(SIG_SETMASK, &oldmask, NULL);
+      return ENC_SYM_NIL;
+    }
+
     int pid = fork();
     if (pid == 0) {
-      execvp(strs[0], &strs[1]);
-      exit(0);
+      // Child: restore signal mask before exec
+      sigprocmask(SIG_SETMASK, &oldmask, NULL);
+      execvp(strs[0], strs);
+      _exit(127); // execvp failed and we exit with command not found (127)
+    } else if (pid > 0) {
+      child_process[slot_ix].state = ACTIVE;
+      child_process[slot_ix].pid = pid;
+      child_process[slot_ix].waiting_cid = -1;
+      res = lbm_enc_i(pid); // Todo: return a list containing pid, stdin, stdout, stderr
+    }
+    free(strs);
+    sigprocmask(SIG_SETMASK, &oldmask, NULL);
+  }
+  return res;
+}
+
+static lbm_value ext_proc_spawn_detached(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+
+  if (all_arrays(args, argn) && argn >= 1) {
+    char **strs = malloc(argn * sizeof(char*) + 1);
+    for (uint32_t i = 0; i < argn; i ++) {
+      strs[i] = lbm_dec_str(args[i]);
+    }
+    strs[argn] = NULL;
+    fflush(stdout);
+    int pid = fork();
+    if (pid == 0) {
+      execvp(strs[0], strs);
+      _exit(127);
     } else {
-      waitpid(pid, &status, 0);
       res = ENC_SYM_TRUE;
+      free(strs);
     }
   }
   return res;
 }
+
+static lbm_value ext_proc_wait(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_number(args[0])) {
+    int pid = lbm_dec_as_i32(args[0]);
+
+    sigset_t mask, oldmask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+
+    // Critical section
+    sigprocmask(SIG_BLOCK, &mask, &oldmask);
+    int slot_ix = -1;
+    for (int i = 0; i < MAX_CHILD_PROCESSES; i ++) {
+      if (child_process[i].pid == pid &&
+          child_process[i].state != UNUSED) {
+        slot_ix = i;
+        break;
+      }
+    }
+    if (slot_ix >= 0) {
+      if (child_process[slot_ix].state == ACTIVE) {
+        child_process[slot_ix].waiting_cid = lbm_get_current_cid();
+        sigprocmask(SIG_SETMASK, &oldmask, NULL);
+        lbm_block_ctx_from_extension();
+        return ENC_SYM_NIL;
+      } else if (child_process[slot_ix].state == FINISHED) {
+        int status = child_process[slot_ix].status;
+        child_process[slot_ix].state = UNUSED;
+        sigprocmask(SIG_SETMASK, &oldmask, NULL);
+        return lbm_enc_i(WEXITSTATUS(status));
+      }
+    }
+    sigprocmask(SIG_SETMASK, &oldmask, NULL);
+    res = ENC_SYM_EERROR;
+  }
+  return res;
+}
+
+
 #endif
 
 static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
@@ -888,9 +1073,9 @@ int init_exts(void) {
   lbm_random_extensions_init();
   lbm_dsp_extensions_init();
 
-  //lbm_value sym_seek_set;
-  //lbm_value sym_seek_cur;
-  //lbm_value sym_seem_end;
+#ifndef LBM_WIN
+  init_proc_management();
+#endif
 
   lbm_uint seek_set = 0;
   lbm_uint seek_cur = 0;
@@ -908,7 +1093,9 @@ int init_exts(void) {
 
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
 #ifndef LBM_WIN
-  lbm_add_extension("exec", ext_exec);
+  lbm_add_extension("proc-spawn", ext_proc_spawn);
+  lbm_add_extension("proc-spawn-detached", ext_proc_spawn_detached);
+  lbm_add_extension("proc-wait", ext_proc_wait);
 #endif
   lbm_add_extension("fclose", ext_fclose);
   lbm_add_extension("fopen", ext_fopen);
