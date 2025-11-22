@@ -596,7 +596,6 @@ static lbm_value ext_proc_spawn(lbm_value *args, lbm_uint argn) {
       strs[i] = lbm_dec_str(args[i]);
     }
     strs[argn] = NULL;
-    fflush(stdout);
 
     // allocate result
     lbm_value pid_file_handles = lbm_heap_allocate_list(4);
@@ -722,6 +721,7 @@ static lbm_value ext_proc_spawn(lbm_value *args, lbm_uint argn) {
     hstdout->fp = child_stdout;
     hstderr->fp = child_stderr;
 
+    fflush(stdout); //avoid duplication of buffered output.
     int pid = fork();
     if (pid == 0) { // Child
       close(stdin_pipe[1]);
@@ -776,7 +776,6 @@ static lbm_value ext_proc_spawn_detached(lbm_value *args, lbm_uint argn) {
       strs[i] = lbm_dec_str(args[i]);
     }
     strs[argn] = NULL;
-    fflush(stdout);
 
     // allocate result
     lbm_value file_handles = lbm_heap_allocate_list(3);
@@ -872,6 +871,7 @@ static lbm_value ext_proc_spawn_detached(lbm_value *args, lbm_uint argn) {
     hstdout->fp = child_stdout;
     hstderr->fp = child_stderr;
 
+    fflush(stdout); //avoid duplication of buffered output.
     int pid = fork();
     if (pid == 0) { // Child process
       close(stdin_pipe[1]);
