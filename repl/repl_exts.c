@@ -598,6 +598,82 @@ static lbm_value ext_proc_spawn(lbm_value *args, lbm_uint argn) {
     strs[argn] = NULL;
     fflush(stdout);
 
+    // allocate result
+    lbm_value pid_file_handles = lbm_heap_allocate_list(4);
+    if (pid_file_handles == ENC_SYM_MERROR) {
+      free(strs);
+      return ENC_SYM_MERROR;
+    }
+
+    lbm_file_handle_t *hstdin = lbm_malloc(sizeof(lbm_file_handle_t));
+    lbm_file_handle_t *hstdout = lbm_malloc(sizeof(lbm_file_handle_t));
+    lbm_file_handle_t *hstderr = lbm_malloc(sizeof(lbm_file_handle_t));
+    if (!hstdin || !hstdout || !hstderr) {
+      if (hstdin) lbm_free(hstdin);
+      if (hstdout) lbm_free(hstdout);
+      if (hstderr) lbm_free(hstderr);
+      free(strs);
+      return ENC_SYM_MERROR;
+    }
+    hstdin->fp = NULL; // Will be set to correct value later.
+    hstdout->fp = NULL;
+    hstderr->fp = NULL;
+
+    // Preallocate all result storage
+    lbm_value fh0;
+    lbm_value fh1;
+    lbm_value fh2;
+    lbm_custom_type_create((lbm_uint)hstdin, file_handle_destructor, lbm_file_handle_desc, &fh0);
+    lbm_custom_type_create((lbm_uint)hstdout, file_handle_destructor, lbm_file_handle_desc, &fh1);
+    lbm_custom_type_create((lbm_uint)hstderr, file_handle_destructor, lbm_file_handle_desc, &fh2);
+
+    if (fh0 == ENC_SYM_MERROR || fh1 == ENC_SYM_MERROR || fh2 == ENC_SYM_MERROR) {
+      // Here we could potentially end up in a double-free situation.
+      // lbm_free is ok with double-free but in case some other "external"
+      // is switched in and allocates a new array at the just freed address,
+      // the double-free may turn into a free + a free of some unralted allocation!
+      // So lets use a careful pattern here too:
+      if (fh0 == ENC_SYM_MERROR) lbm_free(hstdin);
+      if (fh1 == ENC_SYM_MERROR) lbm_free(hstdout);
+      if (fh2 == ENC_SYM_MERROR) lbm_free(hstderr);
+      free(strs);
+      return ENC_SYM_MERROR;
+    }
+
+    lbm_value curr = pid_file_handles;
+    curr = lbm_cdr(curr); // The car is for the pid
+    lbm_set_car(curr, fh0);
+    curr = lbm_cdr(curr);
+    lbm_set_car(curr, fh1);
+    curr = lbm_cdr(curr);
+    lbm_set_car(curr, fh2);
+    lbm_set_cdr(curr, ENC_SYM_NIL);
+
+    int stdin_pipe[2];   // [0]=read end,  [1]=write end
+    int stdout_pipe[2];
+    int stderr_pipe[2];
+
+    int pr1 = pipe(stdin_pipe);
+    int pr2 = pipe(stdout_pipe);
+    int pr3 = pipe(stderr_pipe);
+
+    if (pr1 == -1 || pr2 == -1 || pr3 == -1) {
+      if(pr1 != -1) {
+        close(stdin_pipe[0]);
+        close(stdin_pipe[1]);
+      }
+      if (pr2 != -1) {
+        close(stdout_pipe[0]);
+        close(stdout_pipe[1]);
+      }
+      if (pr3 != -1) {
+        close(stderr_pipe[0]);
+        close(stderr_pipe[1]);
+      }
+      free(strs);
+      return ENC_SYM_EERROR;
+    }
+
     sigset_t mask, oldmask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
@@ -615,12 +691,50 @@ static lbm_value ext_proc_spawn(lbm_value *args, lbm_uint argn) {
     }
     if (slot_ix < 0) {
       sigprocmask(SIG_SETMASK, &oldmask, NULL);
+      close(stdin_pipe[0]);
+      close(stdin_pipe[1]);
+      close(stdout_pipe[0]);
+      close(stdout_pipe[1]);
+      close(stderr_pipe[0]);
+      close(stderr_pipe[1]);
+      free(strs);
       return ENC_SYM_NIL;
     }
 
+    // Convert to FILE* for LispBM file handle compatibility
+    FILE *child_stdin  = fdopen(stdin_pipe[1], "w");
+    FILE *child_stdout = fdopen(stdout_pipe[0], "r");
+    FILE *child_stderr = fdopen(stderr_pipe[0], "r");
+
+    if (!child_stdin || !child_stdout || !child_stderr) {
+      if (child_stdin) fclose(child_stdin); else close(stdin_pipe[1]);
+      if (child_stdout) fclose(child_stdout); else close(stdout_pipe[0]);
+      if (child_stderr) fclose(child_stderr); else close(stderr_pipe[0]);
+      close(stdin_pipe[0]);
+      close(stdout_pipe[1]);
+      close(stderr_pipe[1]);
+      free(strs);
+      sigprocmask(SIG_SETMASK, &oldmask, NULL);
+      return ENC_SYM_MERROR;
+    }
+
+    hstdin->fp = child_stdin;
+    hstdout->fp = child_stdout;
+    hstderr->fp = child_stderr;
+
     int pid = fork();
-    if (pid == 0) {
-      // Child: restore signal mask before exec
+    if (pid == 0) { // Child
+      close(stdin_pipe[1]);
+      close(stdout_pipe[0]);
+      close(stderr_pipe[0]);
+
+      dup2(stdin_pipe[0], STDIN_FILENO);   // Redirect stdin
+      dup2(stdout_pipe[1], STDOUT_FILENO); // Redirect stdout
+      dup2(stderr_pipe[1], STDERR_FILENO); // Redirect stderr
+
+      close(stdin_pipe[0]);
+      close(stdout_pipe[1]);
+      close(stderr_pipe[1]);
       sigprocmask(SIG_SETMASK, &oldmask, NULL);
       execvp(strs[0], strs);
       _exit(127); // execvp failed and we exit with command not found (127)
@@ -628,7 +742,24 @@ static lbm_value ext_proc_spawn(lbm_value *args, lbm_uint argn) {
       child_process[slot_ix].state = ACTIVE;
       child_process[slot_ix].pid = pid;
       child_process[slot_ix].waiting_cid = -1;
-      res = lbm_enc_i(pid); // Todo: return a list containing pid, stdin, stdout, stderr
+
+      close(stdin_pipe[0]);   // Close read end
+      close(stdout_pipe[1]);  // Close write end
+      close(stderr_pipe[1]);
+
+      lbm_set_car(pid_file_handles, lbm_enc_i(pid));
+      res = pid_file_handles;
+    } else {
+      fclose(child_stdin);   // closes stdin_pipe[1]
+      fclose(child_stdout);  // closes stdout_pipe[0]
+      fclose(child_stderr);  // closes stderr_pipe[0]
+      hstdin->fp = NULL;     // prevent double-close in destructor
+      hstdout->fp = NULL;
+      hstderr->fp = NULL;
+      close(stdin_pipe[0]);  // these weren't fdopen'd
+      close(stdout_pipe[1]);
+      close(stderr_pipe[1]);
+      res = ENC_SYM_EERROR;
     }
     free(strs);
     sigprocmask(SIG_SETMASK, &oldmask, NULL);
@@ -646,13 +777,135 @@ static lbm_value ext_proc_spawn_detached(lbm_value *args, lbm_uint argn) {
     }
     strs[argn] = NULL;
     fflush(stdout);
+
+    // allocate result
+    lbm_value file_handles = lbm_heap_allocate_list(3);
+    if (file_handles == ENC_SYM_MERROR) {
+      free(strs);
+      return ENC_SYM_MERROR;
+    }
+
+    lbm_file_handle_t *hstdin = lbm_malloc(sizeof(lbm_file_handle_t));
+    lbm_file_handle_t *hstdout = lbm_malloc(sizeof(lbm_file_handle_t));
+    lbm_file_handle_t *hstderr = lbm_malloc(sizeof(lbm_file_handle_t));
+    if (!hstdin || !hstdout || !hstderr) {
+      if (hstdin) lbm_free(hstdin);
+      if (hstdout) lbm_free(hstdout);
+      if (hstderr) lbm_free(hstderr);
+      free(strs);
+      return ENC_SYM_MERROR;
+    }
+    hstdin->fp = NULL; // Will be set to correct value later.
+    hstdout->fp = NULL;
+    hstderr->fp = NULL;
+
+    // Preallocate all result storage
+    lbm_value fh0;
+    lbm_value fh1;
+    lbm_value fh2;
+    lbm_custom_type_create((lbm_uint)hstdin, file_handle_destructor, lbm_file_handle_desc, &fh0);
+    lbm_custom_type_create((lbm_uint)hstdout, file_handle_destructor, lbm_file_handle_desc, &fh1);
+    lbm_custom_type_create((lbm_uint)hstderr, file_handle_destructor, lbm_file_handle_desc, &fh2);
+
+    if (fh0 == ENC_SYM_MERROR || fh1 == ENC_SYM_MERROR || fh2 == ENC_SYM_MERROR) {
+      // Here we could potentially end up in a double-free situation.
+      // lbm_free is ok with double-free but in case some other "external"
+      // is switched in and allocates a new array at the just freed address,
+      // the double-free may turn into a free + a free of some unralted allocation!
+      // So lets use a careful pattern here too:
+      if (fh0 == ENC_SYM_MERROR) lbm_free(hstdin);
+      if (fh1 == ENC_SYM_MERROR) lbm_free(hstdout);
+      if (fh2 == ENC_SYM_MERROR) lbm_free(hstderr);
+      free(strs);
+      return ENC_SYM_MERROR;
+    }
+
+    lbm_value curr = file_handles;
+    lbm_set_car(curr, fh0);
+    curr = lbm_cdr(curr);
+    lbm_set_car(curr, fh1);
+    curr = lbm_cdr(curr);
+    lbm_set_car(curr, fh2);
+    lbm_set_cdr(curr, ENC_SYM_NIL);
+
+    int stdin_pipe[2];   // [0]=read end,  [1]=write end
+    int stdout_pipe[2];
+    int stderr_pipe[2];
+
+    int pr1 = pipe(stdin_pipe);
+    int pr2 = pipe(stdout_pipe);
+    int pr3 = pipe(stderr_pipe);
+    if (pr1 == -1 || pr2 == -1 || pr3 == -1) {
+      if(pr1 != -1) {
+        close(stdin_pipe[0]);
+        close(stdin_pipe[1]);
+      }
+      if (pr2 != -1) {
+        close(stdout_pipe[0]);
+        close(stdout_pipe[1]);
+      }
+      if (pr3 != -1) {
+        close(stderr_pipe[0]);
+        close(stderr_pipe[1]);
+      }
+      free(strs);
+      return ENC_SYM_EERROR;
+    }
+
+    // Convert to FILE* for LispBM file handle compatibility
+    FILE *child_stdin  = fdopen(stdin_pipe[1], "w");
+    FILE *child_stdout = fdopen(stdout_pipe[0], "r");
+    FILE *child_stderr = fdopen(stderr_pipe[0], "r");
+
+    if (!child_stdin || !child_stdout || !child_stderr) {
+      if (child_stdin) fclose(child_stdin); else close(stdin_pipe[1]);
+      if (child_stdout) fclose(child_stdout); else close(stdout_pipe[0]);
+      if (child_stderr) fclose(child_stderr); else close(stderr_pipe[0]);
+      close(stdin_pipe[0]);
+      close(stdout_pipe[1]);
+      close(stderr_pipe[1]);
+      free(strs);
+      return ENC_SYM_MERROR;
+    }
+
+    hstdin->fp = child_stdin;
+    hstdout->fp = child_stdout;
+    hstderr->fp = child_stderr;
+
     int pid = fork();
-    if (pid == 0) {
+    if (pid == 0) { // Child process
+      close(stdin_pipe[1]);
+      close(stdout_pipe[0]);
+      close(stderr_pipe[0]);
+
+      dup2(stdin_pipe[0], STDIN_FILENO);   // Redirect stdin
+      dup2(stdout_pipe[1], STDOUT_FILENO); // Redirect stdout
+      dup2(stderr_pipe[1], STDERR_FILENO); // Redirect stderr
+
+      close(stdin_pipe[0]);
+      close(stdout_pipe[1]);
+      close(stderr_pipe[1]);
       execvp(strs[0], strs);
       _exit(127);
-    } else {
-      res = ENC_SYM_TRUE;
+    } else if (pid > 0) {
+      close(stdin_pipe[0]);   // Close read end
+      close(stdout_pipe[1]);  // Close write end
+      close(stderr_pipe[1]);
+
+      res = file_handles;
       free(strs);
+    } else {
+      fclose(child_stdin);   // closes stdin_pipe[1]
+      fclose(child_stdout);  // closes stdout_pipe[0]
+      fclose(child_stderr);  // closes stderr_pipe[0]
+      hstdin->fp = NULL;     // prevent double-close in destructor
+      hstdout->fp = NULL;
+      hstderr->fp = NULL;
+      close(stdin_pipe[0]);  // these weren't fdopen'd
+      close(stdout_pipe[1]);
+      close(stderr_pipe[1]);
+      free(strs);
+      res = ENC_SYM_EERROR;
     }
   }
   return res;
