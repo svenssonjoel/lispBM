@@ -165,11 +165,16 @@
                  (note-off patch n)
                 })
                ((pitch-bend (? ch) (? bv)) (ch-pitch-bend bv ch))
+               ;; all midi events are lists, this one with just one elt.
+               ((port-unsubscribed) (break))
                (_ (print (list "unmatched" event))))  ; Debug unmatched events
         }))
 
-(print (midi-enumerate-devices))
+(define client-port (str-join
+                     (list
+                      (to-str (midi-client)) ":"
+                      (to-str (midi-in-port)))))
 
-(proc-spawn-detached "aplaymidi" "-p" "128:0" (car args))
+(proc-spawn-detached "aplaymidi" "-p" client-port (car args))
 
 (midi-synth-loop)
