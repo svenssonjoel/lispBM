@@ -382,6 +382,7 @@ static lbm_value ext_fread_byte(lbm_value *args, lbm_uint argn) {
   if (argn == 1 &&
       is_file_handle(args[0])) {
     lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    if (!h || !h->fp) return ENC_SYM_EERROR;
     char c;
     size_t num = fread(&c, 1, 1, h->fp);
     if (num == 1) {
@@ -390,9 +391,25 @@ static lbm_value ext_fread_byte(lbm_value *args, lbm_uint argn) {
       res = ENC_SYM_NIL;
     }
   }
-
   return res;
 }
+
+static lbm_value ext_fread(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      is_file_handle(args[0]) &&
+      lbm_is_array_rw(args[1])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    if (!h || !h->fp) return ENC_SYM_EERROR;
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[1]); // already know it is an RW array
+    unsigned int len = header->size;
+    char *data = (char*)header->data;
+    size_t num = fread(data, 1, len, h->fp);
+    res = lbm_enc_u((lbm_uint)num);
+  }
+  return res;
+}
+
 
 static lbm_value ext_fwrite(lbm_value *args, lbm_uint argn) {
 
@@ -1358,6 +1375,7 @@ int init_exts(void) {
   lbm_add_extension("fwrite-value", ext_fwrite_value);
   lbm_add_extension("fwrite-image", ext_fwrite_image);
   lbm_add_extension("fread-byte", ext_fread_byte);
+  lbm_add_extension("fread", ext_fread);
   lbm_add_extension("fseek", ext_fseek);
   lbm_add_extension("ftell", ext_ftell);
   lbm_add_extension("print", ext_print);

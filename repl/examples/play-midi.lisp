@@ -1,3 +1,4 @@
+#!/usr/bin/env -S shlbm -M 11 --
 
 ;; connect the midi-player to the LBM synth.
 ;; aplaymidi -p 128:0 level1.mid
@@ -7,8 +8,6 @@
 ;;   Client N: 'LispBM MIDI'
 ;;        P 'LispBM MIDI In'
 ;; use N  and P in the aplaymidi command 'aplaymidi -p N:P midi-file.mid'
-
-(midi-enumerate-devices)
 
 ;; Doom E1M1 Patches
 
@@ -169,4 +168,8 @@
                (_ (print (list "unmatched" event))))  ; Debug unmatched events
         }))
 
-(spawn midi-synth-loop)
+(print (midi-enumerate-devices))
+
+(proc-spawn-detached "aplaymidi" "-p" "128:0" (car args))
+
+(midi-synth-loop)

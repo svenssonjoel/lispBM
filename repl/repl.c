@@ -2802,6 +2802,11 @@ int main(int argc, char **argv) {
     terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
   }
 
+#ifdef WITH_ALSA
+  lbm_sound_init();
+  lbm_midi_init();
+#endif
+
   // TODO: Should the startup procedure work together with the VESC tcp serv?
   startup_procedure(argc,argv);
 
@@ -2946,12 +2951,6 @@ int main(int argc, char **argv) {
     }
 #endif
   } else {
-
-#ifdef WITH_ALSA
-    lbm_sound_init();
-    lbm_midi_init();
-#endif
-
     char output[1024];
 
     if (silent_mode) {
