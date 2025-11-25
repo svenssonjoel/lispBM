@@ -51,7 +51,7 @@
   (match s
    ( (signal-sin (? f) (? p) (? a)) (* a (sin (+ (* f two-pi sig-t) p))))
    ( (signal-cos (? f) (? p) (? a)) (* a (cos (+ (* f two-pi sig-t) p))))
-   ( (signal-noise (? a)) (* a (/ (random) (rand-max))))
+   ( (signal-noise (? a)) (* a (/ (to-float (random)) (rand-max))))
    ( (signal-const (? v)) v)
    ((signal-sum (? s1) (? s2)) (+ (eval-signal s1 sig-t) (eval-signal s2 sig-t)))
    ((signal-prod (? s1) (? s2)) (* (eval-signal s1 sig-t) (eval-signal s2 sig-t)))
@@ -178,6 +178,39 @@
 
 (print "output: fft_sin440_plus_2400.pdf")
 (plot-spectrum "wave.bin" "fft_sin440_plus_2400.pdf" "Frequency Spectrum: 440Hz + 2400Hz")
+
+;; Example 3b NOISY
+
+(define noisy-sig (signal-sum (signal-noise 1.0) (signal-sin 2400.0 0.0 1.0)))
+
+(define f1 (fopen "wave.bin" "wb"))
+(fwrite f1 (sample-signal noisy-sig 20000 buffer))
+(fclose f1)
+
+(print "output: noise_plus_2400.pdf")
+(plot-signal "wave.bin" "noise_plus_2400.pdf" "noise + 2400Hz")
+
+(define zero-im (bufcreate (* 1024 4)))
+;; buffer already contains the 440 + 2400 signal
+(define fft-res (fft buffer zero-im 'little-endian))
+(define fft-r (car fft-res))
+(define fft-im (cdr fft-res))
+
+(loopfor i 0 (< i 1024) (+ i 1) {
+      (var x (bufget-f32 fft-r (* i 4) 'little-endian))
+      (var y (bufget-f32 fft-im (* i 4) 'little-endian))
+      (bufset-f32 fft-r (* i 4) (sqrt (+ (* x x) (* y y))) 'little-endian)
+      })
+
+
+(define f1 (fopen "wave.bin" "wb"))
+(fwrite f1 fft-r)
+(fclose f1)
+
+(print "output: fft_noise_plus_2400.pdf")
+(plot-spectrum "wave.bin" "fft_noise_plus_2400.pdf" "Frequency Spectrum: noise + 2400Hz")
+
+
 
 ;; Example 4 plot a sum signal
 (define sum-sig (signal-sum (signal-sin 2000.0) (signal-cos 2000.0)))
