@@ -2,10 +2,10 @@
 
 (import "dsp_lang.lisp")
 
+(define buffer (bufcreate (* 4 1024)))
 
 ;; Example 1 plot a 440Hz sine
 (define sine-sig (signal-sin 440.0))
-
 
 ;; Example of bracket operation
 (with-file "wave.bin" "wb"

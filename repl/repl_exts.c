@@ -1418,7 +1418,6 @@ bool dynamic_loader(const char *str, const char **code) {
 
   // strmatch matches until the first space in its second arg
   if (strmatch(str, "import ")) {
-    printf("match!\n");
     *code = import_code;
     return true;
   }

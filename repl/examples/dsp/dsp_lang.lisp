@@ -79,7 +79,6 @@
        (fclose fh)
        })
 
-(define buffer (bufcreate (* 4 1024)))
 
 (defun plot-signal (infile outfile title)
   {
@@ -134,6 +133,7 @@
   (gnuplot-cmd gp "set output")
   (gnuplot-close gp)
   })
+
 
 
 
