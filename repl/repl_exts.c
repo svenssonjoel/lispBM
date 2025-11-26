@@ -1408,5 +1408,20 @@ int init_exts(void) {
 // Dynamic loader
 
 bool dynamic_loader(const char *str, const char **code) {
+
+  const char *import_code =
+    "(defun import (filename)"
+    " (let ((fh (fopen filename \"r\"))) {"
+    " (eval-program (load-file fh))"
+    " (fclose fh)"
+    " })) ";
+
+  // strmatch matches until the first space in its second arg
+  if (strmatch(str, "import ")) {
+    printf("match!\n");
+    *code = import_code;
+    return true;
+  }
+
   return lbm_dyn_lib_find(str, code);
 }
