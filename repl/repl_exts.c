@@ -1412,7 +1412,7 @@ bool dynamic_loader(const char *str, const char **code) {
   const char *import_code =
     "(defun import (filename)"
     " (let ((fh (fopen filename \"r\"))) {"
-    " (eval-program (load-file fh))"
+    " (read-eval-program (load-file fh))"
     " (fclose fh)"
     " })) ";
 
