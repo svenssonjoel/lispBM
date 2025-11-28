@@ -34,27 +34,7 @@
 (with-file "fft.bin" "wb"
            (lambda (x) (fwrite x magnitudes)))
 
-
-(define gp (gnuplot-open))
-(gnuplot-cmd gp "set terminal pdf size 10,8")
-(gnuplot-cmd gp (str-join `("set output 'example2_2.pdf'")))
-
-(gnuplot-cmd gp "set multiplot layout 2,1 title 'Signal Analysis'")
-
-(gnuplot-cmd gp "set title 'Original Waveform'")
-(gnuplot-cmd gp "set xlabel 'Sample'")
-(gnuplot-cmd gp "set ylabel 'Amplitude'")
-(gnuplot-cmd gp "plot 'wave.bin' binary array=1024 format='%float' with lines title 'Time Domain'")
-
-(gnuplot-cmd gp "set title 'FFT'")
-(gnuplot-cmd gp "set xlabel 'Frequency Bin'")
-(gnuplot-cmd gp "set ylabel 'Magnitude'")
-(gnuplot-cmd gp "plot 'fft.bin' binary array=512 format='%float' with lines title 'Frequency Domain'")
-
-(gnuplot-cmd gp "unset multiplot")
-(gnuplot-close gp)
-
-
+(plot-signal-spectrum "wave.bin" "fft.bin" "example2_2.pdf" "Signal Analysis" "Input Wave" "Spectrum")
 
 (with-file "recreated.bin" "wb"
            (lambda (x) (fwrite x (car recreated))))

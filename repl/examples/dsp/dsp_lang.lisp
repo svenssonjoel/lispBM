@@ -134,8 +134,27 @@
   (gnuplot-close gp)
   })
 
+(defun plot-signal-spectrum (signal-file mag-file outfile t0 t1 t2)
+  {
+  (define gp (gnuplot-open))
+  (gnuplot-cmd gp "set terminal pdf size 10,8")
+  (gnuplot-cmd gp (str-join `("set output '" ,outfile "'")))
 
+  (gnuplot-cmd gp (str-join `("set multiplot layout 2,1 title '" ,t0 "'")))
 
+  (gnuplot-cmd gp (str-join `("set title '" ,t1 "'")))
+  (gnuplot-cmd gp "set xlabel 'Sample'")
+  (gnuplot-cmd gp "set ylabel 'Amplitude'")
+  (gnuplot-cmd gp "plot 'wave.bin' binary array=1024 format='%float' with lines title 'Time Domain'")
+
+  (gnuplot-cmd gp (str-join `("set title '" ,t2 "'")))
+  (gnuplot-cmd gp "set xlabel 'Frequency Bin'")
+  (gnuplot-cmd gp "set ylabel 'Magnitude'")
+  (gnuplot-cmd gp "plot 'fft.bin' binary array=512 format='%float' with lines title 'Frequency Domain'")
+
+  (gnuplot-cmd gp "unset multiplot")
+  (gnuplot-close gp)
+  })
 
 ;; TODOs:
 ;; - Windows and FFT (Hann, Hamming, Blackman - compare side lobe reduction)
