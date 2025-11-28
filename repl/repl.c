@@ -816,19 +816,13 @@ void parse_opts(int argc, char **argv) {
         terminate_repl(REPL_EXIT_SUCCESS);
       }
 
-
-#ifdef LBM64
-      uint32_t multiplier = 8;
-#else
-      uint32_t multiplier = 4;
-#endif
       // The 64 bytes in the macro name is misleading as it is only true on 32 bit platforms.
       uint32_t size_single_block = LBM_MEMORY_SIZE_64BYTES_TIMES_X(sizeof(lbm_uint));
 
-      if (!(sizebytes % (size_single_block * multiplier) == 0)) {
-        printf("Warning: The lbm_memory must be a multiple of %d bytes in size\n", size_single_block * multiplier);
-        sizebytes = (sizebytes + (size_single_block * multiplier - 1)) & ~(size_single_block * multiplier - 1);
-        printf("Using next multiple of %d: %d\n", size_single_block * multiplier, sizebytes);
+      if (!(sizebytes % (size_single_block * sizeof(lbm_uint)) == 0)) {
+        printf("Warning: The lbm_memory must be a multiple of %d bytes in size\n", size_single_block * sizeof(lbm_uint));
+        sizebytes = (sizebytes + (size_single_block * sizeof(lbm_uint) - 1)) & ~(size_single_block * sizeof(lbm_uint) - 1);
+        printf("Using next multiple of %d: %d\n", size_single_block * sizeof(lbm_uint), sizebytes);
       }
 
       uint32_t num_blocks = sizebytes / size_single_block;
