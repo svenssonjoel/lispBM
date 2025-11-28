@@ -1,4 +1,4 @@
-#!/usr/bin/env -S shlbm -M 11 --
+#!/usr/bin/env -S shlbm -M 512000 --
 (import "dsp_lang.lisp")
 
 ;; FFT and inverse

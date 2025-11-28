@@ -810,58 +810,30 @@ void parse_opts(int argc, char **argv) {
       constants_memory_size = (size_t)atoi((char*)optarg);
       break;
     case 'M': {
-      size_t ix = (size_t)atoi((char*)optarg);
-      switch(ix) {
-      case 1:
-        lbm_memory_size = LBM_MEMORY_SIZE_512;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_512;
-        break;
-      case 2:
-        lbm_memory_size = LBM_MEMORY_SIZE_1K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_1K;
-        break;
-      case 3:
-        lbm_memory_size = LBM_MEMORY_SIZE_2K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_2K;
-        break;
-      case 4:
-        lbm_memory_size = LBM_MEMORY_SIZE_4K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_4K;
-        break;
-      case 5:
-        lbm_memory_size = LBM_MEMORY_SIZE_8K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_8K;
-        break;
-      case 6:
-        lbm_memory_size = LBM_MEMORY_SIZE_10K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
-        break;
-      case 7:
-        lbm_memory_size = LBM_MEMORY_SIZE_12K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_12K;
-        break;
-      case 8:
-        lbm_memory_size = LBM_MEMORY_SIZE_14K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_14K;
-        break;
-      case 9:
-        lbm_memory_size = LBM_MEMORY_SIZE_16K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_16K;
-        break;
-      case 10:
-        lbm_memory_size = LBM_MEMORY_SIZE_32K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_32K;
-        break;
-      case 11:
-        lbm_memory_size = LBM_MEMORY_SIZE_1M;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_1M;
-        break;
-      default:
-        printf("WARNING: Incorrect lbm_memory_size index! Using default\n");
-        lbm_memory_size = LBM_MEMORY_SIZE_10K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
-        break;
+      uint32_t sizebytes = (uint32_t)atoi((char*)optarg);
+      if (sizebytes == 0) {
+        printf("Incorrect lbm_memory size\n");
+        terminate_repl(REPL_EXIT_SUCCESS);
       }
+
+
+#ifdef LBM64
+      uint32_t multiplier = 8;
+#else
+      uint32_t multiplier = 4;
+#endif
+
+      if (!(sizebytes % (64 * multiplier) == 0)) {
+        printf("Warning: The lbm_memory must be a multiple of %d bytes in size\n", 64 * multiplier);
+        sizebytes = (sizebytes + (64 * multiplier - 1)) & ~(64 * multiplier - 1);
+        printf("Using next multiple of %d: %d\n", 64 * multiplier, sizebytes);
+      }
+
+      uint32_t size_single_block = LBM_MEMORY_SIZE_64BYTES_TIMES_X(sizeof(lbm_uint));
+
+      uint32_t num_blocks = sizebytes / size_single_block;
+      lbm_memory_size = LBM_MEMORY_SIZE_64BYTES_TIMES_X(num_blocks);
+      lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE(num_blocks);
     } break;
     case 'h':
       printf("Usage: %s [OPTION...]\n\n", argv[0]);
@@ -869,8 +841,8 @@ void parse_opts(int argc, char **argv) {
       printf("    -H SIZE, --heap_size=SIZE         Set heap_size to be SIZE number of\n"\
              "                                      cells.\n");
       printf("    -M SIZE, --memory_size=SIZE       Set the arrays and symbols memory\n"\
-             "                                      size to one memory-size-indices\n"\
-             "                                      listed below.\n");
+             "                                      SIZE will be rounded up to nearest\n"\
+             "                                      usable larger value.\n");
       printf("    -C SIZE, --const_memory_size=SIZE Set the size of the constants memory.\n"\
              "                                      This memory emulates a flash memory\n"\
              "                                      that can be written to once per location.\n");
@@ -902,34 +874,6 @@ void parse_opts(int argc, char **argv) {
       printf("\n");
       printf("    --shebang                         Executable script mode\n");
       printf("    --script_args_start               Index in argument list where arguments for the script starts\n");
-      printf("\n");
-
-      printf("memory-size-indices: \n"          \
-             "Index | Words\n"                  \
-             "  1   - %d\n"                     \
-             "  2   - %d\n"                     \
-             "  3   - %d\n"                     \
-             "  4   - %d\n"                     \
-             "  5   - %d\n"                     \
-             "* 6   - %d\n"                     \
-             "  7   - %d\n"                     \
-             "  8   - %d\n"                     \
-             "  9   - %d\n"                     \
-             " 10   - %d\n"                     \
-             " 11   - %d\n",
-             LBM_MEMORY_SIZE_512,
-             LBM_MEMORY_SIZE_1K,
-             LBM_MEMORY_SIZE_2K,
-             LBM_MEMORY_SIZE_4K,
-             LBM_MEMORY_SIZE_8K,
-             LBM_MEMORY_SIZE_10K,
-             LBM_MEMORY_SIZE_12K,
-             LBM_MEMORY_SIZE_14K,
-             LBM_MEMORY_SIZE_16K,
-             LBM_MEMORY_SIZE_32K,
-             LBM_MEMORY_SIZE_1M
-             );
-      printf("Default is marked with a *.\n");
       printf("\n");
       printf("SOURCE FILES\n" \
              "  Multiple sourcefiles and expressions can be added with multiple uses\n" \
@@ -1194,7 +1138,7 @@ int init_repl(void) {
 #ifndef LBM_WIN
   lbm_gnuplot_init();
 #endif
-  
+
 /* Load clean_cl library into heap */
 #ifdef CLEAN_UP_CLOSURES
   if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
