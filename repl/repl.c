@@ -816,7 +816,7 @@ void parse_opts(int argc, char **argv) {
         terminate_repl(REPL_EXIT_SUCCESS);
       }
 
-      uint32_t size_single_block_bytes = LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(1);
+      uint32_t size_single_block_bytes = sizeof(lbm_uint) * LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(1);
 
       if (!(sizebytes % size_single_block_bytes) == 0) {
         printf("Warning: The lbm_memory must be a multiple of %d bytes in size\n", size_single_block_bytes);
@@ -825,7 +825,7 @@ void parse_opts(int argc, char **argv) {
       }
 
       uint32_t num_blocks = sizebytes / size_single_block_bytes;
-      lbm_memory_size = LBM_MEMORY_SIZE_64BYTES_TIMES_X(num_blocks);
+      lbm_memory_size = LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(num_blocks);
       lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE(num_blocks);
     } break;
     case 'h':

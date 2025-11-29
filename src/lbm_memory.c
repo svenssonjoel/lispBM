@@ -70,12 +70,12 @@ bool lbm_memory_init(lbm_uint *data, lbm_uint data_size,
   bool res = false;
   if (data && bits) {
 
-    if (((lbm_uint)data % sizeof(lbm_uint) != 0) ||
+    if (((lbm_uint)data % sizeof(lbm_uint) != 0) || // Alignment requirement
         (data_size * 2) != (bits_size * sizeof(lbm_uint) * 8) ||
         data_size % 4 != 0 ||
-        ((lbm_uint)bits % sizeof(lbm_uint) != 0) ||
-        bits_size < 1 ||
-        bits_size % 4 != 0) {
+        ((lbm_uint)bits % sizeof(lbm_uint) != 0) || // Alignment requirement
+        bits_size < 1) {
+        //bits_size % 4 != 0) { // lets try without this requirement a while
       // data is not aligned to sizeof lbm_uint
       // size is too small
       // or size is not a multiple of 4

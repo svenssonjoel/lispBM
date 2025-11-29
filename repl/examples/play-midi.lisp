@@ -1,4 +1,4 @@
-#!/usr/bin/env -S shlbm -M 11 --
+#!/usr/bin/env -S shlbm -M 1048576 --
 
 ;; connect the midi-player to the LBM synth.
 ;; aplaymidi -p 128:0 level1.mid
