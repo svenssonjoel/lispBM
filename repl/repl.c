@@ -816,16 +816,15 @@ void parse_opts(int argc, char **argv) {
         terminate_repl(REPL_EXIT_SUCCESS);
       }
 
-      // The 64 bytes in the macro name is misleading as it is only true on 32 bit platforms.
-      uint32_t size_single_block = LBM_MEMORY_SIZE_64BYTES_TIMES_X(sizeof(lbm_uint));
+      uint32_t size_single_block_bytes = LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(1);
 
-      if (!(sizebytes % (size_single_block * sizeof(lbm_uint)) == 0)) {
-        printf("Warning: The lbm_memory must be a multiple of %d bytes in size\n", size_single_block * sizeof(lbm_uint));
-        sizebytes = (sizebytes + (size_single_block * sizeof(lbm_uint) - 1)) & ~(size_single_block * sizeof(lbm_uint) - 1);
-        printf("Using next multiple of %d: %d\n", size_single_block * sizeof(lbm_uint), sizebytes);
+      if (!(sizebytes % size_single_block_bytes) == 0) {
+        printf("Warning: The lbm_memory must be a multiple of %d bytes in size\n", size_single_block_bytes);
+        sizebytes = (sizebytes + (size_single_block_bytes - 1)) & ~(size_single_block_bytes - 1);
+        printf("Using next multiple of %d: %d\n", size_single_block_bytes, sizebytes);
       }
 
-      uint32_t num_blocks = sizebytes / size_single_block;
+      uint32_t num_blocks = sizebytes / size_single_block_bytes;
       lbm_memory_size = LBM_MEMORY_SIZE_64BYTES_TIMES_X(num_blocks);
       lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE(num_blocks);
     } break;
@@ -835,7 +834,8 @@ void parse_opts(int argc, char **argv) {
       printf("    -H SIZE, --heap_size=SIZE         Set heap_size to be SIZE number of\n"\
              "                                      cells.\n");
       printf("    -M SIZE, --memory_size=SIZE       Set the arrays and symbols memory\n"\
-             "                                      SIZE will be rounded up to nearest\n"\
+             "                                      SIZE in Bytes.\n" \
+             "                                      Value is rounded up to nearest\n"\
              "                                      usable larger value.\n");
       printf("    -C SIZE, --const_memory_size=SIZE Set the size of the constants memory.\n"\
              "                                      This memory emulates a flash memory\n"\
@@ -867,7 +867,8 @@ void parse_opts(int argc, char **argv) {
       printf("    --vesc_express_stubs              Load Vesc Express extension stub files\n");
       printf("\n");
       printf("    --shebang                         Executable script mode\n");
-      printf("    --script_args_start               Index in argument list where arguments for the script starts\n");
+      printf("    --script_args_start               Index in argument list where arguments\n");
+      printf("                                      for the script starts\n");
       printf("\n");
       printf("SOURCE FILES\n" \
              "  Multiple sourcefiles and expressions can be added with multiple uses\n" \

@@ -51,6 +51,11 @@ static lbm_mutex_t lbm_mem_mutex;
 static bool    lbm_mem_mutex_initialized;
 static lbm_uint alloc_offset = 0;
 
+// TODO: Go over the size requirements here.
+// There may be some extra tight constraints set on bitmap size.
+//
+// The data_size and bitmap_size arguments are already in
+// Number of words.
 bool lbm_memory_init(lbm_uint *data, lbm_uint data_size,
                     lbm_uint *bits, lbm_uint bits_size) {
 
