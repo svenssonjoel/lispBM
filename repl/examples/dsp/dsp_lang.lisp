@@ -156,6 +156,31 @@
   (gnuplot-close gp)
   })
 
+(defun plot-signal-signal (signal1-file signal2-file outfile t0 t1 t2)
+  {
+  (define gp (gnuplot-open))
+  (gnuplot-cmd gp "set terminal pdf size 10,8")
+  (gnuplot-cmd gp (str-join `("set output '" ,outfile "'")))
+
+  (gnuplot-cmd gp (str-join `("set multiplot layout 2,1 title '" ,t0 "'")))
+
+  (gnuplot-cmd gp (str-join `("set title '" ,t1 "'")))
+  (gnuplot-cmd gp "set xlabel 'Sample'")
+  (gnuplot-cmd gp "set ylabel 'Amplitude'")
+  (gnuplot-cmd gp "set grid")
+  (gnuplot-cmd gp (str-join `("plot '" ,signal1-file "' binary array=1024 format='%float' with lines title 'Signal 1'")))
+
+  (gnuplot-cmd gp (str-join `("set title '" ,t2 "'")))
+  (gnuplot-cmd gp "set xlabel 'Sample'")
+  (gnuplot-cmd gp "set ylabel 'Amplitude'")
+  (gnuplot-cmd gp "set grid")
+  (gnuplot-cmd gp (str-join `("plot '" ,signal2-file "' binary array=1024 format='%float' with lines title 'Signal 2'")))
+
+  (gnuplot-cmd gp "unset multiplot")
+  (gnuplot-cmd gp "set output")
+  (gnuplot-close gp)
+  })
+
 ;; TODOs:
 ;; - Windows and FFT (Hann, Hamming, Blackman - compare side lobe reduction)
 ;; - Peak detection (req. mean, std_dev)
