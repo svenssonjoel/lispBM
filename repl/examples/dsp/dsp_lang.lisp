@@ -42,6 +42,8 @@
   (list 'signal-sum s1 s2))
 (defun signal-prod (s1 s2)
   (list 'signal-prod s1 s2))
+(defun signal-switch-after (s1 s2 switch-time)
+  (list 'signal-switch-after s1 s2 switch-time))
 
 (define signal-phase-shift 'signal-phase-shift)
 
@@ -55,8 +57,17 @@
    ( (signal-const (? v)) v)
    ((signal-sum (? s1) (? s2)) (+ (eval-signal s1 sig-t) (eval-signal s2 sig-t)))
    ((signal-prod (? s1) (? s2)) (* (eval-signal s1 sig-t) (eval-signal s2 sig-t)))
-   ((signal-phase-shift (? s) (? p) (eval-signal s (+ sig-t p))))
+   ((signal-phase-shift (? s) (? p)) (eval-signal s (+ sig-t p)))
+   ((signal-switch-after (? s1) (? s2) (? t-switch))
+    (if (< sig-t t-switch)
+        (eval-signal s1 sig-t)
+        (eval-signal s2 sig-t)))
    ))
+;; REMINDER: It is possible that we may want to subtract t-switch from sig-t
+;;   when evaluating s2 in the signal-switch-after case.
+;;   Subtracting leads to s2 starting with phase 0 (possibly altered by signal-phase-shift).
+;;   Skipping the subtraction means whatever phase we are in is passed on to s2.
+
 
 
 (defun sample-signal (s sample-rate buffer ) {
