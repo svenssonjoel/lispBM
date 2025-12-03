@@ -16,14 +16,17 @@
 
 (define rx-buffer (bufcreate (* 4 1024)))
 
-(loopfor i 0 (< i 1024) (+ i 1) {
-      (var time (/ i 500000.0))
-      (var s    (bufget-f32 tx-buffer (* i 4) 'little-endian))
-      (var c    (sin (* 100000.0 two-pi time)))
-      (var m    (* s c))
-      (bufset-f32 rx-buffer (* i 4) m 'little-endian)
-      })
 
+(defun mix-down (in-buffer out-buffer) 
+  (loopfor i 0 (< i 1024) (+ i 1) {
+        (var time (/ i 500000.0))
+        (var s    (bufget-f32 in-buffer (* i 4) 'little-endian))
+        (var c    (sin (* 100000.0 two-pi time)))
+        (var m    (* s c))
+        (bufset-f32 out-buffer (* i 4) m 'little-endian)
+        }))
+
+(mix-down tx-buffer rx-buffer)
 
 (defun lowpass (input-buffer output-buffer alpha) {
       (var num-samples (/ (length input-buffer) 4))
@@ -70,3 +73,36 @@
                     "Low-pass filtering mixed signal")
 
 
+
+;; Experiment: downmixing the signal when the carrier
+;; wave and the demodulation wave are not in phase.
+
+(define phaseplots nil)
+
+(define interesting-phases
+    `((0.0 . "0 - Perfect phase lock")
+      (,(* pi 0.25) . "45 - 0.707 amplitude")
+      (,(* pi 0.5) . "90 - Complete null")
+      (,(* pi 0.75) . "135° - Negative 0.707")
+      (,pi . "180 - Full inversion")
+      (,(* pi 1.25) . "225 - Negative 0.707")
+      (,(* pi 1.5) . "270 - Complete null")
+      (,(* pi 1.75) . "315 - 0.707 amplitude")))
+
+(loopfor i 0 (< i (length interesting-phases)) (+ i 1) {
+      (var psh (ix interesting-phases i)) ;; (* i (/ two-pi 5)))
+      (sample-signal (signal-phase-shift transmit-sig (car psh)) 500000.0 tx-buffer)
+      (mix-down tx-buffer rx-buffer)
+      (lowpass rx-buffer filtered-buffer 0.1)
+      (var filename (str-join (list "wave" (to-str i) ".bin")))
+      (var leg filename)
+      (var leg (str-join (list "Phase shift " (cdr psh)))) ;; (to-str psh) )))
+      (with-file filename "wb"
+        (lambda (x) (fwrite x filtered-buffer)))
+      (setq phaseplots (cons `( ,filename . ,leg) phaseplots))
+      })
+
+(print "output: mixing-phases.pdf")
+(plot-signals phaseplots "mixing-phases.pdf" "Out of phase mixing")
+
+      

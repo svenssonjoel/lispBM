@@ -45,7 +45,8 @@
 (defun signal-switch-after (s1 s2 switch-time)
   (list 'signal-switch-after s1 s2 switch-time))
 
-(define signal-phase-shift 'signal-phase-shift)
+(defun signal-phase-shift (s p)
+  (list 'signal-phase-shift s p))
 
 
 ;; evaluate a signal at time t
@@ -188,6 +189,35 @@
   (gnuplot-cmd gp (str-join `("plot '" ,signal2-file "' binary array=1024 format='%float' with lines title 'Signal 2'")))
 
   (gnuplot-cmd gp "unset multiplot")
+  (gnuplot-cmd gp "set output")
+  (gnuplot-close gp)
+  })
+
+(defun plot-signals (file-legend-pairs outfile title)
+  {
+  (define gp (gnuplot-open))
+  (gnuplot-cmd gp "set terminal pdf size 10,6")
+  (gnuplot-cmd gp (str-join `("set output '" ,outfile "'")))
+  (gnuplot-cmd gp (str-join `("set title '" ,title "'")))
+  (gnuplot-cmd gp "set xlabel 'Sample'")
+  (gnuplot-cmd gp "set ylabel 'Amplitude'")
+  (gnuplot-cmd gp "set grid")
+
+  (var plot-cmd "plot ")
+  (var first-elt t)
+  (loopfor i 0 (< i (length file-legend-pairs)) (+ i 1) {
+    (var pair (ix file-legend-pairs i))
+    (var file (car pair))
+    (var legend (cdr pair))
+
+    (if (not first-elt)
+        (setq plot-cmd (str-join `(,plot-cmd ", "))))
+    (setq first-elt nil)
+
+    (setq plot-cmd (str-join (list plot-cmd "'" file "' binary array=1024 format='%float' with lines title '" legend "'")))
+  })
+
+  (gnuplot-cmd gp plot-cmd)
   (gnuplot-cmd gp "set output")
   (gnuplot-close gp)
   })
