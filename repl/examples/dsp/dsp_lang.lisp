@@ -62,13 +62,8 @@
    ((signal-switch-after (? s1) (? s2) (? t-switch))
     (if (< sig-t t-switch)
         (eval-signal s1 sig-t)
-        (eval-signal s2 sig-t)))
+        (eval-signal s2 (- sig-t t-switch))))
    ))
-;; REMINDER: It is possible that we may want to subtract t-switch from sig-t
-;;   when evaluating s2 in the signal-switch-after case.
-;;   Subtracting leads to s2 starting with phase 0 (possibly altered by signal-phase-shift).
-;;   Skipping the subtraction means whatever phase we are in is passed on to s2.
-
 
 
 (defun sample-signal (s sample-rate buffer ) {
@@ -82,9 +77,20 @@
        buffer
        })
 
+(defun sample-signal-from (s sample-rate t-start buffer ) {
+       (var num-samples (/ (length buffer) 4))
+       (var time-delta (/ 1.0 sample-rate))
+       (var sig-t t-start)
+       (loopfor i 0 (< i num-samples) (+ i 1) {
+             (bufset-f32 buffer (* i 4) (eval-signal s sig-t) 'little-endian)
+             (setq sig-t (+ sig-t time-delta))
+             })
+       buffer
+       })
+
+
 
 ;; Filehandling "bracket style" operation
-
 (defun with-file (filename mode operation) {
        (var fh (fopen filename mode))
        (operation fh)
