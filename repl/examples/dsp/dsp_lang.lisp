@@ -48,10 +48,25 @@
 (defun signal-phase-shift (s p)
   (list 'signal-phase-shift s p))
 
+(defun signal-fun (fun)
+  (let (( (a) (get-with-default (rest-args) (list "Custom signal"))))
+    (list 'signal-fun a fun)))
+
+(defun signal-sin-chirp-linear (f0 f1 duration)
+  (signal-fun
+    (lambda (time)
+      (if (< time duration)
+          (let ((k (/ (- f1 f0) duration)))
+            (sin (* two-pi (+ (* f0 time) (* 0.5 k time time)))))
+          (sin (* two-pi f1 time))))
+    (str-join `("Linear chirp " ,(to-str f0) "Hz -> " ,(to-str f1) "Hz over " ,(to-str duration) "s"))))
+
 
 ;; evaluate a signal at time t
 (defun eval-signal (s sig-t)
   (match s
+   ( (signal-fun _ (? sig-fun)) (sig-fun sig-t))
+         
    ( (signal-sin (? f) (? p) (? a)) (* a (sin (+ (* f two-pi sig-t) p))))
    ( (signal-cos (? f) (? p) (? a)) (* a (cos (+ (* f two-pi sig-t) p))))
    ( (signal-noise (? a)) (* a (/ (to-float (random)) (rand-max))))
