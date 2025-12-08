@@ -578,7 +578,7 @@ bool lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
   heap_init_state(addr, num_cells,
                   gc_stack_storage, gc_stack_size);
 
-  lbm_heaps[0] = addr;
+  lbm_heaps[LBM_RAM_HEAP] = addr;
 
   return generate_freelist(num_cells);
 }
@@ -1274,7 +1274,7 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
 
   lbm_const_heap_state = heap;
   // ref_cell views the lbm_uint array as an lbm_cons_t array
-  lbm_heaps[1] = (lbm_cons_t*)addr;
+  lbm_heaps[LBM_CONST_HEAP] = (lbm_cons_t*)addr;
   return 1;
 }
 

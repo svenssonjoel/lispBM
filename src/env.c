@@ -92,18 +92,26 @@ bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
   return false;
 }
 
+// Global environment lookup
+// Assumes that environment is structurally correct.
+// Assumes that global environment structures are never constant.
 bool lbm_global_env_lookup(lbm_value *res, lbm_value sym) {
   lbm_uint dec_sym = lbm_dec_sym(sym);
   lbm_uint ix = dec_sym & GLOBAL_ENV_MASK;
   lbm_value curr = env_global[ix];
 
-  while (lbm_is_ptr(curr)) {
-    lbm_value c = lbm_ref_cell(curr)->car;
-    if ((lbm_ref_cell(c)->car) == sym) {
-      *res = lbm_ref_cell(c)->cdr;
+  while (curr) { // Uses the fact that nil is 0 and the assumption
+                 // that global environments are structurally correct.
+    lbm_uint curr_ix = lbm_dec_ptr(curr);
+    lbm_cons_t *curr_cell = &lbm_heaps[LBM_RAM_HEAP][curr_ix];
+    lbm_value c = curr_cell->car;
+    lbm_uint c_ix = lbm_dec_ptr(c); // Assumes environment is correctly shaped.
+    lbm_cons_t *c_cell = &lbm_heaps[LBM_RAM_HEAP][c_ix];
+    if (c_cell->car == sym) {
+      *res = c_cell->cdr;
       return true;
     }
-    curr = lbm_ref_cell(curr)->cdr;
+    curr = curr_cell->cdr;
   }
   return false;
 }

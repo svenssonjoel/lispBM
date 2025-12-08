@@ -1,4 +1,4 @@
-#!/usr/bin/env -S shlbm -M 512000 --
+#!/usr/bin/env -S shlbm -H 32000 -M 512000 --
 
 (import "dsp_lang.lisp")
 
@@ -111,6 +111,8 @@
 
 (print "output: fft_sin2000_plus_cos2000.pdf")
 (plot-spectrum "wave.bin" "fft_sin2000_plus_cos2000.pdf" "Frequency Spectrum: 2000Hz")
+
+
 
 ;; Example 6: Magnitude and Phase plot
 ;; Generate sin(2000Hz) + cos(2000Hz) signal

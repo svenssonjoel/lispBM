@@ -687,6 +687,9 @@ static inline lbm_uint lbm_dec_ptr(lbm_value p) {
   return ((LBM_PTR_VAL_MASK & p) >> LBM_ADDRESS_SHIFT);
 }
 
+#define LBM_RAM_HEAP 0
+#define LBM_CONST_HEAP 1
+
 extern lbm_cons_t *lbm_heaps[2];
 
 static inline lbm_uint lbm_dec_cons_cell_ptr(lbm_value p) {

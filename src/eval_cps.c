@@ -1093,47 +1093,6 @@ static void unlink_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
   ctx->prev = NULL;
 }
 
-/* static bool drop_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) { */
-
-/*   bool res = false; */
-/*   if (q->first == NULL || q->last == NULL) { */
-/*     if (!(q->last == NULL && q->first == NULL)) { */
-/*       /\* error state that should not happen *\/ */
-/*       return res; */
-/*     } */
-/*     /\* Queue is empty *\/ */
-/*     return res; */
-/*   } */
-
-/*   eval_context_t *curr = q->first; */
-/*   while (curr) { */
-/*     if (curr->id == ctx->id) { */
-/*       res = true; */
-/*       eval_context_t *tmp = curr->next; */
-/*       if (curr->prev == NULL) { */
-/*         if (curr->next == NULL) { */
-/*           q->last = NULL; */
-/*           q->first = NULL; */
-/*         } else { */
-/*           q->first = tmp; */
-/*           tmp->prev = NULL; */
-/*         } */
-/*       } else { /\* curr->prev != NULL *\/ */
-/*         if (curr->next == NULL) { */
-/*           q->last = curr->prev; */
-/*           q->last->next = NULL; */
-/*         } else { */
-/*           curr->prev->next = tmp; */
-/*           tmp->prev = curr->prev; */
-/*         } */
-/*       } */
-/*       break; */
-/*     } */
-/*     curr = curr->next; */
-/*   } */
-/*   return res; */
-/* } */
-
 /* End execution of the running context. */
 static void finish_ctx(void) {
 
