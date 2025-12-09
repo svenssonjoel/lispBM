@@ -692,11 +692,6 @@ static inline lbm_uint lbm_dec_ptr(lbm_value p) {
 
 extern lbm_cons_t *lbm_heaps[2];
 
-static inline lbm_uint lbm_dec_cons_cell_ptr(lbm_value p) {
-  lbm_uint h = (p & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT;
-  return lbm_dec_ptr(p) >> h;
-}
-
 static inline lbm_cons_t *lbm_dec_heap(lbm_value p) {
   lbm_uint h = (p & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT;
   return lbm_heaps[h];
@@ -1027,7 +1022,7 @@ static inline bool lbm_is_error(lbm_value v){
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
 static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
-  return &lbm_dec_heap(addr)[lbm_dec_cons_cell_ptr(addr)];
+  return &lbm_dec_heap(addr)[lbm_dec_ptr(addr)];
   //return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
 }
 
