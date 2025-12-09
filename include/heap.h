@@ -857,7 +857,8 @@ static inline bool lbm_is_constant(lbm_value x) {
  * \return true if x is a Read/Writeable cons cell, false otherwise.
  */
 static inline bool lbm_is_cons_rw(lbm_value x) {
-  return !((x & (LBM_CONS_CONST_TYPE_MASK | LBM_PTR_BIT)) ^ LBM_EXACT_CONS_MASK);
+  return (x & (LBM_CONS_CONST_TYPE_MASK | LBM_PTR_BIT)) == LBM_EXACT_CONS_MASK;
+  //return !((x & (LBM_CONS_CONST_TYPE_MASK | LBM_PTR_BIT)) ^ LBM_EXACT_CONS_MASK);
   //return (lbm_type_of(x) == LBM_TYPE_CONS);
 }
 
@@ -867,7 +868,8 @@ static inline bool lbm_is_cons_rw(lbm_value x) {
  * \return true if x is a readable cons cell, false otherwise.
  */
 static inline bool lbm_is_cons(lbm_value x) {
-  return !((x & (LBM_CONS_TYPE_MASK | LBM_PTR_BIT)) ^ LBM_EXACT_CONS_MASK);
+  return (x & (LBM_CONS_TYPE_MASK | LBM_PTR_BIT)) == LBM_EXACT_CONS_MASK;
+  //return !((x & (LBM_CONS_TYPE_MASK | LBM_PTR_BIT)) ^ LBM_EXACT_CONS_MASK);
   //return lbm_is_ptr(x) && ((x & LBM_CONS_TYPE_MASK) == LBM_TYPE_CONS);
 }
 
