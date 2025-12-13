@@ -697,10 +697,10 @@ int main(int argc, char **argv) {
         if ((stream_i % 100) == 99) {
           printf("stuck streaming\n");
           stuck_count ++;
-          if (stuck_count == 10) return 0;
+          if (stuck_count == 20) return 0;
         }
         stream_i ++;
-        sleep_callback(2);
+        sleep_callback(50);
       }
     }
   }
