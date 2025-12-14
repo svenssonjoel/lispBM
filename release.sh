@@ -58,10 +58,12 @@ cd repl
 cppcheck32log="../${reportdir}/cppcheck/cppcheck_32bit_${release}.txt"
 cppcheck64log="../${reportdir}/cppcheck/cppcheck_64bit_${release}.txt"
 
-
 echo "Running CPPCHECK"
 ./run_cppcheck.sh $cppcheck32log $cppcheck64log &> /dev/null
 
+echo "## CPPCHECK" >> ../$reportdir/$release_readme
+echo "" >> ../$reportdir/$release_readme
+echo "See the cppcheck directory for results." >> ../$reportdir/$release_readme
 print_elapsed ../$reportdir/$release_readme
 
 cd ..
@@ -221,6 +223,9 @@ print_elapsed ../$reportdir/$release_readme
 # Collect coverage
 
 echo "Gathering coverage data and assembling report"
+
+echo "" >> ../$reportdir/$release_readme
+echo "## Coverage collection" >> ../$reportdir/$release_readme
 
 ./collect_coverage.sh  >> ../$reportdir/collect_coverage_log_${release}.txt
 
