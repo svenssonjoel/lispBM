@@ -12,7 +12,12 @@ START_TIME=$(date +%s)
 
 print_elapsed () {
     ELAPSED=$(($(date +%s) - START_TIME))
-    printf "elapsed: %s\n\n" "$(date -d@$ELAPSED -u +%H\ hours\ %M\ min\ %S\ sec)"
+    local elapsed_msg
+    elapsed_msg=$(printf "elapsed: %s\n\n" "$(date -d@$ELAPSED -u +%H\ hours\ %M\ min\ %S\ sec)")
+    echo "$elapsed_msg"
+    if [ -n "$1" ]; then
+        echo "$elapsed_msg" >> "$1"
+    fi
 }
 
 directories=("tests"
@@ -36,6 +41,17 @@ release_readme="readme_${release}.md"
 
 echo "# LispBM Release ${release} Test logs" > $reportdir/$release_readme
 echo "" >> $reportdir/$release_readme
+echo "## Build Machine Information" >> $reportdir/$release_readme
+echo "" >> $reportdir/$release_readme
+echo "- **Date**: $(date '+%Y-%m-%d %H:%M:%S %Z')" >> $reportdir/$release_readme
+echo "- **Hostname**: $(hostname)" >> $reportdir/$release_readme
+echo "- **OS**: $(uname -s) $(uname -r)" >> $reportdir/$release_readme
+echo "- **Architecture**: $(uname -m)" >> $reportdir/$release_readme
+echo "- **CPU**: $(grep 'model name' /proc/cpuinfo | head -1 | cut -d':' -f2 | xargs)" >> $reportdir/$release_readme
+echo "- **CPU Cores**: $(nproc)" >> $reportdir/$release_readme
+echo "- **Memory**: $(free -h | grep Mem | awk '{print $2}')" >> $reportdir/$release_readme
+echo "- **GCC Version**: $(gcc --version | head -1)" >> $reportdir/$release_readme
+echo "" >> $reportdir/$release_readme
 
 cd repl
 
@@ -46,7 +62,7 @@ cppcheck64log="../${reportdir}/cppcheck/cppcheck_64bit_${release}.txt"
 echo "Running CPPCHECK"
 ./run_cppcheck.sh $cppcheck32log $cppcheck64log &> /dev/null
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 cd ..
 
@@ -67,7 +83,7 @@ echo "" >> ../$reportdir/$release_readme
 echo "## 32BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$unit_tests_log_file >> ../$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 # 32bit time based scheduler tests
@@ -82,7 +98,7 @@ echo "" >> ../$reportdir/$release_readme
 echo "## 32BIT TIME BASED SCHEDULER UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$unit_tests_time_log_file >> ../$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 # 64bit tests
@@ -95,9 +111,9 @@ echo "Running 64bit tests"
 ./run_tests_generic_parallel.sh 64bit ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## 64BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$unit_tests_64_log_file >> ../$reportdir/$release_readme 
+tail -n 4 ../$reportdir/$unit_tests_64_log_file >> ../$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 # 64bit time based scheduler tests
@@ -110,9 +126,9 @@ echo "Running 64bit tests with time scheduler"
 ./run_tests_generic_parallel.sh 64bit_time ../$reportdir/$failing_unit_tests_64_time_log_file >> ../$reportdir/$unit_tests_64_time_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## 64BIT TIME BASED SCHEDULER UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$unit_tests_64_time_log_file >> ../$reportdir/$release_readme 
+tail -n 4 ../$reportdir/$unit_tests_64_time_log_file >> ../$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 # Always GC tests
@@ -127,7 +143,7 @@ echo "" >> ../$reportdir/$release_readme
 echo "## ALWAYS GC UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$gc_unit_tests_log_file >> ../$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 #Pointer reversal gc tests
@@ -140,9 +156,9 @@ echo "Running ptr-rev gc tests"
 ./run_tests_generic_parallel.sh revgc ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## POINTER REVERSAL GC UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$revgc_unit_tests_log_file >> ../$reportdir/$release_readme 
+tail -n 4 ../$reportdir/$revgc_unit_tests_log_file >> ../$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 #
@@ -156,7 +172,7 @@ echo "" >> ../$reportdir/$release_readme
 echo "## REPL TESTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$repl_tests_log_file >> ../$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 #
@@ -170,7 +186,7 @@ echo "" >> ../$reportdir/$release_readme
 echo "## IMAGE TESTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$image_tests_log_file >> ../$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 #
@@ -184,7 +200,7 @@ echo "" >> ../$reportdir/$release_readme
 echo "## SDL TESTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$sdl_tests_log_file >> ../$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 #
@@ -198,7 +214,7 @@ echo "" >> ../$reportdir/$release_readme
 echo "## C UNIT TESTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$c_unit_tests_log_file >> ../$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ../$reportdir/$release_readme
 
 
 ############################################################
@@ -211,7 +227,7 @@ echo "Gathering coverage data and assembling report"
 cd ..
 cp -r tests/coverage $reportdir/coverage
 
-print_elapsed
+print_elapsed ./$reportdir/$release_readme
 
 ############################################################
 
@@ -247,7 +263,7 @@ else
 fi
 tail -n 1 $reportdir/scan_build_$release.txt >> ./$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ./$reportdir/$release_readme
 
 ############################################################
 
@@ -262,6 +278,6 @@ echo "" >> ./$reportdir/$release_readme
 echo "## INFER ISSUES" >> ./$reportdir/$release_readme
 tail -n 3 $reportdir/infer_${release}.txt >> ./$reportdir/$release_readme
 
-print_elapsed
+print_elapsed ./$reportdir/$release_readme
 
 echo "DONE!"

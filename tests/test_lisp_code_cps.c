@@ -642,11 +642,11 @@ int main(int argc, char **argv) {
   lbm_pause_eval_with_gc(20);
   int wait_count = 0;
   while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-    if (wait_count >= 100) {
+    if (wait_count >= 1000) {
       printf("Could not pause the evaluator\n");
       return FAIL;
     }
-    printf("Wait for pause init\n");
+    if (wait_count % 100 == 99) printf("Wait for pause init\n");
     sleep_callback(100);
     wait_count++;
   }

@@ -349,7 +349,7 @@ void lbm_set_eval_step_quota(uint32_t quota) {
 }
 #endif
 
-static uint32_t          eval_cps_run_state = EVAL_CPS_STATE_DEAD;
+static volatile uint32_t eval_cps_run_state = EVAL_CPS_STATE_DEAD;
 static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_NONE;
 static volatile uint32_t eval_cps_next_state_arg = 0;
 static volatile bool     eval_cps_state_changed = false;

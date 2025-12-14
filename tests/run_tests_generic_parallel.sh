@@ -26,6 +26,9 @@ if [ -z "$NUM_JOBS" ]; then
 fi
 echo "Running tests with $NUM_JOBS parallel jobs"
 
+# Set a default timeout value
+timeout="50"
+
 # Configure based on variant
 case "$VARIANT" in
   32bit)
@@ -61,6 +64,9 @@ case "$VARIANT" in
   gc)
     BINARY="test_lisp_code_cps_gc"
     USE_TIMEOUT=true
+    # Set a huge timeout for always_gc tests
+    # Parallelising these seems to increase the time they take per test.
+    timeout="200"
     EXCLUDE_TEST="test_is_64bit.lisp"
     DESCRIPTION="ALWAYS GC TESTS"
     COVERAGE_ENABLED=false
@@ -88,8 +94,7 @@ echo "BUILDING"
 rm -f "$BINARY"
 make "$BINARY"
 
-# Setup timeout and logfile
-timeout="50"
+# Setup logfile
 date=$(date +"%Y-%m-%d_%H-%M")
 
 if [ -z "$LOGFILE" ]; then
