@@ -178,12 +178,12 @@
   (gnuplot-cmd gp (str-join `("set title '" ,t1 "'")))
   (gnuplot-cmd gp "set xlabel 'Sample'")
   (gnuplot-cmd gp "set ylabel 'Amplitude'")
-  (gnuplot-cmd gp "plot 'wave.bin' binary array=1024 format='%float' with lines title 'Time Domain'")
+  (gnuplot-cmd gp (str-join `("plot '" ,signal-file "' binary array=1024 format='%float' with lines title 'Time Domain'")))
 
   (gnuplot-cmd gp (str-join `("set title '" ,t2 "'")))
   (gnuplot-cmd gp "set xlabel 'Frequency Bin'")
   (gnuplot-cmd gp "set ylabel 'Magnitude'")
-  (gnuplot-cmd gp "plot 'fft.bin' binary array=512 format='%float' with lines title 'Frequency Domain'")
+  (gnuplot-cmd gp (str-join `("plot '" ,mag-file "' binary array=512 format='%float' with lines title 'Frequency Domain'")))
 
   (gnuplot-cmd gp "unset multiplot")
   (gnuplot-close gp)
