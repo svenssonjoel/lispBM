@@ -1,4 +1,4 @@
-#!/usr/bin/env -S shlbm -M 512000 --
+#!/usr/bin/env -S shlbm  -H 32000 -M 512000 --
 
 (import "dsp_lang.lisp")
 
@@ -7,29 +7,33 @@
 
 (define carrier-sig (signal-sin 100000.0))
 
+(defun sinc (x)
+  (if (= x 0)
+      1.0
+      (/ (sin x) x)))
+
+(defun sinc-pulse ( x x-pos symbol-time n)
+  (if (> (abs (- x x-pos)) (* n symbol-time))
+      0.0
+      (sinc (* (/ pi symbol-time) (- x x-pos)))))
 
 
-(defun sinc (x s)
-  (let ((scaled-x (- (* 4.0 (/ x s)) 2.0)))
-    (if (= scaled-x 0.0)
-        1.0
-        (/ (sin (* pi scaled-x))
-           (* pi scaled-x)))))
-
-(defun signal-sinc (dur a)
+(defun signal-sinc (x-center dur a)
   (signal-fun (lambda (tim)
-                (if (<= tim dur)
-                    (* a (sinc tim dur))
-                    0.0))))
+                    (* a (sinc-pulse tim x-center dur 2)))))
+
+(defun signal-at (t-start sig)
+  (signal-switch-after (signal-const 0.0) sig t-start))
 
 (defun  message-sinc (msg s-time) {
         (var sig (signal-const 0))
-        (loopforeach b (reverse msg)
+        ;; Intentionally start a bit in the future
+        (var curr-time 0.0001)
+        (loopforeach b msg
               {
-              (setq sig (signal-switch-after
-                         (signal-sinc s-time (if (= b 1) 1.0 -1.0))
-                         sig
-                         s-time))
+              (setq sig (signal-sum
+                         (signal-sinc curr-time s-time (if (= b 1) 1.0 -1.0)) sig))
+              (setq curr-time (+ curr-time s-time))
               })
         sig
         })
@@ -38,7 +42,8 @@
 
 (define symbols-buf (bufcreate (* 4 1024)))
 
-(define msg-sig (message-sinc '(1 0 1 1 0 1) 0.0001))
+(define msg-sig (message-sinc '(1 0 1 0 1 0 1 0 1 0 1 1 0 0) 0.0001))
+;(define msg-sig (message-sinc '(1) 0.0001))
 
 (sample-signal msg-sig 500000.0 symbols-buf)
 
@@ -56,7 +61,7 @@
 
 
 ;; PSK modulated carrier is created by multiplying
-;; the message signal with the carrier signal. 
+;; the message signal with the carrier signal.
 (define psk-modulated-carrier (signal-prod msg-sig carrier-sig));
 
 (define modulated-buf (bufcreate (* 4 1024)))
@@ -88,7 +93,7 @@
         (bufset-f32 magnitudes (* i 4) (sqrt (+ (* x x) (* y y))) 'little-endian)
         })
   })
-        
+
 (with-file "fft.bin" "wb"
            (lambda (x) (fwrite x magnitudes)))
 

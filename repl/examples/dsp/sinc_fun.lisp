@@ -24,7 +24,10 @@
 ;; center sinc function in the sampling window
 (let ((buffer (bufcreate (* 4 1024))))
   {
-  (sample-signal (signal-fun (lambda (x) (sinc (* nyquist-criterion-scaling (- x (* 0.5 window-time))))))  samplerate buffer)
+  (sample-signal (signal-fun
+                  (lambda (x)
+                    (sinc (* nyquist-criterion-scaling
+                             (- x (* 0.5 window-time))))))  samplerate buffer)
   (with-file "wave.bin" "wb"
              (lambda (x) (fwrite x buffer)))
   (plot-signal "wave.bin" "sinc1.pdf"
