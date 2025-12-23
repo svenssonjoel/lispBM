@@ -6,7 +6,7 @@ This file lists Third party code that has been incorporated into LispBM
 
 ## LibScrift
 
-   www.github.com/tomolt/libschrift
+   https://www.github.com/tomolt/libschrift
 
    ISC License
 
@@ -27,7 +27,7 @@ This file lists Third party code that has been incorporated into LispBM
 
 ## TJpgDec
 
-   elm-chan.org/fsw/tjpgd/
+   https://elm-chan.org/fsw/tjpgd/
 
    TJpgDec License
    
