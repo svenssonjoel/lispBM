@@ -151,6 +151,14 @@ static lbm_value ext_correlate(lbm_value *args, lbm_uint argn) {
 
     lbm_array_header_t *s1_arr = lbm_dec_array_r(args[0]);
     lbm_array_header_t *s2_arr = lbm_dec_array_r(args[1]);
+    // The input arrays have been checked with lbm_is_array_r.
+    // If there is no way to create a byte array from a null pointer,
+    // then there is no way that these arrays can be null.
+    // TODO: Check bytearray creation functions.
+#ifdef __INFER__
+    __infer_assume(s1_arr != NULL);
+    __infer_assume(s2_arr != NULL);
+#endif
 
     unsigned int s1_len = s1_arr->size / 4;
     unsigned int s2_len = s2_arr->size / 4;
@@ -316,6 +324,14 @@ static lbm_value ext_convolve(lbm_value *args, lbm_uint argn) {
 
     lbm_array_header_t *sig_arr = lbm_dec_array_r(args[0]);
     lbm_array_header_t *fil_arr = lbm_dec_array_r(args[1]);
+    // The input arrays have been checked with lbm_is_array_r.
+    // If there is no way to create a byte array from a null pointer,
+    // then there is no way that these arrays can be null.
+    // TODO: Check bytearray creation functions.
+#ifdef __INFER__
+    __infer_assume(sig_arr != NULL);
+    __infer_assume(fil_arr != NULL);
+#endif
 
     unsigned int sig_len = sig_arr->size / 4;
     unsigned int fil_len = fil_arr->size / 4;
