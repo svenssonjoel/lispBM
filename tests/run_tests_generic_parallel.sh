@@ -10,7 +10,7 @@
 
 VARIANT="$1"
 LOGFILE="$2"
-NUM_JOBS="$3"
+SELECTED_NUM_JOBS="$3"
 
 if [ -z "$VARIANT" ]; then
   echo "Usage: $0 <variant> [logfile] [num_jobs]"
@@ -21,13 +21,14 @@ if [ -z "$VARIANT" ]; then
 fi
 
 # Detect number of CPU cores if not specified
-if [ -z "$NUM_JOBS" ]; then
-  NUM_JOBS=$(nproc 2>/dev/null || echo 4)
+if [ -z "$SELECTED_NUM_JOBS" ]; then
+  SELECTED_NUM_JOBS=$(nproc 2>/dev/null || echo 4)
 fi
-echo "Running tests with $NUM_JOBS parallel jobs"
 
 # Set a default timeout value
 timeout="50"
+
+NUM_JOBS=$SELECTED_NUM_JOBS
 
 # Configure based on variant
 case "$VARIANT" in
@@ -85,6 +86,8 @@ case "$VARIANT" in
     ;;
 esac
 
+echo "Running $VARIANT tests with $NUM_JOBS parallel jobs"
+echo ""
 echo "BUILDING"
 
 # Don't clean coverage data here - it should be done once at the start
@@ -264,23 +267,22 @@ export TEMP_DIR
 config_idx=0
 pids=()
 for arg in "${test_config[@]}"; do
-  # Launch background job
-  run_config_tests $config_idx "$arg" "$BINARY" &
-  pids+=($!)
-  config_idx=$((config_idx+1))
+    # Launch background job
+    run_config_tests $config_idx "$arg" "$BINARY" &
+    pids+=($!)
+    config_idx=$((config_idx+1))
 
-  # Limit number of parallel jobs
-  while [ $(jobs -r | wc -l) -ge $NUM_JOBS ]; do
-    sleep 0.1
-  done
+    # Limit number of parallel jobs
+    while [ $(jobs -r | wc -l) -ge $NUM_JOBS ]; do
+        sleep 0.1
+    done
 done
 
 # Wait for all background jobs to complete
 echo "Waiting for all test configurations to complete..."
 for pid in "${pids[@]}"; do
-  wait $pid
+    wait $pid
 done
-
 echo "All parallel tests completed. Combining results..."
 
 # Combine all results
@@ -309,7 +311,7 @@ done
 
 # Combine all log files into the main logfile
 for log_file in "$TEMP_DIR"/log_*.txt; do
-  if [ -f "$log_file" ]; then
+    if [ -f "$log_file" ]; then
     cat "$log_file" >> "$LOGFILE"
   fi
 done

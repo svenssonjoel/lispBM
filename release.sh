@@ -53,6 +53,11 @@ echo "- **Memory**: $(free -h | grep Mem | awk '{print $2}')" >> $reportdir/$rel
 echo "- **GCC Version**: $(gcc --version | head -1)" >> $reportdir/$release_readme
 echo "" >> $reportdir/$release_readme
 
+echo "" >> $reportdir/$release_readme
+echo "Using GCOVR version" >> $reportdir/$release_readme
+gcovr --version >> $reportdir/$release_readme
+echo "" >> $reportdir/$release_readme
+
 cd repl
 
 cppcheck32log="../${reportdir}/cppcheck/cppcheck_32bit_${release}.txt"
