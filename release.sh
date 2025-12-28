@@ -54,8 +54,13 @@ echo "- **GCC Version**: $(gcc --version | head -1)" >> $reportdir/$release_read
 echo "" >> $reportdir/$release_readme
 
 echo "" >> $reportdir/$release_readme
-echo "Using GCOVR version" >> $reportdir/$release_readme
+echo "" >> $reportdir/$release_readme
+echo "## Tools versions" >> $reportdir/$release_readme
 gcovr --version >> $reportdir/$release_readme
+echo "" >> $reportdir/$release_readme
+cppcheck --version >> $reportdir/$release_readme
+echo "" >> $reportdir/$release_readme
+infer --version >> $reportdir/$release_readme
 echo "" >> $reportdir/$release_readme
 
 cd repl

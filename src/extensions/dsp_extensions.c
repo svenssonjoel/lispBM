@@ -134,12 +134,12 @@ static void lbm_complex_corr(float *s1_re,
 
 static lbm_value ext_correlate(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
-  if (argn >= 2 &&
+  if ((argn == 2 || argn == 3) &&
       lbm_is_array_r(args[0]) &&
       lbm_is_array_r(args[1])) {
 
     bool be = true;
-    if (argn > 2 &&
+    if (argn == 3 &&
         lbm_is_symbol(args[2])) {
       if (lbm_dec_sym(args[2]) == sym_little_endian) {
         be = false;
@@ -178,14 +178,14 @@ static lbm_value ext_correlate(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_complex_correlate(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
-  if (argn >= 4 &&
+  if ((argn == 4 || argn == 5) && // Allow only 4 or 5 args
       lbm_is_array_r(args[0]) &&
       lbm_is_array_r(args[1]) &&
       lbm_is_array_r(args[2]) &&
       lbm_is_array_r(args[3])) {
 
     bool be = true;
-    if (argn > 4 &&
+    if (argn == 5 &&
         lbm_is_symbol(args[4])) {
       if (lbm_dec_sym(args[4]) == sym_little_endian) {
         be = false;
@@ -216,7 +216,9 @@ static lbm_value ext_complex_correlate(lbm_value *args, lbm_uint argn) {
     lbm_value output_im;
 
     unsigned int out_len = s1_len + s2_len - 1;
-    if (lbm_heap_allocate_array(&output_re, out_len * sizeof(float)) &&
+    lbm_value r_cons = lbm_cons(ENC_SYM_NIL, ENC_SYM_NIL);
+    if (r_cons != ENC_SYM_MERROR &&
+        lbm_heap_allocate_array(&output_re, out_len * sizeof(float)) &&
         lbm_heap_allocate_array(&output_im, out_len * sizeof(float))) {
       lbm_array_header_t *out_re_arr = lbm_dec_array_r(output_re);
       lbm_array_header_t *out_im_arr = lbm_dec_array_r(output_im);
@@ -231,7 +233,8 @@ static lbm_value ext_complex_correlate(lbm_value *args, lbm_uint argn) {
                        (float*)out_im_arr->data,
                        out_len,
                        swap_byte_order);
-      r = lbm_cons(output_re, output_im);
+      lbm_set_car_and_cdr(r_cons, output_re, output_im);
+      r = r_cons;
     } else {
       r = ENC_SYM_MERROR;
     }
@@ -296,12 +299,12 @@ static void lbm_complex_convolve(float *signal_re,
 
 static lbm_value ext_convolve(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
-  if (argn >= 2 &&
+  if ((argn == 2 || argn == 3) &&
       lbm_is_array_r(args[0]) &&
       lbm_is_array_r(args[1])) {
 
     bool be = true;
-    if (argn > 2 &&
+    if (argn == 3 &&
         lbm_is_symbol(args[2])) {
       if (lbm_dec_sym(args[2]) == sym_little_endian) {
         be = false;
@@ -340,14 +343,14 @@ static lbm_value ext_convolve(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_complex_convolve(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
-  if (argn >= 4 &&
+  if ((argn == 4 || argn == 5) &&
       lbm_is_array_r(args[0]) &&
       lbm_is_array_r(args[1]) &&
       lbm_is_array_r(args[2]) &&
       lbm_is_array_r(args[3])) {
 
     bool be = true;
-    if (argn > 4 &&
+    if (argn == 5 &&
         lbm_is_symbol(args[4])) {
       if (lbm_dec_sym(args[4]) == sym_little_endian) {
         be = false;
@@ -379,6 +382,7 @@ static lbm_value ext_complex_convolve(lbm_value *args, lbm_uint argn) {
     lbm_value output_im;
 
     unsigned int out_len = sig_len + fil_len - 1;
+    lbm_value r_cons = lbm_cons(ENC_SYM_NIL, ENC_SYM_NIL);
     if (lbm_heap_allocate_array(&output_re, out_len * sizeof(float)) &&
         lbm_heap_allocate_array(&output_im, out_len * sizeof(float))) {
       lbm_array_header_t *out_re_arr = lbm_dec_array_r(output_re);
@@ -394,7 +398,8 @@ static lbm_value ext_complex_convolve(lbm_value *args, lbm_uint argn) {
                            (float*)out_im_arr->data,
                            out_len,
                            swap_byte_order);
-      r = lbm_cons(output_re, output_im);
+      lbm_set_car_and_cdr(r_cons, output_re, output_im);
+      r = r_cons;
     } else {
       r = ENC_SYM_MERROR;
     }
@@ -575,7 +580,7 @@ void lbm_dsp_extensions_init(void) {
   lbm_add_symbol("big-endian", &sym_big_endian);
 
   lbm_add_extension("correlate", ext_correlate);
-  lbm_add_extension("complex_correlate", ext_complex_correlate);
+  lbm_add_extension("complex-correlate", ext_complex_correlate);
   lbm_add_extension("convolve", ext_convolve);
   lbm_add_extension("complex-convolve", ext_complex_convolve);
   lbm_add_extension("fft", ext_fft_f32);
