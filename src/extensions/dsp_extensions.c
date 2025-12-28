@@ -154,7 +154,6 @@ static lbm_value ext_correlate(lbm_value *args, lbm_uint argn) {
     // The input arrays have been checked with lbm_is_array_r.
     // If there is no way to create a byte array from a null pointer,
     // then there is no way that these arrays can be null.
-    // TODO: Check bytearray creation functions.
 #ifdef __INFER__
     __infer_assume(s1_arr != NULL);
     __infer_assume(s2_arr != NULL);
@@ -327,7 +326,6 @@ static lbm_value ext_convolve(lbm_value *args, lbm_uint argn) {
     // The input arrays have been checked with lbm_is_array_r.
     // If there is no way to create a byte array from a null pointer,
     // then there is no way that these arrays can be null.
-    // TODO: Check bytearray creation functions.
 #ifdef __INFER__
     __infer_assume(sig_arr != NULL);
     __infer_assume(fil_arr != NULL);
