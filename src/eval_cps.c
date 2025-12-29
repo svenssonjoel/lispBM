@@ -58,6 +58,14 @@
   documenting the error handling choices and it would also be nice to statically
   check/verify that we are ruling out the undefined use cases.
 */
+
+/* A short NOTE on Dependability and Fault-Tolerance
+
+   LispBM does not aim to be resilient to bit flips in memory caused by cosmic rays
+   or to externally corrupted or broken memory.
+   The goal is to ensure that LispBM itself does not cause memory corruption.
+*/
+
 #include <lbm_memory.h>
 #include <lbm_types.h>
 #include "symrepr.h"
@@ -3555,52 +3563,57 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 // s[sp-5]  = environment to evaluate the args in.
 // s[sp-4]  = body
 // s[sp-3]  = closure environment
-// s[sp-2]  = parameter list
-// s[sp-1]  = args list
+// s[sp-2]  = parameter list (Guaranteed cons cell)
+// s[sp-1]  = args list (Possibly NIL)
 //
 // ctx->r  = evaluated argument.
 static void cont_closure_application_args(eval_context_t *ctx) {
   lbm_uint* sptr = get_stack_ptr(ctx, 5);
 
-  lbm_value arg_env = (lbm_value)sptr[0];
-  lbm_value exp     = (lbm_value)sptr[1];
-  lbm_value clo_env = (lbm_value)sptr[2];
+  // Not naming these (arg_env, exp, clo_env) may seem like
+  // poor programming practice, but has a measureable effect on performance on STM32F4.
+  // Possible reasons:
+  //  - Minute difference in register pressure.
+  //  - Difficulty optimizing across function calls with unknown behavior (unless the compiler
+  //    would analyze it) in relation to the context stack.
+
+  //lbm_value arg_env = (lbm_value)sptr[0];
+  //lbm_value exp     = (lbm_value)sptr[1];
+  //lbm_value clo_env = (lbm_value)sptr[2];
   lbm_value params  = (lbm_value)sptr[3];
   lbm_value args    = (lbm_value)sptr[4];
 
-  lbm_value car_params, cdr_params;
-  get_car_and_cdr(params, &car_params, &cdr_params);
+  lbm_cons_t *params_cell = lbm_ref_cell(params);
 
-  bool a_nil = lbm_is_symbol_nil(args);
-  bool p_nil = lbm_is_symbol_nil(cdr_params);
+  lbm_value binder = allocate_binding(params_cell->car, ctx->r, sptr[2]); //clo_env);
 
-  lbm_value binder = allocate_binding(car_params, ctx->r, clo_env);
+  if (lbm_is_cons(args)) { // There are args
+    lbm_cons_t *args_cell = lbm_ref_cell(args);
 
-  if (!a_nil && !p_nil) {
-    lbm_value car_args, cdr_args;
-    get_car_and_cdr(args, &car_args, &cdr_args);
-    sptr[2] = binder;
-    sptr[3] = cdr_params;
-    sptr[4] = cdr_args;
-    stack_reserve(ctx,1)[0] = CLOSURE_ARGS;
-    ctx->curr_exp = car_args;
-    ctx->curr_env = arg_env;
-  } else if (a_nil && p_nil) {
-    // Arguments and parameters match up in number
-    stack_drop(ctx, 5);
-    ctx->curr_env = binder;
-    ctx->curr_exp = exp;
-  } else if (p_nil) {
-    lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, binder);
-    sptr[2] = rest_binder;
-    sptr[3] = get_cdr(args);
-    sptr[4] = get_car(rest_binder); // last element of rest_args so far
-    stack_reserve(ctx,1)[0] = CLOSURE_ARGS_REST;
-    ctx->curr_exp = get_car(args);
-    ctx->curr_env = arg_env;
-  }  else {
-    lbm_set_error_reason((char*)lbm_error_str_num_args);
-    ERROR_CTX(ENC_SYM_EERROR);
+    // params_cell->cdr is programmer entered syntax, we need to check if a cons
+    if (lbm_is_cons(params_cell->cdr)) {      
+      sptr[2] = binder;
+      sptr[3] = params_cell->cdr; // Guaranteed cons cell here
+      sptr[4] = args_cell->cdr;   // Possibly NIL
+      stack_reserve(ctx,1)[0] = CLOSURE_ARGS;
+    } else { // Args but no params => REST_ARGS
+      lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, binder);
+      sptr[2] = rest_binder;
+      sptr[3] = args_cell->cdr;
+      sptr[4] = get_car(rest_binder); // last element of rest_args so far
+      stack_reserve(ctx,1)[0] = CLOSURE_ARGS_REST;
+    }
+    ctx->curr_exp = args_cell->car;
+    ctx->curr_env = sptr[0]; //arg_env;
+  } else { // No args
+    if (lbm_is_symbol_nil(params_cell->cdr)) { // No Parameters
+      stack_drop(ctx, 5);
+      ctx->curr_env = binder;
+      ctx->curr_exp = sptr[1]; //exp;
+    } else { // Not enough arguments
+      lbm_set_error_reason((char*)lbm_error_str_num_args);
+      ERROR_CTX(ENC_SYM_EERROR);
+    }
   }
 }
 
@@ -4983,42 +4996,42 @@ static void cont_application_start(eval_context_t *ctx) {
     lbm_value args = (lbm_value)sptr[1];
     switch (lbm_ref_cell(ctx->r)->car) { // Already checked that is_cons
     case ENC_SYM_CLOSURE: {
-      lbm_value cl = get_cdr(ctx->r);
+      lbm_value cl = lbm_ref_cell(ctx->r)->cdr; // Already checked that is_cons
       lbm_value cl0, cl1, cl2;
       EXTRACT(cl, cl0); // CLO_PARAMS
       EXTRACT(cl, cl1); // CLO_BODY
       EXTRACT_NO_ADVANCE(cl, cl2); // CLO_ENV
       lbm_value arg_env = (lbm_value)sptr[0];
-      lbm_value arg0, arg_rest;
-      get_car_and_cdr(args, &arg0, &arg_rest);
-      sptr[1] = cl1;
-      bool a_nil = lbm_is_symbol_nil(args);
-      bool p_nil = lbm_is_symbol_nil(cl0);
-      lbm_value *reserved = stack_reserve(ctx, 4);
 
-      if (!a_nil && !p_nil) {
-        reserved[0] = cl2;
-        reserved[1] = cl0;
-        reserved[2] = arg_rest;
-        reserved[3] = CLOSURE_ARGS;
-        ctx->curr_exp = arg0;
-        ctx->curr_env = arg_env;
-      } else if (a_nil && p_nil) {
-        // No params, No args
-        stack_drop(ctx, 6);
-        ctx->curr_exp = cl1;
-        ctx->curr_env = cl2;
-      } else if (p_nil) {
-        reserved[1] = get_cdr(args);      // protect cdr(args) from allocate_binding
-        ctx->curr_exp = get_car(args);    // protect car(args) from allocate binding
-        ctx->curr_env = arg_env;
-        lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, cl2);
-        reserved[0] = rest_binder;
-        reserved[2] = get_car(rest_binder);
-        reserved[3] = CLOSURE_ARGS_REST;
-      } else {
-        lbm_set_error_reason((char*)lbm_error_str_num_args);
-        ERROR_AT_CTX(ENC_SYM_EERROR, ctx->r);
+      if (lbm_is_cons(args)) { // There are args
+        lbm_cons_t *args_cell = lbm_ref_cell(args);
+        lbm_value *reserved = stack_reserve(ctx, 4);
+        sptr[1] = cl1;
+        if (lbm_is_cons(cl0)) { // There are params
+          reserved[0] = cl2;
+          reserved[1] = cl0;    // Guaranteed cons cell here
+          reserved[2] = args_cell->cdr; // Possibly NIL
+          reserved[3] = CLOSURE_ARGS;
+          ctx->curr_exp = args_cell->car;
+          ctx->curr_env = arg_env;
+        } else { // args but no params => REST_ARGS
+          reserved[1] = args_cell->cdr;      // protect cdr(args) from allocate_binding
+          ctx->curr_exp = args_cell->car;    // protect car(args) from allocate binding
+          ctx->curr_env = arg_env;
+          lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, cl2);
+          reserved[0] = rest_binder;
+          reserved[2] = get_car(rest_binder);
+          reserved[3] = CLOSURE_ARGS_REST;
+        }
+      } else { // No args
+        if (lbm_is_symbol_nil(cl0)) { // No parameters
+          stack_drop(ctx, 2);
+          ctx->curr_exp = cl1;
+          ctx->curr_env = cl2;
+        } else { // Not enough arguments
+          lbm_set_error_reason((char*)lbm_error_str_num_args);
+          ERROR_AT_CTX(ENC_SYM_EERROR, ctx->r);
+        }
       }
     } break;
     case ENC_SYM_CONT:{
