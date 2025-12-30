@@ -1441,6 +1441,7 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
 
   ctx->row0 = -1;
   ctx->row1 = -1;
+  ctx->reader_stream = ENC_SYM_NIL;
 
   ctx->id = cid;
   ctx->parent = parent;
@@ -1766,9 +1767,9 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
 static void mark_context(eval_context_t *ctx, void *arg1, void *arg2) {
   (void) arg1;
   (void) arg2;
-  lbm_value roots[3] = {ctx->curr_exp, ctx->program, ctx->r};
+  lbm_value roots[4] = {ctx->curr_exp, ctx->program, ctx->r, ctx->reader_stream};
   lbm_gc_mark_env(ctx->curr_env);
-  lbm_gc_mark_roots(roots, 3);
+  lbm_gc_mark_roots(roots, 4);
   lbm_gc_mark_roots(ctx->mailbox, ctx->num_mail);
   lbm_gc_mark_aux(ctx->K.data, ctx->K.sp);
 }
@@ -2767,6 +2768,9 @@ static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 #define READING_PROGRAM                ((1 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 #define READING_PROGRAM_INCREMENTALLY  ((2 << LBM_VAL_SHIFT) | LBM_TYPE_U)
 
+// apply_read_base
+// called from apply functions, so the stack holds N arguments.
+// Only 1 argument is allowed and that argument must be either a string or a stream.
 static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, bool program, bool incremental) {
   if (nargs == 1) {
     lbm_value chan = ENC_SYM_NIL;
@@ -2799,20 +2803,29 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     } else {
       ERROR_CTX(ENC_SYM_EERROR);
     }
-    lbm_value *sptr = get_stack_ptr(ctx, 2);
+    // Readers can nest if they are incremental. Nesting can occur
+    // if the context evaluates code that starts reads additional code.
+    // Evaluation happens directly after the "read_eval_continue" continuation
+    // and such a reader will complete its task entirely before we are going back
+    // to reading in the enclosing reader.
+    // A program that uses read-eval-program possibly nests incremental readers
+    // within incremental readers (as deeply as the evaluation stack allows).
+    // But, inner readers finishes completely before returning back to enclosing readers.
 
-    // If we are inside a reader, its settings are stored.
-    sptr[0] = lbm_enc_u(ctx->flags);  // flags stored.
-    sptr[1] = chan;
-    lbm_value  *rptr = stack_reserve(ctx,2);
+    // cont_read_eval_continue pushes the flags and the stream and
+    // adds a continuation that pops these values after the evaluation steps have taken place.
+
+    ctx->reader_stream = chan;
+    lbm_value *sptr = get_stack_ptr(ctx, 2); // Overwrite the args.
+
     if (!program && !incremental) {
-      rptr[0] = READING_EXPRESSION;
+      sptr[0] = READING_EXPRESSION;
     } else if (program && !incremental) {
-      rptr[0] = READING_PROGRAM;
+      sptr[0] = READING_PROGRAM;
     } else if (program && incremental) {
-      rptr[0] = READING_PROGRAM_INCREMENTALLY;
+      sptr[0] = READING_PROGRAM_INCREMENTALLY;
     }  // the last combo is illegal
-    rptr[1] = READ_DONE;
+    sptr[1] = READ_DONE;
 
     // Each reader starts in a fresh situation
     ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
@@ -2821,22 +2834,27 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     if (program) {
       if (incremental) {
         ctx->flags |= EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
-        lbm_value  *rptr1 = stack_reserve(ctx,3);
-        rptr1[0] = chan;
-        rptr1[1] = ctx->curr_env;
-        rptr1[2] = READ_EVAL_CONTINUE;
+        lbm_value  *rptr1 = stack_reserve(ctx,2);
+        rptr1[0] = ctx->curr_env;
+        rptr1[1] = READ_EVAL_CONTINUE;
       } else {
         ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
-        lbm_value  *rptr1 = stack_reserve(ctx,4);
+        lbm_value  *rptr1 = stack_reserve(ctx,3);
         rptr1[0] = ENC_SYM_NIL;
         rptr1[1] = ENC_SYM_NIL;
-        rptr1[2] = chan;
-        rptr1[3] = READ_APPEND_CONTINUE;
+        rptr1[2] = READ_APPEND_CONTINUE;
       }
     }
-    rptr = stack_reserve(ctx,2); // reuse of variable rptr
-    rptr[0] = chan;
-    rptr[1] = READ_NEXT_TOKEN_GRAB_ROW;
+
+    // S | reading expression | reading program       | reading program incrementally
+    // ---------------------------------------------------------------------------------
+    // -5|                    | READING_PROGRAM       |
+    // -4|                    | READ_DONE             | READING_PROGRAM_INCREMENTALLY
+    // -3|                    | NIL                   | READ_DONE
+    // -2| READING_EXPRESSION | NIL                   | curr_env
+    // -1| READ_DONE          | READ_APPEND_CONTINUE  | READ_EVAL_CONTINUE
+
+    stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN_GRAB_ROW;
     ctx->app_cont = true;
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
@@ -4213,9 +4231,9 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
      apply the continuation
      4. We are finished read-and-evaluating
 
-     In case 2, we should find the READ_DONE at sp - 5.
+     In case 2, we should find the READ_DONE at sp - 4.
      In case 3, we should find the READ_DONE at sp - 1.
-     In case 4, we should find the READ_DONE at sp - 4.
+     In case 4, we should find the READ_DONE at sp - 3.
 
      case 3 should not end up here, but rather end up in
      cont_read_done.
@@ -4229,19 +4247,18 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
     }
   }
 
-  if (ctx->K.sp > 4  && (ctx->K.data[ctx->K.sp - 4] == READ_DONE) &&
-      (ctx->K.data[ctx->K.sp - 5] == READING_PROGRAM_INCREMENTALLY)) {
+  if (ctx->K.sp > 4  && (ctx->K.data[ctx->K.sp - 3] == READ_DONE) &&
+      (ctx->K.data[ctx->K.sp - 4] == READING_PROGRAM_INCREMENTALLY)) {
     /* read and evaluate is done */
-    --ctx->K.sp; // Pop but do not use
+    --ctx->K.sp; // Pop READ_EVAL_CONTINUE
     lbm_value env = ctx->K.data[--ctx->K.sp];
-    --ctx->K.sp; // Pop but do not use
     ctx->curr_env = env;
     ctx->app_cont = true; // Program evaluated and result is in ctx->r.
-  } else if (ctx->K.sp > 5 && (ctx->K.data[ctx->K.sp - 5] == READ_DONE) &&
-             (ctx->K.data[ctx->K.sp - 6] == READING_PROGRAM)) {
+  } else if (ctx->K.sp > 5 && (ctx->K.data[ctx->K.sp - 4] == READ_DONE) &&
+             (ctx->K.data[ctx->K.sp - 5] == READING_PROGRAM)) {
     /* successfully finished reading a program  (CASE 2) */
     ctx->r = ENC_SYM_CLOSEPAR;
-    ctx->app_cont = true;
+    ctx->app_cont = true; // Perform the final READ_APPEND_CONTINUE
   } else {
     if (lbm_channel_row(str) == 1 && lbm_channel_column(str) == 1) {
       // (read "") evaluates to nil.
@@ -4256,34 +4273,29 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
 }
 
 /* cont_read_next_token
-   sp-1 : Stream
-
+   uses ctx->reader_stream
    ctx->r : Input value ignored.
 */
 static void cont_read_next_token(eval_context_t *ctx) {
-  lbm_value *sptr = get_stack_ptr(ctx, 1);
-  lbm_value stream = sptr[0];
 
-  lbm_char_channel_t *chan = lbm_dec_channel(stream);
+  lbm_char_channel_t *chan = lbm_dec_channel(ctx->reader_stream);
+
   if (chan == NULL || chan->state == NULL) {
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
   }
 
   if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
-    stack_drop(ctx, 1);
     read_finish(chan, ctx);
     return;
   }
   /* Eat whitespace and comments */
   if (!tok_clean_whitespace(chan)) {
-    // sptr[0] already holds the stream
     stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
     yield_ctx(EVAL_CPS_MIN_SLEEP);
     return;
   }
   /* After eating whitespace we may be at end of file/stream */
   if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
-    stack_drop(ctx, 1);
     read_finish(chan, ctx);
     return;
   }
@@ -4307,16 +4319,14 @@ static void cont_read_next_token(eval_context_t *ctx) {
     lbm_value compound_value_opener = ENC_SYM_OPENBRACK;
     switch(tok_match) {
     case TOKOPENPAR: {
-      sptr[0] = ENC_SYM_NIL;
       lbm_value *rptr = stack_reserve(ctx,3);
       rptr[0] = ENC_SYM_NIL;
-      rptr[1] = stream;
+      rptr[1] = ENC_SYM_NIL;
       rptr[2] = READ_APPEND_CONTINUE;
       ctx->r = ENC_SYM_OPENPAR; // Here in case this is the last thing in the stream.
                                 // In that case this is useful error information.
     } break;
     case TOKCLOSEPAR: {
-      stack_drop(ctx, 1);
       ctx->r = ENC_SYM_CLOSEPAR;
       ctx->app_cont = true;
     } return;
@@ -4325,7 +4335,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
       compound_read_start = READ_START_ARRAY;     /* fall through */
       compound_value_opener = ENC_SYM_OPENARRAY;
     case TOKOPENBRACK: {
-      sptr[0] = stream;
       lbm_value *rptr = stack_reserve(ctx, 1);
       rptr[0] = compound_read_start;
       ctx->r = compound_value_opener;
@@ -4333,51 +4342,45 @@ static void cont_read_next_token(eval_context_t *ctx) {
     case TOKCLOSEARRAY:
       compound_value_closer = ENC_SYM_CLOSEARRAY; /* fall through */
     case TOKCLOSEBRACK:
-      stack_drop(ctx, 1);
       ctx->r = compound_value_closer;
       ctx->app_cont = true;
       return;
     case TOKDOT:
-      stack_drop(ctx, 1);
       ctx->r = ENC_SYM_DOT;
       ctx->app_cont = true;
       return;
     case TOKDONTCARE:
-      stack_drop(ctx, 1);
       ctx->r = ENC_SYM_DONTCARE;
       ctx->app_cont = true;
       return;
     case TOKQUOTE:
-      sptr[0] = ENC_SYM_QUOTE;
+      stack_reserve(ctx,1)[0] = ENC_SYM_QUOTE;
       stack_reserve(ctx,1)[0] = WRAP_RESULT;
       break;
     case TOKBACKQUOTE:
-      sptr[0] = QQ_EXPAND_START;
+      stack_reserve(ctx, 1)[0] = QQ_EXPAND_START;
       break;
     case TOKCOMMAAT:
-      sptr[0] = ENC_SYM_COMMAAT;
+      stack_reserve(ctx,1)[0] = ENC_SYM_COMMAAT;
       stack_reserve(ctx,1)[0] = WRAP_RESULT;
       break;
     case TOKCOMMA:
-      sptr[0] = ENC_SYM_COMMA;
+      stack_reserve(ctx,1)[0] = ENC_SYM_COMMA;
       stack_reserve(ctx,1)[0] = WRAP_RESULT;
       break;
     case TOKMATCHANY:
-      stack_drop(ctx, 1);
       ctx->r = ENC_SYM_MATCH_ANY;
       ctx->app_cont = true;
       return;
     case TOKOPENCURL: {
-      sptr[0] = ENC_SYM_NIL;
       lbm_value *rptr = stack_reserve(ctx,3);
       rptr[0] = ENC_SYM_NIL;
-      rptr[1] = stream;
+      rptr[1] = ENC_SYM_NIL;
       rptr[2] = READ_APPEND_CONTINUE;
       ctx->r = ENC_SYM_PROGN;
       ctx->app_cont = true;
     } return;
     case TOKCLOSECURL:
-      stack_drop(ctx, 1);
       ctx->r = ENC_SYM_CLOSEPAR;
       ctx->app_cont = true;
       return;
@@ -4385,7 +4388,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
     case TOKCONSTEND: {
       if (tok_match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
       if (tok_match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
-      sptr[0] = stream;
       stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
       ctx->app_cont = true;
     } return;
@@ -4393,9 +4395,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
       READ_ERROR_CTX(lbm_channel_row(chan), lbm_channel_column(chan));
     }
     // read next token
-    lbm_value *rptr = stack_reserve(ctx, 2);
-    rptr[0] = stream;
-    rptr[1] = READ_NEXT_TOKEN;
+    stack_reserve(ctx, 1)[0] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
     return;
   } else if (n < 0) goto retry_token;
@@ -4418,7 +4418,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
       char *data = (char*)arr->data;
       memset(data,0, string_len + 1);
       memcpy(data, tokpar_sym_str, string_len);
-      stack_drop(ctx, 1);
       ctx->r = res;
       ctx->app_cont = true;
       return;
@@ -4444,7 +4443,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
     default:
       READ_ERROR_CTX(lbm_channel_row(chan), lbm_channel_column(chan));
     }
-    stack_drop(ctx, 1);
     ctx->r = res;
     ctx->app_cont = true;
     return;
@@ -4482,7 +4480,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
     default:
       READ_ERROR_CTX(lbm_channel_row(chan), lbm_channel_column(chan));
     }
-    stack_drop(ctx, 1);
     ctx->r = res;
     ctx->app_cont = true;
     return;
@@ -4526,7 +4523,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
         READ_ERROR_CTX(lbm_channel_row(chan), lbm_channel_column(chan));
       }
     }
-    stack_drop(ctx, 1);
     ctx->r = lbm_enc_sym(symbol_id);
     ctx->app_cont = true;
     return;
@@ -4543,7 +4539,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
   n = tok_char(chan, &c_val);
   if(n > 0) {
     lbm_channel_drop(chan,(unsigned int) n);
-    stack_drop(ctx, 1);
     ctx->r = lbm_enc_char((uint8_t)c_val);
     ctx->app_cont = true;
     return;
@@ -4553,7 +4548,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
 
  retry_token:
   if (n == TOKENIZER_NEED_MORE) {
-    sptr[0] = stream;
     stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
     yield_ctx(EVAL_CPS_MIN_SLEEP);
     return;
@@ -4562,10 +4556,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
 }
 
 static void cont_read_start_bytearray(eval_context_t *ctx) {
-  lbm_value *sptr = get_stack_ptr(ctx, 1);
-  lbm_value stream = sptr[0];
-
-  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  lbm_char_channel_t *str = lbm_dec_channel(ctx->reader_stream);
   if (str == NULL || str->state == NULL) {
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
     return; // INFER does not understand that error_ctx longjmps out
@@ -4582,7 +4573,6 @@ static void cont_read_start_bytearray(eval_context_t *ctx) {
         ERROR_CTX(ENC_SYM_FATAL_ERROR); // Terminates ctx
       }
     }
-    stack_drop(ctx, 1);
     ctx->r = array;
     ctx->app_cont = true;
   } else if (lbm_is_number(ctx->r)) {
@@ -4616,11 +4606,11 @@ static void cont_read_start_bytearray(eval_context_t *ctx) {
       }
     }
 
-    sptr[0] = array;
+
     lbm_value *rptr = stack_reserve(ctx, 4);
-    rptr[0] = lbm_enc_u(initial_size);
-    rptr[1] = lbm_enc_u(0);
-    rptr[2] = stream;
+    rptr[0] = array;
+    rptr[1] = lbm_enc_u(initial_size);
+    rptr[2] = lbm_enc_u(0);
     rptr[3] = READ_APPEND_BYTEARRAY;
     ctx->app_cont = true;
   } else {
@@ -4630,12 +4620,11 @@ static void cont_read_start_bytearray(eval_context_t *ctx) {
 }
 
 static void cont_read_append_bytearray(eval_context_t *ctx) {
-  lbm_uint *sptr = get_stack_ptr(ctx, 4);
+  lbm_uint *sptr = get_stack_ptr(ctx, 3);
 
   lbm_value array  = sptr[0];
   lbm_value size   = lbm_dec_u(sptr[1]);
   lbm_value ix     = lbm_dec_u(sptr[2]);
-  lbm_value stream = sptr[3];
 
   if (ix >= (size - 1)) {
     ERROR_CTX(ENC_SYM_MERROR);
@@ -4648,10 +4637,9 @@ static void cont_read_append_bytearray(eval_context_t *ctx) {
     ((uint8_t*)arr->data)[ix] = (uint8_t)lbm_dec_as_u32(ctx->r);
 
     sptr[2] = lbm_enc_u(ix + 1);
-    lbm_value *rptr = stack_reserve(ctx, 3);
+    lbm_value *rptr = stack_reserve(ctx, 2);
     rptr[0] = READ_APPEND_BYTEARRAY;
-    rptr[1] = stream;
-    rptr[2] = READ_NEXT_TOKEN;
+    rptr[1] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
   } else if (lbm_is_symbol(ctx->r) && ctx->r == ENC_SYM_CLOSEBRACK) {
     lbm_uint array_size = ix / sizeof(lbm_uint);
@@ -4661,7 +4649,7 @@ static void cont_read_append_bytearray(eval_context_t *ctx) {
     }
     lbm_memory_shrink((lbm_uint*)arr->data, array_size);
     arr->size = ix;
-    stack_drop(ctx, 4);
+    stack_drop(ctx, 3);
     ctx->r = array;
     ctx->app_cont = true;
   } else {
@@ -4672,10 +4660,7 @@ static void cont_read_append_bytearray(eval_context_t *ctx) {
 // Lisp array syntax reading ////////////////////////////////////////
 
 static void cont_read_start_array(eval_context_t *ctx) {
-  lbm_value *sptr = get_stack_ptr(ctx, 1);
-  lbm_value stream = sptr[0];
-
-  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  lbm_char_channel_t *str = lbm_dec_channel(ctx->reader_stream);
   if (str == NULL || str->state == NULL) {
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
     return; // INFER does not understand that error_ctx longjmps out
@@ -4692,7 +4677,6 @@ static void cont_read_start_array(eval_context_t *ctx) {
         ERROR_CTX(ENC_SYM_FATAL_ERROR); // Terminates ctx
       }
     }
-    stack_drop(ctx, 1);
     ctx->r = array;
     ctx->app_cont = true;
   } else {
@@ -4722,23 +4706,21 @@ static void cont_read_start_array(eval_context_t *ctx) {
       }
     }
 
-    sptr[0] = array;
     lbm_value *rptr = stack_reserve(ctx, 4);
-    rptr[0] = lbm_enc_u(initial_size);
-    rptr[1] = lbm_enc_u(0);
-    rptr[2] = stream;
+    rptr[0] = array;
+    rptr[1] = lbm_enc_u(initial_size);
+    rptr[2] = lbm_enc_u(0);
     rptr[3] = READ_APPEND_ARRAY;
     ctx->app_cont = true;
   }
 }
 
 static void cont_read_append_array(eval_context_t *ctx) {
-  lbm_uint *sptr = get_stack_ptr(ctx, 4);
+  lbm_uint *sptr = get_stack_ptr(ctx, 3);
 
   lbm_value array  = sptr[0];
   lbm_value size   = lbm_dec_as_u32(sptr[1]);
   lbm_value ix     = lbm_dec_as_u32(sptr[2]);
-  lbm_value stream = sptr[3];
 
   if (ix >= (size - 1)) {
     ERROR_CTX(ENC_SYM_MERROR);
@@ -4755,25 +4737,23 @@ static void cont_read_append_array(eval_context_t *ctx) {
     }
     lbm_memory_shrink((lbm_uint*)arr->data, array_size);
     arr->size = ix * sizeof(lbm_uint);
-    stack_drop(ctx, 4);
+    stack_drop(ctx, 3);
     ctx->r = array;
     ctx->app_cont = true;
   } else {
     ((lbm_uint*)arr->data)[ix] = ctx->r;
 
     sptr[2] = lbm_enc_u(ix + 1);
-    lbm_value *rptr = stack_reserve(ctx, 3);
+    lbm_value *rptr = stack_reserve(ctx, 2);
     rptr[0] = READ_APPEND_ARRAY;
-    rptr[1] = stream;
-    rptr[2] = READ_NEXT_TOKEN;
+    rptr[1] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
   }
 }
 
 // read_grab_row leads into an implicit read_next_token.
 static void cont_read_next_token_grab_row(eval_context_t *ctx) {
-  lbm_value stream = get_stack_ptr(ctx, 1)[0];
-  lbm_char_channel_t *chan = lbm_dec_channel(stream);
+  lbm_char_channel_t *chan = lbm_dec_channel(ctx->reader_stream);
   if (chan == NULL || chan->state == NULL) {
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
   }
@@ -4785,13 +4765,12 @@ static void cont_read_next_token_grab_row(eval_context_t *ctx) {
 // Lisp list syntax reading ////////////////////////////////////////
 
 static void cont_read_append_continue(eval_context_t *ctx) {
-  lbm_value *sptr = get_stack_ptr(ctx, 3);
+  lbm_value *sptr = get_stack_ptr(ctx, 2);
 
   lbm_value first_cell = sptr[0];
   lbm_value last_cell  = sptr[1];
-  lbm_value stream     = sptr[2];
 
-  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  lbm_char_channel_t *str = lbm_dec_channel(ctx->reader_stream);
   if (str == NULL || str->state == NULL) {
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
   }
@@ -4808,15 +4787,14 @@ static void cont_read_append_continue(eval_context_t *ctx) {
         // Could even rewrite as: lbm_heap_state.heap[lbm_dec_ptr(last_cell)].cdr = ENC_SYM_NIL;
         ctx->r = first_cell;
       }
-      stack_drop(ctx, 3);
+      stack_drop(ctx, 2);
       // Skip reading another token and apply the continuation.
       ctx->app_cont = true;
       return;
     case ENC_SYM_DOT: {
-      lbm_value *rptr = stack_reserve(ctx, 3);
+      lbm_value *rptr = stack_reserve(ctx, 2);
       rptr[0] = READ_DOT_TERMINATE;
-      rptr[1] = stream;
-      rptr[2] = READ_NEXT_TOKEN;
+      rptr[1] = READ_NEXT_TOKEN;
       ctx->app_cont = true;
     } return;
     }
@@ -4838,27 +4816,23 @@ static void cont_read_append_continue(eval_context_t *ctx) {
 
   sptr[0] = first_cell;
   sptr[1] = last_cell;
-  //sptr[2] = stream;    // unchanged.
-  lbm_value *rptr = stack_reserve(ctx, 3);
+  lbm_value *rptr = stack_reserve(ctx, 2);
   rptr[0] = READ_APPEND_CONTINUE;
-  rptr[1] = stream;
-  rptr[2] = READ_NEXT_TOKEN;
+  rptr[1] = READ_NEXT_TOKEN;
   ctx->app_cont = true;
 }
 
 static void cont_read_eval_continue(eval_context_t *ctx) {
   lbm_value env;
-  lbm_value stream;
-  lbm_value *sptr = get_stack_ptr(ctx, 2);
-  env = sptr[1];
-  stream = sptr[0];
-  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  lbm_value *sptr = get_stack_ptr(ctx, 1);
+  env = sptr[0];
+  lbm_char_channel_t *str = lbm_dec_channel(ctx->reader_stream);
   if (str && str->state) {
     ctx->row1 = (lbm_int)str->row(str);
     if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
       switch(ctx->r) {
       case ENC_SYM_CLOSEPAR:
-        stack_drop(ctx, 2);
+        stack_drop(ctx, 1);
         ctx->app_cont = true;
         return;
       case ENC_SYM_DOT:
@@ -4870,8 +4844,8 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
     }
     lbm_value *rptr = stack_reserve(ctx, 5);
     rptr[0] = READ_EVAL_CONTINUE;
-    rptr[1] = stream;
-    rptr[2] = READ_NEXT_TOKEN_GRAB_ROW;
+    rptr[1] = READ_NEXT_TOKEN_GRAB_ROW;
+    rptr[2] = ctx->reader_stream;
     rptr[3] = lbm_enc_u(ctx->flags);
     rptr[4] = POP_READER_FLAGS;
 
@@ -4886,9 +4860,8 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
 
 static void cont_read_expect_closepar(eval_context_t *ctx) {
   lbm_value res = ctx->K.data[--ctx->K.sp];
-  lbm_value stream = ctx->K.data[--ctx->K.sp];
 
-  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  lbm_char_channel_t *str = lbm_dec_channel(ctx->reader_stream);
   if (str == NULL || str->state == NULL) { // TODO: De Morgan these conditions.
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
   } else {
@@ -4905,12 +4878,11 @@ static void cont_read_expect_closepar(eval_context_t *ctx) {
 }
 
 static void cont_read_dot_terminate(eval_context_t *ctx) {
-  lbm_value *sptr = get_stack_ptr(ctx, 3);
+  lbm_value *sptr = get_stack_ptr(ctx, 2);
 
   lbm_value last_cell  = sptr[1];
-  lbm_value stream = sptr[2];
 
-  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  lbm_char_channel_t *str = lbm_dec_channel(ctx->reader_stream);
   if (str == NULL || str->state == NULL) {
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
   } else if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
@@ -4923,12 +4895,10 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
     lbm_ref_cell(last_cell)->cdr = ctx->r;
     //lbm_set_cdr(last_cell, ctx->r);
     ctx->r = sptr[0]; // first cell
-    lbm_value *rptr = stack_reserve(ctx, 2);
-    sptr[0] = stream;
-    sptr[1] = ctx->r;
-    sptr[2] = READ_EXPECT_CLOSEPAR;
-    rptr[0] = stream;
-    rptr[1] = READ_NEXT_TOKEN;
+    lbm_value *rptr = stack_reserve(ctx, 1);
+    sptr[0] = ctx->r;
+    sptr[1] = READ_EXPECT_CLOSEPAR;
+    rptr[0] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
   } else {
     lbm_channel_reader_close(str);
@@ -4940,33 +4910,24 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
 static void cont_read_done(eval_context_t *ctx) {
   //lbm_value reader_mode = ctx->K.data[--ctx->K.sp];
   --ctx->K.sp;
-  lbm_value stream = ctx->K.data[--ctx->K.sp];
-  lbm_value f_val = ctx->K.data[--ctx->K.sp];
 
-  uint32_t flags = lbm_dec_as_u32(f_val);
-  ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
-  ctx->flags |= (flags & EVAL_CPS_CONTEXT_READER_FLAGS_MASK);
-
-  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  lbm_char_channel_t *str = lbm_dec_channel(ctx->reader_stream);
   if (str == NULL || str->state == NULL) {
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
-  } else {
-    // the "else" is there to make INFER understand
-    // that this only happens if str is non-null.
-    // the "else" is unnecessary though as
-    // error_ctx longjmps out.
-    lbm_channel_reader_close(str);
-    if (lbm_is_symbol(ctx->r)) {
-      lbm_uint sym_val = lbm_dec_sym(ctx->r);
-      if (sym_val >= TOKENIZER_SYMBOLS_START &&
-          sym_val <= TOKENIZER_SYMBOLS_END) {
-        READ_ERROR_CTX(lbm_channel_row(str), lbm_channel_column(str));
-      }
-    }
-    ctx->row0 = -1;
-    ctx->row1 = -1;
-    ctx->app_cont = true;
   }
+
+  lbm_channel_reader_close(str);
+  if (lbm_is_symbol(ctx->r)) {
+    lbm_uint sym_val = lbm_dec_sym(ctx->r);
+    if (sym_val >= TOKENIZER_SYMBOLS_START &&
+        sym_val <= TOKENIZER_SYMBOLS_END) {
+      READ_ERROR_CTX(lbm_channel_row(str), lbm_channel_column(str));
+    }
+  }
+  ctx->row0 = -1;
+  ctx->row1 = -1;
+  ctx->reader_stream = ENC_SYM_NIL;
+  ctx->app_cont = true;
 }
 
 static void cont_wrap_result(eval_context_t *ctx) {
@@ -5519,6 +5480,8 @@ static void cont_kill(eval_context_t *ctx) {
 // Preserves r
 static void cont_pop_reader_flags(eval_context_t *ctx) {
   lbm_value flags = ctx->K.data[--ctx->K.sp];
+  lbm_value stream = ctx->K.data[--ctx->K.sp];
+  ctx->reader_stream = stream;
   ctx->flags = ctx->flags & ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
   ctx->flags |= (lbm_dec_as_u32(flags) & EVAL_CPS_CONTEXT_READER_FLAGS_MASK);
   ctx->app_cont = true;

@@ -83,9 +83,9 @@ typedef struct eval_context_s{
   lbm_value program;
   lbm_value curr_exp;
   lbm_value curr_env;
-  lbm_value *mailbox;    /* Message passing mailbox */
+  lbm_value *mailbox;    // Message passing mailbox */
   uint32_t  mailbox_size;
-  uint32_t  num_mail;    /* Number of messages in mailbox */
+  uint32_t  num_mail;    // Number of messages in mailbox
   uint32_t  flags;
   lbm_value r;
   const char *error_reason;
@@ -97,10 +97,11 @@ typedef struct eval_context_s{
   char *name;
   lbm_cid id;
   lbm_cid parent;
-  /* while reading */
+  // while reading
   lbm_int row0;
   lbm_int row1;
-  /* List structure */
+  lbm_value reader_stream; // Reader stream register
+  // List structure
   struct eval_context_s *prev;
   struct eval_context_s *next;
 } eval_context_t;
