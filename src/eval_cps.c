@@ -92,6 +92,12 @@
 #define noreturn __attribute__ ((__noreturn__))
 #endif
 
+// The cold attribute is a hint for the compiler to do the following:
+//  - Optimize function for size.
+//  - Possibly move cold functions to a separate area of memory.
+//  - Act as a branch predition hint for branches leading to "cold" calls.
+#define sizeopt __attribute__((cold, noinline, optimize("Os")))
+
 static jmp_buf error_jmp_buf;
 static jmp_buf critical_error_jmp_buf;
 
@@ -153,7 +159,8 @@ static jmp_buf critical_error_jmp_buf;
 #define READ_START_ARRAY           CONTINUATION(49)
 #define READ_APPEND_ARRAY          CONTINUATION(50)
 #define LOOP_ENV_PREP              CONTINUATION(51)
-#define NUM_CONTINUATIONS          52
+#define READ_NEXT_TOKEN_GRAB_ROW   CONTINUATION(52)
+#define NUM_CONTINUATIONS          53
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -391,27 +398,27 @@ static void (*ctx_done_callback)(eval_context_t *) = ctx_done_nonsense;
 int (*lbm_printf_callback)(const char *, ...) = printf_nonsense;
 static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
 
-void lbm_set_critical_error_callback(void (*fptr)(void)) {
+sizeopt void lbm_set_critical_error_callback(void (*fptr)(void)) {
   if (fptr == NULL) critical_error_callback = critical_nonsense;
   else critical_error_callback = fptr;
 }
 
-void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
+sizeopt void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
   if (fptr == NULL) usleep_callback = usleep_nonsense;
   else usleep_callback = fptr;
 }
 
-void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
+sizeopt void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
   if (fptr == NULL) ctx_done_callback = ctx_done_nonsense;
   else ctx_done_callback = fptr;
 }
 
-void lbm_set_printf_callback(int (*fptr)(const char*, ...)){
+sizeopt void lbm_set_printf_callback(int (*fptr)(const char*, ...)){
   if (fptr == NULL) lbm_printf_callback = printf_nonsense;
   else lbm_printf_callback = fptr;
 }
 
-void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
+sizeopt void lbm_set_dynamic_load_callback(bool (*fptr)(const char *, const char **)) {
   if (fptr == NULL) dynamic_load_callback = dynamic_load_nonsense;
   else  dynamic_load_callback = fptr;
 }
@@ -859,7 +866,7 @@ lbm_flash_status lbm_write_const_array_padded(uint8_t *data, lbm_uint n, lbm_uin
 
 #define ERROR_MESSAGE_BUFFER_SIZE_BYTES 256
 
-void print_environments(char *buf, unsigned int size) {
+sizeopt void print_environments(char *buf, unsigned int size) {
 
   lbm_value curr_l = ctx_running->curr_env;
   lbm_printf_callback("\tCurrent local environment:\n");
@@ -885,7 +892,7 @@ void print_environments(char *buf, unsigned int size) {
   }
 }
 
-void print_error_value(char *buf, uint32_t bufsize, char *pre, lbm_value v, bool lookup) {
+sizeopt void print_error_value(char *buf, uint32_t bufsize, char *pre, lbm_value v, bool lookup) {
 
   lbm_print_value(buf, bufsize, v);
   lbm_printf_callback("%s %s\n",pre, buf);
@@ -905,7 +912,7 @@ void print_error_value(char *buf, uint32_t bufsize, char *pre, lbm_value v, bool
   }
 }
 
-static void print_error_message(lbm_value error,
+sizeopt static void print_error_message(lbm_value error,
                                 bool has_at,
                                 lbm_value at,
                                 unsigned int row,
@@ -1129,12 +1136,12 @@ static void context_exists(eval_context_t *ctx, void *cid, void *b) {
   }
 }
 
-void lbm_set_error_suspect(lbm_value suspect) {
+sizeopt void lbm_set_error_suspect(lbm_value suspect) {
   lbm_error_suspect = suspect;
   lbm_error_has_suspect = true;
 }
 
-void lbm_set_error_reason(const char *error_str) {
+sizeopt void lbm_set_error_reason(const char *error_str) {
   if (ctx_running != NULL) {
     ctx_running->error_reason = error_str;
   }
@@ -1142,9 +1149,9 @@ void lbm_set_error_reason(const char *error_str) {
 
 // Not possible to CONS_WITH_GC in error_ctx_base (potential loop)
 #ifdef LBM_USE_ERROR_LINENO
-static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column, int line_no) {
+sizeopt static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column, int line_no) {
 #else
-static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column) {
+sizeopt static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column) {
 #endif
   bool print_trapped = !lbm_hide_trapped_error && (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN);
 
@@ -1202,27 +1209,27 @@ static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at
 }
 
 #ifdef LBM_USE_ERROR_LINENO
-static noreturn void error_at_ctx(lbm_value err_val, lbm_value at, int line_no) {
+sizeopt static noreturn void error_at_ctx(lbm_value err_val, lbm_value at, int line_no) {
   error_ctx_base(err_val, true, at, 0, 0, line_no);
 }
 
-static noreturn void error_ctx(lbm_value err_val, int line_no) {
+sizeopt static noreturn void error_ctx(lbm_value err_val, int line_no) {
   error_ctx_base(err_val, false, 0, 0, 0, line_no);
 }
 
-static noreturn void read_error_ctx(unsigned int row, unsigned int column, int line_no) {
+sizeopt static noreturn void read_error_ctx(unsigned int row, unsigned int column, int line_no) {
   error_ctx_base(ENC_SYM_RERROR, false, 0, row, column, line_no);
 }
 #else
-static noreturn void error_at_ctx(lbm_value err_val, lbm_value at) {
+sizeopt static noreturn void error_at_ctx(lbm_value err_val, lbm_value at) {
   error_ctx_base(err_val, true, at, 0, 0);
 }
 
-static noreturn void error_ctx(lbm_value err_val) {
+sizeopt static noreturn void error_ctx(lbm_value err_val) {
   error_ctx_base(err_val, false, 0, 0, 0);
 }
 
-static noreturn void read_error_ctx(unsigned int row, unsigned int column) {
+sizeopt static noreturn void read_error_ctx(unsigned int row, unsigned int column) {
   error_ctx_base(ENC_SYM_RERROR, false, 0, row, column);
 }
 #endif
@@ -2827,10 +2834,9 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
         rptr1[3] = READ_APPEND_CONTINUE;
       }
     }
-    rptr = stack_reserve(ctx,3); // reuse of variable rptr
+    rptr = stack_reserve(ctx,2); // reuse of variable rptr
     rptr[0] = chan;
-    rptr[1] = lbm_enc_u(1);
-    rptr[2] = READ_NEXT_TOKEN;
+    rptr[1] = READ_NEXT_TOKEN_GRAB_ROW;
     ctx->app_cont = true;
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
@@ -3591,7 +3597,7 @@ static void cont_closure_application_args(eval_context_t *ctx) {
     lbm_cons_t *args_cell = lbm_ref_cell(args);
 
     // params_cell->cdr is programmer entered syntax, we need to check if a cons
-    if (lbm_is_cons(params_cell->cdr)) {      
+    if (lbm_is_cons(params_cell->cdr)) {
       sptr[2] = binder;
       sptr[3] = params_cell->cdr; // Guaranteed cons cell here
       sptr[4] = args_cell->cdr;   // Possibly NIL
@@ -4250,44 +4256,36 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
 }
 
 /* cont_read_next_token
-   sp-2 : Stream
-   sp-1 : Grab row
+   sp-1 : Stream
+
+   ctx->r : Input value ignored.
 */
 static void cont_read_next_token(eval_context_t *ctx) {
-  lbm_value *sptr = get_stack_ptr(ctx, 2);
+  lbm_value *sptr = get_stack_ptr(ctx, 1);
   lbm_value stream = sptr[0];
-  lbm_value grab_row0 = sptr[1];
 
   lbm_char_channel_t *chan = lbm_dec_channel(stream);
   if (chan == NULL || chan->state == NULL) {
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
-    return; // INFER does not understant that error_ctx longjmps
-            // out of this function.
   }
 
   if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
-    stack_drop(ctx, 2);
+    stack_drop(ctx, 1);
     read_finish(chan, ctx);
     return;
   }
   /* Eat whitespace and comments */
   if (!tok_clean_whitespace(chan)) {
-    sptr[0] = stream;
-    sptr[1] = lbm_enc_u(0);
+    // sptr[0] already holds the stream
     stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
     yield_ctx(EVAL_CPS_MIN_SLEEP);
     return;
   }
   /* After eating whitespace we may be at end of file/stream */
   if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
-    stack_drop(ctx, 2);
+    stack_drop(ctx, 1);
     read_finish(chan, ctx);
     return;
-  }
-
-  if (lbm_dec_u(grab_row0)) {
-    ctx->row0 = (int32_t)lbm_channel_row(chan);
-    ctx->row1 = -1; // a new start, end is unknown
   }
 
   /* Attempt to extract tokens from the character stream */
@@ -4305,93 +4303,89 @@ static void cont_read_next_token(eval_context_t *ctx) {
       ERROR_CTX(ENC_SYM_FATAL_ERROR);
     }
     lbm_value compound_read_start = READ_START_BYTEARRAY;
-    lbm_value compound_value_opener = ENC_SYM_OPENBRACK;
     lbm_value compound_value_closer = ENC_SYM_CLOSEBRACK;
-    ctx->app_cont = true;
+    lbm_value compound_value_opener = ENC_SYM_OPENBRACK;
     switch(tok_match) {
     case TOKOPENPAR: {
       sptr[0] = ENC_SYM_NIL;
-      sptr[1] = ENC_SYM_NIL;
-      lbm_value *rptr = stack_reserve(ctx,5);
-      rptr[0] = stream;
-      rptr[1] = READ_APPEND_CONTINUE;
-      rptr[2] = stream;
-      rptr[3] = lbm_enc_u(0);
-      rptr[4] = READ_NEXT_TOKEN;
-      ctx->r = ENC_SYM_OPENPAR;
-    } return;
+      lbm_value *rptr = stack_reserve(ctx,3);
+      rptr[0] = ENC_SYM_NIL;
+      rptr[1] = stream;
+      rptr[2] = READ_APPEND_CONTINUE;
+      ctx->r = ENC_SYM_OPENPAR; // Here in case this is the last thing in the stream.
+                                // In that case this is useful error information.
+    } break;
     case TOKCLOSEPAR: {
-      stack_drop(ctx, 2);
+      stack_drop(ctx, 1);
       ctx->r = ENC_SYM_CLOSEPAR;
+      ctx->app_cont = true;
     } return;
     case TOKOPENARRAY:
-      compound_read_start = READ_START_ARRAY; // switch to array reader
-      compound_value_opener = ENC_SYM_OPENARRAY; /* fall through */
+      // Switch to array reader
+      compound_read_start = READ_START_ARRAY;     /* fall through */
+      compound_value_opener = ENC_SYM_OPENARRAY;
     case TOKOPENBRACK: {
       sptr[0] = stream;
-      sptr[1] = compound_read_start;
-      lbm_value *rptr = stack_reserve(ctx, 3);
-      rptr[0] = stream;
-      rptr[1] = lbm_enc_u(0);
-      rptr[2] = READ_NEXT_TOKEN;
+      lbm_value *rptr = stack_reserve(ctx, 1);
+      rptr[0] = compound_read_start;
       ctx->r = compound_value_opener;
-    } return;
+    } break;
     case TOKCLOSEARRAY:
       compound_value_closer = ENC_SYM_CLOSEARRAY; /* fall through */
     case TOKCLOSEBRACK:
-      stack_drop(ctx, 2);
+      stack_drop(ctx, 1);
       ctx->r = compound_value_closer;
+      ctx->app_cont = true;
       return;
     case TOKDOT:
-      stack_drop(ctx, 2);
+      stack_drop(ctx, 1);
       ctx->r = ENC_SYM_DOT;
+      ctx->app_cont = true;
       return;
     case TOKDONTCARE:
-      stack_drop(ctx, 2);
+      stack_drop(ctx, 1);
       ctx->r = ENC_SYM_DONTCARE;
+      ctx->app_cont = true;
       return;
     case TOKQUOTE:
       sptr[0] = ENC_SYM_QUOTE;
-      sptr[1] = WRAP_RESULT;
+      stack_reserve(ctx,1)[0] = WRAP_RESULT;
       break;
-    case TOKBACKQUOTE: {
+    case TOKBACKQUOTE:
       sptr[0] = QQ_EXPAND_START;
-      sptr[1] = stream;
-      lbm_value *rptr = stack_reserve(ctx, 2);
-      rptr[0] = lbm_enc_u(0);
-      rptr[1] = READ_NEXT_TOKEN;
-      ctx->app_cont = true;
-    } return;
+      break;
     case TOKCOMMAAT:
       sptr[0] = ENC_SYM_COMMAAT;
-      sptr[1] = WRAP_RESULT;
+      stack_reserve(ctx,1)[0] = WRAP_RESULT;
       break;
     case TOKCOMMA:
       sptr[0] = ENC_SYM_COMMA;
-      sptr[1] = WRAP_RESULT;
+      stack_reserve(ctx,1)[0] = WRAP_RESULT;
       break;
     case TOKMATCHANY:
-      stack_drop(ctx, 2);
+      stack_drop(ctx, 1);
       ctx->r = ENC_SYM_MATCH_ANY;
+      ctx->app_cont = true;
       return;
     case TOKOPENCURL: {
       sptr[0] = ENC_SYM_NIL;
-      sptr[1] = ENC_SYM_NIL;
-      lbm_value *rptr = stack_reserve(ctx,2);
-      rptr[0] = stream;
-      rptr[1] = READ_APPEND_CONTINUE;
+      lbm_value *rptr = stack_reserve(ctx,3);
+      rptr[0] = ENC_SYM_NIL;
+      rptr[1] = stream;
+      rptr[2] = READ_APPEND_CONTINUE;
       ctx->r = ENC_SYM_PROGN;
+      ctx->app_cont = true;
     } return;
     case TOKCLOSECURL:
-      stack_drop(ctx, 2);
+      stack_drop(ctx, 1);
       ctx->r = ENC_SYM_CLOSEPAR;
+      ctx->app_cont = true;
       return;
     case TOKCONSTSTART: /* fall through */
     case TOKCONSTEND: {
       if (tok_match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
       if (tok_match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
       sptr[0] = stream;
-      sptr[1] = lbm_enc_u(0);
       stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
       ctx->app_cont = true;
     } return;
@@ -4399,10 +4393,9 @@ static void cont_read_next_token(eval_context_t *ctx) {
       READ_ERROR_CTX(lbm_channel_row(chan), lbm_channel_column(chan));
     }
     // read next token
-    lbm_value *rptr = stack_reserve(ctx, 3);
+    lbm_value *rptr = stack_reserve(ctx, 2);
     rptr[0] = stream;
-    rptr[1] = lbm_enc_u(0);
-    rptr[2] = READ_NEXT_TOKEN;
+    rptr[1] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
     return;
   } else if (n < 0) goto retry_token;
@@ -4425,7 +4418,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
       char *data = (char*)arr->data;
       memset(data,0, string_len + 1);
       memcpy(data, tokpar_sym_str, string_len);
-      stack_drop(ctx, 2);
+      stack_drop(ctx, 1);
       ctx->r = res;
       ctx->app_cont = true;
       return;
@@ -4451,7 +4444,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
     default:
       READ_ERROR_CTX(lbm_channel_row(chan), lbm_channel_column(chan));
     }
-    stack_drop(ctx, 2);
+    stack_drop(ctx, 1);
     ctx->r = res;
     ctx->app_cont = true;
     return;
@@ -4489,7 +4482,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
     default:
       READ_ERROR_CTX(lbm_channel_row(chan), lbm_channel_column(chan));
     }
-    stack_drop(ctx, 2);
+    stack_drop(ctx, 1);
     ctx->r = res;
     ctx->app_cont = true;
     return;
@@ -4533,7 +4526,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
         READ_ERROR_CTX(lbm_channel_row(chan), lbm_channel_column(chan));
       }
     }
-    stack_drop(ctx, 2);
+    stack_drop(ctx, 1);
     ctx->r = lbm_enc_sym(symbol_id);
     ctx->app_cont = true;
     return;
@@ -4550,7 +4543,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
   n = tok_char(chan, &c_val);
   if(n > 0) {
     lbm_channel_drop(chan,(unsigned int) n);
-    stack_drop(ctx, 2);
+    stack_drop(ctx, 1);
     ctx->r = lbm_enc_char((uint8_t)c_val);
     ctx->app_cont = true;
     return;
@@ -4561,7 +4554,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
  retry_token:
   if (n == TOKENIZER_NEED_MORE) {
     sptr[0] = stream;
-    sptr[1] = lbm_enc_u(0);
     stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
     yield_ctx(EVAL_CPS_MIN_SLEEP);
     return;
@@ -4656,11 +4648,10 @@ static void cont_read_append_bytearray(eval_context_t *ctx) {
     ((uint8_t*)arr->data)[ix] = (uint8_t)lbm_dec_as_u32(ctx->r);
 
     sptr[2] = lbm_enc_u(ix + 1);
-    lbm_value *rptr = stack_reserve(ctx, 4);
+    lbm_value *rptr = stack_reserve(ctx, 3);
     rptr[0] = READ_APPEND_BYTEARRAY;
     rptr[1] = stream;
-    rptr[2] = lbm_enc_u(0);
-    rptr[3] = READ_NEXT_TOKEN;
+    rptr[2] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
   } else if (lbm_is_symbol(ctx->r) && ctx->r == ENC_SYM_CLOSEBRACK) {
     lbm_uint array_size = ix / sizeof(lbm_uint);
@@ -4771,13 +4762,24 @@ static void cont_read_append_array(eval_context_t *ctx) {
     ((lbm_uint*)arr->data)[ix] = ctx->r;
 
     sptr[2] = lbm_enc_u(ix + 1);
-    lbm_value *rptr = stack_reserve(ctx, 4);
+    lbm_value *rptr = stack_reserve(ctx, 3);
     rptr[0] = READ_APPEND_ARRAY;
     rptr[1] = stream;
-    rptr[2] = lbm_enc_u(0);
-    rptr[3] = READ_NEXT_TOKEN;
+    rptr[2] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
   }
+}
+
+// read_grab_row leads into an implicit read_next_token.
+static void cont_read_next_token_grab_row(eval_context_t *ctx) {
+  lbm_value stream = get_stack_ptr(ctx, 1)[0];
+  lbm_char_channel_t *chan = lbm_dec_channel(stream);
+  if (chan == NULL || chan->state == NULL) {
+    ERROR_CTX(ENC_SYM_FATAL_ERROR);
+  }
+  ctx->row0 = (int32_t)lbm_channel_row(chan);
+  ctx->row1 = -1; // a new start, end is unknown
+  cont_read_next_token(ctx);
 }
 
 // Lisp list syntax reading ////////////////////////////////////////
@@ -4792,8 +4794,6 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
-    return; // INFER does not understand that execution
-            // jumps out on error_ctx with a longjmp.
   }
 
   if (lbm_is_symbol(ctx->r)) {
@@ -4813,11 +4813,10 @@ static void cont_read_append_continue(eval_context_t *ctx) {
       ctx->app_cont = true;
       return;
     case ENC_SYM_DOT: {
-      lbm_value *rptr = stack_reserve(ctx, 4);
+      lbm_value *rptr = stack_reserve(ctx, 3);
       rptr[0] = READ_DOT_TERMINATE;
       rptr[1] = stream;
-      rptr[2] = lbm_enc_u(0);
-      rptr[3] = READ_NEXT_TOKEN;
+      rptr[2] = READ_NEXT_TOKEN;
       ctx->app_cont = true;
     } return;
     }
@@ -4840,11 +4839,10 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   sptr[0] = first_cell;
   sptr[1] = last_cell;
   //sptr[2] = stream;    // unchanged.
-  lbm_value *rptr = stack_reserve(ctx, 4);
+  lbm_value *rptr = stack_reserve(ctx, 3);
   rptr[0] = READ_APPEND_CONTINUE;
   rptr[1] = stream;
-  rptr[2] = lbm_enc_u(0);
-  rptr[3] = READ_NEXT_TOKEN;
+  rptr[2] = READ_NEXT_TOKEN;
   ctx->app_cont = true;
 }
 
@@ -4870,14 +4868,15 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
         return;
       }
     }
-    lbm_value *rptr = stack_reserve(ctx, 6);
+    lbm_value *rptr = stack_reserve(ctx, 5);
     rptr[0] = READ_EVAL_CONTINUE;
     rptr[1] = stream;
-    rptr[2] = lbm_enc_u(1);
-    rptr[3] = READ_NEXT_TOKEN;
-    rptr[4] = lbm_enc_u(ctx->flags);
-    rptr[5] = POP_READER_FLAGS;
+    rptr[2] = READ_NEXT_TOKEN_GRAB_ROW;
+    rptr[3] = lbm_enc_u(ctx->flags);
+    rptr[4] = POP_READER_FLAGS;
 
+    // Evaluate result of reading (in r) and then continue with
+    // reading reading the rest of the program.
     ctx->curr_env = env;
     ctx->curr_exp = ctx->r;
   } else {
@@ -4924,13 +4923,12 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
     lbm_ref_cell(last_cell)->cdr = ctx->r;
     //lbm_set_cdr(last_cell, ctx->r);
     ctx->r = sptr[0]; // first cell
-    lbm_value *rptr = stack_reserve(ctx, 3);
+    lbm_value *rptr = stack_reserve(ctx, 2);
     sptr[0] = stream;
     sptr[1] = ctx->r;
     sptr[2] = READ_EXPECT_CLOSEPAR;
     rptr[0] = stream;
-    rptr[1] = lbm_enc_u(0);
-    rptr[2] = READ_NEXT_TOKEN;
+    rptr[1] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
   } else {
     lbm_channel_reader_close(str);
@@ -5516,11 +5514,13 @@ static void cont_kill(eval_context_t *ctx) {
   ok_ctx();
 }
 
+// cont_pop_reader_flags
+// s[sp-1] flags
+// Preserves r
 static void cont_pop_reader_flags(eval_context_t *ctx) {
   lbm_value flags = ctx->K.data[--ctx->K.sp];
   ctx->flags = ctx->flags & ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
   ctx->flags |= (lbm_dec_as_u32(flags) & EVAL_CPS_CONTEXT_READER_FLAGS_MASK);
-  // r is unchanged.
   ctx->app_cont = true;
 }
 
@@ -5664,6 +5664,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_read_start_array,
     cont_read_append_array,
     cont_loop_env_prep,
+    cont_read_next_token_grab_row,
   };
 
 /*********************************************************/
