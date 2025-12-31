@@ -369,26 +369,26 @@ static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_NONE;
 static volatile uint32_t eval_cps_next_state_arg = 0;
 static volatile bool     eval_cps_state_changed = false;
 
-static void usleep_nonsense(uint32_t us) {
+sizeopt static void usleep_nonsense(uint32_t us) {
   (void) us;
 }
 
-static bool dynamic_load_nonsense(const char *sym, const char **code) {
+sizeopt static bool dynamic_load_nonsense(const char *sym, const char **code) {
   (void) sym;
   (void) code;
   return false;
 }
 
-static int printf_nonsense(const char *fmt, ...) {
+sizeopt static int printf_nonsense(const char *fmt, ...) {
   (void) fmt;
   return 0;
 }
 
-static void ctx_done_nonsense(eval_context_t *ctx) {
+sizeopt static void ctx_done_nonsense(eval_context_t *ctx) {
   (void) ctx;
 }
 
-static void critical_nonsense(void) {
+sizeopt static void critical_nonsense(void) {
   return;
 }
 
@@ -529,7 +529,7 @@ bool lbm_event_queue_is_empty(void) {
 
 static bool              eval_running = false;
 static volatile bool     blocking_extension = false;
-static lbm_mutex_t           blocking_extension_mutex;
+static lbm_mutex_t       blocking_extension_mutex;
 static bool              blocking_extension_mutex_initialized = false;
 static lbm_uint          blocking_extension_timeout_us = 0;
 static bool              blocking_extension_timeout = false;
@@ -2780,9 +2780,9 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
 #ifdef LBM_ALWAYS_GC
         gc();
 #endif
-        if (!create_string_channel(lbm_dec_str(args[0]), &chan, args[0])) {
+        if (!create_string_channel(str, &chan, args[0])) {
           gc();
-          if (!create_string_channel(lbm_dec_str(args[0]), &chan, args[0])) {
+          if (!create_string_channel(str, &chan, args[0])) {
             ERROR_CTX(ENC_SYM_MERROR);
           }
         }
@@ -3609,7 +3609,7 @@ static void cont_closure_application_args(eval_context_t *ctx) {
 
   lbm_cons_t *params_cell = lbm_ref_cell(params);
 
-  lbm_value binder = allocate_binding(params_cell->car, ctx->r, sptr[2]); //clo_env);
+  lbm_value binder = allocate_binding(params_cell->car, ctx->r, sptr[2]);
 
   if (lbm_is_cons(args)) { // There are args
     lbm_cons_t *args_cell = lbm_ref_cell(args);
@@ -4216,6 +4216,16 @@ static void cont_merge_layer(eval_context_t *ctx) {
 /****************************************************/
 /*   READER                                         */
 
+static void error_on_invalid_read_result(lbm_char_channel_t *str, eval_context_t *ctx) {
+  if (lbm_is_symbol(ctx->r)) {
+    lbm_uint sym_val = lbm_dec_sym(ctx->r);
+    if (sym_val >= TOKENIZER_SYMBOLS_START &&
+        sym_val <= TOKENIZER_SYMBOLS_END) {
+      READ_ERROR_CTX(lbm_channel_row(str), lbm_channel_column(str));
+    }
+  }
+}
+
 static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
 
   /* Tokenizer reached "end of file"
@@ -4239,13 +4249,7 @@ static void read_finish(lbm_char_channel_t *str, eval_context_t *ctx) {
      cont_read_done.
   */
 
-  if (lbm_is_symbol(ctx->r)) {
-    lbm_uint sym_val = lbm_dec_sym(ctx->r);
-    if (sym_val >= TOKENIZER_SYMBOLS_START &&
-        sym_val <= TOKENIZER_SYMBOLS_END) {
-      READ_ERROR_CTX(lbm_channel_row(str), lbm_channel_column(str));
-    }
-  }
+  error_on_invalid_read_result(str, ctx);
 
   if (ctx->K.sp > 4  && (ctx->K.data[ctx->K.sp - 3] == READ_DONE) &&
       (ctx->K.data[ctx->K.sp - 4] == READING_PROGRAM_INCREMENTALLY)) {
@@ -4323,8 +4327,9 @@ static void cont_read_next_token(eval_context_t *ctx) {
       rptr[0] = ENC_SYM_NIL;
       rptr[1] = ENC_SYM_NIL;
       rptr[2] = READ_APPEND_CONTINUE;
-      ctx->r = ENC_SYM_OPENPAR; // Here in case this is the last thing in the stream.
-                                // In that case this is useful error information.
+      ctx->r = ENC_SYM_OPENPAR; // This return value is used in case the stream is ended here.
+                                // The stream having no more data after an OPENPAR is an error
+                                // and read_finish will make use of this info to issue an error.
     } break;
     case TOKCLOSEPAR: {
       ctx->r = ENC_SYM_CLOSEPAR;
@@ -4332,8 +4337,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
     } return;
     case TOKOPENARRAY:
       // Switch to array reader
-      compound_read_start = READ_START_ARRAY;     /* fall through */
-      compound_value_opener = ENC_SYM_OPENARRAY;
+      compound_read_start = READ_START_ARRAY;
+      compound_value_opener = ENC_SYM_OPENARRAY; /* fall through */
     case TOKOPENBRACK: {
       lbm_value *rptr = stack_reserve(ctx, 1);
       rptr[0] = compound_read_start;
@@ -4908,8 +4913,7 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
 }
 
 static void cont_read_done(eval_context_t *ctx) {
-  //lbm_value reader_mode = ctx->K.data[--ctx->K.sp];
-  --ctx->K.sp;
+  --ctx->K.sp; // Ignore reader mode.
 
   lbm_char_channel_t *str = lbm_dec_channel(ctx->reader_stream);
   if (str == NULL || str->state == NULL) {
@@ -4917,13 +4921,10 @@ static void cont_read_done(eval_context_t *ctx) {
   }
 
   lbm_channel_reader_close(str);
-  if (lbm_is_symbol(ctx->r)) {
-    lbm_uint sym_val = lbm_dec_sym(ctx->r);
-    if (sym_val >= TOKENIZER_SYMBOLS_START &&
-        sym_val <= TOKENIZER_SYMBOLS_END) {
-      READ_ERROR_CTX(lbm_channel_row(str), lbm_channel_column(str));
-    }
-  }
+
+  // Reading row/col from closed channel is OK!
+  error_on_invalid_read_result(str, ctx);
+
   ctx->row0 = -1;
   ctx->row1 = -1;
   ctx->reader_stream = ENC_SYM_NIL;
