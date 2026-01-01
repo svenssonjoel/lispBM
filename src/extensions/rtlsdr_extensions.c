@@ -31,6 +31,11 @@ typedef struct {
 
 rtlsdr_dev_wrapper devs[RTLSDR_MAX_DEVICES];
 
+static lbm_uint sym_gain_auto;
+static lbm_uint sym_gain_manual;
+static lbm_uint sym_agc_on;
+static lbm_uint sym_agc_off;
+
 lbm_value ext_rtlsdr_open(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 1 && lbm_is_number(args[0])) {
@@ -44,7 +49,7 @@ lbm_value ext_rtlsdr_open(lbm_value *args, lbm_uint argn) {
       }
     }
     r = ENC_SYM_NIL;
-    if (free_dev > 0) {
+    if (free_dev >= 0) {
       devs[free_dev].open = true;
       devs[free_dev].index = ix;
       if (rtlsdr_open(&devs[free_dev].dev, ix) == 0) {
@@ -61,7 +66,7 @@ lbm_value ext_rtlsdr_close(lbm_value *args, lbm_uint argn) {
   if (argn == 1 && lbm_is_number(args[0])) {
     uint32_t dev_id = lbm_dec_as_u32(args[0]);
     r = ENC_SYM_EERROR;
-    if (dev_id >= 0 && dev_id < RTLSDR_MAX_DEVICES) {
+    if (dev_id < RTLSDR_MAX_DEVICES) {
 
       if (devs[dev_id].open) {
         devs[dev_id].open = false;
@@ -75,8 +80,6 @@ lbm_value ext_rtlsdr_close(lbm_value *args, lbm_uint argn) {
   }
   return r;
 }
-
-
 
 lbm_value ext_rtlsdr_get_device_count(lbm_value *args, lbm_uint argn) {
   (void) args;
@@ -114,6 +117,152 @@ lbm_value ext_rtlsdr_get_device_name(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
+lbm_value ext_rtlsdr_set_center_freq(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 && lbm_is_number(args[0]) && lbm_is_number(args[1])) {
+    uint32_t dev_id = lbm_dec_as_u32(args[0]);
+    uint32_t freq = lbm_dec_as_u32(args[1]);
+    r = ENC_SYM_EERROR;
+    if (dev_id < RTLSDR_MAX_DEVICES && devs[dev_id].open) {
+      if (rtlsdr_set_center_freq(devs[dev_id].dev, freq) == 0) {
+        r = ENC_SYM_TRUE;
+      }
+    }
+  }
+  return r;
+}
+
+lbm_value ext_rtlsdr_get_center_freq(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    uint32_t dev_id = lbm_dec_as_u32(args[0]);
+    r = ENC_SYM_EERROR;
+    if (dev_id < RTLSDR_MAX_DEVICES && devs[dev_id].open) {
+      uint32_t freq = rtlsdr_get_center_freq(devs[dev_id].dev);
+      r = lbm_enc_u32(freq);
+    }
+  }
+  return r;
+}
+
+lbm_value ext_rtlsdr_set_sample_rate(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 && lbm_is_number(args[0]) && lbm_is_number(args[1])) {
+    uint32_t dev_id = lbm_dec_as_u32(args[0]);
+    uint32_t rate = lbm_dec_as_u32(args[1]);
+    r = ENC_SYM_EERROR;
+    if (dev_id < RTLSDR_MAX_DEVICES && devs[dev_id].open) {
+      if (rtlsdr_set_sample_rate(devs[dev_id].dev, rate) == 0) {
+        r = ENC_SYM_TRUE;
+      }
+    }
+  }
+  return r;
+}
+
+lbm_value ext_rtlsdr_get_sample_rate(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    uint32_t dev_id = lbm_dec_as_u32(args[0]);
+    r = ENC_SYM_EERROR;
+    if (dev_id < RTLSDR_MAX_DEVICES && devs[dev_id].open) {
+      uint32_t rate = rtlsdr_get_sample_rate(devs[dev_id].dev);
+      r = lbm_enc_u32(rate);
+    }
+  }
+  return r;
+}
+
+lbm_value ext_rtlsdr_set_tuner_gain_mode(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 && lbm_is_number(args[0]) && lbm_is_symbol(args[1])) {
+    uint32_t dev_id = lbm_dec_as_u32(args[0]);
+    int32_t mode = lbm_dec_sym(args[1]);
+    r = ENC_SYM_EERROR;
+    if (dev_id < RTLSDR_MAX_DEVICES && devs[dev_id].open) {
+      r = ENC_SYM_NIL;
+      if (mode == sym_gain_manual) {
+        if (rtlsdr_set_tuner_gain_mode(devs[dev_id].dev, 1) == 0) {
+          r = ENC_SYM_TRUE;
+        }
+      } else if (mode == sym_gain_auto) {
+        if (rtlsdr_set_tuner_gain_mode(devs[dev_id].dev, 0) == 0) {
+          r = ENC_SYM_TRUE;
+        }
+      }
+    }
+  }
+  return r;
+}
+
+lbm_value ext_rtlsdr_set_tuner_gain(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 && lbm_is_number(args[0]) && lbm_is_number(args[1])) {
+    uint32_t dev_id = lbm_dec_as_u32(args[0]);
+    int32_t gain = lbm_dec_as_i32(args[1]);
+    r = ENC_SYM_EERROR;
+    if (dev_id < RTLSDR_MAX_DEVICES && devs[dev_id].open) {
+      if (rtlsdr_set_tuner_gain(devs[dev_id].dev, gain) == 0) {
+        r = ENC_SYM_TRUE;
+      }
+    }
+  }
+  return r;
+}
+
+lbm_value ext_rtlsdr_get_tuner_gain(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    uint32_t dev_id = lbm_dec_as_u32(args[0]);
+    r = ENC_SYM_EERROR;
+    if (dev_id < RTLSDR_MAX_DEVICES && devs[dev_id].open) {
+      int32_t gain = rtlsdr_get_tuner_gain(devs[dev_id].dev);
+      r = lbm_enc_i32(gain);
+    }
+  }
+  return r;
+}
+
+lbm_value ext_rtlsdr_set_agc_mode(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 && lbm_is_number(args[0]) && lbm_is_symbol(args[1])) {
+    uint32_t dev_id = lbm_dec_as_u32(args[0]);
+    int32_t mode = lbm_dec_sym(args[1]);
+    r = ENC_SYM_EERROR;
+    if (dev_id < RTLSDR_MAX_DEVICES && devs[dev_id].open) {
+      r = ENC_SYM_NIL;
+      if (mode == sym_agc_on) {
+        if (rtlsdr_set_agc_mode(devs[dev_id].dev, 1) == 0) {
+          r = ENC_SYM_TRUE;
+        }
+      } else if (mode == sym_agc_off) {
+        if (rtlsdr_set_agc_mode(devs[dev_id].dev, 0) == 0) {
+          r = ENC_SYM_TRUE;
+        }
+      }
+    }
+  }
+  return r;
+}
+
+// Towards FM demodulation
+
+
+// audio_out is the same size as the i_data/q_data input arrays.
+static void fm_discriminator(float *i_data,
+                             float *q_data,
+                             unsigned int length,
+                             float *audio_out) {
+  float prev_i = i_data[0];
+  float prev_q = q_data[0];
+  for (unsigned int n = 1; n < length; n++) {
+    audio_out[n] = q_data[n] * prev_i - i_data[n] * prev_q;
+    prev_i = i_data[n];
+    prev_q = q_data[n];
+  }
+}
+
+
 void lbm_rtlsdr_extensions_init(void) {
 
   for (int i = 0; i < RTLSDR_MAX_DEVICES; i ++) {
@@ -122,8 +271,21 @@ void lbm_rtlsdr_extensions_init(void) {
     devs[i].open = false;
   }
 
+  lbm_add_symbol_const("gain-mode-auto", &sym_gain_auto);
+  lbm_add_symbol_const("gain-mode-manual", &sym_gain_manual);
+  lbm_add_symbol_const("agc-on", &sym_agc_on);
+  lbm_add_symbol_const("agc-off", &sym_agc_off);
+
   lbm_add_extension("rtlsdr-open", ext_rtlsdr_open);
   lbm_add_extension("rtlsdr-close", ext_rtlsdr_close);
   lbm_add_extension("rtlsdr-get-device-count", ext_rtlsdr_get_device_count);
   lbm_add_extension("rtlsdr-get-device-name", ext_rtlsdr_get_device_name);
+  lbm_add_extension("rtlsdr-set-center-freq", ext_rtlsdr_set_center_freq);
+  lbm_add_extension("rtlsdr-get-center-freq", ext_rtlsdr_get_center_freq);
+  lbm_add_extension("rtlsdr-set-sample-rate", ext_rtlsdr_set_sample_rate);
+  lbm_add_extension("rtlsdr-get-sample-rate", ext_rtlsdr_get_sample_rate);
+  lbm_add_extension("rtlsdr-set-tuner-gain-mode", ext_rtlsdr_set_tuner_gain_mode);
+  lbm_add_extension("rtlsdr-set-tuner-gain", ext_rtlsdr_set_tuner_gain);
+  lbm_add_extension("rtlsdr-get-tuner-gain", ext_rtlsdr_get_tuner_gain);
+  lbm_add_extension("rtlsdr-set-agc-mode", ext_rtlsdr_set_agc_mode);
 }

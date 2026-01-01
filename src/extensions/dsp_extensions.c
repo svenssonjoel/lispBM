@@ -273,16 +273,16 @@ static void lbm_convolve(float *signal,
 }
 
 
-static void lbm_complex_convolve(float *signal_re,
-                                 float *signal_im,
-                                 unsigned int signal_len,
-                                 float *filter_re,
-                                 float *filter_im,
-                                 unsigned int filter_len,
-                                 float *output_re,
-                                 float *output_im,
-                                 unsigned int output_len,
-                                 bool swap_byte_order) {
+void lbm_complex_convolve(float *signal_re,
+                          float *signal_im,
+                          unsigned int signal_len,
+                          float *filter_re,
+                          float *filter_im,
+                          unsigned int filter_len,
+                          float *output_re,
+                          float *output_im,
+                          unsigned int output_len,
+                          bool swap_byte_order) {
   for (int n = 0; n < (int)output_len; n++) {
     float real_sum = 0.0f;
     float imag_sum = 0.0f;
