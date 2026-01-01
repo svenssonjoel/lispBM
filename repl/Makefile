@@ -92,6 +92,13 @@ ifneq (,$(filter debug, $(FEATURES)))
 	CCFLAGS += -g
 endif
 
+#USE rtlsdr extensions
+ifneq (,$(filter rtlsdr, $(FEATURES)))
+	CCFLAGS += -DWITH_RTLSDR
+	LDFLAGS += -lrtlsdr
+	REPL_SRC += $(LISPBM)/src/extensions/rtlsdr_extensions.c
+endif
+
 
 # -Wjump-misses-init
 # -fsanitize=address
