@@ -15,14 +15,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _RTLSDR_EXTENSIONS_H_
-#define _RTLSDR_EXTENSIONS_H_
+#ifndef _LBM_RTLSDR_H_
+#define _LBM_RTLSDR_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void lbm_rtlsdr_extensions_init(void);
+void lbm_rtlsdr_init(void);
 
 #ifdef __cplusplus
 }

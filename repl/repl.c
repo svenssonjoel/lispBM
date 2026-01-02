@@ -80,7 +80,7 @@
 #endif
 
 #ifdef WITH_RTLSDR
-#include "rtlsdr_extensions.h"
+#include "lbm_rtlsdr.h"
 #endif
 
 #ifndef LBM_WIN
@@ -2745,13 +2745,15 @@ int main(int argc, char **argv) {
     terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
   }
 
-#ifdef WITH_ALSA
+#if defined(WITH_ALSA) && defined(WITH_RTLSDR)
   lbm_sound_init();
+#endif
+#ifdef WITH_ALSA
   lbm_midi_init();
 #endif
 
 #ifdef WITH_RTLSDR
-  lbm_rtlsdr_extensions_init();
+  lbm_rtlsdr_init();
 #endif
 
   // TODO: Should the startup procedure work together with the VESC tcp serv?

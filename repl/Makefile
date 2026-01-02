@@ -96,7 +96,7 @@ endif
 ifneq (,$(filter rtlsdr, $(FEATURES)))
 	CCFLAGS += -DWITH_RTLSDR
 	LDFLAGS += -lrtlsdr
-	REPL_SRC += $(LISPBM)/src/extensions/rtlsdr_extensions.c
+	REPL_SRC += lbm_rtlsdr.c
 endif
 
 

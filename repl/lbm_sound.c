@@ -67,7 +67,7 @@
 12. Unison mode - Can be done in lisp!
 */
 
-#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -80,7 +80,7 @@
 #include <platform_timestamp.h>
 #include "lbm_sound.h"
 
-#include <alsa/asoundlib.h>
+
 
 static snd_pcm_t *pcm_handle = NULL;
 
@@ -88,6 +88,10 @@ static lbm_thread_t synth_thread;
 static bool synth_thread_running = false;
 
 static uint32_t voice_sequence_number = 0;
+
+snd_pcm_t *lbm_sound_pcm_handle(void) {
+  return pcm_handle;
+}
 
 // Default audio parameters
 #define SAMPLE_RATE 44100
