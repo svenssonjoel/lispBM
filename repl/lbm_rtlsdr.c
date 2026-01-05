@@ -38,10 +38,9 @@ static float *iq_buffer_q;
 static uint32_t iq_buffer_size;
 static uint32_t iq_buffer_write_pos;
 static iq_reader_t *iq_buffer_readers[MAX_IQ_READERS];
-
 static lbm_mutex_t iq_buffer_mutex;
 
-bool iq_buffer_create(uint32_t size) {
+static bool iq_buffer_create(uint32_t size) {
   if (iq_buffer_i) free(iq_buffer_i);
   if (iq_buffer_q) free(iq_buffer_q);
   iq_buffer_i = (float*)malloc(size * sizeof(float));
@@ -64,7 +63,7 @@ bool iq_buffer_create(uint32_t size) {
   return res;
 }
 
-bool iq_buffer_add_reader(iq_reader_t *reader) {
+static bool iq_buffer_add_reader(iq_reader_t *reader) {
   lbm_mutex_lock(&iq_buffer_mutex);
   bool res = false;
   int free_pos = -1;
@@ -85,7 +84,7 @@ bool iq_buffer_add_reader(iq_reader_t *reader) {
   return res;
 }
 
-bool iq_buffer_drop_reader(iq_reader_t *reader) {
+static bool iq_buffer_drop_reader(iq_reader_t *reader) {
   lbm_mutex_lock(&iq_buffer_mutex);
   for (int i = 0; i < MAX_IQ_READERS; i ++) {
     if (iq_buffer_readers[i] == reader) {
@@ -99,7 +98,7 @@ bool iq_buffer_drop_reader(iq_reader_t *reader) {
 }
 
 
-void iq_buffer_write(float *i_data, float *q_data, uint32_t n) {
+static void iq_buffer_write(float *i_data, float *q_data, uint32_t n) {
   if (n < iq_buffer_size) {
     lbm_mutex_lock(&iq_buffer_mutex);
     uint32_t old = iq_buffer_write_pos;
@@ -214,7 +213,7 @@ static bool iq_buffer_read(float *i_data, float *q_data, int n, iq_reader_t *rea
 }
 
 // supports having a single device open.
-rtlsdr_dev_t *dev = NULL;
+static rtlsdr_dev_t *dev = NULL;
 
 static volatile bool radio_thread_running = false;
 static lbm_thread_t radio_thread;
@@ -224,7 +223,7 @@ static lbm_uint sym_gain_manual;
 static lbm_uint sym_agc_on;
 static lbm_uint sym_agc_off;
 
-lbm_value ext_rtlsdr_open(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_open(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 1 && lbm_is_number(args[0])) {
     uint32_t ix = lbm_dec_as_u32(args[0]);
@@ -237,7 +236,7 @@ lbm_value ext_rtlsdr_open(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_close(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_close(lbm_value *args, lbm_uint argn) {
   (void) args;
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 0) {
@@ -257,7 +256,7 @@ lbm_value ext_rtlsdr_close(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_get_device_count(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_get_device_count(lbm_value *args, lbm_uint argn) {
   (void) args;
   lbm_value r = ENC_SYM_TERROR;
 
@@ -267,9 +266,9 @@ lbm_value ext_rtlsdr_get_device_count(lbm_value *args, lbm_uint argn) {
   }
   return r;
 }
-const char* rtlsdr_get_device_name(uint32_t index);
 
-lbm_value ext_rtlsdr_get_device_name(lbm_value *args, lbm_uint argn) {
+
+static lbm_value ext_rtlsdr_get_device_name(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
 
   if (argn == 1 && lbm_is_number(args[0])) {
@@ -293,7 +292,7 @@ lbm_value ext_rtlsdr_get_device_name(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_set_center_freq(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_set_center_freq(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 1 && lbm_is_number(args[0])) {
     uint32_t freq = lbm_dec_as_u32(args[0]);
@@ -308,7 +307,7 @@ lbm_value ext_rtlsdr_set_center_freq(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_get_center_freq(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_get_center_freq(lbm_value *args, lbm_uint argn) {
   (void) args;
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 0) {
@@ -321,7 +320,7 @@ lbm_value ext_rtlsdr_get_center_freq(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_set_sample_rate(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_set_sample_rate(lbm_value *args, lbm_uint argn) {
   (void) args;
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 1 && lbm_is_number(args[0])) {
@@ -337,7 +336,7 @@ lbm_value ext_rtlsdr_set_sample_rate(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_get_sample_rate(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_get_sample_rate(lbm_value *args, lbm_uint argn) {
   (void) args;
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 0) {
@@ -350,7 +349,7 @@ lbm_value ext_rtlsdr_get_sample_rate(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_set_tuner_gain_mode(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_set_tuner_gain_mode(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
     int32_t mode = lbm_dec_sym(args[0]);
@@ -371,7 +370,7 @@ lbm_value ext_rtlsdr_set_tuner_gain_mode(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_set_tuner_gain(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_set_tuner_gain(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 1 && lbm_is_number(args[0])) {
     int32_t gain = lbm_dec_as_i32(args[0]);
@@ -386,7 +385,7 @@ lbm_value ext_rtlsdr_set_tuner_gain(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_get_tuner_gain(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_get_tuner_gain(lbm_value *args, lbm_uint argn) {
   (void) args;
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 0) {
@@ -399,7 +398,7 @@ lbm_value ext_rtlsdr_get_tuner_gain(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_set_agc_mode(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_set_agc_mode(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 1 && lbm_is_symbol(args[0])) {
     int32_t mode = lbm_dec_sym(args[0]);
@@ -543,6 +542,8 @@ static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx) {
 
 static volatile bool rtlsdr_sampling_on = false;
 static lbm_thread_t rtlsdr_sampling_thread;
+static float rtlsdr_signal_strength = 0.0f;
+
 
 static void rtlsdr_normalize_and_buffer_callback(unsigned char *buf, uint32_t len, void *ctx) {
   (void)ctx;
@@ -552,11 +553,17 @@ static void rtlsdr_normalize_and_buffer_callback(unsigned char *buf, uint32_t le
   }
   int n = len / 2;
 
+  float sum_sq = 0.0;
+  
   for (int i = 0; i < n; i ++) {
-    i_data[i] = ((float)buf[i * 2] - 127.5) / 128.0f;
-    q_data[i] = ((float)buf[(i * 2) + 1] - 127.5) / 128.0f;
+    float i_val = ((float)buf[i * 2] - 127.5) / 128.0f;
+    float q_val = ((float)buf[(i * 2) + 1] - 127.5) / 128.0f;
+    i_data[i] = i_val;
+    q_data[i] = q_val;
+    sum_sq += i_val*i_val + q_val*q_val;
   }
   iq_buffer_write(i_data, q_data, n);
+  rtlsdr_signal_strength = sqrt(sum_sq / n);
 }
 
 static void rtlsdr_sampling_thd(void *arg) {
@@ -574,7 +581,7 @@ static void rtlsdr_sampling_thd(void *arg) {
                     rtlsdr_buffer_size);
 }
 
-lbm_value ext_rtlsdr_start_sampling(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_start_sampling(lbm_value *args, lbm_uint argn) {
   (void) args;
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 0) {
@@ -589,7 +596,7 @@ lbm_value ext_rtlsdr_start_sampling(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_stop_sampling(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_stop_sampling(lbm_value *args, lbm_uint argn) {
   (void) args;
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 0) {
@@ -603,6 +610,18 @@ lbm_value ext_rtlsdr_stop_sampling(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
+static lbm_value ext_rtlsdr_signal_strength(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 0) {
+    if (rtlsdr_sampling_on) {
+      r = lbm_enc_float(rtlsdr_signal_strength);
+    } else {
+      r = lbm_enc_float(-1.0f);
+    }
+  }
+  return r;        
+}
 
 static volatile bool fm_playback_thread_running = false;
 static lbm_thread_t fm_playback_thread;
@@ -723,7 +742,7 @@ static void fm_playback_thd(void *arg) {
 }
 
 
-lbm_value ext_rtlsdr_start_fm_playback(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_start_fm_playback(lbm_value *args, lbm_uint argn) {
   (void) args;
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 0) {
@@ -738,7 +757,7 @@ lbm_value ext_rtlsdr_start_fm_playback(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-lbm_value ext_rtlsdr_stop_fm_playback(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_rtlsdr_stop_fm_playback(lbm_value *args, lbm_uint argn) {
   (void) args;
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 0) {
@@ -752,6 +771,42 @@ lbm_value ext_rtlsdr_stop_fm_playback(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
+// ------------------------------------------------------------
+// General purpose reading
+
+static iq_reader_t gp_reader;
+
+
+static lbm_value ext_rtlsdr_get_samples(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_number(args[0])) {
+
+    uint32_t n = lbm_dec_as_u32(args[0]);
+    r = ENC_SYM_EERROR;
+    if (n > 0) {
+      lbm_value i_array;
+      lbm_value q_array;
+      if (lbm_heap_allocate_array(&i_array, (n * sizeof(float))) &&
+          lbm_heap_allocate_array(&q_array, (n * sizeof(float)))) {
+        lbm_array_header_t *i_array_h = (lbm_array_header_t*)lbm_car(i_array);
+        lbm_array_header_t *q_array_h = (lbm_array_header_t*)lbm_car(q_array);
+        float *i_buf = (float*)i_array_h->data;
+        float *q_buf = (float*)q_array_h->data;
+        iq_buffer_read(i_buf, q_buf, n, &gp_reader);
+        r = lbm_cons(i_array, q_array);
+      } else {
+        r = ENC_SYM_MERROR;
+      }
+    }
+  }
+  return r;
+}
+
+
+
+// ------------------------------------------------------------
+// Old radio thread
 static void radio_thd(void *arg) {
   (void)arg;
 
@@ -835,6 +890,7 @@ void lbm_rtlsdr_init(void) {
   dev = NULL;
 
   iq_buffer_create(262144);
+  iq_buffer_add_reader(&gp_reader);
 
   lbm_mutex_init(&iq_buffer_mutex);
   
@@ -860,6 +916,9 @@ void lbm_rtlsdr_init(void) {
 
   lbm_add_extension("rtlsdr-start-sampling", ext_rtlsdr_start_sampling);
   lbm_add_extension("rtlsdr-stop-sampling", ext_rtlsdr_stop_sampling);
+  lbm_add_extension("rtlsdr-signal-strength", ext_rtlsdr_signal_strength);
+  lbm_add_extension("rtlsdr-get-samples", ext_rtlsdr_get_samples);
+  
   lbm_add_extension("rtlsdr-start-fm-playback", ext_rtlsdr_start_fm_playback);
   lbm_add_extension("rtlsdr-stop-fm-playback", ext_rtlsdr_stop_fm_playback);
 
