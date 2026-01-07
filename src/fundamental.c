@@ -959,7 +959,7 @@ static lbm_value set_assoc(lbm_value assoc_list, lbm_value keyval) {
   while (lbm_is_cons(curr)) {
     lbm_cons_t *curr_cell = lbm_ref_cell(curr);
     if (struct_eq(key, lbm_car(curr_cell->car))) {
-      if (lbm_is_cons_rw(curr)) {
+      if (!lbm_ptr_is_constant(curr)) {
         curr_cell->car = keyval;
       }
       return assoc_list;

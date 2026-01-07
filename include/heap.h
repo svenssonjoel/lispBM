@@ -846,6 +846,16 @@ static inline bool lbm_is_constant(lbm_value x) {
           (!(x & LBM_PTR_BIT)));
 }
 
+/** Check if a ptr points to a constant.
+ *  Must first check that x is a ptr type such as cons.
+ *
+ * \param x ptr value to check
+ * \return true if x points to a constant, false otherwise.
+ */
+static inline bool lbm_ptr_is_constant(lbm_value x) {
+  return (x & LBM_PTR_TO_CONSTANT_BIT);
+}
+
 /**
  * Check if a value is a Read/Writeable cons cell
  * \param x Value to check
