@@ -25,7 +25,6 @@
 #include "lbm_sound.h"
 #include <math.h>
 
-
 // Circular I/Q data buffer
 #define MAX_IQ_READERS 5
 
@@ -620,7 +619,7 @@ static lbm_value ext_rtlsdr_signal_strength(lbm_value *args, lbm_uint argn) {
       r = lbm_enc_float(-1.0f);
     }
   }
-  return r;        
+  return r;
 }
 
 static volatile bool fm_playback_thread_running = false;
@@ -646,7 +645,6 @@ static void fm_playback_thd(void *arg) {
     return;
   }
 
-  // Try to recover ALSA device if it's in a bad state
   snd_pcm_state_t state = snd_pcm_state(pcmh);
   if (state != SND_PCM_STATE_OPEN && state != SND_PCM_STATE_SETUP) {
     fprintf(stderr, "FM playback: ALSA in state %d, attempting drain/drop\n", state);
@@ -672,8 +670,6 @@ static void fm_playback_thd(void *arg) {
   err = snd_pcm_nonblock(pcmh, 1);
   if (err < 0) {
     fprintf(stderr, "FM playback: Cannot set non-blocking mode: %s\n", snd_strerror(err));
-  } else {
-    printf("FM playback: ALSA set to non-blocking mode\n");
   }
 
   float i_buf[8192];
@@ -684,7 +680,6 @@ static void fm_playback_thd(void *arg) {
   int n = 8192;
 
   int16_t sound_samples[8192];
-
   while (fm_playback_thread_running) {
 
     while (!iq_buffer_read(i_buf,q_buf, n, &fm_playback_reader)) {
@@ -884,7 +879,6 @@ lbm_value ext_rtlsdr_stop_radio_thd(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-
 void lbm_rtlsdr_init(void) {
 
   dev = NULL;
@@ -893,7 +887,7 @@ void lbm_rtlsdr_init(void) {
   iq_buffer_add_reader(&gp_reader);
 
   lbm_mutex_init(&iq_buffer_mutex);
-  
+
   radio_thread_running = false;
 
   lbm_add_symbol_const("gain-mode-auto", &sym_gain_auto);
@@ -918,7 +912,7 @@ void lbm_rtlsdr_init(void) {
   lbm_add_extension("rtlsdr-stop-sampling", ext_rtlsdr_stop_sampling);
   lbm_add_extension("rtlsdr-signal-strength", ext_rtlsdr_signal_strength);
   lbm_add_extension("rtlsdr-get-samples", ext_rtlsdr_get_samples);
-  
+
   lbm_add_extension("rtlsdr-start-fm-playback", ext_rtlsdr_start_fm_playback);
   lbm_add_extension("rtlsdr-stop-fm-playback", ext_rtlsdr_stop_fm_playback);
 

@@ -531,6 +531,7 @@ static bool generate_freelist(size_t num_cells) {
 
   // Replace the incorrect pointer at the last cell.
   t = lbm_ref_cell(lbm_enc_cons_ptr(num_cells-1));
+  t->car = ENC_SYM_RECOVERED;
   t->cdr = ENC_SYM_NIL;
 
   return true;
@@ -781,13 +782,14 @@ void lbm_gc_mark_phase(lbm_value root) {
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
       uint32_t index = arr->index;
-      if (arr->size > 0) {
-        lbm_push(s, curr); // put array back as bookkeeping.
+      lbm_push(s, curr); // put array back as bookkeeping.
+      if (arr->size > 0 && arr->index <= ((arr->size/(sizeof(lbm_value))) - 1)) {
         // Potential optimization.
         // 1. CONS pointers are set to curr and recurse.
         // 2. Any other ptr is marked immediately and index is increased.
         if (lbm_is_ptr(arrdata[index]) && ((arrdata[index] & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
             !((arrdata[index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
+
           lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];
           if (!lbm_get_gc_mark(elt->cdr)) {
             curr = arrdata[index];
@@ -799,9 +801,9 @@ void lbm_gc_mark_phase(lbm_value root) {
           arr->index++;
           continue;
         }
-        arr->index = 0;
-        lbm_pop(s, &curr); // Remove array from GC stack as we are done marking it.
       }
+      arr->index = 0;
+      lbm_stack_drop(s,1); // Drop the bookkeeping array.
       cell->cdr = lbm_set_gc_mark(cell->cdr);
       lbm_heap_state.gc_marked ++;
       continue;

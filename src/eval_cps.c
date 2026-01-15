@@ -1934,7 +1934,7 @@ static void eval_callcc(eval_context_t *ctx) {
     lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
     // Go directly into application evaluation without passing go
     lbm_uint *sptr = stack_reserve(ctx, 2);
-    sptr0[0] = ctx->curr_env;
+    sptr0[0] = ctx->curr_env; // overwrites is_atomic in this execution path
     sptr[0] = arg_list;
     sptr[1] = APPLICATION_START;
     ctx->curr_exp = get_cadr(ctx->curr_exp);
@@ -4965,9 +4965,9 @@ static void cont_application_start(eval_context_t *ctx) {
 
       if (lbm_is_cons(args)) { // There are args
         lbm_cons_t *args_cell = lbm_ref_cell(args);
-        lbm_value *reserved = stack_reserve(ctx, 4);
-        sptr[1] = cl1;
+        sptr[1] = cl1;          // WARNING overwrites args on stack. args are unprotected.
         if (lbm_is_cons(cl0)) { // There are params
+          lbm_value *reserved = stack_reserve(ctx, 4);
           reserved[0] = cl2;
           reserved[1] = cl0;    // Guaranteed cons cell here
           reserved[2] = args_cell->cdr; // Possibly NIL
@@ -4975,13 +4975,16 @@ static void cont_application_start(eval_context_t *ctx) {
           ctx->curr_exp = args_cell->car;
           ctx->curr_env = arg_env;
         } else { // args but no params => REST_ARGS
-          reserved[1] = args_cell->cdr;      // protect cdr(args) from allocate_binding
+          lbm_value *reserved0 = stack_reserve(ctx, 2);
+          reserved0[0] = ENC_SYM_NIL;;
+          reserved0[1] = args_cell->cdr;
           ctx->curr_exp = args_cell->car;    // protect car(args) from allocate binding
           ctx->curr_env = arg_env;
           lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, cl2);
-          reserved[0] = rest_binder;
-          reserved[2] = get_car(rest_binder);
-          reserved[3] = CLOSURE_ARGS_REST;
+          lbm_value *reserved1 = stack_reserve(ctx, 2);
+          reserved0[0] = rest_binder;
+          reserved1[0] = get_car(rest_binder);
+          reserved1[1] = CLOSURE_ARGS_REST;
         }
       } else { // No args
         if (lbm_is_symbol_nil(cl0)) { // No parameters

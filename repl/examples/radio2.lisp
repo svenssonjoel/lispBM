@@ -51,7 +51,11 @@
        (var (i_buf . q_buf)  (rtlsdr-get-samples 1024))
        (var (fft_i . fft_q)  (fft i_buf q_buf 'little-endian))
        (var max_mag 0.0);
+       (img-clear disp)
        (loopfor i 0 (< i 1024) (+ i 1) {
+                (var m_q (bufget-f32 q_buf (* i 4) 'little-endian))
+                (var m_i (bufget-f32 i_buf (* i 4) 'little-endian))
+                (img-setpix disp (+ 100 (* 180 m_q)) (+ 100 (* 180 m_i)) 1)
                 (var x (bufget-f32 fft_i (* i 4) 'little-endian))
                 (var y (bufget-f32 fft_q (* i 4) 'little-endian))
                 ;; reuse fft-i for mags
@@ -59,7 +63,6 @@
                 (if (> mag max_mag) (setq max_mag mag))
                 (bufset-f32 fft_i (* i 4) (sqrt (+ (* x x) (* y y))) 'little-endian)
                 })
-       (img-clear disp)
        (draw_spectrum fft_i (if (<= max_mag 0.0001) 0.0001 max_mag))
        (disp-render disp 0 0  '(0x000000 0xFFFFFF))
        (the-loop)
