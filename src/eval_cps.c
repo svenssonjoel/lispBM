@@ -4631,6 +4631,9 @@ static void cont_read_append_bytearray(eval_context_t *ctx) {
   lbm_value size   = lbm_dec_u(sptr[1]);
   lbm_value ix     = lbm_dec_u(sptr[2]);
 
+  // Why MERROR here ?
+  // Is this comparison off by one?
+  // if can this lead to any issues.
   if (ix >= (size - 1)) {
     ERROR_CTX(ENC_SYM_MERROR);
   }
@@ -4727,6 +4730,11 @@ static void cont_read_append_array(eval_context_t *ctx) {
   lbm_value size   = lbm_dec_as_u32(sptr[1]);
   lbm_value ix     = lbm_dec_as_u32(sptr[2]);
 
+  // Why Merror here.
+  // also ix here is in "elements" not words.
+  // so comparison should be using (ix * sizeof(lbm_uint))
+  //                            or (size / sizeof(lbm_uint))
+  // same issue as in bytearrays
   if (ix >= (size - 1)) {
     ERROR_CTX(ENC_SYM_MERROR);
   }
