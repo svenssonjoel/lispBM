@@ -1818,6 +1818,32 @@ int lbm_perform_gc(void) {
 /* Evaluation functions                             */
 
 
+/* eval_symbol
+ * There are multiple possible ways a symbol could be "bound".
+ * 1. there is a mapping symbol -> value in the global env.
+ * 2. there is a mapping symbol -> value in the local env (ctx->curr_env).
+ * 3. there is a dynamically loadable value associated with the symbol.
+ * 4. The symbol is special or associated with an extension,
+ *    in which case it evaluates to itself.
+ *
+ * Syntax: any-symbol
+ *
+ * Expects: T(ctx->curr_exp) == symbol
+ *
+ * cases: 1,2,4
+ * Produces:
+ *   ctx->r = value bound to symbol
+ *   ctx->app_cont = true
+ *
+ * cases: 3
+ * Produces:
+ *   sp = sp+3
+ *   s[sp-3] = ctx->curr_exp (the symbol to evaluate)
+ *   s[sp-2] = ctx->curr_env
+ *   s[sp-1] = RESUME
+ *   ctx->curr_exp <- read_and_evaluate(dynamic value)
+ *   ctx->curr_env <- NIL
+ */
 static void eval_symbol(eval_context_t *ctx) {
   lbm_uint s = lbm_dec_sym(ctx->curr_exp);
   if (s >= RUNTIME_SYMBOLS_START) {
