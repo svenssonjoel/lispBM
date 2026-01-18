@@ -1926,6 +1926,7 @@ static void eval_callcc(eval_context_t *ctx) {
   }
   if (lbm_is_ptr(cont_array)) {
     lbm_array_header_t *arr = assume_array(cont_array);
+    // sp is small and sp*sizeof(lbm_uint) will now overflow.
     memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
     // The stored stack contains the is_atomic flag.
     // This flag is overwritten in the following execution path.
@@ -1993,44 +1994,6 @@ static void eval_define(eval_context_t *ctx) {
   ERROR_AT_CTX(ENC_SYM_EERROR, ctx->curr_exp);
 }
 
-#if false
-/* Allocate closure is only used in eval_lambda currently.
-   Inlining it should use no extra storage.
- */
-static inline lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value env) {
-
-#ifdef LBM_ALWAYS_GC
-  gc();
-  if (lbm_heap_num_free() < 4) {
-    ERROR_CTX(ENC_SYM_MERROR);
-  }
-#else
-  if (lbm_heap_num_free() < 4) {
-    gc();
-    if (lbm_heap_num_free() < 4) {
-      ERROR_CTX(ENC_SYM_MERROR);
-    }
-  }
-#endif
-  // The freelist will always contain just plain heap-cells.
-  // So dec_ptr is sufficient.
-  lbm_value res = lbm_heap_state.freelist;
-  // CONS check is not needed. If num_free is correct, then freelist is a cons-cell.
-  lbm_cons_t *heap = lbm_heap_state.heap;
-  lbm_uint ix = lbm_dec_ptr(res);
-  heap[ix].car = ENC_SYM_CLOSURE;
-  ix = lbm_dec_ptr(heap[ix].cdr);
-  heap[ix].car = params;
-  ix = lbm_dec_ptr(heap[ix].cdr);
-  heap[ix].car = body;
-  ix = lbm_dec_ptr(heap[ix].cdr);
-  heap[ix].car = env;
-  lbm_heap_state.freelist = heap[ix].cdr;
-  heap[ix].cdr = ENC_SYM_NIL;
-  lbm_heap_state.num_free-=4;
-  return res;
-}
-
 /* Eval lambda is cheating, a lot! It does this
    for performance reasons. The cheats are that
    1. When  closure is created, a reference to the local env
@@ -2044,34 +2007,6 @@ static inline lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_v
    work properly due to this cheating.
  */
 // (lambda param-list body-exp) -> (closure param-list body-exp env)
-
-
-static void eval_lambda(eval_context_t *ctx) {
-  lbm_value v1, v2;
-  lbm_value curr = ctx->curr_ext;
-  DROP(curr);
-  EXTRACT(curr, v1);
-  EXTRACT_NO_ADVANCE(curr, v2);
-  ctx->r = allocate_closure(v1,v2, ctx->curr_env);
-#ifdef CLEAN_UP_CLOSURES
-  lbm_uint sym_id  = 0;
-  if (clean_cl_env_symbol) {
-    lbm_value tail = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
-    lbm_value app = cons_with_gc(clean_cl_env_symbol, tail, tail);
-    ctx->curr_exp = app;
-  } else if (lbm_get_symbol_by_name("clean-cl-env", &sym_id)) {
-    clean_cl_env_symbol = lbm_enc_sym(sym_id);
-    lbm_value tail = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
-    lbm_value app = cons_with_gc(clean_cl_env_symbol, tail, tail);
-    ctx->curr_exp = app;
-  } else {
-    ctx->app_cont = true;
-  }
-#else
-  ctx->app_cont = true;
-#endif
-}
-#else
 static void eval_lambda(eval_context_t *ctx) {
 #ifdef LBM_ALWAYS_GC
   gc();
@@ -2117,7 +2052,6 @@ static void eval_lambda(eval_context_t *ctx) {
   }
   ERROR_CTX(ENC_SYM_MERROR);
 }
-#endif
 
 // (if cond-expr then-expr else-expr)
 static void eval_if(eval_context_t *ctx) {
@@ -2818,13 +2752,16 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     ctx->reader_stream = chan;
     lbm_value *sptr = get_stack_ptr(ctx, 2); // Overwrite the args.
 
-    if (!program && !incremental) {
-      sptr[0] = READING_EXPRESSION;
-    } else if (program && !incremental) {
-      sptr[0] = READING_PROGRAM;
-    } else if (program && incremental) {
-      sptr[0] = READING_PROGRAM_INCREMENTALLY;
-    }  // the last combo is illegal
+    // if reading a single expression, incremental
+    // or not have no meaning.
+    sptr[0] = READING_EXPRESSION;
+    if (program) {
+      if (incremental) {
+        sptr[0] = READING_PROGRAM_INCREMENTALLY;
+      } else {
+        sptr[0] = READING_PROGRAM;
+      }
+    }
     sptr[1] = READ_DONE;
 
     // Each reader starts in a fresh situation
@@ -2935,6 +2872,9 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
                                       lbm_get_current_cid(),
                                       context_flags,
                                       name);
+  // setting these values is a good idea
+  // even if creating a context failed.
+  // The info in r may be useful for user.
   ctx->r = lbm_enc_i(cid);
   ctx->app_cont = true;
   if (cid == -1) ERROR_CTX(ENC_SYM_MERROR); // Kill parent and signal out of memory.
@@ -4596,6 +4536,8 @@ static void cont_read_start_bytearray(eval_context_t *ctx) {
       }
     }
     lbm_value array;
+    // lbm_memory should not be large enough
+    // for this to overflow a 32bit number.
     initial_size = sizeof(lbm_uint) * initial_size;
 
     // Keep in mind that this allocation can fail for both
@@ -4631,10 +4573,11 @@ static void cont_read_append_bytearray(eval_context_t *ctx) {
   lbm_value size   = lbm_dec_u(sptr[1]);
   lbm_value ix     = lbm_dec_u(sptr[2]);
 
-  // Why MERROR here ?
-  // Is this comparison off by one?
-  // if can this lead to any issues.
-  if (ix >= (size - 1)) {
+  // This is an MERROR because if this comparison
+  // is true, there is a literal byte array in the code
+  // and it did not fit into the array we are reading into,
+  // which is 90% of free memory.
+  if (ix >= size) {
     ERROR_CTX(ENC_SYM_MERROR);
   }
 
@@ -4703,6 +4646,8 @@ static void cont_read_start_array(eval_context_t *ctx) {
       }
     }
     lbm_value array;
+    // lbm_memory should not be large enough
+    // for this to overflow a 32bit number.
     initial_size = sizeof(lbm_uint) * initial_size;
 
     if (!lbm_heap_allocate_lisp_array(&array, initial_size)) {
@@ -4730,12 +4675,11 @@ static void cont_read_append_array(eval_context_t *ctx) {
   lbm_value size   = lbm_dec_as_u32(sptr[1]);
   lbm_value ix     = lbm_dec_as_u32(sptr[2]);
 
-  // Why Merror here.
-  // also ix here is in "elements" not words.
-  // so comparison should be using (ix * sizeof(lbm_uint))
-  //                            or (size / sizeof(lbm_uint))
-  // same issue as in bytearrays
-  if (ix >= (size - 1)) {
+  // This is a MERROR because if this comparison is true
+  // it means that a literal lisp aray is requireing more that
+  // 90% of currently free memory. The programmer should
+  // be informed that her program uses too much memory.
+  if (ix >= (size / sizeof(lbm_uint))) {
     ERROR_CTX(ENC_SYM_MERROR);
   }
 
@@ -4749,6 +4693,7 @@ static void cont_read_append_array(eval_context_t *ctx) {
       array_size = array_size + 1;
     }
     lbm_memory_shrink((lbm_uint*)arr->data, array_size);
+    // Ix is small and ix * sizeof(lbm_uint) will not overflow.
     arr->size = ix * sizeof(lbm_uint);
     stack_drop(ctx, 3);
     ctx->r = array;
