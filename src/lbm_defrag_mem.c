@@ -189,6 +189,7 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes, lb
         i++;
       } else {
         // jump to next spot
+        // Assumes that the allocation size is always size + DEFRAG_ALLOC_ARRAY_HEADER_SIZE
         i += bs2ws(mem_data[i]) + DEFRAG_ALLOC_ARRAY_HEADER_SIZE;
       }
       break;
@@ -202,7 +203,6 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes, lb
         }
       } else {
         state = INIT;
-        i++;
       }
       break;
     }
