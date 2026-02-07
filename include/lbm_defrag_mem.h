@@ -36,7 +36,7 @@
   that an array-reference-cell is never duplicated.
 
   A ByteArray header consists of a size and a data-pointer. So the
-  general layout of a byteArray in memory is:
+  general layout of a ByteArray in memory is:
 
      [size, data-pointer]->[data ..., padding]
 
@@ -51,13 +51,40 @@
                -----------------------------
 
   Note that the allocation in the defrag memory is large enough to
-  hold all the bytes of data, the entire header as well as the
-  cell-back-ptr consecutively.
+  hold the header, the cell-back-ptr and the data consecutively.
 
   It is important that the [size, data-pointer]..[data] areas are
   compatible with the normal ByteArray header struct so that all the
   functions that operate on regular ByteArrays also can operate
   unchanged on ByteArrays stored in defrag memory.
+
+  The heap-cell that references the ByteArray data has the
+  following form:
+
+    [ptr-to-header, SYM_ARRAY_TYPE]
+
+  The reference to the heap_cell is a pointer with the LBM_TYPE_ARRAY
+  bit set in its type fields. Note that this reference can be duplicated.
+
+  A cell referring to a byte array in defrag memory has the following form:
+
+    [ptr-to-header, SYM_DEFRAG_ARRAY_TYPE]
+
+  The reference to this heap cell is also a pointer with the
+  LBM_TYPE_ARRAY bit set in its type field. This is how we make sure
+  that functions that operate on ByteArrays will work on both normal
+  and defrag ByteArrays.
+
+  **INVARIANT**
+  Functions that operate on arrays must not depend on the cdr field of
+  an array cell being SYM_ARRAY_TYPE.
+
+  Upholding this invariant should not be hard as the TYPE tag in the
+  cdr field is for GC to look at. When GC sees SYM_ARRAY_TYPE in a
+  cdr, it knows that the car part must be freed using a ByteArray free
+  operation. Likewise if the cdr field is SYM_DEFRAG_ARRAY_TYPE, GC
+  knows that the free function from the defrag memory module is needed.
+
  */
 
 #ifndef LBM_DEFRAG_MEM_H_
