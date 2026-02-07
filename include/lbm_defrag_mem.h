@@ -35,19 +35,29 @@
   This comes with one invariant that must be upheld in all operations,
   that an array-reference-cell is never duplicated.
 
-  A ByteArray header consists of a size and a data-pointer. So the general
-  layout of a byteArray in memory is:
+  A ByteArray header consists of a size and a data-pointer. So the
+  general layout of a byteArray in memory is:
 
-     [size, data-pointer]->[data ...]
+     [size, data-pointer]->[data ..., padding]
 
-  In defrag memory an allocation of a ByteArray is structured as follows.
+  The padding is either there or not depending on the data being a
+  multiple of the word size or not.
 
-     [size, data-pointer, cell-back-ptr, data ...]
+  In defrag memory an allocation of a ByteArray is structured as
+  follows.
+
+     [size, data-pointer, cell-back-ptr, data ..., padding]
                |                           |
                -----------------------------
 
-  Note that the allocation in the defrag memory is large enough to hold all the bytes of data,
-  the entire header as well as the cell-back-ptr consecutively.
+  Note that the allocation in the defrag memory is large enough to
+  hold all the bytes of data, the entire header as well as the
+  cell-back-ptr consecutively.
+
+  It is important that the [size, data-pointer]..[data] areas are
+  compatible with the normal ByteArray header struct so that all the
+  functions that operate on regular ByteArrays also can operate
+  unchanged on ByteArrays stored in defrag memory.
  */
 
 #ifndef LBM_DEFRAG_MEM_H_
