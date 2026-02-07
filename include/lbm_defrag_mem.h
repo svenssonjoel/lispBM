@@ -85,6 +85,26 @@
   operation. Likewise if the cdr field is SYM_DEFRAG_ARRAY_TYPE, GC
   knows that the free function from the defrag memory module is needed.
 
+
+  -- The Defragmentable memory pool --------------------------------------
+
+  The defrag mem consists of a two word header and N words for storage
+  of arrays. The two word header consists of a size in words and a
+  flags field. The flags field is part of the algorithm that determines
+  if compaction should be performed:
+    1. A call to lbm_defrag_mem_alloc fails to find a free area of memory
+       - Sets flag.
+       - Returns MERROR
+    2. Caller of lbm_defrag_mem_alloc sees MERROR and runs GC.
+    3. GC runs and potentially frees some space in the defrag pool.
+    4. lbm_defrag_mem_alloc is called again after GC.
+    5. lbm_defrag_mem_alloc sees flag and initiates compaction.
+    6. lbm_defrag_mem_alloc attempts to allocate again.
+
+  So the purpose of the flag is to communicate the need of a compaction
+  between calls to lbm_defrag_mem_alloc in a typical
+    try_alloc -> gc -> try_alloc
+  flow.
  */
 
 #ifndef LBM_DEFRAG_MEM_H_
