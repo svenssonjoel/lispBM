@@ -50,3 +50,16 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/lispbm.cmake)
 ```
  14. Build and connect over UART to see the LispBM REPL prompt.
 
+
+
+# A Note on Images and Powerful Platforms. 
+
+The A53 is a very capable 64bit processor and systems based on it
+usually comes with lots of memory (Several Megabytes!). On such a
+system it may be more suitable to keep the "Lisp Image" in RAM. On
+small embedded systems we like to write the image to FLASH
+incrementally but when lots of ram is available it feels suitable to
+keep the image in RAM. If one is after the persistance and the bootup
+speed improvements of images then I think the entire image should be
+written to flash/eMMC/SDCard in a single go. This is something to look
+at more in the future.
