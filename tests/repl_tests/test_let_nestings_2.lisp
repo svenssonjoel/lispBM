@@ -1,0 +1,57 @@
+
+;; Deeply nested in body position.
+(define r1 (let ((a1 10))
+             (let ((a2 20))
+               (let ((a3 30))
+                 (let ((a4 40))
+                   (let ((a5 50))
+                     (let ((a6 60))
+                       (let ((a7 70))
+                         (let ((a8 80))
+                           (let ((a9 90))
+                             (let ((b1 110))
+                               (let ((b2 120))
+                                 (let ((b3 130))
+                                   (let ((b4 140))
+                                     (let ((b5 150))
+                                       (let ((b6 160))
+                                         (let ((b7 170))
+                                           (let ((b8 180))
+                                             (let ((b9 190))
+                                               (let ((r2 (+ a1 a2 a3 a4 a5 a6 a7 a8 a9))
+                                                     (r3 (+ b1 b2 b3 b4 b5 b6 b7 b8 b9)))
+                                                 (+ r2 r3)))))))))))))))))))))
+
+(define b1 (= r1 (+ (+ 450 450) 900)))
+                                       
+;; Deeply nested in body position with dependencies
+
+(define r2 (let ((a1 10))
+             (let ((a2 (+ a1 10)))
+               (let ((a3 (+ a2 10)))
+                 (let ((a4 (+ a3 10)))
+                   (let ((a5 (+ a4 10)))
+                     (let ((a6 (+ a5 10)))
+                       (let ((a7 (+ a6 10)))
+                         (let ((a8 (+ a7 10)))
+                           (let ((a9 (+ a8 10)))
+                             (let ((b1 10))
+                               (let ((b2 (+ b1 10)))
+                                 (let ((b3 (+ b2 10)))
+                                   (let ((b4 (+ b3 10)))
+                                     (let ((b5 (+ b4 10)))
+                                       (let ((b6 (+ b5 10)))
+                                         (let ((b7 (+ b6 10)))
+                                           (let ((b8 (+ b7 10)))
+                                             (let ((b9 (+ b8 10)))
+                                               (let ((r2 (+ a1 a2 a3 a4 a5 a6 a7 a8 a9))
+                                                     (r3 (+ b1 b2 b3 b4 b5 b6 b7 b8 b9)))
+                                                 (+ r2 r3)))))))))))))))))))))
+
+
+(define b2 (= r2 (+ 450 450)))
+
+
+(if (and b1)
+    (print "SUCCESS")
+  (print "FAILURE"))
