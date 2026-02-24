@@ -12,7 +12,7 @@ lbmref.md: doclib.env lbmref.lisp
 	$(LBM) -H 100000 -M 512000 --src="lbmref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 displayref.md: doclib.env displayref.lisp
-	$(LBM) -H 100000 -M 512000 --src="displayref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+	$(LBM) -H 150000 -M 640000 --src="displayref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 ttfref.md: doclib.env ttfref.lisp
 	$(LBM) -H 100000 -M 1048576 --src="ttfref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate

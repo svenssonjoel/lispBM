@@ -306,7 +306,13 @@
                                    )
                               ))
               end)))
-             
+
+(let ((fptr (fopen "lispbm.jpeg" "r")))
+  {
+  (define my-jpg (load-file fptr))
+  (fclose fptr)
+  })
+                  
 
 (define manual
   (list
@@ -361,7 +367,8 @@
 			      "(disp-render llama-bin 20 20 '(0x000000 0xFF0000))"
 			      "(disp-render llama-bin 30 30 '(0x000000 0x00FF00))"
 			      "(disp-render llama-bin 30 30 '(0x000000 0x0000FF))"
-			      "(disp-clear)"
+                              "(disp-render-jpg my-jpg 0 0)"
+                              "(disp-clear)"
 			      ))
 
 	     (code-disp-str '("(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))"
