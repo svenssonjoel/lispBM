@@ -363,12 +363,11 @@
 			 "that can be expressed as a list of colors."
 			 "for example:"
 			 ))
+             (para (list "**disp-render**"))
 	     (code-disp-str '("(disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))"
 			      "(disp-render llama-bin 20 20 '(0x000000 0xFF0000))"
 			      "(disp-render llama-bin 30 30 '(0x000000 0x00FF00))"
 			      "(disp-render llama-bin 30 30 '(0x000000 0x0000FF))"
-                              "(disp-render-jpg my-jpg 0 0)"
-                              "(disp-clear)"
 			      ))
 
 	     (code-disp-str '("(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))"
@@ -378,6 +377,11 @@
 			      "(disp-render img-100-100 200 0 '(0x000000 0x00FFFF))"
 			      "(disp-render img-100-100 200 100 '(0x000000 0xFF00FF))"
 			      ))
+             (para (list "**disp-render-jpg**"))
+             (code-disp-str '("(disp-render-jpg my-jpg 0 0)"))
+             (para (list "**disp-clear**"))
+             (code-disp-str '("(disp-clear)"))
+
 	
 	     
 	     

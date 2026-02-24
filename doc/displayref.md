@@ -28,6 +28,8 @@ the display library is specifically designed to allow for using many colors simu
 
 images are rendered onto a display using the function `disp-render`. `disp-render` takes an image, a position (x,y) where to draw the image, and a colormapping that can be expressed as a list of colors. for example: 
 
+**disp-render** 
+
 <table>
 <tr>
 <td> Example </td> <td> Image </td> <td> Result </td>
@@ -124,11 +126,17 @@ t
 
 </td>
 </tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
 <tr>
 <td>
 
 ```clj
-(disp-render-jpg my-jpg 0 0)
+(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))
 ```
 
 
@@ -151,58 +159,6 @@ t
 <td>
 
 ```clj
-(disp-clear)
-```
-
-
-</td>
-<td>
-
-<img src=./images/disp-img6.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-</table>
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))
-```
-
-
-</td>
-<td>
-
-<img src=./images/disp-img7.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
 (disp-render img-100-100 0 100 '(0x000000 0xFF0000))
 ```
 
@@ -210,7 +166,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img8.png >
+<img src=./images/disp-img6.png >
 
 </td>
 <td>
@@ -233,7 +189,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img9.png >
+<img src=./images/disp-img7.png >
 
 </td>
 <td>
@@ -256,7 +212,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img10.png >
+<img src=./images/disp-img8.png >
 
 </td>
 <td>
@@ -279,7 +235,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img11.png >
+<img src=./images/disp-img9.png >
 
 </td>
 <td>
@@ -296,6 +252,68 @@ t
 
 ```clj
 (disp-render img-100-100 200 100 '(0x000000 0xFF00FF))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img10.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+**disp-render-jpg** 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-render-jpg my-jpg 0 0)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img11.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+**disp-clear** 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-clear)
 ```
 
 
@@ -1185,7 +1203,7 @@ img-color is used to create more complex color objects for use together with dis
 <td>
 
 ```clj
-[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 184 68 112 244]
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 32 21 30 243]
 ```
 
 
