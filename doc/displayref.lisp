@@ -104,6 +104,54 @@
                           ))
               end)))
 
+(define clear-image
+  (ref-entry "img-clear"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-clear my-img)
+                          (img-clear my-img 1)
+                          (img-clear my-img 0)
+                          ))
+              end)))
+
+(define color1 0xFF0000)
+(define color2 0x0000FF)
+
+(define create-color
+  (ref-entry "img-color"
+             (list
+              (para (list "img-color is used to create more complex color objects for"
+                          "use together with disp-render.")
+                    )            
+              (bullet (list "**gradient_x**: vertical gradients from color1 to color2."
+                            "**gradient_y**: horizontal gradients from color1 to color2."
+                            "**gradient_x_pre**: precomputes gradient."
+                            "**gradient_y_pre**: precomputes gradient."))
+  
+              (code '((read-eval "(img-color 'regular 0xAABB11)")
+                      (read-eval "(img-color 'gradient_x color1 color2 10 0 'repeat)")
+                      (read-eval "(img-color 'gradient_x_pre color1 color2)")
+                      ))
+              (program-disp '((
+                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define pic (load-file fptr))
+                               (fclose fptr)
+                               (define c (img-color 'gradient_x color1 color2 100 0 'repeat))
+                               (define img (img-buffer 'indexed2 320 200))
+                               (img-blit img pic 10 10 -1 '(rotate 128 128 45))
+                               (disp-render img 100 0 (list (img-color 'regular 0) c))
+                               )))
+              (program-disp '((
+                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define pic (load-file fptr))
+                               (fclose fptr)
+                               (define c (img-color 'gradient_y color1 color2 100 0 'mirrored))
+                               (define img (img-buffer 'indexed2 320 200))
+                               (img-blit img pic 10 10 -1 '(rotate 128 128 45))
+                               (disp-render img 100 0 (list (img-color 'regular 0) c))
+                               )))
+              end)))
+
 (define lines
   (ref-entry "img-line"
 	     (list
@@ -342,6 +390,8 @@
                   circles
                   circle-sectors
                   circle-segments
+                  clear-image
+                  create-color
 		  lines
                   rectangles
                   setpixel

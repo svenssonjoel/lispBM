@@ -1011,7 +1011,7 @@ t
 ---
 
 
-### img-line
+### img-clear
 
 <table>
 <tr>
@@ -1021,7 +1021,7 @@ t
 <td>
 
 ```clj
-(img-line my-img 0 0 320 200 1)
+(img-clear my-img)
 ```
 
 
@@ -1044,7 +1044,7 @@ t
 <td>
 
 ```clj
-(img-line my-img 0 200 320 0 1 '(thickness 5))
+(img-clear my-img 1)
 ```
 
 
@@ -1067,7 +1067,7 @@ t
 <td>
 
 ```clj
-(img-line my-img 0 0 320 200 1 '(dotted 4 20))
+(img-clear my-img 0)
 ```
 
 
@@ -1075,6 +1075,238 @@ t
 <td>
 
 <img src=./images/disp-img36.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-color
+
+img-color is used to create more complex color objects for use together with disp-render. 
+
+   - **gradient_x**: vertical gradients from color1 to color2.
+   - **gradient_y**: horizontal gradients from color1 to color2.
+   - **gradient_x_pre**: precomputes gradient.
+   - **gradient_y_pre**: precomputes gradient.
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color 'regular 0xAABB11)
+```
+
+
+</td>
+<td>
+
+```clj
+[0 67 79 76 17 187 170 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color 'gradient_x color1 color2 10 0 'repeat)
+```
+
+
+</td>
+<td>
+
+```clj
+[0 67 79 76 0 0 255 0 255 0 0 0 10 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color 'gradient_x_pre color1 color2)
+```
+
+
+</td>
+<td>
+
+```clj
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 132 127 87 237]
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define fptr (fopen "images/lama2.bin" "r"))
+(define pic (load-file fptr))
+(fclose fptr)
+(define c (img-color 'gradient_x color1 color2 100 0 'repeat))
+(define img (img-buffer 'indexed2 320 200))
+(img-blit img pic 10 10 -1 '(rotate 128 128 45))
+(disp-render img 100 0 (list (img-color 'regular 0) c))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img37.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define fptr (fopen "images/lama2.bin" "r"))
+(define pic (load-file fptr))
+(fclose fptr)
+(define c (img-color 'gradient_y color1 color2 100 0 'mirrored))
+(define img (img-buffer 'indexed2 320 200))
+(img-blit img pic 10 10 -1 '(rotate 128 128 45))
+(disp-render img 100 0 (list (img-color 'regular 0) c))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img38.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-line
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-line my-img 0 0 320 200 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img39.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-line my-img 0 200 320 0 1 '(thickness 5))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img40.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-line my-img 0 0 320 200 1 '(dotted 4 20))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img41.png >
 
 </td>
 <td>
@@ -1111,7 +1343,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img37.png >
+<img src=./images/disp-img42.png >
 
 </td>
 <td>
@@ -1134,7 +1366,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img38.png >
+<img src=./images/disp-img43.png >
 
 </td>
 <td>
@@ -1157,7 +1389,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img39.png >
+<img src=./images/disp-img44.png >
 
 </td>
 <td>
@@ -1194,7 +1426,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img40.png >
+<img src=./images/disp-img45.png >
 
 </td>
 <td>
@@ -1231,7 +1463,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img41.png >
+<img src=./images/disp-img46.png >
 
 </td>
 <td>
@@ -1254,7 +1486,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img42.png >
+<img src=./images/disp-img47.png >
 
 </td>
 <td>
@@ -1277,7 +1509,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img43.png >
+<img src=./images/disp-img48.png >
 
 </td>
 <td>
@@ -1314,7 +1546,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img44.png >
+<img src=./images/disp-img49.png >
 
 </td>
 <td>
@@ -1337,7 +1569,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img45.png >
+<img src=./images/disp-img50.png >
 
 </td>
 <td>
@@ -1360,7 +1592,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img46.png >
+<img src=./images/disp-img51.png >
 
 </td>
 <td>
@@ -1421,7 +1653,7 @@ These examples are leaving out the details on how to setup and initialize any pa
 </td>
 <td>
 
-<img src=./images/disp-img47.png >
+<img src=./images/disp-img52.png >
 
 </td>
 <td>
@@ -1463,7 +1695,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img48.png >
+<img src=./images/disp-img53.png >
 
 </td>
 <td>
@@ -1501,7 +1733,7 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
 </td>
 <td>
 
-<img src=./images/disp-img49.png >
+<img src=./images/disp-img54.png >
 
 </td>
 <td>
@@ -1533,7 +1765,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img50.png >
+<img src=./images/disp-img55.png >
 
 </td>
 <td>
@@ -1583,5 +1815,5 @@ t
 
 ---
 
-This document was generated by LispBM version 0.34.2 
+This document was generated by LispBM version 0.36.0 
 
