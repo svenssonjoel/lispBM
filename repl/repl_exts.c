@@ -1,5 +1,5 @@
 /*
-  Copyright 2024 2025 Joel Svensson  svenssonjoel@yahoo.se
+  Copyright 2024 - 2026 Joel Svensson  svenssonjoel@yahoo.se
             2022 Benjamin Vedder benjamin@vedder.se
 
   This program is free software: you can redistribute it and/or modify
@@ -201,7 +201,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
   for (unsigned int i = 0; i < argn; i ++) {
     lbm_value t = args[i];
-    char *str;    
+    char *str;
     if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY &&
         lbm_value_is_printable_string(t, &str)) {
       lbm_printf_callback("%s", str);
