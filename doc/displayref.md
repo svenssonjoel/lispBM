@@ -525,7 +525,10 @@ t
 <td>
 
 ```clj
-(img-blit my-img llama-bin 10 10 -1 '(tile) '(scale 0.200000f32) '(rotate 10 10 45))
+(img-blit my-img llama-bin 10 10 -1
+    '(tile)
+    '(scale 0.2)
+    '(rotate 10 10 45))
 ```
 
 
@@ -548,7 +551,11 @@ t
 <td>
 
 ```clj
-(img-blit my-img llama-bin 10 10 -1 '(tile) '(scale 0.200000f32) '(rotate 10 10 45) '(clip 50 50 250 150))
+(img-blit my-img llama-bin 10 10 -1
+    '(tile)
+    '(scale 0.2)
+    '(rotate 10 10 45)
+    '(clip 50 50 250 150))
 ```
 
 
@@ -1155,7 +1162,7 @@ img-color is used to create more complex color objects for use together with dis
 <td>
 
 ```clj
-[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 132 127 87 237]
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 16 177 31 233]
 ```
 
 
