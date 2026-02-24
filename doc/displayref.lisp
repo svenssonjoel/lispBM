@@ -224,15 +224,9 @@
                           (img-blit my-img llama-bin 10 10 -1 
                             '(tile) 
                             '(scale 0.2))
-                          (img-blit my-img llama-bin 10 10 -1 
-                            '(tile) 
-                            '(scale 0.2) 
-                            '(rotate 10 10 45))
-                          (img-blit my-img llama-bin 10 10 -1 
-                            '(tile) 
-                            '(scale 0.2) 
-                            '(rotate 10 10 45) 
-                            '(clip 50 50 250 150))
+                          (read-eval "(img-blit my-img llama-bin 10 10 -1\n    '(tile)\n    '(scale 0.2)\n    '(rotate 10 10 45))")
+                          (read-eval "(img-blit my-img llama-bin 10 10 -1\n    '(tile)\n    '(scale 0.2)\n    '(rotate 10 10 45)\n    '(clip 50 50 250 150))")
+                          
                         ))
               end)))
 
@@ -313,7 +307,6 @@
                               ))
               end)))
              
-
 
 (define manual
   (list
