@@ -58,15 +58,32 @@
 (define arcs
     (ref-entry "img-arc"
 	       (list
+                (para (list "Draw an arc into an image."
+                            "The form of an `img-arc` expression is `(img-arg image cx cy r ang-s ang-e color ..option)`."
+                            ))
+                (para (list "|Arg || \n"
+                            "|----|----|\n"
+                            "`image` | An image buffer for example created using img-buffer.\n"
+                            "`cx cy` | center point x,y.\n"
+                            "`r`     | radius.\n"
+                            "`ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).\n"
+                            "`color` | color value, range determined by image buffer color depth.\n"
+                            ))
+                (para (list "|Option      || \n"
+                            "|----|----|\n"
+                            "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                            "`filled`     | Filled, no arguments.\n"
+                            "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                            "`rounded`    | Rounded edges, no arguments.\n"
+                            "`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                            ))
 		(code-png 'my-img '(0x00 0xffffff)
 			  '((img-arc my-img 100 100 50 160 100 1)
 			    (img-arc my-img 100 100 50 160 100 1 '(dotted 15 15))
 			    (img-arc my-img 100 100 50 160 100 1 '(filled))
 			    (img-arc my-img 100 100 50 160 100 1 '(thickness 10))
 			    (img-arc my-img 100 100 50 160 100 1 '(rounded))
-			    ))
-		(code-png 'my-img '(0x00 0xffffff)
-			  '((img-arc my-img 100 100 50 160 100 1 '(dotted 15 15) '(resolution 3))
+			    (img-arc my-img 100 100 50 160 100 1 '(dotted 15 15) '(resolution 3))
 			    (img-arc my-img 100 100 50 160 100 1 '(thickness 10) '(rounded))
 			  ))
 		end)))

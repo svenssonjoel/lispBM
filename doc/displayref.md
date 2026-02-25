@@ -625,6 +625,26 @@ t
 
 ### img-arc
 
+Draw an arc into an image. The form of an `img-arc` expression is `(img-arg image cx cy r ang-s ang-e color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `cx cy` | center point x,y.
+ `r`     | radius.
+ `ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).
+ `color` | color value, range determined by image buffer color depth.
+ 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ `rounded`    | Rounded edges, no arguments.
+ `resolution` | One argument, Number of points that are connected into an arc using line segments.
+ 
+
 <table>
 <tr>
 <td> Example </td> <td> Image </td> <td> Result </td>
@@ -743,12 +763,6 @@ t
 
 
 </td>
-</tr>
-</table>
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
 </tr>
 <tr>
 <td>
@@ -1203,7 +1217,7 @@ img-color is used to create more complex color objects for use together with dis
 <td>
 
 ```clj
-[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 32 21 30 243]
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 220 107 66 241]
 ```
 
 
