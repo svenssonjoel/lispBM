@@ -625,7 +625,7 @@ t
 
 ### img-arc
 
-Draw an arc into an image. The form of an `img-arc` expression is `(img-arg image cx cy r ang-s ang-e color ..option)`. 
+Draw an arc into an image. The form of an `img-arc` expression is `(img-arc image cx cy r ang-s ang-e color ..option)`. 
 
 |Arg || 
  |----|----|
@@ -635,6 +635,8 @@ Draw an arc into an image. The form of an `img-arc` expression is `(img-arg imag
  `ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).
  `color` | color value, range determined by image buffer color depth.
  
+
+<br> 
 
 |Option      || 
  |----|----|
@@ -820,6 +822,26 @@ t
 
 ### img-circle
 
+Draw a circle into an image. The form of an `img-circle` expression is `(img-circle image cx cy r color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `cx cy` | center point x,y.
+ `r`     | radius.
+ `color` | color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ `resolution` | One argument, Number of points that are connected into an arc using line segments.
+ 
+
 <table>
 <tr>
 <td> Example </td> <td> Image </td> <td> Result </td>
@@ -916,12 +938,6 @@ t
 
 </td>
 </tr>
-</table>
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
 <tr>
 <td>
 
@@ -954,6 +970,26 @@ t
 
 
 ### img-circle-sector
+
+Draw a circle sector into an image. The form of an `img-circle-sector` expression is `(img-circle-sector image cx cy r ang-s ang-e color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `cx cy` | center point x,y.
+ `r`     | radius.
+ `ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).
+ `color` | color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ 
 
 <table>
 <tr>
@@ -1005,25 +1041,11 @@ t
 
 </td>
 </tr>
-</table>
-
-
-
-
----
-
-
-### img-circle-segment
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
 <tr>
 <td>
 
 ```clj
-(img-circle-segment my-img 100 100 80 0 100 1)
+(img-circle-sector my-img 220 40 40 90 200 1 '(dotted 1 4))
 ```
 
 
@@ -1046,7 +1068,7 @@ t
 <td>
 
 ```clj
-(img-circle-segment my-img 100 100 80 0 100 1 '(filled))
+(img-circle-sector my-img 220 40 40 90 200 1 '(filled))
 ```
 
 
@@ -1054,6 +1076,132 @@ t
 <td>
 
 <img src=./images/disp-img34.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-circle-segment
+
+Draw a circle segment into an image. The form of an `img-circle-segment` expression is `(img-circle-segment image cx cy r ang-s ang-e color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `cx cy` | center point x,y.
+ `r`     | radius.
+ `ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).
+ `color` | color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle-segment my-img 100 100 80 0 100 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img35.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle-segment my-img 100 100 80 0 100 1 '(filled))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img36.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle-segment my-img 100 100 80 0 100 1 '(thickness 5))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img37.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle-segment my-img 100 100 80 0 100 1 '(dotted 1 4))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img38.png >
 
 </td>
 <td>
@@ -1090,7 +1238,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img35.png >
+<img src=./images/disp-img39.png >
 
 </td>
 <td>
@@ -1113,7 +1261,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img36.png >
+<img src=./images/disp-img40.png >
 
 </td>
 <td>
@@ -1136,7 +1284,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img37.png >
+<img src=./images/disp-img41.png >
 
 </td>
 <td>
@@ -1217,7 +1365,7 @@ img-color is used to create more complex color objects for use together with dis
 <td>
 
 ```clj
-[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 220 107 66 241]
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 24 241 15 232]
 ```
 
 
@@ -1247,7 +1395,7 @@ img-color is used to create more complex color objects for use together with dis
 </td>
 <td>
 
-<img src=./images/disp-img38.png >
+<img src=./images/disp-img42.png >
 
 </td>
 <td>
@@ -1284,7 +1432,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img39.png >
+<img src=./images/disp-img43.png >
 
 </td>
 <td>
@@ -1322,7 +1470,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img40.png >
+<img src=./images/disp-img44.png >
 
 </td>
 <td>
@@ -1345,7 +1493,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img41.png >
+<img src=./images/disp-img45.png >
 
 </td>
 <td>
@@ -1368,7 +1516,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img42.png >
+<img src=./images/disp-img46.png >
 
 </td>
 <td>
@@ -1405,7 +1553,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img43.png >
+<img src=./images/disp-img47.png >
 
 </td>
 <td>
@@ -1428,7 +1576,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img44.png >
+<img src=./images/disp-img48.png >
 
 </td>
 <td>
@@ -1451,7 +1599,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img45.png >
+<img src=./images/disp-img49.png >
 
 </td>
 <td>
@@ -1488,7 +1636,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img46.png >
+<img src=./images/disp-img50.png >
 
 </td>
 <td>
@@ -1525,7 +1673,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img47.png >
+<img src=./images/disp-img51.png >
 
 </td>
 <td>
@@ -1548,7 +1696,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img48.png >
+<img src=./images/disp-img52.png >
 
 </td>
 <td>
@@ -1571,7 +1719,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img49.png >
+<img src=./images/disp-img53.png >
 
 </td>
 <td>
@@ -1608,7 +1756,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img50.png >
+<img src=./images/disp-img54.png >
 
 </td>
 <td>
@@ -1631,7 +1779,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img51.png >
+<img src=./images/disp-img55.png >
 
 </td>
 <td>
@@ -1654,7 +1802,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img52.png >
+<img src=./images/disp-img56.png >
 
 </td>
 <td>
@@ -1715,7 +1863,7 @@ These examples are leaving out the details on how to setup and initialize any pa
 </td>
 <td>
 
-<img src=./images/disp-img53.png >
+<img src=./images/disp-img57.png >
 
 </td>
 <td>
@@ -1757,7 +1905,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img54.png >
+<img src=./images/disp-img58.png >
 
 </td>
 <td>
@@ -1795,7 +1943,7 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
 </td>
 <td>
 
-<img src=./images/disp-img55.png >
+<img src=./images/disp-img59.png >
 
 </td>
 <td>
@@ -1827,7 +1975,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img56.png >
+<img src=./images/disp-img60.png >
 
 </td>
 <td>

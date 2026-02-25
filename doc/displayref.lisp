@@ -59,7 +59,7 @@
     (ref-entry "img-arc"
 	       (list
                 (para (list "Draw an arc into an image."
-                            "The form of an `img-arc` expression is `(img-arg image cx cy r ang-s ang-e color ..option)`."
+                            "The form of an `img-arc` expression is `(img-arc image cx cy r ang-s ang-e color ..option)`."
                             ))
                 (para (list "|Arg || \n"
                             "|----|----|\n"
@@ -69,6 +69,7 @@
                             "`ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).\n"
                             "`color` | color value, range determined by image buffer color depth.\n"
                             ))
+                (para (list "<br>"))
                 (para (list "|Option      || \n"
                             "|----|----|\n"
                             "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
@@ -92,32 +93,94 @@
 (define circles
   (ref-entry "img-circle"
              (list
-              (code-png 'my-img '(0x00 0xffffff)
-                        '((img-circle my-img 100 100 80 1)
-                          (img-circle my-img 100 100 80 1 '(thickness 5))
-                          (img-circle my-img 100 100 80 1 '(dotted 14 14))
-                          (img-circle my-img 100 100 80 1 '(filled))
+              (para (list "Draw a circle into an image."
+                          "The form of an `img-circle` expression is `(img-circle image cx cy r color ..option)`."
                           ))
-              (code-png 'my-img '(0x00 0xffffff)
-                        '((img-circle my-img 100 100 80 1 '(dotted 14 14) '(resolution 6))
+               (para (list "|Arg || \n"
+                            "|----|----|\n"
+                            "`image` | An image buffer for example created using img-buffer.\n"
+                            "`cx cy` | center point x,y.\n"
+                            "`r`     | radius.\n"
+                            "`color` | color value, range determined by image buffer color depth.\n"
+                            ))
+               (para (list "<br>"))
+               (para (list "|Option      || \n"
+                           "|----|----|\n"
+                           "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                           "`filled`     | Filled, no arguments.\n"
+                           "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                           "`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                           ))
+               (code-png 'my-img '(0x00 0xffffff)
+                         '((img-circle my-img 100 100 80 1)
+                           (img-circle my-img 100 100 80 1 '(thickness 5))
+                           (img-circle my-img 100 100 80 1 '(dotted 14 14))
+                           (img-circle my-img 100 100 80 1 '(filled))
+                           (img-circle my-img 100 100 80 1 '(dotted 14 14) '(resolution 6))
                           ))
-              end)))
+               end)))
 
 (define circle-sectors
   (ref-entry "img-circle-sector"
              (list
+              (para (list "Draw a circle sector into an image."
+                          "The form of an `img-circle-sector` expression is `(img-circle-sector image cx cy r ang-s ang-e color ..option)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`cx cy` | center point x,y.\n"
+                          "`r`     | radius.\n"
+                          "`ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).\n"
+                          "`color` | color value, range determined by image buffer color depth.\n"
+                          ))
+              (para (list "<br>"))
+              (para (list "|Option      || \n"
+                          "|----|----|\n"
+                          "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                          "`filled`     | Filled, no arguments.\n"
+                          "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                          ;;"`rounded`    | Rounded edges, no arguments.\n"
+                          ;;"`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                          ))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-circle-sector my-img 220 40 40 90 200 1)
                           (img-circle-sector my-img 220 40 40 90 200 1 '(thickness 3))
+                          ;;(img-circle-sector my-img 220 40 40 90 200 1 '(thickness 3) '(rounded))
+                          (img-circle-sector my-img 220 40 40 90 200 1 '(dotted 1 4))
+                          (img-circle-sector my-img 220 40 40 90 200 1 '(filled))
+                          ;;(img-circle-sector my-img 220 40 40 90 200 1 '(resolution 2))
                           ))
               end)))
 
 (define circle-segments
   (ref-entry "img-circle-segment"
              (list
+              (para (list "Draw a circle segment into an image."
+                          "The form of an `img-circle-segment` expression is `(img-circle-segment image cx cy r ang-s ang-e color ..option)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`cx cy` | center point x,y.\n"
+                          "`r`     | radius.\n"
+                          "`ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).\n"
+                          "`color` | color value, range determined by image buffer color depth.\n"
+                          ))
+              (para (list "<br>"))
+              (para (list "|Option      || \n"
+                          "|----|----|\n"
+                          "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                          "`filled`     | Filled, no arguments.\n"
+                          "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                          ;;"`rounded`    | Rounded edges, no arguments.\n"
+                          ;;"`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                          ))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-circle-segment my-img 100 100 80 0 100 1)
                           (img-circle-segment my-img 100 100 80 0 100 1 '(filled))
+                          (img-circle-segment my-img 100 100 80 0 100 1 '(thickness 5))
+                          (img-circle-segment my-img 100 100 80 0 100 1 '(dotted 1 4))
                           ))
               end)))
 
