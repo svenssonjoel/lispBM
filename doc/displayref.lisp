@@ -64,10 +64,10 @@
                 (para (list "|Arg || \n"
                             "|----|----|\n"
                             "`image` | An image buffer for example created using img-buffer.\n"
-                            "`cx cy` | center point x,y.\n"
-                            "`r`     | radius.\n"
-                            "`ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).\n"
-                            "`color` | color value, range determined by image buffer color depth.\n"
+                            "`cx cy` | Center point x,y.\n"
+                            "`r`     | Radius.\n"
+                            "`ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).\n"
+                            "`color` | Color value, range determined by image buffer color depth.\n"
                             ))
                 (para (list "<br>"))
                 (para (list "|Option      || \n"
@@ -75,7 +75,7 @@
                             "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
                             "`filled`     | Filled, no arguments.\n"
                             "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
-                            "`rounded`    | Rounded edges, no arguments.\n"
+                            "`rounded`    | Rounded edges, no argument.\n"
                             "`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
                             ))
 		(code-png 'my-img '(0x00 0xffffff)
@@ -99,9 +99,9 @@
                (para (list "|Arg || \n"
                             "|----|----|\n"
                             "`image` | An image buffer for example created using img-buffer.\n"
-                            "`cx cy` | center point x,y.\n"
-                            "`r`     | radius.\n"
-                            "`color` | color value, range determined by image buffer color depth.\n"
+                            "`cx cy` | Center point x,y.\n"
+                            "`r`     | Radius.\n"
+                            "`color` | Color value, range determined by image buffer color depth.\n"
                             ))
                (para (list "<br>"))
                (para (list "|Option      || \n"
@@ -129,10 +129,10 @@
               (para (list "|Arg || \n"
                           "|----|----|\n"
                           "`image` | An image buffer for example created using img-buffer.\n"
-                          "`cx cy` | center point x,y.\n"
-                          "`r`     | radius.\n"
-                          "`ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).\n"
-                          "`color` | color value, range determined by image buffer color depth.\n"
+                          "`cx cy` | Center point x,y.\n"
+                          "`r`     | Radius.\n"
+                          "`ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).\n"
+                          "`color` | Color value, range determined by image buffer color depth.\n"
                           ))
               (para (list "<br>"))
               (para (list "|Option      || \n"
@@ -162,10 +162,10 @@
               (para (list "|Arg || \n"
                           "|----|----|\n"
                           "`image` | An image buffer for example created using img-buffer.\n"
-                          "`cx cy` | center point x,y.\n"
-                          "`r`     | radius.\n"
-                          "`ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).\n"
-                          "`color` | color value, range determined by image buffer color depth.\n"
+                          "`cx cy` | Center point x,y.\n"
+                          "`r`     | Radius.\n"
+                          "`ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).\n"
+                          "`color` | Color value, range determined by image buffer color depth.\n"
                           ))
               (para (list "<br>"))
               (para (list "|Option      || \n"
@@ -235,6 +235,25 @@
 (define lines
   (ref-entry "img-line"
 	     (list
+              (para (list "Draw a line into an image."
+                          "The form of an `img-line` expression is `(img-line image x1 y1 x2 y2 color ..option)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x1 y1` | Start point  x,y.\n"
+                          "`x2 y2` | End point  x,y.\n"
+                          "`color` | Color value, range determined by image buffer color depth.\n"
+                          ))
+              (para (list "<br>"))
+              (para (list "|Option      || \n"
+                          "|----|----|\n"
+                          "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                          "`filled`     | Filled, no arguments.\n"
+                          "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                          ;;"`rounded`    | Rounded edges, no arguments.\n"
+                          ;;"`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                          ))
 	      (code-png 'my-img '(0x00 0xffffff)
 			'((img-line my-img 0 0 320 200 1)
                           (img-line my-img 0 200 320 0 1 '(thickness 5))
@@ -245,6 +264,25 @@
 (define rectangles
   (ref-entry "img-rectangle"
              (list
+              (para (list "Draw a rectangle into an image."
+                          "The form of an `img-rectangle` expression is `(img-rectangle image x1 y1 w h color ..option)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x1 y1` | Top left corner  x,y.\n"
+                          "`w h`   | Width and height.\n"
+                          "`color` | Color value, range determined by image buffer color depth.\n"
+                          ))
+              (para (list "<br>"))
+              (para (list "|Option      || \n"
+                          "|----|----|\n"
+                          "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                          "`filled`     | Filled, no arguments.\n"
+                          "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                          "`rounded`    | Rounded edges, one argument rounded corner angle.\n"
+                          ;;"`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                          ))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-rectangle my-img 10 10 120 180 1)
                           (img-rectangle my-img 10 10 120 180 1 '(filled))
@@ -255,6 +293,17 @@
 (define texts
   (ref-entry "img-text"
              (list
+              (para (list "Draw text into an image."
+                          "The form of an `img-text` expression is `(img-text image x1 y1 fg bg font)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x1 y1` | Position  x,y.\n"
+                          "`fg bg` | Foreground and Background color.\n"
+                          "`font` | font to use. This should be a bin type font as created by for example VESC Tool."
+                          "The font file can be `imported` or loaded depending on platform\n"
+                          ))
               (code-png-str 'my-img '(0x00 0xffffff)
                             '("(img-text my-img 40 40 1 0 font \"LispBM\")"
                               "(img-text my-img 40 120 1 0 font \"LispBM\" 'up)"
@@ -265,6 +314,15 @@
 (define setpixel
   (ref-entry "img-setpix"
              (list
+              (para (list "Draw a pixel into an image."
+                          "The form of an `img-setpix` expression is `(img-setpix image x y color)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x y`   | Position  x,y.\n"
+                          "`color` | Color value, range determined by image buffer color depth.\n"
+                          ))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-setpix my-img 10 10 1)
                           ))
@@ -273,8 +331,29 @@
 (define triangles
   (ref-entry "img-triangle"
              (list
+               (para (list "Draw a triangle into an image."
+                          "The form of an `img-triangle` expression is `(img-triangle image x1 y1 x2 y2 x3 y3 color ..option)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x1 y1` | Position first point  x,y.\n"
+                          "`x2 y2` | Position second point  x,y.\n"
+                          "`x3 y3` | Position third point  x,y.\n"                         
+                          "`color` | Color value, range determined by image buffer color depth.\n"
+                          ))
+              (para (list "<br>"))
+              (para (list "|Option      || \n"
+                          "|----|----|\n"
+                          "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                          "`filled`     | Filled, no arguments.\n"
+                          "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                          ;;"`rounded`    | Rounded edges, one argument rounded corner angle.\n"
+                          ;;"`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                          ))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-triangle my-img 30 60 160 120 10 180 1)
+                          (img-triangle my-img 30 60 160 120 10 180 1 '(thickness 5))
                           (img-triangle my-img 30 60 160 120 10 180 1 '(filled))
                           (img-triangle my-img 30 60 160 120 10 180 1 '(dotted 14 14))
                           ))

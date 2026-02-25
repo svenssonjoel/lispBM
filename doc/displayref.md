@@ -630,10 +630,10 @@ Draw an arc into an image. The form of an `img-arc` expression is `(img-arc imag
 |Arg || 
  |----|----|
  `image` | An image buffer for example created using img-buffer.
- `cx cy` | center point x,y.
- `r`     | radius.
- `ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).
- `color` | color value, range determined by image buffer color depth.
+ `cx cy` | Center point x,y.
+ `r`     | Radius.
+ `ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).
+ `color` | Color value, range determined by image buffer color depth.
  
 
 <br> 
@@ -643,7 +643,7 @@ Draw an arc into an image. The form of an `img-arc` expression is `(img-arc imag
  `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
  `filled`     | Filled, no arguments.
  `thickness`  | Thickness of line, one argument specifying thickness in pixels.
- `rounded`    | Rounded edges, no arguments.
+ `rounded`    | Rounded edges, no argument.
  `resolution` | One argument, Number of points that are connected into an arc using line segments.
  
 
@@ -827,9 +827,9 @@ Draw a circle into an image. The form of an `img-circle` expression is `(img-cir
 |Arg || 
  |----|----|
  `image` | An image buffer for example created using img-buffer.
- `cx cy` | center point x,y.
- `r`     | radius.
- `color` | color value, range determined by image buffer color depth.
+ `cx cy` | Center point x,y.
+ `r`     | Radius.
+ `color` | Color value, range determined by image buffer color depth.
  
 
 <br> 
@@ -976,10 +976,10 @@ Draw a circle sector into an image. The form of an `img-circle-sector` expressio
 |Arg || 
  |----|----|
  `image` | An image buffer for example created using img-buffer.
- `cx cy` | center point x,y.
- `r`     | radius.
- `ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).
- `color` | color value, range determined by image buffer color depth.
+ `cx cy` | Center point x,y.
+ `r`     | Radius.
+ `ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).
+ `color` | Color value, range determined by image buffer color depth.
  
 
 <br> 
@@ -1102,10 +1102,10 @@ Draw a circle segment into an image. The form of an `img-circle-segment` express
 |Arg || 
  |----|----|
  `image` | An image buffer for example created using img-buffer.
- `cx cy` | center point x,y.
- `r`     | radius.
- `ang-s ang-e` | from angle `ang-s` to `ang-e` in degrees (float).
- `color` | color value, range determined by image buffer color depth.
+ `cx cy` | Center point x,y.
+ `r`     | Radius.
+ `ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).
+ `color` | Color value, range determined by image buffer color depth.
  
 
 <br> 
@@ -1365,7 +1365,7 @@ img-color is used to create more complex color objects for use together with dis
 <td>
 
 ```clj
-[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 24 241 15 232]
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 192 141 37 240]
 ```
 
 
@@ -1455,6 +1455,25 @@ t
 
 ### img-line
 
+Draw a line into an image. The form of an `img-line` expression is `(img-line image x1 y1 x2 y2 color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x1 y1` | Start point  x,y.
+ `x2 y2` | End point  x,y.
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ 
+
 <table>
 <tr>
 <td> Example </td> <td> Image </td> <td> Result </td>
@@ -1537,6 +1556,26 @@ t
 
 
 ### img-rectangle
+
+Draw a rectangle into an image. The form of an `img-rectangle` expression is `(img-rectangle image x1 y1 w h color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x1 y1` | Top left corner  x,y.
+ `w h`   | Width and height.
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ `rounded`    | Rounded edges, one argument rounded corner angle.
+ 
 
 <table>
 <tr>
@@ -1621,6 +1660,15 @@ t
 
 ### img-setpix
 
+Draw a pixel into an image. The form of an `img-setpix` expression is `(img-setpix image x y color)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x y`   | Position  x,y.
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
 <table>
 <tr>
 <td> Example </td> <td> Image </td> <td> Result </td>
@@ -1657,6 +1705,16 @@ t
 
 
 ### img-text
+
+Draw text into an image. The form of an `img-text` expression is `(img-text image x1 y1 fg bg font)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x1 y1` | Position  x,y.
+ `fg bg` | Foreground and Background color.
+ `font` | font to use. This should be a bin type font as created by for example VESC Tool. The font file can be `imported` or loaded depending on platform
+ 
 
 <table>
 <tr>
@@ -1741,6 +1799,26 @@ t
 
 ### img-triangle
 
+Draw a triangle into an image. The form of an `img-triangle` expression is `(img-triangle image x1 y1 x2 y2 x3 y3 color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x1 y1` | Position first point  x,y.
+ `x2 y2` | Position second point  x,y.
+ `x3 y3` | Position third point  x,y.
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ 
+
 <table>
 <tr>
 <td> Example </td> <td> Image </td> <td> Result </td>
@@ -1772,7 +1850,7 @@ t
 <td>
 
 ```clj
-(img-triangle my-img 30 60 160 120 10 180 1 '(filled))
+(img-triangle my-img 30 60 160 120 10 180 1 '(thickness 5))
 ```
 
 
@@ -1795,7 +1873,7 @@ t
 <td>
 
 ```clj
-(img-triangle my-img 30 60 160 120 10 180 1 '(dotted 14 14))
+(img-triangle my-img 30 60 160 120 10 180 1 '(filled))
 ```
 
 
@@ -1803,6 +1881,29 @@ t
 <td>
 
 <img src=./images/disp-img56.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-triangle my-img 30 60 160 120 10 180 1 '(dotted 14 14))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img57.png >
 
 </td>
 <td>
@@ -1863,7 +1964,7 @@ These examples are leaving out the details on how to setup and initialize any pa
 </td>
 <td>
 
-<img src=./images/disp-img57.png >
+<img src=./images/disp-img58.png >
 
 </td>
 <td>
@@ -1905,7 +2006,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img58.png >
+<img src=./images/disp-img59.png >
 
 </td>
 <td>
@@ -1943,7 +2044,7 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
 </td>
 <td>
 
-<img src=./images/disp-img59.png >
+<img src=./images/disp-img60.png >
 
 </td>
 <td>
@@ -1975,7 +2076,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img60.png >
+<img src=./images/disp-img61.png >
 
 </td>
 <td>
