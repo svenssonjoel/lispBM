@@ -55,6 +55,19 @@
                       ))
               end)))
 
+
+(define entry-img-dims
+  (ref-entry "img-dims"
+             (list
+              (para (list "`img-dims returns the width and height of an image."
+                          "The form of an `img-dims` expression is `(img-dims image)`."
+                          ))
+              (code-png 'my-img '(0x00 0xffffff)
+			'((img-dims my-img)
+			  ))
+              end))
+  )
+
 (define arcs
     (ref-entry "img-arc"
 	       (list
@@ -328,6 +341,23 @@
                           ))
               end)))
 
+(define getpixel
+  (ref-entry "img-getpix"
+             (list
+              (para (list "Get a pixel value from an image."
+                          "The form of an `img-getpix` expression is `(img-getpix image x y)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x y`   | Position  x,y.\n"
+                          ))
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-getpix my-img 10 10)
+                          ))
+              end)))
+
+
 (define triangles
   (ref-entry "img-triangle"
              (list
@@ -473,6 +503,69 @@
   })
                   
 
+
+(define entry-disp-render
+  (ref-entry "disp-render"
+             (list
+              (para (list "An image is drawn onto a display using `disp-render`."
+                          "The form of a `disp-render` expression is `(disp-render image x y color-list)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image`      | An image buffer for example created using img-buffer.\n"
+                          "`x y`        | position of top left corner x,y.\n"
+                          "`color-list` | List of Color value, hex or color values.\n"
+                          ))
+	      (code-disp-str '("(disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))"
+			       "(disp-render llama-bin 20 20 '(0x000000 0xFF0000))"
+			       "(disp-render llama-bin 30 30 '(0x000000 0x00FF00))"
+			       "(disp-render llama-bin 30 30 '(0x000000 0x0000FF))"
+			       ))
+
+	      (code-disp-str '("(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))"
+			       "(disp-render img-100-100 0 100 '(0x000000 0xFF0000))"
+			       "(disp-render img-100-100 100 0 '(0x000000 0x00FF00))"
+			       "(disp-render img-100-100 100 100 '(0x000000 0x0000FF))"
+			       "(disp-render img-100-100 200 0 '(0x000000 0x00FFFF))"
+			       "(disp-render img-100-100 200 100 '(0x000000 0xFF00FF))"
+			       ))
+              end))
+  )
+
+(define entry-disp-render-jpg
+  (ref-entry "disp-render-jpg"
+             (list
+              (para (list "There is a renderer specifically for JPG images."
+                          "If one is considering to use JPG for images, the images are most"
+                          "likely larger than what is easy to handle with image buffers."
+                          "The `disp-render-jpg` decompresses a JPG in small chunks and outputs"
+                          "directly to the display."
+                          "The form of a `disp-render-jpg` expression is `(disp-render-jpg jpg-data x y)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`jpg-data`   | Imported or otherwise loaded jpg data.\n"
+                          "`x y`        | position of top left corner x,y.\n"
+                          ))
+              (code-disp-str '("(disp-render-jpg my-jpg 0 0)"))
+              end))
+  )
+
+(define entry-disp-clear
+  (ref-entry "disp-clear"
+             (list
+              (para (list "Use `disp-clear` to clear the display\n."
+                          "The form of a `disp-clear` expression is `(disp-clear opt-color)`."
+                          "`opt-color` is an optional color value."
+                          ))
+              (code-disp-str '("(disp-clear)"
+                               "(disp-clear 0xFF8822)"
+                               "(disp-clear 0x000000)"
+                               ))
+	      end ))
+  )
+
+
 (define manual
   (list
    (section 1 "LispBM Display Library"
@@ -522,39 +615,22 @@
 			 "that can be expressed as a list of colors."
 			 "for example:"
 			 ))
-             (para (list "**disp-render**"))
-	     (code-disp-str '("(disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))"
-			      "(disp-render llama-bin 20 20 '(0x000000 0xFF0000))"
-			      "(disp-render llama-bin 30 30 '(0x000000 0x00FF00))"
-			      "(disp-render llama-bin 30 30 '(0x000000 0x0000FF))"
-			      ))
-
-	     (code-disp-str '("(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))"
-			      "(disp-render img-100-100 0 100 '(0x000000 0xFF0000))"
-			      "(disp-render img-100-100 100 0 '(0x000000 0x00FF00))"
-			      "(disp-render img-100-100 100 100 '(0x000000 0x0000FF))"
-			      "(disp-render img-100-100 200 0 '(0x000000 0x00FFFF))"
-			      "(disp-render img-100-100 200 100 '(0x000000 0xFF00FF))"
-			      ))
-             (para (list "**disp-render-jpg**"))
-             (code-disp-str '("(disp-render-jpg my-jpg 0 0)"))
-             (para (list "**disp-clear**"))
-             (code-disp-str '("(disp-clear)"))
-
-	
-	     
-	     
-	    end ))
+             end))
    (section 1 "Reference"
-            (list create_image1
+            (list entry-disp-render
+                  entry-disp-render-jpg
+                  entry-disp-clear
+                  create_image1
                   image-from-bin
                   blitting
-		  arcs
+                  entry-img-dims
+                  arcs
                   circles
                   circle-sectors
                   circle-segments
                   clear-image
                   create-color
+                  getpixel
 		  lines
                   rectangles
                   setpixel

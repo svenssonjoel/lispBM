@@ -28,7 +28,20 @@ the display library is specifically designed to allow for using many colors simu
 
 images are rendered onto a display using the function `disp-render`. `disp-render` takes an image, a position (x,y) where to draw the image, and a colormapping that can be expressed as a list of colors. for example: 
 
-**disp-render** 
+
+# Reference
+
+
+### disp-render
+
+An image is drawn onto a display using `disp-render`. The form of a `disp-render` expression is `(disp-render image x y color-list)`. 
+
+|Arg || 
+ |----|----|
+ `image`      | An image buffer for example created using img-buffer.
+ `x y`        | position of top left corner x,y.
+ `color-list` | List of Color value, hex or color values.
+ 
 
 <table>
 <tr>
@@ -272,7 +285,21 @@ t
 </tr>
 </table>
 
-**disp-render-jpg** 
+
+
+
+---
+
+
+### disp-render-jpg
+
+There is a renderer specifically for JPG images. If one is considering to use JPG for images, the images are most likely larger than what is easy to handle with image buffers. The `disp-render-jpg` decompresses a JPG in small chunks and outputs directly to the display. The form of a `disp-render-jpg` expression is `(disp-render-jpg jpg-data x y)`. 
+
+|Arg || 
+ |----|----|
+ `jpg-data`   | Imported or otherwise loaded jpg data.
+ `x y`        | position of top left corner x,y.
+ 
 
 <table>
 <tr>
@@ -303,7 +330,16 @@ t
 </tr>
 </table>
 
-**disp-clear** 
+
+
+
+---
+
+
+### disp-clear
+
+Use `disp-clear` to clear the display
+. The form of a `disp-clear` expression is `(disp-clear opt-color)`. `opt-color` is an optional color value. 
 
 <table>
 <tr>
@@ -332,10 +368,58 @@ t
 
 </td>
 </tr>
+<tr>
+<td>
+
+```clj
+(disp-clear 0xFF8822)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img13.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-clear 0x000000)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img14.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
 </table>
 
 
-# Reference
+
+
+---
 
 
 ### img-buffer
@@ -481,7 +565,7 @@ Copy pixels from `src` to `dest`.   `x` and `y` are coordinates in `dest`. Pixel
 </td>
 <td>
 
-<img src=./images/disp-img13.png >
+<img src=./images/disp-img15.png >
 
 </td>
 <td>
@@ -504,7 +588,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img14.png >
+<img src=./images/disp-img16.png >
 
 </td>
 <td>
@@ -527,7 +611,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img15.png >
+<img src=./images/disp-img17.png >
 
 </td>
 <td>
@@ -550,7 +634,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img16.png >
+<img src=./images/disp-img18.png >
 
 </td>
 <td>
@@ -576,7 +660,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img17.png >
+<img src=./images/disp-img19.png >
 
 </td>
 <td>
@@ -603,13 +687,52 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img18.png >
+<img src=./images/disp-img20.png >
 
 </td>
 <td>
 
 ```clj
 t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-dims
+
+`img-dims returns the width and height of an image. The form of an `img-dims` expression is `(img-dims image)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-dims my-img)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img21.png >
+
+</td>
+<td>
+
+```clj
+(320 200)
 ```
 
 
@@ -662,7 +785,7 @@ Draw an arc into an image. The form of an `img-arc` expression is `(img-arc imag
 </td>
 <td>
 
-<img src=./images/disp-img19.png >
+<img src=./images/disp-img22.png >
 
 </td>
 <td>
@@ -685,7 +808,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img20.png >
+<img src=./images/disp-img23.png >
 
 </td>
 <td>
@@ -708,7 +831,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img21.png >
+<img src=./images/disp-img24.png >
 
 </td>
 <td>
@@ -731,7 +854,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img22.png >
+<img src=./images/disp-img25.png >
 
 </td>
 <td>
@@ -754,7 +877,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img23.png >
+<img src=./images/disp-img26.png >
 
 </td>
 <td>
@@ -777,7 +900,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img24.png >
+<img src=./images/disp-img27.png >
 
 </td>
 <td>
@@ -800,7 +923,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img25.png >
+<img src=./images/disp-img28.png >
 
 </td>
 <td>
@@ -857,7 +980,7 @@ Draw a circle into an image. The form of an `img-circle` expression is `(img-cir
 </td>
 <td>
 
-<img src=./images/disp-img26.png >
+<img src=./images/disp-img29.png >
 
 </td>
 <td>
@@ -880,7 +1003,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img27.png >
+<img src=./images/disp-img30.png >
 
 </td>
 <td>
@@ -903,7 +1026,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img28.png >
+<img src=./images/disp-img31.png >
 
 </td>
 <td>
@@ -926,7 +1049,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img29.png >
+<img src=./images/disp-img32.png >
 
 </td>
 <td>
@@ -949,7 +1072,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img30.png >
+<img src=./images/disp-img33.png >
 
 </td>
 <td>
@@ -1006,7 +1129,7 @@ Draw a circle sector into an image. The form of an `img-circle-sector` expressio
 </td>
 <td>
 
-<img src=./images/disp-img31.png >
+<img src=./images/disp-img34.png >
 
 </td>
 <td>
@@ -1029,7 +1152,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img32.png >
+<img src=./images/disp-img35.png >
 
 </td>
 <td>
@@ -1052,7 +1175,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img33.png >
+<img src=./images/disp-img36.png >
 
 </td>
 <td>
@@ -1075,7 +1198,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img34.png >
+<img src=./images/disp-img37.png >
 
 </td>
 <td>
@@ -1132,7 +1255,7 @@ Draw a circle segment into an image. The form of an `img-circle-segment` express
 </td>
 <td>
 
-<img src=./images/disp-img35.png >
+<img src=./images/disp-img38.png >
 
 </td>
 <td>
@@ -1155,7 +1278,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img36.png >
+<img src=./images/disp-img39.png >
 
 </td>
 <td>
@@ -1178,7 +1301,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img37.png >
+<img src=./images/disp-img40.png >
 
 </td>
 <td>
@@ -1201,7 +1324,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img38.png >
+<img src=./images/disp-img41.png >
 
 </td>
 <td>
@@ -1238,7 +1361,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img39.png >
+<img src=./images/disp-img42.png >
 
 </td>
 <td>
@@ -1261,7 +1384,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img40.png >
+<img src=./images/disp-img43.png >
 
 </td>
 <td>
@@ -1284,7 +1407,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img41.png >
+<img src=./images/disp-img44.png >
 
 </td>
 <td>
@@ -1365,7 +1488,7 @@ img-color is used to create more complex color objects for use together with dis
 <td>
 
 ```clj
-[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 192 141 37 240]
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 160 96 160 244]
 ```
 
 
@@ -1395,7 +1518,7 @@ img-color is used to create more complex color objects for use together with dis
 </td>
 <td>
 
-<img src=./images/disp-img42.png >
+<img src=./images/disp-img45.png >
 
 </td>
 <td>
@@ -1432,7 +1555,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img43.png >
+<img src=./images/disp-img46.png >
 
 </td>
 <td>
@@ -1440,6 +1563,51 @@ t
 
 ```clj
 t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-getpix
+
+Get a pixel value from an image. The form of an `img-getpix` expression is `(img-getpix image x y)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x y`   | Position  x,y.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-getpix my-img 10 10)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img47.png >
+
+</td>
+<td>
+
+```clj
+0u32
 ```
 
 
@@ -1489,7 +1657,7 @@ Draw a line into an image. The form of an `img-line` expression is `(img-line im
 </td>
 <td>
 
-<img src=./images/disp-img44.png >
+<img src=./images/disp-img48.png >
 
 </td>
 <td>
@@ -1512,7 +1680,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img45.png >
+<img src=./images/disp-img49.png >
 
 </td>
 <td>
@@ -1535,7 +1703,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img46.png >
+<img src=./images/disp-img50.png >
 
 </td>
 <td>
@@ -1592,7 +1760,7 @@ Draw a rectangle into an image. The form of an `img-rectangle` expression is `(i
 </td>
 <td>
 
-<img src=./images/disp-img47.png >
+<img src=./images/disp-img51.png >
 
 </td>
 <td>
@@ -1615,7 +1783,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img48.png >
+<img src=./images/disp-img52.png >
 
 </td>
 <td>
@@ -1638,7 +1806,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img49.png >
+<img src=./images/disp-img53.png >
 
 </td>
 <td>
@@ -1684,7 +1852,7 @@ Draw a pixel into an image. The form of an `img-setpix` expression is `(img-setp
 </td>
 <td>
 
-<img src=./images/disp-img50.png >
+<img src=./images/disp-img54.png >
 
 </td>
 <td>
@@ -1731,7 +1899,7 @@ Draw text into an image. The form of an `img-text` expression is `(img-text imag
 </td>
 <td>
 
-<img src=./images/disp-img51.png >
+<img src=./images/disp-img55.png >
 
 </td>
 <td>
@@ -1754,7 +1922,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img52.png >
+<img src=./images/disp-img56.png >
 
 </td>
 <td>
@@ -1777,7 +1945,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img53.png >
+<img src=./images/disp-img57.png >
 
 </td>
 <td>
@@ -1834,7 +2002,7 @@ Draw a triangle into an image. The form of an `img-triangle` expression is `(img
 </td>
 <td>
 
-<img src=./images/disp-img54.png >
+<img src=./images/disp-img58.png >
 
 </td>
 <td>
@@ -1857,7 +2025,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img55.png >
+<img src=./images/disp-img59.png >
 
 </td>
 <td>
@@ -1880,7 +2048,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img56.png >
+<img src=./images/disp-img60.png >
 
 </td>
 <td>
@@ -1903,7 +2071,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img57.png >
+<img src=./images/disp-img61.png >
 
 </td>
 <td>
@@ -1964,7 +2132,7 @@ These examples are leaving out the details on how to setup and initialize any pa
 </td>
 <td>
 
-<img src=./images/disp-img58.png >
+<img src=./images/disp-img62.png >
 
 </td>
 <td>
@@ -2006,7 +2174,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img59.png >
+<img src=./images/disp-img63.png >
 
 </td>
 <td>
@@ -2044,7 +2212,7 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
 </td>
 <td>
 
-<img src=./images/disp-img60.png >
+<img src=./images/disp-img64.png >
 
 </td>
 <td>
@@ -2076,7 +2244,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img61.png >
+<img src=./images/disp-img65.png >
 
 </td>
 <td>
