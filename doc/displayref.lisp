@@ -630,10 +630,10 @@
                   circle-segments
                   clear-image
                   create-color
-                  getpixel
 		  lines
                   rectangles
                   setpixel
+                  getpixel
                   texts
                   triangles
                   )

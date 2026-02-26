@@ -1488,7 +1488,7 @@ img-color is used to create more complex color objects for use together with dis
 <td>
 
 ```clj
-[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 160 96 160 244]
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 160 192 22 244]
 ```
 
 
@@ -1576,51 +1576,6 @@ t
 ---
 
 
-### img-getpix
-
-Get a pixel value from an image. The form of an `img-getpix` expression is `(img-getpix image x y)`. 
-
-|Arg || 
- |----|----|
- `image` | An image buffer for example created using img-buffer.
- `x y`   | Position  x,y.
- 
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(img-getpix my-img 10 10)
-```
-
-
-</td>
-<td>
-
-<img src=./images/disp-img47.png >
-
-</td>
-<td>
-
-```clj
-0u32
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
 ### img-line
 
 Draw a line into an image. The form of an `img-line` expression is `(img-line image x1 y1 x2 y2 color ..option)`. 
@@ -1657,7 +1612,7 @@ Draw a line into an image. The form of an `img-line` expression is `(img-line im
 </td>
 <td>
 
-<img src=./images/disp-img48.png >
+<img src=./images/disp-img47.png >
 
 </td>
 <td>
@@ -1680,7 +1635,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img49.png >
+<img src=./images/disp-img48.png >
 
 </td>
 <td>
@@ -1703,7 +1658,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img50.png >
+<img src=./images/disp-img49.png >
 
 </td>
 <td>
@@ -1760,7 +1715,7 @@ Draw a rectangle into an image. The form of an `img-rectangle` expression is `(i
 </td>
 <td>
 
-<img src=./images/disp-img51.png >
+<img src=./images/disp-img50.png >
 
 </td>
 <td>
@@ -1783,7 +1738,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img52.png >
+<img src=./images/disp-img51.png >
 
 </td>
 <td>
@@ -1806,7 +1761,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img53.png >
+<img src=./images/disp-img52.png >
 
 </td>
 <td>
@@ -1852,13 +1807,58 @@ Draw a pixel into an image. The form of an `img-setpix` expression is `(img-setp
 </td>
 <td>
 
-<img src=./images/disp-img54.png >
+<img src=./images/disp-img53.png >
 
 </td>
 <td>
 
 ```clj
 t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-getpix
+
+Get a pixel value from an image. The form of an `img-getpix` expression is `(img-getpix image x y)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x y`   | Position  x,y.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-getpix my-img 10 10)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img54.png >
+
+</td>
+<td>
+
+```clj
+0u32
 ```
 
 
