@@ -8847,7 +8847,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4172
+3746
 ```
 
 
@@ -9056,7 +9056,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 111268 kurt-russel)
+(exit-ok 111025 kurt-russel)
 ```
 
 

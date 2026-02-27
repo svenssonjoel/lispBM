@@ -234,7 +234,7 @@ static bool file_handle_destructor(lbm_uint value) {
 
 // A filehandle is only a filehandle unless it has been explicitly closed.
 static bool is_file_handle(lbm_value arg) {
-  if ((lbm_uint)lbm_get_custom_descriptor(arg) == (lbm_uint)lbm_file_handle_desc) {
+  if (lbm_is_custom(arg) && ((lbm_uint)lbm_get_custom_descriptor(arg) == (lbm_uint)lbm_file_handle_desc)) {
     lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(arg);
     if (h->fp) return true;
   }
