@@ -245,6 +245,132 @@
                                )))
               end)))
 
+;;                  entry-color-set
+;;                  entry-color-get
+;;                  entry-color-setpre
+;;                  entry-color-getpre
+
+(define my-color (img-color 'gradient_y color1 color2 10 0 'repeat))
+
+(define entry-color-set
+  (ref-entry "img-color-set"
+             (list
+              (para (list "With `img-color-set`you can set properties of a color."
+                          "The form of a img-color-set expression is `(img-color-set color prop value)`"
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`color` | Color value creted with img-color.\n"
+                          "`property` | Symbol denoting property to change.\n"
+                          "`value`    | New value to set property to.\n"
+                          ))
+              (para (list "|`img-color-set` | regular | gradient | pre |\n"
+                          "|----|----|----|----|\n"
+                          "`color0`      | ✓ | ✓ | ✗ |\n"
+                          "`color1`      | ✗ | ✓ | ✗ |\n"
+                          "`width`       | ✗ | ✓ | ✗ |\n"
+                          "`offset`      | ✗ | ✓ | ✓ |\n"
+                          "`repeat-type` | ✗ | ✓ | ✓ |\n"
+                          ))
+              (code '((img-color-set my-color 'repeat-type 'mirrored)
+                      (img-color-set my-color 'color-0 0xFF00FF)
+                      (img-color-set my-color 'color-1 0x00FF00)
+                      (img-color-set my-color 'width 10)
+                      (img-color-set my-color 'offset 1)
+                      ))
+              )))
+
+(define entry-color-get
+  (ref-entry "img-color-get"
+             (list
+              (para (list "With `img-color-get` you can access properties of a color."
+                          "The form of an img-color-get expression is `(img-color-get color prop)`"
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`color` | Color value creted with img-color.\n"
+                          "`property` | Symbol denoting property to access.\n"
+                          ))
+              (para (list "|`img-color-get` | regular | gradient | pre |\n"                 
+                          "|----|----|----|----|\n"
+                          "`color0`      | ✓ | ✓ | ✓ |\n"                                   
+                          "`color1`      | ✗ | ✓ | ✓ |\n"
+                          "`width`       | ✗ | ✓ | ✓ |\n"
+                          "`offset`      | ✗ | ✓ | ✓ |\n"
+                          "`repeat-type` | ✗ | ✓ | ✓ |\n"
+                          ))
+              (code '((img-color-get my-color 'repeat-type)
+                      (img-color-get my-color 'color-0)
+                      (img-color-get my-color 'color-1)
+                      (img-color-get my-color 'width)
+                      (img-color-get my-color 'offset)
+                      ))
+             )))
+
+(define my-color-pre (img-color 'gradient_x_pre color1 color2 100 0 'mirrored))
+
+(define entry-color-setpre
+  (ref-entry "img-color-setpre"
+             (list
+              (para  (list "Update a value in a precalculated gradient color."
+                           "The form of an `img-color-setpre` expression is `(img-color-setpre color pos color-val)`."
+                           ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`color` | Color value creted with img-color.\n"
+                          "`pos`   | Position in the precomputed colormap to update.\n"
+                          "`color-val` | Color value to write into the position.\n"
+                          ))   
+             (code '((img-color-setpre my-color-pre 10 0xFFFFFF)
+                     (img-color-setpre my-color-pre 11 0x000000)
+                     ))
+                           (program-disp '((
+                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define pic (load-file fptr))
+                               (fclose fptr)
+                               (define c (img-color 'gradient_x_pre color1 color2 100 0 'repeat))
+                               (loopfor i 0 (< i 512) (+ i 2) {
+                                        (img-color-setpre c i 0xFFFFFF)
+                                        (img-color-setpre c (+ i 1) 0x00000)
+                                        })
+                               (define img (img-buffer 'indexed2 320 200))
+                               (img-blit img pic 10 10 -1 '(rotate 128 128 45))
+                               (disp-render img 100 0 (list (img-color 'regular 0) c))
+                               )))
+              (program-disp '((
+                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define pic (load-file fptr))
+                               (fclose fptr)
+                               (define c (img-color 'gradient_y_pre color1 color2 200 0 'repeat))
+                               (loopfor i 0 (< i 200) (+ i 10) {
+                                        (var band-color (if (= (mod (/ i 10) 2) 0) color1 color2))
+                                        (loopfor j 0 (< j 10) (+ j 1) {
+                                                 (img-color-setpre c (+ i j) band-color)
+                                                 })
+                                        })
+                               (define img (img-buffer 'indexed2 320 200))
+                               (img-blit img pic 10 10 -1 '(rotate 128 128 45))
+                               (disp-render img 100 0 (list (img-color 'regular 0) c))
+                               )))
+             )))
+
+(define entry-color-getpre
+  (ref-entry "img-color-getpre"
+             (list
+              (para  (list "Get a value from a precalculated gradient color."
+                           "The form of an `img-color-getpre` expression is `(img-color-getpre color pos)`."
+                           ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`color` | Color value creted with img-color.\n"
+                          "`pos`   | Position in the precomputed colormap to update.\n"
+                          ))
+             (code '((img-color-getpre my-color-pre 10)
+                     (img-color-getpre my-color-pre 11)
+                     (img-color-getpre my-color-pre 12)
+                     ))
+             )))
+
 (define lines
   (ref-entry "img-line"
 	     (list
@@ -566,6 +692,21 @@
   )
 
 
+(define entry-disp-reset
+  (ref-entry "disp-reset"
+             (list
+              (para (list "Use `disp-reset` to reset the display\n."
+                          "What it means to reset a display is display-backend dependend"
+                          "on an display connected over SPI to an MCU, it may mean powercycling and"
+                          "running the initialization sequence of commands."
+                          "The form of a `disp-reset` expression is `(disp-reset)`."
+                          ))
+              (code-disp-str '("(disp-reset)"
+                               ))
+	      end ))
+  )
+
+
 (define manual
   (list
    (section 1 "LispBM Display Library"
@@ -620,6 +761,7 @@
             (list entry-disp-render
                   entry-disp-render-jpg
                   entry-disp-clear
+                  entry-disp-reset
                   create_image1
                   image-from-bin
                   blitting
@@ -630,6 +772,10 @@
                   circle-segments
                   clear-image
                   create-color
+                  entry-color-set
+                  entry-color-get
+                  entry-color-setpre
+                  entry-color-getpre
 		  lines
                   rectangles
                   setpixel

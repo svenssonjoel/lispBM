@@ -422,6 +422,46 @@ t
 ---
 
 
+### disp-reset
+
+Use `disp-reset` to reset the display
+. What it means to reset a display is display-backend dependend on an display connected over SPI to an MCU, it may mean powercycling and running the initialization sequence of commands. The form of a `disp-reset` expression is `(disp-reset)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-reset)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img15.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
 ### img-buffer
 
 Allocate an image buffer from lbm memory or from a compactable region. The form of an `img-buffer` expression is `(img-buffer opt-dm format width height)`. 
@@ -565,7 +605,7 @@ Copy pixels from `src` to `dest`.   `x` and `y` are coordinates in `dest`. Pixel
 </td>
 <td>
 
-<img src=./images/disp-img15.png >
+<img src=./images/disp-img16.png >
 
 </td>
 <td>
@@ -588,7 +628,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img16.png >
+<img src=./images/disp-img17.png >
 
 </td>
 <td>
@@ -611,7 +651,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img17.png >
+<img src=./images/disp-img18.png >
 
 </td>
 <td>
@@ -634,7 +674,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img18.png >
+<img src=./images/disp-img19.png >
 
 </td>
 <td>
@@ -660,7 +700,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img19.png >
+<img src=./images/disp-img20.png >
 
 </td>
 <td>
@@ -687,7 +727,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img20.png >
+<img src=./images/disp-img21.png >
 
 </td>
 <td>
@@ -726,7 +766,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img21.png >
+<img src=./images/disp-img22.png >
 
 </td>
 <td>
@@ -785,7 +825,7 @@ Draw an arc into an image. The form of an `img-arc` expression is `(img-arc imag
 </td>
 <td>
 
-<img src=./images/disp-img22.png >
+<img src=./images/disp-img23.png >
 
 </td>
 <td>
@@ -808,7 +848,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img23.png >
+<img src=./images/disp-img24.png >
 
 </td>
 <td>
@@ -831,7 +871,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img24.png >
+<img src=./images/disp-img25.png >
 
 </td>
 <td>
@@ -854,7 +894,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img25.png >
+<img src=./images/disp-img26.png >
 
 </td>
 <td>
@@ -877,7 +917,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img26.png >
+<img src=./images/disp-img27.png >
 
 </td>
 <td>
@@ -900,7 +940,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img27.png >
+<img src=./images/disp-img28.png >
 
 </td>
 <td>
@@ -923,7 +963,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img28.png >
+<img src=./images/disp-img29.png >
 
 </td>
 <td>
@@ -980,7 +1020,7 @@ Draw a circle into an image. The form of an `img-circle` expression is `(img-cir
 </td>
 <td>
 
-<img src=./images/disp-img29.png >
+<img src=./images/disp-img30.png >
 
 </td>
 <td>
@@ -1003,7 +1043,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img30.png >
+<img src=./images/disp-img31.png >
 
 </td>
 <td>
@@ -1026,7 +1066,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img31.png >
+<img src=./images/disp-img32.png >
 
 </td>
 <td>
@@ -1049,7 +1089,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img32.png >
+<img src=./images/disp-img33.png >
 
 </td>
 <td>
@@ -1072,7 +1112,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img33.png >
+<img src=./images/disp-img34.png >
 
 </td>
 <td>
@@ -1129,7 +1169,7 @@ Draw a circle sector into an image. The form of an `img-circle-sector` expressio
 </td>
 <td>
 
-<img src=./images/disp-img34.png >
+<img src=./images/disp-img35.png >
 
 </td>
 <td>
@@ -1152,7 +1192,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img35.png >
+<img src=./images/disp-img36.png >
 
 </td>
 <td>
@@ -1175,7 +1215,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img36.png >
+<img src=./images/disp-img37.png >
 
 </td>
 <td>
@@ -1198,7 +1238,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img37.png >
+<img src=./images/disp-img38.png >
 
 </td>
 <td>
@@ -1255,7 +1295,7 @@ Draw a circle segment into an image. The form of an `img-circle-segment` express
 </td>
 <td>
 
-<img src=./images/disp-img38.png >
+<img src=./images/disp-img39.png >
 
 </td>
 <td>
@@ -1278,7 +1318,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img39.png >
+<img src=./images/disp-img40.png >
 
 </td>
 <td>
@@ -1301,7 +1341,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img40.png >
+<img src=./images/disp-img41.png >
 
 </td>
 <td>
@@ -1324,7 +1364,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img41.png >
+<img src=./images/disp-img42.png >
 
 </td>
 <td>
@@ -1361,7 +1401,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img42.png >
+<img src=./images/disp-img43.png >
 
 </td>
 <td>
@@ -1384,7 +1424,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img43.png >
+<img src=./images/disp-img44.png >
 
 </td>
 <td>
@@ -1407,7 +1447,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img44.png >
+<img src=./images/disp-img45.png >
 
 </td>
 <td>
@@ -1488,7 +1528,7 @@ img-color is used to create more complex color objects for use together with dis
 <td>
 
 ```clj
-[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 12 240 233 244]
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 100 9 249 232]
 ```
 
 
@@ -1518,7 +1558,7 @@ img-color is used to create more complex color objects for use together with dis
 </td>
 <td>
 
-<img src=./images/disp-img45.png >
+<img src=./images/disp-img46.png >
 
 </td>
 <td>
@@ -1555,7 +1595,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img46.png >
+<img src=./images/disp-img47.png >
 
 </td>
 <td>
@@ -1570,6 +1610,464 @@ t
 </tr>
 </table>
 
+
+
+
+---
+
+
+### img-color-set
+
+With `img-color-set`you can set properties of a color. The form of a img-color-set expression is `(img-color-set color prop value)` 
+
+|Arg || 
+ |----|----|
+ `color` | Color value creted with img-color.
+ `property` | Symbol denoting property to change.
+ `value`    | New value to set property to.
+ 
+
+|`img-color-set` | regular | gradient | pre |
+ |----|----|----|----|
+ `color0`      | ✓ | ✓ | ✗ |
+ `color1`      | ✗ | ✓ | ✗ |
+ `width`       | ✗ | ✓ | ✗ |
+ `offset`      | ✗ | ✓ | ✓ |
+ `repeat-type` | ✗ | ✓ | ✓ |
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-set my-color 'repeat-type 'mirrored)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-set my-color 'color-0 16711935)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-set my-color 'color-1 65280)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-set my-color 'width 10)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-set my-color 'offset 1)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### img-color-get
+
+With `img-color-get` you can access properties of a color. The form of an img-color-get expression is `(img-color-get color prop)` 
+
+|Arg || 
+ |----|----|
+ `color` | Color value creted with img-color.
+ `property` | Symbol denoting property to access.
+ 
+
+|`img-color-get` | regular | gradient | pre |
+ |----|----|----|----|
+ `color0`      | ✓ | ✓ | ✓ |
+ `color1`      | ✗ | ✓ | ✓ |
+ `width`       | ✗ | ✓ | ✓ |
+ `offset`      | ✗ | ✓ | ✓ |
+ `repeat-type` | ✗ | ✓ | ✓ |
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-get my-color 'repeat-type)
+```
+
+
+</td>
+<td>
+
+```clj
+mirrored
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-get my-color 'color-0)
+```
+
+
+</td>
+<td>
+
+```clj
+16711935u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-get my-color 'color-1)
+```
+
+
+</td>
+<td>
+
+```clj
+65280u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-get my-color 'width)
+```
+
+
+</td>
+<td>
+
+```clj
+10i32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-get my-color 'offset)
+```
+
+
+</td>
+<td>
+
+```clj
+1i32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### img-color-setpre
+
+Update a value in a precalculated gradient color. The form of an `img-color-setpre` expression is `(img-color-setpre color pos color-val)`. 
+
+|Arg || 
+ |----|----|
+ `color` | Color value creted with img-color.
+ `pos`   | Position in the precomputed colormap to update.
+ `color-val` | Color value to write into the position.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-setpre my-color-pre 10 16777215)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-setpre my-color-pre 11 0)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define fptr (fopen "images/lama2.bin" "r"))
+(define pic (load-file fptr))
+(fclose fptr)
+(define c (img-color 'gradient_x_pre color1 color2 100 0 'repeat))
+(loopfor i 0 (< i 512) (+ i 2)
+         (progn 
+             (img-color-setpre c i 16777215)
+             (img-color-setpre c (+ i 1) 0)))
+(define img (img-buffer 'indexed2 320 200))
+(img-blit img pic 10 10 -1 '(rotate 128 128 45))
+(disp-render img 100 0 (list (img-color 'regular 0) c))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img48.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define fptr (fopen "images/lama2.bin" "r"))
+(define pic (load-file fptr))
+(fclose fptr)
+(define c (img-color 'gradient_y_pre color1 color2 200 0 'repeat))
+(loopfor i 0 (< i 200) (+ i 10)
+         (progn 
+             (var band-color (if (= (mod (/ i 10) 2) 0) color1 color2))
+             (loopfor j 0 (< j 10) (+ j 1)
+                      (progn 
+                          (img-color-setpre c (+ i j) band-color)))))
+(define img (img-buffer 'indexed2 320 200))
+(img-blit img pic 10 10 -1 '(rotate 128 128 45))
+(disp-render img 100 0 (list (img-color 'regular 0) c))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img49.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### img-color-getpre
+
+Get a value from a precalculated gradient color. The form of an `img-color-getpre` expression is `(img-color-getpre color pos)`. 
+
+|Arg || 
+ |----|----|
+ `color` | Color value creted with img-color.
+ `pos`   | Position in the precomputed colormap to update.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-getpre my-color-pre 10)
+```
+
+
+</td>
+<td>
+
+```clj
+16777215u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-getpre my-color-pre 11)
+```
+
+
+</td>
+<td>
+
+```clj
+0u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-getpre my-color-pre 12)
+```
+
+
+</td>
+<td>
+
+```clj
+16121865u32
+```
+
+
+</td>
+</tr>
+</table>
 
 
 
@@ -1612,7 +2110,7 @@ Draw a line into an image. The form of an `img-line` expression is `(img-line im
 </td>
 <td>
 
-<img src=./images/disp-img47.png >
+<img src=./images/disp-img50.png >
 
 </td>
 <td>
@@ -1635,7 +2133,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img48.png >
+<img src=./images/disp-img51.png >
 
 </td>
 <td>
@@ -1658,7 +2156,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img49.png >
+<img src=./images/disp-img52.png >
 
 </td>
 <td>
@@ -1715,7 +2213,7 @@ Draw a rectangle into an image. The form of an `img-rectangle` expression is `(i
 </td>
 <td>
 
-<img src=./images/disp-img50.png >
+<img src=./images/disp-img53.png >
 
 </td>
 <td>
@@ -1738,7 +2236,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img51.png >
+<img src=./images/disp-img54.png >
 
 </td>
 <td>
@@ -1761,7 +2259,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img52.png >
+<img src=./images/disp-img55.png >
 
 </td>
 <td>
@@ -1807,7 +2305,7 @@ Draw a pixel into an image. The form of an `img-setpix` expression is `(img-setp
 </td>
 <td>
 
-<img src=./images/disp-img53.png >
+<img src=./images/disp-img56.png >
 
 </td>
 <td>
@@ -1852,7 +2350,7 @@ Get a pixel value from an image. The form of an `img-getpix` expression is `(img
 </td>
 <td>
 
-<img src=./images/disp-img54.png >
+<img src=./images/disp-img57.png >
 
 </td>
 <td>
@@ -1899,7 +2397,7 @@ Draw text into an image. The form of an `img-text` expression is `(img-text imag
 </td>
 <td>
 
-<img src=./images/disp-img55.png >
+<img src=./images/disp-img58.png >
 
 </td>
 <td>
@@ -1922,7 +2420,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img56.png >
+<img src=./images/disp-img59.png >
 
 </td>
 <td>
@@ -1945,7 +2443,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img57.png >
+<img src=./images/disp-img60.png >
 
 </td>
 <td>
@@ -2002,7 +2500,7 @@ Draw a triangle into an image. The form of an `img-triangle` expression is `(img
 </td>
 <td>
 
-<img src=./images/disp-img58.png >
+<img src=./images/disp-img61.png >
 
 </td>
 <td>
@@ -2025,7 +2523,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img59.png >
+<img src=./images/disp-img62.png >
 
 </td>
 <td>
@@ -2048,7 +2546,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img60.png >
+<img src=./images/disp-img63.png >
 
 </td>
 <td>
@@ -2071,7 +2569,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img61.png >
+<img src=./images/disp-img64.png >
 
 </td>
 <td>
@@ -2132,7 +2630,7 @@ These examples are leaving out the details on how to setup and initialize any pa
 </td>
 <td>
 
-<img src=./images/disp-img62.png >
+<img src=./images/disp-img65.png >
 
 </td>
 <td>
@@ -2174,7 +2672,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img63.png >
+<img src=./images/disp-img66.png >
 
 </td>
 <td>
@@ -2212,7 +2710,7 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
 </td>
 <td>
 
-<img src=./images/disp-img64.png >
+<img src=./images/disp-img67.png >
 
 </td>
 <td>
@@ -2244,7 +2742,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img65.png >
+<img src=./images/disp-img68.png >
 
 </td>
 <td>
