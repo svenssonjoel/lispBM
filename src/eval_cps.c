@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 - 2025 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020 - 2026 Joel Svensson    svenssonjoel@yahoo.se
               2025 Rasmus Söderhielm rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
@@ -866,29 +866,24 @@ lbm_flash_status lbm_write_const_array_padded(uint8_t *data, lbm_uint n, lbm_uin
 
 #define ERROR_MESSAGE_BUFFER_SIZE_BYTES 256
 
-sizeopt void print_environments(char *buf, unsigned int size) {
-
-  lbm_value curr_l = ctx_running->curr_env;
-  lbm_printf_callback("\tCurrent local environment:\n");
+sizeopt void print_env_ll(lbm_value e, char *buf, unsigned int size) {
+  lbm_value curr_l = e;
   while (lbm_type_of(curr_l) == LBM_TYPE_CONS) {
     lbm_print_value(buf, (size/2) - 1, lbm_caar(curr_l));
     lbm_print_value(buf + (size/2),size/2, lbm_cdr(lbm_car(curr_l)));
     lbm_printf_callback("\t%s = %s\n", buf, buf+(size/2));
     curr_l = lbm_cdr(curr_l);
   }
-  lbm_printf_callback("\n\n");
-  lbm_printf_callback("\tCurrent global environment:\n");
+}
+
+sizeopt void print_environments(char *buf, unsigned int size) {
+
+  lbm_printf_callback("\tCurrent local environment:\n");
+  print_env_ll(ctx_running->curr_env, buf, size);
+  lbm_printf_callback("\n\n\tCurrent global environment:\n");
   lbm_value *glob_env = lbm_get_global_env();
-
   for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
-    lbm_value curr_g = glob_env[i];;
-    while (lbm_type_of(curr_g) == LBM_TYPE_CONS) {
-
-      lbm_print_value(buf, (size/2) - 1, lbm_caar(curr_g));
-      lbm_print_value(buf + (size/2),size/2, lbm_cdr(lbm_car(curr_g)));
-      lbm_printf_callback("\t%s = %s\n", buf, buf+(size/2));
-      curr_g = lbm_cdr(curr_g);
-    }
+    print_env_ll(glob_env[i], buf, size);
   }
 }
 
