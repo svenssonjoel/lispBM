@@ -3086,17 +3086,17 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_cons_t *cell = lbm_ref_cell(appli_0);
     cell->car = h;
     cell->cdr = ENC_SYM_NIL;
-    //lbm_set_car_and_cdr(appli_0, h, ENC_SYM_NIL);
+
     cell = lbm_ref_cell(appli_1);
     cell->car = ENC_SYM_QUOTE;
-    //lbm_set_car(appli_1, ENC_SYM_QUOTE);
+
     lbm_cons_t *appli_cell = lbm_ref_cell(appli);
     cell = lbm_ref_cell(appli_cell->cdr);
     cell->car = appli_1;
     cell->cdr = ENC_SYM_NIL;
-    //lbm_set_car_and_cdr(get_cdr(appli), appli_1, ENC_SYM_NIL);
+
     appli_cell->car = f;
-    //lbm_set_car(appli, f);
+
 
     lbm_value elt = cons_with_gc(ctx->r, ENC_SYM_NIL, appli);
     sptr[0] = t;     // reuse stack space
@@ -4319,21 +4319,24 @@ static void cont_read_next_token(eval_context_t *ctx) {
       ctx->r = ENC_SYM_DONTCARE;
       ctx->app_cont = true;
       return;
-    case TOKQUOTE:
-      stack_reserve(ctx,1)[0] = ENC_SYM_QUOTE;
-      stack_reserve(ctx,1)[0] = WRAP_RESULT;
-      break;
+    case TOKQUOTE: {
+      lbm_value *rptr = stack_reserve(ctx, 2);
+      rptr[0] = ENC_SYM_QUOTE;
+      rptr[1] = WRAP_RESULT;
+    }break;
     case TOKBACKQUOTE:
       stack_reserve(ctx, 1)[0] = QQ_EXPAND_START;
       break;
-    case TOKCOMMAAT:
-      stack_reserve(ctx,1)[0] = ENC_SYM_COMMAAT;
-      stack_reserve(ctx,1)[0] = WRAP_RESULT;
-      break;
-    case TOKCOMMA:
-      stack_reserve(ctx,1)[0] = ENC_SYM_COMMA;
-      stack_reserve(ctx,1)[0] = WRAP_RESULT;
-      break;
+    case TOKCOMMAAT: {
+      lbm_value *rptr = stack_reserve(ctx, 2);
+      rptr[0] = ENC_SYM_COMMAAT;
+      rptr[1] = WRAP_RESULT;
+    } break;
+    case TOKCOMMA: {
+      lbm_value *rptr = stack_reserve(ctx, 2);
+      rptr[0] = ENC_SYM_COMMA;
+      rptr[1] = WRAP_RESULT;
+    } break;
     case TOKMATCHANY:
       ctx->r = ENC_SYM_MATCH_ANY;
       ctx->app_cont = true;
