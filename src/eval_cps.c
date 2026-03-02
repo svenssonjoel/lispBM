@@ -794,11 +794,11 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
 #ifdef LBM_ALWAYS_GC
   gc();
 #endif
-  res = fundamental_table[fundamental](args, arg_count, ctx);
+  res = fundamental_table[fundamental](args, arg_count);
   if (lbm_is_error(res)) {
     if (lbm_is_symbol_merror(res)) {
       gc();
-      res = fundamental_table[fundamental](args, arg_count, ctx);
+      res = fundamental_table[fundamental](args, arg_count);
     }
     if (lbm_is_error(res)) {
       ERROR_AT_CTX(res, lbm_enc_sym(FUNDAMENTAL_SYMBOLS_START | fundamental));
@@ -3500,10 +3500,15 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
   case SYMBOL_KIND_EXTENSION: {
     extension_fptr f = extension_table[SYMBOL_IX(fun_val)].fptr;
 
-    lbm_value ext_res;
-    WITH_GC(ext_res, f(&fun_args[1], arg_count));
-    if (lbm_is_error(ext_res)) { //Error other than merror
-      ERROR_AT_CTX(ext_res, fun);
+    lbm_value ext_res = f(&fun_args[1], arg_count);
+    if (lbm_is_error(ext_res)) {
+      if (lbm_is_symbol_merror(ext_res)) {
+        gc();
+        ext_res = f(&fun_args[1], arg_count);
+      }
+      if (lbm_is_error(ext_res)) { // Still an error, abort!
+        ERROR_AT_CTX(ext_res, fun);
+      }
     }
     stack_drop(ctx, (unsigned int) arg_count + 1);
 

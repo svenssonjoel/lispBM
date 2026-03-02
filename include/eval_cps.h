@@ -122,7 +122,7 @@ typedef struct {
 } lbm_event_t;
 
 /** Fundamental operation type */
-typedef lbm_value (*fundamental_fun)(lbm_value *, lbm_uint, eval_context_t*);
+typedef lbm_value (*fundamental_fun)(lbm_value *, lbm_uint);
 
 /** Table of function pointers implementing the fundamental operations */
 extern const fundamental_fun fundamental_table[];
