@@ -5685,7 +5685,7 @@ static void evaluation_step(void){
 // Placed down here since it depends on a lot of things.
 // (apply fun arg-list)
 static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (nargs == 2 || lbm_is_list(args[1])) {
+  if (nargs == 2 && lbm_is_list(args[1])) {
     lbm_value fun = args[0];
     lbm_value arg_list = args[1];
 
@@ -5721,81 +5721,77 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     } else if (lbm_is_cons(fun)) {
       lbm_cons_t *fun_cell = lbm_ref_cell(fun);
       switch (fun_cell->car) {
-        case ENC_SYM_CLOSURE: {
-          lbm_value closure = fun_cell->cdr;
-          lbm_value cl0, cl1, cl2;
-          EXTRACT(closure, cl0); // CLO_PARAMS
-          EXTRACT(closure, cl1); // CLO_BODY
-          EXTRACT_NO_ADVANCE(closure, cl2); // CLO_ENV
+      case ENC_SYM_CLOSURE: {
+        lbm_value closure = fun_cell->cdr;
+        lbm_value cl0, cl1, cl2;
+        EXTRACT(closure, cl0); // CLO_PARAMS
+        EXTRACT(closure, cl1); // CLO_BODY
+        EXTRACT_NO_ADVANCE(closure, cl2); // CLO_ENV
 
-          // Only placed here to protect from GC. Will be overriden later.
-          // ctx->r = arg_list; // Should already be placed there.
-          ctx->curr_exp = fun;
+        // Only placed here to protect from GC. Will be overriden later.
+        // ctx->r = arg_list; // Should already be placed there.
+        ctx->curr_exp = fun;
 
-          lbm_value env = cl2;
+        lbm_value env = cl2;
 
-          lbm_value current_params = cl0;
-          lbm_value current_args = arg_list;
+        lbm_value current_params = cl0;
+        lbm_value current_args = arg_list;
 
-          while (true) {
-            bool more_params = lbm_is_cons(current_params);
-            bool more_args = lbm_is_cons(current_args);
-            if (more_params && more_args) {
-              lbm_cons_t *p_cell = lbm_ref_cell(current_params);
-              lbm_cons_t *a_cell = lbm_ref_cell(current_args);
-              lbm_value car_params = p_cell->car;
-              lbm_value car_args = a_cell->car;
-              lbm_value cdr_params = p_cell->cdr;
-              lbm_value cdr_args = a_cell->cdr;
+        while (true) {
+          bool more_params = lbm_is_cons(current_params);
+          bool more_args = lbm_is_cons(current_args);
+          if (more_params && more_args) {
+            lbm_cons_t *p_cell = lbm_ref_cell(current_params);
+            lbm_cons_t *a_cell = lbm_ref_cell(current_args);
+            lbm_value car_params = p_cell->car;
+            lbm_value car_args = a_cell->car;
+            lbm_value cdr_params = p_cell->cdr;
+            lbm_value cdr_args = a_cell->cdr;
 
-              // More parameters to bind
-              env = allocate_binding(
-                car_params,
-                car_args,
-                env
-              );
+            // More parameters to bind
+            env = allocate_binding(
+                                   car_params,
+                                   car_args,
+                                   env
+                                   );
 
-              current_params = cdr_params;
-              current_args = cdr_args;
-            } else if (!more_params && more_args) {
-              // More arguments but all parameters have been bound
-              env = allocate_binding(ENC_SYM_REST_ARGS, current_args, env);
-              break;
-            } else if (!more_params && !more_args) {
-              // All parameters and arguments have been bound
-              break;
-            } else {
-              // More parameters to bind but no arguments left
-              lbm_set_error_reason(lbm_error_str_num_args);
-              ERROR_AT_CTX(ENC_SYM_EERROR, fun);
-            }
+            current_params = cdr_params;
+            current_args = cdr_args;
+          } else if (!more_params && more_args) {
+            // More arguments but all parameters have been bound
+            env = allocate_binding(ENC_SYM_REST_ARGS, current_args, env);
+            break;
+          } else if (!more_params && !more_args) {
+            // All parameters and arguments have been bound
+            break;
+          } else {
+            // More parameters to bind but no arguments left
+            lbm_set_error_reason(lbm_error_str_num_args);
+            ERROR_AT_CTX(ENC_SYM_EERROR, fun);
           }
+        }
 
-          ctx->curr_env = env;
-          ctx->curr_exp = cl1;
-          return;
-        } break;
-        case ENC_SYM_CONT:{
-          ctx->r = fun;
-          ctx->r = setup_cont(ctx, arg_list);
-          ctx->app_cont = true;
-          return;
-        } break;
-        case ENC_SYM_CONT_SP: {
-          ctx->r = fun;
-          ctx->r = setup_cont_sp(ctx, arg_list);
-          ctx->app_cont = true;
-          return;
-        } break;
-        case ENC_SYM_MACRO:{
-          ctx->r = fun;
-          setup_macro(ctx, arg_list, ctx->curr_env);
-          return;
-        } break;
-        default: {
-          lbm_set_error_reason(lbm_error_str_not_applicable);
-          ERROR_AT_CTX(ENC_SYM_EERROR, fun);
-        } break;
+        ctx->curr_env = env;
+        ctx->curr_exp = cl1;
+        return;
+      }
+      case ENC_SYM_CONT:
+        ctx->r = fun;
+        ctx->r = setup_cont(ctx, arg_list);
+        ctx->app_cont = true;
+        return;
+      case ENC_SYM_CONT_SP:
+        ctx->r = fun;
+        ctx->r = setup_cont_sp(ctx, arg_list);
+        ctx->app_cont = true;
+        return;
+      case ENC_SYM_MACRO:
+        ctx->r = fun;
+        setup_macro(ctx, arg_list, ctx->curr_env);
+        return;
+      default:
+        lbm_set_error_reason(lbm_error_str_not_applicable);
+        ERROR_AT_CTX(ENC_SYM_EERROR, fun);
       }
     } else {
       lbm_set_error_reason(lbm_error_str_not_applicable);
