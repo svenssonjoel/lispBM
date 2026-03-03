@@ -789,26 +789,6 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
 #define LOOP_COND  1
 #define LOOP_BODY  2
 
-static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg_count, eval_context_t *ctx) {
-  lbm_value res;
-#ifdef LBM_ALWAYS_GC
-  gc();
-#endif
-  res = fundamental_table[fundamental](args, arg_count);
-  if (lbm_is_error(res)) {
-    if (lbm_is_symbol_merror(res)) {
-      gc();
-      res = fundamental_table[fundamental](args, arg_count);
-    }
-    if (lbm_is_error(res)) {
-      ERROR_AT_CTX(res, lbm_enc_sym(FUNDAMENTAL_SYMBOLS_START | fundamental));
-    }
-  }
-  stack_drop(ctx, (unsigned int)arg_count+1);
-  ctx->app_cont = true;
-  ctx->r = res;
-}
-
 static void atomic_error(void) {
   is_atomic = false;
   lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
@@ -3483,6 +3463,29 @@ static const apply_fun fun_table[] =
    apply_apply,
   };
 
+
+/***************************************************/
+/*  fptr call with retry on GC                    */
+static void call_fptr(lbm_value (*fptr)(lbm_value *, lbm_uint), lbm_value *args, lbm_uint arg_count, eval_context_t *ctx) {
+  lbm_value res;
+#ifdef LBM_ALWAYS_GC
+  gc();
+#endif
+  res = fptr(&args[1], arg_count);
+  if (lbm_is_error(res)) {
+    if (lbm_is_symbol_merror(res)) {
+      gc();
+      res = fptr(&args[1], arg_count);
+    }
+    if (lbm_is_error(res)) {
+      ERROR_AT_CTX(res, args[0]);
+    }
+  }
+  stack_drop(ctx, (unsigned int)arg_count+1);
+  ctx->app_cont = true;
+  ctx->r = res;
+}
+
 /***************************************************/
 /* Application of function that takes arguments    */
 /* passed over the stack.                          */
@@ -3497,33 +3500,16 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
   lbm_uint fun_kind = SYMBOL_KIND(fun_val);
 
   switch (fun_kind) {
-  case SYMBOL_KIND_EXTENSION: {
-    extension_fptr f = extension_table[SYMBOL_IX(fun_val)].fptr;
-
-    lbm_value ext_res = f(&fun_args[1], arg_count);
-    if (lbm_is_error(ext_res)) {
-      if (lbm_is_symbol_merror(ext_res)) {
-        gc();
-        ext_res = f(&fun_args[1], arg_count);
-      }
-      if (lbm_is_error(ext_res)) { // Still an error, abort!
-        ERROR_AT_CTX(ext_res, fun);
-      }
-    }
-    stack_drop(ctx, (unsigned int) arg_count + 1);
-
-    ctx->app_cont = true;
-    ctx->r = ext_res;
-
+  case SYMBOL_KIND_EXTENSION:
+    call_fptr(extension_table[SYMBOL_IX(fun_val)].fptr, fun_args, arg_count, ctx);
     if (blocking_extension) {
+      blocking_extension = false;
       if (is_atomic) {
         // Check atomic_error explicitly so that the mutex
         // can be released if there is an error.
-        blocking_extension = false;
         lbm_mutex_unlock(&blocking_extension_mutex);
         atomic_error();
       }
-      blocking_extension = false;
       if (blocking_extension_timeout) {
         blocking_extension_timeout = false;
         block_current_ctx(LBM_THREAD_STATE_TIMEOUT, blocking_extension_timeout_us,true);
@@ -3532,9 +3518,9 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
       }
       lbm_mutex_unlock(&blocking_extension_mutex);
     }
-  }  break;
+    break;
   case SYMBOL_KIND_FUNDAMENTAL:
-    call_fundamental(SYMBOL_IX(fun_val), &fun_args[1], arg_count, ctx);
+    call_fptr(fundamental_table[SYMBOL_IX(fun_val)], fun_args, arg_count, ctx);
     break;
   case SYMBOL_KIND_APPFUN:
     fun_table[SYMBOL_IX(fun_val)](&fun_args[1], arg_count, ctx);
