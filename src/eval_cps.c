@@ -5710,9 +5710,11 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       } else { // lbm_is_symbol(fun)
         stack_reserve(ctx, 1)[0] = fun;
         unsigned int arg_count = 0;
-        for (lbm_value current = arg_list; lbm_is_cons(current); current = lbm_ref_cell(current)->cdr) {
-          stack_reserve(ctx, 1)[0] = lbm_ref_cell(current)->car;
+        for (lbm_value current = arg_list; lbm_is_cons(current);) {
+          lbm_cons_t *cell = lbm_ref_cell(current);
+          stack_reserve(ctx, 1)[0] = cell->car;
           arg_count++;
+          current = cell->cdr;
         }
         lbm_value *fun_and_args = get_stack_ptr(ctx, arg_count + 1);
         application(ctx, fun_and_args, arg_count);
@@ -5736,39 +5738,18 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
         lbm_value current_params = cl0;
         lbm_value current_args = arg_list;
-
-        while (true) {
-          bool more_params = lbm_is_cons(current_params);
-          bool more_args = lbm_is_cons(current_args);
-          if (more_params && more_args) {
-            lbm_cons_t *p_cell = lbm_ref_cell(current_params);
-            lbm_cons_t *a_cell = lbm_ref_cell(current_args);
-            lbm_value car_params = p_cell->car;
-            lbm_value car_args = a_cell->car;
-            lbm_value cdr_params = p_cell->cdr;
-            lbm_value cdr_args = a_cell->cdr;
-
-            // More parameters to bind
-            env = allocate_binding(
-                                   car_params,
-                                   car_args,
-                                   env
-                                   );
-
-            current_params = cdr_params;
-            current_args = cdr_args;
-          } else if (!more_params && more_args) {
-            // More arguments but all parameters have been bound
-            env = allocate_binding(ENC_SYM_REST_ARGS, current_args, env);
-            break;
-          } else if (!more_params && !more_args) {
-            // All parameters and arguments have been bound
-            break;
-          } else {
-            // More parameters to bind but no arguments left
-            lbm_set_error_reason(lbm_error_str_num_args);
-            ERROR_AT_CTX(ENC_SYM_EERROR, fun);
-          }
+        while (lbm_is_cons(current_params) && lbm_is_cons(current_args)) {
+          lbm_cons_t *p_cell = lbm_ref_cell(current_params);
+          lbm_cons_t *a_cell = lbm_ref_cell(current_args);
+          env = allocate_binding(p_cell->car, a_cell->car, env);
+          current_params = p_cell->cdr;
+          current_args = a_cell->cdr;
+        }
+        if (lbm_is_cons(current_args)) {
+          env = allocate_binding(ENC_SYM_REST_ARGS, current_args, env);
+        } else if (lbm_is_cons(current_params)) {
+          lbm_set_error_reason(lbm_error_str_num_args);
+          ERROR_AT_CTX(ENC_SYM_EERROR, fun);
         }
 
         ctx->curr_env = env;
