@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LispBM WASM REPL</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 12px;
+      gap: 8px;
+    }
+    h1 { font-size: 16px; color: #569cd6; }
+    #main {
+      display: flex;
+      flex: 1;
+      gap: 8px;
+      min-height: 0;
+    }
+    #output {
+      flex: 1;
+      background: #111;
+      border: 1px solid #333;
+      padding: 10px;
+      overflow-y: auto;
+      white-space: pre;
+      min-width: 0;
+    }
+    #editor-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    #editor {
+      flex: 1;
+      background: #1e1e2e;
+      color: #d4d4d4;
+      border: 1px solid #444;
+      padding: 10px;
+      font-family: inherit;
+      font-size: inherit;
+      resize: none;
+      outline: none;
+      tab-size: 2;
+    }
+    #editor:focus { border-color: #569cd6; }
+    #btn-load {
+      align-self: flex-end;
+      background: #0e639c;
+      color: #fff;
+      border: none;
+      padding: 4px 16px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    #btn-load:disabled { background: #333; color: #666; cursor: default; }
+    #btn-load:hover:not(:disabled) { background: #1177bb; }
+    #input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    #prompt { color: #569cd6; }
+    #input {
+      flex: 1;
+      background: #2d2d2d;
+      color: #d4d4d4;
+      border: 1px solid #444;
+      padding: 4px 8px;
+      font-family: inherit;
+      font-size: inherit;
+      outline: none;
+    }
+    #input:focus { border-color: #569cd6; }
+    button {
+      background: #0e639c;
+      color: #fff;
+      border: none;
+      padding: 4px 16px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    button:disabled { background: #333; color: #666; cursor: default; }
+    button:hover:not(:disabled) { background: #1177bb; }
+    #status { font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>LispBM WebAssembly REPL</h1>
+  <div id="main">
+    <div id="output"></div>
+    <div id="editor-panel">
+      <textarea id="editor" placeholder="Enter LispBM code here..." spellcheck="false" disabled></textarea>
+      <button id="btn-load" disabled>Load</button>
+    </div>
+  </div>
+  <div id="input-row">
+    <span id="prompt">#</span>
+    <input id="input" type="text" placeholder="Enter expression..." autocomplete="off" disabled>
+    <button id="btn-eval" disabled>Eval</button>
+  </div>
+  <div id="status">Loading...</div>
+
+  <script src="lispbm.js"></script>
+  <script>
+    LispBM().then(lbm => {
+      const output  = document.getElementById('output');
+      const input   = document.getElementById('input');
+      const editor  = document.getElementById('editor');
+      const btnEval = document.getElementById('btn-eval');
+      const btnLoad = document.getElementById('btn-load');
+      const status  = document.getElementById('status');
+
+      function appendOutput(text) {
+        output.textContent += text;
+        output.scrollTop = output.scrollHeight;
+      }
+
+      function pollOutput() {
+        const text = lbm.ccall('lbm_wasm_get_output', 'string', [], []);
+        if (text && text.length > 0) {
+          appendOutput(text);
+          lbm.ccall('lbm_wasm_clear_output', null, [], []);
+        }
+      }
+
+      console.log('calling lbm_wasm_init...');
+      const ok = lbm.ccall('lbm_wasm_init', 'number', [], []);
+      console.log('lbm_wasm_init returned:', ok);
+      if (!ok) {
+        appendOutput('Failed to initialise LispBM.\n');
+        status.textContent = 'Init failed';
+        return;
+      }
+
+      input.disabled   = false;
+      btnEval.disabled = false;
+      editor.disabled  = false;
+      btnLoad.disabled = false;
+      input.focus();
+      status.textContent = 'Ready';
+
+      const STEPS_PER_FRAME = 50;
+      function loop() {
+        try {
+          lbm.ccall('lbm_wasm_run', null, ['number'], [STEPS_PER_FRAME]);
+        } catch(e) {
+          appendOutput('CRASH in step: ' + e + '\n');
+          status.textContent = 'Crashed';
+          return;
+        }
+        try {
+          pollOutput();
+        } catch(e) {
+          appendOutput('CRASH in pollOutput: ' + e + '\n');
+          status.textContent = 'Crashed';
+          return;
+        }
+          // Reschedules itself for each animation frame.
+          // LispBM evaluation speed is tied to screen update frequency here.
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+
+      function evalExpr() {
+        const code = input.value.trim();
+        if (!code) return;
+        appendOutput('# ' + code + '\n');
+        lbm.ccall('lbm_wasm_eval', null, ['string'], [code]);
+        input.value = '';
+      }
+
+      function loadEditor() {
+        const code = editor.value.trim();
+        if (!code) return;
+        appendOutput('-- load --\n');
+        lbm.ccall('lbm_wasm_eval_program', null, ['string'], [code]);
+      }
+
+      btnEval.addEventListener('click', evalExpr);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') evalExpr();
+      });
+
+      btnLoad.addEventListener('click', loadEditor);
+
+      /* Tab inserts spaces in the editor instead of moving focus. */
+      editor.addEventListener('keydown', e => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const s = editor.selectionStart;
+          editor.value = editor.value.slice(0, s) + '  ' + editor.value.slice(editor.selectionEnd);
+          editor.selectionStart = editor.selectionEnd = s + 2;
+        }
+      });
+
+    }).catch(err => {
+      document.getElementById('status').textContent = 'Error: ' + err;
+    });
+  </script>
+</body>
+</html>
