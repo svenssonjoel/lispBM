@@ -30,6 +30,7 @@
 #include "extensions/runtime_extensions.h"
 #include "extensions/random_extensions.h"
 #include "extensions/set_extensions.h"
+#include "extensions/lbm_dyn_lib.h"
 
 #define HEAP_SIZE              (1 << 14)
 #define GC_STACK_SIZE          256
@@ -121,6 +122,10 @@ static void critical_callback(void) {
    Extensions
    ---------------------------------------------------------- */
 
+static bool dynamic_loader(const char *sym, const char **code) {
+  return lbm_dyn_lib_find(sym, code);
+}
+
 static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   char buf[256];
   for (lbm_uint i = 0; i < argn; i++) {
@@ -163,6 +168,7 @@ int lbm_wasm_init(void) {
   lbm_set_critical_error_callback(critical_callback);
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_usleep_callback(sleep_callback);
+  lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(print_callback);
 
   /* Image storage must be initialised before any symbol additions. */
@@ -180,6 +186,7 @@ int lbm_wasm_init(void) {
   lbm_runtime_extensions_init();
   lbm_random_extensions_init();
   lbm_set_extensions_init();
+  lbm_dyn_lib_init();
   lbm_add_eval_symbols();
   lbm_add_extension("print", ext_print);
 

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>LispBM WASM REPL</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -39,19 +41,15 @@
       gap: 4px;
       min-width: 0;
     }
-    #editor {
+    /* Make CodeMirror fill the available space */
+    .CodeMirror {
       flex: 1;
-      background: #1e1e2e;
-      color: #d4d4d4;
+      height: 100%;
+      font-family: "Courier New", monospace;
+      font-size: 14px;
       border: 1px solid #444;
-      padding: 10px;
-      font-family: inherit;
-      font-size: inherit;
-      resize: none;
-      outline: none;
-      tab-size: 2;
     }
-    #editor:focus { border-color: #569cd6; }
+    .CodeMirror-focused { border-color: #569cd6; }
     #btn-load {
       align-self: flex-end;
       background: #0e639c;
@@ -94,11 +92,11 @@
   </style>
 </head>
 <body>
-  <h1>LispBM WebAssembly REPL</h1>
+  <h1>LispBM WebAssembly REPL &mdash; <a href="https://www.lispbm.com" style="color:#569cd6;font-size:12px;">lispbm.com</a></h1>
   <div id="main">
     <div id="output"></div>
     <div id="editor-panel">
-      <textarea id="editor" placeholder="Enter LispBM code here..." spellcheck="false" disabled></textarea>
+      <textarea id="editor" placeholder="Enter LispBM code here..."></textarea>
       <button id="btn-load" disabled>Load</button>
     </div>
   </div>
@@ -109,12 +107,31 @@
   </div>
   <div id="status">Loading...</div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/scheme/scheme.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
   <script src="lispbm.js"></script>
   <script>
+    const cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
+      mode: 'scheme',
+      theme: 'dracula',
+      lineNumbers: true,
+      matchBrackets: true,
+      autoCloseBrackets: true,
+      indentUnit: 2,
+      tabSize: 2,
+      indentWithTabs: false,
+      extraKeys: {
+        'Tab': cm => cm.execCommand('indentMore'),
+        'Shift-Tab': cm => cm.execCommand('indentLess'),
+      }
+    });
+    cm.setSize('100%', '100%');
+
     LispBM().then(lbm => {
       const output  = document.getElementById('output');
       const input   = document.getElementById('input');
-      const editor  = document.getElementById('editor');
       const btnEval = document.getElementById('btn-eval');
       const btnLoad = document.getElementById('btn-load');
       const status  = document.getElementById('status');
@@ -141,10 +158,10 @@
         return;
       }
 
-      input.disabled   = false;
       btnEval.disabled = false;
-      editor.disabled  = false;
       btnLoad.disabled = false;
+      cm.setOption('readOnly', false);
+      input.disabled = false;
       input.focus();
       status.textContent = 'Ready';
 
@@ -164,8 +181,8 @@
           status.textContent = 'Crashed';
           return;
         }
-          // Reschedules itself for each animation frame.
-          // LispBM evaluation speed is tied to screen update frequency here.
+        // Reschedules itself for each animation frame.
+        // LispBM evaluation speed is tied to screen update frequency here.
         requestAnimationFrame(loop);
       }
       requestAnimationFrame(loop);
@@ -179,7 +196,7 @@
       }
 
       function loadEditor() {
-        const code = editor.value.trim();
+        const code = cm.getValue().trim();
         if (!code) return;
         appendOutput('-- load --\n');
         lbm.ccall('lbm_wasm_eval_program', null, ['string'], [code]);
@@ -191,16 +208,6 @@
       });
 
       btnLoad.addEventListener('click', loadEditor);
-
-      /* Tab inserts spaces in the editor instead of moving focus. */
-      editor.addEventListener('keydown', e => {
-        if (e.key === 'Tab') {
-          e.preventDefault();
-          const s = editor.selectionStart;
-          editor.value = editor.value.slice(0, s) + '  ' + editor.value.slice(editor.selectionEnd);
-          editor.selectionStart = editor.selectionEnd = s + 2;
-        }
-      });
 
     }).catch(err => {
       document.getElementById('status').textContent = 'Error: ' + err;

@@ -5907,6 +5907,44 @@ void lbm_add_eval_symbols(void) {
   symbol_y = lbm_enc_sym(y);
 }
 
+
+
+#ifdef LBM_SINGLE_THREADED
+void lbm_eval_step(void) {
+  if (setjmp(critical_error_jmp_buf) > 0) {
+    lbm_printf_callback("GC stack overflow!\n");
+    critical_error_callback();
+    eval_running = false;
+    return;
+  }
+  if (setjmp(error_jmp_buf) > 0) { return; }
+
+  if (ctx_running) {
+    evaluation_step();
+  } else {
+    if (gc_requested) gc();
+    process_events();
+    lbm_mutex_lock(&qmutex);
+    wake_up_ctxs_nm();
+    ctx_running = dequeue_ctx_nm(&queue);
+    lbm_mutex_unlock(&qmutex);
+  }
+}
+
+bool lbm_eval_init(void) {
+  blocked.first = NULL;
+  blocked.last = NULL;
+  queue.first = NULL;
+  queue.last = NULL;
+  ctx_running = NULL;
+
+  if (!lbm_init_env()) return false;
+
+  return true;
+}
+
+#else
+
 /* eval_cps_run can be paused
    I think it would be better use a mailbox for
    communication between other threads and the run_eval
@@ -6074,6 +6112,8 @@ bool lbm_eval_init(void) {
   eval_running = true;
   return true;
 }
+
+#endif
 
 bool lbm_eval_init_events(unsigned int num_events) {
 

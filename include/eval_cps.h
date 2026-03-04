@@ -219,10 +219,16 @@ bool lbm_event_queue_is_empty(void);
  */
 int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v);
 
+#ifdef LBM_SINGLE_THREADED
+/** step function for integration of evaluator in a single thread application.
+ */
+void lbm_eval_step(void);
+#else
 /** This function executes the evaluation loop and does not return.
  *  lbm_run_eval should be started in a new thread provided by the underlying HAL or OS.
  */
 void lbm_run_eval(void);
+#endif
 /** Indicate that the evaluator should reset at the next opportunity.
  * You cannot assume that the evaluator has entered reset state unless you call lbm_get_eval_state and get the
  * return value EVAL_CPS_STATE_RESET.

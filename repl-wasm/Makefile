@@ -8,7 +8,12 @@ CFLAGS = -O2 \
          -I$(LISPBM)/src \
          -I$(LISPBM)/platform/wasm/include
 
-LBMFLAGS = -DLBM_SINGLE_THREADED
+LBMFLAGS = -DLBM_SINGLE_THREADED \
+           -DLBM_USE_DYN_MACROS \
+	   -DLBM_USE_DYN_FUNS \
+           -DLBM_USE_DYN_ARRAYS \
+           -DLBM_USE_DYN_LOOPS \
+           -DLBM_USE_DYN_DEFSTRUCT
 
 EMFLAGS = \
   -s SUPPORT_LONGJMP=emscripten \
@@ -46,6 +51,7 @@ LISPBM_SRC = \
   $(LISPBM)/src/extensions/runtime_extensions.c \
   $(LISPBM)/src/extensions/random_extensions.c \
   $(LISPBM)/src/extensions/set_extensions.c \
+  $(LISPBM)/src/extensions/lbm_dyn_lib.c \
   $(LISPBM)/platform/wasm/src/platform_timestamp.c
 
 SRC = repl.c
@@ -61,3 +67,8 @@ clean:
 # WASM requires HTTP - cannot be opened as file://
 serve:
 	python3 -m http.server 8080
+
+publish:
+	cp index.html ../../lispbm.com/repl-wasm
+	cp lispbm.js  ../../lispbm.com/repl-wasm
+	cp lispbm.wasm ../../lispbm.com/repl-wasm
