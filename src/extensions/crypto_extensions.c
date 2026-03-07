@@ -22,6 +22,8 @@
 
 /* ************************************************************
  * SHA256 hash
+ * As explained in FIPS PUB 180-4 but with an incremental
+ * padder instead of a padding preprocessing step.
  * ************************************************************/
 static inline uint32_t rotr(uint32_t x, uint32_t n) {
   return (x >> n) | (x << (32 - n));
@@ -77,8 +79,6 @@ static const uint32_t h256[8] = {
 
 
 static uint32_t read_m(uint8_t *bytes, uint32_t n, uint32_t block, uint32_t word) {
-
-
   // This does the M^(i)_t accesses on the fly by assembling a
   // big endian uint32_t from elements of the array.
   //
