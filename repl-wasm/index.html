@@ -173,10 +173,12 @@
       input.focus();
       status.textContent = 'Ready';
 
-      const STEPS_PER_FRAME = 50;
       function loop() {
+        const deadline = performance.now() + 8;
         try {
-          lbm.ccall('lbm_wasm_run', null, ['number'], [STEPS_PER_FRAME]);
+          while (performance.now() < deadline) {
+            lbm.ccall('lbm_wasm_run', null, ['number'], [100]);
+          }
         } catch(e) {
           appendOutput('CRASH in step: ' + e + '\n');
           status.textContent = 'Crashed';
@@ -189,11 +191,9 @@
           status.textContent = 'Crashed';
           return;
         }
-        // Reschedules itself for each animation frame.
-        // LispBM evaluation speed is tied to screen update frequency here.
-        requestAnimationFrame(loop);
+        setTimeout(loop, 0);
       }
-      requestAnimationFrame(loop);
+      setTimeout(loop, 0);
 
       function evalExpr() {
         const code = input.value.trim();
