@@ -3,7 +3,7 @@
 
 LBM=lbm
 
-all: lbmref.md displayref.md runtimeref.md dynref.md ttfref.md mathref.md stringref.md arrayref.md dspref.md mutexref.md randomref.md setref.md
+all: lbmref.md displayref.md runtimeref.md dynref.md ttfref.md mathref.md stringref.md arrayref.md dspref.md mutexref.md randomref.md setref.md cryptref.md
 
 doclib.env: doclib.lisp
 	$(LBM) -H 100000 -M 512000 --src="doclib.lisp" --store_env=doclib.env --terminate
@@ -44,6 +44,9 @@ randomref.md: doclib.env randomref.lisp
 setref.md: doclib.env setref.lisp
 	$(LBM) -H 100000 -M 512000 --src="setref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
+cryptref.md: doclib.env cryptref.lisp
+	$(LBM) -H 100000 -M 512000 --src="cryptref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+
 clean:
 	rm -f doclib.env
 	rm -f displayref.md
@@ -57,3 +60,4 @@ clean:
 	rm -f mutexref.md
 	rm -f randomref.md
 	rm -f setref.md
+	rm -f cryptref.md

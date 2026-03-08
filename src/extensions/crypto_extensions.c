@@ -207,24 +207,6 @@ static lbm_value ext_sha256(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-static lbm_value ext_bytes_to_hex(lbm_value *args, lbm_uint argn) {
-  lbm_value res = ENC_SYM_TERROR;
-  if (argn == 1 && lbm_is_array_r(args[0])) {
-    lbm_array_header_t *in_arr = (lbm_array_header_t*)lbm_car(args[0]);
-    lbm_uint hex_len = in_arr->size * 2 + 1;
-    if (lbm_create_array(&res, hex_len)) {
-      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-      uint8_t *in = (uint8_t*)in_arr->data;
-      char *out = (char*)arr->data;
-      for (lbm_uint i = 0; i < in_arr->size; i++) {
-        snprintf(out + i * 2, 3, "%02x", in[i]);
-      }
-      out[hex_len - 1] = '\0';
-    }
-  }
-  return res;
-}
-
 /* ************************************************************
  * AES 128 - 256
  *
@@ -603,14 +585,66 @@ static lbm_value ext_aes256_dec(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+/* ************************************************************
+ * Utilities 
+ * ************************************************************/
+
+static lbm_value ext_bytes_to_hex(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 && lbm_is_array_r(args[0])) {
+    lbm_array_header_t *in_arr = (lbm_array_header_t*)lbm_car(args[0]);
+    lbm_uint hex_len = in_arr->size * 2 + 1;
+    if (lbm_create_array(&res, hex_len)) {
+      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
+      uint8_t *in = (uint8_t*)in_arr->data;
+      char *out = (char*)arr->data;
+      for (lbm_uint i = 0; i < in_arr->size; i++) {
+        snprintf(out + i * 2, 3, "%02x", in[i]);
+      }
+      out[hex_len - 1] = '\0';
+    }
+  }
+  return res;
+}
+
+static lbm_value ext_hex_to_bytes(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 && lbm_is_array_r(args[0])) {
+    lbm_array_header_t *in_arr = (lbm_array_header_t*)lbm_car(args[0]);
+    res = ENC_SYM_EERROR;
+    if (in_arr->size%2 == 1) { // must be a power of 2 when excluding the terminating 0
+      lbm_uint bytes_len = (in_arr->size - 1) / 2;
+      if (lbm_create_array(&res, bytes_len)) {
+        lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
+        uint8_t *in = (uint8_t*)in_arr->data;
+        uint8_t *out = (uint8_t*)arr->data;
+        for (lbm_uint j = 0; j < bytes_len; j++) {
+          lbm_uint i = j * 2;
+          uint8_t byte_val = 0;
+          if (in[i] >= '0' && in[i] <= '9') byte_val += (uint8_t)(16 * (in[i] - '0'));
+          else if (in[i] >= 'a' &&  in [i] <= 'f') byte_val += (uint8_t)(16 * (10 + in[i] - 'a'));
+          else if (in[i] >= 'A' &&  in [i] <= 'F') byte_val += (uint8_t)(16 * (10 + in[i] - 'A'));
+          if (in[i+1] >= '0' && in[i+1] <= '9') byte_val += (uint8_t)(in[i+1] - '0');
+          else if (in[i+1] >= 'a' &&  in [i+1] <= 'f') byte_val += (uint8_t)(10 + in[i+1] - 'a');
+          else if (in[i+1] >= 'A' &&  in [i+1] <= 'F') byte_val += (uint8_t)(10 + in[i+1] - 'A');
+          out[j] = byte_val;
+        }
+      }
+    }
+  }
+  return res;
+}
+
 void lbm_crypto_extensions_init(void) {
   lbm_add_extension("sha256-str", ext_sha256_str);
   lbm_add_extension("sha256", ext_sha256);
-  lbm_add_extension("bytes-to-hex", ext_bytes_to_hex);
 
   // aes on blocks of 16bytes using 16 or 32 byte keys.
   lbm_add_extension("aes128-enc", ext_aes128_enc);
   lbm_add_extension("aes128-dec", ext_aes128_dec);
   lbm_add_extension("aes256-enc", ext_aes256_enc);
   lbm_add_extension("aes256-dec", ext_aes256_dec);
+
+  lbm_add_extension("bytes-to-hex", ext_bytes_to_hex);
+  lbm_add_extension("hex-to-bytes", ext_hex_to_bytes);
 }
