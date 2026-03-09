@@ -31,6 +31,7 @@
 #include "extensions/random_extensions.h"
 #include "extensions/set_extensions.h"
 #include "extensions/lbm_dyn_lib.h"
+#include "extensions/crypto_extensions.h"
 
 #define HEAP_SIZE              (1 << 14)
 #define GC_STACK_SIZE          256
@@ -187,6 +188,8 @@ int lbm_wasm_init(void) {
   lbm_random_extensions_init();
   lbm_set_extensions_init();
   lbm_dyn_lib_init();
+  lbm_crypto_extensions_init();
+
   lbm_add_eval_symbols();
   lbm_add_extension("print", ext_print);
 

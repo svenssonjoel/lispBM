@@ -52,6 +52,7 @@ LISPBM_SRC = \
   $(LISPBM)/src/extensions/random_extensions.c \
   $(LISPBM)/src/extensions/set_extensions.c \
   $(LISPBM)/src/extensions/lbm_dyn_lib.c \
+  $(LISPBM)/src/extensions/crypto_extensions.c \
   $(LISPBM)/platform/wasm/src/platform_timestamp.c
 
 SRC = repl.c
