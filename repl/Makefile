@@ -47,6 +47,7 @@ REPL_SRC= $(LISPBM_SRC)\
           ../utils/packet.c \
           vesc_express_extension_stubs.c \
 	  lbm_gnuplot.c \
+          lbm_octave.c \
           bldc_extension_stubs.c
 
 ## Dropped usage of pkg-config as it felt like more trouble than benefit.

@@ -84,6 +84,7 @@
 
 #ifndef LBM_WIN
 #include "lbm_gnuplot.h"
+#include "lbm_octave.h"
 #endif
 
 #include "platform_mutex.h"
@@ -1059,6 +1060,7 @@ int init_repl(void) {
 
 #ifndef LBM_WIN
   lbm_gnuplot_init();
+  lbm_octave_init();
 #endif
 
 /* Load clean_cl library into heap */
