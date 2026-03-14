@@ -39,7 +39,7 @@ lbm_value ext_octave_open(lbm_value *args, lbm_uint argn) {
     }
   }
 
-  if (ix > 0) {
+  if (ix >= 0) {
     FILE *o = popen("octave-cli --silent --no-init-file", "w");
     if (o) {
       octave_instances[ix] = o;

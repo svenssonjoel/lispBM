@@ -69,7 +69,7 @@
          
    ( (signal-sin (? f) (? p) (? a)) (* a (sin (+ (* f two-pi sig-t) p))))
    ( (signal-cos (? f) (? p) (? a)) (* a (cos (+ (* f two-pi sig-t) p))))
-   ( (signal-noise (? a)) (* a (/ (to-float (random)) (rand-max))))
+   ( (signal-noise (? a)) (* a (- (* 2.0 (/ (to-float (random)) (to-float (rand-max)))) 1.0)))
    ( (signal-const (? v)) v)
    ((signal-sum (? s1) (? s2)) (+ (eval-signal s1 sig-t) (eval-signal s2 sig-t)))
    ((signal-prod (? s1) (? s2)) (* (eval-signal s1 sig-t) (eval-signal s2 sig-t)))
@@ -115,6 +115,17 @@
                              }))
                   )
        })
+
+(defun octave-run-file (script-file)
+  (unsafe-call-system (str-join (list "xterm -e 'octave-cli --persist " script-file "' &"))))
+
+(defun octave-interactive (commands script-file) {
+  (with-file script-file "w"
+    (lambda (fh)
+      (loopfor i 0 (< i (length commands)) (+ i 1)
+        (fwrite-str fh (str-join (list (ix commands i) "\n"))))))
+  (octave-run-file script-file)
+  })
 
 (defun plot-signal (infile outfile title)
   {
