@@ -33,7 +33,8 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/ttf_backend.c \
              $(LISPBM)/src/extensions/schrift.c \
 	     $(LISPBM)/src/extensions/dsp_extensions.c \
-             $(LISPBM)/src/extensions/crypto_extensions.c
+             $(LISPBM)/src/extensions/crypto_extensions.c \
+             $(LISPBM)/src/extensions/ecc_extensions.c
 
 LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/eval_cps.h \
@@ -69,7 +70,10 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions/runtime_extensions.h \
            $(LISPBM)/include/extensions/set_extensions.h \
            $(LISPBM)/include/extensions/string_extensions.h \
-           $(LISPBM)/include/extensions/ttf_extensions.h
+           $(LISPBM)/include/extensions/ttf_extensions.h \
+           $(LISPBM)/include/extensions/crypto_extensions.h \
+           $(LISPBM)/include/extensions/ecc_extensions.h
+
 
 
 LISPBM_INC = -I$(LISPBM)/include \
