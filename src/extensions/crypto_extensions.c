@@ -187,8 +187,9 @@ static lbm_value ext_sha256_str(lbm_value *args, lbm_uint argn) {
   if (argn == 1 && lbm_is_array_r(args[0])) { 
     if(lbm_create_array(&res, 32)) {
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-      char *str = lbm_dec_str(args[0]);
-      uint32_t n = strlen_max(str, arr->size);
+      lbm_array_header_t *in_arr = (lbm_array_header_t*)lbm_car(args[0]);
+      char *str = (char*)in_arr->data;
+      uint32_t n = strlen_max(str, in_arr->size);
       incremental_sha256((uint8_t*)arr->data, (uint8_t*)str, n);
     }
   }

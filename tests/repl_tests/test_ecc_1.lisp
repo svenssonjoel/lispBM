@@ -2,8 +2,9 @@
 (hide-trapped-error)
 
 (defun check (got expected i)
-  (if (not (eq got expected))
-      (print "FAIL " i ": got " got " expected " expected)))
+  (if (eq got expected)
+      t
+    (progn (print "FAIL " i ": got " got " expected " expected) nil)))
 
 
 ; --- helpers ---
