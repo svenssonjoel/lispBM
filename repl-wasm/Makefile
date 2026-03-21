@@ -6,6 +6,7 @@ CFLAGS = -O2 \
          -I$(LISPBM)/include \
          -I$(LISPBM)/include/extensions \
          -I$(LISPBM)/src \
+         -I$(LISPBM)/utils \
          -I$(LISPBM)/platform/wasm/include
 
 LBMFLAGS = -DLBM_SINGLE_THREADED \
@@ -44,7 +45,7 @@ LISPBM_SRC = \
   $(LISPBM)/src/lbm_prof.c \
   $(LISPBM)/src/lbm_defrag_mem.c \
   $(LISPBM)/src/lbm_image.c \
-  $(LISPBM)/src/buffer.c \
+  $(LISPBM)/utils/buffer.c \
   $(LISPBM)/src/extensions/array_extensions.c \
   $(LISPBM)/src/extensions/string_extensions.c \
   $(LISPBM)/src/extensions/math_extensions.c \
