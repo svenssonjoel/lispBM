@@ -5910,10 +5910,6 @@ void lbm_add_eval_symbols(void) {
 
 
 #ifdef LBM_SINGLE_THREADED
-void lbm_process_events(void) {
-  process_events();
-}
-
 void lbm_eval_step(void) {
   if (setjmp(critical_error_jmp_buf) > 0) {
     lbm_printf_callback("GC stack overflow!\n");
