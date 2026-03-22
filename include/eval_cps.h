@@ -223,6 +223,11 @@ int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v);
 /** step function for integration of evaluator in a single thread application.
  */
 void lbm_eval_step(void);
+/** Explicitly pump the event queue in single-threaded mode.
+ *  Call this after lbm_event() to dispatch queued events to the handler
+ *  without waiting for the next lbm_eval_step() idle cycle.
+ */
+void lbm_process_events(void);
 #else
 /** This function executes the evaluation loop and does not return.
  *  lbm_run_eval should be started in a new thread provided by the underlying HAL or OS.
