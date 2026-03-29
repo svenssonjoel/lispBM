@@ -96,6 +96,7 @@ bool lbm_lookup_extension_id(char *sym_str, lbm_uint *ix) {
   return false;
 }
 
+// This should be const char *
 bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   lbm_value symbol;
 

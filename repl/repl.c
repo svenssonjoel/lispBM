@@ -247,8 +247,6 @@ static char *image_input_file = NULL;
 static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
 static uint32_t *image_storage = NULL;
 
-static size_t constants_memory_size = 4096;  // size words
-
 // ////////////////////////////////////////////////////////////
 // LBM
 #define GC_STACK_SIZE 256
@@ -272,8 +270,6 @@ static volatile bool silent_mode = false;
 
 static size_t lbm_memory_size = LBM_MEMORY_SIZE_10K;
 static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
-
-static lbm_uint *constants_memory = NULL;
 
 static lbm_uint *memory=NULL;
 static lbm_uint *bitmap=NULL;
@@ -364,17 +360,6 @@ void terminate_repl(int exit_code) {
     heap_storage = NULL;
   }
   exit(exit_code);
-}
-
-bool const_heap_write(lbm_uint ix, lbm_uint w) {
-  if (ix >= constants_memory_size) return false;
-  if (constants_memory[ix] == 0xffffffff) {
-    constants_memory[ix] = w;
-    return true;
-  } else if (constants_memory[ix] == w) {
-    return true;
-  }
-  return false;
 }
 
 bool image_write(uint32_t w, int32_t ix, bool is_const_heap) { // ix >= 0 and ix <= image_size
@@ -740,7 +725,7 @@ void parse_opts(int argc, char **argv) {
       heap_size = (unsigned int)atoi((char*)optarg);
       break;
     case 'C':
-      constants_memory_size = (size_t)atoi((char*)optarg);
+      printf("Constant memory a dynamically growing part of the image\n");
       break;
     case 'M': {
       uint32_t sizebytes = (uint32_t)atoi((char*)optarg);
@@ -1682,16 +1667,6 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
       }
     }
   }
-
-  /* if (code_data == 0) { */
-  /*   code_data = (char*)flash_helper_code_data_raw(CODE_IND_LISP); */
-  /* } */
-
-  /* const_heap_max_ind = 0; */
-  /* const_heap_ptr = (lbm_uint*)(code_data + code_len + 16); */
-  /* const_heap_ptr = (lbm_uint*)((uint32_t)const_heap_ptr & 0xFFFFFFF4); */
-  /* uint32_t const_heap_len = ((uint32_t)code_data + flash_helper_code_size_raw(CODE_IND_LISP)) - (uint32_t)const_heap_ptr; */
-  /* lbm_const_heap_init(const_heap_write, &const_heap, (lbm_uint*)const_heap_ptr, const_heap_len); */
 
   code_data = (char*)vescif_program_flash+8;
 
