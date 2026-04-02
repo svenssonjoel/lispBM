@@ -35,20 +35,6 @@
 #include "extensions/dsp_extensions.h"
 #include "extensions/ecc_extensions.h"
 
-// ------------------------------------------------------------
-// TODO:
-//   - Remove the BUF_SLOTS and dynamically allocate these wasm buffers
-//     Handle the lifetime of them using custom types.
-
-#define WASM_BUF_SLOTS         8
-
-typedef struct {
-  uint8_t *data;
-  int      size; /* bytes */
-} wasm_buf_t;
-
-static wasm_buf_t wasm_bufs[WASM_BUF_SLOTS];
-
 #define HEAP_SIZE              (1 << 14)
 #define GC_STACK_SIZE          256
 #define PRINT_STACK_SIZE       256
@@ -157,17 +143,23 @@ static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
-EM_JS(void, js_plot_slot, (int slot, int nbytes, const char *title), {
-  if (typeof window.createPlotTab === 'function') {
-    window.createPlotTab(slot, nbytes, UTF8ToString(title));
+/* EM_JS(void, js_plot_slot, (int slot, int nbytes, const char *title), { */
+/*   if (typeof window.createPlotTab === 'function') { */
+/*     window.createPlotTab(slot, nbytes, UTF8ToString(title)); */
+/*   } */
+/* }); */
+
+EM_JS(void, js_plot_bufs, (const char *bufs_json, const char *title), {
+  if (typeof window.createMultiPlotTab === 'function') {
+    window.createMultiPlotTab(UTF8ToString(bufs_json), UTF8ToString(title));
   }
 });
 
-EM_JS(void, js_plot_slots, (const char *slots_json, const char *title), {
-  if (typeof window.createMultiPlotTab === 'function') {
-    window.createMultiPlotTab(UTF8ToString(slots_json), UTF8ToString(title));
-  }
-});
+EM_JS(void, js_plot_buf, (uint8_t *buffer, int nbytes, const char *title), {
+    if (typeof window.createPlotTab === 'function') {
+      window.createPlotTab(buffer, nbytes, UTF8ToString(title));
+    }
+  });
 
 
 // Javascript function callable from C.
@@ -192,45 +184,27 @@ EM_JS(char*, js_import_lib, (const char *filename), {
   return buf;
 });
 
-// (wasm-buf-write slot array)
-// copy LispBM byte array into slot
-static lbm_value ext_wasm_buf_write(lbm_value *args, lbm_uint argn) {
-  if (argn != 2) return ENC_SYM_TERROR;
-  if (!lbm_is_number(args[0])) return ENC_SYM_TERROR;
-  if (!lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
-  int slot = (int)lbm_dec_as_i32(args[0]);
-  if (slot < 0 || slot >= WASM_BUF_SLOTS) return ENC_SYM_TERROR;
-  lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(args[1]);
-  int size = (int)hdr->size;
-  if (wasm_bufs[slot].data) {
-    free(wasm_bufs[slot].data);
-    wasm_bufs[slot].data = NULL;
-  }
-  uint8_t *buf = (uint8_t*)malloc((unsigned int)size);
-  if (!buf) return ENC_SYM_MERROR;
-  memcpy(buf, hdr->data, (unsigned int)size);
-  wasm_bufs[slot].data = buf;
-  wasm_bufs[slot].size = size;
-  return ENC_SYM_TRUE;
-}
 
-// (wasm-plot slot "Title")
-// signal JS to create a plot tab for this slot
+// (wasm-plot buf "Title")
+// 
 static lbm_value ext_wasm_plot(lbm_value *args, lbm_uint argn) {
-  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
-  int slot = (int)lbm_dec_as_i32(args[0]);
-  if (slot < 0 || slot >= WASM_BUF_SLOTS) return ENC_SYM_TERROR;
-  const char *title = "";
-  if (argn >= 2 && lbm_is_array_r(args[1])) {
-    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(args[1]);
-    title = (const char*)hdr->data;
-  }
-  js_plot_slot(slot, wasm_bufs[slot].size, title);
-  return ENC_SYM_TRUE;
+  lbm_value res = ENC_SYM_TERROR;
+
+  if (argn == 2 &&
+      lbm_is_array_r(args[0]) &&
+      lbm_is_array_r(args[1])) {
+
+    const char *title = lbm_dec_str(args[1]);
+    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
+    js_plot_buf((uint8_t*)array->data,array->size,  title);
+    res = ENC_SYM_TRUE;
+
+  }  
+  return res;
 }
 
-// (wasm-plot-multi '(slot1 slot2 ...) "Title")
-// signal JS to create a multi-series plot tab
+// (wasm-plot-multi '(buf1 buf2 ...) "Title")
+// signal JS to create a multi-series plot tab from LispBM byte arrays
 static lbm_value ext_wasm_plot_multi(lbm_value *args, lbm_uint argn) {
   if (argn < 1 || !lbm_is_cons(args[0])) return ENC_SYM_TERROR;
   char json[512];
@@ -240,36 +214,20 @@ static lbm_value ext_wasm_plot_multi(lbm_value *args, lbm_uint argn) {
   int first = 1;
   while (lbm_is_cons(lst)) {
     lbm_value head = lbm_car(lst);
-    if (!lbm_is_number(head)) return ENC_SYM_TERROR;
-    int slot = (int)lbm_dec_as_i32(head);
-    if (slot < 0 || slot >= WASM_BUF_SLOTS) return ENC_SYM_TERROR;
+    if (!lbm_is_array_r(head)) return ENC_SYM_TERROR;
+    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(head);
     if (!first) pos += snprintf(json + pos, (int)sizeof(json) - pos, ",");
     pos += snprintf(json + pos, (int)sizeof(json) - pos,
-                   "{\"slot\":%d,\"nbytes\":%d}", slot, wasm_bufs[slot].size);
+                   "{\"ptr\":%u,\"nbytes\":%u}", (unsigned int)(uintptr_t)hdr->data, (unsigned int)hdr->size);
     first = 0;
     lst = lbm_cdr(lst);
   }
   snprintf(json + pos, (int)sizeof(json) - pos, "]");
   const char *title = "";
   if (argn >= 2 && lbm_is_array_r(args[1])) {
-    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(args[1]);
-    title = (const char*)hdr->data;
+    title = lbm_dec_str(args[1]);
   }
-  js_plot_slots(json, title);
-  return ENC_SYM_TRUE;
-}
-
-// (wasm-buf-free slot)
-// release a slot
-static lbm_value ext_wasm_buf_free(lbm_value *args, lbm_uint argn) {
-  if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
-  int slot = (int)lbm_dec_as_i32(args[0]);
-  if (slot < 0 || slot >= WASM_BUF_SLOTS) return ENC_SYM_TERROR;
-  if (wasm_bufs[slot].data) {
-    free(wasm_bufs[slot].data);
-    wasm_bufs[slot].data = NULL;
-    wasm_bufs[slot].size = 0;
-  }
+  js_plot_bufs(json, title);
   return ENC_SYM_TRUE;
 }
 
@@ -353,8 +311,6 @@ int lbm_wasm_init(void) {
   lbm_add_eval_symbols();
 
   lbm_add_extension("print",          ext_print);
-  lbm_add_extension("wasm-buf-write", ext_wasm_buf_write);
-  lbm_add_extension("wasm-buf-free",  ext_wasm_buf_free);
   lbm_add_extension("wasm-plot",       ext_wasm_plot);
   lbm_add_extension("wasm-plot-multi", ext_wasm_plot_multi);
   lbm_add_extension("import",          ext_import);
@@ -424,18 +380,6 @@ void lbm_wasm_clear_output(void) {
 EMSCRIPTEN_KEEPALIVE
 int lbm_wasm_is_running(void) {
   return (int)(lbm_get_eval_state() != EVAL_CPS_STATE_DEAD);
-}
-
-EMSCRIPTEN_KEEPALIVE
-uint8_t *lbm_wasm_buf_ptr(int slot) {
-  if (slot < 0 || slot >= WASM_BUF_SLOTS) return NULL;
-  return wasm_bufs[slot].data;
-}
-
-EMSCRIPTEN_KEEPALIVE
-int lbm_wasm_buf_len(int slot) {
-  if (slot < 0 || slot >= WASM_BUF_SLOTS) return 0;
-  return wasm_bufs[slot].size;
 }
 
 int main(void) {
