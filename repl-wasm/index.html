@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LispBM WebAssembly REPL</title>
+  <link rel="icon" href="https://www.lispbm.com/ico/favicon.ico">
   <meta name="description" content="Try LispBM in your browser — an embeddable Lisp/Scheme for microcontrollers, running live via WebAssembly.">
   <meta name="keywords" content="LispBM, Lisp, Scheme, WebAssembly, WASM, REPL, embedded, microcontroller">
   <meta property="og:title" content="LispBM WebAssembly REPL">
@@ -13,6 +14,7 @@
   <link rel="canonical" href="https://www.lispbm.com/repl-wasm/index.html">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -33,47 +35,133 @@
       gap: 8px;
       min-height: 0;
     }
-    #output {
+    /* --- Left panel: tabbed --- */
+    #left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+    }
+    #output-tab-bar {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 2px;
+      padding: 4px 4px 0;
+      background: #181818;
+      flex-shrink: 0;
+    }
+    #output-tab-bar::-webkit-scrollbar { height: 3px; }
+    #output-tab-bar::-webkit-scrollbar-thumb { background: #444; }
+    .tab-btn {
+      background: #2a2a2a;
+      color: #777;
+      border: 1px solid #383838;
+      border-bottom: none;
+      padding: 3px 10px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn.active { background: #111; color: #d4d4d4; border-color: #555; }
+    .tab-btn:hover:not(.active) { background: #333; color: #bbb; }
+    .tab-close { color: #555; font-size: 20px; line-height: 1; }
+    .tab-close:hover { color: #e06c75; }
+    #output-tab-contents {
       flex: 1;
       background: #111;
       border: 1px solid #333;
-      padding: 10px;
-      overflow-y: auto;
-      white-space: pre;
-      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
     }
+    .tab-pane {
+      display: none;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+    }
+    .tab-pane.active { display: block; }
+    #output-tab-console {
+      padding: 10px;
+      white-space: pre;
+    }
+    .plot-pane { padding: 8px; }
+    /* uPlot dark theme overrides */
+    .uplot .u-title  { color: #d4d4d4 !important; font-family: "Courier New", monospace; font-size: 13px; }
+    .uplot .u-legend { color: #888 !important; font-family: "Courier New", monospace; font-size: 12px; }
+    .uplot .u-select { background: rgba(86, 156, 214, 0.25); border: 1px solid rgba(86, 156, 214, 0.6); }
+    /* --- Right panel: editor --- */
     #editor-panel {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 4px;
       min-width: 0;
     }
-    /* Make CodeMirror fill the available space */
+    #editor-tab-bar {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 2px;
+      padding: 4px 4px 0;
+      background: #181818;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    #editor-tab-bar::-webkit-scrollbar { height: 3px; }
+    #editor-tab-bar::-webkit-scrollbar-thumb { background: #444; }
+    #btn-new-editor-tab {
+      background: #222;
+      color: #888;
+      border: 1px solid #383838;
+      padding: 2px 8px;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    #btn-new-editor-tab:hover { color: #d4d4d4; background: #333; }
+    #editor-tab-contents {
+      flex: 1;
+      background: #111;
+      border: 1px solid #333;
+      min-height: 0;
+      position: relative;
+    }
+    .editor-pane {
+      display: none;
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+    }
+    .editor-pane.active { display: flex; }
     .CodeMirror {
       flex: 1;
       height: 100%;
       font-family: "Courier New", monospace;
       font-size: 14px;
-      border: 1px solid #444;
-    }
-    .CodeMirror-focused { border-color: #569cd6; }
-    #btn-load {
-      align-self: flex-end;
-      background: #0e639c;
-      color: #fff;
       border: none;
-      padding: 4px 16px;
-      font-family: inherit;
-      cursor: pointer;
+    }
+    .CodeMirror-focused { outline: 1px solid #569cd6; }
+    #editor-btn-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 4px;
+      margin-top: 4px;
     }
     #btn-load:disabled { background: #333; color: #666; cursor: default; }
     #btn-load:hover:not(:disabled) { background: #1177bb; }
-    #input-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+    #btn-open, #btn-save { background: #3a3a3a; color: #d4d4d4; border: 1px solid #555; }
+    #btn-open:hover, #btn-save:hover { background: #4a4a4a; }
+    /* --- Input row --- */
+    #input-row { display: flex; gap: 8px; align-items: center; }
     #prompt { color: #569cd6; }
     #input {
       flex: 1;
@@ -102,10 +190,21 @@
 <body>
   <h1>LispBM WebAssembly REPL &mdash; <a href="https://www.lispbm.com" style="color:#569cd6;font-size:12px;">lispbm.com</a></h1>
   <div id="main">
-    <div id="output"></div>
+    <div id="left-panel">
+      <div id="output-tab-bar"></div>
+      <div id="output-tab-contents"></div>
+    </div>
     <div id="editor-panel">
-      <textarea id="editor" placeholder="Enter LispBM code here..."></textarea>
-      <button id="btn-load" disabled>Load</button>
+      <div id="editor-tab-bar">
+        <button id="btn-new-editor-tab">+</button>
+      </div>
+      <div id="editor-tab-contents"></div>
+      <div id="editor-btn-row">
+        <button id="btn-open">Open</button>
+        <button id="btn-save">Save</button>
+        <button id="btn-load" disabled>Load</button>
+      </div>
+      <input type="file" id="file-input" accept=".lisp,.lbm" style="display:none">
     </div>
   </div>
   <div id="input-row">
@@ -119,107 +218,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/scheme/scheme.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
   <script src="lispbm.js"></script>
-  <script>
-    const cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
-      mode: 'scheme',
-      theme: 'dracula',
-      lineNumbers: true,
-      matchBrackets: true,
-      autoCloseBrackets: true,
-      indentUnit: 2,
-      tabSize: 2,
-      indentWithTabs: false,
-      extraKeys: {
-        'Tab': cm => cm.execCommand('indentMore'),
-        'Shift-Tab': cm => cm.execCommand('indentLess'),
-      }
-    });
-    cm.setSize('100%', '100%');
-
-    LispBM().then(lbm => {
-      const output  = document.getElementById('output');
-      const input   = document.getElementById('input');
-      const btnEval = document.getElementById('btn-eval');
-      const btnLoad = document.getElementById('btn-load');
-      const status  = document.getElementById('status');
-
-      function appendOutput(text) {
-        output.textContent += text;
-        output.scrollTop = output.scrollHeight;
-      }
-
-      function pollOutput() {
-        const text = lbm.ccall('lbm_wasm_get_output', 'string', [], []);
-        if (text && text.length > 0) {
-          appendOutput(text);
-          lbm.ccall('lbm_wasm_clear_output', null, [], []);
-        }
-      }
-
-      console.log('calling lbm_wasm_init...');
-      const ok = lbm.ccall('lbm_wasm_init', 'number', [], []);
-      console.log('lbm_wasm_init returned:', ok);
-      if (!ok) {
-        appendOutput('Failed to initialise LispBM.\n');
-        status.textContent = 'Init failed';
-        return;
-      }
-
-      btnEval.disabled = false;
-      btnLoad.disabled = false;
-      cm.setOption('readOnly', false);
-      input.disabled = false;
-      input.focus();
-      status.textContent = 'Ready';
-
-      function loop() {
-        const deadline = performance.now() + 8;
-        try {
-          while (performance.now() < deadline) {
-            lbm.ccall('lbm_wasm_run', null, ['number'], [100]);
-          }
-        } catch(e) {
-          appendOutput('CRASH in step: ' + e + '\n');
-          status.textContent = 'Crashed';
-          return;
-        }
-        try {
-          pollOutput();
-        } catch(e) {
-          appendOutput('CRASH in pollOutput: ' + e + '\n');
-          status.textContent = 'Crashed';
-          return;
-        }
-        setTimeout(loop, 0);
-      }
-      setTimeout(loop, 0);
-
-      function evalExpr() {
-        const code = input.value.trim();
-        if (!code) return;
-        appendOutput('# ' + code + '\n');
-        lbm.ccall('lbm_wasm_eval', null, ['string'], [code]);
-        input.value = '';
-      }
-
-      function loadEditor() {
-        const code = cm.getValue().trim();
-        if (!code) return;
-        appendOutput('-- load --\n');
-        lbm.ccall('lbm_wasm_eval_program', null, ['string'], [code]);
-      }
-
-      btnEval.addEventListener('click', evalExpr);
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') evalExpr();
-      });
-
-      btnLoad.addEventListener('click', loadEditor);
-
-    }).catch(err => {
-      document.getElementById('status').textContent = 'Error: ' + err;
-    });
-  </script>
+  <script src="repl.js"></script>
 </body>
 </html>

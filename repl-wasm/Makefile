@@ -14,14 +14,15 @@ LBMFLAGS = -DLBM_SINGLE_THREADED \
 	   -DLBM_USE_DYN_FUNS \
            -DLBM_USE_DYN_ARRAYS \
            -DLBM_USE_DYN_LOOPS \
-           -DLBM_USE_DYN_DEFSTRUCT
+           -DLBM_USE_DYN_DEFSTRUCT \
+	   -DLBM_WASM
 
 EMFLAGS = \
   -s SUPPORT_LONGJMP=emscripten \
   -s ASSERTIONS=1 \
   -s MODULARIZE=1 \
   -s EXPORT_NAME=LispBM \
-  -s EXPORTED_FUNCTIONS='["_lbm_wasm_init","_lbm_wasm_eval","_lbm_wasm_eval_program","_lbm_wasm_step","_lbm_wasm_run","_lbm_wasm_get_output","_lbm_wasm_clear_output","_lbm_wasm_is_running"]' \
+  -s EXPORTED_FUNCTIONS='["_lbm_wasm_init","_lbm_wasm_eval","_lbm_wasm_eval_program","_lbm_wasm_step","_lbm_wasm_run","_lbm_wasm_get_output","_lbm_wasm_clear_output","_lbm_wasm_is_running","_lbm_wasm_buf_ptr","_lbm_wasm_buf_len","_malloc","_free"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]' \
   -s INITIAL_MEMORY=16777216 \
   -s ALLOW_MEMORY_GROWTH=1
@@ -54,6 +55,8 @@ LISPBM_SRC = \
   $(LISPBM)/src/extensions/set_extensions.c \
   $(LISPBM)/src/extensions/lbm_dyn_lib.c \
   $(LISPBM)/src/extensions/crypto_extensions.c \
+  $(LISPBM)/src/extensions/dsp_extensions.c \
+  $(LISPBM)/src/extensions/ecc_extensions.c \
   $(LISPBM)/platform/wasm/src/platform_timestamp.c
 
 SRC = repl.c
@@ -71,6 +74,8 @@ serve:
 	python3 -m http.server 8080
 
 publish:
-	cp index.html ../../lispbm.com/repl-wasm
-	cp lispbm.js  ../../lispbm.com/repl-wasm
+	cp index.html  ../../lispbm.com/repl-wasm
+	cp repl.js     ../../lispbm.com/repl-wasm
+	cp lispbm.js   ../../lispbm.com/repl-wasm
 	cp lispbm.wasm ../../lispbm.com/repl-wasm
+	cp -r libs     ../../lispbm.com/repl-wasm

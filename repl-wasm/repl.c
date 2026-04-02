@@ -32,12 +32,32 @@
 #include "extensions/set_extensions.h"
 #include "extensions/lbm_dyn_lib.h"
 #include "extensions/crypto_extensions.h"
+#include "extensions/dsp_extensions.h"
+#include "extensions/ecc_extensions.h"
+
+// ------------------------------------------------------------
+// TODO:
+//   - Remove the BUF_SLOTS and dynamically allocate these wasm buffers
+//     Handle the lifetime of them using custom types.
+
+#define WASM_BUF_SLOTS         8
+
+typedef struct {
+  uint8_t *data;
+  int      size; /* bytes */
+} wasm_buf_t;
+
+static wasm_buf_t wasm_bufs[WASM_BUF_SLOTS];
 
 #define HEAP_SIZE              (1 << 14)
 #define GC_STACK_SIZE          256
 #define PRINT_STACK_SIZE       256
-#define EXTENSION_STORAGE_SIZE 256
-#define LBM_MEMORY_BLOCKS      160   /* ~10K */
+#define EXTENSION_STORAGE_SIZE 512
+#define LBM_MEMORY_BLOCKS      16384   // ~10K  (* (* 160 16) 4) 10240
+                                       //  64K  (* (* 1024 16) 4) 65536
+                                       // 256K  (* (* 4096 16) 4) 262144
+                                       // 512K  (* (* 8192 16) 4) 655360
+                                       //   1M  (* (* 16384 16) 4) 1048576
 #define LBM_MEMORY_SIZE        LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(LBM_MEMORY_BLOCKS)
 #define LBM_BITMAP_SIZE        LBM_MEMORY_BITMAP_SIZE(LBM_MEMORY_BLOCKS)
 #define OUTPUT_BUFFER_SIZE     65536
@@ -119,9 +139,9 @@ static void critical_callback(void) {
   print_callback("CRITICAL ERROR\n");
 }
 
-/* ----------------------------------------------------------
-   Extensions
-   ---------------------------------------------------------- */
+// ------------------------------------------------------------
+//   Extensions
+// ------------------------------------------------------------
 
 static bool dynamic_loader(const char *sym, const char **code) {
   return lbm_dyn_lib_find(sym, code);
@@ -137,6 +157,144 @@ static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+EM_JS(void, js_plot_slot, (int slot, int nbytes, const char *title), {
+  if (typeof window.createPlotTab === 'function') {
+    window.createPlotTab(slot, nbytes, UTF8ToString(title));
+  }
+});
+
+EM_JS(void, js_plot_slots, (const char *slots_json, const char *title), {
+  if (typeof window.createMultiPlotTab === 'function') {
+    window.createMultiPlotTab(UTF8ToString(slots_json), UTF8ToString(title));
+  }
+});
+
+
+// Javascript function callable from C.
+// defines:
+//  char *js_import_lib(const char *filename);
+//  which is the C "binding" for the javascript body below.
+EM_JS(char*, js_import_lib, (const char *filename), {
+  const url = 'libs/' + UTF8ToString(filename);
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', url, false);
+  try {
+    xhr.send(null);
+  } catch(e) {
+    return 0;
+  }
+  if (xhr.status !== 200) return 0;
+  const str = xhr.responseText;
+  const len = lengthBytesUTF8(str) + 1;
+  const buf = _malloc(len);
+  if (!buf) return 0;
+  stringToUTF8(str, buf, len);
+  return buf;
+});
+
+// (wasm-buf-write slot array)
+// copy LispBM byte array into slot
+static lbm_value ext_wasm_buf_write(lbm_value *args, lbm_uint argn) {
+  if (argn != 2) return ENC_SYM_TERROR;
+  if (!lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  if (!lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
+  int slot = (int)lbm_dec_as_i32(args[0]);
+  if (slot < 0 || slot >= WASM_BUF_SLOTS) return ENC_SYM_TERROR;
+  lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(args[1]);
+  int size = (int)hdr->size;
+  if (wasm_bufs[slot].data) {
+    free(wasm_bufs[slot].data);
+    wasm_bufs[slot].data = NULL;
+  }
+  uint8_t *buf = (uint8_t*)malloc((unsigned int)size);
+  if (!buf) return ENC_SYM_MERROR;
+  memcpy(buf, hdr->data, (unsigned int)size);
+  wasm_bufs[slot].data = buf;
+  wasm_bufs[slot].size = size;
+  return ENC_SYM_TRUE;
+}
+
+// (wasm-plot slot "Title")
+// signal JS to create a plot tab for this slot
+static lbm_value ext_wasm_plot(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  int slot = (int)lbm_dec_as_i32(args[0]);
+  if (slot < 0 || slot >= WASM_BUF_SLOTS) return ENC_SYM_TERROR;
+  const char *title = "";
+  if (argn >= 2 && lbm_is_array_r(args[1])) {
+    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(args[1]);
+    title = (const char*)hdr->data;
+  }
+  js_plot_slot(slot, wasm_bufs[slot].size, title);
+  return ENC_SYM_TRUE;
+}
+
+// (wasm-plot-multi '(slot1 slot2 ...) "Title")
+// signal JS to create a multi-series plot tab
+static lbm_value ext_wasm_plot_multi(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_cons(args[0])) return ENC_SYM_TERROR;
+  char json[512];
+  int pos = 0;
+  pos += snprintf(json + pos, (int)sizeof(json) - pos, "[");
+  lbm_value lst = args[0];
+  int first = 1;
+  while (lbm_is_cons(lst)) {
+    lbm_value head = lbm_car(lst);
+    if (!lbm_is_number(head)) return ENC_SYM_TERROR;
+    int slot = (int)lbm_dec_as_i32(head);
+    if (slot < 0 || slot >= WASM_BUF_SLOTS) return ENC_SYM_TERROR;
+    if (!first) pos += snprintf(json + pos, (int)sizeof(json) - pos, ",");
+    pos += snprintf(json + pos, (int)sizeof(json) - pos,
+                   "{\"slot\":%d,\"nbytes\":%d}", slot, wasm_bufs[slot].size);
+    first = 0;
+    lst = lbm_cdr(lst);
+  }
+  snprintf(json + pos, (int)sizeof(json) - pos, "]");
+  const char *title = "";
+  if (argn >= 2 && lbm_is_array_r(args[1])) {
+    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(args[1]);
+    title = (const char*)hdr->data;
+  }
+  js_plot_slots(json, title);
+  return ENC_SYM_TRUE;
+}
+
+// (wasm-buf-free slot)
+// release a slot
+static lbm_value ext_wasm_buf_free(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  int slot = (int)lbm_dec_as_i32(args[0]);
+  if (slot < 0 || slot >= WASM_BUF_SLOTS) return ENC_SYM_TERROR;
+  if (wasm_bufs[slot].data) {
+    free(wasm_bufs[slot].data);
+    wasm_bufs[slot].data = NULL;
+    wasm_bufs[slot].size = 0;
+  }
+  return ENC_SYM_TRUE;
+}
+
+// (import library-file-name sym)
+static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_array_r(args[0]) || !lbm_is_symbol(args[1])) return ENC_SYM_TERROR;
+  const char *filename = lbm_dec_str(args[0]);
+  if (!filename) return ENC_SYM_TERROR;
+  const char *symname = lbm_get_name_by_symbol(lbm_dec_sym(args[1]));
+  if (!symname) return ENC_SYM_TERROR;
+  char *code = js_import_lib(filename);
+  if (!code) return ENC_SYM_NIL;
+  lbm_uint len = (lbm_uint)strlen(code);
+  lbm_value result;
+  if (!lbm_create_array(&result, len + 1)) {
+    free(code);
+    return ENC_SYM_MERROR;
+  }
+  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(result);
+  memcpy(arr->data, code, len + 1);
+  free(code);
+  lbm_define((char*)symname, result);
+  return result;
+}
+
 static void done_callback(eval_context_t *ctx) {
   char result[1024];
   lbm_print_value(result, sizeof(result), ctx->r);
@@ -145,7 +303,7 @@ static void done_callback(eval_context_t *ctx) {
 }
 
 static void sleep_callback(uint32_t us) {
-  (void)us; /* no-op: caller drives the step loop */
+  (void)us;
 }
 
 /* ----------------------------------------------------------
@@ -172,10 +330,10 @@ int lbm_wasm_init(void) {
   lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(print_callback);
 
-  /* Image storage must be initialised before any symbol additions. */
   lbm_image_init(image_storage,
                  IMAGE_STORAGE_SIZE / sizeof(uint32_t),
                  wasm_image_write);
+  memset(image_storage, 0, IMAGE_STORAGE_SIZE);
   lbm_image_create("wasm");
   if (!lbm_image_boot()) {
     return 0;
@@ -189,14 +347,22 @@ int lbm_wasm_init(void) {
   lbm_set_extensions_init();
   lbm_dyn_lib_init();
   lbm_crypto_extensions_init();
+  lbm_dsp_extensions_init();
+  lbm_ecc_extensions_init();
 
   lbm_add_eval_symbols();
-  lbm_add_extension("print", ext_print);
+
+  lbm_add_extension("print",          ext_print);
+  lbm_add_extension("wasm-buf-write", ext_wasm_buf_write);
+  lbm_add_extension("wasm-buf-free",  ext_wasm_buf_free);
+  lbm_add_extension("wasm-plot",       ext_wasm_plot);
+  lbm_add_extension("wasm-plot-multi", ext_wasm_plot_multi);
+  lbm_add_extension("import",          ext_import);
 
   output_buffer[0] = '\0';
 
   print_callback("\nLispBM REPL on WASM\n");
-  
+
   return 1;
 }
 
@@ -258,6 +424,18 @@ void lbm_wasm_clear_output(void) {
 EMSCRIPTEN_KEEPALIVE
 int lbm_wasm_is_running(void) {
   return (int)(lbm_get_eval_state() != EVAL_CPS_STATE_DEAD);
+}
+
+EMSCRIPTEN_KEEPALIVE
+uint8_t *lbm_wasm_buf_ptr(int slot) {
+  if (slot < 0 || slot >= WASM_BUF_SLOTS) return NULL;
+  return wasm_bufs[slot].data;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int lbm_wasm_buf_len(int slot) {
+  if (slot < 0 || slot >= WASM_BUF_SLOTS) return 0;
+  return wasm_bufs[slot].size;
 }
 
 int main(void) {
