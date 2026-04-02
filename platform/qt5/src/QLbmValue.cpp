@@ -98,11 +98,18 @@ QLbmValue QLbmValue::fromDouble(double d) {
   return v;
 }
 
-QLbmValue QLbmValue::fromList(const QList<QLbmValue> &elts) {
+QLbmValue QLbmValue::fromCons(const QLbmValue &car, const QLbmValue &cdr) {
   QLbmValue v;
-  v.m_type = List;
-  v.m_list = elts;
+  v.m_type = Cons;
+  v.m_list = {car, cdr};
   return v;
+}
+
+QLbmValue QLbmValue::fromList(const QList<QLbmValue> &elts) {
+  QLbmValue result; // Nil
+  for (int i = elts.size() - 1; i >= 0; i--)
+    result = fromCons(elts[i], result);
+  return result;
 }
 
 QLbmValue QLbmValue::fromByteArray(const QByteArray &data) {
@@ -146,18 +153,8 @@ QLbmValue QLbmValue::fromLbmValue(lbm_value val) {
   case LBM_TYPE_DOUBLE: return fromDouble(lbm_dec_as_double(val));
 
   case LBM_TYPE_CONS:
-  case LBM_TYPE_CONS_CONST: {
-    QList<QLbmValue> elts;
-    lbm_value cur = val;
-    while (lbm_is_cons(cur)) {
-      elts.append(fromLbmValue(lbm_car(cur)));
-      cur = lbm_cdr(cur);
-    }
-    if (!lbm_is_symbol_nil(cur)) {
-      elts.append(fromLbmValue(cur));
-    }
-    return fromList(elts);
-  }
+  case LBM_TYPE_CONS_CONST:
+    return fromCons(fromLbmValue(lbm_car(val)), fromLbmValue(lbm_cdr(val)));
 
   case LBM_TYPE_ARRAY:
   case LBM_TYPE_ARRAY_CONST: {
@@ -233,13 +230,8 @@ bool QLbmValue::flattenValue(lbm_flat_value_t *fv) const {
   case Float:  return f_float(fv, m_f);
     // I think flattening doubles may be impossible at the moment.
   case Double: return f_i64(fv, *(int64_t*)&m_d);
-  case List: {
-    for (const QLbmValue &elt : m_list) {
-      if (!f_cons(fv)) return false;
-      if (!elt.flattenValue(fv)) return false;
-    }
-    return f_sym(fv, SYM_NIL);
-  }
+  case Cons:
+    return f_cons(fv) && car().flattenValue(fv) && cdr().flattenValue(fv);
   case ByteArray: {
     return f_lbm_array(fv, (uint32_t)m_bytes.size(), (uint8_t *)m_bytes.constData());
   }
@@ -269,12 +261,8 @@ uint32_t QLbmValue::flatSize() const {
   case U64:    return 1 + 8;
   case Float:  return 1 + 4;
   case Double: return 1 + 8;
-  case List: {
-    uint32_t size = 1 + (uint32_t)sizeof(lbm_uint);
-    for (const QLbmValue &elt : m_list)
-      size += 1 + elt.flatSize();
-    return size;
-  }
+  case Cons:
+    return 1 + car().flatSize() + cdr().flatSize();
   case ByteArray:
     return 1 + 4 + (uint32_t)m_bytes.size();
   case LispArray: {

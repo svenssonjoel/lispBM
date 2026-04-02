@@ -41,7 +41,7 @@ public:
     U64,
     Float,
     Double,
-    List,
+    Cons,
     ByteArray,
     LispArray
   };
@@ -58,6 +58,8 @@ public:
   static QLbmValue fromU64(uint64_t v);
   static QLbmValue fromFloat(float v);
   static QLbmValue fromDouble(double v);
+  static QLbmValue fromCons(const QLbmValue &car, const QLbmValue &cdr);
+  // Convenience: builds a proper list (cons tree terminated by nil).
   static QLbmValue fromList(const QList<QLbmValue> &elts);
   static QLbmValue fromByteArray(const QByteArray &data);
   static QLbmValue fromLispArray(const QList<QLbmValue> &elts);
@@ -86,7 +88,8 @@ public:
   uint64_t         asU64()     const { return m_u64; }
   float            asFloat()   const { return m_f; }
   double           asDouble()  const { return m_d; }
-  QList<QLbmValue> asList()      const { return m_list; }
+  QLbmValue        car()         const { return m_list.value(0); }
+  QLbmValue        cdr()         const { return m_list.value(1); }
   QByteArray       asByteArray() const { return m_bytes; }
   QList<QLbmValue> asLispArray() const { return m_list; }
 
