@@ -49,6 +49,24 @@
 #define OUTPUT_BUFFER_SIZE     65536
 #define IMAGE_STORAGE_SIZE     (128 * 1024)
 
+
+// Feature wishlist:
+// - Tab that renders manual in markdown
+// - An example browser tab where clicking an example opens it in an editor tab.
+// - A version of the dsp_lang that works with the wasm plotting. Add to libs dir.
+// - Making tabs (and perhaps other browser entities) first class citizens in
+//   the users lisp program. So that we could create tabs in code
+//   - Ploting can take an additional tab argument so we can choose into what tab to plot.
+// - Data export in CSV format (or matlad, octave suitable formats)
+// - Png export (to quickly get a pic of the graph).
+// - "Image" canvas for drawing using the display library
+// - Encode entire state in base64 and enable sharable links replicating full editor state.
+//      Save code editor contents and maybe active plot tabs ? not entire runtime system state. 
+// - Import that does not use the "deprecated" XHR approach. Needs investigation to find best approach.
+// - Lisp image saving and restoring to/from binary file (requires image to be at fixed
+//      address accross instances of the wasm rts.
+
+
 static lbm_cons_t      heap[HEAP_SIZE];
 static lbm_uint        lbm_memory[LBM_MEMORY_SIZE];
 static lbm_uint        lbm_bitmap[LBM_BITMAP_SIZE];
