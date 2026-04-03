@@ -2746,9 +2746,21 @@ int main(int argc, char **argv) {
     while (1) {
       repl_mode = true;
 #ifdef LBM_WIN
-      // Windows: Use WaitForSingleObject with console input handle
-      if (kbhit()) {
-        rl_callback_read_char();
+      {
+        HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+        DWORD wait_result = WaitForSingleObject(hStdin, 100);
+        if (wait_result == WAIT_OBJECT_0) {
+          INPUT_RECORD rec;
+          DWORD num_read = 0;
+          PeekConsoleInput(hStdin, &rec, 1, &num_read);
+          if (num_read > 0) {
+            if (rec.EventType == KEY_EVENT && rec.Event.KeyEvent.bKeyDown) {
+              rl_callback_read_char();
+            } else {
+              ReadConsoleInput(hStdin, &rec, 1, &num_read);
+            }
+          }
+        }
       }
 #else
       fd_set readfds;
