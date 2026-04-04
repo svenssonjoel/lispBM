@@ -243,6 +243,40 @@ LispBM().then(lbm => {
     }
   };
 
+  function addPlotToolbar(pane, label, getDataFn) {
+    const toolbar = document.createElement('div');
+    toolbar.style.cssText = 'display:flex;gap:6px;padding:4px 8px;';
+
+    const pngBtn = document.createElement('button');
+    pngBtn.textContent = 'Save PNG';
+    pngBtn.addEventListener('click', () => {
+      const canvas = pane.querySelector('canvas');
+      if (!canvas) return;
+      const a = document.createElement('a');
+      a.href     = canvas.toDataURL('image/png');
+      a.download = label + '.png';
+      a.click();
+    });
+
+    const csvBtn = document.createElement('button');
+    csvBtn.textContent = 'Save CSV';
+    csvBtn.addEventListener('click', () => {
+      const { xs, yArrays } = getDataFn();
+      const headers = ['x', ...yArrays.map((_, i) => 'y' + (yArrays.length > 1 ? i : ''))].join(',');
+      const rows    = xs.map((x, i) => [x, ...yArrays.map(y => y[i] ?? '')].join(','));
+      const blob    = new Blob([headers + '\n' + rows.join('\n')], { type: 'text/csv' });
+      const a       = document.createElement('a');
+      a.href        = URL.createObjectURL(blob);
+      a.download    = label + '.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    toolbar.appendChild(pngBtn);
+    toolbar.appendChild(csvBtn);
+    pane.appendChild(toolbar);
+  }
+
   window.createPlotTab = function(buf, nbytes, title) {
     //const ptr    = lbm.ccall('lbm_wasm_buf_ptr', 'number', ['number'], [slot]);
     const nFloat = (nbytes / 4) | 0;
@@ -276,9 +310,11 @@ LispBM().then(lbm => {
 
     switchTab(id);
 
+    addPlotToolbar(pane, label, () => ({ xs, yArrays: [ys] }));
+
     const rect = document.getElementById('output-tab-contents').getBoundingClientRect();
     const w    = Math.max(rect.width  - 16, 300);
-    const h    = Math.max(rect.height - 16, 200);
+    const h    = Math.max(rect.height - 48, 200);
 
     new uPlot({
       title:  label,
@@ -329,7 +365,7 @@ LispBM().then(lbm => {
 
     const rect = document.getElementById('output-tab-contents').getBoundingClientRect();
     const w    = Math.max(rect.width  - 16, 300);
-    const h    = Math.max(rect.height - 16, 200);
+    const h    = Math.max(rect.height - 48, 200);
 
     const bufs = JSON.parse(slotsJson);
     let maxLen = 0;
@@ -340,6 +376,8 @@ LispBM().then(lbm => {
       return ys;
     });
     const xs = Array.from({length: maxLen}, (_, i) => i);
+
+    addPlotToolbar(pane, label, () => ({ xs, yArrays }));
 
     const series = [{}];
     bufs.forEach((_, i) => {
