@@ -202,6 +202,47 @@ LispBM().then(lbm => {
     }
   }
 
+  const wheelZoomPlugin = {
+    hooks: {
+      ready(u) {
+        const over = u.over;
+        over.addEventListener('wheel', e => {
+          e.preventDefault();
+          const factor = e.deltaY < 0 ? 0.75 : 1.33;
+          const left   = u.cursor.left;
+          const xMin   = u.scales.x.min, xMax = u.scales.x.max;
+          const range  = (xMax - xMin) * factor;
+          const mid    = u.posToVal(left, 'x');
+          u.setScale('x', { min: mid - range / 2, max: mid + range / 2 });
+        });
+
+        let panning = false, dragStartX, scaleMin, scaleMax;
+        window.addEventListener('keydown', e => {
+          if (e.key === 'Shift') u.cursor.drag.x = false;
+        });
+        window.addEventListener('keyup', e => {
+          if (e.key === 'Shift') u.cursor.drag.x = true;
+        });
+        over.addEventListener('mousedown', e => {
+          if (!e.shiftKey) return;
+          e.preventDefault();
+          panning    = true;
+          dragStartX = e.clientX;
+          scaleMin   = u.scales.x.min;
+          scaleMax   = u.scales.x.max;
+        });
+        window.addEventListener('mousemove', e => {
+          if (!panning) return;
+          const dx    = dragStartX - e.clientX;
+          const range = scaleMax - scaleMin;
+          const shift = (dx / u.width) * range;
+          u.setScale('x', { min: scaleMin + shift, max: scaleMax + shift });
+        });
+        window.addEventListener('mouseup', () => { panning = false; });
+      }
+    }
+  };
+
   window.createPlotTab = function(buf, nbytes, title) {
     //const ptr    = lbm.ccall('lbm_wasm_buf_ptr', 'number', ['number'], [slot]);
     const nFloat = (nbytes / 4) | 0;
@@ -253,6 +294,7 @@ LispBM().then(lbm => {
       ],
       scales: { x: { time: false } },
       cursor: { stroke: '#569cd6', width: 1 },
+      plugins: [wheelZoomPlugin],
     }, [xs, ys], pane);
   };
 
@@ -315,6 +357,7 @@ LispBM().then(lbm => {
       ],
       scales: { x: { time: false } },
       cursor: { stroke: '#569cd6', width: 1 },
+      plugins: [wheelZoomPlugin],
     }, [xs, ...yArrays], pane);
   };
 

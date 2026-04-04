@@ -35,6 +35,8 @@
 #include "extensions/dsp_extensions.h"
 #include "extensions/ecc_extensions.h"
 
+#include "lbm_custom_type.h"
+
 #define HEAP_SIZE              (1 << 14)
 #define GC_STACK_SIZE          256
 #define PRINT_STACK_SIZE       256
