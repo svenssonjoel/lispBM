@@ -158,8 +158,41 @@
     }
     #btn-load:disabled { background: #333; color: #666; cursor: default; }
     #btn-load:hover:not(:disabled) { background: #1177bb; }
-    #btn-open, #btn-save { background: #3a3a3a; color: #d4d4d4; border: 1px solid #555; }
-    #btn-open:hover, #btn-save:hover { background: #4a4a4a; }
+    #btn-open, #btn-save, #btn-examples { background: #3a3a3a; color: #d4d4d4; border: 1px solid #555; }
+    #btn-open:hover, #btn-save:hover, #btn-examples:hover { background: #4a4a4a; }
+    #examples-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    #examples-modal.open { display: flex; }
+    #examples-box {
+      background: #1e1e1e;
+      border: 1px solid #444;
+      padding: 16px;
+      min-width: 340px;
+      max-width: 520px;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #examples-box h2 { font-size: 14px; color: #569cd6; }
+    #examples-list { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .example-item {
+      background: #2a2a2a;
+      border: 1px solid #383838;
+      padding: 8px 10px;
+      cursor: pointer;
+    }
+    .example-item:hover { background: #333; border-color: #569cd6; }
+    .example-item .ex-name { color: #d4d4d4; font-size: 13px; }
+    .example-item .ex-desc { color: #888; font-size: 11px; margin-top: 3px; }
+    #examples-close { align-self: flex-end; background: #3a3a3a; border: 1px solid #555; color: #d4d4d4; }
     /* --- Input row --- */
     #input-row { display: flex; gap: 8px; align-items: center; }
     #prompt { color: #569cd6; }
@@ -200,6 +233,7 @@
       </div>
       <div id="editor-tab-contents"></div>
       <div id="editor-btn-row">
+        <button id="btn-examples">Examples</button>
         <button id="btn-open">Open</button>
         <button id="btn-save">Save</button>
         <button id="btn-load" disabled>Load</button>
@@ -213,6 +247,14 @@
     <button id="btn-eval" disabled>Eval</button>
   </div>
   <div id="status">Loading...</div>
+
+  <div id="examples-modal">
+    <div id="examples-box">
+      <h2>Examples</h2>
+      <div id="examples-list"></div>
+      <button id="examples-close">Close</button>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/scheme/scheme.min.js"></script>

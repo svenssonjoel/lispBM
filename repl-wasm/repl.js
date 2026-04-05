@@ -182,6 +182,43 @@ document.getElementById('btn-save').addEventListener('click', () => {
   downloadFile(filename, content);
 });
 
+const examplesModal = document.getElementById('examples-modal');
+const examplesList  = document.getElementById('examples-list');
+
+document.getElementById('btn-examples').addEventListener('click', () => {
+  examplesList.innerHTML = '';
+  fetch('examples/index.json')
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(examples => {
+      examples.forEach(ex => {
+        const item = document.createElement('div');
+        item.className = 'example-item';
+        item.innerHTML = '<div class="ex-name">' + ex.name + '</div>' +
+                         '<div class="ex-desc">' + (ex.description || '') + '</div>';
+        item.addEventListener('click', () => {
+          fetch('examples/' + ex.file)
+            .then(r => r.text())
+            .then(code => {
+              const tab = createEditorTab(ex.name);
+              tab.cm.setValue(code);
+              examplesModal.classList.remove('open');
+            });
+        });
+        examplesList.appendChild(item);
+      });
+      examplesModal.classList.add('open');
+    })
+    .catch(e => { alert('Failed to load examples: ' + e.message); });
+});
+
+document.getElementById('examples-close').addEventListener('click', () => {
+  examplesModal.classList.remove('open');
+});
+
+examplesModal.addEventListener('click', e => {
+  if (e.target === examplesModal) examplesModal.classList.remove('open');
+});
+
 LispBM().then(lbm => {
   const btnEval     = document.getElementById('btn-eval');
   const btnLoad     = document.getElementById('btn-load');

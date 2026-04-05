@@ -79,3 +79,4 @@ publish:
 	cp lispbm.js   ../../lispbm.com/repl-wasm
 	cp lispbm.wasm ../../lispbm.com/repl-wasm
 	cp -r libs     ../../lispbm.com/repl-wasm
+	cp -r examples ../../lispbm.com/repl-wasm
