@@ -181,6 +181,12 @@ EM_JS(void, js_plot_buf, (uint8_t *buffer, int nbytes, const char *title), {
     }
   });
 
+EM_JS(void, js_plot_xy, (uint8_t *xbuf, int xbytes, uint8_t *ybuf, int ybytes, const char *title), {
+  if (typeof window.createXYPlotTab === 'function') {
+    window.createXYPlotTab(xbuf, xbytes, ybuf, ybytes, UTF8ToString(title));
+  }
+});
+
 
 // Javascript function callable from C.
 // defines:
@@ -249,6 +255,22 @@ static lbm_value ext_wasm_plot_multi(lbm_value *args, lbm_uint argn) {
   }
   js_plot_bufs(json, title);
   return ENC_SYM_TRUE;
+}
+
+// (wasm-plot-xy x-buf y-buf "Title")
+static lbm_value ext_wasm_plot_xy(lbm_value *args, lbm_uint argn) {
+  if (argn == 3 &&
+      lbm_is_array_r(args[0]) &&
+      lbm_is_array_r(args[1]) &&
+      lbm_is_array_r(args[2])) {
+    const char *title = lbm_dec_str(args[2]);
+    lbm_array_header_t *xarr = (lbm_array_header_t*)lbm_car(args[0]);
+    lbm_array_header_t *yarr = (lbm_array_header_t*)lbm_car(args[1]);
+    js_plot_xy((uint8_t*)xarr->data, xarr->size,
+               (uint8_t*)yarr->data, yarr->size, title);
+    return ENC_SYM_TRUE;
+  }
+  return ENC_SYM_TERROR;
 }
 
 // (import library-file-name sym)
@@ -333,6 +355,7 @@ int lbm_wasm_init(void) {
   lbm_add_extension("print",          ext_print);
   lbm_add_extension("wasm-plot",       ext_wasm_plot);
   lbm_add_extension("wasm-plot-multi", ext_wasm_plot_multi);
+  lbm_add_extension("wasm-plot-xy",    ext_wasm_plot_xy);
   lbm_add_extension("import",          ext_import);
 
   output_buffer[0] = '\0';

@@ -371,6 +371,59 @@ LispBM().then(lbm => {
     }, [xs, ys], pane);
   };
 
+  window.createXYPlotTab = function(xbuf, xbytes, ybuf, ybytes, title) {
+    const xs = Array.from(new Float32Array(lbm.HEAP8.buffer, xbuf, (xbytes / 4) | 0));
+    const ys = Array.from(new Float32Array(lbm.HEAP8.buffer, ybuf, (ybytes / 4) | 0));
+
+    plotCount++;
+    const id    = 'plot-' + plotCount;
+    const label = (title && title.length) ? title : ('Plot ' + plotCount);
+
+    const btn = document.createElement('button');
+    btn.className   = 'tab-btn';
+    btn.dataset.tab = id;
+    btn.addEventListener('click', () => switchTab(id));
+    const labelEl = document.createElement('span');
+    labelEl.textContent = label;
+    const closeEl = document.createElement('span');
+    closeEl.className   = 'tab-close';
+    closeEl.textContent = '\u2297';
+    closeEl.addEventListener('click', e => { e.stopPropagation(); closeTab(id); });
+    btn.appendChild(labelEl);
+    btn.appendChild(closeEl);
+    document.getElementById('output-tab-bar').appendChild(btn);
+
+    const pane = document.createElement('div');
+    pane.id        = 'output-tab-' + id;
+    pane.className = 'tab-pane plot-pane';
+    document.getElementById('output-tab-contents').appendChild(pane);
+
+    switchTab(id);
+
+    addPlotToolbar(pane, label, () => ({ xs, yArrays: [ys] }));
+
+    const rect = document.getElementById('output-tab-contents').getBoundingClientRect();
+    const w    = Math.max(rect.width  - 16, 300);
+    const h    = Math.max(rect.height - 48, 200);
+
+    new uPlot({
+      title:  label,
+      width:  w,
+      height: h,
+      series: [
+        {},
+        { label: 'y', stroke: '#4ec9b0', width: 2 }
+      ],
+      axes: [
+        { stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },
+        { stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },
+      ],
+      scales: { x: { time: false } },
+      cursor: { stroke: '#569cd6', width: 1 },
+      plugins: [wheelZoomPlugin],
+    }, [xs, ys], pane);
+  };
+
   const SERIES_COLORS = ['#4ec9b0', '#569cd6', '#ce9178', '#dcdcaa', '#c586c0', '#f44747', '#b5cea8', '#9cdcfe'];
 
   window.createMultiPlotTab = function(slotsJson, title) {
