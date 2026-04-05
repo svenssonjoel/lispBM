@@ -399,14 +399,12 @@ void lbm_wasm_eval_program(const char *str) {
 
 EMSCRIPTEN_KEEPALIVE
 void lbm_wasm_step(void) {
-  lbm_eval_step();
+  lbm_eval_step(1);
 }
 
 EMSCRIPTEN_KEEPALIVE
-void lbm_wasm_run(int steps) {
-  for (int i = 0; i < steps; i++) {
-    lbm_eval_step();
-  }
+bool lbm_wasm_run(int steps) {
+  return lbm_eval_step(steps);
 }
 
 EMSCRIPTEN_KEEPALIVE

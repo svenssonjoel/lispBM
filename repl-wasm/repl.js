@@ -182,6 +182,9 @@ document.getElementById('btn-save').addEventListener('click', () => {
   downloadFile(filename, content);
 });
 
+const busyLed    = document.getElementById('busy-led');
+const statusText = document.getElementById('status-text');
+
 const examplesModal = document.getElementById('examples-modal');
 const examplesList  = document.getElementById('examples-list');
 
@@ -494,7 +497,7 @@ LispBM().then(lbm => {
   console.log('lbm_wasm_init returned:', ok);
   if (!ok) {
     appendOutput('Failed to initialise LispBM.\n');
-    status.textContent = 'Init failed';
+    statusText.textContent = 'Init failed';
     return;
   }
 
@@ -503,25 +506,43 @@ LispBM().then(lbm => {
   const input = document.getElementById('input');
   input.disabled = false;
   input.focus();
-  status.textContent = 'Ready';
+  statusText.textContent = 'Ready';
+
+  let ledState    = false;
+  let lastLedFlip = 0;
 
   function loop() {
-    const deadline = performance.now() + 8;
+    const now      = performance.now();
+    const deadline = now + 8;
+    let   anyBusy  = false;
     try {
       while (performance.now() < deadline) {
-        lbm.ccall('lbm_wasm_run', null, ['number'], [100]);
+        const busy = lbm.ccall('lbm_wasm_run', 'number', ['number'], [100]);
+        if (busy) anyBusy = true;
+        if (!busy) break;
       }
     } catch(e) {
       appendOutput('CRASH in step: ' + e + '\n');
-      status.textContent = 'Crashed';
+      statusText.textContent = 'Crashed';
       return;
     }
     try {
       pollOutput();
     } catch(e) {
       appendOutput('CRASH in pollOutput: ' + e + '\n');
-      status.textContent = 'Crashed';
+      statusText.textContent = 'Crashed';
       return;
+    }
+    if (anyBusy) {
+      const t = performance.now();
+      if (t - lastLedFlip > 150) {
+        ledState    = !ledState;
+        lastLedFlip = t;
+        busyLed.classList.toggle('on', ledState);
+      }
+    } else {
+      ledState = false;
+      busyLed.classList.remove('on');
     }
     setTimeout(loop, 0);
   }

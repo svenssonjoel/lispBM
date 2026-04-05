@@ -5910,25 +5910,34 @@ void lbm_add_eval_symbols(void) {
 
 
 #ifdef LBM_SINGLE_THREADED
-void lbm_eval_step(void) {
+bool lbm_eval_step(int n) {
   if (setjmp(critical_error_jmp_buf) > 0) {
     lbm_printf_callback("GC stack overflow!\n");
     critical_error_callback();
     eval_running = false;
-    return;
+    return false; // uninteresting on a critical error.
   }
-  if (setjmp(error_jmp_buf) > 0) { return; }
+  if (setjmp(error_jmp_buf) > 0) { return false; }
 
-  if (ctx_running) {
-    evaluation_step();
-  } else {
-    if (gc_requested) gc();
-    process_events();
-    lbm_mutex_lock(&qmutex);
-    wake_up_ctxs_nm();
-    ctx_running = dequeue_ctx_nm(&queue);
-    lbm_mutex_unlock(&qmutex);
+  bool busy = false;
+
+  while (n > 0) {
+    if (ctx_running) {
+      evaluation_step();
+      busy = true;
+    } else {
+      if (gc_requested) gc();
+      process_events();
+      lbm_mutex_lock(&qmutex);
+      wake_up_ctxs_nm();
+      ctx_running = dequeue_ctx_nm(&queue);
+      lbm_mutex_unlock(&qmutex);
+      if (ctx_running) busy = true;
+    }
+    if (!busy) break; // save cpu for other work
+    n --;
   }
+  return busy;
 }
 
 bool lbm_eval_init(void) {

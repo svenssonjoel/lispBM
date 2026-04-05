@@ -218,6 +218,15 @@
     button:disabled { background: #333; color: #666; cursor: default; }
     button:hover:not(:disabled) { background: #1177bb; }
     #status { font-size: 12px; color: #888; }
+    #busy-led {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #333;
+      display: inline-block;
+      transition: background 0.1s;
+    }
+    #busy-led.on { background: #4ec9b0; box-shadow: 0 0 4px #4ec9b0; }
   </style>
 </head>
 <body>
@@ -246,7 +255,7 @@
     <input id="input" type="text" placeholder="Enter expression..." autocomplete="off" disabled>
     <button id="btn-eval" disabled>Eval</button>
   </div>
-  <div id="status">Loading...</div>
+  <div id="status" style="display:flex;align-items:center;gap:6px;"><span id="busy-led"></span><span id="status-text">Loading...</span></div>
 
   <div id="examples-modal">
     <div id="examples-box">
