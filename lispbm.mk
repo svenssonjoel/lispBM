@@ -74,8 +74,6 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions/crypto_extensions.h \
            $(LISPBM)/include/extensions/ecc_extensions.h
 
-
-
 LISPBM_INC = -I$(LISPBM)/include \
              -I$(LISPBM)/include/extensions \
              -I$(LISPBM)/src \
