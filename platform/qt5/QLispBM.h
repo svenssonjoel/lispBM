@@ -25,7 +25,6 @@
 
 #include "QLbmValue.h"
 
-extern "C" {
 #include "lispbm.h"
 #include "lbm_image.h"
 #include "platform_thread.h"
@@ -42,11 +41,10 @@ extern "C" {
 #include "extensions/mutex_extensions.h"
 #include "extensions/ttf_extensions.h"
 #include "extensions/display_extensions.h"
-}
 
 struct QLispBMConfig {
-  int heapCells      = 1 << 14;
-  int memoryBlocks   = 160;
+  int heapCells      = 16384;
+  int memoryBlocks   = 131072; // 8MB
   int gcStackSize    = 256;
   int printStackSize = 256;
   int maxExtensions  = 256;
@@ -96,6 +94,8 @@ public:
   void terminate();
 
   bool addExtension(const QString &name, extension_fptr fn);
+  QHash<QString, QLbmValue> environment(void);
+
 
 public slots:
   void eval(const QString &code);

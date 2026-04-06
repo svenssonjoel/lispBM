@@ -78,16 +78,16 @@ public:
   uint32_t flatSize() const;
   bool flatten(lbm_flat_value_t *fv) const;
 
-  QString          symbol()    const { return m_symbol; }
-  uint8_t          asChar()    const { return (uint8_t)m_i64; }
-  lbm_int          asI()       const { return (lbm_int)m_i64; }
-  lbm_uint         asU()       const { return (lbm_uint)m_u64; }
-  int32_t          asI32()     const { return (int32_t)m_i64; }
-  uint32_t         asU32()     const { return (uint32_t)m_u64; }
-  int64_t          asI64()     const { return m_i64; }
-  uint64_t         asU64()     const { return m_u64; }
-  float            asFloat()   const { return m_f; }
-  double           asDouble()  const { return m_d; }
+  QString          asSymbol()    const { return m_symbol; }
+  uint8_t          asChar()      const { return (uint8_t)m_i64; }
+  lbm_int          asI()         const { return (lbm_int)m_i64; }
+  lbm_uint         asU()         const { return (lbm_uint)m_u64; }
+  int32_t          asI32()       const { return (int32_t)m_i64; }
+  uint32_t         asU32()       const { return (uint32_t)m_u64; }
+  int64_t          asI64()       const { return m_i64; }
+  uint64_t         asU64()       const { return m_u64; }
+  float            asFloat()     const { return m_f; }
+  double           asDouble()    const { return m_d; }
   QLbmValue        car()         const { return m_list.value(0); }
   QLbmValue        cdr()         const { return m_list.value(1); }
   QByteArray       asByteArray() const { return m_bytes; }

@@ -209,6 +209,31 @@ bool QLispBM::addExtension(const QString &name, extension_fptr fn) {
   return ok;
 }
 
+QHash<QString, QLbmValue> QLispBM::environment(void) {
+  QHash<QString, QLbmValue> env;
+  if (!m_initialized || !m_running) return env;
+
+  lbm_pause_eval();
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+    QThread::msleep(1);
+  }
+
+  lbm_value *glob_env = lbm_get_global_env();
+  for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+    lbm_value curr  = glob_env[i];
+    while (lbm_is_cons(curr)) {
+      lbm_value binding = lbm_car(curr);
+      // binding should be a pair here or there env is corrupted.
+      QString name = QLbmValue::fromLbmValue(lbm_car(binding)).asSymbol();
+      QLbmValue v = QLbmValue::fromLbmValue(lbm_cdr(binding));
+      env.insert(name, v);
+      curr = lbm_cdr(curr);
+    }
+  }
+  lbm_continue_eval();
+  return env;
+}
+
 void QLispBM::eval(const QString &code) {
   if (!m_running) return;
 
