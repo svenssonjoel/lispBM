@@ -221,7 +221,13 @@ void QLispBM::eval(const QString &code) {
   auto *chan  = new lbm_char_channel_t;
   lbm_create_string_char_channel(state, chan, buf);
 
+  lbm_pause_eval_with_gc(20);
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+    QThread::msleep(1);
+  }
   lbm_cid cid = lbm_load_and_eval_expression(chan);
+  lbm_continue_eval();
+
   if (cid < 0) {
     free(buf);
     delete state;
@@ -245,7 +251,14 @@ void QLispBM::evalProgram(const QString &code) {
   auto *chan  = new lbm_char_channel_t;
   lbm_create_string_char_channel(state, chan, buf);
 
+  lbm_pause_eval_with_gc(20);
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+    QThread::msleep(1);
+  }
+
   lbm_cid cid = lbm_load_and_eval_program(chan, nullptr);
+  lbm_continue_eval();
+
   if (cid < 0) {
     free(buf);
     delete state;
@@ -267,7 +280,7 @@ bool QLispBM::sendEvent(const QLbmValue &value) {
   lbm_flat_value_t fv;
   if (!value.flatten(&fv)) return false;
   if (!lbm_event(&fv)) {
-    free(fv.buf);
+    lbm_free(fv.buf);
     return false;
   }
   return true;
