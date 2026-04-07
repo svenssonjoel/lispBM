@@ -1,5 +1,6 @@
 [
   { "name": "Sine Wave", "file": "sine.lisp", "description": "Plots a 440 Hz sine wave using the DSP library" },
   { "name": "FFT and Hamming Window", "file": "hamming.lisp", "description": "Shows the effect of a Hamming window on the FFT of a sum of sines, with inverse FFT reconstruction" },
-  { "name": "Antenna Angle Detection", "file": "angle_detection.lisp", "description": "2-antenna direction finding: recovers signal arrival angle from phase difference, sweeps -80 to +80 degrees" }
+  { "name": "Antenna Angle Detection", "file": "angle_detection.lisp", "description": "2-antenna direction finding: recovers signal arrival angle from phase difference, sweeps -80 to +80 degrees" },
+  { "name": "SHA-256 CSPRNG Quality", "file": "csprng.lisp", "description": "Compares two 16-bit output methods from a SHA-256 block CSPRNG: fixed slice vs folded sum. Histograms both and computes mean, variance and chi-squared to verify uniform distribution" }
 ]
