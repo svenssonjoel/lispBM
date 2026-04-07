@@ -190,7 +190,7 @@ const examplesList  = document.getElementById('examples-list');
 
 document.getElementById('btn-examples').addEventListener('click', () => {
   examplesList.innerHTML = '';
-  fetch('examples/index.json')
+  fetch('examples/index.json?v=' + Date.now())
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(examples => {
       examples.forEach(ex => {
