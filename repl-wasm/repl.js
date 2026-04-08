@@ -184,6 +184,7 @@ document.getElementById('btn-save').addEventListener('click', () => {
 
 const busyLed    = document.getElementById('busy-led');
 const statusText = document.getElementById('status-text');
+const stepsSelect = document.getElementById('steps-select');
 
 const examplesModal = document.getElementById('examples-modal');
 const examplesList  = document.getElementById('examples-list');
@@ -517,9 +518,8 @@ LispBM().then(lbm => {
     let   anyBusy  = false;
     try {
       while (performance.now() < deadline) {
-        const busy = lbm.ccall('lbm_wasm_run', 'number', ['number'], [100]);
+        const busy = lbm.ccall('lbm_wasm_run', 'number', ['number'], [parseInt(stepsSelect.value)]);
         if (busy) anyBusy = true;
-        if (!busy) break;
       }
     } catch(e) {
       appendOutput('CRASH in step: ' + e + '\n');

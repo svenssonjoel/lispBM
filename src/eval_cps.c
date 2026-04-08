@@ -5921,23 +5921,25 @@ bool lbm_eval_step(int n) {
 
   bool busy = false;
 
-  while (n > 0) {
-    if (ctx_running) {
+  if (ctx_running) {
+    busy = true;
+    while (n > 0 && ctx_running) {
       evaluation_step();
-      busy = true;
-    } else {
-      if (gc_requested) gc();
-      process_events();
-      lbm_mutex_lock(&qmutex);
-      wake_up_ctxs_nm();
-      ctx_running = dequeue_ctx_nm(&queue);
-      lbm_mutex_unlock(&qmutex);
-      if (ctx_running) busy = true;
+      n--;
     }
-    if (!busy) break; // save cpu for other work
-    n --;
+    if (ctx_running) {
+      enqueue_ctx_nm(&queue, ctx_running);
+      ctx_running = NULL;
+    }  
+  } else {
+    if (gc_requested) gc();
+    process_events();
+    lbm_mutex_lock(&qmutex);
+    wake_up_ctxs_nm();
+    ctx_running = dequeue_ctx_nm(&queue);
+    lbm_mutex_unlock(&qmutex);
   }
-  return busy;
+  return busy;  
 }
 
 bool lbm_eval_init(void) {
