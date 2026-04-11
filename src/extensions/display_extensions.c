@@ -742,6 +742,165 @@ static void img_draw_char_3x5(image_buffer_t *img, char ch, int x, int y,
   }
 }
 
+// Draw char 3x5 with discrete rotation (0, 90, 180, 270 degrees)
+// Rotation around center point
+static void img_draw_char_3x5_rotated_at(image_buffer_t *img, char ch, int x, int y,
+                                         uint32_t fg, uint32_t bg, int mag, 
+                                         int rotation_deg, double rot_center_x, double rot_center_y) {
+  int rot = (rotation_deg % 360) / 90;  // 0, 1, 2, or 3
+  
+  if (ch >= 'a' && ch <= 'z') {
+    ch = (char)(ch - ('a' - 'A'));
+  }
+
+  // Helper macro to draw a pixel with rotation
+  #define DRAW_PIXEL_ROT(px, py, col) { \
+    int rx = px, ry = py; \
+    if (rot == 1) { \
+      int tmp = rx - (int)rot_center_x; \
+      rx = (int)rot_center_x - (ry - (int)rot_center_y); \
+      ry = (int)rot_center_y + tmp; \
+    } else if (rot == 2) { \
+      rx = (int)rot_center_x * 2 - px; \
+      ry = (int)rot_center_y * 2 - py; \
+    } else if (rot == 3) { \
+      int tmp = rx - (int)rot_center_x; \
+      rx = (int)rot_center_x + (ry - (int)rot_center_y); \
+      ry = (int)rot_center_y - tmp; \
+    } \
+    putpixel(img, rx, ry, col); \
+  }
+
+  if (ch >= '0' && ch <= '9') {
+    const uint8_t *glyph = font_3x5_digits[(int)(ch - '0')];
+    for (int row = 0; row < 5; row++) {
+      for (int col = 0; col < 3; col++) {
+        uint32_t c = ((glyph[row] >> (2 - col)) & 1) ? fg : bg;
+        int px = x + col * mag;
+        int py = y + row * mag;
+        for (int dy = 0; dy < mag; dy++) {
+          for (int dx = 0; dx < mag; dx++) {
+            DRAW_PIXEL_ROT(px + dx, py + dy, c);
+          }
+        }
+      }
+    }
+  } else if (ch >= 'A' && ch <= 'Z') {
+    const uint8_t *glyph = font_3x5_upper[(int)(ch - 'A')];
+    for (int row = 0; row < 5; row++) {
+      for (int col = 0; col < 3; col++) {
+        uint32_t c = ((glyph[row] >> (2 - col)) & 1) ? fg : bg;
+        int px = x + col * mag;
+        int py = y + row * mag;
+        for (int dy = 0; dy < mag; dy++) {
+          for (int dx = 0; dx < mag; dx++) {
+            DRAW_PIXEL_ROT(px + dx, py + dy, c);
+          }
+        }
+      }
+    }
+  } else if (ch == '.') {
+    for (int dy = 0; dy < 5 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, bg);
+    }
+    for (int dy = 4 * mag; dy < 5 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, fg);
+    }
+  } else if (ch == ',') {
+    for (int dy = 0; dy < 5 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, bg);
+    }
+    for (int dy = 3 * mag; dy < 5 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, fg);
+    }
+  } else if (ch == ':') {
+    for (int dy = 0; dy < 5 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, bg);
+    }
+    for (int dy = mag; dy < 2 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, fg);
+    }
+    for (int dy = 3 * mag; dy < 4 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, fg);
+    }
+  } else if (ch == ';') {
+    for (int dy = 0; dy < 5 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, bg);
+    }
+    for (int dy = mag; dy < 2 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, fg);
+    }
+    for (int dy = 3 * mag; dy < 5 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, fg);
+    }
+  } else if (ch == '!') {
+    for (int dy = 0; dy < 3 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, fg);
+    }
+    for (int dy = 3 * mag; dy < 4 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, bg);
+    }
+    for (int dy = 4 * mag; dy < 5 * mag; dy++) {
+      DRAW_PIXEL_ROT(x, y + dy, fg);
+    }
+  } else if (ch == '+') {
+    for (int row = 0; row < 5; row++) {
+      for (int col = 0; col < 3; col++) {
+        uint32_t c = ((glyph_3x5_plus[row] >> (2 - col)) & 1) ? fg : bg;
+        for (int dy = 0; dy < mag; dy++) {
+          for (int dx = 0; dx < mag; dx++) {
+            DRAW_PIXEL_ROT(x + col * mag + dx, y + row * mag + dy, c);
+          }
+        }
+      }
+    }
+  } else if (ch == '=' || ch == '/' || ch == '\\' || ch == '(' || ch == ')' || 
+             ch == '[' || ch == ']' || ch == '_' || ch == '#' || ch == '*' || 
+             ch == '%' || ch == '@' || ch == '&' || ch == '?') {
+    const uint8_t *glyph = 0;
+    if (ch == '=') glyph = glyph_3x5_equals;
+    else if (ch == '/') glyph = glyph_3x5_slash;
+    else if (ch == '\\') glyph = glyph_3x5_bslash;
+    else if (ch == '(') glyph = glyph_3x5_lpar;
+    else if (ch == ')') glyph = glyph_3x5_rpar;
+    else if (ch == '[') glyph = glyph_3x5_lbr;
+    else if (ch == ']') glyph = glyph_3x5_rbr;
+    else if (ch == '_') glyph = glyph_3x5_under;
+    else if (ch == '#') glyph = glyph_3x5_hash;
+    else if (ch == '*') glyph = glyph_3x5_star;
+    else if (ch == '%') glyph = glyph_3x5_pct;
+    else if (ch == '@') glyph = glyph_3x5_at;
+    else if (ch == '&') glyph = glyph_3x5_amp;
+    else if (ch == '?') glyph = glyph_3x5_quest;
+    
+    if (glyph) {
+      for (int row = 0; row < 5; row++) {
+        for (int col = 0; col < 3; col++) {
+          uint32_t c = ((glyph[row] >> (2 - col)) & 1) ? fg : bg;
+          for (int dy = 0; dy < mag; dy++) {
+            for (int dx = 0; dx < mag; dx++) {
+              DRAW_PIXEL_ROT(x + col * mag + dx, y + row * mag + dy, c);
+            }
+          }
+        }
+      }
+    }
+  } else if (ch == ' ') {
+    for (int dy = 0; dy < 5 * mag; dy++) {
+      for (int dx = 0; dx < 2 * mag; dx++) {
+        DRAW_PIXEL_ROT(x + dx, y + dy, bg);
+      }
+    }
+  } else {
+    for (int dy = 0; dy < 5 * mag; dy++) {
+      for (int dx = 0; dx < 3 * mag; dx++) {
+        DRAW_PIXEL_ROT(x + dx, y + dy, bg);
+      }
+    }
+  }
+  #undef DRAW_PIXEL_ROT
+}
+
 static int format_number_compact(double val, int max_decimals, char *buf, int buf_size) {
   if (max_decimals < 0) max_decimals = 0;
   if (max_decimals > 9) max_decimals = 9;
@@ -788,33 +947,15 @@ static void draw_text_3x5_fallback(image_buffer_t *img, int x, int y, uint32_t f
       cursor_x += char_width_3x5(ch, mag) + spacing;
     }
   } else {
-    // Apply rotation around center point
-    double rad = (rotation_deg % 360) * (M_PI / 180.0);
-    double cos_a = cos(rad);
-    double sin_a = sin(rad);
+    // With rotation - rotate entire text around center point
+    double center_x = (double)x;
+    double center_y = (double)y + text_h / 2.0;
     
-    // Calculate center point
-    double center_x = x;
-    double center_y = y;
-    
+    // Render each character with rotation around text center
     int curr_x = cursor_x;
     for (int i = 0; txt[i] != 0; i++) {
       char ch = txt[i];
-      int char_h = 5 * mag;
-      
-      // Character position relative to center
-      double rel_x = curr_x - center_x;
-      double rel_y = (y + char_h / 2) - center_y;
-      
-      // Rotate position
-      double rot_x = rel_x * cos_a - rel_y * sin_a;
-      double rot_y = rel_x * sin_a + rel_y * cos_a;
-      
-      // Add back center offset and round
-      int draw_x = (int)(center_x + rot_x + 0.5);
-      int draw_y = (int)(center_y + rot_y - char_h / 2 + 0.5);
-      
-      img_draw_char_3x5(img, ch, draw_x, draw_y, fg, bg, mag);
+      img_draw_char_3x5_rotated_at(img, ch, curr_x, y, fg, bg, mag, rotation_deg, center_x, center_y);
       curr_x += char_width_3x5(ch, mag) + spacing;
     }
   }
