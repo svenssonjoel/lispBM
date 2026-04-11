@@ -769,24 +769,59 @@ static int format_number_compact(double val, int max_decimals, char *buf, int bu
   return len;
 }
 
-static void draw_text_3x5_fallback(image_buffer_t *img, int x, int y, uint32_t fg, uint32_t bg, const char *txt, int mag, int spacing, int align) {
+static void draw_text_3x5_fallback(image_buffer_t *img, int x, int y, uint32_t fg, uint32_t bg, const char *txt, int mag, int spacing, int align, int rotation_deg) {
   int cursor_x = x;
   int text_w = text_width_3x5(txt, mag, spacing);
+  int text_h = 5 * mag;
+  
   if (align == 1) {
     cursor_x = x - (text_w / 2);
   } else if (align == 2) {
     cursor_x = x - text_w;
   }
 
-  for (int i = 0; txt[i] != 0; i++) {
-    char ch = txt[i];
-    img_draw_char_3x5(img, ch, cursor_x, y, fg, bg, mag);
-    cursor_x += char_width_3x5(ch, mag) + spacing;
+  if (rotation_deg == 0) {
+    // No rotation, use fast path
+    for (int i = 0; txt[i] != 0; i++) {
+      char ch = txt[i];
+      img_draw_char_3x5(img, ch, cursor_x, y, fg, bg, mag);
+      cursor_x += char_width_3x5(ch, mag) + spacing;
+    }
+  } else {
+    // Apply rotation around center point
+    double rad = (rotation_deg % 360) * (M_PI / 180.0);
+    double cos_a = cos(rad);
+    double sin_a = sin(rad);
+    
+    // Calculate center point
+    double center_x = x;
+    double center_y = y;
+    
+    int curr_x = cursor_x;
+    for (int i = 0; txt[i] != 0; i++) {
+      char ch = txt[i];
+      int char_h = 5 * mag;
+      
+      // Character position relative to center
+      double rel_x = curr_x - center_x;
+      double rel_y = (y + char_h / 2) - center_y;
+      
+      // Rotate position
+      double rot_x = rel_x * cos_a - rel_y * sin_a;
+      double rot_y = rel_x * sin_a + rel_y * cos_a;
+      
+      // Add back center offset and round
+      int draw_x = (int)(center_x + rot_x + 0.5);
+      int draw_y = (int)(center_y + rot_y - char_h / 2 + 0.5);
+      
+      img_draw_char_3x5(img, ch, draw_x, draw_y, fg, bg, mag);
+      curr_x += char_width_3x5(ch, mag) + spacing;
+    }
   }
 }
 
 // returns: 1 parsed, 0 not an attr list, -1 malformed/invalid
-static int parse_text_fallback_attr(lbm_value v, int *mag, int *spacing, int *align) {
+static int parse_text_fallback_attr(lbm_value v, int *mag, int *spacing, int *align, int *rotation_deg) {
   if (!lbm_is_cons(v)) {
     return 0;
   }
@@ -841,6 +876,13 @@ static int parse_text_fallback_attr(lbm_value v, int *mag, int *spacing, int *al
     if (strcmp(astr, "center") == 0) { *align = 1; return 1; }
     if (strcmp(astr, "right") == 0) { *align = 2; return 1; }
     return -1;
+  }
+
+  if (sym == symbol_rotate) {
+    if (!lbm_is_number(val)) return -1;
+    int r = lbm_dec_as_i32(val);
+    *rotation_deg = r % 360;
+    return 1;
   }
 
   return 0;
@@ -2862,10 +2904,11 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   int fallback_mag = 1;
   int fallback_spacing = 1;
   int fallback_align = 0;
+  int fallback_rotation = 0;
 
   lbm_uint core_argn = argn;
   while (core_argn > 0) {
-    int r = parse_text_fallback_attr(args[core_argn - 1], &fallback_mag, &fallback_spacing, &fallback_align);
+    int r = parse_text_fallback_attr(args[core_argn - 1], &fallback_mag, &fallback_spacing, &fallback_align, &fallback_rotation);
     if (r == 1) {
       core_argn--;
       continue;
@@ -2946,8 +2989,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
-    draw_text_3x5_fallback(&img_buf, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt,
-                           fallback_mag, fallback_spacing, fallback_align);
+    draw_text_3x5_fallback(&img_buf, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt, fallback_mag, fallback_spacing, fallback_align, fallback_rotation);
     return ENC_SYM_TRUE;
   }
 
