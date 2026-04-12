@@ -30,6 +30,7 @@
 #include <lbm_utils.h>
 #include <lbm_defrag_mem.h>
 #include <lbm_cos_table.h>
+#include <symrepr.h>
 
 #ifdef LBM_OPT_DISPLAY_EXTENSIONS_SIZE
 #pragma GCC optimize ("-Os")
@@ -115,12 +116,6 @@ static lbm_uint symbol_repeat_type = 0;
 
 static lbm_uint symbol_down = 0;
 static lbm_uint symbol_up = 0;
-static lbm_uint symbol_magnify = 0;
-static lbm_uint symbol_spacing = 0;
-static lbm_uint symbol_align = 0;
-static lbm_uint symbol_left = 0;
-static lbm_uint symbol_center = 0;
-static lbm_uint symbol_right = 0;
 
 bool display_is_symbol_up(lbm_value v) {
   if (lbm_is_symbol(v)) {
@@ -346,12 +341,6 @@ static bool register_symbols(void) {
 
   res = res && lbm_add_symbol_const("down", &symbol_down);
   res = res && lbm_add_symbol_const("up", &symbol_up);
-  res = res && lbm_add_symbol_const("magnify", &symbol_magnify);
-  res = res && lbm_add_symbol_const("spacing", &symbol_spacing);
-  res = res && lbm_add_symbol_const("align", &symbol_align);
-  res = res && lbm_add_symbol_const("left", &symbol_left);
-  res = res && lbm_add_symbol_const("center", &symbol_center);
-  res = res && lbm_add_symbol_const("right", &symbol_right);
 
   return res;
 }
@@ -979,7 +968,9 @@ static int parse_text_fallback_attr(lbm_value v, int *mag, int *spacing, int *al
   }
 
   lbm_uint sym = lbm_dec_sym(key);
-  if (sym == symbol_magnify || sym == symbol_scale) {
+  const char *key_name = lbm_get_name_by_symbol(sym);
+
+  if (sym == symbol_scale || (key_name && strcmp(key_name, "magnify") == 0)) {
     if (!lbm_is_number(val)) return -1;
     int m = lbm_dec_as_i32(val);
     if (m < 1) m = 1;
@@ -987,7 +978,7 @@ static int parse_text_fallback_attr(lbm_value v, int *mag, int *spacing, int *al
     return 1;
   }
 
-  if (sym == symbol_spacing) {
+  if (key_name && strcmp(key_name, "spacing") == 0) {
     if (!lbm_is_number(val)) return -1;
     int s = lbm_dec_as_i32(val);
     if (s < 0) s = 0;
@@ -995,7 +986,7 @@ static int parse_text_fallback_attr(lbm_value v, int *mag, int *spacing, int *al
     return 1;
   }
 
-  if (sym == symbol_align) {
+  if (key_name && strcmp(key_name, "align") == 0) {
     if (lbm_is_number(val)) {
       int a = lbm_dec_as_i32(val);
       if (a < 0 || a > 2) return -1;
@@ -1004,10 +995,11 @@ static int parse_text_fallback_attr(lbm_value v, int *mag, int *spacing, int *al
     }
 
     if (lbm_is_symbol(val)) {
-      lbm_uint av = lbm_dec_sym(val);
-      if (av == symbol_left) { *align = 0; return 1; }
-      if (av == symbol_center) { *align = 1; return 1; }
-      if (av == symbol_right) { *align = 2; return 1; }
+      const char *av_name = lbm_get_name_by_symbol(lbm_dec_sym(val));
+      if (!av_name) return -1;
+      if (strcmp(av_name, "left") == 0) { *align = 0; return 1; }
+      if (strcmp(av_name, "center") == 0) { *align = 1; return 1; }
+      if (strcmp(av_name, "right") == 0) { *align = 2; return 1; }
       return -1;
     }
 
