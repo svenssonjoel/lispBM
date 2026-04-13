@@ -24,6 +24,11 @@
 #include <errno.h>
 #include <string.h>
 
+#ifdef __APPLE__
+typedef time_t __time_t;
+typedef long __syscall_slong_t;
+#endif
+
 typedef struct {
   lbm_thread_func_t user_func;
   void *user_arg;
