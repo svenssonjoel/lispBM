@@ -83,7 +83,9 @@ bool lbm_thread_create(lbm_thread_t *t,
   }
   // np apparently means "non-portable"
   // also requires the __GNU_SOURCE define.
+#ifndef __APPLE__
   if (name) pthread_setname_np(thread->handle, name);
+#endif
 
   return true;
 }
