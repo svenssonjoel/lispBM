@@ -23,8 +23,13 @@ LBMFLAGS = -DFULL_RTS_LIB \
 
 LDFLAGS = -lpng
 
-ifeq ($(PLATFORM), macos-arm64)
-	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include\
+# Detect OS and Architecture
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+
+# Detect macOS ARM
+ifeq ($(UNAME_S)-$(UNAME_M),Darwin-arm64)
+	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include \
 	                   -I/opt/homebrew/include/ \
 	                   -I/opt/homebrew/opt/readline/include
 	LDFLAGS += -L/opt/homebrew/opt/readline/lib -lreadline -L/opt/homebrew/lib
