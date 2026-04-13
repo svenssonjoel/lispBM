@@ -9,7 +9,7 @@ FEATURE_FILE = .build_features
 include $(LISPBM)/lispbm.mk
 
 LBMFLAGS = -DFULL_RTS_LIB \
-	   -DLBM_USE_DYN_MACROS \
+           -DLBM_USE_DYN_MACROS \
            -DLBM_USE_DYN_LOOPS \
            -DLBM_USE_DYN_FUNS \
            -DLBM_USE_DYN_ARRAYS \
@@ -33,22 +33,22 @@ else
 	LDFLAGS += -lpthread -lreadline -lhistory
 endif
 
-PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c \
-                   $(LISPBM)/platform/linux/src/platform_timestamp.c \
-	           $(LISPBM)/platform/linux/src/platform_thread.c
+PLATFORM_SRC = $(LISPBM)/platform/linux/src/platform_mutex.c \
+               $(LISPBM)/platform/linux/src/platform_timestamp.c \
+               $(LISPBM)/platform/linux/src/platform_thread.c
 
 ## If using any of the utilities.
 LISPBM_INC += -I../utils
 
-REPL_SRC= $(LISPBM_SRC)\
-	  repl.c \
-	  repl_exts.c \
-          ../utils/crc.c \
-          ../utils/packet.c \
-          vesc_express_extension_stubs.c \
-	  lbm_gnuplot.c \
-          lbm_octave.c \
-          bldc_extension_stubs.c
+REPL_SRC  = $(LISPBM_SRC)\
+            repl.c \
+            repl_exts.c \
+            ../utils/crc.c \
+            ../utils/packet.c \
+            vesc_express_extension_stubs.c \
+            lbm_gnuplot.c \
+            lbm_octave.c \
+            bldc_extension_stubs.c
 
 ## Dropped usage of pkg-config as it felt like more trouble than benefit.
 ## pkg-config searches for .pc files unrelated to compile flags such as -m32.
@@ -148,8 +148,5 @@ clean:
 clean_coverage:
 	rm -f coverage/*
 
-
 $(FEATURE_FILE): FORCE
 	@echo "$(FEATURES)" | cmp -s - $@ || echo "$(FEATURES)" > $@
-
-
