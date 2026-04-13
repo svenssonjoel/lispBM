@@ -8,6 +8,8 @@ FEATURE_FILE = .build_features
 
 include $(LISPBM)/lispbm.mk
 
+CCFLAGS = ""
+
 LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_DYN_MACROS \
            -DLBM_USE_DYN_LOOPS \
@@ -24,13 +26,14 @@ LDFLAGS = -lpng
 ifeq ($(PLATFORM), macos-arm64)
 	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include\
 	                   -I/opt/homebrew/include/ \
-                           -I/opt/homebrew/opt/readline/include
-	LDFLAGS += -L/opt/homebrew/opt/readline/lib -L/opt/homebrew/lib
-# To make mmap work on macOS
+	                   -I/opt/homebrew/opt/readline/include
+	LDFLAGS += -L/opt/homebrew/opt/readline/lib -lreadline -L/opt/homebrew/lib
+	# To make mmap work on macOS
 	LBMFLAGS += -D_DARWIN_C_SOURCE
 else
 	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 	LDFLAGS += -lpthread -lreadline -lhistory
+	CCFLAGS += -fno-pie -no-pie
 endif
 
 PLATFORM_SRC = $(LISPBM)/platform/linux/src/platform_mutex.c \
@@ -57,9 +60,9 @@ REPL_SRC  = $(LISPBM_SRC)\
 
 # Coverage build or regular
 ifneq (,$(filter coverage,$(FEATURES)))
-	CCFLAGS = -g -coverage -O0 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -fno-pie -no-pie
+	CCFLAGS += -g -coverage -O0 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS)
 else
-	CCFLAGS = -O2 -Wall -Wextra -Wshadow  -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
+	CCFLAGS += -O2 -Wall -Wextra -Wshadow  -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
 endif
 
 # Use 64bit
