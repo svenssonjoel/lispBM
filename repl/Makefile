@@ -45,15 +45,15 @@ PLATFORM_SRC = $(LISPBM)/platform/linux/src/platform_mutex.c \
 ## If using any of the utilities.
 LISPBM_INC += -I../utils
 
-REPL_SRC  = $(LISPBM_SRC)\
-            repl.c \
-            repl_exts.c \
-            ../utils/crc.c \
-            ../utils/packet.c \
-            vesc_express_extension_stubs.c \
-            lbm_gnuplot.c \
-            lbm_octave.c \
-            bldc_extension_stubs.c
+REPL_SRC = $(LISPBM_SRC)\
+           repl.c \
+           repl_exts.c \
+           ../utils/crc.c \
+           ../utils/packet.c \
+           vesc_express_extension_stubs.c \
+           lbm_gnuplot.c \
+           lbm_octave.c \
+           bldc_extension_stubs.c
 
 ## Dropped usage of pkg-config as it felt like more trouble than benefit.
 ## pkg-config searches for .pc files unrelated to compile flags such as -m32.
