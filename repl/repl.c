@@ -1134,7 +1134,7 @@ void startup_procedure(int argc, char **argv) {
     if (!fp) {
       terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
     }
-    uint32_t num_symbols = 0;
+    //uint32_t num_symbols = 0;
     while (true) {
       uint32_t name_len;
       size_t n = fread(&name_len, 1, sizeof(uint32_t), fp);
@@ -1175,7 +1175,7 @@ void startup_procedure(int argc, char **argv) {
         //printf("pos2: %u symbols added\n", num_symbols);
       }
 
-      num_symbols ++;
+      //num_symbols ++;
       lbm_value key = lbm_enc_sym(sym_id);
       uint32_t val_len;
       n = fread(&val_len, 1, sizeof(uint32_t), fp);
