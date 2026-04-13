@@ -43,37 +43,42 @@ And finally for offline rendering of fonts using freetype:
         ---------------------------
         libfreetype-dev    | libfreetype-dev:i386
 
-
-
-### Dependencies on MACOS
-
-In order to build the repl on Macos, you need to install libpng using brew as below.
-
-'brew install libpng readline'
-
-You need to build the `all64` target, and set `PLATFORM=macos-arm` when building.
-
 ## Build
 
-The REPL can be built with different feature-sets. features are selected as:
+The REPL can be built with different feature-sets. For example:
+
 ```
 make FEATURES="alsa sdl"
 ```
-which is an example of adding features for sound and graphics.
+
+will add the sound and graphics features.
 
 The total list of features is:
 
-* alsa     - Sound on Linux.
-* sdl      - Graphics on Linux.
-* freetype - Use libfreetype for font prepropressing.
-* 64       - 64Bit build.
-* coverage - Build with coverage collection.
+| -- | -- |
+| `alsa`     | Sound on Linux |
+| `sdl`      | Graphics on Linux |
+| `freetype` | Use libfreetype for font prepropressing |
+| `64`       | 64Bit build |
+| `coverage` | Build with coverage collection |
 
 To build the default target (32 bit LispBM repl) just issue the command:
 
 ```
 make
 ```
+
+### Building on MacOS
+
+_**NOTE:** The MacOS build is unsupported -- you may need to rollback to a known-working git revision to compile._
+
+In order to build the repl on MacOS, you need to install the `png` and `readline` libraries using brew as below:
+
+```
+brew install libpng readline
+```
+
+The MacOS version automatically builds the 64 bit version; 32 bit is currently unbuildable.
 
 ## install as lbm
 
@@ -84,7 +89,3 @@ make install
 ```
 
 to install the repl as `lbm` under ~/.local/bin
-
-
-
-
