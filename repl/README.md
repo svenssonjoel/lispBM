@@ -81,7 +81,7 @@ In order to build the repl on MacOS, you need to install the `png` and `readline
 brew install libpng readline
 ```
 
-The MacOS version automatically builds the 64 bit version; 32 bit is currently unbuildable.
+To build, call `make` as normal. The MacOS version automatically builds the 64 bit version; 32 bit is currently unbuildable.
 
 ## install as lbm
 
