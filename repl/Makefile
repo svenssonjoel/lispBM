@@ -19,7 +19,7 @@ LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_MACRO_REST_ARGS \
            -DLBM_USE_SHEBANG_COMMENTS
 
-LDFLAGS = -lpng -lm
+LDFLAGS = -lpng
 
 ifeq ($(PLATFORM), macos-arm64)
 	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include\
