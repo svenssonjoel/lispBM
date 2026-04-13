@@ -10,10 +10,12 @@
         libhistory  | libhistory:i386
 
 Ubuntu example for obtaining 32bit dependencies
-'sudo apt-get install gcc-multilib libreadline-dev lib32readline-dev'
 
-Additionally for SDL and png support the following libraries are
-needed.
+```
+sudo apt-get install gcc-multilib libreadline-dev lib32readline-dev
+```
+
+Additionally for SDL and png support the following libraries are needed.
 
         64Bit              | 32Bit
         ---------------------------
@@ -21,9 +23,9 @@ needed.
         libsdl2-image-dev  |
         libpng-dev         | libpng-dev:i386
 
-**Note** that installing libsdl2-dev:i386/libsdl2-image-dev:i386 on UBUNTU 24.04 seems to brick the
-entire OS! So I cannot recommend trying that... But if anyone know what is going
-on there, please let me know!
+**Note** that installing libsdl2-dev:i386/libsdl2-image-dev:i386 on UBUNTU 24.04 
+seems to brick the entire OS! So I cannot recommend trying that... But if anyone 
+know what is going on there, please let me know!
 
 To generate dot graphs from LBM, also install graphviz:
 
@@ -55,12 +57,13 @@ will add the sound and graphics features.
 
 The total list of features is:
 
-| -- | -- |
-| `alsa`     | Sound on Linux |
-| `sdl`      | Graphics on Linux |
-| `freetype` | Use libfreetype for font prepropressing |
-| `64`       | 64Bit build |
-| `coverage` | Build with coverage collection |
+| Feature Flag | Feature Set Enabled                     |
+|--------------|-----------------------------------------|
+| `alsa`       | Sound on Linux                          |
+| `sdl`        | Graphics on Linux                       |
+| `freetype`   | Use libfreetype for font prepropressing |
+| `64`         | 64Bit build                             |
+| `coverage`   | Build with coverage collection          |
 
 To build the default target (32 bit LispBM repl) just issue the command:
 
