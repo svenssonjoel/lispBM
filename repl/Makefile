@@ -30,6 +30,8 @@ ifeq ($(PLATFORM), macos-arm64)
 	LDFLAGS += -L/opt/homebrew/opt/readline/lib -lreadline -L/opt/homebrew/lib
 	# To make mmap work on macOS
 	LBMFLAGS += -D_DARWIN_C_SOURCE
+	# force 64bit mode on osx
+	FEATURES += 64
 else
 	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 	LDFLAGS += -lpthread -lreadline -lhistory
