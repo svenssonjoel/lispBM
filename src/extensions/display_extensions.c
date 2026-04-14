@@ -1,6 +1,6 @@
 /*
   Copyright 2023 - 2025 Benjamin Vedder            benjamin@vedder.se
-  Copyright 2023 - 2025 Joel Svensson              svenssonjoel@yahoo.se
+  Copyright 2023 - 2026 Joel Svensson              svenssonjoel@yahoo.se
   Copyright 2023        Rasmus Söderhielm          rasmus.soderhielm@gmail.com
   Copyright 2025        Joakim Lundborg            joakim.lundborg@gmail.com
   
@@ -23,7 +23,6 @@
 #include "tjpgd.h"
 
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 
 #include <extensions/display_extensions.h>
@@ -702,32 +701,6 @@ static void img_draw_char_3x5(image_buffer_t *img, char ch, int x, int y,
 }
 
 
-static int format_number_compact(double val, int max_decimals, char *buf, size_t buf_size) {
-  if (max_decimals < 0) max_decimals = 0;
-  if (max_decimals > 9) max_decimals = 9;
-
-  int len = snprintf(buf, buf_size, "%.*f", max_decimals, val);
-  if (len <= 0 || (size_t)len >= buf_size) {
-    return -1;
-  }
-
-  if (max_decimals > 0) {
-    while (len > 0 && buf[len - 1] == '0') {
-      buf[--len] = 0;
-    }
-    if (len > 0 && buf[len - 1] == '.') {
-      buf[--len] = 0;
-    }
-  }
-
-  if (strcmp(buf, "-0") == 0) {
-    buf[0] = '0';
-    buf[1] = 0;
-    len = 1;
-  }
-
-  return len;
-}
 
 static void draw_text_3x5_fallback(image_buffer_t *img, int x, int y, uint32_t fg, uint32_t bg, const char *txt, int mag, int spacing, int align, int rotation_deg) {
   int cursor_x = x;
@@ -2908,7 +2881,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   int32_t colors[4] = {-1, -1, -1, -1};
   bool fallback_no_font = false;
   if (core_argn == 6 && lbm_is_number(args[3]) && lbm_is_number(args[4]) &&
-      (lbm_is_number(args[5]) || lbm_dec_str(args[5]) != NULL)) {
+      lbm_dec_str(args[5]) != NULL) {
     fallback_no_font = true;
     colors[0] = lbm_dec_as_i32(args[3]);
     colors[1] = lbm_dec_as_i32(args[4]);
@@ -2953,17 +2926,9 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     font = (lbm_array_header_t *)lbm_car(args[core_argn - 2]);
   }
 
-  char num_buf[32];
-  char *txt = 0;
+  char *txt = NULL;
   if (fallback_no_font) {
-    if (lbm_is_number(args[5])) {
-      if (format_number_compact(lbm_dec_as_double(args[5]), 6, num_buf, sizeof(num_buf)) <= 0) {
-        return ENC_SYM_TERROR;
-      }
-      txt = num_buf;
-    } else {
-      txt = lbm_dec_str(args[5]);
-    }
+    txt = lbm_dec_str(args[5]);
     if (!txt) {
       return ENC_SYM_TERROR;
     }
