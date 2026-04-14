@@ -8,7 +8,7 @@ FEATURE_FILE = .build_features
 
 include $(LISPBM)/lispbm.mk
 
-CCFLAGS = ""
+CCFLAGS =
 
 LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_DYN_MACROS \
@@ -21,7 +21,7 @@ LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_MACRO_REST_ARGS \
            -DLBM_USE_SHEBANG_COMMENTS
 
-LDFLAGS = -lpng
+LDFLAGS = -lpng -lm
 
 # Detect OS and Architecture
 UNAME_S := $(shell uname -s)
