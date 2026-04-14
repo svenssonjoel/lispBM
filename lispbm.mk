@@ -24,7 +24,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/math_extensions.c \
              $(LISPBM)/src/extensions/runtime_extensions.c \
              $(LISPBM)/src/extensions/random_extensions.c \
-	     $(LISPBM)/src/extensions/set_extensions.c \
+             $(LISPBM)/src/extensions/set_extensions.c \
              $(LISPBM)/src/extensions/display_extensions.c \
              $(LISPBM)/src/extensions/tjpgd.c \
              $(LISPBM)/src/extensions/mutex_extensions.c \
@@ -32,7 +32,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/ttf_extensions.c \
              $(LISPBM)/src/extensions/ttf_backend.c \
              $(LISPBM)/src/extensions/schrift.c \
-	     $(LISPBM)/src/extensions/dsp_extensions.c \
+             $(LISPBM)/src/extensions/dsp_extensions.c \
              $(LISPBM)/src/extensions/crypto_extensions.c \
              $(LISPBM)/src/extensions/ecc_extensions.c
 

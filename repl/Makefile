@@ -8,8 +8,10 @@ FEATURE_FILE = .build_features
 
 include $(LISPBM)/lispbm.mk
 
+CCFLAGS = ""
+
 LBMFLAGS = -DFULL_RTS_LIB \
-	   -DLBM_USE_DYN_MACROS \
+           -DLBM_USE_DYN_MACROS \
            -DLBM_USE_DYN_LOOPS \
            -DLBM_USE_DYN_FUNS \
            -DLBM_USE_DYN_ARRAYS \
@@ -19,36 +21,44 @@ LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_MACRO_REST_ARGS \
            -DLBM_USE_SHEBANG_COMMENTS
 
-LDFLAGS = -lpng -lm
+LDFLAGS = -lpng
 
-ifeq ($(PLATFORM), macos-arm64)
-	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include\
+# Detect OS and Architecture
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+
+# Detect macOS ARM
+ifeq ($(UNAME_S)-$(UNAME_M),Darwin-arm64)
+	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include \
 	                   -I/opt/homebrew/include/ \
-                           -I/opt/homebrew/opt/readline/include
-	LDFLAGS += -L/opt/homebrew/opt/readline/lib -L/opt/homebrew/lib
-# To make mmap work on macOS
+	                   -I/opt/homebrew/opt/readline/include
+	LDFLAGS += -L/opt/homebrew/opt/readline/lib -lreadline -L/opt/homebrew/lib
+	# To make mmap work on macOS
 	LBMFLAGS += -D_DARWIN_C_SOURCE
+	# force 64bit mode on osx
+	FEATURES += 64
 else
 	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 	LDFLAGS += -lpthread -lreadline -lhistory
+	CCFLAGS += -fno-pie -no-pie
 endif
 
-PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c \
-                   $(LISPBM)/platform/linux/src/platform_timestamp.c \
-	           $(LISPBM)/platform/linux/src/platform_thread.c
+PLATFORM_SRC = $(LISPBM)/platform/linux/src/platform_mutex.c \
+               $(LISPBM)/platform/linux/src/platform_timestamp.c \
+               $(LISPBM)/platform/linux/src/platform_thread.c
 
 ## If using any of the utilities.
 LISPBM_INC += -I../utils
 
-REPL_SRC= $(LISPBM_SRC)\
-	  repl.c \
-	  repl_exts.c \
-          ../utils/crc.c \
-          ../utils/packet.c \
-          vesc_express_extension_stubs.c \
-	  lbm_gnuplot.c \
-          lbm_octave.c \
-          bldc_extension_stubs.c
+REPL_SRC = $(LISPBM_SRC)\
+           repl.c \
+           repl_exts.c \
+           ../utils/crc.c \
+           ../utils/packet.c \
+           vesc_express_extension_stubs.c \
+           lbm_gnuplot.c \
+           lbm_octave.c \
+           bldc_extension_stubs.c
 
 ## Dropped usage of pkg-config as it felt like more trouble than benefit.
 ## pkg-config searches for .pc files unrelated to compile flags such as -m32.
@@ -57,9 +67,9 @@ REPL_SRC= $(LISPBM_SRC)\
 
 # Coverage build or regular
 ifneq (,$(filter coverage,$(FEATURES)))
-	CCFLAGS = -g -coverage -O0 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -fno-pie -no-pie
+	CCFLAGS += -g -coverage -O0 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS)
 else
-	CCFLAGS = -O2 -Wall -Wextra -Wshadow  -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
+	CCFLAGS += -O2 -Wall -Wextra -Wshadow  -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
 endif
 
 # Use 64bit
@@ -148,8 +158,5 @@ clean:
 clean_coverage:
 	rm -f coverage/*
 
-
 $(FEATURE_FILE): FORCE
 	@echo "$(FEATURES)" | cmp -s - $@ || echo "$(FEATURES)" > $@
-
-
