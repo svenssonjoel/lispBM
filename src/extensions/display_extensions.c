@@ -602,50 +602,76 @@ void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
   }
 }
 
-static const uint8_t font_3x5_digits[10][5] = {
-  {7, 5, 5, 5, 7}, {1, 1, 1, 1, 1}, {7, 1, 7, 4, 7}, {7, 1, 3, 1, 7}, {5, 5, 7, 1, 1},
-  {7, 4, 7, 1, 7}, {7, 4, 7, 5, 7}, {7, 1, 1, 1, 1}, {7, 5, 7, 5, 7}, {7, 5, 7, 1, 7}
+typedef struct { uint8_t ch; uint8_t g[5]; } glyph_entry_3x5_t;
+
+static const glyph_entry_3x5_t glyph_table_3x5[] = {
+  {' ',  {0,0,0,0,0}}, {'!',  {4,4,4,0,4}}, {'#',  {5,7,5,7,5}},
+  {'%',  {5,1,2,4,5}}, {'&',  {2,5,2,5,3}}, {'\'', {4,4,0,0,0}},
+  {'(',  {1,2,2,2,1}}, {')',  {4,2,2,2,4}}, {'*',  {0,5,2,5,0}},
+  {'+',  {0,2,7,2,0}}, {',',  {0,0,0,4,4}}, {'-',  {0,0,7,0,0}},
+  {'.',  {0,0,0,0,4}}, {'/',  {1,1,2,4,4}},
+  {'0',  {7,5,5,5,7}}, {'1',  {1,1,1,1,1}}, {'2',  {7,1,7,4,7}},
+  {'3',  {7,1,3,1,7}}, {'4',  {5,5,7,1,1}}, {'5',  {7,4,7,1,7}},
+  {'6',  {7,4,7,5,7}}, {'7',  {7,1,1,1,1}}, {'8',  {7,5,7,5,7}},
+  {'9',  {7,5,7,1,7}},
+  {':',  {0,4,0,4,0}}, {';',  {0,4,0,4,4}}, {'=',  {0,7,0,7,0}},
+  {'?',  {7,1,2,0,2}}, {'@',  {2,5,7,4,3}},
+  {'A',  {2,5,7,5,5}}, {'B',  {6,5,6,5,6}}, {'C',  {3,4,4,4,3}},
+  {'D',  {6,5,5,5,6}}, {'E',  {7,4,6,4,7}}, {'F',  {7,4,6,4,4}},
+  {'G',  {3,4,5,5,3}}, {'H',  {5,5,7,5,5}}, {'I',  {7,2,2,2,7}},
+  {'J',  {1,1,1,5,2}}, {'K',  {5,5,6,5,5}}, {'L',  {4,4,4,4,7}},
+  {'M',  {5,7,7,5,5}}, {'N',  {5,7,7,7,5}}, {'O',  {2,5,5,5,2}},
+  {'P',  {6,5,6,4,4}}, {'Q',  {2,5,5,3,1}}, {'R',  {6,5,6,5,5}},
+  {'S',  {3,4,2,1,6}}, {'T',  {7,2,2,2,2}}, {'U',  {5,5,5,5,7}},
+  {'V',  {5,5,5,5,2}}, {'W',  {5,5,7,7,5}}, {'X',  {5,5,2,5,5}},
+  {'Y',  {5,5,2,2,2}}, {'Z',  {7,1,2,4,7}},
+  {'[',  {3,2,2,2,3}}, {'\\', {4,4,2,1,1}}, {']',  {6,2,2,2,6}},
+  {'_',  {0,0,0,0,7}},
 };
 
-static const uint8_t font_3x5_upper[26][5] = {
-  {2, 5, 7, 5, 5}, {6, 5, 6, 5, 6}, {3, 4, 4, 4, 3}, {6, 5, 5, 5, 6}, {7, 4, 6, 4, 7},
-  {7, 4, 6, 4, 4}, {3, 4, 5, 5, 3}, {5, 5, 7, 5, 5}, {7, 2, 2, 2, 7}, {1, 1, 1, 5, 2},
-  {5, 5, 6, 5, 5}, {4, 4, 4, 4, 7}, {5, 7, 7, 5, 5}, {5, 7, 7, 7, 5}, {2, 5, 5, 5, 2},
-  {6, 5, 6, 4, 4}, {2, 5, 5, 3, 1}, {6, 5, 6, 5, 5}, {3, 4, 2, 1, 6}, {7, 2, 2, 2, 2},
-  {5, 5, 5, 5, 7}, {5, 5, 5, 5, 2}, {5, 5, 7, 7, 5}, {5, 5, 2, 5, 5}, {5, 5, 2, 2, 2},
-  {7, 1, 2, 4, 7}
-};
+static const uint8_t *lookup_glyph_3x5(char ch) {
+  int lo = 0;
+  int hi = (int)(sizeof(glyph_table_3x5) / sizeof(glyph_table_3x5[0])) - 1;
+  while (lo <= hi) {
+    int mid = (lo + hi) / 2;
+    if (glyph_table_3x5[mid].ch == (uint8_t)ch) return glyph_table_3x5[mid].g;
+    if (glyph_table_3x5[mid].ch < (uint8_t)ch) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  return glyph_table_3x5[0].g;
+}
 
-static const uint8_t glyph_3x5_plus[5]   = {0, 2, 7, 2, 0};
-static const uint8_t glyph_3x5_equals[5] = {0, 7, 0, 7, 0};
-static const uint8_t glyph_3x5_slash[5]  = {1, 1, 2, 4, 4};
-static const uint8_t glyph_3x5_bslash[5] = {4, 4, 2, 1, 1};
-static const uint8_t glyph_3x5_lpar[5]   = {1, 2, 2, 2, 1};
-static const uint8_t glyph_3x5_rpar[5]   = {4, 2, 2, 2, 4};
-static const uint8_t glyph_3x5_lbr[5]    = {3, 2, 2, 2, 3};
-static const uint8_t glyph_3x5_rbr[5]    = {6, 2, 2, 2, 6};
-static const uint8_t glyph_3x5_under[5]  = {0, 0, 0, 0, 7};
-static const uint8_t glyph_3x5_hash[5]   = {5, 7, 5, 7, 5};
-static const uint8_t glyph_3x5_star[5]   = {0, 5, 2, 5, 0};
-static const uint8_t glyph_3x5_pct[5]    = {5, 1, 2, 4, 5};
-static const uint8_t glyph_3x5_at[5]     = {2, 5, 7, 4, 3};
-static const uint8_t glyph_3x5_amp[5]    = {2, 5, 2, 5, 3};
-static const uint8_t glyph_3x5_quest[5]  = {7, 1, 2, 0, 2};
-
-static void fill_block_3x5(image_buffer_t *img, int x, int y, int w, int h, uint32_t color) {
-  for (int px = 0; px < w; px++) {
-    for (int py = 0; py < h; py++) {
-      putpixel(img, x + px, y + py, color);
-    }
+static void rot_point_3x5(int px, int py, int rot, int cx, int cy, int *rx, int *ry) {
+  if (rot == 1) {
+    int tmp = px - cx;
+    *rx = cx - (py - cy);
+    *ry = cy + tmp;
+  } else if (rot == 2) {
+    *rx = 2 * cx - px;
+    *ry = 2 * cy - py;
+  } else if (rot == 3) {
+    int tmp = px - cx;
+    *rx = cx + (py - cy);
+    *ry = cy - tmp;
+  } else {
+    *rx = px;
+    *ry = py;
   }
 }
 
+
 static void draw_rows_3x5(image_buffer_t *img, const uint8_t rows[5], int x, int y,
-                          uint32_t fg, uint32_t bg, int mag) {
+                          uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
   for (int row = 0; row < 5; row++) {
     for (int col = 0; col < 3; col++) {
       uint32_t c = ((rows[row] >> (2 - col)) & 1) ? fg : bg;
-      fill_block_3x5(img, x + col * mag, y + row * mag, mag, mag, c);
+      for (int dy = 0; dy < mag; dy++) {
+        for (int dx = 0; dx < mag; dx++) {
+          int rx, ry;
+          rot_point_3x5(x + col * mag + dx, y + row * mag + dy, rot, cx, cy, &rx, &ry);
+          putpixel(img, rx, ry, c);
+        }
+      }
     }
   }
 }
@@ -670,243 +696,18 @@ static int text_width_3x5(const char *txt, int mag, int spacing) {
 }
 
 static void img_draw_char_3x5(image_buffer_t *img, char ch, int x, int y,
-                              uint32_t fg, uint32_t bg, int mag) {
-  if (ch >= 'a' && ch <= 'z') {
-    ch = (char)(ch - ('a' - 'A'));
-  }
-
-  if (ch >= '0' && ch <= '9') {
-    draw_rows_3x5(img, font_3x5_digits[(int)(ch - '0')], x, y, fg, bg, mag);
-  } else if (ch >= 'A' && ch <= 'Z') {
-    draw_rows_3x5(img, font_3x5_upper[(int)(ch - 'A')], x, y, fg, bg, mag);
-  } else if (ch == '.') {
-    fill_block_3x5(img, x, y, mag, 5 * mag, bg);
-    fill_block_3x5(img, x, y + 4 * mag, mag, mag, fg);
-  } else if (ch == ',') {
-    fill_block_3x5(img, x, y, mag, 5 * mag, bg);
-    fill_block_3x5(img, x, y + 3 * mag, mag, mag, fg);
-    fill_block_3x5(img, x, y + 4 * mag, mag, mag, fg);
-  } else if (ch == ':') {
-    fill_block_3x5(img, x, y, mag, 5 * mag, bg);
-    fill_block_3x5(img, x, y + mag, mag, mag, fg);
-    fill_block_3x5(img, x, y + 3 * mag, mag, mag, fg);
-  } else if (ch == ';') {
-    fill_block_3x5(img, x, y, mag, 5 * mag, bg);
-    fill_block_3x5(img, x, y + mag, mag, mag, fg);
-    fill_block_3x5(img, x, y + 3 * mag, mag, mag, fg);
-    fill_block_3x5(img, x, y + 4 * mag, mag, mag, fg);
-  } else if (ch == '!') {
-    fill_block_3x5(img, x, y, mag, 5 * mag, bg);
-    fill_block_3x5(img, x, y, mag, 3 * mag, fg);
-    fill_block_3x5(img, x, y + 4 * mag, mag, mag, fg);
-  } else if (ch == '\'') {
-    fill_block_3x5(img, x, y, mag, 5 * mag, bg);
-    fill_block_3x5(img, x, y, mag, 2 * mag, fg);
-  } else if (ch == '-') {
-    fill_block_3x5(img, x, y, 3 * mag, 5 * mag, bg);
-    fill_block_3x5(img, x, y + 2 * mag, 3 * mag, mag, fg);
-  } else if (ch == '+') {
-    draw_rows_3x5(img, glyph_3x5_plus, x, y, fg, bg, mag);
-  } else if (ch == '=') {
-    draw_rows_3x5(img, glyph_3x5_equals, x, y, fg, bg, mag);
-  } else if (ch == '/') {
-    draw_rows_3x5(img, glyph_3x5_slash, x, y, fg, bg, mag);
-  } else if (ch == '\\') {
-    draw_rows_3x5(img, glyph_3x5_bslash, x, y, fg, bg, mag);
-  } else if (ch == '(') {
-    draw_rows_3x5(img, glyph_3x5_lpar, x, y, fg, bg, mag);
-  } else if (ch == ')') {
-    draw_rows_3x5(img, glyph_3x5_rpar, x, y, fg, bg, mag);
-  } else if (ch == '[') {
-    draw_rows_3x5(img, glyph_3x5_lbr, x, y, fg, bg, mag);
-  } else if (ch == ']') {
-    draw_rows_3x5(img, glyph_3x5_rbr, x, y, fg, bg, mag);
-  } else if (ch == '_') {
-    draw_rows_3x5(img, glyph_3x5_under, x, y, fg, bg, mag);
-  } else if (ch == '#') {
-    draw_rows_3x5(img, glyph_3x5_hash, x, y, fg, bg, mag);
-  } else if (ch == '*') {
-    draw_rows_3x5(img, glyph_3x5_star, x, y, fg, bg, mag);
-  } else if (ch == '%') {
-    draw_rows_3x5(img, glyph_3x5_pct, x, y, fg, bg, mag);
-  } else if (ch == '@') {
-    draw_rows_3x5(img, glyph_3x5_at, x, y, fg, bg, mag);
-  } else if (ch == '&') {
-    draw_rows_3x5(img, glyph_3x5_amp, x, y, fg, bg, mag);
-  } else if (ch == '?') {
-    draw_rows_3x5(img, glyph_3x5_quest, x, y, fg, bg, mag);
-  } else if (ch == ' ') {
-    fill_block_3x5(img, x, y, 2 * mag, 5 * mag, bg);
-  } else {
-    fill_block_3x5(img, x, y, 3 * mag, 5 * mag, bg);
-  }
+                              uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
+  if (ch >= 'a' && ch <= 'z') ch = (char)(ch - ('a' - 'A'));
+  draw_rows_3x5(img, lookup_glyph_3x5(ch), x, y, fg, bg, mag, rot, cx, cy);
 }
 
-// Draw char 3x5 with discrete rotation (0, 90, 180, 270 degrees)
-// Rotation around center point
-static void img_draw_char_3x5_rotated_at(image_buffer_t *img, char ch, int x, int y,
-                                         uint32_t fg, uint32_t bg, int mag, 
-                                         int rotation_deg, double rot_center_x, double rot_center_y) {
-  int rot = (rotation_deg % 360) / 90;  // 0, 1, 2, or 3
-  
-  if (ch >= 'a' && ch <= 'z') {
-    ch = (char)(ch - ('a' - 'A'));
-  }
 
-  // Helper macro to draw a pixel with rotation
-  #define DRAW_PIXEL_ROT(px, py, col) { \
-    int rx = px, ry = py; \
-    if (rot == 1) { \
-      int tmp = rx - (int)rot_center_x; \
-      rx = (int)rot_center_x - (ry - (int)rot_center_y); \
-      ry = (int)rot_center_y + tmp; \
-    } else if (rot == 2) { \
-      rx = (int)rot_center_x * 2 - px; \
-      ry = (int)rot_center_y * 2 - py; \
-    } else if (rot == 3) { \
-      int tmp = rx - (int)rot_center_x; \
-      rx = (int)rot_center_x + (ry - (int)rot_center_y); \
-      ry = (int)rot_center_y - tmp; \
-    } \
-    putpixel(img, rx, ry, col); \
-  }
-
-  if (ch >= '0' && ch <= '9') {
-    const uint8_t *glyph = font_3x5_digits[(int)(ch - '0')];
-    for (int row = 0; row < 5; row++) {
-      for (int col = 0; col < 3; col++) {
-        uint32_t c = ((glyph[row] >> (2 - col)) & 1) ? fg : bg;
-        int px = x + col * mag;
-        int py = y + row * mag;
-        for (int dy = 0; dy < mag; dy++) {
-          for (int dx = 0; dx < mag; dx++) {
-            DRAW_PIXEL_ROT(px + dx, py + dy, c);
-          }
-        }
-      }
-    }
-  } else if (ch >= 'A' && ch <= 'Z') {
-    const uint8_t *glyph = font_3x5_upper[(int)(ch - 'A')];
-    for (int row = 0; row < 5; row++) {
-      for (int col = 0; col < 3; col++) {
-        uint32_t c = ((glyph[row] >> (2 - col)) & 1) ? fg : bg;
-        int px = x + col * mag;
-        int py = y + row * mag;
-        for (int dy = 0; dy < mag; dy++) {
-          for (int dx = 0; dx < mag; dx++) {
-            DRAW_PIXEL_ROT(px + dx, py + dy, c);
-          }
-        }
-      }
-    }
-  } else if (ch == '.') {
-    for (int dy = 0; dy < 5 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, bg);
-    }
-    for (int dy = 4 * mag; dy < 5 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, fg);
-    }
-  } else if (ch == ',') {
-    for (int dy = 0; dy < 5 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, bg);
-    }
-    for (int dy = 3 * mag; dy < 5 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, fg);
-    }
-  } else if (ch == ':') {
-    for (int dy = 0; dy < 5 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, bg);
-    }
-    for (int dy = mag; dy < 2 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, fg);
-    }
-    for (int dy = 3 * mag; dy < 4 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, fg);
-    }
-  } else if (ch == ';') {
-    for (int dy = 0; dy < 5 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, bg);
-    }
-    for (int dy = mag; dy < 2 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, fg);
-    }
-    for (int dy = 3 * mag; dy < 5 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, fg);
-    }
-  } else if (ch == '!') {
-    for (int dy = 0; dy < 3 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, fg);
-    }
-    for (int dy = 3 * mag; dy < 4 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, bg);
-    }
-    for (int dy = 4 * mag; dy < 5 * mag; dy++) {
-      DRAW_PIXEL_ROT(x, y + dy, fg);
-    }
-  } else if (ch == '+') {
-    for (int row = 0; row < 5; row++) {
-      for (int col = 0; col < 3; col++) {
-        uint32_t c = ((glyph_3x5_plus[row] >> (2 - col)) & 1) ? fg : bg;
-        for (int dy = 0; dy < mag; dy++) {
-          for (int dx = 0; dx < mag; dx++) {
-            DRAW_PIXEL_ROT(x + col * mag + dx, y + row * mag + dy, c);
-          }
-        }
-      }
-    }
-  } else if (ch == '=' || ch == '/' || ch == '\\' || ch == '(' || ch == ')' || 
-             ch == '[' || ch == ']' || ch == '_' || ch == '#' || ch == '*' || 
-             ch == '%' || ch == '@' || ch == '&' || ch == '?') {
-    const uint8_t *glyph = 0;
-    if (ch == '=') glyph = glyph_3x5_equals;
-    else if (ch == '/') glyph = glyph_3x5_slash;
-    else if (ch == '\\') glyph = glyph_3x5_bslash;
-    else if (ch == '(') glyph = glyph_3x5_lpar;
-    else if (ch == ')') glyph = glyph_3x5_rpar;
-    else if (ch == '[') glyph = glyph_3x5_lbr;
-    else if (ch == ']') glyph = glyph_3x5_rbr;
-    else if (ch == '_') glyph = glyph_3x5_under;
-    else if (ch == '#') glyph = glyph_3x5_hash;
-    else if (ch == '*') glyph = glyph_3x5_star;
-    else if (ch == '%') glyph = glyph_3x5_pct;
-    else if (ch == '@') glyph = glyph_3x5_at;
-    else if (ch == '&') glyph = glyph_3x5_amp;
-    else if (ch == '?') glyph = glyph_3x5_quest;
-    
-    if (glyph) {
-      for (int row = 0; row < 5; row++) {
-        for (int col = 0; col < 3; col++) {
-          uint32_t c = ((glyph[row] >> (2 - col)) & 1) ? fg : bg;
-          for (int dy = 0; dy < mag; dy++) {
-            for (int dx = 0; dx < mag; dx++) {
-              DRAW_PIXEL_ROT(x + col * mag + dx, y + row * mag + dy, c);
-            }
-          }
-        }
-      }
-    }
-  } else if (ch == ' ') {
-    for (int dy = 0; dy < 5 * mag; dy++) {
-      for (int dx = 0; dx < 2 * mag; dx++) {
-        DRAW_PIXEL_ROT(x + dx, y + dy, bg);
-      }
-    }
-  } else {
-    for (int dy = 0; dy < 5 * mag; dy++) {
-      for (int dx = 0; dx < 3 * mag; dx++) {
-        DRAW_PIXEL_ROT(x + dx, y + dy, bg);
-      }
-    }
-  }
-  #undef DRAW_PIXEL_ROT
-}
-
-static int format_number_compact(double val, int max_decimals, char *buf, int buf_size) {
+static int format_number_compact(double val, int max_decimals, char *buf, size_t buf_size) {
   if (max_decimals < 0) max_decimals = 0;
   if (max_decimals > 9) max_decimals = 9;
 
   int len = snprintf(buf, buf_size, "%.*f", max_decimals, val);
-  if (len <= 0 || len >= buf_size) {
+  if (len <= 0 || (size_t)len >= buf_size) {
     return -1;
   }
 
@@ -932,32 +733,21 @@ static void draw_text_3x5_fallback(image_buffer_t *img, int x, int y, uint32_t f
   int cursor_x = x;
   int text_w = text_width_3x5(txt, mag, spacing);
   int text_h = 5 * mag;
-  
+
   if (align == 1) {
     cursor_x = x - (text_w / 2);
   } else if (align == 2) {
     cursor_x = x - text_w;
   }
 
-  if (rotation_deg == 0) {
-    // No rotation, use fast path
-    for (int i = 0; txt[i] != 0; i++) {
-      char ch = txt[i];
-      img_draw_char_3x5(img, ch, cursor_x, y, fg, bg, mag);
-      cursor_x += char_width_3x5(ch, mag) + spacing;
-    }
-  } else {
-    // With rotation - rotate entire text around center point
-    double center_x = (double)x;
-    double center_y = (double)y + text_h / 2.0;
-    
-    // Render each character with rotation around text center
-    int curr_x = cursor_x;
-    for (int i = 0; txt[i] != 0; i++) {
-      char ch = txt[i];
-      img_draw_char_3x5_rotated_at(img, ch, curr_x, y, fg, bg, mag, rotation_deg, center_x, center_y);
-      curr_x += char_width_3x5(ch, mag) + spacing;
-    }
+  int rot = (rotation_deg % 360) / 90;
+  int cx = x;
+  int cy = y + text_h / 2;
+
+  for (int i = 0; txt[i] != 0; i++) {
+    char ch = txt[i];
+    img_draw_char_3x5(img, ch, cursor_x, y, fg, bg, mag, rot, cx, cy);
+    cursor_x += char_width_3x5(ch, mag) + spacing;
   }
 }
 
@@ -2131,7 +1921,7 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
 }
 
 static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors,
-                     uint8_t *font_data, uint8_t ch, bool up, bool down) {
+                     uint8_t *font_data, uint8_t ch, bool up, bool down, int mag) {
   uint8_t w = font_data[0];
   uint8_t h = font_data[1];
   uint8_t char_num = font_data[2];
@@ -2166,11 +1956,35 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
       int x0 = i % w;
       int y0 = i / w;
       if (up) {
-        putpixel(img, x + y0, y - x0, colors[pixel_value]);
+        if (mag == 1) {
+          putpixel(img, x + y0, y - x0, colors[pixel_value]);
+        } else {
+          for (int dy = 0; dy < mag; dy++) {
+            for (int dx = 0; dx < mag; dx++) {
+              putpixel(img, x + y0 * mag + dy, y - x0 * mag - dx, colors[pixel_value]);
+            }
+          }
+        }
       } else if (down) {
-        putpixel(img, x - y0, y + x0, colors[pixel_value]);
+        if (mag == 1) {
+          putpixel(img, x - y0, y + x0, colors[pixel_value]);
+        } else {
+          for (int dy = 0; dy < mag; dy++) {
+            for (int dx = 0; dx < mag; dx++) {
+              putpixel(img, x - y0 * mag - dy, y + x0 * mag + dx, colors[pixel_value]);
+            }
+          }
+        }
       } else {
-        putpixel(img, x + x0, y + y0, colors[pixel_value]);
+        if (mag == 1) {
+          putpixel(img, x + x0, y + y0, colors[pixel_value]);
+        } else {
+          for (int dy = 0; dy < mag; dy++) {
+            for (int dx = 0; dx < mag; dx++) {
+              putpixel(img, x + x0 * mag + dx, y + y0 * mag + dy, colors[pixel_value]);
+            }
+          }
+        }
       }
     }
   } else {
@@ -2192,13 +2006,37 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
       if (bit || bg >= 0) {
         int x0 = i % w;
         int y0 = i / w;
-
+        uint32_t color = bit ? (uint32_t)fg : (uint32_t)bg;
         if (up) {
-          putpixel(img, x + y0, y - x0, bit ? (uint32_t)fg : (uint32_t)bg);
+          if (mag == 1) {
+            putpixel(img, x + y0, y - x0, color);
+          } else {
+            for (int dy = 0; dy < mag; dy++) {
+              for (int dx = 0; dx < mag; dx++) {
+                putpixel(img, x + y0 * mag + dy, y - x0 * mag - dx, color);
+              }
+            }
+          }
         } else if (down) {
-          putpixel(img, x - y0, y + x0, bit ? (uint32_t)fg : (uint32_t)bg);
+          if (mag == 1) {
+            putpixel(img, x - y0, y + x0, color);
+          } else {
+            for (int dy = 0; dy < mag; dy++) {
+              for (int dx = 0; dx < mag; dx++) {
+                putpixel(img, x - y0 * mag - dy, y + x0 * mag + dx, color);
+              }
+            }
+          }
         } else {
-          putpixel(img, x + x0, y + y0, bit ? (uint32_t)fg : (uint32_t)bg);
+          if (mag == 1) {
+            putpixel(img, x + x0, y + y0, color);
+          } else {
+            for (int dy = 0; dy < mag; dy++) {
+              for (int dx = 0; dx < mag; dx++) {
+                putpixel(img, x + x0 * mag + dx, y + y0 * mag + dy, color);
+              }
+            }
+          }
         }
       }
     }
@@ -3042,14 +2880,14 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  int fallback_mag = 1;
+  int txt_mag = 1;
   int fallback_spacing = 1;
   int fallback_align = 0;
   int fallback_rotation = 0;
 
   lbm_uint core_argn = argn;
   while (core_argn > 0) {
-    int r = parse_text_fallback_attr(args[core_argn - 1], &fallback_mag, &fallback_spacing, &fallback_align, &fallback_rotation);
+    int r = parse_text_fallback_attr(args[core_argn - 1], &txt_mag, &fallback_spacing, &fallback_align, &fallback_rotation);
     if (r == 1) {
       core_argn--;
       continue;
@@ -3119,7 +2957,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   char *txt = 0;
   if (fallback_no_font) {
     if (lbm_is_number(args[5])) {
-      if (format_number_compact(lbm_dec_as_double(args[5]), 6, num_buf, (int)sizeof(num_buf)) <= 0) {
+      if (format_number_compact(lbm_dec_as_double(args[5]), 6, num_buf, sizeof(num_buf)) <= 0) {
         return ENC_SYM_TERROR;
       }
       txt = num_buf;
@@ -3130,7 +2968,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
-    draw_text_3x5_fallback(&img_buf, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt, fallback_mag, fallback_spacing, fallback_align, fallback_rotation);
+    draw_text_3x5_fallback(&img_buf, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt, txt_mag, fallback_spacing, fallback_align, fallback_rotation);
     return ENC_SYM_TRUE;
   }
 
@@ -3156,14 +2994,15 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   int ind = 0;
   while (txt[ind] != 0) {
     img_putc(&img_buf,
-      x + ind * ((up || down) ? h : w) * incx,
-      y + ind * ((up || down) ? w : h) * incy,
+      x + ind * ((up || down) ? h : w) * incx * txt_mag,
+      y + ind * ((up || down) ? w : h) * incy * txt_mag,
       (uint32_t *)colors,
       4,
       font_data,
       (uint8_t)txt[ind],
       up,
-      down);
+      down,
+      txt_mag);
     ind++;
   }
 
