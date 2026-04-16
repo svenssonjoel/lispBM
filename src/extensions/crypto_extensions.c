@@ -19,6 +19,13 @@
 #include "lbm_c_interop.h"
 #include "crypto_extensions.h"
 
+#ifdef LBM_OPT_CRYPTO_EXTENSIONS_SIZE
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_CRYPTO_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC optimize ("-Oz")
+#endif
+
 
 /* ************************************************************
  * SHA256 hash

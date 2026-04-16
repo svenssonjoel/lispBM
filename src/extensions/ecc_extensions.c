@@ -19,6 +19,14 @@
 #include "lbm_c_interop.h"
 #include "ecc_extensions.h"
 
+#ifdef LBM_OPT_ECC_EXTENSIONS_SIZE
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_ECC_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC optimize ("-Oz")
+#endif
+
+
 /*
    Reed Solomon error correction codes over GF(2^8).
 

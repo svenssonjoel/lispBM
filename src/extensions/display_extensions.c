@@ -2134,7 +2134,7 @@ void blit(
 // Extensions
 
 #define ATTR_MAX_ARGS	4
-#define ARG_MAX_NUM		8
+#define ARG_MAX_NUM	8
 
 typedef struct {
   bool is_valid;
@@ -2182,7 +2182,7 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
         res.args[num_dec] = args[i];
         num_dec++;
 
-        if (num_dec > ARG_MAX_NUM) {
+        if (num_dec >= ARG_MAX_NUM) {
           return res;
         }
       } else {
