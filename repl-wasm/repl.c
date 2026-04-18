@@ -188,6 +188,24 @@ EM_JS(void, js_plot_xy, (uint8_t *xbuf, int xbytes, uint8_t *ybuf, int ybytes, c
 });
 
 
+// Count how many open editor tabs have the given filename.
+EM_JS(int, js_count_tab_matches, (const char *filename), {
+  if (typeof window.countEditorTabMatches !== 'function') return 0;
+  return window.countEditorTabMatches(UTF8ToString(filename));
+});
+
+// Check if an editor tab with the given filename is open; return its content.
+EM_JS(char*, js_get_tab_content, (const char *filename), {
+  if (typeof window.getEditorTabContent !== 'function') return 0;
+  const content = window.getEditorTabContent(UTF8ToString(filename));
+  if (content === null) return 0;
+  const len = lengthBytesUTF8(content) + 1;
+  const buf = _malloc(len);
+  if (!buf) return 0;
+  stringToUTF8(content, buf, len);
+  return buf;
+});
+
 // Javascript function callable from C.
 // defines:
 //  char *js_import_lib(const char *filename);
@@ -280,7 +298,12 @@ static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
   if (!filename) return ENC_SYM_TERROR;
   const char *symname = lbm_get_name_by_symbol(lbm_dec_sym(args[1]));
   if (!symname) return ENC_SYM_TERROR;
-  char *code = js_import_lib(filename);
+  int matches = js_count_tab_matches(filename);
+  if (matches > 1) {
+    print_callback("import: %d open tabs named \"%s\", using first match\n", matches, filename);
+  }
+  char *code = js_get_tab_content(filename);
+  if (!code) code = js_import_lib(filename);
   if (!code) return ENC_SYM_NIL;
   lbm_uint len = (lbm_uint)strlen(code);
   lbm_value result;

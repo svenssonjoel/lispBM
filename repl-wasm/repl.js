@@ -143,6 +143,19 @@ function closeEditorTab(id) {
   }
 }
 
+function tabMatchesFilename(t, filename) {
+  return t.filename === filename || t.labelEl.textContent === filename;
+}
+
+window.countEditorTabMatches = function(filename) {
+  return editorTabs.filter(t => tabMatchesFilename(t, filename)).length;
+};
+
+window.getEditorTabContent = function(filename) {
+  const tab = editorTabs.find(t => tabMatchesFilename(t, filename));
+  return tab ? tab.cm.getValue() : null;
+};
+
 document.getElementById('btn-new-editor-tab').addEventListener('click', () => {
   const n = prompt('Tab name:', 'untitled');
   if (n !== null) createEditorTab(n.trim() || 'untitled');
