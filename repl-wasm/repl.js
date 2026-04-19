@@ -196,7 +196,8 @@ window.createCanvasTab = function(w, h, title) {
   document.getElementById('output-tab-contents').appendChild(pane);
 
   const toolbar = document.createElement('div');
-  toolbar.style.cssText = 'display:flex;gap:6px;padding:0 0 4px 0;';
+  toolbar.style.cssText = 'display:flex;gap:6px;padding:0 0 4px 0;align-items:center;';
+
   const saveBtn = document.createElement('button');
   saveBtn.textContent = 'Save PNG';
   saveBtn.addEventListener('click', () => {
@@ -205,13 +206,36 @@ window.createCanvasTab = function(w, h, title) {
     a.download = label + '.png';
     a.click();
   });
+
+  const scaleLabel = document.createElement('label');
+  scaleLabel.textContent = 'Scale:';
+  scaleLabel.style.cssText = 'font-size:12px;color:#888;';
+
+  const scaleSelect = document.createElement('select');
+  scaleSelect.style.cssText = 'background:#2d2d2d;color:#d4d4d4;border:1px solid #555;font-size:12px;';
+  [1, 2, 3, 4, 5].forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n + 'x';
+    if (n === 1) opt.selected = true;
+    scaleSelect.appendChild(opt);
+  });
+  scaleSelect.addEventListener('change', () => {
+    const s = parseInt(scaleSelect.value);
+    canvas.style.transformOrigin = 'top left';
+    canvas.style.transform = s === 1 ? '' : `scale(${s})`;
+    pane.style.overflow = s === 1 ? 'auto' : 'auto';
+  });
+
   toolbar.appendChild(saveBtn);
+  toolbar.appendChild(scaleLabel);
+  toolbar.appendChild(scaleSelect);
   pane.appendChild(toolbar);
 
   const canvas = document.createElement('canvas');
   canvas.width  = w;
   canvas.height = h;
-  canvas.style.cssText = 'display:block;background:#000;';
+  canvas.style.cssText = 'display:block;background:#000;image-rendering:pixelated;';
   pane.appendChild(canvas);
   const ctx = canvas.getContext('2d');
 
