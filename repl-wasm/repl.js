@@ -147,6 +147,22 @@ function tabMatchesFilename(t, filename) {
   return t.filename === filename || t.labelEl.textContent === filename;
 }
 
+// RTS tab (permanent)
+const rtsTabBtn = document.createElement('button');
+rtsTabBtn.className = 'tab-btn';
+rtsTabBtn.dataset.tab = 'rts';
+rtsTabBtn.addEventListener('click', () => switchTab('rts'));
+const rtsLabelEl = document.createElement('span');
+rtsLabelEl.textContent = 'RTS';
+rtsTabBtn.appendChild(rtsLabelEl);
+document.getElementById('output-tab-bar').appendChild(rtsTabBtn);
+
+const rtsPane = document.createElement('div');
+rtsPane.id        = 'output-tab-rts';
+rtsPane.className = 'tab-pane';
+rtsPane.style.cssText = 'padding:10px;';
+document.getElementById('output-tab-contents').appendChild(rtsPane);
+
 // ------------------------------------------------------------
 // Canvas tabs
 // ------------------------------------------------------------
@@ -507,6 +523,104 @@ LispBM().then(lbm => {
       plugins: [wheelZoomPlugin],
     }, [xs, ys], pane);
   };
+
+  function refreshRTS() {
+    rtsPane.innerHTML = '';
+
+    // --- Stats ---
+    const statsJson = lbm.ccall('lbm_wasm_get_stats', 'string', [], []);
+    let st;
+    try { st = JSON.parse(statsJson); } catch(e) { st = null; }
+
+    if (st) {
+      const heapUsed = st.heap_size - st.heap_free;
+      const memUsed  = st.mem_size  - st.mem_free;
+
+      const grid = document.createElement('div');
+      grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:2px 24px;font-size:12px;margin-bottom:12px;';
+
+      const rows = [
+        ['Heap used',          `${heapUsed} / ${st.heap_size} cells`],
+        ['LBM memory used',    `${memUsed.toLocaleString()} / ${st.mem_size.toLocaleString()} bytes`],
+        ['LBM memory free',    `${st.mem_free.toLocaleString()} bytes (longest block: ${st.mem_longest_free.toLocaleString()})`],
+        ['LBM memory peak',    `${st.mem_max_used_pct.toFixed(1)}%`],
+        ['Allocated arrays',   `${st.num_alloc_arrays}`],
+        ['GC runs',            `${st.gc_num}`],
+        ['GC recovered',       `${st.gc_recovered} cells, ${st.gc_recovered_arrays} arrays`],
+        ['GC marked',          `${st.gc_marked}`],
+        ['GC stack',           `max ${st.gc_stack_max} / ${st.gc_stack_size}`],
+      ];
+
+      rows.forEach(([label, value]) => {
+        const lEl = document.createElement('div');
+        lEl.textContent = label;
+        lEl.style.cssText = 'color:#569cd6;';
+        const vEl = document.createElement('div');
+        vEl.textContent = value;
+        vEl.style.color = '#d4d4d4';
+        grid.appendChild(lEl);
+        grid.appendChild(vEl);
+      });
+
+      rtsPane.appendChild(grid);
+
+      const div = document.createElement('div');
+      div.style.cssText = 'border-top:1px solid #333;margin-bottom:10px;';
+      rtsPane.appendChild(div);
+    }
+
+    // --- Thread list ---
+    const json = lbm.ccall('lbm_wasm_get_ctxs', 'string', [], []);
+    let ctxs;
+    try { ctxs = JSON.parse(json); } catch(e) { return; }
+
+    if (ctxs.length === 0) {
+      const msg = document.createElement('div');
+      msg.style.cssText = 'color:#666;font-size:12px;';
+      msg.textContent = 'No running threads.';
+      rtsPane.appendChild(msg);
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;';
+
+    const hrow = document.createElement('tr');
+    ['CID', 'Name', 'State', ''].forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      th.style.cssText = 'text-align:left;color:#569cd6;padding:4px 8px;border-bottom:1px solid #333;';
+      hrow.appendChild(th);
+    });
+    table.appendChild(hrow);
+
+    ctxs.forEach(ctx => {
+      const tr = document.createElement('tr');
+      [ctx.cid, ctx.name || '\u2014', ctx.state].forEach(v => {
+        const td = document.createElement('td');
+        td.textContent = v;
+        td.style.cssText = 'padding:4px 8px;border-bottom:1px solid #222;color:#d4d4d4;';
+        tr.appendChild(td);
+      });
+      const tdBtn = document.createElement('td');
+      tdBtn.style.cssText = 'padding:4px 8px;border-bottom:1px solid #222;';
+      const killBtn = document.createElement('button');
+      killBtn.textContent = 'Kill';
+      killBtn.style.cssText = 'background:#6b1010;padding:2px 10px;font-size:11px;';
+      killBtn.addEventListener('click', () => {
+        lbm.ccall('lbm_wasm_eval', null, ['string'], ['(kill ' + ctx.cid + ' nil)']);
+      });
+      tdBtn.appendChild(killBtn);
+      tr.appendChild(tdBtn);
+      table.appendChild(tr);
+    });
+
+    rtsPane.appendChild(table);
+  }
+
+  setInterval(() => {
+    if (rtsTabBtn.classList.contains('active')) refreshRTS();
+  }, 500);
 
   window.canvasPutImage = function(canvasId, rgbaPtr, w, h, x, y) {
     const tab = canvasTabs[canvasId];

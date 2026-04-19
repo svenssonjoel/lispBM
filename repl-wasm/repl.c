@@ -51,6 +51,8 @@
 #define LBM_MEMORY_SIZE        LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(LBM_MEMORY_BLOCKS)
 #define LBM_BITMAP_SIZE        LBM_MEMORY_BITMAP_SIZE(LBM_MEMORY_BLOCKS)
 #define OUTPUT_BUFFER_SIZE     65536
+#define CTX_LIST_BUFFER_SIZE   4096
+#define STATS_BUFFER_SIZE      512
 #define IMAGE_STORAGE_SIZE     (128 * 1024)
 
 
@@ -86,6 +88,9 @@ static bool wasm_image_write(uint32_t w, int32_t ix, bool is_const_heap) {
 
 static char output_buffer[OUTPUT_BUFFER_SIZE];
 static int  output_pos = 0;
+
+static char ctx_list_buffer[CTX_LIST_BUFFER_SIZE];
+static char stats_buffer[STATS_BUFFER_SIZE];
 
 static lbm_string_channel_state_t string_tok_state;
 static lbm_char_channel_t         string_tok;
@@ -437,6 +442,29 @@ static void wasm_reset(void) {
   if (active_canvas_id >= 0) js_canvas_clear_js(active_canvas_id, 0);
 }
 
+static const char *ctx_state_str(uint32_t state) {
+  uint32_t s = state & ~LBM_THREAD_STATE_GC_BIT;
+  if (s == LBM_THREAD_STATE_READY)   return "ready";
+  if (s & LBM_THREAD_STATE_SLEEPING) return "sleeping";
+  if (s & LBM_THREAD_STATE_RECV_BL)  return "recv-blocked";
+  if (s & LBM_THREAD_STATE_RECV_TO)  return "recv-timeout";
+  if (s & LBM_THREAD_STATE_TIMEOUT)  return "timeout";
+  if (s & LBM_THREAD_STATE_BLOCKED)  return "blocked";
+  return "unknown";
+}
+
+static void ctx_to_json(eval_context_t *ctx, void *arg1, void *arg2) {
+  char *buf = (char*)arg1;
+  int  *pos = (int*)arg2;
+  const char *sep   = (*pos > 1) ? "," : "";
+  const char *name  = ctx->name ? ctx->name : "";
+  const char *state = ctx_state_str(ctx->state);
+  int n = snprintf(buf + *pos, (size_t)(CTX_LIST_BUFFER_SIZE - *pos),
+                   "%s{\"cid\":%d,\"name\":\"%s\",\"state\":\"%s\"}",
+                   sep, (int)ctx->id, name, state);
+  if (n > 0) *pos += n;
+}
+
 static void done_callback(eval_context_t *ctx) {
   char result[1024];
   lbm_print_value(result, sizeof(result), ctx->r);
@@ -564,8 +592,55 @@ void lbm_wasm_clear_output(void) {
 }
 
 EMSCRIPTEN_KEEPALIVE
+const char *lbm_wasm_get_stats(void) {
+  lbm_heap_state_t hs;
+  lbm_get_heap_state(&hs);
+
+  lbm_uint heap_free    = lbm_heap_num_free();
+  lbm_uint mem_words    = lbm_memory_num_words();
+  lbm_uint mem_free     = lbm_memory_num_free();
+  lbm_uint mem_longest  = lbm_memory_longest_free();
+  lbm_uint mem_max_used = lbm_memory_maximum_used();
+  float    mem_max_pct  = mem_words > 0
+                          ? 100.0f * ((float)mem_max_used / (float)mem_words)
+                          : 0.0f;
+
+  snprintf(stats_buffer, STATS_BUFFER_SIZE,
+           "{"
+           "\"heap_size\":%u,\"heap_free\":%u,"
+           "\"gc_num\":%u,\"gc_recovered\":%u,"
+           "\"gc_recovered_arrays\":%u,\"gc_marked\":%u,"
+           "\"gc_stack_max\":%u,\"gc_stack_size\":%u,"
+           "\"mem_size\":%u,\"mem_free\":%u,"
+           "\"mem_longest_free\":%u,\"mem_max_used_pct\":%.1f,"
+           "\"num_alloc_arrays\":%u"
+           "}",
+           (unsigned)HEAP_SIZE,        (unsigned)heap_free,
+           (unsigned)hs.gc_num,        (unsigned)hs.gc_recovered,
+           (unsigned)hs.gc_recovered_arrays, (unsigned)hs.gc_marked,
+           (unsigned)lbm_get_gc_stack_max(), (unsigned)lbm_get_gc_stack_size(),
+           (unsigned)(mem_words * 4),  (unsigned)(mem_free * 4),
+           (unsigned)(mem_longest * 4), mem_max_pct,
+           (unsigned)hs.num_alloc_arrays);
+
+  return stats_buffer;
+}
+
+EMSCRIPTEN_KEEPALIVE
 int lbm_wasm_is_running(void) {
   return (int)(lbm_get_eval_state() != EVAL_CPS_STATE_DEAD);
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char *lbm_wasm_get_ctxs(void) {
+  ctx_list_buffer[0] = '[';
+  int pos = 1;
+  lbm_all_ctxs_iterator(ctx_to_json, ctx_list_buffer, &pos);
+  if (pos < CTX_LIST_BUFFER_SIZE - 2) {
+    ctx_list_buffer[pos++] = ']';
+    ctx_list_buffer[pos]   = '\0';
+  }
+  return ctx_list_buffer;
 }
 
 int main(void) {
