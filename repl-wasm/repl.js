@@ -147,6 +147,73 @@ function tabMatchesFilename(t, filename) {
   return t.filename === filename || t.labelEl.textContent === filename;
 }
 
+// ------------------------------------------------------------
+// Canvas tabs
+// ------------------------------------------------------------
+let canvasTabSeq = 0;
+const canvasTabs = {};
+
+window.createCanvasTab = function(w, h, title) {
+  canvasTabSeq++;
+  const cid   = canvasTabSeq;
+  const tabId = 'canvas-' + cid;
+  const label = (title && title.length) ? title : ('Canvas ' + cid);
+
+  const btn = document.createElement('button');
+  btn.className   = 'tab-btn';
+  btn.dataset.tab = tabId;
+  btn.addEventListener('click', () => switchTab(tabId));
+  const labelEl = document.createElement('span');
+  labelEl.textContent = label;
+  const closeEl = document.createElement('span');
+  closeEl.className   = 'tab-close';
+  closeEl.textContent = '\u2297';
+  closeEl.addEventListener('click', e => { e.stopPropagation(); closeTab(tabId); delete canvasTabs[cid]; });
+  btn.appendChild(labelEl);
+  btn.appendChild(closeEl);
+  document.getElementById('output-tab-bar').appendChild(btn);
+
+  const pane = document.createElement('div');
+  pane.id        = 'output-tab-' + tabId;
+  pane.className = 'tab-pane';
+  pane.style.cssText = 'padding:8px;overflow:auto;background:#111;';
+  document.getElementById('output-tab-contents').appendChild(pane);
+
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = 'display:flex;gap:6px;padding:0 0 4px 0;';
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save PNG';
+  saveBtn.addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href     = canvas.toDataURL('image/png');
+    a.download = label + '.png';
+    a.click();
+  });
+  toolbar.appendChild(saveBtn);
+  pane.appendChild(toolbar);
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = w;
+  canvas.height = h;
+  canvas.style.cssText = 'display:block;background:#000;';
+  pane.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  canvasTabs[cid] = { canvas, ctx, tabId };
+  switchTab(tabId);
+  return cid;
+};
+
+window.canvasClear = function(canvasId, color) {
+  const tab = canvasTabs[canvasId];
+  if (!tab) return;
+  const r = (color >>> 16) & 0xFF;
+  const g = (color >>>  8) & 0xFF;
+  const b =  color         & 0xFF;
+  tab.ctx.fillStyle = `rgb(${r},${g},${b})`;
+  tab.ctx.fillRect(0, 0, tab.canvas.width, tab.canvas.height);
+};
+
 window.countEditorTabMatches = function(filename) {
   return editorTabs.filter(t => tabMatchesFilename(t, filename)).length;
 };
@@ -439,6 +506,14 @@ LispBM().then(lbm => {
       cursor: { stroke: '#569cd6', width: 1 },
       plugins: [wheelZoomPlugin],
     }, [xs, ys], pane);
+  };
+
+  window.canvasPutImage = function(canvasId, rgbaPtr, w, h, x, y) {
+    const tab = canvasTabs[canvasId];
+    if (!tab) return;
+    const bytes   = new Uint8ClampedArray(lbm.HEAP8.buffer, rgbaPtr, w * h * 4);
+    const imgData = new ImageData(bytes.slice(), w, h);
+    tab.ctx.putImageData(imgData, x, y);
   };
 
   const SERIES_COLORS = ['#4ec9b0', '#569cd6', '#ce9178', '#dcdcaa', '#c586c0', '#f44747', '#b5cea8', '#9cdcfe'];

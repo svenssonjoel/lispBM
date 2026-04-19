@@ -25,6 +25,7 @@
 #include "lispbm.h"
 #include "lbm_image.h"
 #include "extensions/array_extensions.h"
+#include "extensions/display_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/math_extensions.h"
 #include "extensions/runtime_extensions.h"
@@ -41,11 +42,12 @@
 #define GC_STACK_SIZE          256
 #define PRINT_STACK_SIZE       256
 #define EXTENSION_STORAGE_SIZE 512
-#define LBM_MEMORY_BLOCKS      16384   // ~10K  (* (* 160 16) 4) 10240
+#define LBM_MEMORY_BLOCKS      131072  // ~10K  (* (* 160 16) 4) 10240
                                        //  64K  (* (* 1024 16) 4) 65536
                                        // 256K  (* (* 4096 16) 4) 262144
                                        // 512K  (* (* 8192 16) 4) 655360
                                        //   1M  (* (* 16384 16) 4) 1048576
+                                       //   8M  (* (* 131072 16) 4) 8388608
 #define LBM_MEMORY_SIZE        LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(LBM_MEMORY_BLOCKS)
 #define LBM_BITMAP_SIZE        LBM_MEMORY_BITMAP_SIZE(LBM_MEMORY_BLOCKS)
 #define OUTPUT_BUFFER_SIZE     65536
@@ -318,6 +320,123 @@ static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
   return result;
 }
 
+EM_JS(int, js_create_canvas_tab, (int w, int h, const char *title), {
+  if (typeof window.createCanvasTab !== 'function') return -1;
+  return window.createCanvasTab(w, h, UTF8ToString(title));
+});
+
+EM_JS(void, js_canvas_put_image, (int canvas_id, uint8_t *rgba, int w, int h, int x, int y), {
+  if (typeof window.canvasPutImage === 'function') {
+    window.canvasPutImage(canvas_id, rgba, w, h, x, y);
+  }
+});
+
+EM_JS(void, js_canvas_clear_js, (int canvas_id, uint32_t color), {
+  if (typeof window.canvasClear === 'function') {
+    window.canvasClear(canvas_id, color);
+  }
+});
+
+static int active_canvas_id = -1;
+
+// (wasm-create-canvas w h) or (wasm-create-canvas w h "title")
+static lbm_value ext_wasm_create_canvas(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_number(args[1])) return ENC_SYM_TERROR;
+  int w = lbm_dec_as_i32(args[0]);
+  int h = lbm_dec_as_i32(args[1]);
+  const char *title = "";
+  if (argn >= 3 && lbm_is_array_r(args[2])) {
+    title = lbm_dec_str(args[2]);
+    if (!title) title = "";
+  }
+  active_canvas_id = js_create_canvas_tab(w, h, title);
+  return ENC_SYM_TRUE;
+}
+
+static bool wasm_render_image(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors) {
+  if (active_canvas_id < 0) return false;
+
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
+  uint32_t npix = (uint32_t)w * (uint32_t)h;
+  uint8_t *data = img->data;
+
+  uint8_t *rgba = (uint8_t*)malloc(npix * 4);
+  if (!rgba) return false;
+
+  for (uint32_t i = 0; i < npix; i++) {
+    uint32_t c  = 0;
+    int      px = (int)(i % w);
+    int      py = (int)(i / w);
+
+    switch (img->fmt) {
+    case indexed2: {
+      int byte = (int)i >> 3;
+      int bit  = 7 - ((int)i & 0x7);
+      int ci   = (data[byte] & (1 << bit)) >> bit;
+      c = COLOR_TO_RGB888(colors[ci], px, py);
+      break;
+    }
+    case indexed4: {
+      int byte = (int)i >> 2;
+      int bit  = (3 - ((int)i & 0x03)) * 2;
+      int ci   = (data[byte] & (0x03 << bit)) >> bit;
+      c = COLOR_TO_RGB888(colors[ci], px, py);
+      break;
+    }
+    case indexed16: {
+      int byte = (int)i >> 1;
+      int bit  = (1 - ((int)i & 0x01)) * 4;
+      int ci   = (data[byte] & (0x0F << bit)) >> bit;
+      c = COLOR_TO_RGB888(colors[ci], px, py);
+      break;
+    }
+    case rgb332: {
+      uint8_t  p = data[i];
+      uint32_t r = (p >> 5) & 0x7;
+      uint32_t g = (p >> 2) & 0x7;
+      uint32_t b = p & 0x3;
+      b = (b > 0) ? 2*b+1 : 0;
+      r = (r == 7) ? 255 : r * 36;
+      g = (g == 7) ? 255 : g * 36;
+      b = (b == 7) ? 255 : b * 36;
+      c = (r << 16) | (g << 8) | b;
+      break;
+    }
+    case rgb565: {
+      uint16_t p = (uint16_t)((data[2*i] << 8) | data[2*i+1]);
+      uint32_t r = p >> 11;
+      uint32_t g = (p >> 5) & 0x3F;
+      uint32_t b = p & 0x1F;
+      c = (r << 19) | (g << 10) | (b << 3);
+      break;
+    }
+    case rgb888: {
+      c = ((uint32_t)data[3*i] << 16) | ((uint32_t)data[3*i+1] << 8) | data[3*i+2];
+      break;
+    }
+    default: break;
+    }
+
+    rgba[4*i + 0] = (c >> 16) & 0xFF;
+    rgba[4*i + 1] = (c >>  8) & 0xFF;
+    rgba[4*i + 2] =  c        & 0xFF;
+    rgba[4*i + 3] = 255;
+  }
+
+  js_canvas_put_image(active_canvas_id, rgba, (int)w, (int)h, (int)x, (int)y);
+  free(rgba);
+  return true;
+}
+
+static void wasm_clear(uint32_t color) {
+  if (active_canvas_id >= 0) js_canvas_clear_js(active_canvas_id, color);
+}
+
+static void wasm_reset(void) {
+  if (active_canvas_id >= 0) js_canvas_clear_js(active_canvas_id, 0);
+}
+
 static void done_callback(eval_context_t *ctx) {
   char result[1024];
   lbm_print_value(result, sizeof(result), ctx->r);
@@ -372,11 +491,14 @@ int lbm_wasm_init(void) {
   lbm_crypto_extensions_init();
   lbm_dsp_extensions_init();
   lbm_ecc_extensions_init();
+  lbm_display_extensions_init();
+  lbm_display_extensions_set_callbacks(wasm_render_image, wasm_clear, wasm_reset);
 
   lbm_add_eval_symbols();
 
-  lbm_add_extension("print",          ext_print);
-  lbm_add_extension("wasm-plot",       ext_wasm_plot);
+  lbm_add_extension("print",               ext_print);
+  lbm_add_extension("wasm-create-canvas", ext_wasm_create_canvas);
+  lbm_add_extension("wasm-plot",           ext_wasm_plot);
   lbm_add_extension("wasm-plot-multi", ext_wasm_plot_multi);
   lbm_add_extension("wasm-plot-xy",    ext_wasm_plot_xy);
   lbm_add_extension("import",          ext_import);
