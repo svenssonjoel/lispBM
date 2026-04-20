@@ -684,7 +684,7 @@ LispBM().then(lbm => {
   const input = document.getElementById('input');
   input.disabled = false;
   input.focus();
-  statusText.textContent = 'Ready';
+  statusText.textContent = 'Activity';
 
   let ledState    = false;
   let lastLedFlip = 0;
