@@ -224,7 +224,7 @@ window.createCanvasTab = function(w, h, title) {
     const s = parseInt(scaleSelect.value);
     canvas.style.transformOrigin = 'top left';
     canvas.style.transform = s === 1 ? '' : `scale(${s})`;
-    pane.style.overflow = s === 1 ? 'auto' : 'auto';
+    pane.style.overflow = 'auto';
   });
 
   toolbar.appendChild(saveBtn);
@@ -343,6 +343,48 @@ examplesModal.addEventListener('click', e => {
   if (e.target === examplesModal) examplesModal.classList.remove('open');
 });
 
+
+const DARK_AXES = [{ stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },
+                   { stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },];
+
+function mkPlotTab(title) {
+    
+    plotCount++;
+    const id    = 'plot-' + plotCount;
+    const label = (title && title.length) ? title : ('Plot ' + plotCount);
+
+    const btn = document.createElement('button');
+    btn.className   = 'tab-btn';
+    btn.dataset.tab = id;
+    btn.addEventListener('click', () => switchTab(id));
+    const labelEl = document.createElement('span');
+    labelEl.textContent = label;
+    const closeEl = document.createElement('span');
+    closeEl.className   = 'tab-close';
+    closeEl.textContent = '\u2297';
+    closeEl.addEventListener('click', e => { e.stopPropagation(); closeTab(id); });
+    btn.appendChild(labelEl);
+    btn.appendChild(closeEl);
+    document.getElementById('output-tab-bar').appendChild(btn);
+
+    const pane = document.createElement('div');
+    pane.id        = 'output-tab-' + id;
+    pane.className = 'tab-pane plot-pane';
+    document.getElementById('output-tab-contents').appendChild(pane);
+
+    switchTab(id);
+
+    const rect = document.getElementById('output-tab-contents').getBoundingClientRect();
+    const w    = Math.max(rect.width  - 16, 300);
+    const h    = Math.max(rect.height - 48, 200);
+
+    return {id, label, pane, w, h};
+}
+
+// lbm variable in the lambda will be bound to the WASM
+// module (LispBM repl compiled into wasm) and the lbm
+// value is then a handle through which all interaction with
+// lispbm runtime happens.
 LispBM().then(lbm => {
   const btnEval     = document.getElementById('btn-eval');
   const btnLoad     = document.getElementById('btn-load');
@@ -441,42 +483,14 @@ LispBM().then(lbm => {
   window.createPlotTab = function(buf, nbytes, title) {
     //const ptr    = lbm.ccall('lbm_wasm_buf_ptr', 'number', ['number'], [slot]);
     const nFloat = (nbytes / 4) | 0;
-      
+
     const floats = new Float32Array(lbm.HEAP8.buffer, buf, nFloat);
     const ys     = Array.from(floats);
     const xs     = Array.from({length: ys.length}, (_, i) => i);
 
-    plotCount++;
-    const id    = 'plot-' + plotCount;
-    const label = (title && title.length) ? title : ('Plot ' + plotCount);
-
-    const btn = document.createElement('button');
-    btn.className   = 'tab-btn';
-    btn.dataset.tab = id;
-    btn.addEventListener('click', () => switchTab(id));
-    const labelEl = document.createElement('span');
-    labelEl.textContent = label;
-    const closeEl = document.createElement('span');
-    closeEl.className   = 'tab-close';
-    closeEl.textContent = '\u2297';
-    closeEl.addEventListener('click', e => { e.stopPropagation(); closeTab(id); });
-    btn.appendChild(labelEl);
-    btn.appendChild(closeEl);
-    document.getElementById('output-tab-bar').appendChild(btn);
-
-    const pane = document.createElement('div');
-    pane.id        = 'output-tab-' + id;
-    pane.className = 'tab-pane plot-pane';
-    document.getElementById('output-tab-contents').appendChild(pane);
-
-    switchTab(id);
+    const {id, label, pane, w, h} =  mkPlotTab(title)
 
     addPlotToolbar(pane, label, () => ({ xs, yArrays: [ys] }));
-
-    const rect = document.getElementById('output-tab-contents').getBoundingClientRect();
-    const w    = Math.max(rect.width  - 16, 300);
-    const h    = Math.max(rect.height - 48, 200);
-
     new uPlot({
       title:  label,
       width:  w,
@@ -485,10 +499,7 @@ LispBM().then(lbm => {
         {},
         { label: 'value', stroke: '#4ec9b0', width: 2, fill: 'rgba(78,201,176,0.08)' }
       ],
-      axes: [
-        { stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },
-        { stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },
-      ],
+      axes: DARK_AXES,
       scales: { x: { time: false } },
       cursor: { stroke: '#569cd6', width: 1 },
       plugins: [wheelZoomPlugin],
@@ -499,36 +510,9 @@ LispBM().then(lbm => {
     const xs = Array.from(new Float32Array(lbm.HEAP8.buffer, xbuf, (xbytes / 4) | 0));
     const ys = Array.from(new Float32Array(lbm.HEAP8.buffer, ybuf, (ybytes / 4) | 0));
 
-    plotCount++;
-    const id    = 'plot-' + plotCount;
-    const label = (title && title.length) ? title : ('Plot ' + plotCount);
-
-    const btn = document.createElement('button');
-    btn.className   = 'tab-btn';
-    btn.dataset.tab = id;
-    btn.addEventListener('click', () => switchTab(id));
-    const labelEl = document.createElement('span');
-    labelEl.textContent = label;
-    const closeEl = document.createElement('span');
-    closeEl.className   = 'tab-close';
-    closeEl.textContent = '\u2297';
-    closeEl.addEventListener('click', e => { e.stopPropagation(); closeTab(id); });
-    btn.appendChild(labelEl);
-    btn.appendChild(closeEl);
-    document.getElementById('output-tab-bar').appendChild(btn);
-
-    const pane = document.createElement('div');
-    pane.id        = 'output-tab-' + id;
-    pane.className = 'tab-pane plot-pane';
-    document.getElementById('output-tab-contents').appendChild(pane);
-
-    switchTab(id);
+    const {id, label, pane, w, h} =  mkPlotTab(title)
 
     addPlotToolbar(pane, label, () => ({ xs, yArrays: [ys] }));
-
-    const rect = document.getElementById('output-tab-contents').getBoundingClientRect();
-    const w    = Math.max(rect.width  - 16, 300);
-    const h    = Math.max(rect.height - 48, 200);
 
     new uPlot({
       title:  label,
@@ -538,10 +522,7 @@ LispBM().then(lbm => {
         {},
         { label: 'y', stroke: '#4ec9b0', width: 2 }
       ],
-      axes: [
-        { stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },
-        { stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },
-      ],
+      axes: DARK_AXES,
       scales: { x: { time: false } },
       cursor: { stroke: '#569cd6', width: 1 },
       plugins: [wheelZoomPlugin],
@@ -658,35 +639,8 @@ LispBM().then(lbm => {
 
   window.createMultiPlotTab = function(slotsJson, title) {
 
-    plotCount++;
-    const id    = 'plot-' + plotCount;
-    const label = (title && title.length) ? title : ('Plot ' + plotCount);
-
-    const btn = document.createElement('button');
-    btn.className   = 'tab-btn';
-    btn.dataset.tab = id;
-    btn.addEventListener('click', () => switchTab(id));
-    const labelEl = document.createElement('span');
-    labelEl.textContent = label;
-    const closeEl = document.createElement('span');
-    closeEl.className   = 'tab-close';
-    closeEl.textContent = '\u2297';
-    closeEl.addEventListener('click', e => { e.stopPropagation(); closeTab(id); });
-    btn.appendChild(labelEl);
-    btn.appendChild(closeEl);
-    document.getElementById('output-tab-bar').appendChild(btn);
-
-    const pane = document.createElement('div');
-    pane.id        = 'output-tab-' + id;
-    pane.className = 'tab-pane plot-pane';
-    document.getElementById('output-tab-contents').appendChild(pane);
-
-    switchTab(id);
-
-    const rect = document.getElementById('output-tab-contents').getBoundingClientRect();
-    const w    = Math.max(rect.width  - 16, 300);
-    const h    = Math.max(rect.height - 48, 200);
-
+    const {id, label, pane, w, h} =  mkPlotTab(title)  
+    
     const bufs = JSON.parse(slotsJson);
     let maxLen = 0;
     const yArrays = bufs.map(({ptr, nbytes}) => {
@@ -709,10 +663,7 @@ LispBM().then(lbm => {
       width:  w,
       height: h,
       series,
-      axes: [
-        { stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },
-        { stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },
-      ],
+      axes: DARK_AXES,
       scales: { x: { time: false } },
       cursor: { stroke: '#569cd6', width: 1 },
       plugins: [wheelZoomPlugin],
