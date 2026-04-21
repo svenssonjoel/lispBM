@@ -160,6 +160,22 @@ static bool dynamic_loader(const char *sym, const char **code) {
   return lbm_dyn_lib_find(sym, code);
 }
 
+// Systime in whole number of ms.
+// The type of emscripted_get_now() is a double but
+// browsers may provide only 1ms resolution (a security measure).
+static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return lbm_enc_u32((uint32_t)emscripten_get_now());
+}
+
+static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  uint32_t t0   = lbm_dec_as_u32(args[0]);
+  uint32_t now  = (uint32_t)emscripten_get_now();
+  uint32_t diff = now - t0;
+  return lbm_enc_float((float)diff / 1000.0f);
+}
+
 static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   char buf[256];
   for (lbm_uint i = 0; i < argn; i++) {
@@ -524,6 +540,8 @@ int lbm_wasm_init(void) {
 
   lbm_add_eval_symbols();
 
+  lbm_add_extension("systime",             ext_systime);
+  lbm_add_extension("secs-since",         ext_secs_since);
   lbm_add_extension("print",               ext_print);
   lbm_add_extension("wasm-create-canvas", ext_wasm_create_canvas);
   lbm_add_extension("wasm-plot",           ext_wasm_plot);
