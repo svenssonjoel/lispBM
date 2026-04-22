@@ -1,4 +1,4 @@
-/*
+﻿/*
   Copyright 2023 - 2025 Benjamin Vedder            benjamin@vedder.se
   Copyright 2023 - 2026 Joel Svensson              svenssonjoel@yahoo.se
   Copyright 2023        Rasmus Söderhielm          rasmus.soderhielm@gmail.com
@@ -628,6 +628,122 @@ static const glyph_entry_3x5_t glyph_table_3x5[] = {
   {'_',  {0,0,0,0,7}},
 };
 
+typedef struct { uint8_t ch; uint8_t g[7]; } glyph_entry_5x7_t;
+
+static const glyph_entry_5x7_t glyph_table_5x7[] = {
+  {' ', {0,0,0,0,0,0,0}},
+  {'!', {4,4,4,4,4,0,4}},
+  {'"', {10,10,10,0,0,0,0}},
+  {'#', {10,10,31,10,31,10,10}},
+  {'$', {4,15,20,14,5,30,4}},
+  {'%', {24,25,2,4,8,19,3}},
+  {'&', {8,20,20,8,21,18,13}},
+  {'\'', {6,6,4,8,0,0,0}},
+  {'(', {2,4,8,8,8,4,2}},
+  {')', {8,4,2,2,2,4,8}},
+  {'*', {4,21,14,31,14,21,4}},
+  {'+', {0,4,4,31,4,4,0}},
+  {',', {0,0,0,0,6,6,4}},
+  {'-', {0,0,0,31,0,0,0}},
+  {'.', {0,0,0,0,0,6,6}},
+  {'/', {0,1,2,4,8,16,0}},
+  {'0', {14,17,19,21,25,17,14}},
+  {'1', {4,12,4,4,4,4,14}},
+  {'2', {14,17,1,14,16,16,31}},
+  {'3', {31,1,2,6,1,17,14}},
+  {'4', {2,6,10,18,31,2,2}},
+  {'5', {31,16,30,1,1,17,14}},
+  {'6', {7,8,16,30,17,17,14}},
+  {'7', {31,1,1,2,4,8,16}},
+  {'8', {14,17,17,14,17,17,14}},
+  {'9', {14,17,17,15,1,2,28}},
+  {':', {0,0,4,0,4,0,0}},
+  {';', {0,0,4,0,4,4,8}},
+  {'<', {1,2,4,8,4,2,1}},
+  {'=', {0,0,31,0,31,0,0}},
+  {'>', {8,4,2,1,2,4,8}},
+  {'?', {14,17,1,6,4,0,4}},
+  {'@', {14,17,21,23,22,16,15}},
+  {'A', {4,10,17,17,31,17,17}},
+  {'B', {30,17,17,30,17,17,30}},
+  {'C', {14,17,16,16,16,17,14}},
+  {'D', {30,17,17,17,17,17,30}},
+  {'E', {31,16,16,30,16,16,31}},
+  {'F', {31,16,16,30,16,16,16}},
+  {'G', {15,17,16,16,19,17,15}},
+  {'H', {17,17,17,31,17,17,17}},
+  {'I', {14,4,4,4,4,4,14}},
+  {'J', {7,2,2,2,2,18,12}},
+  {'K', {17,18,20,24,20,18,17}},
+  {'L', {16,16,16,16,16,16,31}},
+  {'M', {17,27,21,21,21,17,17}},
+  {'N', {17,17,25,21,19,17,17}},
+  {'O', {14,17,17,17,17,17,14}},
+  {'P', {30,17,17,30,16,16,16}},
+  {'Q', {14,17,17,17,21,18,13}},
+  {'R', {30,17,17,30,20,18,17}},
+  {'S', {14,17,16,14,1,17,14}},
+  {'T', {31,21,4,4,4,4,4}},
+  {'U', {17,17,17,17,17,17,14}},
+  {'V', {17,17,17,17,17,10,4}},
+  {'W', {17,17,17,21,21,21,10}},
+  {'X', {17,17,10,4,10,17,17}},
+  {'Y', {17,17,10,4,4,4,4}},
+  {'Z', {31,1,2,14,8,16,31}},
+  {'[', {15,8,8,8,8,8,15}},
+  {'\\', {0,16,8,4,2,1,0}},
+  {']', {15,1,1,1,1,1,15}},
+  {'^', {4,10,17,0,0,0,0}},
+  {'_', {0,0,0,0,0,0,31}},
+  {'`', {12,12,4,2,0,0,0}},
+  {'a', {0,0,12,2,14,18,15}},
+  {'b', {16,16,22,25,17,25,22}},
+  {'c', {0,0,14,17,16,17,14}},
+  {'d', {1,1,13,19,17,19,13}},
+  {'e', {0,0,14,17,31,16,14}},
+  {'f', {2,5,4,14,4,4,4}},
+  {'g', {0,0,14,19,19,13,1}},
+  {'h', {16,16,22,25,17,17,17}},
+  {'i', {4,0,12,4,4,4,14}},
+  {'j', {2,0,2,2,2,18,12}},
+  {'k', {16,16,18,20,24,20,18}},
+  {'l', {12,4,4,4,4,4,14}},
+  {'m', {0,0,26,21,21,21,21}},
+  {'n', {0,0,22,25,17,17,17}},
+  {'o', {0,0,14,17,17,17,14}},
+  {'p', {0,0,22,25,25,22,16}},
+  {'q', {0,0,13,19,19,13,1}},
+  {'r', {0,0,22,25,16,16,16}},
+  {'s', {0,0,15,16,14,1,30}},
+  {'t', {4,4,31,4,4,5,2}},
+  {'u', {0,0,17,17,17,19,13}},
+  {'v', {0,0,17,17,17,10,4}},
+  {'w', {0,0,17,17,21,21,10}},
+  {'x', {0,0,17,10,4,10,17}},
+  {'y', {0,0,17,17,15,1,17}},
+  {'z', {0,0,31,2,4,8,31}},
+  {'{', {2,4,4,8,4,4,2}},
+  {'|', {4,4,4,0,4,4,4}},
+  {'}', {8,4,4,2,4,4,8}},
+  {'~', {8,21,2,0,0,0,0}},
+};
+
+static int fallback_font_size_from_name(const char *name) {
+  if (!name) {
+    return 0;
+  }
+
+  if (strcmp(name, "builtin-3x5") == 0) {
+    return 3;
+  }
+
+  if (strcmp(name, "builtin-5x7") == 0) {
+    return 5;
+  }
+
+  return 0;
+}
+
 static const uint8_t *lookup_glyph_3x5(char ch) {
   int lo = 0;
   int hi = (int)(sizeof(glyph_table_3x5) / sizeof(glyph_table_3x5[0])) - 1;
@@ -638,6 +754,18 @@ static const uint8_t *lookup_glyph_3x5(char ch) {
     else hi = mid - 1;
   }
   return glyph_table_3x5[0].g;
+}
+
+static const uint8_t *lookup_glyph_5x7(char ch) {
+  int lo = 0;
+  int hi = (int)(sizeof(glyph_table_5x7) / sizeof(glyph_table_5x7[0])) - 1;
+  while (lo <= hi) {
+    int mid = (lo + hi) / 2;
+    if (glyph_table_5x7[mid].ch == (uint8_t)ch) return glyph_table_5x7[mid].g;
+    if (glyph_table_5x7[mid].ch < (uint8_t)ch) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  return glyph_table_5x7[0].g;
 }
 
 static void rot_point_3x5(int px, int py, int rot, int cx, int cy, int *rx, int *ry) {
@@ -675,10 +803,32 @@ static void draw_rows_3x5(image_buffer_t *img, const uint8_t rows[5], int x, int
   }
 }
 
+static void draw_rows_5x7(image_buffer_t *img, const uint8_t rows[7], int x, int y,
+                          uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
+  for (int row = 0; row < 7; row++) {
+    for (int col = 0; col < 5; col++) {
+      uint32_t c = ((rows[row] >> (4 - col)) & 1) ? fg : bg;
+      for (int dy = 0; dy < mag; dy++) {
+        for (int dx = 0; dx < mag; dx++) {
+          int rx, ry;
+          rot_point_3x5(x + col * mag + dx, y + row * mag + dy, rot, cx, cy, &rx, &ry);
+          putpixel(img, rx, ry, c);
+        }
+      }
+    }
+  }
+}
+
 static int char_width_3x5(char ch, int mag) {
   if (ch == '.' || ch == ',' || ch == ':' || ch == ';' || ch == '!' || ch == '\'') return mag;
   if (ch == ' ') return 2 * mag;
   return 3 * mag;
+}
+
+static int char_width_5x7(char ch, int mag) {
+  if (ch == '.' || ch == ',' || ch == ':' || ch == ';' || ch == '!' || ch == '\'') return mag;
+  if (ch == ' ') return 3 * mag;
+  return 5 * mag;
 }
 
 static int text_width_3x5(const char *txt, int mag, int spacing) {
@@ -694,13 +844,29 @@ static int text_width_3x5(const char *txt, int mag, int spacing) {
   return w;
 }
 
+static int text_width_5x7(const char *txt, int mag, int spacing) {
+  int w = 0;
+  int count = 0;
+  for (int i = 0; txt[i] != 0; i++) {
+    w += char_width_5x7(txt[i], mag);
+    count++;
+  }
+  if (count > 1) {
+    w += spacing * (count - 1);
+  }
+  return w;
+}
+
 static void img_draw_char_3x5(image_buffer_t *img, char ch, int x, int y,
                               uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
   if (ch >= 'a' && ch <= 'z') ch = (char)(ch - ('a' - 'A'));
   draw_rows_3x5(img, lookup_glyph_3x5(ch), x, y, fg, bg, mag, rot, cx, cy);
 }
 
-
+static void img_draw_char_5x7(image_buffer_t *img, char ch, int x, int y,
+                              uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
+  draw_rows_5x7(img, lookup_glyph_5x7(ch), x, y, fg, bg, mag, rot, cx, cy);
+}
 
 static void draw_text_3x5_fallback(image_buffer_t *img, int x, int y, uint32_t fg, uint32_t bg, const char *txt, int mag, int spacing, int align, int rotation_deg) {
   int cursor_x = x;
@@ -721,6 +887,29 @@ static void draw_text_3x5_fallback(image_buffer_t *img, int x, int y, uint32_t f
     char ch = txt[i];
     img_draw_char_3x5(img, ch, cursor_x, y, fg, bg, mag, rot, cx, cy);
     cursor_x += char_width_3x5(ch, mag) + spacing;
+  }
+}
+
+static void draw_text_5x7_fallback(image_buffer_t *img, int x, int y, uint32_t fg, uint32_t bg,
+                                   const char *txt, int mag, int spacing, int align, int rotation_deg) {
+  int cursor_x = x;
+  int text_w = text_width_5x7(txt, mag, spacing);
+  int text_h = 7 * mag;
+
+  if (align == 1) {
+    cursor_x = x - (text_w / 2);
+  } else if (align == 2) {
+    cursor_x = x - text_w;
+  }
+
+  int rot = (rotation_deg % 360) / 90;
+  int cx = x;
+  int cy = y + text_h / 2;
+
+  for (int i = 0; txt[i] != 0; i++) {
+    char ch = txt[i];
+    img_draw_char_5x7(img, ch, cursor_x, y, fg, bg, mag, rot, cx, cy);
+    cursor_x += char_width_5x7(ch, mag) + spacing;
   }
 }
 
@@ -2831,8 +3020,7 @@ static lbm_value ext_triangle(lbm_value *args, lbm_uint argn) {
 
 // lisp args:
 //   img x y fg bg font str
-//   img x y fg bg str                       ; fallback 3x5 when no font is provided
-//   img x y fg bg number                    ; fallback number formatting when no font is provided
+//   img x y fg bg "builtin-3x5"|"builtin-5x7" str
 static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   bool up = false;
   bool down = false;
@@ -2857,6 +3045,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   int fallback_spacing = 1;
   int fallback_align = 0;
   int fallback_rotation = 0;
+  bool fallback_use_5x7 = false;
 
   lbm_uint core_argn = argn;
   while (core_argn > 0) {
@@ -2880,12 +3069,27 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
 
   int32_t colors[4] = {-1, -1, -1, -1};
   bool fallback_no_font = false;
-  if (core_argn == 6 && lbm_is_number(args[3]) && lbm_is_number(args[4]) &&
-      lbm_dec_str(args[5]) != NULL) {
-    fallback_no_font = true;
-    colors[0] = lbm_dec_as_i32(args[3]);
-    colors[1] = lbm_dec_as_i32(args[4]);
-  } else if (core_argn == 7) {
+  char *txt = NULL;
+
+  if (core_argn == 7) {
+    txt = lbm_dec_str(args[6]);
+    if (!txt) {
+      return ENC_SYM_TERROR;
+    }
+
+    char *font_name = lbm_dec_str(args[5]);
+    if (font_name) {
+      int selected_font = fallback_font_size_from_name(font_name);
+      if (selected_font == 0) {
+        return ENC_SYM_TERROR;
+      }
+
+      fallback_use_5x7 = (selected_font == 5);
+      fallback_no_font = true;
+    }
+  }
+
+  if (core_argn == 7) {
     if (!lbm_is_number(args[3]) || !lbm_is_number(args[4])) {
       return ENC_SYM_TERROR;
     }
@@ -2926,14 +3130,14 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     font = (lbm_array_header_t *)lbm_car(args[core_argn - 2]);
   }
 
-  char *txt = NULL;
   if (fallback_no_font) {
-    txt = lbm_dec_str(args[5]);
-    if (!txt) {
-      return ENC_SYM_TERROR;
+    if (fallback_use_5x7) {
+      draw_text_5x7_fallback(&img_buf, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt,
+                             txt_mag, fallback_spacing, fallback_align, fallback_rotation);
+    } else {
+      draw_text_3x5_fallback(&img_buf, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt,
+                             txt_mag, fallback_spacing, fallback_align, fallback_rotation);
     }
-
-    draw_text_3x5_fallback(&img_buf, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt, txt_mag, fallback_spacing, fallback_align, fallback_rotation);
     return ENC_SYM_TRUE;
   }
 
