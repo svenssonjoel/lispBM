@@ -3077,15 +3077,12 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
-    char *font_name = lbm_dec_str(args[5]);
-    if (font_name) {
-      int selected_font = fallback_font_size_from_name(font_name);
-      if (selected_font == 0) {
-        return ENC_SYM_TERROR;
+    if (lbm_is_number(args[5])) {
+      int font_sel = lbm_dec_as_i32(args[5]);
+      if (font_sel == 0 || font_sel == 1) {
+        fallback_use_5x7 = (font_sel == 0);
+        fallback_no_font = true;
       }
-
-      fallback_use_5x7 = (selected_font == 5);
-      fallback_no_font = true;
     }
   }
 
@@ -3126,8 +3123,8 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   img_buf.data = image_buffer_data((uint8_t*)arr->data);
 
   lbm_array_header_t *font = 0;
-  if (!fallback_no_font && lbm_type_of_functional(args[core_argn - 2]) == LBM_TYPE_ARRAY) {
-    font = (lbm_array_header_t *)lbm_car(args[core_argn - 2]);
+  if (!fallback_no_font) {
+    font = lbm_dec_array_r(args[core_argn - 2]);
   }
 
   if (fallback_no_font) {
