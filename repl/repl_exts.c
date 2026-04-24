@@ -45,7 +45,6 @@
 #include "extensions/dsp_extensions.h"
 #include "extensions/crypto_extensions.h"
 #include "extensions/ecc_extensions.h"
-#include "extensions/bignum_extensions.h"
 
 #include "eval_cps.h"
 #include "lbm_image.h"
@@ -1346,7 +1345,6 @@ int init_exts(void) {
   lbm_dsp_extensions_init();
   lbm_crypto_extensions_init();
   lbm_ecc_extensions_init();
-  lbm_bignum_extensions_init();
 
 #ifndef LBM_WIN
   init_proc_management();
