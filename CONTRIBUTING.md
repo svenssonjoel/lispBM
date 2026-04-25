@@ -28,6 +28,7 @@
    out.
 
 ## How to submit
+
    Submit your contribution as a pull request on github.
 
 ## Bug reports
@@ -53,7 +54,7 @@
 
    Naming:
 
-     1. Functions, variables and types: snake case.
+     1. Functions, variables and types: snake_case.
      2. Macros and constants: UPPER_CASE.
      3. Type names are suffixed with `_t`.
      4. Public API is prefixed with `lbm_`
