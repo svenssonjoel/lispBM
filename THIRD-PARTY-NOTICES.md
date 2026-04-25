@@ -3,7 +3,7 @@
 
 This file lists Third party code that has been incorporated into LispBM
 
-## LibScrift
+## LibSchrift
 
    https://www.github.com/tomolt/libschrift
 
@@ -103,3 +103,44 @@ This file lists Third party code that has been incorporated into LispBM
    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
    THE SOFTWARE.
+
+## VESC firmware
+
+   LispBM includes several files originating in the VESC firmware projects
+   [bldc](https://github.com/vedderb/bldc) and [vesc_express](https://github.com/vedderb/vesc_express).
+
+   The following files are copyright Benjamin Vedder and licensed under the
+   GNU General Public License version 3 or later:
+
+   - utils/crc.h, utils/crc.c          Copyright 2016 Benjamin Vedder
+   - utils/buffer.h, utils/buffer.c    Copyright 2016 Benjamin Vedder
+   - utils/packet.h, utils/packet.c    Copyright 2016-2021 Benjamin Vedder
+
+   The following files originated in VESC firmware and are co-authored; all are
+   licensed under the GNU General Public License version 3 or later:
+
+   - examples/esp32c3-st7789/main/hwspi.h        Copyright 2023 Benjamin Vedder, Joel Svensson
+   - examples/esp32c3-st7789/main/hwspi.c        Copyright 2023 Benjamin Vedder, Joel Svensson
+   - examples/esp32c3-st7789/main/disp_st7789.h  Copyright 2023 Benjamin Vedder, Joel Svensson
+   - examples/esp32c3-st7789/main/disp_st7789.c  Copyright 2023 Benjamin Vedder, Joel Svensson
+   - include/extensions/display_extensions.h     Copyright 2023-2024 Benjamin Vedder, Joel Svensson
+   - src/extensions/display_extensions.c         Copyright 2023-2025 Benjamin Vedder, Joel Svensson,
+                                                  Rasmus Söderhielm, Joakim Lundborg
+                                                  (Originally a part of the vesc_express firmware)
+
+   GNU General Public License, Version 3
+
+   Copyright 2016-2026 Benjamin Vedder  benjamin@vedder.se
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
