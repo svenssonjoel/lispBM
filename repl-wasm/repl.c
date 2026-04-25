@@ -128,9 +128,9 @@ static void drop_reader(lbm_cid cid) {
   }
 }
 
-/* ----------------------------------------------------------
-   Callbacks
-   ---------------------------------------------------------- */
+// ////////////////////////////////////////////////////////////
+//   Callbacks
+//
 
 static int print_callback(const char *fmt, ...) {
   va_list args;
@@ -152,9 +152,9 @@ static void critical_callback(void) {
   print_callback("CRITICAL ERROR\n");
 }
 
-// ------------------------------------------------------------
-//   Extensions
-// ------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
+// Extensions
+//
 
 static bool dynamic_loader(const char *sym, const char **code) {
   return lbm_dyn_lib_find(sym, code);
@@ -492,9 +492,9 @@ static void sleep_callback(uint32_t us) {
   (void)us;
 }
 
-/* ----------------------------------------------------------
-   Exported WASM API
-   ---------------------------------------------------------- */
+// ////////////////////////////////////////////////////////////
+//   Exported WASM API
+//
 
 EMSCRIPTEN_KEEPALIVE
 int lbm_wasm_init(void) {

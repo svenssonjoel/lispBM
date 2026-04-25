@@ -28,11 +28,12 @@
 #endif
 
 
-/* ************************************************************
- * SHA256 hash
- * As explained in FIPS PUB 180-4 but with an incremental
- * padder instead of a padding preprocessing step.
- * ************************************************************/
+// ////////////////////////////////////////////////////////////
+// SHA256 hash
+// As explained in FIPS PUB 180-4 but with an incremental
+// padder instead of a padding preprocessing step.
+//
+
 static inline uint32_t rotr(uint32_t x, uint32_t n) {
   return (x >> n) | (x << (32 - n));
 }
@@ -101,21 +102,21 @@ static uint32_t read_m(uint8_t *bytes, uint32_t n, uint32_t block, uint32_t word
 
   uint64_t size_in_bits = n * 8; // size of payload in bits.
 
-  //                                size 
+  //                                size
   //                           1-bit
   //                       size
   uint32_t padded_len  = (((n + 1) + 8) + 63) & ~63u;
   uint32_t size_start  = padded_len - 8;
-  
+
   uint32_t start_byte = block * 64 + word * 4;
   uint32_t end_byte   = start_byte + 4;
 
-  uint32_t res = 0; // prepadded with zeroes. 
+  uint32_t res = 0; // prepadded with zeroes.
 
   for (uint32_t i = start_byte; i < end_byte; i ++) {
     res = res << 8;
-    // assemble a big endian result 
-    
+    // assemble a big endian result
+
     if (i < n) {
       res |= bytes[i];
     } else if (i == n) {
@@ -126,10 +127,10 @@ static uint32_t read_m(uint8_t *bytes, uint32_t n, uint32_t block, uint32_t word
     }
     // else leave as zeroes.
   }
-  return res;           
+  return res;
 }
 
-// res is a 8*4 byte array preallocated before passed to this function. 
+// res is a 8*4 byte array preallocated before passed to this function.
 static void incremental_sha256(uint8_t *res, uint8_t *bytes, uint32_t n) {
 
   uint32_t padded_len  = (((n + 1) + 8) + 63) & ~63u;
@@ -138,7 +139,7 @@ static void incremental_sha256(uint8_t *res, uint8_t *bytes, uint32_t n) {
   uint32_t w[64];
   uint32_t hash[8];
   memcpy(hash, h256, 8 * sizeof(uint32_t));
-  
+
   for (uint32_t i = 0; i < blocks; i ++) {
 
     for (uint32_t t = 0; t < 64; t ++) {
@@ -184,7 +185,7 @@ static void incremental_sha256(uint8_t *res, uint8_t *bytes, uint32_t n) {
 
     uint32_t word = t / 4;
     uint32_t byte = t % 4;
-    
+
     res[t] = (uint8_t)(hash[word] >> ((3 - byte) * 8));
   }
 }
@@ -192,7 +193,7 @@ static void incremental_sha256(uint8_t *res, uint8_t *bytes, uint32_t n) {
 
 static lbm_value ext_sha256_str(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
-  if (argn == 1 && lbm_is_array_r(args[0])) { 
+  if (argn == 1 && lbm_is_array_r(args[0])) {
     if(lbm_create_array(&res, 32)) {
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
       lbm_array_header_t *in_arr = (lbm_array_header_t*)lbm_car(args[0]);
@@ -206,7 +207,7 @@ static lbm_value ext_sha256_str(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_sha256(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
-  if (argn == 1 && lbm_is_array_r(args[0])) { 
+  if (argn == 1 && lbm_is_array_r(args[0])) {
     if(lbm_create_array(&res, 32)) {
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
       lbm_array_header_t *in_arr = (lbm_array_header_t*)lbm_car(args[0]);
@@ -216,19 +217,19 @@ static lbm_value ext_sha256(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-/* ************************************************************
- * AES 128 - 256
- *
- * Block ciphers as described in FIPS 197.
- *
- * Implements the AES 128 and 256 block cipher primitives
- * that can be used to implement ECB, CBC, CTR on a higher level.
- *  ECB - Electronic Code Book
- *  CBC - Cipher Block Chaining
- *  CTR - Counter
- *  GCM - Galois/Counter Mode
- * ************************************************************/
 
+// ////////////////////////////////////////////////////////////
+// AES 128 - 256
+//
+// Block ciphers as described in FIPS 197.
+//
+// Implements the AES 128 and 256 block cipher primitives
+// that can be used to implement ECB, CBC, CTR on a higher level.
+//  ECB - Electronic Code Book
+//  CBC - Cipher Block Chaining
+//  CTR - Counter
+//  GCM - Galois/Counter Mode
+//
 
 #define AES128_NUM_WORDS_PER_KEY 4
 #define AES256_NUM_WORDS_PER_KEY 8
@@ -237,7 +238,7 @@ static lbm_value ext_sha256(lbm_value *args, lbm_uint argn) {
 #define AES256_NUM_ROUNDS 14
 
 
-/* FIPS 197 Figure 7 — AES S-box */
+// FIPS 197 Figure 7 — AES S-box
 static const uint8_t aes_sbox[256] = {
   0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5,
   0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
@@ -273,7 +274,7 @@ static const uint8_t aes_sbox[256] = {
   0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
 };
 
-/* FIPS 197 Figure 14 — AES inverse S-box */
+// FIPS 197 Figure 14 — AES inverse S-box
 static const uint8_t aes_inv_sbox[256] = {
   0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38,
   0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
@@ -309,7 +310,7 @@ static const uint8_t aes_inv_sbox[256] = {
   0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d
 };
 
-/* FIPS 197 Table 5 — Round constant (Rcon) for key schedule */
+// FIPS 197 Table 5 — Round constant (Rcon) for key schedule
 static const uint8_t aes_rcon[11] = {
   0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
 };
@@ -321,9 +322,9 @@ static void sub_bytes(uint8_t *state, const uint8_t *box) {
   }
 }
 
-/* FIPS 197 column-major layout: element (r,c) is at index r + 4*c
-   Row r has elements at indices r, r+4, r+8, r+12.
-   ShiftRows shifts row r left by r positions. */
+// FIPS 197 column-major layout: element (r,c) is at index r + 4*c
+// Row r has elements at indices r, r+4, r+8, r+12.
+// ShiftRows shifts row r left by r positions. */
 static void shift_rows(uint8_t *state) {
   uint8_t t;
   // Row 1: left shift by 1
@@ -346,7 +347,7 @@ static void inv_shift_rows(uint8_t *state) {
   t = state[3]; state[3] = state[7]; state[7] = state[11]; state[11] = state[15]; state[15] = t;
 }
 
-/* Multiply by 2 in GF(2^8) with AES irreducible polynomial 0x11b */
+//Multiply by 2 in GF(2^8) with AES irreducible polynomial 0x11b
 static inline uint8_t xtime(uint8_t x) {
   return (x << 1) ^ ((x & 0x80) ? 0x1b : 0x00);
 }
@@ -362,13 +363,13 @@ static uint8_t gf_mul(uint8_t x, uint8_t y) {
   }
 
 
-/* FIPS 197 §5.1.3 — MixColumns
-   Column c has elements at state[4*c .. 4*c+3] (rows 0-3).
-   Each column multiplied by the matrix:
-   [2 3 1 1]
-   [1 2 3 1]
-   [1 1 2 3]
-   [3 1 1 2]  in GF(2^8) */
+// FIPS 197 §5.1.3 — MixColumns
+// Column c has elements at state[4*c .. 4*c+3] (rows 0-3).
+// Each column multiplied by the matrix:
+// [2 3 1 1]
+// [1 2 3 1]
+// [1 1 2 3]
+// [3 1 1 2]  in GF(2^8)
 static void mix_columns(uint8_t *state) {
   for (int c = 0; c < 4; c++) {
     uint8_t s0 = state[4*c];
@@ -382,12 +383,12 @@ static void mix_columns(uint8_t *state) {
   }
 }
 
-/* FIPS 197 §5.3.3 — InvMixColumns
-   Each column multiplied by the inverse matrix:
-   [14 11 13  9]
-   [ 9 14 11 13]
-   [13  9 14 11]
-   [11 13  9 14]  in GF(2^8) */
+//FIPS 197 §5.3.3 — InvMixColumns
+// Each column multiplied by the inverse matrix:
+// [14 11 13  9]
+// [ 9 14 11 13]
+// [13  9 14 11]
+// [11 13  9 14]  in GF(2^8) */
 static void inv_mix_columns(uint8_t *state) {
   for (int c = 0; c < 4; c++) {
     uint8_t s0 = state[4*c];
@@ -421,11 +422,11 @@ static void add_round_key(uint8_t *state, uint8_t *round_key) {
   }
 }
 
-/* FIPS 197 5.2 — KeyExpansion
-   Expands key into round keys.
-   nk = 4 for AES-128 (176 bytes output)
-   nk = 8 for AES-256 (240 bytes output)
-   Caller must provide round_keys buffer of 4 * (nk + 7) * 4 bytes */
+// FIPS 197 5.2 — KeyExpansion
+// Expands key into round keys.
+// nk = 4 for AES-128 (176 bytes output)
+// nk = 8 for AES-256 (240 bytes output)
+// Caller must provide round_keys buffer of 4 * (nk + 7) * 4 bytes
 static void key_expansion(uint8_t *key, uint8_t *round_keys, int nk) {
   int nr = nk + 6;
   int total_words = 4 * (nr + 1);
@@ -450,10 +451,10 @@ static void key_expansion(uint8_t *key, uint8_t *round_keys, int nk) {
   }
 }
 
-/* FIPS 197 5.1 — Cipher (encryption)
-   state: 16-byte block (modified in place)
-   round_keys: expanded key schedule
-   nr: number of rounds (10 for AES-128, 14 for AES-256) */
+// FIPS 197 5.1 — Cipher (encryption)
+// state: 16-byte block (modified in place)
+// round_keys: expanded key schedule
+// nr: number of rounds (10 for AES-128, 14 for AES-256)
 static void cipher(uint8_t *state, uint8_t *round_keys, int nr) {
   add_round_key(state, round_keys);
 
@@ -469,10 +470,10 @@ static void cipher(uint8_t *state, uint8_t *round_keys, int nr) {
   add_round_key(state, round_keys + nr * 16);
 }
 
-/* FIPS 197 5.3 — InvCipher (decryption)
-   state: 16-byte block (modified in place)
-   round_keys: expanded key schedule
-   nr: number of rounds (10 for AES-128, 14 for AES-256) */
+// FIPS 197 5.3 — InvCipher (decryption)
+// state: 16-byte block (modified in place)
+// round_keys: expanded key schedule
+// nr: number of rounds (10 for AES-128, 14 for AES-256)
 static void inv_cipher(uint8_t *state, uint8_t *round_keys, int nr) {
   add_round_key(state, round_keys + nr * 16);
 
@@ -594,9 +595,9 @@ static lbm_value ext_aes256_dec(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-/* ************************************************************
- * Utilities 
- * ************************************************************/
+// ////////////////////////////////////////////////////////////
+// Utilities
+//
 
 static lbm_value ext_bytes_to_hex(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
@@ -644,9 +645,9 @@ static lbm_value ext_hex_to_bytes(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-/* ************************************************************
- * Bignum library implementation
- * ************************************************************/
+// ////////////////////////////////////////////////////////////
+// Bignum library implementation
+//
 
 
 // Add up 2 bignum of lengths alen, blen.
@@ -1181,9 +1182,10 @@ static lbm_value ext_bn_modexp(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-/* ************************************************************
- * 
- * ************************************************************/
+// ////////////////////////////////////////////////////////////
+// Init
+//
+
 void lbm_crypto_extensions_init(void) {
   lbm_add_extension("sha256-str", ext_sha256_str);
   lbm_add_extension("sha256", ext_sha256);

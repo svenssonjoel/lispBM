@@ -120,14 +120,13 @@ static lbm_value ext_rand_max(lbm_value *args, lbm_uint argn) {
 }
 
 
+// ////////////////////////////////////////////////////////////
 // BITS
 
-/*
- * args[0]: Initial value
- * args[1]: Offset in initial value to modify
- * args[2]: Value to modify with
- * args[3]: Size in bits of value to modify with
- */
+// args[0]: Initial value
+// args[1]: Offset in initial value to modify
+// args[2]: Value to modify with
+// args[3]: Size in bits of value to modify with
 static lbm_value ext_bits_enc_int(lbm_value *args, lbm_uint argn) {
   LBM_CHECK_ARGN_NUMBER(4)
     uint32_t initial = lbm_dec_as_u32(args[0]);
@@ -144,11 +143,10 @@ static lbm_value ext_bits_enc_int(lbm_value *args, lbm_uint argn) {
   }
 }
 
-/*
- * args[0]: Value
- * args[1]: Offset in initial value to get
- * args[2]: Size in bits of value to get
- */
+
+// args[0]: Value
+// args[1]: Offset in initial value to get
+// args[2]: Size in bits of value to get
 static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
   LBM_CHECK_ARGN_NUMBER(3)
     uint32_t val = lbm_dec_as_u32(args[0]);

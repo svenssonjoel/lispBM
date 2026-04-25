@@ -104,8 +104,9 @@ void lbm_gc_unlock(void) {
 }
 #endif
 
-/****************************************************/
-/* ENCODERS DECODERS                                */
+// ////////////////////////////////////////////////////////////
+// ENCODERS DECODERS
+//
 
 lbm_value lbm_enc_i32(int32_t x) {
 #ifndef LBM64
@@ -510,8 +511,8 @@ double lbm_dec_as_double(lbm_value a) {
   return r;
 }
 
-/****************************************************/
-/* HEAP MANAGEMENT                                  */
+// ////////////////////////////////////////////////////////////
+// HEAP MANAGEMENT
 
 static bool generate_freelist(size_t num_cells) {
   size_t i = 0;
@@ -681,7 +682,10 @@ static inline void value_assign(lbm_value *a, lbm_value b) {
 }
 
 #ifdef LBM_USE_GC_PTR_REV
-/* ************************************************************
+// ////////////////////////////////////////////////////////////
+// Deutch-Schorr-Waite (DSW) pointer reversal GC
+//
+/*
    Deutch-Schorr-Waite (DSW) pointer reversal GC for 2-ptr cells
    with a hack-solution for the lisp-array case (n-ptr cells).
 

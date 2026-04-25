@@ -27,9 +27,8 @@
 #include "lispbm.h"
 #include "print.h"
 
-/* -------------------------------------------------------------------------
- * VESC packet command IDs (subset used here)
- * ------------------------------------------------------------------------- */
+// ////////////////////////////////////////////////////////////
+// VESC packet command IDs (subset used here)
 
 #define COMM_FW_VERSION        0
 #define COMM_LISP_SET_RUNNING  133
@@ -38,9 +37,8 @@
 #define COMM_LISP_REPL_CMD     138
 #define COMM_LISP_STREAM_CODE  139
 
-/* -------------------------------------------------------------------------
- * Internal state
- * ------------------------------------------------------------------------- */
+// ////////////////////////////////////////////////////////////
+// Internal state
 
 static lbm_packet_if_cfg_t if_cfg;
 static PACKET_STATE_t       packet_state;
@@ -59,9 +57,8 @@ static lbm_cid                       stream_cid = -1;
 static lbm_buffered_channel_state_t  stream_tok_state;
 static lbm_char_channel_t            stream_tok;
 
-/* -------------------------------------------------------------------------
- * Helpers
- * ------------------------------------------------------------------------- */
+// ////////////////////////////////////////////////////////////
+// Helpers
 
 static bool pause_eval(void) {
   int timeout = 2000;
@@ -76,9 +73,8 @@ static bool pause_eval(void) {
 }
 
 
-/* -------------------------------------------------------------------------
- * Done callback — prints the result of REPL evaluations back to the host
- * ------------------------------------------------------------------------- */
+// ////////////////////////////////////////////////////////////
+// Done callback — prints the result of REPL evaluations back to the host
 
 static void done_callback(eval_context_t *ctx) {
   if (repl_cid >= 0 && ctx->id == (lbm_uint)repl_cid) {
@@ -104,9 +100,8 @@ static void done_callback(eval_context_t *ctx) {
   }
 }
 
-/* -------------------------------------------------------------------------
- * Command handlers
- * ------------------------------------------------------------------------- */
+// ////////////////////////////////////////////////////////////
+// Command handlers
 
 static void handle_fw_version(void) {
   uint8_t send_buf[80];
@@ -364,9 +359,8 @@ static void handle_stream_code(uint8_t *data, unsigned int len) {
   packet_send_packet(send_buf, (unsigned int)send_ind, &packet_state);
 }
 
-/* -------------------------------------------------------------------------
- * Packet receive callback — dispatches on command byte
- * ------------------------------------------------------------------------- */
+// ////////////////////////////////////////////////////////////
+// Packet receive callback — dispatches on command byte
 
 static void process_packet(uint8_t *data, unsigned int len) {
   if (len == 0) return;
@@ -395,9 +389,8 @@ static void process_packet(uint8_t *data, unsigned int len) {
   }
 }
 
-/* -------------------------------------------------------------------------
- * Public API
- * ------------------------------------------------------------------------- */
+// ////////////////////////////////////////////////////////////
+// Public API
 
 void lbm_packet_if_init(lbm_packet_if_cfg_t *cfg) {
   memcpy(&if_cfg, cfg, sizeof(lbm_packet_if_cfg_t));
