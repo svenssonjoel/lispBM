@@ -793,7 +793,6 @@ static void bn_divmod_general(uint32_t *a, uint32_t alen,
     rhat += c * scratch_bn[blen - 1];
     qhat -= c;
     c = (rhat <= 0xFFFFFFFFULL) && (qhat * sbn > (rhat << 32) + san);
-    rhat += c * scratch_bn[blen - 1];
     qhat -= c;
 
     // Multiply and subtract: scratch_an[jj..jj+blen] -= qhat * scratch_bn
@@ -867,7 +866,6 @@ static lbm_value ext_bn_divmod(lbm_value *args, lbm_uint argn) {
     uint32_t alen = bn_normalize_len(ap, a->size / sizeof(uint32_t));
     uint32_t blen = bn_normalize_len(bp, b->size / sizeof(uint32_t));
 
-    res = ENC_SYM_EERROR;
     if (bn_cmp(ap, alen, bp, blen) < 0) {
       // a < b: q = 0, r = a
       lbm_value qv, rv;
