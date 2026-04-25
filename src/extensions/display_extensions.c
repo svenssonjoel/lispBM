@@ -601,131 +601,34 @@ void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
   }
 }
 
-typedef struct { uint8_t ch; uint8_t g[5]; } glyph_entry_3x5_t;
-
-static const glyph_entry_3x5_t glyph_table_3x5[] = {
-  {' ',  {0,0,0,0,0}}, {'!',  {4,4,4,0,4}}, {'#',  {5,7,5,7,5}},
-  {'%',  {5,1,2,4,5}}, {'&',  {2,5,2,5,3}}, {'\'', {4,4,0,0,0}},
-  {'(',  {1,2,2,2,1}}, {')',  {4,2,2,2,4}}, {'*',  {0,5,2,5,0}},
-  {'+',  {0,2,7,2,0}}, {',',  {0,0,0,4,4}}, {'-',  {0,0,7,0,0}},
-  {'.',  {0,0,0,0,4}}, {'/',  {1,1,2,4,4}},
-  {'0',  {7,5,5,5,7}}, {'1',  {1,1,1,1,1}}, {'2',  {7,1,7,4,7}},
-  {'3',  {7,1,3,1,7}}, {'4',  {5,5,7,1,1}}, {'5',  {7,4,7,1,7}},
-  {'6',  {7,4,7,5,7}}, {'7',  {7,1,1,1,1}}, {'8',  {7,5,7,5,7}},
-  {'9',  {7,5,7,1,7}},
-  {':',  {0,4,0,4,0}}, {';',  {0,4,0,4,4}}, {'=',  {0,7,0,7,0}},
-  {'?',  {7,1,2,0,2}}, {'@',  {2,5,7,4,3}},
-  {'A',  {2,5,7,5,5}}, {'B',  {6,5,6,5,6}}, {'C',  {3,4,4,4,3}},
-  {'D',  {6,5,5,5,6}}, {'E',  {7,4,6,4,7}}, {'F',  {7,4,6,4,4}},
-  {'G',  {3,4,5,5,3}}, {'H',  {5,5,7,5,5}}, {'I',  {7,2,2,2,7}},
-  {'J',  {1,1,1,5,2}}, {'K',  {5,5,6,5,5}}, {'L',  {4,4,4,4,7}},
-  {'M',  {5,7,7,5,5}}, {'N',  {5,7,7,7,5}}, {'O',  {2,5,5,5,2}},
-  {'P',  {6,5,6,4,4}}, {'Q',  {2,5,5,3,1}}, {'R',  {6,5,6,5,5}},
-  {'S',  {3,4,2,1,6}}, {'T',  {7,2,2,2,2}}, {'U',  {5,5,5,5,7}},
-  {'V',  {5,5,5,5,2}}, {'W',  {5,5,7,7,5}}, {'X',  {5,5,2,5,5}},
-  {'Y',  {5,5,2,2,2}}, {'Z',  {7,1,2,4,7}},
-  {'[',  {3,2,2,2,3}}, {'\\', {4,4,2,1,1}}, {']',  {6,2,2,2,6}},
-  {'_',  {0,0,0,0,7}},
-};
-
-static const uint8_t *lookup_glyph_3x5(char ch) {
-  int lo = 0;
-  int hi = (int)(sizeof(glyph_table_3x5) / sizeof(glyph_table_3x5[0])) - 1;
-  while (lo <= hi) {
-    int mid = (lo + hi) / 2;
-    if (glyph_table_3x5[mid].ch == (uint8_t)ch) return glyph_table_3x5[mid].g;
-    if (glyph_table_3x5[mid].ch < (uint8_t)ch) lo = mid + 1;
-    else hi = mid - 1;
-  }
-  return glyph_table_3x5[0].g;
-}
-
-static void rot_point_3x5(int px, int py, int rot, int cx, int cy, int *rx, int *ry) {
-  if (rot == 1) {
-    int tmp = px - cx;
-    *rx = cx - (py - cy);
-    *ry = cy + tmp;
-  } else if (rot == 2) {
-    *rx = 2 * cx - px;
-    *ry = 2 * cy - py;
-  } else if (rot == 3) {
-    int tmp = px - cx;
-    *rx = cx + (py - cy);
-    *ry = cy - tmp;
-  } else {
-    *rx = px;
-    *ry = py;
-  }
-}
-
-
-static void draw_rows_3x5(image_buffer_t *img, const uint8_t rows[5], int x, int y,
-                          uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
-  for (int row = 0; row < 5; row++) {
-    for (int col = 0; col < 3; col++) {
-      uint32_t c = ((rows[row] >> (2 - col)) & 1) ? fg : bg;
-      for (int dy = 0; dy < mag; dy++) {
-        for (int dx = 0; dx < mag; dx++) {
-          int rx, ry;
-          rot_point_3x5(x + col * mag + dx, y + row * mag + dy, rot, cx, cy, &rx, &ry);
-          putpixel(img, rx, ry, c);
-        }
-      }
-    }
-  }
-}
-
-static int char_width_3x5(char ch, int mag) {
-  if (ch == '.' || ch == ',' || ch == ':' || ch == ';' || ch == '!' || ch == '\'') return mag;
-  if (ch == ' ') return 2 * mag;
-  return 3 * mag;
-}
-
-static int text_width_3x5(const char *txt, int mag, int spacing) {
-  int w = 0;
-  int count = 0;
-  for (int i = 0; txt[i] != 0; i++) {
-    w += char_width_3x5(txt[i], mag);
-    count++;
-  }
-  if (count > 1) {
-    w += spacing * (count - 1);
-  }
-  return w;
-}
-
-static void img_draw_char_3x5(image_buffer_t *img, char ch, int x, int y,
-                              uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
-  if (ch >= 'a' && ch <= 'z') ch = (char)(ch - ('a' - 'A'));
-  draw_rows_3x5(img, lookup_glyph_3x5(ch), x, y, fg, bg, mag, rot, cx, cy);
-}
-
-
-
-static void draw_text_3x5_fallback(image_buffer_t *img, int x, int y, uint32_t fg, uint32_t bg, const char *txt, int mag, int spacing, int align, int rotation_deg) {
-  int cursor_x = x;
-  int text_w = text_width_3x5(txt, mag, spacing);
-  int text_h = 5 * mag;
-
-  if (align == 1) {
-    cursor_x = x - (text_w / 2);
-  } else if (align == 2) {
-    cursor_x = x - text_w;
-  }
-
-  int rot = (rotation_deg % 360) / 90;
-  int cx = x;
-  int cy = y + text_h / 2;
-
-  for (int i = 0; txt[i] != 0; i++) {
-    char ch = txt[i];
-    img_draw_char_3x5(img, ch, cursor_x, y, fg, bg, mag, rot, cx, cy);
-    cursor_x += char_width_3x5(ch, mag) + spacing;
-  }
-}
+static const uint8_t retro5x7[] = {
+    5, 7, 91, 1, 0, 0, 0, 0, 0, 132, 16, 2, 8, 0, 74, 1, 0, 0, 0, 74,
+    125, 245, 149, 2, 196, 23, 71, 31, 1, 115, 33, 34, 116, 6, 38, 21, 83, 147, 5, 132,
+    0, 0, 0, 0, 136, 8, 33, 8, 2, 130, 32, 132, 136, 0, 64, 145, 79, 20, 0, 128,
+    144, 79, 8, 0, 0, 0, 192, 136, 0, 0, 128, 15, 0, 0, 0, 0, 0, 140, 1, 16,
+    33, 34, 68, 0, 46, 230, 58, 163, 3, 196, 16, 66, 136, 3, 46, 66, 38, 194, 7, 46,
+    66, 7, 163, 3, 76, 165, 244, 17, 2, 63, 60, 8, 163, 3, 46, 132, 23, 163, 3, 31,
+    34, 34, 132, 0, 46, 70, 23, 163, 3, 46, 70, 15, 161, 3, 192, 24, 96, 12, 0, 192,
+    24, 96, 68, 0, 136, 136, 32, 8, 2, 0, 124, 240, 1, 0, 130, 32, 136, 136, 0, 46,
+    66, 68, 0, 1, 46, 246, 218, 130, 3, 68, 197, 248, 99, 4, 47, 198, 23, 227, 3, 46,
+    134, 16, 162, 3, 47, 198, 24, 227, 3, 63, 132, 23, 194, 7, 63, 132, 23, 66, 0, 46,
+    134, 30, 163, 7, 49, 198, 31, 99, 4, 142, 16, 66, 136, 3, 28, 33, 132, 146, 1, 49,
+    149, 81, 82, 4, 33, 132, 16, 194, 7, 113, 215, 24, 99, 4, 113, 214, 28, 99, 4, 46,
+    198, 24, 163, 3, 47, 198, 23, 66, 0, 46, 198, 88, 179, 3, 47, 198, 87, 82, 4, 46,
+    6, 7, 163, 3, 159, 16, 66, 8, 1, 49, 198, 24, 163, 3, 49, 198, 168, 20, 1, 49,
+    198, 90, 119, 4, 49, 42, 162, 98, 4, 49, 42, 66, 8, 1, 31, 34, 34, 194, 7, 78,
+    8, 33, 132, 3, 33, 8, 130, 32, 4, 14, 33, 132, 144, 3, 68, 69, 0, 0, 0, 0,
+    0, 0, 192, 7, 134, 32, 0, 0, 0, 0, 56, 232, 163, 7, 33, 188, 24, 227, 3, 0,
+    184, 16, 162, 3, 16, 250, 24, 163, 7, 0, 184, 248, 131, 3, 76, 136, 39, 132, 0, 192,
+    199, 232, 161, 3, 33, 188, 24, 99, 4, 4, 24, 66, 136, 3, 16, 64, 8, 163, 3, 33,
+    149, 81, 82, 4, 134, 16, 66, 136, 3, 0, 172, 90, 99, 4, 0, 188, 24, 99, 4, 0,
+    184, 24, 163, 3, 224, 197, 248, 66, 0, 192, 199, 232, 33, 4, 0, 188, 24, 66, 0, 0,
+    248, 224, 224, 3, 66, 60, 33, 36, 3, 0, 196, 24, 163, 7, 0, 196, 24, 21, 1, 0,
+    196, 88, 171, 2, 0, 68, 69, 84, 4, 0, 196, 232, 161, 3, 0, 124, 68, 196, 7
+  };
 
 // returns: 1 parsed, 0 not an attr list, -1 malformed/invalid
-static int parse_text_fallback_attr(lbm_value v, int *mag, int *spacing, int *align, int *rotation_deg) {
+static int parse_text_attr(lbm_value v, int *mag, int *spacing, int *align, int *rotation_deg) {
   if (!lbm_is_cons(v)) {
     return 0;
   }
@@ -1893,8 +1796,9 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
   }
 }
 
+// orient: 0=normal, 1=up(90°CCW), 2=180°, 3=down(90°CW)
 static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors,
-                     uint8_t *font_data, uint8_t ch, bool up, bool down, int mag) {
+                     uint8_t *font_data, uint8_t ch, int orient, int mag) {
   uint8_t w = font_data[0];
   uint8_t h = font_data[1];
   uint8_t char_num = font_data[2];
@@ -1906,7 +1810,6 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
     bytes_per_char += 1;
   }
 
-  // There are some expectations on ch that are not documented here.
   if (char_num == 10) {
     ch = (uint8_t)(ch - '0');
   } else {
@@ -1918,60 +1821,38 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
   }
 
   if (bits_per_pixel == 2) {
-    if (num_colors < 4) {
-      return;
-    }
-
+    if (num_colors < 4) return;
     for (int i = 0; i < w * h; i++) {
       uint8_t byte = font_data[4 + bytes_per_char * ch + (i / 4)];
       uint8_t bit_pos = (uint8_t)(i % pixels_per_byte);
       uint8_t pixel_value = (byte >> (bit_pos * 2)) & 0x03;
       int x0 = i % w;
       int y0 = i / w;
-      if (up) {
-        if (mag == 1) {
-          putpixel(img, x + y0, y - x0, colors[pixel_value]);
-        } else {
-          for (int dy = 0; dy < mag; dy++) {
-            for (int dx = 0; dx < mag; dx++) {
-              putpixel(img, x + y0 * mag + dy, y - x0 * mag - dx, colors[pixel_value]);
-            }
-          }
-        }
-      } else if (down) {
-        if (mag == 1) {
-          putpixel(img, x - y0, y + x0, colors[pixel_value]);
-        } else {
-          for (int dy = 0; dy < mag; dy++) {
-            for (int dx = 0; dx < mag; dx++) {
-              putpixel(img, x - y0 * mag - dy, y + x0 * mag + dx, colors[pixel_value]);
-            }
-          }
+      uint32_t col = colors[pixel_value];
+      if (mag == 1) {
+        switch (orient) {
+          case 1:  putpixel(img, x + y0, y - x0, col); break;
+          case 2:  putpixel(img, x - x0, y - y0, col); break;
+          case 3:  putpixel(img, x - y0, y + x0, col); break;
+          default: putpixel(img, x + x0, y + y0, col); break;
         }
       } else {
-        if (mag == 1) {
-          putpixel(img, x + x0, y + y0, colors[pixel_value]);
-        } else {
-          for (int dy = 0; dy < mag; dy++) {
-            for (int dx = 0; dx < mag; dx++) {
-              putpixel(img, x + x0 * mag + dx, y + y0 * mag + dy, colors[pixel_value]);
+        for (int dy = 0; dy < mag; dy++) {
+          for (int dx = 0; dx < mag; dx++) {
+            switch (orient) {
+              case 1:  putpixel(img, x + y0*mag+dy, y - x0*mag-dx, col); break;
+              case 2:  putpixel(img, x - x0*mag-dx, y - y0*mag-dy, col); break;
+              case 3:  putpixel(img, x - y0*mag-dy, y + x0*mag+dx, col); break;
+              default: putpixel(img, x + x0*mag+dx, y + y0*mag+dy, col); break;
             }
           }
         }
       }
     }
   } else {
-    if (num_colors < 1) {
-      return;
-    }
-
+    if (num_colors < 1) return;
     int32_t fg = (int32_t)colors[0];
-    int32_t bg = -1;
-
-    if (num_colors > 1) {
-      bg = (int32_t)colors[1];
-    }
-
+    int32_t bg = (num_colors > 1) ? (int32_t)colors[1] : -1;
     for (int i = 0; i < w * h; i++) {
       uint8_t byte = font_data[4 + bytes_per_char * ch + (i / 8)];
       uint8_t bit_pos = (uint8_t)(i % 8);
@@ -1980,33 +1861,21 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
         int x0 = i % w;
         int y0 = i / w;
         uint32_t color = bit ? (uint32_t)fg : (uint32_t)bg;
-        if (up) {
-          if (mag == 1) {
-            putpixel(img, x + y0, y - x0, color);
-          } else {
-            for (int dy = 0; dy < mag; dy++) {
-              for (int dx = 0; dx < mag; dx++) {
-                putpixel(img, x + y0 * mag + dy, y - x0 * mag - dx, color);
-              }
-            }
-          }
-        } else if (down) {
-          if (mag == 1) {
-            putpixel(img, x - y0, y + x0, color);
-          } else {
-            for (int dy = 0; dy < mag; dy++) {
-              for (int dx = 0; dx < mag; dx++) {
-                putpixel(img, x - y0 * mag - dy, y + x0 * mag + dx, color);
-              }
-            }
+        if (mag == 1) {
+          switch (orient) {
+            case 1:  putpixel(img, x + y0, y - x0, color); break;
+            case 2:  putpixel(img, x - x0, y - y0, color); break;
+            case 3:  putpixel(img, x - y0, y + x0, color); break;
+            default: putpixel(img, x + x0, y + y0, color); break;
           }
         } else {
-          if (mag == 1) {
-            putpixel(img, x + x0, y + y0, color);
-          } else {
-            for (int dy = 0; dy < mag; dy++) {
-              for (int dx = 0; dx < mag; dx++) {
-                putpixel(img, x + x0 * mag + dx, y + y0 * mag + dy, color);
+          for (int dy = 0; dy < mag; dy++) {
+            for (int dx = 0; dx < mag; dx++) {
+              switch (orient) {
+                case 1:  putpixel(img, x + y0*mag+dy, y - x0*mag-dx, color); break;
+                case 2:  putpixel(img, x - x0*mag-dx, y - y0*mag-dy, color); break;
+                case 3:  putpixel(img, x - y0*mag-dy, y + x0*mag+dx, color); break;
+                default: putpixel(img, x + x0*mag+dx, y + y0*mag+dy, color); break;
               }
             }
           }
@@ -2830,145 +2699,126 @@ static lbm_value ext_triangle(lbm_value *args, lbm_uint argn) {
 }
 
 // lisp args:
-//   img x y fg bg font str
-//   img x y fg bg str                       ; fallback 3x5 when no font is provided
-//   img x y fg bg number                    ; fallback number formatting when no font is provided
+//   img x y fg bg font str  [attrs] ['up|'down]
+//   img x y fg bg str       [attrs] ['up|'down]   uses built-in retro5x7 font
+//   img x y '(c0..c3) font str [attrs] ['up|'down]  4-color form for 2bpp fonts
+// attrs: '(magnify N) '(scale N) '(spacing N) '(align 'left|'center|'right) '(rotate deg)
+// orient: 0=normal 1=up/90CCW 2=180 3=down/90CW
 static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
-  bool up = false;
-  bool down = false;
+  int orient = 0;
 
-  if (argn >= 7 && lbm_is_symbol(args[argn - 1])) {
-    if (lbm_dec_sym(args[argn - 1]) == symbol_up) {
-      up = true;
-      argn--;
-    }
-
-    if (lbm_dec_sym(args[argn - 1]) == symbol_down) {
-      down = true;
-      argn--;
-    }
+  if (argn >= 6 && lbm_is_symbol(args[argn - 1])) {
+    lbm_uint sym = lbm_dec_sym(args[argn - 1]);
+    if (sym == symbol_up)   { orient = 1; argn--; }
+    if (sym == symbol_down) { orient = 3; argn--; }
   }
 
-  if (argn < 6) {
-    return ENC_SYM_TERROR;
-  }
+  if (argn < 6) return ENC_SYM_TERROR;
 
   int txt_mag = 1;
-  int fallback_spacing = 1;
-  int fallback_align = 0;
-  int fallback_rotation = 0;
+  int spacing = 0;
+  int align   = 0;
+  int rot_deg = 0;
 
   lbm_uint core_argn = argn;
   while (core_argn > 0) {
-    int r = parse_text_fallback_attr(args[core_argn - 1], &txt_mag, &fallback_spacing, &fallback_align, &fallback_rotation);
-    if (r == 1) {
-      core_argn--;
-      continue;
-    }
-    if (r < 0) {
-      return ENC_SYM_TERROR;
-    }
+    int r = parse_text_attr(args[core_argn - 1], &txt_mag, &spacing, &align, &rot_deg);
+    if (r == 1) { core_argn--; continue; }
+    if (r < 0)  { return ENC_SYM_TERROR; }
     break;
   }
 
-  if (core_argn < 6 || core_argn > 7) {
-    return ENC_SYM_TERROR;
+  if (core_argn < 6 || core_argn > 7) return ENC_SYM_TERROR;
+
+  if (rot_deg != 0) {
+    orient = (((rot_deg % 360) + 360) % 360) / 90;
   }
 
   int x = lbm_dec_as_i32(args[1]);
   int y = lbm_dec_as_i32(args[2]);
 
   int32_t colors[4] = {-1, -1, -1, -1};
-  bool fallback_no_font = false;
-  if (core_argn == 6 && lbm_is_number(args[3]) && lbm_is_number(args[4]) &&
-      lbm_dec_str(args[5]) != NULL) {
-    fallback_no_font = true;
-    colors[0] = lbm_dec_as_i32(args[3]);
-    colors[1] = lbm_dec_as_i32(args[4]);
-  } else if (core_argn == 7) {
-    if (!lbm_is_number(args[3]) || !lbm_is_number(args[4])) {
-      return ENC_SYM_TERROR;
-    }
-    colors[0] = lbm_dec_as_i32(args[3]);
-    colors[1] = lbm_dec_as_i32(args[4]);
-  } else {
+  uint8_t *font_data = (uint8_t*)retro5x7;
+  char *txt = NULL;
+
+  if (lbm_is_cons(args[3])) {
+    // color list form: img x y '(c0..cN) font str
+    if (core_argn != 6) return ENC_SYM_TERROR;
     lbm_value curr = args[3];
-    int ind = 0;
-    while (lbm_is_cons(curr)) {
-      lbm_value  arg = lbm_car(curr);
-      if (lbm_is_number(arg)) {
-        colors[ind++] = lbm_dec_as_i32(arg);
+    int ci = 0;
+    while (lbm_is_cons(curr) && ci < 4) {
+      lbm_value a = lbm_car(curr);
+      if (!lbm_is_number(a)) return ENC_SYM_TERROR;
+      colors[ci++] = lbm_dec_as_i32(a);
+      curr = lbm_cdr(curr);
+    }
+    if (lbm_type_of_functional(args[4]) == LBM_TYPE_ARRAY) {
+      lbm_array_header_t *fh = (lbm_array_header_t*)lbm_car(args[4]);
+      if (fh->size < 4) return ENC_SYM_TERROR;
+      uint8_t *fd = (uint8_t*)fh->data;
+      uint32_t need = ((uint32_t)fd[0] * fd[1] * fd[2] * fd[3] + 7) / 8;
+      if (fh->size - 4 < need) return ENC_SYM_TERROR;
+      font_data = fd;
+    }
+    txt = lbm_dec_str(args[5]);
+  } else if (lbm_is_number(args[3]) && lbm_is_number(args[4])) {
+    colors[0] = lbm_dec_as_i32(args[3]);
+    colors[1] = lbm_dec_as_i32(args[4]);
+    if (core_argn == 7) {
+      if (lbm_type_of_functional(args[5]) == LBM_TYPE_ARRAY) {
+        lbm_array_header_t *fh = (lbm_array_header_t*)lbm_car(args[5]);
+        if (fh->size < 4) return ENC_SYM_TERROR;
+        uint8_t *fd = (uint8_t*)fh->data;
+        uint32_t need = ((uint32_t)fd[0] * fd[1] * fd[2] * fd[3] + 7) / 8;
+        if (fh->size - 4 < need) return ENC_SYM_TERROR;
+        font_data = fd;
       } else {
         return ENC_SYM_TERROR;
       }
-
-      if (ind == 4) {
-        break;
-      }
-
-      curr = lbm_cdr(curr);
+      txt = lbm_dec_str(args[6]);
+    } else {
+      txt = lbm_dec_str(args[5]);
     }
-  }
-
-  if (!array_is_image_buffer(args[0])) {
-  return ENC_SYM_TERROR;
-  }
-  lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
-  image_buffer_t img_buf;
-  img_buf.width = image_buffer_width((uint8_t*)arr->data);
-  img_buf.height = image_buffer_height((uint8_t*)arr->data);
-  img_buf.fmt = image_buffer_format((uint8_t*)arr->data);
-  img_buf.mem_base = (uint8_t*)arr->data;
-  img_buf.data = image_buffer_data((uint8_t*)arr->data);
-
-  lbm_array_header_t *font = 0;
-  if (!fallback_no_font && lbm_type_of_functional(args[core_argn - 2]) == LBM_TYPE_ARRAY) {
-    font = (lbm_array_header_t *)lbm_car(args[core_argn - 2]);
-  }
-
-  char *txt = NULL;
-  if (fallback_no_font) {
-    txt = lbm_dec_str(args[5]);
-    if (!txt) {
-      return ENC_SYM_TERROR;
-    }
-
-    draw_text_3x5_fallback(&img_buf, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt, txt_mag, fallback_spacing, fallback_align, fallback_rotation);
-    return ENC_SYM_TRUE;
-  }
-
-  txt = lbm_dec_str(args[core_argn - 1]);
-  if (!font || !txt || font->size < (4 + 5 * 5 * 10)) {
+  } else {
     return ENC_SYM_TERROR;
   }
 
-  uint8_t *font_data = (uint8_t*)font->data;
+  if (!txt) return ENC_SYM_TERROR;
+
+  if (!array_is_image_buffer(args[0])) return ENC_SYM_TERROR;
+  lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
+  image_buffer_t img_buf;
+  img_buf.width    = image_buffer_width((uint8_t*)arr->data);
+  img_buf.height   = image_buffer_height((uint8_t*)arr->data);
+  img_buf.fmt      = image_buffer_format((uint8_t*)arr->data);
+  img_buf.mem_base = (uint8_t*)arr->data;
+  img_buf.data     = image_buffer_data((uint8_t*)arr->data);
+
   uint8_t w = font_data[0];
-  uint8_t h = font_data[1];
 
-  int incx = 1;
-  int incy = 0;
-  if (up) {
-    incx = 0;
-    incy = -1;
-  } else if (down) {
-    incx = 0;
-    incy = 1;
-  }
+  static const int8_t incx_tbl[4] = { 1,  0, -1,  0};
+  static const int8_t incy_tbl[4] = { 0, -1,  0,  1};
+  int incx = incx_tbl[orient];
+  int incy = incy_tbl[orient];
 
-  int ind = 0;
-  while (txt[ind] != 0) {
+  int char_step    = w * txt_mag + spacing;
+  int txt_len      = (int)strlen(txt);
+  int total        = txt_len * char_step - spacing;
+  int align_offset = (align == 1) ? total / 2 : (align == 2) ? total : 0;
+
+  int x0 = x - align_offset * incx;
+  int y0 = y - align_offset * incy;
+
+  for (int ind = 0; txt[ind] != 0; ind++) {
     img_putc(&img_buf,
-      x + ind * ((up || down) ? h : w) * incx * txt_mag,
-      y + ind * ((up || down) ? w : h) * incy * txt_mag,
+      x0 + ind * char_step * incx,
+      y0 + ind * char_step * incy,
       (uint32_t *)colors,
       4,
       font_data,
       (uint8_t)txt[ind],
-      up,
-      down,
+      orient,
       txt_mag);
-    ind++;
   }
 
   return ENC_SYM_TRUE;
