@@ -44,11 +44,11 @@
    Indentation: 2 spaces
 
    Naming:
-        - Functions, variables and types: snake case.
-        - Macros and constants: UPPER_CASE.
-        - type names are suffixed with `_t`.
-        - public API is prefixed with `lbm_`
-        - static internal names need no prefix.
+     1. Functions, variables and types: snake case.
+     2. Macros and constants: UPPER_CASE.
+     3. Type names are suffixed with `_t`.
+     4. Public API is prefixed with `lbm_`
+     5. Static internal names need no prefix.
 
 ## Comments
    Do not comment obvious things like `a = 5; // assign 5 to a`
