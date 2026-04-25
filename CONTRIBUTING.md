@@ -73,7 +73,7 @@
 
 ## Testing
 
-   We encourage contributions to include additional tests targeting
+   We encourage contributors to include additional tests targeting
    the contributed code.
 
    At a minimum, the existing test-suites should be run on the code
