@@ -29,7 +29,7 @@
    Please file bug reports as an issue on github. If the bug has security
    implications please follow the procedure from SECURITY.md.
 
-## Copyright and Ownership
+## Copyright and ownership
    1. RIGHT TO SUBMIT: The contributor must personally have the right to
       contribute the code.
    2. LICENSE COMPATIBILITY: The code submitted must be under a license
@@ -38,13 +38,13 @@
       as well as AI generated code. See sections **THIRD-PARTY Policy**
       and **AI Policy** 
    
-## STYLE
+## Style
    The following are guidelines for styling of code.
 
    Indentation: 2 spaces
 
    Naming:
-   
+
      1. Functions, variables and types: snake case.
      2. Macros and constants: UPPER_CASE.
      3. Type names are suffixed with `_t`.
@@ -67,11 +67,11 @@
    At a minimum, the existing test-suites should be run on the code before
    issuing a pull request. 
 
-## Static Analysis
+## Static analysis
    It is recommended that the static analysis tools (cppcheck, infer and scanbuild)
    are run on any contributions before issuing a pull request.
 
-## THIRD-PARTY Policy
+## Third-party policy
    Using third-party code is a great way to add value with little effort
    and in the Open Source world it is something we should endorse!
 
@@ -85,7 +85,7 @@
       - The THIRD-PARTY-NOTICES.md file is updated to reflect the inclusion
         of the third-party software.
 
-## AI Policy
+## AI policy
    AI is a very helpful tool and it should be used to automate and speed
    up repetitive tasks. With AI we can move faster and get more functionality
    faster. Using AI assistance is allowed in the LispBM repository under
