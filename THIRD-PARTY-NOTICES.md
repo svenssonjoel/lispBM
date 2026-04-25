@@ -46,7 +46,7 @@ This file lists Third party code that has been incorporated into LispBM
 
 ## Codemirror Scheme editor
 
-   In the repl-wasm a scheme code editor from codemirror.net is used.
+   In repl-wasm a scheme code editor from codemirror.net is used.
    This code is stored into repl-wasm/scripts/codemirror and is released
    under the following license:
 
@@ -76,7 +76,7 @@ This file lists Third party code that has been incorporated into LispBM
 
 ## uPlot
 
-   In the repl-wasm uPlot is used for plotting of graphs. The code
+   In repl-wasm uPlot is used for plotting of graphs. The code
    is stored in repl-wasm/scripts/uplot and is released under the following
    license:
 
