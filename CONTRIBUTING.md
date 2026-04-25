@@ -3,6 +3,20 @@
   Contributions to LispBM are very welcome but as the project is growing
   larger we would like to ask contributors to follow the following guideline.
 
+## Slow and methodical
+   The overarching design principle of the core of LispBM can be summarized as
+   "slow and methodical". The main goals of the runtime system core is
+   to be reliable, sandboxed, safe and secure. At the same time the
+   runtime system is doing a lot of very complicated operations such as
+   process management and scheduling, garbage collection etc. These are
+   things that should not be rushed. Changes should be motivated and
+   planned, followed by rigorous testing.
+
+   The core of LispBM is the source code in the /src and /include directories
+   (excluding the extensions subdirectory).
+
+   Outside of the core a faster and more easy-going approach is fine.
+
 ## Getting in touch
    If you have a good idea for a larger or more intrusive contribution
    please get in touch so that we can coordinate our efforts and align.
@@ -92,12 +106,12 @@
       code. This code can sometimes be repetitive and boring.
 
       Recommended approach is to write the code in the extensions
-      directory by hand. A Hybrid approach where you establish a pattern
+      directory by hand. A hybrid approach where you establish a pattern
       by implementing a few of the "extension functions" rigorously and then
       ask AI to extrapolate the rest.
       
    3. The tests directories contain tests of the runtime system and extensions.
-      Tests of code runtime system functionality should be written with the
+      Tests of core runtime system functionality should be written with the
       same intentionally slow and methodical way as the core code itself.
 
       Tests of extensions should be written with methodology similar to
