@@ -1,7 +1,7 @@
 
-# Third Party Notices
+# Third-Party Notices
 
-This file lists Third party code that has been incorporated into LispBM
+This file lists third-party code that has been incorporated into LispBM
 
 ## LibSchrift
 
@@ -36,7 +36,7 @@ This file lists Third party code that has been incorporated into LispBM
    This is a free software that opened for education, research and commercial
    developments under license policy of following terms.
 
-   Copyright (C) 2021, ChaN, all right reserved.
+   Copyright (C) 2021, ChaN, all rights reserved.
 
     * The TJpgDec module is a free software and there is NO WARRANTY.
     * No restriction on use. You can use, modify and redistribute it for
@@ -112,21 +112,27 @@ This file lists Third party code that has been incorporated into LispBM
    The following files are copyright Benjamin Vedder and licensed under the
    GNU General Public License version 3 or later:
 
-   - utils/crc.h, utils/crc.c          Copyright 2016 Benjamin Vedder
-   - utils/buffer.h, utils/buffer.c    Copyright 2016 Benjamin Vedder
-   - utils/packet.h, utils/packet.c    Copyright 2016-2021 Benjamin Vedder
+   | File | Copyright |
+   |------|-----------|
+   | utils/crc.h, utils/crc.c | Copyright 2016 Benjamin Vedder |
+   | utils/buffer.h, utils/buffer.c | Copyright 2016 Benjamin Vedder |
+   | utils/packet.h, utils/packet.c | Copyright 2016-2021 Benjamin Vedder |
 
    The following files originated in VESC firmware and are co-authored; all are
    licensed under the GNU General Public License version 3 or later:
 
-   - examples/esp32c3-st7789/main/hwspi.h        Copyright 2023 Benjamin Vedder, Joel Svensson
-   - examples/esp32c3-st7789/main/hwspi.c        Copyright 2023 Benjamin Vedder, Joel Svensson
-   - examples/esp32c3-st7789/main/disp_st7789.h  Copyright 2023 Benjamin Vedder, Joel Svensson
-   - examples/esp32c3-st7789/main/disp_st7789.c  Copyright 2023 Benjamin Vedder, Joel Svensson
-   - include/extensions/display_extensions.h     Copyright 2023-2024 Benjamin Vedder, Joel Svensson
-   - src/extensions/display_extensions.c         Copyright 2023-2025 Benjamin Vedder, Joel Svensson,
-                                                  Rasmus Söderhielm, Joakim Lundborg
-                                                  (Originally a part of the vesc_express firmware)
+   | File | Copyright |
+   |------|-----------|
+   | examples/esp32c3-st7789/main/hwspi.h | Copyright 2023 Benjamin Vedder, Joel Svensson |
+   | examples/esp32c3-st7789/main/hwspi.c | Copyright 2023 Benjamin Vedder, Joel Svensson |
+   | examples/esp32c3-st7789/main/disp_st7789.h | Copyright 2023 Benjamin Vedder, Joel Svensson |
+   | examples/esp32c3-st7789/main/disp_st7789.c | Copyright 2023 Benjamin Vedder, Joel Svensson |
+   | include/extensions/display_extensions.h | Copyright 2023-2024 Benjamin Vedder, Joel Svensson |
+   | src/extensions/display_extensions.c | Copyright 2023-2025 Benjamin Vedder, Joel Svensson, Rasmus Söderhielm, Joakim Lundborg (originally part of vesc_express) |
+   | include/extensions/array_extensions.h | Copyright 2022 Joel Svensson, Benjamin Vedder |
+   | src/extensions/array_extensions.c | Copyright 2022-2025 Joel Svensson, Benjamin Vedder |
+   | include/extensions/string_extensions.h | Copyright 2022 Joel Svensson, Benjamin Vedder |
+   | src/extensions/string_extensions.c | Copyright 2022-2025 Joel Svensson, Benjamin Vedder, Rasmus Söderhielm |
 
    GNU General Public License, Version 3
 
