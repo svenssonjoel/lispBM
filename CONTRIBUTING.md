@@ -44,6 +44,7 @@
    Indentation: 2 spaces
 
    Naming:
+   
      1. Functions, variables and types: snake case.
      2. Macros and constants: UPPER_CASE.
      3. Type names are suffixed with `_t`.
