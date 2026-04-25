@@ -728,21 +728,29 @@ static const glyph_entry_5x7_t glyph_table_5x7[] = {
   {'~', {8,21,2,0,0,0,0}},
 };
 
-static int fallback_font_size_from_name(const char *name) {
-  if (!name) {
-    return 0;
-  }
+typedef struct {
+  const void *glyph_table;
+  int glyph_count;
+  int glyph_width;
+  int glyph_height;
+  int space_width;
+} fallback_font_t;
 
-  if (strcmp(name, "builtin-3x5") == 0) {
-    return 3;
-  }
+static const fallback_font_t fallback_font_3x5 = {
+  .glyph_table = glyph_table_3x5,
+  .glyph_count = (int)(sizeof(glyph_table_3x5) / sizeof(glyph_table_3x5[0])),
+  .glyph_width = 3,
+  .glyph_height = 5,
+  .space_width = 2,
+};
 
-  if (strcmp(name, "builtin-5x7") == 0) {
-    return 5;
-  }
-
-  return 0;
-}
+static const fallback_font_t fallback_font_5x7 = {
+  .glyph_table = glyph_table_5x7,
+  .glyph_count = (int)(sizeof(glyph_table_5x7) / sizeof(glyph_table_5x7[0])),
+  .glyph_width = 5,
+  .glyph_height = 7,
+  .space_width = 3,
+};
 
 static const uint8_t *lookup_glyph_3x5(char ch) {
   int lo = 0;
@@ -768,7 +776,7 @@ static const uint8_t *lookup_glyph_5x7(char ch) {
   return glyph_table_5x7[0].g;
 }
 
-static void rot_point_3x5(int px, int py, int rot, int cx, int cy, int *rx, int *ry) {
+static void rot_point(int px, int py, int rot, int cx, int cy, int *rx, int *ry) {
   if (rot == 1) {
     int tmp = px - cx;
     *rx = cx - (py - cy);
@@ -786,16 +794,19 @@ static void rot_point_3x5(int px, int py, int rot, int cx, int cy, int *rx, int 
   }
 }
 
-
-static void draw_rows_3x5(image_buffer_t *img, const uint8_t rows[5], int x, int y,
-                          uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
-  for (int row = 0; row < 5; row++) {
-    for (int col = 0; col < 3; col++) {
-      uint32_t c = ((rows[row] >> (2 - col)) & 1) ? fg : bg;
+static void draw_fallback_rows(image_buffer_t *img, const fallback_font_t *font, const uint8_t *rows,
+                               int x, int y, uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
+  for (int row = 0; row < font->glyph_height; row++) {
+    for (int col = 0; col < font->glyph_width; col++) {
+      bool bit_set = ((rows[row] >> (font->glyph_width - 1 - col)) & 1) != 0;
+      if (!bit_set && bg == 0xFFFFFFFFu) {
+        continue;
+      }
+      uint32_t c = bit_set ? fg : bg;
       for (int dy = 0; dy < mag; dy++) {
         for (int dx = 0; dx < mag; dx++) {
           int rx, ry;
-          rot_point_3x5(x + col * mag + dx, y + row * mag + dy, rot, cx, cy, &rx, &ry);
+          rot_point(x + col * mag + dx, y + row * mag + dy, rot, cx, cy, &rx, &ry);
           putpixel(img, rx, ry, c);
         }
       }
@@ -803,75 +814,68 @@ static void draw_rows_3x5(image_buffer_t *img, const uint8_t rows[5], int x, int
   }
 }
 
-static void draw_rows_5x7(image_buffer_t *img, const uint8_t rows[7], int x, int y,
-                          uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
-  for (int row = 0; row < 7; row++) {
-    for (int col = 0; col < 5; col++) {
-      uint32_t c = ((rows[row] >> (4 - col)) & 1) ? fg : bg;
-      for (int dy = 0; dy < mag; dy++) {
-        for (int dx = 0; dx < mag; dx++) {
-          int rx, ry;
-          rot_point_3x5(x + col * mag + dx, y + row * mag + dy, rot, cx, cy, &rx, &ry);
-          putpixel(img, rx, ry, c);
-        }
-      }
+static int fallback_char_width(const fallback_font_t *font, char ch, int mag) {
+  if (ch == '.' || ch == ',' || ch == ':' || ch == ';' || ch == '!' || ch == '\'') {
+    return mag;
+  }
+  if (ch == ' ') return font->space_width * mag;
+  return font->glyph_width * mag;
+}
+
+static int fallback_char_advance(const fallback_font_t *font, char ch, int mag, uint32_t bg) {
+  if (bg != 0xFFFFFFFFu &&
+      (ch == '.' || ch == ',' || ch == ':' || ch == ';' || ch == '!' || ch == '\'')) {
+    if (font->glyph_width == 5) {
+      return 4 * mag;
     }
+    return font->glyph_width * mag;
   }
+
+  return fallback_char_width(font, ch, mag);
 }
 
-static int char_width_3x5(char ch, int mag) {
-  if (ch == '.' || ch == ',' || ch == ':' || ch == ';' || ch == '!' || ch == '\'') return mag;
-  if (ch == ' ') return 2 * mag;
-  return 3 * mag;
-}
-
-static int char_width_5x7(char ch, int mag) {
-  if (ch == '.' || ch == ',' || ch == ':' || ch == ';' || ch == '!' || ch == '\'') return mag;
-  if (ch == ' ') return 3 * mag;
-  return 5 * mag;
-}
-
-static int text_width_3x5(const char *txt, int mag, int spacing) {
+static int fallback_text_width_bg(const fallback_font_t *font, const char *txt, int mag, int spacing, uint32_t bg) {
   int w = 0;
   int count = 0;
+
   for (int i = 0; txt[i] != 0; i++) {
-    w += char_width_3x5(txt[i], mag);
+    w += fallback_char_advance(font, txt[i], mag, bg);
     count++;
   }
+
   if (count > 1) {
     w += spacing * (count - 1);
   }
+
   return w;
 }
 
-static int text_width_5x7(const char *txt, int mag, int spacing) {
-  int w = 0;
-  int count = 0;
-  for (int i = 0; txt[i] != 0; i++) {
-    w += char_width_5x7(txt[i], mag);
-    count++;
+static void img_draw_fallback_char(image_buffer_t *img, const fallback_font_t *font, char ch,
+                                   int x, int y, uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
+  if (font == &fallback_font_3x5 && ch >= 'a' && ch <= 'z') {
+    ch = (char)(ch - ('a' - 'A'));
   }
-  if (count > 1) {
-    w += spacing * (count - 1);
+
+  const uint8_t *rows = (font == &fallback_font_5x7) ? lookup_glyph_5x7(ch) : lookup_glyph_3x5(ch);
+
+  if (font == &fallback_font_5x7 &&
+      (ch == '.' || ch == ',' || ch == ':' || ch == ';' || ch == '!' || ch == '\'')) {
+    static uint8_t rows_shifted[7];
+    for (int i = 0; i < 7; i++) {
+      rows_shifted[i] = (uint8_t)((rows[i] << 1) & 0x1F);
+    }
+    rows = rows_shifted;
   }
-  return w;
+
+  draw_fallback_rows(img, font, rows, x, y, fg, bg, mag, rot, cx, cy);
 }
 
-static void img_draw_char_3x5(image_buffer_t *img, char ch, int x, int y,
-                              uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
-  if (ch >= 'a' && ch <= 'z') ch = (char)(ch - ('a' - 'A'));
-  draw_rows_3x5(img, lookup_glyph_3x5(ch), x, y, fg, bg, mag, rot, cx, cy);
-}
-
-static void img_draw_char_5x7(image_buffer_t *img, char ch, int x, int y,
-                              uint32_t fg, uint32_t bg, int mag, int rot, int cx, int cy) {
-  draw_rows_5x7(img, lookup_glyph_5x7(ch), x, y, fg, bg, mag, rot, cx, cy);
-}
-
-static void draw_text_3x5_fallback(image_buffer_t *img, int x, int y, uint32_t fg, uint32_t bg, const char *txt, int mag, int spacing, int align, int rotation_deg) {
+static void draw_fallback_text(image_buffer_t *img, const fallback_font_t *font, int x, int y,
+                               uint32_t fg, uint32_t bg, const char *txt, int mag,
+                               int spacing, int align, int rotation_deg) {
   int cursor_x = x;
-  int text_w = text_width_3x5(txt, mag, spacing);
-  int text_h = 5 * mag;
+  int text_w = fallback_text_width_bg(font, txt, mag, spacing, bg);
+  int text_h = font->glyph_height * mag;
 
   if (align == 1) {
     cursor_x = x - (text_w / 2);
@@ -885,31 +889,8 @@ static void draw_text_3x5_fallback(image_buffer_t *img, int x, int y, uint32_t f
 
   for (int i = 0; txt[i] != 0; i++) {
     char ch = txt[i];
-    img_draw_char_3x5(img, ch, cursor_x, y, fg, bg, mag, rot, cx, cy);
-    cursor_x += char_width_3x5(ch, mag) + spacing;
-  }
-}
-
-static void draw_text_5x7_fallback(image_buffer_t *img, int x, int y, uint32_t fg, uint32_t bg,
-                                   const char *txt, int mag, int spacing, int align, int rotation_deg) {
-  int cursor_x = x;
-  int text_w = text_width_5x7(txt, mag, spacing);
-  int text_h = 7 * mag;
-
-  if (align == 1) {
-    cursor_x = x - (text_w / 2);
-  } else if (align == 2) {
-    cursor_x = x - text_w;
-  }
-
-  int rot = (rotation_deg % 360) / 90;
-  int cx = x;
-  int cy = y + text_h / 2;
-
-  for (int i = 0; txt[i] != 0; i++) {
-    char ch = txt[i];
-    img_draw_char_5x7(img, ch, cursor_x, y, fg, bg, mag, rot, cx, cy);
-    cursor_x += char_width_5x7(ch, mag) + spacing;
+    img_draw_fallback_char(img, font, ch, cursor_x, y, fg, bg, mag, rot, cx, cy);
+    cursor_x += fallback_char_advance(font, ch, mag, bg) + spacing;
   }
 }
 
@@ -3024,6 +3005,7 @@ static lbm_value ext_triangle(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   bool up = false;
   bool down = false;
+  const fallback_font_t *fallback_font = NULL;
 
   if (argn >= 7 && lbm_is_symbol(args[argn - 1])) {
     if (lbm_dec_sym(args[argn - 1]) == symbol_up) {
@@ -3045,7 +3027,6 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   int fallback_spacing = 1;
   int fallback_align = 0;
   int fallback_rotation = 0;
-  bool fallback_use_5x7 = false;
 
   lbm_uint core_argn = argn;
   while (core_argn > 0) {
@@ -3080,7 +3061,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     if (lbm_is_number(args[5])) {
       int font_sel = lbm_dec_as_i32(args[5]);
       if (font_sel == 0 || font_sel == 1) {
-        fallback_use_5x7 = (font_sel == 0);
+        fallback_font = font_sel == 0 ? &fallback_font_5x7 : &fallback_font_3x5;
         fallback_no_font = true;
       }
     }
@@ -3128,13 +3109,8 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   }
 
   if (fallback_no_font) {
-    if (fallback_use_5x7) {
-      draw_text_5x7_fallback(&img_buf, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt,
-                             txt_mag, fallback_spacing, fallback_align, fallback_rotation);
-    } else {
-      draw_text_3x5_fallback(&img_buf, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt,
-                             txt_mag, fallback_spacing, fallback_align, fallback_rotation);
-    }
+    draw_fallback_text(&img_buf, fallback_font, x, y, (uint32_t)colors[0], (uint32_t)colors[1], txt,
+                       txt_mag, fallback_spacing, fallback_align, fallback_rotation);
     return ENC_SYM_TRUE;
   }
 
