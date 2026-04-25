@@ -109,6 +109,13 @@ function createEditorTab(name) {
         }
       },
       'Shift-Tab': cm => cm.execCommand('indentLess'),
+      'F1': cm => {
+        const range = cm.findWordAt(cm.getCursor());
+        const word  = cm.getRange(range.anchor, range.head);
+        switchTab('docs');
+        docsSearchInput.value = word;
+        docsSearch(word);
+      },
     }
   });
   cm.setSize('100%', '100%');
@@ -164,6 +171,98 @@ rtsPane.id        = 'output-tab-rts';
 rtsPane.className = 'tab-pane';
 rtsPane.style.cssText = 'padding:10px;';
 document.getElementById('output-tab-contents').appendChild(rtsPane);
+
+// Docs tab (permanent)
+const docsTabBtn = document.createElement('button');
+docsTabBtn.className = 'tab-btn';
+docsTabBtn.dataset.tab = 'docs';
+docsTabBtn.addEventListener('click', () => switchTab('docs'));
+const docsLabelEl = document.createElement('span');
+docsLabelEl.textContent = 'Docs';
+docsTabBtn.appendChild(docsLabelEl);
+document.getElementById('output-tab-bar').appendChild(docsTabBtn);
+
+const docsPane = document.createElement('div');
+docsPane.id = 'output-tab-docs';
+docsPane.className = 'tab-pane';
+document.getElementById('output-tab-contents').appendChild(docsPane);
+
+const docsSearchInput = document.createElement('input');
+docsSearchInput.type = 'text';
+docsSearchInput.id = 'docs-search';
+docsSearchInput.placeholder = 'Search docs... (F1 in editor)';
+docsPane.appendChild(docsSearchInput);
+
+const docsResults = document.createElement('div');
+docsResults.id = 'docs-results';
+docsPane.appendChild(docsResults);
+
+let pagefind = null;
+async function initPagefind() {
+  if (pagefind) return pagefind;
+  pagefind = await import('/lispbm-reference-manual/html/pagefind/pagefind.js');
+  return pagefind;
+}
+
+async function docsSearch(query) {
+  if (!query.trim()) { docsResults.innerHTML = ''; return; }
+  docsResults.innerHTML = '<div style="color:#666;font-size:12px;padding:8px;">Searching...</div>';
+  try {
+    const pf = await initPagefind();
+    const result = await pf.search(query);
+    const data = await Promise.all(result.results.slice(0, 10).map(r => r.data()));
+    docsResults.innerHTML = '';
+    if (!data.length) {
+      docsResults.innerHTML = '<div style="color:#666;font-size:12px;padding:8px;">No results.</div>';
+      return;
+    }
+    data.forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'docs-result';
+      item.innerHTML = '<div class="docs-result-title">' + (r.meta.title || r.url) + '</div>' +
+                       '<div class="docs-result-excerpt">' + r.excerpt + '</div>';
+      item.addEventListener('click', () => openDocPage(r.url));
+      docsResults.appendChild(item);
+    });
+  } catch(e) {
+    docsResults.innerHTML = '<div style="color:#e06c75;font-size:12px;padding:8px;">Search failed: ' + e.message + '</div>';
+  }
+}
+
+docsSearchInput.addEventListener('input', () => docsSearch(docsSearchInput.value));
+
+let docsIframe = null;
+let docsBackBtn = null;
+
+function openDocPage(url) {
+  docsSearchInput.style.display = 'none';
+  docsResults.style.display = 'none';
+
+  if (!docsBackBtn) {
+    docsBackBtn = document.createElement('button');
+    docsBackBtn.textContent = '\u2190 Back to results';
+    docsBackBtn.style.cssText = 'align-self:flex-start;background:#3a3a3a;border:1px solid #555;color:#d4d4d4;font-size:12px;padding:3px 10px;flex-shrink:0;';
+    docsBackBtn.addEventListener('click', () => {
+      docsIframe.style.display = 'none';
+      docsBackBtn.style.display = 'none';
+      docsSearchInput.style.display = '';
+      docsResults.style.display = '';
+    });
+    docsPane.appendChild(docsBackBtn);
+  } else {
+    docsBackBtn.style.display = '';
+  }
+
+  if (!docsIframe) {
+    docsIframe = document.createElement('iframe');
+    docsIframe.style.cssText = 'flex:1;border:none;background:#fff;';
+    docsPane.appendChild(docsIframe);
+  } else {
+    docsIframe.style.display = '';
+  }
+
+  docsIframe.src = url;
+}
 
 // ------------------------------------------------------------
 // Canvas tabs

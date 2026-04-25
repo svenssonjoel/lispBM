@@ -227,6 +227,19 @@
       transition: background 0.1s;
     }
     #busy-led.on { background: #4ec9b0; box-shadow: 0 0 4px #4ec9b0; }
+    #output-tab-docs.active { display: flex !important; flex-direction: column; gap: 6px; padding: 8px; }
+    #docs-search {
+      width: 100%; background: #2d2d2d; color: #d4d4d4;
+      border: 1px solid #444; padding: 6px 8px;
+      font-family: inherit; font-size: 13px; outline: none; flex-shrink: 0;
+    }
+    #docs-search:focus { border-color: #569cd6; }
+    #docs-results { overflow-y: auto; flex: 1; }
+    .docs-result { padding: 8px 10px; border-bottom: 1px solid #222; cursor: pointer; }
+    .docs-result:hover { background: #1e1e1e; }
+    .docs-result-title { color: #569cd6; font-size: 12px; margin-bottom: 4px; }
+    .docs-result-excerpt { color: #888; font-size: 11px; line-height: 1.4; }
+    .docs-result-excerpt mark { background: none; color: #dcdcaa; }
   </style>
 </head>
 <body>
