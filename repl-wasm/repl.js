@@ -96,6 +96,7 @@ function createEditorTab(name) {
     indentWithTabs: false,
     electricChars: true,
     smartIndent: true,
+    inputStyle: 'contenteditable',
     extraKeys: {
       'Tab': cm => {
         const cur = cm.getCursor();
@@ -111,6 +112,7 @@ function createEditorTab(name) {
     }
   });
   cm.setSize('100%', '100%');
+  cm.on('paste', () => setTimeout(() => cm.focus(), 20));
 
   const tab = { id, btn, pane, cm, labelEl, filename: null };
   editorTabs.push(tab);
