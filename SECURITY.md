@@ -1,11 +1,33 @@
 
 # Security Policy
 
-LispBM releases are given git tags in the a.b.c version format.  Only
+LispBM releases are given git tags in the a.b.c version format. Only
 the commit with the numbered tag has been subjected to the full
 test-suite and considered a stable point. Between releases many git
 commits can occur where the version number stored in lbm_version.h
 does not change, these are to be considered experimental!
+
+## The purpose of LispBM and how it relates to security
+
+The purpose of LispBM is to provide a scripting layer for embedded
+systems. It can be used by an embedded system designer as a tool to
+speed up development, or it can be used to empower the end user of a
+product to modify and extend the behavior of a system they own.
+
+When the LispBM scripting layer is exposed to the end user, there is
+an inherent tension with security regulations and practices that aim
+to restrict what code can run on a system. LispBM resolves this
+tension at the integration boundary rather than within the core
+library.
+
+The core of LispBM operates only within memory areas explicitly
+assigned to it (a sandbox). The integrator controls what extensions
+are registered, and those extensions define what LispBM programs can
+reach outside of that sandbox, including hardware peripherals,
+communication interfaces, safety-critical firmware functions, and so
+on. The security question for an integrator is therefore not "who is
+allowed to upload code?", but "what should user code be able to do?"
+The registered extensions define the security boundary.
 
 ## Supported Versions
 
@@ -20,21 +42,7 @@ Please report security vulnerabilities to bo.joel.svensson@gmail.com
 rather than opening a public issue.
 
 Include a description of the vulnerability and the steps needed to
-reproduce it.  We are very grateful for your contributions.
-
-## Scope and Limitations
-
-LispBM is meant to be integrated into a larger application and provide
-that application with a scripting layer. The security properties of
-the system as a whole is the responsibility of the
-integrator. Integrators are responsible for authentication of code and
-for configuration of isolation features (such as TrustZone) where
-relevant.
-
-There is a library of cryptography functions available as extensions
-to the core LispBM. We hope these help users towards the requirements
-of the Cyber Resilience Act or other similar regional cybersecurity
-standards.
+reproduce it. We are very grateful for your contributions.
 
 ## Conclusion
 
