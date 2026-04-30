@@ -1,10 +1,12 @@
 first_rule: all
 
 LISPBM_UTILS_SRC = $(LISPBM)/utils/buffer.c \
-                   $(LISPBM)/utils/crypto.c
+                   $(LISPBM)/utils/crypto.c \
+                   $(LISPBM)/utils/ecc.c
 
 LISPBM_UTILS_H = $(LISPBM)/utils/buffer.h \
-                 $(LISPBM)/utils/crypto.h
+                 $(LISPBM)/utils/crypto.h \
+                 $(LISPBM)/utils/ecc.h
 
 LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/fundamental.c \
