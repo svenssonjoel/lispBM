@@ -42,13 +42,13 @@
       contribute the code.
    2. LICENSE COMPATIBILITY: The code submitted must be under a license
       compatible with GPL v3.
-   3. Points 1 and 2 apply to contributions including third party code
+   3. Points 1 and 2 also apply to contributions including third party code
       as well as AI generated code. See sections **Third-party policy**
       and **AI policy** 
    
 ## Style
 
-   The following are guidelines for styling of code.
+   The following are guidelines for styling of C code.
 
    Indentation: 2 spaces
 

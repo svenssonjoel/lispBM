@@ -47,6 +47,7 @@ LISPBM_SRC = \
   $(LISPBM)/src/lbm_defrag_mem.c \
   $(LISPBM)/src/lbm_image.c \
   $(LISPBM)/utils/buffer.c \
+  $(LISPBM)/utils/crypto.c \
   $(LISPBM)/src/extensions/array_extensions.c \
   $(LISPBM)/src/extensions/string_extensions.c \
   $(LISPBM)/src/extensions/math_extensions.c \

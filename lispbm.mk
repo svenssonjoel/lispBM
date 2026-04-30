@@ -1,5 +1,11 @@
 first_rule: all
 
+LISPBM_UTILS_SRC = $(LISPBM)/utils/buffer.c \
+                   $(LISPBM)/utils/crypto.c
+
+LISPBM_UTILS_H = $(LISPBM)/utils/buffer.h \
+                 $(LISPBM)/utils/crypto.h
+
 LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/fundamental.c \
              $(LISPBM)/src/heap.c \
@@ -18,7 +24,6 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/lbm_prof.c\
              $(LISPBM)/src/lbm_defrag_mem.c\
              $(LISPBM)/src/lbm_image.c\
-             $(LISPBM)/utils/buffer.c \
              $(LISPBM)/src/extensions/array_extensions.c \
              $(LISPBM)/src/extensions/string_extensions.c \
              $(LISPBM)/src/extensions/math_extensions.c \
@@ -34,7 +39,8 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/schrift.c \
              $(LISPBM)/src/extensions/dsp_extensions.c \
              $(LISPBM)/src/extensions/crypto_extensions.c \
-             $(LISPBM)/src/extensions/ecc_extensions.c
+             $(LISPBM)/src/extensions/ecc_extensions.c \
+	     $(LISPBM_UTILS_SRC)
 
 LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/eval_cps.h \
@@ -72,7 +78,8 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions/string_extensions.h \
            $(LISPBM)/include/extensions/ttf_extensions.h \
            $(LISPBM)/include/extensions/crypto_extensions.h \
-           $(LISPBM)/include/extensions/ecc_extensions.h
+           $(LISPBM)/include/extensions/ecc_extensions.h \
+	   $(LISPBM_UTILS_H)
 
 LISPBM_INC = -I$(LISPBM)/include \
              -I$(LISPBM)/include/extensions \
