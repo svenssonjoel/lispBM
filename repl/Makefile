@@ -113,6 +113,11 @@ ifneq (,$(filter rtlsdr, $(FEATURES)))
 	REPL_SRC += lbm_rtlsdr.c
 endif
 
+ifneq (,$(filter test_nand, $(FEATURES)))
+	CCFLAGS  += -DTEST_FT4232H_NAND_DRIVER -I/usr/include/libftdi1
+	LDFLAGS  += -lftdi1
+	REPL_SRC += ft4232_nand.c
+endif
 
 # -Wjump-misses-init
 # -fsanitize=address
@@ -133,8 +138,9 @@ help:
 	@echo "alsa     - Sound and midi, builds the LispBM soft synth."
 	@echo "sdl      - Adds SDL support for graphics."
 	@echo "freetype - Use libfreetype for font preprocessing."
-	@echo "coverage - Build with coverage information collection."
-	@echo "debug    - Build with debug symbols."
+	@echo "coverage  - Build with coverage information collection."
+	@echo "debug     - Build with debug symbols."
+	@echo "test_nand - Build FT4232H + W25N01GVZEIG NAND driver test (requires libftdi1-dev)."
 	@echo ""
 	@echo "Example: 'make FEATURES=\"alsa sdl\"' to build with sound and graphics support."
 	@echo "Example: 'make FEATURES=\"sdl freetype\"' to build with graphics and freetype support."

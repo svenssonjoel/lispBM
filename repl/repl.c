@@ -97,6 +97,10 @@
 #include "buffer.h"
 #include "crc.h"
 
+#ifdef TEST_FT4232H_NAND_DRIVER
+#include "ft4232_nand.h"
+#endif
+
 typedef void (*send_func_t)(unsigned char *, unsigned int);
 
 static void handle_repl_output(void);
@@ -2510,6 +2514,88 @@ static void handle_repl_output(void) {
 int main(int argc, char **argv) {
   iobuffer_init();
 
+  // ////////////////////////////////////////////////////////////
+  // Test NAND flash FT4232H Driver.
+#ifdef TEST_FT4232H_NAND_DRIVER
+  printf("NAND: opening FT4232H port A...\n");
+  if (!nand_open(0)) {
+    printf("NAND: open failed\n");
+  } else {
+    printf("NAND: open OK\n");
+
+    nand_reset();
+
+    uint8_t id[3] = {0};
+    if (nand_read_id(id)) {
+      printf("NAND: JEDEC ID = %02X %02X %02X", id[0], id[1], id[2]);
+      if (id[0] == 0xEF && id[1] == 0xAA && id[2] == 0x21) {
+        printf("  (W25N01GVZEIG OK)\n");
+      } else {
+        printf("  (unexpected — check wiring)\n");
+      }
+    } else {
+      printf("NAND: read_id failed\n");
+    }
+
+    uint8_t sr1 = nand_read_status(NAND_SR1);
+    uint8_t sr2 = nand_read_status(NAND_SR2);
+    uint8_t sr3 = nand_read_status(NAND_SR3);
+    printf("NAND: SR1=%02X  SR2=%02X  SR3=%02X  BUSY=%d\n",
+           sr1, sr2, sr3, (sr3 & NAND_SR3_BUSY) ? 1 : 0);
+
+    // Clear block protection bits in SR1 so erase/write can proceed
+    printf("NAND: clearing SR1 block protection...\n");
+    nand_write_status(NAND_SR1, 0x00);
+    sr1 = nand_read_status(NAND_SR1);
+    printf("NAND: SR1 after clear = %02X%s\n", sr1, sr1 == 0x00 ? "  OK" : "  (unexpected)");
+
+    // Erase block 0
+    printf("NAND: erasing block 0...\n");
+    if (nand_erase_block(0)) {
+      printf("NAND: erase OK\n");
+    } else {
+      printf("NAND: erase FAILED (EFAIL set)\n");
+    }
+
+    // Write a test pattern to page 0
+    static uint8_t wbuf[NAND_PAGE_DATA_SIZE];
+    for (int i = 0; i < NAND_PAGE_DATA_SIZE; i++) {
+      wbuf[i] = (uint8_t)(i & 0xFF);
+    }
+    printf("NAND: writing test pattern to page 0...\n");
+    if (nand_write_page(0, 0, wbuf, NAND_PAGE_DATA_SIZE)) {
+      printf("NAND: write OK\n");
+    } else {
+      printf("NAND: write FAILED (PFAIL set)\n");
+    }
+
+    // Read back page 0 and verify
+    static uint8_t rbuf[NAND_PAGE_DATA_SIZE];
+    printf("NAND: reading back page 0...\n");
+    if (nand_read_page(0, 0, rbuf, NAND_PAGE_DATA_SIZE)) {
+      int errors = 0;
+      for (int i = 0; i < NAND_PAGE_DATA_SIZE; i++) {
+        if (rbuf[i] != wbuf[i]) errors++;
+      }
+      if (errors == 0) {
+        printf("NAND: read-back verify OK (%d bytes match)\n", NAND_PAGE_DATA_SIZE);
+      } else {
+        printf("NAND: read-back verify FAILED (%d/%d bytes wrong)\n",
+               errors, NAND_PAGE_DATA_SIZE);
+        printf("NAND: first 16 bytes read: ");
+        for (int i = 0; i < 16; i++) printf("%02X ", rbuf[i]);
+        printf("\n");
+      }
+    } else {
+      printf("NAND: read FAILED\n");
+    }
+
+    nand_close();
+  }
+#endif
+
+
+  
   // ////////////////////////////////////////////////////////////
   // start timestamp cacher
   lbm_thread_create(&timestamp_thread, "timestamp", lbm_timestamp_cacher, NULL, LBM_THREAD_PRIO_NORMAL, 0);
