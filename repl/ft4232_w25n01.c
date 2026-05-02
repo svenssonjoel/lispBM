@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ft4232_nand.h"
+#include "ft4232_w25n01.h"
 #include <ftdi.h>
 #include <stdlib.h>
 #include <string.h>
@@ -135,6 +135,7 @@ bool nand_open(int interface) {
   return true;
 
 fail:
+  ftdi_usb_close(g_ftdi);
   ftdi_free(g_ftdi);
   g_ftdi = NULL;
   return false;
@@ -256,9 +257,9 @@ static bool write_enable(void) {
   return nand_spi_xfer(tx, NULL, 1);
 }
 
-bool nand_read_page(uint16_t page_addr, uint16_t col, uint8_t *buf, int len) {
-  if (!buf || col + len > NAND_PAGE_TOTAL_SIZE) return false;
- 
+nand_ecc_t nand_read_page(uint16_t page_addr, uint16_t col, uint8_t *buf, int len) {
+  if (!buf || col + len > NAND_PAGE_TOTAL_SIZE) return NAND_ECC_ERROR;
+
   // Page Data Read: load NAND array → internal data buffer
   uint8_t page_read[4] = {
     CMD_PAGE_READ,
@@ -266,15 +267,15 @@ bool nand_read_page(uint16_t page_addr, uint16_t col, uint8_t *buf, int len) {
     (uint8_t)(page_addr >> 8),
     (uint8_t)(page_addr & 0xFF),
   };
-  if (!nand_spi_xfer(page_read, NULL, 4)) return false;
+  if (!nand_spi_xfer(page_read, NULL, 4)) return NAND_ECC_ERROR;
   // tRD max 70 µs; allow 200 µs
-  if (!nand_wait_ready(200)) return false;
+  if (!nand_wait_ready(200)) return NAND_ECC_ERROR;
 
   // Fast Read from data buffer: opcode + col(2) + dummy(1) + data
   int txlen = 4 + len;
   uint8_t *tx = calloc(1, (size_t)txlen);
   uint8_t *rx = malloc((size_t)txlen);
-  if (!tx || !rx) { free(tx); free(rx); return false; }
+  if (!tx || !rx) { free(tx); free(rx); return NAND_ECC_ERROR; }
 
   tx[0] = CMD_FAST_READ;
   tx[1] = (uint8_t)(col >> 8);
@@ -283,9 +284,13 @@ bool nand_read_page(uint16_t page_addr, uint16_t col, uint8_t *buf, int len) {
 
   bool ok = nand_spi_xfer(tx, rx, txlen);
   if (ok) memcpy(buf, rx + 4, (size_t)len);
-
   free(tx); free(rx);
-  return ok;
+  if (!ok) return NAND_ECC_ERROR;
+
+  uint8_t ecc = (nand_read_status(NAND_SR3) >> 4) & 0x03;
+  if (ecc == 0x00) return NAND_ECC_OK;
+  if (ecc == 0x01) return NAND_ECC_CORRECTED;
+  return NAND_ECC_UNCORRECTABLE;
 }
 
 bool nand_write_page(uint16_t page_addr, uint16_t col, const uint8_t *buf, int len) {

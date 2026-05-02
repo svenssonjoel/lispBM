@@ -29,8 +29,8 @@
  * Requires: libftdi1-dev  (sudo apt install libftdi1-dev)
  */
 
-#ifndef FT4232_NAND_H_
-#define FT4232_NAND_H_
+#ifndef FT4232_W25N01_H_
+#define FT4232_W25N01_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -59,6 +59,14 @@ extern "C" {
 #define NAND_SR3_PFAIL  0x08
 #define NAND_SR3_ECC0   0x10
 #define NAND_SR3_ECC1   0x20
+
+// ECC result returned by nand_read_page
+typedef enum {
+  NAND_ECC_OK             = 0,  // no errors
+  NAND_ECC_CORRECTED      = 1,  // 1-4 bit errors corrected by internal ECC
+  NAND_ECC_UNCORRECTABLE  = 2,  // uncorrectable bit errors — data invalid
+  NAND_ECC_ERROR          = 3,  // SPI or timeout error
+} nand_ecc_t;
 
 // ---- Device open/close -----------------------------------------------
 
@@ -96,7 +104,8 @@ bool nand_wait_ready(int timeout_us);
 // Load page page_addr from the NAND array into the device data buffer,
 // then read len bytes starting at column col into buf.
 // col + len must not exceed NAND_PAGE_TOTAL_SIZE (2112).
-bool nand_read_page(uint16_t page_addr, uint16_t col, uint8_t *buf, int len);
+// Returns NAND_ECC_OK/CORRECTED/UNCORRECTABLE/ERROR.
+nand_ecc_t nand_read_page(uint16_t page_addr, uint16_t col, uint8_t *buf, int len);
 
 // Write len bytes from buf into the device data buffer starting at col,
 // then execute a Program Execute to flash page page_addr.

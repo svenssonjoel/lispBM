@@ -98,7 +98,7 @@
 #include "crc.h"
 
 #ifdef TEST_FT4232H_NAND_DRIVER
-#include "ft4232_nand.h"
+#include "ft4232_w25n01.h"
 #endif
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
