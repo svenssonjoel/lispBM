@@ -22,7 +22,20 @@
 extern "C" {
 #endif
 
-void lbm_nanddb_extensions_init(void);
+
+// Flash Abstraction Layer struct.
+typedef struct {
+  uint32_t page_size;
+  uint32_t pages_per_block;
+  uint32_t num_blocks;
+
+  nand_ecc_t (*read_page)(uint16_t page, uint16_t col, uint8_t *buf, int len);
+  bool (*write_page)(uint16_t page, uint16_t col, const uint8_t *buf, int len);
+  bool (*erase_block)(uint16_t block);
+  bool (*is_factory_bad_block)(uint16_t block);
+} lbm_nanddb_fal_t;
+
+void lbm_nanddb_extensions_init(lbm_nanddb_fal_t *fal);
 
 #ifdef __cplusplus
 }

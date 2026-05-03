@@ -18,6 +18,7 @@
 
 #include "nanddb_extensions.h"
 
+
 /* Database for NAND flash
 
    NAND flash properties:
@@ -107,7 +108,6 @@
 
  */
 
-
-void lbm_nanddb_extensions_init(void) {
+void lbm_nanddb_extensions_init(lbm_nanddb_fal_t *fal) {
 
 }
