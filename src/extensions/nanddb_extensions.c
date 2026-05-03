@@ -34,6 +34,11 @@
    Desired DB capabilites:
    - Storage of (key . value) pairs.
      - These will have a 32bit key (typically a 28bit lispbm symbol)
+       - Can we use symbol IDS? These are not guaranteed to be stable
+         across runs of the runtime system!
+       - Alternative 1: Use a string key.. (more space, more compute)
+       - Alternative 2: Use integers and let application manage mapping
+                        of symbol to integer in an assoc-list for example.
      - Values: I am not sure yet what values to support.
        Alternatives:
          - Value is always a byte array (flat value for example).
