@@ -38,11 +38,11 @@
          - Value is always a byte array (flat value for example).
          - support for unboxed LBM values?
    - Storing of time series. (timestamp . value) pairs.
-   - Possible key format
-      [4 bit semmantics | 28 bit value ]
+   - Possible key format:
+      [4 bit semantics | 28 bit value ]
         - Fits perfect for 28bit symbols
         - Timeseries entries will be identified by a bit being set in
-          the semmantics area.
+          the semantics area.
         - Should timeseries have an "overwrite if full policy?"
 
    Storage sizes:
@@ -67,6 +67,8 @@
    - Tombstone entries.
 
    Protocol for Bad block management.
+   - Factory bad blocks can be detected (at least on the w25n01 flash)
+     - Collect all these at init.
    - I dont know yet.
 
    Protocol for Garbage collection:
@@ -74,11 +76,23 @@
    - Garbage collection takes time and should be done in
      an incremental way. (expose a step function).
      - Read operations should be allowed during GC (perhaps?).
+   - Compacts data by writing all non-tombstoned elements to another block.
+   - Needs to keep track of a erasure sequence for wear leveling.
 
    Protocol for lookup:
    - Search from newest entry towards oldest.
+   - finding the key, but with a tombstone entry means key-value pair is deleted.
    - How do we know in what order to look at blocks?
      Some kind of sequence numbering is needed.
+   - Iterator over all keys where a bitmask mathces?
+     - Could be a way to implement time series without having to have the timeseries semantics
+       implemented at the nanddb layer.
+       a timed log entry is just a key-value pair where the key & mask != 0.
+
+   Caching!
+   - Should there be a cache?
+     - Could be valuabe if there is a usecase where values are looked up often.
+   - This is one place where it would be nice to know the timeseries semantics of some keys (so to not cache those).
 
    Protocol for Wear leveling
    - Sequence number
