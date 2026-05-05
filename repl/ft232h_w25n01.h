@@ -16,9 +16,9 @@
 */
 
 /*
- * Low-level driver for W25N01GVZEIG SPI NAND flash via FT4232H MPSSE.
+ * Low-level driver for W25N01GVZEIG SPI NAND flash via FT232H MPSSE.
  *
- * Wiring (FT4232H Port A, standard MPSSE SPI):
+ * Wiring (FT232H, standard MPSSE SPI):
  *   AD0 (TCK/CLK) → Flash SCK
  *   AD1 (TDI/DO)  → Flash SDI   (MOSI)
  *   AD2 (TDO/DI)  ← Flash SDO   (MISO)
@@ -29,8 +29,8 @@
  * Requires: libftdi1-dev  (sudo apt install libftdi1-dev)
  */
 
-#ifndef FT4232_W25N01_H_
-#define FT4232_W25N01_H_
+#ifndef FT232H_W25N01_H_
+#define FT232H_W25N01_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -70,10 +70,9 @@ typedef enum {
 
 // ---- Device open/close -----------------------------------------------
 
-// Open FT4232H and initialise MPSSE SPI on the selected interface.
-// interface: 0 = Port A (default), 1 = Port B.
+// Open FT232H and initialise MPSSE SPI.
 // Returns true on success.
-bool nand_open(int interface);
+bool nand_open(void);
 
 void nand_close(void);
 
@@ -116,6 +115,9 @@ bool nand_write_page(uint16_t page_addr, uint16_t col, const uint8_t *buf, int l
 // Erase the 128 KB block containing block_addr (0-1023).
 // Returns false if EFAIL is set in SR3 after erasing.
 bool nand_erase_block(uint16_t block_addr);
+
+// Returns true if block_addr is bad (factory marker or unreadable).
+bool nand_is_bad_block(uint16_t block_addr);
 
 #ifdef __cplusplus
 }

@@ -15,14 +15,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ft4232_w25n01.h"
+#include "ft232h_w25n01.h"
 #include <ftdi.h>
 #include <stdlib.h>
 #include <string.h>
 #include <threads.h>
 
 // ////////////////////////////////////////////////////////////
-// FT4232H Module Pin assignment
+// FT232H Pin assignment
 // Standard assignment for the MPSSE (Multi-Protocol-Syncronous-Serial-Engine)
 //
 //   AD0 TCK/CLK  output  SCK
@@ -76,8 +76,6 @@ void sleep_us(uint32_t us) {
   thrd_sleep(&ts, NULL);
 }
 
-
-
 // ////////////////////////////////////////////////////////////
 // MPSSE helpers
 
@@ -98,7 +96,7 @@ static bool mpsse_read(uint8_t *buf, int len) {
 // ////////////////////////////////////////////////////////////
 // open / close
 
-bool nand_open(int interface) {
+bool nand_open(void) {
   if (g_ftdi) {
     ftdi_usb_close(g_ftdi);
     ftdi_free(g_ftdi);
@@ -108,9 +106,8 @@ bool nand_open(int interface) {
   g_ftdi = ftdi_new();
   if (!g_ftdi) return false;
 
-  enum ftdi_interface iface = (interface == 1) ? INTERFACE_B : INTERFACE_A;
-  if (ftdi_set_interface(g_ftdi, iface) < 0)   goto fail;
-  if (ftdi_usb_open(g_ftdi, 0x0403, 0x6011) < 0) goto fail;
+  if (ftdi_set_interface(g_ftdi, INTERFACE_A) < 0)      goto fail;
+  if (ftdi_usb_open(g_ftdi, 0x0403, 0x6014) < 0)        goto fail;
 
   ftdi_usb_reset(g_ftdi);
   ftdi_set_latency_timer(g_ftdi, 1);
@@ -151,64 +148,53 @@ void nand_close(void) {
 
 // ////////////////////////////////////////////////////////////
 // raw SPI transfer
-//
-// tx and rx buffers are the same length because of the full duplex
-// of the SPI. In every clock we both "TX" and "RX". 
+
+// Max bytes per MPSSE sub-transfer. Interleaving write+read per chunk
+// prevents the FTDI RX FIFO from filling up on large transfers.
+#define MPSSE_CHUNK 512
 
 bool nand_spi_xfer(const uint8_t *tx, uint8_t *rx, int len) {
   if (!g_ftdi || len <= 0) return false;
 
-  // Build: CS_LO(3) + MPSSE_xfer(3+len) + flush(1) + CS_HI(3)
-
-  // Building a sequence of instructions for the
-  // ft4232 to evaluate!
-  // 0x80, value, dir - sets a GPIO pin state
-  //       value is a bitmask for which GPIO to set or clear:
-  //        - bit 0 = AD0 (CLK)                                                                                                       
-  //        - bit 1 = AD1 (MOSI)
-  //        - bit 2 = AD2 (MISO)                                                                                                      
-  //        - bit 3 = AD3 (CS#)                                                                                                       
-  //        - bit 4 = AD4 (WP#)
-  //        - bit 5 = AD5 (HLD#)
-  //       Dir is a bitmask where a 1 means output and a 0 means an input.
-  // 0x31, len_lo, len_hi, data SPI transfer command to clock out data
-  // 0x87, flush USB.
-  
-  int buflen = 3 + 3 + len + 1 + 3;
-  uint8_t *buf = malloc((size_t)buflen);
-  if (!buf) return false;
-
-  int p = 0;
-
   // Assert CS#
-  buf[p++] = 0x80; buf[p++] = ADBUS_CS_LO; buf[p++] = ADBUS_DIR;
+  uint8_t cs_lo[] = {0x80, ADBUS_CS_LO, ADBUS_DIR};
+  if (!mpsse_write(cs_lo, (int)sizeof(cs_lo))) return false;
 
-  // MPSSE full-duplex transfer: write on falling edge, read on rising edge, MSB first
-  buf[p++] = 0x31;
-  buf[p++] = (uint8_t)((len - 1) & 0xFF);
-  buf[p++] = (uint8_t)(((len - 1) >> 8) & 0xFF);
-  if (tx) {
-    memcpy(buf + p, tx, (size_t)len);
-  } else {
-    memset(buf + p, 0x00, (size_t)len);
+  bool ok = true;
+  int offset = 0;
+
+  while (offset < len && ok) {
+    int chunk = len - offset;
+    if (chunk > MPSSE_CHUNK) chunk = MPSSE_CHUNK;
+
+    // Build: MPSSE transfer cmd (3) + data (chunk) + flush (1)
+    int cmdlen = 3 + chunk + 1;
+    uint8_t *cmd = malloc((size_t)cmdlen);
+    if (!cmd) { ok = false; break; }
+
+    cmd[0] = 0x31;
+    cmd[1] = (uint8_t)((chunk - 1) & 0xFF);
+    cmd[2] = (uint8_t)(((chunk - 1) >> 8) & 0xFF);
+    if (tx) memcpy(cmd + 3, tx + offset, (size_t)chunk);
+    else    memset(cmd + 3, 0x00,         (size_t)chunk);
+    cmd[3 + chunk] = 0x87; // flush — triggers immediate RX delivery
+
+    ok = mpsse_write(cmd, cmdlen);
+    free(cmd);
+    if (!ok) break;
+
+    // Read back this chunk before sending the next — clears the RX FIFO
+    uint8_t *rxbuf = rx ? rx + offset : malloc((size_t)chunk);
+    if (!rxbuf) { ok = false; break; }
+    ok = mpsse_read(rxbuf, chunk);
+    if (!rx) free(rxbuf);
+
+    offset += chunk;
   }
-  p += len;
-
-  // Flush RX to host immediately
-  buf[p++] = 0x87;
 
   // Deassert CS#
-  buf[p++] = 0x80; buf[p++] = ADBUS_IDLE; buf[p++] = ADBUS_DIR;
-
-  bool ok = mpsse_write(buf, p);
-  free(buf);
-  if (!ok) return false;
-
-  // Read back the len clocked-in bytes
-  uint8_t *rxbuf = rx ? rx : malloc((size_t)len);
-  if (!rxbuf) return false;
-  ok = mpsse_read(rxbuf, len);
-  if (!rx) free(rxbuf);
+  uint8_t cs_hi[] = {0x80, ADBUS_IDLE, ADBUS_DIR};
+  mpsse_write(cs_hi, (int)sizeof(cs_hi));
   return ok;
 }
 
@@ -239,6 +225,8 @@ uint8_t nand_read_status(uint8_t reg) {
 }
 
 bool nand_write_status(uint8_t reg, uint8_t val) {
+  uint8_t tx_we[] = {CMD_WRITE_EN};
+  if (!nand_spi_xfer(tx_we, NULL, 1)) return false;
   uint8_t tx[3] = {CMD_WRITE_SR, reg, val};
   return nand_spi_xfer(tx, NULL, 3);
 }
@@ -298,7 +286,6 @@ bool nand_write_page(uint16_t page_addr, uint16_t col, const uint8_t *buf, int l
 
   if (!write_enable()) return false;
 
-  // Load Program Data: opcode + col(2) + data
   int txlen = 3 + len;
   uint8_t *tx = malloc((size_t)txlen);
   if (!tx) return false;
@@ -310,18 +297,24 @@ bool nand_write_page(uint16_t page_addr, uint16_t col, const uint8_t *buf, int l
   free(tx);
   if (!ok) return false;
 
-  // Program Execute: write data buffer → NAND array
   uint8_t prog[4] = {
     CMD_PROG_EXEC,
-    0x00,                          // dummy
+    0x00,
     (uint8_t)(page_addr >> 8),
     (uint8_t)(page_addr & 0xFF),
   };
   if (!nand_spi_xfer(prog, NULL, 4)) return false;
-  // tPP max 700 µs; allow 2 ms
   if (!nand_wait_ready(2000)) return false;
 
   return !(nand_read_status(NAND_SR3) & NAND_SR3_PFAIL);
+}
+
+bool nand_is_bad_block(uint16_t block_addr) {
+  uint16_t page_addr = (uint16_t)(block_addr * NAND_PAGES_PER_BLOCK);
+  uint8_t marker;
+  nand_ecc_t r = nand_read_page(page_addr, NAND_PAGE_DATA_SIZE, &marker, 1);
+  if (r == NAND_ECC_ERROR) return true;
+  return marker != 0xFF;
 }
 
 bool nand_erase_block(uint16_t block_addr) {

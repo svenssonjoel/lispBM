@@ -98,8 +98,13 @@
 #include "crc.h"
 
 #ifdef TEST_FT4232H_NAND_DRIVER
-#include "ft4232_w25n01.h"
+#include "ft4232h_w25n01.h"
 #endif
+
+#ifdef TEST_FT232H_NAND_DRIVER
+#include "ft232h_w25n01.h"
+#endif
+
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
 
@@ -2516,13 +2521,24 @@ int main(int argc, char **argv) {
 
   // ////////////////////////////////////////////////////////////
   // Test NAND flash FT4232H Driver.
+
+
+#if defined(TEST_FT4232H_NAND_DRIVER) || defined(TEST_FT232H_NAND_DRIVER)
+  
+
 #ifdef TEST_FT4232H_NAND_DRIVER
   printf("NAND: opening FT4232H port A...\n");
   if (!nand_open(0)) {
+#endif
+#ifdef TEST_FT232H_NAND_DRIVER
+    printf("NAND: opening FT232H...\n");
+  if (!nand_open()) {
+#endif    
     printf("NAND: open failed\n");
   } else {
     printf("NAND: open OK\n");
-
+    
+    
     nand_reset();
 
     uint8_t id[3] = {0};
@@ -2557,22 +2573,26 @@ int main(int argc, char **argv) {
       printf("NAND: erase FAILED (EFAIL set)\n");
     }
 
-    // Write a test pattern to page 0
+    // Write a test pattern to page 0 of block 0
     static uint8_t wbuf[NAND_PAGE_DATA_SIZE];
     for (int i = 0; i < NAND_PAGE_DATA_SIZE; i++) {
       wbuf[i] = (uint8_t)(i & 0xFF);
     }
-    printf("NAND: writing test pattern to page 0...\n");
-    if (nand_write_page(0, 0, wbuf, NAND_PAGE_DATA_SIZE)) {
+    uint16_t test_page = 0;
+    printf("NAND: writing test pattern to page 0 (block 0, page 0)...\n");
+    if (nand_write_page(test_page, 0, wbuf, NAND_PAGE_DATA_SIZE)) {
       printf("NAND: write OK\n");
     } else {
       printf("NAND: write FAILED (PFAIL set)\n");
     }
 
-    // Read back page 0 and verify
+    // Read back and verify
     static uint8_t rbuf[NAND_PAGE_DATA_SIZE];
-    printf("NAND: reading back page 0...\n");
-    if (nand_read_page(0, 0, rbuf, NAND_PAGE_DATA_SIZE)) {
+    printf("NAND: reading back page 0 (block 0, page 0)...\n");
+    nand_ecc_t ecc = nand_read_page(test_page, 0, rbuf, NAND_PAGE_DATA_SIZE);
+    if (ecc != NAND_ECC_ERROR) {
+      if (ecc == NAND_ECC_CORRECTED)    printf("NAND: ECC corrected errors during read\n");
+      if (ecc == NAND_ECC_UNCORRECTABLE) printf("NAND: ECC uncorrectable errors — data invalid\n");
       int errors = 0;
       for (int i = 0; i < NAND_PAGE_DATA_SIZE; i++) {
         if (rbuf[i] != wbuf[i]) errors++;
@@ -2590,6 +2610,14 @@ int main(int argc, char **argv) {
       printf("NAND: read FAILED\n");
     }
 
+
+    for (int i = 0; i < 1024; i ++) {
+      if (nand_is_bad_block(i)) {
+        printf("NAND: Block %d is bad!\n", i);
+      }
+    }
+
+    
     nand_close();
   }
 #endif

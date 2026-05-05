@@ -113,10 +113,16 @@ ifneq (,$(filter rtlsdr, $(FEATURES)))
 	REPL_SRC += lbm_rtlsdr.c
 endif
 
-ifneq (,$(filter test_nand, $(FEATURES)))
+ifneq (,$(filter ft4232h_nand, $(FEATURES)))
 	CCFLAGS  += -DTEST_FT4232H_NAND_DRIVER -I/usr/include/libftdi1
 	LDFLAGS  += -lftdi1
-	REPL_SRC += ft4232_w25n01.c
+	REPL_SRC += ft4232h_w25n01.c
+endif
+
+ifneq (,$(filter ft232h_nand, $(FEATURES)))
+	CCFLAGS  += -DTEST_FT232H_NAND_DRIVER -I/usr/include/libftdi1
+	LDFLAGS  += -lftdi1
+	REPL_SRC += ft232h_w25n01.c
 endif
 
 # -Wjump-misses-init
