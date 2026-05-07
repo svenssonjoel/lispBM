@@ -35,6 +35,7 @@
 #include "extensions/crypto_extensions.h"
 #include "extensions/dsp_extensions.h"
 #include "extensions/ecc_extensions.h"
+#include "extensions/ttf_extensions.h"
 
 #include "lbm_custom_type.h"
 
@@ -252,6 +253,31 @@ EM_JS(char*, js_import_lib, (const char *filename), {
 });
 
 
+EM_JS(uint8_t*, js_fetch_url_bytes, (const char *url, int *out_size), {
+  const u = UTF8ToString(url);
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', u, false);
+  xhr.overrideMimeType('text/plain; charset=x-user-defined');
+  try { xhr.send(null); } catch(e) {
+    console.error('import fetch error:', e.message, 'url:', u);
+    return 0;
+  }
+  if (xhr.status !== 200) {
+    console.error('import fetch status:', xhr.status, 'url:', u);
+    return 0;
+  }
+  const text = xhr.responseText;
+  const len = text.length;
+  const ptr = _malloc(len + 1);
+  if (!ptr) return 0;
+  for (let i = 0; i < len; i++) {
+    HEAPU8[ptr + i] = text.charCodeAt(i) & 0xFF;
+  }
+  HEAPU8[ptr + len] = 0;
+  setValue(out_size, len + 1, 'i32');
+  return ptr;
+});
+
 // (wasm-plot buf "Title")
 // 
 static lbm_value ext_wasm_plot(lbm_value *args, lbm_uint argn) {
@@ -321,6 +347,26 @@ static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
   if (!filename) return ENC_SYM_TERROR;
   const char *symname = lbm_get_name_by_symbol(lbm_dec_sym(args[1]));
   if (!symname) return ENC_SYM_TERROR;
+
+  if (strncmp(filename, "http://", 7) == 0 || strncmp(filename, "https://", 8) == 0) {
+    int size = 0;
+    uint8_t *data = js_fetch_url_bytes(filename, &size);
+    if (!data || size <= 0) {
+      print_callback("import: failed to fetch \"%s\"\n", filename);
+      return ENC_SYM_NIL;
+    }
+    lbm_value result;
+    if (!lbm_create_array(&result, (lbm_uint)size)) {
+      free(data);
+      return ENC_SYM_MERROR;
+    }
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(result);
+    memcpy(arr->data, data, (size_t)size);
+    free(data);
+    lbm_define((char*)symname, result);
+    return result;
+  }
+
   int matches = js_count_tab_matches(filename);
   if (matches > 1) {
     print_callback("import: %d open tabs named \"%s\", using first match\n", matches, filename);
@@ -537,6 +583,7 @@ int lbm_wasm_init(void) {
   lbm_ecc_extensions_init();
   lbm_display_extensions_init();
   lbm_display_extensions_set_callbacks(wasm_render_image, wasm_clear, wasm_reset);
+  lbm_ttf_extensions_init();
 
   lbm_add_eval_symbols();
 
