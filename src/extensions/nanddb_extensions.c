@@ -22,7 +22,7 @@
 /* Database for NAND flash
 
    NAND flash properties:
-   - Large eraase size (Blocks).
+   - Large erase size (Blocks).
    - Writes should be done in page-sized chunks (Pages).
    - Blocks and Pages are not the same size.
    - Expected to come with "bad blocks" from factory.
@@ -32,87 +32,12 @@
    - Almost guaranteed to come with its own ECC implementation.
 
    Desired DB capabilites:
-   - Storage of (key . value) pairs.
-     - These will have a 32bit key (typically a 28bit lispbm symbol)
-       - Can we use symbol IDS? These are not guaranteed to be stable
-         across runs of the runtime system!
-       - Alternative 1: Use a string key.. (more space, more compute)
-       - Alternative 2: Use integers and let application manage mapping
-                        of symbol to integer in an assoc-list for example.
-     - Values: I am not sure yet what values to support.
-       Alternatives:
-         - Value is always a byte array (flat value for example).
-         - support for unboxed LBM values?
-   - Storing of time series. (timestamp . value) pairs.
-   - Possible key format:
-      [4 bit semantics | 28 bit value ]
-        - Fits perfect for 28bit symbols
-        - Timeseries entries will be identified by a bit being set in
-          the semantics area.
-        - Should timeseries have an "overwrite if full policy?"
+   - Store key-value pairs where key is a string and value is a bytearray.
+   - Look up value based on key.
+   - Store values that are larger than a page.
+   
 
-   Storage sizes:
-   - How big things should we allow to be stored in the DB,
-     - total size of entry (including any headers, crcs and so on AT MOST = 1 page)?
-     - Small entries will be accumulated in a ram buffer.
-
-   Protocol for RAM buffer handling:
-   - Flushed to FLASH when full.
-   - What if there is M bytes left in buffer and I want to write M+N bytes.
-     - Maybe: calculate the CRC and write the buffer to flash.
-              Then in new buffer put the larger value.
-              This leaves an unused hole in flash that will be
-              compacted upon GC.
-   - The last 16bits of a page is a crc. The crc is
-     the last thing written.
-
-   Protocol for knowing complete writes:
-   - Crc is present for block and correct.
-
-   Protocol for deletion:
-   - Tombstone entries.
-
-   Protocol for Bad block management.
-   - Factory bad blocks can be detected (at least on the w25n01 flash)
-     - Collect all these at init.
-   - I dont know yet.
-
-   Protocol for Garbage collection:
-   - I dont know yet.
-   - Garbage collection takes time and should be done in
-     an incremental way. (expose a step function).
-     - Read operations should be allowed during GC (perhaps?).
-   - Compacts data by writing all non-tombstoned elements to another block.
-   - Needs to keep track of a erasure sequence for wear leveling.
-
-   Protocol for lookup:
-   - Search from newest entry towards oldest.
-   - finding the key, but with a tombstone entry means key-value pair is deleted.
-   - How do we know in what order to look at blocks?
-     Some kind of sequence numbering is needed.
-   - Iterator over all keys where a bitmask mathces?
-     - Could be a way to implement time series without having to have the timeseries semantics
-       implemented at the nanddb layer.
-       a timed log entry is just a key-value pair where the key & mask != 0.
-
-   Caching!
-   - Should there be a cache?
-     - Could be valuabe if there is a usecase where values are looked up often.
-   - This is one place where it would be nice to know the timeseries semantics of some keys (so to not cache those).
-
-   Protocol for Wear leveling
-   - Sequence number
-
-   Robustness against crash/loss of power:
-   - Data in ram-buffer is lost.
-   - Partial write of ram-buffer makes a corrupt entry in the flash
-     that is not correctly terminated with a CRC.
-      - This should likely trigger a GC that would repair the state
-        but loose the partial data.
-        Can we detect this state upon boot and start a repair.
-
- */
-
+*/
 void lbm_nanddb_extensions_init(lbm_nanddb_fal_t *fal) {
 
 }

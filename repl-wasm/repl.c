@@ -236,23 +236,6 @@ EM_JS(char*, js_get_tab_content, (const char *filename), {
 // defines:
 //  char *js_import_lib(const char *filename);
 //  which is the C "binding" for the javascript body below.
-EM_JS(char*, js_import_lib, (const char *filename), {
-  const url = 'libs/' + UTF8ToString(filename);
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', url, false);
-  try {
-    xhr.send(null);
-  } catch(e) {
-    return 0;
-  }
-  if (xhr.status !== 200) return 0;
-  const str = xhr.responseText;
-  const len = lengthBytesUTF8(str) + 1;
-  const buf = _malloc(len);
-  if (!buf) return 0;
-  stringToUTF8(str, buf, len);
-  return buf;
-});
 
 
 EM_JS(uint8_t*, js_fetch_url_bytes, (const char *url, int *out_size), {
@@ -342,6 +325,21 @@ static lbm_value ext_wasm_plot_xy(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TERROR;
 }
 
+static char *read_memfs_file(const char *path) {
+  FILE *fp = fopen(path, "rb");
+  if (!fp) return NULL;
+  fseek(fp, 0, SEEK_END);
+  long size = ftell(fp);
+  rewind(fp);
+  if (size <= 0) { fclose(fp); return NULL; }
+  char *buf = malloc((size_t)size + 1);
+  if (!buf) { fclose(fp); return NULL; }
+  fread(buf, 1, (size_t)size, fp);
+  buf[size] = '\0';
+  fclose(fp);
+  return buf;
+}
+
 // (import library-file-name sym)
 static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
   if (argn != 2 || !lbm_is_array_r(args[0]) || !lbm_is_symbol(args[1])) return ENC_SYM_TERROR;
@@ -373,9 +371,15 @@ static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
   if (matches > 1) {
     print_callback("import: %d open tabs named \"%s\", using first match\n", matches, filename);
   }
+
   char *code = js_get_tab_content(filename);
-  if (!code) code = js_import_lib(filename);
-  if (!code) return ENC_SYM_NIL;
+
+  if (!code) code = read_memfs_file(filename);
+  if (!code) {
+    print_callback("import: \"%s\" not found in editor tabs or MEMFS\n", filename);
+    return ENC_SYM_NIL;
+  }
+
   lbm_uint len = (lbm_uint)strlen(code);
   lbm_value result;
   if (!lbm_create_array(&result, len + 1)) {

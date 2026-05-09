@@ -1,7 +1,7 @@
 ;; 2-Antenna Array Direction Finding
 ;; Adapted from repl/examples/dsp/dsp_angle_detection.lisp
 
-(import "dsp_lang.lisp" 'dsp)
+(import "/libs/dsp_lang.lisp" 'dsp)
 (read-eval-program dsp)
 
 ;; Parameters

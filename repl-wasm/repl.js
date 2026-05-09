@@ -771,6 +771,17 @@ LispBM().then(lbm => {
     }, [xs, ...yArrays], pane);
   };
 
+  fetch('libs/index.json')
+    .then(r => r.json())
+    .then(files => {
+      try { lbm.FS.mkdir('/libs'); } catch(e) {}
+      files.forEach(f => {
+        fetch('libs/' + f)
+          .then(r => r.arrayBuffer())
+          .then(buf => lbm.FS.writeFile('/libs/' + f, new Uint8Array(buf)));
+      });
+    });
+
   console.log('calling lbm_wasm_init...');
   const ok = lbm.ccall('lbm_wasm_init', 'number', [], []);
   console.log('lbm_wasm_init returned:', ok);
@@ -782,10 +793,26 @@ LispBM().then(lbm => {
 
   btnEval.disabled = false;
   btnLoad.disabled = false;
+  document.getElementById('btn-upload-fs').disabled = false;
   const input = document.getElementById('input');
   input.disabled = false;
   input.focus();
   statusText.textContent = 'Activity';
+
+  const fsFileInput = document.getElementById('fs-file-input');
+  document.getElementById('btn-upload-fs').addEventListener('click', () => fsFileInput.click());
+  fsFileInput.addEventListener('change', () => {
+    const file = fsFileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const data = new Uint8Array(e.target.result);
+      lbm.FS.writeFile('/' + file.name, data);
+      appendOutput('Uploaded "' + file.name + '" to MEMFS (' + data.length + ' bytes)\n');
+    };
+    reader.readAsArrayBuffer(file);
+    fsFileInput.value = '';
+  });
 
   let ledState    = false;
   let lastLedFlip = 0;

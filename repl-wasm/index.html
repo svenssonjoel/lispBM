@@ -158,8 +158,8 @@
     }
     #btn-load:disabled { background: #333; color: #666; cursor: default; }
     #btn-load:hover:not(:disabled) { background: #1177bb; }
-    #btn-open, #btn-save, #btn-examples { background: #3a3a3a; color: #d4d4d4; border: 1px solid #555; }
-    #btn-open:hover, #btn-save:hover, #btn-examples:hover { background: #4a4a4a; }
+    #btn-open, #btn-save, #btn-examples, #btn-upload-fs { background: #3a3a3a; color: #d4d4d4; border: 1px solid #555; }
+    #btn-open:hover, #btn-save:hover, #btn-examples:hover, #btn-upload-fs:hover { background: #4a4a4a; }
     #examples-modal {
       display: none;
       position: fixed;
@@ -258,9 +258,11 @@
         <button id="btn-examples">Examples</button>
         <button id="btn-open">Open</button>
         <button id="btn-save">Save</button>
+        <button id="btn-upload-fs" disabled>Upload</button>
         <button id="btn-load" disabled>Load</button>
       </div>
       <input type="file" id="file-input" accept=".lisp,.lbm" style="display:none">
+      <input type="file" id="fs-file-input" style="display:none">
     </div>
   </div>
   <div id="input-row">

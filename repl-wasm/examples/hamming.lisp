@@ -1,4 +1,4 @@
-(import "dsp_lang.lisp" 'dsp)
+(import "/libs/dsp_lang.lisp" 'dsp)
 (read-eval-program dsp)
 
 (define n-samples 1024)
