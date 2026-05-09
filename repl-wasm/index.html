@@ -88,10 +88,14 @@
       overflow: auto;
     }
     .tab-pane.active { display: block; }
-    #output-tab-console {
-      padding: 10px;
-      white-space: pre;
+    #output-tab-console { padding: 10px; cursor: text; }
+    #console-current-line { white-space: pre; }
+    #console-prompt { color: #569cd6; }
+    #console-cursor {
+      border-left: 2px solid #d4d4d4;
+      animation: blink 1s step-end infinite;
     }
+    @keyframes blink { 50% { opacity: 0; } }
     .plot-pane { padding: 8px; }
     /* uPlot dark theme overrides */
     .uplot .u-title  { color: #d4d4d4 !important; font-family: "Courier New", monospace; font-size: 13px; }
@@ -158,8 +162,8 @@
     }
     #btn-load:disabled { background: #333; color: #666; cursor: default; }
     #btn-load:hover:not(:disabled) { background: #1177bb; }
-    #btn-open, #btn-save, #btn-examples, #btn-upload-fs { background: #3a3a3a; color: #d4d4d4; border: 1px solid #555; }
-    #btn-open:hover, #btn-save:hover, #btn-examples:hover, #btn-upload-fs:hover { background: #4a4a4a; }
+    #btn-open, #btn-open-url, #btn-save, #btn-examples { background: #3a3a3a; color: #d4d4d4; border: 1px solid #555; }
+    #btn-open:hover, #btn-open-url:hover, #btn-save:hover, #btn-examples:hover { background: #4a4a4a; }
     #examples-modal {
       display: none;
       position: fixed;
@@ -194,19 +198,6 @@
     .example-item .ex-desc { color: #888; font-size: 11px; margin-top: 3px; }
     #examples-close { align-self: flex-end; background: #3a3a3a; border: 1px solid #555; color: #d4d4d4; }
     /* --- Input row --- */
-    #input-row { display: flex; gap: 8px; align-items: center; }
-    #prompt { color: #569cd6; }
-    #input {
-      flex: 1;
-      background: #2d2d2d;
-      color: #d4d4d4;
-      border: 1px solid #444;
-      padding: 4px 8px;
-      font-family: inherit;
-      font-size: inherit;
-      outline: none;
-    }
-    #input:focus { border-color: #569cd6; }
     button {
       background: #0e639c;
       color: #fff;
@@ -257,18 +248,12 @@
       <div id="editor-btn-row">
         <button id="btn-examples">Examples</button>
         <button id="btn-open">Open</button>
+        <button id="btn-open-url">Open URL</button>
         <button id="btn-save">Save</button>
-        <button id="btn-upload-fs" disabled>Upload</button>
         <button id="btn-load" disabled>Load</button>
       </div>
       <input type="file" id="file-input" accept=".lisp,.lbm" style="display:none">
-      <input type="file" id="fs-file-input" style="display:none">
     </div>
-  </div>
-  <div id="input-row">
-    <span id="prompt">#</span>
-    <input id="input" type="text" placeholder="Enter expression..." autocomplete="off" disabled>
-    <button id="btn-eval" disabled>Eval</button>
   </div>
   <div id="status" style="display:flex;align-items:center;gap:6px;"><span id="busy-led"></span><span id="status-text">Activity</span><span style="flex:1"></span><label for="steps-select" style="font-size:12px;color:#888;">steps:</label><select id="steps-select" style="background:#2d2d2d;color:#d4d4d4;border:1px solid #555;font-size:12px;"><option value="100">100</option><option value="500">500</option><option value="1000" selected>1000</option><option value="5000">5000</option></select></div>
 

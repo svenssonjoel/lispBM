@@ -20,6 +20,35 @@ consolePane.id = 'output-tab-console';
 consolePane.className = 'tab-pane active';
 document.getElementById('output-tab-contents').appendChild(consolePane);
 
+const consoleHistory = document.createElement('span');
+consoleHistory.style.cssText = 'white-space:pre;display:block;';
+consolePane.appendChild(consoleHistory);
+
+const consoleCurrentLine = document.createElement('div');
+consoleCurrentLine.id = 'console-current-line';
+const consolePromptSpan = document.createElement('span');
+consolePromptSpan.id = 'console-prompt';
+consolePromptSpan.textContent = '# ';
+const consoleInputDisplay = document.createElement('span');
+const consoleCursor = document.createElement('span');
+consoleCursor.id = 'console-cursor';
+consoleCursor.textContent = ' ';
+consoleCurrentLine.appendChild(consolePromptSpan);
+consoleCurrentLine.appendChild(consoleInputDisplay);
+consoleCurrentLine.appendChild(consoleCursor);
+consolePane.appendChild(consoleCurrentLine);
+
+const consoleInput = document.createElement('textarea');
+consoleInput.autocomplete = 'off';
+consoleInput.disabled = true;
+consoleInput.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:-1px;left:-1px;resize:none;';
+document.body.appendChild(consoleInput);
+
+consolePane.addEventListener('click', () => consoleInput.focus());
+consoleInput.addEventListener('input', () => {
+  consoleInputDisplay.textContent = consoleInput.value;
+});
+
 function switchTab(id) {
 
   // Set active on the on the button switched to and remove active
@@ -121,7 +150,7 @@ function createEditorTab(name) {
   cm.setSize('100%', '100%');
   cm.on('paste', () => setTimeout(() => cm.focus(), 20));
 
-  const tab = { id, btn, pane, cm, labelEl, filename: null };
+  const tab = { id, btn, pane, cm, labelEl, filename: null, baseUrl: null };
   editorTabs.push(tab);
   switchEditorTab(id);
   return tab;
@@ -160,7 +189,7 @@ function tabMatchesFilename(t, filename) {
 const rtsTabBtn = document.createElement('button');
 rtsTabBtn.className = 'tab-btn';
 rtsTabBtn.dataset.tab = 'rts';
-rtsTabBtn.addEventListener('click', () => switchTab('rts'));
+rtsTabBtn.addEventListener('click', () => { switchTab('rts'); if (typeof refreshFsBrowser === 'function') refreshFsBrowser(); });
 const rtsLabelEl = document.createElement('span');
 rtsLabelEl.textContent = 'RTS';
 rtsTabBtn.appendChild(rtsLabelEl);
@@ -169,8 +198,14 @@ document.getElementById('output-tab-bar').appendChild(rtsTabBtn);
 const rtsPane = document.createElement('div');
 rtsPane.id        = 'output-tab-rts';
 rtsPane.className = 'tab-pane';
-rtsPane.style.cssText = 'padding:10px;';
+rtsPane.style.cssText = 'padding:10px;overflow:auto;';
 document.getElementById('output-tab-contents').appendChild(rtsPane);
+
+const rtsLiveDiv = document.createElement('div');
+rtsPane.appendChild(rtsLiveDiv);
+
+const rtsFsDiv = document.createElement('div');
+rtsPane.appendChild(rtsFsDiv);
 
 // Docs tab (permanent)
 const docsTabBtn = document.createElement('button');
@@ -364,6 +399,12 @@ window.getEditorTabContent = function(filename) {
   return tab ? tab.cm.getValue() : null;
 };
 
+window.openFileInTab = function(filename, content) {
+  const tab = createEditorTab(filename);
+  tab.cm.setValue(content);
+  tab.filename = filename;
+};
+
 document.getElementById('btn-new-editor-tab').addEventListener('click', () => {
   const n = prompt('Tab name:', 'untitled');
   if (n !== null) createEditorTab(n.trim() || 'untitled');
@@ -396,12 +437,21 @@ function downloadFile(filename, content) {
   URL.revokeObjectURL(url);
 }
 
-document.getElementById('btn-save').addEventListener('click', () => {
-  if (!activeEditor) return;
-  const content  = activeEditor.cm.getValue();
-  const filename = activeEditor.filename || 'untitled.lisp';
-  downloadFile(filename, content);
+document.getElementById('btn-open-url').addEventListener('click', () => {
+  const url = prompt('Open URL:');
+  if (!url || !url.trim()) return;
+  fetch(url.trim())
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(code => {
+      const name = url.trim().split('/').pop() || 'untitled';
+      const tab = createEditorTab(name);
+      tab.cm.setValue(code);
+      tab.filename = name;
+      tab.baseUrl  = url.trim();
+    })
+    .catch(e => alert('Failed to open URL: ' + e.message));
 });
+
 
 const busyLed    = document.getElementById('busy-led');
 const statusText = document.getElementById('status-text');
@@ -487,15 +537,12 @@ function mkPlotTab(title) {
 // value is then a handle through which all interaction with
 // lispbm runtime happens.
 LispBM().then(lbm => {
-  const btnEval     = document.getElementById('btn-eval');
-  const btnLoad     = document.getElementById('btn-load');
-  const status      = document.getElementById('status');
+  const btnLoad = document.getElementById('btn-load');
+  const status  = document.getElementById('status');
 
   function appendOutput(text) {
-    consolePane.textContent += text;
-    if (consolePane.classList.contains('active')) {
-      consolePane.scrollTop = consolePane.scrollHeight;
-    }
+    consoleHistory.textContent += text;
+    consolePane.scrollTop = consolePane.scrollHeight;
   }
 
   function pollOutput() {
@@ -631,7 +678,7 @@ LispBM().then(lbm => {
   };
 
   function refreshRTS() {
-    rtsPane.innerHTML = '';
+    rtsLiveDiv.innerHTML = '';
 
     // --- Stats ---
     const statsJson = lbm.ccall('lbm_wasm_get_stats', 'string', [], []);
@@ -668,11 +715,11 @@ LispBM().then(lbm => {
         grid.appendChild(vEl);
       });
 
-      rtsPane.appendChild(grid);
+      rtsLiveDiv.appendChild(grid);
 
       const div = document.createElement('div');
       div.style.cssText = 'border-top:1px solid #333;margin-bottom:10px;';
-      rtsPane.appendChild(div);
+      rtsLiveDiv.appendChild(div);
     }
 
     // --- Thread list ---
@@ -684,10 +731,10 @@ LispBM().then(lbm => {
       const msg = document.createElement('div');
       msg.style.cssText = 'color:#666;font-size:12px;';
       msg.textContent = 'No running threads.';
-      rtsPane.appendChild(msg);
-      return;
+      rtsLiveDiv.appendChild(msg);
     }
 
+    if (ctxs.length > 0) {
     const table = document.createElement('table');
     table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px;';
 
@@ -721,8 +768,95 @@ LispBM().then(lbm => {
       table.appendChild(tr);
     });
 
-    rtsPane.appendChild(table);
+    rtsLiveDiv.appendChild(table);
+    } // end ctxs.length > 0
   }
+
+  function refreshFsBrowser() {
+    rtsFsDiv.innerHTML = '';
+    const fsSep = document.createElement('div');
+    fsSep.style.cssText = 'border-top:1px solid #333;margin:10px 0;';
+    rtsFsDiv.appendChild(fsSep);
+
+    const fsHeader = document.createElement('div');
+    fsHeader.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;';
+
+    const fsTitle = document.createElement('span');
+    fsTitle.textContent = 'MEMFS:';
+    fsTitle.style.cssText = 'color:#569cd6;font-size:12px;';
+
+    const fsPath = document.createElement('span');
+    fsPath.textContent = fsBrowserPath;
+    fsPath.style.cssText = 'color:#888;font-size:12px;flex:1;';
+
+    const fsUploadBtn = document.createElement('button');
+    fsUploadBtn.textContent = 'Upload';
+    fsUploadBtn.style.cssText = 'background:#3a3a3a;border:1px solid #555;color:#d4d4d4;padding:1px 8px;font-size:11px;';
+    fsUploadBtn.addEventListener('click', () => fsUploadInput.click());
+
+    fsHeader.appendChild(fsTitle);
+    fsHeader.appendChild(fsPath);
+    fsHeader.appendChild(fsUploadBtn);
+    rtsFsDiv.appendChild(fsHeader);
+
+    let entries;
+    try { entries = lbm.FS.readdir(fsBrowserPath); } catch(e) { entries = []; }
+
+    entries.filter(e => e !== '.' && e !== '..').forEach(name => {
+      const fullPath = (fsBrowserPath === '/' ? '' : fsBrowserPath) + '/' + name;
+      let isDir = false;
+      try { isDir = lbm.FS.isDir(lbm.FS.stat(fullPath).mode); } catch(e) {}
+
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:2px 4px;font-size:12px;border-bottom:1px solid #1a1a1a;';
+
+      const nameEl = document.createElement('span');
+      nameEl.textContent = (isDir ? '\u{1F4C1} ' : '\u{1F4C4} ') + name;
+      nameEl.style.cssText = isDir ? 'color:#dcdcaa;cursor:pointer;' : 'color:#d4d4d4;cursor:pointer;';
+      if (isDir) {
+        nameEl.addEventListener('click', () => { fsBrowserPath = fullPath; refreshFsBrowser(); });
+      } else {
+        nameEl.addEventListener('dblclick', () => {
+          const content = lbm.FS.readFile(fullPath, {encoding: 'utf8'});
+          const tab = createEditorTab(name);
+          tab.cm.setValue(content);
+          tab.filename = name;
+        });
+      }
+      row.appendChild(nameEl);
+
+      if (!isDir) {
+        const dlBtn = document.createElement('button');
+        dlBtn.textContent = 'Download';
+        dlBtn.style.cssText = 'background:#3a3a3a;border:1px solid #555;color:#d4d4d4;padding:1px 8px;font-size:11px;';
+        dlBtn.addEventListener('click', () => {
+          const data = lbm.FS.readFile(fullPath);
+          const blob = new Blob([data], {type: 'application/octet-stream'});
+          const url  = URL.createObjectURL(blob);
+          const a    = document.createElement('a');
+          a.href = url; a.download = name; a.click();
+          URL.revokeObjectURL(url);
+        });
+        row.appendChild(dlBtn);
+      }
+
+      rtsFsDiv.appendChild(row);
+    });
+
+    if (fsBrowserPath !== '/') {
+      const upRow = document.createElement('div');
+      upRow.textContent = '↑ ..';
+      upRow.style.cssText = 'color:#888;font-size:12px;cursor:pointer;padding:2px 4px;';
+      upRow.addEventListener('click', () => {
+        fsBrowserPath = fsBrowserPath.substring(0, fsBrowserPath.lastIndexOf('/')) || '/';
+        refreshFsBrowser();
+      });
+      rtsFsDiv.insertBefore(upRow, fsHeader.nextSibling);
+    }
+  }
+
+  let fsBrowserPath = '/';
+  refreshFsBrowser();
 
   setInterval(() => {
     if (rtsTabBtn.classList.contains('active')) refreshRTS();
@@ -775,11 +909,12 @@ LispBM().then(lbm => {
     .then(r => r.json())
     .then(files => {
       try { lbm.FS.mkdir('/libs'); } catch(e) {}
-      files.forEach(f => {
+      const fetches = files.map(f =>
         fetch('libs/' + f)
           .then(r => r.arrayBuffer())
-          .then(buf => lbm.FS.writeFile('/libs/' + f, new Uint8Array(buf)));
-      });
+          .then(buf => lbm.FS.writeFile('/libs/' + f, new Uint8Array(buf)))
+      );
+      Promise.all(fetches).then(() => refreshFsBrowser());
     });
 
   console.log('calling lbm_wasm_init...');
@@ -791,27 +926,34 @@ LispBM().then(lbm => {
     return;
   }
 
-  btnEval.disabled = false;
   btnLoad.disabled = false;
-  document.getElementById('btn-upload-fs').disabled = false;
-  const input = document.getElementById('input');
-  input.disabled = false;
-  input.focus();
+  consoleInput.disabled = false;
+  consoleInput.focus();
   statusText.textContent = 'Activity';
+  document.querySelector('#output-tab-bar .tab-btn[data-tab="console"]')
+    .addEventListener('click', () => consoleInput.focus());
 
-  const fsFileInput = document.getElementById('fs-file-input');
-  document.getElementById('btn-upload-fs').addEventListener('click', () => fsFileInput.click());
-  fsFileInput.addEventListener('change', () => {
-    const file = fsFileInput.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      const data = new Uint8Array(e.target.result);
-      lbm.FS.writeFile('/' + file.name, data);
-      appendOutput('Uploaded "' + file.name + '" to MEMFS (' + data.length + ' bytes)\n');
-    };
-    reader.readAsArrayBuffer(file);
-    fsFileInput.value = '';
+  const fsUploadInput = document.createElement('input');
+  fsUploadInput.type = 'file';
+  fsUploadInput.multiple = true;
+  fsUploadInput.style.display = 'none';
+  document.body.appendChild(fsUploadInput);
+  fsUploadInput.addEventListener('change', () => {
+    const files = Array.from(fsUploadInput.files);
+    if (!files.length) return;
+    let done = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const data = new Uint8Array(e.target.result);
+        const dest = (fsBrowserPath === '/' ? '' : fsBrowserPath) + '/' + file.name;
+        lbm.FS.writeFile(dest, data);
+        appendOutput('Uploaded "' + file.name + '" to MEMFS ' + dest + ' (' + data.length + ' bytes)\n');
+        if (++done === files.length) refreshFsBrowser();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+    fsUploadInput.value = '';
   });
 
   let ledState    = false;
@@ -854,22 +996,43 @@ LispBM().then(lbm => {
   setTimeout(loop, 0);
 
   function evalExpr() {
-    const code = input.value.trim();
-    if (!code) return;
-    appendOutput('# ' + code + '\n');
-    lbm.ccall('lbm_wasm_eval', null, ['string'], [code]);
-    input.value = '';
+    const code = consoleInput.value;
+    consoleHistory.textContent += '# ' + code + '\n';
+    consoleInput.value = '';
+    consoleInputDisplay.textContent = '';
+    consolePane.scrollTop = consolePane.scrollHeight;
+    if (code.trim()) lbm.ccall('lbm_wasm_eval', null, ['string'], [code]);
   }
 
   function loadEditor() {
     if (!activeEditor) return;
     const code = activeEditor.cm.getValue().trim();
     if (!code) return;
+    window.currentBaseUrl = activeEditor.baseUrl || null;
     lbm.ccall('lbm_wasm_eval_program', null, ['string'], [code]);
   }
 
-  btnEval.addEventListener('click', evalExpr);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') evalExpr(); });
+  document.getElementById('btn-save').addEventListener('click', () => {
+    if (!activeEditor) return;
+    let filename = activeEditor.filename;
+    if (!filename) {
+      filename = prompt('Save as:');
+      if (!filename || !filename.trim()) return;
+      filename = filename.trim();
+      activeEditor.filename = filename;
+      activeEditor.labelEl.textContent = filename;
+    }
+    const dest = (fsBrowserPath === '/' ? '' : fsBrowserPath) + '/' + filename;
+    lbm.FS.writeFile(dest, activeEditor.cm.getValue());
+    refreshFsBrowser();
+  });
+
+  consoleInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      evalExpr();
+    }
+  });
   btnLoad.addEventListener('click', loadEditor);
 
 }).catch(err => {

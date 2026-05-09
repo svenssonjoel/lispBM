@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <stdatomic.h>
+#include <sys/stat.h>
 
 #ifndef LBM_WIN
 #include <sys/time.h>
@@ -522,6 +523,116 @@ static lbm_value ext_file_list(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(name);
     memcpy(hdr->data, entry->d_name, strlen(entry->d_name) + 1);
     lbm_value cell = lbm_cons(name, result);
+    if (lbm_is_symbol_merror(cell)) break;
+    result = cell;
+  }
+  closedir(d);
+  return result;
+}
+
+// ////////////////////////////////////////////////////////////
+// Filesystem extensions (fs-*)
+//
+
+static lbm_value ext_fs_pwd(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  char buf[512];
+  if (!getcwd(buf, sizeof(buf))) return ENC_SYM_NIL;
+  lbm_uint len = strlen(buf);
+  lbm_value result;
+  if (!lbm_create_array(&result, len + 1)) return ENC_SYM_MERROR;
+  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(result);
+  memcpy(arr->data, buf, len + 1);
+  return result;
+}
+
+static lbm_value ext_fs_cd(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  return chdir(path) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+static lbm_value ext_fs_mkdir(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  return mkdir(path, 0777) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+static lbm_value ext_fs_rm(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  return unlink(path) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+static lbm_value ext_fs_mv(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_array_r(args[0]) || !lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
+  const char *src = lbm_dec_str(args[0]);
+  const char *dst = lbm_dec_str(args[1]);
+  if (!src || !dst) return ENC_SYM_TERROR;
+  return rename(src, dst) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+static lbm_value ext_fs_exists(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  struct stat st;
+  return stat(path, &st) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+// (fs-stat path) -> (size is-dir)
+static lbm_value ext_fs_stat(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  struct stat st;
+  if (stat(path, &st) != 0) return ENC_SYM_NIL;
+  lbm_value is_dir = S_ISDIR(st.st_mode) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  lbm_value result = lbm_cons(is_dir, ENC_SYM_NIL);
+  if (lbm_is_symbol_merror(result)) return ENC_SYM_MERROR;
+  result = lbm_cons(lbm_enc_i32((int32_t)st.st_size), result);
+  if (lbm_is_symbol_merror(result)) return ENC_SYM_MERROR;
+  return result;
+}
+
+// (fs-ls) or (fs-ls path) -> list of (name size is-dir)
+static lbm_value ext_fs_ls(lbm_value *args, lbm_uint argn) {
+  const char *path = ".";
+  if (argn == 1 && lbm_is_array_r(args[0])) {
+    path = lbm_dec_str(args[0]);
+    if (!path) return ENC_SYM_TERROR;
+  } else if (argn != 0) {
+    return ENC_SYM_TERROR;
+  }
+  DIR *d = opendir(path);
+  if (!d) return ENC_SYM_NIL;
+  lbm_value result = ENC_SYM_NIL;
+  struct dirent *entry;
+  while ((entry = readdir(d)) != NULL) {
+    if (entry->d_name[0] == '.') continue;
+    char fullpath[512];
+    snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
+    struct stat st;
+    int32_t size = 0;
+    lbm_value is_dir = ENC_SYM_NIL;
+    if (stat(fullpath, &st) == 0) {
+      size = (int32_t)st.st_size;
+      if (S_ISDIR(st.st_mode)) is_dir = ENC_SYM_TRUE;
+    }
+    lbm_value name;
+    if (!lbm_create_array(&name, strlen(entry->d_name) + 1)) continue;
+    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(name);
+    memcpy(hdr->data, entry->d_name, strlen(entry->d_name) + 1);
+    lbm_value e = lbm_cons(is_dir, ENC_SYM_NIL);
+    if (lbm_is_symbol_merror(e)) break;
+    e = lbm_cons(lbm_enc_i32(size), e);
+    if (lbm_is_symbol_merror(e)) break;
+    e = lbm_cons(name, e);
+    if (lbm_is_symbol_merror(e)) break;
+    lbm_value cell = lbm_cons(e, result);
     if (lbm_is_symbol_merror(cell)) break;
     result = cell;
   }
@@ -1405,8 +1516,16 @@ int init_exts(void) {
   lbm_add_extension("fread", ext_fread);
   lbm_add_extension("fseek", ext_fseek);
   lbm_add_extension("ftell", ext_ftell);
-  lbm_add_extension("flist", ext_file_list);
-  lbm_add_extension("print", ext_print);
+  lbm_add_extension("flist",     ext_file_list);
+  lbm_add_extension("fs-pwd",    ext_fs_pwd);
+  lbm_add_extension("fs-cd",     ext_fs_cd);
+  lbm_add_extension("fs-mkdir",  ext_fs_mkdir);
+  lbm_add_extension("fs-rm",     ext_fs_rm);
+  lbm_add_extension("fs-mv",     ext_fs_mv);
+  lbm_add_extension("fs-exists", ext_fs_exists);
+  lbm_add_extension("fs-stat",   ext_fs_stat);
+  lbm_add_extension("fs-ls",     ext_fs_ls);
+  lbm_add_extension("print",     ext_print);
   lbm_add_extension("systime", ext_systime);
   lbm_add_extension("secs-since", ext_secs_since);
 

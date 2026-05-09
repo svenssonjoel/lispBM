@@ -10,6 +10,7 @@ CFLAGS = -O2 \
          -I$(LISPBM)/platform/wasm/include
 
 LBMFLAGS = -DLBM_SINGLE_THREADED \
+           -DLBM_USE_SHEBANG_COMMENTS \
            -DLBM_USE_DYN_MACROS \
 	   -DLBM_USE_DYN_FUNS \
            -DLBM_USE_DYN_ARRAYS \
@@ -24,7 +25,7 @@ EMFLAGS = \
   -s MODULARIZE=1 \
   -s EXPORT_NAME=LispBM \
   -s EXPORTED_FUNCTIONS='["_lbm_wasm_init","_lbm_wasm_eval","_lbm_wasm_eval_program","_lbm_wasm_step","_lbm_wasm_run","_lbm_wasm_get_output","_lbm_wasm_clear_output","_lbm_wasm_is_running","_lbm_wasm_get_ctxs","_lbm_wasm_get_stats","_malloc","_free"]' \
-  -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","HEAP8","HEAPU8","HEAP32","setValue"]' \
+  -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","HEAP8","HEAPU8","HEAP32","setValue","FS"]' \
   -s INITIAL_MEMORY=16777216 \
   -s ALLOW_MEMORY_GROWTH=1 \
   -s USE_FREETYPE=1

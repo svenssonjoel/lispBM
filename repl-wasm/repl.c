@@ -22,6 +22,8 @@
 
 #include <emscripten.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include "lispbm.h"
 #include "lbm_flat_value.h"
@@ -238,6 +240,21 @@ EM_JS(char*, js_get_tab_content, (const char *filename), {
 //  which is the C "binding" for the javascript body below.
 
 
+EM_JS(char*, js_resolve_import_url, (const char *filename), {
+  const base = window.currentBaseUrl;
+  if (!base) return 0;
+  try {
+    const resolved = new URL(UTF8ToString(filename), base).href;
+    const len = lengthBytesUTF8(resolved) + 1;
+    const buf = _malloc(len);
+    if (!buf) return 0;
+    stringToUTF8(resolved, buf, len);
+    return buf;
+  } catch(e) {
+    return 0;
+  }
+});
+
 EM_JS(uint8_t*, js_fetch_url_bytes, (const char *url, int *out_size), {
   const u = UTF8ToString(url);
   const xhr = new XMLHttpRequest();
@@ -325,6 +342,137 @@ static lbm_value ext_wasm_plot_xy(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TERROR;
 }
 
+EM_JS(void, js_open_in_tab, (const char *filename, const char *content), {
+  if (typeof window.openFileInTab === 'function')
+    window.openFileInTab(UTF8ToString(filename), UTF8ToString(content));
+});
+
+static char *read_memfs_file(const char *path);
+
+// ////////////////////////////////////////////////////////////
+// Filesystem extensions (fs-*)
+//
+
+static lbm_value ext_fs_pwd(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  char buf[512];
+  if (!getcwd(buf, sizeof(buf))) return ENC_SYM_NIL;
+  lbm_uint len = strlen(buf);
+  lbm_value result;
+  if (!lbm_create_array(&result, len + 1)) return ENC_SYM_MERROR;
+  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(result);
+  memcpy(arr->data, buf, len + 1);
+  return result;
+}
+
+static lbm_value ext_fs_cd(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  return chdir(path) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+static lbm_value ext_fs_mkdir(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  return mkdir(path, 0777) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+static lbm_value ext_fs_rm(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  return unlink(path) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+static lbm_value ext_fs_mv(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_array_r(args[0]) || !lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
+  const char *src = lbm_dec_str(args[0]);
+  const char *dst = lbm_dec_str(args[1]);
+  if (!src || !dst) return ENC_SYM_TERROR;
+  return rename(src, dst) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+static lbm_value ext_fs_exists(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  struct stat st;
+  return stat(path, &st) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+// (fs-stat path) -> (size is-dir)
+static lbm_value ext_fs_stat(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  struct stat st;
+  if (stat(path, &st) != 0) return ENC_SYM_NIL;
+  lbm_value is_dir = S_ISDIR(st.st_mode) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  lbm_value result = lbm_cons(is_dir, ENC_SYM_NIL);
+  if (lbm_is_symbol_merror(result)) return ENC_SYM_MERROR;
+  result = lbm_cons(lbm_enc_i32((int32_t)st.st_size), result);
+  if (lbm_is_symbol_merror(result)) return ENC_SYM_MERROR;
+  return result;
+}
+
+// (fs-ls) or (fs-ls path) -> list of (name size is-dir)
+static lbm_value ext_fs_ls(lbm_value *args, lbm_uint argn) {
+  const char *path = ".";
+  if (argn == 1 && lbm_is_array_r(args[0])) {
+    path = lbm_dec_str(args[0]);
+    if (!path) return ENC_SYM_TERROR;
+  } else if (argn != 0) {
+    return ENC_SYM_TERROR;
+  }
+  DIR *d = opendir(path);
+  if (!d) return ENC_SYM_NIL;
+  lbm_value result = ENC_SYM_NIL;
+  struct dirent *entry;
+  while ((entry = readdir(d)) != NULL) {
+    if (entry->d_name[0] == '.') continue;
+    char fullpath[512];
+    snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
+    struct stat st;
+    int32_t size = 0;
+    lbm_value is_dir = ENC_SYM_NIL;
+    if (stat(fullpath, &st) == 0) {
+      size = (int32_t)st.st_size;
+      if (S_ISDIR(st.st_mode)) is_dir = ENC_SYM_TRUE;
+    }
+    lbm_value name;
+    if (!lbm_create_array(&name, strlen(entry->d_name) + 1)) continue;
+    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(name);
+    memcpy(hdr->data, entry->d_name, strlen(entry->d_name) + 1);
+    lbm_value e = lbm_cons(is_dir, ENC_SYM_NIL);
+    if (lbm_is_symbol_merror(e)) break;
+    e = lbm_cons(lbm_enc_i32(size), e);
+    if (lbm_is_symbol_merror(e)) break;
+    e = lbm_cons(name, e);
+    if (lbm_is_symbol_merror(e)) break;
+    lbm_value cell = lbm_cons(e, result);
+    if (lbm_is_symbol_merror(cell)) break;
+    result = cell;
+  }
+  closedir(d);
+  return result;
+}
+
+// (fs-open path) - read file from MEMFS and open in editor tab
+static lbm_value ext_fs_open(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  char *content = read_memfs_file(path);
+  if (!content) return ENC_SYM_NIL;
+  const char *filename = strrchr(path, '/');
+  filename = filename ? filename + 1 : path;
+  js_open_in_tab(filename, content);
+  free(content);
+  return ENC_SYM_TRUE;
+}
+
 static char *read_memfs_file(const char *path) {
   FILE *fp = fopen(path, "rb");
   if (!fp) return NULL;
@@ -365,6 +513,30 @@ static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
     free(data);
     lbm_define((char*)symname, result);
     return result;
+  }
+
+  // Relative path with a base URL set — resolve and fetch as URL
+  bool is_relative = (strncmp(filename, "http://", 7) != 0 &&
+                      strncmp(filename, "https://", 8) != 0 &&
+                      filename[0] != '/');
+  if (is_relative) {
+    char *resolved = js_resolve_import_url(filename);
+    if (resolved) {
+      int size = 0;
+      uint8_t *data = js_fetch_url_bytes(resolved, &size);
+      free(resolved);
+      if (!data || size <= 0) {
+        print_callback("import: failed to fetch relative URL \"%s\"\n", filename);
+        return ENC_SYM_NIL;
+      }
+      lbm_value result;
+      if (!lbm_create_array(&result, (lbm_uint)size)) { free(data); return ENC_SYM_MERROR; }
+      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(result);
+      memcpy(arr->data, data, (size_t)size);
+      free(data);
+      lbm_define((char*)symname, result);
+      return result;
+    }
   }
 
   int matches = js_count_tab_matches(filename);
@@ -840,6 +1012,15 @@ int lbm_wasm_init(void) {
   lbm_add_extension("ftell",           ext_ftell);
   lbm_add_extension("flist",           ext_file_list);
   lbm_add_extension("wasm-save-file",  ext_wasm_save_file);
+  lbm_add_extension("fs-pwd",          ext_fs_pwd);
+  lbm_add_extension("fs-cd",           ext_fs_cd);
+  lbm_add_extension("fs-mkdir",        ext_fs_mkdir);
+  lbm_add_extension("fs-rm",           ext_fs_rm);
+  lbm_add_extension("fs-mv",           ext_fs_mv);
+  lbm_add_extension("fs-exists",       ext_fs_exists);
+  lbm_add_extension("fs-stat",         ext_fs_stat);
+  lbm_add_extension("fs-ls",           ext_fs_ls);
+  lbm_add_extension("fs-open",         ext_fs_open);
 
   lbm_uint seek_set = 0, seek_cur = 0, seek_end = 0;
   lbm_add_symbol("seek-set", &seek_set);
