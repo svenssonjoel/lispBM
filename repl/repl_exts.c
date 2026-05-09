@@ -503,6 +503,32 @@ static lbm_value ext_fwrite_image(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+static lbm_value ext_file_list(lbm_value *args, lbm_uint argn) {
+  const char *path = ".";
+  if (argn == 1 && lbm_is_array_r(args[0])) {
+    path = lbm_dec_str(args[0]);
+    if (!path) return ENC_SYM_TERROR;
+  } else if (argn != 0) {
+    return ENC_SYM_TERROR;
+  }
+  DIR *d = opendir(path);
+  if (!d) return ENC_SYM_NIL;
+  lbm_value result = ENC_SYM_NIL;
+  struct dirent *entry;
+  while ((entry = readdir(d)) != NULL) {
+    if (entry->d_name[0] == '.') continue;
+    lbm_value name;
+    if (!lbm_create_array(&name, strlen(entry->d_name) + 1)) continue;
+    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(name);
+    memcpy(hdr->data, entry->d_name, strlen(entry->d_name) + 1);
+    lbm_value cell = lbm_cons(name, result);
+    if (lbm_is_symbol_merror(cell)) break;
+    result = cell;
+  }
+  closedir(d);
+  return result;
+}
+
 static bool all_arrays(lbm_value *args, lbm_uint argn) {
   bool r = true;
   for (uint32_t i = 0; i < argn; i ++) {
@@ -1379,6 +1405,7 @@ int init_exts(void) {
   lbm_add_extension("fread", ext_fread);
   lbm_add_extension("fseek", ext_fseek);
   lbm_add_extension("ftell", ext_ftell);
+  lbm_add_extension("flist", ext_file_list);
   lbm_add_extension("print", ext_print);
   lbm_add_extension("systime", ext_systime);
   lbm_add_extension("secs-since", ext_secs_since);

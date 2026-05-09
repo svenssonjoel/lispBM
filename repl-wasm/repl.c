@@ -21,8 +21,10 @@
 #include <string.h>
 
 #include <emscripten.h>
+#include <dirent.h>
 
 #include "lispbm.h"
+#include "lbm_flat_value.h"
 #include "lbm_image.h"
 #include "extensions/array_extensions.h"
 #include "extensions/display_extensions.h"
@@ -387,6 +389,7 @@ static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
   return result;
 }
 
+
 EM_JS(int, js_create_canvas_tab, (int w, int h, const char *title), {
   if (typeof window.createCanvasTab !== 'function') return -1;
   return window.createCanvasTab(w, h, UTF8ToString(title));
@@ -405,6 +408,232 @@ EM_JS(void, js_canvas_clear_js, (int canvas_id, uint32_t color), {
 });
 
 static int active_canvas_id = -1;
+
+// ////////////////////////////////////////////////////////////
+// File extensions (backed by Emscripten MEMFS)
+//
+
+static const char *lbm_file_handle_desc = "File-Handle";
+
+typedef struct {
+  FILE *fp;
+} lbm_file_handle_t;
+
+static bool file_handle_destructor(lbm_uint value) {
+  lbm_file_handle_t *h = (lbm_file_handle_t *)value;
+  if (h->fp) fclose(h->fp);
+  return true;
+}
+
+static bool is_file_handle(lbm_value arg) {
+  if (lbm_is_custom(arg) && ((lbm_uint)lbm_get_custom_descriptor(arg) == (lbm_uint)lbm_file_handle_desc)) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(arg);
+    if (h->fp) return true;
+  }
+  return false;
+}
+
+static lbm_value ext_fclose(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 && is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    fclose(h->fp);
+    h->fp = NULL;
+    return ENC_SYM_TRUE;
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_fopen(lbm_value *args, lbm_uint argn) {
+  if (argn == 2 && lbm_is_array_r(args[0]) && lbm_is_array_r(args[1])) {
+    char *filename = lbm_dec_str(args[0]);
+    char *mode     = lbm_dec_str(args[1]);
+    FILE *fp = fopen(filename, mode);
+    if (fp) {
+      lbm_file_handle_t *mem = lbm_malloc(sizeof(lbm_file_handle_t));
+      if (!mem) { fclose(fp); return ENC_SYM_MERROR; }
+      mem->fp = fp;
+      lbm_value res;
+      lbm_custom_type_create((lbm_uint)mem, file_handle_destructor, lbm_file_handle_desc, &res);
+      return res;
+    }
+    return ENC_SYM_NIL;
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_load_file(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 && is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    if (fseek(h->fp, 0, SEEK_END) < 0) return ENC_SYM_EERROR;
+    long int size = ftell(h->fp);
+    rewind(h->fp);
+    if (size <= 0) return ENC_SYM_NIL;
+    uint8_t *data = lbm_malloc((size_t)size + 1);
+    if (!data) return ENC_SYM_MERROR;
+    memset(data, 0, (size_t)size + 1);
+    lbm_value val;
+    if (!lbm_lift_array(&val, (char*)data, (lbm_uint)size + 1)) { lbm_free(data); return ENC_SYM_MERROR; }
+    if (fread(data, 1, (size_t)size, h->fp) > 0) return val;
+    lbm_free(data);
+    return ENC_SYM_NIL;
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value sym_seek_set;
+static lbm_value sym_seek_cur;
+static lbm_value sym_seek_end;
+
+static lbm_value ext_fseek(lbm_value *args, lbm_uint argn) {
+  if (argn == 3 && is_file_handle(args[0]) && lbm_is_number(args[1]) && lbm_is_symbol(args[2])) {
+    int whence;
+    if      (args[2] == sym_seek_set) whence = SEEK_SET;
+    else if (args[2] == sym_seek_cur) whence = SEEK_CUR;
+    else if (args[2] == sym_seek_end) whence = SEEK_END;
+    else return ENC_SYM_TERROR;
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    return (fseek(h->fp, (long)lbm_dec_as_i64(args[1]), whence) == 0) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_ftell(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 && is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    return lbm_enc_i64((int64_t)ftell(h->fp));
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_fread_byte(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 && is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    char c;
+    return (fread(&c, 1, 1, h->fp) == 1) ? lbm_enc_char((uint8_t)c) : ENC_SYM_NIL;
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_fread(lbm_value *args, lbm_uint argn) {
+  if (argn == 2 && is_file_handle(args[0]) && lbm_is_array_rw(args[1])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(args[1]);
+    size_t num = fread(hdr->data, 1, hdr->size, h->fp);
+    return lbm_enc_u((lbm_uint)num);
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_fwrite(lbm_value *args, lbm_uint argn) {
+  if (argn == 2 && is_file_handle(args[0]) && lbm_is_array_r(args[1])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(args[1]);
+    if (arr) { fwrite(arr->data, 1, arr->size, h->fp); fflush(h->fp); return ENC_SYM_TRUE; }
+    return ENC_SYM_NIL;
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_fwrite_str(lbm_value *args, lbm_uint argn) {
+  if (argn == 2 && is_file_handle(args[0]) && lbm_is_array_r(args[1])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(args[1]);
+    if (arr) { fwrite(arr->data, 1, strlen((char*)arr->data), h->fp); fflush(h->fp); return ENC_SYM_TRUE; }
+    return ENC_SYM_NIL;
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_fwrite_value(lbm_value *args, lbm_uint argn) {
+  if (argn == 2 && is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    lbm_set_max_flatten_depth(10000);
+    int32_t fv_size = flatten_value_size(args[1], 0);
+    if (fv_size <= 0) return ENC_SYM_NIL;
+    lbm_flat_value_t fv;
+    fv.buf = malloc((uint32_t)fv_size);
+    if (!fv.buf) return ENC_SYM_MERROR;
+    fv.buf_size = (uint32_t)fv_size;
+    fv.buf_pos  = 0;
+    lbm_value res = ENC_SYM_NIL;
+    if (flatten_value_c(&fv, args[1]) == FLATTEN_VALUE_OK) {
+      fwrite(fv.buf, 1, (size_t)fv_size, h->fp);
+      fflush(h->fp);
+      res = ENC_SYM_TRUE;
+    }
+    free(fv.buf);
+    return res;
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_file_list(lbm_value *args, lbm_uint argn) {
+  const char *path = "/";
+  if (argn == 1 && lbm_is_array_r(args[0])) {
+    path = lbm_dec_str(args[0]);
+    if (!path) return ENC_SYM_TERROR;
+  } else if (argn != 0) {
+    return ENC_SYM_TERROR;
+  }
+  DIR *d = opendir(path);
+  if (!d) return ENC_SYM_NIL;
+  lbm_value result = ENC_SYM_NIL;
+  struct dirent *entry;
+  while ((entry = readdir(d)) != NULL) {
+    if (entry->d_name[0] == '.') continue;
+    lbm_value name;
+    if (!lbm_create_array(&name, strlen(entry->d_name) + 1)) continue;
+    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(name);
+    memcpy(hdr->data, entry->d_name, strlen(entry->d_name) + 1);
+    lbm_value cell = lbm_cons(name, result);
+    if (lbm_is_symbol_merror(cell)) break;
+    result = cell;
+  }
+  closedir(d);
+  return result;
+}
+
+// ////////////////////////////////////////////////////////////
+// wasm-save-file: download a MEMFS file to the user's disk
+//
+
+EM_JS(void, js_save_memfs_file, (const char *path, const char *filename), {
+  const p = UTF8ToString(path);
+  const f = UTF8ToString(filename);
+  try {
+    const data = FS.readFile(p);
+    const blob = new Blob([data], {type: 'application/octet-stream'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = f;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    console.error('wasm-save-file:', e.message);
+  }
+});
+
+// (wasm-save-file "path/in/memfs" "download-name")
+// If only one arg, the download name matches the memfs filename.
+static lbm_value ext_wasm_save_file(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || argn > 2 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *path = lbm_dec_str(args[0]);
+  if (!path) return ENC_SYM_TERROR;
+  const char *filename = path;
+  if (argn == 2 && lbm_is_array_r(args[1])) {
+    filename = lbm_dec_str(args[1]);
+    if (!filename) return ENC_SYM_TERROR;
+  }
+  // Strip leading path from filename for the download name if not overridden
+  const char *base = strrchr(filename, '/');
+  if (base) filename = base + 1;
+  js_save_memfs_file(path, filename);
+  return ENC_SYM_TRUE;
+}
+
 
 // (wasm-create-canvas w h) or (wasm-create-canvas w h "title")
 static lbm_value ext_wasm_create_canvas(lbm_value *args, lbm_uint argn) {
@@ -595,6 +824,26 @@ int lbm_wasm_init(void) {
   lbm_add_extension("wasm-plot-multi", ext_wasm_plot_multi);
   lbm_add_extension("wasm-plot-xy",    ext_wasm_plot_xy);
   lbm_add_extension("import",          ext_import);
+  lbm_add_extension("fopen",           ext_fopen);
+  lbm_add_extension("fclose",          ext_fclose);
+  lbm_add_extension("load-file",       ext_load_file);
+  lbm_add_extension("fwrite",          ext_fwrite);
+  lbm_add_extension("fwrite-str",      ext_fwrite_str);
+  lbm_add_extension("fwrite-value",    ext_fwrite_value);
+  lbm_add_extension("fread",           ext_fread);
+  lbm_add_extension("fread-byte",      ext_fread_byte);
+  lbm_add_extension("fseek",           ext_fseek);
+  lbm_add_extension("ftell",           ext_ftell);
+  lbm_add_extension("flist",           ext_file_list);
+  lbm_add_extension("wasm-save-file",  ext_wasm_save_file);
+
+  lbm_uint seek_set = 0, seek_cur = 0, seek_end = 0;
+  lbm_add_symbol("seek-set", &seek_set);
+  lbm_add_symbol("seek-cur", &seek_cur);
+  lbm_add_symbol("seek-end", &seek_end);
+  sym_seek_set = lbm_enc_sym(seek_set);
+  sym_seek_cur = lbm_enc_sym(seek_cur);
+  sym_seek_end = lbm_enc_sym(seek_end);
 
   output_buffer[0] = '\0';
 
