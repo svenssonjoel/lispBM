@@ -350,6 +350,416 @@ EM_JS(void, js_open_in_tab, (const char *filename, const char *content), {
 static char *read_memfs_file(const char *path);
 
 // ////////////////////////////////////////////////////////////
+// BMS and Config simulation extensions
+//
+
+EM_JS(double, js_get_bms_val, (const char *key), {
+  var e = window.bmsState && window.bmsState[UTF8ToString(key)];
+  return e ? +e.val : 0;
+});
+
+EM_JS(double, js_conf_get_val, (const char *key), {
+  var e = window.configState && window.configState[UTF8ToString(key)];
+  return e ? +e.val : 0;
+});
+
+EM_JS(void, js_conf_set_val, (const char *key, double val), {
+  var k = UTF8ToString(key);
+  if (window.setConfVal) window.setConfVal(k, val);
+  else if (window.configState) {
+    if (window.configState[k]) window.configState[k].val = val;
+    else window.configState[k] = {val: val, type: 'f64'};
+  }
+});
+
+static inline const char *sim_state_name_to_js(const char *sn) { return sn; } // used in comments only
+
+// Returns type code: 0=i 1=u 2=i32 3=u32 4=f32 5=f64 6=symbol 7=str 8=list
+EM_JS(int, js_get_sim_type, (const char *state_name, const char *key), {
+  var sn = UTF8ToString(state_name);
+  var obj = sn==='bms' ? window.bmsState : sn==='gnss' ? window.gnssState : window.configState;
+  var e = obj && obj[UTF8ToString(key)];
+  if (!e || !e.type) return 5;
+  var c = {i:0, u:1, i32:2, u32:3, f32:4, f64:5, symbol:6, str:7, list:8};
+  return c[e.type] !== undefined ? c[e.type] : 5;
+});
+
+EM_JS(char*, js_get_sim_sym, (const char *state_name, const char *key), {
+  var sn = UTF8ToString(state_name);
+  var obj = sn==='bms' ? window.bmsState : sn==='gnss' ? window.gnssState : window.configState;
+  var e = obj && obj[UTF8ToString(key)];
+  var s = (e && e.type === 'symbol') ? String(e.val) : '';
+  var len = lengthBytesUTF8(s) + 1;
+  var buf = _malloc(len);
+  stringToUTF8(s, buf, len);
+  return buf;
+});
+
+EM_JS(char*, js_get_sim_str, (const char *state_name, const char *key), {
+  var sn = UTF8ToString(state_name);
+  var obj = sn==='bms' ? window.bmsState : sn==='gnss' ? window.gnssState : window.configState;
+  var e = obj && obj[UTF8ToString(key)];
+  var s = (e && e.type === 'str') ? String(e.val) : '';
+  var len = lengthBytesUTF8(s) + 1;
+  var buf = _malloc(len);
+  stringToUTF8(s, buf, len);
+  return buf;
+});
+
+EM_JS(int, js_get_list_len, (const char *state_name, const char *key), {
+  var sn = UTF8ToString(state_name);
+  var obj = sn==='bms' ? window.bmsState : sn==='gnss' ? window.gnssState : window.configState;
+  var e = obj && obj[UTF8ToString(key)];
+  return (e && e.type === 'list' && Array.isArray(e.val)) ? e.val.length : 0;
+});
+
+EM_JS(double, js_get_list_elem_val, (const char *state_name, const char *key, int idx), {
+  var sn = UTF8ToString(state_name);
+  var obj = sn==='bms' ? window.bmsState : sn==='gnss' ? window.gnssState : window.configState;
+  var e = obj && obj[UTF8ToString(key)];
+  if (!e || !Array.isArray(e.val) || idx >= e.val.length) return 0;
+  return +e.val[idx].val;
+});
+
+EM_JS(int, js_get_list_elem_type, (const char *state_name, const char *key, int idx), {
+  var sn = UTF8ToString(state_name);
+  var obj = sn==='bms' ? window.bmsState : sn==='gnss' ? window.gnssState : window.configState;
+  var e = obj && obj[UTF8ToString(key)];
+  if (!e || !Array.isArray(e.val) || idx >= e.val.length) return 5;
+  var c = {i:0, u:1, i32:2, u32:3, f32:4, f64:5, symbol:6, str:7};
+  var t = e.val[idx].type;
+  return c[t] !== undefined ? c[t] : 5;
+});
+
+EM_JS(char*, js_get_list_elem_sym, (const char *state_name, const char *key, int idx), {
+  var sn = UTF8ToString(state_name);
+  var obj = sn==='bms' ? window.bmsState : sn==='gnss' ? window.gnssState : window.configState;
+  var e = obj && obj[UTF8ToString(key)];
+  var s = (e && Array.isArray(e.val) && idx < e.val.length) ? String(e.val[idx].val || '') : '';
+  var len = lengthBytesUTF8(s) + 1;
+  var buf = _malloc(len);
+  stringToUTF8(s, buf, len);
+  return buf;
+});
+
+EM_JS(double, js_sim_get_val, (const char *state_name, const char *key), {
+  var sn = UTF8ToString(state_name);
+  var obj = sn==='bms' ? window.bmsState : sn==='gnss' ? window.gnssState : window.configState;
+  var e = obj && obj[UTF8ToString(key)];
+  return e ? +e.val : 0;
+});
+
+EM_JS(void, js_conf_set_str, (const char *key, const char *val), {
+  var k = UTF8ToString(key);
+  var v = UTF8ToString(val);
+  if (window.configState) {
+    if (window.configState[k]) window.configState[k].val = v;
+    else window.configState[k] = {val: v, type: 'str'};
+  }
+  if (window.setConfVal) window.setConfVal(k, v);
+});
+
+static lbm_value sim_encode(const char *state_name, const char *key, double val) {
+  int type = js_get_sim_type(state_name, key);
+  switch (type) {
+    case 0: return lbm_enc_i((lbm_int)val);
+    case 1: return lbm_enc_u((lbm_uint)val);
+    case 2: return lbm_enc_i32((int32_t)val);
+    case 3: return lbm_enc_u32((uint32_t)val);
+    case 4: return lbm_enc_float((float)val);
+    case 6: {
+      char *sname = js_get_sim_sym(state_name, key);
+      lbm_uint sym = 0;
+      bool ok = lbm_get_symbol_by_name(sname, &sym);
+      if (!ok) ok = lbm_add_symbol(sname, &sym);
+      free(sname);
+      return ok ? lbm_enc_sym(sym) : ENC_SYM_NIL;
+    }
+    case 7: {
+      char *s = js_get_sim_str(state_name, key);
+      lbm_uint len = strlen(s);
+      lbm_value result;
+      bool ok = lbm_create_array(&result, len + 1);
+      if (ok) memcpy(((lbm_array_header_t*)lbm_car(result))->data, s, len + 1);
+      free(s);
+      return ok ? result : ENC_SYM_MERROR;
+    }
+    case 8: {
+      int len = js_get_list_len(state_name, key);
+      lbm_value result = ENC_SYM_NIL;
+      for (int i = len - 1; i >= 0; i--) {
+        double ev = js_get_list_elem_val(state_name, key, i);
+        int    et = js_get_list_elem_type(state_name, key, i);
+        lbm_value elem;
+        switch (et) {
+          case 0: elem = lbm_enc_i((lbm_int)ev);       break;
+          case 1: elem = lbm_enc_u((lbm_uint)ev);      break;
+          case 2: elem = lbm_enc_i32((int32_t)ev);     break;
+          case 3: elem = lbm_enc_u32((uint32_t)ev);    break;
+          case 4: elem = lbm_enc_float((float)ev);     break;
+          case 6: {
+            char *sn = js_get_list_elem_sym(state_name, key, i);
+            lbm_uint sym = 0;
+            bool ok = lbm_get_symbol_by_name(sn, &sym);
+            if (!ok) ok = lbm_add_symbol(sn, &sym);
+            free(sn);
+            elem = ok ? lbm_enc_sym(sym) : ENC_SYM_NIL;
+            break;
+          }
+          default: elem = lbm_enc_double(ev);          break;
+        }
+        lbm_value cell = lbm_cons(elem, result);
+        if (lbm_is_symbol_merror(cell)) return ENC_SYM_MERROR;
+        result = cell;
+      }
+      return result;
+    }
+    default: return lbm_enc_double(val);
+  }
+}
+
+static lbm_value ext_get_bms_val(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_symbol(args[0])) return ENC_SYM_TERROR;
+  const char *key = lbm_get_name_by_symbol(lbm_dec_sym(args[0]));
+  if (!key) return ENC_SYM_NIL;
+  return sim_encode("bms", key, js_get_bms_val(key));
+}
+
+static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_symbol(args[0])) return ENC_SYM_TERROR;
+  const char *key = lbm_get_name_by_symbol(lbm_dec_sym(args[0]));
+  if (!key) return ENC_SYM_NIL;
+  return sim_encode("config", key, js_conf_get_val(key));
+}
+
+static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_symbol(args[0])) return ENC_SYM_TERROR;
+  const char *key = lbm_get_name_by_symbol(lbm_dec_sym(args[0]));
+  if (!key) return ENC_SYM_NIL;
+  if (lbm_is_array_r(args[1])) {
+    const char *str = lbm_dec_str(args[1]);
+    if (!str) return ENC_SYM_TERROR;
+    js_conf_set_str(key, str);
+  } else {
+    js_conf_set_val(key, lbm_dec_as_double(args[1]));
+  }
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_conf_store(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return ENC_SYM_TRUE;
+}
+
+// GNSS simulation extensions
+
+static lbm_value ext_gnss_lat_lon(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return sim_encode("gnss", "gnss-lat-lon", 0);
+}
+static lbm_value ext_gnss_height(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return sim_encode("gnss", "gnss-height", js_sim_get_val("gnss", "gnss-height"));
+}
+static lbm_value ext_gnss_speed(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return sim_encode("gnss", "gnss-speed", js_sim_get_val("gnss", "gnss-speed"));
+}
+static lbm_value ext_gnss_hdop(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return sim_encode("gnss", "gnss-hdop", js_sim_get_val("gnss", "gnss-hdop"));
+}
+static lbm_value ext_gnss_date_time(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return sim_encode("gnss", "gnss-date-time", 0);
+}
+static lbm_value ext_gnss_age(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return sim_encode("gnss", "gnss-age", js_sim_get_val("gnss", "gnss-age"));
+}
+
+// EEPROM simulation extensions
+
+EM_JS(double, js_eeprom_read, (int addr), {
+  var e = window.eepromState && window.eepromState[addr];
+  return e ? +e.val : 0;
+});
+
+EM_JS(void, js_eeprom_store, (int addr, double val, int is_float), {
+  if (!window.eepromState) window.eepromState = {};
+  var type = is_float ? 'f32' : 'i32';
+  if (window.eepromState[addr]) {
+    window.eepromState[addr].val = val;
+    window.eepromState[addr].type = type;
+  } else {
+    window.eepromState[addr] = { val: val, type: type };
+  }
+  if (window.eepromRefresh) window.eepromRefresh(addr, val, type);
+});
+
+static lbm_value ext_eeprom_read_i(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  return lbm_enc_i32((int32_t)js_eeprom_read(lbm_dec_as_i32(args[0])));
+}
+
+static lbm_value ext_eeprom_read_f(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  return lbm_enc_float((float)js_eeprom_read(lbm_dec_as_i32(args[0])));
+}
+
+static lbm_value ext_eeprom_store_i(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  js_eeprom_store(lbm_dec_as_i32(args[0]), lbm_dec_as_double(args[1]), 0);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_eeprom_store_f(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  js_eeprom_store(lbm_dec_as_i32(args[0]), lbm_dec_as_double(args[1]), 1);
+  return ENC_SYM_TRUE;
+}
+
+// GPIO simulation extensions
+//
+
+EM_JS(void, js_gpio_configure, (const char *pin, const char *mode), {
+  if (typeof window.gpioSetMode === 'function')
+    window.gpioSetMode(UTF8ToString(pin), UTF8ToString(mode));
+});
+
+EM_JS(void, js_gpio_write_js, (const char *pin, int value), {
+  if (typeof window.gpioWrite === 'function')
+    window.gpioWrite(UTF8ToString(pin), value);
+});
+
+EM_JS(int, js_gpio_read_js, (const char *pin), {
+  if (typeof window.gpioRead === 'function')
+    return window.gpioRead(UTF8ToString(pin));
+  return 0;
+});
+
+static void gpio_pin_str(lbm_value arg, char *buf, size_t bufsz) {
+  if (lbm_is_symbol(arg)) {
+    const char *name = lbm_get_name_by_symbol(lbm_dec_sym(arg));
+    strncpy(buf, name ? name : "", bufsz - 1);
+  } else if (lbm_is_number(arg)) {
+    snprintf(buf, bufsz, "%d", lbm_dec_as_i32(arg));
+  } else {
+    buf[0] = '\0';
+  }
+  buf[bufsz - 1] = '\0';
+}
+
+static lbm_value ext_gpio_configure(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_symbol(args[1])) return ENC_SYM_TERROR;
+  char pin[32];
+  gpio_pin_str(args[0], pin, sizeof(pin));
+  if (!pin[0]) return ENC_SYM_TERROR;
+  const char *mode = lbm_get_name_by_symbol(lbm_dec_sym(args[1]));
+  if (!mode) return ENC_SYM_TERROR;
+  js_gpio_configure(pin, mode);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_gpio_write(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_number(args[1])) return ENC_SYM_TERROR;
+  char pin[32];
+  gpio_pin_str(args[0], pin, sizeof(pin));
+  if (!pin[0]) return ENC_SYM_TERROR;
+  js_gpio_write_js(pin, lbm_dec_as_i32(args[1]));
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_gpio_read(lbm_value *args, lbm_uint argn) {
+  if (argn != 1) return ENC_SYM_TERROR;
+  char pin[32];
+  gpio_pin_str(args[0], pin, sizeof(pin));
+  if (!pin[0]) return ENC_SYM_TERROR;
+  return lbm_enc_i(js_gpio_read_js(pin));
+}
+
+EM_JS(void, js_sim_gpio_write, (const char *pin, int value), {
+  if (typeof window.simGpioWrite === 'function')
+    window.simGpioWrite(UTF8ToString(pin), value);
+});
+
+EM_JS(int, js_sim_gpio_read, (const char *pin), {
+  if (typeof window.simGpioRead === 'function')
+    return window.simGpioRead(UTF8ToString(pin));
+  return 0;
+});
+
+EM_JS(void, js_sim_adc_set, (const char *pin, double value), {
+  if (typeof window.simAdcSet === 'function')
+    window.simAdcSet(UTF8ToString(pin), value);
+});
+
+EM_JS(double, js_sim_adc_get, (const char *pin), {
+  if (typeof window.simAdcGet === 'function')
+    return window.simAdcGet(UTF8ToString(pin));
+  return 0.0;
+});
+
+static lbm_value ext_sim_gpio_write(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_number(args[1])) return ENC_SYM_TERROR;
+  char pin[32];
+  gpio_pin_str(args[0], pin, sizeof(pin));
+  if (!pin[0]) return ENC_SYM_TERROR;
+  js_sim_gpio_write(pin, lbm_dec_as_i32(args[1]));
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_sim_gpio_read(lbm_value *args, lbm_uint argn) {
+  if (argn != 1) return ENC_SYM_TERROR;
+  char pin[32];
+  gpio_pin_str(args[0], pin, sizeof(pin));
+  if (!pin[0]) return ENC_SYM_TERROR;
+  return lbm_enc_i(js_sim_gpio_read(pin));
+}
+
+static lbm_value ext_sim_adc_set(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_number(args[1])) return ENC_SYM_TERROR;
+  char pin[32];
+  gpio_pin_str(args[0], pin, sizeof(pin));
+  if (!pin[0]) return ENC_SYM_TERROR;
+  js_sim_adc_set(pin, lbm_dec_as_double(args[1]));
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_sim_adc_get(lbm_value *args, lbm_uint argn) {
+  if (argn != 1) return ENC_SYM_TERROR;
+  char pin[32];
+  gpio_pin_str(args[0], pin, sizeof(pin));
+  if (!pin[0]) return ENC_SYM_TERROR;
+  return lbm_enc_double(js_sim_adc_get(pin));
+}
+
+static lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn; return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
+  if (argn != 1) return ENC_SYM_TERROR;
+  char ch[32];
+  gpio_pin_str(args[0], ch, sizeof(ch));
+  if (!ch[0]) return ENC_SYM_TERROR;
+  return lbm_enc_float((float)js_sim_adc_get(ch));
+}
+
+static lbm_value ext_get_adc_decoded(lbm_value *args, lbm_uint argn) {
+  if (argn != 1) return ENC_SYM_TERROR;
+  char ch[32];
+  gpio_pin_str(args[0], ch, sizeof(ch));
+  if (!ch[0]) return ENC_SYM_TERROR;
+  float v = (float)js_sim_adc_get(ch);
+  float norm = v / 3.3f;
+  if (norm < 0.0f) norm = 0.0f;
+  if (norm > 1.0f) norm = 1.0f;
+  return lbm_enc_float(norm);
+}
+
+
+// ////////////////////////////////////////////////////////////
 // Filesystem extensions (fs-*)
 //
 
@@ -495,6 +905,15 @@ static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
   if (!filename) return ENC_SYM_TERROR;
   const char *symname = lbm_get_name_by_symbol(lbm_dec_sym(args[1]));
   if (!symname) return ENC_SYM_TERROR;
+
+  if (strncmp(filename, "pkg@://", 7) == 0) {
+    print_callback("import: skipping pkg@:// package \"%s\" (not supported in WASM repl)\n", filename);
+    lbm_value empty;
+    if (!lbm_create_array(&empty, 1)) return ENC_SYM_MERROR;
+    ((uint8_t*)((lbm_array_header_t*)lbm_car(empty))->data)[0] = 0;
+    lbm_define((char*)symname, empty);
+    return empty;
+  }
 
   if (strncmp(filename, "http://", 7) == 0 || strncmp(filename, "https://", 8) == 0) {
     int size = 0;
@@ -1021,6 +1440,30 @@ int lbm_wasm_init(void) {
   lbm_add_extension("fs-stat",         ext_fs_stat);
   lbm_add_extension("fs-ls",           ext_fs_ls);
   lbm_add_extension("fs-open",         ext_fs_open);
+  lbm_add_extension("get-bms-val",     ext_get_bms_val);
+  lbm_add_extension("conf-get",        ext_conf_get);
+  lbm_add_extension("conf-set",        ext_conf_set);
+  lbm_add_extension("conf-store",      ext_conf_store);
+  lbm_add_extension("gnss-lat-lon",   ext_gnss_lat_lon);
+  lbm_add_extension("gnss-height",   ext_gnss_height);
+  lbm_add_extension("gnss-speed",    ext_gnss_speed);
+  lbm_add_extension("gnss-hdop",     ext_gnss_hdop);
+  lbm_add_extension("gnss-date-time",ext_gnss_date_time);
+  lbm_add_extension("gnss-age",      ext_gnss_age);
+  lbm_add_extension("eeprom-read-i",  ext_eeprom_read_i);
+  lbm_add_extension("eeprom-read-f",  ext_eeprom_read_f);
+  lbm_add_extension("eeprom-store-i", ext_eeprom_store_i);
+  lbm_add_extension("eeprom-store-f", ext_eeprom_store_f);
+  lbm_add_extension("gpio-configure",  ext_gpio_configure);
+  lbm_add_extension("gpio-write",      ext_gpio_write);
+  lbm_add_extension("gpio-read",       ext_gpio_read);
+  lbm_add_extension("sim-gpio-write",  ext_sim_gpio_write);
+  lbm_add_extension("sim-gpio-read",   ext_sim_gpio_read);
+  lbm_add_extension("sim-adc-set",      ext_sim_adc_set);
+  lbm_add_extension("sim-adc-get",      ext_sim_adc_get);
+  lbm_add_extension("get-adc",          ext_get_adc);
+  lbm_add_extension("get-adc-decoded",  ext_get_adc_decoded);
+  lbm_add_extension("image-save",       ext_image_save);
 
   lbm_uint seek_set = 0, seek_cur = 0, seek_end = 0;
   lbm_add_symbol("seek-set", &seek_set);
