@@ -836,13 +836,15 @@ aboutPane.innerHTML = `
 <h2>LispBM WebAssembly REPL</h2>
 <p>
   LispBM is an embeddable Lisp/Scheme for microcontrollers, running here via WebAssembly.
-  Write code in the editor tabs on the right, then press <code>Load</code> to evaluate the whole buffer,
+  Write code in the editor tabs on the right, then press <code>Eval Tab</code> to evaluate the whole buffer,
   or type expressions directly into the console.
   Use <code>Shift+Enter</code> in the console for multi-line input.
 </p>
 <p>
-  Files live in an in-memory filesystem (MEMFS). Use the <strong>RTS</strong> tab to browse, upload,
-  and download files. The <code>/libs</code> directory is pre-populated at startup.
+  Files live in an in-memory filesystem (MEMFS). Use <strong>Open</strong>/<strong>Save</strong> to browse MEMFS,
+  <strong>Import</strong>/<strong>Export</strong> to transfer files to/from host disk.
+  The <strong>RTS</strong> tab has a full MEMFS browser with zip import/export.
+  The <code>/libs</code> directory is pre-populated at startup.
   Import from MEMFS with absolute paths: <code>(import "/libs/dsp_lang.lisp" 'dsp)</code>.
 </p>
 
@@ -906,6 +908,17 @@ aboutPane.innerHTML = `
 </table>
 
 <p style="color:#555;font-size:11px;">Symbols for fseek: <code>'seek-set</code> &nbsp; <code>'seek-cur</code> &nbsp; <code>'seek-end</code></p>
+
+<h2>Simulation</h2>
+<p style="color:#888;font-size:12px;">Standard VESC extensions (<code>gpio-read/write</code>, <code>get-adc</code>, <code>get-bms-val</code>, <code>conf-get/set</code>, <code>gnss-*</code>, <code>eeprom-*</code>) are available and read from simulated state. Use the <strong>Sim</strong> dropdown tabs to inspect and edit that state. The following are WASM REPL-specific testbench extensions:</p>
+<table class="about-table">
+  <tr><th>Extension</th><th>Signature</th><th>Description</th></tr>
+  <tr><td>sim-gpio-write</td><td>(sim-gpio-write pin val)</td><td>Set value that gpio-read returns for pin</td></tr>
+  <tr><td>sim-gpio-read</td><td>(sim-gpio-read pin)</td><td>Read value last written by gpio-write on pin</td></tr>
+  <tr><td>sim-adc-set</td><td>(sim-adc-set ch val)</td><td>Set voltage that get-adc returns for channel ch</td></tr>
+  <tr><td>sim-adc-get</td><td>(sim-adc-get ch)</td><td>Read last value set via sim-adc-set</td></tr>
+</table>
+<p style="color:#555;font-size:11px;">Other stubs (e.g. <code>app-adc-detach</code>, <code>image-save</code>) can be defined with <code>defun</code> in testbench code.</p>
 `;
 document.getElementById('output-tab-contents').appendChild(aboutPane);
 
