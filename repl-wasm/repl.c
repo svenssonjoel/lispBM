@@ -944,17 +944,16 @@ static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
       int size = 0;
       uint8_t *data = js_fetch_url_bytes(resolved, &size);
       free(resolved);
-      if (!data || size <= 0) {
-        print_callback("import: failed to fetch relative URL \"%s\"\n", filename);
-        return ENC_SYM_NIL;
+      if (data && size > 0) {
+        lbm_value result;
+        if (!lbm_create_array(&result, (lbm_uint)size)) { free(data); return ENC_SYM_MERROR; }
+        lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(result);
+        memcpy(arr->data, data, (size_t)size);
+        free(data);
+        lbm_define((char*)symname, result);
+        return result;
       }
-      lbm_value result;
-      if (!lbm_create_array(&result, (lbm_uint)size)) { free(data); return ENC_SYM_MERROR; }
-      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(result);
-      memcpy(arr->data, data, (size_t)size);
-      free(data);
-      lbm_define((char*)symname, result);
-      return result;
+      print_callback("import: \"%s\" not found at URL, trying tabs and MEMFS\n", filename);
     }
   }
 

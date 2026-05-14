@@ -164,8 +164,8 @@
     #editor-file-btns { display: flex; gap: 4px; }
     #btn-load:disabled { background: #333; color: #666; cursor: default; }
     #btn-load:hover:not(:disabled) { background: #1177bb; }
-    #btn-open, #btn-open-url, #btn-save, #btn-examples { background: #3a3a3a; color: #d4d4d4; border: 1px solid #555; }
-    #btn-open:hover, #btn-open-url:hover, #btn-save:hover, #btn-examples:hover { background: #4a4a4a; }
+    #btn-open, #btn-open-url, #btn-save, #btn-examples, #btn-import, #btn-export { background: #3a3a3a; color: #d4d4d4; border: 1px solid #555; }
+    #btn-open:hover, #btn-open-url:hover, #btn-save:hover, #btn-examples:hover, #btn-import:hover, #btn-export:hover { background: #4a4a4a; }
     .sim-value-pane { padding: 8px; overflow-y: auto; }
     .sim-value-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     .sim-value-table th { text-align: left; color: #569cd6; padding: 4px 8px; border-bottom: 1px solid #333; }
@@ -205,6 +205,27 @@
       gap: 8px;
     }
     #examples-box h2 { font-size: 14px; color: #569cd6; }
+    #fs-dialog { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center; }
+    #fs-dialog.open { display:flex; }
+    #fs-dialog-box { background:#1e1e1e; border:1px solid #444; padding:14px; width:420px; max-height:70vh; display:flex; flex-direction:column; gap:8px; }
+    #fs-dialog-title { font-size:13px; color:#569cd6; margin:0 0 4px; }
+    #fs-dialog-path { font-size:11px; color:#888; font-family:"Courier New",monospace; margin-bottom:2px; }
+    #fs-dialog-list { overflow-y:auto; flex:1; border:1px solid #2a2a2a; background:#141414; min-height:120px; max-height:300px; }
+    .fs-dialog-entry { display:flex; align-items:center; padding:3px 8px; font-size:12px; cursor:pointer; border-bottom:1px solid #1a1a1a; user-select:none; }
+    .fs-dialog-entry:hover { background:#252525; }
+    .fs-dialog-entry.selected { background:#1a3a5c; }
+    .fs-dialog-entry-name { flex:1; font-family:"Courier New",monospace; }
+    .fs-dialog-dir  { color:#dcdcaa; }
+    .fs-dialog-file { color:#d4d4d4; }
+    #fs-dialog-mkdir-row { display:flex; gap:6px; }
+    #fs-dialog-mkdir-inp { flex:1; background:#1e1e1e; color:#d4d4d4; border:1px solid #383838; padding:3px 6px; font-size:12px; font-family:"Courier New",monospace; }
+    #fs-dialog-filename-row { display:flex; align-items:center; gap:6px; font-size:12px; }
+    #fs-dialog-filename { flex:1; background:#1e1e1e; color:#d4d4d4; border:1px solid #383838; padding:3px 6px; font-size:12px; font-family:"Courier New",monospace; }
+    #fs-dialog-btns { display:flex; justify-content:flex-end; gap:6px; }
+    .fs-dialog-btn { background:#3a3a3a; border:1px solid #555; color:#d4d4d4; padding:3px 14px; font-size:12px; cursor:pointer; font-family:inherit; }
+    .fs-dialog-btn:hover { background:#4a4a4a; }
+    .fs-dialog-btn.primary { background:#0e639c; border-color:#1177bb; }
+    .fs-dialog-btn.primary:hover { background:#1177bb; }
     #examples-list { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
     .example-item {
       background: #2a2a2a;
@@ -303,13 +324,35 @@
           <button id="btn-open">Open</button>
           <button id="btn-open-url">Open URL</button>
           <button id="btn-save">Save</button>
-          <button id="btn-load" disabled>Load</button>
+          <button id="btn-import">Import</button>
+          <button id="btn-export">Export</button>
+          <button id="btn-load" disabled>Eval Tab</button>
         </div>
       </div>
       <input type="file" id="file-input" accept=".lisp,.lbm" style="display:none">
     </div>
   </div>
   <div id="status" style="display:flex;align-items:center;gap:6px;"><span id="busy-led"></span><span id="status-text">Activity</span><span style="flex:1"></span><label for="steps-select" style="font-size:12px;color:#888;">steps:</label><select id="steps-select" style="background:#2d2d2d;color:#d4d4d4;border:1px solid #555;font-size:12px;"><option value="100">100</option><option value="500">500</option><option value="1000" selected>1000</option><option value="5000">5000</option></select></div>
+
+  <div id="fs-dialog">
+    <div id="fs-dialog-box">
+      <div id="fs-dialog-title">Open file</div>
+      <div id="fs-dialog-path">/</div>
+      <div id="fs-dialog-list"></div>
+      <div id="fs-dialog-mkdir-row">
+        <input id="fs-dialog-mkdir-inp" type="text" placeholder="new directory name" spellcheck="false">
+        <button class="fs-dialog-btn" id="fs-dialog-mkdir-btn">New Dir</button>
+      </div>
+      <div id="fs-dialog-filename-row">
+        <span style="color:#888;">Name:</span>
+        <input id="fs-dialog-filename" type="text" spellcheck="false">
+      </div>
+      <div id="fs-dialog-btns">
+        <button class="fs-dialog-btn" id="fs-dialog-cancel">Cancel</button>
+        <button class="fs-dialog-btn primary" id="fs-dialog-ok">OK</button>
+      </div>
+    </div>
+  </div>
 
   <div id="examples-modal">
     <div id="examples-box">
@@ -324,6 +367,7 @@
   <script src="scripts/codemirror/addon/edit/matchbrackets.min.js"></script>
   <script src="scripts/codemirror/addon/edit/closebrackets.min.js"></script>
   <script src="scripts/uplot/uPlot.iife.min.js"></script>
+  <script src="scripts/fflate.min.js"></script>
   <script src="lispbm.js"></script>
   <script src="repl.js"></script>
 </body>

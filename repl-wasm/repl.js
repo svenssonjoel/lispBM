@@ -1090,7 +1090,31 @@ document.getElementById('btn-new-editor-tab').addEventListener('click', () => {
 createEditorTab('untitled');
 
 const fileInput = document.getElementById('file-input');
-document.getElementById('btn-open').addEventListener('click', () => fileInput.click());
+document.getElementById('btn-import').addEventListener('click', () => fileInput.click());
+
+document.getElementById('btn-export').addEventListener('click', () => {
+  if (!activeEditor || activeEditor.isSim) return;
+  const filename = activeEditor.filename || 'untitled.lisp';
+  const blob = new Blob([activeEditor.cm.getValue()], { type: 'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('btn-open').addEventListener('click', () => {
+  if (typeof window.openFsDialog !== 'function') { fileInput.click(); return; }
+  window.openFsDialog({ mode: 'open', title: 'Open from MEMFS' }).then(path => {
+    if (!path) return;
+    try {
+      const name    = path.split('/').pop();
+      const content = lbm.FS.readFile(path, { encoding: 'utf8' });
+      const tab = createEditorTab(name);
+      tab.cm.setValue(content);
+      tab.filename = name;
+    } catch(e) { appendOutput('Error opening ' + path + ': ' + e.message + '\n'); }
+  });
+});
 fileInput.addEventListener('change', () => {
   const file = fileInput.files[0];
   if (!file) return;
@@ -1472,6 +1496,161 @@ LispBM().then(lbm => {
     } // end ctxs.length > 0
   }
 
+  // ------------------------------------------------------------
+  // MEMFS file dialog
+  // openFsDialog({ mode: 'open'|'save', title, filename }) -> Promise<string|null>
+  // Resolves to an absolute MEMFS path or null if cancelled.
+  // ------------------------------------------------------------
+  const fsDialog       = document.getElementById('fs-dialog');
+  const fsDialogTitle  = document.getElementById('fs-dialog-title');
+  const fsDialogPath   = document.getElementById('fs-dialog-path');
+  const fsDialogList   = document.getElementById('fs-dialog-list');
+  const fsDialogFile   = document.getElementById('fs-dialog-filename');
+  const fsDialogOk      = document.getElementById('fs-dialog-ok');
+  const fsDialogCancel  = document.getElementById('fs-dialog-cancel');
+  const fsDialogMkdir   = document.getElementById('fs-dialog-mkdir-btn');
+  const fsDialogMkdirIn = document.getElementById('fs-dialog-mkdir-inp');
+
+  let fsDialogResolve = null;
+  let fsDialogCwd     = '/';
+
+  function fsDialogNavigate(path) {
+    fsDialogCwd = path;
+    fsDialogPath.textContent = path;
+    fsDialogList.innerHTML = '';
+
+    if (path !== '/') {
+      const upEl = document.createElement('div');
+      upEl.className = 'fs-dialog-entry fs-dialog-dir';
+      upEl.innerHTML = '<span class="fs-dialog-entry-name">↑ ..</span>';
+      upEl.addEventListener('click', () => {
+        const parent = path.substring(0, path.lastIndexOf('/')) || '/';
+        fsDialogNavigate(parent);
+      });
+      fsDialogList.appendChild(upEl);
+    }
+
+    let entries = [];
+    try { entries = lbm.FS.readdir(path).filter(e => e !== '.' && e !== '..'); } catch(e) {}
+    entries.sort((a, b) => {
+      const aDir = fsDialogIsDir(fsDialogJoin(path, a));
+      const bDir = fsDialogIsDir(fsDialogJoin(path, b));
+      if (aDir !== bDir) return aDir ? -1 : 1;
+      return a.localeCompare(b);
+    });
+    entries.forEach(name => {
+      const full  = fsDialogJoin(path, name);
+      const isDir = fsDialogIsDir(full);
+      const el    = document.createElement('div');
+      el.className = 'fs-dialog-entry ' + (isDir ? 'fs-dialog-dir' : 'fs-dialog-file');
+      el.innerHTML = '<span class="fs-dialog-entry-name">' + (isDir ? '▶ ' : '  ') + name + '</span>';
+      el.addEventListener('click', () => {
+        if (isDir) {
+          fsDialogNavigate(full);
+        } else {
+          fsDialogList.querySelectorAll('.fs-dialog-entry').forEach(e => e.classList.remove('selected'));
+          el.classList.add('selected');
+          fsDialogFile.value = name;
+          if (fsDialogOk.textContent === 'Open') fsDialogCommit();
+        }
+      });
+      el.addEventListener('dblclick', () => {
+        if (!isDir) { fsDialogFile.value = name; fsDialogCommit(); }
+      });
+      fsDialogList.appendChild(el);
+    });
+  }
+
+  function fsDialogJoin(dir, name) {
+    return (dir === '/' ? '' : dir) + '/' + name;
+  }
+
+  function fsDialogIsDir(path) {
+    try { return lbm.FS.isDir(lbm.FS.stat(path).mode); } catch(e) { return false; }
+  }
+
+  function fsDialogCommit() {
+    const name = fsDialogFile.value.trim();
+    if (!name) return;
+    const full = fsDialogJoin(fsDialogCwd, name);
+    fsDialog.classList.remove('open');
+    const resolve = fsDialogResolve;
+    fsDialogResolve = null;
+    if (resolve) resolve(full);
+  }
+
+  function fsDialogMkdirCommit() {
+    const name = fsDialogMkdirIn.value.trim();
+    if (!name) return;
+    const full = fsDialogJoin(fsDialogCwd, name);
+    try { lbm.FS.mkdir(full); } catch(e) {}
+    fsDialogMkdirIn.value = '';
+    fsDialogNavigate(full);
+  }
+  fsDialogMkdir.addEventListener('click', fsDialogMkdirCommit);
+  fsDialogMkdirIn.addEventListener('keydown', e => { if (e.key === 'Enter') fsDialogMkdirCommit(); });
+
+  fsDialogOk.addEventListener('click', fsDialogCommit);
+  fsDialogCancel.addEventListener('click', () => {
+    fsDialog.classList.remove('open');
+    const resolve = fsDialogResolve;
+    fsDialogResolve = null;
+    if (resolve) resolve(null);
+  });
+  fsDialog.addEventListener('click', e => {
+    if (e.target === fsDialog) fsDialogCancel.click();
+  });
+  fsDialogFile.addEventListener('keydown', e => { if (e.key === 'Enter') fsDialogCommit(); });
+
+  window.openFsDialog = function({ mode = 'open', title, filename = '' } = {}) {
+    return new Promise(resolve => {
+      fsDialogResolve = resolve;
+      fsDialogTitle.textContent = title || (mode === 'save' ? 'Save to MEMFS' : 'Open from MEMFS');
+      fsDialogFile.value = filename;
+      const filenameRow = document.getElementById('fs-dialog-filename-row');
+      const mkdirRow    = document.getElementById('fs-dialog-mkdir-row');
+      filenameRow.style.display = mode === 'save' ? 'flex'  : 'none';
+      mkdirRow.style.display    = mode === 'save' ? 'flex'  : 'none';
+      fsDialogOk.textContent = mode === 'save' ? 'Save' : 'Open';
+      fsDialogNavigate(fsDialogCwd);
+      fsDialog.classList.add('open');
+      if (mode === 'save') setTimeout(() => fsDialogFile.focus(), 50);
+    });
+  };
+
+  function memfsZipDir(dirPath) {
+    const files = {};
+    function walk(path, prefix) {
+      let entries = [];
+      try { entries = lbm.FS.readdir(path).filter(e => e !== '.' && e !== '..'); } catch(e) {}
+      entries.forEach(name => {
+        const full = (path === '/' ? '' : path) + '/' + name;
+        const rel  = prefix ? prefix + '/' + name : name;
+        let isDir = false;
+        try { isDir = lbm.FS.isDir(lbm.FS.stat(full).mode); } catch(e) {}
+        if (isDir) walk(full, rel);
+        else files[rel] = lbm.FS.readFile(full);
+      });
+    }
+    walk(dirPath, '');
+    return fflate.zipSync(files);
+  }
+
+  function memfsUnzipInto(zipData, destDir) {
+    const unzipped = fflate.unzipSync(new Uint8Array(zipData));
+    Object.entries(unzipped).forEach(([relPath, data]) => {
+      const parts = relPath.split('/').filter(Boolean);
+      if (!parts.length) return;
+      let cur = destDir === '/' ? '' : destDir;
+      parts.slice(0, -1).forEach(part => {
+        cur = cur + '/' + part;
+        try { lbm.FS.mkdir(cur); } catch(e) {}
+      });
+      const filename = parts[parts.length - 1];
+      lbm.FS.writeFile(cur + '/' + filename, data);
+    });
+  }
+
   function refreshFsBrowser() {
     rtsFsDiv.innerHTML = '';
     const fsSep = document.createElement('div');
@@ -1494,9 +1673,15 @@ LispBM().then(lbm => {
     fsUploadBtn.style.cssText = 'background:#3a3a3a;border:1px solid #555;color:#d4d4d4;padding:1px 8px;font-size:11px;';
     fsUploadBtn.addEventListener('click', () => fsUploadInput.click());
 
+    const fsUploadZipBtn = document.createElement('button');
+    fsUploadZipBtn.textContent = 'Upload Zip';
+    fsUploadZipBtn.style.cssText = 'background:#3a3a3a;border:1px solid #555;color:#d4d4d4;padding:1px 8px;font-size:11px;';
+    fsUploadZipBtn.addEventListener('click', () => fsUploadZipInput.click());
+
     fsHeader.appendChild(fsTitle);
     fsHeader.appendChild(fsPath);
     fsHeader.appendChild(fsUploadBtn);
+    fsHeader.appendChild(fsUploadZipBtn);
     rtsFsDiv.appendChild(fsHeader);
 
     let entries;
@@ -1525,10 +1710,27 @@ LispBM().then(lbm => {
       }
       row.appendChild(nameEl);
 
-      if (!isDir) {
+      const btnWrap = document.createElement('span');
+      btnWrap.style.cssText = 'display:flex;gap:4px;';
+      const btnStyle = 'background:#3a3a3a;border:1px solid #555;color:#d4d4d4;padding:1px 8px;font-size:11px;cursor:pointer;';
+
+      if (isDir) {
+        const zipBtn = document.createElement('button');
+        zipBtn.textContent = 'Zip';
+        zipBtn.style.cssText = btnStyle;
+        zipBtn.addEventListener('click', () => {
+          const data = memfsZipDir(fullPath);
+          const blob = new Blob([data], {type: 'application/zip'});
+          const url  = URL.createObjectURL(blob);
+          const a    = document.createElement('a');
+          a.href = url; a.download = name + '.zip'; a.click();
+          URL.revokeObjectURL(url);
+        });
+        btnWrap.appendChild(zipBtn);
+      } else {
         const dlBtn = document.createElement('button');
         dlBtn.textContent = 'Download';
-        dlBtn.style.cssText = 'background:#3a3a3a;border:1px solid #555;color:#d4d4d4;padding:1px 8px;font-size:11px;';
+        dlBtn.style.cssText = btnStyle;
         dlBtn.addEventListener('click', () => {
           const data = lbm.FS.readFile(fullPath);
           const blob = new Blob([data], {type: 'application/octet-stream'});
@@ -1537,8 +1739,9 @@ LispBM().then(lbm => {
           a.href = url; a.download = name; a.click();
           URL.revokeObjectURL(url);
         });
-        row.appendChild(dlBtn);
+        btnWrap.appendChild(dlBtn);
       }
+      row.appendChild(btnWrap);
 
       rtsFsDiv.appendChild(row);
     });
@@ -1657,6 +1860,31 @@ LispBM().then(lbm => {
     fsUploadInput.value = '';
   });
 
+  const fsUploadZipInput = document.createElement('input');
+  fsUploadZipInput.type = 'file';
+  fsUploadZipInput.accept = '.zip';
+  fsUploadZipInput.style.display = 'none';
+  document.body.appendChild(fsUploadZipInput);
+  fsUploadZipInput.addEventListener('change', () => {
+    const file = fsUploadZipInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const dirName = file.name.replace(/\.zip$/i, '');
+        const dest    = (fsBrowserPath === '/' ? '' : fsBrowserPath) + '/' + dirName;
+        try { lbm.FS.mkdir(dest); } catch(e) {}
+        memfsUnzipInto(e.target.result, dest);
+        appendOutput('Unzipped "' + file.name + '" into ' + dest + '\n');
+        refreshFsBrowser();
+      } catch(err) {
+        appendOutput('Error unzipping "' + file.name + '": ' + err.message + '\n');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    fsUploadZipInput.value = '';
+  });
+
   let ledState    = false;
   let lastLedFlip = 0;
 
@@ -1715,17 +1943,16 @@ LispBM().then(lbm => {
 
   document.getElementById('btn-save').addEventListener('click', () => {
     if (!activeEditor || activeEditor.isSim) return;
-    let filename = activeEditor.filename;
-    if (!filename) {
-      filename = prompt('Save as:');
-      if (!filename || !filename.trim()) return;
-      filename = filename.trim();
-      activeEditor.filename = filename;
-      activeEditor.labelEl.textContent = filename;
-    }
-    const dest = (fsBrowserPath === '/' ? '' : fsBrowserPath) + '/' + filename;
-    lbm.FS.writeFile(dest, activeEditor.cm.getValue());
-    refreshFsBrowser();
+    window.openFsDialog({ mode: 'save', title: 'Save to MEMFS', filename: activeEditor.filename || '' }).then(path => {
+      if (!path) return;
+      try {
+        lbm.FS.writeFile(path, activeEditor.cm.getValue());
+        const name = path.split('/').pop();
+        activeEditor.filename = name;
+        activeEditor.labelEl.textContent = name;
+        refreshFsBrowser();
+      } catch(e) { appendOutput('Error saving ' + path + ': ' + e.message + '\n'); }
+    });
   });
 
   consoleInput.addEventListener('keydown', e => {
