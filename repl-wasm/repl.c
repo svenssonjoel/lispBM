@@ -181,13 +181,34 @@ static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
   return lbm_enc_float((float)diff / 1000.0f);
 }
 
+static char print_prefix[256] = "";
+
+static lbm_value ext_set_print_prefix(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *str = lbm_dec_str(args[0]);
+  if (!str) return ENC_SYM_TERROR;
+  strncpy(print_prefix, str, sizeof(print_prefix) - 1);
+  print_prefix[sizeof(print_prefix) - 1] = '\0';
+  return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
   char buf[256];
+  if (print_prefix[0]) print_callback("%s", print_prefix);
   for (lbm_uint i = 0; i < argn; i++) {
     lbm_print_value(buf, sizeof(buf), args[i]);
     print_callback("%s", buf);
   }
   print_callback("\n");
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_puts(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
+  const char *str = lbm_dec_str(args[0]);
+  if (!str) return ENC_SYM_TERROR;
+  if (print_prefix[0]) print_callback("%s", print_prefix);
+  print_callback("%s\n", str);
   return ENC_SYM_TRUE;
 }
 
@@ -736,6 +757,55 @@ static lbm_value ext_sim_adc_get(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
   (void)args; (void)argn; return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_color_mix(lbm_value *args, lbm_uint argn) {
+  if (argn != 3 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) || !lbm_is_number(args[2]))
+    return ENC_SYM_TERROR;
+  uint32_t c1 = (uint32_t)lbm_dec_as_u32(args[0]);
+  uint32_t c2 = (uint32_t)lbm_dec_as_u32(args[1]);
+  float t = lbm_dec_as_float(args[2]);
+  if (t < 0.0f) t = 0.0f;
+  if (t > 1.0f) t = 1.0f;
+  uint8_t r = (uint8_t)((float)((c1 >> 16) & 0xFF) * (1.0f - t) + (float)((c2 >> 16) & 0xFF) * t);
+  uint8_t g = (uint8_t)((float)((c1 >>  8) & 0xFF) * (1.0f - t) + (float)((c2 >>  8) & 0xFF) * t);
+  uint8_t b = (uint8_t)((float)((c1      ) & 0xFF) * (1.0f - t) + (float)((c2      ) & 0xFF) * t);
+  return lbm_enc_u32(((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b);
+}
+
+static lbm_value ext_color_make(lbm_value *args, lbm_uint argn) {
+  if (argn != 3 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) || !lbm_is_number(args[2]))
+    return ENC_SYM_TERROR;
+  float r = lbm_dec_as_float(args[0]);
+  float g = lbm_dec_as_float(args[1]);
+  float b = lbm_dec_as_float(args[2]);
+  if (r < 0.0f) r = 0.0f; if (r > 1.0f) r = 1.0f;
+  if (g < 0.0f) g = 0.0f; if (g > 1.0f) g = 1.0f;
+  if (b < 0.0f) b = 0.0f; if (b > 1.0f) b = 1.0f;
+  return lbm_enc_u32(((uint32_t)(r * 255.0f) << 16) | ((uint32_t)(g * 255.0f) << 8) | (uint32_t)(b * 255.0f));
+}
+
+static lbm_value ext_bits_enc_int(lbm_value *args, lbm_uint argn) {
+  LBM_CHECK_ARGN_NUMBER(4)
+  uint32_t initial = lbm_dec_as_u32(args[0]);
+  uint32_t offset  = lbm_dec_as_u32(args[1]);
+  uint32_t number  = lbm_dec_as_u32(args[2]);
+  uint32_t bits    = lbm_dec_as_u32(args[3]);
+  initial &= ~((0xFFFFFFFF >> (32 - bits)) << offset);
+  initial |= (number << (32 - bits)) >> (32 - bits - offset);
+  if (initial > ((1u << 27) - 1)) return lbm_enc_i32((int32_t)initial);
+  return lbm_enc_i((int32_t)initial);
+}
+
+static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
+  LBM_CHECK_ARGN_NUMBER(3)
+  uint32_t val    = lbm_dec_as_u32(args[0]);
+  uint32_t offset = lbm_dec_as_u32(args[1]);
+  uint32_t bits   = lbm_dec_as_u32(args[2]);
+  val >>= offset;
+  val &= 0xFFFFFFFF >> (32 - bits);
+  if (val > ((1u << 27) - 1)) return lbm_enc_i32((int32_t)val);
+  return lbm_enc_i((int32_t)val);
 }
 
 static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
@@ -1413,6 +1483,8 @@ int lbm_wasm_init(void) {
   lbm_add_extension("systime",             ext_systime);
   lbm_add_extension("secs-since",         ext_secs_since);
   lbm_add_extension("print",               ext_print);
+  lbm_add_extension("puts",                ext_puts);
+  lbm_add_extension("set-print-prefix",    ext_set_print_prefix);
   lbm_add_extension("wasm-create-canvas", ext_wasm_create_canvas);
   lbm_add_extension("wasm-plot",           ext_wasm_plot);
   lbm_add_extension("wasm-plot-multi", ext_wasm_plot_multi);
@@ -1463,6 +1535,10 @@ int lbm_wasm_init(void) {
   lbm_add_extension("get-adc",          ext_get_adc);
   lbm_add_extension("get-adc-decoded",  ext_get_adc_decoded);
   lbm_add_extension("image-save",       ext_image_save);
+  lbm_add_extension("color-mix",        ext_color_mix);
+  lbm_add_extension("color-make",       ext_color_make);
+  lbm_add_extension("bits-enc-int",     ext_bits_enc_int);
+  lbm_add_extension("bits-dec-int",     ext_bits_dec_int);
 
   lbm_uint seek_set = 0, seek_cur = 0, seek_end = 0;
   lbm_add_symbol("seek-set", &seek_set);
@@ -1477,6 +1553,25 @@ int lbm_wasm_init(void) {
   print_callback("\nLispBM REPL on WASM\n");
 
   return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int lbm_wasm_reset(void) {
+  reader_t *r = readers;
+  while (r) {
+    reader_t *next = r->next;
+    free(r->str);
+    free(r);
+    r = next;
+  }
+  readers = NULL;
+  active_canvas_id = -1;
+  print_prefix[0] = '\0';
+  memset(heap,        0, sizeof(heap));
+  memset(lbm_memory,  0, sizeof(lbm_memory));
+  memset(lbm_bitmap,  0, sizeof(lbm_bitmap));
+  memset(extensions,  0, sizeof(extensions));
+  return lbm_wasm_init();
 }
 
 EMSCRIPTEN_KEEPALIVE

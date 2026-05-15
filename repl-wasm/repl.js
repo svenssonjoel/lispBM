@@ -588,6 +588,7 @@ function createSimValueTab(label, stateObj, opts) {
 // Left pane. The output/results tabs
 // ------------------------------------------------------------
 let plotCount = 0;
+const plotTabs = {};
 
 
 // Console tab and pane for text output from lisp program
@@ -1250,7 +1251,7 @@ function mkPlotTab(title) {
     const closeEl = document.createElement('span');
     closeEl.className   = 'tab-close';
     closeEl.textContent = '\u2297';
-    closeEl.addEventListener('click', e => { e.stopPropagation(); closeTab(id); });
+    closeEl.addEventListener('click', e => { e.stopPropagation(); closeTab(id); delete plotTabs[id]; });
     btn.appendChild(labelEl);
     btn.appendChild(closeEl);
     document.getElementById('output-tab-bar').appendChild(btn);
@@ -1266,6 +1267,7 @@ function mkPlotTab(title) {
     const w    = Math.max(rect.width  - 16, 300);
     const h    = Math.max(rect.height - 48, 200);
 
+    plotTabs[id] = { id, label, pane };
     return {id, label, pane, w, h};
 }
 
@@ -1691,10 +1693,23 @@ LispBM().then(lbm => {
     fsUploadZipBtn.style.cssText = 'background:#3a3a3a;border:1px solid #555;color:#d4d4d4;padding:1px 8px;font-size:11px;';
     fsUploadZipBtn.addEventListener('click', () => fsUploadZipInput.click());
 
+    const fsMkdirBtn = document.createElement('button');
+    fsMkdirBtn.textContent = 'New Dir';
+    fsMkdirBtn.style.cssText = 'background:#3a3a3a;border:1px solid #555;color:#d4d4d4;padding:1px 8px;font-size:11px;';
+    fsMkdirBtn.addEventListener('click', () => {
+      const name = prompt('Directory name:');
+      if (!name || !name.trim()) return;
+      const full = (fsBrowserPath === '/' ? '' : fsBrowserPath) + '/' + name.trim();
+      try { lbm.FS.mkdir(full); } catch(e) {}
+      fsBrowserPath = full;
+      refreshFsBrowser();
+    });
+
     fsHeader.appendChild(fsTitle);
     fsHeader.appendChild(fsPath);
     fsHeader.appendChild(fsUploadBtn);
     fsHeader.appendChild(fsUploadZipBtn);
+    fsHeader.appendChild(fsMkdirBtn);
     rtsFsDiv.appendChild(fsHeader);
 
     let entries;
@@ -1822,12 +1837,12 @@ LispBM().then(lbm => {
     }, [xs, ...yArrays], pane);
   };
 
-  fetch('libs/index.json')
+  fetch('libs/index.json?v=' + Date.now())
     .then(r => r.json())
     .then(files => {
       try { lbm.FS.mkdir('/libs'); } catch(e) {}
       const fetches = files.map(f =>
-        fetch('libs/' + f)
+        fetch('libs/' + f + '?v=' + Date.now())
           .then(r => r.arrayBuffer())
           .then(buf => lbm.FS.writeFile('/libs/' + f, new Uint8Array(buf)))
       );
@@ -1849,6 +1864,25 @@ LispBM().then(lbm => {
   statusText.textContent = 'Activity';
   document.querySelector('#output-tab-bar .tab-btn[data-tab="console"]')
     .addEventListener('click', () => consoleInput.focus());
+
+  const rtsCtrlDiv = document.createElement('div');
+  rtsCtrlDiv.style.cssText = 'margin-bottom:10px;';
+  const rtsResetBtn = document.createElement('button');
+  rtsResetBtn.textContent = 'Reset LispBM';
+  rtsResetBtn.style.cssText = 'background:#6b1010;padding:4px 14px;font-size:12px;';
+  rtsResetBtn.addEventListener('click', () => {
+    Object.values(canvasTabs).forEach(t => closeTab(t.tabId));
+    Object.keys(canvasTabs).forEach(k => delete canvasTabs[k]);
+    Object.keys(plotTabs).forEach(k => { closeTab(plotTabs[k].id); delete plotTabs[k]; });
+    const ok = lbm.ccall('lbm_wasm_reset', 'number', [], []);
+    if (ok) {
+      appendOutput('--- LispBM runtime reset ---\n');
+    } else {
+      appendOutput('Reset failed.\n');
+    }
+  });
+  rtsCtrlDiv.appendChild(rtsResetBtn);
+  rtsPane.insertBefore(rtsCtrlDiv, rtsLiveDiv);
 
   const fsUploadInput = document.createElement('input');
   fsUploadInput.type = 'file';
