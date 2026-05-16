@@ -46,8 +46,9 @@
   (setq i (+ i 1))
 })
 
-(wasm-plot-multi (list hist-slice hist-sum)
-                 (str-join (list "Histogram: rand16-slice vs rand16-sum (" (str-from-n n-samples) " samples, 64 bins)")))
+(def tab (wasm-create-tab "CSPRNG"))
+(wasm-add-plot-multi tab (list hist-slice hist-sum)
+                     (str-join (list "Histogram: rand16-slice vs rand16-sum (" (str-from-n n-samples) " samples, 64 bins)")))
 
 (define n (to-float n-samples))
 (define mean-s  (/ sum-s  n))

@@ -44,6 +44,7 @@
 (define orig-buf (bufcreate (* n-high 4)))
 (sample-signal-from orig fs-high 0.0 orig-buf)
 
-(wasm-plot low-buf   "Sampled at 2 kHz")
-(wasm-plot recon-buf "Shannon-Whittaker reconstruction at 20 kHz")
-(wasm-plot orig-buf  "Original 990 Hz at 20 kHz")
+(def tab (wasm-create-tab "Shannon-Whittaker"))
+(wasm-add-plot tab low-buf   "Sampled at 2 kHz")
+(wasm-add-plot tab recon-buf "Shannon-Whittaker reconstruction at 20 kHz")
+(wasm-add-plot tab orig-buf  "Original 990 Hz at 20 kHz")

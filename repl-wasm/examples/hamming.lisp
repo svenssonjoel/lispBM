@@ -19,8 +19,10 @@
 ;; Sample signal
 (sample-signal-from test-sig sample-rate 0.0 data-r)
 
+(def tab (wasm-create-tab "Hamming"))
+
 ;; Plot original waveform
-(wasm-plot data-r "Sum of sines (original)")
+(wasm-add-plot tab data-r "Sum of sines (original)")
 
 ;; Apply Hamming window in-place
 (loop ((i 0)) (< i n-samples) {
@@ -31,7 +33,7 @@
 })
 
 ;; Plot windowed waveform
-(wasm-plot data-r "Sum of sines (Hamming windowed)")
+(wasm-add-plot tab data-r "Sum of sines (Hamming windowed)")
 
 ;; FFT and magnitude spectrum
 (let ((fft-result (fft data-r data-im 'little-endian))) {
@@ -42,9 +44,9 @@
     (setq i (+ i 1))
   })
 
-  (wasm-plot magnitudes "FFT Magnitude Spectrum")
+  (wasm-add-plot tab magnitudes "FFT Magnitude Spectrum")
 
   ;; Inverse FFT to verify reconstruction
   (define recreated (fft (car fft-result) (cdr fft-result) 'inverse 'little-endian))
-  (wasm-plot (car recreated) "Recreated waveform (inverse FFT)")
+  (wasm-add-plot tab (car recreated) "Recreated waveform (inverse FFT)")
 })

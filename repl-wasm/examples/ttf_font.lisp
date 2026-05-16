@@ -1,7 +1,8 @@
 (define width 1200)
 (define height 360)
 
-(wasm-create-canvas width height "AA Comparison")
+(def tab (wasm-create-tab "AA Comparison"))
+(def canvas (wasm-add-canvas tab width height))
 
 (define img (img-buffer 'indexed4 width height))
 

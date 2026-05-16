@@ -90,6 +90,7 @@
   (var num-samples (to-i (* sample-rate duration)))
   (var buf (bufcreate (* num-samples 4)))
   (sample-signal-from s sample-rate 0.0 buf)
-  (wasm-plot buf title)
+  (var tab (wasm-create-tab title))
+  (wasm-add-plot tab buf title)
   })
 

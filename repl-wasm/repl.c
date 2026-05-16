@@ -218,22 +218,19 @@ static lbm_value ext_puts(lbm_value *args, lbm_uint argn) {
 /*   } */
 /* }); */
 
-EM_JS(void, js_plot_bufs, (const char *bufs_json, const char *title), {
-  if (typeof window.createMultiPlotTab === 'function') {
-    window.createMultiPlotTab(UTF8ToString(bufs_json), UTF8ToString(title));
-  }
+EM_JS(int, js_plot_buf, (int tab_id, uint8_t *buffer, int nbytes, const char *title), {
+  if (typeof window.addPlotToTab !== 'function') return -1;
+  return window.addPlotToTab(tab_id, buffer, nbytes, UTF8ToString(title));
 });
 
-EM_JS(void, js_plot_buf, (uint8_t *buffer, int nbytes, const char *title), {
-    if (typeof window.createPlotTab === 'function') {
-      window.createPlotTab(buffer, nbytes, UTF8ToString(title));
-    }
-  });
+EM_JS(int, js_plot_bufs, (int tab_id, const char *bufs_json, const char *title), {
+  if (typeof window.addMultiPlotToTab !== 'function') return -1;
+  return window.addMultiPlotToTab(tab_id, UTF8ToString(bufs_json), UTF8ToString(title));
+});
 
-EM_JS(void, js_plot_xy, (uint8_t *xbuf, int xbytes, uint8_t *ybuf, int ybytes, const char *title), {
-  if (typeof window.createXYPlotTab === 'function') {
-    window.createXYPlotTab(xbuf, xbytes, ybuf, ybytes, UTF8ToString(title));
-  }
+EM_JS(int, js_plot_xy, (int tab_id, uint8_t *xbuf, int xbytes, uint8_t *ybuf, int ybytes, const char *title), {
+  if (typeof window.addXYPlotToTab !== 'function') return -1;
+  return window.addXYPlotToTab(tab_id, xbuf, xbytes, ybuf, ybytes, UTF8ToString(title));
 });
 
 
@@ -301,32 +298,25 @@ EM_JS(uint8_t*, js_fetch_url_bytes, (const char *url, int *out_size), {
   return ptr;
 });
 
-// (wasm-plot buf "Title")
-// 
-static lbm_value ext_wasm_plot(lbm_value *args, lbm_uint argn) {
-  lbm_value res = ENC_SYM_TERROR;
-
-  if (argn == 2 &&
-      lbm_is_array_r(args[0]) &&
-      lbm_is_array_r(args[1])) {
-
-    const char *title = lbm_dec_str(args[1]);
-    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[0]);
-    js_plot_buf((uint8_t*)array->data,array->size,  title);
-    res = ENC_SYM_TRUE;
-
-  }  
-  return res;
+// (wasm-add-plot tab-id buf "Title") -> plot-id
+static lbm_value ext_wasm_add_plot(lbm_value *args, lbm_uint argn) {
+  if (argn != 3 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]) || !lbm_is_array_r(args[2]))
+    return ENC_SYM_TERROR;
+  int tab_id = lbm_dec_as_i32(args[0]);
+  const char *title = lbm_dec_str(args[2]);
+  lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(args[1]);
+  int pid = js_plot_buf(tab_id, (uint8_t*)array->data, (int)array->size, title);
+  return lbm_enc_i(pid);
 }
 
-// (wasm-plot-multi '(buf1 buf2 ...) "Title")
-// signal JS to create a multi-series plot tab from LispBM byte arrays
-static lbm_value ext_wasm_plot_multi(lbm_value *args, lbm_uint argn) {
-  if (argn < 1 || !lbm_is_cons(args[0])) return ENC_SYM_TERROR;
+// (wasm-add-plot-multi tab-id '(buf1 buf2 ...) "Title") -> plot-id
+static lbm_value ext_wasm_add_plot_multi(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_cons(args[1])) return ENC_SYM_TERROR;
+  int tab_id = lbm_dec_as_i32(args[0]);
   char json[512];
   int pos = 0;
   pos += snprintf(json + pos, (int)sizeof(json) - pos, "[");
-  lbm_value lst = args[0];
+  lbm_value lst = args[1];
   int first = 1;
   while (lbm_is_cons(lst)) {
     lbm_value head = lbm_car(lst);
@@ -340,27 +330,23 @@ static lbm_value ext_wasm_plot_multi(lbm_value *args, lbm_uint argn) {
   }
   snprintf(json + pos, (int)sizeof(json) - pos, "]");
   const char *title = "";
-  if (argn >= 2 && lbm_is_array_r(args[1])) {
-    title = lbm_dec_str(args[1]);
-  }
-  js_plot_bufs(json, title);
-  return ENC_SYM_TRUE;
+  if (argn >= 3 && lbm_is_array_r(args[2])) title = lbm_dec_str(args[2]);
+  int pid = js_plot_bufs(tab_id, json, title);
+  return lbm_enc_i(pid);
 }
 
-// (wasm-plot-xy x-buf y-buf "Title")
-static lbm_value ext_wasm_plot_xy(lbm_value *args, lbm_uint argn) {
-  if (argn == 3 &&
-      lbm_is_array_r(args[0]) &&
-      lbm_is_array_r(args[1]) &&
-      lbm_is_array_r(args[2])) {
-    const char *title = lbm_dec_str(args[2]);
-    lbm_array_header_t *xarr = (lbm_array_header_t*)lbm_car(args[0]);
-    lbm_array_header_t *yarr = (lbm_array_header_t*)lbm_car(args[1]);
-    js_plot_xy((uint8_t*)xarr->data, xarr->size,
-               (uint8_t*)yarr->data, yarr->size, title);
-    return ENC_SYM_TRUE;
-  }
-  return ENC_SYM_TERROR;
+// (wasm-add-plot-xy tab-id x-buf y-buf "Title") -> plot-id
+static lbm_value ext_wasm_add_plot_xy(lbm_value *args, lbm_uint argn) {
+  if (argn != 4 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]) ||
+      !lbm_is_array_r(args[2]) || !lbm_is_array_r(args[3]))
+    return ENC_SYM_TERROR;
+  int tab_id = lbm_dec_as_i32(args[0]);
+  const char *title = lbm_dec_str(args[3]);
+  lbm_array_header_t *xarr = (lbm_array_header_t*)lbm_car(args[1]);
+  lbm_array_header_t *yarr = (lbm_array_header_t*)lbm_car(args[2]);
+  int pid = js_plot_xy(tab_id, (uint8_t*)xarr->data, (int)xarr->size,
+                                (uint8_t*)yarr->data, (int)yarr->size, title);
+  return lbm_enc_i(pid);
 }
 
 EM_JS(void, js_open_in_tab, (const char *filename, const char *content), {
@@ -1054,9 +1040,19 @@ static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
 }
 
 
-EM_JS(int, js_create_canvas_tab, (int w, int h, const char *title), {
-  if (typeof window.createCanvasTab !== 'function') return -1;
-  return window.createCanvasTab(w, h, UTF8ToString(title));
+EM_JS(int, js_create_tab, (const char *title), {
+  if (typeof window.createTab !== 'function') return -1;
+  return window.createTab(UTF8ToString(title));
+});
+
+EM_JS(int, js_add_canvas_to_tab, (int tab_id, int w, int h), {
+  if (typeof window.addCanvasToTab !== 'function') return -1;
+  return window.addCanvasToTab(tab_id, w, h);
+});
+
+EM_JS(int, js_add_button_to_tab, (int tab_id, const char *buttons_json), {
+  if (typeof window.addButtonToTab !== 'function') return -1;
+  return window.addButtonToTab(tab_id, UTF8ToString(buttons_json));
 });
 
 EM_JS(void, js_canvas_put_image, (int canvas_id, uint8_t *rgba, int w, int h, int x, int y), {
@@ -1299,17 +1295,86 @@ static lbm_value ext_wasm_save_file(lbm_value *args, lbm_uint argn) {
 }
 
 
-// (wasm-create-canvas w h) or (wasm-create-canvas w h "title")
-static lbm_value ext_wasm_create_canvas(lbm_value *args, lbm_uint argn) {
-  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_number(args[1])) return ENC_SYM_TERROR;
-  int w = lbm_dec_as_i32(args[0]);
-  int h = lbm_dec_as_i32(args[1]);
+static void json_esc(const char *src, char *dst, size_t cap) {
+  size_t j = 0;
+  for (size_t i = 0; src[i] && j + 4 < cap; i++) {
+    char c = src[i];
+    if      (c == '"')  { dst[j++] = '\\'; dst[j++] = '"'; }
+    else if (c == '\\') { dst[j++] = '\\'; dst[j++] = '\\'; }
+    else if (c == '\n') { dst[j++] = '\\'; dst[j++] = 'n'; }
+    else if (c == '\r') { dst[j++] = '\\'; dst[j++] = 'r'; }
+    else                { dst[j++] = c; }
+  }
+  dst[j] = '\0';
+}
+
+// (wasm-add-button tab-id '(("label" "press-code" ["release-code"]) ...)) -> button-group-id
+static lbm_value ext_wasm_add_button(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_number(args[0]) || !lbm_is_cons(args[1]))
+    return ENC_SYM_TERROR;
+  int tab_id = lbm_dec_as_i32(args[0]);
+
+  char json[4096];
+  int pos = snprintf(json, sizeof(json), "[");
+  int first = 1;
+  lbm_value lst = args[1];
+  while (lbm_is_cons(lst)) {
+    lbm_value spec = lbm_car(lst);
+    if (!lbm_is_cons(spec)) return ENC_SYM_TERROR;
+
+    lbm_value text_v  = lbm_car(spec); spec = lbm_cdr(spec);
+    lbm_value press_v = lbm_is_cons(spec) ? lbm_car(spec) : ENC_SYM_NIL;
+    spec              = lbm_is_cons(spec) ? lbm_cdr(spec) : ENC_SYM_NIL;
+    lbm_value rel_v   = lbm_is_cons(spec) ? lbm_car(spec) : ENC_SYM_NIL;
+
+    if (!lbm_is_array_r(text_v) || !lbm_is_array_r(press_v)) return ENC_SYM_TERROR;
+    const char *text    = lbm_dec_str(text_v);  if (!text)  return ENC_SYM_TERROR;
+    const char *press   = lbm_dec_str(press_v); if (!press) return ENC_SYM_TERROR;
+    const char *release = lbm_is_array_r(rel_v) ? lbm_dec_str(rel_v) : "";
+    if (!release) release = "";
+
+    char et[256], ep[1024], er[1024];
+    json_esc(text, et, sizeof(et));
+    json_esc(press, ep, sizeof(ep));
+    json_esc(release, er, sizeof(er));
+
+    if (!first) pos += snprintf(json + pos, sizeof(json) - pos, ",");
+    pos += snprintf(json + pos, sizeof(json) - pos,
+                   "{\"text\":\"%s\",\"press\":\"%s\",\"release\":\"%s\"}",
+                   et, ep, er);
+    first = 0;
+    lst = lbm_cdr(lst);
+  }
+  snprintf(json + pos, sizeof(json) - pos, "]");
+  return lbm_enc_i(js_add_button_to_tab(tab_id, json));
+}
+
+// (wasm-create-tab "Title") -> tab-id
+static lbm_value ext_wasm_create_tab(lbm_value *args, lbm_uint argn) {
   const char *title = "";
-  if (argn >= 3 && lbm_is_array_r(args[2])) {
-    title = lbm_dec_str(args[2]);
+  if (argn >= 1 && lbm_is_array_r(args[0])) {
+    title = lbm_dec_str(args[0]);
     if (!title) title = "";
   }
-  active_canvas_id = js_create_canvas_tab(w, h, title);
+  return lbm_enc_i(js_create_tab(title));
+}
+
+// (wasm-add-canvas tab-id w h) -> canvas-id, sets as active render target
+static lbm_value ext_wasm_add_canvas(lbm_value *args, lbm_uint argn) {
+  if (argn != 3 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) || !lbm_is_number(args[2]))
+    return ENC_SYM_TERROR;
+  int tab_id = lbm_dec_as_i32(args[0]);
+  int w      = lbm_dec_as_i32(args[1]);
+  int h      = lbm_dec_as_i32(args[2]);
+  int cid    = js_add_canvas_to_tab(tab_id, w, h);
+  if (cid >= 0) active_canvas_id = cid;
+  return lbm_enc_i(cid);
+}
+
+// (wasm-set-canvas canvas-id)
+static lbm_value ext_wasm_set_canvas(lbm_value *args, lbm_uint argn) {
+  if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  active_canvas_id = lbm_dec_as_i32(args[0]);
   return ENC_SYM_TRUE;
 }
 
@@ -1485,10 +1550,13 @@ int lbm_wasm_init(void) {
   lbm_add_extension("print",               ext_print);
   lbm_add_extension("puts",                ext_puts);
   lbm_add_extension("set-print-prefix",    ext_set_print_prefix);
-  lbm_add_extension("wasm-create-canvas", ext_wasm_create_canvas);
-  lbm_add_extension("wasm-plot",           ext_wasm_plot);
-  lbm_add_extension("wasm-plot-multi", ext_wasm_plot_multi);
-  lbm_add_extension("wasm-plot-xy",    ext_wasm_plot_xy);
+  lbm_add_extension("wasm-add-button",      ext_wasm_add_button);
+  lbm_add_extension("wasm-create-tab",      ext_wasm_create_tab);
+  lbm_add_extension("wasm-add-canvas",      ext_wasm_add_canvas);
+  lbm_add_extension("wasm-set-canvas",      ext_wasm_set_canvas);
+  lbm_add_extension("wasm-add-plot",        ext_wasm_add_plot);
+  lbm_add_extension("wasm-add-plot-multi",  ext_wasm_add_plot_multi);
+  lbm_add_extension("wasm-add-plot-xy",     ext_wasm_add_plot_xy);
   lbm_add_extension("import",          ext_import);
   lbm_add_extension("fopen",           ext_fopen);
   lbm_add_extension("fclose",          ext_fclose);

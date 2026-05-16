@@ -587,8 +587,14 @@ function createSimValueTab(label, stateObj, opts) {
 // ------------------------------------------------------------
 // Left pane. The output/results tabs
 // ------------------------------------------------------------
+let tabSeq = 0;
+const tabs = {};
+
 let plotCount = 0;
 const plotTabs = {};
+
+let buttonGroupSeq = 0;
+const buttonGroups = {};
 
 
 // Console tab and pane for text output from lisp program
@@ -862,14 +868,23 @@ aboutPane.innerHTML = `
   <tr><td>print</td><td>(print val ...)</td><td>Print values to console with newline</td></tr>
 </table>
 
-<h2>Plotting &amp; Canvas</h2>
+<h2>Tabs, Plots &amp; Canvas</h2>
+<p style="color:#888;font-size:12px;">
+  Output tabs are first-class objects with integer IDs. Create a tab first, then add canvases or plots into it.
+  Multiple canvases and plots can be stacked inside a single tab.
+</p>
 <table class="about-table">
   <tr><th>Extension</th><th>Signature</th><th>Description</th></tr>
-  <tr><td>wasm-plot</td><td>(wasm-plot buf "title")</td><td>Plot tab from a float32 byte array</td></tr>
-  <tr><td>wasm-plot-multi</td><td>(wasm-plot-multi '(buf ...) "title")</td><td>Multi-series plot from a list of float32 arrays</td></tr>
-  <tr><td>wasm-plot-xy</td><td>(wasm-plot-xy xbuf ybuf "title")</td><td>XY plot from two float32 byte arrays</td></tr>
-  <tr><td>wasm-create-canvas</td><td>(wasm-create-canvas w h ["title"])</td><td>Canvas tab for display library drawing</td></tr>
+  <tr><td>wasm-create-tab</td><td>(wasm-create-tab "title")</td><td>Create a new output tab; returns integer tab ID</td></tr>
+  <tr><td>wasm-add-canvas</td><td>(wasm-add-canvas tab-id w h)</td><td>Add a canvas to tab-id; returns integer canvas ID and sets it as the active draw target</td></tr>
+  <tr><td>wasm-set-canvas</td><td>(wasm-set-canvas canvas-id)</td><td>Set the active draw target to an existing canvas by ID</td></tr>
+  <tr><td>wasm-add-plot</td><td>(wasm-add-plot tab-id buf "title")</td><td>Add a single-series plot (float32 buffer) to tab-id; returns plot ID</td></tr>
+  <tr><td>wasm-add-plot-multi</td><td>(wasm-add-plot-multi tab-id '(buf ...) "title")</td><td>Add a multi-series plot from a list of float32 buffers to tab-id; returns plot ID</td></tr>
+  <tr><td>wasm-add-plot-xy</td><td>(wasm-add-plot-xy tab-id xbuf ybuf "title")</td><td>Add an XY scatter/line plot from two float32 buffers to tab-id; returns plot ID</td></tr>
+  <tr><td>wasm-add-button</td><td>(wasm-add-button tab-id '(("label" "press-code" ["release-code"]) ...))</td><td>Add a horizontal row of buttons to tab-id; press-code runs on mousedown, release-code on mouseup/mouseleave; returns button-group ID</td></tr>
 </table>
+<p style="color:#555;font-size:11px;">Example: <code>(def tab (wasm-create-tab "My Plot"))</code> &nbsp; <code>(wasm-add-plot tab buf "signal")</code></p>
+<p style="color:#555;font-size:11px;">Button example: <code>(wasm-add-button tab '(("Go" "(setq running t)" "(setq running nil)") ("Stop" "(setq running nil)")))</code></p>
 
 <h2>Import</h2>
 <table class="about-table">
@@ -996,11 +1011,11 @@ function openDocPage(url) {
 let canvasTabSeq = 0;
 const canvasTabs = {};
 
-window.createCanvasTab = function(w, h, title) {
-  canvasTabSeq++;
-  const cid   = canvasTabSeq;
-  const tabId = 'canvas-' + cid;
-  const label = (title && title.length) ? title : ('Canvas ' + cid);
+window.createTab = function(title) {
+  tabSeq++;
+  const tid   = tabSeq;
+  const tabId = 'tab-' + tid;
+  const label = (title && title.length) ? title : ('Tab ' + tid);
 
   const btn = document.createElement('button');
   btn.className   = 'tab-btn';
@@ -1011,26 +1026,52 @@ window.createCanvasTab = function(w, h, title) {
   const closeEl = document.createElement('span');
   closeEl.className   = 'tab-close';
   closeEl.textContent = '\u2297';
-  closeEl.addEventListener('click', e => { e.stopPropagation(); closeTab(tabId); delete canvasTabs[cid]; });
+  closeEl.addEventListener('click', e => {
+    e.stopPropagation();
+    Object.keys(canvasTabs).forEach(k => { if (canvasTabs[k].tid === tid) delete canvasTabs[k]; });
+    Object.keys(plotTabs).forEach(k => { if (plotTabs[k].tid === tid) delete plotTabs[k]; });
+    Object.keys(buttonGroups).forEach(k => { if (buttonGroups[k].tid === tid) delete buttonGroups[k]; });
+    closeTab(tabId);
+    delete tabs[tid];
+  });
   btn.appendChild(labelEl);
   btn.appendChild(closeEl);
   document.getElementById('output-tab-bar').appendChild(btn);
 
   const pane = document.createElement('div');
   pane.id        = 'output-tab-' + tabId;
-  pane.className = 'tab-pane';
+  pane.className = 'tab-pane output-flex-pane';
   pane.style.cssText = 'padding:8px;overflow:auto;background:#111;';
   document.getElementById('output-tab-contents').appendChild(pane);
 
+  tabs[tid] = { tid, tabId, pane, labelEl };
+  switchTab(tabId);
+  return tid;
+};
+
+window.addCanvasToTab = function(tabNumId, w, h) {
+  const tab = tabs[tabNumId];
+  if (!tab) return -1;
+  canvasTabSeq++;
+  const cid = canvasTabSeq;
+
+  const wrapper = document.createElement('div');
+
   const toolbar = document.createElement('div');
   toolbar.style.cssText = 'display:flex;gap:6px;padding:0 0 4px 0;align-items:center;';
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = w;
+  canvas.height = h;
+  canvas.style.cssText = 'display:block;background:#000;image-rendering:pixelated;';
+  const ctx = canvas.getContext('2d');
 
   const saveBtn = document.createElement('button');
   saveBtn.textContent = 'Save PNG';
   saveBtn.addEventListener('click', () => {
     const a = document.createElement('a');
     a.href     = canvas.toDataURL('image/png');
-    a.download = label + '.png';
+    a.download = (tab.labelEl.textContent || 'canvas') + '-' + cid + '.png';
     a.click();
   });
 
@@ -1042,8 +1083,7 @@ window.createCanvasTab = function(w, h, title) {
   scaleSelect.style.cssText = 'background:#2d2d2d;color:#d4d4d4;border:1px solid #555;font-size:12px;';
   [1, 2, 3, 4, 5].forEach(n => {
     const opt = document.createElement('option');
-    opt.value = n;
-    opt.textContent = n + 'x';
+    opt.value = n; opt.textContent = n + 'x';
     if (n === 1) opt.selected = true;
     scaleSelect.appendChild(opt);
   });
@@ -1051,24 +1091,55 @@ window.createCanvasTab = function(w, h, title) {
     const s = parseInt(scaleSelect.value);
     canvas.style.transformOrigin = 'top left';
     canvas.style.transform = s === 1 ? '' : `scale(${s})`;
-    pane.style.overflow = 'auto';
   });
 
   toolbar.appendChild(saveBtn);
   toolbar.appendChild(scaleLabel);
   toolbar.appendChild(scaleSelect);
-  pane.appendChild(toolbar);
+  wrapper.appendChild(toolbar);
+  wrapper.appendChild(canvas);
+  tab.pane.appendChild(wrapper);
 
-  const canvas = document.createElement('canvas');
-  canvas.width  = w;
-  canvas.height = h;
-  canvas.style.cssText = 'display:block;background:#000;image-rendering:pixelated;';
-  pane.appendChild(canvas);
-  const ctx = canvas.getContext('2d');
-
-  canvasTabs[cid] = { canvas, ctx, tabId };
-  switchTab(tabId);
+  canvasTabs[cid] = { canvas, ctx, tid: tabNumId };
   return cid;
+};
+
+window.addButtonToTab = function(tabNumId, buttonsJson) {
+  const tab = tabs[tabNumId];
+  if (!tab) return -1;
+  buttonGroupSeq++;
+  const gid = buttonGroupSeq;
+  const buttons = JSON.parse(buttonsJson);
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 0;';
+  buttons.forEach(({text, press, release}) => {
+    const btn = document.createElement('button');
+    btn.textContent = text;
+    let held = false;
+    if (press) {
+      btn.addEventListener('mousedown', () => {
+        held = true;
+        if (typeof window.lbmEval === 'function') window.lbmEval(press);
+      });
+    }
+    if (release) {
+      const doRelease = () => {
+        if (held) {
+          held = false;
+          if (typeof window.lbmEval === 'function') window.lbmEval(release);
+        }
+      };
+      btn.addEventListener('mouseup',    doRelease);
+      btn.addEventListener('mouseleave', doRelease);
+    } else {
+      btn.addEventListener('mouseup',    () => { held = false; });
+      btn.addEventListener('mouseleave', () => { held = false; });
+    }
+    row.appendChild(btn);
+  });
+  tab.pane.appendChild(row);
+  buttonGroups[gid] = { gid, row, tid: tabNumId };
+  return gid;
 };
 
 window.canvasClear = function(canvasId, color) {
@@ -1209,7 +1280,7 @@ document.getElementById('btn-examples').addEventListener('click', () => {
         item.innerHTML = '<div class="ex-name">' + ex.name + '</div>' +
                          '<div class="ex-desc">' + (ex.description || '') + '</div>';
         item.addEventListener('click', () => {
-          fetch('examples/' + ex.file)
+          fetch('examples/' + ex.file + '?v=' + Date.now())
             .then(r => r.text())
             .then(code => {
               const tab = createEditorTab(ex.name);
@@ -1236,39 +1307,23 @@ examplesModal.addEventListener('click', e => {
 const DARK_AXES = [{ stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },
                    { stroke: '#666', grid: { stroke: '#222' }, ticks: { stroke: '#222' } },];
 
-function mkPlotTab(title) {
-    
+function mkPlotInTab(tabNumId, title) {
+    const tab = tabs[tabNumId];
+    if (!tab) return null;
     plotCount++;
-    const id    = 'plot-' + plotCount;
-    const label = (title && title.length) ? title : ('Plot ' + plotCount);
-
-    const btn = document.createElement('button');
-    btn.className   = 'tab-btn';
-    btn.dataset.tab = id;
-    btn.addEventListener('click', () => switchTab(id));
-    const labelEl = document.createElement('span');
-    labelEl.textContent = label;
-    const closeEl = document.createElement('span');
-    closeEl.className   = 'tab-close';
-    closeEl.textContent = '\u2297';
-    closeEl.addEventListener('click', e => { e.stopPropagation(); closeTab(id); delete plotTabs[id]; });
-    btn.appendChild(labelEl);
-    btn.appendChild(closeEl);
-    document.getElementById('output-tab-bar').appendChild(btn);
+    const pid   = plotCount;
+    const label = (title && title.length) ? title : ('Plot ' + pid);
 
     const pane = document.createElement('div');
-    pane.id        = 'output-tab-' + id;
-    pane.className = 'tab-pane plot-pane';
-    document.getElementById('output-tab-contents').appendChild(pane);
-
-    switchTab(id);
+    pane.className = 'plot-pane';
+    tab.pane.appendChild(pane);
 
     const rect = document.getElementById('output-tab-contents').getBoundingClientRect();
-    const w    = Math.max(rect.width  - 16, 300);
-    const h    = Math.max(rect.height - 48, 200);
+    const w    = Math.max(rect.width  - 32, 300);
+    const h    = Math.max(rect.height - 64, 200);
 
-    plotTabs[id] = { id, label, pane };
-    return {id, label, pane, w, h};
+    plotTabs[pid] = { id: pid, label, pane, tid: tabNumId };
+    return { id: pid, label, pane, w, h };
 }
 
 // lbm variable in the lambda will be bound to the WASM
@@ -1291,6 +1346,8 @@ LispBM().then(lbm => {
       lbm.ccall('lbm_wasm_clear_output', null, [], []);
     }
   }
+
+  window.lbmEval = (code) => lbm.ccall('lbm_wasm_eval', null, ['string'], [code]);
 
   const wheelZoomPlugin = {
     hooks: {
@@ -1367,15 +1424,15 @@ LispBM().then(lbm => {
     pane.appendChild(toolbar);
   }
 
-  window.createPlotTab = function(buf, nbytes, title) {
-    //const ptr    = lbm.ccall('lbm_wasm_buf_ptr', 'number', ['number'], [slot]);
+  window.addPlotToTab = function(tabNumId, buf, nbytes, title) {
     const nFloat = (nbytes / 4) | 0;
-
     const floats = new Float32Array(lbm.HEAP8.buffer, buf, nFloat);
     const ys     = Array.from(floats);
     const xs     = Array.from({length: ys.length}, (_, i) => i);
 
-    const {id, label, pane, w, h} =  mkPlotTab(title)
+    const t = mkPlotInTab(tabNumId, title);
+    if (!t) return -1;
+    const {id, label, pane, w, h} = t;
 
     addPlotToolbar(pane, label, () => ({ xs, yArrays: [ys] }));
     new uPlot({
@@ -1391,16 +1448,18 @@ LispBM().then(lbm => {
       cursor: { stroke: '#569cd6', width: 1 },
       plugins: [wheelZoomPlugin],
     }, [xs, ys], pane);
+    return id;
   };
 
-  window.createXYPlotTab = function(xbuf, xbytes, ybuf, ybytes, title) {
+  window.addXYPlotToTab = function(tabNumId, xbuf, xbytes, ybuf, ybytes, title) {
     const xs = Array.from(new Float32Array(lbm.HEAP8.buffer, xbuf, (xbytes / 4) | 0));
     const ys = Array.from(new Float32Array(lbm.HEAP8.buffer, ybuf, (ybytes / 4) | 0));
 
-    const {id, label, pane, w, h} =  mkPlotTab(title)
+    const t = mkPlotInTab(tabNumId, title);
+    if (!t) return -1;
+    const {id, label, pane, w, h} = t;
 
     addPlotToolbar(pane, label, () => ({ xs, yArrays: [ys] }));
-
     new uPlot({
       title:  label,
       width:  w,
@@ -1414,6 +1473,7 @@ LispBM().then(lbm => {
       cursor: { stroke: '#569cd6', width: 1 },
       plugins: [wheelZoomPlugin],
     }, [xs, ys], pane);
+    return id;
   };
 
   function refreshRTS() {
@@ -1804,10 +1864,12 @@ LispBM().then(lbm => {
 
   const SERIES_COLORS = ['#4ec9b0', '#569cd6', '#ce9178', '#dcdcaa', '#c586c0', '#f44747', '#b5cea8', '#9cdcfe'];
 
-  window.createMultiPlotTab = function(slotsJson, title) {
+  window.addMultiPlotToTab = function(tabNumId, slotsJson, title) {
 
-    const {id, label, pane, w, h} =  mkPlotTab(title)  
-    
+    const t = mkPlotInTab(tabNumId, title);
+    if (!t) return -1;
+    const {id, label, pane, w, h} = t;
+
     const bufs = JSON.parse(slotsJson);
     let maxLen = 0;
     const yArrays = bufs.map(({ptr, nbytes}) => {
@@ -1835,6 +1897,7 @@ LispBM().then(lbm => {
       cursor: { stroke: '#569cd6', width: 1 },
       plugins: [wheelZoomPlugin],
     }, [xs, ...yArrays], pane);
+    return id;
   };
 
   fetch('libs/index.json?v=' + Date.now())
@@ -1871,9 +1934,13 @@ LispBM().then(lbm => {
   rtsResetBtn.textContent = 'Reset LispBM';
   rtsResetBtn.style.cssText = 'background:#6b1010;padding:4px 14px;font-size:12px;';
   rtsResetBtn.addEventListener('click', () => {
-    Object.values(canvasTabs).forEach(t => closeTab(t.tabId));
+    Object.keys(tabs).forEach(k => {
+      closeTab(tabs[k].tabId);
+      delete tabs[k];
+    });
     Object.keys(canvasTabs).forEach(k => delete canvasTabs[k]);
-    Object.keys(plotTabs).forEach(k => { closeTab(plotTabs[k].id); delete plotTabs[k]; });
+    Object.keys(plotTabs).forEach(k => delete plotTabs[k]);
+    Object.keys(buttonGroups).forEach(k => delete buttonGroups[k]);
     const ok = lbm.ccall('lbm_wasm_reset', 'number', [], []);
     if (ok) {
       appendOutput('--- LispBM runtime reset ---\n');

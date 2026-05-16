@@ -23,8 +23,10 @@
 (sample-signal-from (signal-sin signal-freq)                 sample-rate 0.0 ant0-buf)
 (sample-signal-from (signal-sin signal-freq true-phase-diff) sample-rate 0.0 ant1-buf)
 
+(def tab (wasm-create-tab "Direction Finding"))
+
 ;; Plot both antenna signals
-(wasm-plot-multi (list ant0-buf ant1-buf) "Antenna Signals (ant0 and ant1)")
+(wasm-add-plot-multi tab (list ant0-buf ant1-buf) "Antenna Signals (ant0 and ant1)")
 
 ;; Extract phase at a frequency bin, averaging nearby bins to handle leakage
 (defun extract-phase (fft-real fft-imag peak-bin) {
@@ -74,4 +76,4 @@
 })
 
 ;; Plot true vs recovered angle (ideal result is a straight line y=x)
-(wasm-plot-xy true-angles-buf recovered-angles-buf "Direction Finding: True vs Recovered Angle")
+(wasm-add-plot-xy tab true-angles-buf recovered-angles-buf "Direction Finding: True vs Recovered Angle")
