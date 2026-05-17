@@ -1067,8 +1067,22 @@ window.addCanvasToTab = function(tabNumId, w, h) {
   const ctx = canvas.getContext('2d');
 
   const saveBtn = document.createElement('button');
-  saveBtn.textContent = 'Save PNG';
+  saveBtn.textContent = 'Save';
   saveBtn.addEventListener('click', () => {
+    window.openFsDialog({ mode: 'save', title: 'Save canvas to MEMFS', filename: 'file.png' }).then(path => {
+      if (!path) return;
+      const dataURL = canvas.toDataURL('image/png');
+      const bin = atob(dataURL.split(',')[1]);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      window.lbm.FS.writeFile(path, bytes);
+      window.refreshFsBrowser();
+    });
+  });
+
+  const exportBtn = document.createElement('button');
+  exportBtn.textContent = 'Export PNG';
+  exportBtn.addEventListener('click', () => {
     const a = document.createElement('a');
     a.href     = canvas.toDataURL('image/png');
     a.download = (tab.labelEl.textContent || 'canvas') + '-' + cid + '.png';
@@ -1094,6 +1108,7 @@ window.addCanvasToTab = function(tabNumId, w, h) {
   });
 
   toolbar.appendChild(saveBtn);
+  toolbar.appendChild(exportBtn);
   toolbar.appendChild(scaleLabel);
   toolbar.appendChild(scaleSelect);
   wrapper.appendChild(toolbar);
@@ -1331,6 +1346,7 @@ function mkPlotInTab(tabNumId, title) {
 // value is then a handle through which all interaction with
 // lispbm runtime happens.
 LispBM().then(lbm => {
+  window.lbm = lbm;
   const btnLoad = document.getElementById('btn-load');
   const status  = document.getElementById('status');
 
@@ -1394,8 +1410,30 @@ LispBM().then(lbm => {
     const toolbar = document.createElement('div');
     toolbar.style.cssText = 'display:flex;gap:6px;padding:4px 8px;';
 
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Save';
+    saveBtn.addEventListener('click', () => {
+      window.openFsDialog({ mode: 'save', title: 'Save plot to MEMFS', filename: 'file.png' }).then(path => {
+        if (!path) return;
+        if (path.endsWith('.csv')) {
+          const { xs, yArrays } = getDataFn();
+          const headers = ['x', ...yArrays.map((_, i) => 'y' + (yArrays.length > 1 ? i : ''))].join(',');
+          const rows    = xs.map((x, i) => [x, ...yArrays.map(y => y[i] ?? '')].join(','));
+          lbm.FS.writeFile(path, headers + '\n' + rows.join('\n'));
+        } else {
+          const canvas = pane.querySelector('canvas');
+          if (!canvas) return;
+          const bin = atob(canvas.toDataURL('image/png').split(',')[1]);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          lbm.FS.writeFile(path, bytes);
+        }
+        refreshFsBrowser();
+      });
+    });
+
     const pngBtn = document.createElement('button');
-    pngBtn.textContent = 'Save PNG';
+    pngBtn.textContent = 'Export PNG';
     pngBtn.addEventListener('click', () => {
       const canvas = pane.querySelector('canvas');
       if (!canvas) return;
@@ -1406,7 +1444,7 @@ LispBM().then(lbm => {
     });
 
     const csvBtn = document.createElement('button');
-    csvBtn.textContent = 'Save CSV';
+    csvBtn.textContent = 'Export CSV';
     csvBtn.addEventListener('click', () => {
       const { xs, yArrays } = getDataFn();
       const headers = ['x', ...yArrays.map((_, i) => 'y' + (yArrays.length > 1 ? i : ''))].join(',');
@@ -1419,6 +1457,7 @@ LispBM().then(lbm => {
       URL.revokeObjectURL(a.href);
     });
 
+    toolbar.appendChild(saveBtn);
     toolbar.appendChild(pngBtn);
     toolbar.appendChild(csvBtn);
     pane.appendChild(toolbar);
@@ -1846,6 +1885,7 @@ LispBM().then(lbm => {
     }
   }
 
+  window.refreshFsBrowser = refreshFsBrowser;
   let fsBrowserPath = '/';
   refreshFsBrowser();
 
