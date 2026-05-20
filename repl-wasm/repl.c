@@ -257,6 +257,19 @@ EM_JS(char*, js_resolve_import_url, (const char *filename), {
 
 EM_JS(uint8_t*, js_fetch_url_bytes, (const char *url, int *out_size), {
   const u = UTF8ToString(url);
+  if (u.startsWith('memfs://')) {
+    const path = u.slice('memfs://'.length);
+    try {
+      const data = FS.readFile(path);
+      const len = data.length;
+      const ptr = _malloc(len + 1);
+      if (!ptr) return 0;
+      HEAPU8.set(data, ptr);
+      HEAPU8[ptr + len] = 0;
+      setValue(out_size, len + 1, 'i32');
+      return ptr;
+    } catch(e) { return 0; }
+  }
   const xhr = new XMLHttpRequest();
   xhr.open('GET', u, false);
   xhr.overrideMimeType('text/plain; charset=x-user-defined');
@@ -880,26 +893,11 @@ static lbm_value ext_fs_ls(lbm_value *args, lbm_uint argn) {
   struct dirent *entry;
   while ((entry = readdir(d)) != NULL) {
     if (entry->d_name[0] == '.') continue;
-    char fullpath[512];
-    snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
-    struct stat st;
-    int32_t size = 0;
-    lbm_value is_dir = ENC_SYM_NIL;
-    if (stat(fullpath, &st) == 0) {
-      size = (int32_t)st.st_size;
-      if (S_ISDIR(st.st_mode)) is_dir = ENC_SYM_TRUE;
-    }
     lbm_value name;
     if (!lbm_create_array(&name, strlen(entry->d_name) + 1)) continue;
     lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(name);
     memcpy(hdr->data, entry->d_name, strlen(entry->d_name) + 1);
-    lbm_value e = lbm_cons(is_dir, ENC_SYM_NIL);
-    if (lbm_is_symbol_merror(e)) break;
-    e = lbm_cons(lbm_enc_i32(size), e);
-    if (lbm_is_symbol_merror(e)) break;
-    e = lbm_cons(name, e);
-    if (lbm_is_symbol_merror(e)) break;
-    lbm_value cell = lbm_cons(e, result);
+    lbm_value cell = lbm_cons(name, result);
     if (lbm_is_symbol_merror(cell)) break;
     result = cell;
   }
@@ -1049,6 +1047,16 @@ EM_JS(void, js_canvas_clear_js, (int canvas_id, uint32_t color), {
   }
 });
 
+EM_JS(int, js_add_keyboard_control, (int tab_id, const char *label), {
+  if (typeof window.addKeyboardControl !== 'function') return -1;
+  return window.addKeyboardControl(tab_id, UTF8ToString(label));
+});
+
+EM_JS(void, js_keyboard_control_bind, (int kb_id, const char *key, const char *press, const char *release), {
+  if (typeof window.keyboardControlBind === 'function')
+    window.keyboardControlBind(kb_id, UTF8ToString(key), UTF8ToString(press), UTF8ToString(release));
+});
+
 static int active_canvas_id = -1;
 
 // ////////////////////////////////////////////////////////////
@@ -1127,12 +1135,15 @@ static lbm_value sym_seek_cur;
 static lbm_value sym_seek_end;
 
 static lbm_value ext_fseek(lbm_value *args, lbm_uint argn) {
-  if (argn == 3 && is_file_handle(args[0]) && lbm_is_number(args[1]) && lbm_is_symbol(args[2])) {
-    int whence;
-    if      (args[2] == sym_seek_set) whence = SEEK_SET;
-    else if (args[2] == sym_seek_cur) whence = SEEK_CUR;
-    else if (args[2] == sym_seek_end) whence = SEEK_END;
-    else return ENC_SYM_TERROR;
+  if ((argn == 2 || argn == 3) && is_file_handle(args[0]) && lbm_is_number(args[1])) {
+    int whence = SEEK_SET;
+    if (argn == 3) {
+      if (!lbm_is_symbol(args[2])) return ENC_SYM_TERROR;
+      if      (args[2] == sym_seek_set) whence = SEEK_SET;
+      else if (args[2] == sym_seek_cur) whence = SEEK_CUR;
+      else if (args[2] == sym_seek_end) whence = SEEK_END;
+      else return ENC_SYM_TERROR;
+    }
     lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
     return (fseek(h->fp, (long)lbm_dec_as_i64(args[1]), whence) == 0) ? ENC_SYM_TRUE : ENC_SYM_NIL;
   }
@@ -1157,21 +1168,47 @@ static lbm_value ext_fread_byte(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_fread(lbm_value *args, lbm_uint argn) {
-  if (argn == 2 && is_file_handle(args[0]) && lbm_is_array_rw(args[1])) {
-    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
-    lbm_array_header_t *hdr = (lbm_array_header_t*)lbm_car(args[1]);
-    size_t num = fread(hdr->data, 1, hdr->size, h->fp);
+  if (argn != 2 || !is_file_handle(args[0])) return ENC_SYM_TERROR;
+  lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+  if (!h || !h->fp) return ENC_SYM_EERROR;
+  if (lbm_is_number(args[1])) {
+    lbm_uint n = (lbm_uint)lbm_dec_as_u32(args[1]);
+    lbm_value result;
+    if (!lbm_create_array(&result, n)) return ENC_SYM_MERROR;
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(result);
+    size_t num = fread(arr->data, 1, n, h->fp);
+    if (num == 0) return ENC_SYM_NIL;
+    return result;
+  }
+  if (lbm_is_array_rw(args[1])) {
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(args[1]);
+    size_t num = fread(arr->data, 1, arr->size, h->fp);
     return lbm_enc_u((lbm_uint)num);
   }
   return ENC_SYM_TERROR;
 }
 
 static lbm_value ext_fwrite(lbm_value *args, lbm_uint argn) {
-  if (argn == 2 && is_file_handle(args[0]) && lbm_is_array_r(args[1])) {
-    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+  if (argn != 2 || !is_file_handle(args[0])) return ENC_SYM_TERROR;
+  lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+  if (lbm_is_array_r(args[1])) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(args[1]);
-    if (arr) { fwrite(arr->data, 1, arr->size, h->fp); fflush(h->fp); return ENC_SYM_TRUE; }
-    return ENC_SYM_NIL;
+    if (!arr) return ENC_SYM_NIL;
+    fwrite(arr->data, 1, arr->size, h->fp);
+    fflush(h->fp);
+    return ENC_SYM_TRUE;
+  }
+  if (lbm_is_cons(args[1])) {
+    lbm_value curr = args[1];
+    while (lbm_is_cons(curr)) {
+      lbm_value val = lbm_car(curr);
+      if (!lbm_is_number(val)) return ENC_SYM_TERROR;
+      uint8_t byte = (uint8_t)lbm_dec_as_u32(val);
+      fwrite(&byte, 1, 1, h->fp);
+      curr = lbm_cdr(curr);
+    }
+    fflush(h->fp);
+    return ENC_SYM_TRUE;
   }
   return ENC_SYM_TERROR;
 }
@@ -1233,6 +1270,57 @@ static lbm_value ext_file_list(lbm_value *args, lbm_uint argn) {
   }
   closedir(d);
   return result;
+}
+
+static lbm_value ext_f_readline(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 && is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    if (!h || !h->fp) return ENC_SYM_EERROR;
+    char buf[1024];
+    if (!fgets(buf, sizeof(buf), h->fp)) return ENC_SYM_NIL;
+    lbm_uint len = strlen(buf);
+    lbm_value result;
+    if (!lbm_create_array(&result, len + 1)) return ENC_SYM_MERROR;
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(result);
+    memcpy(arr->data, buf, len + 1);
+    return result;
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_f_size(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 && lbm_is_array_r(args[0])) {
+    const char *path = lbm_dec_str(args[0]);
+    if (!path) return ENC_SYM_TERROR;
+    struct stat st;
+    if (stat(path, &st) != 0) return ENC_SYM_NIL;
+    return lbm_enc_i32((int32_t)st.st_size);
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_f_sync(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 && is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    if (!h || !h->fp) return ENC_SYM_EERROR;
+    return (fflush(h->fp) == 0) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  }
+  return ENC_SYM_TERROR;
+}
+
+static lbm_value ext_f_connect(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_f_disconnect(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_f_fatinfo(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  return ENC_SYM_NIL;
 }
 
 // ////////////////////////////////////////////////////////////
@@ -1329,6 +1417,29 @@ static lbm_value ext_wasm_add_button(lbm_value *args, lbm_uint argn) {
   }
   snprintf(json + pos, sizeof(json) - pos, "]");
   return lbm_enc_i(js_add_button_to_tab(tab_id, json));
+}
+
+// (wasm-add-keyboard-control tab-id "Label") -> kb-id
+static lbm_value ext_wasm_add_keyboard_control(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
+    return ENC_SYM_TERROR;
+  int tab_id = lbm_dec_as_i32(args[0]);
+  const char *label = lbm_dec_str(args[1]);
+  if (!label) return ENC_SYM_TERROR;
+  return lbm_enc_i(js_add_keyboard_control(tab_id, label));
+}
+
+// (wasm-keyboard-control-bind kb-id "key" "press-code" "release-code") -> t
+static lbm_value ext_wasm_keyboard_control_bind(lbm_value *args, lbm_uint argn) {
+  if (argn < 3 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]) || !lbm_is_array_r(args[2]))
+    return ENC_SYM_TERROR;
+  int kb_id = lbm_dec_as_i32(args[0]);
+  const char *key     = lbm_dec_str(args[1]); if (!key)   return ENC_SYM_TERROR;
+  const char *press   = lbm_dec_str(args[2]); if (!press) return ENC_SYM_TERROR;
+  const char *release = (argn >= 4 && lbm_is_array_r(args[3])) ? lbm_dec_str(args[3]) : "";
+  if (!release) release = "";
+  js_keyboard_control_bind(kb_id, key, press, release);
+  return ENC_SYM_TRUE;
 }
 
 // (wasm-create-tab "Title") -> tab-id
@@ -1532,35 +1643,44 @@ int lbm_wasm_init(void) {
   lbm_add_extension("print",               ext_print);
   lbm_add_extension("puts",                ext_puts);
   lbm_add_extension("set-print-prefix",    ext_set_print_prefix);
-  lbm_add_extension("wasm-add-button",      ext_wasm_add_button);
-  lbm_add_extension("wasm-create-tab",      ext_wasm_create_tab);
+  lbm_add_extension("wasm-add-button",              ext_wasm_add_button);
+  lbm_add_extension("wasm-add-keyboard-control",    ext_wasm_add_keyboard_control);
+  lbm_add_extension("wasm-keyboard-control-bind",   ext_wasm_keyboard_control_bind);
+  lbm_add_extension("wasm-create-tab",              ext_wasm_create_tab);
   lbm_add_extension("wasm-add-canvas",      ext_wasm_add_canvas);
   lbm_add_extension("wasm-set-canvas",      ext_wasm_set_canvas);
   lbm_add_extension("wasm-add-plot",        ext_wasm_add_plot);
   lbm_add_extension("wasm-add-plot-multi",  ext_wasm_add_plot_multi);
   lbm_add_extension("wasm-add-plot-xy",     ext_wasm_add_plot_xy);
   lbm_add_extension("import",          ext_import);
-  lbm_add_extension("fopen",           ext_fopen);
-  lbm_add_extension("fclose",          ext_fclose);
+  lbm_add_extension("f-open",          ext_fopen);
+  lbm_add_extension("f-close",         ext_fclose);
   lbm_add_extension("load-file",       ext_load_file);
-  lbm_add_extension("fwrite",          ext_fwrite);
-  lbm_add_extension("fwrite-str",      ext_fwrite_str);
-  lbm_add_extension("fwrite-value",    ext_fwrite_value);
-  lbm_add_extension("fread",           ext_fread);
-  lbm_add_extension("fread-byte",      ext_fread_byte);
-  lbm_add_extension("fseek",           ext_fseek);
-  lbm_add_extension("ftell",           ext_ftell);
-  lbm_add_extension("flist",           ext_file_list);
+  lbm_add_extension("f-write",         ext_fwrite);
+  lbm_add_extension("f-write-str",     ext_fwrite_str);
+  lbm_add_extension("f-write-value",   ext_fwrite_value);
+  lbm_add_extension("f-read",          ext_fread);
+  lbm_add_extension("f-read-byte",     ext_fread_byte);
+  lbm_add_extension("f-seek",          ext_fseek);
+  lbm_add_extension("f-tell",          ext_ftell);
+  lbm_add_extension("f-readline",      ext_f_readline);
+  lbm_add_extension("f-size",          ext_f_size);
+  lbm_add_extension("f-sync",          ext_f_sync);
+  lbm_add_extension("f-connect",       ext_f_connect);
+  lbm_add_extension("f-connect-nand",  ext_f_connect);
+  lbm_add_extension("f-disconnect",    ext_f_disconnect);
+  lbm_add_extension("f-fatinfo",       ext_f_fatinfo);
+  lbm_add_extension("f-list",          ext_file_list);
   lbm_add_extension("wasm-save-file",  ext_wasm_save_file);
-  lbm_add_extension("fs-pwd",          ext_fs_pwd);
-  lbm_add_extension("fs-cd",           ext_fs_cd);
-  lbm_add_extension("fs-mkdir",        ext_fs_mkdir);
-  lbm_add_extension("fs-rm",           ext_fs_rm);
-  lbm_add_extension("fs-mv",           ext_fs_mv);
-  lbm_add_extension("fs-exists",       ext_fs_exists);
-  lbm_add_extension("fs-stat",         ext_fs_stat);
-  lbm_add_extension("fs-ls",           ext_fs_ls);
-  lbm_add_extension("fs-open",         ext_fs_open);
+  lbm_add_extension("f-pwd",           ext_fs_pwd);
+  lbm_add_extension("f-cd",            ext_fs_cd);
+  lbm_add_extension("f-mkdir",         ext_fs_mkdir);
+  lbm_add_extension("f-rm",            ext_fs_rm);
+  lbm_add_extension("f-rename",        ext_fs_mv);
+  lbm_add_extension("f-exists",        ext_fs_exists);
+  lbm_add_extension("f-stat",          ext_fs_stat);
+  lbm_add_extension("f-ls",            ext_fs_ls);
+  lbm_add_extension("f-edit",          ext_fs_open);
   lbm_add_extension("get-bms-val",     ext_get_bms_val);
   lbm_add_extension("conf-get",        ext_conf_get);
   lbm_add_extension("conf-set",        ext_conf_set);

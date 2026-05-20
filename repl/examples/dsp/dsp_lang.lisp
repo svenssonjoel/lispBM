@@ -96,9 +96,9 @@
 
 ;; Filehandling "bracket style" operation
 (defun with-file (filename mode operation) {
-       (var fh (fopen filename mode))
+       (var fh (f-open filename mode))
        (operation fh)
-       (fclose fh)
+       (f-close fh)
        })
 
 (defun fsample-signal-from-to (filename s sample-rate t-start t-end) {
@@ -111,7 +111,7 @@
                     (loopfor i 0 (< i num-samples) (+ i 1) {
                              (bufset-f32 buf 0 (eval-signal s sig-t) 'little-endian)
                              (setq sig-t (+ sig-t time-delta))
-                             (fwrite fh buf)
+                             (f-write fh buf)
                              }))
                   )
        })
@@ -123,7 +123,7 @@
   (with-file script-file "w"
     (lambda (fh)
       (loopfor i 0 (< i (length commands)) (+ i 1)
-        (fwrite-str fh (str-join (list (ix commands i) "\n"))))))
+        (f-write-str fh (str-join (list (ix commands i) "\n"))))))
   (octave-run-file script-file)
   })
 

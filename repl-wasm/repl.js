@@ -882,9 +882,12 @@ aboutPane.innerHTML = `
   <tr><td>wasm-add-plot-multi</td><td>(wasm-add-plot-multi tab-id '(buf ...) "title")</td><td>Add a multi-series plot from a list of float32 buffers to tab-id; returns plot ID</td></tr>
   <tr><td>wasm-add-plot-xy</td><td>(wasm-add-plot-xy tab-id xbuf ybuf "title")</td><td>Add an XY scatter/line plot from two float32 buffers to tab-id; returns plot ID</td></tr>
   <tr><td>wasm-add-button</td><td>(wasm-add-button tab-id '(("label" "press-code" ["release-code"]) ...))</td><td>Add a horizontal row of buttons to tab-id; press-code runs on mousedown, release-code on mouseup/mouseleave; returns button-group ID</td></tr>
+  <tr><td>wasm-add-keyboard-control</td><td>(wasm-add-keyboard-control tab-id "label")</td><td>Add a keyboard capture toggle button to tab-id; click to activate/deactivate, Ctrl+Escape always releases; returns kb-id</td></tr>
+  <tr><td>wasm-keyboard-control-bind</td><td>(wasm-keyboard-control-bind kb-id "key" "press-code" ["release-code"])</td><td>Bind a key to press/release code strings for the given kb-id; key format: <code>"[ctrl-][shift-][alt-]key"</code> e.g. <code>"ArrowUp"</code>, <code>"ctrl-a"</code>, <code>"shift-ArrowLeft"</code></td></tr>
 </table>
 <p style="color:#555;font-size:11px;">Example: <code>(def tab (wasm-create-tab "My Plot"))</code> &nbsp; <code>(wasm-add-plot tab buf "signal")</code></p>
 <p style="color:#555;font-size:11px;">Button example: <code>(wasm-add-button tab '(("Go" "(setq running t)" "(setq running nil)") ("Stop" "(setq running nil)")))</code></p>
+<p style="color:#555;font-size:11px;">Keyboard example: <code>(def kb (wasm-add-keyboard-control tab "Keyboard"))</code> &nbsp; <code>(wasm-keyboard-control-bind kb "ArrowUp" "(go-up)" "(stop-up)")</code></p>
 
 <h2>Import</h2>
 <table class="about-table">
@@ -892,38 +895,42 @@ aboutPane.innerHTML = `
   <tr><td>import</td><td>(import "/path/or/url" 'sym)</td><td>Load a file into sym: absolute URL &rarr; relative URL (if base set) &rarr; editor tab &rarr; MEMFS</td></tr>
 </table>
 
-<h2>File I/O (MEMFS)</h2>
+<h2>File I/O</h2>
 <table class="about-table">
   <tr><th>Extension</th><th>Signature</th><th>Description</th></tr>
-  <tr><td>fopen</td><td>(fopen "path" "mode")</td><td>Open a MEMFS file, returns file handle or nil</td></tr>
-  <tr><td>fclose</td><td>(fclose fh)</td><td>Close a file handle</td></tr>
+  <tr><td>f-open</td><td>(f-open "path" "mode")</td><td>Open a MEMFS file, returns file handle or nil</td></tr>
+  <tr><td>f-close</td><td>(f-close fh)</td><td>Close a file handle</td></tr>
   <tr><td>load-file</td><td>(load-file fh)</td><td>Read entire file into a byte array</td></tr>
-  <tr><td>fread</td><td>(fread fh buf)</td><td>Read into a byte array, returns bytes read</td></tr>
-  <tr><td>fread-byte</td><td>(fread-byte fh)</td><td>Read one byte as char, nil at EOF</td></tr>
-  <tr><td>fwrite</td><td>(fwrite fh buf)</td><td>Write a byte array (full contents, including nulls)</td></tr>
-  <tr><td>fwrite-str</td><td>(fwrite-str fh str)</td><td>Write a string up to its null terminator</td></tr>
-  <tr><td>fwrite-value</td><td>(fwrite-value fh val)</td><td>Write a flattened LispBM value</td></tr>
-  <tr><td>fseek</td><td>(fseek fh offset 'seek-set|'seek-cur|'seek-end)</td><td>Seek within a file</td></tr>
-  <tr><td>ftell</td><td>(ftell fh)</td><td>Current file position as i64</td></tr>
-  <tr><td>flist</td><td>(flist ["path"])</td><td>List of filenames in a directory (default: /)</td></tr>
+  <tr><td>f-read</td><td>(f-read fh n)</td><td>Read n bytes, returns new array or nil at EOF</td></tr>
+  <tr><td>f-read</td><td>(f-read fh buf)</td><td>Read into existing byte array, returns count</td></tr>
+  <tr><td>f-read-byte</td><td>(f-read-byte fh)</td><td>Read one byte as char, nil at EOF</td></tr>
+  <tr><td>f-readline</td><td>(f-readline fh)</td><td>Read one line as string, nil at EOF</td></tr>
+  <tr><td>f-write</td><td>(f-write fh buf)</td><td>Write a byte array or list of bytes</td></tr>
+  <tr><td>f-write-str</td><td>(f-write-str fh str)</td><td>Write a string up to its null terminator</td></tr>
+  <tr><td>f-write-value</td><td>(f-write-value fh val)</td><td>Write a flattened LispBM value</td></tr>
+  <tr><td>f-seek</td><td>(f-seek fh offset ['seek-set|'seek-cur|'seek-end])</td><td>Seek within a file; whence defaults to seek-set</td></tr>
+  <tr><td>f-tell</td><td>(f-tell fh)</td><td>Current file position as i64</td></tr>
+  <tr><td>f-sync</td><td>(f-sync fh)</td><td>Flush file to storage</td></tr>
   <tr><td>wasm-save-file</td><td>(wasm-save-file "path" ["download-name"])</td><td>Download a MEMFS file to the user's disk</td></tr>
 </table>
 
-<h2>Filesystem Operations</h2>
+<h2>Filesystem</h2>
 <table class="about-table">
   <tr><th>Extension</th><th>Signature</th><th>Description</th></tr>
-  <tr><td>fs-pwd</td><td>(fs-pwd)</td><td>Current working directory as a string</td></tr>
-  <tr><td>fs-cd</td><td>(fs-cd "path")</td><td>Change directory, returns t or nil</td></tr>
-  <tr><td>fs-mkdir</td><td>(fs-mkdir "path")</td><td>Create a directory, returns t or nil</td></tr>
-  <tr><td>fs-rm</td><td>(fs-rm "path")</td><td>Remove a file, returns t or nil</td></tr>
-  <tr><td>fs-mv</td><td>(fs-mv "src" "dst")</td><td>Rename or move a file, returns t or nil</td></tr>
-  <tr><td>fs-exists</td><td>(fs-exists "path")</td><td>t if path exists, else nil</td></tr>
-  <tr><td>fs-stat</td><td>(fs-stat "path")</td><td>(size is-dir) tuple, or nil if not found</td></tr>
-  <tr><td>fs-ls</td><td>(fs-ls ["path"])</td><td>List of (name size is-dir) tuples (default: cwd)</td></tr>
-  <tr><td>fs-open</td><td>(fs-open "path")</td><td>Open a MEMFS file in a new editor tab</td></tr>
+  <tr><td>f-pwd</td><td>(f-pwd)</td><td>Current working directory as a string</td></tr>
+  <tr><td>f-cd</td><td>(f-cd "path")</td><td>Change directory, returns t or nil</td></tr>
+  <tr><td>f-mkdir</td><td>(f-mkdir "path")</td><td>Create a directory, returns t or nil</td></tr>
+  <tr><td>f-rm</td><td>(f-rm "path")</td><td>Remove a file, returns t or nil</td></tr>
+  <tr><td>f-rename</td><td>(f-rename "src" "dst")</td><td>Rename or move a file, returns t or nil</td></tr>
+  <tr><td>f-exists</td><td>(f-exists "path")</td><td>t if path exists, else nil</td></tr>
+  <tr><td>f-size</td><td>(f-size "path")</td><td>File size in bytes, or nil if not found</td></tr>
+  <tr><td>f-stat</td><td>(f-stat "path")</td><td>(size is-dir) tuple, or nil if not found</td></tr>
+  <tr><td>f-ls</td><td>(f-ls ["path"])</td><td>List of filenames in directory (default: cwd)</td></tr>
+  <tr><td>f-list</td><td>(f-list ["path"])</td><td>List of filenames in directory (default: /)</td></tr>
+  <tr><td>f-edit</td><td>(f-edit "path")</td><td>Open a MEMFS file in a new editor tab</td></tr>
 </table>
 
-<p style="color:#555;font-size:11px;">Symbols for fseek: <code>'seek-set</code> &nbsp; <code>'seek-cur</code> &nbsp; <code>'seek-end</code></p>
+<p style="color:#555;font-size:11px;">Seek symbols for f-seek: <code>'seek-set</code> &nbsp; <code>'seek-cur</code> &nbsp; <code>'seek-end</code></p>
 
 <h2>Simulation</h2>
 <p style="color:#888;font-size:12px;">Standard VESC extensions (<code>gpio-read/write</code>, <code>get-adc</code>, <code>get-bms-val</code>, <code>conf-get/set</code>, <code>gnss-*</code>, <code>eeprom-*</code>) are available and read from simulated state. Use the <strong>Sim</strong> dropdown tabs to inspect and edit that state. The following are WASM REPL-specific testbench extensions:</p>
@@ -1011,6 +1018,9 @@ function openDocPage(url) {
 let canvasTabSeq = 0;
 const canvasTabs = {};
 
+let kbControlSeq = 0;
+const kbControls = {};
+
 window.createTab = function(title) {
   tabSeq++;
   const tid   = tabSeq;
@@ -1031,6 +1041,7 @@ window.createTab = function(title) {
     Object.keys(canvasTabs).forEach(k => { if (canvasTabs[k].tid === tid) delete canvasTabs[k]; });
     Object.keys(plotTabs).forEach(k => { if (plotTabs[k].tid === tid) delete plotTabs[k]; });
     Object.keys(buttonGroups).forEach(k => { if (buttonGroups[k].tid === tid) delete buttonGroups[k]; });
+    Object.keys(kbControls).forEach(k => { if (kbControls[k].tid === tid) { kbControls[k].sink.remove(); delete kbControls[k]; } });
     closeTab(tabId);
     delete tabs[tid];
   });
@@ -1101,10 +1112,16 @@ window.addCanvasToTab = function(tabNumId, w, h) {
     if (n === 1) opt.selected = true;
     scaleSelect.appendChild(opt);
   });
+  const canvasBox = document.createElement('div');
+  canvasBox.style.cssText = `width:${w}px;height:${h}px;overflow:visible;`;
+  canvasBox.appendChild(canvas);
+
   scaleSelect.addEventListener('change', () => {
     const s = parseInt(scaleSelect.value);
     canvas.style.transformOrigin = 'top left';
     canvas.style.transform = s === 1 ? '' : `scale(${s})`;
+    canvasBox.style.width  = (w * s) + 'px';
+    canvasBox.style.height = (h * s) + 'px';
   });
 
   toolbar.appendChild(saveBtn);
@@ -1112,7 +1129,7 @@ window.addCanvasToTab = function(tabNumId, w, h) {
   toolbar.appendChild(scaleLabel);
   toolbar.appendChild(scaleSelect);
   wrapper.appendChild(toolbar);
-  wrapper.appendChild(canvas);
+  wrapper.appendChild(canvasBox);
   tab.pane.appendChild(wrapper);
 
   canvasTabs[cid] = { canvas, ctx, tid: tabNumId };
@@ -1155,6 +1172,88 @@ window.addButtonToTab = function(tabNumId, buttonsJson) {
   tab.pane.appendChild(row);
   buttonGroups[gid] = { gid, row, tid: tabNumId };
   return gid;
+};
+
+window.addKeyboardControl = function(tabNumId, label) {
+  const tab = tabs[tabNumId];
+  if (!tab) return -1;
+  kbControlSeq++;
+  const kid = kbControlSeq;
+  const bindings = {};
+
+  const sink = document.createElement('div');
+  sink.tabIndex = 0;
+  sink.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;top:0;left:0;';
+  document.body.appendChild(sink);
+
+  let active = false;
+
+  const deactivate = () => {
+    active = false;
+    btn.style.background = '';
+    btn.style.color = '';
+    sink.blur();
+  };
+
+  const activate = () => {
+    active = true;
+    btn.style.background = '#2d6a2d';
+    btn.style.color = '#fff';
+    sink.focus();
+  };
+
+  const btn = document.createElement('button');
+  btn.textContent = label;
+  btn.addEventListener('click', () => {
+    if (active) deactivate(); else activate();
+  });
+
+  sink.addEventListener('blur', () => {
+    if (!active) return;
+    setTimeout(() => {
+      if (document.activeElement !== btn) deactivate();
+    }, 0);
+  });
+
+  const eventKey = e => {
+    const parts = [];
+    if (e.ctrlKey)  parts.push('ctrl');
+    if (e.shiftKey) parts.push('shift');
+    if (e.altKey)   parts.push('alt');
+    parts.push(e.key);
+    return parts.join('-');
+  };
+
+  sink.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Escape') { e.preventDefault(); deactivate(); return; }
+    const b = bindings[eventKey(e)];
+    if (b && b.press && !e.repeat) {
+      e.preventDefault();
+      if (typeof window.lbmEval === 'function') window.lbmEval(b.press);
+    }
+  });
+
+  sink.addEventListener('keyup', e => {
+    const b = bindings[eventKey(e)];
+    if (b && b.release) {
+      e.preventDefault();
+      if (typeof window.lbmEval === 'function') window.lbmEval(b.release);
+    }
+  });
+
+  const row = document.createElement('div');
+  row.style.cssText = 'padding:4px 0;';
+  row.appendChild(btn);
+  tab.pane.appendChild(row);
+
+  kbControls[kid] = { kid, bindings, sink, btn, tid: tabNumId };
+  return kid;
+};
+
+window.keyboardControlBind = function(kid, key, pressCode, releaseCode) {
+  const kb = kbControls[kid];
+  if (!kb) return;
+  kb.bindings[key] = { press: pressCode || '', release: releaseCode || '' };
 };
 
 window.canvasClear = function(canvasId, color) {
@@ -1753,15 +1852,18 @@ LispBM().then(lbm => {
   function memfsUnzipInto(zipData, destDir) {
     const unzipped = fflate.unzipSync(new Uint8Array(zipData));
     Object.entries(unzipped).forEach(([relPath, data]) => {
+      const isDir = relPath.endsWith('/');
       const parts = relPath.split('/').filter(Boolean);
       if (!parts.length) return;
       let cur = destDir === '/' ? '' : destDir;
-      parts.slice(0, -1).forEach(part => {
+      parts.slice(0, isDir ? parts.length : -1).forEach(part => {
         cur = cur + '/' + part;
         try { lbm.FS.mkdir(cur); } catch(e) {}
       });
-      const filename = parts[parts.length - 1];
-      lbm.FS.writeFile(cur + '/' + filename, data);
+      if (!isDir) {
+        const filename = parts[parts.length - 1];
+        lbm.FS.writeFile(cur + '/' + filename, data);
+      }
     });
   }
 
@@ -1833,6 +1935,7 @@ LispBM().then(lbm => {
           const tab = createEditorTab(name);
           tab.cm.setValue(content);
           tab.filename = name;
+          tab.baseUrl = 'memfs://' + fullPath;
         });
       }
       row.appendChild(nameEl);
@@ -1981,6 +2084,7 @@ LispBM().then(lbm => {
     Object.keys(canvasTabs).forEach(k => delete canvasTabs[k]);
     Object.keys(plotTabs).forEach(k => delete plotTabs[k]);
     Object.keys(buttonGroups).forEach(k => delete buttonGroups[k]);
+    Object.keys(kbControls).forEach(k => { kbControls[k].sink.remove(); delete kbControls[k]; });
     const ok = lbm.ccall('lbm_wasm_reset', 'number', [], []);
     if (ok) {
       appendOutput('--- LispBM runtime reset ---\n');
@@ -2030,9 +2134,10 @@ LispBM().then(lbm => {
         try { lbm.FS.mkdir(dest); } catch(e) {}
         memfsUnzipInto(e.target.result, dest);
         appendOutput('Unzipped "' + file.name + '" into ' + dest + '\n');
-        refreshFsBrowser();
       } catch(err) {
         appendOutput('Error unzipping "' + file.name + '": ' + err.message + '\n');
+      } finally {
+        refreshFsBrowser();
       }
     };
     reader.readAsArrayBuffer(file);
@@ -2104,6 +2209,7 @@ LispBM().then(lbm => {
         const name = path.split('/').pop();
         activeEditor.filename = name;
         activeEditor.labelEl.textContent = name;
+        activeEditor.baseUrl = 'memfs://' + path;
         refreshFsBrowser();
       } catch(e) { appendOutput('Error saving ' + path + ': ' + e.message + '\n'); }
     });

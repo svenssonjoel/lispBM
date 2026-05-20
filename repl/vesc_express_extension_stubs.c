@@ -835,124 +835,6 @@ static lbm_value ext_canmsg_send(lbm_value *args, lbm_uint argn) {
   return lbm_enc_sym(SYM_EERROR);
 }
 
-static lbm_value ext_f_connect(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_connect
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_connect_nand(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_connect_nand
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_disconnect(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_disconnect
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_open(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_open
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_close(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_close
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_read(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_read
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_readline(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_readline
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_write(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_write
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_tell(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_tell
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_seek(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_seek
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_mkdir(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_mkdir
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_rm(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_rm
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_ls(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_ls
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_size(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_size
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_rename(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_rename
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_sync(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_sync
-  return lbm_enc_sym(SYM_EERROR);
-}
-
-static lbm_value ext_f_fatinfo(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
-  // TODO: Implement ext_f_fatinfo
-  return lbm_enc_sym(SYM_EERROR);
-}
 
 static lbm_value ext_fw_erase(lbm_value *args, lbm_uint argn) {
   (void)args;
@@ -1447,23 +1329,7 @@ void load_vesc_express_extensions(void) {
     lbm_add_extension("empty", ext_empty);
     lbm_add_extension("canmsg-recv", ext_canmsg_recv);
     lbm_add_extension("canmsg-send", ext_canmsg_send);
-    lbm_add_extension("f-connect", ext_f_connect);
-    lbm_add_extension("f-connect-nand", ext_f_connect_nand);
-    lbm_add_extension("f-disconnect", ext_f_disconnect);
-    lbm_add_extension("f-open", ext_f_open);
-    lbm_add_extension("f-close", ext_f_close);
-    lbm_add_extension("f-read", ext_f_read);
-    lbm_add_extension("f-readline", ext_f_readline);
-    lbm_add_extension("f-write", ext_f_write);
-    lbm_add_extension("f-tell", ext_f_tell);
-    lbm_add_extension("f-seek", ext_f_seek);
-    lbm_add_extension("f-mkdir", ext_f_mkdir);
-    lbm_add_extension("f-rm", ext_f_rm);
-    lbm_add_extension("f-ls", ext_f_ls);
-    lbm_add_extension("f-size", ext_f_size);
-    lbm_add_extension("f-rename", ext_f_rename);
-    lbm_add_extension("f-sync", ext_f_sync);
-    lbm_add_extension("f-fatinfo", ext_f_fatinfo);
+
     lbm_add_extension("fw-erase", ext_fw_erase);
     lbm_add_extension("fw-write", ext_fw_write);
     lbm_add_extension("fw-reboot", ext_fw_reboot);
