@@ -21,23 +21,31 @@ LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_MACRO_REST_ARGS \
            -DLBM_USE_SHEBANG_COMMENTS
 
-LDFLAGS = -lpng -lm
+LDFLAGS = -lpng
 
 # Detect OS and Architecture
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
 
-# Detect macOS ARM
-ifeq ($(UNAME_S)-$(UNAME_M),Darwin-arm64)
+# Platform-specific paths
+ifeq ($(UNAME_S),Darwin)
+	HOMEBREW      = /opt/homebrew
+	SDL_PATH      = $(HOMEBREW)/include/SDL2
+	FREETYPE_PATH = $(HOMEBREW)/include/freetype2
+	RTLSDR_PATH   = $(HOMEBREW)/include
+	FTDI_PATH     = $(HOMEBREW)/include/libftdi1
+	LIB_PATH      = $(HOMEBREW)/lib
 	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include \
-	                   -I/opt/homebrew/include/ \
-	                   -I/opt/homebrew/opt/readline/include
-	LDFLAGS += -L/opt/homebrew/opt/readline/lib -lreadline -L/opt/homebrew/lib
-	# To make mmap work on macOS
+	                   -I$(HOMEBREW)/include \
+	                   -I$(HOMEBREW)/opt/readline/include
+	LDFLAGS += -L$(HOMEBREW)/opt/readline/lib -lreadline -L$(LIB_PATH)
 	LBMFLAGS += -D_DARWIN_C_SOURCE
-	# force 64bit mode on osx
 	FEATURES += 64
 else
+	SDL_PATH      = /usr/include/SDL2
+	FREETYPE_PATH = /usr/include/freetype2
+	RTLSDR_PATH   = /usr/include
+	FTDI_PATH     = /usr/include/libftdi1
 	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 	LDFLAGS += -lpthread -lreadline -lhistory
 	CCFLAGS += -fno-pie -no-pie
@@ -81,7 +89,7 @@ endif
 
 # Use SDL
 ifneq (,$(filter sdl,$(FEATURES)))
-	CCFLAGS += -DWITH_SDL -I/usr/include/SDL2
+	CCFLAGS += -DWITH_SDL -I$(SDL_PATH)
 	LDFLAGS += -lSDL2 -lSDL2_image
 	REPL_SRC += lbm_sdl.c
 endif
@@ -95,7 +103,7 @@ endif
 
 # Use freetype
 ifneq (,$(filter freetype, $(FEATURES)))
-	CCFLAGS += -DLBM_TTF_USE_FREETYPE -I/usr/include/freetype2
+	CCFLAGS += -DLBM_TTF_USE_FREETYPE -I$(FREETYPE_PATH)
 	LDFLAGS += -lfreetype
 	REPL_SRC := $(filter-out %/schrift.c,$(REPL_SRC))
 	REPL_SRC += $(LISPBM)/src/extensions/ttf_backend_freetype.c
@@ -106,21 +114,21 @@ ifneq (,$(filter debug, $(FEATURES)))
 	CCFLAGS += -g
 endif
 
-#USE rtlsdr extensions
+# USE rtlsdr extensions
 ifneq (,$(filter rtlsdr, $(FEATURES)))
-	CCFLAGS += -DWITH_RTLSDR
+	CCFLAGS += -DWITH_RTLSDR -I$(RTLSDR_PATH)
 	LDFLAGS += -lrtlsdr
 	REPL_SRC += lbm_rtlsdr.c
 endif
 
 ifneq (,$(filter ft4232h_nand, $(FEATURES)))
-	CCFLAGS  += -DTEST_FT4232H_NAND_DRIVER -I/usr/include/libftdi1
+	CCFLAGS  += -DTEST_FT4232H_NAND_DRIVER -I$(FTDI_PATH)
 	LDFLAGS  += -lftdi1
 	REPL_SRC += ft4232h_w25n01.c
 endif
 
 ifneq (,$(filter ft232h_nand, $(FEATURES)))
-	CCFLAGS  += -DTEST_FT232H_NAND_DRIVER -I/usr/include/libftdi1
+	CCFLAGS  += -DTEST_FT232H_NAND_DRIVER -I$(FTDI_PATH)
 	LDFLAGS  += -lftdi1
 	REPL_SRC += ft232h_w25n01.c
 endif

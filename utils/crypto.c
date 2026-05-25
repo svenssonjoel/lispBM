@@ -306,7 +306,7 @@ static void inv_shift_rows(uint8_t *state) {
 
 //Multiply by 2 in GF(2^8) with AES irreducible polynomial 0x11b
 static inline uint8_t xtime(uint8_t x) {
-  return (x << 1) ^ ((x & 0x80) ? 0x1b : 0x00);
+  return (uint8_t)((x << 1) ^ ((x & 0x80) ? 0x1b : 0x00));
 }
 
 static uint8_t gf_mul(uint8_t x, uint8_t y) {

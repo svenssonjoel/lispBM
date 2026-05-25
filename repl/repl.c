@@ -745,7 +745,7 @@ void parse_opts(int argc, char **argv) {
 
       uint32_t size_single_block_bytes = sizeof(lbm_uint) * LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(1);
 
-      if (!(sizebytes % size_single_block_bytes) == 0) {
+      if ((sizebytes % size_single_block_bytes) != 0) {
         printf("Warning: The lbm_memory must be a multiple of %d bytes in size\n", size_single_block_bytes);
         sizebytes = (sizebytes + (size_single_block_bytes - 1)) & ~(size_single_block_bytes - 1);
         printf("Using next multiple of %d: %d\n", size_single_block_bytes, sizebytes);
@@ -1273,7 +1273,7 @@ void startup_procedure(int argc, char **argv) {
         for (int i = script_args_start_index; i < argc; i ++) {
           lbm_value arg_str;
           char *str = argv[i];
-          unsigned int len = strlen(str) + 1;
+          unsigned int len = (unsigned int)(strlen(str) + 1);
           if (lbm_share_array(&arg_str, str, len)) {
             lbm_set_car(curr,arg_str);
           }
@@ -1809,7 +1809,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     }
     int32_t ind = 0;
     uint8_t send_buffer[50];
-    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = (uint8_t)packet_id;
     send_buffer[ind++] = ok;
     reply_func(send_buffer, (unsigned int)ind);
   } break;
@@ -1837,7 +1837,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     uint8_t send_buffer_global[4096];
     int32_t ind = 0;
 
-    send_buffer_global[ind++] = packet_id;
+    send_buffer_global[ind++] = (uint8_t)packet_id;
     buffer_append_float16(send_buffer_global, cpu_use, 1e2, &ind);
     buffer_append_float16(send_buffer_global, heap_use, 1e2, &ind);
     buffer_append_float16(send_buffer_global, mem_use, 1e2, &ind);
@@ -2119,7 +2119,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
 
     int32_t send_ind = 0;
     uint8_t send_buffer[50];
-    send_buffer[send_ind++] = packet_id;
+    send_buffer[send_ind++] = (uint8_t)packet_id;
     buffer_append_int32(send_buffer, offset, &send_ind);
 
     if (offset_last == offset) {
@@ -2253,7 +2253,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     }
     ind = 0;
     uint8_t send_buffer[50];
-    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = (uint8_t)packet_id;
     send_buffer[ind++] = (uint8_t)result;
     buffer_append_uint32(send_buffer, offset, &ind);
     reply_func(send_buffer, (unsigned int)ind);
@@ -2266,7 +2266,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     vescif_program_flash_code_len = 0;
     int32_t ind = 0;
     uint8_t send_buffer[50];
-    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = (uint8_t)packet_id;
     send_buffer[ind++] = 1;
     reply_func(send_buffer, (unsigned int)ind);
     break;

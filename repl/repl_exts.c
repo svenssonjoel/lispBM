@@ -30,7 +30,11 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <signal.h>
+#ifdef __APPLE__
+#include <dispatch/dispatch.h>
+#else
 #include <semaphore.h>
+#endif
 #endif
 
 #include "extensions/array_extensions.h"
@@ -705,7 +709,11 @@ typedef struct {
 } child_process_t;
 
 static child_process_t child_process[MAX_CHILD_PROCESSES];
+#ifdef __APPLE__
+static dispatch_semaphore_t child_exit_sem;
+#else
 static sem_t child_exit_sem;
+#endif
 static lbm_thread_t child_monitor_thread;
 static volatile bool child_monitor_running = false;
 
@@ -723,14 +731,22 @@ static void sigchld_handler(int sig) {
       }
     }
   }
-  sem_post(&child_exit_sem);  // Wake monitor thread
+#ifdef __APPLE__
+  dispatch_semaphore_signal(child_exit_sem);
+#else
+  sem_post(&child_exit_sem);
+#endif
 }
 
 // Monitor thread - wakes on SIGCHLD and unblocks waiting LispBM contexts
 static void child_monitor_thd(void *arg) {
   (void)arg;
   while (child_monitor_running) {
+#ifdef __APPLE__
+    dispatch_semaphore_wait(child_exit_sem, DISPATCH_TIME_FOREVER);
+#else
     sem_wait(&child_exit_sem);
+#endif
     if (!child_monitor_running) break;
 
     for (int i = 0; i < MAX_CHILD_PROCESSES; i++) {
@@ -753,14 +769,20 @@ static bool init_proc_management(void) {
     child_process[i].waiting_cid = -1;
   }
 
+#ifdef __APPLE__
+  child_exit_sem = dispatch_semaphore_create(0);
+#else
   if (sem_init(&child_exit_sem, 0, 0) == -1) {
     return false;
   }
+#endif
 
   child_monitor_running = true;
   if (!lbm_thread_create(&child_monitor_thread, "child_monitor",
                          child_monitor_thd, NULL, LBM_THREAD_PRIO_NORMAL, 0)) {
+#ifndef __APPLE__
     sem_destroy(&child_exit_sem);
+#endif
     return false;
   }
 
@@ -770,8 +792,12 @@ static bool init_proc_management(void) {
   sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
   if (sigaction(SIGCHLD, &sa, NULL) == -1) {
     child_monitor_running = false;
+#ifdef __APPLE__
+    dispatch_semaphore_signal(child_exit_sem);
+#else
     sem_post(&child_exit_sem);
     sem_destroy(&child_exit_sem);
+#endif
     return false;
   }
   return true;
@@ -1379,7 +1405,7 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
 
     uint8_t *buffer = malloc((size_t)(w * h * 3)); // RGB 888
     if (buffer) {
-      uint8_t  bpp = img->fmt;
+      uint8_t  bpp = (uint8_t)img->fmt;
       switch(bpp) {
       case indexed2:
         buffer_blast_indexed2(buffer, img, colors);

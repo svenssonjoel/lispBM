@@ -58,7 +58,7 @@ static inline bool gc_marked(lbm_value c) {
   return lbm_get_gc_mark(cell->cdr);
 }
 
-static inline void gc_clear_mark(lbm_value c) {
+__attribute__((unused)) static inline void gc_clear_mark(lbm_value c) {
   //c must be a cons cell.
   lbm_cons_t *cell = lbm_ref_cell(c);
   cell->cdr = lbm_clr_gc_mark(cell->cdr);

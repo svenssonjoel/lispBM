@@ -96,7 +96,11 @@
 //  - Optimize function for size.
 //  - Possibly move cold functions to a separate area of memory.
 //  - Act as a branch predition hint for branches leading to "cold" calls.
+#ifdef __clang__
+#define sizeopt __attribute__((cold, noinline))
+#else
 #define sizeopt __attribute__((cold, noinline, optimize("Os")))
+#endif
 
 static jmp_buf error_jmp_buf;
 static jmp_buf critical_error_jmp_buf;
@@ -223,11 +227,11 @@ static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid);
 static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx);
 static int gc(void);
 #ifdef LBM_USE_ERROR_LINENO
-static void error_ctx(lbm_value, int line_no);
-static void error_at_ctx(lbm_value err_val, lbm_value at, int line_no);
+static noreturn void error_ctx(lbm_value, int line_no);
+static noreturn void error_at_ctx(lbm_value err_val, lbm_value at, int line_no);
 #else
-static void error_ctx(lbm_value);
-static void error_at_ctx(lbm_value err_val, lbm_value at);
+static noreturn void error_ctx(lbm_value);
+static noreturn void error_at_ctx(lbm_value err_val, lbm_value at);
 #endif
 static void mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
 

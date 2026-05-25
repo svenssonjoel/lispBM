@@ -35,7 +35,7 @@ static lbm_value ext_sha256_str(lbm_value *args, lbm_uint argn) {
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
       lbm_array_header_t *in_arr = (lbm_array_header_t*)lbm_car(args[0]);
       char *str = (char*)in_arr->data;
-      uint32_t n = strlen_max(str, in_arr->size);
+      uint32_t n = (uint32_t)strlen_max(str, in_arr->size);
       crypto_sha256((uint8_t*)arr->data, (uint8_t*)str, n);
     }
   }
@@ -48,7 +48,7 @@ static lbm_value ext_sha256(lbm_value *args, lbm_uint argn) {
     if(lbm_create_array(&res, 32)) {
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
       lbm_array_header_t *in_arr = (lbm_array_header_t*)lbm_car(args[0]);
-      crypto_sha256((uint8_t*)arr->data, (uint8_t*)in_arr->data, in_arr->size);
+      crypto_sha256((uint8_t*)arr->data, (uint8_t*)in_arr->data, (uint32_t)in_arr->size);
     }
   }
   return res;
@@ -171,7 +171,7 @@ static lbm_value ext_bytes_to_hex(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *in_arr = (lbm_array_header_t*)lbm_car(args[0]);
     if (lbm_create_array(&res, in_arr->size * 2 + 1)) {
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-      crypto_bytes_to_hex((uint8_t*)in_arr->data, in_arr->size, (char*)arr->data);
+      crypto_bytes_to_hex((uint8_t*)in_arr->data, (uint32_t)in_arr->size, (char*)arr->data);
     }
   }
   return res;
@@ -186,7 +186,7 @@ static lbm_value ext_hex_to_bytes(lbm_value *args, lbm_uint argn) {
       lbm_uint bytes_len = (in_arr->size - 1) / 2;
       if (lbm_create_array(&res, bytes_len)) {
         lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-        crypto_hex_to_bytes((uint8_t*)in_arr->data, in_arr->size - 1, (uint8_t*)arr->data);
+        crypto_hex_to_bytes((uint8_t*)in_arr->data, (uint32_t)(in_arr->size - 1), (uint8_t*)arr->data);
       }
     }
   }
@@ -204,8 +204,8 @@ static lbm_value ext_bn_divmod(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *b = lbm_dec_array_r(args[1]);
     uint32_t *ap = (uint32_t*)a->data;
     uint32_t *bp = (uint32_t*)b->data;
-    uint32_t alen = crypto_bn_normalize_len(ap, a->size / sizeof(uint32_t));
-    uint32_t blen = crypto_bn_normalize_len(bp, b->size / sizeof(uint32_t));
+    uint32_t alen = crypto_bn_normalize_len(ap, (uint32_t)(a->size / sizeof(uint32_t)));
+    uint32_t blen = crypto_bn_normalize_len(bp, (uint32_t)(b->size / sizeof(uint32_t)));
 
     if (crypto_bn_cmp(ap, alen, bp, blen) < 0) {
       // a < b: q = 0, r = a
@@ -260,8 +260,8 @@ static lbm_value ext_bn_cmp(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *b = lbm_dec_array_r(args[1]);
     uint32_t *ap = (uint32_t*)a->data;
     uint32_t *bp = (uint32_t*)b->data;
-    uint32_t alen = crypto_bn_normalize_len(ap, a->size / sizeof(uint32_t));
-    uint32_t blen = crypto_bn_normalize_len(bp, b->size / sizeof(uint32_t));
+    uint32_t alen = crypto_bn_normalize_len(ap, (uint32_t)(a->size / sizeof(uint32_t)));
+    uint32_t blen = crypto_bn_normalize_len(bp, (uint32_t)(b->size / sizeof(uint32_t)));
     r = lbm_enc_i(crypto_bn_cmp(ap, alen, bp, blen));
   }
   return r;
@@ -274,8 +274,8 @@ static lbm_value ext_bn_add(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *b = lbm_dec_array_r(args[1]);
     uint32_t *ap = (uint32_t*)a->data;
     uint32_t *bp = (uint32_t*)b->data;
-    uint32_t alen = crypto_bn_normalize_len(ap, a->size / sizeof(uint32_t));
-    uint32_t blen = crypto_bn_normalize_len(bp, b->size / sizeof(uint32_t));
+    uint32_t alen = crypto_bn_normalize_len(ap, (uint32_t)(a->size / sizeof(uint32_t)));
+    uint32_t blen = crypto_bn_normalize_len(bp, (uint32_t)(b->size / sizeof(uint32_t)));
     if (alen < blen) { // ensure alen >= blen
       uint32_t *tmp = ap; ap = bp; bp = tmp;
       uint32_t  tl  = alen; alen = blen; blen = tl;
@@ -299,8 +299,8 @@ static lbm_value ext_bn_sub(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *b = lbm_dec_array_r(args[1]);
     uint32_t *ap = (uint32_t*)a->data;
     uint32_t *bp = (uint32_t*)b->data;
-    uint32_t alen = crypto_bn_normalize_len(ap, a->size / sizeof(uint32_t));
-    uint32_t blen = crypto_bn_normalize_len(bp, b->size / sizeof(uint32_t));
+    uint32_t alen = crypto_bn_normalize_len(ap, (uint32_t)(a->size / sizeof(uint32_t)));
+    uint32_t blen = crypto_bn_normalize_len(bp, (uint32_t)(b->size / sizeof(uint32_t)));
     r = ENC_SYM_EERROR;
     if (crypto_bn_cmp(ap, alen, bp, blen) >= 0) { // a >= b required
       lbm_value res;
@@ -323,8 +323,8 @@ static lbm_value ext_bn_mul(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *b = lbm_dec_array_r(args[1]);
     uint32_t *ap = (uint32_t*)a->data;
     uint32_t *bp = (uint32_t*)b->data;
-    uint32_t alen = crypto_bn_normalize_len(ap, a->size / sizeof(uint32_t));
-    uint32_t blen = crypto_bn_normalize_len(bp, b->size / sizeof(uint32_t));
+    uint32_t alen = crypto_bn_normalize_len(ap, (uint32_t)(a->size / sizeof(uint32_t)));
+    uint32_t blen = crypto_bn_normalize_len(bp, (uint32_t)(b->size / sizeof(uint32_t)));
     lbm_value res;
     if (lbm_heap_allocate_array(&res, (alen + blen) * sizeof(uint32_t))) {
       lbm_array_header_t *arr = lbm_dec_array_r(res);
@@ -343,7 +343,7 @@ static lbm_value ext_bn_to_u32(lbm_value *args, lbm_uint argn) {
   if (argn == 1 && lbm_is_array_r(args[0])) {
     lbm_array_header_t *arr = lbm_dec_array_r(args[0]);
     uint32_t *ap = (uint32_t*)arr->data;
-    uint32_t alen = crypto_bn_normalize_len(ap, arr->size / sizeof(uint32_t));
+    uint32_t alen = crypto_bn_normalize_len(ap, (uint32_t)(arr->size / sizeof(uint32_t)));
     if (alen == 1) {
       r = lbm_enc_u32(ap[0]);
     } else {
@@ -379,7 +379,7 @@ static lbm_value ext_bn_from_bytes(lbm_value *args, lbm_uint argn) {
     lbm_array_header_t *byte_array = lbm_dec_array_r(args[0]);
     r = ENC_SYM_EERROR;
     if (byte_array->size % sizeof(uint32_t) == 0) {
-      uint32_t num_bytes = byte_array->size;
+      uint32_t num_bytes = (uint32_t)byte_array->size;
       lbm_value bn ;
       if (lbm_heap_allocate_array(&bn, num_bytes)) {
         lbm_array_header_t *arr = lbm_dec_array_r(bn);
@@ -400,7 +400,7 @@ static lbm_value ext_bn_to_bytes(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
   if (argn == 1 && lbm_is_array_r(args[0])) {
     lbm_array_header_t *bn = lbm_dec_array_r(args[0]);
-    uint32_t num_bytes = bn->size;
+    uint32_t num_bytes = (uint32_t)bn->size;
     lbm_value byte_array;
     if (lbm_heap_allocate_array(&byte_array, num_bytes)) {
       lbm_array_header_t *arr = lbm_dec_array_r(byte_array);
@@ -430,9 +430,9 @@ static lbm_value ext_bn_modexp(lbm_value *args, lbm_uint argn) {
     uint32_t *base = (uint32_t*)base_arr->data;
     uint32_t *exp  = (uint32_t*)exp_arr->data;
     uint32_t *n    = (uint32_t*)n_arr->data;
-    uint32_t blen  = crypto_bn_normalize_len(base, base_arr->size / sizeof(uint32_t));
-    uint32_t elen  = crypto_bn_normalize_len(exp,  exp_arr->size  / sizeof(uint32_t));
-    uint32_t nlen  = crypto_bn_normalize_len(n,    n_arr->size    / sizeof(uint32_t));
+    uint32_t blen  = crypto_bn_normalize_len(base, (uint32_t)(base_arr->size / sizeof(uint32_t)));
+    uint32_t elen  = crypto_bn_normalize_len(exp,  (uint32_t)(exp_arr->size  / sizeof(uint32_t)));
+    uint32_t nlen  = crypto_bn_normalize_len(n,    (uint32_t)(n_arr->size    / sizeof(uint32_t)));
 
     lbm_value result, tmp_mul, scratch_q, scratch_an, scratch_bn;
     // TODO: We can allocate and free the scratchpads immediately

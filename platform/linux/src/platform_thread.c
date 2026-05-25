@@ -51,6 +51,7 @@ bool lbm_thread_create(lbm_thread_t *t,
                        lbm_thread_prio_t prio,
                        uint32_t stack_size) {
 
+  (void)name;
   platform_thread_t *thread = (platform_thread_t *)t;
   if (!thread) return false;
 
