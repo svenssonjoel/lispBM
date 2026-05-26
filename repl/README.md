@@ -73,15 +73,27 @@ make
 
 ### Building on MacOS
 
-_**NOTE:** The MacOS build is unsupported -- you may need to rollback to a known-working git revision to compile._
+To develop LispBM on an ARM based MAC the following list of 'brew
+installs' is recommended:
 
-In order to build the repl on MacOS, you need to install the `png` and `readline` libraries using brew as below:
+- gcc
+- coreutils
+- gcovr
+- readline
+- libpng
+- freetype
+- sdl2
+- sdl2_image
+
+
+you install these libraries using brew install as illustrated below:
 
 ```
 brew install libpng readline
 ```
 
-To build, call `make` as normal. The MacOS version automatically builds the 64 bit version; 32 bit is currently unbuildable.
+To build, call `make` as normal. The MacOS version automatically
+builds the 64 bit version. Modern macs do not support 32Bit binaries.
 
 ## install as lbm
 
