@@ -167,7 +167,7 @@ install:
 	chmod a+x ~/.local/bin/shlbm
 
 repl: $(FEATURE_FILE) $(REPL_SRC) $(PLATFORM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
-	gcc $(CCFLAGS) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) $(LDFLAGS)
+	gcc $(CCFLAGS) $(PLATFORM_SRC) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) $(LDFLAGS) $(LISPBM_FLAGS)
 
 clean:
 	rm -f repl
