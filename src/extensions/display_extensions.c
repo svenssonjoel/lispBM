@@ -628,7 +628,7 @@ static const uint8_t retro5x7[] = {
   };
 
 // returns: 1 parsed, 0 not an attr list, -1 malformed/invalid
-static int parse_text_attr(lbm_value v, int *mag, int *spacing, int *align, int *rotation_deg) {
+static int parse_text_attr(lbm_value v, float *mag, int *spacing, int *align, int *rotation_deg) {
   if (!lbm_is_cons(v)) {
     return 0;
   }
@@ -647,17 +647,15 @@ static int parse_text_attr(lbm_value v, int *mag, int *spacing, int *align, int 
   lbm_uint sym = lbm_dec_sym(key);
   if (sym == symbol_magnify || sym == symbol_scale) {
     if (!lbm_is_number(val)) return -1;
-    int m = lbm_dec_as_i32(val);
-    if (m < 1) m = 1;
+    float m = lbm_dec_as_float(val);
+    if (m < 0.1f) m = 0.1f;
     *mag = m;
     return 1;
   }
 
   if (sym == symbol_spacing) {
     if (!lbm_is_number(val)) return -1;
-    int s = lbm_dec_as_i32(val);
-    if (s < 0) s = 0;
-    *spacing = s;
+    *spacing = lbm_dec_as_i32(val);
     return 1;
   }
 
@@ -1798,7 +1796,7 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
 
 // orient: 0=normal, 1=up(90°CCW), 2=180°, 3=down(90°CW)
 static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors,
-                     uint8_t *font_data, uint8_t ch, int orient, int mag) {
+                     uint8_t *font_data, uint8_t ch, int orient, float mag) {
   uint8_t w = font_data[0];
   uint8_t h = font_data[1];
   uint8_t char_num = font_data[2];
@@ -1820,65 +1818,45 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
     return;
   }
 
-  if (bits_per_pixel == 2) {
-    if (num_colors < 4) return;
-    for (int i = 0; i < w * h; i++) {
+  for (int i = 0; i < w * h; i++) {
+    int x0 = i % w;
+    int y0 = i / w;
+
+    int sx0 = (int)floorf((float)x0 * mag);
+    int sx1 = (int)floorf((float)(x0 + 1) * mag) - 1;
+    int sy0 = (int)floorf((float)y0 * mag);
+    int sy1 = (int)floorf((float)(y0 + 1) * mag) - 1;
+
+    if (sx1 < sx0) sx1 = sx0;
+    if (sy1 < sy0) sy1 = sy0;
+
+    uint32_t color;
+    if (bits_per_pixel == 2) {
+      if (num_colors < 4) return;
       uint8_t byte = font_data[4 + bytes_per_char * ch + (i / 4)];
       uint8_t bit_pos = (uint8_t)(i % pixels_per_byte);
       uint8_t pixel_value = (byte >> (bit_pos * 2)) & 0x03;
-      int x0 = i % w;
-      int y0 = i / w;
-      uint32_t col = colors[pixel_value];
-      if (mag == 1) {
-        switch (orient) {
-          case 1:  putpixel(img, x + y0, y - x0, col); break;
-          case 2:  putpixel(img, x - x0, y - y0, col); break;
-          case 3:  putpixel(img, x - y0, y + x0, col); break;
-          default: putpixel(img, x + x0, y + y0, col); break;
-        }
-      } else {
-        for (int dy = 0; dy < mag; dy++) {
-          for (int dx = 0; dx < mag; dx++) {
-            switch (orient) {
-              case 1:  putpixel(img, x + y0*mag+dy, y - x0*mag-dx, col); break;
-              case 2:  putpixel(img, x - x0*mag-dx, y - y0*mag-dy, col); break;
-              case 3:  putpixel(img, x - y0*mag-dy, y + x0*mag+dx, col); break;
-              default: putpixel(img, x + x0*mag+dx, y + y0*mag+dy, col); break;
-            }
-          }
-        }
-      }
-    }
-  } else {
-    if (num_colors < 1) return;
-    int32_t fg = (int32_t)colors[0];
-    int32_t bg = (num_colors > 1) ? (int32_t)colors[1] : -1;
-    for (int i = 0; i < w * h; i++) {
+      color = colors[pixel_value];
+    } else {
+      if (num_colors < 1) return;
+      int32_t fg = (int32_t)colors[0];
+      int32_t bg = (num_colors > 1) ? (int32_t)colors[1] : -1;
       uint8_t byte = font_data[4 + bytes_per_char * ch + (i / 8)];
       uint8_t bit_pos = (uint8_t)(i % 8);
       uint8_t bit = (uint8_t)(byte & (1 << bit_pos));
-      if (bit || bg >= 0) {
-        int x0 = i % w;
-        int y0 = i / w;
-        uint32_t color = bit ? (uint32_t)fg : (uint32_t)bg;
-        if (mag == 1) {
-          switch (orient) {
-            case 1:  putpixel(img, x + y0, y - x0, color); break;
-            case 2:  putpixel(img, x - x0, y - y0, color); break;
-            case 3:  putpixel(img, x - y0, y + x0, color); break;
-            default: putpixel(img, x + x0, y + y0, color); break;
-          }
-        } else {
-          for (int dy = 0; dy < mag; dy++) {
-            for (int dx = 0; dx < mag; dx++) {
-              switch (orient) {
-                case 1:  putpixel(img, x + y0*mag+dy, y - x0*mag-dx, color); break;
-                case 2:  putpixel(img, x - x0*mag-dx, y - y0*mag-dy, color); break;
-                case 3:  putpixel(img, x - y0*mag-dy, y + x0*mag+dx, color); break;
-                default: putpixel(img, x + x0*mag+dx, y + y0*mag+dy, color); break;
-              }
-            }
-          }
+      if (!bit && bg < 0) {
+        continue;
+      }
+      color = bit ? (uint32_t)fg : (uint32_t)bg;
+    }
+
+    for (int py = sy0; py <= sy1; py++) {
+      for (int px = sx0; px <= sx1; px++) {
+        switch (orient) {
+          case 1:  putpixel(img, x + py, y - px, color); break;
+          case 2:  putpixel(img, x - px, y - py, color); break;
+          case 3:  putpixel(img, x - py, y + px, color); break;
+          default: putpixel(img, x + px, y + py, color); break;
         }
       }
     }
@@ -2715,7 +2693,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
 
   if (argn < 6) return ENC_SYM_TERROR;
 
-  int txt_mag = 1;
+  float txt_mag = 1.0f;
   int spacing = 0;
   int align   = 0;
   int rot_deg = 0;
@@ -2801,9 +2779,10 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   int incx = incx_tbl[orient];
   int incy = incy_tbl[orient];
 
-  int char_step    = w * txt_mag + spacing;
+  float char_step_f = (float)w * txt_mag + (float)spacing;
+  int char_step = (int)lroundf(char_step_f);
   int txt_len      = (int)strlen(txt);
-  int total        = txt_len * char_step - spacing;
+  int total        = (int)lroundf((float)txt_len * char_step_f - (float)spacing);
   int align_offset = (align == 1) ? total / 2 : (align == 2) ? total : 0;
 
   int x0 = x - align_offset * incx;
