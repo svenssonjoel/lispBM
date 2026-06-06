@@ -94,9 +94,9 @@ public:
   void stop();
   void terminate();
 
-  // Optional: register a QLbmWidget and enable the qt-* extensions.
+  // Optional: register a QLbmContainerWidget and enable the qt-* extensions.
   // Must be called before init().
-  void setWidget(QLbmWidget *widget);
+  void setWidget(QLbmContainerWidget *widget);
 
   bool addExtension(const QString &name, extension_fptr fn);
   QHash<QString, QLbmValue> environment(void);
@@ -126,7 +126,7 @@ private:
   static bool dynLoadCallback(const char *str, const char **code);
   static void evalThreadFunc(void *arg);
 
-  QLbmWidget        *m_widget     = nullptr;
+  QLbmContainerWidget    *m_widget     = nullptr;
 
   QLispBMConfig      m_config;
   bool               m_initialized = false;

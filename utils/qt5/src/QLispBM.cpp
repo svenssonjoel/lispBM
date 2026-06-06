@@ -49,7 +49,7 @@ QLispBM::~QLispBM() {
   s_instance = nullptr;
 }
 
-void QLispBM::setWidget(QLbmWidget *widget) {
+void QLispBM::setWidget(QLbmContainerWidget *widget) {
   m_widget = widget;
   lbm_qt_extensions_set_widget(widget);
 }
