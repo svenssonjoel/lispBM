@@ -1042,7 +1042,7 @@ bool lbm_image_save_extensions(void) {
     for (lbm_uint i = 0; i < num; i ++) {
       if (!r) return r;
 
-      char *name_ptr = extension_table[i].name;
+      const char *name_ptr = extension_table[i].name;
       lbm_uint addr;
       // when PIC, name pointers may move around
       // between restarts. It is also the case that
@@ -1053,12 +1053,12 @@ bool lbm_image_save_extensions(void) {
       //#ifdef __PIC__
       //r = store_symbol_name_flash(name_ptr, &addr);
       //if (!r) return r;
-      //name_ptr = (char *)addr;
+      //name_ptr = (const char *)addr;
       //#else
       if (lbm_memory_ptr_inside((lbm_uint *)name_ptr)) {
         r = store_symbol_name_flash(name_ptr, &addr);
         if (!r) return r;
-        name_ptr = (char *)addr;
+        name_ptr = (const char *)addr;
       }
       //#endif
 #ifdef LBM64

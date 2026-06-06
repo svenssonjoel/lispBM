@@ -6,8 +6,7 @@ INCLUDEPATH += \
     $$LISPBM_ROOT/include/extensions \
     $$LISPBM_ROOT/src \
     $$LISPBM_ROOT/utils \
-    $$PWD/include \
-    $$PWD
+    $$PWD/include
 
 !contains(DEFINES, LBM32): DEFINES += LBM64
 
@@ -23,18 +22,12 @@ DEFINES += \
     LBM_USE_MACRO_REST_ARGS \
     LBM_USE_SHEBANG_COMMENTS
 
-QT += core
+QT += core widgets
 
 SOURCES += \
     $$PWD/src/platform_mutex.cpp \
     $$PWD/src/platform_thread.cpp \
-    $$PWD/src/platform_timestamp.cpp \
-    $$PWD/src/QLispBM.cpp \
-    $$PWD/src/QLbmValue.cpp
-
-HEADERS += \
-    $$PWD/QLispBM.h \
-    $$PWD/QLbmValue.h
+    $$PWD/src/platform_timestamp.cpp
 
 SOURCES += \
     $$LISPBM_ROOT/src/env.c \
@@ -55,7 +48,9 @@ SOURCES += \
     $$LISPBM_ROOT/src/lbm_prof.c \
     $$LISPBM_ROOT/src/lbm_defrag_mem.c \
     $$LISPBM_ROOT/src/lbm_image.c \
-    $$LISPBM_ROOT/utils/buffer.c
+    $$LISPBM_ROOT/utils/buffer.c \
+    $$LISPBM_ROOT/utils/crypto.c \
+    $$LISPBM_ROOT/utils/ecc.c
 
 SOURCES += \
     $$LISPBM_ROOT/src/extensions/array_extensions.c \
@@ -70,7 +65,6 @@ SOURCES += \
     $$LISPBM_ROOT/src/extensions/ecc_extensions.c \
     $$LISPBM_ROOT/src/extensions/display_extensions.c \
     $$LISPBM_ROOT/src/extensions/dsp_extensions.c
-    
 
 SOURCES += $$LISPBM_ROOT/src/extensions/tjpgd.c
 SOURCES += $$LISPBM_ROOT/src/extensions/ttf_extensions.c
@@ -82,6 +76,5 @@ contains(DEFINES, LBM_TTF_USE_FREETYPE) {
 } else {
   SOURCES += $$LISPBM_ROOT/src/extensions/schrift.c
 }
-
 
 LIBS += -lm

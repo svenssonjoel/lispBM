@@ -49,6 +49,11 @@ QLispBM::~QLispBM() {
   s_instance = nullptr;
 }
 
+void QLispBM::setWidget(QLbmWidget *widget) {
+  m_widget = widget;
+  lbm_qt_extensions_set_widget(widget);
+}
+
 bool QLispBM::init(const QLispBMConfig *config) {
   if (m_initialized) return false;
 
@@ -131,6 +136,10 @@ bool QLispBM::init(const QLispBMConfig *config) {
   
   lbm_dyn_lib_init();
   lbm_set_dynamic_load_callback(dynLoadCallback);
+
+  if (m_widget) {
+    lbm_qt_extensions_init();
+  }
 
   m_initialized = true;
   emit initializedChanged(true);

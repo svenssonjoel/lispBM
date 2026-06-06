@@ -228,8 +228,7 @@ bool QLbmValue::flattenValue(lbm_flat_value_t *fv) const {
   case I64:    return f_i64(fv, m_i64);
   case U64:    return f_u64(fv, m_u64);
   case Float:  return f_float(fv, m_f);
-    // I think flattening doubles may be impossible at the moment.
-  case Double: return f_i64(fv, *(int64_t*)&m_d);
+  case Double: return f_double(fv, m_d);
   case Cons:
     return f_cons(fv) && car().flattenValue(fv) && cdr().flattenValue(fv);
   case ByteArray: {
