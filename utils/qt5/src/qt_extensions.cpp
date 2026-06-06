@@ -26,6 +26,7 @@
 #include "QLbmSpinboxIWidget.h"
 #include "QLbmSpinboxFWidget.h"
 #include "QLbmTextfieldWidget.h"
+#include "QLbmPlotWidget.h"
 #include "QLispBM.h"
 #include "QLbmValue.h"
 
@@ -43,8 +44,8 @@ extern "C" {
 
 #include <cstring>
 
-// ---------------------------------------------------------------------------
-// Module state — single registry for all LBM-managed widgets
+// ////////////////////////////////////////////////////////////
+// Module state
 
 static QLbmContainerWidget           *s_root          = nullptr;
 static int                            s_rootHandle    = -1;
@@ -58,7 +59,7 @@ void lbm_qt_extensions_set_widget(QLbmContainerWidget *widget) {
   s_widgets.insert(s_rootHandle, widget);
 }
 
-// ---------------------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
 // Helpers
 
 static QLbmContainerWidget *getContainer(int handle) {
@@ -80,11 +81,8 @@ static QLbmLayout layoutFromSymbol(lbm_value sym) {
   return QLbmLayout::VBox; // default
 }
 
-// ---------------------------------------------------------------------------
-// Widget attribute system — mirrors the display library's optional attr args.
-// Each attribute is passed as a trailing argument that is either:
-//   a list  '(attr-name value ...)  e.g. '(max-width 60)
-//   a symbol 'attr-name             for flag attributes with no value
+// ////////////////////////////////////////////////////////////
+// Widget attributes
 
 struct QtWidgetAttrs {
   int max_width  = -1;
@@ -144,8 +142,8 @@ static void applyAttrs(QLbmWidget *w, const QtWidgetAttrs &a) {
   if (a.min_height >= 0) w->setMinimumHeight(a.min_height);
 }
 
-// ---------------------------------------------------------------------------
-// Image format conversion
+// ////////////////////////////////////////////////////////////
+// Image handling
 
 static QImage imageFromBuffer(const image_buffer_t *img) {
   int w = (int)img->width;
@@ -174,9 +172,6 @@ static QImage imageFromBuffer(const image_buffer_t *img) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// render_image callback
-
 static bool qt_render_image(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors) {
   (void)colors;
   if (!s_activeDisplay) return false;
@@ -194,8 +189,8 @@ static bool qt_render_image(image_buffer_t *img, uint16_t x, uint16_t y, color_t
   return true;
 }
 
-// ---------------------------------------------------------------------------
-// Shared logic for creating a display widget inside a container
+// ////////////////////////////////////////////////////////////
+// Widget creation helpers
 
 static int createDisplay(QLbmContainerWidget *container, int w, int h,
                          const QtWidgetAttrs &attrs = QtWidgetAttrs()) {
@@ -360,9 +355,6 @@ static int createTextfield(QLbmContainerWidget *container, const QString &placeh
   return handle;
 }
 
-// ---------------------------------------------------------------------------
-// (qt-root) -> handle  [returns handle of the root container]
-
 static lbm_value ext_qt_root(lbm_value *args, lbm_uint argn) {
   (void)args; (void)argn;
   if (s_rootHandle < 0) {
@@ -371,9 +363,6 @@ static lbm_value ext_qt_root(lbm_value *args, lbm_uint argn) {
   }
   return lbm_enc_i(s_rootHandle);
 }
-
-// ---------------------------------------------------------------------------
-// (qt-set-display handle) -> t
 
 static lbm_value ext_qt_set_display(lbm_value *args, lbm_uint argn) {
   if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
@@ -388,9 +377,6 @@ static lbm_value ext_qt_set_display(lbm_value *args, lbm_uint argn) {
   lbm_display_extensions_set_callbacks(qt_render_image, nullptr, nullptr);
   return ENC_SYM_TRUE;
 }
-
-// ---------------------------------------------------------------------------
-// (qt-set-button-label handle label) -> t
 
 static lbm_value ext_qt_set_button_label(lbm_value *args, lbm_uint argn) {
   if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
@@ -414,9 +400,6 @@ static lbm_value ext_qt_set_button_label(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
-// ---------------------------------------------------------------------------
-// (qt-widget-add-display container-handle w h) -> handle
-
 static lbm_value ext_qt_widget_add_display(lbm_value *args, lbm_uint argn) {
   if (argn < 3 || !lbm_is_number(args[0]) ||
       !lbm_is_number(args[1]) || !lbm_is_number(args[2]))
@@ -437,9 +420,6 @@ static lbm_value ext_qt_widget_add_display(lbm_value *args, lbm_uint argn) {
   return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
 }
 
-// ---------------------------------------------------------------------------
-// (qt-widget-add-button container-handle label) -> handle
-
 static lbm_value ext_qt_widget_add_button(lbm_value *args, lbm_uint argn) {
   if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
     return ENC_SYM_TERROR;
@@ -459,9 +439,6 @@ static lbm_value ext_qt_widget_add_button(lbm_value *args, lbm_uint argn) {
   return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
 }
 
-// ---------------------------------------------------------------------------
-// (qt-widget-add-container container-handle layout-sym) -> handle
-
 static lbm_value ext_qt_widget_add_container(lbm_value *args, lbm_uint argn) {
   if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_symbol(args[1]))
     return ENC_SYM_TERROR;
@@ -477,10 +454,6 @@ static lbm_value ext_qt_widget_add_container(lbm_value *args, lbm_uint argn) {
   int handle = createContainer(parent, layout, parseAttrs(args, argn, 2));
   return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
 }
-
-// ---------------------------------------------------------------------------
-// (qt-widget-add-stretch container-handle [attrs...]) -> handle
-// (qt-widget-add-stretch container-handle 'horizontal [attrs...]) -> handle
 
 static lbm_value ext_qt_widget_add_stretch(lbm_value *args, lbm_uint argn) {
   if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
@@ -503,10 +476,6 @@ static lbm_value ext_qt_widget_add_stretch(lbm_value *args, lbm_uint argn) {
   int handle = createStretchInner(container, orientation, parseAttrs(args, argn, attr_start));
   return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
 }
-
-// ---------------------------------------------------------------------------
-// (qt-widget-set-max-width handle w) -> t
-// (qt-widget-set-min-width handle w) -> t
 
 static lbm_value ext_qt_widget_set_max_width(lbm_value *args, lbm_uint argn) {
   if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]))
@@ -540,10 +509,11 @@ static lbm_value ext_qt_widget_set_min_width(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
-// ---------------------------------------------------------------------------
-// Remove widget and all its LBM-managed descendants from the registry.
-// Must be called before deleteLater() so parent relationships are still intact.
+// ////////////////////////////////////////////////////////////
+// Extensions
 
+// removeFromRegistry must be called before deleteLater() while parent
+// relationships are still intact.
 static void removeFromRegistry(QLbmWidget *w) {
   QList<int> toRemove;
   for (auto it = s_widgets.begin(); it != s_widgets.end(); ++it) {
@@ -557,9 +527,6 @@ static void removeFromRegistry(QLbmWidget *w) {
                           w->isAncestorOf(s_activeDisplay)))
     s_activeDisplay = nullptr;
 }
-
-// ---------------------------------------------------------------------------
-// (qt-widget-remove handle) -> t
 
 static lbm_value ext_qt_widget_remove(lbm_value *args, lbm_uint argn) {
   if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
@@ -589,9 +556,6 @@ static lbm_value ext_qt_widget_remove(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
-// ---------------------------------------------------------------------------
-// (qt-widget-add-checkbox container-handle label) -> handle
-
 static lbm_value ext_qt_widget_add_checkbox(lbm_value *args, lbm_uint argn) {
   if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
     return ENC_SYM_TERROR;
@@ -609,9 +573,6 @@ static lbm_value ext_qt_widget_add_checkbox(lbm_value *args, lbm_uint argn) {
   int handle = createCheckbox(container, label, parseAttrs(args, argn, 2));
   return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
 }
-
-// ---------------------------------------------------------------------------
-// (qt-widget-add-radio container-handle label) -> handle
 
 static lbm_value ext_qt_widget_add_radio(lbm_value *args, lbm_uint argn) {
   if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
@@ -631,9 +592,6 @@ static lbm_value ext_qt_widget_add_radio(lbm_value *args, lbm_uint argn) {
   return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
 }
 
-// ---------------------------------------------------------------------------
-// (qt-widget-add-spinbox-i container-handle min max) -> handle
-
 static lbm_value ext_qt_widget_add_spinbox_i(lbm_value *args, lbm_uint argn) {
   if (argn < 3 || !lbm_is_number(args[0]) ||
       !lbm_is_number(args[1]) || !lbm_is_number(args[2]))
@@ -651,9 +609,6 @@ static lbm_value ext_qt_widget_add_spinbox_i(lbm_value *args, lbm_uint argn) {
   int handle = createSpinboxI(container, min, max, parseAttrs(args, argn, 3));
   return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
 }
-
-// ---------------------------------------------------------------------------
-// (qt-widget-add-spinbox-f container-handle min max step) -> handle
 
 static lbm_value ext_qt_widget_add_spinbox_f(lbm_value *args, lbm_uint argn) {
   if (argn < 4 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) ||
@@ -673,9 +628,6 @@ static lbm_value ext_qt_widget_add_spinbox_f(lbm_value *args, lbm_uint argn) {
   int handle = createSpinboxF(container, min, max, step, parseAttrs(args, argn, 4));
   return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
 }
-
-// ---------------------------------------------------------------------------
-// (qt-widget-add-textfield container-handle [placeholder]) -> handle
 
 static lbm_value ext_qt_widget_add_textfield(lbm_value *args, lbm_uint argn) {
   if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
@@ -698,9 +650,6 @@ static lbm_value ext_qt_widget_add_textfield(lbm_value *args, lbm_uint argn) {
   int handle = createTextfield(container, placeholder, parseAttrs(args, argn, attr_start));
   return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
 }
-
-// ---------------------------------------------------------------------------
-// (qt-widget-get-value handle) -> t/nil | int | float | byte-array
 
 static lbm_value ext_qt_widget_get_value(lbm_value *args, lbm_uint argn) {
   if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
@@ -754,9 +703,6 @@ static lbm_value ext_qt_widget_get_value(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_EERROR;
 }
 
-// ---------------------------------------------------------------------------
-// (qt-widget-set-value handle value) -> t
-
 static lbm_value ext_qt_widget_set_value(lbm_value *args, lbm_uint argn) {
   if (argn < 2 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
 
@@ -802,7 +748,244 @@ static lbm_value ext_qt_widget_set_value(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_EERROR;
 }
 
-// ---------------------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
+// Plot extensions
+
+static QLbmPlotWidget *getPlot(int handle) {
+  return qobject_cast<QLbmPlotWidget *>(s_widgets.value(handle, nullptr));
+}
+
+static int createPlot(QLbmContainerWidget *container,
+                      const QtWidgetAttrs &attrs = QtWidgetAttrs()) {
+  int handle = -1;
+  QMetaObject::invokeMethod(container, [container, attrs, &handle]() {
+    auto *plot = new QLbmPlotWidget(container);
+    applyAttrs(plot, attrs);
+    handle = registerWidget(plot);
+    addToContainer(container, plot, attrs);
+  }, Qt::BlockingQueuedConnection);
+  return handle;
+}
+
+static QVector<double> lbmListToDoubleVec(lbm_value list) {
+  QVector<double> v;
+  for (lbm_value c = list; lbm_is_cons(c); c = lbm_cdr(c))
+    v.append((double)lbm_dec_as_float(lbm_car(c)));
+  return v;
+}
+
+static lbm_value ext_qt_widget_add_plot(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  int ch = (int)lbm_dec_as_i32(args[0]);
+  QLbmContainerWidget *container = getContainer(ch);
+  if (!container) {
+    lbm_set_error_reason("qt-widget-add-plot: invalid container handle");
+    return ENC_SYM_EERROR;
+  }
+  int handle = createPlot(container, parseAttrs(args, argn, 1));
+  return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
+}
+
+static lbm_value ext_qt_plot_add_graph(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
+    return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-add-graph: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  lbm_array_header_t *arr = lbm_dec_array_r(args[1]);
+  if (!arr) return ENC_SYM_TERROR;
+  QString name = QString::fromUtf8((const char *)arr->data);
+  int graphId = -1;
+  QMetaObject::invokeMethod(plot, [plot, name, &graphId]() {
+    graphId = plot->addGraph(name);
+  }, Qt::BlockingQueuedConnection);
+  return graphId >= 0 ? lbm_enc_i(graphId) : ENC_SYM_EERROR;
+}
+
+static lbm_value ext_qt_plot_set_data(lbm_value *args, lbm_uint argn) {
+  if (argn < 4 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]))
+    return ENC_SYM_TERROR;
+  int handle  = (int)lbm_dec_as_i32(args[0]);
+  int graphId = (int)lbm_dec_as_i32(args[1]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-set-data: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  QVector<double> xs = lbmListToDoubleVec(args[2]);
+  QVector<double> ys = lbmListToDoubleVec(args[3]);
+  QMetaObject::invokeMethod(plot, [plot, graphId, xs, ys]() {
+    plot->setData(graphId, xs, ys);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_plot_add_point(lbm_value *args, lbm_uint argn) {
+  if (argn < 4 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) ||
+      !lbm_is_number(args[2]) || !lbm_is_number(args[3]))
+    return ENC_SYM_TERROR;
+  int handle  = (int)lbm_dec_as_i32(args[0]);
+  int graphId = (int)lbm_dec_as_i32(args[1]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-add-point: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  double x = (double)lbm_dec_as_float(args[2]);
+  double y = (double)lbm_dec_as_float(args[3]);
+  QMetaObject::invokeMethod(plot, [plot, graphId, x, y]() {
+    plot->addPoint(graphId, x, y);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_plot_clear_graph(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]))
+    return ENC_SYM_TERROR;
+  int handle  = (int)lbm_dec_as_i32(args[0]);
+  int graphId = (int)lbm_dec_as_i32(args[1]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-clear-graph: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  QMetaObject::invokeMethod(plot, [plot, graphId]() {
+    plot->clearGraph(graphId);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_plot_clear(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-clear: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  QMetaObject::invokeMethod(plot, [plot]() {
+    plot->clearAll();
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_plot_rescale(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-rescale: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  QMetaObject::invokeMethod(plot, [plot]() {
+    plot->rescale();
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_plot_replot(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-replot: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  QMetaObject::invokeMethod(plot, [plot]() {
+    plot->replot();
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_plot_set_x_label(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
+    return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-set-x-label: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  lbm_array_header_t *arr = lbm_dec_array_r(args[1]);
+  if (!arr) return ENC_SYM_TERROR;
+  QString label = QString::fromUtf8((const char *)arr->data);
+  QMetaObject::invokeMethod(plot, [plot, label]() {
+    plot->setXLabel(label);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_plot_set_y_label(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
+    return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-set-y-label: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  lbm_array_header_t *arr = lbm_dec_array_r(args[1]);
+  if (!arr) return ENC_SYM_TERROR;
+  QString label = QString::fromUtf8((const char *)arr->data);
+  QMetaObject::invokeMethod(plot, [plot, label]() {
+    plot->setYLabel(label);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_plot_set_x_log(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-set-x-log: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  bool log = !lbm_is_symbol_nil(args[1]);
+  QMetaObject::invokeMethod(plot, [plot, log]() {
+    plot->setXLog(log);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_plot_set_y_log(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-set-y-log: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  bool log = !lbm_is_symbol_nil(args[1]);
+  QMetaObject::invokeMethod(plot, [plot, log]() {
+    plot->setYLog(log);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_plot_set_max_points(lbm_value *args, lbm_uint argn) {
+  if (argn < 3 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) ||
+      !lbm_is_number(args[2]))
+    return ENC_SYM_TERROR;
+  int handle  = (int)lbm_dec_as_i32(args[0]);
+  int graphId = (int)lbm_dec_as_i32(args[1]);
+  int maxPts  = (int)lbm_dec_as_i32(args[2]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-set-max-points: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  QMetaObject::invokeMethod(plot, [plot, graphId, maxPts]() {
+    plot->setMaxPoints(graphId, maxPts);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+// ////////////////////////////////////////////////////////////
+// Extension registration
 
 void lbm_qt_extensions_init(void) {
   lbm_add_extension("qt-root",                  ext_qt_root);
@@ -822,4 +1005,17 @@ void lbm_qt_extensions_init(void) {
   lbm_add_extension("qt-widget-add-textfield",  ext_qt_widget_add_textfield);
   lbm_add_extension("qt-widget-get-value",      ext_qt_widget_get_value);
   lbm_add_extension("qt-widget-set-value",      ext_qt_widget_set_value);
+  lbm_add_extension("qt-widget-add-plot",       ext_qt_widget_add_plot);
+  lbm_add_extension("qt-plot-add-graph",        ext_qt_plot_add_graph);
+  lbm_add_extension("qt-plot-set-data",         ext_qt_plot_set_data);
+  lbm_add_extension("qt-plot-add-point",        ext_qt_plot_add_point);
+  lbm_add_extension("qt-plot-clear-graph",      ext_qt_plot_clear_graph);
+  lbm_add_extension("qt-plot-clear",            ext_qt_plot_clear);
+  lbm_add_extension("qt-plot-rescale",          ext_qt_plot_rescale);
+  lbm_add_extension("qt-plot-replot",           ext_qt_plot_replot);
+  lbm_add_extension("qt-plot-set-x-label",      ext_qt_plot_set_x_label);
+  lbm_add_extension("qt-plot-set-y-label",      ext_qt_plot_set_y_label);
+  lbm_add_extension("qt-plot-set-max-points",   ext_qt_plot_set_max_points);
+  lbm_add_extension("qt-plot-set-x-log",        ext_qt_plot_set_x_log);
+  lbm_add_extension("qt-plot-set-y-log",        ext_qt_plot_set_y_log);
 }

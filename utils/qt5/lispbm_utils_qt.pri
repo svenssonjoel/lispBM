@@ -13,6 +13,8 @@ SOURCES += \
     $$PWD/src/QLbmSpinboxIWidget.cpp \
     $$PWD/src/QLbmSpinboxFWidget.cpp \
     $$PWD/src/QLbmTextfieldWidget.cpp \
+    $$PWD/src/QLbmPlotWidget.cpp \
+    $$PWD/src/qcustomplot.cpp \
     $$PWD/src/qt_extensions.cpp
 
 HEADERS += \
@@ -28,4 +30,8 @@ HEADERS += \
     $$PWD/QLbmSpinboxIWidget.h \
     $$PWD/QLbmSpinboxFWidget.h \
     $$PWD/QLbmTextfieldWidget.h \
+    $$PWD/QLbmPlotWidget.h \
+    $$PWD/qcustomplot.h \
     $$PWD/qt_extensions.h
+
+QT += printsupport

@@ -1,0 +1,65 @@
+; test3.lbm — plot widget demo
+; Shows batch data (sin/cos) and streaming point-by-point data.
+
+(def root (qt-root))
+
+; Plot takes up most of the window
+(def plot (qt-widget-add-plot root '(min-height 300)))
+
+; Three graphs: two static waves and one live stream
+(def g-sin  (qt-plot-add-graph plot "sin(x)"))
+(def g-cos  (qt-plot-add-graph plot "cos(x)"))
+(def g-live (qt-plot-add-graph plot "live"))
+
+(qt-plot-set-x-label plot "x")
+(qt-plot-set-y-label plot "y")
+
+; Rolling window of 200 points for the live graph
+(qt-plot-set-max-points plot g-live 200)
+
+; Controls row
+(def hbox     (qt-widget-add-container root 'hbox))
+(def btn-draw  (qt-widget-add-button hbox "Draw"      '(max-width 60)))
+(def btn-clear (qt-widget-add-button hbox "Clear"     '(max-width 60)))
+(def btn-scale (qt-widget-add-button hbox "Rescale"   '(max-width 70)))
+(def btn-point (qt-widget-add-button hbox "Add Point" '(max-width 80)))
+(def cb-ylog   (qt-widget-add-checkbox hbox "Y-Log"))
+(def sb-n      (qt-widget-add-spinbox-i hbox 10 500))
+(qt-widget-set-value sb-n 100)
+(qt-widget-add-stretch hbox 'horizontal)
+
+; Draw sin and cos over [0, 2*pi] with n sample points
+(defun draw-waves (n)
+  (let ((xs (map (fn (i) (* 6.2832 (/ (* 1.0 i) (- n 1)))) (range 0 n))))
+    { (qt-plot-set-data plot g-sin xs (map sin xs))
+      (qt-plot-set-data plot g-cos xs (map cos xs))
+      (qt-plot-rescale plot)
+      (qt-plot-replot plot) }))
+
+; Initial draw
+(draw-waves (qt-widget-get-value sb-n))
+
+; X counter for the live graph
+(def live-t 0.0)
+
+; Append one point to the live graph — the rolling window trims old data automatically
+(defun add-live-point ()
+  { (qt-plot-add-point plot g-live live-t (sin (* 1.3 live-t)))
+    (def live-t (+ live-t 0.2))
+    (qt-plot-rescale plot)
+    (qt-plot-replot plot) })
+
+(defun on-event ()
+  { (recv
+      ((button-pressed (? h))
+       (cond ((= h btn-draw)   (draw-waves (qt-widget-get-value sb-n)))
+             ((= h btn-clear)  { (qt-plot-clear plot)   (qt-plot-replot plot) })
+             ((= h btn-scale)  { (qt-plot-rescale plot) (qt-plot-replot plot) })
+             ((= h btn-point)  (add-live-point))))
+      ((checkbox-changed (? h) (? v))
+       (if (= h cb-ylog)
+         { (qt-plot-set-y-log plot v) (qt-plot-replot plot) }))
+      ((? _) (print "unhandled")))
+    (on-event) })
+
+(event-register-handler (spawn on-event))

@@ -62,6 +62,21 @@ void lbm_qt_extensions_set_widget(QLbmContainerWidget *widget);
 //   (radio-changed    handle)
 //   (spinbox-changed  handle value)
 //   (textfield-commit handle text)
+//
+// Plot widgets:
+//   (qt-widget-add-plot     ch)                      -> handle
+//   (qt-plot-add-graph      handle "name")           -> graph-id
+//   (qt-plot-set-data       handle graph-id xs ys)   -> t   xs/ys are lbm lists of numbers
+//   (qt-plot-add-point      handle graph-id x y)     -> t   append one point (streaming)
+//   (qt-plot-clear-graph    handle graph-id)         -> t
+//   (qt-plot-clear          handle)                  -> t   clears all graphs' data
+//   (qt-plot-rescale        handle)                  -> t   auto-fit axes to data
+//   (qt-plot-replot         handle)                  -> t   redraw
+//   (qt-plot-set-x-label    handle "label")          -> t
+//   (qt-plot-set-y-label    handle "label")          -> t
+//   (qt-plot-set-max-points handle graph-id max)     -> t   -1 = unlimited (default)
+//   (qt-plot-set-x-log      handle t/nil)            -> t   t = logarithmic, nil = linear
+//   (qt-plot-set-y-log      handle t/nil)            -> t
 void lbm_qt_extensions_init(void);
 
 #endif

@@ -20,9 +20,6 @@
 
 #include <QWidget>
 
-// Abstract base for all LispBM-managed widgets.
-// All widgets created and manipulated from LispBM derive from this class
-// and are tracked in a single handle-keyed registry in qt_extensions.cpp.
 class QLbmWidget : public QWidget {
   Q_OBJECT
 public:

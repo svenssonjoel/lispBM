@@ -26,9 +26,6 @@ class QButtonGroup;
 
 enum class QLbmLayout { VBox, HBox, Grid };
 
-// A QLbmWidget that contains other QLbmWidgets arranged by a layout.
-// Can be used both as the host-level root (via QLbmWidgetArea) and as a
-// nestable container created from LispBM via qt-add-container.
 class QLbmContainerWidget : public QLbmWidget {
   Q_OBJECT
 public:
@@ -41,7 +38,7 @@ public:
 
   QLbmLayout   layoutType() const { return m_layoutType; }
 
-  // Lazily-created exclusive button group for radio buttons added to this container.
+  // Lazily-created, shared by all radio buttons added to this container.
   QButtonGroup *radioGroup();
 
 private:
