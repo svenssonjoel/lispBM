@@ -19,6 +19,7 @@
 
 #include <QPainter>
 #include <QPaintEvent>
+#include <QSizePolicy>
 
 QLbmDisplayWidget::QLbmDisplayWidget(int width, int height, QWidget *parent)
   : QLbmWidget(parent)
@@ -26,7 +27,7 @@ QLbmDisplayWidget::QLbmDisplayWidget(int width, int height, QWidget *parent)
   , m_displayWidth(width)
   , m_displayHeight(height) {
   m_image.fill(Qt::black);
-  setFixedSize(width, height);
+  setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
 
 QSize QLbmDisplayWidget::sizeHint() const {

@@ -22,6 +22,7 @@
 
 class QBoxLayout;
 class QGridLayout;
+class QButtonGroup;
 
 enum class QLbmLayout { VBox, HBox, Grid };
 
@@ -38,12 +39,16 @@ public:
   void addChildWidgetAt(QLbmWidget *child, int row, int col); // grid only
   void removeChildWidget(QLbmWidget *child);
 
-  QLbmLayout layoutType() const { return m_layoutType; }
+  QLbmLayout   layoutType() const { return m_layoutType; }
+
+  // Lazily-created exclusive button group for radio buttons added to this container.
+  QButtonGroup *radioGroup();
 
 private:
-  QBoxLayout  *m_boxLayout  = nullptr;
-  QGridLayout *m_gridLayout = nullptr;
-  QLbmLayout   m_layoutType;
+  QBoxLayout   *m_boxLayout   = nullptr;
+  QGridLayout  *m_gridLayout  = nullptr;
+  QButtonGroup *m_radioGroup  = nullptr;
+  QLbmLayout    m_layoutType;
 };
 
 #endif

@@ -20,6 +20,21 @@
 #include "QLispBM.h"
 #include "QLbmContainerWidget.h"
 
+extern "C" {
+#include "lispbm.h"
+#include "eval_cps.h"
+}
+
+static lbm_value ext_print(lbm_value *args, lbm_uint argn) {
+  char buf[256];
+  for (lbm_uint i = 0; i < argn; i++) {
+    lbm_print_value(buf, sizeof(buf), args[i]);
+    lbm_printf_callback("%s%s", buf, i < argn - 1 ? " " : "");
+  }
+  lbm_printf_callback("\n");
+  return ENC_SYM_TRUE;
+}
+
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSplitter>
@@ -40,6 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
   m_lbmWidget = new QLbmContainerWidget(this);
   m_lbm->setWidget(m_lbmWidget);
   m_lbm->init();
+  m_lbm->addExtension("print", ext_print);
   m_lbm->start();
 
   connect(m_lbm, &QLispBM::output,        this, &MainWindow::onLbmOutput);

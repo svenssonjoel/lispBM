@@ -21,18 +21,27 @@
 #include "QLbmDisplayWidget.h"
 #include "QLbmButtonWidget.h"
 #include "QLbmStretchWidget.h"
+#include "QLbmCheckboxWidget.h"
+#include "QLbmRadioWidget.h"
+#include "QLbmSpinboxIWidget.h"
+#include "QLbmSpinboxFWidget.h"
+#include "QLbmTextfieldWidget.h"
 #include "QLispBM.h"
 #include "QLbmValue.h"
 
 #include <QMetaObject>
 #include <QImage>
 #include <QHash>
+#include <QButtonGroup>
+#include <QRadioButton>
 
 extern "C" {
 #include "lispbm.h"
 #include "heap.h"
 #include "extensions/display_extensions.h"
 }
+
+#include <cstring>
 
 // ---------------------------------------------------------------------------
 // Module state — single registry for all LBM-managed widgets
@@ -82,6 +91,8 @@ struct QtWidgetAttrs {
   int min_width  = -1;
   int max_height = -1;
   int min_height = -1;
+  int pos_x      = -1;  // grid column (-1 = auto)
+  int pos_y      = -1;  // grid row    (-1 = auto)
 };
 
 static QtWidgetAttrs parseAttrs(lbm_value *args, lbm_uint argn, lbm_uint start) {
@@ -110,8 +121,20 @@ static QtWidgetAttrs parseAttrs(lbm_value *args, lbm_uint argn, lbm_uint start) 
       a.max_height = (int)lbm_dec_as_i32(lbm_car(val));
     else if (strcmp(key, "min-height") == 0 && lbm_is_cons(val))
       a.min_height = (int)lbm_dec_as_i32(lbm_car(val));
+    else if (strcmp(key, "pos-x") == 0 && lbm_is_cons(val))
+      a.pos_x = (int)lbm_dec_as_i32(lbm_car(val));
+    else if (strcmp(key, "pos-y") == 0 && lbm_is_cons(val))
+      a.pos_y = (int)lbm_dec_as_i32(lbm_car(val));
   }
   return a;
+}
+
+static void addToContainer(QLbmContainerWidget *container, QLbmWidget *child,
+                           const QtWidgetAttrs &attrs) {
+  if (attrs.pos_x >= 0 && attrs.pos_y >= 0)
+    container->addChildWidgetAt(child, attrs.pos_y, attrs.pos_x);
+  else
+    container->addChildWidget(child);
 }
 
 static void applyAttrs(QLbmWidget *w, const QtWidgetAttrs &a) {
@@ -181,7 +204,7 @@ static int createDisplay(QLbmContainerWidget *container, int w, int h,
     auto *display = new QLbmDisplayWidget(w, h, container);
     applyAttrs(display, attrs);
     handle = registerWidget(display);
-    container->addChildWidget(display);
+    addToContainer(container, display, attrs);
   }, Qt::BlockingQueuedConnection);
 
   if (handle < 0) return -1;
@@ -198,7 +221,7 @@ static int createButton(QLbmContainerWidget *container, const QString &label,
     auto *btn = new QLbmButtonWidget(label, handle, container);
     applyAttrs(btn, attrs);
     s_widgets.insert(handle, btn);
-    container->addChildWidget(btn);
+    addToContainer(container, btn, attrs);
     QObject::connect(btn, &QLbmButtonWidget::clicked, [](int h) {
       if (QLispBM::instance()) {
         QLispBM::instance()->sendEvent(
@@ -217,7 +240,7 @@ static int createContainer(QLbmContainerWidget *parent, QLbmLayout layout,
     auto *container = new QLbmContainerWidget(layout, parent);
     applyAttrs(container, attrs);
     handle = registerWidget(container);
-    parent->addChildWidget(container);
+    addToContainer(parent, container, attrs);
   }, Qt::BlockingQueuedConnection);
   return handle;
 }
@@ -229,7 +252,110 @@ static int createStretchInner(QLbmContainerWidget *container, Qt::Orientation or
     auto *stretch = new QLbmStretchWidget(orientation, container);
     applyAttrs(stretch, attrs);
     handle = registerWidget(stretch);
-    container->addChildWidget(stretch);
+    addToContainer(container, stretch, attrs);
+  }, Qt::BlockingQueuedConnection);
+  return handle;
+}
+
+static int createCheckbox(QLbmContainerWidget *container, const QString &label,
+                          const QtWidgetAttrs &attrs = QtWidgetAttrs()) {
+  int handle = -1;
+  QMetaObject::invokeMethod(container, [container, label, attrs, &handle]() {
+    handle = s_nextHandle++;
+    auto *cb = new QLbmCheckboxWidget(label, handle, container);
+    applyAttrs(cb, attrs);
+    s_widgets.insert(handle, cb);
+    addToContainer(container, cb, attrs);
+    QObject::connect(cb, &QLbmCheckboxWidget::changed, [](int h, bool checked) {
+      if (QLispBM::instance())
+        QLispBM::instance()->sendEvent(
+          QLbmValue::fromList({QLbmValue::fromSymbol("checkbox-changed"),
+                               QLbmValue::fromI(h),
+                               checked ? QLbmValue::fromSymbol("t") : QLbmValue()}));
+    });
+  }, Qt::BlockingQueuedConnection);
+  return handle;
+}
+
+static int createRadio(QLbmContainerWidget *container, const QString &label,
+                       const QtWidgetAttrs &attrs = QtWidgetAttrs()) {
+  int handle = -1;
+  QMetaObject::invokeMethod(container, [container, label, attrs, &handle]() {
+    handle = s_nextHandle++;
+    auto *radio = new QLbmRadioWidget(label, handle, container);
+    applyAttrs(radio, attrs);
+    s_widgets.insert(handle, radio);
+    container->radioGroup()->addButton(radio->radioButton());
+    addToContainer(container, radio, attrs);
+    QObject::connect(radio, &QLbmRadioWidget::selected, [](int h) {
+      if (QLispBM::instance())
+        QLispBM::instance()->sendEvent(
+          QLbmValue::fromList({QLbmValue::fromSymbol("radio-changed"),
+                               QLbmValue::fromI(h)}));
+    });
+  }, Qt::BlockingQueuedConnection);
+  return handle;
+}
+
+static int createSpinboxI(QLbmContainerWidget *container, int min, int max,
+                          const QtWidgetAttrs &attrs = QtWidgetAttrs()) {
+  int handle = -1;
+  QMetaObject::invokeMethod(container, [container, min, max, attrs, &handle]() {
+    handle = s_nextHandle++;
+    auto *sb = new QLbmSpinboxIWidget(min, max, handle, container);
+    applyAttrs(sb, attrs);
+    s_widgets.insert(handle, sb);
+    addToContainer(container, sb, attrs);
+    QObject::connect(sb, &QLbmSpinboxIWidget::committed, [](int h, int val) {
+      if (QLispBM::instance())
+        QLispBM::instance()->sendEvent(
+          QLbmValue::fromList({QLbmValue::fromSymbol("spinbox-changed"),
+                               QLbmValue::fromI(h),
+                               QLbmValue::fromI(val)}));
+    });
+  }, Qt::BlockingQueuedConnection);
+  return handle;
+}
+
+static int createSpinboxF(QLbmContainerWidget *container, double min, double max, double step,
+                          const QtWidgetAttrs &attrs = QtWidgetAttrs()) {
+  int handle = -1;
+  QMetaObject::invokeMethod(container, [container, min, max, step, attrs, &handle]() {
+    handle = s_nextHandle++;
+    auto *sb = new QLbmSpinboxFWidget(min, max, step, handle, container);
+    applyAttrs(sb, attrs);
+    s_widgets.insert(handle, sb);
+    addToContainer(container, sb, attrs);
+    QObject::connect(sb, &QLbmSpinboxFWidget::committed, [](int h, double val) {
+      if (QLispBM::instance())
+        QLispBM::instance()->sendEvent(
+          QLbmValue::fromList({QLbmValue::fromSymbol("spinbox-changed"),
+                               QLbmValue::fromI(h),
+                               QLbmValue::fromFloat((float)val)}));
+    });
+  }, Qt::BlockingQueuedConnection);
+  return handle;
+}
+
+static int createTextfield(QLbmContainerWidget *container, const QString &placeholder,
+                           const QtWidgetAttrs &attrs = QtWidgetAttrs()) {
+  int handle = -1;
+  QMetaObject::invokeMethod(container, [container, placeholder, attrs, &handle]() {
+    handle = s_nextHandle++;
+    auto *tf = new QLbmTextfieldWidget(placeholder, handle, container);
+    applyAttrs(tf, attrs);
+    s_widgets.insert(handle, tf);
+    addToContainer(container, tf, attrs);
+    QObject::connect(tf, &QLbmTextfieldWidget::committed, [](int h, const QString &text) {
+      if (QLispBM::instance()) {
+        QByteArray ba = text.toUtf8();
+        ba.append('\0');
+        QLispBM::instance()->sendEvent(
+          QLbmValue::fromList({QLbmValue::fromSymbol("textfield-commit"),
+                               QLbmValue::fromI(h),
+                               QLbmValue::fromByteArray(ba)}));
+      }
+    });
   }, Qt::BlockingQueuedConnection);
   return handle;
 }
@@ -464,6 +590,219 @@ static lbm_value ext_qt_widget_remove(lbm_value *args, lbm_uint argn) {
 }
 
 // ---------------------------------------------------------------------------
+// (qt-widget-add-checkbox container-handle label) -> handle
+
+static lbm_value ext_qt_widget_add_checkbox(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
+    return ENC_SYM_TERROR;
+
+  int ch = (int)lbm_dec_as_i32(args[0]);
+  QLbmContainerWidget *container = getContainer(ch);
+  if (!container) {
+    lbm_set_error_reason("qt-widget-add-checkbox: invalid container handle");
+    return ENC_SYM_EERROR;
+  }
+  lbm_array_header_t *arr = lbm_dec_array_r(args[1]);
+  if (!arr) return ENC_SYM_TERROR;
+  QString label = QString::fromUtf8((const char *)arr->data);
+
+  int handle = createCheckbox(container, label, parseAttrs(args, argn, 2));
+  return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
+}
+
+// ---------------------------------------------------------------------------
+// (qt-widget-add-radio container-handle label) -> handle
+
+static lbm_value ext_qt_widget_add_radio(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
+    return ENC_SYM_TERROR;
+
+  int ch = (int)lbm_dec_as_i32(args[0]);
+  QLbmContainerWidget *container = getContainer(ch);
+  if (!container) {
+    lbm_set_error_reason("qt-widget-add-radio: invalid container handle");
+    return ENC_SYM_EERROR;
+  }
+  lbm_array_header_t *arr = lbm_dec_array_r(args[1]);
+  if (!arr) return ENC_SYM_TERROR;
+  QString label = QString::fromUtf8((const char *)arr->data);
+
+  int handle = createRadio(container, label, parseAttrs(args, argn, 2));
+  return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
+}
+
+// ---------------------------------------------------------------------------
+// (qt-widget-add-spinbox-i container-handle min max) -> handle
+
+static lbm_value ext_qt_widget_add_spinbox_i(lbm_value *args, lbm_uint argn) {
+  if (argn < 3 || !lbm_is_number(args[0]) ||
+      !lbm_is_number(args[1]) || !lbm_is_number(args[2]))
+    return ENC_SYM_TERROR;
+
+  int ch = (int)lbm_dec_as_i32(args[0]);
+  QLbmContainerWidget *container = getContainer(ch);
+  if (!container) {
+    lbm_set_error_reason("qt-widget-add-spinbox-i: invalid container handle");
+    return ENC_SYM_EERROR;
+  }
+  int min = (int)lbm_dec_as_i32(args[1]);
+  int max = (int)lbm_dec_as_i32(args[2]);
+
+  int handle = createSpinboxI(container, min, max, parseAttrs(args, argn, 3));
+  return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
+}
+
+// ---------------------------------------------------------------------------
+// (qt-widget-add-spinbox-f container-handle min max step) -> handle
+
+static lbm_value ext_qt_widget_add_spinbox_f(lbm_value *args, lbm_uint argn) {
+  if (argn < 4 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) ||
+      !lbm_is_number(args[2]) || !lbm_is_number(args[3]))
+    return ENC_SYM_TERROR;
+
+  int ch = (int)lbm_dec_as_i32(args[0]);
+  QLbmContainerWidget *container = getContainer(ch);
+  if (!container) {
+    lbm_set_error_reason("qt-widget-add-spinbox-f: invalid container handle");
+    return ENC_SYM_EERROR;
+  }
+  double min  = (double)lbm_dec_as_float(args[1]);
+  double max  = (double)lbm_dec_as_float(args[2]);
+  double step = (double)lbm_dec_as_float(args[3]);
+
+  int handle = createSpinboxF(container, min, max, step, parseAttrs(args, argn, 4));
+  return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
+}
+
+// ---------------------------------------------------------------------------
+// (qt-widget-add-textfield container-handle [placeholder]) -> handle
+
+static lbm_value ext_qt_widget_add_textfield(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+
+  int ch = (int)lbm_dec_as_i32(args[0]);
+  QLbmContainerWidget *container = getContainer(ch);
+  if (!container) {
+    lbm_set_error_reason("qt-widget-add-textfield: invalid container handle");
+    return ENC_SYM_EERROR;
+  }
+
+  QString placeholder;
+  lbm_uint attr_start = 1;
+  if (argn >= 2 && lbm_is_array_r(args[1])) {
+    lbm_array_header_t *arr = lbm_dec_array_r(args[1]);
+    if (arr) placeholder = QString::fromUtf8((const char *)arr->data);
+    attr_start = 2;
+  }
+
+  int handle = createTextfield(container, placeholder, parseAttrs(args, argn, attr_start));
+  return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
+}
+
+// ---------------------------------------------------------------------------
+// (qt-widget-get-value handle) -> t/nil | int | float | byte-array
+
+static lbm_value ext_qt_widget_get_value(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmWidget *w = s_widgets.value(handle, nullptr);
+  if (!w) {
+    lbm_set_error_reason("qt-widget-get-value: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+
+  if (auto *cb = qobject_cast<QLbmCheckboxWidget *>(w)) {
+    bool v = false;
+    QMetaObject::invokeMethod(cb, [cb, &v]() { v = cb->getValue(); },
+                              Qt::BlockingQueuedConnection);
+    return v ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  }
+  if (auto *rb = qobject_cast<QLbmRadioWidget *>(w)) {
+    bool v = false;
+    QMetaObject::invokeMethod(rb, [rb, &v]() { v = rb->getValue(); },
+                              Qt::BlockingQueuedConnection);
+    return v ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  }
+  if (auto *sb = qobject_cast<QLbmSpinboxIWidget *>(w)) {
+    int v = 0;
+    QMetaObject::invokeMethod(sb, [sb, &v]() { v = sb->getValue(); },
+                              Qt::BlockingQueuedConnection);
+    return lbm_enc_i(v);
+  }
+  if (auto *sb = qobject_cast<QLbmSpinboxFWidget *>(w)) {
+    double v = 0.0;
+    QMetaObject::invokeMethod(sb, [sb, &v]() { v = sb->getValue(); },
+                              Qt::BlockingQueuedConnection);
+    return lbm_enc_float((float)v);
+  }
+  if (auto *tf = qobject_cast<QLbmTextfieldWidget *>(w)) {
+    QString v;
+    QMetaObject::invokeMethod(tf, [tf, &v]() { v = tf->getValue(); },
+                              Qt::BlockingQueuedConnection);
+    QByteArray ba = v.toUtf8();
+    lbm_value arr;
+    if (!lbm_heap_allocate_array(&arr, (lbm_uint)(ba.size() + 1))) return ENC_SYM_MERROR;
+    lbm_array_header_t *ahdr = lbm_dec_array_rw(arr);
+    if (!ahdr) return ENC_SYM_MERROR;
+    memcpy(ahdr->data, ba.constData(), (size_t)ba.size());
+    ((uint8_t *)ahdr->data)[ba.size()] = 0;
+    return arr;
+  }
+
+  lbm_set_error_reason("qt-widget-get-value: widget type has no gettable value");
+  return ENC_SYM_EERROR;
+}
+
+// ---------------------------------------------------------------------------
+// (qt-widget-set-value handle value) -> t
+
+static lbm_value ext_qt_widget_set_value(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmWidget *w = s_widgets.value(handle, nullptr);
+  if (!w) {
+    lbm_set_error_reason("qt-widget-set-value: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+
+  if (auto *cb = qobject_cast<QLbmCheckboxWidget *>(w)) {
+    bool v = !lbm_is_symbol_nil(args[1]);
+    QMetaObject::invokeMethod(cb, [cb, v]() { cb->setValue(v); }, Qt::QueuedConnection);
+    return ENC_SYM_TRUE;
+  }
+  if (auto *rb = qobject_cast<QLbmRadioWidget *>(w)) {
+    bool v = !lbm_is_symbol_nil(args[1]);
+    QMetaObject::invokeMethod(rb, [rb, v]() { rb->setValue(v); }, Qt::QueuedConnection);
+    return ENC_SYM_TRUE;
+  }
+  if (auto *sb = qobject_cast<QLbmSpinboxIWidget *>(w)) {
+    if (!lbm_is_number(args[1])) return ENC_SYM_TERROR;
+    int v = (int)lbm_dec_as_i32(args[1]);
+    QMetaObject::invokeMethod(sb, [sb, v]() { sb->setValue(v); }, Qt::QueuedConnection);
+    return ENC_SYM_TRUE;
+  }
+  if (auto *sb = qobject_cast<QLbmSpinboxFWidget *>(w)) {
+    if (!lbm_is_number(args[1])) return ENC_SYM_TERROR;
+    double v = (double)lbm_dec_as_float(args[1]);
+    QMetaObject::invokeMethod(sb, [sb, v]() { sb->setValue(v); }, Qt::QueuedConnection);
+    return ENC_SYM_TRUE;
+  }
+  if (auto *tf = qobject_cast<QLbmTextfieldWidget *>(w)) {
+    if (!lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
+    lbm_array_header_t *arr = lbm_dec_array_r(args[1]);
+    if (!arr) return ENC_SYM_TERROR;
+    QString v = QString::fromUtf8((const char *)arr->data);
+    QMetaObject::invokeMethod(tf, [tf, v]() { tf->setValue(v); }, Qt::QueuedConnection);
+    return ENC_SYM_TRUE;
+  }
+
+  lbm_set_error_reason("qt-widget-set-value: widget type has no settable value");
+  return ENC_SYM_EERROR;
+}
+
+// ---------------------------------------------------------------------------
 
 void lbm_qt_extensions_init(void) {
   lbm_add_extension("qt-root",                  ext_qt_root);
@@ -476,4 +815,11 @@ void lbm_qt_extensions_init(void) {
   lbm_add_extension("qt-widget-set-max-width",  ext_qt_widget_set_max_width);
   lbm_add_extension("qt-widget-set-min-width",  ext_qt_widget_set_min_width);
   lbm_add_extension("qt-widget-remove",         ext_qt_widget_remove);
+  lbm_add_extension("qt-widget-add-checkbox",   ext_qt_widget_add_checkbox);
+  lbm_add_extension("qt-widget-add-radio",      ext_qt_widget_add_radio);
+  lbm_add_extension("qt-widget-add-spinbox-i",  ext_qt_widget_add_spinbox_i);
+  lbm_add_extension("qt-widget-add-spinbox-f",  ext_qt_widget_add_spinbox_f);
+  lbm_add_extension("qt-widget-add-textfield",  ext_qt_widget_add_textfield);
+  lbm_add_extension("qt-widget-get-value",      ext_qt_widget_get_value);
+  lbm_add_extension("qt-widget-set-value",      ext_qt_widget_set_value);
 }

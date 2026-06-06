@@ -27,15 +27,41 @@ void lbm_qt_extensions_set_widget(QLbmContainerWidget *widget);
 // Register all qt-* extensions with the LispBM runtime.
 // Call after lbm_init() and before lbm_run_eval().
 //
-// Extensions registered:
-//   (qt-add-display w h)                   -> handle
-//   (qt-set-display handle)                -> t
-//   (qt-add-button label)                  -> handle
-//   (qt-set-button-label handle label)     -> t
-//   (qt-add-container layout-sym)          -> handle  (layout-sym: 'vbox 'hbox 'grid)
-//   (qt-widget-add-display  ch w h)        -> handle  (add display to container ch)
-//   (qt-widget-add-button   ch label)      -> handle  (add button to container ch)
-//   (qt-widget-add-container ch layout)    -> handle  (add container to container ch)
+// Layout / structure:
+//   (qt-root)                                        -> handle
+//   (qt-widget-add-container  ch layout)             -> handle  layout: 'vbox 'hbox 'grid
+//   (qt-widget-add-stretch    ch ['horizontal])      -> handle
+//   (qt-widget-remove         ch)                    -> t
+//   (qt-widget-set-max-width  ch w)                  -> t
+//   (qt-widget-set-min-width  ch w)                  -> t
+//
+// Display:
+//   (qt-widget-add-display    ch w h)                -> handle
+//   (qt-set-display           handle)                -> t
+//
+// Input widgets:
+//   (qt-widget-add-button     ch label)              -> handle
+//   (qt-set-button-label      handle label)          -> t
+//   (qt-widget-add-checkbox   ch label)              -> handle
+//   (qt-widget-add-radio      ch label)              -> handle
+//   (qt-widget-add-spinbox-i  ch min max)            -> handle
+//   (qt-widget-add-spinbox-f  ch min max step)       -> handle
+//   (qt-widget-add-textfield  ch [placeholder])      -> handle
+//
+// Value access (checkbox, radio, spinbox-i/f, textfield):
+//   (qt-widget-get-value      handle)                -> t/nil | int | float | byte-array
+//   (qt-widget-set-value      handle val)            -> t
+//
+// Trailing attribute args accepted by all add-* calls:
+//   '(max-width N)  '(min-width N)  '(max-height N)  '(min-height N)
+//   '(pos-x N)      '(pos-y N)   (grid placement; ignored for non-grid containers)
+//
+// Events sent to the LispBM event handler:
+//   (button-pressed   handle)
+//   (checkbox-changed handle t/nil)
+//   (radio-changed    handle)
+//   (spinbox-changed  handle value)
+//   (textfield-commit handle text)
 void lbm_qt_extensions_init(void);
 
 #endif

@@ -20,6 +20,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
+#include <QButtonGroup>
 
 QLbmContainerWidget::QLbmContainerWidget(QWidget *parent)
   : QLbmContainerWidget(QLbmLayout::VBox, parent) {}
@@ -55,6 +56,12 @@ void QLbmContainerWidget::addChildWidgetAt(QLbmWidget *child, int row, int col) 
   if (m_gridLayout) {
     m_gridLayout->addWidget(child, row, col);
   }
+}
+
+QButtonGroup *QLbmContainerWidget::radioGroup() {
+  if (!m_radioGroup)
+    m_radioGroup = new QButtonGroup(this);
+  return m_radioGroup;
 }
 
 void QLbmContainerWidget::removeChildWidget(QLbmWidget *child) {
