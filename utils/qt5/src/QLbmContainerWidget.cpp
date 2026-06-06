@@ -56,3 +56,11 @@ void QLbmContainerWidget::addChildWidgetAt(QLbmWidget *child, int row, int col) 
     m_gridLayout->addWidget(child, row, col);
   }
 }
+
+void QLbmContainerWidget::removeChildWidget(QLbmWidget *child) {
+  if (m_boxLayout)
+    m_boxLayout->removeWidget(child);
+  else if (m_gridLayout)
+    m_gridLayout->removeWidget(child);
+  child->deleteLater();
+}

@@ -40,9 +40,8 @@ extern "C" {
 static QLbmContainerWidget           *s_root          = nullptr;
 static int                            s_rootHandle    = -1;
 static int                            s_nextHandle    = 0;
-static QHash<int, QLbmWidget *>       s_widgets;        // all LBM-managed widgets
-static QHash<int, QLbmDisplayWidget*> s_displayWidgets; // display-specific for render
-static QLbmDisplayWidget             *s_activeDisplay  = nullptr;
+static QHash<int, QLbmWidget *>       s_widgets;       // all LBM-managed widgets
+static QLbmDisplayWidget             *s_activeDisplay = nullptr;
 
 void lbm_qt_extensions_set_widget(QLbmContainerWidget *widget) {
   s_root       = widget;
@@ -182,12 +181,11 @@ static int createDisplay(QLbmContainerWidget *container, int w, int h,
     auto *display = new QLbmDisplayWidget(w, h, container);
     applyAttrs(display, attrs);
     handle = registerWidget(display);
-    s_displayWidgets.insert(handle, display);
     container->addChildWidget(display);
   }, Qt::BlockingQueuedConnection);
 
   if (handle < 0) return -1;
-  s_activeDisplay = s_displayWidgets.value(handle, nullptr);
+  s_activeDisplay = qobject_cast<QLbmDisplayWidget*>(s_widgets.value(handle, nullptr));
   lbm_display_extensions_set_callbacks(qt_render_image, nullptr, nullptr);
   return handle;
 }
@@ -255,7 +253,7 @@ static lbm_value ext_qt_set_display(lbm_value *args, lbm_uint argn) {
   if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
 
   int handle = (int)lbm_dec_as_i32(args[0]);
-  QLbmDisplayWidget *d = s_displayWidgets.value(handle, nullptr);
+  QLbmDisplayWidget *d = qobject_cast<QLbmDisplayWidget*>(s_widgets.value(handle, nullptr));
   if (!d) {
     lbm_set_error_reason("qt-set-display: invalid handle");
     return ENC_SYM_EERROR;
@@ -417,6 +415,55 @@ static lbm_value ext_qt_widget_set_min_width(lbm_value *args, lbm_uint argn) {
 }
 
 // ---------------------------------------------------------------------------
+// Remove widget and all its LBM-managed descendants from the registry.
+// Must be called before deleteLater() so parent relationships are still intact.
+
+static void removeFromRegistry(QLbmWidget *w) {
+  QList<int> toRemove;
+  for (auto it = s_widgets.begin(); it != s_widgets.end(); ++it) {
+    QLbmWidget *candidate = it.value();
+    if (candidate == w || w->isAncestorOf(candidate))
+      toRemove.append(it.key());
+  }
+  for (int h : toRemove)
+    s_widgets.remove(h);
+  if (s_activeDisplay && (s_activeDisplay == w ||
+                          w->isAncestorOf(s_activeDisplay)))
+    s_activeDisplay = nullptr;
+}
+
+// ---------------------------------------------------------------------------
+// (qt-widget-remove handle) -> t
+
+static lbm_value ext_qt_widget_remove(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  if (handle == s_rootHandle) {
+    lbm_set_error_reason("qt-widget-remove: cannot remove root widget");
+    return ENC_SYM_EERROR;
+  }
+  QLbmWidget *w = s_widgets.value(handle, nullptr);
+  if (!w) {
+    lbm_set_error_reason("qt-widget-remove: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  QLbmContainerWidget *parent = qobject_cast<QLbmContainerWidget*>(w->parentWidget());
+  if (!parent) {
+    lbm_set_error_reason("qt-widget-remove: widget has no container parent");
+    return ENC_SYM_EERROR;
+  }
+
+  removeFromRegistry(w);
+
+  QMetaObject::invokeMethod(parent, [parent, w]() {
+    parent->removeChildWidget(w);
+  }, Qt::BlockingQueuedConnection);
+
+  return ENC_SYM_TRUE;
+}
+
+// ---------------------------------------------------------------------------
 
 void lbm_qt_extensions_init(void) {
   lbm_add_extension("qt-root",                  ext_qt_root);
@@ -428,4 +475,5 @@ void lbm_qt_extensions_init(void) {
   lbm_add_extension("qt-widget-add-stretch",    ext_qt_widget_add_stretch);
   lbm_add_extension("qt-widget-set-max-width",  ext_qt_widget_set_max_width);
   lbm_add_extension("qt-widget-set-min-width",  ext_qt_widget_set_min_width);
+  lbm_add_extension("qt-widget-remove",         ext_qt_widget_remove);
 }
