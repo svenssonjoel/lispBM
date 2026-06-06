@@ -9,11 +9,14 @@
 
 (def tf (qt-widget-add-textfield root "Enter name..."))
 
+(def cb (qt-widget-add-checkbox root "Enable feature"))
+
 (defun on-event ()
   { (recv
       ((radio-changed    (? h))       (print h))
       ((spinbox-changed  (? h) (? v)) (print h v))
-      ((textfield-commit (? h) (? s)) (print h s)))
+      ((textfield-commit (? h) (? s)) (print h s))
+      ((checkbox-changed (? h) (? v)) (print h v)))
     (on-event) })
 
 (event-register-handler (spawn on-event))
