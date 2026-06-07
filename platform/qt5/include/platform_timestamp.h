@@ -25,6 +25,7 @@ extern "C" {
 #endif
 
 void lbm_timestamp_cacher(void *v);
+void lbm_timestamp_cacher_stop(void);
 
 uint32_t lbm_timestamp(void);
 

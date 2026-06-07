@@ -176,6 +176,8 @@ void QLispBM::stop() {
   if (!m_running) return;
   lbm_kill_eval();
   lbm_thread_destroy(&m_evalThread);
+  lbm_timestamp_cacher_stop();
+  lbm_thread_destroy(&m_timestampThread);
   m_running = false;
   emit runningChanged(false);
 }

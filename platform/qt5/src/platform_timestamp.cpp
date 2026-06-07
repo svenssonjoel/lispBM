@@ -21,16 +21,22 @@
 #include <QAtomicInteger>
 
 static QAtomicInteger<quint32> timestamp_cache(0);
+static QAtomicInteger<int>     timestamp_running(0);
 static QElapsedTimer           elapsed_timer;
 
 void lbm_timestamp_cacher(void *v) {
   (void)v;
+  timestamp_running.storeRelease(1);
   elapsed_timer.start();
-  while (true) {
+  while (timestamp_running.loadAcquire()) {
     quint32 us = static_cast<quint32>(elapsed_timer.nsecsElapsed() / 1000);
     timestamp_cache.storeRelease(us);
     QThread::usleep(100);
   }
+}
+
+void lbm_timestamp_cacher_stop(void) {
+  timestamp_running.storeRelease(0);
 }
 
 uint32_t lbm_timestamp(void) {
