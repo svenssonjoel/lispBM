@@ -133,6 +133,12 @@ ifneq (,$(filter ft232h_nand, $(FEATURES)))
 	REPL_SRC += ft232h_w25n01.c
 endif
 
+# MCP (Model Context Protocol) stdio server
+ifneq (,$(filter mcp, $(FEATURES)))
+	CCFLAGS  += -DWITH_MCP -I../utils/mcp
+	REPL_SRC += ../utils/mcp/lbm_mcp.c ../utils/mcp/cJSON.c
+endif
+
 # -Wjump-misses-init
 # -fsanitize=address
 
@@ -153,6 +159,7 @@ help:
 	@echo "sdl      - Adds SDL support for graphics."
 	@echo "freetype - Use libfreetype for font preprocessing."
 	@echo "coverage  - Build with coverage information collection."
+	@echo "mcp       - Build with MCP (Model Context Protocol) server support. Adds --mcp flag."
 	@echo "debug     - Build with debug symbols."
 	@echo "test_nand - Build FT4232H + W25N01GVZEIG NAND driver test (requires libftdi1-dev)."
 	@echo ""
@@ -162,7 +169,13 @@ help:
 install:
 	@if [ ! -f repl ]; then echo "Error: repl not built. Run 'make help' for information." ; exit 1; fi
 	mkdir -p ~/.local/bin
-	cp repl ~/.local/bin/lbm
+	@if echo "$(FEATURES)" | grep -qw "64"; then \
+		cp repl ~/.local/bin/lbm64; \
+		echo "Installed as lbm64"; \
+	else \
+		cp repl ~/.local/bin/lbm; \
+		echo "Installed as lbm"; \
+	fi
 	cp shlbm ~/.local/bin/shlbm
 	chmod a+x ~/.local/bin/shlbm
 

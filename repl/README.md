@@ -95,12 +95,64 @@ brew install libpng readline
 To build, call `make` as normal. The MacOS version automatically
 builds the 64 bit version. Modern macs do not support 32Bit binaries.
 
-## install as lbm
+## Install
 
-After building do:
+After building, run:
 
 ```
 make install
 ```
 
-to install the repl as `lbm` under ~/.local/bin
+A 32bit build installs as `lbm` and a 64bit build installs as `lbm64`, both
+under `~/.local/bin`. You can have both installed side by side.
+
+```
+make install                  # installs as lbm   (32bit)
+make install FEATURES="64"    # installs as lbm64 (64bit)
+```
+
+## MCP feature flag
+
+The `mcp` feature flag adds `--mcp` mode to the repl, which starts a
+[Model Context Protocol](https://modelcontextprotocol.io) server on stdio.
+
+```
+make FEATURES="64 mcp"
+```
+
+Before building with `mcp`, place `cJSON.c` and `cJSON.h` from
+https://github.com/DaveGamble/cJSON into `utils/mcp/`.
+
+## Connecting an AI assistant
+
+With the `mcp` feature built and installed, an AI assistant such as
+[Claude Code](https://claude.ai/code) can connect to LispBM as a live tool.
+
+From your project root, register the servers with Claude Code using the CLI.
+If both a 32bit and a 64bit build are installed, register both so the AI can
+compare behaviour across word sizes:
+
+```
+claude mcp add --scope project lbm -- lbm --mcp
+claude mcp add --scope project lbm64 -- lbm64 --mcp
+```
+
+This writes a `.mcp.json` file in your project root. If only one build is
+installed, run only the relevant command.
+
+Claude Code will spawn the repl at session start and expose the following tools:
+
+| Tool           | Description                                                    |
+|----------------|----------------------------------------------------------------|
+| `eval`         | Evaluate a LispBM expression. Definitions persist in session.  |
+| `load_file`    | Load and evaluate a `.lbm` source file.                        |
+| `list_docs`    | List available reference documentation files.                  |
+| `get_doc`      | Return a full reference document (e.g. `lbmref`, `arrayref`).  |
+| `search_docs`  | Search all docs by section heading or content.                 |
+| `get_caveats`  | Return notes on how LispBM differs from Scheme and Common Lisp.|
+
+The `get_caveats` tool reads `doc/lbm-ai-notes.md`. Add entries there whenever
+the AI makes a recurring mistake.
+
+The doc path defaults to `../doc` relative to the working directory and can be
+overridden with `--mcp-doc-path=PATH`.

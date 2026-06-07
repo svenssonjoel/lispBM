@@ -91,6 +91,10 @@
 #include "platform_timestamp.h"
 #include "platform_thread.h"
 
+#ifdef WITH_MCP
+#include "lbm_mcp.h"
+#endif
+
 // things directly copied from VESC_EXPRESS
 #include "packet.h"
 #include "comm_packet_id.h"
@@ -220,7 +224,8 @@ void exit_on_alloc_failure(const void *mem) {
 #define DEFAULT_VESCIF_TCP_PORT 65107
 #define DEFAULT_VESCIF_TCP_PROGRAM_FLASH_SIZE 1024 * 1024
 
-static bool vesctcp = false;
+static bool vesctcp  = false;
+static bool mcp_mode = false;
 static uint16_t vesctcp_port = (uint16_t)DEFAULT_VESCIF_TCP_PORT;
 static volatile bool vesctcp_server_in_use = false;
 static const char *vesctcp_in_use = "Error: Server is in use\n";
@@ -632,6 +637,8 @@ void sym_it(const char *str) {
 
 #define SHEBANG_MODE         0x040D
 #define SCRIPT_ARGS_START    0x040E
+#define MCP_MODE             0x040F
+#define MCP_DOC_PATH         0x0410
 
 bool use_bldc_stubs = false;
 bool use_vesc_express_stubs = false;
@@ -657,6 +664,8 @@ struct option options[] = {
   {"vesc_express_stubs", no_argument, NULL, VESC_EXPRESS_STUBS},
   {"shebang", required_argument, NULL, SHEBANG_MODE},
   {"script_args_start", required_argument, NULL, SCRIPT_ARGS_START},
+  {"mcp", no_argument, NULL, MCP_MODE},
+  {"mcp-doc-path", required_argument, NULL, MCP_DOC_PATH},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -781,6 +790,8 @@ void parse_opts(int argc, char **argv) {
              "                                      source files specified with --src/-s\n");
       printf("    --load_image=FILEPATH             load an image-file at startup\n");
       printf("\n");
+      printf("    --mcp                             Start an MCP (Model Context Protocol) server\n"\
+             "                                      on stdio for AI tool integration.\n");
       printf("    --vesctcp                         Open a TCP server talking the VESC\n"\
              "                                      protocol on port %d\n", DEFAULT_VESCIF_TCP_PORT);
       printf("    --vesctcp_port=PORT               open the TCP server on this port instead.\n");
@@ -875,6 +886,15 @@ void parse_opts(int argc, char **argv) {
       break;
     case SCRIPT_ARGS_START:
       script_args_start_index = (int)atoi((char*)optarg);
+      break;
+    case MCP_MODE:
+      mcp_mode = true;
+      silent_mode = true;
+      break;
+    case MCP_DOC_PATH:
+#ifdef WITH_MCP
+      lbm_mcp_set_doc_path((char*)optarg);
+#endif
       break;
     default:
       break;
@@ -2711,6 +2731,11 @@ int main(int argc, char **argv) {
   // TODO: Should the startup procedure work together with the VESC tcp serv?
   startup_procedure(argc,argv);
 
+#ifdef WITH_MCP
+  if (mcp_mode) {
+    lbm_mcp_run();
+  } else
+#endif
   if (vesctcp) {
 #ifdef LBM_WIN
     lbm_thread_t broadcast_thread;
