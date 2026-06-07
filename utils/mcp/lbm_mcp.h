@@ -18,10 +18,26 @@
 #ifndef LBM_MCP_H_
 #define LBM_MCP_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
 /* Override the documentation directory (default: "../doc").
  * Must be called before lbm_mcp_run if a non-default path is needed.
  */
 void lbm_mcp_set_doc_path(const char *path);
+
+/* Register a callback that performs a clean LispBM restart.
+ * The callback must reinitialise LispBM and leave the evaluator paused.
+ * lbm_mcp_run re-registers its own callbacks and resumes the evaluator.
+ */
+void lbm_mcp_set_reset_callback(bool (*cb)(void));
+
+/* Register a callback that restarts LispBM with new resource sizes.
+ * heap_cells: new heap size in cons cells (0 = keep current).
+ * memory_bytes: new flat memory size in bytes (0 = keep current).
+ * Same post-conditions as the reset callback.
+ */
+void lbm_mcp_set_reinit_callback(bool (*cb)(uint32_t heap_cells, uint32_t memory_bytes));
 
 /* Start the MCP (Model Context Protocol) stdio server.
  * Reads JSON-RPC 2.0 messages from stdin and writes responses to stdout.

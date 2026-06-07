@@ -45,6 +45,16 @@
 #define SEARCH_TOTAL_MAX   (16 * 1024)
 
 // ------------------------------------------------------------------
+// Reset / reinit callbacks (set by the host before lbm_mcp_run)
+// ------------------------------------------------------------------
+
+static bool (*reset_cb)(void)                              = NULL;
+static bool (*reinit_cb)(uint32_t heap, uint32_t mem)      = NULL;
+
+void lbm_mcp_set_reset_callback(bool (*cb)(void))                          { reset_cb  = cb; }
+void lbm_mcp_set_reinit_callback(bool (*cb)(uint32_t h, uint32_t m))       { reinit_cb = cb; }
+
+// ------------------------------------------------------------------
 // Shared eval state
 // ------------------------------------------------------------------
 
@@ -351,6 +361,51 @@ static void handle_search_docs(cJSON *id, cJSON *args) {
 }
 
 // ------------------------------------------------------------------
+// Reset / reinit handlers
+// ------------------------------------------------------------------
+
+static void restore_mcp_callbacks(void) {
+  lbm_set_ctx_done_callback(mcp_done_callback);
+  lbm_set_printf_callback(mcp_printf);
+}
+
+static void handle_reset(cJSON *id) {
+  if (!reset_cb) {
+    send_tool_result(id, "error: reset not available");
+    return;
+  }
+  bool ok = reset_cb();
+  if (ok) {
+    restore_mcp_callbacks();
+    lbm_continue_eval();
+  }
+  send_tool_result(id, ok ? "Reset OK" : "Reset failed");
+}
+
+static void handle_reinit(cJSON *id, cJSON *args) {
+  if (!reinit_cb) {
+    send_tool_result(id, "error: reinit not available");
+    return;
+  }
+  uint32_t new_heap = 0;
+  uint32_t new_mem  = 0;
+  if (args) {
+    cJSON *h = cJSON_GetObjectItem(args, "heap_cells");
+    cJSON *m = cJSON_GetObjectItem(args, "memory_bytes");
+    if (cJSON_IsNumber(h)) new_heap = (uint32_t)h->valuedouble;
+    if (cJSON_IsNumber(m)) new_mem  = (uint32_t)m->valuedouble;
+  }
+  bool ok = reinit_cb(new_heap, new_mem);
+  if (ok) {
+    restore_mcp_callbacks();
+    lbm_continue_eval();
+  }
+  char out[128];
+  snprintf(out, sizeof(out), ok ? "Reinit OK" : "Reinit failed");
+  send_tool_result(id, out);
+}
+
+// ------------------------------------------------------------------
 // MCP message handlers
 // ------------------------------------------------------------------
 
@@ -439,6 +494,41 @@ static void handle_tools_list(cJSON *id) {
               "Search all LispBM documentation by section. Returns sections whose heading or content matches the query.",
               "query", "Term or function name to search for"));
 
+  // reset — no arguments
+  cJSON *reset_tool   = cJSON_CreateObject();
+  cJSON *reset_schema = cJSON_CreateObject();
+  cJSON_AddStringToObject(reset_tool, "name", "reset");
+  cJSON_AddStringToObject(reset_tool, "description",
+    "Reset LispBM to a clean state, clearing all definitions and freeing the heap. "
+    "Memory pool size is preserved. Call (gc) after reset before allocating large buffers.");
+  cJSON_AddStringToObject(reset_schema, "type", "object");
+  cJSON_AddItemToObject(reset_schema, "properties", cJSON_CreateObject());
+  cJSON_AddItemToObject(reset_tool, "inputSchema", reset_schema);
+  cJSON_AddItemToArray(tools, reset_tool);
+
+  // reinit — two optional integer arguments
+  cJSON *reinit_tool   = cJSON_CreateObject();
+  cJSON *reinit_schema = cJSON_CreateObject();
+  cJSON *reinit_props  = cJSON_CreateObject();
+  cJSON *heap_prop     = cJSON_CreateObject();
+  cJSON *mem_prop      = cJSON_CreateObject();
+  cJSON_AddStringToObject(reinit_tool, "name", "reinit");
+  cJSON_AddStringToObject(reinit_tool, "description",
+    "Reinitialize LispBM, optionally with new resource sizes. "
+    "heap_cells sets the heap size in cons cells; memory_bytes sets the flat memory size in bytes. "
+    "Omit either parameter (or pass 0) to keep the current size. "
+    "Call (gc) after reinit before allocating large buffers.");
+  cJSON_AddStringToObject(reinit_schema, "type", "object");
+  cJSON_AddStringToObject(heap_prop, "type", "integer");
+  cJSON_AddStringToObject(heap_prop, "description", "New heap size in cons cells (0 or omit = keep current)");
+  cJSON_AddStringToObject(mem_prop, "type", "integer");
+  cJSON_AddStringToObject(mem_prop, "description", "New flat memory size in bytes (0 or omit = keep current)");
+  cJSON_AddItemToObject(reinit_props, "heap_cells", heap_prop);
+  cJSON_AddItemToObject(reinit_props, "memory_bytes", mem_prop);
+  cJSON_AddItemToObject(reinit_schema, "properties", reinit_props);
+  cJSON_AddItemToObject(reinit_tool, "inputSchema", reinit_schema);
+  cJSON_AddItemToArray(tools, reinit_tool);
+
   cJSON_AddItemToObject(result, "tools", tools);
   cJSON_AddItemToObject(resp, "result", result);
   send_json(resp);
@@ -521,6 +611,12 @@ static void handle_tools_call(cJSON *id, cJSON *params) {
   } else if (strcmp(name, "search_docs") == 0) {
     if (args_j) handle_search_docs(id, args_j);
     else send_error_response(id, -32602, "missing arguments");
+
+  } else if (strcmp(name, "reset") == 0) {
+    handle_reset(id);
+
+  } else if (strcmp(name, "reinit") == 0) {
+    handle_reinit(id, args_j);
 
   } else {
     send_error_response(id, -32601, "unknown tool");

@@ -1565,8 +1565,11 @@ static void vescif_sym_it(const char *str) {
 }
 
 
-bool vescif_restart(bool print, bool load_code, bool load_imports) {
-  bool res = false;
+// Core restart: kill threads, reinit LBM with current heap/memory sizes,
+// register all extensions. Leaves the evaluator paused.
+// done_cb and printf_cb may be NULL; caller sets them after return if needed.
+static bool restart_core(void (*done_cb)(eval_context_t *),
+                         int  (*printf_cb)(const char *, ...)) {
   if (prof_running) {
     prof_running = false;
     lbm_thread_destroy(&prof_thread);
@@ -1584,7 +1587,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   }
 
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
-  if (heap_storage == NULL) return 0;
+  if (heap_storage == NULL) return false;
 
   if (!lbm_init(heap_storage, heap_size,
                 memory, lbm_memory_size,
@@ -1593,55 +1596,42 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
                 PRINT_STACK_SIZE,
                 extensions,
                 EXTENSION_STORAGE_SIZE)) {
-    return 0;
+    return false;
   }
 
-  if (!lbm_eval_init_events(20)) {
-    return 0;
-  }
+  if (!lbm_eval_init_events(20)) return false;
 
   lbm_image_init(image_storage,
-                 (uint32_t)(image_storage_size / sizeof(uint32_t)), //sizeof(lbm_uint),
+                 (uint32_t)(image_storage_size / sizeof(uint32_t)),
                  image_write);
   image_clear();
   lbm_image_create("bepa_1");
   lbm_image_boot();
 
   lbm_set_critical_error_callback(critical);
-  lbm_set_ctx_done_callback(vesc_lbm_done_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
-  lbm_set_printf_callback(commands_printf_lisp);
+
+  if (done_cb)   lbm_set_ctx_done_callback(done_cb);
+  if (printf_cb) lbm_set_printf_callback(printf_cb);
 
   init_exts();
   lbm_add_eval_symbols();
-  lbm_add_extension("print", ext_vescif_print); // replace print
-  lbm_add_extension("import", ext_vescif_import); // dummy import
-
-  if (use_bldc_stubs) {
-    load_bldc_extensions();
-  }
-  if (use_vesc_express_stubs) {
-    load_vesc_express_extensions();
-  }
 
 #ifdef WITH_SDL
-  if (!lbm_sdl_init()) {
-    return 0;
-  }
+  if (!lbm_sdl_init()) return false;
 #endif
 
-  /* Load clean_cl library into heap */
 #ifdef CLEAN_UP_CLOSURES
   if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
     printf("Error loading a flat library\n");
-    return 1;
+    return false;
   }
 #endif
 
   if (!lbm_thread_create(&lispbm_thd, "eval", eval_thd_wrapper, NULL, LBM_THREAD_PRIO_NORMAL, 0)) {
     printf("Error creating evaluation thread\n");
-    return 0;
+    return false;
   }
   lispbm_thd_running = true;
 
@@ -1651,16 +1641,21 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
     sleep_callback(1000);
   }
 
-  /* lispif_load_vesc_extensions(); */
-  /* for (int i = 0;i < EXT_LOAD_CALLBACK_LEN;i++) { */
-  /*   if (ext_load_callbacks[i] == 0) { */
-  /*     break; */
-  /*   } */
+  return true;
+}
 
-  /*   ext_load_callbacks[i](); */
-  /* } */
+bool vescif_restart(bool print, bool load_code, bool load_imports) {
+  if (!restart_core(vesc_lbm_done_callback, commands_printf_lisp)) return false;
 
-  /* lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader); */
+  lbm_add_extension("print", ext_vescif_print);
+  lbm_add_extension("import", ext_vescif_import);
+
+  if (use_bldc_stubs) {
+    load_bldc_extensions();
+  }
+  if (use_vesc_express_stubs) {
+    load_vesc_express_extensions();
+  }
 
   char *code_data = (char*)vescif_program_flash+8;
   size_t code_len = vescif_program_flash_code_len;
@@ -1669,12 +1664,6 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   if (code_data) {
     code_chars = strnlen(code_data, code_len);
   }
-
-  /* for (size_t i = 0; i < code_len; i ++)  { */
-  /*   printf("%i %c\n",i, code_data[i]); */
-
-  /* } */
-  /* printf("\n"); */
 
   // Load imports
   if (load_imports) {
@@ -1710,10 +1699,39 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 
   lbm_continue_eval();
 
-  res = true;
-
-  return res;
+  return true;
 }
+
+#ifdef WITH_MCP
+static bool mcp_do_reset(void) {
+  return restart_core(NULL, NULL);
+}
+
+static bool mcp_do_reinit(uint32_t new_heap, uint32_t new_memory_bytes) {
+  if (new_heap > 0) {
+    heap_size = new_heap;
+  }
+  if (new_memory_bytes > 0) {
+    uint32_t block = (uint32_t)(sizeof(lbm_uint) * LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(1));
+    if (new_memory_bytes % block != 0) {
+      new_memory_bytes = (new_memory_bytes + block - 1) & ~(block - 1);
+    }
+    uint32_t num_blocks = new_memory_bytes / block;
+    size_t new_mem_size = LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(num_blocks);
+    size_t new_bmp_size = LBM_MEMORY_BITMAP_SIZE(num_blocks);
+    lbm_uint *new_mem = (lbm_uint*)malloc(new_mem_size * sizeof(lbm_uint));
+    lbm_uint *new_bmp = (lbm_uint*)malloc(new_bmp_size * sizeof(lbm_uint));
+    if (!new_mem || !new_bmp) { free(new_mem); free(new_bmp); return false; }
+    free(memory);
+    free(bitmap);
+    memory = new_mem;
+    bitmap = new_bmp;
+    lbm_memory_size = new_mem_size;
+    lbm_memory_bitmap_size = new_bmp_size;
+  }
+  return restart_core(NULL, NULL);
+}
+#endif
 
 unsigned int get_cpu_last_time = 1;
 long unsigned int get_cpu_last_ticks = 1;
@@ -2733,6 +2751,8 @@ int main(int argc, char **argv) {
 
 #ifdef WITH_MCP
   if (mcp_mode) {
+    lbm_mcp_set_reset_callback(mcp_do_reset);
+    lbm_mcp_set_reinit_callback(mcp_do_reinit);
     lbm_mcp_run();
   } else
 #endif

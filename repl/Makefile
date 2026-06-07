@@ -1,9 +1,8 @@
 
 PLATFORM ?=
-FEATURES ?=
-
 LISPBM := ../
 FEATURE_FILE = .build_features
+FEATURES ?= $(shell cat $(FEATURE_FILE) 2>/dev/null)
 .PHONY: FORCE all help install clean clean_coverage
 
 include $(LISPBM)/lispbm.mk
@@ -80,9 +79,12 @@ else
 	CCFLAGS += -O2 -Wall -Wextra -Wshadow  -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
 endif
 
+INSTALL_NAME_LBM := lbm
+
 # Use 64bit
 ifneq (,$(filter 64, $(FEATURES)))
 	CCFLAGS += -DLBM64
+	INSTALL_NAME := lbm64
 else
 	CCFLAGS += -m32
 endif
@@ -169,13 +171,8 @@ help:
 install:
 	@if [ ! -f repl ]; then echo "Error: repl not built. Run 'make help' for information." ; exit 1; fi
 	mkdir -p ~/.local/bin
-	@if echo "$(FEATURES)" | grep -qw "64"; then \
-		cp repl ~/.local/bin/lbm64; \
-		echo "Installed as lbm64"; \
-	else \
-		cp repl ~/.local/bin/lbm; \
-		echo "Installed as lbm"; \
-	fi
+	cp repl ~/.local/bin/$(INSTALL_NAME)
+	@echo "Installed as $(INSTALL_NAME)"
 	cp shlbm ~/.local/bin/shlbm
 	chmod a+x ~/.local/bin/shlbm
 
