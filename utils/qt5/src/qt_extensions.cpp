@@ -621,6 +621,38 @@ static lbm_value ext_qt_widget_set_min_width(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_qt_widget_set_max_height(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]))
+    return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmWidget *w = s_widgets.value(handle, nullptr);
+  if (!w) {
+    lbm_set_error_reason("qt-widget-set-max-height: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  int height = (int)lbm_dec_as_i32(args[1]);
+  QMetaObject::invokeMethod(w, [w, height]() {
+    w->setMaximumHeight(height);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_qt_widget_set_min_height(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]))
+    return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmWidget *w = s_widgets.value(handle, nullptr);
+  if (!w) {
+    lbm_set_error_reason("qt-widget-set-min-height: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  int height = (int)lbm_dec_as_i32(args[1]);
+  QMetaObject::invokeMethod(w, [w, height]() {
+    w->setMinimumHeight(height);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
 // ////////////////////////////////////////////////////////////
 // Extensions
 
@@ -797,7 +829,11 @@ static lbm_value ext_qt_widget_remove(lbm_value *args, lbm_uint argn) {
     lbm_set_error_reason("qt-widget-remove: invalid handle");
     return ENC_SYM_EERROR;
   }
-  QLbmContainerWidget *parent = qobject_cast<QLbmContainerWidget*>(w->parentWidget());
+  QLbmContainerWidget *parent = nullptr;
+  for (QWidget *p = w->parentWidget(); p; p = p->parentWidget()) {
+    if ((parent = qobject_cast<QLbmContainerWidget *>(p)))
+      break;
+  }
   if (!parent) {
     lbm_set_error_reason("qt-widget-remove: widget has no container parent");
     return ENC_SYM_EERROR;
@@ -1358,6 +1394,8 @@ void lbm_qt_extensions_init(void) {
   lbm_add_extension("qt-widget-set-style",      ext_qt_widget_set_style);
   lbm_add_extension("qt-widget-set-max-width",  ext_qt_widget_set_max_width);
   lbm_add_extension("qt-widget-set-min-width",  ext_qt_widget_set_min_width);
+  lbm_add_extension("qt-widget-set-max-height", ext_qt_widget_set_max_height);
+  lbm_add_extension("qt-widget-set-min-height", ext_qt_widget_set_min_height);
   lbm_add_extension("qt-widget-remove",         ext_qt_widget_remove);
   lbm_add_extension("qt-widget-add-checkbox",   ext_qt_widget_add_checkbox);
   lbm_add_extension("qt-widget-add-radio",      ext_qt_widget_add_radio);

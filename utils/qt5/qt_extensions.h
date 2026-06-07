@@ -39,6 +39,8 @@ void lbm_qt_extensions_set_widget(QLbmContainerWidget *widget);
 //   (qt-widget-set-style      handle "css")           -> t
 //   (qt-widget-set-max-width  ch w)                   -> t
 //   (qt-widget-set-min-width  ch w)                   -> t
+//   (qt-widget-set-max-height ch h)                   -> t
+//   (qt-widget-set-min-height ch h)                   -> t
 //
 // Display:
 //   (qt-widget-add-display    ch w h)                -> handle
