@@ -34,6 +34,7 @@ public:
 
   void addChildWidget(QLbmWidget *child);
   void addChildWidgetAt(QLbmWidget *child, int row, int col); // grid only
+  void addExternalWidget(QWidget *child);
   void removeChildWidget(QLbmWidget *child);
 
   QLbmLayout   layoutType() const { return m_layoutType; }

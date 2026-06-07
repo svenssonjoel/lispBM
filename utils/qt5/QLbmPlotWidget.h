@@ -40,6 +40,8 @@ public:
   void setMaxPoints(int graphId, int maxPoints);  // -1 = unlimited
   void setXLog(bool logarithmic);
   void setYLog(bool logarithmic);
+  void setXRange(double lower, double upper);
+  void setYRange(double lower, double upper);
   bool saveImage(const QString &path);
 
 private:

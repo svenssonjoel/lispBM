@@ -64,6 +64,13 @@ QButtonGroup *QLbmContainerWidget::radioGroup() {
   return m_radioGroup;
 }
 
+void QLbmContainerWidget::addExternalWidget(QWidget *child) {
+  if (m_boxLayout)
+    m_boxLayout->addWidget(child);
+  else if (m_gridLayout)
+    m_gridLayout->addWidget(child, m_gridLayout->rowCount(), 0);
+}
+
 void QLbmContainerWidget::removeChildWidget(QLbmWidget *child) {
   if (m_boxLayout)
     m_boxLayout->removeWidget(child);

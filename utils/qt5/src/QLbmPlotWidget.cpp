@@ -111,6 +111,14 @@ void QLbmPlotWidget::setXLog(bool logarithmic) {
   }
 }
 
+void QLbmPlotWidget::setXRange(double lower, double upper) {
+  m_plot->xAxis->setRange(lower, upper);
+}
+
+void QLbmPlotWidget::setYRange(double lower, double upper) {
+  m_plot->yAxis->setRange(lower, upper);
+}
+
 bool QLbmPlotWidget::saveImage(const QString &path) {
   if (path.endsWith(".pdf", Qt::CaseInsensitive))
     return m_plot->savePdf(path);

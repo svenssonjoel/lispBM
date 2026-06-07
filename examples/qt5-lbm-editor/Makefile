@@ -103,6 +103,9 @@ SOURCES       = ../../platform/qt5/src/platform_mutex.cpp \
 		../../utils/qt5/src/QLbmSpinboxIWidget.cpp \
 		../../utils/qt5/src/QLbmSpinboxFWidget.cpp \
 		../../utils/qt5/src/QLbmTextfieldWidget.cpp \
+		../../utils/qt5/src/QLbmLabelWidget.cpp \
+		../../utils/qt5/src/QLbmSliderWidget.cpp \
+		../../utils/qt5/src/QLbmComboWidget.cpp \
 		../../utils/qt5/src/QLbmPlotWidget.cpp \
 		../../utils/qt5/src/qcustomplot.cpp \
 		../../utils/qt5/src/qt_extensions.cpp \
@@ -118,6 +121,9 @@ SOURCES       = ../../platform/qt5/src/platform_mutex.cpp \
 		moc_QLbmSpinboxIWidget.cpp \
 		moc_QLbmSpinboxFWidget.cpp \
 		moc_QLbmTextfieldWidget.cpp \
+		moc_QLbmLabelWidget.cpp \
+		moc_QLbmSliderWidget.cpp \
+		moc_QLbmComboWidget.cpp \
 		moc_QLbmPlotWidget.cpp \
 		moc_qcustomplot.cpp \
 		moc_MainWindow.cpp
@@ -172,6 +178,9 @@ OBJECTS       = platform_mutex.o \
 		QLbmSpinboxIWidget.o \
 		QLbmSpinboxFWidget.o \
 		QLbmTextfieldWidget.o \
+		QLbmLabelWidget.o \
+		QLbmSliderWidget.o \
+		QLbmComboWidget.o \
 		QLbmPlotWidget.o \
 		qcustomplot.o \
 		qt_extensions.o \
@@ -188,6 +197,9 @@ OBJECTS       = platform_mutex.o \
 		moc_QLbmSpinboxIWidget.o \
 		moc_QLbmSpinboxFWidget.o \
 		moc_QLbmTextfieldWidget.o \
+		moc_QLbmLabelWidget.o \
+		moc_QLbmSliderWidget.o \
+		moc_QLbmComboWidget.o \
 		moc_QLbmPlotWidget.o \
 		moc_qcustomplot.o \
 		moc_MainWindow.o
@@ -282,6 +294,9 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		../../utils/qt5/QLbmSpinboxIWidget.h \
 		../../utils/qt5/QLbmSpinboxFWidget.h \
 		../../utils/qt5/QLbmTextfieldWidget.h \
+		../../utils/qt5/QLbmLabelWidget.h \
+		../../utils/qt5/QLbmSliderWidget.h \
+		../../utils/qt5/QLbmComboWidget.h \
 		../../utils/qt5/QLbmPlotWidget.h \
 		../../utils/qt5/qcustomplot.h \
 		../../utils/qt5/qt_extensions.h \
@@ -336,6 +351,9 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		../../utils/qt5/src/QLbmSpinboxIWidget.cpp \
 		../../utils/qt5/src/QLbmSpinboxFWidget.cpp \
 		../../utils/qt5/src/QLbmTextfieldWidget.cpp \
+		../../utils/qt5/src/QLbmLabelWidget.cpp \
+		../../utils/qt5/src/QLbmSliderWidget.cpp \
+		../../utils/qt5/src/QLbmComboWidget.cpp \
 		../../utils/qt5/src/QLbmPlotWidget.cpp \
 		../../utils/qt5/src/qcustomplot.cpp \
 		../../utils/qt5/src/qt_extensions.cpp \
@@ -528,8 +546,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../../utils/qt5/QLispBM.h ../../utils/qt5/QLbmValue.h ../../utils/qt5/QLbmWidget.h ../../utils/qt5/QLbmDisplayWidget.h ../../utils/qt5/QLbmButtonWidget.h ../../utils/qt5/QLbmContainerWidget.h ../../utils/qt5/QLbmStretchWidget.h ../../utils/qt5/QLbmCheckboxWidget.h ../../utils/qt5/QLbmRadioWidget.h ../../utils/qt5/QLbmSpinboxIWidget.h ../../utils/qt5/QLbmSpinboxFWidget.h ../../utils/qt5/QLbmTextfieldWidget.h ../../utils/qt5/QLbmPlotWidget.h ../../utils/qt5/qcustomplot.h ../../utils/qt5/qt_extensions.h MainWindow.h $(DISTDIR)/
-	$(COPY_FILE) --parents ../../platform/qt5/src/platform_mutex.cpp ../../platform/qt5/src/platform_thread.cpp ../../platform/qt5/src/platform_timestamp.cpp ../../src/env.c ../../src/fundamental.c ../../src/heap.c ../../src/lbm_memory.c ../../src/print.c ../../src/stack.c ../../src/symrepr.c ../../src/tokpar.c ../../src/extensions.c ../../src/lispbm.c ../../src/eval_cps.c ../../src/lbm_c_interop.c ../../src/lbm_custom_type.c ../../src/lbm_channel.c ../../src/lbm_flat_value.c ../../src/lbm_prof.c ../../src/lbm_defrag_mem.c ../../src/lbm_image.c ../../utils/buffer.c ../../utils/crypto.c ../../utils/ecc.c ../../src/extensions/array_extensions.c ../../src/extensions/string_extensions.c ../../src/extensions/math_extensions.c ../../src/extensions/runtime_extensions.c ../../src/extensions/random_extensions.c ../../src/extensions/set_extensions.c ../../src/extensions/mutex_extensions.c ../../src/extensions/lbm_dyn_lib.c ../../src/extensions/crypto_extensions.c ../../src/extensions/ecc_extensions.c ../../src/extensions/display_extensions.c ../../src/extensions/dsp_extensions.c ../../src/extensions/tjpgd.c ../../src/extensions/ttf_extensions.c ../../src/extensions/ttf_backend.c ../../src/extensions/schrift.c ../../utils/qt5/src/QLispBM.cpp ../../utils/qt5/src/QLbmValue.cpp ../../utils/qt5/src/QLbmDisplayWidget.cpp ../../utils/qt5/src/QLbmButtonWidget.cpp ../../utils/qt5/src/QLbmContainerWidget.cpp ../../utils/qt5/src/QLbmStretchWidget.cpp ../../utils/qt5/src/QLbmCheckboxWidget.cpp ../../utils/qt5/src/QLbmRadioWidget.cpp ../../utils/qt5/src/QLbmSpinboxIWidget.cpp ../../utils/qt5/src/QLbmSpinboxFWidget.cpp ../../utils/qt5/src/QLbmTextfieldWidget.cpp ../../utils/qt5/src/QLbmPlotWidget.cpp ../../utils/qt5/src/qcustomplot.cpp ../../utils/qt5/src/qt_extensions.cpp main.cpp MainWindow.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ../../utils/qt5/QLispBM.h ../../utils/qt5/QLbmValue.h ../../utils/qt5/QLbmWidget.h ../../utils/qt5/QLbmDisplayWidget.h ../../utils/qt5/QLbmButtonWidget.h ../../utils/qt5/QLbmContainerWidget.h ../../utils/qt5/QLbmStretchWidget.h ../../utils/qt5/QLbmCheckboxWidget.h ../../utils/qt5/QLbmRadioWidget.h ../../utils/qt5/QLbmSpinboxIWidget.h ../../utils/qt5/QLbmSpinboxFWidget.h ../../utils/qt5/QLbmTextfieldWidget.h ../../utils/qt5/QLbmLabelWidget.h ../../utils/qt5/QLbmSliderWidget.h ../../utils/qt5/QLbmComboWidget.h ../../utils/qt5/QLbmPlotWidget.h ../../utils/qt5/qcustomplot.h ../../utils/qt5/qt_extensions.h MainWindow.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../../platform/qt5/src/platform_mutex.cpp ../../platform/qt5/src/platform_thread.cpp ../../platform/qt5/src/platform_timestamp.cpp ../../src/env.c ../../src/fundamental.c ../../src/heap.c ../../src/lbm_memory.c ../../src/print.c ../../src/stack.c ../../src/symrepr.c ../../src/tokpar.c ../../src/extensions.c ../../src/lispbm.c ../../src/eval_cps.c ../../src/lbm_c_interop.c ../../src/lbm_custom_type.c ../../src/lbm_channel.c ../../src/lbm_flat_value.c ../../src/lbm_prof.c ../../src/lbm_defrag_mem.c ../../src/lbm_image.c ../../utils/buffer.c ../../utils/crypto.c ../../utils/ecc.c ../../src/extensions/array_extensions.c ../../src/extensions/string_extensions.c ../../src/extensions/math_extensions.c ../../src/extensions/runtime_extensions.c ../../src/extensions/random_extensions.c ../../src/extensions/set_extensions.c ../../src/extensions/mutex_extensions.c ../../src/extensions/lbm_dyn_lib.c ../../src/extensions/crypto_extensions.c ../../src/extensions/ecc_extensions.c ../../src/extensions/display_extensions.c ../../src/extensions/dsp_extensions.c ../../src/extensions/tjpgd.c ../../src/extensions/ttf_extensions.c ../../src/extensions/ttf_backend.c ../../src/extensions/schrift.c ../../utils/qt5/src/QLispBM.cpp ../../utils/qt5/src/QLbmValue.cpp ../../utils/qt5/src/QLbmDisplayWidget.cpp ../../utils/qt5/src/QLbmButtonWidget.cpp ../../utils/qt5/src/QLbmContainerWidget.cpp ../../utils/qt5/src/QLbmStretchWidget.cpp ../../utils/qt5/src/QLbmCheckboxWidget.cpp ../../utils/qt5/src/QLbmRadioWidget.cpp ../../utils/qt5/src/QLbmSpinboxIWidget.cpp ../../utils/qt5/src/QLbmSpinboxFWidget.cpp ../../utils/qt5/src/QLbmTextfieldWidget.cpp ../../utils/qt5/src/QLbmLabelWidget.cpp ../../utils/qt5/src/QLbmSliderWidget.cpp ../../utils/qt5/src/QLbmComboWidget.cpp ../../utils/qt5/src/QLbmPlotWidget.cpp ../../utils/qt5/src/qcustomplot.cpp ../../utils/qt5/src/qt_extensions.cpp main.cpp MainWindow.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -561,9 +579,9 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 	g++ -pipe -O2 -std=gnu++1z -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_QLispBM.cpp moc_QLbmWidget.cpp moc_QLbmDisplayWidget.cpp moc_QLbmButtonWidget.cpp moc_QLbmContainerWidget.cpp moc_QLbmStretchWidget.cpp moc_QLbmCheckboxWidget.cpp moc_QLbmRadioWidget.cpp moc_QLbmSpinboxIWidget.cpp moc_QLbmSpinboxFWidget.cpp moc_QLbmTextfieldWidget.cpp moc_QLbmPlotWidget.cpp moc_qcustomplot.cpp moc_MainWindow.cpp
+compiler_moc_header_make_all: moc_QLispBM.cpp moc_QLbmWidget.cpp moc_QLbmDisplayWidget.cpp moc_QLbmButtonWidget.cpp moc_QLbmContainerWidget.cpp moc_QLbmStretchWidget.cpp moc_QLbmCheckboxWidget.cpp moc_QLbmRadioWidget.cpp moc_QLbmSpinboxIWidget.cpp moc_QLbmSpinboxFWidget.cpp moc_QLbmTextfieldWidget.cpp moc_QLbmLabelWidget.cpp moc_QLbmSliderWidget.cpp moc_QLbmComboWidget.cpp moc_QLbmPlotWidget.cpp moc_qcustomplot.cpp moc_MainWindow.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_QLispBM.cpp moc_QLbmWidget.cpp moc_QLbmDisplayWidget.cpp moc_QLbmButtonWidget.cpp moc_QLbmContainerWidget.cpp moc_QLbmStretchWidget.cpp moc_QLbmCheckboxWidget.cpp moc_QLbmRadioWidget.cpp moc_QLbmSpinboxIWidget.cpp moc_QLbmSpinboxFWidget.cpp moc_QLbmTextfieldWidget.cpp moc_QLbmPlotWidget.cpp moc_qcustomplot.cpp moc_MainWindow.cpp
+	-$(DEL_FILE) moc_QLispBM.cpp moc_QLbmWidget.cpp moc_QLbmDisplayWidget.cpp moc_QLbmButtonWidget.cpp moc_QLbmContainerWidget.cpp moc_QLbmStretchWidget.cpp moc_QLbmCheckboxWidget.cpp moc_QLbmRadioWidget.cpp moc_QLbmSpinboxIWidget.cpp moc_QLbmSpinboxFWidget.cpp moc_QLbmTextfieldWidget.cpp moc_QLbmLabelWidget.cpp moc_QLbmSliderWidget.cpp moc_QLbmComboWidget.cpp moc_QLbmPlotWidget.cpp moc_qcustomplot.cpp moc_MainWindow.cpp
 moc_QLispBM.cpp: ../../utils/qt5/QLispBM.h \
 		../../utils/qt5/QLbmValue.h \
 		../../include/lispbm.h \
@@ -662,6 +680,24 @@ moc_QLbmTextfieldWidget.cpp: ../../utils/qt5/QLbmTextfieldWidget.h \
 		moc_predefs.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/joels/Current/lispbm/examples/qt5-lbm-editor/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/joels/Current/lispbm/examples/qt5-lbm-editor -I/home/joels/Current/lispbm/include -I/home/joels/Current/lispbm/include/extensions -I/home/joels/Current/lispbm/src -I/home/joels/Current/lispbm/utils -I/home/joels/Current/lispbm/platform/qt5/include -I/home/joels/Current/lispbm/utils/qt5 -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtPrintSupport -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../../utils/qt5/QLbmTextfieldWidget.h -o moc_QLbmTextfieldWidget.cpp
+
+moc_QLbmLabelWidget.cpp: ../../utils/qt5/QLbmLabelWidget.h \
+		../../utils/qt5/QLbmWidget.h \
+		moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/joels/Current/lispbm/examples/qt5-lbm-editor/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/joels/Current/lispbm/examples/qt5-lbm-editor -I/home/joels/Current/lispbm/include -I/home/joels/Current/lispbm/include/extensions -I/home/joels/Current/lispbm/src -I/home/joels/Current/lispbm/utils -I/home/joels/Current/lispbm/platform/qt5/include -I/home/joels/Current/lispbm/utils/qt5 -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtPrintSupport -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../../utils/qt5/QLbmLabelWidget.h -o moc_QLbmLabelWidget.cpp
+
+moc_QLbmSliderWidget.cpp: ../../utils/qt5/QLbmSliderWidget.h \
+		../../utils/qt5/QLbmWidget.h \
+		moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/joels/Current/lispbm/examples/qt5-lbm-editor/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/joels/Current/lispbm/examples/qt5-lbm-editor -I/home/joels/Current/lispbm/include -I/home/joels/Current/lispbm/include/extensions -I/home/joels/Current/lispbm/src -I/home/joels/Current/lispbm/utils -I/home/joels/Current/lispbm/platform/qt5/include -I/home/joels/Current/lispbm/utils/qt5 -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtPrintSupport -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../../utils/qt5/QLbmSliderWidget.h -o moc_QLbmSliderWidget.cpp
+
+moc_QLbmComboWidget.cpp: ../../utils/qt5/QLbmComboWidget.h \
+		../../utils/qt5/QLbmWidget.h \
+		moc_predefs.h \
+		/usr/lib/qt5/bin/moc
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/joels/Current/lispbm/examples/qt5-lbm-editor/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/joels/Current/lispbm/examples/qt5-lbm-editor -I/home/joels/Current/lispbm/include -I/home/joels/Current/lispbm/include/extensions -I/home/joels/Current/lispbm/src -I/home/joels/Current/lispbm/utils -I/home/joels/Current/lispbm/platform/qt5/include -I/home/joels/Current/lispbm/utils/qt5 -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtPrintSupport -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../../utils/qt5/QLbmComboWidget.h -o moc_QLbmComboWidget.cpp
 
 moc_QLbmPlotWidget.cpp: ../../utils/qt5/QLbmPlotWidget.h \
 		../../utils/qt5/QLbmWidget.h \
@@ -1342,6 +1378,18 @@ QLbmTextfieldWidget.o: ../../utils/qt5/src/QLbmTextfieldWidget.cpp ../../utils/q
 		../../utils/qt5/QLbmWidget.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o QLbmTextfieldWidget.o ../../utils/qt5/src/QLbmTextfieldWidget.cpp
 
+QLbmLabelWidget.o: ../../utils/qt5/src/QLbmLabelWidget.cpp ../../utils/qt5/QLbmLabelWidget.h \
+		../../utils/qt5/QLbmWidget.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o QLbmLabelWidget.o ../../utils/qt5/src/QLbmLabelWidget.cpp
+
+QLbmSliderWidget.o: ../../utils/qt5/src/QLbmSliderWidget.cpp ../../utils/qt5/QLbmSliderWidget.h \
+		../../utils/qt5/QLbmWidget.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o QLbmSliderWidget.o ../../utils/qt5/src/QLbmSliderWidget.cpp
+
+QLbmComboWidget.o: ../../utils/qt5/src/QLbmComboWidget.cpp ../../utils/qt5/QLbmComboWidget.h \
+		../../utils/qt5/QLbmWidget.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o QLbmComboWidget.o ../../utils/qt5/src/QLbmComboWidget.cpp
+
 QLbmPlotWidget.o: ../../utils/qt5/src/QLbmPlotWidget.cpp ../../utils/qt5/QLbmPlotWidget.h \
 		../../utils/qt5/QLbmWidget.h \
 		../../utils/qt5/qcustomplot.h
@@ -1361,6 +1409,9 @@ qt_extensions.o: ../../utils/qt5/src/qt_extensions.cpp ../../utils/qt5/qt_extens
 		../../utils/qt5/QLbmSpinboxIWidget.h \
 		../../utils/qt5/QLbmSpinboxFWidget.h \
 		../../utils/qt5/QLbmTextfieldWidget.h \
+		../../utils/qt5/QLbmLabelWidget.h \
+		../../utils/qt5/QLbmSliderWidget.h \
+		../../utils/qt5/QLbmComboWidget.h \
 		../../utils/qt5/QLbmPlotWidget.h \
 		../../utils/qt5/qcustomplot.h \
 		../../utils/qt5/QLispBM.h \
@@ -1476,6 +1527,15 @@ moc_QLbmSpinboxFWidget.o: moc_QLbmSpinboxFWidget.cpp
 
 moc_QLbmTextfieldWidget.o: moc_QLbmTextfieldWidget.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_QLbmTextfieldWidget.o moc_QLbmTextfieldWidget.cpp
+
+moc_QLbmLabelWidget.o: moc_QLbmLabelWidget.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_QLbmLabelWidget.o moc_QLbmLabelWidget.cpp
+
+moc_QLbmSliderWidget.o: moc_QLbmSliderWidget.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_QLbmSliderWidget.o moc_QLbmSliderWidget.cpp
+
+moc_QLbmComboWidget.o: moc_QLbmComboWidget.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_QLbmComboWidget.o moc_QLbmComboWidget.cpp
 
 moc_QLbmPlotWidget.o: moc_QLbmPlotWidget.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_QLbmPlotWidget.o moc_QLbmPlotWidget.cpp
