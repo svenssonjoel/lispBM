@@ -111,6 +111,19 @@ void QLbmPlotWidget::setXLog(bool logarithmic) {
   }
 }
 
+bool QLbmPlotWidget::saveImage(const QString &path) {
+  if (path.endsWith(".pdf", Qt::CaseInsensitive))
+    return m_plot->savePdf(path);
+  if (path.endsWith(".jpg", Qt::CaseInsensitive) ||
+      path.endsWith(".jpeg", Qt::CaseInsensitive))
+    return m_plot->saveJpg(path);
+  if (path.endsWith(".bmp", Qt::CaseInsensitive))
+    return m_plot->saveBmp(path);
+  if (path.endsWith(".png", Qt::CaseInsensitive))
+    return m_plot->savePng(path);
+  return false;  // unrecognised extension
+}
+
 void QLbmPlotWidget::setYLog(bool logarithmic) {
   if (logarithmic) {
     m_plot->yAxis->setScaleType(QCPAxis::stLogarithmic);

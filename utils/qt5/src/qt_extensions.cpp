@@ -966,6 +966,25 @@ static lbm_value ext_qt_plot_set_y_log(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_qt_plot_save_image(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1]))
+    return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  QLbmPlotWidget *plot = getPlot(handle);
+  if (!plot) {
+    lbm_set_error_reason("qt-plot-save-image: invalid handle");
+    return ENC_SYM_EERROR;
+  }
+  lbm_array_header_t *arr = lbm_dec_array_r(args[1]);
+  if (!arr) return ENC_SYM_TERROR;
+  QString path = QString::fromUtf8((const char *)arr->data);
+  bool ok = false;
+  QMetaObject::invokeMethod(plot, [plot, path, &ok]() {
+    ok = plot->saveImage(path);
+  }, Qt::BlockingQueuedConnection);
+  return ok ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
 static lbm_value ext_qt_plot_set_max_points(lbm_value *args, lbm_uint argn) {
   if (argn < 3 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) ||
       !lbm_is_number(args[2]))
@@ -1018,4 +1037,5 @@ void lbm_qt_extensions_init(void) {
   lbm_add_extension("qt-plot-set-max-points",   ext_qt_plot_set_max_points);
   lbm_add_extension("qt-plot-set-x-log",        ext_qt_plot_set_x_log);
   lbm_add_extension("qt-plot-set-y-log",        ext_qt_plot_set_y_log);
+  lbm_add_extension("qt-plot-save-image",       ext_qt_plot_save_image);
 }

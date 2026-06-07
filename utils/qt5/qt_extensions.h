@@ -77,6 +77,7 @@ void lbm_qt_extensions_set_widget(QLbmContainerWidget *widget);
 //   (qt-plot-set-max-points handle graph-id max)     -> t   -1 = unlimited (default)
 //   (qt-plot-set-x-log      handle t/nil)            -> t   t = logarithmic, nil = linear
 //   (qt-plot-set-y-log      handle t/nil)            -> t
+//   (qt-plot-save-image     handle path)             -> t/nil  .png .jpg .bmp .pdf by extension
 void lbm_qt_extensions_init(void);
 
 #endif
