@@ -22,9 +22,11 @@
 #include <QHash>
 #include <QMutex>
 #include <QString>
+#include <QQuickItem>
+#include <QQmlEngine>
 
 #include "QLbmValue.h"
-#include "qt_extensions.h"
+#include "qtquick_extensions.h"
 
 #include "lispbm.h"
 #include "lbm_image.h"
@@ -71,8 +73,7 @@ struct QLispBMConfig {
   uint32_t extensions = ExtAll;
 };
 
-// There can be only one QLispBM Object!
-//
+// There can be only one QLispBM object.
 class QLispBM : public QObject {
   Q_OBJECT
   Q_DISABLE_COPY(QLispBM)
@@ -94,18 +95,16 @@ public:
   void stop();
   void terminate();
 
-  // Optional: register a QLbmContainerWidget and enable the qt-* extensions.
-  // Must be called before init().
-  void setWidget(QLbmContainerWidget *widget);
+  // Set the root QQuickItem and QQmlEngine before calling init().
+  // A ColumnLayout filling the root item is created automatically.
+  void setRootItem(QQuickItem *root, QQmlEngine *engine);
 
   bool addExtension(const QString &name, extension_fptr fn);
-  QHash<QString, QLbmValue> environment(void);
-
+  QHash<QString, QLbmValue> environment();
 
 public slots:
   void eval(const QString &code);
   void evalProgram(const QString &code);
-
   bool sendEvent(const QLbmValue &value);
 
 signals:
@@ -126,20 +125,18 @@ private:
   static bool dynLoadCallback(const char *str, const char **code);
   static void evalThreadFunc(void *arg);
 
-  QLbmContainerWidget    *m_widget     = nullptr;
+  QLispBMConfig     m_config;
+  bool                   m_initialized = false;
+  bool                   m_running     = false;
 
-  QLispBMConfig      m_config;
-  bool               m_initialized = false;
-  bool               m_running     = false;
+  lbm_cons_t            *m_heap       = nullptr;
+  lbm_uint              *m_memory     = nullptr;
+  lbm_uint              *m_bitmap     = nullptr;
+  lbm_extension_t       *m_extensions = nullptr;
+  uint32_t              *m_image      = nullptr;
 
-  lbm_cons_t        *m_heap       = nullptr;
-  lbm_uint          *m_memory     = nullptr;
-  lbm_uint          *m_bitmap     = nullptr;
-  lbm_extension_t   *m_extensions = nullptr;
-  uint32_t          *m_image      = nullptr;
-
-  lbm_thread_t       m_evalThread;
-  lbm_thread_t       m_timestampThread;
+  lbm_thread_t           m_evalThread;
+  lbm_thread_t           m_timestampThread;
 
   struct PendingEval {
     char                       *buf;
@@ -149,10 +146,6 @@ private:
 
   QMutex                    m_bufferMutex;
   QHash<int, PendingEval *> m_pendingBuffers;
-
-  // Extension names are not constant c strings here
-  // so we need a way to keep the strings we use as extension names alive.
-  // Extension comparison is done on the string pointer.
   QHash<QString, QByteArray> m_extensionNames;
 };
 

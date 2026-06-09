@@ -16,7 +16,6 @@
 */
 
 #include "QLispBM.h"
-#include "QLbmValue.h"
 
 #include <QDebug>
 #include <QThread>
@@ -30,13 +29,6 @@
 
 QLispBM *QLispBM::s_instance = nullptr;
 
-// ------------------------------------------------------------
-// "There can be only one."
-// As there can only ever be one instance (per OS process) of lispbm
-// a SINGLETON as OO people may call it is chosen.
-// If one tries to instance multiple QLispBM object, the second one will crash
-// the process.
-
 QLispBM::QLispBM(QObject *parent)
   : QObject(parent) {
   Q_ASSERT_X(s_instance == nullptr, "QLispBM",
@@ -49,9 +41,8 @@ QLispBM::~QLispBM() {
   s_instance = nullptr;
 }
 
-void QLispBM::setWidget(QLbmContainerWidget *widget) {
-  m_widget = widget;
-  lbm_qt_extensions_set_widget(widget);
+void QLispBM::setRootItem(QQuickItem *root, QQmlEngine *engine) {
+  lbm_qtquick_extensions_set_root(root, engine);
 }
 
 bool QLispBM::init(const QLispBMConfig *config) {
@@ -89,57 +80,31 @@ bool QLispBM::init(const QLispBMConfig *config) {
 
   lbm_image_init(m_image, m_config.imageWords, imageWriteCallback);
   if (!lbm_image_exists())
-    lbm_image_create((char*)"qt");
-  
+    lbm_image_create((char*)"qtquick");
+
   if (!lbm_image_boot()) {
     qWarning("QLispBM: lbm_image_boot failed"); terminate(); return false;
   }
 
   lbm_add_eval_symbols();
 
-  if (m_config.extensions & QLispBMConfig::ExtArray) {
-    lbm_array_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtCrypto) {
-    lbm_crypto_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtDisplay) {
-    lbm_display_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtDsp) {
-    lbm_dsp_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtEcc) {
-    lbm_ecc_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtMath) {
-    lbm_math_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtMutex) {
-    lbm_mutex_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtRandom) {
-    lbm_random_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtRuntime) {
-    lbm_runtime_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtSet) {
-    lbm_set_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtString) {
-    lbm_string_extensions_init();
-  }
-  if (m_config.extensions & QLispBMConfig::ExtTtf) {
-    lbm_ttf_extensions_init();
-  }
-  
+  if (m_config.extensions & QLispBMConfig::ExtArray)   lbm_array_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtCrypto)  lbm_crypto_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtDisplay) lbm_display_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtDsp)     lbm_dsp_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtEcc)     lbm_ecc_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtMath)    lbm_math_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtMutex)   lbm_mutex_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtRandom)  lbm_random_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtRuntime) lbm_runtime_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtSet)     lbm_set_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtString)  lbm_string_extensions_init();
+  if (m_config.extensions & QLispBMConfig::ExtTtf)     lbm_ttf_extensions_init();
+
   lbm_dyn_lib_init();
   lbm_set_dynamic_load_callback(dynLoadCallback);
 
-  if (m_widget) {
-    lbm_qt_extensions_init();
-  }
+  lbm_qtquick_extensions_init();
 
   m_initialized = true;
   emit initializedChanged(true);
@@ -212,32 +177,28 @@ bool QLispBM::addExtension(const QString &name, extension_fptr fn) {
     return lbm_add_extension(namePtr, fn);
   }
   lbm_pause_eval();
-  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED)
     QThread::msleep(1);
-  }
   bool ok = lbm_add_extension(namePtr, fn);
   lbm_continue_eval();
   return ok;
 }
 
-QHash<QString, QLbmValue> QLispBM::environment(void) {
+QHash<QString, QLbmValue> QLispBM::environment() {
   QHash<QString, QLbmValue> env;
   if (!m_initialized || !m_running) return env;
 
   lbm_pause_eval();
-  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED)
     QThread::msleep(1);
-  }
 
   lbm_value *glob_env = lbm_get_global_env();
-  for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
-    lbm_value curr  = glob_env[i];
+  for (int i = 0; i < GLOBAL_ENV_ROOTS; i++) {
+    lbm_value curr = glob_env[i];
     while (lbm_is_cons(curr)) {
       lbm_value binding = lbm_car(curr);
-      // binding should be a pair here or there env is corrupted.
       QString name = QLbmValue::fromLbmValue(lbm_car(binding)).asSymbol();
-      QLbmValue v = QLbmValue::fromLbmValue(lbm_cdr(binding));
-      env.insert(name, v);
+      env.insert(name, QLbmValue::fromLbmValue(lbm_cdr(binding)));
       curr = lbm_cdr(curr);
     }
   }
@@ -258,18 +219,12 @@ void QLispBM::eval(const QString &code) {
   lbm_create_string_char_channel(state, chan, buf);
 
   lbm_pause_eval_with_gc(20);
-  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED)
     QThread::msleep(1);
-  }
   lbm_cid cid = lbm_load_and_eval_expression(chan);
   lbm_continue_eval();
 
-  if (cid < 0) {
-    free(buf);
-    delete state;
-    delete chan;
-    return;
-  }
+  if (cid < 0) { free(buf); delete state; delete chan; return; }
 
   QMutexLocker locker(&m_bufferMutex);
   m_pendingBuffers.insert(cid, new PendingEval{buf, state, chan});
@@ -288,19 +243,12 @@ void QLispBM::evalProgram(const QString &code) {
   lbm_create_string_char_channel(state, chan, buf);
 
   lbm_pause_eval_with_gc(20);
-  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+  while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED)
     QThread::msleep(1);
-  }
-
   lbm_cid cid = lbm_load_and_eval_program(chan, nullptr);
   lbm_continue_eval();
 
-  if (cid < 0) {
-    free(buf);
-    delete state;
-    delete chan;
-    return;
-  }
+  if (cid < 0) { free(buf); delete state; delete chan; return; }
 
   QMutexLocker locker(&m_bufferMutex);
   m_pendingBuffers.insert(cid, new PendingEval{buf, state, chan});
@@ -309,16 +257,12 @@ void QLispBM::evalProgram(const QString &code) {
 bool QLispBM::sendEvent(const QLbmValue &value) {
   if (!m_running) return false;
 
-  if (value.isUnboxed()) {
+  if (value.isUnboxed())
     return lbm_event_unboxed(value.unboxed());
-  }
 
   lbm_flat_value_t fv;
   if (!value.flatten(&fv)) return false;
-  if (!lbm_event(&fv)) {
-    lbm_free(fv.buf);
-    return false;
-  }
+  if (!lbm_event(&fv)) { lbm_free(fv.buf); return false; }
   return true;
 }
 
@@ -338,11 +282,10 @@ void QLispBM::doneCallback(eval_context_t *ctx) {
   QString result = QString::fromUtf8(buf);
   int     cid    = (int)ctx->id;
 
-  if (lbm_is_error(ctx->r)) {
+  if (lbm_is_error(ctx->r))
     emit s_instance->evalFailed(cid, result);
-  } else {
+  else
     emit s_instance->evalFinished(cid, result);
-  }
 
   QMutexLocker locker(&s_instance->m_bufferMutex);
   PendingEval *pending = s_instance->m_pendingBuffers.take(cid);

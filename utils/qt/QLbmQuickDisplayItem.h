@@ -15,30 +15,30 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef QLBMRADIOWIDGET_H_
-#define QLBMRADIOWIDGET_H_
+#ifndef QLBMQUICKDISPLAYITEM_H_
+#define QLBMQUICKDISPLAYITEM_H_
 
-#include "QLbmWidget.h"
+#include <QQuickPaintedItem>
+#include <QImage>
 
-class QRadioButton;
-
-// Radio buttons added to the same QLbmContainerWidget are mutually exclusive.
-// The container manages a QButtonGroup for this purpose.
-class QLbmRadioWidget : public QLbmWidget {
+class QLbmQuickDisplayItem : public QQuickPaintedItem {
   Q_OBJECT
 public:
-  explicit QLbmRadioWidget(const QString &label, int handle, QWidget *parent = nullptr);
+  explicit QLbmQuickDisplayItem(int displayWidth, int displayHeight,
+                                QQuickItem *parent = nullptr);
 
-  bool         getValue() const;
-  void         setValue(bool checked);
-  QRadioButton *radioButton() const { return m_radio; }
+  QSizeF sizeHint() const;
 
-signals:
-  void selected(int handle);
+public slots:
+  void setImage(const QImage &img);
+  void setImageAt(int x, int y, const QImage &img);
+
+  void paint(QPainter *painter) override;
 
 private:
-  QRadioButton *m_radio;
-  int           m_handle;
+  QImage m_image;
+  int    m_displayWidth;
+  int    m_displayHeight;
 };
 
 #endif
