@@ -17,34 +17,66 @@
 
 #include "QLbmQuickDisplayItem.h"
 #include <QPainter>
+#include <QSGSimpleTextureNode>
+#include <QQuickWindow>
 
 QLbmQuickDisplayItem::QLbmQuickDisplayItem(int displayWidth, int displayHeight,
                                            QQuickItem *parent)
-  : QQuickPaintedItem(parent)
+  : QQuickItem(parent)
   , m_image(displayWidth, displayHeight, QImage::Format_RGB32)
+  , m_pending(true)
   , m_displayWidth(displayWidth)
   , m_displayHeight(displayHeight) {
   m_image.fill(Qt::black);
   setImplicitWidth(displayWidth);
   setImplicitHeight(displayHeight);
-  setFillColor(Qt::black);
-}
-
-QSizeF QLbmQuickDisplayItem::sizeHint() const {
-  return QSizeF(m_displayWidth, m_displayHeight);
+  setFlag(ItemHasContents, true);
 }
 
 void QLbmQuickDisplayItem::setImage(const QImage &img) {
-  m_image = img.scaled(m_displayWidth, m_displayHeight);
+  QMutexLocker lock(&m_mutex);
+  m_image = img.scaled(m_displayWidth, m_displayHeight).convertToFormat(QImage::Format_RGB32);
+  m_pending = true;
   update();
 }
 
 void QLbmQuickDisplayItem::setImageAt(int x, int y, const QImage &img) {
+  QMutexLocker lock(&m_mutex);
   QPainter p(&m_image);
   p.drawImage(x, y, img);
+  m_pending = true;
   update();
 }
 
-void QLbmQuickDisplayItem::paint(QPainter *painter) {
-  painter->drawImage(QRectF(0, 0, width(), height()), m_image);
+// Called on the render thread during the scene-graph sync phase (main thread
+// is blocked). Takes a COW snapshot of m_image under the mutex so the lock is
+// held only for an O(1) pointer bump, then uploads to a GPU texture outside
+// the lock. On real hardware the GPU composites from here; on the emulator
+// Swift Shader still uses CPU but with one fewer software-render pass compared
+// to the old QQuickPaintedItem path.
+QSGNode *QLbmQuickDisplayItem::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *) {
+  QSGSimpleTextureNode *node = static_cast<QSGSimpleTextureNode *>(oldNode);
+  if (!node) {
+    node = new QSGSimpleTextureNode();
+    node->setFiltering(QSGTexture::Linear);
+    node->setOwnsTexture(true);
+  }
+
+  QImage snapshot;
+  {
+    QMutexLocker lock(&m_mutex);
+    if (m_pending) {
+      snapshot = m_image;  // COW: O(1) reference-count bump
+      m_pending = false;
+    }
+  }
+
+  if (!snapshot.isNull()) {
+    QSGTexture *tex = window()->createTextureFromImage(snapshot);
+    if (tex)
+      node->setTexture(tex);
+  }
+
+  node->setRect(boundingRect());
+  return node;
 }

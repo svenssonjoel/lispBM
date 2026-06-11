@@ -93,13 +93,13 @@ SOURCES       = ../../platform/qt5/src/platform_mutex.cpp \
 		../../src/extensions/ttf_backend.c \
 		../../src/extensions/schrift.c \
 		../../utils/qt/src/QLbmQuickDisplayItem.cpp \
-		../../utils/qt/src/QLispBMQuick.cpp \
+		../../utils/qt/src/QLispBM.cpp \
 		../../utils/qt/src/qtquick_extensions.cpp \
 		../../utils/qt/src/QLbmValue.cpp \
 		main.cpp \
 		LbmEditorBridge.cpp qrc_resources.cpp \
 		moc_QLbmQuickDisplayItem.cpp \
-		moc_QLispBMQuick.cpp \
+		moc_QLispBM.cpp \
 		moc_LbmEditorBridge.cpp
 OBJECTS       = platform_mutex.o \
 		platform_thread.o \
@@ -142,14 +142,14 @@ OBJECTS       = platform_mutex.o \
 		ttf_backend.o \
 		schrift.o \
 		QLbmQuickDisplayItem.o \
-		QLispBMQuick.o \
+		QLispBM.o \
 		qtquick_extensions.o \
 		QLbmValue.o \
 		main.o \
 		LbmEditorBridge.o \
 		qrc_resources.o \
 		moc_QLbmQuickDisplayItem.o \
-		moc_QLispBMQuick.o \
+		moc_QLispBM.o \
 		moc_LbmEditorBridge.o
 DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/common/unix.conf \
@@ -239,7 +239,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/yacc.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/lex.prf \
 		lbm_editor_quick.pro ../../utils/qt/QLbmQuickDisplayItem.h \
-		../../utils/qt/QLispBMQuick.h \
+		../../utils/qt/QLispBM.h \
 		../../utils/qt/qtquick_extensions.h \
 		../../utils/qt/QLbmValue.h \
 		LbmEditorBridge.h ../../platform/qt5/src/platform_mutex.cpp \
@@ -283,7 +283,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		../../src/extensions/ttf_backend.c \
 		../../src/extensions/schrift.c \
 		../../utils/qt/src/QLbmQuickDisplayItem.cpp \
-		../../utils/qt/src/QLispBMQuick.cpp \
+		../../utils/qt/src/QLispBM.cpp \
 		../../utils/qt/src/qtquick_extensions.cpp \
 		../../utils/qt/src/QLbmValue.cpp \
 		main.cpp \
@@ -494,8 +494,8 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../../utils/qt/QLbmQuickDisplayItem.h ../../utils/qt/QLispBMQuick.h ../../utils/qt/qtquick_extensions.h ../../utils/qt/QLbmValue.h LbmEditorBridge.h $(DISTDIR)/
-	$(COPY_FILE) --parents ../../platform/qt5/src/platform_mutex.cpp ../../platform/qt5/src/platform_thread.cpp ../../platform/qt5/src/platform_timestamp.cpp ../../src/env.c ../../src/fundamental.c ../../src/heap.c ../../src/lbm_memory.c ../../src/print.c ../../src/stack.c ../../src/symrepr.c ../../src/tokpar.c ../../src/extensions.c ../../src/lispbm.c ../../src/eval_cps.c ../../src/lbm_c_interop.c ../../src/lbm_custom_type.c ../../src/lbm_channel.c ../../src/lbm_flat_value.c ../../src/lbm_prof.c ../../src/lbm_defrag_mem.c ../../src/lbm_image.c ../../utils/buffer.c ../../utils/crypto.c ../../utils/ecc.c ../../src/extensions/array_extensions.c ../../src/extensions/string_extensions.c ../../src/extensions/math_extensions.c ../../src/extensions/runtime_extensions.c ../../src/extensions/random_extensions.c ../../src/extensions/set_extensions.c ../../src/extensions/mutex_extensions.c ../../src/extensions/lbm_dyn_lib.c ../../src/extensions/crypto_extensions.c ../../src/extensions/ecc_extensions.c ../../src/extensions/display_extensions.c ../../src/extensions/dsp_extensions.c ../../src/extensions/tjpgd.c ../../src/extensions/ttf_extensions.c ../../src/extensions/ttf_backend.c ../../src/extensions/schrift.c ../../utils/qt/src/QLbmQuickDisplayItem.cpp ../../utils/qt/src/QLispBMQuick.cpp ../../utils/qt/src/qtquick_extensions.cpp ../../utils/qt/src/QLbmValue.cpp main.cpp LbmEditorBridge.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ../../utils/qt/QLbmQuickDisplayItem.h ../../utils/qt/QLispBM.h ../../utils/qt/qtquick_extensions.h ../../utils/qt/QLbmValue.h LbmEditorBridge.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../../platform/qt5/src/platform_mutex.cpp ../../platform/qt5/src/platform_thread.cpp ../../platform/qt5/src/platform_timestamp.cpp ../../src/env.c ../../src/fundamental.c ../../src/heap.c ../../src/lbm_memory.c ../../src/print.c ../../src/stack.c ../../src/symrepr.c ../../src/tokpar.c ../../src/extensions.c ../../src/lispbm.c ../../src/eval_cps.c ../../src/lbm_c_interop.c ../../src/lbm_custom_type.c ../../src/lbm_channel.c ../../src/lbm_flat_value.c ../../src/lbm_prof.c ../../src/lbm_defrag_mem.c ../../src/lbm_image.c ../../utils/buffer.c ../../utils/crypto.c ../../utils/ecc.c ../../src/extensions/array_extensions.c ../../src/extensions/string_extensions.c ../../src/extensions/math_extensions.c ../../src/extensions/runtime_extensions.c ../../src/extensions/random_extensions.c ../../src/extensions/set_extensions.c ../../src/extensions/mutex_extensions.c ../../src/extensions/lbm_dyn_lib.c ../../src/extensions/crypto_extensions.c ../../src/extensions/ecc_extensions.c ../../src/extensions/display_extensions.c ../../src/extensions/dsp_extensions.c ../../src/extensions/tjpgd.c ../../src/extensions/ttf_extensions.c ../../src/extensions/ttf_backend.c ../../src/extensions/schrift.c ../../utils/qt/src/QLbmQuickDisplayItem.cpp ../../utils/qt/src/QLispBM.cpp ../../utils/qt/src/qtquick_extensions.cpp ../../utils/qt/src/QLbmValue.cpp main.cpp LbmEditorBridge.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -533,15 +533,15 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 	g++ -pipe -O2 -std=gnu++1z -Wall -Wextra -dM -E -o moc_predefs.h /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_QLbmQuickDisplayItem.cpp moc_QLispBMQuick.cpp moc_LbmEditorBridge.cpp
+compiler_moc_header_make_all: moc_QLbmQuickDisplayItem.cpp moc_QLispBM.cpp moc_LbmEditorBridge.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_QLbmQuickDisplayItem.cpp moc_QLispBMQuick.cpp moc_LbmEditorBridge.cpp
+	-$(DEL_FILE) moc_QLbmQuickDisplayItem.cpp moc_QLispBM.cpp moc_LbmEditorBridge.cpp
 moc_QLbmQuickDisplayItem.cpp: ../../utils/qt/QLbmQuickDisplayItem.h \
 		moc_predefs.h \
 		/usr/lib/qt5/bin/moc
 	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/joels/Current/lispbm/examples/qtquick-lbm-editor/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/joels/Current/lispbm/examples/qtquick-lbm-editor -I/home/joels/Current/lispbm/include -I/home/joels/Current/lispbm/include/extensions -I/home/joels/Current/lispbm/src -I/home/joels/Current/lispbm/utils -I/home/joels/Current/lispbm/platform/qt5/include -I/home/joels/Current/lispbm/utils/qt -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtQuickControls2 -I/usr/include/x86_64-linux-gnu/qt5/QtQuick -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtQmlModels -I/usr/include/x86_64-linux-gnu/qt5/QtQml -I/usr/include/x86_64-linux-gnu/qt5/QtNetwork -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../../utils/qt/QLbmQuickDisplayItem.h -o moc_QLbmQuickDisplayItem.cpp
 
-moc_QLispBMQuick.cpp: ../../utils/qt/QLispBMQuick.h \
+moc_QLispBM.cpp: ../../utils/qt/QLispBM.h \
 		../../utils/qt/QLbmValue.h \
 		../../include/lispbm.h \
 		../../include/heap.h \
@@ -579,10 +579,10 @@ moc_QLispBMQuick.cpp: ../../utils/qt/QLispBMQuick.h \
 		../../include/extensions/display_extensions.h \
 		moc_predefs.h \
 		/usr/lib/qt5/bin/moc
-	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/joels/Current/lispbm/examples/qtquick-lbm-editor/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/joels/Current/lispbm/examples/qtquick-lbm-editor -I/home/joels/Current/lispbm/include -I/home/joels/Current/lispbm/include/extensions -I/home/joels/Current/lispbm/src -I/home/joels/Current/lispbm/utils -I/home/joels/Current/lispbm/platform/qt5/include -I/home/joels/Current/lispbm/utils/qt -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtQuickControls2 -I/usr/include/x86_64-linux-gnu/qt5/QtQuick -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtQmlModels -I/usr/include/x86_64-linux-gnu/qt5/QtQml -I/usr/include/x86_64-linux-gnu/qt5/QtNetwork -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../../utils/qt/QLispBMQuick.h -o moc_QLispBMQuick.cpp
+	/usr/lib/qt5/bin/moc $(DEFINES) --include /home/joels/Current/lispbm/examples/qtquick-lbm-editor/moc_predefs.h -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++ -I/home/joels/Current/lispbm/examples/qtquick-lbm-editor -I/home/joels/Current/lispbm/include -I/home/joels/Current/lispbm/include/extensions -I/home/joels/Current/lispbm/src -I/home/joels/Current/lispbm/utils -I/home/joels/Current/lispbm/platform/qt5/include -I/home/joels/Current/lispbm/utils/qt -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtQuickControls2 -I/usr/include/x86_64-linux-gnu/qt5/QtQuick -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtQmlModels -I/usr/include/x86_64-linux-gnu/qt5/QtQml -I/usr/include/x86_64-linux-gnu/qt5/QtNetwork -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/13 -I/usr/include/x86_64-linux-gnu/c++/13 -I/usr/include/c++/13/backward -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../../utils/qt/QLispBM.h -o moc_QLispBM.cpp
 
 moc_LbmEditorBridge.cpp: LbmEditorBridge.h \
-		../../utils/qt/QLispBMQuick.h \
+		../../utils/qt/QLispBM.h \
 		../../utils/qt/QLbmValue.h \
 		../../include/lispbm.h \
 		../../include/heap.h \
@@ -630,7 +630,7 @@ compiler_moc_source_clean:
 qtquick_extensions.moc: ../../utils/qt/src/qtquick_extensions.cpp \
 		../../utils/qt/qtquick_extensions.h \
 		../../utils/qt/QLbmQuickDisplayItem.h \
-		../../utils/qt/QLispBMQuick.h \
+		../../utils/qt/QLispBM.h \
 		../../utils/qt/QLbmValue.h \
 		../../include/lispbm.h \
 		../../include/heap.h \
@@ -1233,7 +1233,7 @@ schrift.o: ../../src/extensions/schrift.c ../../src/extensions/schrift.h \
 QLbmQuickDisplayItem.o: ../../utils/qt/src/QLbmQuickDisplayItem.cpp ../../utils/qt/QLbmQuickDisplayItem.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o QLbmQuickDisplayItem.o ../../utils/qt/src/QLbmQuickDisplayItem.cpp
 
-QLispBMQuick.o: ../../utils/qt/src/QLispBMQuick.cpp ../../utils/qt/QLispBMQuick.h \
+QLispBM.o: ../../utils/qt/src/QLispBM.cpp ../../utils/qt/QLispBM.h \
 		../../utils/qt/QLbmValue.h \
 		../../include/lispbm.h \
 		../../include/heap.h \
@@ -1270,11 +1270,11 @@ QLispBMQuick.o: ../../utils/qt/src/QLispBMQuick.cpp ../../utils/qt/QLispBMQuick.
 		../../include/extensions/ttf_extensions.h \
 		../../include/extensions/display_extensions.h \
 		../../platform/qt5/include/platform_timestamp.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o QLispBMQuick.o ../../utils/qt/src/QLispBMQuick.cpp
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o QLispBM.o ../../utils/qt/src/QLispBM.cpp
 
 qtquick_extensions.o: ../../utils/qt/src/qtquick_extensions.cpp ../../utils/qt/qtquick_extensions.h \
 		../../utils/qt/QLbmQuickDisplayItem.h \
-		../../utils/qt/QLispBMQuick.h \
+		../../utils/qt/QLispBM.h \
 		../../utils/qt/QLbmValue.h \
 		../../include/lispbm.h \
 		../../include/heap.h \
@@ -1335,7 +1335,7 @@ QLbmValue.o: ../../utils/qt/src/QLbmValue.cpp ../../utils/qt/QLbmValue.h \
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o QLbmValue.o ../../utils/qt/src/QLbmValue.cpp
 
 main.o: main.cpp LbmEditorBridge.h \
-		../../utils/qt/QLispBMQuick.h \
+		../../utils/qt/QLispBM.h \
 		../../utils/qt/QLbmValue.h \
 		../../include/lispbm.h \
 		../../include/heap.h \
@@ -1374,7 +1374,7 @@ main.o: main.cpp LbmEditorBridge.h \
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
 LbmEditorBridge.o: LbmEditorBridge.cpp LbmEditorBridge.h \
-		../../utils/qt/QLispBMQuick.h \
+		../../utils/qt/QLispBM.h \
 		../../utils/qt/QLbmValue.h \
 		../../include/lispbm.h \
 		../../include/heap.h \
@@ -1418,8 +1418,8 @@ qrc_resources.o: qrc_resources.cpp
 moc_QLbmQuickDisplayItem.o: moc_QLbmQuickDisplayItem.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_QLbmQuickDisplayItem.o moc_QLbmQuickDisplayItem.cpp
 
-moc_QLispBMQuick.o: moc_QLispBMQuick.cpp 
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_QLispBMQuick.o moc_QLispBMQuick.cpp
+moc_QLispBM.o: moc_QLispBM.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_QLispBM.o moc_QLispBM.cpp
 
 moc_LbmEditorBridge.o: moc_LbmEditorBridge.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_LbmEditorBridge.o moc_LbmEditorBridge.cpp

@@ -18,25 +18,27 @@
 #ifndef QLBMQUICKDISPLAYITEM_H_
 #define QLBMQUICKDISPLAYITEM_H_
 
-#include <QQuickPaintedItem>
+#include <QQuickItem>
 #include <QImage>
+#include <QMutex>
 
-class QLbmQuickDisplayItem : public QQuickPaintedItem {
+class QLbmQuickDisplayItem : public QQuickItem {
   Q_OBJECT
 public:
   explicit QLbmQuickDisplayItem(int displayWidth, int displayHeight,
                                 QQuickItem *parent = nullptr);
 
-  QSizeF sizeHint() const;
-
 public slots:
   void setImage(const QImage &img);
   void setImageAt(int x, int y, const QImage &img);
 
-  void paint(QPainter *painter) override;
+protected:
+  QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *) override;
 
 private:
+  QMutex m_mutex;
   QImage m_image;
+  bool   m_pending;
   int    m_displayWidth;
   int    m_displayHeight;
 };

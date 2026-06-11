@@ -366,7 +366,7 @@ static bool qt_render_image(image_buffer_t *img, uint16_t x, uint16_t y, color_t
   int ix = (int)x, iy = (int)y;
   QMetaObject::invokeMethod(pane, [pane, ix, iy, qimg]() {
     pane->setImageAt(ix, iy, qimg);
-  }, Qt::BlockingQueuedConnection);
+  }, Qt::QueuedConnection);
   return true;
 }
 
