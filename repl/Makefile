@@ -141,6 +141,52 @@ ifneq (,$(filter mcp, $(FEATURES)))
 	REPL_SRC += ../utils/mcp/lbm_mcp.c ../utils/mcp/cJSON.c
 endif
 
+# Qt Quick UI — requires Qt 5.15 offline install at QT_BASE
+QT_BASE ?= $(HOME)/Qt/5.15.2/gcc_64
+QT_OBJS  =
+ifneq (,$(filter qt, $(FEATURES)))
+	QT_PC      = PKG_CONFIG_PATH=$(QT_BASE)/lib/pkgconfig
+	QT_PFXARG  = --define-variable=prefix=$(QT_BASE)
+	QT_CFLAGS := $(shell $(QT_PC) pkg-config $(QT_PFXARG) --cflags Qt5Quick Qt5QuickControls2)
+	QT_LIBS   := $(shell $(QT_PC) pkg-config $(QT_PFXARG) --libs   Qt5Quick Qt5QuickControls2)
+	MOC_BIN   := $(QT_BASE)/bin/moc
+	# Flags for g++: drop C-only flags, add C++14 and Qt includes
+	CXXFLAGS  := $(filter-out -std=c11 -pedantic -fno-pie -no-pie \
+	                          -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast,$(CCFLAGS)) \
+	             -std=c++14 -fPIC $(QT_CFLAGS) -I../utils/qt
+	CCFLAGS   += -DWITH_QT -I../utils/qt $(QT_CFLAGS)
+	LDFLAGS   += $(QT_LIBS) -Wl,-rpath,$(QT_BASE)/lib -no-pie
+	QT_SRC     = ../utils/qt/src
+	QT_OBJS    = QLbmQuickDisplayItem.o moc_QLbmQuickDisplayItem.o QLbmValue.o qtquick_extensions.o repl_qt.o
+	# MOC only accepts -D and -I flags; strip everything else from CXXFLAGS.
+	MOC_FLAGS := $(filter -D% -I%,$(CXXFLAGS)) $(filter -D% -I%,$(LISPBM_INC)) \
+	             $(filter -D% -I%,$(PLATFORM_INCLUDE))
+
+# MOC: LbmSignalAdapter is defined inside qtquick_extensions.cpp and
+# included via its own .moc file at the bottom of that translation unit.
+qtquick_extensions.moc: $(QT_SRC)/qtquick_extensions.cpp
+	$(MOC_BIN) $(MOC_FLAGS) $< -o $@
+
+# QLbmQuickDisplayItem has Q_OBJECT in its header.
+moc_QLbmQuickDisplayItem.cpp: ../utils/qt/QLbmQuickDisplayItem.h
+	$(MOC_BIN) $(MOC_FLAGS) $< -o $@
+
+QLbmQuickDisplayItem.o: $(QT_SRC)/QLbmQuickDisplayItem.cpp moc_QLbmQuickDisplayItem.cpp
+	g++ $(CXXFLAGS) -c $< -o $@ $(LISPBM_INC) $(PLATFORM_INCLUDE)
+
+moc_QLbmQuickDisplayItem.o: moc_QLbmQuickDisplayItem.cpp
+	g++ $(CXXFLAGS) -c $< -o $@ $(LISPBM_INC) $(PLATFORM_INCLUDE)
+
+QLbmValue.o: $(QT_SRC)/QLbmValue.cpp
+	g++ $(CXXFLAGS) -c $< -o $@ $(LISPBM_INC) $(PLATFORM_INCLUDE)
+
+qtquick_extensions.o: $(QT_SRC)/qtquick_extensions.cpp qtquick_extensions.moc
+	g++ $(CXXFLAGS) -I$(CURDIR) -c $< -o $@ $(LISPBM_INC) $(PLATFORM_INCLUDE)
+
+repl_qt.o: repl_qt.cpp
+	g++ $(CXXFLAGS) -c $< -o $@ $(LISPBM_INC) $(PLATFORM_INCLUDE)
+endif
+
 # -Wjump-misses-init
 # -fsanitize=address
 
@@ -162,11 +208,14 @@ help:
 	@echo "freetype - Use libfreetype for font preprocessing."
 	@echo "coverage  - Build with coverage information collection."
 	@echo "mcp       - Build with MCP (Model Context Protocol) server support. Adds --mcp flag."
+	@echo "qt        - Adds Qt Quick UI widgets (qt-button, qt-slider, qt-display …)."
+	@echo "            Requires Qt 5.15 at QT_BASE (default: ~/Qt/5.15.2/gcc_64)."
 	@echo "debug     - Build with debug symbols."
 	@echo "test_nand - Build FT4232H + W25N01GVZEIG NAND driver test (requires libftdi1-dev)."
 	@echo ""
 	@echo "Example: 'make FEATURES=\"alsa sdl\"' to build with sound and graphics support."
 	@echo "Example: 'make FEATURES=\"sdl freetype\"' to build with graphics and freetype support."
+	@echo "Example: 'make FEATURES=\"64 qt\"' to build 64-bit REPL with Qt Quick UI."
 
 install:
 	@if [ ! -f repl ]; then echo "Error: repl not built. Run 'make help' for information." ; exit 1; fi
@@ -176,14 +225,24 @@ install:
 	cp shlbm ~/.local/bin/shlbm
 	chmod a+x ~/.local/bin/shlbm
 
+ifneq (,$(filter qt, $(FEATURES)))
+# Qt build: compile C sources via partial link (-r) into a single relocatable
+# object, compile Qt C++ sources separately with g++, then link all with g++.
+repl: $(FEATURE_FILE) $(QT_OBJS) $(REPL_SRC) $(PLATFORM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
+	gcc $(CCFLAGS) -r -o lbm_c_objs.o $(PLATFORM_SRC) $(REPL_SRC) $(LISPBM_INC) $(PLATFORM_INCLUDE)
+	g++ lbm_c_objs.o $(QT_OBJS) -o repl $(LDFLAGS)
+else
 repl: $(FEATURE_FILE) $(REPL_SRC) $(PLATFORM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
 	gcc $(CCFLAGS) $(PLATFORM_SRC) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) $(LDFLAGS) $(LISPBM_FLAGS)
+endif
 
 clean:
 	rm -f repl
 	rm -f .build_features
 	rm -f *.gcda
 	rm -f *.gcno
+	rm -f *.o
+	rm -f *.moc moc_*.cpp
 
 clean_coverage:
 	rm -f coverage/*

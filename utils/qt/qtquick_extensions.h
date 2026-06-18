@@ -18,6 +18,8 @@
 #ifndef QTQUICK_EXTENSIONS_H_
 #define QTQUICK_EXTENSIONS_H_
 
+#include "QLbmValue.h"
+
 class QQuickItem;
 class QQmlEngine;
 
@@ -82,5 +84,10 @@ void lbm_qtquick_extensions_set_root(QQuickItem *root, QQmlEngine *engine);
 //   (slider-changed   handle value)
 //   (combo-changed    handle index)
 void lbm_qtquick_extensions_init(void);
+
+// Register the function used to forward widget events (button-pressed,
+// slider-changed, …) to the LispBM evaluator.  Must be called before
+// lbm_qtquick_extensions_init().  When not set, events are silently dropped.
+void lbm_qtquick_set_event_sender(bool (*fn)(const QLbmValue &));
 
 #endif

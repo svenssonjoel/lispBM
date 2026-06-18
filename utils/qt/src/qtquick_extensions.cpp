@@ -17,7 +17,6 @@
 
 #include "qtquick_extensions.h"
 #include "QLbmQuickDisplayItem.h"
-#include "QLispBM.h"
 
 #include <QQuickItem>
 #include <QQmlEngine>
@@ -38,6 +37,31 @@ extern "C" {
 }
 
 #include <cstring>
+
+// ////////////////////////////////////////////////////////////
+// Event sender — forwards widget events to the LispBM evaluator.
+// Default implementation calls lbm_event / lbm_event_unboxed directly,
+// which works for any host (REPL, QLispBM-based app, etc.).
+// Can be overridden with lbm_qtquick_set_event_sender() if needed.
+
+static bool default_event_sender(const QLbmValue &value) {
+  if (value.isUnboxed())
+    return lbm_event_unboxed(value.unboxed());
+  lbm_flat_value_t fv;
+  if (!value.flatten(&fv)) return false;
+  if (!lbm_event(&fv)) { lbm_free(fv.buf); return false; }
+  return true;
+}
+
+static bool (*s_event_sender)(const QLbmValue &) = default_event_sender;
+
+void lbm_qtquick_set_event_sender(bool (*fn)(const QLbmValue &)) {
+  s_event_sender = fn;
+}
+
+static void send_event(const QLbmValue &value) {
+  if (s_event_sender) s_event_sender(value);
+}
 
 // ////////////////////////////////////////////////////////////
 // Qt signals to LBM events adapter
@@ -93,12 +117,9 @@ public slots:
     QString text = m_source->property("text").toString();
     QByteArray ba = text.toUtf8();
     ba.append('\0');
-    if (QLispBM::instance()) {
-      QLispBM::instance()->sendEvent(
-        QLbmValue::fromList({QLbmValue::fromSymbol("textfield-commit"),
-                             QLbmValue::fromI(m_handle),
-                             QLbmValue::fromByteArray(ba)}));
-    }
+    send_event(QLbmValue::fromList({QLbmValue::fromSymbol("textfield-commit"),
+                                    QLbmValue::fromI(m_handle),
+                                    QLbmValue::fromByteArray(ba)}));
   }
 
   void onActivated(int index) {
@@ -107,34 +128,26 @@ public slots:
 
 private:
   void sendSymHandle(const char *sym) {
-    if (QLispBM::instance())
-      QLispBM::instance()->sendEvent(
-        QLbmValue::fromList({QLbmValue::fromSymbol(sym),
-                             QLbmValue::fromI(m_handle)}));
+    send_event(QLbmValue::fromList({QLbmValue::fromSymbol(sym),
+                                    QLbmValue::fromI(m_handle)}));
   }
 
   void sendSymHandleBool(const char *sym, bool v) {
-    if (QLispBM::instance())
-      QLispBM::instance()->sendEvent(
-        QLbmValue::fromList({QLbmValue::fromSymbol(sym),
-                             QLbmValue::fromI(m_handle),
-                             v ? QLbmValue::fromSymbol("t") : QLbmValue()}));
+    send_event(QLbmValue::fromList({QLbmValue::fromSymbol(sym),
+                                    QLbmValue::fromI(m_handle),
+                                    v ? QLbmValue::fromSymbol("t") : QLbmValue()}));
   }
 
   void sendSymHandleInt(const char *sym, int v) {
-    if (QLispBM::instance())
-      QLispBM::instance()->sendEvent(
-        QLbmValue::fromList({QLbmValue::fromSymbol(sym),
-                             QLbmValue::fromI(m_handle),
-                             QLbmValue::fromI(v)}));
+    send_event(QLbmValue::fromList({QLbmValue::fromSymbol(sym),
+                                    QLbmValue::fromI(m_handle),
+                                    QLbmValue::fromI(v)}));
   }
 
   void sendSymHandleFloat(const char *sym, float v) {
-    if (QLispBM::instance())
-      QLispBM::instance()->sendEvent(
-        QLbmValue::fromList({QLbmValue::fromSymbol(sym),
-                             QLbmValue::fromI(m_handle),
-                             QLbmValue::fromFloat(v)}));
+    send_event(QLbmValue::fromList({QLbmValue::fromSymbol(sym),
+                                    QLbmValue::fromI(m_handle),
+                                    QLbmValue::fromFloat(v)}));
   }
 
   int          m_handle;
@@ -394,10 +407,10 @@ static int createContainer(QQuickItem *parent, const QByteArray &layoutQml,
   int handle = -1;
   QMetaObject::invokeMethod(parent, [parent, layoutQml, attrs, &handle]() {
     if (attrs.scrollV || attrs.scrollH) {
-      // Create inner layout, then wrap it in a ScrollView.
+      // Create inner layout (no parent yet — it lives inside the Flickable,
+      // not a Qt Quick Layout, so Layout.fill* attached props don't apply).
       QQuickItem *inner = createQmlItem(layoutQml + "\n", nullptr);
       if (!inner) return;
-      setLayoutFill(inner, true, true);
 
       QByteArray svQml = "ScrollView {\n"
                          "  Layout.fillWidth: true\n"
@@ -412,10 +425,29 @@ static int createContainer(QQuickItem *parent, const QByteArray &layoutQml,
       applyAttrs(sv, attrs);
       addToLayout(parent, sv, attrs, true, true);
 
-      // ScrollView's contentItem hosts the inner layout.
-      QQuickItem *ci = sv->property("contentItem").value<QQuickItem*>();
-      if (ci) inner->setParentItem(ci);
-      else    inner->setParentItem(sv);
+      // ScrollView.contentItem is the Flickable (viewport).
+      // Flickable.contentItem is the item that actually gets translated on scroll.
+      // Children must be parented to the latter; width tracks the former.
+      QQuickItem *flickable = sv->property("contentItem").value<QQuickItem*>();
+      QQuickItem *scrollContent = flickable
+                                  ? flickable->property("contentItem").value<QQuickItem*>()
+                                  : nullptr;
+      inner->setParentItem(scrollContent ? scrollContent : sv);
+
+      // Keep inner's width pinned to the viewport (Flickable) width.
+      QQuickItem *viewport = flickable ? flickable : sv;
+      QObject::connect(viewport, &QQuickItem::widthChanged, inner, [viewport, inner]() {
+        inner->setWidth(viewport->width());
+      });
+      inner->setWidth(viewport->width());
+
+      // Drive ScrollView.contentHeight from the inner layout's implicitHeight
+      // so the scrollbar appears as soon as content overflows the viewport.
+      auto syncHeight = [sv, inner]() {
+        sv->setProperty("contentHeight", inner->implicitHeight());
+      };
+      QObject::connect(inner, &QQuickItem::implicitHeightChanged, sv, syncHeight);
+      syncHeight();
 
       handle = registerItem(inner, LbmQtWidgetType::Container);
     } else {

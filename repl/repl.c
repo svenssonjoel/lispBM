@@ -95,6 +95,10 @@
 #include "lbm_mcp.h"
 #endif
 
+#ifdef WITH_QT
+#include "repl_qt.h"
+#endif
+
 // things directly copied from VESC_EXPRESS
 #include "packet.h"
 #include "comm_packet_id.h"
@@ -2553,6 +2557,286 @@ static void handle_repl_output(void) {
 
 
 // ////////////////////////////////////////////////////////////
+// REPL interactive loop — runs on main in the default build, or on a
+// dedicated thread when WITH_QT is defined so that Qt's event loop can
+// own the main thread.
+static void repl_loop(void *arg) {
+  (void)arg;
+  char output[1024];
+
+  if (silent_mode) {
+    rl_callback_handler_install("", line_handler);
+  } else {
+    rl_callback_handler_install("# ", line_handler);
+  }
+
+  lbm_set_printf_callback(printf_callback);
+
+  while (1) {
+    repl_mode = true;
+#ifdef LBM_WIN
+    {
+      HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+      DWORD wait_result = WaitForSingleObject(hStdin, 100);
+      if (wait_result == WAIT_OBJECT_0) {
+        INPUT_RECORD rec;
+        DWORD num_read = 0;
+        PeekConsoleInput(hStdin, &rec, 1, &num_read);
+        if (num_read > 0) {
+          if (rec.EventType == KEY_EVENT && rec.Event.KeyEvent.bKeyDown) {
+            rl_callback_read_char();
+          } else {
+            ReadConsoleInput(hStdin, &rec, 1, &num_read);
+          }
+        }
+      }
+    }
+#else
+    fd_set readfds;
+    int stdin_fd = fileno(stdin);
+
+    FD_ZERO(&readfds);
+    FD_SET(stdin_fd, &readfds);
+
+    struct timeval timeout = {0, 100000};
+    int result = select(stdin_fd + 1, &readfds, NULL, NULL, &timeout);
+    if (result > 0 && FD_ISSET(stdin_fd, &readfds)) {
+      rl_callback_read_char();
+    }
+#endif
+    if (line_ready && current_line) {
+      char *str = current_line;
+      if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
+      size_t n = strlen(str);
+      if (n >= 5 && strncmp(str, ":info", 5) == 0) {
+        printf("--(LISP HEAP)-----------------------------------------------\n");
+        lbm_get_heap_state(&heap_state);
+        printf("Heap size: %u Bytes\n", heap_size * 8);
+        printf("Used cons cells: %"PRI_INT"\n", heap_size - lbm_heap_num_free());
+        printf("Free cons cells: %"PRI_INT"\n", lbm_heap_num_free());
+        printf("GC counter: %"PRI_INT"\n", heap_state.gc_num);
+        printf("Recovered: %"PRI_INT"\n", heap_state.gc_recovered);
+        printf("Recovered arrays: %"PRI_UINT"\n", heap_state.gc_recovered_arrays);
+        printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
+        printf("GC stack size: %"PRI_UINT"\n", lbm_get_gc_stack_size());
+        printf("GC SP max: %"PRI_UINT"\n", lbm_get_gc_stack_max());
+        printf("Global env cells: %"PRI_UINT"\n", lbm_get_global_env_size());
+        printf("--(Symbol and Array memory)---------------------------------\n");
+        printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
+        printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
+        printf("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
+        printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
+        printf("Symbol table size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
+        printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
+        printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
+        printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
+        printf("--(Flash)--\n");
+        printf("Size: %"PRI_UINT" words\n", const_heap.size);
+        printf("Used words: %"PRI_UINT"\n", const_heap.next);
+        printf("Free words: %"PRI_UINT"\n", const_heap.size - const_heap.next);
+        printf("image location: %p \n", (void*)image_storage);
+      } else if (strncmp(str, ":prof start", 11) == 0) {
+        lbm_prof_init(prof_data,
+                      PROF_DATA_NUM);
+        lbm_thread_t thd; // just forget this id.
+        prof_running = true;
+        if (!lbm_thread_create(&thd, "prof", prof_thd, NULL, LBM_THREAD_PRIO_LOW, 0)) {
+          printf("Error creating profiler thread\n");
+          goto repl_next_iteration;
+        }
+        printf("Profiler started\n");
+      } else if (strncmp(str, ":prof stop", 10) == 0) {
+        prof_running = false;
+        printf("Profiler stopped. Issue command ':prof report' for statistics\n.");
+      } else if (strncmp(str, ":prof report", 12) == 0) {
+        lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
+        lbm_uint num_system = lbm_prof_get_num_system_samples();
+        lbm_uint tot_samples = lbm_prof_get_num_samples();
+        lbm_uint tot_gc = 0;
+        printf("CID\tName\tSamples\t%%Load\t%%GC\n");
+        for (int i = 0; i < PROF_DATA_NUM; i ++) {
+          if (prof_data[i].cid == -1) break;
+          tot_gc += prof_data[i].gc_count;
+          printf("%"PRI_VALUE"\t%s\t%"PRI_UINT"\t%f\t%f\n",
+                 prof_data[i].cid,
+                 prof_data[i].name,
+                 prof_data[i].count,
+                 100.0 * ((float)prof_data[i].count) / (float) tot_samples,
+                 100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count);
+        }
+        printf("\n");
+        printf("GC:\t%"PRI_UINT"\t%f%%\n", tot_gc, 100.0 * ((float)tot_gc / (float)tot_samples));
+        printf("System:\t%"PRI_UINT"\t%f%%\n", num_system, 100.0 * ((float)num_system / (float)tot_samples));
+        printf("Sleep:\t%"PRI_UINT"\t%f%%\n", num_sleep, 100.0 * ((float)num_sleep / (float)tot_samples));
+        printf("Total:\t%"PRI_UINT" samples\n", tot_samples);
+      } else if (strncmp(str, ":env", 4) == 0) {
+        for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+          lbm_value *env = lbm_get_global_env();
+          lbm_value curr = env[i];
+          printf("Environment [%d]:\r\n", i);
+          while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+            lbm_print_value(output,1024, lbm_car(curr));
+            curr = lbm_cdr(curr);
+            printf("  %s\r\n",output);
+          }
+        }
+      } else if (strncmp(str, ":state", 6) == 0) {
+        switch (lbm_get_eval_state()) {
+        case EVAL_CPS_STATE_DEAD:
+          printf("DEAD\n");
+          break;
+        case EVAL_CPS_STATE_PAUSED:
+          printf("PAUSED\n");
+          break;
+        case EVAL_CPS_STATE_NONE:
+          printf("NO STATE\n");
+          break;
+        case EVAL_CPS_STATE_RUNNING:
+          printf("RUNNING\n");
+          break;
+        case EVAL_CPS_STATE_KILL:
+          printf("KILLING\n");
+          break;
+        }
+      } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
+
+        char *file_str = load_file(&str[5]);
+        if (file_str) {
+          lbm_create_string_char_channel(&string_tok_state,
+                                         &string_tok,
+                                         file_str);
+
+          /* Get exclusive access to the heap */
+          lbm_pause_eval_with_gc(50);
+          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+            sleep_callback(10);
+          }
+
+          lbm_cid loader = lbm_load_and_eval_program_incremental(&string_tok, NULL);
+          lbm_continue_eval();
+
+          if (loader < 0) {
+            printf("Error starting loader thread\n");
+          }
+
+          //printf("started ctx: %"PRI_UINT"\n", cid);
+          // TODO: Should free the file_str at some point!!
+          // but it is hard to figure out when to do that if loading incrementally.
+        } else {
+          printf("Error loading file: %s\n",&str[5]);
+        }
+      } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
+        lbm_toggle_verbose();
+      } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
+        set_allow_print(true);
+      } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
+        set_allow_print(false);
+      } else if (strncmp(str, ":ctxs", 5) == 0) {
+        printf("****** Running contexts ******\n");
+        lbm_running_iterator(print_ctx_info, NULL, NULL);
+        printf("****** Blocked contexts ******\n");
+        lbm_blocked_iterator(print_ctx_info, NULL, NULL);
+      } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
+        shutdown_procedure();
+        terminate_repl(REPL_EXIT_SUCCESS);
+        return;
+      } else if (strncmp(str, ":symbols", 8) == 0) {
+        lbm_symrepr_name_iterator(sym_it);
+      } else if (strncmp(str, ":heap", 5) == 0) {
+        int size = atoi(str + 5);
+        if (size > 0) {
+          heap_size = (unsigned int)size;
+          if (!init_repl()) {
+            printf("Failed to initialize REPL after heap resize\n");
+            terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
+          }
+        }
+      } else if (strncmp(str, ":reset", 6) == 0) {
+        if (!init_repl()) {
+          printf ("Failed to initialize REPL\n");
+          terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
+        }
+      } else if (strncmp(str, ":send", 5) == 0) {
+        int id;
+        int i_val;
+
+        if (sscanf(str + 5, "%d%d", &id, &i_val) == 2) {
+          lbm_pause_eval_with_gc(50);
+          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+            sleep_callback(10);
+          }
+
+          if (lbm_send_message((lbm_cid)id, lbm_enc_i(i_val)) == 0) {
+            printf("Could not send message\n");
+          }
+
+          lbm_continue_eval();
+        } else {
+          printf("Incorrect arguments to send\n");
+        }
+      } else if (strncmp(str, ":pause", 6) == 0) {
+        lbm_pause_eval_with_gc(30);
+        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+        printf("Evaluator paused\n");
+      } else if (strncmp(str, ":continue", 9) == 0) {
+        lbm_continue_eval();
+      } else if (strncmp(str, ":inspect", 8) == 0) {
+
+        int i = 8;
+        if (strlen(str) >= 8) {
+          while (str[i] == ' ') i++;
+        }
+        char *sym = str + i;
+        lbm_uint sym_id = 0;
+        if (lbm_get_symbol_by_name(sym, &sym_id)) {
+          lbm_all_ctxs_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+        } else {
+          printf("symbol does not exist\n");
+        }
+      } else if (strncmp(str, ":undef", 6) == 0) {
+        lbm_pause_eval_with_gc(50);
+        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+        char *sym = str + 7;
+        printf("undefining: %s\n", sym);
+        printf("%s\n", lbm_undefine(sym) ? "Cleared bindings" : "No definition found");
+        lbm_continue_eval();
+      } else { // The read an expression case!
+        /* Get exclusive access to the heap */
+        size_t len = strlen(str)+1;
+        char *buffer = malloc(len);
+        if (buffer) {
+          memcpy(buffer, str, len);
+          lbm_pause_eval_with_gc(50);
+          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+            sleep_callback(10);
+          }
+          lbm_create_string_char_channel(&string_tok_state,
+                                         &string_tok,
+                                         buffer);
+          lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
+          add_reader(buffer, cid);
+          lbm_continue_eval();
+        } else {
+          printf("Error allocating reader buffer.\n");
+          terminate_repl(REPL_EXIT_SUCCESS);
+          return;
+        }
+      }
+    repl_next_iteration:
+      line_ready = false;
+      free(current_line);
+      current_line = NULL;
+      str = NULL; //(same as current line)
+    }
+    handle_repl_output();
+  }
+}
+
+// ////////////////////////////////////////////////////////////
 //
 int main(int argc, char **argv) {
   iobuffer_init();
@@ -2891,280 +3175,18 @@ int main(int argc, char **argv) {
     }
 #endif
   } else {
-    char output[1024];
-
-    if (silent_mode) {
-      rl_callback_handler_install("", line_handler);
-    } else {
-      rl_callback_handler_install("# ", line_handler);
+#ifdef WITH_QT
+    lbm_thread_t repl_thd;
+    if (!lbm_thread_create(&repl_thd, "repl", repl_loop, NULL, LBM_THREAD_PRIO_NORMAL, 0)) {
+      printf("Error creating REPL thread\n");
+      terminate_repl(REPL_EXIT_ERROR);
     }
-
-    // REPL interaction starts here. print via the iobuffer.
-    lbm_set_printf_callback(printf_callback);
-
-    while (1) {
-      repl_mode = true;
-#ifdef LBM_WIN
-      {
-        HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
-        DWORD wait_result = WaitForSingleObject(hStdin, 100);
-        if (wait_result == WAIT_OBJECT_0) {
-          INPUT_RECORD rec;
-          DWORD num_read = 0;
-          PeekConsoleInput(hStdin, &rec, 1, &num_read);
-          if (num_read > 0) {
-            if (rec.EventType == KEY_EVENT && rec.Event.KeyEvent.bKeyDown) {
-              rl_callback_read_char();
-            } else {
-              ReadConsoleInput(hStdin, &rec, 1, &num_read);
-            }
-          }
-        }
-      }
+    repl_qt_run(argc, argv);
 #else
-      fd_set readfds;
-      int stdin_fd = fileno(stdin);
-
-      FD_ZERO(&readfds);
-      FD_SET(stdin_fd, &readfds);
-
-      struct timeval timeout = {0, 100000};
-      int result = select(stdin_fd + 1, &readfds, NULL, NULL, &timeout);
-      if (result > 0 && FD_ISSET(stdin_fd, &readfds)) {
-        rl_callback_read_char();
-      }
+    repl_loop(NULL);
 #endif
-      if (line_ready && current_line) {
-        char *str = current_line;
-        if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
-        size_t n = strlen(str);
-        if (n >= 5 && strncmp(str, ":info", 5) == 0) {
-          printf("--(LISP HEAP)-----------------------------------------------\n");
-          lbm_get_heap_state(&heap_state);
-          printf("Heap size: %u Bytes\n", heap_size * 8);
-          printf("Used cons cells: %"PRI_INT"\n", heap_size - lbm_heap_num_free());
-          printf("Free cons cells: %"PRI_INT"\n", lbm_heap_num_free());
-          printf("GC counter: %"PRI_INT"\n", heap_state.gc_num);
-          printf("Recovered: %"PRI_INT"\n", heap_state.gc_recovered);
-          printf("Recovered arrays: %"PRI_UINT"\n", heap_state.gc_recovered_arrays);
-          printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
-          printf("GC stack size: %"PRI_UINT"\n", lbm_get_gc_stack_size());
-          printf("GC SP max: %"PRI_UINT"\n", lbm_get_gc_stack_max());
-          printf("Global env cells: %"PRI_UINT"\n", lbm_get_global_env_size());
-          printf("--(Symbol and Array memory)---------------------------------\n");
-          printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
-          printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
-          printf("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
-          printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
-          printf("Symbol table size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
-          printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
-          printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
-          printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
-          printf("--(Flash)--\n");
-          printf("Size: %"PRI_UINT" words\n", const_heap.size);
-          printf("Used words: %"PRI_UINT"\n", const_heap.next);
-          printf("Free words: %"PRI_UINT"\n", const_heap.size - const_heap.next);
-          printf("image location: %p \n", (void*)image_storage);
-        } else if (strncmp(str, ":prof start", 11) == 0) {
-          lbm_prof_init(prof_data,
-                        PROF_DATA_NUM);
-          lbm_thread_t thd; // just forget this id.
-          prof_running = true;
-          if (!lbm_thread_create(&thd, "prof", prof_thd, NULL, LBM_THREAD_PRIO_LOW, 0)) {
-            printf("Error creating profiler thread\n");
-            goto repl_next_iteration;
-          }
-          printf("Profiler started\n");
-        } else if (strncmp(str, ":prof stop", 10) == 0) {
-          prof_running = false;
-          printf("Profiler stopped. Issue command ':prof report' for statistics\n.");
-        } else if (strncmp(str, ":prof report", 12) == 0) {
-          lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
-          lbm_uint num_system = lbm_prof_get_num_system_samples();
-          lbm_uint tot_samples = lbm_prof_get_num_samples();
-          lbm_uint tot_gc = 0;
-          printf("CID\tName\tSamples\t%%Load\t%%GC\n");
-          for (int i = 0; i < PROF_DATA_NUM; i ++) {
-            if (prof_data[i].cid == -1) break;
-            tot_gc += prof_data[i].gc_count;
-            printf("%"PRI_VALUE"\t%s\t%"PRI_UINT"\t%f\t%f\n",
-                   prof_data[i].cid,
-                   prof_data[i].name,
-                   prof_data[i].count,
-                   100.0 * ((float)prof_data[i].count) / (float) tot_samples,
-                   100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count);
-          }
-          printf("\n");
-          printf("GC:\t%"PRI_UINT"\t%f%%\n", tot_gc, 100.0 * ((float)tot_gc / (float)tot_samples));
-          printf("System:\t%"PRI_UINT"\t%f%%\n", num_system, 100.0 * ((float)num_system / (float)tot_samples));
-          printf("Sleep:\t%"PRI_UINT"\t%f%%\n", num_sleep, 100.0 * ((float)num_sleep / (float)tot_samples));
-          printf("Total:\t%"PRI_UINT" samples\n", tot_samples);
-        } else if (strncmp(str, ":env", 4) == 0) {
-          for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
-            lbm_value *env = lbm_get_global_env();
-            lbm_value curr = env[i];
-            printf("Environment [%d]:\r\n", i);
-            while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-              lbm_print_value(output,1024, lbm_car(curr));
-              curr = lbm_cdr(curr);
-              printf("  %s\r\n",output);
-            }
-          }
-        } else if (strncmp(str, ":state", 6) == 0) {
-          switch (lbm_get_eval_state()) {
-          case EVAL_CPS_STATE_DEAD:
-            printf("DEAD\n");
-            break;
-          case EVAL_CPS_STATE_PAUSED:
-            printf("PAUSED\n");
-            break;
-          case EVAL_CPS_STATE_NONE:
-            printf("NO STATE\n");
-            break;
-          case EVAL_CPS_STATE_RUNNING:
-            printf("RUNNING\n");
-            break;
-          case EVAL_CPS_STATE_KILL:
-            printf("KILLING\n");
-            break;
-          }
-        } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
 
-          char *file_str = load_file(&str[5]);
-          if (file_str) {
-            lbm_create_string_char_channel(&string_tok_state,
-                                           &string_tok,
-                                           file_str);
-
-            /* Get exclusive access to the heap */
-            lbm_pause_eval_with_gc(50);
-            while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-              sleep_callback(10);
-            }
-
-            lbm_cid loader = lbm_load_and_eval_program_incremental(&string_tok, NULL);
-            lbm_continue_eval();
-
-            if (loader < 0) {
-              printf("Error starting loader thread\n");
-            }
-
-            //printf("started ctx: %"PRI_UINT"\n", cid);
-            // TODO: Should free the file_str at some point!!
-            // but it is hard to figure out when to do that if loading incrementally.
-          } else {
-            printf("Error loading file: %s\n",&str[5]);
-          }
-        } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
-          lbm_toggle_verbose();
-        } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
-          set_allow_print(true);
-        } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
-          set_allow_print(false);
-        } else if (strncmp(str, ":ctxs", 5) == 0) {
-          printf("****** Running contexts ******\n");
-          lbm_running_iterator(print_ctx_info, NULL, NULL);
-          printf("****** Blocked contexts ******\n");
-          lbm_blocked_iterator(print_ctx_info, NULL, NULL);
-        } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
-          shutdown_procedure();
-          goto repl_cleanup_and_exit;
-        } else if (strncmp(str, ":symbols", 8) == 0) {
-          lbm_symrepr_name_iterator(sym_it);
-        } else if (strncmp(str, ":heap", 5) == 0) {
-          int size = atoi(str + 5);
-          if (size > 0) {
-            heap_size = (unsigned int)size;
-            if (!init_repl()) {
-              printf("Failed to initialize REPL after heap resize\n");
-              terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
-            }
-          }
-        } else if (strncmp(str, ":reset", 6) == 0) {
-          if (!init_repl()) {
-            printf ("Failed to initialize REPL\n");
-            terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
-          }
-        } else if (strncmp(str, ":send", 5) == 0) {
-          int id;
-          int i_val;
-
-          if (sscanf(str + 5, "%d%d", &id, &i_val) == 2) {
-            lbm_pause_eval_with_gc(50);
-            while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-              sleep_callback(10);
-            }
-
-            if (lbm_send_message((lbm_cid)id, lbm_enc_i(i_val)) == 0) {
-              printf("Could not send message\n");
-            }
-
-            lbm_continue_eval();
-          } else {
-            printf("Incorrect arguments to send\n");
-          }
-        } else if (strncmp(str, ":pause", 6) == 0) {
-          lbm_pause_eval_with_gc(30);
-          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-            sleep_callback(10);
-          }
-          printf("Evaluator paused\n");
-        } else if (strncmp(str, ":continue", 9) == 0) {
-          lbm_continue_eval();
-        } else if (strncmp(str, ":inspect", 8) == 0) {
-
-          int i = 8;
-          if (strlen(str) >= 8) {
-            while (str[i] == ' ') i++;
-          }
-          char *sym = str + i;
-          lbm_uint sym_id = 0;
-          if (lbm_get_symbol_by_name(sym, &sym_id)) {
-            lbm_all_ctxs_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
-          } else {
-            printf("symbol does not exist\n");
-          }
-        } else if (strncmp(str, ":undef", 6) == 0) {
-          lbm_pause_eval_with_gc(50);
-          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-            sleep_callback(10);
-          }
-          char *sym = str + 7;
-          printf("undefining: %s\n", sym);
-          printf("%s\n", lbm_undefine(sym) ? "Cleared bindings" : "No definition found");
-          lbm_continue_eval();
-        } else { // The read an expression case!
-          /* Get exclusive access to the heap */
-          size_t len = strlen(str)+1;
-          char *buffer = malloc(len);
-          if (buffer) {
-            memcpy(buffer, str, len);
-            lbm_pause_eval_with_gc(50);
-            while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-              sleep_callback(10);
-            }
-            lbm_create_string_char_channel(&string_tok_state,
-                                           &string_tok,
-                                           buffer);
-            lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
-            add_reader(buffer, cid);
-            lbm_continue_eval();
-          } else {
-            printf("Error allocating reader buffer.\n");
-            goto repl_cleanup_and_exit;
-
-          }
-        }
-      repl_next_iteration:
-        line_ready = false;
-        free(current_line);
-        current_line = NULL;
-        str = NULL; //(same as current line)
-      }
-      handle_repl_output();
-    }
   }
 
- repl_cleanup_and_exit:
   terminate_repl(REPL_EXIT_SUCCESS);
 }
