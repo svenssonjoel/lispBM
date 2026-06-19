@@ -107,7 +107,7 @@ This file lists third-party code that has been incorporated into LispBM
 ## QCustomPlot
 
 The LispBM Qt5 utilities uses the QCustomPlot library for graph rendering.
-The code is stored under /utils/qt5 and is released under the following
+The code is stored under /utils/qt and is released under the following
 license:
 
 /***************************************************************************
