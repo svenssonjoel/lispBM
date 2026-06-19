@@ -17,6 +17,8 @@
 
 #include "qtquick_extensions.h"
 #include "QLbmQuickDisplayItem.h"
+#include "QLbmPlotItem.h"
+#include "qcustomplot.h"
 
 #include <QQuickItem>
 #include <QQmlEngine>
@@ -160,7 +162,7 @@ private:
 
 enum class LbmQtWidgetType {
   Container, Display, Button, Checkbox, Radio,
-  SpinboxI, SpinboxF, Textfield, Label, Slider, Combo, Stretch
+  SpinboxI, SpinboxF, Textfield, Label, Slider, Combo, Stretch, Plot
 };
 
 static QQmlEngine             *s_engine     = nullptr;
@@ -170,6 +172,8 @@ static int                     s_nextHandle = 0;
 static QHash<int, QQuickItem*>        s_items;
 static QHash<int, LbmQtWidgetType>    s_types;
 static QLbmQuickDisplayItem          *s_activeDisplay = nullptr;
+class LbmPlotAdapter;
+static QHash<int, LbmPlotAdapter*>    s_plotAdapters;
 
 // ////////////////////////////////////////////////////////////
 // QML creation
@@ -701,12 +705,139 @@ static int createStretch(QQuickItem *container, bool horizontal,
 }
 
 // ////////////////////////////////////////////////////////////
+// Plot signal adapter — connects QCustomPlot signals to LBM events.
+//
+// Events sent to LispBM:
+//   (plot-click        handle graph-name data-index key value)
+//   (plot-dbl-click    handle graph-name data-index key value)
+//   (plot-mouse-move   handle data-x data-y)         — only when m_mouseMove enabled
+//   (plot-range-done   handle x-lo x-hi y-lo y-hi)  — after user finishes pan/zoom
+//
+// The adapter lives as a child of the QLbmPlotItem so it is destroyed with it.
+
+class LbmPlotAdapter : public QObject {
+  Q_OBJECT
+public:
+  LbmPlotAdapter(int handle, QLbmPlotItem *item, bool sendMouseMove, QObject *parent = nullptr)
+    : QObject(parent), m_handle(handle), m_item(item), m_sendMouseMove(sendMouseMove) {
+
+    QCustomPlot *qcp = item->plot();
+
+    // Repaint is handled by afterReplot→update() wired in QLbmPlotItem constructor,
+    // so we only need to wire LBM-facing events here.
+
+    connect(qcp, &QCustomPlot::plottableClick,
+            this, &LbmPlotAdapter::onPlottableClick);
+    connect(qcp, &QCustomPlot::plottableDoubleClick,
+            this, &LbmPlotAdapter::onPlottableDblClick);
+    connect(qcp, &QCustomPlot::mouseRelease,
+            this, &LbmPlotAdapter::onMouseRelease);
+    if (m_sendMouseMove)
+      connect(qcp, &QCustomPlot::mouseMove,
+              this, &LbmPlotAdapter::onMouseMove);
+  }
+
+  void setMouseMove(bool enabled) {
+    QCustomPlot *qcp = m_item->plot();
+    if (enabled && !m_sendMouseMove) {
+      connect(qcp, &QCustomPlot::mouseMove, this, &LbmPlotAdapter::onMouseMove);
+    } else if (!enabled && m_sendMouseMove) {
+      disconnect(qcp, &QCustomPlot::mouseMove, this, &LbmPlotAdapter::onMouseMove);
+    }
+    m_sendMouseMove = enabled;
+  }
+
+public slots:
+  void onPlottableClick(QCPAbstractPlottable *plottable, int dataIndex, QMouseEvent *) {
+    sendPlottableEvent("plot-click", plottable, dataIndex);
+  }
+
+  void onPlottableDblClick(QCPAbstractPlottable *plottable, int dataIndex, QMouseEvent *) {
+    sendPlottableEvent("plot-dbl-click", plottable, dataIndex);
+  }
+
+  void onMouseRelease(QMouseEvent *) {
+    QCustomPlot *qcp = m_item->plot();
+    QCPRange xr = qcp->xAxis->range();
+    QCPRange yr = qcp->yAxis->range();
+    send_event(QLbmValue::fromList({
+      QLbmValue::fromSymbol("plot-range-done"),
+      QLbmValue::fromI(m_handle),
+      QLbmValue::fromDouble(xr.lower),
+      QLbmValue::fromDouble(xr.upper),
+      QLbmValue::fromDouble(yr.lower),
+      QLbmValue::fromDouble(yr.upper)
+    }));
+  }
+
+  void onMouseMove(QMouseEvent *event) {
+    QCustomPlot *qcp = m_item->plot();
+    double x = qcp->xAxis->pixelToCoord(event->pos().x());
+    double y = qcp->yAxis->pixelToCoord(event->pos().y());
+    send_event(QLbmValue::fromList({
+      QLbmValue::fromSymbol("plot-mouse-move"),
+      QLbmValue::fromI(m_handle),
+      QLbmValue::fromDouble(x),
+      QLbmValue::fromDouble(y)
+    }));
+  }
+
+private:
+  void sendPlottableEvent(const char *sym, QCPAbstractPlottable *plottable, int dataIndex) {
+    QCPGraph *graph = qobject_cast<QCPGraph*>(plottable);
+    double key = 0.0, value = 0.0;
+    if (graph) {
+      auto it = graph->data()->at(dataIndex);
+      if (it != graph->data()->constEnd()) {
+        key   = it->key;
+        value = it->value;
+      }
+    }
+    QByteArray nameBytes = plottable->name().toUtf8();
+    nameBytes.append('\0');
+    send_event(QLbmValue::fromList({
+      QLbmValue::fromSymbol(sym),
+      QLbmValue::fromI(m_handle),
+      QLbmValue::fromByteArray(nameBytes),
+      QLbmValue::fromI(dataIndex),
+      QLbmValue::fromDouble(key),
+      QLbmValue::fromDouble(value)
+    }));
+  }
+
+  int           m_handle;
+  QLbmPlotItem *m_item;
+  bool          m_sendMouseMove;
+};
+
+// ////////////////////////////////////////////////////////////
 // Registry helpers
 
 static QQuickItem *getContainer(int handle) {
   auto it = s_types.find(handle);
   if (it == s_types.end() || it.value() != LbmQtWidgetType::Container) return nullptr;
   return s_items.value(handle, nullptr);
+}
+
+static QLbmPlotItem *getPlot(int handle) {
+  if (s_types.value(handle) != LbmQtWidgetType::Plot) return nullptr;
+  return qobject_cast<QLbmPlotItem*>(s_items.value(handle, nullptr));
+}
+
+static int createPlot(QQuickItem *container, bool sendMouseMove,
+                      const QtQuickWidgetAttrs &attrs = QtQuickWidgetAttrs()) {
+  int handle = -1;
+  QMetaObject::invokeMethod(container, [container, sendMouseMove, attrs, &handle]() {
+    auto *plot = new QLbmPlotItem();
+    applyAttrs(plot, attrs);
+    handle = registerItem(plot, LbmQtWidgetType::Plot);
+    // Fill available space in the parent layout by default.
+    addToLayout(container, plot, attrs, true, true);
+    // Wire up QCustomPlot signals → LBM events.
+    auto *adapter = new LbmPlotAdapter(handle, plot, sendMouseMove, plot);
+    s_plotAdapters.insert(handle, adapter);
+  }, Qt::BlockingQueuedConnection);
+  return handle;
 }
 
 static void removeFromRegistry(QQuickItem *w) {
@@ -719,6 +850,7 @@ static void removeFromRegistry(QQuickItem *w) {
   for (int h : toRemove) {
     s_items.remove(h);
     s_types.remove(h);
+    s_plotAdapters.remove(h);
   }
   if (s_activeDisplay && (s_activeDisplay == w || w->isAncestorOf(s_activeDisplay)))
     s_activeDisplay = nullptr;
@@ -1178,6 +1310,219 @@ static lbm_value ext_qt_set_value(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_EERROR;
 }
 
+// ////////////////////////////////////////////////////////////
+// Plot LBM extensions
+
+static QVector<double> decodeNumberList(lbm_value list) {
+  QVector<double> out;
+  for (lbm_value c = list; lbm_is_cons(c); c = lbm_cdr(c)) {
+    lbm_value v = lbm_car(c);
+    if (lbm_is_number(v))
+      out.append((double)lbm_dec_as_float(v));
+  }
+  return out;
+}
+
+// (qt-plot container [mouse-move] [attrs...]) → handle
+static lbm_value ext_qt_plot(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  QQuickItem *container = getContainer((int)lbm_dec_as_i32(args[0]));
+  if (!container) { lbm_set_error_reason("qt-plot: invalid container handle"); return ENC_SYM_EERROR; }
+
+  bool sendMouseMove = false;
+  lbm_uint attr_start = 1;
+  if (argn >= 2 && lbm_is_symbol(args[1])) {
+    const char *name = lbm_get_name_by_symbol(lbm_dec_sym(args[1]));
+    if (name && strcmp(name, "mouse-move") == 0) { sendMouseMove = true; attr_start = 2; }
+  }
+  int handle = createPlot(container, sendMouseMove, parseAttrs(args, argn, attr_start));
+  return handle >= 0 ? lbm_enc_i(handle) : ENC_SYM_EERROR;
+}
+
+// (qt-plot-add-graph handle "name" [color]) → graph-index
+static lbm_value ext_qt_plot_add_graph(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-add-graph: invalid handle"); return ENC_SYM_EERROR; }
+
+  QString name = lbm_dec_qstr(args[1]);
+  QColor  color;
+  if (argn >= 3) color = lbmValueToColor(args[2]);
+
+  int idx = -1;
+  QMetaObject::invokeMethod(plot, [plot, name, color, &idx]() {
+    idx = plot->addGraph(name, color);
+  }, Qt::BlockingQueuedConnection);
+  return idx >= 0 ? lbm_enc_i(idx) : ENC_SYM_EERROR;
+}
+
+// (qt-plot-set-data handle graph-idx keys-list values-list)
+static lbm_value ext_qt_plot_set_data(lbm_value *args, lbm_uint argn) {
+  if (argn < 4 || !lbm_is_number(args[0]) || !lbm_is_number(args[1])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-set-data: invalid handle"); return ENC_SYM_EERROR; }
+
+  int idx = (int)lbm_dec_as_i32(args[1]);
+  QVector<double> keys   = decodeNumberList(args[2]);
+  QVector<double> values = decodeNumberList(args[3]);
+  if (keys.size() != values.size()) return ENC_SYM_TERROR;
+
+  QMetaObject::invokeMethod(plot, [plot, idx, keys, values]() {
+    plot->setData(idx, keys, values);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+// (qt-plot-append handle graph-idx key value)
+static lbm_value ext_qt_plot_append(lbm_value *args, lbm_uint argn) {
+  if (argn < 4 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) ||
+      !lbm_is_number(args[2]) || !lbm_is_number(args[3])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-append: invalid handle"); return ENC_SYM_EERROR; }
+
+  int    idx = (int)lbm_dec_as_i32(args[1]);
+  double k   = (double)lbm_dec_as_float(args[2]);
+  double v   = (double)lbm_dec_as_float(args[3]);
+  QMetaObject::invokeMethod(plot, [plot, idx, k, v]() {
+    plot->appendPoint(idx, k, v);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+// (qt-plot-clear handle [graph-idx])
+static lbm_value ext_qt_plot_clear(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-clear: invalid handle"); return ENC_SYM_EERROR; }
+
+  if (argn >= 2 && lbm_is_number(args[1])) {
+    int idx = (int)lbm_dec_as_i32(args[1]);
+    QMetaObject::invokeMethod(plot, [plot, idx]() { plot->clearGraph(idx); }, Qt::QueuedConnection);
+  } else {
+    QMetaObject::invokeMethod(plot, [plot]() { plot->clearAll(); }, Qt::QueuedConnection);
+  }
+  return ENC_SYM_TRUE;
+}
+
+// (qt-plot-replot handle)
+static lbm_value ext_qt_plot_replot(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-replot: invalid handle"); return ENC_SYM_EERROR; }
+  QMetaObject::invokeMethod(plot, [plot]() { plot->triggerReplot(); }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+// (qt-plot-rescale handle)
+static lbm_value ext_qt_plot_rescale(lbm_value *args, lbm_uint argn) {
+  if (argn < 1 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-rescale: invalid handle"); return ENC_SYM_EERROR; }
+  QMetaObject::invokeMethod(plot, [plot]() {
+    plot->autoRescale();
+    plot->triggerReplot();
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+// (qt-plot-set-x-range handle lo hi)
+static lbm_value ext_qt_plot_set_x_range(lbm_value *args, lbm_uint argn) {
+  if (argn < 3 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) || !lbm_is_number(args[2]))
+    return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-set-x-range: invalid handle"); return ENC_SYM_EERROR; }
+  double lo = (double)lbm_dec_as_float(args[1]);
+  double hi = (double)lbm_dec_as_float(args[2]);
+  QMetaObject::invokeMethod(plot, [plot, lo, hi]() { plot->setXRange(lo, hi); }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+// (qt-plot-set-y-range handle lo hi)
+static lbm_value ext_qt_plot_set_y_range(lbm_value *args, lbm_uint argn) {
+  if (argn < 3 || !lbm_is_number(args[0]) || !lbm_is_number(args[1]) || !lbm_is_number(args[2]))
+    return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-set-y-range: invalid handle"); return ENC_SYM_EERROR; }
+  double lo = (double)lbm_dec_as_float(args[1]);
+  double hi = (double)lbm_dec_as_float(args[2]);
+  QMetaObject::invokeMethod(plot, [plot, lo, hi]() { plot->setYRange(lo, hi); }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+// (qt-plot-set-title handle "title")
+static lbm_value ext_qt_plot_set_title(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-set-title: invalid handle"); return ENC_SYM_EERROR; }
+  QString title = lbm_dec_qstr(args[1]);
+  QMetaObject::invokeMethod(plot, [plot, title]() { plot->setTitle(title); }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+// (qt-plot-set-x-label handle "label")
+static lbm_value ext_qt_plot_set_x_label(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-set-x-label: invalid handle"); return ENC_SYM_EERROR; }
+  QString label = lbm_dec_qstr(args[1]);
+  QMetaObject::invokeMethod(plot, [plot, label]() { plot->setXLabel(label); }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+// (qt-plot-set-y-label handle "label")
+static lbm_value ext_qt_plot_set_y_label(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-set-y-label: invalid handle"); return ENC_SYM_EERROR; }
+  QString label = lbm_dec_qstr(args[1]);
+  QMetaObject::invokeMethod(plot, [plot, label]() { plot->setYLabel(label); }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
+// (qt-plot-save-png handle "path" [width height])
+static lbm_value ext_qt_plot_save_png(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-save-png: invalid handle"); return ENC_SYM_EERROR; }
+  QString path = lbm_dec_qstr(args[1]);
+  int w = (argn >= 3 && lbm_is_number(args[2])) ? (int)lbm_dec_as_i32(args[2]) : 0;
+  int h = (argn >= 4 && lbm_is_number(args[3])) ? (int)lbm_dec_as_i32(args[3]) : 0;
+  bool ok = false;
+  QMetaObject::invokeMethod(plot, [plot, path, w, h, &ok]() {
+    ok = plot->savePng(path, w, h);
+  }, Qt::BlockingQueuedConnection);
+  return ok ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+// (qt-plot-save-pdf handle "path" [width height])
+static lbm_value ext_qt_plot_save_pdf(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0]) || !lbm_is_array_r(args[1])) return ENC_SYM_TERROR;
+  QLbmPlotItem *plot = getPlot((int)lbm_dec_as_i32(args[0]));
+  if (!plot) { lbm_set_error_reason("qt-plot-save-pdf: invalid handle"); return ENC_SYM_EERROR; }
+  QString path = lbm_dec_qstr(args[1]);
+  int w = (argn >= 3 && lbm_is_number(args[2])) ? (int)lbm_dec_as_i32(args[2]) : 0;
+  int h = (argn >= 4 && lbm_is_number(args[3])) ? (int)lbm_dec_as_i32(args[3]) : 0;
+  bool ok = false;
+  QMetaObject::invokeMethod(plot, [plot, path, w, h, &ok]() {
+    ok = plot->savePdf(path, w, h);
+  }, Qt::BlockingQueuedConnection);
+  return ok ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+// (qt-plot-set-mouse-move handle t/nil)  — enable/disable plot-mouse-move events
+static lbm_value ext_qt_plot_set_mouse_move(lbm_value *args, lbm_uint argn) {
+  if (argn < 2 || !lbm_is_number(args[0])) return ENC_SYM_TERROR;
+  int handle = (int)lbm_dec_as_i32(args[0]);
+  LbmPlotAdapter *adapter = s_plotAdapters.value(handle, nullptr);
+  if (!adapter) { lbm_set_error_reason("qt-plot-set-mouse-move: invalid handle"); return ENC_SYM_EERROR; }
+  bool enabled = !lbm_is_symbol_nil(args[1]);
+  QLbmPlotItem *plot = getPlot(handle);
+  QMetaObject::invokeMethod(plot, [adapter, enabled]() {
+    adapter->setMouseMove(enabled);
+  }, Qt::QueuedConnection);
+  return ENC_SYM_TRUE;
+}
+
 void lbm_qtquick_extensions_init(void) {
   lbm_add_extension("qt-root",                  ext_qt_root);
   lbm_add_extension("qt-set-display",           ext_qt_set_display);
@@ -1208,6 +1553,21 @@ void lbm_qtquick_extensions_init(void) {
   lbm_add_extension("qt-get-item",        ext_qt_get_item);
   lbm_add_extension("qt-get-value",      ext_qt_get_value);
   lbm_add_extension("qt-set-value",      ext_qt_set_value);
+  lbm_add_extension("qt-plot",                ext_qt_plot);
+  lbm_add_extension("qt-plot-add-graph",      ext_qt_plot_add_graph);
+  lbm_add_extension("qt-plot-set-data",       ext_qt_plot_set_data);
+  lbm_add_extension("qt-plot-append",         ext_qt_plot_append);
+  lbm_add_extension("qt-plot-clear",          ext_qt_plot_clear);
+  lbm_add_extension("qt-plot-replot",         ext_qt_plot_replot);
+  lbm_add_extension("qt-plot-rescale",        ext_qt_plot_rescale);
+  lbm_add_extension("qt-plot-set-x-range",    ext_qt_plot_set_x_range);
+  lbm_add_extension("qt-plot-set-y-range",    ext_qt_plot_set_y_range);
+  lbm_add_extension("qt-plot-set-title",      ext_qt_plot_set_title);
+  lbm_add_extension("qt-plot-set-x-label",    ext_qt_plot_set_x_label);
+  lbm_add_extension("qt-plot-set-y-label",    ext_qt_plot_set_y_label);
+  lbm_add_extension("qt-plot-save-png",       ext_qt_plot_save_png);
+  lbm_add_extension("qt-plot-save-pdf",       ext_qt_plot_save_pdf);
+  lbm_add_extension("qt-plot-set-mouse-move", ext_qt_plot_set_mouse_move);
 }
 
 // Required so that moc processes LbmSignalAdapter defined in this .cpp file.

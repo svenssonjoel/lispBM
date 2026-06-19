@@ -18,7 +18,7 @@
 #include "repl_qt.h"
 #include "qtquick_extensions.h"
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickStyle>
@@ -39,7 +39,7 @@ static bool repl_qt_send_event(const QLbmValue &value) {
 }
 
 extern "C" void repl_qt_run(int argc, char **argv) {
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     QQuickStyle::setStyle("Fusion");
 
     QQmlApplicationEngine engine;

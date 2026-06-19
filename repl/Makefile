@@ -141,23 +141,28 @@ ifneq (,$(filter mcp, $(FEATURES)))
 	REPL_SRC += ../utils/mcp/lbm_mcp.c ../utils/mcp/cJSON.c
 endif
 
-# Qt Quick UI — requires Qt 5.15 offline install at QT_BASE
-QT_BASE ?= $(HOME)/Qt/5.15.2/gcc_64
+# Qt Quick UI — requires qmake on $PATH (source ~/.bash_profile)
 QT_OBJS  =
 ifneq (,$(filter qt, $(FEATURES)))
-	QT_PC      = PKG_CONFIG_PATH=$(QT_BASE)/lib/pkgconfig
-	QT_PFXARG  = --define-variable=prefix=$(QT_BASE)
-	QT_CFLAGS := $(shell $(QT_PC) pkg-config $(QT_PFXARG) --cflags Qt5Quick Qt5QuickControls2)
-	QT_LIBS   := $(shell $(QT_PC) pkg-config $(QT_PFXARG) --libs   Qt5Quick Qt5QuickControls2)
-	MOC_BIN   := $(QT_BASE)/bin/moc
+	QT_PREFIX  := $(shell qmake -query QT_INSTALL_PREFIX)
+	QT_BINS    := $(shell qmake -query QT_INSTALL_BINS)
+	QT_LIBDIR  := $(shell qmake -query QT_INSTALL_LIBS)
+	MOC_BIN    := $(QT_BINS)/moc
+	QT_CFLAGS  := $(shell PKG_CONFIG_PATH=$(QT_LIBDIR)/pkgconfig \
+	                pkg-config --define-variable=prefix=$(QT_PREFIX) \
+	                --cflags Qt5Quick Qt5QuickControls2 Qt5Widgets Qt5PrintSupport)
+	QT_LIBS    := $(shell PKG_CONFIG_PATH=$(QT_LIBDIR)/pkgconfig \
+	                pkg-config --define-variable=prefix=$(QT_PREFIX) \
+	                --libs Qt5Quick Qt5QuickControls2 Qt5Widgets Qt5PrintSupport)
 	# Flags for g++: drop C-only flags, add C++14 and Qt includes
 	CXXFLAGS  := $(filter-out -std=c11 -pedantic -fno-pie -no-pie \
 	                          -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast,$(CCFLAGS)) \
 	             -std=c++14 -fPIC $(QT_CFLAGS) -I../utils/qt
 	CCFLAGS   += -DWITH_QT -I../utils/qt $(QT_CFLAGS)
-	LDFLAGS   += $(QT_LIBS) -Wl,-rpath,$(QT_BASE)/lib -no-pie
+	LDFLAGS   += $(QT_LIBS) -Wl,-rpath,$(QT_LIBDIR) -no-pie
 	QT_SRC     = ../utils/qt/src
-	QT_OBJS    = QLbmQuickDisplayItem.o moc_QLbmQuickDisplayItem.o QLbmValue.o qtquick_extensions.o repl_qt.o
+	QT_OBJS    = QLbmQuickDisplayItem.o moc_QLbmQuickDisplayItem.o QLbmValue.o qtquick_extensions.o repl_qt.o \
+	             qcustomplot.o moc_qcustomplot.o QLbmPlotItem.o moc_QLbmPlotItem.o
 	# MOC only accepts -D and -I flags; strip everything else from CXXFLAGS.
 	MOC_FLAGS := $(filter -D% -I%,$(CXXFLAGS)) $(filter -D% -I%,$(LISPBM_INC)) \
 	             $(filter -D% -I%,$(PLATFORM_INCLUDE))
@@ -185,6 +190,25 @@ qtquick_extensions.o: $(QT_SRC)/qtquick_extensions.cpp qtquick_extensions.moc
 
 repl_qt.o: repl_qt.cpp
 	g++ $(CXXFLAGS) -c $< -o $@ $(LISPBM_INC) $(PLATFORM_INCLUDE)
+
+# qcustomplot is large; suppress warnings to keep build output readable.
+moc_qcustomplot.cpp: ../utils/qt/qcustomplot.h
+	$(MOC_BIN) $(MOC_FLAGS) $< -o $@
+
+moc_qcustomplot.o: moc_qcustomplot.cpp
+	g++ $(CXXFLAGS) -w -c $< -o $@
+
+qcustomplot.o: ../utils/qt/qcustomplot.cpp moc_qcustomplot.cpp
+	g++ $(CXXFLAGS) -w -c $< -o $@
+
+moc_QLbmPlotItem.cpp: ../utils/qt/QLbmPlotItem.h
+	$(MOC_BIN) $(MOC_FLAGS) $< -o $@
+
+moc_QLbmPlotItem.o: moc_QLbmPlotItem.cpp
+	g++ $(CXXFLAGS) -c $< -o $@ $(LISPBM_INC) $(PLATFORM_INCLUDE)
+
+QLbmPlotItem.o: $(QT_SRC)/QLbmPlotItem.cpp moc_QLbmPlotItem.cpp
+	g++ $(CXXFLAGS) -c $< -o $@ $(LISPBM_INC) $(PLATFORM_INCLUDE)
 endif
 
 # -Wjump-misses-init
@@ -208,8 +232,8 @@ help:
 	@echo "freetype - Use libfreetype for font preprocessing."
 	@echo "coverage  - Build with coverage information collection."
 	@echo "mcp       - Build with MCP (Model Context Protocol) server support. Adds --mcp flag."
-	@echo "qt        - Adds Qt Quick UI widgets (qt-button, qt-slider, qt-display …)."
-	@echo "            Requires Qt 5.15 at QT_BASE (default: ~/Qt/5.15.2/gcc_64)."
+	@echo "qt        - Adds Qt Quick UI widgets (qt-button, qt-slider, qt-plot …)."
+	@echo "            Requires qmake on PATH (source ~/.bash_profile)."
 	@echo "debug     - Build with debug symbols."
 	@echo "test_nand - Build FT4232H + W25N01GVZEIG NAND driver test (requires libftdi1-dev)."
 	@echo ""
