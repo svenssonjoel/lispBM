@@ -82,6 +82,10 @@
 #include "lbm_rtlsdr.h"
 #endif
 
+#ifdef WITH_LIMESDR
+#include "lbm_limesdr.h"
+#endif
+
 #ifndef LBM_WIN
 #include "lbm_gnuplot.h"
 #include "lbm_octave.h"
@@ -3028,6 +3032,10 @@ int main(int argc, char **argv) {
 
 #ifdef WITH_RTLSDR
   lbm_rtlsdr_init();
+#endif
+
+#ifdef WITH_LIMESDR
+  lbm_limesdr_init();
 #endif
 
   // TODO: Should the startup procedure work together with the VESC tcp serv?

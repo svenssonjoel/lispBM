@@ -32,6 +32,7 @@ ifeq ($(UNAME_S),Darwin)
 	SDL_PATH      = $(HOMEBREW)/include/SDL2
 	FREETYPE_PATH = $(HOMEBREW)/include/freetype2
 	RTLSDR_PATH   = $(HOMEBREW)/include
+	LIMESDR_PATH  = $(HOMEBREW)/include
 	FTDI_PATH     = $(HOMEBREW)/include/libftdi1
 	LIB_PATH      = $(HOMEBREW)/lib
 	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include \
@@ -44,6 +45,7 @@ else
 	SDL_PATH      = /usr/include/SDL2
 	FREETYPE_PATH = /usr/include/freetype2
 	RTLSDR_PATH   = /usr/include
+	LIMESDR_PATH  = /usr/include
 	FTDI_PATH     = /usr/include/libftdi1
 	PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 	LDFLAGS += -lpthread -lreadline -lhistory
@@ -121,6 +123,13 @@ ifneq (,$(filter rtlsdr, $(FEATURES)))
 	CCFLAGS += -DWITH_RTLSDR -I$(RTLSDR_PATH)
 	LDFLAGS += -lrtlsdr
 	REPL_SRC += lbm_rtlsdr.c
+endif
+
+# USE limesdr extensions
+ifneq (,$(filter limesdr, $(FEATURES)))
+	CCFLAGS += -DWITH_LIMESDR -I$(LIMESDR_PATH)
+	LDFLAGS += -lLimeSuite
+	REPL_SRC += lbm_limesdr.c
 endif
 
 ifneq (,$(filter ft4232h_nand, $(FEATURES)))
