@@ -27,6 +27,11 @@ extern "C" {
 void lbm_vesc_can_init(void);
 void lbm_vesc_can_register_extensions(void);
 bool lbm_vesc_can_connect(const char *port);
+bool lbm_vesc_can_is_connected(void);
+void lbm_vesc_can_send_raw(unsigned char *data, unsigned int len);
+
+typedef void (*vesc_can_relay_func_t)(unsigned char *data, unsigned int len);
+void lbm_vesc_can_set_relay(vesc_can_relay_func_t f);
 
 #ifdef __cplusplus
 }

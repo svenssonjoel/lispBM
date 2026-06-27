@@ -83,6 +83,8 @@ static PACKET_STATE_t pkt_state;
 static lbm_mutex_t    send_mutex;
 static lbm_thread_t   rx_thread;
 
+static volatile vesc_can_relay_func_t relay_func = NULL;
+
 // ////////////////////////////////////////////////////////////
 // Serial and packet layer
 
@@ -300,6 +302,10 @@ static void process_packet(unsigned char *data, unsigned int len) {
   if (len < 1) return;
   uint8_t cmd = data[0];
 
+  if (relay_func) {
+    relay_func(data, len);
+  }
+
   if (cmd == COMM_CAN_FWD_FRAME && len >= 6) {
     int32_t ind = 1;
     uint32_t eid = buffer_get_uint32(data, &ind);
@@ -423,6 +429,21 @@ static bool stat6_for(int id, can_status_msg_6 *out) {
   }
   lbm_mutex_unlock(&stat_mutex);
   return false;
+}
+
+// ////////////////////////////////////////////////////////////
+// Public relay / send API
+
+bool lbm_vesc_can_is_connected(void) {
+  return serial_fd >= 0 && rx_running;
+}
+
+void lbm_vesc_can_send_raw(unsigned char *data, unsigned int len) {
+  send_packet(data, len);
+}
+
+void lbm_vesc_can_set_relay(vesc_can_relay_func_t f) {
+  relay_func = f;
 }
 
 // ////////////////////////////////////////////////////////////

@@ -109,7 +109,7 @@
 
 // things directly copied from VESC_EXPRESS
 #include "packet.h"
-#include "comm_packet_id.h"
+#include "datatypes.h"
 #include "buffer.h"
 #include "crc.h"
 
@@ -1404,7 +1404,6 @@ void shutdown_procedure(void) {
 #define PRINT_BUFFER_SIZE 1024
 #define HW_NAME "lispbm"
 #define FW_NAME "lispbm"
-#define HW_TYPE_CUSTOM_MODULE 2
 #define FW_VERSION_MAJOR 7
 #define FW_VERSION_MINOR 00
 #define FW_TEST_VERSION_NUMBER 0
@@ -2294,10 +2293,49 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
   } break;
 
   case COMM_LISP_READ_CODE: {
-  }break;
+    int32_t ind = 0;
+    int32_t len_req = buffer_get_int32(data, &ind);
+    int32_t ofs = buffer_get_int32(data, &ind);
+
+    int32_t total = (int32_t)vescif_program_flash_code_len;
+
+    if (total == 0) {
+      ind = 0;
+      uint8_t send_buffer[10];
+      send_buffer[ind++] = (uint8_t)packet_id;
+      buffer_append_int32(send_buffer, 0, &ind);
+      buffer_append_int32(send_buffer, 0, &ind);
+      reply_func(send_buffer, (unsigned int)ind);
+      break;
+    }
+
+    if (ofs < 0 || len_req < 0 || (len_req + ofs) > total) {
+      break;
+    }
+
+    uint8_t *send_buffer = malloc((size_t)(9 + len_req));
+    if (!send_buffer) break;
+
+    ind = 0;
+    send_buffer[ind++] = (uint8_t)packet_id;
+    buffer_append_int32(send_buffer, total, &ind);
+    buffer_append_int32(send_buffer, ofs, &ind);
+    memcpy(send_buffer + ind, vescif_program_flash + ofs, (size_t)len_req);
+    ind += len_req;
+    reply_func(send_buffer, (unsigned int)ind);
+    free(send_buffer);
+  } break;
+
   case COMM_LISP_ERASE_CODE: {
+    lbm_pause_eval();
+    while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+      lbm_pause_eval();
+      sleep_callback(1);
+    }
     memset(vescif_program_flash, 0, vescif_program_flash_size);
     vescif_program_flash_code_len = 0;
+    lbm_continue_eval();
+
     int32_t ind = 0;
     uint8_t send_buffer[50];
     send_buffer[ind++] = (uint8_t)packet_id;
@@ -2305,6 +2343,35 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     reply_func(send_buffer, (unsigned int)ind);
     break;
   }
+
+  case COMM_ALIVE:
+    break;
+
+  case COMM_FORWARD_CAN: {
+#ifdef WITH_VESC
+    if (lbm_vesc_can_is_connected()) {
+      uint8_t *fwd = malloc(len + 1);
+      if (fwd) {
+        fwd[0] = (uint8_t)COMM_FORWARD_CAN;
+        memcpy(fwd + 1, data, len);
+        lbm_vesc_can_send_raw(fwd, len + 1);
+        free(fwd);
+      }
+    }
+#endif
+  } break;
+
+  case COMM_FW_INFO: {
+    int32_t ind = 0;
+    uint8_t send_buffer[100];
+    send_buffer[ind++] = (uint8_t)COMM_FW_INFO;
+    send_buffer[ind++] = FW_VERSION_MAJOR;
+    send_buffer[ind++] = FW_VERSION_MINOR;
+    send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
+    send_buffer[ind++] = '\0'; // git commit hash (not available)
+    send_buffer[ind++] = '\0'; // user git commit hash (not available)
+    reply_func(send_buffer, (unsigned int)ind);
+  } break;
 
   case COMM_LISP_RMSG: /* fall through */
   default:
@@ -2388,6 +2455,12 @@ void udp_broadcast_task(void *arg) {
 }
 #endif
 
+#ifdef WITH_VESC
+static void relay_to_tcp(unsigned char *data, unsigned int len) {
+  commands_send_packet(data, len);
+}
+#endif
+
 void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
   int to_write = (int)len;
   int error_cnt = 0;
@@ -2435,6 +2508,9 @@ static void vesctcp_client_handler(void *lpParam) {
   strncpy(ip, inet_ntoa(addr.sin_addr), 255);
 
   printf("Client %s connected\n",ip);
+#ifdef WITH_VESC
+  lbm_vesc_can_set_relay(relay_to_tcp);
+#endif
 
   vescif_restart(false,false,false);
 
@@ -2447,6 +2523,9 @@ static void vesctcp_client_handler(void *lpParam) {
 
   closesocket(connected_socket);
   send_func = NULL;
+#ifdef WITH_VESC
+  lbm_vesc_can_set_relay(NULL);
+#endif
   printf("Client %s disconnected\n",ip);
   vesctcp_server_in_use = false;
 }
@@ -2466,6 +2545,9 @@ void vesctcp_client_handler(void *arg) {
   strncpy(ip, inet_ntoa(addr.sin_addr), 255);
 
   printf("Client %s connected\n",ip);
+#ifdef WITH_VESC
+  lbm_vesc_can_set_relay(relay_to_tcp);
+#endif
 
   vescif_restart(false,false,false);
 
@@ -2478,6 +2560,9 @@ void vesctcp_client_handler(void *arg) {
 
   close(connected_socket);
   send_func = NULL;
+#ifdef WITH_VESC
+  lbm_vesc_can_set_relay(NULL);
+#endif
   printf("Client %s disconnected\n",ip);
   vesctcp_server_in_use = false;
 }
