@@ -1405,6 +1405,8 @@ void shutdown_procedure(void) {
 #define HW_NAME "lispbm"
 #define FW_NAME "lispbm"
 #define HW_TYPE_CUSTOM_MODULE 2
+#define FW_VERSION_MAJOR 7
+#define FW_VERSION_MINOR 00
 #define FW_TEST_VERSION_NUMBER 0
 #define SEND_MAX_RETRY 10
 
@@ -1779,17 +1781,14 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     int32_t ind = 0;
     uint8_t send_buffer[65];
     send_buffer[ind++] = COMM_FW_VERSION;
-    send_buffer[ind++] = 6;
-    send_buffer[ind++] = 05;
+    send_buffer[ind++] = FW_VERSION_MAJOR;
+    send_buffer[ind++] = FW_VERSION_MINOR;
 
     strcpy((char*)(send_buffer + ind), HW_NAME);
     ind += (int32_t)strlen(HW_NAME) + 1;
 
-    //size_t size_bits = esp_efuse_get_field_size(ESP_EFUSE_MAC_FACTORY);
-    //esp_efuse_read_field_blob(ESP_EFUSE_MAC_FACTORY, send_buffer + ind, size_bits);
-    ind += 6;
-    memset(send_buffer + ind, 0, 6);
-    ind += 6;
+    memset(send_buffer + ind, 0, 12);
+    ind += 12;
 
     send_buffer[ind++] = 0;
     send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
@@ -1800,16 +1799,14 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     send_buffer[ind++] = 0; // No phase filters
     send_buffer[ind++] = 0; // No HW QML
 
-    //if (flash_helper_code_size(CODE_IND_QML) > 0) {
-    //  send_buffer[ind++] = flash_helper_code_flags(CODE_IND_QML);
-    //} else {
-    send_buffer[ind++] = 0;
-    //}
+    send_buffer[ind++] = 0; // No QML flags
 
     send_buffer[ind++] = 0; // No NRF flags
 
     strcpy((char*)(send_buffer + ind), FW_NAME);
     ind += (int32_t)strlen(FW_NAME) + 1;
+
+    buffer_append_uint32(send_buffer, 0, &ind);
 
     reply_func(send_buffer, (unsigned int)ind);
   } break;
@@ -1859,7 +1856,12 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
       print_all = data[0];
     }
 
-    lbm_gc_lock();
+    lbm_pause_eval();
+    while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+      lbm_pause_eval();
+      sleep_callback(1);
+    }
+
     if (lbm_heap_state.gc_num > 0) {
       heap_use = 100.0f * (float)(heap_size - lbm_heap_state.gc_last_free) / (float)heap_size;
     }
@@ -1909,7 +1911,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
       }
     }
 
-    lbm_gc_unlock();
+    lbm_continue_eval();
 
     reply_func(send_buffer_global, (unsigned int)ind);
   } break;
@@ -2280,7 +2282,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     unsigned int num = (unsigned int)((int32_t)len - ind); // length of data;
     if (num + offset < vescif_program_flash_size) {
       memcpy((uint8_t*)vescif_program_flash+offset, data+ind, num);
-      vescif_program_flash_code_len = num;
+      vescif_program_flash_code_len = num + offset;
       result = 1;
     }
     ind = 0;
