@@ -51,6 +51,11 @@
 #include "extensions/crypto_extensions.h"
 #include "extensions/ecc_extensions.h"
 
+#ifdef WITH_VESC
+#include "lbm_vesc_can.h"
+#include "vesc_extension_stubs.h"
+#endif
+
 #include "eval_cps.h"
 #include "lbm_image.h"
 #include "lbm_flat_value.h"
@@ -1613,6 +1618,11 @@ int init_exts(void) {
   lbm_add_extension("set-active-img", ext_set_active_image);
   lbm_add_extension("save-active-img", ext_save_active_image);
   lbm_add_extension("display-to-img", ext_display_to_image);
+
+#ifdef WITH_VESC
+  lbm_vesc_can_register_extensions();
+  load_vesc_extension_stubs();
+#endif
 
   if (lbm_get_num_extensions() < lbm_get_max_extensions()) {
     return 1;

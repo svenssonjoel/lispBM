@@ -64,10 +64,8 @@ REPL_SRC = $(LISPBM_SRC)\
            repl_exts.c \
            ../utils/crc.c \
            ../utils/packet.c \
-           vesc_express_extension_stubs.c \
            lbm_gnuplot.c \
-           lbm_octave.c \
-           bldc_extension_stubs.c
+           lbm_octave.c
 
 ## Dropped usage of pkg-config as it felt like more trouble than benefit.
 ## pkg-config searches for .pc files unrelated to compile flags such as -m32.
@@ -130,6 +128,13 @@ ifneq (,$(filter limesdr, $(FEATURES)))
 	CCFLAGS += -DWITH_LIMESDR -I$(LIMESDR_PATH)
 	LDFLAGS += -lLimeSuite
 	REPL_SRC += lbm_limesdr.c
+endif
+
+# USE VESC CAN extensions (nanolog USB-CAN bridge) + stub files for the rest
+ifneq (,$(filter vesc, $(FEATURES)))
+	CCFLAGS  += -DWITH_VESC
+	REPL_SRC += lbm_vesc_can.c \
+	            vesc_extension_stubs.c
 endif
 
 ifneq (,$(filter ft4232h_nand, $(FEATURES)))

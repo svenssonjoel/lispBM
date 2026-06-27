@@ -86,6 +86,10 @@
 #include "lbm_limesdr.h"
 #endif
 
+#ifdef WITH_VESC
+#include "lbm_vesc_can.h"
+#endif
+
 #ifndef LBM_WIN
 #include "lbm_gnuplot.h"
 #include "lbm_octave.h"
@@ -122,10 +126,6 @@ typedef void (*send_func_t)(unsigned char *, unsigned int);
 
 static void handle_repl_output(void);
 
-// ////////////////////////////////////////////////////////////
-// Stub loaders
-void load_vesc_express_extensions(void);
-void load_bldc_extensions(void);
 
 // ////////////////////////////////////////////////////////////
 // win util
@@ -640,16 +640,15 @@ void sym_it(const char *str) {
 #define VESCTCP_PROGRAM_FLASH_SIZE   0x0409
 #define HISTORY_FILE         0x040A
 
-#define BLDC_STUBS           0x040B
-#define VESC_EXPRESS_STUBS   0x040C
-
 #define SHEBANG_MODE         0x040D
 #define SCRIPT_ARGS_START    0x040E
 #define MCP_MODE             0x040F
 #define MCP_DOC_PATH         0x0410
+#define CAN_PORT             0x0411
 
-bool use_bldc_stubs = false;
-bool use_vesc_express_stubs = false;
+#ifdef WITH_VESC
+static char *can_port = NULL;
+#endif
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -668,12 +667,11 @@ struct option options[] = {
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
   {"vesctcp_program_flash_size", required_argument, NULL, VESCTCP_PROGRAM_FLASH_SIZE},
   {"history_file", required_argument, NULL, HISTORY_FILE},
-  {"bldc_stubs", no_argument, NULL, BLDC_STUBS},
-  {"vesc_express_stubs", no_argument, NULL, VESC_EXPRESS_STUBS},
   {"shebang", required_argument, NULL, SHEBANG_MODE},
   {"script_args_start", required_argument, NULL, SCRIPT_ARGS_START},
   {"mcp", no_argument, NULL, MCP_MODE},
   {"mcp-doc-path", required_argument, NULL, MCP_DOC_PATH},
+  {"can", required_argument, NULL, CAN_PORT},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -809,8 +807,10 @@ void parse_opts(int argc, char **argv) {
       printf("                                      An empty string disables loading or\n");
       printf("                                      writing the history. (see HISTORY FILE)\n");
       printf("\n");
-      printf("    --bldc_stubs                      Load BLDC extension stub files\n");
-      printf("    --vesc_express_stubs              Load Vesc Express extension stub files\n");
+      printf("    --can=PORT                        Connect to a VESC device at PORT to use as\n"\
+             "                                      a CAN bus bridge. Any VESC device with USB\n"\
+             "                                      that supports COMM_FORWARD_CAN works.\n"\
+             "                                      Example: --can=/dev/ttyACM0\n");
       printf("\n");
       printf("    --shebang                         Executable script mode\n");
       printf("    --script_args_start               Index in argument list where arguments\n");
@@ -878,12 +878,6 @@ void parse_opts(int argc, char **argv) {
       exit_on_alloc_failure(history_file_path);
       memcpy(history_file_path, optarg, len + 1);
     } break;
-    case BLDC_STUBS:
-      use_bldc_stubs = true;
-      break;
-    case VESC_EXPRESS_STUBS:
-      use_vesc_express_stubs = false;
-      break;
     case SHEBANG_MODE:
       shebang_mode = true;
       terminate_after_startup = true;
@@ -902,6 +896,11 @@ void parse_opts(int argc, char **argv) {
     case MCP_DOC_PATH:
 #ifdef WITH_MCP
       lbm_mcp_set_doc_path((char*)optarg);
+#endif
+      break;
+    case CAN_PORT:
+#ifdef WITH_VESC
+      can_port = (char*)optarg;
 #endif
       break;
     default:
@@ -1063,12 +1062,6 @@ int init_repl(void) {
   lbm_add_eval_symbols();
   if (!lbm_image_has_extensions()) {
     init_exts();
-    if (use_bldc_stubs) {
-      load_bldc_extensions();
-    }
-    if (use_vesc_express_stubs) {
-      load_vesc_express_extensions();
-    }
   } else {
     if (!silent_mode)
       printf("Image contains extensions\n");
@@ -1657,13 +1650,6 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 
   lbm_add_extension("print", ext_vescif_print);
   lbm_add_extension("import", ext_vescif_import);
-
-  if (use_bldc_stubs) {
-    load_bldc_extensions();
-  }
-  if (use_vesc_express_stubs) {
-    load_vesc_express_extensions();
-  }
 
   char *code_data = (char*)vescif_program_flash+8;
   size_t code_len = vescif_program_flash_code_len;
@@ -3036,6 +3022,15 @@ int main(int argc, char **argv) {
 
 #ifdef WITH_LIMESDR
   lbm_limesdr_init();
+#endif
+
+#ifdef WITH_VESC
+  lbm_vesc_can_init();
+  if (can_port) {
+    if (!lbm_vesc_can_connect(can_port)) {
+      printf("Failed to connect to CAN bridge at %s\n", can_port);
+    }
+  }
 #endif
 
   // TODO: Should the startup procedure work together with the VESC tcp serv?
