@@ -73,6 +73,7 @@ static lbm_uint sym_tacho;
 static lbm_uint sym_fw_major;
 static lbm_uint sym_fw_minor;
 static lbm_uint sym_hw_type;
+static lbm_uint sym_event_can_eid;
 
 // ////////////////////////////////////////////////////////////
 // Serial / packet state
@@ -186,6 +187,16 @@ static void decode_can_frame(uint32_t eid, uint8_t *data, int len) {
   }
   (void)len;
   lbm_mutex_unlock(&stat_mutex);
+
+  lbm_flat_value_t fv;
+  if (lbm_start_flatten(&fv, 40 + (size_t)len)) {
+    bool ok =
+      f_cons(&fv) && f_sym(&fv, sym_event_can_eid) &&
+      f_cons(&fv) && f_u32(&fv, eid) &&
+      f_cons(&fv) && f_lbm_array(&fv, (uint32_t)len, data) &&
+      f_sym(&fv, SYM_NIL);
+    if (!ok || !lbm_event(&fv)) lbm_free(fv.buf);
+  }
 }
 
 // ////////////////////////////////////////////////////////////
@@ -311,6 +322,13 @@ static void process_packet(unsigned char *data, unsigned int len) {
     uint32_t eid = buffer_get_uint32(data, &ind);
     bool is_ext  = data[(size_t)ind++] != 0;
     if (is_ext) decode_can_frame(eid, data + ind, (int)(len - (unsigned int)ind));
+    return;
+  }
+
+  if (cmd == COMM_LISP_RMSG && len >= 5) {
+    int32_t ind = 1;
+    uint32_t eid = buffer_get_uint32(data, &ind);
+    decode_can_frame(eid, data + ind, (int)(len - (unsigned int)ind));
     return;
   }
 
@@ -762,6 +780,46 @@ static lbm_value ext_can_get_values(lbm_value *args, lbm_uint argn) {
 // ////////////////////////////////////////////////////////////
 // STUBING of yet not implemented stuff.
 
+// ////////////////////////////////////////////////////////////
+// CAN relay script — uploaded to bridge VESC to forward
+// directed CAN frames back over USB as COMM_LISP_RMSG packets.
+// Payload format: eid(4 bytes big-endian) + CAN data bytes.
+
+static const char relay_script[] =
+  "(defun fwd (e)\n"
+  "  (match e\n"
+  "    ((event-can-eid id data)\n"
+  "     (let ((b (bufcreate (+ 4 (buflen data)))))\n"
+  "       { (bufset-u32 b 0 id)\n"
+  "         (bufcpy b 4 data 0 (buflen data))\n"
+  "         (send-data b) }))\n"
+  "    (_ nil)))\n"
+  "(event-register-handler (spawn fwd))\n"
+  "(event-enable 'event-can-eid)\n";
+
+static lbm_value ext_can_upload_relay(lbm_value *args, lbm_uint argn) {
+  (void)args; (void)argn;
+  if (serial_fd < 0) return ENC_SYM_NIL;
+
+  uint8_t erase_buf[1] = { (uint8_t)COMM_LISP_ERASE_CODE };
+  send_packet(erase_buf, 1);
+
+  uint32_t slen = (uint32_t)(sizeof(relay_script) - 1);
+  uint8_t *wbuf = malloc(5u + slen);
+  if (!wbuf) return ENC_SYM_NIL;
+  int32_t ind = 0;
+  wbuf[ind++] = (uint8_t)COMM_LISP_WRITE_CODE;
+  buffer_append_uint32(wbuf, 0, &ind);
+  memcpy(wbuf + ind, relay_script, slen);
+  send_packet(wbuf, 5u + slen);
+  free(wbuf);
+
+  uint8_t run_buf[2] = { (uint8_t)COMM_LISP_SET_RUNNING, 1 };
+  send_packet(run_buf, 2);
+
+  return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_stub(lbm_value *args, lbm_uint argn) {
   (void)args; (void)argn;
   return ENC_SYM_NIL;
@@ -823,6 +881,7 @@ void lbm_vesc_can_register_extensions(void) {
   lbm_add_extension("canmsg-send",           ext_stub);
   lbm_add_extension("uavcan-last-rawcmd",    ext_stub);
   lbm_add_extension("uavcan-last-rpmcmd",    ext_stub);
+  lbm_add_extension("can-upload-relay",      ext_can_upload_relay);
 }
 
 void lbm_vesc_can_init(void) {
@@ -833,9 +892,10 @@ void lbm_vesc_can_init(void) {
   pending_cid    = -1;
   pending_id     = -1;
 
-  lbm_add_symbol("fw-major",   &sym_fw_major);
-  lbm_add_symbol("fw-minor",   &sym_fw_minor);
-  lbm_add_symbol("hw-type",    &sym_hw_type);
+  lbm_add_symbol("fw-major",        &sym_fw_major);
+  lbm_add_symbol("fw-minor",        &sym_fw_minor);
+  lbm_add_symbol("hw-type",         &sym_hw_type);
+  lbm_add_symbol("event-can-eid",   &sym_event_can_eid);
   lbm_add_symbol("rpm",        &sym_rpm);
   lbm_add_symbol("current",    &sym_current);
   lbm_add_symbol("duty",       &sym_duty);
