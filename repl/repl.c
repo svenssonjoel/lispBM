@@ -263,6 +263,7 @@ static lbm_char_channel_t buffered_string_tok;
 // todo: is there a good way to pick a fixed virtual address ?
 
 static char *image_input_file = NULL;
+static bool persist_image = false;
 static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
 static uint32_t *image_storage = NULL;
 
@@ -385,6 +386,14 @@ bool image_write(uint32_t w, int32_t ix, bool is_const_heap) { // ix >= 0 and ix
   (void) is_const_heap;
   if (image_storage[ix] == 0xffffffff) {
     image_storage[ix] = w;
+    if (persist_image && image_input_file) {
+      FILE *f = fopen(image_input_file, "r+b");
+      if (f) {
+        fseek(f, ix * (long)sizeof(uint32_t), SEEK_SET);
+        fwrite(&w, sizeof(uint32_t), 1, f);
+        fclose(f);
+      }
+    }
     return true;
   } else if (image_storage[ix] == w) {
     return true;
@@ -632,6 +641,7 @@ void sym_it(const char *str) {
 #define TERMINATE            0x0404
 #define SILENT_MODE          0x0405
 #define LOAD_IMAGE           0x0406
+#define PERSIST_IMAGE        0x0412
 #define VESCTCP              0x0407
 #define VESCTCP_PORT         0x0408
 #define VESCTCP_PROGRAM_FLASH_SIZE   0x0409
@@ -655,6 +665,7 @@ struct option options[] = {
   {"store_res", required_argument, NULL, STORE_RESULT},
   {"terminate", no_argument, NULL, TERMINATE},
   {"load_image", required_argument, NULL, LOAD_IMAGE},
+  {"persist_image", no_argument, NULL, PERSIST_IMAGE},
   {"silent", no_argument, NULL, SILENT_MODE},
   {"vesctcp",no_argument, NULL, VESCTCP},
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
@@ -786,7 +797,11 @@ void parse_opts(int argc, char **argv) {
              "                                      specified with the --src/-s options.\n");
       printf("    --terminate                       Terminate the REPL after evaluating the\n" \
              "                                      source files specified with --src/-s\n");
-      printf("    --load_image=FILEPATH             load an image-file at startup\n");
+      printf("    --load_image=FILEPATH             Load an image-file at startup.\n"\
+             "                                      If the file does not exist, a fresh\n"\
+             "                                      image is created and saved to that path.\n");
+      printf("    --persist_image                   Write-through all image writes to the\n"\
+             "                                      file specified by --load_image.\n");
       printf("\n");
       printf("    --mcp                             Start an MCP (Model Context Protocol) server\n"\
              "                                      on stdio for AI tool integration.\n");
@@ -848,6 +863,9 @@ void parse_opts(int argc, char **argv) {
       break;
     case LOAD_IMAGE:
       image_input_file = (char*)optarg;
+      break;
+    case PERSIST_IMAGE:
+      persist_image = true;
       break;
     case VESCTCP:
       vesctcp = true;
@@ -1009,21 +1027,33 @@ int init_repl(void) {
   if (image_input_file) {
     FILE *f = fopen(image_input_file, "rb");
     if (!f) {
-      printf("Error opening file: %s\n", image_input_file);
-      return 0;
-    }
-    fseek(f, 0, SEEK_END);
-    size_t fsize = (size_t)ftell(f);
-    rewind(f);
-    // assume image files <= 128k
-    if (fsize > 0) {
-      // Load file into mapped reqion. Could map file instead.
-      size_t n = fread(image_storage, fsize, 1, f);
-      if ( n == 0) {
-        printf("Error: empty image!\n");
+      // File does not exist: create a fresh image and write it to the file.
+      image_clear();
+      lbm_image_create("bepa_1");
+      FILE *fw = fopen(image_input_file, "wb");
+      if (!fw) {
+        printf("Error creating image file: %s\n", image_input_file);
+        return 0;
       }
+      fwrite(image_storage, image_storage_size, 1, fw);
+      fclose(fw);
+    } else {
+      fseek(f, 0, SEEK_END);
+      size_t fsize = (size_t)ftell(f);
+      rewind(f);
+      // assume image files <= 128k
+      if (fsize > 0) {
+        // Load file into mapped region. Could map file instead.
+        size_t n = fread(image_storage, fsize, 1, f);
+        if (n == 0) {
+          printf("Error: empty image!\n");
+        }
+      } else {
+        image_clear();
+        lbm_image_create("bepa_1");
+      }
+      fclose(f);
     }
-    fclose(f);
   } else {
     image_clear();
     lbm_image_create("bepa_1");
