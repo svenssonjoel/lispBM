@@ -86,9 +86,6 @@
 #include "lbm_limesdr.h"
 #endif
 
-#ifdef WITH_VESC
-#include "lbm_vesc_can.h"
-#endif
 
 #ifndef LBM_WIN
 #include "lbm_gnuplot.h"
@@ -646,10 +643,6 @@ void sym_it(const char *str) {
 #define MCP_DOC_PATH         0x0410
 #define CAN_PORT             0x0411
 
-#ifdef WITH_VESC
-static char *can_port = NULL;
-#endif
-
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
   {"heap_size", required_argument, NULL, 'H'},
@@ -671,7 +664,6 @@ struct option options[] = {
   {"script_args_start", required_argument, NULL, SCRIPT_ARGS_START},
   {"mcp", no_argument, NULL, MCP_MODE},
   {"mcp-doc-path", required_argument, NULL, MCP_DOC_PATH},
-  {"can", required_argument, NULL, CAN_PORT},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -807,11 +799,6 @@ void parse_opts(int argc, char **argv) {
       printf("                                      An empty string disables loading or\n");
       printf("                                      writing the history. (see HISTORY FILE)\n");
       printf("\n");
-      printf("    --can=PORT                        Connect to a VESC device at PORT to use as\n"\
-             "                                      a CAN bus bridge. Any VESC device with USB\n"\
-             "                                      that supports COMM_FORWARD_CAN works.\n"\
-             "                                      Example: --can=/dev/ttyACM0\n");
-      printf("\n");
       printf("    --shebang                         Executable script mode\n");
       printf("    --script_args_start               Index in argument list where arguments\n");
       printf("                                      for the script starts\n");
@@ -899,9 +886,6 @@ void parse_opts(int argc, char **argv) {
 #endif
       break;
     case CAN_PORT:
-#ifdef WITH_VESC
-      can_port = (char*)optarg;
-#endif
       break;
     default:
       break;
@@ -2347,19 +2331,8 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
   case COMM_ALIVE:
     break;
 
-  case COMM_FORWARD_CAN: {
-#ifdef WITH_VESC
-    if (lbm_vesc_can_is_connected()) {
-      uint8_t *fwd = malloc(len + 1);
-      if (fwd) {
-        fwd[0] = (uint8_t)COMM_FORWARD_CAN;
-        memcpy(fwd + 1, data, len);
-        lbm_vesc_can_send_raw(fwd, len + 1);
-        free(fwd);
-      }
-    }
-#endif
-  } break;
+  case COMM_FORWARD_CAN:
+    break;
 
   case COMM_FW_INFO: {
     int32_t ind = 0;
@@ -2455,12 +2428,6 @@ void udp_broadcast_task(void *arg) {
 }
 #endif
 
-#ifdef WITH_VESC
-static void relay_to_tcp(unsigned char *data, unsigned int len) {
-  commands_send_packet(data, len);
-}
-#endif
-
 void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
   int to_write = (int)len;
   int error_cnt = 0;
@@ -2508,9 +2475,6 @@ static void vesctcp_client_handler(void *lpParam) {
   strncpy(ip, inet_ntoa(addr.sin_addr), 255);
 
   printf("Client %s connected\n",ip);
-#ifdef WITH_VESC
-  lbm_vesc_can_set_relay(relay_to_tcp);
-#endif
 
   vescif_restart(false,false,false);
 
@@ -2523,9 +2487,6 @@ static void vesctcp_client_handler(void *lpParam) {
 
   closesocket(connected_socket);
   send_func = NULL;
-#ifdef WITH_VESC
-  lbm_vesc_can_set_relay(NULL);
-#endif
   printf("Client %s disconnected\n",ip);
   vesctcp_server_in_use = false;
 }
@@ -2545,9 +2506,6 @@ void vesctcp_client_handler(void *arg) {
   strncpy(ip, inet_ntoa(addr.sin_addr), 255);
 
   printf("Client %s connected\n",ip);
-#ifdef WITH_VESC
-  lbm_vesc_can_set_relay(relay_to_tcp);
-#endif
 
   vescif_restart(false,false,false);
 
@@ -2560,9 +2518,6 @@ void vesctcp_client_handler(void *arg) {
 
   close(connected_socket);
   send_func = NULL;
-#ifdef WITH_VESC
-  lbm_vesc_can_set_relay(NULL);
-#endif
   printf("Client %s disconnected\n",ip);
   vesctcp_server_in_use = false;
 }
@@ -3109,15 +3064,6 @@ int main(int argc, char **argv) {
 
 #ifdef WITH_LIMESDR
   lbm_limesdr_init();
-#endif
-
-#ifdef WITH_VESC
-  lbm_vesc_can_init();
-  if (can_port) {
-    if (!lbm_vesc_can_connect(can_port)) {
-      printf("Failed to connect to CAN bridge at %s\n", can_port);
-    }
-  }
 #endif
 
   // TODO: Should the startup procedure work together with the VESC tcp serv?

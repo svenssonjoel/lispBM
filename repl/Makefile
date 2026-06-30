@@ -130,11 +130,10 @@ ifneq (,$(filter limesdr, $(FEATURES)))
 	REPL_SRC += lbm_limesdr.c
 endif
 
-# USE VESC CAN extensions (nanolog USB-CAN bridge) + stub files for the rest
+# VESC platform extension stubs
 ifneq (,$(filter vesc, $(FEATURES)))
 	CCFLAGS  += -DWITH_VESC
-	REPL_SRC += lbm_vesc_can.c \
-	            vesc_extension_stubs.c
+	REPL_SRC += vesc_extension_stubs.c
 endif
 
 ifneq (,$(filter ft4232h_nand, $(FEATURES)))

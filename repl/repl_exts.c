@@ -52,7 +52,6 @@
 #include "extensions/ecc_extensions.h"
 
 #ifdef WITH_VESC
-#include "lbm_vesc_can.h"
 #include "vesc_extension_stubs.h"
 #endif
 
@@ -1620,7 +1619,6 @@ int init_exts(void) {
   lbm_add_extension("display-to-img", ext_display_to_image);
 
 #ifdef WITH_VESC
-  lbm_vesc_can_register_extensions();
   load_vesc_extension_stubs();
 #endif
 
