@@ -428,9 +428,9 @@ bool store_symbol_name_flash(const char *name, lbm_uint *res) {
 
 int lbm_add_symbol_base(const char *name, lbm_uint *id) {
   int res = 0;
-  lbm_uint symbol_name_storage;
-  if (store_symbol_name_flash(name, &symbol_name_storage)) {
-    lbm_uint *new_symlist = lbm_image_add_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist);
+  char *name_ptr = lbm_image_add_symbol_name(name);
+  if (name_ptr) {
+    lbm_uint *new_symlist = lbm_image_add_symbol(name_ptr, next_symbol_id, (lbm_uint)symlist);
     if (new_symlist) {
       symlist = new_symlist;
       *id = next_symbol_id ++;
