@@ -57,7 +57,8 @@ PLATFORM_SRC = $(LISPBM)/platform/linux/src/platform_mutex.c \
                $(LISPBM)/platform/linux/src/platform_thread.c
 
 ## If using any of the utilities.
-LISPBM_INC += -I../utils
+LISPBM_INC += -I../utils -I../utils/mcp
+CCFLAGS    += -DWITH_MCP
 
 REPL_SRC = $(LISPBM_SRC)\
            repl.c \
@@ -65,7 +66,9 @@ REPL_SRC = $(LISPBM_SRC)\
            ../utils/crc.c \
            ../utils/packet.c \
            lbm_gnuplot.c \
-           lbm_octave.c
+           lbm_octave.c \
+           ../utils/mcp/lbm_mcp.c \
+           ../utils/mcp/cJSON.c
 
 ## Dropped usage of pkg-config as it felt like more trouble than benefit.
 ## pkg-config searches for .pc files unrelated to compile flags such as -m32.
@@ -79,14 +82,13 @@ else
 	CCFLAGS += -O2 -Wall -Wextra -Wshadow  -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
 endif
 
-INSTALL_NAME_LBM := lbm
-
 # Use 64bit
 ifneq (,$(filter 64, $(FEATURES)))
 	CCFLAGS += -DLBM64
 	INSTALL_NAME := lbm64
 else
 	CCFLAGS += -m32
+	INSTALL_NAME := lbm
 endif
 
 # Use SDL
@@ -148,11 +150,6 @@ ifneq (,$(filter ft232h_nand, $(FEATURES)))
 	REPL_SRC += ft232h_w25n01.c
 endif
 
-# MCP (Model Context Protocol) stdio server
-ifneq (,$(filter mcp, $(FEATURES)))
-	CCFLAGS  += -DWITH_MCP -I../utils/mcp
-	REPL_SRC += ../utils/mcp/lbm_mcp.c ../utils/mcp/cJSON.c
-endif
 
 # Qt Quick UI — requires qmake on $PATH (source ~/.bash_profile)
 QT_OBJS  =
