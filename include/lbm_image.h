@@ -101,7 +101,7 @@ lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist);
  * \param name Symbol name string
  * \return pointer to address within image where there name is stored.
  */
-char *lbm_image_add_symbol_name(const char *name);
+char *lbm_image_add_symbol_name(const char *name, size_t len);
 
 /**
  * Add a symbol to the image and "link" it to a C address (variable).

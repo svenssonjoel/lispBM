@@ -55,12 +55,12 @@ lbm_uint lbm_symrepr_get_next_id(void);
  */
 void lbm_symrepr_set_next_id(lbm_uint id);
 
-/** Store a symbol name on the constant heap (flash).
- * \param name Symbol name.
- * \param res Pointer where result address in flash is returned.
- * \return true on success and false otherwise.
- */
-bool store_symbol_name_flash(const char *name, lbm_uint *res);
+/* /\** Store a symbol name on the constant heap (flash). */
+/*  * \param name Symbol name. */
+/*  * \param res Pointer where result address in flash is returned. */
+/*  * \return true on success and false otherwise. */
+/*  *\/ */
+/* bool store_symbol_name_flash(const char *name, lbm_uint *res); */
 
 /** Initialize the symbol table.
  *

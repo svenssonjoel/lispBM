@@ -387,28 +387,28 @@ int lbm_get_symbol_by_name(const char *name, lbm_uint* id) {
 
 extern lbm_flash_status lbm_write_const_array_padded(uint8_t *data, lbm_uint n, lbm_uint *res);
 
-bool store_symbol_name_flash(const char *name, lbm_uint *res) {
-  bool ret = false;
-  size_t n = strlen(name) + 1;
-  if (n > 1) {
+/* bool store_symbol_name_flash(const char *name, lbm_uint *res) { */
+/*   bool ret = false; */
+/*   size_t n = strlen(name) + 1; */
+/*   if (n > 1) { */
 
-    lbm_uint alloc_size;
-    if (n % sizeof(lbm_uint) == 0) {
-      alloc_size = n/(sizeof(lbm_uint));
-    } else {
-      alloc_size = (n/(sizeof(lbm_uint))) + 1;
-    }
+/*     lbm_uint alloc_size; */
+/*     if (n % sizeof(lbm_uint) == 0) { */
+/*       alloc_size = n/(sizeof(lbm_uint)); */
+/*     } else { */
+/*       alloc_size = (n/(sizeof(lbm_uint))) + 1; */
+/*     } */
 
-    lbm_uint symbol_addr = 0;
-    lbm_flash_status s = lbm_write_const_array_padded((uint8_t*)name, n, &symbol_addr);
-    if (s == LBM_FLASH_WRITE_OK && symbol_addr) {
-      symbol_table_size_strings_flash += alloc_size;
-      *res = symbol_addr;
-      ret = true;
-    }
-  }
-  return ret;
-}
+/*     lbm_uint symbol_addr = 0; */
+/*     lbm_flash_status s = lbm_write_const_array_padded((uint8_t*)name, n, &symbol_addr); */
+/*     if (s == LBM_FLASH_WRITE_OK && symbol_addr) { */
+/*       symbol_table_size_strings_flash += alloc_size; */
+/*       *res = symbol_addr; */
+/*       ret = true; */
+/*     } */
+/*   } */
+/*   return ret; */
+/* } */
 
 // Symbol table
 // non-const name copied into symbol-table-entry:
@@ -428,9 +428,11 @@ bool store_symbol_name_flash(const char *name, lbm_uint *res) {
 
 int lbm_add_symbol_base(const char *name, lbm_uint *id) {
   int res = 0;
-  char *name_ptr = lbm_image_add_symbol_name(name);
+  size_t len = strlen(name);
+  char *name_ptr = lbm_image_add_symbol_name(name, len);
   if (name_ptr) {
     lbm_uint *new_symlist = lbm_image_add_symbol(name_ptr, next_symbol_id, (lbm_uint)symlist);
+    symbol_table_size_strings_flash += len; // approximation
     if (new_symlist) {
       symlist = new_symlist;
       *id = next_symbol_id ++;

@@ -509,8 +509,8 @@ lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
 
 // Writes size in words followed by the string
 // todo sensible error detection.
-bool write_string_upwards(const char *str) {
-  uint32_t bytes = (uint32_t)strlen(str) + 1;
+bool write_string_upwards(const char *str, size_t len) {
+  uint32_t bytes = (uint32_t)len + 1;
   uint32_t words = (bytes % 4 == 0) ? bytes / 4 : (bytes / 4) + 1;
   write_u32(words, &write_index, DOWNWARDS);
   uint32_t w = 0;
@@ -539,13 +539,14 @@ bool write_string_upwards(const char *str) {
 }
 
 // return the address the string
-char *lbm_image_add_symbol_name(const char *name) {
-  bool r = write_u32(SYMBOL_NAME_ENTRY, &write_index, DOWNWARDS);
-  r = r && write_string_upwards(name);
-  if (r) 
-    return (char*)(image_address + write_index + 1);
-  else
-    return NULL;
+char *lbm_image_add_symbol_name(const char *name, size_t len) {
+  if (len > 0) { 
+    bool r = write_u32(SYMBOL_NAME_ENTRY, &write_index, DOWNWARDS);
+    r = r && write_string_upwards(name, len);
+    if (r) 
+      return (char*)(image_address + write_index + 1);
+  }
+  return NULL;
 }
 
 // The symbol id is written to the link address upon image-boot
@@ -1097,9 +1098,13 @@ bool lbm_image_save_extensions(void) {
       //if (!r) return r;
       //name_ptr = (const char *)addr;
       //#else
+
+      // I dont think this code makes sense anymore given that
+      // all symbols are always in flash. So if you have a symbol name
+      // lbm_memory_ptr_inside(name) will never be true.
       if (lbm_memory_ptr_inside((lbm_uint *)name_ptr)) {
-        r = store_symbol_name_flash(name_ptr, &addr);
-        if (!r) return r;
+        addr = (lbm_uint)lbm_image_add_symbol_name(name_ptr, strlen(name_ptr));
+        if (!addr) return false;
         name_ptr = (const char *)addr;
       }
       //#endif
@@ -1147,7 +1152,7 @@ void lbm_image_create(char *version_str) {
   write_u32(IMAGE_INITIALIZED, &write_index, DOWNWARDS);
   if (version_str) {
     write_u32(VERSION_ENTRY, &write_index, DOWNWARDS);
-    write_string_upwards(version_str);
+    write_string_upwards(version_str, strlen(version_str));
   }
 }
 
