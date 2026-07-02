@@ -645,7 +645,6 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
 #endif
 
 #define SHARING_TABLE_TRUE   0xDEADBEEFu
-#define SHARING_TABLE_FALSE  0xDEADBEEFu
 
 int32_t index_sharing_table(sharing_table *st, int32_t i) {
   if (i < 0) return i; // maybe check if more than num?
@@ -1048,6 +1047,8 @@ bool lbm_image_save_global_env(void) {
 #endif
 
               // TODO: What error handling makes sense?
+            } else {
+              return false;
             }
             write_index = write_index - fv_size - 1; // subtract fv_size
           } else {

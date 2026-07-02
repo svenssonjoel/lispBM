@@ -1399,9 +1399,6 @@ static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int 
                                         0, 0,
                                         outer_x1, outer_y1);
 
-    // TODO: look into this:
-    // end_is_past0!=0 is always true.
-    // end_is_part1!=0 is always true.
     bool slice_overlaps0 = start_is_past0 != end_is_past0
       && (start_is_past0 != 0 || end_is_past0 != 0);
     bool slice_overlaps1 = start_is_past1 != end_is_past1
