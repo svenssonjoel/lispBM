@@ -349,7 +349,9 @@ void lbm_request_gc(void) {
 */
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
-#define EVAL_TIME_QUOTA 400 // time in used, if time quota
+// The intended unit on the QUOTA is us (microseconds) and this should
+// be ensured by the platform support libraries for a given platform.
+#define EVAL_TIME_QUOTA 400
 #define EVAL_CPS_MIN_SLEEP 200
 #define EVAL_STEPS_QUOTA   10
 
