@@ -578,17 +578,18 @@ void lbm_gc_mark_env(lbm_value);
  * \param  root
  */
 void lbm_gc_mark_phase(lbm_value root);
-/** Performs lbm_gc_mark_phase on all the values of an array.
- *  This function is similar to lbm_gc_mark_roots but performs
- *  extra checks to not traverse into non-standard values.
- *  TODO: Check if this function is really needed.
+/** Performs lbm_gc_mark_phase on all the values on the continuation stack.
+ *  Unlike lbm_gc_mark_roots, the continuation stack also contains raw
+ *  continuation markers that have the pointer bit set but are not real
+ *  heap pointers, so each entry is range/type checked before being
+ *  treated as a value to mark.
  *
  * \internalonly
  *
- * \param data Array of roots to traverse from.
- * \param n Number of elements in roots-array.
+ * \param data Continuation stack data.
+ * \param n Number of elements on the continuation stack.
  */
-void lbm_gc_mark_aux(lbm_uint *data, lbm_uint n);
+void lbm_gc_mark_continuation_stack(lbm_uint *data, lbm_uint n);
 /** Performs lbm_gc_mark_phase on all the values in the roots array.
  *
  * \internalonly

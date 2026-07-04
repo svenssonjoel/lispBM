@@ -1752,7 +1752,7 @@ static void mark_context(eval_context_t *ctx, void *arg1, void *arg2) {
   lbm_gc_mark_env(ctx->curr_env);
   lbm_gc_mark_roots(roots, 4);
   lbm_gc_mark_roots(ctx->mailbox, ctx->num_mail);
-  lbm_gc_mark_aux(ctx->K.data, ctx->K.sp);
+  lbm_gc_mark_continuation_stack(ctx->K.data, ctx->K.sp);
 }
 
 static int gc(void) {
