@@ -357,6 +357,15 @@ lbm_value lbm_heap_allocate_list_init(unsigned int n, ...);
  * \return allocated list or error symbol
  */
 char *lbm_dec_str(lbm_value val);
+/** Decode a readable array into both a data pointer and its size in one
+ * call.
+ *
+ * \param val Value to decode.
+ * \param data Output: pointer to the array's raw data.
+ * \param size Output: the array's size in bytes.
+ * \return true on success, false if val is not a readable array.
+ */
+bool lbm_dec_str_size(lbm_value val, char **data, size_t *size);
 /** Decode a readable array, if the argument is not an array the result is NULL
   * \param val value to decode.
   * \return array pointer or NULL.

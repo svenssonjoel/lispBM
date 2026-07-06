@@ -313,7 +313,7 @@ static void handle_search_docs(cJSON *id, cJSON *args) {
     if (!fp) continue;
 
     char line[1024];
-    char section_hdr[256]  = "";
+    char section_hdr[1024] = "";
     char section_body[SEARCH_SECTION_MAX] = "";
     int  body_pos = 0;
 

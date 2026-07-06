@@ -304,6 +304,16 @@ char *lbm_dec_str(lbm_value val) {
   return res;
 }
 
+bool lbm_dec_str_size(lbm_value val, char **data, size_t *size) {
+  lbm_array_header_t *array = lbm_dec_array_r(val);
+  if (array) {
+    *data = (char*)array->data;
+    *size = array->size;
+    return true;
+  }
+  return false;
+}
+
 lbm_array_header_t *lbm_dec_array_r(lbm_value val) {
   lbm_array_header_t *array = NULL;
   if (lbm_is_array_r(val)) {
