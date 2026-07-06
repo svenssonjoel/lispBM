@@ -3179,13 +3179,11 @@ static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     }
     lbm_mutex_lock(&qmutex);
     eval_context_t *found = NULL;
-    found = lookup_ctx_nm(&blocked, cid);
-    if (found)
+    if ((found = lookup_ctx_nm(&blocked, cid))) {
       unlink_ctx_nm(&blocked, found);
-    else
-      found = lookup_ctx_nm(&queue, cid);
-    if (found)
+    } else if ((found = lookup_ctx_nm(&queue, cid))) {
       unlink_ctx_nm(&queue, found);
+    }
 
     if (found) {
       found->K.data[found->K.sp - 1] = KILL;
