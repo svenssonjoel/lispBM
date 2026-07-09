@@ -189,8 +189,8 @@
 // over earlier ones.
 
 
-#define DOWNWARDS true
-#define UPWARDS   false
+#define DOWNWARDS false
+#define UPWARDS   true
 
 static lbm_image_write_fun image_write = NULL;
 
@@ -225,9 +225,12 @@ uint64_t read_u64(int32_t index) {
   return *((uint64_t*)(image_address + index));
 }
 
+// Direction influences if the index incs or decs.
+// In the const heap things are written "upwards" in memory
+// and in the bootable region values are written downwards.
 bool write_u32(uint32_t w, int32_t *i, bool direction) {
-  bool r = image_write(w, *i, false);
-  (*i) += direction ? -1 : 1;
+  bool r = image_write(w, *i, direction);
+  (*i) += direction ? 1 : -1;
   return r;
 }
 
@@ -476,12 +479,12 @@ static bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
 #ifdef LBM64
   int32_t i = (int32_t)(image_const_heap_start_ix + (ix * 2));
   uint32_t *words = (uint32_t*)&w;
-  bool r = image_write(words[0], i, false);
-  r = r && image_write(words[1], i + 1, false);
+  bool r = image_write(words[0], i, true);
+  r = r && image_write(words[1], i + 1, rue);
   return r;
 #else
   int32_t i = (int32_t)(image_const_heap_start_ix + ix);
-  return write_u32(w, &i, false);
+  return image_write(w,i,true);
 #endif
 }
 
@@ -525,14 +528,16 @@ bool write_string_upwards(const char *str, size_t len) {
     if (wi == 4) wi = 0;
     buf[wi] = str[i];
     if (wi == 3) {
-      write_u32(w, &ix, UPWARDS);
+      if (!write_u32(w, &ix, UPWARDS)) return false;
+      //write_u32(w, &ix, UPWARDS);
       w = 0;
     }
     i ++;
     wi ++;
   }
-  if (wi != 0) {
-    write_u32(w, &ix, UPWARDS);
+  if (wi != 0 && wi != 4) {
+    if (!write_u32(w, &ix, UPWARDS)) return false;
+    //write_u32(w, &ix, UPWARDS);
   }
   write_index -= (int32_t)words;
   return true;
