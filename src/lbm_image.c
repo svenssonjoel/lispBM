@@ -225,11 +225,12 @@ uint64_t read_u64(int32_t index) {
   return *((uint64_t*)(image_address + index));
 }
 
+// Write_u32 is only for writing within the bootable
+// area of the image. it is sometimes convenient to be able to
+// write upwards or downwards in this area selectively.
 // Direction influences if the index incs or decs.
-// In the const heap things are written "upwards" in memory
-// and in the bootable region values are written downwards.
 bool write_u32(uint32_t w, int32_t *i, bool direction) {
-  bool r = image_write(w, *i, direction);
+  bool r = image_write(w, *i, true);
   (*i) += direction ? 1 : -1;
   return r;
 }
@@ -480,7 +481,7 @@ static bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
   int32_t i = (int32_t)(image_const_heap_start_ix + (ix * 2));
   uint32_t *words = (uint32_t*)&w;
   bool r = image_write(words[0], i, true);
-  r = r && image_write(words[1], i + 1, rue);
+  r = r && image_write(words[1], i + 1, true);
   return r;
 #else
   int32_t i = (int32_t)(image_const_heap_start_ix + ix);
