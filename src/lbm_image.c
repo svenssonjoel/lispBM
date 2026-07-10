@@ -216,26 +216,29 @@ bool lbm_image_has_extensions(void) {
   return image_has_extensions;
 }
 
-uint32_t read_u32(int32_t index) {
+static uint32_t read_u32(int32_t index) {
   return *((uint32_t*)(image_address + index));
 }
 
-uint64_t read_u64(int32_t index) {
+#ifdef LBM64
+static uint64_t read_u64(int32_t index) {
   // image_addres is an u32 ptr. so addr + i is a step of i * 4 bytes
   return *((uint64_t*)(image_address + index));
 }
+#endif
 
 // Write_u32 is only for writing within the bootable
 // area of the image. it is sometimes convenient to be able to
 // write upwards or downwards in this area selectively.
 // Direction influences if the index incs or decs.
-bool write_u32(uint32_t w, int32_t *i, bool direction) {
+static bool write_u32(uint32_t w, int32_t *i, bool direction) {
   bool r = image_write(w, *i, false);
   (*i) += direction ? 1 : -1;
   return r;
 }
 
-bool write_u64(uint64_t dw, int32_t *i, bool direction) {
+#ifdef LBM64
+static bool write_u64(uint64_t dw, int32_t *i, bool direction) {
   uint32_t *words = (uint32_t*)&dw;
 
   // downwards   ... hw   lw
@@ -255,12 +258,13 @@ bool write_u64(uint64_t dw, int32_t *i, bool direction) {
   }
   return r;
 }
+#endif
 
 // fv_write function write values as big endian.
 
 uint32_t fv_buf_ix = 0;
 uint8_t  fv_buf[4] = {0};
-bool fv_write_u8(uint8_t b) {
+static bool fv_write_u8(uint8_t b) {
   bool r = true;
   if (fv_buf_ix >= 4) {
     r = write_u32(((uint32_t*)fv_buf)[0], &write_index, UPWARDS);
@@ -272,7 +276,7 @@ bool fv_write_u8(uint8_t b) {
   return r;
 }
 
-bool fv_write_flush(void) {
+static bool fv_write_flush(void) {
   if (fv_buf_ix == 0) return true;
   else {
     bool r = write_u32(((uint32_t*)fv_buf)[0], &write_index, UPWARDS);;
@@ -282,7 +286,7 @@ bool fv_write_flush(void) {
   }
 }
 
-bool fv_write_u32(uint32_t w) {
+static bool fv_write_u32(uint32_t w) {
   uint8_t * bytes = (uint8_t*)&w;
   return
     fv_write_u8(bytes[3]) &&
@@ -291,7 +295,7 @@ bool fv_write_u32(uint32_t w) {
     fv_write_u8(bytes[0]);
 }
 
-bool fv_write_u64(uint64_t dw) {
+static bool fv_write_u64(uint64_t dw) {
   uint8_t * bytes = (uint8_t*)&dw;
    return
      fv_write_u8(bytes[7]) &&
@@ -305,7 +309,7 @@ bool fv_write_u64(uint64_t dw) {
 }
 
 
-bool write_lbm_uint(lbm_uint ptr_val, int32_t *i, bool direction) {
+static bool write_lbm_uint(lbm_uint ptr_val, int32_t *i, bool direction) {
 #ifdef LBM64
   return write_u64(ptr_val, i, direction);
 #else
@@ -313,7 +317,7 @@ bool write_lbm_uint(lbm_uint ptr_val, int32_t *i, bool direction) {
 #endif
 }
 
-bool write_lbm_value(lbm_value v, int32_t *i, bool direction) {
+static bool write_lbm_value(lbm_value v, int32_t *i, bool direction) {
 #ifdef LBM64
   return write_u64(v, i, direction);
 #else

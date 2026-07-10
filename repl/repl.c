@@ -382,8 +382,19 @@ void terminate_repl(int exit_code) {
   exit(exit_code);
 }
 
+
+// Testing purpose (to ensure VESC_EXPRESS compatibility)
+static int32_t image_max_ind = -1;
+
 bool image_write(uint32_t w, int32_t ix, bool is_const_heap) { // ix >= 0 and ix <= image_size
-  (void) is_const_heap;
+  if (is_const_heap) {
+    if (ix > image_max_ind) {
+      image_max_ind = ix;
+    }
+  } else if (ix <= image_max_ind) { // detects image full
+    printf("image_write: bootable-region write at ix %d overlaps const heap at: %d)\n", ix, image_max_ind);
+    return false;
+  }
   //printf("write %x to ix %d\n",w, ix);
   if (image_storage[ix] == 0xffffffff) {
     image_storage[ix] = w;
@@ -405,6 +416,7 @@ bool image_write(uint32_t w, int32_t ix, bool is_const_heap) { // ix >= 0 and ix
 
 bool image_clear(void) {
   memset(image_storage, 0xff, image_storage_size);
+  image_max_ind = -1;
   return true;
 }
 
