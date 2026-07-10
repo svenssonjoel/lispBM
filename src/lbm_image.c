@@ -230,7 +230,7 @@ uint64_t read_u64(int32_t index) {
 // write upwards or downwards in this area selectively.
 // Direction influences if the index incs or decs.
 bool write_u32(uint32_t w, int32_t *i, bool direction) {
-  bool r = image_write(w, *i, true);
+  bool r = image_write(w, *i, false);
   (*i) += direction ? 1 : -1;
   return r;
 }
