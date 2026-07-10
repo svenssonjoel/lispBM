@@ -1,5 +1,5 @@
 /*
-    Copyright 2025 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2025, 2026 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -517,7 +517,7 @@ lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
 
 // Writes size in words followed by the string
 // todo sensible error detection.
-bool write_string_upwards(const char *str, size_t len) {
+static bool write_string_upwards(const char *str, size_t len) {
   uint32_t bytes = (uint32_t)len + 1;
   uint32_t words = (bytes % 4 == 0) ? bytes / 4 : (bytes / 4) + 1;
   write_u32(words, &write_index, DOWNWARDS);
@@ -548,12 +548,18 @@ bool write_string_upwards(const char *str, size_t len) {
   return true;
 }
 
-// return the address the string
+// return the address of the string
 char *lbm_image_add_symbol_name(const char *name, size_t len) {
-  if (len > 0) { 
+  if (len > 0) {
+    uint32_t bytes = (uint32_t)len + 1;
+    uint32_t words = (bytes % 4 == 0) ? bytes / 4 : (bytes / 4) + 1;
+    // 1 word SYMBOL_NAME_ENTRY tag + 1 word size + the string data itself.
+    if ((write_index - (int32_t)(words + 2)) <= (int32_t)image_const_heap.next) {
+      return NULL;
+    }
     bool r = write_u32(SYMBOL_NAME_ENTRY, &write_index, DOWNWARDS);
     r = r && write_string_upwards(name, len);
-    if (r) 
+    if (r)
       return (char*)(image_address + write_index + 1);
   }
   return NULL;
@@ -1091,34 +1097,27 @@ bool lbm_image_save_extensions(void) {
   bool r = true;
   lbm_uint num = lbm_get_num_extensions();
   if (num > 0) {
+    // Dynamically registered extensions can have name fields
+    // pointing to LBM_MEMORY (RAM). Move these strings to flash
+    // Before copying the entire extension table to flash.
+    for (lbm_uint i = 0; i < num; i ++) {
+      const char *name_ptr = extension_table[i].name;
+      if (name_ptr && lbm_memory_ptr_inside((lbm_uint *)name_ptr)) {
+        char *addr = lbm_image_add_symbol_name(name_ptr, strlen(name_ptr));
+        if (!addr) return false;
+        extension_table[i].name = addr;
+      }
+    }
+
     r = r && write_u32(EXTENSION_TABLE, &write_index, DOWNWARDS);
     r = r && write_u32((uint32_t)num , &write_index, DOWNWARDS);
     for (lbm_uint i = 0; i < num; i ++) {
       if (!r) return r;
 
       const char *name_ptr = extension_table[i].name;
-      lbm_uint addr;
-      // when PIC, name pointers may move around
-      // between restarts. It is also the case that
-      // the FPTRs will move around as well.
-      // This makes dynamic extensions useless on Linux.
-      // Static extensions are fine as they will be re-added after image-boot
-      // and faulty FPTRs will be replaced.
-      //#ifdef __PIC__
-      //r = store_symbol_name_flash(name_ptr, &addr);
-      //if (!r) return r;
-      //name_ptr = (const char *)addr;
-      //#else
-
-      // I dont think this code makes sense anymore given that
-      // all symbols are always in flash. So if you have a symbol name
-      // lbm_memory_ptr_inside(name) will never be true.
-      if (lbm_memory_ptr_inside((lbm_uint *)name_ptr)) {
-        addr = (lbm_uint)lbm_image_add_symbol_name(name_ptr, strlen(name_ptr));
-        if (!addr) return false;
-        name_ptr = (const char *)addr;
-      }
-      //#endif
+      // Static extensions have names that are C string literals
+      // living in the firmware binary itself. Those are assumed
+      // stable for as long as that firmware build is running.
 #ifdef LBM64
       r = r && write_u64((uint64_t)name_ptr, &write_index, DOWNWARDS);
       r = r && write_u64((uint64_t)extension_table[i].fptr, &write_index, DOWNWARDS);
@@ -1127,7 +1126,7 @@ bool lbm_image_save_extensions(void) {
       r = r && write_u32((uint32_t)extension_table[i].fptr, &write_index, DOWNWARDS);
 #endif
     }  }
-  return true;
+  return r;
 }
 
 static uint32_t last_const_heap_ix = 0;
