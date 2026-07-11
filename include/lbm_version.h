@@ -38,7 +38,7 @@ extern "C" {
 
 /*! \page changelog Changelog
 
-Jul 11 2026: Veraion 0.38.0
+Jul 11 2026: Version 0.38.0
   - Important bug fix in the image system after update to store symbols names in top half.
   - String pattern matching functions based on lua (extensions).
   - Adding tests of image system.
