@@ -1375,7 +1375,9 @@ static lbm_value ext_save_active_image(lbm_value *args, lbm_uint argn) {
                    PNG_COMPRESSION_TYPE_BASE,
                    PNG_FILTER_TYPE_BASE);
 
-      row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * h);
+      if (h > 0) {
+        row_pointers = (png_bytep*)calloc((size_t)h, sizeof(png_bytep));
+      }
 
       if (row_pointers) {
         for (uint32_t i = 0; i < h; ++i) {
@@ -1412,7 +1414,8 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
     uint16_t w = img->width;
     uint16_t h = img->height;
 
-    uint8_t *buffer = malloc((size_t)(w * h * 3)); // RGB 888
+    size_t buf_size = ((size_t)w * h <= SIZE_MAX / 3) ? (size_t)w * h * 3 : 0;
+    uint8_t *buffer = buf_size ? malloc(buf_size) : NULL; // RGB 888
     if (buffer) {
       uint8_t  bpp = (uint8_t)img->fmt;
       switch(bpp) {
