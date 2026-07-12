@@ -132,6 +132,12 @@ ifneq (,$(filter limesdr, $(FEATURES)))
 	REPL_SRC += lbm_limesdr.c
 endif
 
+# Use curl (URL import support: :url command and http(s):// import)
+ifneq (,$(filter curl, $(FEATURES)))
+	CCFLAGS += -DWITH_CURL
+	LDFLAGS += -lcurl
+endif
+
 # VESC platform extension stubs
 ifneq (,$(filter vesc, $(FEATURES)))
 	CCFLAGS  += -DWITH_VESC
