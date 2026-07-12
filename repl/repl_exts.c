@@ -307,10 +307,10 @@ static lbm_value ext_load_file(lbm_value *args, lbm_uint argn) {
       long int  size = ftell(h->fp);
       rewind(h->fp);
 
-      if (size > 0) {
+      if (size > 0 && (size_t)size < SIZE_MAX) {
         uint8_t *data = lbm_malloc((size_t)size+1);
         if (data) {
-          memset(data, 0, (unsigned int)size+1) ;
+          memset(data, 0, (size_t)size+1) ;
 
           lbm_value val;
           if (lbm_lift_array(&val, (char*)data, (lbm_uint)size+1)) {
