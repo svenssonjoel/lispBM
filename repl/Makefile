@@ -7,7 +7,7 @@ FEATURES ?= $(shell cat $(FEATURE_FILE) 2>/dev/null)
 
 include $(LISPBM)/lispbm.mk
 
-CCFLAGS =
+CCFLAGS = -DUSE_EFFICIENT_HLINE_VLINE
 
 LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_DYN_MACROS \

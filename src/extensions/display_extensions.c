@@ -739,6 +739,161 @@ uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
   return 0;
 }
 
+#ifdef USE_EFFICIENT_HLINE_VLINE
+
+// Putpixel inlined into h/v_line and code that does not change along the line
+// is hoisted out of the loop.
+static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
+  if (len <= 0) return;
+  if (y < 0 || y >= img->height) return;
+  int x0 = x;
+  int x1 = x + len - 1;
+  if (x0 < 0) x0 = 0;
+  if (x1 >= img->width) x1 = img->width - 1;
+  if (x0 > x1) return;
+  uint32_t n = (uint32_t)(x1 - x0 + 1);
+  uint32_t w = img->width;
+  uint8_t *data = img->data;
+
+  switch (img->fmt) {
+  case indexed2: {
+    uint32_t pos0 = (uint32_t)y * w + (uint32_t)x0;
+    for (uint32_t i = 0; i < n; i++) {
+      uint32_t pos = pos0 + i;
+      uint32_t byte = pos >> 3, bit = 7 - (pos & 7);
+      if (c) data[byte] |= (uint8_t)(1 << bit);
+      else data[byte] &= (uint8_t)~(1 << bit);
+    }
+    break;
+  }
+  case indexed4: {
+    uint32_t pos0 = (uint32_t)y * w + (uint32_t)x0;
+    for (uint32_t i = 0; i < n; i++) {
+      uint32_t pos = pos0 + i;
+      uint32_t byte = pos >> 2, ix = 3 - (pos & 0x3);
+      data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed4_mask[ix]) | (uint8_t)(c << indexed4_shift[ix]));
+    }
+    break;
+  }
+  case indexed16: {
+    uint32_t pos0 = (uint32_t)y * w + (uint32_t)x0;
+    for (uint32_t i = 0; i < n; i++) {
+      uint32_t pos = pos0 + i;
+      uint32_t byte = pos >> 1, ix = 1 - (pos & 0x1);
+      data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed16_mask[ix]) | (uint8_t)(c << indexed16_shift[ix]));
+    }
+    break;
+  }
+  case rgb332: {
+    uint32_t pos = (uint32_t)y * w + (uint32_t)x0;
+    memset(data + pos, rgb888to332(c), n);
+    break;
+  }
+  case rgb565: {
+    uint16_t color = rgb888to565(c);
+    uint8_t hi = (uint8_t)(color >> 8), lo = (uint8_t)color;
+    uint32_t pos = (uint32_t)y * (w << 1) + ((uint32_t)x0 << 1);
+    uint8_t *dp = data + pos;
+    for (uint32_t i = 0; i < n; i++) {
+      dp[0] = hi;
+      dp[1] = lo;
+      dp += 2;
+    }
+    break;
+  }
+  case rgb888: {
+    uint8_t b0 = (uint8_t)(c >> 16), b1 = (uint8_t)(c >> 8), b2 = (uint8_t)c;
+    uint32_t pos = (uint32_t)y * (w * 3) + ((uint32_t)x0 * 3);
+    uint8_t *dp = data + pos;
+    for (uint32_t i = 0; i < n; i++) {
+      dp[0] = b0;
+      dp[1] = b1;
+      dp[2] = b2;
+      dp += 3;
+    }
+    break;
+  }
+  default:
+    break;
+  }
+}
+
+static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
+  if (len <= 0) return;
+  if (x < 0 || x >= img->width) return;
+  int y0 = y;
+  int y1 = y + len - 1;
+  if (y0 < 0) y0 = 0;
+  if (y1 >= img->height) y1 = img->height - 1;
+  if (y0 > y1) return;
+  int n = y1 - y0 + 1;
+  int w = img->width;
+  uint8_t *data = img->data;
+
+  switch (img->fmt) {
+  case indexed2: {
+    for (int i = 0; i < n; i++) {
+      uint32_t pos = (uint32_t)(y0 + i) * w + (uint32_t)x;
+      uint32_t byte = pos >> 3, bit = 7 - (pos & 7);
+      if (c) data[byte] |= (uint8_t)(1 << bit);
+      else data[byte] &= (uint8_t)~(1 << bit);
+    }
+    break;
+  }
+  case indexed4: {
+    for (int i = 0; i < n; i++) {
+      uint32_t pos = (uint32_t)(y0 + i) * w + (uint32_t)x;
+      uint32_t byte = pos >> 2, ix = 3 - (pos & 0x3);
+      data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed4_mask[ix]) | (uint8_t)(c << indexed4_shift[ix]));
+    }
+    break;
+  }
+  case indexed16: {
+    for (int i = 0; i < n; i++) {
+      uint32_t pos = (uint32_t)(y0 + i) * w + (uint32_t)x;
+      uint32_t byte = pos >> 1, ix = 1 - (pos & 0x1);
+      data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed16_mask[ix]) | (uint8_t)(c << indexed16_shift[ix]));
+    }
+    break;
+  }
+  case rgb332: {
+    uint8_t col = rgb888to332(c);
+    uint32_t pos = (uint32_t)y0 * w + (uint32_t)x;
+    for (int i = 0; i < n; i++) {
+      data[pos] = col;
+      pos += w;
+    }
+    break;
+  }
+  case rgb565: {
+    uint16_t color = rgb888to565(c);
+    uint8_t hi = (uint8_t)(color >> 8), lo = (uint8_t)color;
+    uint32_t stride = (uint32_t)w << 1;
+    uint32_t pos = (uint32_t)y0 * stride + ((uint32_t)x << 1);
+    for (int i = 0; i < n; i++) {
+      data[pos] = hi;
+      data[pos + 1] = lo;
+      pos += stride;
+    }
+    break;
+  }
+  case rgb888: {
+    uint8_t b0 = (uint8_t)(c >> 16), b1 = (uint8_t)(c >> 8), b2 = (uint8_t)c;
+    uint32_t stride = (uint32_t)w * 3;
+    uint32_t pos = (uint32_t)y0 * stride + ((uint32_t)x * 3);
+    for (int i = 0; i < n; i++) {
+      data[pos] = b0;
+      data[pos + 1] = b1;
+      data[pos + 2] = b2;
+      pos += stride;
+    }
+    break;
+  }
+  default:
+    break;
+  }
+}
+#else
 static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
   for (int i = 0; i < len; i ++) {
     putpixel(img, x+i, y, c);
@@ -750,6 +905,7 @@ static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
     putpixel(img, x, y+i, c);
   }
 }
+#endif // USE_EFFICIENT_HLINE_VLINE
 
 static void fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color) {
   switch (radius) {
