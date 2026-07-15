@@ -121,6 +121,9 @@ static lbm_uint symbol_left = 0;
 static lbm_uint symbol_center = 0;
 static lbm_uint symbol_right = 0;
 
+static lbm_uint symbol_alpha = 0;
+
+
 bool display_is_symbol_up(lbm_value v) {
   if (lbm_is_symbol(v)) {
     lbm_uint s = lbm_dec_sym(v);
@@ -203,7 +206,7 @@ static inline bool is_color(uint8_t *data, lbm_uint size) {
 }
 
 
-static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2, uint16_t param1, uint16_t param2, bool mirrored) {
+static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2, uint16_t param1, uint16_t param2, bool mirrored, uint8_t alpha) {
   color_t *color = lbm_malloc(sizeof(color_t));
   if (!color) {
     return ENC_SYM_MERROR;
@@ -229,6 +232,7 @@ static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2,
     color->param2 = param2;
     color->mirrored = mirrored;
     color->precalc = pre;
+    color->alpha = alpha;
 
     if (pre) {
       COLOR_TYPE type_old = color->type;
@@ -351,6 +355,7 @@ static bool register_symbols(void) {
   res = res && lbm_add_symbol_const("left", &symbol_left);
   res = res && lbm_add_symbol_const("center", &symbol_center);
   res = res && lbm_add_symbol_const("right", &symbol_right);
+  res = res && lbm_add_symbol_const("alpha", &symbol_alpha);
 
   return res;
 }
@@ -476,6 +481,30 @@ static uint32_t  rgb565to888(uint16_t rgb) {
   return res_rgb888;
 }
 
+static uint32_t alpha_blend_rgb888(uint32_t src, uint32_t dst, uint8_t alpha) {
+  if (alpha == 255) {
+    return src;
+  }
+  if (alpha == 0) {
+    return dst;
+  }
+
+  uint32_t sr = (src >> 16) & 0xFF;
+  uint32_t sg = (src >> 8) & 0xFF;
+  uint32_t sb = src & 0xFF;
+
+  uint32_t dr = (dst >> 16) & 0xFF;
+  uint32_t dg = (dst >> 8) & 0xFF;
+  uint32_t db = dst & 0xFF;
+
+  uint32_t inverse_alpha = 255u - alpha;
+  uint32_t r = (sr * alpha + dr * inverse_alpha + 127u) / 255u;
+  uint32_t g = (sg * alpha + dg * inverse_alpha + 127u) / 255u;
+  uint32_t b = (sb * alpha + db * inverse_alpha + 127u) / 255u;
+
+  return (r << 16) | (g << 8) | b;
+}
+
 void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
   color_format_t fmt = img->fmt;
   uint32_t w = img->width;
@@ -535,8 +564,10 @@ static const uint8_t indexed4_shift[4] = {0, 2, 4, 6};
 static const uint8_t indexed16_mask[4] = {0x0F, 0xF0};
 static const uint8_t indexed16_shift[4] = {0, 4};
 
-
-void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
+void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c, uint8_t alpha) {
+  if (alpha == 0) {
+    return;
+  }
   uint16_t w = img->width;
   uint16_t h = img->height;
   uint16_t x = (uint16_t)x_i; // negative numbers become really large.
@@ -545,6 +576,8 @@ void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
   if (x < w && y < h) {
     color_format_t fmt = img->fmt;
     uint8_t *data = img->data;
+    bool opaque = alpha == 255;
+
     switch(fmt) {
     case indexed2: {
       uint32_t pos = (uint32_t)y * (uint32_t)w + (uint32_t)x;
@@ -573,21 +606,41 @@ void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
     }
     case rgb332: {
       int pos = y*w + x;
-      data[pos] = rgb888to332(c);
+      if (opaque) {
+        data[pos] = rgb888to332(c);
+      } else {
+        uint32_t dst = rgb332to888(data[pos]);
+        data[pos] = rgb888to332(alpha_blend_rgb888(c, dst, alpha));
+      }
       break;
     }
     case rgb565: {
       int pos = y*(w<<1) + (x<<1) ;
-      uint16_t color = rgb888to565(c);
-      data[pos] = (uint8_t)(color >> 8);
-      data[pos+1] = (uint8_t)color;
+      if (opaque) {
+        uint16_t color = rgb888to565(c);
+        data[pos] = (uint8_t)(color >> 8);
+        data[pos+1] = (uint8_t)color;
+      } else {
+        uint16_t dst = (uint16_t)((data[pos] << 8) | data[pos+1]);
+        uint16_t color = rgb888to565(alpha_blend_rgb888(c, rgb565to888(dst), alpha));
+        data[pos] = (uint8_t)(color >> 8);
+        data[pos+1] = (uint8_t)color;
+      }
       break;
     }
     case rgb888: {
       int pos = y*(w*3) + (x*3);
-      data[pos] = (uint8_t)(c>>16);
-      data[pos+1] = (uint8_t)(c>>8);
-      data[pos+2] = (uint8_t)c;
+      if (opaque) {
+        data[pos] = (uint8_t)(c>>16);
+        data[pos+1] = (uint8_t)(c>>8);
+        data[pos+2] = (uint8_t)c;
+      } else {
+        uint32_t dst = ((uint32_t)data[pos] << 16) | ((uint32_t)data[pos+1] << 8) | data[pos+2];
+        uint32_t color = alpha_blend_rgb888(c, dst, alpha);
+        data[pos] = (uint8_t)(color>>16);
+        data[pos+1] = (uint8_t)(color>>8);
+        data[pos+2] = (uint8_t)color;
+      }
       break;
     }
     default:
@@ -741,10 +794,18 @@ uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
 
 #ifdef USE_EFFICIENT_HLINE_VLINE
 
-// Putpixel inlined into h/v_line and code that does not change along the line
-// is hoisted out of the loop.
-static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
-  if (len <= 0) return;
+// Putpixel is inlined into h/v_line and work that does not change along the
+// line is hoisted out of the loop. Partial alpha still uses putpixel because
+// every destination pixel participates in blending.
+static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
+  if (alpha == 0 || len <= 0) return;
+  if (alpha != 255) {
+    for (int i = 0; i < len; i++) {
+      putpixel(img, x + i, y, c, alpha);
+    }
+    return;
+  }
+
   if (y < 0 || y >= img->height) return;
   int x0 = x;
   int x1 = x + len - 1;
@@ -818,8 +879,15 @@ static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
   }
 }
 
-static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
-  if (len <= 0) return;
+static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
+  if (alpha == 0 || len <= 0) return;
+  if (alpha != 255) {
+    for (int i = 0; i < len; i++) {
+      putpixel(img, x, y + i, c, alpha);
+    }
+    return;
+  }
+
   if (x < 0 || x >= img->width) return;
   int y0 = y;
   int y1 = y + len - 1;
@@ -893,57 +961,60 @@ static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
     break;
   }
 }
+
 #else
-static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
+
+static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
   for (int i = 0; i < len; i ++) {
-    putpixel(img, x+i, y, c);
+    putpixel(img, x+i, y, c, alpha);
   }
 }
 
-static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
+static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
   for (int i = 0; i < len; i ++) {
-    putpixel(img, x, y+i, c);
+    putpixel(img, x, y+i, c, alpha);
   }
 }
+
 #endif // USE_EFFICIENT_HLINE_VLINE
 
-static void fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color) {
+static void fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color, uint8_t alpha) {
   switch (radius) {
   case 0:
     break;
 
   case 1:
-    putpixel(img, x - 1, y - 1, color);
-    putpixel(img, x, y - 1, color);
-    putpixel(img, x - 1, y, color);
-    putpixel(img, x, y, color);
+    putpixel(img, x - 1, y - 1, color, alpha);
+    putpixel(img, x, y - 1, color, alpha);
+    putpixel(img, x - 1, y, color, alpha);
+    putpixel(img, x, y, color, alpha);
     break;
 
   case 2:
-    h_line(img, x - 1, y - 2, 2, color);
-    h_line(img, x - 2, y - 1, 4, color);
-    h_line(img, x - 2, y, 4, color);
-    h_line(img, x - 1, y + 1, 2, color);
+    h_line(img, x - 1, y - 2, 2, color, alpha);
+    h_line(img, x - 2, y - 1, 4, color, alpha);
+    h_line(img, x - 2, y, 4, color, alpha);
+    h_line(img, x - 1, y + 1, 2, color, alpha);
     break;
 
   case 3:
-    h_line(img, x - 2, y - 3, 4, color);
-    h_line(img, x - 3, y - 2, 6, color);
-    h_line(img, x - 3, y - 1, 6, color);
-    h_line(img, x - 3, y, 6, color);
-    h_line(img, x - 3, y + 1, 6, color);
-    h_line(img, x - 2, y + 2, 4, color);
+    h_line(img, x - 2, y - 3, 4, color, alpha);
+    h_line(img, x - 3, y - 2, 6, color, alpha);
+    h_line(img, x - 3, y - 1, 6, color, alpha);
+    h_line(img, x - 3, y, 6, color, alpha);
+    h_line(img, x - 3, y + 1, 6, color, alpha);
+    h_line(img, x - 2, y + 2, 4, color, alpha);
     break;
 
   case 4:
-    h_line(img, x - 2, y - 4, 4, color);
-    h_line(img, x - 3, y - 3, 6, color);
-    h_line(img, x - 4, y - 2, 8, color);
-    h_line(img, x - 4, y - 1, 8, color);
-    h_line(img, x - 4, y, 8, color);
-    h_line(img, x - 4, y + 1, 8, color);
-    h_line(img, x - 3, y + 2, 6, color);
-    h_line(img, x - 2, y + 3, 4, color);
+    h_line(img, x - 2, y - 4, 4, color, alpha);
+    h_line(img, x - 3, y - 3, 6, color, alpha);
+    h_line(img, x - 4, y - 2, 8, color, alpha);
+    h_line(img, x - 4, y - 1, 8, color, alpha);
+    h_line(img, x - 4, y, 8, color, alpha);
+    h_line(img, x - 4, y + 1, 8, color, alpha);
+    h_line(img, x - 3, y + 2, 6, color, alpha);
+    h_line(img, x - 2, y + 3, 4, color, alpha);
     break;
 
   default: {
@@ -960,7 +1031,7 @@ static void fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t 
 
           // Draw line at this level y
           int length = x_right - x_left + 1;
-          h_line(img, x + x_left, y + y1, length, color);
+          h_line(img, x + x_left, y + y1, length, color, alpha);
 
           // Break out of innter loop for this level y
           break;
@@ -1011,7 +1082,7 @@ static void handle_circle_slice(int outer_x, int outer_y, image_buffer_t *img, i
     }
   }
 
-  h_line(img, outer_x + c_x, outer_y + c_y, width, color);
+  h_line(img, outer_x + c_x, outer_y + c_y, width, color, 255);
 }
 
 // thickness extends inwards from the given radius circle
@@ -1024,14 +1095,14 @@ static void circle(image_buffer_t *img, int x, int y, int radius, int thickness,
     int db = 20 - 8*radius;
 
     while (x0 < y0) {
-      putpixel(img, x + x0, y + y0, color);
-      putpixel(img, x + x0, y - y0, color);
-      putpixel(img, x - x0, y + y0, color);
-      putpixel(img, x - x0, y - y0, color);
-      putpixel(img, x + y0, y + x0, color);
-      putpixel(img, x + y0, y - x0, color);
-      putpixel(img, x - y0, y + x0, color);
-      putpixel(img, x - y0, y - x0, color);
+      putpixel(img, x + x0, y + y0, color, 255);
+      putpixel(img, x + x0, y - y0, color, 255);
+      putpixel(img, x - x0, y + y0, color, 255);
+      putpixel(img, x - x0, y - y0, color, 255);
+      putpixel(img, x + y0, y + x0, color, 255);
+      putpixel(img, x + y0, y - x0, color, 255);
+      putpixel(img, x - y0, y + x0, color, 255);
+      putpixel(img, x - y0, y - x0, color, 255);
       if (d < 0) { d = d + da; db = db+8; }
       else  { y0 = y0 - 1; d = d+db; db = db + 16; }
       x0 = x0+1;
@@ -1088,9 +1159,9 @@ static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickn
     while (true) {
       if (dotcnt <= dot1) {
         if (thickness > 1) {
-          fill_circle(img, x0, y0, thickness, c);
+          fill_circle(img, x0, y0, thickness, c, 255);
         } else {
-          putpixel(img, x0, y0, c);
+          putpixel(img, x0, y0, c, 255);
         }
       }
 
@@ -1126,9 +1197,9 @@ static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickn
   } else {
     while (true) {
       if (thickness > 1) {
-        fill_circle(img, x0, y0, thickness, c);
+        fill_circle(img, x0, y0, thickness, c, 255);
       } else {
-        putpixel(img, x0, y0, c);
+        putpixel(img, x0, y0, c, 255);
       }
 
       if (x0 == x1 && y0 == y1) {
@@ -1154,19 +1225,19 @@ static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickn
 
 // thickness extends inwards from the given rectangle edge.
 static void rectangle(image_buffer_t *img, int x, int y, int width, int height,
-                      bool fill, int thickness, int dot1, int dot2, uint32_t color) {
+                      bool fill, int thickness, int dot1, int dot2, uint32_t color, uint8_t alpha) {
   thickness /= 2;
 
   if (fill) {
     for (int i = y; i < (y + height);i++) {
-      h_line(img, x, i, width, color);
+      h_line(img, x, i, width, color, alpha);
     }
   } else {
     if (thickness <= 0 && dot1 == 0) {
-      h_line(img, x, y, width, color);
-      h_line(img, x, y + height, width, color);
-      v_line(img, x, y, height, color);
-      v_line(img, x + width, y, height, color);
+      h_line(img, x, y, width, color, alpha);
+      h_line(img, x, y + height, width, color, alpha);
+      v_line(img, x, y, height, color, alpha);
+      v_line(img, x + width, y, height, color, alpha);
     } else {
       x += thickness;
       y += thickness;
@@ -1184,11 +1255,36 @@ static void rectangle(image_buffer_t *img, int x, int y, int width, int height,
   }
 }
 
+static void fill_rounded_rectangle(image_buffer_t *img, int x, int y,
+                                   int width, int height, int radius,
+                                   uint32_t color, uint8_t alpha) {
+  radius = MIN(radius, MIN(width, height) / 2);
+
+  // Emit each row once so translucent corner pixels are not blended twice.
+  for (int row = 0; row < height; row++) {
+    int edge_distance = MIN(row, height - row - 1);
+    int inset = 0;
+
+    if (edge_distance < radius) {
+      int dy = radius - edge_distance;
+      while (inset < radius) {
+        int dx = radius - inset;
+        if (dx * dx + dy * dy <= radius * radius) {
+          break;
+        }
+        inset++;
+      }
+    }
+
+    h_line(img, x + inset, y + row, width - 2 * inset, color, alpha);
+  }
+}
+
 #define NMIN(a, b) ((a) < (b) ? (a) : (b))
 #define NMAX(a, b) ((a) > (b) ? (a) : (b))
 
 static void fill_triangle(image_buffer_t *img, int x0, int y0,
-                          int x1, int y1, int x2, int y2, uint32_t color) {
+                          int x1, int y1, int x2, int y2, uint32_t color, uint8_t alpha) {
   int x_min = NMIN(x0, NMIN(x1, x2));
   int x_max = NMAX(x0, NMAX(x1, x2));
   int y_min = NMIN(y0, NMIN(y1, y2));
@@ -1202,14 +1298,14 @@ static void fill_triangle(image_buffer_t *img, int x0, int y0,
 
       if ((w0 >= 0 && w1 >= 0 && w2 >= 0)
           || (w0 <= 0 && w1 <= 0 && w2 <= 0)) {
-        putpixel(img, x, y, color);
+        putpixel(img, x, y, color, alpha);
       }
     }
   }
 }
 
 static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
-                        int thickness, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color) {
+                        int thickness, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color, uint8_t alpha) {
   ang_start *= (float)M_PI / 180.0f;
   ang_end *= (float)M_PI / 180.0f;
 
@@ -1247,22 +1343,22 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
     py = py * ca + px_before * sa;
 
     line(img, x + (int)px_before, y + (int)py_before,
-         x + (int)px, y + (int)py, thickness, dot1, dot2, color);
+         x + (int)px, y + (int)py, thickness, dot1, dot2, color, alpha);
   }
 
   if (sector) {
     line(img, x + (int)px, y + (int)py,
          x, y,
-         thickness, dot1, dot2, color);
+         thickness, dot1, dot2, color, alpha);
     line(img, x, y,
          x + (int)px_start, y + (int)py_start,
-         thickness, dot1, dot2, color);
+         thickness, dot1, dot2, color, alpha);
   }
 
   if (segment) {
     line(img, x + (int)px, y + (int)py,
          x + (int)px_start, y + (int)py_start,
-         thickness, dot1, dot2, color);
+         thickness, dot1, dot2, color, alpha);
   }
 }
 
@@ -1270,7 +1366,7 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
 // handles a single pixel in the complete circle, checking if the pixel is part
 // of the arc.
 static void handle_thin_arc_pixel(image_buffer_t *img, int x, int y,
-                                  int c_x, int c_y, int cap0_x, int cap0_y, int cap1_x, int cap1_y, int min_y, int max_y, bool angle_is_closed, uint32_t color) {
+                                  int c_x, int c_y, int cap0_x, int cap0_y, int cap1_x, int cap1_y, int min_y, int max_y, bool angle_is_closed, uint32_t color, uint8_t alpha) {
   if (y > max_y || y < min_y) {
     return;
   }
@@ -1295,11 +1391,11 @@ static void handle_thin_arc_pixel(image_buffer_t *img, int x, int y,
     }
   }
 
-  putpixel(img, c_x + x, c_y + y, color);
+  putpixel(img, c_x + x, c_y + y, color, alpha);
 }
 
 // single pixel wide arc
-static void thin_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1, bool sector, bool segment, uint32_t color) {
+static void thin_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1, bool sector, bool segment, uint32_t color, uint8_t alpha) {
   if (radius == 0) {
     return;
   }
@@ -1369,25 +1465,25 @@ static void thin_arc(image_buffer_t *img, int c_x, int c_y, int radius, float an
         if (last_x - x < 2) {
           // This is horrible...
           handle_thin_arc_pixel(img, x, y,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
+                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color, alpha);
           handle_thin_arc_pixel(img, -x - 1, y,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
+                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color, alpha);
 
           handle_thin_arc_pixel(img, x, -y - 1,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
+                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color, alpha);
           handle_thin_arc_pixel(img, -x - 1, -y - 1,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
+                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color, alpha);
         } else {
           for (int x0 = x; x0 < last_x; x0++) {
             handle_thin_arc_pixel(img, x0, y,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
+                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color, alpha);
             handle_thin_arc_pixel(img, -x0 - 1, y,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
+                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color, alpha);
 
             handle_thin_arc_pixel(img, x0, -y - 1,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
+                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color, alpha);
             handle_thin_arc_pixel(img, -x0 - 1, -y - 1,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
+                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color, alpha);
           }
         }
 
@@ -1398,18 +1494,18 @@ static void thin_arc(image_buffer_t *img, int c_x, int c_y, int radius, float an
   }
 
   if (sector) {
-    line(img, c_x, c_y, c_x + cap0_x, c_y + cap0_y, 1, 0, 0, color);
-    line(img, c_x, c_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color);
+    line(img, c_x, c_y, c_x + cap0_x, c_y + cap0_y, 1, 0, 0, color, alpha);
+    line(img, c_x, c_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color, alpha);
   }
 
   if (segment) {
-    line(img, c_x + cap0_x, c_y + cap0_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color);
+    line(img, c_x + cap0_x, c_y + cap0_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color, alpha);
   }
 }
 
 // arc helper function
 // handles a horizontal slice at the given outer arc point
-static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int c_x, int c_y, uint32_t color,
+static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int c_x, int c_y, uint32_t color, uint8_t alpha,
                              int outer_x0, int outer_y0, int outer_x1, int outer_y1,
                              int cap0_min_y, int cap0_max_y, int cap1_min_y, int cap1_max_y,
                              int radius_outer, int radius_inner,
@@ -1715,9 +1811,9 @@ static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int 
     width = x_end + 1 - x_start;
   }
 
-  h_line(img, c_x + x, c_y + outer_y, width, color);
+  h_line(img, c_x + x, c_y + outer_y, width, color, alpha);
   if (slice_is_split) {
-    h_line(img, c_x + x1, c_y + outer_y, width1, color);
+    h_line(img, c_x + x1, c_y + outer_y, width1, color, alpha);
   }
 }
 
@@ -1726,7 +1822,7 @@ static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int 
 // TODO: Look into buggy rendering with angles around 180°-270°. This seems to
 // affect arcs, sectors, and segments likewise.
 static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
-                int thickness, bool rounded, bool filled, bool sector, bool segment, int dot1, int dot2, int resolution, uint32_t color) {
+                int thickness, bool rounded, bool filled, bool sector, bool segment, int dot1, int dot2, int resolution, uint32_t color, uint8_t alpha) {
   if (dot1 > 0 && !filled) {
     thickness /= 2;
 
@@ -1736,13 +1832,13 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
       thickness = 1;
     }
 
-    generic_arc(img, c_x, c_y, radius, angle0, angle1, thickness, dot1, dot2, resolution, sector, segment, color);
+    generic_arc(img, c_x, c_y, radius, angle0, angle1, thickness, dot1, dot2, resolution, sector, segment, color, alpha);
 
     return;
   }
 
   if (thickness <= 1 && !filled) {
-    thin_arc(img, c_x, c_y, radius, angle0, angle1, sector, segment, color);
+    thin_arc(img, c_x, c_y, radius, angle0, angle1, sector, segment, color, alpha);
 
     return;
   }
@@ -1780,7 +1876,7 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
       int cap_center_x = (int)floorf(cosf(angle) * rad_f);
       int cap_center_y = (int)floorf(sinf(angle) * rad_f);
 
-      fill_circle(img, c_x + cap_center_x, c_y + cap_center_y, thickness / 2, color);
+      fill_circle(img, c_x + cap_center_x, c_y + cap_center_y, thickness / 2, color, alpha);
     }
     return;
   }
@@ -1869,20 +1965,20 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
       if (x_dbl_offs * x_dbl_offs + y_dbl_offs_sq <= radius_outer_dbl_sq) {
         // This is horrible...
         handle_arc_slice(img, x, y,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
+                         c_x, c_y, color, alpha, outer_x0, outer_y0, outer_x1, outer_y1,
                          cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
                          angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
         handle_arc_slice(img, -x - 1, y,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
+                         c_x, c_y, color, alpha, outer_x0, outer_y0, outer_x1, outer_y1,
                          cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
                          angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
 
         handle_arc_slice(img, x, -y - 1,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
+                         c_x, c_y, color, alpha, outer_x0, outer_y0, outer_x1, outer_y1,
                          cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
                          angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
         handle_arc_slice(img, -x - 1, -y - 1,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
+                         c_x, c_y, color, alpha, outer_x0, outer_y0, outer_x1, outer_y1,
                          cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
                          angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
 
@@ -1903,8 +1999,8 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
 
     thickness /= 2;
 
-    fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, thickness, color);
-    fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, thickness, color);
+    fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, thickness, color, alpha);
+    fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, thickness, color, alpha);
   }
 
   // draw sector arc cap to center lines
@@ -1921,9 +2017,9 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
     thickness /= 2;
 
     line(img, c_x + cap0_center_x, c_y + cap0_center_y,
-         c_x, c_y, thickness, 0, 0, color);
+         c_x, c_y, thickness, 0, 0, color, alpha);
     line(img, c_x + cap1_center_x, c_y + cap1_center_y,
-         c_x, c_y, thickness, 0, 0, color);
+         c_x, c_y, thickness, 0, 0, color, alpha);
   }
 
   if (segment && !filled) {
@@ -1938,7 +2034,7 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
     thickness /= 2;
 
     line(img, c_x + cap0_center_x, c_y + cap0_center_y,
-         c_x + cap1_center_x, c_y + cap1_center_y, thickness, 0, 0, color);
+         c_x + cap1_center_x, c_y + cap1_center_y, thickness, 0, 0, color, alpha);
   }
 }
 
@@ -2001,10 +2097,10 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
     for (int py = sy0; py <= sy1; py++) {
       for (int px = sx0; px <= sx1; px++) {
         switch (orient) {
-          case 1:  putpixel(img, x + py, y - px, color); break;
-          case 2:  putpixel(img, x - px, y - py, color); break;
-          case 3:  putpixel(img, x - py, y + px, color); break;
-          default: putpixel(img, x + px, y + py, color); break;
+          case 1:  putpixel(img, x + py, y - px, color, 255); break;
+          case 2:  putpixel(img, x - px, y - py, color, 255); break;
+          case 3:  putpixel(img, x - py, y + px, color, 255); break;
+          default: putpixel(img, x + px, y + py, color, 255); break;
         }
       }
     }
@@ -2030,7 +2126,7 @@ static inline void copy_pixel(
     if (src_x >= 0 && src_x < src_w && src_y >= 0 && src_y < src_h) {
         uint32_t p = getpixel(img_src, src_x, src_y);
         if (transparent_color == -1 || p != (uint32_t)transparent_color) {
-            putpixel(img_dest, dest_x, dest_y, p);
+            putpixel(img_dest, dest_x, dest_y, p, 255);
         }
     }
 }
@@ -2141,6 +2237,7 @@ typedef struct {
   bool is_valid;
   image_buffer_t img;
   lbm_value args[ARG_MAX_NUM];
+  uint8_t alpha;
   attr_t attr_thickness;
   attr_t attr_filled;
   attr_t attr_rounded;
@@ -2156,6 +2253,7 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
   img_args_t res;
   memset(&res, 0, sizeof(res));
   res.is_valid = false;
+  res.alpha = 255;
 
   lbm_array_header_t *arr;
   if (argn >= 1 && (arr = get_image_buffer(args[0]))) {
@@ -2170,6 +2268,15 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
     int num_dec = 0;
     for (unsigned int i = 1;i < argn;i++) {
       if (!lbm_is_number(args[i]) && !lbm_is_cons(args[i])) {
+        color_t *clr = get_color(args[i]);
+        if (clr && clr->type == COLOR_REGULAR &&
+            num_dec == num_expected - 1) {
+          res.args[num_dec] = lbm_enc_u32((uint32_t)clr->color1);
+          res.alpha = clr->alpha;
+          num_dec++;
+          if (num_dec >= ARG_MAX_NUM) return res;
+          continue;
+        }
         return res;
       }
 
@@ -2335,7 +2442,7 @@ static lbm_value ext_is_image_buffer(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
 
-  if (argn >= 2 && argn <= 6 &&
+  if (argn >= 2 && argn <= 7 &&
       lbm_is_symbol(args[0]) &&
       lbm_is_number(args[1])) {
 
@@ -2371,6 +2478,8 @@ static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
     }
 
     bool mirrored = false;
+    lbm_uint alpha_arg = argn;
+
     if (argn >= 6) {
       if (lbm_is_symbol(args[5])) {
         lbm_uint sym = lbm_dec_sym(args[5]);
@@ -2381,6 +2490,9 @@ static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
         } else {
           return ENC_SYM_TERROR;
         }
+        alpha_arg = 6;
+      } else if (argn == 6 && lbm_is_number(args[5])) {
+        alpha_arg = 5;
       } else {
         return ENC_SYM_TERROR;
       }
@@ -2401,8 +2513,24 @@ static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
+    if (t == COLOR_REGULAR && argn == 3) {
+      alpha_arg = 2;
+    }
+
+    uint8_t alpha = 255;
+    if (alpha_arg < argn) {
+      if (lbm_is_number(args[alpha_arg])) {
+        int32_t a = lbm_dec_as_i32(args[alpha_arg]);
+        if (a < 0) a = 0;
+        if (a > 255) a = 255;
+        alpha = (uint8_t)a;
+      } else {
+        return ENC_SYM_TERROR;
+      }
+    }
+
     // Maybe check if param is in ranges first ?
-    res = color_allocate(t, color1, color2, (uint16_t)param1, (uint16_t)param2, mirrored);
+    res = color_allocate(t, color1, color2, (uint16_t)param1, (uint16_t)param2, mirrored, alpha);
   }
 
   return res;
@@ -2452,6 +2580,14 @@ static lbm_value ext_color_set(lbm_value *args, lbm_uint argn) {
     } else {
       return ENC_SYM_TERROR;
     }
+  } else if (prop == symbol_alpha) {
+    if (!lbm_is_number(args[2])) {
+      return ENC_SYM_TERROR;
+    }
+    int32_t a = lbm_dec_as_i32(args[2]);
+    if (a < 0) a = 0;
+    if (a > 255) a = 255;
+    color->alpha = (uint8_t)a;
   } else {
     return ENC_SYM_TERROR;
   }
@@ -2493,6 +2629,8 @@ static lbm_value ext_color_get(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
     return lbm_enc_sym(color->mirrored ? symbol_mirrored : symbol_repeat);
+  } else if (prop == symbol_alpha) {
+    return lbm_enc_u32((uint32_t)color->alpha);
   } else {
     return ENC_SYM_TERROR;
   }
@@ -2569,7 +2707,8 @@ static lbm_value ext_putpixel(lbm_value *args, lbm_uint argn) {
   putpixel(&arg_dec.img,
            lbm_dec_as_i32(arg_dec.args[0]),
            lbm_dec_as_i32(arg_dec.args[1]),
-           lbm_dec_as_u32(arg_dec.args[2]));
+           lbm_dec_as_u32(arg_dec.args[2]),
+           arg_dec.alpha);
   return ENC_SYM_TRUE;
 }
 
@@ -2602,7 +2741,8 @@ static lbm_value ext_line(lbm_value *args, lbm_uint argn) {
        lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
        lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
        lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-       lbm_dec_as_u32(arg_dec.args[4]));
+       lbm_dec_as_u32(arg_dec.args[4]),
+       arg_dec.alpha);
 
   return ENC_SYM_TRUE;
 }
@@ -2615,12 +2755,14 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
+  uint32_t color = lbm_dec_as_u32(arg_dec.args[3]);
+
   if (arg_dec.attr_filled.is_valid) {
     fill_circle(&arg_dec.img,
                 lbm_dec_as_i32(arg_dec.args[0]),
                 lbm_dec_as_i32(arg_dec.args[1]),
                 lbm_dec_as_i32(arg_dec.args[2]),
-                lbm_dec_as_u32(arg_dec.args[3]));
+                color, arg_dec.alpha);
   } if (arg_dec.attr_dotted.is_valid) {
     arc(&arg_dec.img,
         lbm_dec_as_i32(arg_dec.args[0]),
@@ -2634,14 +2776,14 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
         lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
         lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
         lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-        lbm_dec_as_u32(arg_dec.args[3]));
+        color, arg_dec.alpha);
   } else {
     circle(&arg_dec.img,
            lbm_dec_as_i32(arg_dec.args[0]),
            lbm_dec_as_i32(arg_dec.args[1]),
            lbm_dec_as_i32(arg_dec.args[2]),
            lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-           lbm_dec_as_u32(arg_dec.args[3]));
+           color);
   }
 
   return ENC_SYM_TRUE;
@@ -2668,7 +2810,8 @@ static lbm_value ext_arc(lbm_value *args, lbm_uint argn) {
       lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
       lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
       lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]));
+      lbm_dec_as_u32(arg_dec.args[5]),
+      arg_dec.alpha);
 
   return ENC_SYM_TRUE;
 }
@@ -2694,7 +2837,8 @@ static lbm_value ext_circle_sector(lbm_value *args, lbm_uint argn) {
       lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
       lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
       lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]));
+      lbm_dec_as_u32(arg_dec.args[5]),
+      arg_dec.alpha);
 
   return ENC_SYM_TRUE;
 }
@@ -2720,7 +2864,8 @@ static lbm_value ext_circle_segment(lbm_value *args, lbm_uint argn) {
       lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
       lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
       lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]));
+      lbm_dec_as_u32(arg_dec.args[5]),
+      arg_dec.alpha);
 
 
   return ENC_SYM_TRUE;
@@ -2746,49 +2891,44 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
   int dot2 = lbm_dec_as_i32(arg_dec.attr_dotted.args[1]);
   int resolution = lbm_dec_as_i32(arg_dec.attr_resolution.args[0]);
 
-  if (arg_dec.attr_rounded.is_valid) {
-    if (arg_dec.attr_filled.is_valid) {
-      rectangle(img, x + rad, y, width - 2 * rad, rad, 1, 1, 0, 0, color);
-      rectangle(img, x + rad, y + height - rad, width - 2 * rad, rad, 1, 1, 0, 0, color);
-      rectangle(img, x, y + rad, width, height - 2 * rad, 1, 1, 0, 0, color);
-      fill_circle(img, x + rad, y + rad, rad, color);
-      fill_circle(img, x + rad, y + height - rad, rad, color);
-      fill_circle(img, x + width - rad, y + rad, rad, color);
-      fill_circle(img, x + width - rad, y + height - rad, rad, color);
-    } else {
-      // Remember to change these to use the rounded attribute,
-      // when/if line supports it!
+  uint8_t alpha = arg_dec.alpha;
 
-      int line_thickness = thickness / 2;
-      thickness = line_thickness * 2; // round it to even for consistency.
-
-      // top
-      line(img, x + rad, y + line_thickness, x + width - rad, y + line_thickness, line_thickness, dot1, dot2, color);
-      // bottom
-      line(img, x + rad, y + height - line_thickness, x + width - rad, y + height - line_thickness, line_thickness, dot1, dot2, color);
-      // left
-      line(img, x + line_thickness, y + rad, x + line_thickness, y + height - rad, line_thickness, dot1, dot2, color);
-      // right
-      line(img, x + width - line_thickness, y + rad, x + width - line_thickness, y + height - rad, line_thickness, dot1, dot2, color);
-
-      // upper left
-      arc(img, x + rad, y + rad, rad, 180, 270, thickness, false, false, false, false, dot1, dot2, resolution, color);
-      // upper right
-      arc(img, x + width - rad, y + rad, rad, 270, 0, thickness, false, false, false, false, dot1, dot2, resolution, color);
-      // bottom left
-      arc(img, x + rad, y + height - rad, rad, 90, 180, thickness, false, false, false, false, dot1, dot2, resolution, color);
-      // bottom right
-      arc(img, x + width - rad, y + height - rad, rad, 0, 90, thickness, false, false, false, false, dot1, dot2, resolution, color);
-    }
-  } else {
+  if (!arg_dec.attr_rounded.is_valid) {
     rectangle(img,
               x, y,
               width, height,
               arg_dec.attr_filled.is_valid,
               thickness,
               dot1, dot2,
-              color);
+              color, alpha);
+    return ENC_SYM_TRUE;
   }
+
+  if (arg_dec.attr_filled.is_valid) {
+    fill_rounded_rectangle(img, x, y, width, height, rad, color, alpha);
+    return ENC_SYM_TRUE;
+  }
+
+  int line_thickness = thickness / 2;
+  thickness = line_thickness * 2; // Round it to even for consistency.
+
+  // top
+  line(img, x + rad, y + line_thickness, x + width - rad, y + line_thickness, line_thickness, dot1, dot2, color, alpha);
+  // bottom
+  line(img, x + rad, y + height - line_thickness, x + width - rad, y + height - line_thickness, line_thickness, dot1, dot2, color, alpha);
+  // left
+  line(img, x + line_thickness, y + rad, x + line_thickness, y + height - rad, line_thickness, dot1, dot2, color, alpha);
+  // right
+  line(img, x + width - line_thickness, y + rad, x + width - line_thickness, y + height - rad, line_thickness, dot1, dot2, color, alpha);
+
+  // upper left
+  arc(img, x + rad, y + rad, rad, 180, 270, thickness, false, false, false, false, dot1, dot2, resolution, color, alpha);
+  // upper right
+  arc(img, x + width - rad, y + rad, rad, 270, 0, thickness, false, false, false, false, dot1, dot2, resolution, color, alpha);
+  // bottom left
+  arc(img, x + rad, y + height - rad, rad, 90, 180, thickness, false, false, false, false, dot1, dot2, resolution, color, alpha);
+  // bottom right
+  arc(img, x + width - rad, y + height - rad, rad, 0, 90, thickness, false, false, false, false, dot1, dot2, resolution, color, alpha);
 
   return ENC_SYM_TRUE;
 }
@@ -2814,11 +2954,11 @@ static lbm_value ext_triangle(lbm_value *args, lbm_uint argn) {
   uint32_t color = lbm_dec_as_u32(arg_dec.args[6]);
 
   if (arg_dec.attr_filled.is_valid) {
-    fill_triangle(img, x0, y0, x1, y1, x2, y2, color);
+    fill_triangle(img, x0, y0, x1, y1, x2, y2, color, arg_dec.alpha);
   } else {
-    line(img, x0, y0, x1, y1, thickness, dot1, dot2, color);
-    line(img, x1, y1, x2, y2, thickness, dot1, dot2, color);
-    line(img, x2, y2, x0, y0, thickness, dot1, dot2, color);
+    line(img, x0, y0, x1, y1, thickness, dot1, dot2, color, arg_dec.alpha);
+    line(img, x1, y1, x2, y2, thickness, dot1, dot2, color, arg_dec.alpha);
+    line(img, x2, y2, x0, y0, thickness, dot1, dot2, color, arg_dec.alpha);
   }
 
   return ENC_SYM_TRUE;
@@ -3082,6 +3222,7 @@ static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
         color_t *color;
         if (lbm_is_number(arg)) {
           colors[i].color1 = (int)lbm_dec_as_u32(arg);
+          colors[i].alpha = 255;
         } else if ((color = get_color(arg))) { // color assignment
           colors[i] = *color;
         } else {
