@@ -358,13 +358,8 @@ static bool register_symbols(void) {
 // Internal functions
 
 static int sign(int v) {
-  if (v > 0) {
-    return 1;
-  } else if (v < 0) {
-    return -1;
-  } else {
-    return 0;
-  }
+  const int shift = (sizeof(int) * 8) -1;
+  return (v >> shift) - (-v >> shift);
 }
 
 // Geometry utility functions
