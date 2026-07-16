@@ -67,8 +67,18 @@ def plot_slice(runs, fmt, size, out_dir):
     plt.figure(figsize=(10.0, 5.0))
     cmap = plt.get_cmap("jet")
     colors = cmap(np.linspace(0, 1.0, len(shapes)))
-    for shape, color in zip(shapes, colors):
-        plt.plot(table.index, table[shape], label=shape, color=color, marker="o", markersize=3)
+    # Cycle marker + linestyle independently of color -- with ~29 shapes,
+    # nearby jet-colormap hues can look near-identical, especially at
+    # small thumbnail size or in grayscale printouts. len(MARKERS) *
+    # len(LINESTYLES) = 36 combinations, more than enough to keep every
+    # shape's line distinguishable by shape/dash alone, not just color.
+    MARKERS = ["o", "s", "^", "D", "v", "P", "X", "*", "h"]
+    LINESTYLES = ["-", "--", "-.", ":"]
+    for i, (shape, color) in enumerate(zip(shapes, colors)):
+        marker = MARKERS[i % len(MARKERS)]
+        linestyle = LINESTYLES[(i // len(MARKERS)) % len(LINESTYLES)]
+        plt.plot(table.index, table[shape], label=shape, color=color,
+                  marker=marker, markersize=4, linestyle=linestyle, linewidth=1.2)
 
     lgd = plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=6)
     ax = plt.gca()
