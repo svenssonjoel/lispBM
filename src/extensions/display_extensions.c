@@ -1142,7 +1142,8 @@ static void circle(image_buffer_t *img, int x, int y, int radius, int thickness,
 // TODO: This should be more efficient
 // http://homepages.enterprise.net/murphy/thickline/index.html
 // https://github.com/ArminJo/STMF3-Discovery-Demos/blob/master/lib/BlueDisplay/LocalGUI/ThickLine.hpp
-static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickness, int dot1, int dot2, uint32_t c) {
+static void line(image_buffer_t *img, int x0, int y0, int x1, int y1,
+                 int thickness, int dot1, int dot2, uint32_t c, uint8_t alpha) {
   int dx = abs(x1 - x0);
   int sx = x0 < x1 ? 1 : -1;
   int dy = -abs(y1 - y0);
@@ -1159,9 +1160,9 @@ static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickn
     while (true) {
       if (dotcnt <= dot1) {
         if (thickness > 1) {
-          fill_circle(img, x0, y0, thickness, c, 255);
+          fill_circle(img, x0, y0, thickness, c, alpha);
         } else {
-          putpixel(img, x0, y0, c, 255);
+          putpixel(img, x0, y0, c, alpha);
         }
       }
 
@@ -1197,9 +1198,9 @@ static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickn
   } else {
     while (true) {
       if (thickness > 1) {
-        fill_circle(img, x0, y0, thickness, c, 255);
+        fill_circle(img, x0, y0, thickness, c, alpha);
       } else {
-        putpixel(img, x0, y0, c, 255);
+        putpixel(img, x0, y0, c, alpha);
       }
 
       if (x0 == x1 && y0 == y1) {
@@ -1244,13 +1245,13 @@ static void rectangle(image_buffer_t *img, int x, int y, int width, int height,
       width -= thickness * 2;
       height -= thickness * 2;
       // top
-      line(img, x, y, x + width, y, thickness, dot1, dot2, color);
+      line(img, x, y, x + width, y, thickness, dot1, dot2, color, alpha);
       // bottom
-      line(img, x, y + height, x + width, y + height, thickness, dot1, dot2, color);
+      line(img, x, y + height, x + width, y + height, thickness, dot1, dot2, color, alpha);
       // left
-      line(img, x, y, x, y + height, thickness, dot1, dot2, color);
+      line(img, x, y, x, y + height, thickness, dot1, dot2, color, alpha);
       // right
-      line(img, x + width, y, x + width, y + height, thickness, dot1, dot2, color);
+      line(img, x + width, y, x + width, y + height, thickness, dot1, dot2, color, alpha);
     }
   }
 }
