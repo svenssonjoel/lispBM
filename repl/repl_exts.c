@@ -30,6 +30,7 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <time.h>
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
 #else
@@ -181,6 +182,29 @@ static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
 // TIME
 extern void sleep_callback(uint32_t us);
 
+#ifndef LBM_WIN
+static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  uint32_t us = (uint32_t)((uint64_t)ts.tv_sec * 1000000 + (uint64_t)ts.tv_nsec / 1000);
+  return lbm_enc_u32(us);
+}
+
+static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  uint32_t t_now = (uint32_t)((uint64_t)ts.tv_sec * 1000000 + (uint64_t)ts.tv_nsec / 1000);
+
+  if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_EERROR;
+
+  uint32_t t_then = lbm_dec_as_u32(args[0]);
+  uint32_t diff = t_now - t_then;
+  return lbm_enc_float((float)diff / 1000000.0f);
+}
+#else
 static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
   (void) args;
   (void) argn;
@@ -199,6 +223,7 @@ static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
   uint32_t diff = t_now - t_then;
   return lbm_enc_float((float)diff / 1000000.0f);
 }
+#endif
 
 
 static bool allow_print = true;
