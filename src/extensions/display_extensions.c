@@ -2621,7 +2621,7 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
                 lbm_dec_as_i32(arg_dec.args[1]),
                 lbm_dec_as_i32(arg_dec.args[2]),
                 lbm_dec_as_u32(arg_dec.args[3]));
-  } if (arg_dec.attr_dotted.is_valid) {
+  } else if (arg_dec.attr_dotted.is_valid) {
     arc(&arg_dec.img,
         lbm_dec_as_i32(arg_dec.args[0]),
         lbm_dec_as_i32(arg_dec.args[1]),
