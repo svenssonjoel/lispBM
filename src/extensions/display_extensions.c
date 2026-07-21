@@ -1432,8 +1432,26 @@ static void fill_triangle(image_buffer_t *img, int x0, int y0,
   }
 }
 
+// Attribute bundle shared by the arc family (generic_arc/arc_thin/arc_ring/arc).
+// Center, radius and the two angles stay as explicit parameters since every
+// call site genuinely varies them; everything else that used to be a long,
+// easy-to-mismatch positional tail lives here instead. Each function below
+// only reads the subset of fields relevant to it.
+typedef struct {
+  int thickness;
+  bool rounded;
+  bool filled;
+  bool sector;
+  bool segment;
+  int dot1;
+  int dot2;
+  int resolution;
+  uint32_t color;
+  uint8_t alpha;
+} arc_params_t;
+
 static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
-                        int thickness, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color, uint8_t alpha) {
+                        const arc_params_t *p) {
 
   bool full_circle = fabsf(ang_end - ang_start) > 1e-4f
     && fabsf(fmodf(ang_end - ang_start, 360.0f)) < 1e-3f;
@@ -1452,6 +1470,7 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
     ang_range += 2.0f * (float)M_PI;
   }
 
+  int res = p->resolution;
   if (res <= 0) {
     res = 80;
   }
@@ -1477,22 +1496,22 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
     py = py * ca + px_before * sa;
 
     line(img, x + (int)px_before, y + (int)py_before,
-         x + (int)px, y + (int)py, thickness, dot1, dot2, color, alpha);
+         x + (int)px, y + (int)py, p->thickness, p->dot1, p->dot2, p->color, p->alpha);
   }
 
-  if (sector) {
+  if (p->sector) {
     line(img, x + (int)px, y + (int)py,
          x, y,
-         thickness, dot1, dot2, color, alpha);
+         p->thickness, p->dot1, p->dot2, p->color, p->alpha);
     line(img, x, y,
          x + (int)px_start, y + (int)py_start,
-         thickness, dot1, dot2, color, alpha);
+         p->thickness, p->dot1, p->dot2, p->color, p->alpha);
   }
 
-  if (segment) {
+  if (p->segment) {
     line(img, x + (int)px, y + (int)py,
          x + (int)px_start, y + (int)py_start,
-         thickness, dot1, dot2, color, alpha);
+         p->thickness, p->dot1, p->dot2, p->color, p->alpha);
   }
 }
 
@@ -1518,7 +1537,7 @@ static void arc_thin_plot(image_buffer_t *img, int c_x, int c_y, int px, int py,
 // recurrence as the plain circle() thin path). Octant symmetry means
 // consecutive plotted points are always <=1 pixel apart, so -- unlike the
 // row-scan approach -- there is no gap to patch up near the poles.
-static void arc_thin(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1, bool sector, bool segment, uint32_t color, uint8_t alpha) {
+static void arc_thin(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1, const arc_params_t *p) {
   if (radius == 0) return;
 
   bool full_circle = fabsf(angle1 - angle0) > 1e-4f
@@ -1547,34 +1566,34 @@ static void arc_thin(image_buffer_t *img, int c_x, int c_y, int radius, float an
   while (px <= py) {
     while (py >= px && (long)(2 * px + 1) * (2 * px + 1) + (long)(2 * py + 1) * (2 * py + 1) > r_dbl_sq) py--;
     if (px > py) break;
-    arc_thin_plot(img, c_x, c_y,  px,      py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
-    arc_thin_plot(img, c_x, c_y,  px,     -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
-    arc_thin_plot(img, c_x, c_y, -px - 1,  py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
-    arc_thin_plot(img, c_x, c_y, -px - 1, -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
+    arc_thin_plot(img, c_x, c_y,  px,      py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
+    arc_thin_plot(img, c_x, c_y,  px,     -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
+    arc_thin_plot(img, c_x, c_y, -px - 1,  py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
+    arc_thin_plot(img, c_x, c_y, -px - 1, -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
     if (px != py) {
       // At the px==py octant boundary, (px,py)/(py,px) etc. are the same
       // four pixels as above
-      arc_thin_plot(img, c_x, c_y,  py,      px,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
-      arc_thin_plot(img, c_x, c_y,  py,     -px - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
-      arc_thin_plot(img, c_x, c_y, -py - 1,  px,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
-      arc_thin_plot(img, c_x, c_y, -py - 1, -px - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
+      arc_thin_plot(img, c_x, c_y,  py,      px,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
+      arc_thin_plot(img, c_x, c_y,  py,     -px - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
+      arc_thin_plot(img, c_x, c_y, -py - 1,  px,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
+      arc_thin_plot(img, c_x, c_y, -py - 1, -px - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
     }
     px += 1;
   }
 
-  if (sector) {
-    line(img, c_x, c_y, c_x + cap0_x, c_y + cap0_y, 1, 0, 0, color, alpha);
-    line(img, c_x, c_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color, alpha);
+  if (p->sector) {
+    line(img, c_x, c_y, c_x + cap0_x, c_y + cap0_y, 1, 0, 0, p->color, p->alpha);
+    line(img, c_x, c_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, p->color, p->alpha);
   }
-  if (segment) {
-    line(img, c_x + cap0_x, c_y + cap0_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color, alpha);
+  if (p->segment) {
+    line(img, c_x + cap0_x, c_y + cap0_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, p->color, p->alpha);
   }
 }
 
 static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
-                             int thickness, bool rounded, bool filled, bool sector, bool segment, uint32_t color, uint8_t alpha) {
-  if (thickness <= 1 && !filled) {
-    arc_thin(img, c_x, c_y, radius, angle0, angle1, sector, segment, color, alpha);
+                             const arc_params_t *p) {
+  if (p->thickness <= 1 && !p->filled) {
+    arc_thin(img, c_x, c_y, radius, angle0, angle1, p);
     return;
   }
   if (radius == 0) return;
@@ -1592,17 +1611,20 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
   if (angle1 - angle0 > 0.0) angle_is_closed = fabsf(angle1 - angle0) > M_PI;
   else angle_is_closed = fabsf(angle1 - angle0) < M_PI;
 
+  int thickness = p->thickness;
+
   if (!full_circle && !angle_is_closed && fabsf(angle1 - angle0) < 0.0174532925) {
-    if (rounded) {
+    if (p->rounded) {
       float rad_f = (float)radius - ((float)thickness / 2.0f);
       float angle = (angle0 + angle1) / 2.0f;
       int cap_center_x = (int)floorf(cosf(angle) * rad_f);
       int cap_center_y = (int)floorf(sinf(angle) * rad_f);
-      fill_circle(img, c_x + cap_center_x, c_y + cap_center_y, thickness / 2, color, alpha);
+      fill_circle(img, c_x + cap_center_x, c_y + cap_center_y, thickness / 2, p->color, p->alpha);
     }
     return;
   }
 
+  bool filled = p->filled;
   if (thickness >= radius) filled = true;
 
   int radius_outer = radius;
@@ -1612,7 +1634,7 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
   float angle0_cos = cosf(angle0), angle0_sin = sinf(angle0);
   float angle1_cos = cosf(angle1), angle1_sin = sinf(angle1);
 
-  bool filled_segment = filled && segment;
+  bool filled_segment = filled && p->segment;
 
   int radius_outer_dbl_sq = radius_outer * radius_outer * 4;
   int radius_inner_dbl_sq = radius_inner * radius_inner * 4;
@@ -1634,64 +1656,65 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
       x_in_r = -xi - 1;
     }
 
-    circle_row_draw(img, c_x, c_y, color, alpha, y0, x_out, x_out_r, has_gap, x_in, x_in_r,
+    circle_row_draw(img, c_x, c_y, p->color, p->alpha, y0, x_out, x_out_r, has_gap, x_in, x_in_r,
                     (double)angle0_cos * radius_outer, (double)angle0_sin * radius_outer,
                     (double)angle1_cos * radius_outer, (double)angle1_sin * radius_outer,
                     angle_is_closed, filled_segment, full_circle);
-    circle_row_draw(img, c_x, c_y, color, alpha, -y0 - 1, x_out, x_out_r, has_gap, x_in, x_in_r,
+    circle_row_draw(img, c_x, c_y, p->color, p->alpha, -y0 - 1, x_out, x_out_r, has_gap, x_in, x_in_r,
                     (double)angle0_cos * radius_outer, (double)angle0_sin * radius_outer,
                     (double)angle1_cos * radius_outer, (double)angle1_sin * radius_outer,
                     angle_is_closed, filled_segment, full_circle);
   }
 
-  if (rounded && !filled && !sector && !segment) {
+  if (p->rounded && !filled && !p->sector && !p->segment) {
     float rad_f = (float)radius - ((float)thickness / 2.0f);
     int cap0_center_x = (int)floorf(angle0_cos * rad_f);
     int cap0_center_y = (int)floorf(angle0_sin * rad_f);
     int cap1_center_x = (int)floorf(angle1_cos * rad_f);
     int cap1_center_y = (int)floorf(angle1_sin * rad_f);
     int th = thickness / 2;
-    fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, th, color, alpha);
-    fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, th, color, alpha);
+    fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, th, p->color, p->alpha);
+    fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, th, p->color, p->alpha);
   }
-  if (sector && !filled) {
+  if (p->sector && !filled) {
     float rad_f = (float)radius - ((float)thickness / 2.0f);
     int cap0_center_x = (int)floorf(angle0_cos * rad_f);
     int cap0_center_y = (int)floorf(angle0_sin * rad_f);
     int cap1_center_x = (int)floorf(angle1_cos * rad_f);
     int cap1_center_y = (int)floorf(angle1_sin * rad_f);
     int th = thickness / 2;
-    line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x, c_y, th, 0, 0, color, alpha);
-    line(img, c_x + cap1_center_x, c_y + cap1_center_y, c_x, c_y, th, 0, 0, color, alpha);
+    line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x, c_y, th, 0, 0, p->color, p->alpha);
+    line(img, c_x + cap1_center_x, c_y + cap1_center_y, c_x, c_y, th, 0, 0, p->color, p->alpha);
   }
-  if (segment && !filled) {
+  if (p->segment && !filled) {
     float rad_f = (float)radius - ((float)thickness / 2.0f);
     int cap0_center_x = (int)floorf(angle0_cos * rad_f);
     int cap0_center_y = (int)floorf(angle0_sin * rad_f);
     int cap1_center_x = (int)floorf(angle1_cos * rad_f);
     int cap1_center_y = (int)floorf(angle1_sin * rad_f);
     int th = thickness / 2;
-    line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x + cap1_center_x, c_y + cap1_center_y, th, 0, 0, color, alpha);
+    line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x + cap1_center_x, c_y + cap1_center_y, th, 0, 0, p->color, p->alpha);
   }
 }
 
 static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
-                int thickness, bool rounded, bool filled, bool sector, bool segment, int dot1, int dot2, int resolution, uint32_t color, uint8_t alpha) {
-  if (dot1 > 0 && !filled) {
-    thickness /= 2;
+                const arc_params_t *p) {
+  if (p->dot1 > 0 && !p->filled) {
+    arc_params_t p2 = *p;
+    p2.thickness /= 2;
 
-    radius -= thickness;
+    radius -= p2.thickness;
 
-    if (thickness == 0) {
-      thickness = 1;
+    if (p2.thickness == 0) {
+      p2.thickness = 1;
     }
 
-    generic_arc(img, c_x, c_y, radius, angle0, angle1, thickness, dot1, dot2, resolution, sector, segment, color, alpha);
+    generic_arc(img, c_x, c_y, radius, angle0, angle1, &p2);
 
     return;
   }
 
-  arc_ring(img, c_x, c_y, radius, angle0, angle1, thickness, rounded, filled, sector, segment, color, alpha);
+  arc_ring(img, c_x, c_y, radius, angle0, angle1, p);
 }
 
 // orient: 0=normal, 1=up(90°CCW), 2=180°, 3=down(90°CW)
@@ -2403,6 +2426,25 @@ static lbm_value ext_line(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+// Shared by ext_arc/ext_circle_sector/ext_circle_segment, which decode
+// identical attribute sets and only differ in sector/segment and which
+// args[] slot holds the color.
+static arc_params_t make_arc_params(const img_args_t *a, bool rounded, bool sector, bool segment, lbm_value color_arg) {
+  arc_params_t p = {
+    .thickness  = lbm_dec_as_i32(a->attr_thickness.args[0]),
+    .rounded    = rounded,
+    .filled     = a->attr_filled.is_valid,
+    .sector     = sector,
+    .segment    = segment,
+    .dot1       = lbm_dec_as_i32(a->attr_dotted.args[0]),
+    .dot2       = lbm_dec_as_i32(a->attr_dotted.args[1]),
+    .resolution = lbm_dec_as_i32(a->attr_resolution.args[0]),
+    .color      = lbm_dec_as_u32(color_arg),
+    .alpha      = a->alpha,
+  };
+  return p;
+}
+
 // lisp args: img cx cy r color opt-attr1 ... opt-attrN
 static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
   img_args_t arg_dec = decode_args(args, argn, 4);
@@ -2419,20 +2461,15 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
                 lbm_dec_as_u32(arg_dec.args[3]),
                 arg_dec.alpha);
   } else if (arg_dec.attr_dotted.is_valid) {
+    // rounded here currently does nothing as the line function doesn't
+    // support square ends.
+    arc_params_t p = make_arc_params(&arg_dec, arg_dec.attr_rounded.is_valid, false, false, arg_dec.args[3]);
     arc(&arg_dec.img,
         lbm_dec_as_i32(arg_dec.args[0]),
         lbm_dec_as_i32(arg_dec.args[1]),
         lbm_dec_as_i32(arg_dec.args[2]),
         0, 359.9f,
-        lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-        arg_dec.attr_rounded.is_valid, // currently does nothing as the line function doesn't support square ends.
-        false,
-        false, false,
-        lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
-        lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-        lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-        lbm_dec_as_u32(arg_dec.args[3]),
-        arg_dec.alpha);
+        &p);
   } else {
     circle(&arg_dec.img,
            lbm_dec_as_i32(arg_dec.args[0]),
@@ -2454,21 +2491,14 @@ static lbm_value ext_arc(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
+  arc_params_t p = make_arc_params(&arg_dec, arg_dec.attr_rounded.is_valid, false, false, arg_dec.args[5]);
   arc(&arg_dec.img,
       lbm_dec_as_i32(arg_dec.args[0]),
       lbm_dec_as_i32(arg_dec.args[1]),
       lbm_dec_as_i32(arg_dec.args[2]),
       lbm_dec_as_float(arg_dec.args[3]),
       lbm_dec_as_float(arg_dec.args[4]),
-      lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-      arg_dec.attr_rounded.is_valid,
-      arg_dec.attr_filled.is_valid,
-      false, false,
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-      lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]),
-      arg_dec.alpha);
+      &p);
 
   return ENC_SYM_TRUE;
 }
@@ -2481,21 +2511,14 @@ static lbm_value ext_circle_sector(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
+  arc_params_t p = make_arc_params(&arg_dec, true, true, false, arg_dec.args[5]);
   arc(&arg_dec.img,
       lbm_dec_as_i32(arg_dec.args[0]),
       lbm_dec_as_i32(arg_dec.args[1]),
       lbm_dec_as_i32(arg_dec.args[2]),
       lbm_dec_as_float(arg_dec.args[3]),
       lbm_dec_as_float(arg_dec.args[4]),
-      lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-      true,
-      arg_dec.attr_filled.is_valid,
-      true, false,
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-      lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]),
-      arg_dec.alpha);
+      &p);
 
   return ENC_SYM_TRUE;
 }
@@ -2508,21 +2531,14 @@ static lbm_value ext_circle_segment(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
+  arc_params_t p = make_arc_params(&arg_dec, true, false, true, arg_dec.args[5]);
   arc(&arg_dec.img,
       lbm_dec_as_i32(arg_dec.args[0]),
       lbm_dec_as_i32(arg_dec.args[1]),
       lbm_dec_as_i32(arg_dec.args[2]),
       lbm_dec_as_float(arg_dec.args[3]),
       lbm_dec_as_float(arg_dec.args[4]),
-      lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-      true,
-      arg_dec.attr_filled.is_valid,
-      false, true,
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-      lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]),
-      arg_dec.alpha);
+      &p);
 
 
   return ENC_SYM_TRUE;
@@ -2567,14 +2583,18 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
       // right
       line(img, x + width - line_thickness, y + rad, x + width - line_thickness, y + height - rad, line_thickness, dot1, dot2, color, arg_dec.alpha);
 
+      arc_params_t p = {
+        .thickness = thickness, .rounded = false, .filled = false, .sector = false, .segment = false,
+        .dot1 = dot1, .dot2 = dot2, .resolution = resolution, .color = color, .alpha = arg_dec.alpha,
+      };
       // upper left
-      arc(img, x + rad, y + rad, rad, 180, 270, thickness, false, false, false, false, dot1, dot2, resolution, color, arg_dec.alpha);
+      arc(img, x + rad, y + rad, rad, 180, 270, &p);
       // upper right
-      arc(img, x + width - rad, y + rad, rad, 270, 0, thickness, false, false, false, false, dot1, dot2, resolution, color, arg_dec.alpha);
+      arc(img, x + width - rad, y + rad, rad, 270, 0, &p);
       // bottom left
-      arc(img, x + rad, y + height - rad, rad, 90, 180, thickness, false, false, false, false, dot1, dot2, resolution, color, arg_dec.alpha);
+      arc(img, x + rad, y + height - rad, rad, 90, 180, &p);
       // bottom right
-      arc(img, x + width - rad, y + height - rad, rad, 0, 90, thickness, false, false, false, false, dot1, dot2, resolution, color, arg_dec.alpha);
+      arc(img, x + width - rad, y + height - rad, rad, 0, 90, &p);
     }
   } else {
     rectangle(img,
