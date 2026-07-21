@@ -126,7 +126,7 @@ int sft_render(const SFT *sft, SFT_Glyph glyph, image_buffer_t *image) {
       for (int x = 0; x < (int)bitmap->width; x++) {
         uint8_t gray = bitmap->buffer[y * bitmap->pitch + x];
         uint32_t indexed = (gray * (num_colors - 1) + 127) / 255;
-        putpixel(image, x, y, indexed);
+        putpixel(image, x, y, indexed, 255);
       }
     }
     return 0;

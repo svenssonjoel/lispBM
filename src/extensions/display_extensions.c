@@ -3,7 +3,7 @@
   Copyright 2023 - 2026 Joel Svensson              svenssonjoel@yahoo.se
   Copyright 2023        Rasmus Söderhielm          rasmus.soderhielm@gmail.com
   Copyright 2025        Joakim Lundborg            joakim.lundborg@gmail.com
-  
+
   This file is part of LispBM. (Originally a part of the vesc_express FW)
 
   LispBM is free software: you can redistribute it and/or modify
@@ -111,6 +111,7 @@ static lbm_uint symbol_color_1 = 0;
 static lbm_uint symbol_width = 0;
 static lbm_uint symbol_offset = 0;
 static lbm_uint symbol_repeat_type = 0;
+static lbm_uint symbol_alpha = 0;
 
 static lbm_uint symbol_down = 0;
 static lbm_uint symbol_up = 0;
@@ -203,7 +204,7 @@ static inline bool is_color(uint8_t *data, lbm_uint size) {
 }
 
 
-static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2, uint16_t param1, uint16_t param2, bool mirrored) {
+static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2, uint16_t param1, uint16_t param2, bool mirrored, uint8_t alpha) {
   color_t *color = lbm_malloc(sizeof(color_t));
   if (!color) {
     return ENC_SYM_MERROR;
@@ -228,6 +229,7 @@ static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2,
     color->param1 = param1;
     color->param2 = param2;
     color->mirrored = mirrored;
+    color->alpha = alpha;
     color->precalc = pre;
 
     if (pre) {
@@ -342,6 +344,7 @@ static bool register_symbols(void) {
   res = res && lbm_add_symbol_const("width", &symbol_width);
   res = res && lbm_add_symbol_const("offset", &symbol_offset);
   res = res && lbm_add_symbol_const("repeat-type", &symbol_repeat_type);
+  res = res && lbm_add_symbol_const("alpha", &symbol_alpha);
 
   res = res && lbm_add_symbol_const("down", &symbol_down);
   res = res && lbm_add_symbol_const("up", &symbol_up);
@@ -356,40 +359,13 @@ static bool register_symbols(void) {
 }
 
 // Internal functions
-
-static int sign(int v) {
-  const int shift = (sizeof(int) * 8) -1;
-  return (v >> shift) - (-v >> shift);
+static inline void swap_points(int *x0, int *y0, int *x1, int *y1) {
+  int tx = *x0, ty = *y0;
+  *x0 = *x1; *y0 = *y1;
+  *x1 = tx;  *y1 = ty;
 }
 
 // Geometry utility functions
-
-// Checks if a point is past a line formed by the given end and start points.
-// The returned value is 1 if it is past, -1 if it's on the other side of the
-// line, or 0 if it's exactly on the line.
-// Don't ask me what is considered the "positive" side of the line ;)
-//
-// It would probably be more logical if the sign of the result was flipped...
-static int point_past_line(int x, int y, int line_start_x, int line_start_y, int line_end_x, int line_end_y) {
-  // source: https://stackoverflow.com/a/11908158/15507414
-
-  // this is not really a cross product, but whatever...
-  int cross_prod = (x - line_start_x) * (line_end_y - line_start_y)
-    - (y - line_start_y) * (line_end_x - line_start_x);
-
-  if (cross_prod > 0) {
-    return 1;
-  } else if (cross_prod < 0) {
-    return -1;
-  } else {
-    return 0;
-  }
-}
-
-static bool points_same_quadrant(int x0, int y0, int x1, int y1) {
-  return (sign(x0) == sign(x1) || sign(x0) == 0 || sign(x1) == 0)
-    && (sign(y0) == sign(y1) || sign(y0) == 0 || sign(y1) == 0);
-}
 
 static inline void norm_angle(float *angle) {
   while (*angle < -M_PI) { *angle += 2.0f * (float)M_PI; }
@@ -476,6 +452,36 @@ static uint32_t  rgb565to888(uint16_t rgb) {
   return res_rgb888;
 }
 
+// Integer Div by 255 which is correct for values 0 <= x <= 65025
+// (* 255 255) => 65025
+static inline uint32_t div255(uint32_t x) {
+  return ((x + 128 + ((x + 128) >> 8)) >> 8);
+}
+
+static uint32_t alpha_blend_rgb888(uint32_t src, uint32_t dst, uint8_t alpha) {
+  if (alpha == 255) {
+    return src;
+  }
+  if (alpha == 0) {
+    return dst;
+  }
+
+  uint32_t sr = (src >> 16) & 0xFF;
+  uint32_t sg = (src >> 8) & 0xFF;
+  uint32_t sb = src & 0xFF;
+
+  uint32_t dr = (dst >> 16) & 0xFF;
+  uint32_t dg = (dst >> 8) & 0xFF;
+  uint32_t db = dst & 0xFF;
+
+  uint32_t inverse_alpha = 255u - alpha;
+  uint32_t r = div255(sr * alpha + dr * inverse_alpha);
+  uint32_t g = div255(sg * alpha + dg * inverse_alpha);
+  uint32_t b = div255(sb * alpha + db * inverse_alpha);
+
+  return (r << 16) | (g << 8) | b;
+}
+
 void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
   color_format_t fmt = img->fmt;
   uint32_t w = img->width;
@@ -536,7 +542,10 @@ static const uint8_t indexed16_mask[4] = {0x0F, 0xF0};
 static const uint8_t indexed16_shift[4] = {0, 4};
 
 
-void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
+void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c, uint8_t alpha) {
+  if (alpha == 0) {
+    return;
+  }
   uint16_t w = img->width;
   uint16_t h = img->height;
   uint16_t x = (uint16_t)x_i; // negative numbers become really large.
@@ -545,6 +554,8 @@ void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
   if (x < w && y < h) {
     color_format_t fmt = img->fmt;
     uint8_t *data = img->data;
+    bool opaque = alpha == 255;
+
     switch(fmt) {
     case indexed2: {
       uint32_t pos = (uint32_t)y * (uint32_t)w + (uint32_t)x;
@@ -573,21 +584,41 @@ void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
     }
     case rgb332: {
       int pos = y*w + x;
-      data[pos] = rgb888to332(c);
+      if (opaque) {
+        data[pos] = rgb888to332(c);
+      } else {
+        uint32_t dst = rgb332to888(data[pos]);
+        data[pos] = rgb888to332(alpha_blend_rgb888(c, dst, alpha));
+      }
       break;
     }
     case rgb565: {
       int pos = y*(w<<1) + (x<<1) ;
-      uint16_t color = rgb888to565(c);
-      data[pos] = (uint8_t)(color >> 8);
-      data[pos+1] = (uint8_t)color;
+      if (opaque) {
+        uint16_t color = rgb888to565(c);
+        data[pos] = (uint8_t)(color >> 8);
+        data[pos+1] = (uint8_t)color;
+      } else {
+        uint16_t dst = (uint16_t)((data[pos] << 8) | data[pos+1]);
+        uint16_t color = rgb888to565(alpha_blend_rgb888(c, rgb565to888(dst), alpha));
+        data[pos] = (uint8_t)(color >> 8);
+        data[pos+1] = (uint8_t)color;
+      }
       break;
     }
     case rgb888: {
       int pos = y*(w*3) + (x*3);
-      data[pos] = (uint8_t)(c>>16);
-      data[pos+1] = (uint8_t)(c>>8);
-      data[pos+2] = (uint8_t)c;
+      if (opaque) {
+        data[pos] = (uint8_t)(c>>16);
+        data[pos+1] = (uint8_t)(c>>8);
+        data[pos+2] = (uint8_t)c;
+      } else {
+        uint32_t dst = ((uint32_t)data[pos] << 16) | ((uint32_t)data[pos+1] << 8) | data[pos+2];
+        uint32_t color = alpha_blend_rgb888(c, dst, alpha);
+        data[pos] = (uint8_t)(color>>16);
+        data[pos+1] = (uint8_t)(color>>8);
+        data[pos+2] = (uint8_t)color;
+      }
       break;
     }
     default:
@@ -742,9 +773,17 @@ uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
 #ifdef USE_EFFICIENT_HLINE_VLINE
 
 // Putpixel inlined into h/v_line and code that does not change along the line
-// is hoisted out of the loop.
-static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
-  if (len <= 0) return;
+// is hoisted out of the loop. Partial alpha still uses putpixel because
+// every destination pixel participates in blending.
+static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
+  if (alpha == 0 || len <= 0) return;
+  if (alpha != 255) {
+    for (int i = 0; i < len; i++) {
+      putpixel(img, x + i, y, c, alpha);
+    }
+    return;
+  }
+
   if (y < 0 || y >= img->height) return;
   int x0 = x;
   int x1 = x + len - 1;
@@ -818,48 +857,58 @@ static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
   }
 }
 
-static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
-  if (len <= 0) return;
+static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
+  if (alpha == 0 || len <= 0) return;
+  if (alpha != 255) {
+    for (int i = 0; i < len; i++) {
+      putpixel(img, x, y + i, c, alpha);
+    }
+    return;
+  }
+
   if (x < 0 || x >= img->width) return;
   int y0 = y;
   int y1 = y + len - 1;
   if (y0 < 0) y0 = 0;
   if (y1 >= img->height) y1 = img->height - 1;
   if (y0 > y1) return;
-  int n = y1 - y0 + 1;
-  int w = img->width;
+  uint32_t n = (uint32_t)(y1 - y0 + 1);
+  uint32_t w = img->width;
   uint8_t *data = img->data;
 
   switch (img->fmt) {
   case indexed2: {
-    for (int i = 0; i < n; i++) {
-      uint32_t pos = (uint32_t)(y0 + i) * w + (uint32_t)x;
+    uint32_t pos = (uint32_t)y0 * w + (uint32_t)x;
+    for (uint32_t i = 0; i < n; i++) {
       uint32_t byte = pos >> 3, bit = 7 - (pos & 7);
       if (c) data[byte] |= (uint8_t)(1 << bit);
       else data[byte] &= (uint8_t)~(1 << bit);
+      pos += w;
     }
     break;
   }
   case indexed4: {
-    for (int i = 0; i < n; i++) {
-      uint32_t pos = (uint32_t)(y0 + i) * w + (uint32_t)x;
+    uint32_t pos = (uint32_t)y0 * w + (uint32_t)x;
+    for (uint32_t i = 0; i < n; i++) {
       uint32_t byte = pos >> 2, ix = 3 - (pos & 0x3);
       data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed4_mask[ix]) | (uint8_t)(c << indexed4_shift[ix]));
+      pos += w;
     }
     break;
   }
   case indexed16: {
-    for (int i = 0; i < n; i++) {
-      uint32_t pos = (uint32_t)(y0 + i) * w + (uint32_t)x;
+    uint32_t pos = (uint32_t)y0 * w + (uint32_t)x;
+    for (uint32_t i = 0; i < n; i++) {
       uint32_t byte = pos >> 1, ix = 1 - (pos & 0x1);
       data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed16_mask[ix]) | (uint8_t)(c << indexed16_shift[ix]));
+      pos += w;
     }
     break;
   }
   case rgb332: {
     uint8_t col = rgb888to332(c);
     uint32_t pos = (uint32_t)y0 * w + (uint32_t)x;
-    for (int i = 0; i < n; i++) {
+    for (uint32_t i = 0; i < n; i++) {
       data[pos] = col;
       pos += w;
     }
@@ -868,9 +917,9 @@ static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
   case rgb565: {
     uint16_t color = rgb888to565(c);
     uint8_t hi = (uint8_t)(color >> 8), lo = (uint8_t)color;
-    uint32_t stride = (uint32_t)w << 1;
+    uint32_t stride = w << 1;
     uint32_t pos = (uint32_t)y0 * stride + ((uint32_t)x << 1);
-    for (int i = 0; i < n; i++) {
+    for (uint32_t i = 0; i < n; i++) {
       data[pos] = hi;
       data[pos + 1] = lo;
       pos += stride;
@@ -879,9 +928,9 @@ static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
   }
   case rgb888: {
     uint8_t b0 = (uint8_t)(c >> 16), b1 = (uint8_t)(c >> 8), b2 = (uint8_t)c;
-    uint32_t stride = (uint32_t)w * 3;
+    uint32_t stride = w * 3;
     uint32_t pos = (uint32_t)y0 * stride + ((uint32_t)x * 3);
-    for (int i = 0; i < n; i++) {
+    for (uint32_t i = 0; i < n; i++) {
       data[pos] = b0;
       data[pos + 1] = b1;
       data[pos + 2] = b2;
@@ -894,129 +943,278 @@ static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
   }
 }
 #else
-static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
+static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
   for (int i = 0; i < len; i ++) {
-    putpixel(img, x+i, y, c);
+    putpixel(img, x+i, y, c, alpha);
   }
 }
 
-static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
+static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
   for (int i = 0; i < len; i ++) {
-    putpixel(img, x, y+i, c);
+    putpixel(img, x, y+i, c, alpha);
   }
 }
 #endif // USE_EFFICIENT_HLINE_VLINE
 
-static void fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color) {
+////////////////////////////////////////////////////////////
+//  ARCS AND CIRCLES
+//
+// The Boundary tracking scanline fill circle and arc functions
+// in this file have been implemented assisted by Claude code.
+// I(Joel) personally did not fully understand the old Arc/Circle
+// code and I still dont.
+
+// The boundary test for arcs and circles is ((2x+1)^2+(2y+1)^2<=4r^2
+// At least we are moving towards using that boundary test uniformly,
+// there may still be cases where other definitions of the "boundary
+// of a arc-shape"
+
+#define ARC_BIG 1000000
+
+// Advances *cursor monotonically (only ever forward) until it lands on the
+// first x such that pixel-center (x+0.5, row) falls within radius_dbl_sq (a
+// squared radius already doubled: (2r)^2). row_dbl_sq is (2*y+1)^2 for row y.
+static inline void circle_boundary_advance(int *cursor, int row_dbl_sq, int radius_dbl_sq) {
+  while (true) {
+    int x_dbl_offs = 2 * (*cursor) + 1;
+    if (x_dbl_offs * x_dbl_offs + row_dbl_sq <= radius_dbl_sq) break;
+    (*cursor)++;
+  }
+}
+
+static void arc_ray_clip(double dir_x, double dir_y, int Y, int *lo, int *hi) {
+  if (dir_y == 0) {
+    if (-(double)Y * dir_x <= 0) { *lo = -ARC_BIG; *hi = ARC_BIG; }
+    else { *lo = 1; *hi = 0; }
+    return;
+  }
+  double xc = (double)Y * dir_x / dir_y;
+  if (dir_y > 0) { *lo = -ARC_BIG; *hi = (int)floor(xc); }
+  else { *lo = (int)ceil(xc); *hi = ARC_BIG; }
+}
+
+static void arc_chord_clip(double sx, double sy, double ex, double ey, int Y, int *lo, int *hi) {
+  double dx = ex - sx, dy = ey - sy;
+  if (dy == 0) {
+    if (0.0 <= ((double)Y - sy) * dx) { *lo = -ARC_BIG; *hi = ARC_BIG; }
+    else { *lo = 1; *hi = 0; }
+    return;
+  }
+  double rhs = sx * dy + ((double)Y - sy) * dx;
+  if (dy > 0) { *lo = -ARC_BIG; *hi = (int)floor(rhs / dy); }
+  else { *lo = (int)ceil(rhs / dy); *hi = ARC_BIG; }
+}
+
+// Clip a row by the two rays (or, for a filled segment, the caller skips
+// this and uses arc_chord_clip directly). Returns 1 or 2 spans in lo[]/hi[].
+static int arc_wedge_clip(double dir0_x, double dir0_y, double dir1_x, double dir1_y,
+                          bool angle_is_closed, int Y, int *lo, int *hi) {
+  int r0_lo, r0_hi, r1_lo, r1_hi;
+  arc_ray_clip(dir0_x, dir0_y, Y, &r0_lo, &r0_hi);
+  arc_ray_clip(-dir1_x, -dir1_y, Y, &r1_lo, &r1_hi);
+  if (!angle_is_closed) {
+    // Convex wedge: intersection of the two half-planes.
+    lo[0] = MAX(r0_lo, r1_lo);
+    hi[0] = MIN(r0_hi, r1_hi);
+    return 1;
+  }
+  if (r0_lo > r0_hi) { lo[0] = r1_lo; hi[0] = r1_hi; return 1; }
+  if (r1_lo > r1_hi) { lo[0] = r0_lo; hi[0] = r0_hi; return 1; }
+  if (r0_lo <= -ARC_BIG && r0_hi >= ARC_BIG) { lo[0] = r0_lo; hi[0] = r0_hi; return 1; }
+  if (r1_lo <= -ARC_BIG && r1_hi >= ARC_BIG) { lo[0] = r1_lo; hi[0] = r1_hi; return 1; }
+  if (r0_hi >= r1_lo - 1 && r1_hi >= r0_lo - 1) {
+    // Reflex wedge (union of two half-planes), touching/overlapping here.
+    lo[0] = MIN(r0_lo, r1_lo);
+    hi[0] = MAX(r0_hi, r1_hi);
+    return 1;
+  }
+  // Reflex wedge, disjoint on this row: two separate spans.
+  if (r0_lo <= r1_lo) {
+    lo[0] = r0_lo; hi[0] = r0_hi; lo[1] = r1_lo; hi[1] = r1_hi;
+  } else {
+    lo[0] = r1_lo; hi[0] = r1_hi; lo[1] = r0_lo; hi[1] = r0_hi;
+  }
+  return 2;
+}
+
+// Renders each row's annulus-piece x clip-piece intersection the
+// moment it's known . full_circle=true (fill_circle, circle's thick ring) skips
+// angle clipping entirely and draws the raw annulus/disk interval.
+static void circle_row_draw(image_buffer_t *img, int c_x, int c_y, uint32_t color, uint8_t alpha, int Y,
+                            int x_out, int x_out_r, bool has_gap, int x_in, int x_in_r,
+                            double chord0_x, double chord0_y, double chord1_x, double chord1_y,
+                            bool angle_is_closed, bool filled_segment, bool full_circle) {
+  int a_lo[2], a_hi[2], a_n;
+  if (!has_gap) {
+    a_n = 1;
+    a_lo[0] = x_out; a_hi[0] = x_out_r;
+  } else {
+    a_n = 2;
+    a_lo[0] = x_out;      a_hi[0] = x_in - 1;
+    a_lo[1] = x_in_r + 1; a_hi[1] = x_out_r;
+  }
+
+  if (full_circle) {
+    for (int i = 0; i < a_n; i++) {
+      if (a_lo[i] <= a_hi[i]) {
+        h_line(img, c_x + a_lo[i], c_y + Y, a_hi[i] - a_lo[i] + 1, color, alpha);
+      }
+    }
+    return;
+  }
+
+  int c_lo[2], c_hi[2], c_n;
+  if (filled_segment) {
+    c_n = 1;
+    arc_chord_clip(chord1_x, chord1_y, chord0_x, chord0_y, Y, &c_lo[0], &c_hi[0]);
+  } else {
+    c_n = arc_wedge_clip(chord0_x, chord0_y, chord1_x, chord1_y, angle_is_closed, Y, c_lo, c_hi);
+  }
+
+  for (int i = 0; i < a_n; i++) {
+    for (int j = 0; j < c_n; j++) {
+      int lo = MAX(a_lo[i], c_lo[j]);
+      int hi = MIN(a_hi[i], c_hi[j]);
+      if (lo <= hi) {
+        h_line(img, c_x + lo, c_y + Y, hi - lo + 1, color, alpha);
+      }
+    }
+  }
+}
+
+// Filled disk, boundary-cursor version of fill_circle's radius>4 case: a
+// single boundary (no inner ring), always full_circle=true (no angle clip).
+static void fill_circle_scan(image_buffer_t *img, int c_x, int c_y, int radius, uint32_t color, uint8_t alpha) {
+  int radius_dbl_sq = radius * radius * 4;
+  int xo = -radius;
+  for (int y0 = 0; y0 < radius; y0++) {
+    int row_dbl_sq = (2 * y0 + 1) * (2 * y0 + 1);
+    circle_boundary_advance(&xo, row_dbl_sq, radius_dbl_sq);
+    int x_out = xo;
+    int x_out_r = -xo - 1;
+    circle_row_draw(img, c_x, c_y, color, alpha, y0, x_out, x_out_r, false, 0, -1, 0, 0, 0, 0, false, false, true);
+    circle_row_draw(img, c_x, c_y, color, alpha, -y0 - 1, x_out, x_out_r, false, 0, -1, 0, 0, 0, 0, false, false, true);
+  }
+}
+
+// Thick ring, boundary-cursor version of circle()'s thickness>0 case.
+static void circle_ring(image_buffer_t *img, int c_x, int c_y, int radius, int thickness, uint32_t color, uint8_t alpha) {
+  int radius_outer = radius;
+  int radius_inner = radius - thickness;
+  if (radius_inner < 0) radius_inner = 0;
+
+  int radius_outer_dbl_sq = radius_outer * radius_outer * 4;
+  int radius_inner_dbl_sq = radius_inner * radius_inner * 4;
+
+  int xo = -radius_outer;
+  int xi = -radius_inner;
+
+  for (int y0 = 0; y0 < radius_outer; y0++) {
+    int row_dbl_sq = (2 * y0 + 1) * (2 * y0 + 1);
+    circle_boundary_advance(&xo, row_dbl_sq, radius_outer_dbl_sq);
+    int x_out = xo;
+    int x_out_r = -xo - 1;
+
+    bool has_gap = (radius_inner > 0) && (y0 < radius_inner);
+    int x_in = 0, x_in_r = -1;
+    if (has_gap) {
+      circle_boundary_advance(&xi, row_dbl_sq, radius_inner_dbl_sq);
+      x_in = xi;
+      x_in_r = -xi - 1;
+    }
+
+    circle_row_draw(img, c_x, c_y, color, alpha, y0, x_out, x_out_r, has_gap, x_in, x_in_r, 0, 0, 0, 0, false, false, true);
+    circle_row_draw(img, c_x, c_y, color, alpha, -y0 - 1, x_out, x_out_r, has_gap, x_in, x_in_r, 0, 0, 0, 0, false, false, true);
+  }
+}
+
+// Filled rounded rectangle, boundary-cursor version.
+static void fill_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int height, int radius, uint32_t color, uint8_t alpha) {
+  if (radius > width / 2) radius = width / 2;
+  if (radius > height / 2) radius = height / 2;
+
+  if (radius <= 0) {
+    for (int row = 0; row < height; row++) {
+      h_line(img, x, y + row, width, color, alpha);
+    }
+    return;
+  }
+
+  int radius_dbl_sq = radius * radius * 4;
+  int xo = -radius;
+
+  for (int y0 = 0; y0 < radius; y0++) {
+    int row_dbl_sq = (2 * y0 + 1) * (2 * y0 + 1);
+    circle_boundary_advance(&xo, row_dbl_sq, radius_dbl_sq);
+    int inset = radius + xo;
+
+    int row_top = radius - 1 - y0;
+    int row_bottom = height - radius + y0;
+    h_line(img, x + inset, y + row_top, width - 2 * inset, color, alpha);
+    h_line(img, x + inset, y + row_bottom, width - 2 * inset, color, alpha);
+  }
+
+  for (int row = radius; row < height - radius; row++) {
+    h_line(img, x, y + row, width, color, alpha);
+  }
+}
+
+static void fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color, uint8_t alpha) {
   switch (radius) {
   case 0:
     break;
 
   case 1:
-    putpixel(img, x - 1, y - 1, color);
-    putpixel(img, x, y - 1, color);
-    putpixel(img, x - 1, y, color);
-    putpixel(img, x, y, color);
+    putpixel(img, x - 1, y - 1, color, alpha);
+    putpixel(img, x, y - 1, color, alpha);
+    putpixel(img, x - 1, y, color, alpha);
+    putpixel(img, x, y, color, alpha);
     break;
 
   case 2:
-    h_line(img, x - 1, y - 2, 2, color);
-    h_line(img, x - 2, y - 1, 4, color);
-    h_line(img, x - 2, y, 4, color);
-    h_line(img, x - 1, y + 1, 2, color);
+    h_line(img, x - 1, y - 2, 2, color, alpha);
+    h_line(img, x - 2, y - 1, 4, color, alpha);
+    h_line(img, x - 2, y, 4, color, alpha);
+    h_line(img, x - 1, y + 1, 2, color, alpha);
     break;
 
   case 3:
-    h_line(img, x - 2, y - 3, 4, color);
-    h_line(img, x - 3, y - 2, 6, color);
-    h_line(img, x - 3, y - 1, 6, color);
-    h_line(img, x - 3, y, 6, color);
-    h_line(img, x - 3, y + 1, 6, color);
-    h_line(img, x - 2, y + 2, 4, color);
+    h_line(img, x - 2, y - 3, 4, color, alpha);
+    h_line(img, x - 3, y - 2, 6, color, alpha);
+    h_line(img, x - 3, y - 1, 6, color, alpha);
+    h_line(img, x - 3, y, 6, color, alpha);
+    h_line(img, x - 3, y + 1, 6, color, alpha);
+    h_line(img, x - 2, y + 2, 4, color, alpha);
     break;
 
   case 4:
-    h_line(img, x - 2, y - 4, 4, color);
-    h_line(img, x - 3, y - 3, 6, color);
-    h_line(img, x - 4, y - 2, 8, color);
-    h_line(img, x - 4, y - 1, 8, color);
-    h_line(img, x - 4, y, 8, color);
-    h_line(img, x - 4, y + 1, 8, color);
-    h_line(img, x - 3, y + 2, 6, color);
-    h_line(img, x - 2, y + 3, 4, color);
+    h_line(img, x - 2, y - 4, 4, color, alpha);
+    h_line(img, x - 3, y - 3, 6, color, alpha);
+    h_line(img, x - 4, y - 2, 8, color, alpha);
+    h_line(img, x - 4, y - 1, 8, color, alpha);
+    h_line(img, x - 4, y, 8, color, alpha);
+    h_line(img, x - 4, y + 1, 8, color, alpha);
+    h_line(img, x - 3, y + 2, 6, color, alpha);
+    h_line(img, x - 2, y + 3, 4, color, alpha);
     break;
 
-  default: {
-    int r_sq = radius * radius;
-    for (int y1 = -radius; y1 <= radius; y1++) {
-      for (int x1 = -radius; x1 <= radius; x1++) {
-        if (x1 * x1 + y1 * y1 <= r_sq) {
-          // Compute the start and end position for x axis
-          int x_left = x1;
-          while ((x1 + 1) <= radius && ((x1 + 1) * (x1 + 1) + y1 * y1) <= r_sq) {
-            x1++;
-          }
-          int x_right = x1;
-
-          // Draw line at this level y
-          int length = x_right - x_left + 1;
-          h_line(img, x + x_left, y + y1, length, color);
-
-          // Break out of innter loop for this level y
-          break;
-        }
-      }
-    }
-  } break;
+  default:
+    fill_circle_scan(img, x, y, radius, color, alpha);
+    break;
   }
-}
-
-// Circle helper function, to draw a circle with an inner and outer radius.
-// Draws the slice at the given outer radius point.
-static void handle_circle_slice(int outer_x, int outer_y, image_buffer_t *img, int c_x, int c_y, int radius_inner, uint32_t color, int radius_inner_dbl_sq) {
-  int width;
-
-  bool slice_filled;
-  if (outer_y < 0) {
-    slice_filled = -outer_y > radius_inner;
-  } else {
-    slice_filled = outer_y >= radius_inner;
-  }
-
-  if (slice_filled) {
-    if (outer_x < 0) {
-      width = -outer_x;
-    } else {
-      width = outer_x + 1;
-      outer_x = 0;
-    }
-  } else {
-    int cur_x = outer_x;
-    int delta = outer_x > 0 ? -1 : 1;
-
-    // TODO: this could probably be binary searched
-    int y_dbl_off = outer_y * 2 + 1;
-    int y_dbl_off_sq = y_dbl_off * y_dbl_off;
-    while (true) {
-      cur_x += delta;
-      int x_dbl_off = cur_x * 2 + 1;
-      if (x_dbl_off * x_dbl_off + y_dbl_off_sq <= radius_inner_dbl_sq
-          || abs(cur_x) > 2000) { // failsafe
-        break;
-      }
-    }
-    width = abs(cur_x - outer_x);
-    if (outer_x > 0) {
-      outer_x = cur_x + 1;
-    }
-  }
-
-  h_line(img, outer_x + c_x, outer_y + c_y, width, color);
 }
 
 // thickness extends inwards from the given radius circle
-static void circle(image_buffer_t *img, int x, int y, int radius, int thickness, uint32_t color) {
+static void circle(image_buffer_t *img, int x, int y, int radius, int thickness, uint32_t color, uint8_t alpha) {
   if (thickness <= 0) {
+    if (radius == 0) {
+      // x0==y0==0 right away, so the loop below never runs and the
+      // post-loop diagonal patch (for the x0==y0 hole at 45 degrees)
+      // would collapse all 4 of its offsets onto this single point,
+      // writing it 4 times instead of once.
+      putpixel(img, x, y, color, alpha);
+      return;
+    }
     int x0 = 0;
     int y0 = radius;
     int d = 5 - 4*radius;
@@ -1024,46 +1222,39 @@ static void circle(image_buffer_t *img, int x, int y, int radius, int thickness,
     int db = 20 - 8*radius;
 
     while (x0 < y0) {
-      putpixel(img, x + x0, y + y0, color);
-      putpixel(img, x + x0, y - y0, color);
-      putpixel(img, x - x0, y + y0, color);
-      putpixel(img, x - x0, y - y0, color);
-      putpixel(img, x + y0, y + x0, color);
-      putpixel(img, x + y0, y - x0, color);
-      putpixel(img, x - y0, y + x0, color);
-      putpixel(img, x - y0, y - x0, color);
+      putpixel(img, x + x0, y + y0, color, alpha);
+      putpixel(img, x + x0, y - y0, color, alpha);
+      putpixel(img, x + y0, y + x0, color, alpha);
+      putpixel(img, x - y0, y + x0, color, alpha);
+      if (x0 != 0) {
+        // At x0==0 (the first step), the mirrored quartet below is the
+        // same 4 pixels as above.
+        putpixel(img, x - x0, y + y0, color, alpha);
+        putpixel(img, x - x0, y - y0, color, alpha);
+        putpixel(img, x + y0, y - x0, color, alpha);
+        putpixel(img, x - y0, y - x0, color, alpha);
+      }
       if (d < 0) { d = d + da; db = db+8; }
       else  { y0 = y0 - 1; d = d+db; db = db + 16; }
       x0 = x0+1;
       da = da + 8;
     }
-  } else {
-    int radius_inner = radius - thickness;
-
-    int radius_outer_dbl_sq = radius * radius * 4;
-    int radius_inner_dbl_sq = radius_inner * radius_inner * 4;
-
-    for (int y0 = 0; y0 < radius; y0++) {
-      int y_dbl_offs = 2 * y0 + 1;
-      int y_dbl_offs_sq = y_dbl_offs * y_dbl_offs;
-
-      for (int x0 = -radius; x0 <= 0; x0++) {
-        int x_dbl_offs = 2 * x0 + 1;
-        if (x_dbl_offs * x_dbl_offs + y_dbl_offs_sq <= radius_outer_dbl_sq) {
-          // This is horrible...
-          handle_circle_slice(x0, y0,
-                              img, x, y, radius_inner, color, radius_inner_dbl_sq);
-          handle_circle_slice(-x0 - 1, y0,
-                              img, x, y, radius_inner, color, radius_inner_dbl_sq);
-          handle_circle_slice(x0, -y0 - 1,
-                              img, x, y, radius_inner, color, radius_inner_dbl_sq);
-          handle_circle_slice(-x0 - 1, -y0 - 1,
-                              img, x, y, radius_inner, color, radius_inner_dbl_sq);
-          break;
-        }
-      }
+    // For roughly half of all radii the loop above exits with x0 == y0:
+    // x0 always advances by exactly 1 per iteration while y0 advances by
+    // at most 1, so the loop guard (x0 < y0) can become false exactly when
+    // x0 lands on the diagonal, meaning that point was never plotted (a
+    // hole at the 45-degree points, not a double-write). Since x0 == y0
+    // here, the usual 8-way mirror also collapses onto only 4 points.
+    if (x0 == y0) {
+      putpixel(img, x + x0, y + y0, color, alpha);
+      putpixel(img, x + x0, y - y0, color, alpha);
+      putpixel(img, x - x0, y + y0, color, alpha);
+      putpixel(img, x - x0, y - y0, color, alpha);
     }
+    return;
   }
+
+  circle_ring(img, x, y, radius, thickness, color, alpha);
 }
 
 // Thickness extends outwards and inwards from the given line equally, resulting
@@ -1071,7 +1262,7 @@ static void circle(image_buffer_t *img, int x, int y, int radius, int thickness,
 // TODO: This should be more efficient
 // http://homepages.enterprise.net/murphy/thickline/index.html
 // https://github.com/ArminJo/STMF3-Discovery-Demos/blob/master/lib/BlueDisplay/LocalGUI/ThickLine.hpp
-static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickness, int dot1, int dot2, uint32_t c) {
+static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickness, int dot1, int dot2, uint32_t c, uint8_t alpha) {
   int dx = abs(x1 - x0);
   int sx = x0 < x1 ? 1 : -1;
   int dy = -abs(y1 - y0);
@@ -1088,9 +1279,9 @@ static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickn
     while (true) {
       if (dotcnt <= dot1) {
         if (thickness > 1) {
-          fill_circle(img, x0, y0, thickness, c);
+          fill_circle(img, x0, y0, thickness, c, alpha);
         } else {
-          putpixel(img, x0, y0, c);
+          putpixel(img, x0, y0, c, alpha);
         }
       }
 
@@ -1126,9 +1317,9 @@ static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickn
   } else {
     while (true) {
       if (thickness > 1) {
-        fill_circle(img, x0, y0, thickness, c);
+        fill_circle(img, x0, y0, thickness, c, alpha);
       } else {
-        putpixel(img, x0, y0, c);
+        putpixel(img, x0, y0, c, alpha);
       }
 
       if (x0 == x1 && y0 == y1) {
@@ -1154,32 +1345,32 @@ static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickn
 
 // thickness extends inwards from the given rectangle edge.
 static void rectangle(image_buffer_t *img, int x, int y, int width, int height,
-                      bool fill, int thickness, int dot1, int dot2, uint32_t color) {
+                      bool fill, int thickness, int dot1, int dot2, uint32_t color, uint8_t alpha) {
   thickness /= 2;
 
   if (fill) {
     for (int i = y; i < (y + height);i++) {
-      h_line(img, x, i, width, color);
+      h_line(img, x, i, width, color, alpha);
     }
   } else {
     if (thickness <= 0 && dot1 == 0) {
-      h_line(img, x, y, width, color);
-      h_line(img, x, y + height, width, color);
-      v_line(img, x, y, height, color);
-      v_line(img, x + width, y, height, color);
+      h_line(img, x, y, width, color, alpha);
+      h_line(img, x, y + height, width, color, alpha);
+      v_line(img, x, y, height, color, alpha);
+      v_line(img, x + width, y, height, color, alpha);
     } else {
       x += thickness;
       y += thickness;
       width -= thickness * 2;
       height -= thickness * 2;
       // top
-      line(img, x, y, x + width, y, thickness, dot1, dot2, color);
+      line(img, x, y, x + width, y, thickness, dot1, dot2, color, alpha);
       // bottom
-      line(img, x, y + height, x + width, y + height, thickness, dot1, dot2, color);
+      line(img, x, y + height, x + width, y + height, thickness, dot1, dot2, color, alpha);
       // left
-      line(img, x, y, x, y + height, thickness, dot1, dot2, color);
+      line(img, x, y, x, y + height, thickness, dot1, dot2, color, alpha);
       // right
-      line(img, x + width, y, x + width, y + height, thickness, dot1, dot2, color);
+      line(img, x + width, y, x + width, y + height, thickness, dot1, dot2, color, alpha);
     }
   }
 }
@@ -1187,29 +1378,66 @@ static void rectangle(image_buffer_t *img, int x, int y, int width, int height,
 #define NMIN(a, b) ((a) < (b) ? (a) : (b))
 #define NMAX(a, b) ((a) > (b) ? (a) : (b))
 
+// Scanline fill:
+// See Black art of 3d game programming - André Lamothe for a good
+// introduction to scanline fill approaches.
+// The triangle filler in "Black art" explicitly splits triangles into subtriangles
+// and invents a "cut-vertex" along the long edge. Here the long edge state
+// is shared across the "implicitly" split up subtriangles saving some work.
+// Most important! Never draw a pixel twice.
 static void fill_triangle(image_buffer_t *img, int x0, int y0,
-                          int x1, int y1, int x2, int y2, uint32_t color) {
-  int x_min = NMIN(x0, NMIN(x1, x2));
-  int x_max = NMAX(x0, NMAX(x1, x2));
-  int y_min = NMIN(y0, NMIN(y1, y2));
-  int y_max = NMAX(y0, NMAX(y1, y2));
+                          int x1, int y1, int x2, int y2, uint32_t color, uint8_t alpha) {
+  if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
+  if (y1 > y2) swap_points(&x1, &y1, &x2, &y2);
+  if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
 
-  for (int y = y_min;y <= y_max;y++) {
-    for (int x = x_min;x <= x_max;x++) {
-      int w0 = point_past_line(x, y, x1, y1, x2, y2);
-      int w1 = point_past_line(x, y, x2, y2, x0, y0);
-      int w2 = point_past_line(x, y, x0, y0, x1, y1);
+  if (y0 == y2) return;
 
-      if ((w0 >= 0 && w1 >= 0 && w2 >= 0)
-          || (w0 <= 0 && w1 <= 0 && w2 <= 0)) {
-        putpixel(img, x, y, color);
-      }
+  float dx_long = (float)(x2 - x0) / (float)(y2 - y0);
+  float x_long = (float)x0;
+
+  // Top part of general triangle case
+  // If the triangle has a flat top, then y1 == y0 and this loop is skipped
+  if (y1 > y0) {
+    float dx_short = (float)(x1 - x0) / (float)(y1 - y0);
+    float x_short = (float)x0;
+    for (int y = y0; y < y1; y++) {
+      int xa = (int)x_long, xb = (int)x_short;
+      int lo = NMIN(xa, xb), hi = NMAX(xa, xb);
+      h_line(img, lo, y, hi - lo + 1, color, alpha);
+      x_long += dx_long;
+      x_short += dx_short;
     }
+  }
+
+  // bottom half of general triangle case
+  // y1 is drawn here. The top loop stops at y1-1.
+  // This ensures no line is drawn more than once.
+  if (y2 > y1) {
+    float dx_short = (float)(x2 - x1) / (float)(y2 - y1);
+    float x_short = (float)x1;
+    for (int y = y1; y <= y2; y++) {
+      int xa = (int)x_long, xb = (int)x_short;
+      int lo = NMIN(xa, xb), hi = NMAX(xa, xb);
+      h_line(img, lo, y, hi - lo + 1, color, alpha);
+      x_long += dx_long;
+      x_short += dx_short;
+    }
+  } else {
+    // When y2 == y1 the above code draws nothing,
+    // So here we add in a final h_line for the flat bottom triangles.
+    int xa = (int)x_long, xb = x1;
+    int lo = NMIN(xa, xb), hi = NMAX(xa, xb);
+    h_line(img, lo, y1, hi - lo + 1, color, alpha);
   }
 }
 
 static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
-                        int thickness, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color) {
+                        int thickness, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color, uint8_t alpha) {
+
+  bool full_circle = fabsf(ang_end - ang_start) > 1e-4f
+    && fabsf(fmodf(ang_end - ang_start, 360.0f)) < 1e-3f;
+
   ang_start *= (float)M_PI / 180.0f;
   ang_end *= (float)M_PI / 180.0f;
 
@@ -1218,7 +1446,9 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
 
   float ang_range = ang_end - ang_start;
 
-  if (ang_range < 0.0) {
+  if (full_circle) {
+    ang_range = 2.0f * (float)M_PI;
+  } else if (ang_range < 0.0) {
     ang_range += 2.0f * (float)M_PI;
   }
 
@@ -1247,486 +1477,206 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
     py = py * ca + px_before * sa;
 
     line(img, x + (int)px_before, y + (int)py_before,
-         x + (int)px, y + (int)py, thickness, dot1, dot2, color);
+         x + (int)px, y + (int)py, thickness, dot1, dot2, color, alpha);
   }
 
   if (sector) {
     line(img, x + (int)px, y + (int)py,
          x, y,
-         thickness, dot1, dot2, color);
+         thickness, dot1, dot2, color, alpha);
     line(img, x, y,
          x + (int)px_start, y + (int)py_start,
-         thickness, dot1, dot2, color);
+         thickness, dot1, dot2, color, alpha);
   }
 
   if (segment) {
     line(img, x + (int)px, y + (int)py,
          x + (int)px_start, y + (int)py_start,
-         thickness, dot1, dot2, color);
+         thickness, dot1, dot2, color, alpha);
   }
 }
 
-// thin arc helper function
-// handles a single pixel in the complete circle, checking if the pixel is part
-// of the arc.
-static void handle_thin_arc_pixel(image_buffer_t *img, int x, int y,
-                                  int c_x, int c_y, int cap0_x, int cap0_y, int cap1_x, int cap1_y, int min_y, int max_y, bool angle_is_closed, uint32_t color) {
-  if (y > max_y || y < min_y) {
-    return;
-  }
+// Thin/ring arc rasterizer.
 
-  int line_is_past_0 = point_past_line(x, y, 0, 0, cap0_x, cap0_y);
-  int line_is_past_1 = -point_past_line(x, y, 0, 0, cap1_x, cap1_y);
-
-  bool in_cap0_quadrant = points_same_quadrant(
-                                               x, y, cap0_x, cap0_y);
-  bool in_cap1_quadrant = points_same_quadrant(
-                                               x, y, cap1_x, cap1_y);
-
-  if (angle_is_closed) {
-    if (line_is_past_0 == 1 && line_is_past_1 == 1) {
-      return;
-    }
+static void arc_thin_plot(image_buffer_t *img, int c_x, int c_y, int px, int py,
+                          double cap0_x, double cap0_y, double cap1_x, double cap1_y,
+                          bool angle_is_closed, bool full_circle, uint32_t color, uint8_t alpha) {
+  bool inside;
+  if (full_circle) {
+    inside = true;
   } else {
-    if (line_is_past_0 == 1 || line_is_past_1 == 1
-        || (line_is_past_0 == 0 && !in_cap0_quadrant)
-        || (line_is_past_1 == 0 && !in_cap1_quadrant)) {
-      return;
-    }
+    double cross0 = px * cap0_y - py * cap0_x;
+    double cross1 = px * cap1_y - py * cap1_x;
+    bool inside0 = cross0 <= 0;
+    bool inside1 = cross1 >= 0;
+    inside = angle_is_closed ? (inside0 || inside1) : (inside0 && inside1);
   }
-
-  putpixel(img, c_x + x, c_y + y, color);
+  if (inside) putpixel(img, c_x + px, c_y + py, color, alpha);
 }
 
-// single pixel wide arc
-static void thin_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1, bool sector, bool segment, uint32_t color) {
-  if (radius == 0) {
-    return;
-  }
+// Thin (<=1px) outline: classic 8-way symmetric midpoint circle (same
+// recurrence as the plain circle() thin path). Octant symmetry means
+// consecutive plotted points are always <=1 pixel apart, so -- unlike the
+// row-scan approach -- there is no gap to patch up near the poles.
+static void arc_thin(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1, bool sector, bool segment, uint32_t color, uint8_t alpha) {
+  if (radius == 0) return;
+
+  bool full_circle = fabsf(angle1 - angle0) > 1e-4f
+    && fabsf(fmodf(angle1 - angle0, 360.0f)) < 1e-3f;
 
   angle0 *= (float)M_PI / 180.0f;
   angle1 *= (float)M_PI / 180.0f;
   norm_angle_0_2pi(&angle0);
   norm_angle_0_2pi(&angle1);
-
-  if (angle0 == angle1) {
-    return;
-  }
+  if (!full_circle && angle0 == angle1) return;
 
   bool angle_is_closed;
-  // if the angle of the filled in part of the arc is greater than 180°
-  // honestly unsure if it'd be better if this was called angle_is_open
-  if (angle1 - angle0 > 0.0) {
-    angle_is_closed = fabsf(angle1 - angle0) > M_PI;
-  } else {
-    angle_is_closed = fabsf(angle1 - angle0) < M_PI;
-  }
+  if (angle1 - angle0 > 0.0) angle_is_closed = fabsf(angle1 - angle0) > M_PI;
+  else angle_is_closed = fabsf(angle1 - angle0) < M_PI;
 
-  int cap0_x = (int)(cosf(angle0) * (float)(radius));
-  int cap0_y = (int)(sinf(angle0) * (float)(radius));
+  int cap0_x = (int)(cosf(angle0) * (float)radius);
+  int cap0_y = (int)(sinf(angle0) * (float)radius);
+  int cap1_x = (int)(cosf(angle1) * (float)radius);
+  int cap1_y = (int)(sinf(angle1) * (float)radius);
 
-  int cap1_x = (int)(cosf(angle1) * (float)(radius));
-  int cap1_y = (int)(sinf(angle1) * (float)(radius));
+  double ray0_x = cos(angle0), ray0_y = sin(angle0);
+  double ray1_x = cos(angle1), ray1_y = sin(angle1);
 
-  // Highest and lowest (y coord wise) drawn line of the base arc (excluding
-  // the circular end caps). This range is *inclusive*!
-  // Note that these might be slightly off due to inconsistent rounding between
-  // my circle drawing algorithm and point rotation.
-  int min_y = MIN(cap0_y, cap1_y);
-  int max_y = MAX(cap0_y, cap1_y);
-  if (angle0 < angle1) {
-    if (angle0 < M_PI_2 && angle1 >= M_3PI_2) {
-      min_y = -radius;
-      max_y = radius;
-    } else if (angle0 < M_3PI_2 && angle1 > M_3PI_2) {
-      min_y = -radius;
-    } else if (angle0 < M_PI_2 && angle1 > M_PI_2) {
-      max_y = radius;
+  long r_dbl_sq = 4L * radius * radius;
+  int px = 0, py = radius;
+  while (px <= py) {
+    while (py >= px && (long)(2 * px + 1) * (2 * px + 1) + (long)(2 * py + 1) * (2 * py + 1) > r_dbl_sq) py--;
+    if (px > py) break;
+    arc_thin_plot(img, c_x, c_y,  px,      py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
+    arc_thin_plot(img, c_x, c_y,  px,     -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
+    arc_thin_plot(img, c_x, c_y, -px - 1,  py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
+    arc_thin_plot(img, c_x, c_y, -px - 1, -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
+    if (px != py) {
+      // At the px==py octant boundary, (px,py)/(py,px) etc. are the same
+      // four pixels as above
+      arc_thin_plot(img, c_x, c_y,  py,      px,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
+      arc_thin_plot(img, c_x, c_y,  py,     -px - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
+      arc_thin_plot(img, c_x, c_y, -py - 1,  px,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
+      arc_thin_plot(img, c_x, c_y, -py - 1, -px - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, color, alpha);
     }
-  } else {
-    if ((angle0 < M_3PI_2 && angle1 >= M_PI_2)
-        || (angle0 < M_PI_2)
-        || (angle1 > M_3PI_2)) {
-      min_y = -radius;
-      max_y = radius;
-    } else if (angle0 < M_3PI_2 && angle1 < M_PI_2) {
-      min_y = -radius;
-    } else if (angle0 > M_PI_2 && angle1 > M_PI_2) {
-      max_y = radius;
-    }
-  }
-
-  int radius_dbl_sq = radius * radius * 4;
-
-  int last_x = 0;
-  for (int y = radius - 1; y >= 0; y--) {
-    int y_dbl_offs = 2 * y + 1;
-    int y_dbl_offs_sq = y_dbl_offs * y_dbl_offs;
-
-    for (int x = -radius; x <= 0; x++) {
-      int x_dbl_offs = 2 * x + 1;
-      if (x_dbl_offs * x_dbl_offs + y_dbl_offs_sq <= radius_dbl_sq) {
-        if (last_x - x < 2) {
-          // This is horrible...
-          handle_thin_arc_pixel(img, x, y,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-          handle_thin_arc_pixel(img, -x - 1, y,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-
-          handle_thin_arc_pixel(img, x, -y - 1,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-          handle_thin_arc_pixel(img, -x - 1, -y - 1,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-        } else {
-          for (int x0 = x; x0 < last_x; x0++) {
-            handle_thin_arc_pixel(img, x0, y,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-            handle_thin_arc_pixel(img, -x0 - 1, y,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-
-            handle_thin_arc_pixel(img, x0, -y - 1,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-            handle_thin_arc_pixel(img, -x0 - 1, -y - 1,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-          }
-        }
-
-        last_x = x;
-        break;
-      }
-    }
+    px += 1;
   }
 
   if (sector) {
-    line(img, c_x, c_y, c_x + cap0_x, c_y + cap0_y, 1, 0, 0, color);
-    line(img, c_x, c_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color);
+    line(img, c_x, c_y, c_x + cap0_x, c_y + cap0_y, 1, 0, 0, color, alpha);
+    line(img, c_x, c_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color, alpha);
   }
-
   if (segment) {
-    line(img, c_x + cap0_x, c_y + cap0_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color);
+    line(img, c_x + cap0_x, c_y + cap0_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color, alpha);
   }
 }
 
-// arc helper function
-// handles a horizontal slice at the given outer arc point
-static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int c_x, int c_y, uint32_t color,
-                             int outer_x0, int outer_y0, int outer_x1, int outer_y1,
-                             int cap0_min_y, int cap0_max_y, int cap1_min_y, int cap1_max_y,
-                             int radius_outer, int radius_inner,
-                             int min_y, int max_y,
-                             float angle0, float angle1, bool angle_is_closed,
-                             bool filled, bool segment,
-                             int radius_inner_dbl_sq) {
-  (void) radius_outer;
-  if (outer_y > max_y || outer_y < min_y) {
+static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
+                             int thickness, bool rounded, bool filled, bool sector, bool segment, uint32_t color, uint8_t alpha) {
+  if (thickness <= 1 && !filled) {
+    arc_thin(img, c_x, c_y, radius, angle0, angle1, sector, segment, color, alpha);
+    return;
+  }
+  if (radius == 0) return;
+
+  bool full_circle = fabsf(angle1 - angle0) > 1e-4f
+    && fabsf(fmodf(angle1 - angle0, 360.0f)) < 1e-3f;
+
+  angle0 *= (float)M_PI / 180.0f;
+  angle1 *= (float)M_PI / 180.0f;
+  norm_angle_0_2pi(&angle0);
+  norm_angle_0_2pi(&angle1);
+  if (!full_circle && angle0 == angle1) return;
+
+  bool angle_is_closed;
+  if (angle1 - angle0 > 0.0) angle_is_closed = fabsf(angle1 - angle0) > M_PI;
+  else angle_is_closed = fabsf(angle1 - angle0) < M_PI;
+
+  if (!full_circle && !angle_is_closed && fabsf(angle1 - angle0) < 0.0174532925) {
+    if (rounded) {
+      float rad_f = (float)radius - ((float)thickness / 2.0f);
+      float angle = (angle0 + angle1) / 2.0f;
+      int cap_center_x = (int)floorf(cosf(angle) * rad_f);
+      int cap_center_y = (int)floorf(sinf(angle) * rad_f);
+      fill_circle(img, c_x + cap_center_x, c_y + cap_center_y, thickness / 2, color, alpha);
+    }
     return;
   }
 
-  int line_is_past_0, line_is_past_1;
-  line_is_past_0 = point_past_line(outer_x, outer_y, 0, 0, outer_x0, outer_y0);
-  line_is_past_1 = -point_past_line(outer_x, outer_y, 0, 0, outer_x1, outer_y1);
+  if (thickness >= radius) filled = true;
 
-  int outer_x_sign = sign(outer_x);
-  int outer_y_sign = sign(outer_y);
+  int radius_outer = radius;
+  int radius_inner = filled ? 0 : (radius - thickness);
+  if (radius_inner < 0) radius_inner = 0;
 
-  int outer_x0_sign = sign(outer_x0);
-  int outer_y0_sign = sign(outer_y0);
+  float angle0_cos = cosf(angle0), angle0_sin = sinf(angle0);
+  float angle1_cos = cosf(angle1), angle1_sin = sinf(angle1);
 
-  int outer_x1_sign = sign(outer_x1);
-  int outer_y1_sign = sign(outer_y1);
+  bool filled_segment = filled && segment;
 
-  bool in_cap0, in_cap1, in_both_caps;
-  if (segment && filled) {
-    in_cap0 = outer_y <= MAX(outer_y0, outer_y1)
-      && outer_y >= MIN(outer_y0, outer_y1);
-    in_cap1 = false;
-  }
-  else if (filled) {
-    in_cap0 = outer_y <= cap0_max_y
-      && outer_x0_sign == outer_x_sign
-      && outer_y0_sign == outer_y_sign;
-    in_cap1 = outer_y <= cap1_max_y
-      && outer_x1_sign == outer_x_sign
-      && outer_y1_sign == outer_y_sign;
-  } else {
-    in_cap0 = outer_y >= cap0_min_y
-      && outer_y <= cap0_max_y
-      && outer_x_sign == outer_x0_sign;
-    in_cap1 = outer_y >= cap1_min_y
-      && outer_y <= cap1_max_y
-      && outer_x_sign == outer_x1_sign;
-  }
-  in_both_caps = in_cap0 && in_cap1;
+  int radius_outer_dbl_sq = radius_outer * radius_outer * 4;
+  int radius_inner_dbl_sq = radius_inner * radius_inner * 4;
 
-  bool in_cap0_quadrant = points_same_quadrant(outer_x, outer_y, outer_x0, outer_y0);
-  bool in_cap1_quadrant = points_same_quadrant(outer_x, outer_y, outer_x1, outer_y1);
+  int xo = -radius_outer;
+  int xi = -radius_inner;
 
-  bool caps_in_same_quadrant = points_same_quadrant(outer_x0, outer_y0, outer_x1, outer_y1);
+  for (int y0 = 0; y0 < radius_outer; y0++) {
+    int row_dbl_sq = (2 * y0 + 1) * (2 * y0 + 1);
+    circle_boundary_advance(&xo, row_dbl_sq, radius_outer_dbl_sq);
+    int x_out = xo;
+    int x_out_r = -xo - 1;
 
-  // Check if slice is outside caps and drawn sections of the arc.
-  if (!in_cap0 && !in_cap1) {
-    if (angle_is_closed) {
-      if (line_is_past_0 == 1 && line_is_past_1 == 1
-          // Failsafe for closed angles with a very small difference.
-          // Otherwise a tiny section at the opposite side of the arc
-          // might get skipped.
-          && (!caps_in_same_quadrant || (in_cap0_quadrant && in_cap1_quadrant))) {
-        return;
-      }
-    } else {
-      if (line_is_past_0 == 1 || line_is_past_1 == 1
-          || (line_is_past_0 == 0 && !in_cap0_quadrant)
-          || (line_is_past_1 == 0 && !in_cap1_quadrant)) {
-        return;
-      }
+    bool has_gap = (radius_inner > 0) && (y0 < radius_inner);
+    int x_in = 0, x_in_r = -1;
+    if (has_gap) {
+      circle_boundary_advance(&xi, row_dbl_sq, radius_inner_dbl_sq);
+      x_in = xi;
+      x_in_r = -xi - 1;
     }
+
+    circle_row_draw(img, c_x, c_y, color, alpha, y0, x_out, x_out_r, has_gap, x_in, x_in_r,
+                    (double)angle0_cos * radius_outer, (double)angle0_sin * radius_outer,
+                    (double)angle1_cos * radius_outer, (double)angle1_sin * radius_outer,
+                    angle_is_closed, filled_segment, full_circle);
+    circle_row_draw(img, c_x, c_y, color, alpha, -y0 - 1, x_out, x_out_r, has_gap, x_in, x_in_r,
+                    (double)angle0_cos * radius_outer, (double)angle0_sin * radius_outer,
+                    (double)angle1_cos * radius_outer, (double)angle1_sin * radius_outer,
+                    angle_is_closed, filled_segment, full_circle);
   }
 
-  // Find slice width if arc spanned the complete circle.
-  int x, x1;
-  int width = 0;
-  int width1 = 0;
-  bool slice_is_split = false;
-
-  bool slice_filled;
-  if (filled) {
-    slice_filled = true;
-  } else {
-    if (outer_y < 0) {
-      slice_filled = -outer_y > radius_inner;
-    } else {
-      slice_filled = outer_y >= radius_inner;
-    }
+  if (rounded && !filled && !sector && !segment) {
+    float rad_f = (float)radius - ((float)thickness / 2.0f);
+    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
+    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
+    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
+    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
+    int th = thickness / 2;
+    fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, th, color, alpha);
+    fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, th, color, alpha);
   }
-
-  if (slice_filled) {
-    if (outer_x < 0) {
-      x = outer_x;
-      width = -x;
-    } else {
-      x = 0;
-      width = outer_x + 1;
-    }
-  } else {
-    x = outer_x;
-    int cur_x = outer_x;
-    int delta = outer_x > 0 ? -1 : 1;
-
-    // TODO: this could probably be binary searched
-    int y_dbl_off = outer_y * 2 + 1;
-    int y_dbl_off_sq = y_dbl_off * y_dbl_off;
-    while (true) {
-      cur_x += delta;
-      int x_dbl_off = cur_x * 2 + 1;
-      if (x_dbl_off * x_dbl_off + y_dbl_off_sq <= radius_inner_dbl_sq
-          || abs(x) > 2000) { // failsafe
-        break;
-      }
-    }
-    width = abs(cur_x - x);
-    if (outer_x > 0) {
-      x = cur_x + 1;
-    }
+  if (sector && !filled) {
+    float rad_f = (float)radius - ((float)thickness / 2.0f);
+    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
+    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
+    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
+    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
+    int th = thickness / 2;
+    line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x, c_y, th, 0, 0, color, alpha);
+    line(img, c_x + cap1_center_x, c_y + cap1_center_y, c_x, c_y, th, 0, 0, color, alpha);
   }
-
-  // Check which cap lines intersects this slice
-  if ((in_cap0 || in_cap1) && !(segment && filled)) {
-    // the range from x_start to x_end is *inclusive*
-    int x_start = x;
-    int x_end = x_start + width - 1;
-
-    // when a point is "past" a line, it is on the wrong cleared side of it
-    int start_is_past0 = point_past_line(x_start, outer_y,
-                                         0, 0,
-                                         outer_x0, outer_y0);
-    int end_is_past0 = point_past_line(x_end, outer_y,
-                                       0, 0,
-                                       outer_x0, outer_y0);
-
-    int start_is_past1 = -point_past_line(x_start, outer_y,
-                                          0, 0,
-                                          outer_x1, outer_y1);
-    int end_is_past1 = -point_past_line(x_end, outer_y,
-                                        0, 0,
-                                        outer_x1, outer_y1);
-
-    bool slice_overlaps0 = start_is_past0 != end_is_past0
-      && (start_is_past0 != 0 || end_is_past0 != 0);
-    bool slice_overlaps1 = start_is_past1 != end_is_past1
-      && (start_is_past1 != 0 || end_is_past1 != 0);
-
-    if ((in_cap0 && !in_cap1 && start_is_past0 == 1 && end_is_past0 == 1)
-        || (!in_cap0 && in_cap1 && start_is_past1 == 1 && end_is_past1 == 1)
-        || (in_both_caps && !angle_is_closed && (
-                                                 (start_is_past0 == 1 && end_is_past0 == 1)
-                                                 || (start_is_past1 == 1 && end_is_past1 == 1)
-                                                 ))
-        || (in_both_caps && angle_is_closed && (
-                                                (start_is_past0 == 1 && end_is_past0 == 1)
-                                                && (start_is_past1 == 1 && end_is_past1 == 1)				
-                                                ))) {
-      return;
-    }
-
-    // The repetition in all these cases could probably be reduced...
-    if ((in_both_caps && slice_overlaps0 && !slice_overlaps1)
-        || (in_cap0 && !in_cap1 && slice_overlaps0)) {
-      // intersect with cap line 0
-      if (start_is_past0 != -1 && end_is_past0 != 1) {
-        while (start_is_past0 == 1) {
-          x_start += 1;
-          start_is_past0 = point_past_line(x_start, outer_y,
-                                           0, 0,
-                                           outer_x0, outer_y0);
-        }
-      } else {
-        while (end_is_past0 == 1) {
-          x_end -= 1;
-          end_is_past0 = point_past_line(x_end, outer_y,
-                                         0, 0,
-                                         outer_x0, outer_y0);
-        }
-      }
-    } else if ((in_both_caps && !slice_overlaps0 && slice_overlaps1)
-               || (!in_cap0 && in_cap1 && slice_overlaps1)) {
-      // intersect with cap line 1
-      if (start_is_past1 != -1 && end_is_past1 != 1) {
-        while (start_is_past1 == 1) {
-          x_start += 1;
-          start_is_past1 = -point_past_line(x_start, outer_y,
-                                            0, 0,
-                                            outer_x1, outer_y1);
-        }
-      } else {
-        while (end_is_past1 == 1) {
-          x_end -= 1;
-          end_is_past1 = -point_past_line(x_end, outer_y,
-                                          0, 0,
-                                          outer_x1, outer_y1);
-        }
-      }
-    } else if (in_both_caps && slice_overlaps0 && slice_overlaps1) {
-      // intersect with both cap lines
-      if (angle0 < angle1) {
-        if (angle0 < M_PI) {
-          while (start_is_past1 == 1) {
-            x_start += 1;
-            start_is_past1 = -point_past_line(x_start, outer_y,
-                                              0, 0,
-                                              outer_x1, outer_y1);
-          }
-          while (end_is_past0 == 1) {
-            x_end -= 1;
-            end_is_past0 = point_past_line(x_end, outer_y,
-                                           0, 0,
-                                           outer_x0, outer_y0);
-          }
-        } else {
-          while (start_is_past0 == 1) {
-            x_start += 1;
-            start_is_past0 = point_past_line(x_start, outer_y,
-                                             0, 0,
-                                             outer_x0, outer_y0);
-          }
-          while (end_is_past1 == 1) {
-            x_end -= 1;
-            end_is_past1 = -point_past_line(x_end, outer_y,
-                                            0, 0,
-                                            outer_x1, outer_y1);
-          }
-        }
-      } else {
-        // split the slice into two
-
-        slice_is_split = true;
-
-        int x_start1 = x_start;
-        int x_end1 = x_end;
-
-        if (angle0 < M_PI) {
-          while (end_is_past0 == 1) {
-            x_end -= 1;
-            end_is_past0 = point_past_line(x_end, outer_y,
-                                           0, 0,
-                                           outer_x0, outer_y0);
-          }
-          while (start_is_past1 == 1) {
-            x_start1 += 1;
-            start_is_past1 = -point_past_line(x_start1, outer_y,
-                                              0, 0,
-                                              outer_x1, outer_y1);
-          }
-        } else {
-          while (end_is_past1 == 1) {
-            x_end1 -= 1;
-            end_is_past1 = -point_past_line(x_end1, outer_y,
-                                            0, 0,
-                                            outer_x1, outer_y1);
-          }
-          while (start_is_past0 == 1) {
-            x_start += 1;
-            start_is_past0 = point_past_line(x_start, outer_y,
-                                             0, 0,
-                                             outer_x0, outer_y0);
-          }
-        }
-
-        x1 = x_start1;
-        width1 = x_end1 + 1 - x_start1 ;
-      }
-    }
-    x = x_start;
-    width = x_end + 1 - x_start;
-  } else if (in_cap0 && segment && filled) {
-    // the range from x_start to x_end is *inclusive*
-    int x_start = x;
-    int x_end = x_start + width - 1;
-
-    // when a point is "past" a line, it is on the wrong cleared side of it
-    int start_is_past = -point_past_line(x_start, outer_y,
-                                         outer_x0, outer_y0, outer_x1, outer_y1);
-    int end_is_past = -point_past_line(x_end, outer_y,
-                                       outer_x0, outer_y0, outer_x1, outer_y1);
-
-    bool slice_overlaps = start_is_past != end_is_past
-      && (start_is_past != 0 || end_is_past != 0);
-
-    if (start_is_past == 1 && end_is_past == 1) {
-      return;
-    }
-
-    if (slice_overlaps) {
-      if (start_is_past != -1 && end_is_past != 1) {
-        while (start_is_past == 1) {
-          x_start += 1;
-          start_is_past = -point_past_line(x_start, outer_y,
-                                           outer_x0, outer_y0, outer_x1, outer_y1);
-        }
-      } else {
-        while (end_is_past == 1) {
-          x_end -= 1;
-          end_is_past = -point_past_line(x_end, outer_y,
-                                         outer_x0, outer_y0, outer_x1, outer_y1);
-        }
-      }
-    }
-
-    x = x_start;
-    width = x_end + 1 - x_start;
-  }
-
-  h_line(img, c_x + x, c_y + outer_y, width, color);
-  if (slice_is_split) {
-    h_line(img, c_x + x1, c_y + outer_y, width1, color);
+  if (segment && !filled) {
+    float rad_f = (float)radius - ((float)thickness / 2.0f);
+    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
+    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
+    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
+    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
+    int th = thickness / 2;
+    line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x + cap1_center_x, c_y + cap1_center_y, th, 0, 0, color, alpha);
   }
 }
 
-// TODO: Fix unwanted slice with angles 130 to 115 (I think, angles might be
-// slightly off).
-// TODO: Look into buggy rendering with angles around 180°-270°. This seems to
-// affect arcs, sectors, and segments likewise.
 static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
-                int thickness, bool rounded, bool filled, bool sector, bool segment, int dot1, int dot2, int resolution, uint32_t color) {
+                int thickness, bool rounded, bool filled, bool sector, bool segment, int dot1, int dot2, int resolution, uint32_t color, uint8_t alpha) {
   if (dot1 > 0 && !filled) {
     thickness /= 2;
 
@@ -1736,210 +1686,12 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
       thickness = 1;
     }
 
-    generic_arc(img, c_x, c_y, radius, angle0, angle1, thickness, dot1, dot2, resolution, sector, segment, color);
+    generic_arc(img, c_x, c_y, radius, angle0, angle1, thickness, dot1, dot2, resolution, sector, segment, color, alpha);
 
     return;
   }
 
-  if (thickness <= 1 && !filled) {
-    thin_arc(img, c_x, c_y, radius, angle0, angle1, sector, segment, color);
-
-    return;
-  }
-
-  if (radius == 0) {
-    return;
-  }
-
-  angle0 *= (float)M_PI / 180.0f;
-  angle1 *= (float)M_PI / 180.0f;
-  norm_angle_0_2pi(&angle0); // theses are probably unecessary?
-  norm_angle_0_2pi(&angle1); // but who knows with floating point imprecision...
-
-  if (angle0 == angle1) {
-    return;
-  }
-
-  bool angle_is_closed;
-  // if the angle of the filled in part of the arc is greater than 180°
-  if (angle1 - angle0 > 0.0) {
-    angle_is_closed = fabsf(angle1 - angle0) > M_PI;
-  } else {
-    angle_is_closed = fabsf(angle1 - angle0) < M_PI;
-  }
-
-  // angles smaller than 1 degree seem to cause issues (with a radius of 62)
-  // this is kinda ugly though, and it will probably still break at larger
-  // radii or something...
-  if (!angle_is_closed && fabsf(angle1 - angle0) < 0.0174532925) { // one degree in radians
-    if (rounded) {
-      float rad_f = (float)radius - ((float)thickness / 2.0f);
-
-      float angle = (angle0 + angle1) / 2.0f;
-
-      int cap_center_x = (int)floorf(cosf(angle) * rad_f);
-      int cap_center_y = (int)floorf(sinf(angle) * rad_f);
-
-      fill_circle(img, c_x + cap_center_x, c_y + cap_center_y, thickness / 2, color);
-    }
-    return;
-  }
-
-  if (thickness >= radius) {
-    filled = true;
-  }
-
-  int radius_outer, radius_inner;
-  if (filled) {
-    radius_outer = radius;
-    radius_inner = 0;
-  } else {
-    radius_outer = radius;
-    radius_inner = radius - thickness;
-  }
-  int radius_outer_dbl_sq = radius_outer * radius_outer * 4;
-  int radius_inner_dbl_sq = radius_inner * radius_inner * 4;
-
-  float angle0_cos = cosf(angle0);
-  float angle0_sin = sinf(angle0);
-  float angle1_cos = cosf(angle1);
-  float angle1_sin = sinf(angle1);
-
-  int outer_x0 = (int)(angle0_cos * (float)radius_outer);
-  int outer_y0 = (int)(angle0_sin * (float)radius_outer);
-
-  int outer_x1 = (int)(angle1_cos * (float)radius_outer);
-  int outer_y1 = (int)(angle1_sin * (float)radius_outer);
-
-  int inner_y0;
-  int inner_y1;
-
-  if (filled) {
-    inner_y0 = 0;
-
-    inner_y1 = 0;
-  } else {
-    inner_y0 = (int)(angle0_sin * (float)radius_inner);
-
-    inner_y1 = (int)(angle1_sin * (float)radius_inner);
-  }
-
-  int cap0_min_y = MIN(inner_y0, outer_y0);
-  int cap0_max_y = MAX(inner_y0, outer_y0);
-
-  int cap1_min_y = MIN(inner_y1, outer_y1);
-  int cap1_max_y = MAX(inner_y1, outer_y1);
-
-  // Highest and lowest (y coord wise) drawn line of the base arc (excluding
-  // the circular end caps). This range is *inclusive*!
-  // Note that these might be slightly off due to inconsistent rounding between
-  // Bresenhamn's algorithm and point rotation. (I don't think the point about
-  // Bresenhamn is relevant as we don't use it anymore. Still wouldn't trust
-  // them completely though...)
-  int min_y = MIN(outer_y0, MIN(outer_y1, MIN(inner_y0, inner_y1)));
-  int max_y = MAX(outer_y0, MAX(outer_y1, MAX(inner_y0, inner_y1)));
-  if (angle0 < angle1) {
-    if (angle0 < M_PI_2 && angle1 >= M_3PI_2) {
-      min_y = -radius_outer;
-      max_y = radius_outer;
-    } else if (angle0 < M_3PI_2 && angle1 > M_3PI_2) {
-      min_y = -radius_outer;
-    } else if (angle0 < M_PI_2 && angle1 > M_PI_2) {
-      max_y = radius_outer;
-    }
-  } else {
-    if ((angle0 < M_3PI_2 && angle1 >= M_PI_2)
-        || (angle0 < M_PI_2)
-        || (angle1 > M_3PI_2)) {
-      min_y = -radius_outer;
-      max_y = radius_outer;
-    } else if (angle0 < M_3PI_2 && angle1 < M_PI_2) {
-      min_y = -radius_outer;
-    } else if (angle0 > M_PI_2 && angle1 > M_PI_2) {
-      max_y = radius_outer;
-    }
-  }
-
-  for (int y = 0; y < radius_outer; y++) {
-    int y_dbl_offs = 2 * (y + 1);
-    int y_dbl_offs_sq = y_dbl_offs * y_dbl_offs;
-
-    for (int x = -radius_outer; x <= 0; x++) {
-      int x_dbl_offs = 2 * (x + 1);
-      if (x_dbl_offs * x_dbl_offs + y_dbl_offs_sq <= radius_outer_dbl_sq) {
-        // This is horrible...
-        handle_arc_slice(img, x, y,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
-                         cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
-                         angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
-        handle_arc_slice(img, -x - 1, y,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
-                         cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
-                         angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
-
-        handle_arc_slice(img, x, -y - 1,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
-                         cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
-                         angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
-        handle_arc_slice(img, -x - 1, -y - 1,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
-                         cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
-                         angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
-
-        break;
-      }
-    }
-  }
-
-  // draw rounded line corners
-  if (rounded && !filled && !sector && !segment) {
-    float rad_f = (float)radius - ((float)thickness / 2.0f);
-
-    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
-    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
-
-    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
-    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
-
-    thickness /= 2;
-
-    fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, thickness, color);
-    fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, thickness, color);
-  }
-
-  // draw sector arc cap to center lines
-  // (sectors are always rounded)
-  if (sector && !filled) {
-    float rad_f = (float)radius - ((float)thickness / 2.0f);
-
-    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
-    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
-
-    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
-    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
-
-    thickness /= 2;
-
-    line(img, c_x + cap0_center_x, c_y + cap0_center_y,
-         c_x, c_y, thickness, 0, 0, color);
-    line(img, c_x + cap1_center_x, c_y + cap1_center_y,
-         c_x, c_y, thickness, 0, 0, color);
-  }
-
-  if (segment && !filled) {
-    float rad_f = (float)radius - ((float)thickness / 2.0f);
-
-    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
-    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
-
-    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
-    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
-
-    thickness /= 2;
-
-    line(img, c_x + cap0_center_x, c_y + cap0_center_y,
-         c_x + cap1_center_x, c_y + cap1_center_y, thickness, 0, 0, color);
-  }
+  arc_ring(img, c_x, c_y, radius, angle0, angle1, thickness, rounded, filled, sector, segment, color, alpha);
 }
 
 // orient: 0=normal, 1=up(90°CCW), 2=180°, 3=down(90°CW)
@@ -2001,10 +1753,10 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
     for (int py = sy0; py <= sy1; py++) {
       for (int px = sx0; px <= sx1; px++) {
         switch (orient) {
-          case 1:  putpixel(img, x + py, y - px, color); break;
-          case 2:  putpixel(img, x - px, y - py, color); break;
-          case 3:  putpixel(img, x - py, y + px, color); break;
-          default: putpixel(img, x + px, y + py, color); break;
+          case 1:  putpixel(img, x + py, y - px, color, 255); break;
+          case 2:  putpixel(img, x - px, y - py, color, 255); break;
+          case 3:  putpixel(img, x - py, y + px, color, 255); break;
+          default: putpixel(img, x + px, y + py, color, 255); break;
         }
       }
     }
@@ -2012,10 +1764,10 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
 }
 
 static inline void copy_pixel(
-	image_buffer_t *img_dest, 
-    image_buffer_t *img_src, 
-    int dest_x, int dest_y, 
-    int src_x, int src_y, 
+        image_buffer_t *img_dest,
+    image_buffer_t *img_src,
+    int dest_x, int dest_y,
+    int src_x, int src_y,
     int src_w, int src_h,
     int transparent_color,
     bool tile
@@ -2026,11 +1778,11 @@ static inline void copy_pixel(
         src_y = src_y % src_h;
         if (src_y < 0) src_y = src_y + src_h;
     }
-    
+
     if (src_x >= 0 && src_x < src_w && src_y >= 0 && src_y < src_h) {
         uint32_t p = getpixel(img_src, src_x, src_y);
         if (transparent_color == -1 || p != (uint32_t)transparent_color) {
-            putpixel(img_dest, dest_x, dest_y, p);
+            putpixel(img_dest, dest_x, dest_y, p, 255);
         }
     }
 }
@@ -2141,6 +1893,7 @@ typedef struct {
   bool is_valid;
   image_buffer_t img;
   lbm_value args[ARG_MAX_NUM];
+  uint8_t alpha;
   attr_t attr_thickness;
   attr_t attr_filled;
   attr_t attr_rounded;
@@ -2156,6 +1909,7 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
   img_args_t res;
   memset(&res, 0, sizeof(res));
   res.is_valid = false;
+  res.alpha = 255;
 
   lbm_array_header_t *arr;
   if (argn >= 1 && (arr = get_image_buffer(args[0]))) {
@@ -2170,6 +1924,15 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
     int num_dec = 0;
     for (unsigned int i = 1;i < argn;i++) {
       if (!lbm_is_number(args[i]) && !lbm_is_cons(args[i])) {
+        color_t *clr = get_color(args[i]);
+        if (clr && clr->type == COLOR_REGULAR &&
+            num_dec == num_expected - 1) {
+          res.args[num_dec] = lbm_enc_u32((uint32_t)clr->color1);
+          res.alpha = clr->alpha;
+          num_dec++;
+          if (num_dec >= ARG_MAX_NUM) return res;
+          continue;
+        }
         return res;
       }
 
@@ -2335,7 +2098,7 @@ static lbm_value ext_is_image_buffer(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
 
-  if (argn >= 2 && argn <= 6 &&
+  if (argn >= 2 && argn <= 7 &&
       lbm_is_symbol(args[0]) &&
       lbm_is_number(args[1])) {
 
@@ -2371,6 +2134,8 @@ static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
     }
 
     bool mirrored = false;
+    lbm_uint alpha_arg = argn;
+
     if (argn >= 6) {
       if (lbm_is_symbol(args[5])) {
         lbm_uint sym = lbm_dec_sym(args[5]);
@@ -2381,6 +2146,9 @@ static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
         } else {
           return ENC_SYM_TERROR;
         }
+        alpha_arg = 6;
+      } else if (argn == 6 && lbm_is_number(args[5])) {
+        alpha_arg = 5;
       } else {
         return ENC_SYM_TERROR;
       }
@@ -2401,8 +2169,24 @@ static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
+    if (t == COLOR_REGULAR && argn == 3) {
+      alpha_arg = 2;
+    }
+
+    uint8_t alpha = 255;
+    if (alpha_arg < argn) {
+      if (lbm_is_number(args[alpha_arg])) {
+        int32_t a = lbm_dec_as_i32(args[alpha_arg]);
+        if (a < 0) a = 0;
+        if (a > 255) a = 255;
+        alpha = (uint8_t)a;
+      } else {
+        return ENC_SYM_TERROR;
+      }
+    }
+
     // Maybe check if param is in ranges first ?
-    res = color_allocate(t, color1, color2, (uint16_t)param1, (uint16_t)param2, mirrored);
+    res = color_allocate(t, color1, color2, (uint16_t)param1, (uint16_t)param2, mirrored, alpha);
   }
 
   return res;
@@ -2452,6 +2236,14 @@ static lbm_value ext_color_set(lbm_value *args, lbm_uint argn) {
     } else {
       return ENC_SYM_TERROR;
     }
+  } else if (prop == symbol_alpha) {
+    if (!lbm_is_number(args[2])) {
+      return ENC_SYM_TERROR;
+    }
+    int32_t a = lbm_dec_as_i32(args[2]);
+    if (a < 0) a = 0;
+    if (a > 255) a = 255;
+    color->alpha = (uint8_t)a;
   } else {
     return ENC_SYM_TERROR;
   }
@@ -2493,6 +2285,8 @@ static lbm_value ext_color_get(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
     return lbm_enc_sym(color->mirrored ? symbol_mirrored : symbol_repeat);
+  } else if (prop == symbol_alpha) {
+    return lbm_enc_u32((uint32_t)color->alpha);
   } else {
     return ENC_SYM_TERROR;
   }
@@ -2569,7 +2363,8 @@ static lbm_value ext_putpixel(lbm_value *args, lbm_uint argn) {
   putpixel(&arg_dec.img,
            lbm_dec_as_i32(arg_dec.args[0]),
            lbm_dec_as_i32(arg_dec.args[1]),
-           lbm_dec_as_u32(arg_dec.args[2]));
+           lbm_dec_as_u32(arg_dec.args[2]),
+           arg_dec.alpha);
   return ENC_SYM_TRUE;
 }
 
@@ -2602,7 +2397,8 @@ static lbm_value ext_line(lbm_value *args, lbm_uint argn) {
        lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
        lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
        lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-       lbm_dec_as_u32(arg_dec.args[4]));
+       lbm_dec_as_u32(arg_dec.args[4]),
+       arg_dec.alpha);
 
   return ENC_SYM_TRUE;
 }
@@ -2620,7 +2416,8 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
                 lbm_dec_as_i32(arg_dec.args[0]),
                 lbm_dec_as_i32(arg_dec.args[1]),
                 lbm_dec_as_i32(arg_dec.args[2]),
-                lbm_dec_as_u32(arg_dec.args[3]));
+                lbm_dec_as_u32(arg_dec.args[3]),
+                arg_dec.alpha);
   } else if (arg_dec.attr_dotted.is_valid) {
     arc(&arg_dec.img,
         lbm_dec_as_i32(arg_dec.args[0]),
@@ -2634,14 +2431,16 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
         lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
         lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
         lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-        lbm_dec_as_u32(arg_dec.args[3]));
+        lbm_dec_as_u32(arg_dec.args[3]),
+        arg_dec.alpha);
   } else {
     circle(&arg_dec.img,
            lbm_dec_as_i32(arg_dec.args[0]),
            lbm_dec_as_i32(arg_dec.args[1]),
            lbm_dec_as_i32(arg_dec.args[2]),
            lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-           lbm_dec_as_u32(arg_dec.args[3]));
+           lbm_dec_as_u32(arg_dec.args[3]),
+           arg_dec.alpha);
   }
 
   return ENC_SYM_TRUE;
@@ -2668,7 +2467,8 @@ static lbm_value ext_arc(lbm_value *args, lbm_uint argn) {
       lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
       lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
       lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]));
+      lbm_dec_as_u32(arg_dec.args[5]),
+      arg_dec.alpha);
 
   return ENC_SYM_TRUE;
 }
@@ -2694,7 +2494,8 @@ static lbm_value ext_circle_sector(lbm_value *args, lbm_uint argn) {
       lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
       lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
       lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]));
+      lbm_dec_as_u32(arg_dec.args[5]),
+      arg_dec.alpha);
 
   return ENC_SYM_TRUE;
 }
@@ -2720,7 +2521,8 @@ static lbm_value ext_circle_segment(lbm_value *args, lbm_uint argn) {
       lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
       lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
       lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]));
+      lbm_dec_as_u32(arg_dec.args[5]),
+      arg_dec.alpha);
 
 
   return ENC_SYM_TRUE;
@@ -2748,13 +2550,7 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
 
   if (arg_dec.attr_rounded.is_valid) {
     if (arg_dec.attr_filled.is_valid) {
-      rectangle(img, x + rad, y, width - 2 * rad, rad, 1, 1, 0, 0, color);
-      rectangle(img, x + rad, y + height - rad, width - 2 * rad, rad, 1, 1, 0, 0, color);
-      rectangle(img, x, y + rad, width, height - 2 * rad, 1, 1, 0, 0, color);
-      fill_circle(img, x + rad, y + rad, rad, color);
-      fill_circle(img, x + rad, y + height - rad, rad, color);
-      fill_circle(img, x + width - rad, y + rad, rad, color);
-      fill_circle(img, x + width - rad, y + height - rad, rad, color);
+      fill_rounded_rectangle(img, x, y, width, height, rad, color, arg_dec.alpha);
     } else {
       // Remember to change these to use the rounded attribute,
       // when/if line supports it!
@@ -2763,22 +2559,22 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
       thickness = line_thickness * 2; // round it to even for consistency.
 
       // top
-      line(img, x + rad, y + line_thickness, x + width - rad, y + line_thickness, line_thickness, dot1, dot2, color);
+      line(img, x + rad, y + line_thickness, x + width - rad, y + line_thickness, line_thickness, dot1, dot2, color, arg_dec.alpha);
       // bottom
-      line(img, x + rad, y + height - line_thickness, x + width - rad, y + height - line_thickness, line_thickness, dot1, dot2, color);
+      line(img, x + rad, y + height - line_thickness, x + width - rad, y + height - line_thickness, line_thickness, dot1, dot2, color, arg_dec.alpha);
       // left
-      line(img, x + line_thickness, y + rad, x + line_thickness, y + height - rad, line_thickness, dot1, dot2, color);
+      line(img, x + line_thickness, y + rad, x + line_thickness, y + height - rad, line_thickness, dot1, dot2, color, arg_dec.alpha);
       // right
-      line(img, x + width - line_thickness, y + rad, x + width - line_thickness, y + height - rad, line_thickness, dot1, dot2, color);
+      line(img, x + width - line_thickness, y + rad, x + width - line_thickness, y + height - rad, line_thickness, dot1, dot2, color, arg_dec.alpha);
 
       // upper left
-      arc(img, x + rad, y + rad, rad, 180, 270, thickness, false, false, false, false, dot1, dot2, resolution, color);
+      arc(img, x + rad, y + rad, rad, 180, 270, thickness, false, false, false, false, dot1, dot2, resolution, color, arg_dec.alpha);
       // upper right
-      arc(img, x + width - rad, y + rad, rad, 270, 0, thickness, false, false, false, false, dot1, dot2, resolution, color);
+      arc(img, x + width - rad, y + rad, rad, 270, 0, thickness, false, false, false, false, dot1, dot2, resolution, color, arg_dec.alpha);
       // bottom left
-      arc(img, x + rad, y + height - rad, rad, 90, 180, thickness, false, false, false, false, dot1, dot2, resolution, color);
+      arc(img, x + rad, y + height - rad, rad, 90, 180, thickness, false, false, false, false, dot1, dot2, resolution, color, arg_dec.alpha);
       // bottom right
-      arc(img, x + width - rad, y + height - rad, rad, 0, 90, thickness, false, false, false, false, dot1, dot2, resolution, color);
+      arc(img, x + width - rad, y + height - rad, rad, 0, 90, thickness, false, false, false, false, dot1, dot2, resolution, color, arg_dec.alpha);
     }
   } else {
     rectangle(img,
@@ -2787,7 +2583,7 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
               arg_dec.attr_filled.is_valid,
               thickness,
               dot1, dot2,
-              color);
+              color, arg_dec.alpha);
   }
 
   return ENC_SYM_TRUE;
@@ -2814,11 +2610,11 @@ static lbm_value ext_triangle(lbm_value *args, lbm_uint argn) {
   uint32_t color = lbm_dec_as_u32(arg_dec.args[6]);
 
   if (arg_dec.attr_filled.is_valid) {
-    fill_triangle(img, x0, y0, x1, y1, x2, y2, color);
+    fill_triangle(img, x0, y0, x1, y1, x2, y2, color, arg_dec.alpha);
   } else {
-    line(img, x0, y0, x1, y1, thickness, dot1, dot2, color);
-    line(img, x1, y1, x2, y2, thickness, dot1, dot2, color);
-    line(img, x2, y2, x0, y0, thickness, dot1, dot2, color);
+    line(img, x0, y0, x1, y1, thickness, dot1, dot2, color, arg_dec.alpha);
+    line(img, x1, y1, x2, y2, thickness, dot1, dot2, color, arg_dec.alpha);
+    line(img, x2, y2, x0, y0, thickness, dot1, dot2, color, arg_dec.alpha);
   }
 
   return ENC_SYM_TRUE;
@@ -2968,7 +2764,7 @@ static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
     if (arg_dec.attr_scale.is_valid) {
       scale = lbm_dec_as_float(arg_dec.attr_scale.args[0]);
     }
-    
+
     blit(
         &dest_buf,
         &arg_dec.img,
@@ -3222,7 +3018,7 @@ void lbm_display_extensions_set_callbacks(
                                           void(* volatile clear)(uint32_t color),
                                           void(* volatile reset)(void)
                                           ) {
-  disp_render_image = render_image ? render_image : display_dummy_render_image;  
+  disp_render_image = render_image ? render_image : display_dummy_render_image;
   disp_clear = clear ? clear : display_dummy_clear;
   disp_reset = reset ? reset : display_dummy_reset;
 }

@@ -717,11 +717,11 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
           if (p) { // only draw colored
             uint32_t c = colors[p & (num_colors-1)]; // ceiled
             if (up) {
-              putpixel(&tgt, x_pos + (j + (int)y_n), y_pos - (k + (int)(x_n + left_side_bearing)), c);
+              putpixel(&tgt, x_pos + (j + (int)y_n), y_pos - (k + (int)(x_n + left_side_bearing)), c, 255);
             } else if (down) {
-              putpixel(&tgt, x_pos - (j + (int)y_n), y_pos + (k + (int)(x_n + left_side_bearing)), c);
+              putpixel(&tgt, x_pos - (j + (int)y_n), y_pos + (k + (int)(x_n + left_side_bearing)), c, 255);
             } else {
-              putpixel(&tgt, x_pos + (k + (int)(x_n + left_side_bearing)), y_pos + (j + (int)y_n), c);
+              putpixel(&tgt, x_pos + (k + (int)(x_n + left_side_bearing)), y_pos + (j + (int)y_n), c, 255);
             }
           }
         }

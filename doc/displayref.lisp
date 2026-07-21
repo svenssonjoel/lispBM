@@ -26,11 +26,6 @@
 (defun code-png-str (img c xs) (code-png img c (map (lambda (x) (list 'read-eval x)) xs)))
 
 
-;; VESC style import emulator
-(define import (macro (file sym)
-                      `(define ,(eval sym) (load-file (f-open ,file "r")))))
-
-
 (define create_image1
   (ref-entry "img-buffer"
              (list
@@ -214,21 +209,25 @@
   (ref-entry "img-color"
              (list
               (para (list "img-color is used to create more complex color objects for"
-                          "use together with disp-render.")
-                    )            
+                          "use together with disp-render. Regular colors can optionally include"
+                          "alpha from 0 (transparent) to 255 (opaque), with 255 as the default.")
+                    )
               (bullet (list "**gradient_x**: vertical gradients from color1 to color2."
                             "**gradient_y**: horizontal gradients from color1 to color2."
                             "**gradient_x_pre**: precomputes gradient."
                             "**gradient_y_pre**: precomputes gradient."))
-  
+
               (code '((read-eval "(img-color 'regular 0xAABB11)")
+                      (read-eval "(img-color 'regular 0xAABB11 128)")
                       (read-eval "(img-color 'gradient_x color1 color2 10 0 'repeat)")
                       (read-eval "(img-color 'gradient_x_pre color1 color2)")
                       ))
+              (para (list "Alpha blends colors in RGB buffers. For indexed buffers, alpha 0"
+                          "skips the pixel and any non-zero value writes the color index."))
               (program-disp '((
                                (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
-                               (fclose fptr)
+                               (f-close fptr)
                                (define c (img-color 'gradient_x color1 color2 100 0 'repeat))
                                (define img (img-buffer 'indexed2 320 200))
                                (img-blit img pic 10 10 -1 '(rotate 128 128 45))
@@ -237,7 +236,7 @@
               (program-disp '((
                                (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
-                               (fclose fptr)
+                               (f-close fptr)
                                (define c (img-color 'gradient_y color1 color2 100 0 'mirrored))
                                (define img (img-buffer 'indexed2 320 200))
                                (img-blit img pic 10 10 -1 '(rotate 128 128 45))
@@ -257,6 +256,7 @@
              (list
               (para (list "With `img-color-set`you can set properties of a color."
                           "The form of a img-color-set expression is `(img-color-set color prop value)`"
+                          "The `alpha` property is available for every color type and is clamped to 0..255."
                           ))
               (para (list "|Arg || \n"
                           "|----|----|\n"
@@ -277,6 +277,7 @@
                       (img-color-set my-color 'color-1 0x00FF00)
                       (img-color-set my-color 'width 10)
                       (img-color-set my-color 'offset 1)
+                      (img-color-set my-color 'alpha 128)
                       ))
               )))
 
@@ -285,6 +286,7 @@
              (list
               (para (list "With `img-color-get` you can access properties of a color."
                           "The form of an img-color-get expression is `(img-color-get color prop)`"
+                          "Use the `alpha` property to read the current opacity."
                           ))
               (para (list "|Arg || \n"
                           "|----|----|\n"
@@ -304,6 +306,7 @@
                       (img-color-get my-color 'color-1)
                       (img-color-get my-color 'width)
                       (img-color-get my-color 'offset)
+                      (img-color-get my-color 'alpha)
                       ))
              )))
 
@@ -327,7 +330,7 @@
                            (program-disp '((
                                (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
-                               (fclose fptr)
+                               (f-close fptr)
                                (define c (img-color 'gradient_x_pre color1 color2 100 0 'repeat))
                                (loopfor i 0 (< i 512) (+ i 2) {
                                         (img-color-setpre c i 0xFFFFFF)
@@ -340,7 +343,7 @@
               (program-disp '((
                                (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
-                               (fclose fptr)
+                               (f-close fptr)
                                (define c (img-color 'gradient_y_pre color1 color2 200 0 'repeat))
                                (loopfor i 0 (< i 200) (+ i 10) {
                                         (var band-color (if (= (mod (/ i 10) 2) 0) color1 color2))
@@ -625,7 +628,7 @@
 (let ((fptr (f-open "lispbm.jpeg" "r")))
   {
   (define my-jpg (load-file fptr))
-  (fclose fptr)
+  (f-close fptr)
   })
                   
 
