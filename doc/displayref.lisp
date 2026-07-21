@@ -625,6 +625,34 @@
                               ))
               end)))
 
+(define overlapping-alpha-shapes
+  (ref-entry "Example: Overlapping shapes with alpha"
+             (list
+              (para (list "Colors with an alpha value blend with the image buffer contents"
+                          "instead of overwriting them. Only has an effect in RGB buffers."
+                          ))
+              (program-disp '((
+                               (img-clear img-rgb888 0x101018)
+                               (define alpha-red  (img-color 'regular 0xE04030 160))
+                               (define alpha-blue (img-color 'regular 0x3080E0 160))
+                               (img-circle img-rgb888 70 75 50 alpha-red '(filled))
+                               (img-circle img-rgb888 120 75 50 alpha-blue '(filled))
+                               (disp-render img-rgb888 0 0)
+                               ))
+                            )
+              (program-disp '((
+                               (img-clear img-rgb888 0x101018)
+                               (define alpha-red   (img-color 'regular 0xE04030 160))
+                               (define alpha-green (img-color 'regular 0x30C060 160))
+                               (define alpha-blue  (img-color 'regular 0x3080E0 160))
+                               (img-triangle img-rgb888 30 15 150 15 30 135 alpha-red   '(filled))
+                               (img-triangle img-rgb888 55 40 175 40 55 160 alpha-green '(filled))
+                               (img-triangle img-rgb888 80 65 200 65 80 150 alpha-blue  '(filled))
+                               (disp-render img-rgb888 0 0)
+                               ))
+                            )
+              end)))
+
 (let ((fptr (f-open "lispbm.jpeg" "r")))
   {
   (define my-jpg (load-file fptr))
@@ -796,7 +824,8 @@
                          ))
              
              sierpinski
-             rotated-llama))
+             rotated-llama
+             overlapping-alpha-shapes))
    info
    )
   )
