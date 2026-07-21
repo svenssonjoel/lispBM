@@ -647,7 +647,7 @@
                                (define alpha-blue  (img-color 'regular 0x3080E0 160))
                                (img-triangle img-rgb888 30 15 150 15 30 135 alpha-red   '(filled))
                                (img-triangle img-rgb888 55 40 175 40 55 160 alpha-green '(filled))
-                               (img-triangle img-rgb888 80 65 200 65 80 150 alpha-blue  '(filled))
+                               (img-triangle img-rgb888 80 65 200 65 80 185 alpha-blue  '(filled))
                                (disp-render img-rgb888 0 0)
                                ))
                             )
