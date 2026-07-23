@@ -349,6 +349,14 @@ void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c, uint8_t alpha) 
   }
 }
 
+static inline uint32_t getpixel_rgb888(const uint8_t *data, uint16_t w, int x, int y) {
+  int pos = y * (w * 3) + (x * 3);
+  uint32_t r = data[pos];
+  uint32_t g = data[pos + 1];
+  uint32_t b = data[pos + 2];
+  return (r << 16) | (g << 8) | b;
+}
+
 uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
   uint16_t w = img->width;
   uint16_t h = img->height;
@@ -387,11 +395,7 @@ uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
       return rgb565to888(c);
     }
     case rgb888: {
-      int pos = y*(w*3) + (x*3);
-      uint32_t r = data[pos];
-      uint32_t g = data[pos+1];
-      uint32_t b = data[pos+2];
-      return (r << 16 | g << 8 | b);
+      return getpixel_rgb888(data, w, x, y);
     }
     default:
       break;
@@ -1583,19 +1587,16 @@ static size_t tinygfx_jpg_input(JDEC* jd, uint8_t* buff, size_t ndata) {
 static int tinygfx_jpg_output(JDEC* jd, void* bitmap, JRECT* rect) {
   tinygfx_jpg_io_t *dev = (tinygfx_jpg_io_t*)jd->device;
 
-  image_buffer_t src;
-  src.mem_base = (uint8_t*)bitmap;
-  src.data = (uint8_t*)bitmap;
-  src.width = (uint16_t)(rect->right - rect->left + 1);
-  src.height = (uint16_t)(rect->bottom - rect->top + 1);
-  src.fmt = rgb888;
+  uint16_t src_w = (uint16_t)(rect->right - rect->left + 1);
+  uint16_t src_h = (uint16_t)(rect->bottom - rect->top + 1);
+  const uint8_t *src_data = (const uint8_t*)bitmap;
 
   int dx = dev->ofs_x + rect->left;
   int dy = dev->ofs_y + rect->top;
 
-  for (int y = 0; y < src.height; y++) {
-    for (int x = 0; x < src.width; x++) {
-      putpixel(dev->dest, dx + x, dy + y, getpixel(&src, x, y), 255);
+  for (int y = 0; y < src_h; y++) {
+    for (int x = 0; x < src_w; x++) {
+      putpixel(dev->dest, dx + x, dy + y, getpixel_rgb888(src_data, src_w, x, y), 255);
     }
   }
 
