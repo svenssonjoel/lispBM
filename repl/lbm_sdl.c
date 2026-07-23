@@ -112,15 +112,22 @@ static lbm_value ext_sdl_create_window(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+SDL_Renderer *active_rend = NULL;
+
 static bool sdl_renderer_destructor(lbm_uint value) {
-  if (value) SDL_DestroyRenderer((SDL_Renderer*)value);
+  if (value) {
+    if ((SDL_Renderer*)value == active_rend) active_rend = NULL;
+    SDL_DestroyRenderer((SDL_Renderer*)value);
+  }
   return true;
 }
 
 static lbm_value ext_sdl_destroy_renderer(lbm_value *args, lbm_uint argn) {
   if (argn == 1 && lbm_type_of(args[0]) == LBM_TYPE_CUSTOM) {
     lbm_uint *m = (lbm_uint *)lbm_dec_custom(args[0]);
-    SDL_DestroyRenderer((SDL_Renderer*)m[CUSTOM_TYPE_VALUE]);
+    SDL_Renderer *rend = (SDL_Renderer*)m[CUSTOM_TYPE_VALUE];
+    if (rend == active_rend) active_rend = NULL;
+    SDL_DestroyRenderer(rend);
     m[CUSTOM_TYPE_VALUE] = 0;
   }
   return ENC_SYM_TRUE;
@@ -283,7 +290,7 @@ static lbm_value ext_sdl_load_texture(lbm_value *args, lbm_uint argn) {
       SDL_Texture *texture = IMG_LoadTexture(rend, filename);
       if (texture &&
           !lbm_custom_type_create((lbm_uint)texture, sdl_texture_destructor, "SDLTexture", &res))
-        SDL_DestroyRenderer(rend);
+        SDL_DestroyTexture(texture);
     }
   }
   return res;
@@ -318,9 +325,6 @@ static lbm_value ext_sdl_blit(lbm_value *args, lbm_uint argn) {
 }
 
 // Display interface
-
-
-SDL_Renderer *active_rend = NULL;
 
 static lbm_value ext_sdl_set_active_renderer(lbm_value *args, lbm_uint argn) {
   lbm_value res = lbm_enc_sym(SYM_NIL);
