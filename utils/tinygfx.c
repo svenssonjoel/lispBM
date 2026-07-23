@@ -1162,7 +1162,7 @@ static void arc_thin_plot(image_buffer_t *img, int c_x, int c_y, int px, int py,
 // consecutive plotted points are always <=1 pixel apart, so -- unlike the
 // row-scan approach -- there is no gap to patch up near the poles.
 static void arc_thin(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1, const arc_params_t *p) {
-  if (radius == 0) return;
+  if (radius <= 0) return;
 
   bool full_circle = fabsf(angle1 - angle0) > 1e-4f
     && fabsf(fmodf(angle1 - angle0, 360.0f)) < 1e-3f;
@@ -1220,7 +1220,7 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
     arc_thin(img, c_x, c_y, radius, angle0, angle1, p);
     return;
   }
-  if (radius == 0) return;
+  if (radius <= 0) return;
 
   bool full_circle = fabsf(angle1 - angle0) > 1e-4f
     && fabsf(fmodf(angle1 - angle0, 360.0f)) < 1e-3f;

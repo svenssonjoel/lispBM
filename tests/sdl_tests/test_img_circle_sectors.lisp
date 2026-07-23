@@ -55,15 +55,16 @@
 (define r22 (img-circle-sector img500x400 520 420 25 0 180 2))   ; mostly off-screen
 
 ;; Test combining filled and thickness properties
-(define r23 (img-circle-sector img500x400 160 340 30 45 135 1 '(filled) '(thickness 4)))
+(define r23 (img-circle-sector img500x400 450 45 30 45 135 1 '(filled) '(thickness 4)))
 
 ;; Test invalid parameters
 (define r24 (trap (img-circle-sector img500x400 100 100 -5 0 90 1)))         ; negative radius
 (define r25 (trap (img-circle-sector img500x400 100 100 25 450 500 1)))      ; angles > 360
+;; Must be an error.
 (define r26 (trap (img-circle-sector "invalid" 100 100 25 0 90 1)))          ; invalid buffer
 
 ;; Test with reverse angle order (end < start) - should wrap around
-(define r27 (img-circle-sector img500x400 360 340 25 270 45 3))              ; wraps around 0
+(define r27 (img-circle-sector img500x400 450 105 25 270 45 3))              ; wraps around 0
 
 ;; Test very small and very large sectors
 (define r28 (img-circle-sector img500x400 450 160 20 0 1 1))     ; 1-degree sector (very thin)
