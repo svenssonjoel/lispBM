@@ -103,6 +103,8 @@ color_format_t sym_to_color_format(lbm_value v);
 
 bool lbm_display_is_color(lbm_value v);
 
+bool lbm_display_decode_color_list(lbm_value color_list, color_t *colors, int max_colors);
+
 void lbm_display_extensions_init(void);
 void lbm_display_extensions_set_callbacks(
                                           bool(* volatile render_image)(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors),

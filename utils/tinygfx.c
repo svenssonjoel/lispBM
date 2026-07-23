@@ -1453,15 +1453,15 @@ void blit(
 
   int dest_x_start = clip_x;
   int dest_y_start = clip_y;
-  int dest_x_end = clip_w;
-  int dest_y_end = clip_h;
+  int dest_x_end = clip_x + clip_w;
+  int dest_y_end = clip_y + clip_h;
 
   if (rot_angle == 0.0 && scale == 1.0) {
-    if (dest_offset_x > 0) dest_x_start += dest_offset_x;
-    if (dest_offset_y > 0) dest_y_start += dest_offset_y;
+    if (dest_offset_x > dest_x_start) dest_x_start = dest_offset_x;
+    if (dest_offset_y > dest_y_start) dest_y_start = dest_offset_y;
     if (!tile) {
-        if ((dest_x_end - dest_offset_x) > src_w) dest_x_end = src_w + dest_offset_x;
-        if ((dest_y_end - dest_offset_y) > src_h) dest_y_end = src_h + dest_offset_y;
+        if (dest_offset_x + src_w < dest_x_end) dest_x_end = dest_offset_x + src_w;
+        if (dest_offset_y + src_h < dest_y_end) dest_y_end = dest_offset_y + src_h;
     }
 
     for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {

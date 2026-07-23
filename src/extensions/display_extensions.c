@@ -1050,6 +1050,8 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
   int resolution = lbm_dec_as_i32(arg_dec.attr_resolution.args[0]);
 
   if (arg_dec.attr_rounded.is_valid) {
+    if (rad > width / 2) rad = width / 2;
+    if (rad > height / 2) rad = height / 2;
     if (arg_dec.attr_filled.is_valid) {
       tinygfx_fill_rounded_rectangle(img, x, y, width, height, rad, color, arg_dec.alpha);
     } else {
@@ -1353,6 +1355,30 @@ static lbm_value ext_disp_clear(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+bool lbm_display_decode_color_list(lbm_value color_list, color_t *colors, int max_colors) {
+  memset(colors, 0, sizeof(color_t) * (size_t)max_colors);
+  if (!lbm_is_list(color_list)) {
+    return true;
+  }
+  int i = 0;
+  lbm_value curr = color_list;
+  while (lbm_is_cons(curr) && i < max_colors) {
+    lbm_value arg = lbm_car(curr);
+    color_t *color;
+    if (lbm_is_number(arg)) {
+      colors[i].color1 = (int)lbm_dec_as_u32(arg);
+    } else if ((color = get_color(arg))) { // color assignment
+      colors[i] = *color;
+    } else {
+      return false;
+    }
+
+    curr = lbm_cdr(curr);
+    i++;
+  }
+  return true;
+}
+
 static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
   if (disp_render_image == NULL) {
     lbm_set_error_reason(msg_not_supported);
@@ -1373,25 +1399,10 @@ static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
     img_buf.data = image_buffer_data((uint8_t*)arr->data);
 
     color_t colors[16];
-    memset(colors, 0, sizeof(color_t) * 16);
-
-    if (argn == 4 && lbm_is_list(args[3])) {
-      int i = 0;
-      lbm_value curr = args[3];
-      while (lbm_is_cons(curr) && i < 16) {
-        lbm_value arg = lbm_car(curr);
-        color_t *color;
-        if (lbm_is_number(arg)) {
-          colors[i].color1 = (int)lbm_dec_as_u32(arg);
-        } else if ((color = get_color(arg))) { // color assignment
-          colors[i] = *color;
-        } else {
-          return ENC_SYM_TERROR;
-        }
-
-        curr = lbm_cdr(curr);
-        i++;
-      }
+    if (argn == 4 && !lbm_display_decode_color_list(args[3], colors, 16)) {
+      return ENC_SYM_TERROR;
+    } else if (argn == 3) {
+      memset(colors, 0, sizeof(color_t) * 16);
     }
 
     // img_buf is a stack allocated image_buffer_t.

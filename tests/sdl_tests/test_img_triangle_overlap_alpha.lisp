@@ -72,6 +72,7 @@
 (define is_buffer (img-buffer? img))
 
 (disp-render img 0 0)
+(save-img img "sdl_tests/png_out/test_img_triangle_overlap_alpha.png")
 
 (if (and t1 t2 t3
          is_buffer (eq dims '(320 320))

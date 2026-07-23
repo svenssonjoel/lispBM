@@ -1367,64 +1367,125 @@ static lbm_value ext_set_active_image(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
+static bool write_rgb888_png(const char *filename, uint8_t *data, uint32_t w, uint32_t h) {
+  bool res = false;
+
+  FILE *fp = fopen(filename, "w");
+  if (fp) {
+    png_structp png_ptr = NULL;
+    png_infop info_ptr = NULL;
+    png_bytep* row_pointers = NULL;
+
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    info_ptr = png_create_info_struct(png_ptr);
+
+    png_set_IHDR(png_ptr,
+                 info_ptr,
+                 w,
+                 h,
+                 8, // per channel
+                 PNG_COLOR_TYPE_RGB,
+                 PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_BASE,
+                 PNG_FILTER_TYPE_BASE);
+
+    row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * h);
+
+    if (row_pointers) {
+      for (uint32_t i = 0; i < h; ++i) {
+        row_pointers[i] = data + (i * w * 3);
+      }
+
+      png_init_io(png_ptr, fp);
+      png_set_rows(png_ptr, info_ptr, row_pointers);
+      png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
+      res = true;
+    }
+
+    fclose(fp);
+
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    png_ptr = NULL;
+    info_ptr = NULL;
+    free(row_pointers);
+  }
+  return res;
+}
+
+static void blast_to_rgb888(uint8_t *dest, image_buffer_t *img, color_t *colors) {
+  switch(img->fmt) {
+  case indexed2:
+    buffer_blast_indexed2(dest, img, colors);
+    break;
+  case indexed4:
+    buffer_blast_indexed4(dest, img, colors);
+    break;
+  case indexed16:
+    buffer_blast_indexed16(dest, img, colors);
+    break;
+  case rgb332:
+    buffer_blast_rgb332(dest, img);
+    break;
+  case rgb565:
+    buffer_blast_rgb565(dest, img);
+    break;
+  case rgb888:
+    buffer_blast_rgb888(dest, img);
+    break;
+  default:
+    break;
+  }
+}
+
 static lbm_value ext_save_active_image(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
   if (argn == 1 &&
       lbm_is_array_r(args[0]) &&
       lbm_is_array_r(active_image)) {
 
-    FILE *fp = NULL;
-
     char *filename = lbm_dec_str(args[0]);
 
-    fp = fopen(filename, "w");
-    if (fp) {
-      png_structp png_ptr = NULL;
-      png_infop info_ptr = NULL;
-      png_bytep* row_pointers = NULL;
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(active_image);
 
-      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(active_image);
+    uint8_t *img_buf = (uint8_t*)arr->data;
+    uint8_t *data = image_buffer_data(img_buf);
+    uint32_t w = image_buffer_width(img_buf);
+    uint32_t h = image_buffer_height(img_buf);
 
-      uint8_t *img_buf = (uint8_t*)arr->data;
-      uint8_t *data = image_buffer_data(img_buf);
-      uint32_t w = image_buffer_width(img_buf);
-      uint32_t h = image_buffer_height(img_buf);
+    res = write_rgb888_png(filename, data, w, h) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  }
+  return res;
+}
 
+static lbm_value ext_save_img(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  lbm_array_header_t *arr;
 
-      png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-      info_ptr = png_create_info_struct(png_ptr);
+  if ((argn == 2 || argn == 3) &&
+      (arr = get_image_buffer(args[0])) &&
+      lbm_is_array_r(args[1])) {
 
-      png_set_IHDR(png_ptr,
-                   info_ptr,
-                   w,
-                   h,
-                   8, // per channel
-                   PNG_COLOR_TYPE_RGB,
-                   PNG_INTERLACE_NONE,
-                   PNG_COMPRESSION_TYPE_BASE,
-                   PNG_FILTER_TYPE_BASE);
+    image_buffer_t img;
+    img.fmt = image_buffer_format((uint8_t*)arr->data);
+    img.width = image_buffer_width((uint8_t*)arr->data);
+    img.height = image_buffer_height((uint8_t*)arr->data);
+    img.mem_base = (uint8_t*)arr->data;
+    img.data = image_buffer_data((uint8_t*)arr->data);
 
-      row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * h);
+    char *filename = lbm_dec_str(args[1]);
 
-      if (row_pointers) {
-        for (uint32_t i = 0; i < h; ++i) {
-          row_pointers[i] = data + (i * w * 3);
-        }
+    color_t colors[16];
+    if (argn == 3 && !lbm_display_decode_color_list(args[2], colors, 16)) {
+      return ENC_SYM_TERROR;
+    } else if (argn == 2) {
+      memset(colors, 0, sizeof(color_t) * 16);
+    }
 
-        png_init_io(png_ptr, fp);
-        png_set_rows(png_ptr, info_ptr, row_pointers);
-        png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
-      }
-
-      fclose(fp);
-
-      png_destroy_write_struct(&png_ptr, &info_ptr);
-      png_ptr = NULL;
-      info_ptr = NULL;
-      free(row_pointers);
-      res = ENC_SYM_TRUE;
-    } else {
-      return ENC_SYM_NIL;
+    uint8_t *buffer = malloc((size_t)img.width * img.height * 3);
+    if (buffer) {
+      blast_to_rgb888(buffer, &img, colors);
+      res = write_rgb888_png(filename, buffer, img.width, img.height) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+      free(buffer);
     }
   }
   return res;
@@ -1443,29 +1504,7 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
 
     uint8_t *buffer = malloc((size_t)(w * h * 3)); // RGB 888
     if (buffer) {
-      uint8_t  bpp = (uint8_t)img->fmt;
-      switch(bpp) {
-      case indexed2:
-        buffer_blast_indexed2(buffer, img, colors);
-        break;
-      case indexed4:
-        buffer_blast_indexed4(buffer, img, colors);
-        break;
-      case indexed16:
-        buffer_blast_indexed16(buffer, img, colors);
-        break;
-      case rgb332:
-        buffer_blast_rgb332(buffer, img);
-        break;
-      case rgb565:
-        buffer_blast_rgb565(buffer, img);
-        break;
-      case rgb888:
-        buffer_blast_rgb888(buffer, img);
-        break;
-      default:
-        break;
-      }
+      blast_to_rgb888(buffer, img, colors);
       uint16_t t_w = image_buffer_width(target_image);
       uint16_t t_h = image_buffer_height(target_image);
       if (t_w == w && t_h == h) {
@@ -1925,6 +1964,7 @@ int init_exts(void) {
   //displaying to active image
   lbm_add_extension("set-active-img", ext_set_active_image);
   lbm_add_extension("save-active-img", ext_save_active_image);
+  lbm_add_extension("save-img", ext_save_img);
   lbm_add_extension("display-to-img", ext_display_to_image);
 
   lbm_add_extension("reg-dyn-ext", ext_register_dynamic_extension);
