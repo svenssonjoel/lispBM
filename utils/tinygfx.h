@@ -149,11 +149,26 @@ void tinygfx_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0
 void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors,
                        const uint8_t *font_data, uint8_t ch, int orient, float mag);
 
-void blit(image_buffer_t *img_dest, image_buffer_t *img_src,
-          int dest_offset_x, int dest_offset_y,
-          float rot_x, float rot_y, float rot_angle, float scale,
-          int32_t transparent_color, bool tile,
-          int clip_x, int clip_y, int clip_w, int clip_h);
+// How blit maps and samples src pixels into dest.
+typedef struct {
+  float rot_x, rot_y; // point in src coords to rotate around
+  float rot_angle;    // rotation angle in degrees
+  float scale;        // scale factor
+  bool tile;           // tile src to fill dest
+  int clip_x, clip_y;  // clip start in dest
+  int clip_w, clip_h;  // clip width and height
+} blit_transform_t;
+
+// Plain positioned copy: no rotation, scale, tiling, or clipping (dest
+// canvas bounds are the implicit clip).
+void tinygfx_blit(image_buffer_t *img_dest, image_buffer_t *img_src,
+                   int dest_offset_x, int dest_offset_y,
+                   int32_t transparent_color);
+
+void tinygfx_blit_transform(image_buffer_t *img_dest, image_buffer_t *img_src,
+                             int dest_offset_x, int dest_offset_y,
+                             blit_transform_t transform,
+                             int32_t transparent_color);
 
 bool tinygfx_decode_jpg(image_buffer_t *dest, const uint8_t *jpg_data, size_t jpg_size,
                          int ofs_x, int ofs_y, void *work_buf, size_t work_buf_size);

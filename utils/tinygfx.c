@@ -1434,19 +1434,51 @@ static inline void copy_pixel(
     }
 }
 
+// Simple Blit!
+// This can most likely be optimised more aggressively
+// compared to the blit_transform. That is why they have split up.
+// if source and target are same format then it may be possible
+// to do memcpy (if the formats are RGB it is definitely possible)
+void tinygfx_blit(
+    image_buffer_t *img_dest,
+    image_buffer_t *img_src,
+    int dest_offset_x, int dest_offset_y,
+    int32_t transparent_color
+) {
+  int src_w = img_src->width;
+  int src_h = img_src->height;
+
+  int dest_x_start = dest_offset_x > 0 ? dest_offset_x : 0;
+  int dest_y_start = dest_offset_y > 0 ? dest_offset_y : 0;
+  int dest_x_end = dest_offset_x + src_w;
+  int dest_y_end = dest_offset_y + src_h;
+  if (dest_x_end > img_dest->width) dest_x_end = img_dest->width;
+  if (dest_y_end > img_dest->height) dest_y_end = img_dest->height;
+
+  for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+    for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+      int src_x = dest_x - dest_offset_x;
+      int src_y = dest_y - dest_offset_y;
+      copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, false);
+    }
+  }
+}
+
 // Copy pixels from source to destination with transformations
-void blit(
+void tinygfx_blit_transform(
     image_buffer_t *img_dest,  // Destination image buffer
     image_buffer_t *img_src,   // Source image buffer
     int dest_offset_x, int dest_offset_y,              // Where on dest to start writing pixels
-    float rot_x, float rot_y,  // Coordinate in src to rotate around
-    float rot_angle,           // Rotation angle in degrees
-    float scale,               // Scale factor
-    int32_t transparent_color, // Color that will not be drawn -1 to disable
-    bool tile,                 // Tile src to fill dest
-    int clip_x, int clip_y,    // Clip start in dest
-    int clip_w, int clip_h     // Clip width and height
+    blit_transform_t transform,
+    int32_t transparent_color  // Color that will not be drawn -1 to disable
 ) {
+  float rot_x = transform.rot_x, rot_y = transform.rot_y;
+  float rot_angle = transform.rot_angle;
+  float scale = transform.scale;
+  bool tile = transform.tile;
+  int clip_x = transform.clip_x, clip_y = transform.clip_y;
+  int clip_w = transform.clip_w, clip_h = transform.clip_h;
+
   if (scale == 0.0) return;
   int src_w = img_src->width;
   int src_h = img_src->height;

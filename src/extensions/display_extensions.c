@@ -411,6 +411,7 @@ typedef struct {
   attr_t attr_resolution;
   attr_t attr_tile;
   attr_t attr_clip;
+  bool transform_attr_present;
 } img_args_t;
 
 static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) {
@@ -478,18 +479,22 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
             } else if (lbm_dec_sym(arg) == symbol_scale) {
               attr_now = &res.attr_scale;
               attr_now->arg_num = 1;
+              res.transform_attr_present = true;
             } else if (lbm_dec_sym(arg) == symbol_rotate) {
               attr_now = &res.attr_rotate;
               attr_now->arg_num = 3;
+              res.transform_attr_present = true;
             } else if (lbm_dec_sym(arg) == symbol_resolution) {
               attr_now = &res.attr_resolution;
               attr_now->arg_num = 1;
             } else if (lbm_dec_sym(arg) == symbol_tile) {
               attr_now = &res.attr_tile;
               attr_now->arg_num = 0;
+              res.transform_attr_present = true;
             } else if (lbm_dec_sym(arg) == symbol_clip) {
               attr_now = &res.attr_clip;
               attr_now->arg_num = 4;
+              res.transform_attr_present = true;
             }
             else {
               return res;
@@ -1254,6 +1259,9 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+
+// TODO: Think about way to simplify the blit dispatch
+//       based on transform or not.
 static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
   img_args_t arg_dec = decode_args(args + 1, argn - 1, 3);
 
@@ -1267,27 +1275,27 @@ static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
     dest_buf.mem_base = (uint8_t*)arr->data;
     dest_buf.data = image_buffer_data((uint8_t*)arr->data);
 
-    float scale = 1.0;
-    if (arg_dec.attr_scale.is_valid) {
-      scale = lbm_dec_as_float(arg_dec.attr_scale.args[0]);
-    }
+    int dest_x = lbm_dec_as_i32(arg_dec.args[0]);
+    int dest_y = lbm_dec_as_i32(arg_dec.args[1]);
+    int32_t transparent_color = lbm_dec_as_i32(arg_dec.args[2]);
 
-    blit(
-        &dest_buf,
-        &arg_dec.img,
-        lbm_dec_as_i32(arg_dec.args[0]),
-        lbm_dec_as_i32(arg_dec.args[1]),
-        lbm_dec_as_float(arg_dec.attr_rotate.args[0]),
-        lbm_dec_as_float(arg_dec.attr_rotate.args[1]),
-        lbm_dec_as_float(arg_dec.attr_rotate.args[2]),
-        scale,
-        lbm_dec_as_i32(arg_dec.args[2]),
-        arg_dec.attr_tile.is_valid,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[0]) : 0,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[1]) : 0,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[2]) : dest_buf.width,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[3]) : dest_buf.height
-    );
+    if (!arg_dec.transform_attr_present) {
+      tinygfx_blit(&dest_buf, &arg_dec.img, dest_x, dest_y, transparent_color);
+    } else {
+      blit_transform_t transform = {
+        .rot_x = lbm_dec_as_float(arg_dec.attr_rotate.args[0]),
+        .rot_y = lbm_dec_as_float(arg_dec.attr_rotate.args[1]),
+        .rot_angle = lbm_dec_as_float(arg_dec.attr_rotate.args[2]),
+        .scale = arg_dec.attr_scale.is_valid ? lbm_dec_as_float(arg_dec.attr_scale.args[0]) : 1.0f,
+        .tile = arg_dec.attr_tile.is_valid,
+        .clip_x = arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[0]) : 0,
+        .clip_y = arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[1]) : 0,
+        .clip_w = arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[2]) : dest_buf.width,
+        .clip_h = arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[3]) : dest_buf.height,
+      };
+
+      tinygfx_blit_transform(&dest_buf, &arg_dec.img, dest_x, dest_y, transform, transparent_color);
+    }
     res = ENC_SYM_TRUE;
   }
   return res;
