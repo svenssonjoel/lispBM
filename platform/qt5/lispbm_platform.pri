@@ -50,7 +50,8 @@ SOURCES += \
     $$LISPBM_ROOT/src/lbm_image.c \
     $$LISPBM_ROOT/utils/buffer.c \
     $$LISPBM_ROOT/utils/crypto.c \
-    $$LISPBM_ROOT/utils/ecc.c
+    $$LISPBM_ROOT/utils/ecc.c \
+    $$LISPBM_ROOT/utils/tinygfx.c
 
 SOURCES += \
     $$LISPBM_ROOT/src/extensions/array_extensions.c \
@@ -66,7 +67,7 @@ SOURCES += \
     $$LISPBM_ROOT/src/extensions/display_extensions.c \
     $$LISPBM_ROOT/src/extensions/dsp_extensions.c
 
-SOURCES += $$LISPBM_ROOT/src/extensions/tjpgd.c
+SOURCES += $$LISPBM_ROOT/utils/tjpgd.c
 SOURCES += $$LISPBM_ROOT/src/extensions/ttf_extensions.c
 SOURCES += $$LISPBM_ROOT/src/extensions/ttf_backend.c
 

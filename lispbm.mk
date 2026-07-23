@@ -3,12 +3,17 @@ first_rule: all
 LISPBM_UTILS_SRC = $(LISPBM)/utils/buffer.c \
                    $(LISPBM)/utils/crypto.c \
                    $(LISPBM)/utils/ecc.c \
-                   $(LISPBM)/utils/luamatch.c
+                   $(LISPBM)/utils/luamatch.c \
+                   $(LISPBM)/utils/tinygfx.c \
+                   $(LISPBM)/utils/tjpgd.c
 
 LISPBM_UTILS_H = $(LISPBM)/utils/buffer.h \
                  $(LISPBM)/utils/crypto.h \
                  $(LISPBM)/utils/ecc.h \
-                 $(LISPBM)/utils/luamatch.h
+                 $(LISPBM)/utils/luamatch.h \
+                 $(LISPBM)/utils/tinygfx.h \
+                 $(LISPBM)/utils/tjpgd.h \
+                 $(LISPBM)/utils/tjpgdcnf.h
 
 LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/fundamental.c \
@@ -35,7 +40,6 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/random_extensions.c \
              $(LISPBM)/src/extensions/set_extensions.c \
              $(LISPBM)/src/extensions/display_extensions.c \
-             $(LISPBM)/src/extensions/tjpgd.c \
              $(LISPBM)/src/extensions/mutex_extensions.c \
              $(LISPBM)/src/extensions/lbm_dyn_lib.c \
              $(LISPBM)/src/extensions/ttf_extensions.c \

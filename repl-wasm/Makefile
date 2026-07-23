@@ -52,6 +52,8 @@ LISPBM_SRC = \
   $(LISPBM)/utils/buffer.c \
   $(LISPBM)/utils/crypto.c \
   $(LISPBM)/utils/ecc.c \
+  $(LISPBM)/utils/tinygfx.c \
+  $(LISPBM)/utils/tjpgd.c \
   $(LISPBM)/src/extensions/array_extensions.c \
   $(LISPBM)/src/extensions/string_extensions.c \
   $(LISPBM)/src/extensions/math_extensions.c \
@@ -63,7 +65,6 @@ LISPBM_SRC = \
   $(LISPBM)/src/extensions/dsp_extensions.c \
   $(LISPBM)/src/extensions/ecc_extensions.c \
   $(LISPBM)/src/extensions/display_extensions.c \
-  $(LISPBM)/src/extensions/tjpgd.c \
   $(LISPBM)/src/extensions/ttf_extensions.c \
   $(LISPBM)/src/extensions/ttf_backend.c \
   $(LISPBM)/src/extensions/ttf_backend_freetype.c \
