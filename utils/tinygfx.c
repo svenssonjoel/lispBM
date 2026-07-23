@@ -1182,8 +1182,8 @@ static void arc_thin(image_buffer_t *img, int c_x, int c_y, int radius, float an
   int cap1_x = (int)(cosf(angle1) * (float)radius);
   int cap1_y = (int)(sinf(angle1) * (float)radius);
 
-  double ray0_x = cos(angle0), ray0_y = sin(angle0);
-  double ray1_x = cos(angle1), ray1_y = sin(angle1);
+  double ray0_x = cosf(angle0), ray0_y = sinf(angle0);
+  double ray1_x = cosf(angle1), ray1_y = sinf(angle1);
 
   long r_dbl_sq = 4L * radius * radius;
   int px = 0, py = radius;
