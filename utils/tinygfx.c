@@ -46,6 +46,9 @@
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
+////////////////////////////////////////////////////////////
+//  COLOR / PIXEL FORMAT
+
 uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
   switch (color.type) {
   case COLOR_REGULAR:
@@ -204,6 +207,9 @@ static uint32_t alpha_blend_rgb888(uint32_t src, uint32_t dst, uint8_t alpha) {
 
   return (r << 16) | (g << 8) | b;
 }
+
+////////////////////////////////////////////////////////////
+//  PIXEL BUFFER PRIMITIVES
 
 void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
   color_format_t fmt = img->fmt;
@@ -591,7 +597,96 @@ static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8
 #endif // USE_EFFICIENT_HLINE_VLINE
 
 ////////////////////////////////////////////////////////////
-//  ARCS AND CIRCLES
+//  LINES
+
+// Thickness extends outwards and inwards from the given line equally, resulting
+// in double the total thickness.
+// TODO: This should be more efficient
+// http://homepages.enterprise.net/murphy/thickline/index.html
+// https://github.com/ArminJo/STMF3-Discovery-Demos/blob/master/lib/BlueDisplay/LocalGUI/ThickLine.hpp
+void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickness, int dot1, int dot2, uint32_t c, uint8_t alpha) {
+  int dx = abs(x1 - x0);
+  int sx = x0 < x1 ? 1 : -1;
+  int dy = -abs(y1 - y0);
+  int sy = y0 < y1 ? 1 : -1;
+  int error = dx + dy;
+
+  if (dot1 > 0) {
+    // These are used to deal with consecutive calls with
+    // possibly overlapping pixels.
+    static int dotcnt = 0;
+    static int x_last = 0;
+    static int y_last = 0;
+
+    while (true) {
+      if (dotcnt <= dot1) {
+        if (thickness > 1) {
+          tinygfx_fill_circle(img, x0, y0, thickness, c, alpha);
+        } else {
+          putpixel(img, x0, y0, c, alpha);
+        }
+      }
+
+      if (x0 != x_last || y0 != y_last) {
+        dotcnt++;
+      }
+
+      x_last = x0;
+      y_last = y0;
+
+      if (dotcnt >= (dot1 + dot2)) {
+        dotcnt = 0;
+      }
+
+      if (x0 == x1 && y0 == y1) {
+        break;
+      }
+      if ((error * 2) >= dy) {
+        if (x0 == x1) {
+          break;
+        }
+        error += dy;
+        x0 += sx;
+      }
+      if ((error * 2) <= dx) {
+        if (y0 == y1) {
+          break;
+        }
+        error += dx;
+        y0 += sy;
+      }
+    }
+  } else {
+    while (true) {
+      if (thickness > 1) {
+        tinygfx_fill_circle(img, x0, y0, thickness, c, alpha);
+      } else {
+        putpixel(img, x0, y0, c, alpha);
+      }
+
+      if (x0 == x1 && y0 == y1) {
+        break;
+      }
+      if ((error * 2) >= dy) {
+        if (x0 == x1) {
+          break;
+        }
+        error += dy;
+        x0 += sx;
+      }
+      if ((error * 2) <= dx) {
+        if (y0 == y1) {
+          break;
+        }
+        error += dx;
+        y0 += sy;
+      }
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////
+//  CIRCLES AND ARCS
 //
 // The Boundary tracking scanline fill circle and arc functions
 // in this file have been implemented assisted by Claude code.
@@ -604,12 +699,6 @@ static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8
 // of a arc-shape"
 
 #define ARC_BIG 1000000
-
-static inline void swap_points(int *x0, int *y0, int *x1, int *y1) {
-  int tx = *x0, ty = *y0;
-  *x0 = *x1; *y0 = *y1;
-  *x1 = tx;  *y1 = ty;
-}
 
 static inline void norm_angle(float *angle) {
   while (*angle < -M_PI) { *angle += 2.0f * (float)M_PI; }
@@ -778,36 +867,6 @@ static void circle_ring(image_buffer_t *img, int c_x, int c_y, int radius, int t
   }
 }
 
-void tinygfx_fill_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int height, int radius, uint32_t color, uint8_t alpha) {
-  if (radius > width / 2) radius = width / 2;
-  if (radius > height / 2) radius = height / 2;
-
-  if (radius <= 0) {
-    for (int row = 0; row < height; row++) {
-      h_line(img, x, y + row, width, color, alpha);
-    }
-    return;
-  }
-
-  int radius_dbl_sq = radius * radius * 4;
-  int xo = -radius;
-
-  for (int y0 = 0; y0 < radius; y0++) {
-    int row_dbl_sq = (2 * y0 + 1) * (2 * y0 + 1);
-    circle_boundary_advance(&xo, row_dbl_sq, radius_dbl_sq);
-    int inset = radius + xo;
-
-    int row_top = radius - 1 - y0;
-    int row_bottom = height - radius + y0;
-    h_line(img, x + inset, y + row_top, width - 2 * inset, color, alpha);
-    h_line(img, x + inset, y + row_bottom, width - 2 * inset, color, alpha);
-  }
-
-  for (int row = radius; row < height - radius; row++) {
-    h_line(img, x, y + row, width, color, alpha);
-  }
-}
-
 void tinygfx_fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color, uint8_t alpha) {
   switch (radius) {
   case 0:
@@ -904,178 +963,6 @@ void tinygfx_circle(image_buffer_t *img, int x, int y, int radius, int thickness
   }
 
   circle_ring(img, x, y, radius, thickness, color, alpha);
-}
-
-// Thickness extends outwards and inwards from the given line equally, resulting
-// in double the total thickness.
-// TODO: This should be more efficient
-// http://homepages.enterprise.net/murphy/thickline/index.html
-// https://github.com/ArminJo/STMF3-Discovery-Demos/blob/master/lib/BlueDisplay/LocalGUI/ThickLine.hpp
-void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickness, int dot1, int dot2, uint32_t c, uint8_t alpha) {
-  int dx = abs(x1 - x0);
-  int sx = x0 < x1 ? 1 : -1;
-  int dy = -abs(y1 - y0);
-  int sy = y0 < y1 ? 1 : -1;
-  int error = dx + dy;
-
-  if (dot1 > 0) {
-    // These are used to deal with consecutive calls with
-    // possibly overlapping pixels.
-    static int dotcnt = 0;
-    static int x_last = 0;
-    static int y_last = 0;
-
-    while (true) {
-      if (dotcnt <= dot1) {
-        if (thickness > 1) {
-          tinygfx_fill_circle(img, x0, y0, thickness, c, alpha);
-        } else {
-          putpixel(img, x0, y0, c, alpha);
-        }
-      }
-
-      if (x0 != x_last || y0 != y_last) {
-        dotcnt++;
-      }
-
-      x_last = x0;
-      y_last = y0;
-
-      if (dotcnt >= (dot1 + dot2)) {
-        dotcnt = 0;
-      }
-
-      if (x0 == x1 && y0 == y1) {
-        break;
-      }
-      if ((error * 2) >= dy) {
-        if (x0 == x1) {
-          break;
-        }
-        error += dy;
-        x0 += sx;
-      }
-      if ((error * 2) <= dx) {
-        if (y0 == y1) {
-          break;
-        }
-        error += dx;
-        y0 += sy;
-      }
-    }
-  } else {
-    while (true) {
-      if (thickness > 1) {
-        tinygfx_fill_circle(img, x0, y0, thickness, c, alpha);
-      } else {
-        putpixel(img, x0, y0, c, alpha);
-      }
-
-      if (x0 == x1 && y0 == y1) {
-        break;
-      }
-      if ((error * 2) >= dy) {
-        if (x0 == x1) {
-          break;
-        }
-        error += dy;
-        x0 += sx;
-      }
-      if ((error * 2) <= dx) {
-        if (y0 == y1) {
-          break;
-        }
-        error += dx;
-        y0 += sy;
-      }
-    }
-  }
-}
-
-// thickness extends inwards from the given rectangle edge.
-void tinygfx_rectangle(image_buffer_t *img, int x, int y, int width, int height,
-                      bool fill, int thickness, int dot1, int dot2, uint32_t color, uint8_t alpha) {
-  thickness /= 2;
-
-  if (fill) {
-    for (int i = y; i < (y + height);i++) {
-      h_line(img, x, i, width, color, alpha);
-    }
-  } else {
-    if (thickness <= 0 && dot1 == 0) {
-      h_line(img, x, y, width, color, alpha);
-      h_line(img, x, y + height, width, color, alpha);
-      v_line(img, x, y, height, color, alpha);
-      v_line(img, x + width, y, height, color, alpha);
-    } else {
-      x += thickness;
-      y += thickness;
-      width -= thickness * 2;
-      height -= thickness * 2;
-      // top
-      tinygfx_line(img, x, y, x + width, y, thickness, dot1, dot2, color, alpha);
-      // bottom
-      tinygfx_line(img, x, y + height, x + width, y + height, thickness, dot1, dot2, color, alpha);
-      // left
-      tinygfx_line(img, x, y, x, y + height, thickness, dot1, dot2, color, alpha);
-      // right
-      tinygfx_line(img, x + width, y, x + width, y + height, thickness, dot1, dot2, color, alpha);
-    }
-  }
-}
-
-// Scanline fill:
-// See Black art of 3d game programming - André Lamothe for a good
-// introduction to scanline fill approaches.
-// The triangle filler in "Black art" explicitly splits triangles into subtriangles
-// and invents a "cut-vertex" along the long edge. Here the long edge state
-// is shared across the "implicitly" split up subtriangles saving some work.
-// Most important! Never draw a pixel twice.
-void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
-                          int x1, int y1, int x2, int y2, uint32_t color, uint8_t alpha) {
-  if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
-  if (y1 > y2) swap_points(&x1, &y1, &x2, &y2);
-  if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
-
-  if (y0 == y2) return;
-
-  float dx_long = (float)(x2 - x0) / (float)(y2 - y0);
-  float x_long = (float)x0;
-
-  // Top part of general triangle case
-  // If the triangle has a flat top, then y1 == y0 and this loop is skipped
-  if (y1 > y0) {
-    float dx_short = (float)(x1 - x0) / (float)(y1 - y0);
-    float x_short = (float)x0;
-    for (int y = y0; y < y1; y++) {
-      int xa = (int)x_long, xb = (int)x_short;
-      int lo = MIN(xa, xb), hi = MAX(xa, xb);
-      h_line(img, lo, y, hi - lo + 1, color, alpha);
-      x_long += dx_long;
-      x_short += dx_short;
-    }
-  }
-
-  // bottom half of general triangle case
-  // y1 is drawn here. The top loop stops at y1-1.
-  // This ensures no line is drawn more than once.
-  if (y2 > y1) {
-    float dx_short = (float)(x2 - x1) / (float)(y2 - y1);
-    float x_short = (float)x1;
-    for (int y = y1; y <= y2; y++) {
-      int xa = (int)x_long, xb = (int)x_short;
-      int lo = MIN(xa, xb), hi = MAX(xa, xb);
-      h_line(img, lo, y, hi - lo + 1, color, alpha);
-      x_long += dx_long;
-      x_short += dx_short;
-    }
-  } else {
-    // When y2 == y1 the above code draws nothing,
-    // So here we add in a final h_line for the flat bottom triangles.
-    int xa = (int)x_long, xb = x1;
-    int lo = MIN(xa, xb), hi = MAX(xa, xb);
-    h_line(img, lo, y1, hi - lo + 1, color, alpha);
-  }
 }
 
 static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
@@ -1345,6 +1232,224 @@ void tinygfx_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0
   arc_ring(img, c_x, c_y, radius, angle0, angle1, p);
 }
 
+////////////////////////////////////////////////////////////
+//  RECTANGLES
+
+void tinygfx_thick_hline(image_buffer_t *img, int x, int y, int len, int thickness, uint32_t color, uint8_t alpha) {
+  if (thickness < 1) thickness = 1;
+  for (int i = 0; i < thickness; i++) {
+    h_line(img, x, y + i, len, color, alpha);
+  }
+}
+
+void tinygfx_thick_vline(image_buffer_t *img, int x, int y, int len, int thickness, uint32_t color, uint8_t alpha) {
+  if (thickness < 1) thickness = 1;
+  for (int i = 0; i < thickness; i++) {
+    v_line(img, x + i, y, len, color, alpha);
+  }
+}
+
+// thickness extends inwards from the given rectangle edge.
+void tinygfx_rectangle(image_buffer_t *img, int x, int y, int width, int height,
+                      bool fill, int thickness, int dot1, int dot2, uint32_t color, uint8_t alpha) {
+  if (fill) {
+    for (int i = y; i < (y + height);i++) {
+      h_line(img, x, i, width, color, alpha);
+    }
+    return;
+  }
+
+  if (dot1 > 0) {
+    int line_thickness = thickness / 2;
+    int lx = x + line_thickness;
+    int ly = y + line_thickness;
+    int lw = width - line_thickness * 2;
+    int lh = height - line_thickness * 2;
+    // top
+    tinygfx_line(img, lx, ly, lx + lw, ly, line_thickness, dot1, dot2, color, alpha);
+    // bottom
+    tinygfx_line(img, lx, ly + lh, lx + lw, ly + lh, line_thickness, dot1, dot2, color, alpha);
+    // left
+    tinygfx_line(img, lx, ly, lx, ly + lh, line_thickness, dot1, dot2, color, alpha);
+    // right
+    tinygfx_line(img, lx + lw, ly, lx + lw, ly + lh, line_thickness, dot1, dot2, color, alpha);
+    return;
+  }
+
+  int line_w = thickness > 1 ? thickness : 1;
+  int max_line_w = MIN(width, height) / 2 + 1;
+  if (max_line_w < 1) max_line_w = 1;
+  if (line_w > max_line_w) line_w = max_line_w;
+
+  // top
+  tinygfx_thick_hline(img, x, y, width + 1, line_w, color, alpha);
+  // bottom
+  tinygfx_thick_hline(img, x, y + height - line_w + 1, width + 1, line_w, color, alpha);
+  // left
+  tinygfx_thick_vline(img, x, y, height + 1, line_w, color, alpha);
+  // right
+  tinygfx_thick_vline(img, x + width - line_w + 1, y, height + 1, line_w, color, alpha);
+}
+
+void tinygfx_fill_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int height, int radius, uint32_t color, uint8_t alpha) {
+  if (radius > width / 2) radius = width / 2;
+  if (radius > height / 2) radius = height / 2;
+
+  if (radius <= 0) {
+    for (int row = 0; row < height; row++) {
+      h_line(img, x, y + row, width, color, alpha);
+    }
+    return;
+  }
+
+  int radius_dbl_sq = radius * radius * 4;
+  int xo = -radius;
+
+  for (int y0 = 0; y0 < radius; y0++) {
+    int row_dbl_sq = (2 * y0 + 1) * (2 * y0 + 1);
+    circle_boundary_advance(&xo, row_dbl_sq, radius_dbl_sq);
+    int inset = radius + xo;
+
+    int row_top = radius - 1 - y0;
+    int row_bottom = height - radius + y0;
+    h_line(img, x + inset, y + row_top, width - 2 * inset, color, alpha);
+    h_line(img, x + inset, y + row_bottom, width - 2 * inset, color, alpha);
+  }
+
+  for (int row = radius; row < height - radius; row++) {
+    h_line(img, x, y + row, width, color, alpha);
+  }
+}
+
+// thickness extends inwards; dot1>0 for a dotted border.
+void tinygfx_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int height,
+                              int radius, int thickness, int dot1, int dot2, int resolution,
+                              uint32_t color, uint8_t alpha) {
+  if (radius > width / 2) radius = width / 2;
+  if (radius > height / 2) radius = height / 2;
+
+  if (dot1 > 0) {
+    int line_thickness = thickness / 2;
+    int corner_thickness = line_thickness * 2;
+
+    // top
+    tinygfx_line(img, x + radius, y + line_thickness, x + width - radius, y + line_thickness, line_thickness, dot1, dot2, color, alpha);
+    // bottom
+    tinygfx_line(img, x + radius, y + height - line_thickness, x + width - radius, y + height - line_thickness, line_thickness, dot1, dot2, color, alpha);
+    // left
+    tinygfx_line(img, x + line_thickness, y + radius, x + line_thickness, y + height - radius, line_thickness, dot1, dot2, color, alpha);
+    // right
+    tinygfx_line(img, x + width - line_thickness, y + radius, x + width - line_thickness, y + height - radius, line_thickness, dot1, dot2, color, alpha);
+
+    arc_params_t p = {
+      .thickness = corner_thickness, .rounded = false, .filled = false, .sector = false, .segment = false,
+      .dot1 = dot1, .dot2 = dot2, .resolution = resolution, .color = color, .alpha = alpha,
+    };
+    // upper left
+    tinygfx_arc(img, x + radius, y + radius, radius, 180, 270, &p);
+    // upper right
+    tinygfx_arc(img, x + width - radius, y + radius, radius, 270, 0, &p);
+    // bottom left
+    tinygfx_arc(img, x + radius, y + height - radius, radius, 90, 180, &p);
+    // bottom right
+    tinygfx_arc(img, x + width - radius, y + height - radius, radius, 0, 90, &p);
+    return;
+  }
+
+  int line_w = thickness > 1 ? thickness : 1;
+  int max_line_w = MIN(width, height) / 2 + 1;
+  if (max_line_w < 1) max_line_w = 1;
+  if (line_w > max_line_w) line_w = max_line_w;
+
+  // top
+  tinygfx_thick_hline(img, x + radius, y, width - 2 * radius + 1, line_w, color, alpha);
+  // bottom
+  tinygfx_thick_hline(img, x + radius, y + height - line_w, width - 2 * radius + 1, line_w, color, alpha);
+  // left
+  tinygfx_thick_vline(img, x, y + radius, height - 2 * radius + 1, line_w, color, alpha);
+  // right
+  tinygfx_thick_vline(img, x + width - line_w, y + radius, height - 2 * radius + 1, line_w, color, alpha);
+
+  arc_params_t p = {
+    .thickness = line_w, .rounded = false, .filled = false, .sector = false, .segment = false,
+    .dot1 = 0, .dot2 = 0, .resolution = resolution, .color = color, .alpha = alpha,
+  };
+  // upper left
+  tinygfx_arc(img, x + radius, y + radius, radius, 180, 270, &p);
+  // upper right
+  tinygfx_arc(img, x + width - radius, y + radius, radius, 270, 0, &p);
+  // bottom left
+  tinygfx_arc(img, x + radius, y + height - radius, radius, 90, 180, &p);
+  // bottom right
+  tinygfx_arc(img, x + width - radius, y + height - radius, radius, 0, 90, &p);
+}
+
+////////////////////////////////////////////////////////////
+//  TRIANGLES
+
+static inline void swap_points(int *x0, int *y0, int *x1, int *y1) {
+  int tx = *x0, ty = *y0;
+  *x0 = *x1; *y0 = *y1;
+  *x1 = tx;  *y1 = ty;
+}
+
+// Scanline fill:
+// See Black art of 3d game programming - André Lamothe for a good
+// introduction to scanline fill approaches.
+// The triangle filler in "Black art" explicitly splits triangles into subtriangles
+// and invents a "cut-vertex" along the long edge. Here the long edge state
+// is shared across the "implicitly" split up subtriangles saving some work.
+// Most important! Never draw a pixel twice.
+void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
+                          int x1, int y1, int x2, int y2, uint32_t color, uint8_t alpha) {
+  if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
+  if (y1 > y2) swap_points(&x1, &y1, &x2, &y2);
+  if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
+
+  if (y0 == y2) return;
+
+  float dx_long = (float)(x2 - x0) / (float)(y2 - y0);
+  float x_long = (float)x0;
+
+  // Top part of general triangle case
+  // If the triangle has a flat top, then y1 == y0 and this loop is skipped
+  if (y1 > y0) {
+    float dx_short = (float)(x1 - x0) / (float)(y1 - y0);
+    float x_short = (float)x0;
+    for (int y = y0; y < y1; y++) {
+      int xa = (int)x_long, xb = (int)x_short;
+      int lo = MIN(xa, xb), hi = MAX(xa, xb);
+      h_line(img, lo, y, hi - lo + 1, color, alpha);
+      x_long += dx_long;
+      x_short += dx_short;
+    }
+  }
+
+  // bottom half of general triangle case
+  // y1 is drawn here. The top loop stops at y1-1.
+  // This ensures no line is drawn more than once.
+  if (y2 > y1) {
+    float dx_short = (float)(x2 - x1) / (float)(y2 - y1);
+    float x_short = (float)x1;
+    for (int y = y1; y <= y2; y++) {
+      int xa = (int)x_long, xb = (int)x_short;
+      int lo = MIN(xa, xb), hi = MAX(xa, xb);
+      h_line(img, lo, y, hi - lo + 1, color, alpha);
+      x_long += dx_long;
+      x_short += dx_short;
+    }
+  } else {
+    // When y2 == y1 the above code draws nothing,
+    // So here we add in a final h_line for the flat bottom triangles.
+    int xa = (int)x_long, xb = x1;
+    int lo = MIN(xa, xb), hi = MAX(xa, xb);
+    h_line(img, lo, y1, hi - lo + 1, color, alpha);
+  }
+}
+
+////////////////////////////////////////////////////////////
+//  TEXT
+
 // orient: 0=normal, 1=up(90°CCW), 2=180°, 3=down(90°CW)
 void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors,
                      const uint8_t *font_data, uint8_t ch, int orient, float mag) {
@@ -1413,6 +1518,9 @@ void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int n
     }
   }
 }
+
+////////////////////////////////////////////////////////////
+//  BLIT
 
 static inline void copy_pixel(
         image_buffer_t *img_dest,
@@ -1560,6 +1668,9 @@ void tinygfx_blit_transform(
     }
   }
 }
+
+////////////////////////////////////////////////////////////
+//  JPEG
 
 typedef struct {
   const uint8_t *data;

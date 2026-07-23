@@ -1055,38 +1055,10 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
   int resolution = lbm_dec_as_i32(arg_dec.attr_resolution.args[0]);
 
   if (arg_dec.attr_rounded.is_valid) {
-    if (rad > width / 2) rad = width / 2;
-    if (rad > height / 2) rad = height / 2;
     if (arg_dec.attr_filled.is_valid) {
       tinygfx_fill_rounded_rectangle(img, x, y, width, height, rad, color, arg_dec.alpha);
     } else {
-      // Remember to change these to use the rounded attribute,
-      // when/if line supports it!
-
-      int line_thickness = thickness / 2;
-      thickness = line_thickness * 2; // round it to even for consistency.
-
-      // top
-      tinygfx_line(img, x + rad, y + line_thickness, x + width - rad, y + line_thickness, line_thickness, dot1, dot2, color, arg_dec.alpha);
-      // bottom
-      tinygfx_line(img, x + rad, y + height - line_thickness, x + width - rad, y + height - line_thickness, line_thickness, dot1, dot2, color, arg_dec.alpha);
-      // left
-      tinygfx_line(img, x + line_thickness, y + rad, x + line_thickness, y + height - rad, line_thickness, dot1, dot2, color, arg_dec.alpha);
-      // right
-      tinygfx_line(img, x + width - line_thickness, y + rad, x + width - line_thickness, y + height - rad, line_thickness, dot1, dot2, color, arg_dec.alpha);
-
-      arc_params_t p = {
-        .thickness = thickness, .rounded = false, .filled = false, .sector = false, .segment = false,
-        .dot1 = dot1, .dot2 = dot2, .resolution = resolution, .color = color, .alpha = arg_dec.alpha,
-      };
-      // upper left
-      tinygfx_arc(img, x + rad, y + rad, rad, 180, 270, &p);
-      // upper right
-      tinygfx_arc(img, x + width - rad, y + rad, rad, 270, 0, &p);
-      // bottom left
-      tinygfx_arc(img, x + rad, y + height - rad, rad, 90, 180, &p);
-      // bottom right
-      tinygfx_arc(img, x + width - rad, y + height - rad, rad, 0, 90, &p);
+      tinygfx_rounded_rectangle(img, x, y, width, height, rad, thickness, dot1, dot2, resolution, color, arg_dec.alpha);
     }
   } else {
     tinygfx_rectangle(img,

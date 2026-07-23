@@ -69,19 +69,8 @@ typedef struct {
   uint8_t alpha;
 } color_t;
 
-// Attribute bundle shared by the arc family (generic_arc/arc_thin/arc_ring/arc).
-typedef struct {
-  int thickness;
-  bool rounded;
-  bool filled;
-  bool sector;
-  bool segment;
-  int dot1;
-  int dot2;
-  int resolution;
-  uint32_t color;
-  uint8_t alpha;
-} arc_params_t;
+////////////////////////////////////////////////////////////
+//  COLOR / PIXEL FORMAT
 
 uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y);
 
@@ -116,9 +105,15 @@ static inline uint32_t color_apply_precalc(color_t color, int x, int y) {
 
 uint32_t image_dims_to_size_bytes(color_format_t fmt, uint16_t width, uint16_t height);
 
+////////////////////////////////////////////////////////////
+//  PIXEL BUFFER PRIMITIVES
+
 void     image_buffer_clear(image_buffer_t *img, uint32_t cc);
 void     putpixel(image_buffer_t *img, int x, int y, uint32_t c, uint8_t alpha);
 uint32_t getpixel(image_buffer_t *img, int x, int y);
+
+////////////////////////////////////////////////////////////
+//  LINES
 
 // Thickness extends outwards and inwards from the given line equally, resulting
 // in double the total thickness.
@@ -128,6 +123,37 @@ uint32_t getpixel(image_buffer_t *img, int x, int y);
 void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1,
                    int thickness, int dot1, int dot2, uint32_t c, uint8_t alpha);
 
+////////////////////////////////////////////////////////////
+//  CIRCLES AND ARCS
+
+// Attribute bundle shared by the arc family (generic_arc/arc_thin/arc_ring/arc).
+typedef struct {
+  int thickness;
+  bool rounded;
+  bool filled;
+  bool sector;
+  bool segment;
+  int dot1;
+  int dot2;
+  int resolution;
+  uint32_t color;
+  uint8_t alpha;
+} arc_params_t;
+
+void tinygfx_fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color, uint8_t alpha);
+// thickness extends inwards from the given radius circle
+void tinygfx_circle(image_buffer_t *img, int x, int y, int radius, int thickness, uint32_t color, uint8_t alpha);
+
+void tinygfx_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
+                  const arc_params_t *p);
+
+////////////////////////////////////////////////////////////
+//  RECTANGLES
+
+// Axis-aligned strip of exactly `thickness` pixels, extending down/right from (x, y).
+void tinygfx_thick_hline(image_buffer_t *img, int x, int y, int len, int thickness, uint32_t color, uint8_t alpha);
+void tinygfx_thick_vline(image_buffer_t *img, int x, int y, int len, int thickness, uint32_t color, uint8_t alpha);
+
 // thickness extends inwards from the given rectangle edge.
 void tinygfx_rectangle(image_buffer_t *img, int x, int y, int width, int height,
                         bool fill, int thickness, int dot1, int dot2, uint32_t color, uint8_t alpha);
@@ -135,19 +161,26 @@ void tinygfx_rectangle(image_buffer_t *img, int x, int y, int width, int height,
 void tinygfx_fill_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int height,
                                      int radius, uint32_t color, uint8_t alpha);
 
-void tinygfx_fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color, uint8_t alpha);
-// thickness extends inwards from the given radius circle
-void tinygfx_circle(image_buffer_t *img, int x, int y, int radius, int thickness, uint32_t color, uint8_t alpha);
+// thickness extends inwards; dot1>0 for a dotted border.
+void tinygfx_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int height,
+                                int radius, int thickness, int dot1, int dot2, int resolution,
+                                uint32_t color, uint8_t alpha);
+
+////////////////////////////////////////////////////////////
+//  TRIANGLES
 
 void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0, int x1, int y1, int x2, int y2,
                             uint32_t color, uint8_t alpha);
 
-void tinygfx_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
-                  const arc_params_t *p);
+////////////////////////////////////////////////////////////
+//  TEXT
 
 // orient: 0=normal, 1=up(90°CCW), 2=180°, 3=down(90°CW)
 void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors,
                        const uint8_t *font_data, uint8_t ch, int orient, float mag);
+
+////////////////////////////////////////////////////////////
+//  BLIT
 
 // How blit maps and samples src pixels into dest.
 typedef struct {
@@ -169,6 +202,9 @@ void tinygfx_blit_transform(image_buffer_t *img_dest, image_buffer_t *img_src,
                              int dest_offset_x, int dest_offset_y,
                              blit_transform_t transform,
                              int32_t transparent_color);
+
+////////////////////////////////////////////////////////////
+//  JPEG
 
 bool tinygfx_decode_jpg(image_buffer_t *dest, const uint8_t *jpg_data, size_t jpg_size,
                          int ofs_x, int ofs_y, void *work_buf, size_t work_buf_size);
