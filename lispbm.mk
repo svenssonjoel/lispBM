@@ -12,6 +12,7 @@ LISPBM_UTILS_H = $(LISPBM)/utils/buffer.h \
                  $(LISPBM)/utils/ecc.h \
                  $(LISPBM)/utils/luamatch.h \
                  $(LISPBM)/utils/tinygfx.h \
+                 $(LISPBM)/utils/tinygfx_fonts.h \
                  $(LISPBM)/utils/tjpgd.h \
                  $(LISPBM)/utils/tjpgdcnf.h
 
