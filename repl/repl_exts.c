@@ -1610,8 +1610,11 @@ lbm_value ext_rt(lbm_value *args, lbm_uint argn) {
 lbm_value a = ENC_SYM_NIL;
 
 lbm_value ext_dynamic(lbm_value *args, lbm_uint argn) {
+
   lbm_value b = a;
-  a = args[0];
+  if (argn >= 1) {
+    a = args[0];
+  }
   return b;
 }
 
