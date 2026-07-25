@@ -39,11 +39,8 @@
 (define r5 (img-text img400x200  -5 10 1  0 font "Edge"))
 (define r6 (img-text img400x200  350 180 1  0 font "Corner"))
 
-;; Test with invalid image buffer - function doesn't validate, returns t
 (define r7 (trap (img-text "not-an-image" 0 0 1 0  font "text")))
 (define r8 (trap (img-text nil 0 0 1 0  font "text")))
-
-;; Test with invalid text argument - function doesn't validate, returns t
 (define r9 (trap (img-text img400x200  0 0 1 0 font 123)))
 
 ;; Display the result

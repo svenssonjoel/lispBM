@@ -43,11 +43,8 @@
 ;; Magnify attribute with the built-in font
 (define r9 (img-text img400x220 150 120 1 0 "Big" '(magnify 3)))
 
-;; Test with invalid image buffer - function doesn't validate, returns t
 (define r10 (trap (img-text "not-an-image" 0 0 1 0 "text")))
 (define r11 (trap (img-text nil 0 0 1 0 "text")))
-
-;; Test with invalid text argument - function doesn't validate, returns t
 (define r12 (trap (img-text img400x220 0 0 1 0 123)))
 
 ;; Display the result
