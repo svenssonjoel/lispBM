@@ -107,7 +107,7 @@ endif
 
 # Use freetype
 ifneq (,$(filter freetype, $(FEATURES)))
-	CCFLAGS += -DLBM_TTF_USE_FREETYPE -I$(FREETYPE_PATH)
+	CCFLAGS += -DLBM_USE_TTF_FREETYPE -I$(FREETYPE_PATH)
 	LDFLAGS += -lfreetype
 	REPL_SRC := $(filter-out %/schrift.c,$(REPL_SRC))
 	REPL_SRC += $(LISPBM)/src/extensions/ttf_backend_freetype.c

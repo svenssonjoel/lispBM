@@ -56,7 +56,6 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions.h \
            $(LISPBM)/include/fundamental.h \
            $(LISPBM)/include/heap.h \
-           $(LISPBM)/include/heap_vis.h \
            $(LISPBM)/include/lbm_channel.h \
            $(LISPBM)/include/lbm_c_interop.h \
            $(LISPBM)/include/lbm_constants.h \
