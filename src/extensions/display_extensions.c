@@ -20,8 +20,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "tjpgd.h"
-
 #include <math.h>
 #include <string.h>
 
@@ -1398,34 +1396,12 @@ static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
 
 // Jpg decoder
 
-typedef struct {
-  uint8_t *data;
-  int pos;
-  int size;
-  int ofs_x;
-  int ofs_y;
-} jpg_bufdef;
-
-size_t jpg_input_func (JDEC* jd, uint8_t* buff, size_t ndata) {
-  jpg_bufdef *dev = (jpg_bufdef*)jd->device;
-
-  if ((int)ndata > (dev->size - dev->pos)) {
-    ndata = (size_t)(dev->size - dev->pos);
-  }
-
-  if (buff) {
-    memcpy(buff, dev->data + dev->pos, ndata);
-  }
-  dev->pos += (int)ndata;
-  return ndata;
-}
-
 int jpg_output_func (	/* 1:Ok, 0:Aborted */
                      JDEC* jd,		/* Decompression object */
                      void* bitmap,	/* Bitmap data to be output */
                      JRECT* rect		/* Rectangular region to output */
                         ) {
-  jpg_bufdef *dev = (jpg_bufdef*)jd->device;
+  tinygfx_jpg_io_t *dev = (tinygfx_jpg_io_t*)jd->device;
 
   image_buffer_t img;
   img.mem_base = (uint8_t*)bitmap;
@@ -1461,16 +1437,52 @@ static lbm_value ext_disp_render_jpg(lbm_value *args, lbm_uint argn) {
 
 
 
-    jpg_bufdef iodev;
+    tinygfx_jpg_io_t iodev;
     iodev.data = (uint8_t*)(array->data);
-    iodev.size = (int)array->size;
+    iodev.size = array->size;
     iodev.pos = 0;
+    iodev.dest = NULL;
     iodev.ofs_x = lbm_dec_as_i32(args[1]);
     iodev.ofs_y = lbm_dec_as_i32(args[2]);
-    jd_prepare(&jd, jpg_input_func, jdwork, sz_work, &iodev);
+    jd_prepare(&jd, tinygfx_jpg_input, jdwork, sz_work, &iodev);
     jd_decomp(&jd, jpg_output_func, 0);
     lbm_free(jdwork);
     res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
+static lbm_value ext_img_render_jpg(lbm_value *args, lbm_uint argn) {
+
+  lbm_array_header_t *dest_arr;
+  lbm_array_header_t *jpg_arr;
+  lbm_value res = ENC_SYM_TERROR;
+
+  if (argn == 4 &&
+      (dest_arr = get_image_buffer(args[0])) && //assignment
+      (jpg_arr = lbm_dec_array_r(args[1])) &&    //assignment
+      lbm_is_number(args[2]) &&
+      lbm_is_number(args[3])) {
+
+    image_buffer_t dest_buf;
+    dest_buf.width = image_buffer_width((uint8_t*)dest_arr->data);
+    dest_buf.height = image_buffer_height((uint8_t*)dest_arr->data);
+    dest_buf.fmt = image_buffer_format((uint8_t*)dest_arr->data);
+    dest_buf.mem_base = (uint8_t*)dest_arr->data;
+    dest_buf.data = image_buffer_data((uint8_t*)dest_arr->data);
+
+    const size_t sz_work = 4096;
+    void *jdwork = lbm_malloc(sz_work);
+    if (!jdwork) {
+      return ENC_SYM_MERROR;
+    }
+
+    bool ok = tinygfx_decode_jpg(&dest_buf,
+                                  (uint8_t*)jpg_arr->data, jpg_arr->size,
+                                  lbm_dec_as_i32(args[2]), lbm_dec_as_i32(args[3]),
+                                  jdwork, sz_work);
+    lbm_free(jdwork);
+    res = ok ? ENC_SYM_TRUE : ENC_SYM_NIL;
   }
   return res;
 }
@@ -1507,6 +1519,7 @@ void lbm_display_extensions_init(void) {
   lbm_add_extension("disp-clear", ext_disp_clear);
   lbm_add_extension("disp-render", ext_disp_render);
   lbm_add_extension("disp-render-jpg", ext_disp_render_jpg);
+  lbm_add_extension("img-render-jpg", ext_img_render_jpg);
 }
 
 void lbm_display_extensions_set_callbacks(

@@ -21,7 +21,6 @@
 */
 
 #include "tinygfx.h"
-#include "tjpgd.h"
 #include "lbm_cos_table.h"
 
 #include <math.h>
@@ -270,6 +269,70 @@ static const uint8_t indexed4_shift[4] = {0, 2, 4, 6};
 static const uint8_t indexed16_mask[4] = {0x0F, 0xF0};
 static const uint8_t indexed16_shift[4] = {0, 4};
 
+static inline void putpixel_indexed2(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c) {
+  uint32_t pos = y * (uint32_t)w + x;
+  uint32_t byte = pos >> 3;
+  uint32_t bit  = 7 - (pos & 0x7);
+  if (c) {
+    data[byte] |= (uint8_t)(1 << bit);
+  } else {
+    data[byte] &= (uint8_t)~(1 << bit);
+  }
+}
+
+static inline void putpixel_indexed4(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c) {
+  uint32_t pos = y * (uint32_t)w + x;
+  uint32_t byte = pos >> 2;
+  uint32_t ix  = 3 - (pos & 0x3);
+  data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed4_mask[ix]) | (uint8_t)(c << indexed4_shift[ix]));
+}
+
+static inline void putpixel_indexed16(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c) {
+  uint32_t pos = y * (uint32_t)w + x;
+  uint32_t byte = pos >> 1;
+  uint32_t ix  = 1 - (pos & 0x1);
+  data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed16_mask[ix]) | (uint8_t)(c << indexed16_shift[ix]));
+}
+
+static inline void putpixel_rgb332(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c, uint8_t alpha) {
+  uint32_t pos = y * (uint32_t)w + x;
+  if (alpha == 255) {
+    data[pos] = rgb888to332(c);
+  } else {
+    uint32_t dst = rgb332to888(data[pos]);
+    data[pos] = rgb888to332(alpha_blend_rgb888(c, dst, alpha));
+  }
+}
+
+static inline void putpixel_rgb565(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c, uint8_t alpha) {
+  uint32_t pos = y * ((uint32_t)w << 1) + (x << 1);
+  if (alpha == 255) {
+    uint16_t color = rgb888to565(c);
+    data[pos] = (uint8_t)(color >> 8);
+    data[pos+1] = (uint8_t)color;
+  } else {
+    uint16_t dst = (uint16_t)((data[pos] << 8) | data[pos+1]);
+    uint16_t color = rgb888to565(alpha_blend_rgb888(c, rgb565to888(dst), alpha));
+    data[pos] = (uint8_t)(color >> 8);
+    data[pos+1] = (uint8_t)color;
+  }
+}
+
+static inline void putpixel_rgb888(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c, uint8_t alpha) {
+  uint32_t pos = y * ((uint32_t)w * 3) + (x * 3);
+  if (alpha == 255) {
+    data[pos] = (uint8_t)(c>>16);
+    data[pos+1] = (uint8_t)(c>>8);
+    data[pos+2] = (uint8_t)c;
+  } else {
+    uint32_t dst = ((uint32_t)data[pos] << 16) | ((uint32_t)data[pos+1] << 8) | data[pos+2];
+    uint32_t color = alpha_blend_rgb888(c, dst, alpha);
+    data[pos] = (uint8_t)(color>>16);
+    data[pos+1] = (uint8_t)(color>>8);
+    data[pos+2] = (uint8_t)color;
+  }
+}
+
 void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c, uint8_t alpha) {
   if (alpha == 0) {
     return;
@@ -280,75 +343,27 @@ void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c, uint8_t alpha) 
   uint16_t y = (uint16_t)y_i;
 
   if (x < w && y < h) {
-    color_format_t fmt = img->fmt;
     uint8_t *data = img->data;
-    bool opaque = alpha == 255;
 
-    switch(fmt) {
-    case indexed2: {
-      uint32_t pos = (uint32_t)y * (uint32_t)w + (uint32_t)x;
-      uint32_t byte = pos >> 3;
-      uint32_t bit  = 7 - (pos & 0x7);
-      if (c) {
-        data[byte] |= (uint8_t)(1 << bit);
-      } else {
-        data[byte] &= (uint8_t)~(1 << bit);
-      }
+    switch(img->fmt) {
+    case indexed2:
+      putpixel_indexed2(data, w, x, y, c);
       break;
-    }
-    case indexed4: {
-      uint32_t pos = (uint32_t)y*w + x;
-      uint32_t byte = pos >> 2;
-      uint32_t ix  = 3 - (pos & 0x3);
-      data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed4_mask[ix]) | (uint8_t)(c << indexed4_shift[ix]));
+    case indexed4:
+      putpixel_indexed4(data, w, x, y, c);
       break;
-    }
-    case indexed16: {
-      uint32_t pos = (uint32_t)y*w + x;
-      uint32_t byte = pos >> 1;
-      uint32_t ix  = 1 - (pos & 0x1);
-      data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed16_mask[ix]) | (uint8_t)(c << indexed16_shift[ix]));
+    case indexed16:
+      putpixel_indexed16(data, w, x, y, c);
       break;
-    }
-    case rgb332: {
-      int pos = y*w + x;
-      if (opaque) {
-        data[pos] = rgb888to332(c);
-      } else {
-        uint32_t dst = rgb332to888(data[pos]);
-        data[pos] = rgb888to332(alpha_blend_rgb888(c, dst, alpha));
-      }
+    case rgb332:
+      putpixel_rgb332(data, w, x, y, c, alpha);
       break;
-    }
-    case rgb565: {
-      int pos = y*(w<<1) + (x<<1) ;
-      if (opaque) {
-        uint16_t color = rgb888to565(c);
-        data[pos] = (uint8_t)(color >> 8);
-        data[pos+1] = (uint8_t)color;
-      } else {
-        uint16_t dst = (uint16_t)((data[pos] << 8) | data[pos+1]);
-        uint16_t color = rgb888to565(alpha_blend_rgb888(c, rgb565to888(dst), alpha));
-        data[pos] = (uint8_t)(color >> 8);
-        data[pos+1] = (uint8_t)color;
-      }
+    case rgb565:
+      putpixel_rgb565(data, w, x, y, c, alpha);
       break;
-    }
-    case rgb888: {
-      int pos = y*(w*3) + (x*3);
-      if (opaque) {
-        data[pos] = (uint8_t)(c>>16);
-        data[pos+1] = (uint8_t)(c>>8);
-        data[pos+2] = (uint8_t)c;
-      } else {
-        uint32_t dst = ((uint32_t)data[pos] << 16) | ((uint32_t)data[pos+1] << 8) | data[pos+2];
-        uint32_t color = alpha_blend_rgb888(c, dst, alpha);
-        data[pos] = (uint8_t)(color>>16);
-        data[pos+1] = (uint8_t)(color>>8);
-        data[pos+2] = (uint8_t)color;
-      }
+    case rgb888:
+      putpixel_rgb888(data, w, x, y, c, alpha);
       break;
-    }
     default:
       break;
     }
@@ -1522,28 +1537,47 @@ void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int n
 ////////////////////////////////////////////////////////////
 //  BLIT
 
-static inline void copy_pixel(
-        image_buffer_t *img_dest,
-    image_buffer_t *img_src,
-    int dest_x, int dest_y,
-    int src_x, int src_y,
-    int src_w, int src_h,
-    int transparent_color,
-    bool tile
-) {
-    if (tile) {
-        src_x = src_x % src_w;
-        if (src_x < 0) src_x = src_x + src_w;
-        src_y = src_y % src_h;
-        if (src_y < 0) src_y = src_y + src_h;
-    }
-
+static inline void copy_pixel(image_buffer_t *img_dest,
+                              image_buffer_t *img_src,
+                              int dest_x, int dest_y,
+                              int src_x, int src_y,
+                              int src_w, int src_h,
+                              int transparent_color ) {
     if (src_x >= 0 && src_x < src_w && src_y >= 0 && src_y < src_h) {
         uint32_t p = getpixel(img_src, src_x, src_y);
         if (transparent_color == -1 || p != (uint32_t)transparent_color) {
             putpixel(img_dest, dest_x, dest_y, p, 255);
         }
     }
+}
+
+// Sincle copy_pixel is already an inline function. Making specialized
+// versions of it add no extra binary size (depending on dispatch method).
+static inline void copy_pixel_noclip(image_buffer_t *img_dest,
+                                     image_buffer_t *img_src,
+                                     int dest_x, int dest_y,
+                                     int src_x, int src_y) {
+  uint32_t p = getpixel(img_src, src_x, src_y);
+  putpixel(img_dest, dest_x, dest_y, p, 255);
+}
+
+static inline void copy_pixel_transparency_noclip(image_buffer_t *img_dest,
+                                     image_buffer_t *img_src,
+                                     int dest_x, int dest_y,
+                                     int src_x, int src_y,
+                                     int transparent_color ) {
+  uint32_t p = getpixel(img_src, src_x, src_y);
+  if (p != (uint32_t)transparent_color) {
+    putpixel(img_dest, dest_x, dest_y, p, 255);
+  }
+}
+
+
+static inline void tile_wrap(int *src_x, int *src_y, int src_w, int src_h) {
+  *src_x = *src_x % src_w;
+  if (*src_x < 0) *src_x += src_w;
+  *src_y = *src_y % src_h;
+  if (*src_y < 0) *src_y += src_h;
 }
 
 // Simple Blit!
@@ -1567,11 +1601,21 @@ void tinygfx_blit(
   if (dest_x_end > img_dest->width) dest_x_end = img_dest->width;
   if (dest_y_end > img_dest->height) dest_y_end = img_dest->height;
 
-  for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-    for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-      int src_x = dest_x - dest_offset_x;
-      int src_y = dest_y - dest_offset_y;
-      copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, false);
+  if (transparent_color >= 0) {
+    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+        int src_x = dest_x - dest_offset_x;
+        int src_y = dest_y - dest_offset_y;
+        copy_pixel_transparency_noclip(img_dest, img_src, dest_x, dest_y, src_x, src_y, transparent_color);
+      }
+    }
+  } else {
+    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+        int src_x = dest_x - dest_offset_x;
+        int src_y = dest_y - dest_offset_y;
+        copy_pixel_noclip(img_dest, img_src, dest_x, dest_y, src_x, src_y);
+      }
     }
   }
 }
@@ -1612,7 +1656,8 @@ void tinygfx_blit_transform(
       for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
         int src_x = dest_x - dest_offset_x;
         int src_y = dest_y - dest_offset_y;
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, tile);
+        if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
       }
     }
   } else if (rot_angle == 0.0) {
@@ -1635,7 +1680,8 @@ void tinygfx_blit_transform(
 
         src_x /= scale_i;
         src_y /= scale_i;
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, tile);
+        if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
       }
     }
   } else {
@@ -1663,7 +1709,8 @@ void tinygfx_blit_transform(
 
         src_x /= scale_i;
         src_y /= scale_i;
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x,  src_y, src_w, src_h, transparent_color, tile);
+        if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
       }
     }
   }
@@ -1672,16 +1719,7 @@ void tinygfx_blit_transform(
 ////////////////////////////////////////////////////////////
 //  JPEG
 
-typedef struct {
-  const uint8_t *data;
-  size_t pos;
-  size_t size;
-  image_buffer_t *dest;
-  int ofs_x;
-  int ofs_y;
-} tinygfx_jpg_io_t;
-
-static size_t tinygfx_jpg_input(JDEC* jd, uint8_t* buff, size_t ndata) {
+size_t tinygfx_jpg_input(JDEC* jd, uint8_t* buff, size_t ndata) {
   tinygfx_jpg_io_t *dev = (tinygfx_jpg_io_t*)jd->device;
 
   if (ndata > (dev->size - dev->pos)) {

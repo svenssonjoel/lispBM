@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include "tjpgd.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -205,6 +206,17 @@ void tinygfx_blit_transform(image_buffer_t *img_dest, image_buffer_t *img_src,
 
 ////////////////////////////////////////////////////////////
 //  JPEG
+
+typedef struct {
+  const uint8_t *data;
+  size_t pos;
+  size_t size;
+  image_buffer_t *dest;
+  int ofs_x;
+  int ofs_y;
+} tinygfx_jpg_io_t;
+
+size_t tinygfx_jpg_input(JDEC *jd, uint8_t *buff, size_t ndata);
 
 bool tinygfx_decode_jpg(image_buffer_t *dest, const uint8_t *jpg_data, size_t jpg_size,
                          int ofs_x, int ofs_y, void *work_buf, size_t work_buf_size);
