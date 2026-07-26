@@ -20,26 +20,12 @@
 
 #include <stdint.h>
 
-#define LBM_DISPLAY_FONT_TOM_THUMB_4X6 0
-#define LBM_DISPLAY_FONT_RETRO_5X7 1
-#define LBM_DISPLAY_FONT_IBM_VGA_8X8 2
-#define LBM_DISPLAY_FONT_LUIZBILLS_4X6 3
+// Uncomment one of the following lines to select a font to use with TinyGFX
 
-#ifndef USE_TINYGFX_FONT_0
-#define USE_TINYGFX_FONT_0 0
-#endif
-
-#ifndef USE_TINYGFX_FONT_1
-#define USE_TINYGFX_FONT_1 1
-#endif
-
-#ifndef USE_TINYGFX_FONT_2
-#define USE_TINYGFX_FONT_2 0
-#endif
-
-#ifndef USE_TINYGFX_FONT_3
-#define USE_TINYGFX_FONT_3 0
-#endif
+// #define USE_TINYGFX_FONT_0  //Tom Thumb 4x6
+// #define USE_TINYGFX_FONT_1  //retro 5x7
+// #define USE_TINYGFX_FONT_2  //IBM VGA 8x8
+// #define USE_TINYGFX_FONT_3  //luizbills 4x6
 
 /*
  * Tom Thumb has 3x5 glyphs in a 4x6 cell and is licensed CC0.
@@ -50,7 +36,7 @@
  * Source: https://github.com/luizbills/font4x6
 */
 
-#if USE_TINYGFX_FONT_0
+#ifdef USE_TINYGFX_FONT_0
 
 /* Tom Thumb: 4x6 cell, U+0020..U+007E, 1 bit per pixel. */
 static const uint8_t tinygfx_font_tom_thumb_4x6[] = {
@@ -77,7 +63,7 @@ static const uint8_t tinygfx_font_tom_thumb_4x6[] = {
 };
 #endif
 
-#if USE_TINYGFX_FONT_1
+#ifdef USE_TINYGFX_FONT_1
 
 static const uint8_t tinygfx_font_retro_5x7[] = {
     5, 7, 91, 1, 0, 0, 0, 0, 0, 132, 16, 2, 8, 0, 74, 1, 0, 0, 0, 74,
@@ -107,7 +93,7 @@ static const uint8_t tinygfx_font_retro_5x7[] = {
 
 #endif
 
-#if USE_TINYGFX_FONT_2
+#ifdef USE_TINYGFX_FONT_2
 
 /* 8x8, U+0020..U+007E, 1 bit per pixel. */
 static const uint8_t tinygfx_font_ibm_vga_8x8[] = {
@@ -164,7 +150,7 @@ static const uint8_t tinygfx_font_ibm_vga_8x8[] = {
 
 #endif
 
-#if USE_TINYGFX_FONT_3
+#ifdef USE_TINYGFX_FONT_3
 
 /* 4x6, U+0020..U+007E, 1 bit per pixel. */
 static const uint8_t tinygfx_font_luizbills_4x6[] = {
@@ -189,27 +175,28 @@ static const uint8_t tinygfx_font_luizbills_4x6[] = {
 #endif
 
 static inline const uint8_t *tinygfx_get_builtin_font(int font_id) {
-#if USE_TINYGFX_FONT_0
-  if (font_id == LBM_DISPLAY_FONT_TOM_THUMB_4X6) {
+#ifdef USE_TINYGFX_FONT_0
+  if (font_id == 0) {
     return tinygfx_font_tom_thumb_4x6;
   }
 #endif
-#if USE_TINYGFX_FONT_1
-  if (font_id == LBM_DISPLAY_FONT_RETRO_5X7) {
+#ifdef USE_TINYGFX_FONT_1
+  if (font_id == 1) {
     return tinygfx_font_retro_5x7;
   }
 #endif
-#if USE_TINYGFX_FONT_2
-  if (font_id == LBM_DISPLAY_FONT_IBM_VGA_8X8) {
+#ifdef USE_TINYGFX_FONT_2
+  if (font_id == 2) {
     return tinygfx_font_ibm_vga_8x8;
   }
 #endif
-#if USE_TINYGFX_FONT_3
-  if (font_id == LBM_DISPLAY_FONT_LUIZBILLS_4X6) {
+#ifdef USE_TINYGFX_FONT_3
+  if (font_id == 3) {
     return tinygfx_font_luizbills_4x6;
   }
 #endif
-#if !USE_TINYGFX_FONT_0 && !USE_TINYGFX_FONT_1 && !USE_TINYGFX_FONT_2 && !USE_TINYGFX_FONT_3
+#if !defined(USE_TINYGFX_FONT_0) && !defined(USE_TINYGFX_FONT_1) && \
+    !defined(USE_TINYGFX_FONT_2) && !defined(USE_TINYGFX_FONT_3)
   (void)font_id;
 #endif
   return 0;
