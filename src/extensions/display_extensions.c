@@ -292,34 +292,18 @@ static bool register_symbols(void) {
   return res;
 }
 
-static const uint8_t retro5x7[] = {
-    5, 7, 91, 1, 0, 0, 0, 0, 0, 132, 16, 2, 8, 0, 74, 1, 0, 0, 0, 74,
-    125, 245, 149, 2, 196, 23, 71, 31, 1, 115, 33, 34, 116, 6, 38, 21, 83, 147, 5, 132,
-    0, 0, 0, 0, 136, 8, 33, 8, 2, 130, 32, 132, 136, 0, 64, 145, 79, 20, 0, 128,
-    144, 79, 8, 0, 0, 0, 192, 136, 0, 0, 128, 15, 0, 0, 0, 0, 0, 140, 1, 16,
-    33, 34, 68, 0, 46, 230, 58, 163, 3, 196, 16, 66, 136, 3, 46, 66, 38, 194, 7, 46,
-    66, 7, 163, 3, 76, 165, 244, 17, 2, 63, 60, 8, 163, 3, 46, 132, 23, 163, 3, 31,
-    34, 34, 132, 0, 46, 70, 23, 163, 3, 46, 70, 15, 161, 3, 192, 24, 96, 12, 0, 192,
-    24, 96, 68, 0, 136, 136, 32, 8, 2, 0, 124, 240, 1, 0, 130, 32, 136, 136, 0, 46,
-    66, 68, 0, 1, 46, 246, 218, 130, 3, 68, 197, 248, 99, 4, 47, 198, 23, 227, 3, 46,
-    134, 16, 162, 3, 47, 198, 24, 227, 3, 63, 132, 23, 194, 7, 63, 132, 23, 66, 0, 46,
-    134, 30, 163, 7, 49, 198, 31, 99, 4, 142, 16, 66, 136, 3, 28, 33, 132, 146, 1, 49,
-    149, 81, 82, 4, 33, 132, 16, 194, 7, 113, 215, 24, 99, 4, 113, 214, 28, 99, 4, 46,
-    198, 24, 163, 3, 47, 198, 23, 66, 0, 46, 198, 88, 179, 3, 47, 198, 87, 82, 4, 46,
-    6, 7, 163, 3, 159, 16, 66, 8, 1, 49, 198, 24, 163, 3, 49, 198, 168, 20, 1, 49,
-    198, 90, 119, 4, 49, 42, 162, 98, 4, 49, 42, 66, 8, 1, 31, 34, 34, 194, 7, 78,
-    8, 33, 132, 3, 33, 8, 130, 32, 4, 14, 33, 132, 144, 3, 68, 69, 0, 0, 0, 0,
-    0, 0, 192, 7, 134, 32, 0, 0, 0, 0, 56, 232, 163, 7, 33, 188, 24, 227, 3, 0,
-    184, 16, 162, 3, 16, 250, 24, 163, 7, 0, 184, 248, 131, 3, 76, 136, 39, 132, 0, 192,
-    199, 232, 161, 3, 33, 188, 24, 99, 4, 4, 24, 66, 136, 3, 16, 64, 8, 163, 3, 33,
-    149, 81, 82, 4, 134, 16, 66, 136, 3, 0, 172, 90, 99, 4, 0, 188, 24, 99, 4, 0,
-    184, 24, 163, 3, 224, 197, 248, 66, 0, 192, 199, 232, 33, 4, 0, 188, 24, 66, 0, 0,
-    248, 224, 224, 3, 66, 60, 33, 36, 3, 0, 196, 24, 163, 7, 0, 196, 24, 21, 1, 0,
-    196, 88, 171, 2, 0, 68, 69, 84, 4, 0, 196, 232, 161, 3, 0, 124, 68, 196, 7
-  };
+#include "tinygfx_fonts.h"
 
 // returns: 1 parsed, 0 not an attr list, -1 malformed/invalid
 static int parse_text_attr(lbm_value v, float *mag, int *spacing, int *align, int *rotation_deg) {
+  if (lbm_is_cons(v) && lbm_car(v) == ENC_SYM_QUOTE) {
+    lbm_value quoted = lbm_cdr(v);
+    if (!lbm_is_cons(quoted) || lbm_cdr(quoted) != ENC_SYM_NIL) {
+      return -1;
+    }
+    v = lbm_car(quoted);
+  }
+
   if (!lbm_is_cons(v)) {
     return 0;
   }
@@ -1102,9 +1086,27 @@ static lbm_value ext_triangle(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+static bool font_data_is_valid(const lbm_array_header_t *font) {
+  if (font->size < 4) {
+    return false;
+  }
+
+  const uint8_t *font_data = (const uint8_t*)font->data;
+  uint8_t bits_per_pixel = font_data[3];
+  if (font_data[0] == 0 || font_data[1] == 0 || font_data[2] == 0 ||
+      (bits_per_pixel != 1 && bits_per_pixel != 2)) {
+    return false;
+  }
+
+  uint32_t bytes_per_char =
+    ((uint32_t)font_data[0] * font_data[1] * bits_per_pixel + 7) / 8;
+  uint32_t required_size = 4 + bytes_per_char * font_data[2];
+  return font->size >= required_size;
+}
+
 // lisp args:
 //   img x y fg bg font str  [attrs] ['up|'down]
-//   img x y fg bg str       [attrs] ['up|'down]   uses built-in retro5x7 font
+//   img x y fg bg font-id str [attrs] ['up|'down]  uses a compiled-in font
 //   img x y '(c0..c3) font str [attrs] ['up|'down]  4-color form for 2bpp fonts
 // attrs: '(magnify N) '(scale N) '(spacing N) '(align 'left|'center|'right) '(rotate deg)
 // orient: 0=normal 1=up/90CCW 2=180 3=down/90CW
@@ -1132,7 +1134,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     break;
   }
 
-  if (core_argn < 6 || core_argn > 7) return ENC_SYM_TERROR;
+  if (core_argn != 6 && core_argn != 7) return ENC_SYM_TERROR;
 
   if (rot_deg != 0) {
     orient = (((rot_deg % 360) + 360) % 360) / 90;
@@ -1142,7 +1144,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   int y = lbm_dec_as_i32(args[2]);
 
   int32_t colors[4] = {-1, -1, -1, -1};
-  uint8_t *font_data = (uint8_t*)retro5x7;
+  const uint8_t *font_data = NULL;
   char *txt = NULL;
 
   if (lbm_is_cons(args[3])) {
@@ -1158,11 +1160,14 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     }
     if (lbm_type_of_functional(args[4]) == LBM_TYPE_ARRAY) {
       lbm_array_header_t *fh = (lbm_array_header_t*)lbm_car(args[4]);
-      if (fh->size < 4) return ENC_SYM_TERROR;
-      uint8_t *fd = (uint8_t*)fh->data;
-      uint32_t need = ((uint32_t)fd[0] * fd[1] * fd[2] * fd[3] + 7) / 8;
-      if (fh->size - 4 < need) return ENC_SYM_TERROR;
+      if (!font_data_is_valid(fh)) return ENC_SYM_TERROR;
+      const uint8_t *fd = (const uint8_t*)fh->data;
       font_data = fd;
+    } else if (lbm_is_number(args[4])) {
+      font_data = tinygfx_get_builtin_font(lbm_dec_as_i32(args[4]));
+      if (!font_data) return ENC_SYM_TERROR;
+    } else {
+      return ENC_SYM_TERROR;
     }
     txt = lbm_dec_str(args[5]);
   } else if (lbm_is_number(args[3]) && lbm_is_number(args[4])) {
@@ -1171,17 +1176,18 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     if (core_argn == 7) {
       if (lbm_type_of_functional(args[5]) == LBM_TYPE_ARRAY) {
         lbm_array_header_t *fh = (lbm_array_header_t*)lbm_car(args[5]);
-        if (fh->size < 4) return ENC_SYM_TERROR;
-        uint8_t *fd = (uint8_t*)fh->data;
-        uint32_t need = ((uint32_t)fd[0] * fd[1] * fd[2] * fd[3] + 7) / 8;
-        if (fh->size - 4 < need) return ENC_SYM_TERROR;
+        if (!font_data_is_valid(fh)) return ENC_SYM_TERROR;
+        const uint8_t *fd = (const uint8_t*)fh->data;
         font_data = fd;
+      } else if (lbm_is_number(args[5])) {
+        font_data = tinygfx_get_builtin_font(lbm_dec_as_i32(args[5]));
+        if (!font_data) return ENC_SYM_TERROR;
       } else {
         return ENC_SYM_TERROR;
       }
       txt = lbm_dec_str(args[6]);
     } else {
-      txt = lbm_dec_str(args[5]);
+      return ENC_SYM_TERROR;
     }
   } else {
     return ENC_SYM_TERROR;
