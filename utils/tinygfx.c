@@ -614,6 +614,7 @@ static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8
 ////////////////////////////////////////////////////////////
 //  LINES
 
+#ifndef USE_TINYGFX_QUAD_LINES
 // Thickness extends outwards and inwards from the given line equally, resulting
 // in double the total thickness.
 // TODO: This should be more efficient
@@ -699,6 +700,173 @@ void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thick
     }
   }
 }
+#else
+static void quad_line_thin(image_buffer_t *img, int x0, int y0, int x1, int y1,
+                           uint32_t c, uint8_t alpha) {
+  int dx = abs(x1 - x0);
+  int sx = x0 < x1 ? 1 : -1;
+  int dy = -abs(y1 - y0);
+  int sy = y0 < y1 ? 1 : -1;
+  int error = dx + dy;
+
+  while (true) {
+    putpixel(img, x0, y0, c, alpha);
+    if (x0 == x1 && y0 == y1) {
+      return;
+    }
+
+    int error2 = 2 * error;
+    if (error2 >= dy) {
+      error += dy;
+      x0 += sx;
+    }
+    if (error2 <= dx) {
+      error += dx;
+      y0 += sy;
+    }
+  }
+}
+
+static bool quad_line_contains(float x, float y, float x0, float y0,
+                               float vx, float vy, float length,
+                               float radius_sq, int dot1, int dot2,
+                               bool cap_start, bool cap_end) {
+  if (length == 0.0f) {
+    float dx = x - x0;
+    float dy = y - y0;
+    return dx * dx + dy * dy <= radius_sq;
+  }
+
+  float along = ((x - x0) * vx + (y - y0) * vy) / length;
+  float across = ((x - x0) * vy - (y - y0) * vx) / length;
+  float along_dist = 0.0f;
+
+  if (dot1 > 0) {
+    float dash = (float)dot1;
+    float step = dash + (float)MAX(dot2, 0);
+    int last_dash = (int)ceilf(length / step) - 1;
+    int dash_ix = (int)floorf(along / step);
+    float best = radius_sq + length * length + 1.0f;
+
+    for (int i = 0; i < 2; i++) {
+      int ix = MAX(0, MIN(last_dash, dash_ix + i));
+      float start = (float)ix * step;
+      float end = fminf(start + dash, length);
+      if (along < start) {
+        if (ix != 0 || cap_start) {
+          best = fminf(best, start - along);
+        }
+      } else if (along > end) {
+        if (ix != last_dash || cap_end) {
+          best = fminf(best, along - end);
+        }
+      } else {
+        best = 0.0f;
+      }
+    }
+    along_dist = best;
+  } else if (along < 0.0f) {
+    if (!cap_start) {
+      return false;
+    }
+    along_dist = -along;
+  } else if (along > length) {
+    if (!cap_end) {
+      return false;
+    }
+    along_dist = along - length;
+  }
+
+  return across * across + along_dist * along_dist <= radius_sq;
+}
+
+static void quad_line_raster(image_buffer_t *img, float x0, float y0, float x1, float y1,
+                             int thickness, int dot1, int dot2, uint32_t c, uint8_t alpha,
+                             bool cap_start, bool cap_end) {
+  if (thickness <= 1) {
+    int ix0 = (int)lroundf(x0);
+    int iy0 = (int)lroundf(y0);
+    int ix1 = (int)lroundf(x1);
+    int iy1 = (int)lroundf(y1);
+    if (dot1 <= 0 || dot2 <= 0) {
+      quad_line_thin(img, ix0, iy0, ix1, iy1, c, alpha);
+      return;
+    }
+
+    float dx = x1 - x0;
+    float dy = y1 - y0;
+    float length = sqrtf(dx * dx + dy * dy);
+    float step = (float)dot1 + (float)dot2;
+    if (length == 0.0f) {
+      putpixel(img, ix0, iy0, c, alpha);
+      return;
+    }
+    for (float start = 0.0f; start < length; start += step) {
+      float end = fminf(start + (float)dot1, length);
+      quad_line_thin(img,
+                     (int)lroundf(x0 + dx * start / length),
+                     (int)lroundf(y0 + dy * start / length),
+                     (int)lroundf(x0 + dx * end / length),
+                     (int)lroundf(y0 + dy * end / length), c, alpha);
+    }
+    return;
+  }
+
+  float radius = (float)thickness * 0.5f;
+  float align = (thickness & 1) == 0 ? 0.5f : 0.0f;
+  x0 += align;
+  y0 += align;
+  x1 += align;
+  y1 += align;
+
+  float vx = x1 - x0;
+  float vy = y1 - y0;
+  float length = sqrtf(vx * vx + vy * vy);
+  float radius_sq = radius * radius;
+  int left = MAX(0, (int)floorf(fminf(x0, x1) - radius));
+  int right = MIN((int)img->width - 1, (int)ceilf(fmaxf(x0, x1) + radius));
+  int top = MAX(0, (int)floorf(fminf(y0, y1) - radius));
+  int bottom = MIN((int)img->height - 1, (int)ceilf(fmaxf(y0, y1) + radius));
+
+  if (fabsf(vx) >= fabsf(vy)) {
+    float span = length == 0.0f ? radius : radius * length / fabsf(vx);
+    for (int x = left; x <= right; x++) {
+      float t = length == 0.0f ? 0.0f : ((float)x - x0) / vx;
+      t = fminf(1.0f, fmaxf(0.0f, t));
+      float center = y0 + t * vy;
+      int y_first = MAX(top, (int)floorf(center - span));
+      int y_last = MIN(bottom, (int)ceilf(center + span));
+      for (int y = y_first; y <= y_last; y++) {
+        if (quad_line_contains((float)x, (float)y, x0, y0, vx, vy,
+                               length, radius_sq, dot1, dot2, cap_start, cap_end)) {
+          putpixel(img, x, y, c, alpha);
+        }
+      }
+    }
+  } else {
+    float span = radius * length / fabsf(vy);
+    for (int y = top; y <= bottom; y++) {
+      float t = ((float)y - y0) / vy;
+      t = fminf(1.0f, fmaxf(0.0f, t));
+      float center = x0 + t * vx;
+      int x_first = MAX(left, (int)floorf(center - span));
+      int x_last = MIN(right, (int)ceilf(center + span));
+      for (int x = x_first; x <= x_last; x++) {
+        if (quad_line_contains((float)x, (float)y, x0, y0, vx, vy,
+                               length, radius_sq, dot1, dot2, cap_start, cap_end)) {
+          putpixel(img, x, y, c, alpha);
+        }
+      }
+    }
+  }
+}
+
+void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1,
+                  int thickness, int dot1, int dot2, uint32_t c, uint8_t alpha) {
+  quad_line_raster(img, (float)x0, (float)y0, (float)x1, (float)y1,
+                   thickness, dot1, dot2, c, alpha, true, true);
+}
+#endif
 
 ////////////////////////////////////////////////////////////
 //  CIRCLES AND ARCS
@@ -980,6 +1148,7 @@ void tinygfx_circle(image_buffer_t *img, int x, int y, int radius, int thickness
   circle_ring(img, x, y, radius, thickness, color, alpha);
 }
 
+#ifndef USE_TINYGFX_QUAD_LINES
 static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
                         const arc_params_t *p) {
 
@@ -1044,6 +1213,142 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
          p->thickness, p->dot1, p->dot2, p->color, p->alpha);
   }
 }
+#else
+static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
+                        const arc_params_t *p) {
+  if (rad <= 0) {
+    return;
+  }
+  bool full_circle = fabsf(ang_end - ang_start) > 1e-4f
+    && fabsf(fmodf(ang_end - ang_start, 360.0f)) < 1e-3f;
+  float ang_range = (ang_end - ang_start) * ((float)M_PI / 180.0f);
+  ang_start *= (float)M_PI / 180.0f;
+  norm_angle_0_2pi(&ang_start);
+  if (full_circle) {
+    ang_range = 2.0f * (float)M_PI;
+  } else {
+    while (ang_range < 0.0f) {
+      ang_range += 2.0f * (float)M_PI;
+    }
+    while (ang_range >= 2.0f * (float)M_PI) {
+      ang_range -= 2.0f * (float)M_PI;
+    }
+  }
+  if (ang_range == 0.0f) {
+    return;
+  }
+
+  int thickness = MIN(MAX(p->thickness, 1), rad * 2);
+  float half_width = (float)thickness * 0.5f;
+  float center_radius = (float)rad - half_width;
+  float half_width_sq = half_width * half_width;
+  float path_length = center_radius * ang_range;
+  if (center_radius <= 0.0f || path_length <= 0.0f) {
+    tinygfx_line(img, x, y, x, y, thickness, 0, 0, p->color, p->alpha);
+    return;
+  }
+
+  bool dotted = p->dot1 > 0;
+  float dash = (float)p->dot1;
+  float step = dash + (float)MAX(p->dot2, 0);
+  int last_dash = dotted ? (int)ceilf(path_length / step) - 1 : 0;
+  float end_angle = ang_start + ang_range;
+  float align = (thickness & 1) == 0 ? 0.5f : 0.0f;
+
+  float start_x = (float)x + cosf(ang_start) * center_radius + align;
+  float start_y = (float)y + sinf(ang_start) * center_radius + align;
+  float end_x = (float)x + cosf(end_angle) * center_radius + align;
+  float end_y = (float)y + sinf(end_angle) * center_radius + align;
+  float center_x = (float)x + align;
+  float center_y = (float)y + align;
+
+  float edge0_vx = start_x - center_x;
+  float edge0_vy = start_y - center_y;
+  float edge0_len = sqrtf(edge0_vx * edge0_vx + edge0_vy * edge0_vy);
+  float edge1_vx = center_x - end_x;
+  float edge1_vy = center_y - end_y;
+  float edge1_len = sqrtf(edge1_vx * edge1_vx + edge1_vy * edge1_vy);
+  float chord_vx = start_x - end_x;
+  float chord_vy = start_y - end_y;
+  float chord_len = sqrtf(chord_vx * chord_vx + chord_vy * chord_vy);
+
+  int left = MAX(0, x - rad);
+  int right = MIN((int)img->width - 1, x + rad - 1);
+  int top = MAX(0, y - rad);
+  int bottom = MIN((int)img->height - 1, y + rad - 1);
+
+  for (int iy = top; iy <= bottom; iy++) {
+    float py = (float)(iy - y) + 0.5f;
+    for (int ix = left; ix <= right; ix++) {
+      float px = (float)(ix - x) + 0.5f;
+      float point_angle = atan2f(py, px);
+      norm_angle_0_2pi(&point_angle);
+      float delta = point_angle - ang_start;
+      if (delta < 0.0f) {
+        delta += 2.0f * (float)M_PI;
+      }
+      float pos = delta * center_radius;
+      float point_radius = sqrtf(px * px + py * py);
+      float radial = point_radius - center_radius;
+      bool covered = false;
+
+      if (radial * radial <= half_width_sq) {
+        if (!dotted) {
+          covered = full_circle || delta <= ang_range;
+        } else {
+          float best_sq = radial * radial + path_length * path_length;
+          int dash_ix = (int)floorf(pos / step);
+          int candidates[4] = {dash_ix, dash_ix + 1, 0, last_dash};
+
+          for (int candidate = 0; candidate < 4; candidate++) {
+            int di = MAX(0, MIN(last_dash, candidates[candidate]));
+            float dash_start = (float)di * step;
+            float dash_end = fminf(dash_start + dash, path_length);
+            if (pos >= dash_start && pos <= dash_end) {
+              best_sq = radial * radial;
+              break;
+            }
+            float start_angle = ang_start + dash_start / center_radius;
+            float dash_end_angle = ang_start + dash_end / center_radius;
+            float sx = cosf(start_angle) * center_radius;
+            float sy = sinf(start_angle) * center_radius;
+            float ex = cosf(dash_end_angle) * center_radius;
+            float ey = sinf(dash_end_angle) * center_radius;
+            float sdx = px - sx, sdy = py - sy;
+            float edx = px - ex, edy = py - ey;
+            best_sq = fminf(best_sq, sdx * sdx + sdy * sdy);
+            best_sq = fminf(best_sq, edx * edx + edy * edy);
+          }
+          covered = best_sq <= half_width_sq;
+        }
+      }
+
+      if (!covered && !full_circle) {
+        if (p->sector) {
+          bool first_edge = quad_line_contains(
+              (float)ix, (float)iy, center_x, center_y,
+              edge0_vx, edge0_vy, edge0_len,
+              half_width_sq, p->dot1, p->dot2, true, true);
+          bool second_edge = quad_line_contains(
+              (float)ix, (float)iy, end_x, end_y,
+              edge1_vx, edge1_vy, edge1_len,
+              half_width_sq, p->dot1, p->dot2, true, true);
+          covered = first_edge || second_edge;
+        } else if (p->segment) {
+          covered = quad_line_contains(
+              (float)ix, (float)iy, end_x, end_y,
+              chord_vx, chord_vy, chord_len,
+              half_width_sq, p->dot1, p->dot2, true, true);
+        }
+      }
+
+      if (covered) {
+        putpixel(img, ix, iy, p->color, p->alpha);
+      }
+    }
+  }
+}
+#endif
 
 // Thin/ring arc rasterizer.
 
@@ -1229,6 +1534,7 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
 
 void tinygfx_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
                 const arc_params_t *p) {
+#ifndef USE_TINYGFX_QUAD_LINES
   if (p->dot1 > 0 && !p->filled) {
     arc_params_t p2 = *p;
     p2.thickness /= 2;
@@ -1245,6 +1551,14 @@ void tinygfx_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0
   }
 
   arc_ring(img, c_x, c_y, radius, angle0, angle1, p);
+#else
+  if (!p->filled && (p->dot1 > 0 || p->sector || p->segment)) {
+    generic_arc(img, c_x, c_y, radius, angle0, angle1, p);
+    return;
+  }
+
+  arc_ring(img, c_x, c_y, radius, angle0, angle1, p);
+#endif
 }
 
 ////////////////////////////////////////////////////////////
@@ -1275,6 +1589,7 @@ void tinygfx_rectangle(image_buffer_t *img, int x, int y, int width, int height,
   }
 
   if (dot1 > 0) {
+#ifndef USE_TINYGFX_QUAD_LINES
     int line_thickness = thickness / 2;
     int lx = x + line_thickness;
     int ly = y + line_thickness;
@@ -1288,6 +1603,17 @@ void tinygfx_rectangle(image_buffer_t *img, int x, int y, int width, int height,
     tinygfx_line(img, lx, ly, lx, ly + lh, line_thickness, dot1, dot2, color, alpha);
     // right
     tinygfx_line(img, lx + lw, ly, lx + lw, ly + lh, line_thickness, dot1, dot2, color, alpha);
+#else
+    int line_offset = thickness / 2;
+    int lx = x + line_offset;
+    int ly = y + line_offset;
+    int lw = width - line_offset * 2;
+    int lh = height - line_offset * 2;
+    tinygfx_line(img, lx, ly, lx + lw, ly, thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, lx, ly + lh, lx + lw, ly + lh, thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, lx, ly, lx, ly + lh, thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, lx + lw, ly, lx + lw, ly + lh, thickness, dot1, dot2, color, alpha);
+#endif
     return;
   }
 
@@ -1344,6 +1670,7 @@ void tinygfx_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int
   if (radius > height / 2) radius = height / 2;
 
   if (dot1 > 0) {
+#ifndef USE_TINYGFX_QUAD_LINES
     int line_thickness = thickness / 2;
     int corner_thickness = line_thickness * 2;
 
@@ -1355,6 +1682,19 @@ void tinygfx_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int
     tinygfx_line(img, x + line_thickness, y + radius, x + line_thickness, y + height - radius, line_thickness, dot1, dot2, color, alpha);
     // right
     tinygfx_line(img, x + width - line_thickness, y + radius, x + width - line_thickness, y + height - radius, line_thickness, dot1, dot2, color, alpha);
+#else
+    int line_offset = thickness / 2;
+    int corner_thickness = thickness;
+
+    tinygfx_line(img, x + radius, y + line_offset, x + width - radius, y + line_offset,
+                 thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, x + radius, y + height - line_offset, x + width - radius, y + height - line_offset,
+                 thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, x + line_offset, y + radius, x + line_offset, y + height - radius,
+                 thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, x + width - line_offset, y + radius, x + width - line_offset, y + height - radius,
+                 thickness, dot1, dot2, color, alpha);
+#endif
 
     arc_params_t p = {
       .thickness = corner_thickness, .rounded = false, .filled = false, .sector = false, .segment = false,
