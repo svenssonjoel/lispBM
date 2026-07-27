@@ -27,6 +27,22 @@
 // #define USE_TINYGFX_FONT_2  //IBM VGA 8x8
 // #define USE_TINYGFX_FONT_3  //luizbills 4x6
 
+// More than one font can be compiled in at once. USE_TINYGFX_FONT_ALL is a
+// shorthand for enabling all of them.
+#ifdef USE_TINYGFX_FONT_ALL
+#define USE_TINYGFX_FONT_0
+#define USE_TINYGFX_FONT_1
+#define USE_TINYGFX_FONT_2
+#define USE_TINYGFX_FONT_3
+#endif
+
+// Font used by img-text when called without an explicit font argument.
+// Its USE_TINYGFX_FONT_N must be enabled for that call form to work.
+// Override with -DTINYGFX_DEFAULT_FONT_ID=N to pick a different one.
+#ifndef TINYGFX_DEFAULT_FONT_ID
+#define TINYGFX_DEFAULT_FONT_ID 1
+#endif
+
 /*
  * Tom Thumb has 3x5 glyphs in a 4x6 cell and is licensed CC0.
  * Source: https://robey.lag.net/2010/01/23/tiny-monospace-font.html

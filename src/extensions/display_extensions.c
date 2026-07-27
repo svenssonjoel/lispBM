@@ -1107,6 +1107,7 @@ static bool font_data_is_valid(const lbm_array_header_t *font) {
 // lisp args:
 //   img x y fg bg font str  [attrs] ['up|'down]
 //   img x y fg bg font-id str [attrs] ['up|'down]  uses a compiled-in font
+//   img x y fg bg str       [attrs] ['up|'down]   uses TINYGFX_DEFAULT_FONT_ID
 //   img x y '(c0..c3) font str [attrs] ['up|'down]  4-color form for 2bpp fonts
 // attrs: '(magnify N) '(scale N) '(spacing N) '(align 'left|'center|'right) '(rotate deg)
 // orient: 0=normal 1=up/90CCW 2=180 3=down/90CW
@@ -1187,7 +1188,9 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
       }
       txt = lbm_dec_str(args[6]);
     } else {
-      return ENC_SYM_TERROR;
+      font_data = tinygfx_get_builtin_font(TINYGFX_DEFAULT_FONT_ID);
+      if (!font_data) return ENC_SYM_TERROR;
+      txt = lbm_dec_str(args[5]);
     }
   } else {
     return ENC_SYM_TERROR;

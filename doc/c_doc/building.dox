@@ -66,6 +66,19 @@ The following preprocessor flags control code size optimizions on a per subsyste
 <li>LBM_OPT_DSP_EXTENSIONS_SIZE_AGGRESSIVE</li>
 </ul>
 
+The following flags select which built-in bitmap fonts (utils/tinygfx_fonts.h) are compiled
+in for use with img-text. More than one may be defined at the same time.
+<ul>
+<li>USE_TINYGFX_FONT_0 - Tom Thumb, 4x6.</li>
+<li>USE_TINYGFX_FONT_1 - retro, 5x7.</li>
+<li>USE_TINYGFX_FONT_2 - IBM VGA, 8x8.</li>
+<li>USE_TINYGFX_FONT_3 - luizbills, 4x6.</li>
+<li>USE_TINYGFX_FONT_ALL - shorthand for enabling all four of the above.</li>
+<li>TINYGFX_DEFAULT_FONT_ID - which font id img-text uses when called without an
+explicit font argument. Defaults to 1 (retro 5x7); override with e.g.
+-DTINYGFX_DEFAULT_FONT_ID=2. Its USE_TINYGFX_FONT_N must also be enabled.</li>
+</ul>
+
 <h2>Build on Linux</h2>
 
 <p> Start by cloning the LispBM repository. Open a terminal and issue command</p>

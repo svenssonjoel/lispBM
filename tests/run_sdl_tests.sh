@@ -16,6 +16,7 @@ make clean
 make FEATURES="sdl coverage"
 cd ../tests
 
+rm -rf sdl_tests/png_out
 mkdir -p sdl_tests/png_out
 
 date=$(date +"%Y-%m-%d_%H-%M")
