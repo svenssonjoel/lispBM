@@ -1056,8 +1056,8 @@ lbm_value lbm_list_copy(int *m, lbm_value list) {
   lbm_uint copy_n = n;
   if (*m >= 0 && (lbm_uint)*m < n) {
     copy_n = (lbm_uint)*m;
-  } else if (*m == -1) {
-    *m = (int)n; // TODO: smaller range in target variable.
+  } else { // *m == -1 or *m >= n
+    *m = (int)n;
   }
   if (copy_n == 0) return ENC_SYM_NIL;
   lbm_uint new_list = lbm_heap_allocate_list(copy_n);
@@ -1329,7 +1329,7 @@ lbm_flash_status lbm_allocate_const_raw(lbm_uint nwords, lbm_uint *res) {
   lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next + nwords) < (uint32_t)lbm_image_get_write_index()) {
+      (lbm_const_heap_state->next + nwords) <= (uint32_t)lbm_image_get_write_index()) {
     lbm_uint ix = lbm_const_heap_state->next;
     *res = (lbm_uint)&lbm_const_heap_state->heap[ix];
     lbm_const_heap_state->next += nwords;
@@ -1343,7 +1343,7 @@ lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res) 
   lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next + n) < (uint32_t)lbm_image_get_write_index()) {
+      (lbm_const_heap_state->next + n) <= (uint32_t)lbm_image_get_write_index()) {
     lbm_uint ix = lbm_const_heap_state->next;
 
     for (unsigned int i = 0; i < n; i ++) {
