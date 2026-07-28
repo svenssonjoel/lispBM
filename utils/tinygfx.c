@@ -48,6 +48,12 @@
 ////////////////////////////////////////////////////////////
 //  COLOR / PIXEL FORMAT
 
+// Integer Div by 255 which is correct for values 0 <= x <= 65025
+// (* 255 255) => 65025
+static inline uint32_t div255(uint32_t x) {
+  return ((x + 128 + ((x + 128) >> 8)) >> 8);
+}
+
 uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
   switch (color.type) {
   case COLOR_REGULAR:
@@ -75,9 +81,9 @@ uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
 
     uint32_t tab_val = (uint32_t)lbm_cos_tab_128[tab_pos <= 127 ? tab_pos : 128 - (tab_pos - 127)];
 
-    uint32_t r = (r1 * tab_val + r2 * (255 - tab_val)) / 255;
-    uint32_t g = (g1 * tab_val + g2 * (255 - tab_val)) / 255;
-    uint32_t b = (b1 * tab_val + b2 * (255 - tab_val)) / 255;
+    uint32_t r = div255(r1 * tab_val + r2 * (255 - tab_val));
+    uint32_t g = div255(g1 * tab_val + g2 * (255 - tab_val));
+    uint32_t b = div255(b1 * tab_val + b2 * (255 - tab_val));
 
     res = r << 16 | g << 8 | b;
     return res;
@@ -175,12 +181,6 @@ static uint32_t  rgb565to888(uint16_t rgb) {
   uint32_t b = (uint32_t)(rgb & 0x1F);
   uint32_t res_rgb888 = r << (16 + 3) | g << (8 + 2) | b << 3;
   return res_rgb888;
-}
-
-// Integer Div by 255 which is correct for values 0 <= x <= 65025
-// (* 255 255) => 65025
-static inline uint32_t div255(uint32_t x) {
-  return ((x + 128 + ((x + 128) >> 8)) >> 8);
 }
 
 static uint32_t alpha_blend_rgb888(uint32_t src, uint32_t dst, uint8_t alpha) {
