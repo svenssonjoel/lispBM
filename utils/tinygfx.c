@@ -1172,6 +1172,9 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
   int xo = -radius_outer;
   int xi = -radius_inner;
 
+  // Draw the main body of the shape
+  // This is either a disc or a ring, filled or not.
+  // But its edges are open.
   for (int y0 = 0; y0 < radius_outer; y0++) {
     int row_dbl_sq = (2 * y0 + 1) * (2 * y0 + 1);
     circle_boundary_advance(&xo, row_dbl_sq, radius_outer_dbl_sq);
@@ -1196,34 +1199,35 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
                     angle_is_closed, filled_segment, full_circle);
   }
 
-  if (p->rounded && !filled && !p->sector && !p->segment) {
-    float rad_f = (float)radius - ((float)thickness / 2.0f);
-    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
-    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
-    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
-    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
-    int th = thickness / 2;
-    tinygfx_fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, th, p->color, p->alpha);
-    tinygfx_fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, th, p->color, p->alpha);
-  }
-  if (p->sector && !filled) {
-    float rad_f = (float)radius - ((float)thickness / 2.0f);
-    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
-    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
-    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
-    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
-    int th = thickness / 2;
-    tinygfx_line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x, c_y, th, 0, 0, p->color, p->alpha);
-    tinygfx_line(img, c_x + cap1_center_x, c_y + cap1_center_y, c_x, c_y, th, 0, 0, p->color, p->alpha);
-  }
-  if (p->segment && !filled) {
-    float rad_f = (float)radius - ((float)thickness / 2.0f);
-    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
-    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
-    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
-    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
-    int th = thickness / 2;
-    tinygfx_line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x + cap1_center_x, c_y + cap1_center_y, th, 0, 0, p->color, p->alpha);
+  // These cases close the open ends of the shape.
+  if (!filled) {
+    if (p->rounded && !p->sector && !p->segment) {
+      float rad_f = (float)radius - ((float)thickness / 2.0f);
+      int cap0_center_x = (int)floorf(angle0_cos * rad_f);
+      int cap0_center_y = (int)floorf(angle0_sin * rad_f);
+      int cap1_center_x = (int)floorf(angle1_cos * rad_f);
+      int cap1_center_y = (int)floorf(angle1_sin * rad_f);
+      int th = thickness / 2;
+      tinygfx_fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, th, p->color, p->alpha);
+      tinygfx_fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, th, p->color, p->alpha);
+    } else if (p->sector) {
+      float rad_f = (float)radius - ((float)thickness / 2.0f);
+      int cap0_center_x = (int)floorf(angle0_cos * rad_f);
+      int cap0_center_y = (int)floorf(angle0_sin * rad_f);
+      int cap1_center_x = (int)floorf(angle1_cos * rad_f);
+      int cap1_center_y = (int)floorf(angle1_sin * rad_f);
+      int th = thickness / 2;
+      tinygfx_line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x, c_y, th, 0, 0, p->color, p->alpha);
+      tinygfx_line(img, c_x + cap1_center_x, c_y + cap1_center_y, c_x, c_y, th, 0, 0, p->color, p->alpha);
+    } else if (p->segment) {
+      float rad_f = (float)radius - ((float)thickness / 2.0f);
+      int cap0_center_x = (int)floorf(angle0_cos * rad_f);
+      int cap0_center_y = (int)floorf(angle0_sin * rad_f);
+      int cap1_center_x = (int)floorf(angle1_cos * rad_f);
+      int cap1_center_y = (int)floorf(angle1_sin * rad_f);
+      int th = thickness / 2;
+      tinygfx_line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x + cap1_center_x, c_y + cap1_center_y, th, 0, 0, p->color, p->alpha);
+    }
   }
 }
 
