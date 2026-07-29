@@ -681,13 +681,13 @@ void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thick
 #define ARC_BIG 1000000
 
 static inline void norm_angle(float *angle) {
-  while (*angle < -M_PI) { *angle += 2.0f * (float)M_PI; }
-  while (*angle >=  M_PI) { *angle -= 2.0f * (float)M_PI; }
+  while (*angle < -(float)M_PI) { *angle += 2.0f * (float)M_PI; }
+  while (*angle >=  (float)M_PI) { *angle -= 2.0f * (float)M_PI; }
 }
 
 static inline void norm_angle_0_2pi(float *angle) {
   while (*angle < 0) { *angle += 2.0f * (float)M_PI; }
-  while (*angle >= 2.0 * M_PI) { *angle -= 2.0f * (float)M_PI; }
+  while (*angle >= 2.0f * (float)M_PI) { *angle -= 2.0f * (float)M_PI; }
 }
 
 // Advances *cursor monotonically (only ever forward) until it lands on the
@@ -701,32 +701,32 @@ static inline void circle_boundary_advance(int *cursor, int row_dbl_sq, int radi
   }
 }
 
-static void arc_ray_clip(double dir_x, double dir_y, int Y, int *lo, int *hi) {
+static void arc_ray_clip(float dir_x, float dir_y, int Y, int *lo, int *hi) {
   if (dir_y == 0) {
-    if (-(double)Y * dir_x <= 0) { *lo = -ARC_BIG; *hi = ARC_BIG; }
+    if (-(float)Y * dir_x <= 0) { *lo = -ARC_BIG; *hi = ARC_BIG; }
     else { *lo = 1; *hi = 0; }
     return;
   }
-  double xc = (double)Y * dir_x / dir_y;
-  if (dir_y > 0) { *lo = -ARC_BIG; *hi = (int)floor(xc); }
-  else { *lo = (int)ceil(xc); *hi = ARC_BIG; }
+  float xc = (float)Y * dir_x / dir_y;
+  if (dir_y > 0) { *lo = -ARC_BIG; *hi = (int)floorf(xc); }
+  else { *lo = (int)ceilf(xc); *hi = ARC_BIG; }
 }
 
-static void arc_chord_clip(double sx, double sy, double ex, double ey, int Y, int *lo, int *hi) {
-  double dx = ex - sx, dy = ey - sy;
+static void arc_chord_clip(float sx, float sy, float ex, float ey, int Y, int *lo, int *hi) {
+  float dx = ex - sx, dy = ey - sy;
   if (dy == 0) {
-    if (0.0 <= ((double)Y - sy) * dx) { *lo = -ARC_BIG; *hi = ARC_BIG; }
+    if (0.0f <= ((float)Y - sy) * dx) { *lo = -ARC_BIG; *hi = ARC_BIG; }
     else { *lo = 1; *hi = 0; }
     return;
   }
-  double rhs = sx * dy + ((double)Y - sy) * dx;
-  if (dy > 0) { *lo = -ARC_BIG; *hi = (int)floor(rhs / dy); }
-  else { *lo = (int)ceil(rhs / dy); *hi = ARC_BIG; }
+  float rhs = sx * dy + ((float)Y - sy) * dx;
+  if (dy > 0) { *lo = -ARC_BIG; *hi = (int)floorf(rhs / dy); }
+  else { *lo = (int)ceilf(rhs / dy); *hi = ARC_BIG; }
 }
 
 // Clip a row by the two rays (or, for a filled segment, the caller skips
 // this and uses arc_chord_clip directly). Returns 1 or 2 spans in lo[]/hi[].
-static int arc_wedge_clip(double dir0_x, double dir0_y, double dir1_x, double dir1_y,
+static int arc_wedge_clip(float dir0_x, float dir0_y, float dir1_x, float dir1_y,
                           bool angle_is_closed, int Y, int *lo, int *hi) {
   int r0_lo, r0_hi, r1_lo, r1_hi;
   arc_ray_clip(dir0_x, dir0_y, Y, &r0_lo, &r0_hi);
@@ -761,7 +761,7 @@ static int arc_wedge_clip(double dir0_x, double dir0_y, double dir1_x, double di
 // angle clipping entirely and draws the raw annulus/disk interval.
 static void circle_row_draw(image_buffer_t *img, int c_x, int c_y, uint32_t color, int Y,
                             int x_out, int x_out_r, bool has_gap, int x_in, int x_in_r,
-                            double chord0_x, double chord0_y, double chord1_x, double chord1_y,
+                            float chord0_x, float chord0_y, float chord1_x, float chord1_y,
                             bool angle_is_closed, bool filled_segment, bool full_circle) {
   int a_lo[2], a_hi[2], a_n;
   if (!has_gap) {
@@ -961,7 +961,7 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
 
   if (full_circle) {
     ang_range = 2.0f * (float)M_PI;
-  } else if (ang_range < 0.0) {
+  } else if (ang_range < 0.0f) {
     ang_range += 2.0f * (float)M_PI;
   }
 
@@ -1013,14 +1013,14 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
 // Thin/ring arc rasterizer.
 
 static void arc_thin_plot(image_buffer_t *img, int c_x, int c_y, int px, int py,
-                          double cap0_x, double cap0_y, double cap1_x, double cap1_y,
+                          float cap0_x, float cap0_y, float cap1_x, float cap1_y,
                           bool angle_is_closed, bool full_circle, uint32_t color) {
   bool inside;
   if (full_circle) {
     inside = true;
   } else {
-    double cross0 = px * cap0_y - py * cap0_x;
-    double cross1 = px * cap1_y - py * cap1_x;
+    float cross0 = px * cap0_y - py * cap0_x;
+    float cross1 = px * cap1_y - py * cap1_x;
     bool inside0 = cross0 <= 0;
     bool inside1 = cross1 >= 0;
     inside = angle_is_closed ? (inside0 || inside1) : (inside0 && inside1);
@@ -1045,16 +1045,16 @@ static void arc_thin(image_buffer_t *img, int c_x, int c_y, int radius, float an
   if (!full_circle && angle0 == angle1) return;
 
   bool angle_is_closed;
-  if (angle1 - angle0 > 0.0) angle_is_closed = fabsf(angle1 - angle0) > M_PI;
-  else angle_is_closed = fabsf(angle1 - angle0) < M_PI;
+  if (angle1 - angle0 > 0.0f) angle_is_closed = fabsf(angle1 - angle0) > (float)M_PI;
+  else angle_is_closed = fabsf(angle1 - angle0) < (float)M_PI;
 
   int cap0_x = (int)(cosf(angle0) * (float)radius);
   int cap0_y = (int)(sinf(angle0) * (float)radius);
   int cap1_x = (int)(cosf(angle1) * (float)radius);
   int cap1_y = (int)(sinf(angle1) * (float)radius);
 
-  double ray0_x = cosf(angle0), ray0_y = sinf(angle0);
-  double ray1_x = cosf(angle1), ray1_y = sinf(angle1);
+  float ray0_x = cosf(angle0), ray0_y = sinf(angle0);
+  float ray1_x = cosf(angle1), ray1_y = sinf(angle1);
 
   long r_dbl_sq = 4L * radius * radius;
   int px = 0, py = radius;
@@ -1103,12 +1103,12 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
   if (!full_circle && angle0 == angle1) return;
 
   bool angle_is_closed;
-  if (angle1 - angle0 > 0.0) angle_is_closed = fabsf(angle1 - angle0) > M_PI;
-  else angle_is_closed = fabsf(angle1 - angle0) < M_PI;
+  if (angle1 - angle0 > 0.0f) angle_is_closed = fabsf(angle1 - angle0) > (float)M_PI;
+  else angle_is_closed = fabsf(angle1 - angle0) < (float)M_PI;
 
   int thickness = p->thickness;
 
-  if (!full_circle && !angle_is_closed && fabsf(angle1 - angle0) < 0.0174532925) {
+  if (!full_circle && !angle_is_closed && fabsf(angle1 - angle0) < 0.0174532925f) {
     if (p->rounded) {
       float rad_f = (float)radius - ((float)thickness / 2.0f);
       float angle = (angle0 + angle1) / 2.0f;
@@ -1155,12 +1155,12 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
     }
 
     circle_row_draw(img, c_x, c_y, p->color, y0, x_out, x_out_r, has_gap, x_in, x_in_r,
-                    (double)angle0_cos * radius_outer, (double)angle0_sin * radius_outer,
-                    (double)angle1_cos * radius_outer, (double)angle1_sin * radius_outer,
+                    (float)angle0_cos * radius_outer, (float)angle0_sin * radius_outer,
+                    (float)angle1_cos * radius_outer, (float)angle1_sin * radius_outer,
                     angle_is_closed, filled_segment, full_circle);
     circle_row_draw(img, c_x, c_y, p->color, -y0 - 1, x_out, x_out_r, has_gap, x_in, x_in_r,
-                    (double)angle0_cos * radius_outer, (double)angle0_sin * radius_outer,
-                    (double)angle1_cos * radius_outer, (double)angle1_sin * radius_outer,
+                    (float)angle0_cos * radius_outer, (float)angle0_sin * radius_outer,
+                    (float)angle1_cos * radius_outer, (float)angle1_sin * radius_outer,
                     angle_is_closed, filled_segment, full_circle);
   }
 
@@ -1535,9 +1535,7 @@ static uint8_t alpha_buffer_sample(image_buffer_t *alpha_buf, int x, int y) {
   }
 }
 
-// compose is always valid (non-NULL) here -- the compose/no-compose decision
-// is made once per blit call, not per pixel; see copy_pixel vs
-// copy_pixel_composed and friends below.
+// perform palette lookup and potentially blend with target.
 static inline void compose_write(image_buffer_t *img_dest, int dest_x, int dest_y,
                                  uint32_t p, const blit_compose_t *compose,
                                  int src_x, int src_y) {
@@ -1716,7 +1714,7 @@ void tinygfx_blit_transform(
   int clip_x = transform.clip_x, clip_y = transform.clip_y;
   int clip_w = transform.clip_w, clip_h = transform.clip_h;
 
-  if (scale == 0.0) return;
+  if (scale == 0.0f) return;
   int src_w = img_src->width;
   int src_h = img_src->height;
 
@@ -1725,7 +1723,7 @@ void tinygfx_blit_transform(
   int dest_x_end = clip_x + clip_w;
   int dest_y_end = clip_y + clip_h;
 
-  if (rot_angle == 0.0 && scale == 1.0) {
+  if (rot_angle == 0.0f && scale == 1.0f) {
     if (dest_offset_x > dest_x_start) dest_x_start = dest_offset_x;
     if (dest_offset_y > dest_y_start) dest_y_start = dest_offset_y;
     if (!tile) {
@@ -1752,7 +1750,7 @@ void tinygfx_blit_transform(
         }
       }
     }
-  } else if (rot_angle == 0.0) {
+  } else if (rot_angle == 0.0f) {
     rot_x *= scale;
     rot_y *= scale;
 
