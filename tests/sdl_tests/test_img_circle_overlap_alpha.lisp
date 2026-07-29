@@ -19,29 +19,44 @@
 (define img (img-buffer 'rgb888 300 300))
 (img-clear img 0x101018)
 
-;; Four overlapping thick rings plus one translucent ring through the middle.
-;; This exercises the alpha-compositing ring code with genuine overlap, and
-;; a plain thin outline circle (below) exercises the alpha-compositing
-;; outline code specifically at its 4 pole pixels.
-(define red    (img-color 'regular 0xE04030 160))
-(define green  (img-color 'regular 0x30C060 160))
-(define blue   (img-color 'regular 0x3080E0 160))
-(define yellow (img-color 'regular 0xE0C030 160))
-(define white  (img-color 'regular 0xFFFFFF 120))
+;; Alpha now lives entirely in img-blit, not in the shapes themselves: each
+;; circle is drawn *opaque* into its own small scratch buffer, sized to its
+;; bounding box, then composited onto img with img-blit's 'alpha attribute.
+;; marker is the scratch buffer's background fill -- passed as img-blit's
+;; transparent_color so only the ring/circle pixels themselves participate.
+(define marker 0x00FF01)
 
-(define c1 (img-circle img 110 110 70 red    '(thickness 24)))
-(define c2 (img-circle img 170 110 70 green  '(thickness 24)))
-(define c3 (img-circle img 110 170 70 blue   '(thickness 24)))
-(define c4 (img-circle img 170 170 70 yellow '(thickness 24)))
-(define c5 (img-circle img 140 140 30 white  '(thickness 30)))
+;; mode is 'filled, a thickness number, or nil for a thin (outline) circle.
+(defun circle-layer (dest cx cy r color alpha mode)
+  (let ((margin 2))
+    (let ((size (+ (* 2 r) (* 2 margin)))
+          (lx (+ r margin))
+          (ly (+ r margin)))
+      (let ((buf (img-buffer 'rgb888 size size)))
+        (progn
+          (img-clear buf marker)
+          (if (eq mode 'filled)
+              (img-circle buf lx ly r color '(filled))
+              (if mode
+                  (img-circle buf lx ly r color (list 'thickness mode))
+                  (img-circle buf lx ly r color)))
+          (img-blit dest buf (- cx lx) (- cy ly) marker (list 'alpha alpha)))))))
+
+;; Four overlapping thick rings plus one translucent ring through the middle.
+;; This exercises blit's alpha-compositing with genuine overlap, and a plain
+;; thin outline circle (below) exercises it specifically at its 4 pole pixels.
+(define c1 (circle-layer img 110 110 70 0xE04030 160 24))
+(define c2 (circle-layer img 170 110 70 0x30C060 160 24))
+(define c3 (circle-layer img 110 170 70 0x3080E0 160 24))
+(define c4 (circle-layer img 170 170 70 0xE0C030 160 24))
+(define c5 (circle-layer img 140 140 30 0xFFFFFF 120 30))
 
 ;; A thin (outline, no thickness attribute) alpha circle. Its 4 pole pixels
 ;; ((cx,cy+-r) and (cx+-r,cy)) must be blended exactly once, not twice --
 ;; regression test for a bug where the octant mirror's x0==0 step collapsed
 ;; onto the same 4 pixels via two different putpixel calls each, which is
 ;; invisible for opaque draws but visibly wrong (over-blended) with alpha.
-(define pole-color (img-color 'regular 0xFFFFFF 128))
-(define c6 (img-circle img 250 250 20 pole-color))
+(define c6 (circle-layer img 250 250 20 0xFFFFFF 128 nil))
 
 (define pole-top   (img-getpix img 250 270))
 (define pole-bot   (img-getpix img 250 230))
