@@ -1435,6 +1435,18 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
 //  TEXT
 
 // orient: 0=normal, 1=up(90°CCW), 2=180°, 3=down(90°CW)
+// There are per pixel % and / operations here that
+// can be expressed using & and >>.
+//
+// The orient_coeffs represent how the px,py change sign and "meaning"
+// in the inner most loop. Instead of a conditional, we look up coefficients.
+
+int putc_orient_coeff[4][4] =
+  {{ 1, 0, 0, 1},
+   { 0, 1,-1, 0},
+   {-1, 0, 0,-1},
+   { 0,-1, 1, 0}};
+
 void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors,
                      const uint8_t *font_data, uint8_t ch, int orient, float mag) {
   uint8_t w = font_data[0];
@@ -1457,6 +1469,8 @@ void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int n
   if (ch >= char_num) {
     return;
   }
+
+  int *oc = (int*)putc_orient_coeff[orient];
 
   for (int i = 0; i < w * h; i++) {
     int x0 = i % w;
@@ -1492,12 +1506,10 @@ void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int n
 
     for (int py = sy0; py <= sy1; py++) {
       for (int px = sx0; px <= sx1; px++) {
-        switch (orient) {
-          case 1:  putpixel(img, x + py, y - px, color); break;
-          case 2:  putpixel(img, x - px, y - py, color); break;
-          case 3:  putpixel(img, x - py, y + px, color); break;
-          default: putpixel(img, x + px, y + py, color); break;
-        }
+        putpixel(img,
+                 x + oc[0] * px + oc[1] * py,
+                 y + oc[2] * px + oc[3] * py,
+                 color);
       }
     }
   }
