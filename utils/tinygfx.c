@@ -1438,6 +1438,10 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
 // There are per pixel % and / operations here that
 // can be expressed using & and >>.
 //
+// Magnification is likely quite costly it may be an idea to
+// split putc into two different implementations, one with mag
+// and another without, then pick the right one as early as possible.
+//
 // The orient_coeffs represent how the px,py change sign and "meaning"
 // in the inner most loop. Instead of a conditional, we look up coefficients.
 
@@ -1470,7 +1474,7 @@ void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int n
     return;
   }
 
-  int *oc = (int*)putc_orient_coeff[orient];
+  const int *oc = putc_orient_coeff[orient];
 
   for (int i = 0; i < w * h; i++) {
     int x0 = i % w;
