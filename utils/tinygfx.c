@@ -265,8 +265,8 @@ void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
 
 static const uint8_t indexed4_mask[4] = {0x03, 0x0C, 0x30, 0xC0};
 static const uint8_t indexed4_shift[4] = {0, 2, 4, 6};
-static const uint8_t indexed16_mask[4] = {0x0F, 0xF0};
-static const uint8_t indexed16_shift[4] = {0, 4};
+static const uint8_t indexed16_mask[2] = {0x0F, 0xF0};
+static const uint8_t indexed16_shift[2] = {0, 4};
 
 static inline void putpixel_indexed2(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c) {
   uint32_t pos = y * (uint32_t)w + x;
@@ -1523,8 +1523,10 @@ static inline bool color_format_is_rgb(color_format_t fmt) {
 static uint8_t alpha_buffer_sample(image_buffer_t *alpha_buf, int x, int y) {
   switch (alpha_buf->fmt) {
   case indexed2:  return getpixel(alpha_buf, x, y) ? 255 : 0;
-  case indexed4:  return (uint8_t)(getpixel(alpha_buf, x, y) * 255 / 3);
-  case indexed16: return (uint8_t)(getpixel(alpha_buf, x, y) * 255 / 15);
+    // (/ 255 3) => 85         (* 85 3) => 255
+    // (/ 255 15)  => 17       (* 17 15) => 255
+  case indexed4:  return (uint8_t)(getpixel(alpha_buf, x, y) * 85);
+  case indexed16: return (uint8_t)(getpixel(alpha_buf, x, y) * 17);
   case rgb332: {
     uint32_t pos = (uint32_t)y * (uint32_t)alpha_buf->width + (uint32_t)x;
     return alpha_buf->data[pos];
@@ -1533,14 +1535,12 @@ static uint8_t alpha_buffer_sample(image_buffer_t *alpha_buf, int x, int y) {
   }
 }
 
+// compose is always valid (non-NULL) here -- the compose/no-compose decision
+// is made once per blit call, not per pixel; see copy_pixel vs
+// copy_pixel_composed and friends below.
 static inline void compose_write(image_buffer_t *img_dest, int dest_x, int dest_y,
                                  uint32_t p, const blit_compose_t *compose,
                                  int src_x, int src_y) {
-  if (!compose) {
-    putpixel(img_dest, dest_x, dest_y, p);
-    return;
-  }
-
   uint32_t out = palette_remap(p, compose->palette, compose->palette_len);
 
   if (color_format_is_rgb(img_dest->fmt)) {
@@ -1565,6 +1565,20 @@ static inline void copy_pixel(image_buffer_t *img_dest,
                               int dest_x, int dest_y,
                               int src_x, int src_y,
                               int src_w, int src_h,
+                              int transparent_color) {
+    if (src_x >= 0 && src_x < src_w && src_y >= 0 && src_y < src_h) {
+        uint32_t p = getpixel(img_src, src_x, src_y);
+        if (transparent_color == -1 || p != (uint32_t)transparent_color) {
+            putpixel(img_dest, dest_x, dest_y, p);
+        }
+    }
+}
+
+static inline void copy_pixel_composed(image_buffer_t *img_dest,
+                              image_buffer_t *img_src,
+                              int dest_x, int dest_y,
+                              int src_x, int src_y,
+                              int src_w, int src_h,
                               int transparent_color,
                               const blit_compose_t *compose) {
     if (src_x >= 0 && src_x < src_w && src_y >= 0 && src_y < src_h) {
@@ -1580,6 +1594,14 @@ static inline void copy_pixel(image_buffer_t *img_dest,
 static inline void copy_pixel_noclip(image_buffer_t *img_dest,
                                      image_buffer_t *img_src,
                                      int dest_x, int dest_y,
+                                     int src_x, int src_y) {
+  uint32_t p = getpixel(img_src, src_x, src_y);
+  putpixel(img_dest, dest_x, dest_y, p);
+}
+
+static inline void copy_pixel_noclip_composed(image_buffer_t *img_dest,
+                                     image_buffer_t *img_src,
+                                     int dest_x, int dest_y,
                                      int src_x, int src_y,
                                      const blit_compose_t *compose) {
   uint32_t p = getpixel(img_src, src_x, src_y);
@@ -1587,6 +1609,17 @@ static inline void copy_pixel_noclip(image_buffer_t *img_dest,
 }
 
 static inline void copy_pixel_transparency_noclip(image_buffer_t *img_dest,
+                                     image_buffer_t *img_src,
+                                     int dest_x, int dest_y,
+                                     int src_x, int src_y,
+                                     int transparent_color) {
+  uint32_t p = getpixel(img_src, src_x, src_y);
+  if (p != (uint32_t)transparent_color) {
+    putpixel(img_dest, dest_x, dest_y, p);
+  }
+}
+
+static inline void copy_pixel_transparency_noclip_composed(image_buffer_t *img_dest,
                                      image_buffer_t *img_src,
                                      int dest_x, int dest_y,
                                      int src_x, int src_y,
@@ -1628,20 +1661,40 @@ void tinygfx_blit(
   if (dest_x_end > img_dest->width) dest_x_end = img_dest->width;
   if (dest_y_end > img_dest->height) dest_y_end = img_dest->height;
 
-  if (transparent_color >= 0) {
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x = dest_x - dest_offset_x;
-        int src_y = dest_y - dest_offset_y;
-        copy_pixel_transparency_noclip(img_dest, img_src, dest_x, dest_y, src_x, src_y, transparent_color, compose);
+  if (compose) {
+    if (transparent_color >= 0) {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          copy_pixel_transparency_noclip_composed(img_dest, img_src, dest_x, dest_y, src_x, src_y, transparent_color, compose);
+        }
+      }
+    } else {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          copy_pixel_noclip_composed(img_dest, img_src, dest_x, dest_y, src_x, src_y, compose);
+        }
       }
     }
   } else {
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x = dest_x - dest_offset_x;
-        int src_y = dest_y - dest_offset_y;
-        copy_pixel_noclip(img_dest, img_src, dest_x, dest_y, src_x, src_y, compose);
+    if (transparent_color >= 0) {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          copy_pixel_transparency_noclip(img_dest, img_src, dest_x, dest_y, src_x, src_y, transparent_color);
+        }
+      }
+    } else {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          copy_pixel_noclip(img_dest, img_src, dest_x, dest_y, src_x, src_y);
+        }
       }
     }
   }
@@ -1680,12 +1733,23 @@ void tinygfx_blit_transform(
         if (dest_offset_y + src_h < dest_y_end) dest_y_end = dest_offset_y + src_h;
     }
 
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x = dest_x - dest_offset_x;
-        int src_y = dest_y - dest_offset_y;
-        if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, compose);
+    if (compose) {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel_composed(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, compose);
+        }
+      }
+    } else {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
+        }
       }
     }
   } else if (rot_angle == 0.0) {
@@ -1699,18 +1763,35 @@ void tinygfx_blit_transform(
     int scale_i = (int)(scale * (float) fp_scale);
     if (scale_i == 0) return;
 
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
-        int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
+    if (compose) {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
+          int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
 
-        src_x += rot_x_x * fp_scale;
-        src_y += rot_y_i * fp_scale;
+          src_x += rot_x_x * fp_scale;
+          src_y += rot_y_i * fp_scale;
 
-        src_x /= scale_i;
-        src_y /= scale_i;
-        if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, compose);
+          src_x /= scale_i;
+          src_y /= scale_i;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel_composed(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, compose);
+        }
+      }
+    } else {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
+          int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
+
+          src_x += rot_x_x * fp_scale;
+          src_y += rot_y_i * fp_scale;
+
+          src_x /= scale_i;
+          src_y /= scale_i;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
+        }
       }
     }
   } else {
@@ -1729,18 +1810,35 @@ void tinygfx_blit_transform(
     int scale_i = (int)(scale * (float) fp_scale);
     if (scale_i == 0) return;
 
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
-        int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
+    if (compose) {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
+          int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
 
-        src_x += rot_x_i * fp_scale;
-        src_y += rot_y_i * fp_scale;
+          src_x += rot_x_i * fp_scale;
+          src_y += rot_y_i * fp_scale;
 
-        src_x /= scale_i;
-        src_y /= scale_i;
-        if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, compose);
+          src_x /= scale_i;
+          src_y /= scale_i;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel_composed(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, compose);
+        }
+      }
+    } else {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
+          int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
+
+          src_x += rot_x_i * fp_scale;
+          src_y += rot_y_i * fp_scale;
+
+          src_x /= scale_i;
+          src_y /= scale_i;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
+        }
       }
     }
   }
