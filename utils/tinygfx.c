@@ -1441,7 +1441,7 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
 // The orient_coeffs represent how the px,py change sign and "meaning"
 // in the inner most loop. Instead of a conditional, we look up coefficients.
 
-int putc_orient_coeff[4][4] =
+static const int putc_orient_coeff[4][4] =
   {{ 1, 0, 0, 1},
    { 0, 1,-1, 0},
    {-1, 0, 0,-1},
