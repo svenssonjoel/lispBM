@@ -15,8 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef LBM_COS_TABLE_H_
-#define LBM_COS_TABLE_H_
+#ifndef COS_TABLE_H_
+#define COS_TABLE_H_
 
 #include <stdint.h>
 

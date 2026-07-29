@@ -21,7 +21,7 @@
 */
 
 #include "tinygfx.h"
-#include "lbm_cos_table.h"
+#include "cos_table.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -73,11 +73,8 @@ uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
     int used_len = color.mirrored ? 256 : 128;
 
     int pos = color.type == COLOR_GRADIENT_X ? x : y;
-    // int tab_pos = ((pos * 256) / color.param1 + color.param2) % 256;
-    int tab_pos = (((pos - color.param2) * 256) / color.param1 / 2) % used_len;
-    if (tab_pos < 0) {
-      tab_pos += used_len;
-    }
+    // % 2^n can be expressed as & (2^n - 1)
+    int tab_pos = (((pos - color.param2) * 256) / color.param1 / 2) & (used_len - 1);
 
     uint32_t tab_val = (uint32_t)lbm_cos_tab_128[tab_pos <= 127 ? tab_pos : 128 - (tab_pos - 127)];
 
