@@ -1670,6 +1670,7 @@ void tinygfx_blit_transform(
     int rot_x_x = (int)rot_x;
     int rot_y_i = (int)rot_y;
     int scale_i = (int)(scale * (float) fp_scale);
+    if (scale_i == 0) return;
 
     for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
       for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
@@ -1699,6 +1700,7 @@ void tinygfx_blit_transform(
     int rot_x_i = (int)rot_x;
     int rot_y_i = (int)rot_y;
     int scale_i = (int)(scale * (float) fp_scale);
+    if (scale_i == 0) return;
 
     for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
       for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
