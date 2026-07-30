@@ -1476,19 +1476,23 @@ void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int n
 
   const int *oc = putc_orient_coeff[orient];
 
+  // Converting mag to a fixed point represenation (with 8 bits fractional).
+  int mag_fp = (int)(mag * 256.0f + 0.5f);
+
   for (int i = 0; i < w * h; i++) {
     int x0 = i % w;
     int y0 = i / w;
 
-    int sx0 = (int)floorf((float)x0 * mag);
-    int sx1 = (int)floorf((float)(x0 + 1) * mag) - 1;
-    int sy0 = (int)floorf((float)y0 * mag);
-    int sy1 = (int)floorf((float)(y0 + 1) * mag) - 1;
+    int sx0 = (x0 * mag_fp) >> 8;
+    int sx1 = (((x0 + 1) * mag_fp) >> 8) - 1;
+    int sy0 = (y0 * mag_fp) >> 8;
+    int sy1 = (((y0 + 1) * mag_fp) >> 8) - 1;
 
     if (sx1 < sx0) sx1 = sx0;
     if (sy1 < sy0) sy1 = sy0;
 
     uint32_t color;
+    // These conditionals should be hoisted out of this w*h loop.
     if (bits_per_pixel == 2) {
       if (num_colors < 4) return;
       uint8_t byte = font_data[4 + bytes_per_char * ch + (i / 4)];
