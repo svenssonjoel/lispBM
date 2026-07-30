@@ -588,7 +588,10 @@ Copy pixels from `src` to `dest`.   `x` and `y` are coordinates in `dest`. Pixel
  `'(rotate x y deg)` | Rotate `deg` degrees around `x` `y`
  `'(scale s)` | Scale by `s`
  `'(tile)` | Tile to fill `dest`
- `'(clip x y w h)`  | Clip output in destination coords 
+ `'(clip x y w h)`  | Clip output in destination coords
+ `'(palette (v0 v1 ...))` | Remap indexed `src` values. Required for indexed `src` into a differently formatted `dest`. List length must equal `src`'s color count (2/4/16); entries are dest indices or rgb888 colors.
+ `'(alpha n)` | Opacity 0-255. Only applies when `dest` is rgb.
+ `'(alpha-buffer img-buf)` | Per-pixel opacity, same size as `src`. indexed2/4/16 or rgb332. Only applies when `dest` is rgb. 
 
 <table>
 <tr>
@@ -741,6 +744,79 @@ t
 </tr>
 </table>
 
+Blitting between indexed formats, or from indexed into rgb, needs a `palette` remapping `src`'s index values. Here a 4-color `src` is quantized down into a 2-color `dest`, mapping index 0 and 1 to 0, and 2 and 3 to 1: 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define src4 (img-buffer 'indexed4 40 40))
+(img-clear src4 0)
+(img-circle src4 20 20 18 3 '(filled))
+(define dst2 (img-buffer 'indexed2 40 40))
+(img-blit dst2 src4 0 0 -1 '(palette (0 0 1 1)))
+(disp-render dst2 0 0 '(0 16777215))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img22.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+A palette works for same-format blits too, not just conversions. `'(1 0)` swaps index 0 and 1, inverting an indexed2 image: 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define inverted (img-buffer 'indexed2 320 200))
+(img-blit inverted llama-bin 0 0 -1 '(palette (1 0)))
+(disp-render inverted 0 0 '(0 16777215))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img23.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
 
 
 
@@ -766,7 +842,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img22.png >
+<img src=./images/disp-img24.png >
 
 </td>
 <td>
@@ -825,7 +901,7 @@ Draw an arc into an image. The form of an `img-arc` expression is `(img-arc imag
 </td>
 <td>
 
-<img src=./images/disp-img23.png >
+<img src=./images/disp-img25.png >
 
 </td>
 <td>
@@ -848,7 +924,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img24.png >
+<img src=./images/disp-img26.png >
 
 </td>
 <td>
@@ -871,7 +947,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img25.png >
+<img src=./images/disp-img27.png >
 
 </td>
 <td>
@@ -894,7 +970,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img26.png >
+<img src=./images/disp-img28.png >
 
 </td>
 <td>
@@ -917,7 +993,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img27.png >
+<img src=./images/disp-img29.png >
 
 </td>
 <td>
@@ -940,7 +1016,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img28.png >
+<img src=./images/disp-img30.png >
 
 </td>
 <td>
@@ -963,7 +1039,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img29.png >
+<img src=./images/disp-img31.png >
 
 </td>
 <td>
@@ -1020,7 +1096,7 @@ Draw a circle into an image. The form of an `img-circle` expression is `(img-cir
 </td>
 <td>
 
-<img src=./images/disp-img30.png >
+<img src=./images/disp-img32.png >
 
 </td>
 <td>
@@ -1043,7 +1119,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img31.png >
+<img src=./images/disp-img33.png >
 
 </td>
 <td>
@@ -1066,7 +1142,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img32.png >
+<img src=./images/disp-img34.png >
 
 </td>
 <td>
@@ -1089,7 +1165,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img33.png >
+<img src=./images/disp-img35.png >
 
 </td>
 <td>
@@ -1112,7 +1188,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img34.png >
+<img src=./images/disp-img36.png >
 
 </td>
 <td>
@@ -1169,7 +1245,7 @@ Draw a circle sector into an image. The form of an `img-circle-sector` expressio
 </td>
 <td>
 
-<img src=./images/disp-img35.png >
+<img src=./images/disp-img37.png >
 
 </td>
 <td>
@@ -1192,7 +1268,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img36.png >
+<img src=./images/disp-img38.png >
 
 </td>
 <td>
@@ -1215,7 +1291,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img37.png >
+<img src=./images/disp-img39.png >
 
 </td>
 <td>
@@ -1238,7 +1314,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img38.png >
+<img src=./images/disp-img40.png >
 
 </td>
 <td>
@@ -1295,7 +1371,7 @@ Draw a circle segment into an image. The form of an `img-circle-segment` express
 </td>
 <td>
 
-<img src=./images/disp-img39.png >
+<img src=./images/disp-img41.png >
 
 </td>
 <td>
@@ -1318,7 +1394,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img40.png >
+<img src=./images/disp-img42.png >
 
 </td>
 <td>
@@ -1341,7 +1417,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img41.png >
+<img src=./images/disp-img43.png >
 
 </td>
 <td>
@@ -1364,7 +1440,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img42.png >
+<img src=./images/disp-img44.png >
 
 </td>
 <td>
@@ -1401,7 +1477,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img43.png >
+<img src=./images/disp-img45.png >
 
 </td>
 <td>
@@ -1424,7 +1500,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img44.png >
+<img src=./images/disp-img46.png >
 
 </td>
 <td>
@@ -1447,7 +1523,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img45.png >
+<img src=./images/disp-img47.png >
 
 </td>
 <td>
@@ -1469,7 +1545,7 @@ t
 
 ### img-color
 
-img-color is used to create more complex color objects for use together with disp-render. Regular colors can optionally include alpha from 0 (transparent) to 255 (opaque), with 255 as the default. 
+img-color is used to create more complex color objects for use together with disp-render. 
 
    - **gradient_x**: vertical gradients from color1 to color2.
    - **gradient_y**: horizontal gradients from color1 to color2.
@@ -1493,24 +1569,6 @@ img-color is used to create more complex color objects for use together with dis
 
 ```clj
 [0 67 79 76 17 187 170 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 255 0 0 0]
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(img-color 'regular 0xAABB11 128)
-```
-
-
-</td>
-<td>
-
-```clj
-[0 67 79 76 17 187 170 0 128 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 128 0 0 0]
 ```
 
 
@@ -1546,15 +1604,13 @@ img-color is used to create more complex color objects for use together with dis
 <td>
 
 ```clj
-[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 240 61 188 236 255 0 0 0]
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 112 127 28 235 255 0 0 0]
 ```
 
 
 </td>
 </tr>
 </table>
-
-Alpha blends colors in RGB buffers. For indexed buffers, alpha 0 skips the pixel and any non-zero value writes the color index. 
 
 <table>
 <tr>
@@ -1578,7 +1634,7 @@ Alpha blends colors in RGB buffers. For indexed buffers, alpha 0 skips the pixel
 </td>
 <td>
 
-<img src=./images/disp-img46.png >
+<img src=./images/disp-img48.png >
 
 </td>
 <td>
@@ -1615,7 +1671,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img47.png >
+<img src=./images/disp-img49.png >
 
 </td>
 <td>
@@ -1638,7 +1694,7 @@ t
 
 ### img-color-set
 
-With `img-color-set`you can set properties of a color. The form of a img-color-set expression is `(img-color-set color prop value)` The `alpha` property is available for every color type and is clamped to 0..255. 
+With `img-color-set`you can set properties of a color. The form of a img-color-set expression is `(img-color-set color prop value)` 
 
 |Arg || 
  |----|----|
@@ -1750,24 +1806,6 @@ t
 
 </td>
 </tr>
-<tr>
-<td>
-
-```clj
-(img-color-set my-color 'alpha 128)
-```
-
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
 </table>
 
 
@@ -1777,7 +1815,7 @@ t
 
 ### img-color-get
 
-With `img-color-get` you can access properties of a color. The form of an img-color-get expression is `(img-color-get color prop)` Use the `alpha` property to read the current opacity. 
+With `img-color-get` you can access properties of a color. The form of an img-color-get expression is `(img-color-get color prop)` 
 
 |Arg || 
  |----|----|
@@ -1888,24 +1926,6 @@ mirrored
 
 </td>
 </tr>
-<tr>
-<td>
-
-```clj
-(img-color-get my-color 'alpha)
-```
-
-
-</td>
-<td>
-
-```clj
-128u32
-```
-
-
-</td>
-</tr>
 </table>
 
 
@@ -1992,7 +2012,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img48.png >
+<img src=./images/disp-img50.png >
 
 </td>
 <td>
@@ -2035,7 +2055,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img49.png >
+<img src=./images/disp-img51.png >
 
 </td>
 <td>
@@ -2166,7 +2186,7 @@ Draw a line into an image. The form of an `img-line` expression is `(img-line im
 </td>
 <td>
 
-<img src=./images/disp-img50.png >
+<img src=./images/disp-img52.png >
 
 </td>
 <td>
@@ -2189,7 +2209,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img51.png >
+<img src=./images/disp-img53.png >
 
 </td>
 <td>
@@ -2212,7 +2232,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img52.png >
+<img src=./images/disp-img54.png >
 
 </td>
 <td>
@@ -2269,7 +2289,7 @@ Draw a rectangle into an image. The form of an `img-rectangle` expression is `(i
 </td>
 <td>
 
-<img src=./images/disp-img53.png >
+<img src=./images/disp-img55.png >
 
 </td>
 <td>
@@ -2292,7 +2312,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img54.png >
+<img src=./images/disp-img56.png >
 
 </td>
 <td>
@@ -2315,7 +2335,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img55.png >
+<img src=./images/disp-img57.png >
 
 </td>
 <td>
@@ -2361,7 +2381,7 @@ Draw a pixel into an image. The form of an `img-setpix` expression is `(img-setp
 </td>
 <td>
 
-<img src=./images/disp-img56.png >
+<img src=./images/disp-img58.png >
 
 </td>
 <td>
@@ -2406,7 +2426,7 @@ Get a pixel value from an image. The form of an `img-getpix` expression is `(img
 </td>
 <td>
 
-<img src=./images/disp-img57.png >
+<img src=./images/disp-img59.png >
 
 </td>
 <td>
@@ -2453,7 +2473,7 @@ Draw text into an image. The form of an `img-text` expression is `(img-text imag
 </td>
 <td>
 
-<img src=./images/disp-img58.png >
+<img src=./images/disp-img60.png >
 
 </td>
 <td>
@@ -2476,7 +2496,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img59.png >
+<img src=./images/disp-img61.png >
 
 </td>
 <td>
@@ -2499,7 +2519,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img60.png >
+<img src=./images/disp-img62.png >
 
 </td>
 <td>
@@ -2556,7 +2576,7 @@ Draw a triangle into an image. The form of an `img-triangle` expression is `(img
 </td>
 <td>
 
-<img src=./images/disp-img61.png >
+<img src=./images/disp-img63.png >
 
 </td>
 <td>
@@ -2579,7 +2599,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img62.png >
+<img src=./images/disp-img64.png >
 
 </td>
 <td>
@@ -2602,7 +2622,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img63.png >
+<img src=./images/disp-img65.png >
 
 </td>
 <td>
@@ -2625,7 +2645,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img64.png >
+<img src=./images/disp-img66.png >
 
 </td>
 <td>
@@ -2686,7 +2706,7 @@ These examples are leaving out the details on how to setup and initialize any pa
 </td>
 <td>
 
-<img src=./images/disp-img65.png >
+<img src=./images/disp-img67.png >
 
 </td>
 <td>
@@ -2728,7 +2748,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img66.png >
+<img src=./images/disp-img68.png >
 
 </td>
 <td>
@@ -2766,7 +2786,7 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
 </td>
 <td>
 
-<img src=./images/disp-img67.png >
+<img src=./images/disp-img69.png >
 
 </td>
 <td>
@@ -2798,7 +2818,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img68.png >
+<img src=./images/disp-img70.png >
 
 </td>
 <td>
@@ -2849,9 +2869,7 @@ t
 ---
 
 
-### Example: Overlapping shapes with alpha
-
-Colors with an alpha value blend with the image buffer contents instead of overwriting them. Only has an effect in RGB buffers. 
+### Example: alpha blitting
 
 <table>
 <tr>
@@ -2863,10 +2881,7 @@ Colors with an alpha value blend with the image buffer contents instead of overw
 
 ```clj
 (img-clear img-rgb888 1052696)
-(define alpha-red (img-color 'regular 14696496 160))
-(define alpha-blue (img-color 'regular 3178720 160))
-(img-circle img-rgb888 70 75 50 alpha-red '(filled))
-(img-circle img-rgb888 120 75 50 alpha-blue '(filled))
+(img-blit img-rgb888 llama-bin 10 10 -1 '(palette (1052696 14721072)) '(alpha 160))
 (disp-render img-rgb888 0 0)
 ```
 
@@ -2874,7 +2889,7 @@ Colors with an alpha value blend with the image buffer contents instead of overw
 </td>
 <td>
 
-<img src=./images/disp-img69.png >
+<img src=./images/disp-img71.png >
 
 </td>
 <td>
@@ -2889,6 +2904,8 @@ t
 </tr>
 </table>
 
+`llama-bin` is indexed2, so blitting it onto the rgb `img-rgb888` needs a `palette` mapping its two index values to colors. `alpha` then applies to the whole blit. 
+
 <table>
 <tr>
 <td> Example </td> <td> Image </td> <td> Result </td>
@@ -2898,13 +2915,15 @@ t
 
 
 ```clj
+(define sprite (img-buffer 'rgb888 64 64))
+(img-clear sprite 1193046)
+(img-circle sprite 32 32 28 14721072 '(filled))
+(define fade (img-buffer 'indexed4 64 64))
+(loopfor px 0 (< px 64) (+ px 1)
+         (loopfor py 0 (< py 64) (+ py 1)
+                  (img-setpix fade px py (/ px 16))))
 (img-clear img-rgb888 1052696)
-(define alpha-red (img-color 'regular 14696496 160))
-(define alpha-green (img-color 'regular 3194976 160))
-(define alpha-blue (img-color 'regular 3178720 160))
-(img-triangle img-rgb888 30 15 150 15 30 135 alpha-red '(filled))
-(img-triangle img-rgb888 55 40 175 40 55 160 alpha-green '(filled))
-(img-triangle img-rgb888 80 65 200 65 80 185 alpha-blue '(filled))
+(img-blit img-rgb888 sprite 40 40 1193046 (list 'alpha-buffer fade))
 (disp-render img-rgb888 0 0)
 ```
 
@@ -2912,7 +2931,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img70.png >
+<img src=./images/disp-img72.png >
 
 </td>
 <td>
@@ -2926,6 +2945,8 @@ t
 </td>
 </tr>
 </table>
+
+`fade` is an indexed4 buffer the same size as `sprite`, holding a left-to-right 4-level opacity ramp. `alpha-buffer` reads it and applies one opacity value per source pixel instead of one for the whole blit. 
 
 
 

@@ -72,15 +72,33 @@ static lbm_value ext_sdl_init(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+// active_rend is defined below, but both window-destruction paths need to
+// invalidate it when it belongs to the window being destroyed: SDL leaves a
+// renderer's backing window destruction silent (no auto-null anywhere), and
+// disp-render only checks active_rend for non-NULL, not validity -- without
+// this, a renderer surviving its window is a dangling pointer that
+// eventually segfaults deep inside SDL on the next render call.
+extern SDL_Renderer *active_rend;
+
 static bool sdl_window_destructor(lbm_uint value) {
-  if (value) SDL_DestroyWindow((SDL_Window*)value);
+  if (value) {
+    SDL_Window *win = (SDL_Window*)value;
+    if (active_rend && SDL_RenderGetWindow(active_rend) == win) {
+      active_rend = NULL;
+    }
+    SDL_DestroyWindow(win);
+  }
   return true;
 }
 
 static lbm_value ext_sdl_destroy_window(lbm_value *args, lbm_uint argn) {
   if (argn == 1 && lbm_type_of(args[0]) == LBM_TYPE_CUSTOM) {
     lbm_uint *m = (lbm_uint *)lbm_dec_custom(args[0]);
-    SDL_DestroyWindow((SDL_Window*)m[CUSTOM_TYPE_VALUE]);
+    SDL_Window *win = (SDL_Window*)m[CUSTOM_TYPE_VALUE];
+    if (active_rend && SDL_RenderGetWindow(active_rend) == win) {
+      active_rend = NULL;
+    }
+    SDL_DestroyWindow(win);
     m[CUSTOM_TYPE_VALUE] = 0;
   }
   return ENC_SYM_TRUE;
