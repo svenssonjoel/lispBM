@@ -22,7 +22,7 @@
 
 ; near, far, vertical-fov-degrees, cull-margin (world units), max
 ; triangles per object (36 is plenty for these 12-triangle cubes).
-(def state-pair (tiny3d-state-create img 64 0.5 100.0 60.0 0.5))
+(def state-pair (tiny3d-state-create img 64 0.5 100.0 60.0 0.5 '(filled)))
 (def state (car state-pair))
 
 ; Cube, side 2, centered at local origin: 8 shared vertices, 12 triangles

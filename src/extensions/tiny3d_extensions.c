@@ -26,6 +26,10 @@
 #define TINY3D_INSTANCE_MAGIC ((uint32_t)0x33444900) // "3DI\0"
 #define TINY3D_STATE_MAGIC ((uint32_t)0x33445300) // "3DS\0"
 
+// Symbols
+static lbm_uint symbol_filled = 0;
+static lbm_uint symbol_no_backface_cull = 0;
+
 typedef struct {
   uint32_t magic;
   uint16_t vertex_count;
@@ -354,13 +358,31 @@ static tiny3d_state_blob_t *get_state_blob(lbm_value v) {
   return blob;
 }
 
-// (tiny3d-state-create img max-tris-per-object near far fov-degrees cull-margin)
+// (tiny3d-state-create img max-tris-per-object near far fov-degrees cull-margin opt-attr)
+// opt-attr:
+//   filled            - solid triangles instead of the default wireframe
+//   no-backface-cull  - keep back-facing triangles (culled by default)
 // Returns (state . img)
 static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
-  if (argn != 6) return ENC_SYM_TERROR;
+  if (argn != 6 && argn != 7) return ENC_SYM_TERROR;
   if (!lbm_is_number(args[1]) || !lbm_is_number(args[2]) || !lbm_is_number(args[3]) ||
       !lbm_is_number(args[4]) || !lbm_is_number(args[5])) {
     return ENC_SYM_TERROR;
+  }
+  bool filled = false;
+  bool cull_backfaces = true;
+  if (argn == 7) {
+    if (!lbm_is_list(args[6])) return ENC_SYM_TERROR;
+    lbm_value curr = args[6];
+    while (lbm_is_cons(curr)) {
+      lbm_value a = lbm_car(curr);
+      if (!lbm_is_symbol(a)) return ENC_SYM_TERROR;
+      lbm_uint s = lbm_dec_sym(a);
+      if (s == symbol_filled) filled = true;
+      else if (s == symbol_no_backface_cull) cull_backfaces = false;
+      else return ENC_SYM_TERROR;
+      curr = lbm_cdr(curr);
+    }
   }
 
   image_buffer_t img;
@@ -373,6 +395,7 @@ static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
   int32_t far          = (int32_t)llround((double)lbm_dec_as_float(args[3]) * 65536.0);
   float   fov_degrees  = lbm_dec_as_float(args[4]);
   int32_t cull_margin  = (int32_t)llround((double)lbm_dec_as_float(args[5]) * 65536.0);
+  bool    wireframe    = !filled;
 
   lbm_uint size = sizeof(tiny3d_state_blob_t) + (lbm_uint)max_tris * sizeof(tiny3d_camera_tri_t);
   uint8_t *buf = lbm_malloc(size);
@@ -384,7 +407,7 @@ static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
 
   bool ok = tiny3d_init(&blob->state, &blob->img,
                          blob->tri_buffer_data, max_tris * (uint32_t)sizeof(tiny3d_camera_tri_t),
-                         near, far, fov_degrees, cull_margin);
+                         near, far, fov_degrees, cull_margin, wireframe, cull_backfaces);
   if (!ok) {
     lbm_free(buf);
     return ENC_SYM_TERROR;
@@ -527,6 +550,9 @@ static lbm_value ext_tiny3d_cull(lbm_value *args, lbm_uint argn) {
 }
 
 void lbm_tiny3d_extensions_init(void) {
+  lbm_add_symbol_const("filled", &symbol_filled);
+  lbm_add_symbol_const("no-backface-cull", &symbol_no_backface_cull);
+
   lbm_add_extension("tiny3d-mesh", ext_tiny3d_mesh);
   lbm_add_extension("tiny3d-mesh?", ext_tiny3d_is_mesh);
   lbm_add_extension("tiny3d-instance", ext_tiny3d_instance);

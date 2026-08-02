@@ -103,6 +103,8 @@ typedef struct {
   int32_t               focal_length_y;
   tiny3d_plane_t        planes[6];
   int32_t               cull_margin;
+  bool                  wireframe;
+  bool                  cull_backfaces;
 } tiny3d_state_t;
 
 bool tiny3d_init(tiny3d_state_t *state,
@@ -110,7 +112,9 @@ bool tiny3d_init(tiny3d_state_t *state,
                   tiny3d_camera_tri_t *tri_buffer, uint32_t tri_buffer_size_bytes,
                   int32_t near, int32_t far,
                   float fov_degrees,
-                  int32_t cull_margin);
+                  int32_t cull_margin,
+                  bool wireframe,
+                  bool cull_backfaces);
 
 bool tiny3d_transform_cull(const tiny3d_state_t *state,
                             tiny3d_instance_t instance,

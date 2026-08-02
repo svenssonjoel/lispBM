@@ -265,7 +265,9 @@ bool tiny3d_init(tiny3d_state_t *state,
                  tiny3d_camera_tri_t *tri_buffer, uint32_t tri_buffer_size_bytes,
                  int32_t near, int32_t far,
                  float fov_degrees,
-                 int32_t cull_margin) {
+                 int32_t cull_margin,
+                 bool wireframe,
+                 bool cull_backfaces) {
   if (!state || !img || !tri_buffer) return false;
   if (tri_buffer_size_bytes < sizeof(tiny3d_camera_tri_t)) return false;
   if (near <= 0 || far <= near) return false;
@@ -278,6 +280,8 @@ bool tiny3d_init(tiny3d_state_t *state,
   state->near            = near;
   state->far             = far;
   state->cull_margin     = cull_margin;
+  state->wireframe       = wireframe;
+  state->cull_backfaces  = cull_backfaces;
 
   float half_fov_rad = fov_degrees * ((float)M_PI / 180.0f) * 0.5f;
   float focal_y = 1.0f / tanf(half_fov_rad);
@@ -437,7 +441,7 @@ static void render_instance(tiny3d_state_t *state, const tiny3d_instance_t *inst
     tiny3d_vec_t v1 = mat_apply3x4(l2c, mesh.vertices[t->i1]);
     tiny3d_vec_t v2 = mat_apply3x4(l2c, mesh.vertices[t->i2]);
 
-    if (is_backface(v0, v1, v2)) continue;
+    if (state->cull_backfaces && is_backface(v0, v1, v2)) continue;
 
     state->tri_buffer[out_count] = (tiny3d_camera_tri_t){ v0, v1, v2, t->color };
     out_count++;
@@ -450,7 +454,13 @@ static void render_instance(tiny3d_state_t *state, const tiny3d_instance_t *inst
       screen_point_t p0 = project_to_screen(state, clipped[c].v0);
       screen_point_t p1 = project_to_screen(state, clipped[c].v1);
       screen_point_t p2 = project_to_screen(state, clipped[c].v2);
-      tinygfx_fill_triangle(state->img, p0.x, p0.y, p1.x, p1.y, p2.x, p2.y, clipped[c].color);
+      if (state->wireframe) {
+        tinygfx_line(state->img, p0.x, p0.y, p1.x, p1.y, 1, 0, 0, clipped[c].color);
+        tinygfx_line(state->img, p1.x, p1.y, p2.x, p2.y, 1, 0, 0, clipped[c].color);
+        tinygfx_line(state->img, p2.x, p2.y, p0.x, p0.y, 1, 0, 0, clipped[c].color);
+      } else {
+        tinygfx_fill_triangle(state->img, p0.x, p0.y, p1.x, p1.y, p2.x, p2.y, clipped[c].color);
+      }
     }
   }
 }
