@@ -53,6 +53,8 @@ static lbm_uint symbol_rotate = 0;
 static lbm_uint symbol_resolution = 0;
 static lbm_uint symbol_tile = 0;
 static lbm_uint symbol_clip = 0;
+static lbm_uint symbol_palette = 0;
+static lbm_uint symbol_alpha_buffer = 0;
 
 
 static lbm_uint symbol_regular = 0;
@@ -264,6 +266,8 @@ static bool register_symbols(void) {
   res = res && lbm_add_symbol_const("resolution", &symbol_resolution);
   res = res && lbm_add_symbol_const("tile", &symbol_tile);
   res = res && lbm_add_symbol_const("clip", &symbol_clip);
+  res = res && lbm_add_symbol_const("palette", &symbol_palette);
+  res = res && lbm_add_symbol_const("alpha-buffer", &symbol_alpha_buffer);
 
   res = res && lbm_add_symbol_const("regular", &symbol_regular);
   res = res && lbm_add_symbol_const("gradient_x", &symbol_gradient_x);
@@ -383,7 +387,6 @@ typedef struct {
   bool is_valid;
   image_buffer_t img;
   lbm_value args[ARG_MAX_NUM];
-  uint8_t alpha;
   attr_t attr_thickness;
   attr_t attr_filled;
   attr_t attr_rounded;
@@ -393,6 +396,9 @@ typedef struct {
   attr_t attr_resolution;
   attr_t attr_tile;
   attr_t attr_clip;
+  attr_t attr_palette;
+  attr_t attr_alpha;
+  attr_t attr_alpha_buffer;
   bool transform_attr_present;
 } img_args_t;
 
@@ -400,7 +406,6 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
   img_args_t res;
   memset(&res, 0, sizeof(res));
   res.is_valid = false;
-  res.alpha = 255;
 
   lbm_array_header_t *arr;
   if (argn >= 1 && (arr = get_image_buffer(args[0]))) {
@@ -419,7 +424,6 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
         if (clr && clr->type == COLOR_REGULAR &&
             num_dec == num_expected - 1) {
           res.args[num_dec] = lbm_enc_u32((uint32_t)clr->color1);
-          res.alpha = clr->alpha;
           num_dec++;
           if (num_dec >= ARG_MAX_NUM) return res;
           continue;
@@ -477,12 +481,29 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
               attr_now = &res.attr_clip;
               attr_now->arg_num = 4;
               res.transform_attr_present = true;
+            } else if (lbm_dec_sym(arg) == symbol_palette) {
+              attr_now = &res.attr_palette;
+              attr_now->arg_num = 1;
+            } else if (lbm_dec_sym(arg) == symbol_alpha) {
+              attr_now = &res.attr_alpha;
+              attr_now->arg_num = 1;
+            } else if (lbm_dec_sym(arg) == symbol_alpha_buffer) {
+              attr_now = &res.attr_alpha_buffer;
+              attr_now->arg_num = 1;
             }
             else {
               return res;
             }
           } else {
-            if (!lbm_is_number(arg)) {
+            if (attr_now == &res.attr_palette) {
+              if (!lbm_is_list(arg)) {
+                return res;
+              }
+            } else if (attr_now == &res.attr_alpha_buffer) {
+              if (!lbm_dec_array_r(arg)) {
+                return res;
+              }
+            } else if (!lbm_is_number(arg)) {
               return res;
             }
 
@@ -858,8 +879,7 @@ static lbm_value ext_putpixel(lbm_value *args, lbm_uint argn) {
   putpixel(&arg_dec.img,
            lbm_dec_as_i32(arg_dec.args[0]),
            lbm_dec_as_i32(arg_dec.args[1]),
-           lbm_dec_as_u32(arg_dec.args[2]),
-           arg_dec.alpha);
+           lbm_dec_as_u32(arg_dec.args[2]));
   return ENC_SYM_TRUE;
 }
 
@@ -892,8 +912,7 @@ static lbm_value ext_line(lbm_value *args, lbm_uint argn) {
        lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
        lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
        lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-       lbm_dec_as_u32(arg_dec.args[4]),
-       arg_dec.alpha);
+       lbm_dec_as_u32(arg_dec.args[4]));
 
   return ENC_SYM_TRUE;
 }
@@ -912,7 +931,6 @@ static arc_params_t make_arc_params(const img_args_t *a, bool rounded, bool sect
     .dot2       = lbm_dec_as_i32(a->attr_dotted.args[1]),
     .resolution = lbm_dec_as_i32(a->attr_resolution.args[0]),
     .color      = lbm_dec_as_u32(color_arg),
-    .alpha      = a->alpha,
   };
   return p;
 }
@@ -930,8 +948,7 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
                 lbm_dec_as_i32(arg_dec.args[0]),
                 lbm_dec_as_i32(arg_dec.args[1]),
                 lbm_dec_as_i32(arg_dec.args[2]),
-                lbm_dec_as_u32(arg_dec.args[3]),
-                arg_dec.alpha);
+                lbm_dec_as_u32(arg_dec.args[3]));
   } else if (arg_dec.attr_dotted.is_valid) {
     // rounded here currently does nothing as the line function doesn't
     // support square ends.
@@ -948,8 +965,7 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
            lbm_dec_as_i32(arg_dec.args[1]),
            lbm_dec_as_i32(arg_dec.args[2]),
            lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-           lbm_dec_as_u32(arg_dec.args[3]),
-           arg_dec.alpha);
+           lbm_dec_as_u32(arg_dec.args[3]));
   }
 
   return ENC_SYM_TRUE;
@@ -1038,9 +1054,9 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
 
   if (arg_dec.attr_rounded.is_valid) {
     if (arg_dec.attr_filled.is_valid) {
-      tinygfx_fill_rounded_rectangle(img, x, y, width, height, rad, color, arg_dec.alpha);
+      tinygfx_fill_rounded_rectangle(img, x, y, width, height, rad, color);
     } else {
-      tinygfx_rounded_rectangle(img, x, y, width, height, rad, thickness, dot1, dot2, resolution, color, arg_dec.alpha);
+      tinygfx_rounded_rectangle(img, x, y, width, height, rad, thickness, dot1, dot2, resolution, color);
     }
   } else {
     tinygfx_rectangle(img,
@@ -1049,7 +1065,7 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
               arg_dec.attr_filled.is_valid,
               thickness,
               dot1, dot2,
-              color, arg_dec.alpha);
+              color);
   }
 
   return ENC_SYM_TRUE;
@@ -1076,11 +1092,11 @@ static lbm_value ext_triangle(lbm_value *args, lbm_uint argn) {
   uint32_t color = lbm_dec_as_u32(arg_dec.args[6]);
 
   if (arg_dec.attr_filled.is_valid) {
-    tinygfx_fill_triangle(img, x0, y0, x1, y1, x2, y2, color, arg_dec.alpha);
+    tinygfx_fill_triangle(img, x0, y0, x1, y1, x2, y2, color);
   } else {
-    tinygfx_line(img, x0, y0, x1, y1, thickness, dot1, dot2, color, arg_dec.alpha);
-    tinygfx_line(img, x1, y1, x2, y2, thickness, dot1, dot2, color, arg_dec.alpha);
-    tinygfx_line(img, x2, y2, x0, y0, thickness, dot1, dot2, color, arg_dec.alpha);
+    tinygfx_line(img, x0, y0, x1, y1, thickness, dot1, dot2, color);
+    tinygfx_line(img, x1, y1, x2, y2, thickness, dot1, dot2, color);
+    tinygfx_line(img, x2, y2, x0, y0, thickness, dot1, dot2, color);
   }
 
   return ENC_SYM_TRUE;
@@ -1239,6 +1255,35 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
 }
 
 
+// Number of distinct index values an indexed format can hold, 0 if fmt isn't indexed.
+static int indexed_depth(color_format_t fmt) {
+  switch (fmt) {
+  case indexed2: return 2;
+  case indexed4: return 4;
+  case indexed16: return 16;
+  default: return 0;
+  }
+}
+
+// Decodes a plain numeric list (as opposed to lbm_display_decode_color_list's
+// color-or-number list) into out[], up to max_len entries. Reports the exact
+// decoded length via out_len so callers can validate it against a required size.
+static bool decode_palette_list(lbm_value lst, uint32_t *out, int max_len, int *out_len) {
+  int i = 0;
+  lbm_value curr = lst;
+  while (lbm_is_cons(curr)) {
+    if (i >= max_len) return false;
+    lbm_value arg = lbm_car(curr);
+    if (!lbm_is_number(arg)) return false;
+    out[i] = lbm_dec_as_u32(arg);
+    i++;
+    curr = lbm_cdr(curr);
+  }
+  if (curr != ENC_SYM_NIL) return false;
+  *out_len = i;
+  return true;
+}
+
 // TODO: Think about way to simplify the blit dispatch
 //       based on transform or not.
 static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
@@ -1258,8 +1303,71 @@ static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
     int dest_y = lbm_dec_as_i32(arg_dec.args[1]);
     int32_t transparent_color = lbm_dec_as_i32(arg_dec.args[2]);
 
+    int src_depth = indexed_depth(arg_dec.img.fmt);
+    int dest_depth = indexed_depth(dest_buf.fmt);
+
+    if (src_depth == 0 && dest_depth != 0) {
+      lbm_set_error_reason("img-blit: an rgb source cannot be blitted into an indexed destination.");
+      return ENC_SYM_EERROR;
+    }
+
+    uint32_t palette[16];
+    const uint32_t *palette_ptr = NULL;
+    int palette_len = 0;
+
+    if (arg_dec.attr_palette.is_valid) {
+      if (src_depth == 0 ||
+          !decode_palette_list(arg_dec.attr_palette.args[0], palette, 16, &palette_len) ||
+          palette_len != src_depth) {
+        lbm_set_error_reason("img-blit: palette must be a list with exactly as many entries as the source image's color space.");
+        return ENC_SYM_EERROR;
+      }
+      palette_ptr = palette;
+    } else if (src_depth != 0 && arg_dec.img.fmt != dest_buf.fmt) {
+      lbm_set_error_reason("img-blit: blitting between differing indexed formats, or from indexed into rgb, requires a palette attribute.");
+      return ENC_SYM_EERROR;
+    }
+
+    uint8_t alpha = 255;
+    if (arg_dec.attr_alpha.is_valid) {
+      int32_t a = lbm_dec_as_i32(arg_dec.attr_alpha.args[0]);
+      if (a < 0) a = 0;
+      if (a > 255) a = 255;
+      alpha = (uint8_t)a;
+    }
+
+    image_buffer_t alpha_buf_img;
+    image_buffer_t *alpha_buf_ptr = NULL;
+    if (arg_dec.attr_alpha_buffer.is_valid) {
+      lbm_array_header_t *abuf_arr = get_image_buffer(arg_dec.attr_alpha_buffer.args[0]);
+      color_format_t abuf_fmt = abuf_arr ? image_buffer_format((uint8_t*)abuf_arr->data) : format_not_supported;
+      uint16_t abuf_w = abuf_arr ? image_buffer_width((uint8_t*)abuf_arr->data) : 0;
+      uint16_t abuf_h = abuf_arr ? image_buffer_height((uint8_t*)abuf_arr->data) : 0;
+      if (!abuf_arr ||
+          (abuf_fmt != indexed2 && abuf_fmt != indexed4 && abuf_fmt != indexed16 && abuf_fmt != rgb332) ||
+          abuf_w != arg_dec.img.width || abuf_h != arg_dec.img.height) {
+        lbm_set_error_reason("img-blit: alpha-buffer must be an indexed2/4/16 or rgb332 image buffer with the same dimensions as the source.");
+        return ENC_SYM_EERROR;
+      }
+      alpha_buf_img.width = abuf_w;
+      alpha_buf_img.height = abuf_h;
+      alpha_buf_img.fmt = abuf_fmt;
+      alpha_buf_img.mem_base = (uint8_t*)abuf_arr->data;
+      alpha_buf_img.data = image_buffer_data((uint8_t*)abuf_arr->data);
+      alpha_buf_ptr = &alpha_buf_img;
+    }
+
+    blit_compose_t compose = {
+      .palette = palette_ptr,
+      .palette_len = palette_len,
+      .alpha = alpha,
+      .alpha_buf = alpha_buf_ptr,
+    };
+    const blit_compose_t *compose_ptr =
+      (palette_ptr || alpha != 255 || alpha_buf_ptr) ? &compose : NULL;
+
     if (!arg_dec.transform_attr_present) {
-      tinygfx_blit(&dest_buf, &arg_dec.img, dest_x, dest_y, transparent_color);
+      tinygfx_blit(&dest_buf, &arg_dec.img, dest_x, dest_y, transparent_color, compose_ptr);
     } else {
       blit_transform_t transform = {
         .rot_x = lbm_dec_as_float(arg_dec.attr_rotate.args[0]),
@@ -1273,7 +1381,7 @@ static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
         .clip_h = arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[3]) : dest_buf.height,
       };
 
-      tinygfx_blit_transform(&dest_buf, &arg_dec.img, dest_x, dest_y, transform, transparent_color);
+      tinygfx_blit_transform(&dest_buf, &arg_dec.img, dest_x, dest_y, transform, transparent_color, compose_ptr);
     }
     res = ENC_SYM_TRUE;
   }

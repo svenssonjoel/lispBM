@@ -19,19 +19,32 @@
 (define img (img-buffer 'rgb888 300 300))
 (img-clear img 0x101018)
 
+;; Alpha now lives entirely in img-blit, not in the shapes themselves: each
+;; circle is drawn *opaque* into its own scratch buffer, sized to its
+;; bounding box, then composited onto img with img-blit's 'alpha attribute.
+;; marker is the scratch buffer's background fill -- passed as img-blit's
+;; transparent_color so only the circle's own pixels participate.
+(define marker 0x00FF01)
+
+(defun circle-layer (dest cx cy r color alpha)
+  (let ((margin 2))
+    (let ((size (+ (* 2 r) (* 2 margin)))
+          (lx (+ r margin))
+          (ly (+ r margin)))
+      (let ((buf (img-buffer 'rgb888 size size)))
+        (progn
+          (img-clear buf marker)
+          (img-circle buf lx ly r color '(filled))
+          (img-blit dest buf (- cx lx) (- cy ly) marker (list 'alpha alpha)))))))
+
 ;; Four overlapping filled alpha circles, laid out so the center point sits
 ;; inside all four -- exercises fill_circle's shared Bresenham machinery
-;; (no more per-radius special cases) together with genuine layered alpha
-;; compositing (1-circle, 2-circle, and 4-circle overlap regions).
-(define red    (img-color 'regular 0xE04030 140))
-(define green  (img-color 'regular 0x30C060 140))
-(define blue   (img-color 'regular 0x3080E0 140))
-(define yellow (img-color 'regular 0xE0C030 140))
-
-(define c1 (img-circle img 120 120 80 red    '(filled)))
-(define c2 (img-circle img 180 120 80 green  '(filled)))
-(define c3 (img-circle img 120 180 80 blue   '(filled)))
-(define c4 (img-circle img 180 180 80 yellow '(filled)))
+;; together with genuine layered alpha compositing via blit (1-circle,
+;; 2-circle, and 4-circle overlap regions).
+(define c1 (circle-layer img 120 120 80 0xE04030 140))
+(define c2 (circle-layer img 180 120 80 0x30C060 140))
+(define c3 (circle-layer img 120 180 80 0x3080E0 140))
+(define c4 (circle-layer img 180 180 80 0xE0C030 140))
 
 ;; sample points chosen by distance to each circle's center:
 ;;   (70,70)    is within r=80 of circle 1 only            -> single blend

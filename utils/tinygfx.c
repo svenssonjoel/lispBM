@@ -180,6 +180,8 @@ static uint32_t  rgb565to888(uint16_t rgb) {
   return res_rgb888;
 }
 
+// Used by blit's alpha compositing (see blit_compose_t). Not used by the
+// per-shape draw path -- those are opaque-only, alpha lives solely in blit.
 static uint32_t alpha_blend_rgb888(uint32_t src, uint32_t dst, uint8_t alpha) {
   if (alpha == 255) {
     return src;
@@ -263,8 +265,8 @@ void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
 
 static const uint8_t indexed4_mask[4] = {0x03, 0x0C, 0x30, 0xC0};
 static const uint8_t indexed4_shift[4] = {0, 2, 4, 6};
-static const uint8_t indexed16_mask[4] = {0x0F, 0xF0};
-static const uint8_t indexed16_shift[4] = {0, 4};
+static const uint8_t indexed16_mask[2] = {0x0F, 0xF0};
+static const uint8_t indexed16_shift[2] = {0, 4};
 
 static inline void putpixel_indexed2(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c) {
   uint32_t pos = y * (uint32_t)w + x;
@@ -281,6 +283,7 @@ static inline void putpixel_indexed4(uint8_t *data, uint16_t w, uint32_t x, uint
   uint32_t pos = y * (uint32_t)w + x;
   uint32_t byte = pos >> 2;
   uint32_t ix  = 3 - (pos & 0x3);
+  c &= 0x3; // out-of-range c would otherwise bleed into a neighboring pixel's bits.
   data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed4_mask[ix]) | (uint8_t)(c << indexed4_shift[ix]));
 }
 
@@ -288,52 +291,30 @@ static inline void putpixel_indexed16(uint8_t *data, uint16_t w, uint32_t x, uin
   uint32_t pos = y * (uint32_t)w + x;
   uint32_t byte = pos >> 1;
   uint32_t ix  = 1 - (pos & 0x1);
+  c &= 0xF; // out-of-range c would otherwise bleed into a neighboring pixel's bits.
   data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed16_mask[ix]) | (uint8_t)(c << indexed16_shift[ix]));
 }
 
-static inline void putpixel_rgb332(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c, uint8_t alpha) {
+static inline void putpixel_rgb332(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c) {
   uint32_t pos = y * (uint32_t)w + x;
-  if (alpha == 255) {
-    data[pos] = rgb888to332(c);
-  } else {
-    uint32_t dst = rgb332to888(data[pos]);
-    data[pos] = rgb888to332(alpha_blend_rgb888(c, dst, alpha));
-  }
+  data[pos] = rgb888to332(c);
 }
 
-static inline void putpixel_rgb565(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c, uint8_t alpha) {
+static inline void putpixel_rgb565(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c) {
   uint32_t pos = y * ((uint32_t)w << 1) + (x << 1);
-  if (alpha == 255) {
-    uint16_t color = rgb888to565(c);
-    data[pos] = (uint8_t)(color >> 8);
-    data[pos+1] = (uint8_t)color;
-  } else {
-    uint16_t dst = (uint16_t)((data[pos] << 8) | data[pos+1]);
-    uint16_t color = rgb888to565(alpha_blend_rgb888(c, rgb565to888(dst), alpha));
-    data[pos] = (uint8_t)(color >> 8);
-    data[pos+1] = (uint8_t)color;
-  }
+  uint16_t color = rgb888to565(c);
+  data[pos] = (uint8_t)(color >> 8);
+  data[pos+1] = (uint8_t)color;
 }
 
-static inline void putpixel_rgb888(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c, uint8_t alpha) {
+static inline void putpixel_rgb888(uint8_t *data, uint16_t w, uint32_t x, uint32_t y, uint32_t c) {
   uint32_t pos = y * ((uint32_t)w * 3) + (x * 3);
-  if (alpha == 255) {
-    data[pos] = (uint8_t)(c>>16);
-    data[pos+1] = (uint8_t)(c>>8);
-    data[pos+2] = (uint8_t)c;
-  } else {
-    uint32_t dst = ((uint32_t)data[pos] << 16) | ((uint32_t)data[pos+1] << 8) | data[pos+2];
-    uint32_t color = alpha_blend_rgb888(c, dst, alpha);
-    data[pos] = (uint8_t)(color>>16);
-    data[pos+1] = (uint8_t)(color>>8);
-    data[pos+2] = (uint8_t)color;
-  }
+  data[pos] = (uint8_t)(c>>16);
+  data[pos+1] = (uint8_t)(c>>8);
+  data[pos+2] = (uint8_t)c;
 }
 
-void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c, uint8_t alpha) {
-  if (alpha == 0) {
-    return;
-  }
+void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
   uint16_t w = img->width;
   uint16_t h = img->height;
   uint16_t x = (uint16_t)x_i; // negative numbers become really large.
@@ -353,13 +334,13 @@ void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c, uint8_t alpha) 
       putpixel_indexed16(data, w, x, y, c);
       break;
     case rgb332:
-      putpixel_rgb332(data, w, x, y, c, alpha);
+      putpixel_rgb332(data, w, x, y, c);
       break;
     case rgb565:
-      putpixel_rgb565(data, w, x, y, c, alpha);
+      putpixel_rgb565(data, w, x, y, c);
       break;
     case rgb888:
-      putpixel_rgb888(data, w, x, y, c, alpha);
+      putpixel_rgb888(data, w, x, y, c);
       break;
     default:
       break;
@@ -425,16 +406,9 @@ uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
 #ifdef USE_EFFICIENT_HLINE_VLINE
 
 // Putpixel inlined into h/v_line and code that does not change along the line
-// is hoisted out of the loop. Partial alpha still uses putpixel because
-// every destination pixel participates in blending.
-static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
-  if (alpha == 0 || len <= 0) return;
-  if (alpha != 255) {
-    for (int i = 0; i < len; i++) {
-      putpixel(img, x + i, y, c, alpha);
-    }
-    return;
-  }
+// is hoisted out of the loop.
+static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
+  if (len <= 0) return;
 
   if (y < 0 || y >= img->height) return;
   int x0 = x;
@@ -509,14 +483,8 @@ static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8
   }
 }
 
-static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
-  if (alpha == 0 || len <= 0) return;
-  if (alpha != 255) {
-    for (int i = 0; i < len; i++) {
-      putpixel(img, x, y + i, c, alpha);
-    }
-    return;
-  }
+static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
+  if (len <= 0) return;
 
   if (x < 0 || x >= img->width) return;
   int y0 = y;
@@ -595,15 +563,15 @@ static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8
   }
 }
 #else
-static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
+static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
   for (int i = 0; i < len; i ++) {
-    putpixel(img, x+i, y, c, alpha);
+    putpixel(img, x+i, y, c);
   }
 }
 
-static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8_t alpha) {
+static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
   for (int i = 0; i < len; i ++) {
-    putpixel(img, x, y+i, c, alpha);
+    putpixel(img, x, y+i, c);
   }
 }
 #endif // USE_EFFICIENT_HLINE_VLINE
@@ -616,7 +584,7 @@ static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c, uint8
 // TODO: This should be more efficient
 // http://homepages.enterprise.net/murphy/thickline/index.html
 // https://github.com/ArminJo/STMF3-Discovery-Demos/blob/master/lib/BlueDisplay/LocalGUI/ThickLine.hpp
-void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickness, int dot1, int dot2, uint32_t c, uint8_t alpha) {
+void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickness, int dot1, int dot2, uint32_t c) {
   int dx = abs(x1 - x0);
   int sx = x0 < x1 ? 1 : -1;
   int dy = -abs(y1 - y0);
@@ -633,9 +601,9 @@ void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thick
     while (true) {
       if (dotcnt <= dot1) {
         if (thickness > 1) {
-          tinygfx_fill_circle(img, x0, y0, thickness, c, alpha);
+          tinygfx_fill_circle(img, x0, y0, thickness, c);
         } else {
-          putpixel(img, x0, y0, c, alpha);
+          putpixel(img, x0, y0, c);
         }
       }
 
@@ -671,9 +639,9 @@ void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thick
   } else {
     while (true) {
       if (thickness > 1) {
-        tinygfx_fill_circle(img, x0, y0, thickness, c, alpha);
+        tinygfx_fill_circle(img, x0, y0, thickness, c);
       } else {
-        putpixel(img, x0, y0, c, alpha);
+        putpixel(img, x0, y0, c);
       }
 
       if (x0 == x1 && y0 == y1) {
@@ -713,13 +681,13 @@ void tinygfx_line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thick
 #define ARC_BIG 1000000
 
 static inline void norm_angle(float *angle) {
-  while (*angle < -M_PI) { *angle += 2.0f * (float)M_PI; }
-  while (*angle >=  M_PI) { *angle -= 2.0f * (float)M_PI; }
+  while (*angle < -(float)M_PI) { *angle += 2.0f * (float)M_PI; }
+  while (*angle >=  (float)M_PI) { *angle -= 2.0f * (float)M_PI; }
 }
 
 static inline void norm_angle_0_2pi(float *angle) {
   while (*angle < 0) { *angle += 2.0f * (float)M_PI; }
-  while (*angle >= 2.0 * M_PI) { *angle -= 2.0f * (float)M_PI; }
+  while (*angle >= 2.0f * (float)M_PI) { *angle -= 2.0f * (float)M_PI; }
 }
 
 // Advances *cursor monotonically (only ever forward) until it lands on the
@@ -733,32 +701,32 @@ static inline void circle_boundary_advance(int *cursor, int row_dbl_sq, int radi
   }
 }
 
-static void arc_ray_clip(double dir_x, double dir_y, int Y, int *lo, int *hi) {
+static void arc_ray_clip(float dir_x, float dir_y, int Y, int *lo, int *hi) {
   if (dir_y == 0) {
-    if (-(double)Y * dir_x <= 0) { *lo = -ARC_BIG; *hi = ARC_BIG; }
+    if (-(float)Y * dir_x <= 0) { *lo = -ARC_BIG; *hi = ARC_BIG; }
     else { *lo = 1; *hi = 0; }
     return;
   }
-  double xc = (double)Y * dir_x / dir_y;
-  if (dir_y > 0) { *lo = -ARC_BIG; *hi = (int)floor(xc); }
-  else { *lo = (int)ceil(xc); *hi = ARC_BIG; }
+  float xc = (float)Y * dir_x / dir_y;
+  if (dir_y > 0) { *lo = -ARC_BIG; *hi = (int)floorf(xc); }
+  else { *lo = (int)ceilf(xc); *hi = ARC_BIG; }
 }
 
-static void arc_chord_clip(double sx, double sy, double ex, double ey, int Y, int *lo, int *hi) {
-  double dx = ex - sx, dy = ey - sy;
+static void arc_chord_clip(float sx, float sy, float ex, float ey, int Y, int *lo, int *hi) {
+  float dx = ex - sx, dy = ey - sy;
   if (dy == 0) {
-    if (0.0 <= ((double)Y - sy) * dx) { *lo = -ARC_BIG; *hi = ARC_BIG; }
+    if (0.0f <= ((float)Y - sy) * dx) { *lo = -ARC_BIG; *hi = ARC_BIG; }
     else { *lo = 1; *hi = 0; }
     return;
   }
-  double rhs = sx * dy + ((double)Y - sy) * dx;
-  if (dy > 0) { *lo = -ARC_BIG; *hi = (int)floor(rhs / dy); }
-  else { *lo = (int)ceil(rhs / dy); *hi = ARC_BIG; }
+  float rhs = sx * dy + ((float)Y - sy) * dx;
+  if (dy > 0) { *lo = -ARC_BIG; *hi = (int)floorf(rhs / dy); }
+  else { *lo = (int)ceilf(rhs / dy); *hi = ARC_BIG; }
 }
 
 // Clip a row by the two rays (or, for a filled segment, the caller skips
 // this and uses arc_chord_clip directly). Returns 1 or 2 spans in lo[]/hi[].
-static int arc_wedge_clip(double dir0_x, double dir0_y, double dir1_x, double dir1_y,
+static int arc_wedge_clip(float dir0_x, float dir0_y, float dir1_x, float dir1_y,
                           bool angle_is_closed, int Y, int *lo, int *hi) {
   int r0_lo, r0_hi, r1_lo, r1_hi;
   arc_ray_clip(dir0_x, dir0_y, Y, &r0_lo, &r0_hi);
@@ -791,9 +759,9 @@ static int arc_wedge_clip(double dir0_x, double dir0_y, double dir1_x, double di
 // Renders each row's annulus-piece x clip-piece intersection the
 // moment it's known . full_circle=true (fill_circle, circle's thick ring) skips
 // angle clipping entirely and draws the raw annulus/disk interval.
-static void circle_row_draw(image_buffer_t *img, int c_x, int c_y, uint32_t color, uint8_t alpha, int Y,
+static void circle_row_draw(image_buffer_t *img, int c_x, int c_y, uint32_t color, int Y,
                             int x_out, int x_out_r, bool has_gap, int x_in, int x_in_r,
-                            double chord0_x, double chord0_y, double chord1_x, double chord1_y,
+                            float chord0_x, float chord0_y, float chord1_x, float chord1_y,
                             bool angle_is_closed, bool filled_segment, bool full_circle) {
   int a_lo[2], a_hi[2], a_n;
   if (!has_gap) {
@@ -808,7 +776,7 @@ static void circle_row_draw(image_buffer_t *img, int c_x, int c_y, uint32_t colo
   if (full_circle) {
     for (int i = 0; i < a_n; i++) {
       if (a_lo[i] <= a_hi[i]) {
-        h_line(img, c_x + a_lo[i], c_y + Y, a_hi[i] - a_lo[i] + 1, color, alpha);
+        h_line(img, c_x + a_lo[i], c_y + Y, a_hi[i] - a_lo[i] + 1, color);
       }
     }
     return;
@@ -827,7 +795,7 @@ static void circle_row_draw(image_buffer_t *img, int c_x, int c_y, uint32_t colo
       int lo = MAX(a_lo[i], c_lo[j]);
       int hi = MIN(a_hi[i], c_hi[j]);
       if (lo <= hi) {
-        h_line(img, c_x + lo, c_y + Y, hi - lo + 1, color, alpha);
+        h_line(img, c_x + lo, c_y + Y, hi - lo + 1, color);
       }
     }
   }
@@ -835,7 +803,7 @@ static void circle_row_draw(image_buffer_t *img, int c_x, int c_y, uint32_t colo
 
 // Filled disk, boundary-cursor version of fill_circle's radius>4 case: a
 // single boundary (no inner ring), always full_circle=true (no angle clip).
-static void fill_circle_scan(image_buffer_t *img, int c_x, int c_y, int radius, uint32_t color, uint8_t alpha) {
+static void fill_circle_scan(image_buffer_t *img, int c_x, int c_y, int radius, uint32_t color) {
   int radius_dbl_sq = radius * radius * 4;
   int xo = -radius;
   for (int y0 = 0; y0 < radius; y0++) {
@@ -843,13 +811,13 @@ static void fill_circle_scan(image_buffer_t *img, int c_x, int c_y, int radius, 
     circle_boundary_advance(&xo, row_dbl_sq, radius_dbl_sq);
     int x_out = xo;
     int x_out_r = -xo - 1;
-    circle_row_draw(img, c_x, c_y, color, alpha, y0, x_out, x_out_r, false, 0, -1, 0, 0, 0, 0, false, false, true);
-    circle_row_draw(img, c_x, c_y, color, alpha, -y0 - 1, x_out, x_out_r, false, 0, -1, 0, 0, 0, 0, false, false, true);
+    circle_row_draw(img, c_x, c_y, color, y0, x_out, x_out_r, false, 0, -1, 0, 0, 0, 0, false, false, true);
+    circle_row_draw(img, c_x, c_y, color, -y0 - 1, x_out, x_out_r, false, 0, -1, 0, 0, 0, 0, false, false, true);
   }
 }
 
 // Thick ring, boundary-cursor version of circle()'s thickness>0 case.
-static void circle_ring(image_buffer_t *img, int c_x, int c_y, int radius, int thickness, uint32_t color, uint8_t alpha) {
+static void circle_ring(image_buffer_t *img, int c_x, int c_y, int radius, int thickness, uint32_t color) {
   int radius_outer = radius;
   int radius_inner = radius - thickness;
   if (radius_inner < 0) radius_inner = 0;
@@ -874,65 +842,65 @@ static void circle_ring(image_buffer_t *img, int c_x, int c_y, int radius, int t
       x_in_r = -xi - 1;
     }
 
-    circle_row_draw(img, c_x, c_y, color, alpha, y0, x_out, x_out_r, has_gap, x_in, x_in_r, 0, 0, 0, 0, false, false, true);
-    circle_row_draw(img, c_x, c_y, color, alpha, -y0 - 1, x_out, x_out_r, has_gap, x_in, x_in_r, 0, 0, 0, 0, false, false, true);
+    circle_row_draw(img, c_x, c_y, color, y0, x_out, x_out_r, has_gap, x_in, x_in_r, 0, 0, 0, 0, false, false, true);
+    circle_row_draw(img, c_x, c_y, color, -y0 - 1, x_out, x_out_r, has_gap, x_in, x_in_r, 0, 0, 0, 0, false, false, true);
   }
 }
 
-void tinygfx_fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color, uint8_t alpha) {
+void tinygfx_fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color) {
   switch (radius) {
   case 0:
     break;
 
   case 1:
-    putpixel(img, x - 1, y - 1, color, alpha);
-    putpixel(img, x, y - 1, color, alpha);
-    putpixel(img, x - 1, y, color, alpha);
-    putpixel(img, x, y, color, alpha);
+    putpixel(img, x - 1, y - 1, color);
+    putpixel(img, x, y - 1, color);
+    putpixel(img, x - 1, y, color);
+    putpixel(img, x, y, color);
     break;
 
   case 2:
-    h_line(img, x - 1, y - 2, 2, color, alpha);
-    h_line(img, x - 2, y - 1, 4, color, alpha);
-    h_line(img, x - 2, y, 4, color, alpha);
-    h_line(img, x - 1, y + 1, 2, color, alpha);
+    h_line(img, x - 1, y - 2, 2, color);
+    h_line(img, x - 2, y - 1, 4, color);
+    h_line(img, x - 2, y, 4, color);
+    h_line(img, x - 1, y + 1, 2, color);
     break;
 
   case 3:
-    h_line(img, x - 2, y - 3, 4, color, alpha);
-    h_line(img, x - 3, y - 2, 6, color, alpha);
-    h_line(img, x - 3, y - 1, 6, color, alpha);
-    h_line(img, x - 3, y, 6, color, alpha);
-    h_line(img, x - 3, y + 1, 6, color, alpha);
-    h_line(img, x - 2, y + 2, 4, color, alpha);
+    h_line(img, x - 2, y - 3, 4, color);
+    h_line(img, x - 3, y - 2, 6, color);
+    h_line(img, x - 3, y - 1, 6, color);
+    h_line(img, x - 3, y, 6, color);
+    h_line(img, x - 3, y + 1, 6, color);
+    h_line(img, x - 2, y + 2, 4, color);
     break;
 
   case 4:
-    h_line(img, x - 2, y - 4, 4, color, alpha);
-    h_line(img, x - 3, y - 3, 6, color, alpha);
-    h_line(img, x - 4, y - 2, 8, color, alpha);
-    h_line(img, x - 4, y - 1, 8, color, alpha);
-    h_line(img, x - 4, y, 8, color, alpha);
-    h_line(img, x - 4, y + 1, 8, color, alpha);
-    h_line(img, x - 3, y + 2, 6, color, alpha);
-    h_line(img, x - 2, y + 3, 4, color, alpha);
+    h_line(img, x - 2, y - 4, 4, color);
+    h_line(img, x - 3, y - 3, 6, color);
+    h_line(img, x - 4, y - 2, 8, color);
+    h_line(img, x - 4, y - 1, 8, color);
+    h_line(img, x - 4, y, 8, color);
+    h_line(img, x - 4, y + 1, 8, color);
+    h_line(img, x - 3, y + 2, 6, color);
+    h_line(img, x - 2, y + 3, 4, color);
     break;
 
   default:
-    fill_circle_scan(img, x, y, radius, color, alpha);
+    fill_circle_scan(img, x, y, radius, color);
     break;
   }
 }
 
 // thickness extends inwards from the given radius circle
-void tinygfx_circle(image_buffer_t *img, int x, int y, int radius, int thickness, uint32_t color, uint8_t alpha) {
+void tinygfx_circle(image_buffer_t *img, int x, int y, int radius, int thickness, uint32_t color) {
   if (thickness <= 0) {
     if (radius == 0) {
       // x0==y0==0 right away, so the loop below never runs and the
       // post-loop diagonal patch (for the x0==y0 hole at 45 degrees)
       // would collapse all 4 of its offsets onto this single point,
       // writing it 4 times instead of once.
-      putpixel(img, x, y, color, alpha);
+      putpixel(img, x, y, color);
       return;
     }
     int x0 = 0;
@@ -942,17 +910,17 @@ void tinygfx_circle(image_buffer_t *img, int x, int y, int radius, int thickness
     int db = 20 - 8*radius;
 
     while (x0 < y0) {
-      putpixel(img, x + x0, y + y0, color, alpha);
-      putpixel(img, x + x0, y - y0, color, alpha);
-      putpixel(img, x + y0, y + x0, color, alpha);
-      putpixel(img, x - y0, y + x0, color, alpha);
+      putpixel(img, x + x0, y + y0, color);
+      putpixel(img, x + x0, y - y0, color);
+      putpixel(img, x + y0, y + x0, color);
+      putpixel(img, x - y0, y + x0, color);
       if (x0 != 0) {
         // At x0==0 (the first step), the mirrored quartet below is the
         // same 4 pixels as above.
-        putpixel(img, x - x0, y + y0, color, alpha);
-        putpixel(img, x - x0, y - y0, color, alpha);
-        putpixel(img, x + y0, y - x0, color, alpha);
-        putpixel(img, x - y0, y - x0, color, alpha);
+        putpixel(img, x - x0, y + y0, color);
+        putpixel(img, x - x0, y - y0, color);
+        putpixel(img, x + y0, y - x0, color);
+        putpixel(img, x - y0, y - x0, color);
       }
       if (d < 0) { d = d + da; db = db+8; }
       else  { y0 = y0 - 1; d = d+db; db = db + 16; }
@@ -966,15 +934,15 @@ void tinygfx_circle(image_buffer_t *img, int x, int y, int radius, int thickness
     // hole at the 45-degree points, not a double-write). Since x0 == y0
     // here, the usual 8-way mirror also collapses onto only 4 points.
     if (x0 == y0) {
-      putpixel(img, x + x0, y + y0, color, alpha);
-      putpixel(img, x + x0, y - y0, color, alpha);
-      putpixel(img, x - x0, y + y0, color, alpha);
-      putpixel(img, x - x0, y - y0, color, alpha);
+      putpixel(img, x + x0, y + y0, color);
+      putpixel(img, x + x0, y - y0, color);
+      putpixel(img, x - x0, y + y0, color);
+      putpixel(img, x - x0, y - y0, color);
     }
     return;
   }
 
-  circle_ring(img, x, y, radius, thickness, color, alpha);
+  circle_ring(img, x, y, radius, thickness, color);
 }
 
 static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
@@ -993,7 +961,7 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
 
   if (full_circle) {
     ang_range = 2.0f * (float)M_PI;
-  } else if (ang_range < 0.0) {
+  } else if (ang_range < 0.0f) {
     ang_range += 2.0f * (float)M_PI;
   }
 
@@ -1023,41 +991,41 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
     py = py * ca + px_before * sa;
 
     tinygfx_line(img, x + (int)px_before, y + (int)py_before,
-         x + (int)px, y + (int)py, p->thickness, p->dot1, p->dot2, p->color, p->alpha);
+         x + (int)px, y + (int)py, p->thickness, p->dot1, p->dot2, p->color);
   }
 
   if (p->sector) {
     tinygfx_line(img, x + (int)px, y + (int)py,
          x, y,
-         p->thickness, p->dot1, p->dot2, p->color, p->alpha);
+         p->thickness, p->dot1, p->dot2, p->color);
     tinygfx_line(img, x, y,
          x + (int)px_start, y + (int)py_start,
-         p->thickness, p->dot1, p->dot2, p->color, p->alpha);
+         p->thickness, p->dot1, p->dot2, p->color);
   }
 
   if (p->segment) {
     tinygfx_line(img, x + (int)px, y + (int)py,
          x + (int)px_start, y + (int)py_start,
-         p->thickness, p->dot1, p->dot2, p->color, p->alpha);
+         p->thickness, p->dot1, p->dot2, p->color);
   }
 }
 
 // Thin/ring arc rasterizer.
 
 static void arc_thin_plot(image_buffer_t *img, int c_x, int c_y, int px, int py,
-                          double cap0_x, double cap0_y, double cap1_x, double cap1_y,
-                          bool angle_is_closed, bool full_circle, uint32_t color, uint8_t alpha) {
+                          float cap0_x, float cap0_y, float cap1_x, float cap1_y,
+                          bool angle_is_closed, bool full_circle, uint32_t color) {
   bool inside;
   if (full_circle) {
     inside = true;
   } else {
-    double cross0 = px * cap0_y - py * cap0_x;
-    double cross1 = px * cap1_y - py * cap1_x;
+    float cross0 = px * cap0_y - py * cap0_x;
+    float cross1 = px * cap1_y - py * cap1_x;
     bool inside0 = cross0 <= 0;
     bool inside1 = cross1 >= 0;
     inside = angle_is_closed ? (inside0 || inside1) : (inside0 && inside1);
   }
-  if (inside) putpixel(img, c_x + px, c_y + py, color, alpha);
+  if (inside) putpixel(img, c_x + px, c_y + py, color);
 }
 
 // Thin (<=1px) outline: classic 8-way symmetric midpoint circle (same
@@ -1077,43 +1045,43 @@ static void arc_thin(image_buffer_t *img, int c_x, int c_y, int radius, float an
   if (!full_circle && angle0 == angle1) return;
 
   bool angle_is_closed;
-  if (angle1 - angle0 > 0.0) angle_is_closed = fabsf(angle1 - angle0) > M_PI;
-  else angle_is_closed = fabsf(angle1 - angle0) < M_PI;
+  if (angle1 - angle0 > 0.0f) angle_is_closed = fabsf(angle1 - angle0) > (float)M_PI;
+  else angle_is_closed = fabsf(angle1 - angle0) < (float)M_PI;
 
   int cap0_x = (int)(cosf(angle0) * (float)radius);
   int cap0_y = (int)(sinf(angle0) * (float)radius);
   int cap1_x = (int)(cosf(angle1) * (float)radius);
   int cap1_y = (int)(sinf(angle1) * (float)radius);
 
-  double ray0_x = cosf(angle0), ray0_y = sinf(angle0);
-  double ray1_x = cosf(angle1), ray1_y = sinf(angle1);
+  float ray0_x = cosf(angle0), ray0_y = sinf(angle0);
+  float ray1_x = cosf(angle1), ray1_y = sinf(angle1);
 
   long r_dbl_sq = 4L * radius * radius;
   int px = 0, py = radius;
   while (px <= py) {
     while (py >= px && (long)(2 * px + 1) * (2 * px + 1) + (long)(2 * py + 1) * (2 * py + 1) > r_dbl_sq) py--;
     if (px > py) break;
-    arc_thin_plot(img, c_x, c_y,  px,      py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
-    arc_thin_plot(img, c_x, c_y,  px,     -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
-    arc_thin_plot(img, c_x, c_y, -px - 1,  py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
-    arc_thin_plot(img, c_x, c_y, -px - 1, -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
+    arc_thin_plot(img, c_x, c_y,  px,      py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color);
+    arc_thin_plot(img, c_x, c_y,  px,     -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color);
+    arc_thin_plot(img, c_x, c_y, -px - 1,  py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color);
+    arc_thin_plot(img, c_x, c_y, -px - 1, -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color);
     if (px != py) {
       // At the px==py octant boundary, (px,py)/(py,px) etc. are the same
       // four pixels as above
-      arc_thin_plot(img, c_x, c_y,  py,      px,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
-      arc_thin_plot(img, c_x, c_y,  py,     -px - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
-      arc_thin_plot(img, c_x, c_y, -py - 1,  px,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
-      arc_thin_plot(img, c_x, c_y, -py - 1, -px - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color, p->alpha);
+      arc_thin_plot(img, c_x, c_y,  py,      px,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color);
+      arc_thin_plot(img, c_x, c_y,  py,     -px - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color);
+      arc_thin_plot(img, c_x, c_y, -py - 1,  px,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color);
+      arc_thin_plot(img, c_x, c_y, -py - 1, -px - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color);
     }
     px += 1;
   }
 
   if (p->sector) {
-    tinygfx_line(img, c_x, c_y, c_x + cap0_x, c_y + cap0_y, 1, 0, 0, p->color, p->alpha);
-    tinygfx_line(img, c_x, c_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, p->color, p->alpha);
+    tinygfx_line(img, c_x, c_y, c_x + cap0_x, c_y + cap0_y, 1, 0, 0, p->color);
+    tinygfx_line(img, c_x, c_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, p->color);
   }
   if (p->segment) {
-    tinygfx_line(img, c_x + cap0_x, c_y + cap0_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, p->color, p->alpha);
+    tinygfx_line(img, c_x + cap0_x, c_y + cap0_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, p->color);
   }
 }
 
@@ -1135,18 +1103,18 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
   if (!full_circle && angle0 == angle1) return;
 
   bool angle_is_closed;
-  if (angle1 - angle0 > 0.0) angle_is_closed = fabsf(angle1 - angle0) > M_PI;
-  else angle_is_closed = fabsf(angle1 - angle0) < M_PI;
+  if (angle1 - angle0 > 0.0f) angle_is_closed = fabsf(angle1 - angle0) > (float)M_PI;
+  else angle_is_closed = fabsf(angle1 - angle0) < (float)M_PI;
 
   int thickness = p->thickness;
 
-  if (!full_circle && !angle_is_closed && fabsf(angle1 - angle0) < 0.0174532925) {
+  if (!full_circle && !angle_is_closed && fabsf(angle1 - angle0) < 0.0174532925f) {
     if (p->rounded) {
       float rad_f = (float)radius - ((float)thickness / 2.0f);
       float angle = (angle0 + angle1) / 2.0f;
       int cap_center_x = (int)floorf(cosf(angle) * rad_f);
       int cap_center_y = (int)floorf(sinf(angle) * rad_f);
-      tinygfx_fill_circle(img, c_x + cap_center_x, c_y + cap_center_y, thickness / 2, p->color, p->alpha);
+      tinygfx_fill_circle(img, c_x + cap_center_x, c_y + cap_center_y, thickness / 2, p->color);
     }
     return;
   }
@@ -1186,13 +1154,13 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
       x_in_r = -xi - 1;
     }
 
-    circle_row_draw(img, c_x, c_y, p->color, p->alpha, y0, x_out, x_out_r, has_gap, x_in, x_in_r,
-                    (double)angle0_cos * radius_outer, (double)angle0_sin * radius_outer,
-                    (double)angle1_cos * radius_outer, (double)angle1_sin * radius_outer,
+    circle_row_draw(img, c_x, c_y, p->color, y0, x_out, x_out_r, has_gap, x_in, x_in_r,
+                    (float)angle0_cos * radius_outer, (float)angle0_sin * radius_outer,
+                    (float)angle1_cos * radius_outer, (float)angle1_sin * radius_outer,
                     angle_is_closed, filled_segment, full_circle);
-    circle_row_draw(img, c_x, c_y, p->color, p->alpha, -y0 - 1, x_out, x_out_r, has_gap, x_in, x_in_r,
-                    (double)angle0_cos * radius_outer, (double)angle0_sin * radius_outer,
-                    (double)angle1_cos * radius_outer, (double)angle1_sin * radius_outer,
+    circle_row_draw(img, c_x, c_y, p->color, -y0 - 1, x_out, x_out_r, has_gap, x_in, x_in_r,
+                    (float)angle0_cos * radius_outer, (float)angle0_sin * radius_outer,
+                    (float)angle1_cos * radius_outer, (float)angle1_sin * radius_outer,
                     angle_is_closed, filled_segment, full_circle);
   }
 
@@ -1205,8 +1173,8 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
       int cap1_center_x = (int)floorf(angle1_cos * rad_f);
       int cap1_center_y = (int)floorf(angle1_sin * rad_f);
       int th = thickness / 2;
-      tinygfx_fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, th, p->color, p->alpha);
-      tinygfx_fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, th, p->color, p->alpha);
+      tinygfx_fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, th, p->color);
+      tinygfx_fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, th, p->color);
     } else if (p->sector) {
       float rad_f = (float)radius - ((float)thickness / 2.0f);
       int cap0_center_x = (int)floorf(angle0_cos * rad_f);
@@ -1214,8 +1182,8 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
       int cap1_center_x = (int)floorf(angle1_cos * rad_f);
       int cap1_center_y = (int)floorf(angle1_sin * rad_f);
       int th = thickness / 2;
-      tinygfx_line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x, c_y, th, 0, 0, p->color, p->alpha);
-      tinygfx_line(img, c_x + cap1_center_x, c_y + cap1_center_y, c_x, c_y, th, 0, 0, p->color, p->alpha);
+      tinygfx_line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x, c_y, th, 0, 0, p->color);
+      tinygfx_line(img, c_x + cap1_center_x, c_y + cap1_center_y, c_x, c_y, th, 0, 0, p->color);
     } else if (p->segment) {
       float rad_f = (float)radius - ((float)thickness / 2.0f);
       int cap0_center_x = (int)floorf(angle0_cos * rad_f);
@@ -1223,7 +1191,7 @@ static void arc_ring(image_buffer_t *img, int c_x, int c_y, int radius, float an
       int cap1_center_x = (int)floorf(angle1_cos * rad_f);
       int cap1_center_y = (int)floorf(angle1_sin * rad_f);
       int th = thickness / 2;
-      tinygfx_line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x + cap1_center_x, c_y + cap1_center_y, th, 0, 0, p->color, p->alpha);
+      tinygfx_line(img, c_x + cap0_center_x, c_y + cap0_center_y, c_x + cap1_center_x, c_y + cap1_center_y, th, 0, 0, p->color);
     }
   }
 }
@@ -1251,26 +1219,26 @@ void tinygfx_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0
 ////////////////////////////////////////////////////////////
 //  RECTANGLES
 
-void tinygfx_thick_hline(image_buffer_t *img, int x, int y, int len, int thickness, uint32_t color, uint8_t alpha) {
+void tinygfx_thick_hline(image_buffer_t *img, int x, int y, int len, int thickness, uint32_t color) {
   if (thickness < 1) thickness = 1;
   for (int i = 0; i < thickness; i++) {
-    h_line(img, x, y + i, len, color, alpha);
+    h_line(img, x, y + i, len, color);
   }
 }
 
-void tinygfx_thick_vline(image_buffer_t *img, int x, int y, int len, int thickness, uint32_t color, uint8_t alpha) {
+void tinygfx_thick_vline(image_buffer_t *img, int x, int y, int len, int thickness, uint32_t color) {
   if (thickness < 1) thickness = 1;
   for (int i = 0; i < thickness; i++) {
-    v_line(img, x + i, y, len, color, alpha);
+    v_line(img, x + i, y, len, color);
   }
 }
 
 // thickness extends inwards from the given rectangle edge.
 void tinygfx_rectangle(image_buffer_t *img, int x, int y, int width, int height,
-                      bool fill, int thickness, int dot1, int dot2, uint32_t color, uint8_t alpha) {
+                      bool fill, int thickness, int dot1, int dot2, uint32_t color) {
   if (fill) {
     for (int i = y; i < (y + height);i++) {
-      h_line(img, x, i, width, color, alpha);
+      h_line(img, x, i, width, color);
     }
     return;
   }
@@ -1282,13 +1250,13 @@ void tinygfx_rectangle(image_buffer_t *img, int x, int y, int width, int height,
     int lw = width - line_thickness * 2;
     int lh = height - line_thickness * 2;
     // top
-    tinygfx_line(img, lx, ly, lx + lw, ly, line_thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, lx, ly, lx + lw, ly, line_thickness, dot1, dot2, color);
     // bottom
-    tinygfx_line(img, lx, ly + lh, lx + lw, ly + lh, line_thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, lx, ly + lh, lx + lw, ly + lh, line_thickness, dot1, dot2, color);
     // left
-    tinygfx_line(img, lx, ly, lx, ly + lh, line_thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, lx, ly, lx, ly + lh, line_thickness, dot1, dot2, color);
     // right
-    tinygfx_line(img, lx + lw, ly, lx + lw, ly + lh, line_thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, lx + lw, ly, lx + lw, ly + lh, line_thickness, dot1, dot2, color);
     return;
   }
 
@@ -1298,22 +1266,22 @@ void tinygfx_rectangle(image_buffer_t *img, int x, int y, int width, int height,
   if (line_w > max_line_w) line_w = max_line_w;
 
   // top
-  tinygfx_thick_hline(img, x, y, width + 1, line_w, color, alpha);
+  tinygfx_thick_hline(img, x, y, width + 1, line_w, color);
   // bottom
-  tinygfx_thick_hline(img, x, y + height - line_w + 1, width + 1, line_w, color, alpha);
+  tinygfx_thick_hline(img, x, y + height - line_w + 1, width + 1, line_w, color);
   // left
-  tinygfx_thick_vline(img, x, y, height + 1, line_w, color, alpha);
+  tinygfx_thick_vline(img, x, y, height + 1, line_w, color);
   // right
-  tinygfx_thick_vline(img, x + width - line_w + 1, y, height + 1, line_w, color, alpha);
+  tinygfx_thick_vline(img, x + width - line_w + 1, y, height + 1, line_w, color);
 }
 
-void tinygfx_fill_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int height, int radius, uint32_t color, uint8_t alpha) {
+void tinygfx_fill_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int height, int radius, uint32_t color) {
   if (radius > width / 2) radius = width / 2;
   if (radius > height / 2) radius = height / 2;
 
   if (radius <= 0) {
     for (int row = 0; row < height; row++) {
-      h_line(img, x, y + row, width, color, alpha);
+      h_line(img, x, y + row, width, color);
     }
     return;
   }
@@ -1328,19 +1296,19 @@ void tinygfx_fill_rounded_rectangle(image_buffer_t *img, int x, int y, int width
 
     int row_top = radius - 1 - y0;
     int row_bottom = height - radius + y0;
-    h_line(img, x + inset, y + row_top, width - 2 * inset, color, alpha);
-    h_line(img, x + inset, y + row_bottom, width - 2 * inset, color, alpha);
+    h_line(img, x + inset, y + row_top, width - 2 * inset, color);
+    h_line(img, x + inset, y + row_bottom, width - 2 * inset, color);
   }
 
   for (int row = radius; row < height - radius; row++) {
-    h_line(img, x, y + row, width, color, alpha);
+    h_line(img, x, y + row, width, color);
   }
 }
 
 // thickness extends inwards; dot1>0 for a dotted border.
 void tinygfx_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int height,
                               int radius, int thickness, int dot1, int dot2, int resolution,
-                              uint32_t color, uint8_t alpha) {
+                              uint32_t color) {
   if (radius > width / 2) radius = width / 2;
   if (radius > height / 2) radius = height / 2;
 
@@ -1349,17 +1317,17 @@ void tinygfx_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int
     int corner_thickness = line_thickness * 2;
 
     // top
-    tinygfx_line(img, x + radius, y + line_thickness, x + width - radius, y + line_thickness, line_thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, x + radius, y + line_thickness, x + width - radius, y + line_thickness, line_thickness, dot1, dot2, color);
     // bottom
-    tinygfx_line(img, x + radius, y + height - line_thickness, x + width - radius, y + height - line_thickness, line_thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, x + radius, y + height - line_thickness, x + width - radius, y + height - line_thickness, line_thickness, dot1, dot2, color);
     // left
-    tinygfx_line(img, x + line_thickness, y + radius, x + line_thickness, y + height - radius, line_thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, x + line_thickness, y + radius, x + line_thickness, y + height - radius, line_thickness, dot1, dot2, color);
     // right
-    tinygfx_line(img, x + width - line_thickness, y + radius, x + width - line_thickness, y + height - radius, line_thickness, dot1, dot2, color, alpha);
+    tinygfx_line(img, x + width - line_thickness, y + radius, x + width - line_thickness, y + height - radius, line_thickness, dot1, dot2, color);
 
     arc_params_t p = {
       .thickness = corner_thickness, .rounded = false, .filled = false, .sector = false, .segment = false,
-      .dot1 = dot1, .dot2 = dot2, .resolution = resolution, .color = color, .alpha = alpha,
+      .dot1 = dot1, .dot2 = dot2, .resolution = resolution, .color = color,
     };
     // upper left
     tinygfx_arc(img, x + radius, y + radius, radius, 180, 270, &p);
@@ -1378,17 +1346,17 @@ void tinygfx_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int
   if (line_w > max_line_w) line_w = max_line_w;
 
   // top
-  tinygfx_thick_hline(img, x + radius, y, width - 2 * radius + 1, line_w, color, alpha);
+  tinygfx_thick_hline(img, x + radius, y, width - 2 * radius + 1, line_w, color);
   // bottom
-  tinygfx_thick_hline(img, x + radius, y + height - line_w, width - 2 * radius + 1, line_w, color, alpha);
+  tinygfx_thick_hline(img, x + radius, y + height - line_w, width - 2 * radius + 1, line_w, color);
   // left
-  tinygfx_thick_vline(img, x, y + radius, height - 2 * radius + 1, line_w, color, alpha);
+  tinygfx_thick_vline(img, x, y + radius, height - 2 * radius + 1, line_w, color);
   // right
-  tinygfx_thick_vline(img, x + width - line_w, y + radius, height - 2 * radius + 1, line_w, color, alpha);
+  tinygfx_thick_vline(img, x + width - line_w, y + radius, height - 2 * radius + 1, line_w, color);
 
   arc_params_t p = {
     .thickness = line_w, .rounded = false, .filled = false, .sector = false, .segment = false,
-    .dot1 = 0, .dot2 = 0, .resolution = resolution, .color = color, .alpha = alpha,
+    .dot1 = 0, .dot2 = 0, .resolution = resolution, .color = color,
   };
   // upper left
   tinygfx_arc(img, x + radius, y + radius, radius, 180, 270, &p);
@@ -1417,7 +1385,7 @@ static inline void swap_points(int *x0, int *y0, int *x1, int *y1) {
 // is shared across the "implicitly" split up subtriangles saving some work.
 // Most important! Never draw a pixel twice.
 void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
-                          int x1, int y1, int x2, int y2, uint32_t color, uint8_t alpha) {
+                          int x1, int y1, int x2, int y2, uint32_t color) {
   if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
   if (y1 > y2) swap_points(&x1, &y1, &x2, &y2);
   if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
@@ -1435,7 +1403,7 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
     for (int y = y0; y < y1; y++) {
       int xa = (int)x_long, xb = (int)x_short;
       int lo = MIN(xa, xb), hi = MAX(xa, xb);
-      h_line(img, lo, y, hi - lo + 1, color, alpha);
+      h_line(img, lo, y, hi - lo + 1, color);
       x_long += dx_long;
       x_short += dx_short;
     }
@@ -1450,7 +1418,7 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
     for (int y = y1; y <= y2; y++) {
       int xa = (int)x_long, xb = (int)x_short;
       int lo = MIN(xa, xb), hi = MAX(xa, xb);
-      h_line(img, lo, y, hi - lo + 1, color, alpha);
+      h_line(img, lo, y, hi - lo + 1, color);
       x_long += dx_long;
       x_short += dx_short;
     }
@@ -1459,7 +1427,7 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
     // So here we add in a final h_line for the flat bottom triangles.
     int xa = (int)x_long, xb = x1;
     int lo = MIN(xa, xb), hi = MAX(xa, xb);
-    h_line(img, lo, y1, hi - lo + 1, color, alpha);
+    h_line(img, lo, y1, hi - lo + 1, color);
   }
 }
 
@@ -1467,6 +1435,22 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
 //  TEXT
 
 // orient: 0=normal, 1=up(90°CCW), 2=180°, 3=down(90°CW)
+// There are per pixel % and / operations here that
+// can be expressed using & and >>.
+//
+// Magnification is likely quite costly it may be an idea to
+// split putc into two different implementations, one with mag
+// and another without, then pick the right one as early as possible.
+//
+// The orient_coeffs represent how the px,py change sign and "meaning"
+// in the inner most loop. Instead of a conditional, we look up coefficients.
+
+static const int putc_orient_coeff[4][4] =
+  {{ 1, 0, 0, 1},
+   { 0, 1,-1, 0},
+   {-1, 0, 0,-1},
+   { 0,-1, 1, 0}};
+
 void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors,
                      const uint8_t *font_data, uint8_t ch, int orient, float mag) {
   uint8_t w = font_data[0];
@@ -1490,19 +1474,25 @@ void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int n
     return;
   }
 
+  const int *oc = putc_orient_coeff[orient];
+
+  // Converting mag to a fixed point represenation (with 8 bits fractional).
+  int mag_fp = (int)(mag * 256.0f + 0.5f);
+
   for (int i = 0; i < w * h; i++) {
     int x0 = i % w;
     int y0 = i / w;
 
-    int sx0 = (int)floorf((float)x0 * mag);
-    int sx1 = (int)floorf((float)(x0 + 1) * mag) - 1;
-    int sy0 = (int)floorf((float)y0 * mag);
-    int sy1 = (int)floorf((float)(y0 + 1) * mag) - 1;
+    int sx0 = (x0 * mag_fp) >> 8;
+    int sx1 = (((x0 + 1) * mag_fp) >> 8) - 1;
+    int sy0 = (y0 * mag_fp) >> 8;
+    int sy1 = (((y0 + 1) * mag_fp) >> 8) - 1;
 
     if (sx1 < sx0) sx1 = sx0;
     if (sy1 < sy0) sy1 = sy0;
 
     uint32_t color;
+    // These conditionals should be hoisted out of this w*h loop.
     if (bits_per_pixel == 2) {
       if (num_colors < 4) return;
       uint8_t byte = font_data[4 + bytes_per_char * ch + (i / 4)];
@@ -1524,12 +1514,10 @@ void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int n
 
     for (int py = sy0; py <= sy1; py++) {
       for (int px = sx0; px <= sx1; px++) {
-        switch (orient) {
-          case 1:  putpixel(img, x + py, y - px, color, 255); break;
-          case 2:  putpixel(img, x - px, y - py, color, 255); break;
-          case 3:  putpixel(img, x - py, y + px, color, 255); break;
-          default: putpixel(img, x + px, y + py, color, 255); break;
-        }
+        putpixel(img,
+                 x + oc[0] * px + oc[1] * py,
+                 y + oc[2] * px + oc[3] * py,
+                 color);
       }
     }
   }
@@ -1538,16 +1526,83 @@ void tinygfx_img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int n
 ////////////////////////////////////////////////////////////
 //  BLIT
 
+// palette, when non-NULL, remaps an indexed source's raw index (0..palette_len-1)
+// to the value actually written to dest (a dest index, or an rgb888 color).
+// transparent_color is still matched against the raw, pre-remap source value.
+static inline uint32_t palette_remap(uint32_t p, const uint32_t *palette, int palette_len) {
+  if (palette && p < (uint32_t)palette_len) {
+    return palette[p];
+  }
+  return p;
+}
+
+static inline bool color_format_is_rgb(color_format_t fmt) {
+  return fmt == rgb332 || fmt == rgb565 || fmt == rgb888;
+}
+
+static uint8_t alpha_buffer_sample(image_buffer_t *alpha_buf, int x, int y) {
+  switch (alpha_buf->fmt) {
+  case indexed2:  return getpixel(alpha_buf, x, y) ? 255 : 0;
+    // (/ 255 3) => 85         (* 85 3) => 255
+    // (/ 255 15)  => 17       (* 17 15) => 255
+  case indexed4:  return (uint8_t)(getpixel(alpha_buf, x, y) * 85);
+  case indexed16: return (uint8_t)(getpixel(alpha_buf, x, y) * 17);
+  case rgb332: {
+    uint32_t pos = (uint32_t)y * (uint32_t)alpha_buf->width + (uint32_t)x;
+    return alpha_buf->data[pos];
+  }
+  default: return 255;
+  }
+}
+
+// perform palette lookup and potentially blend with target.
+static inline void compose_write(image_buffer_t *img_dest, int dest_x, int dest_y,
+                                 uint32_t p, const blit_compose_t *compose,
+                                 int src_x, int src_y) {
+  uint32_t out = palette_remap(p, compose->palette, compose->palette_len);
+
+  if (color_format_is_rgb(img_dest->fmt)) {
+    uint32_t alpha = compose->alpha;
+    if (compose->alpha_buf) {
+      alpha = div255(alpha * alpha_buffer_sample(compose->alpha_buf, src_x, src_y));
+    }
+    if (alpha == 0) {
+      return; // fully transparent, nothing to draw
+    }
+    if (alpha != 255) {
+      uint32_t dst = getpixel(img_dest, dest_x, dest_y);
+      out = alpha_blend_rgb888(out, dst, (uint8_t)alpha);
+    }
+  }
+
+  putpixel(img_dest, dest_x, dest_y, out);
+}
+
 static inline void copy_pixel(image_buffer_t *img_dest,
                               image_buffer_t *img_src,
                               int dest_x, int dest_y,
                               int src_x, int src_y,
                               int src_w, int src_h,
-                              int transparent_color ) {
+                              int transparent_color) {
     if (src_x >= 0 && src_x < src_w && src_y >= 0 && src_y < src_h) {
         uint32_t p = getpixel(img_src, src_x, src_y);
         if (transparent_color == -1 || p != (uint32_t)transparent_color) {
-            putpixel(img_dest, dest_x, dest_y, p, 255);
+            putpixel(img_dest, dest_x, dest_y, p);
+        }
+    }
+}
+
+static inline void copy_pixel_composed(image_buffer_t *img_dest,
+                              image_buffer_t *img_src,
+                              int dest_x, int dest_y,
+                              int src_x, int src_y,
+                              int src_w, int src_h,
+                              int transparent_color,
+                              const blit_compose_t *compose) {
+    if (src_x >= 0 && src_x < src_w && src_y >= 0 && src_y < src_h) {
+        uint32_t p = getpixel(img_src, src_x, src_y);
+        if (transparent_color == -1 || p != (uint32_t)transparent_color) {
+            compose_write(img_dest, dest_x, dest_y, p, compose, src_x, src_y);
         }
     }
 }
@@ -1559,17 +1614,38 @@ static inline void copy_pixel_noclip(image_buffer_t *img_dest,
                                      int dest_x, int dest_y,
                                      int src_x, int src_y) {
   uint32_t p = getpixel(img_src, src_x, src_y);
-  putpixel(img_dest, dest_x, dest_y, p, 255);
+  putpixel(img_dest, dest_x, dest_y, p);
+}
+
+static inline void copy_pixel_noclip_composed(image_buffer_t *img_dest,
+                                     image_buffer_t *img_src,
+                                     int dest_x, int dest_y,
+                                     int src_x, int src_y,
+                                     const blit_compose_t *compose) {
+  uint32_t p = getpixel(img_src, src_x, src_y);
+  compose_write(img_dest, dest_x, dest_y, p, compose, src_x, src_y);
 }
 
 static inline void copy_pixel_transparency_noclip(image_buffer_t *img_dest,
                                      image_buffer_t *img_src,
                                      int dest_x, int dest_y,
                                      int src_x, int src_y,
-                                     int transparent_color ) {
+                                     int transparent_color) {
   uint32_t p = getpixel(img_src, src_x, src_y);
   if (p != (uint32_t)transparent_color) {
-    putpixel(img_dest, dest_x, dest_y, p, 255);
+    putpixel(img_dest, dest_x, dest_y, p);
+  }
+}
+
+static inline void copy_pixel_transparency_noclip_composed(image_buffer_t *img_dest,
+                                     image_buffer_t *img_src,
+                                     int dest_x, int dest_y,
+                                     int src_x, int src_y,
+                                     int transparent_color,
+                                     const blit_compose_t *compose) {
+  uint32_t p = getpixel(img_src, src_x, src_y);
+  if (p != (uint32_t)transparent_color) {
+    compose_write(img_dest, dest_x, dest_y, p, compose, src_x, src_y);
   }
 }
 
@@ -1590,7 +1666,8 @@ void tinygfx_blit(
     image_buffer_t *img_dest,
     image_buffer_t *img_src,
     int dest_offset_x, int dest_offset_y,
-    int32_t transparent_color
+    int32_t transparent_color,
+    const blit_compose_t *compose
 ) {
   int src_w = img_src->width;
   int src_h = img_src->height;
@@ -1602,20 +1679,40 @@ void tinygfx_blit(
   if (dest_x_end > img_dest->width) dest_x_end = img_dest->width;
   if (dest_y_end > img_dest->height) dest_y_end = img_dest->height;
 
-  if (transparent_color >= 0) {
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x = dest_x - dest_offset_x;
-        int src_y = dest_y - dest_offset_y;
-        copy_pixel_transparency_noclip(img_dest, img_src, dest_x, dest_y, src_x, src_y, transparent_color);
+  if (compose) {
+    if (transparent_color >= 0) {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          copy_pixel_transparency_noclip_composed(img_dest, img_src, dest_x, dest_y, src_x, src_y, transparent_color, compose);
+        }
+      }
+    } else {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          copy_pixel_noclip_composed(img_dest, img_src, dest_x, dest_y, src_x, src_y, compose);
+        }
       }
     }
   } else {
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x = dest_x - dest_offset_x;
-        int src_y = dest_y - dest_offset_y;
-        copy_pixel_noclip(img_dest, img_src, dest_x, dest_y, src_x, src_y);
+    if (transparent_color >= 0) {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          copy_pixel_transparency_noclip(img_dest, img_src, dest_x, dest_y, src_x, src_y, transparent_color);
+        }
+      }
+    } else {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          copy_pixel_noclip(img_dest, img_src, dest_x, dest_y, src_x, src_y);
+        }
       }
     }
   }
@@ -1627,7 +1724,8 @@ void tinygfx_blit_transform(
     image_buffer_t *img_src,   // Source image buffer
     int dest_offset_x, int dest_offset_y,              // Where on dest to start writing pixels
     blit_transform_t transform,
-    int32_t transparent_color  // Color that will not be drawn -1 to disable
+    int32_t transparent_color,  // Color that will not be drawn -1 to disable
+    const blit_compose_t *compose
 ) {
   float rot_x = transform.rot_x, rot_y = transform.rot_y;
   float rot_angle = transform.rot_angle;
@@ -1636,7 +1734,7 @@ void tinygfx_blit_transform(
   int clip_x = transform.clip_x, clip_y = transform.clip_y;
   int clip_w = transform.clip_w, clip_h = transform.clip_h;
 
-  if (scale == 0.0) return;
+  if (scale == 0.0f) return;
   int src_w = img_src->width;
   int src_h = img_src->height;
 
@@ -1645,7 +1743,7 @@ void tinygfx_blit_transform(
   int dest_x_end = clip_x + clip_w;
   int dest_y_end = clip_y + clip_h;
 
-  if (rot_angle == 0.0 && scale == 1.0) {
+  if (rot_angle == 0.0f && scale == 1.0f) {
     if (dest_offset_x > dest_x_start) dest_x_start = dest_offset_x;
     if (dest_offset_y > dest_y_start) dest_y_start = dest_offset_y;
     if (!tile) {
@@ -1653,15 +1751,26 @@ void tinygfx_blit_transform(
         if (dest_offset_y + src_h < dest_y_end) dest_y_end = dest_offset_y + src_h;
     }
 
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x = dest_x - dest_offset_x;
-        int src_y = dest_y - dest_offset_y;
-        if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
+    if (compose) {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel_composed(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, compose);
+        }
+      }
+    } else {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = dest_x - dest_offset_x;
+          int src_y = dest_y - dest_offset_y;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
+        }
       }
     }
-  } else if (rot_angle == 0.0) {
+  } else if (rot_angle == 0.0f) {
     rot_x *= scale;
     rot_y *= scale;
 
@@ -1672,18 +1781,35 @@ void tinygfx_blit_transform(
     int scale_i = (int)(scale * (float) fp_scale);
     if (scale_i == 0) return;
 
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
-        int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
+    if (compose) {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
+          int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
 
-        src_x += rot_x_x * fp_scale;
-        src_y += rot_y_i * fp_scale;
+          src_x += rot_x_x * fp_scale;
+          src_y += rot_y_i * fp_scale;
 
-        src_x /= scale_i;
-        src_y /= scale_i;
-        if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
+          src_x /= scale_i;
+          src_y /= scale_i;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel_composed(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, compose);
+        }
+      }
+    } else {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
+          int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
+
+          src_x += rot_x_x * fp_scale;
+          src_y += rot_y_i * fp_scale;
+
+          src_x /= scale_i;
+          src_y /= scale_i;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
+        }
       }
     }
   } else {
@@ -1702,18 +1828,35 @@ void tinygfx_blit_transform(
     int scale_i = (int)(scale * (float) fp_scale);
     if (scale_i == 0) return;
 
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
-        int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
+    if (compose) {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
+          int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
 
-        src_x += rot_x_i * fp_scale;
-        src_y += rot_y_i * fp_scale;
+          src_x += rot_x_i * fp_scale;
+          src_y += rot_y_i * fp_scale;
 
-        src_x /= scale_i;
-        src_y /= scale_i;
-        if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
+          src_x /= scale_i;
+          src_y /= scale_i;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel_composed(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, compose);
+        }
+      }
+    } else {
+      for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
+        for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
+          int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
+          int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
+
+          src_x += rot_x_i * fp_scale;
+          src_y += rot_y_i * fp_scale;
+
+          src_x /= scale_i;
+          src_y /= scale_i;
+          if (tile) tile_wrap(&src_x, &src_y, src_w, src_h);
+          copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color);
+        }
       }
     }
   }
@@ -1748,7 +1891,7 @@ static int tinygfx_jpg_output(JDEC* jd, void* bitmap, JRECT* rect) {
 
   for (int y = 0; y < src_h; y++) {
     for (int x = 0; x < src_w; x++) {
-      putpixel(dev->dest, dx + x, dy + y, getpixel_rgb888(src_data, src_w, x, y), 255);
+      putpixel(dev->dest, dx + x, dy + y, getpixel_rgb888(src_data, src_w, x, y));
     }
   }
 

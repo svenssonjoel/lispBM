@@ -20,22 +20,46 @@
 (define bg 0x101018)
 (img-clear img bg)
 
+;; Alpha now lives entirely in img-blit, not in the shapes themselves: each
+;; triangle is drawn *opaque* into its own scratch buffer, sized to its
+;; bounding box, then composited onto img with img-blit's 'alpha attribute.
+;; marker is the scratch buffer's background fill -- passed as img-blit's
+;; transparent_color so only the triangle's own pixels participate.
+(define marker 0x00FF01)
+
+(defun min2 (a b) (if (< a b) a b))
+(defun max2 (a b) (if (> a b) a b))
+(defun min3 (a b c) (min2 a (min2 b c)))
+(defun max3 (a b c) (max2 a (max2 b c)))
+
+(defun triangle-layer (dest x0 y0 x1 y1 x2 y2 color alpha)
+  (let ((minx (min3 x0 x1 x2))
+        (maxx (max3 x0 x1 x2))
+        (miny (min3 y0 y1 y2))
+        (maxy (max3 y0 y1 y2))
+        (margin 2))
+    (let ((ox (- minx margin))
+          (oy (- miny margin))
+          (w (+ (- maxx minx) (* 2 margin)))
+          (h (+ (- maxy miny) (* 2 margin))))
+      (let ((buf (img-buffer 'rgb888 w h)))
+        (progn
+          (img-clear buf marker)
+          (img-triangle buf (- x0 ox) (- y0 oy) (- x1 ox) (- y1 oy) (- x2 ox) (- y2 oy) color '(filled))
+          (img-blit dest buf ox oy marker (list 'alpha alpha)))))))
+
 ;; Three overlapping translucent right triangles, each the same shape shifted
 ;; diagonally by 40px from the previous one, drawn red -> green -> blue. This
-;; exercises fill_triangle's alpha compositing with genuine 1x, 2x and 3x
-;; overlap, analogous to the ring-overlap coverage in
-;; test_img_circle_filled_overlap_alpha.lisp.
+;; exercises fill_triangle's opaque rasterization together with blit's alpha
+;; compositing, with genuine 1x, 2x and 3x overlap.
 (define alpha-v 180)
 (define red-rgb   0xE04030)
 (define green-rgb 0x30C060)
 (define blue-rgb  0x3080E0)
-(define red   (img-color 'regular red-rgb   alpha-v))
-(define green (img-color 'regular green-rgb alpha-v))
-(define blue  (img-color 'regular blue-rgb  alpha-v))
 
-(define t1 (img-triangle img 50  50  220 50  50  220 red   '(filled)))
-(define t2 (img-triangle img 90  90  260 90  90  260 green '(filled)))
-(define t3 (img-triangle img 130 130 300 130 130 300 blue  '(filled)))
+(define t1 (triangle-layer img 50  50  220 50  50  220 red-rgb   alpha-v))
+(define t2 (triangle-layer img 90  90  260 90  90  260 green-rgb alpha-v))
+(define t3 (triangle-layer img 130 130 300 130 130 300 blue-rgb  alpha-v))
 
 ;; Reference alpha blend, matching alpha_blend_rgb888's div255(src*a + dst*(255-a) + 127).
 (defun blend1 (src dst alpha) (/ (+ (* src alpha) (+ (* dst (- 255 alpha)) 127)) 255))
