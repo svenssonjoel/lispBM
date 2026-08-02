@@ -44,6 +44,7 @@
 #include "extensions/runtime_extensions.h"
 #include "extensions/set_extensions.h"
 #include "extensions/display_extensions.h"
+#include "extensions/tiny3d_extensions.h"
 #include "extensions/mutex_extensions.h"
 #include "extensions/lbm_dyn_lib.h"
 #include "extensions/ttf_extensions.h"
@@ -1889,6 +1890,7 @@ int init_exts(void) {
   lbm_runtime_extensions_init();
   lbm_set_extensions_init();
   lbm_display_extensions_init();
+  lbm_tiny3d_extensions_init();
   lbm_mutex_extensions_init();
   lbm_dyn_lib_init();
   lbm_ttf_extensions_init();

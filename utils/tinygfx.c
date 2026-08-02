@@ -4,20 +4,23 @@
   Copyright 2023        Rasmus Söderhielm          rasmus.soderhielm@gmail.com
   Copyright 2025        Joakim Lundborg            joakim.lundborg@gmail.com
 
-  This file is part of LispBM.
-
-  LispBM is free software: you can redistribute it and/or modify
+  TinyGFX is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  LispBM is distributed in the hope that it will be useful,
+  TinyGFX is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/* 
+  TinyGFX is the portable C part of what was originally the display_extensions 
+  in  LispBM 
 */
 
 #include "tinygfx.h"
@@ -76,7 +79,7 @@ uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
     // % 2^n can be expressed as & (2^n - 1)
     int tab_pos = (((pos - color.param2) * 256) / color.param1 / 2) & (used_len - 1);
 
-    uint32_t tab_val = (uint32_t)lbm_cos_tab_128[tab_pos <= 127 ? tab_pos : 128 - (tab_pos - 127)];
+    uint32_t tab_val = (uint32_t)cos_q0_8(tab_pos);
 
     uint32_t r = div255(r1 * tab_val + r2 * (255 - tab_val));
     uint32_t g = div255(g1 * tab_val + g2 * (255 - tab_val));

@@ -80,10 +80,24 @@ static lbm_value ext_sdl_init(lbm_value *args, lbm_uint argn) {
 // eventually segfaults deep inside SDL on the next render call.
 extern SDL_Renderer *active_rend;
 
+// SDL_RenderGetWindow requires SDL >= 2.0.22. On older SDL there's no way
+// to ask which window a renderer belongs to, so conservatively invalidate
+// active_rend on any window destruction rather than risk leaving it
+// dangling (over-cautious with multiple windows, but this codebase's
+// examples only ever use one).
+static inline bool sdl_renderer_owns_window(SDL_Renderer *rend, SDL_Window *win) {
+#if SDL_VERSION_ATLEAST(2, 0, 22)
+  return rend && SDL_RenderGetWindow(rend) == win;
+#else
+  (void)rend; (void)win;
+  return true;
+#endif
+}
+
 static bool sdl_window_destructor(lbm_uint value) {
   if (value) {
     SDL_Window *win = (SDL_Window*)value;
-    if (active_rend && SDL_RenderGetWindow(active_rend) == win) {
+    if (active_rend && sdl_renderer_owns_window(active_rend, win)) {
       active_rend = NULL;
     }
     SDL_DestroyWindow(win);
@@ -95,7 +109,7 @@ static lbm_value ext_sdl_destroy_window(lbm_value *args, lbm_uint argn) {
   if (argn == 1 && lbm_type_of(args[0]) == LBM_TYPE_CUSTOM) {
     lbm_uint *m = (lbm_uint *)lbm_dec_custom(args[0]);
     SDL_Window *win = (SDL_Window*)m[CUSTOM_TYPE_VALUE];
-    if (active_rend && SDL_RenderGetWindow(active_rend) == win) {
+    if (active_rend && sdl_renderer_owns_window(active_rend, win)) {
       active_rend = NULL;
     }
     SDL_DestroyWindow(win);
