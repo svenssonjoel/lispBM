@@ -358,31 +358,28 @@ static tiny3d_state_blob_t *get_state_blob(lbm_value v) {
   return blob;
 }
 
-// (tiny3d-state-create img max-tris-per-object near far fov-degrees cull-margin opt-attr)
-// opt-attr:
-//   filled            - solid triangles instead of the default wireframe
-//   no-backface-cull  - keep back-facing triangles (culled by default)
+// (tiny3d-state-create img max-tris-per-object near far fov-degrees cull-margin opt-attrs...)
+// opt-attrs:
+//   '(filled)            - solid triangles instead of the default wireframe
+//   '(no-backface-cull)  - keep back-facing triangles (culled by default)
 // Returns (state . img)
 static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
-  if (argn != 6 && argn != 7) return ENC_SYM_TERROR;
+  if (argn < 6) return ENC_SYM_TERROR;
   if (!lbm_is_number(args[1]) || !lbm_is_number(args[2]) || !lbm_is_number(args[3]) ||
       !lbm_is_number(args[4]) || !lbm_is_number(args[5])) {
     return ENC_SYM_TERROR;
   }
   bool filled = false;
   bool cull_backfaces = true;
-  if (argn == 7) {
-    if (!lbm_is_list(args[6])) return ENC_SYM_TERROR;
-    lbm_value curr = args[6];
-    while (lbm_is_cons(curr)) {
-      lbm_value a = lbm_car(curr);
-      if (!lbm_is_symbol(a)) return ENC_SYM_TERROR;
-      lbm_uint s = lbm_dec_sym(a);
-      if (s == symbol_filled) filled = true;
-      else if (s == symbol_no_backface_cull) cull_backfaces = false;
-      else return ENC_SYM_TERROR;
-      curr = lbm_cdr(curr);
+  for (lbm_uint i = 6; i < argn; i++) {
+    if (!lbm_is_cons(args[i]) || lbm_list_length(args[i]) != 1 ||
+        !lbm_is_symbol(lbm_car(args[i]))) {
+      return ENC_SYM_TERROR;
     }
+    lbm_uint s = lbm_dec_sym(lbm_car(args[i]));
+    if (s == symbol_filled) filled = true;
+    else if (s == symbol_no_backface_cull) cull_backfaces = false;
+    else return ENC_SYM_TERROR;
   }
 
   image_buffer_t img;
