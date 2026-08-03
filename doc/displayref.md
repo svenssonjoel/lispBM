@@ -1604,7 +1604,7 @@ img-color is used to create more complex color objects for use together with dis
 <td>
 
 ```clj
-[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 112 127 28 235 255 0 0 0]
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 244 129 172 238 255 0 0 0]
 ```
 
 
@@ -2137,7 +2137,7 @@ Get a value from a precalculated gradient color. The form of an `img-color-getpr
 <td>
 
 ```clj
-16121865u32
+16449540u32
 ```
 
 

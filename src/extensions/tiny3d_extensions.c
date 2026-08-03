@@ -358,6 +358,17 @@ static tiny3d_state_blob_t *get_state_blob(lbm_value v) {
   return blob;
 }
 
+// On the lispbm side, the "tiny3d state" is a (state-blob . image-buffer)
+// pair. This is to ensure that the lifetime of the image buffer
+// is the same as the lifetime of the state-blob.
+// The state-blob contains raw pointers into the image buffer that
+// are used by the Tiny3d C code without it knowing anything about
+// lisp and its GC.
+static tiny3d_state_blob_t *resolve_state(lbm_value v) {
+  if (!lbm_is_cons(v)) return NULL;
+  return get_state_blob(lbm_car(v));
+}
+
 // (tiny3d-state-create img max-tris-per-object near far fov-degrees cull-margin opt-attrs...)
 // opt-attrs:
 //   '(filled)            - solid triangles instead of the default wireframe
@@ -492,13 +503,13 @@ static bool render_ctx_next_instance(void *ctx_v, tiny3d_instance_t *out) {
 }
 
 // (tiny3d-render state objects cam-pos cam-orient)
-// state: from tiny3d-state-create (car of that result).
+// state: the (state . img) pair returned by tiny3d-state-create.
 // objects: list of (instance-blob . mesh) pairs, as returned by tiny3d-instance.
 // cam-pos/cam-orient: (list x y z) / (list ax ay az) in world units / degrees.
 static lbm_value ext_tiny3d_render(lbm_value *args, lbm_uint argn) {
   if (argn != 4) return ENC_SYM_TERROR;
 
-  tiny3d_state_blob_t *blob = get_state_blob(args[0]);
+  tiny3d_state_blob_t *blob = resolve_state(args[0]);
   if (!blob) return ENC_SYM_TERROR;
   if (!lbm_is_list(args[1])) return ENC_SYM_TERROR;
 
@@ -521,7 +532,7 @@ static lbm_value ext_tiny3d_render(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_tiny3d_cull(lbm_value *args, lbm_uint argn) {
   if (argn != 4) return ENC_SYM_TERROR;
 
-  tiny3d_state_blob_t *blob = get_state_blob(args[0]);
+  tiny3d_state_blob_t *blob = resolve_state(args[0]);
   if (!blob) return ENC_SYM_TERROR;
 
   if (!lbm_is_cons(args[1])) return ENC_SYM_TERROR;
