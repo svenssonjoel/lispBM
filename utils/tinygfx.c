@@ -1059,10 +1059,13 @@ static void arc_thin(image_buffer_t *img, int c_x, int c_y, int radius, float an
   float ray0_x = cosf(angle0), ray0_y = sinf(angle0);
   float ray1_x = cosf(angle1), ray1_y = sinf(angle1);
 
-  long r_dbl_sq = 4L * radius * radius;
+  // int64_t, not long: long is only 32 bits on ILP32 targets (this
+  // project's embedded builds and the -m32 desktop test build both
+  // included), so it gives no real overflow headroom here.
+  int64_t r_dbl_sq = (int64_t)4 * radius * radius;
   int px = 0, py = radius;
   while (px <= py) {
-    while (py >= px && (long)(2 * px + 1) * (2 * px + 1) + (long)(2 * py + 1) * (2 * py + 1) > r_dbl_sq) py--;
+    while (py >= px && (int64_t)(2 * px + 1) * (2 * px + 1) + (int64_t)(2 * py + 1) * (2 * py + 1) > r_dbl_sq) py--;
     if (px > py) break;
     arc_thin_plot(img, c_x, c_y,  px,      py,     ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color);
     arc_thin_plot(img, c_x, c_y,  px,     -py - 1, ray0_x, ray0_y, ray1_x, ray1_y, angle_is_closed, full_circle, p->color);
@@ -1386,7 +1389,10 @@ static inline void swap_points(int *x0, int *y0, int *x1, int *y1) {
 // The triangle filler in "Black art" explicitly splits triangles into subtriangles
 // and invents a "cut-vertex" along the long edge. Here the long edge state
 // is shared across the "implicitly" split up subtriangles saving some work.
-// Most important! Never draw a pixel twice.
+static inline int32_t tri_slope_fp(int32_t xa, int32_t xb, int32_t ya, int32_t yb) {
+  return (int32_t)(((int64_t)(xb - xa) * 65536) / (int64_t)(yb - ya));
+}
+
 void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
                           int x1, int y1, int x2, int y2, uint32_t color) {
   if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
@@ -1395,16 +1401,16 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
 
   if (y0 == y2) return;
 
-  float dx_long = (float)(x2 - x0) / (float)(y2 - y0);
-  float x_long = (float)x0;
+  int32_t dx_long = tri_slope_fp(x0, x2, y0, y2);
+  int32_t x_long = (int32_t)((int64_t)x0 * 65536);
 
   // Top part of general triangle case
   // If the triangle has a flat top, then y1 == y0 and this loop is skipped
   if (y1 > y0) {
-    float dx_short = (float)(x1 - x0) / (float)(y1 - y0);
-    float x_short = (float)x0;
+    int32_t dx_short = tri_slope_fp(x0, x1, y0, y1);
+    int32_t x_short = (int32_t)((int64_t)x0 * 65536);
     for (int y = y0; y < y1; y++) {
-      int xa = (int)x_long, xb = (int)x_short;
+      int xa = (int)(x_long >> 16), xb = (int)(x_short >> 16);
       int lo = MIN(xa, xb), hi = MAX(xa, xb);
       h_line(img, lo, y, hi - lo + 1, color);
       x_long += dx_long;
@@ -1416,10 +1422,10 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
   // y1 is drawn here. The top loop stops at y1-1.
   // This ensures no line is drawn more than once.
   if (y2 > y1) {
-    float dx_short = (float)(x2 - x1) / (float)(y2 - y1);
-    float x_short = (float)x1;
+    int32_t dx_short = tri_slope_fp(x1, x2, y1, y2);
+    int32_t x_short = (int32_t)((int64_t)x1 * 65536);
     for (int y = y1; y <= y2; y++) {
-      int xa = (int)x_long, xb = (int)x_short;
+      int xa = (int)(x_long >> 16), xb = (int)(x_short >> 16);
       int lo = MIN(xa, xb), hi = MAX(xa, xb);
       h_line(img, lo, y, hi - lo + 1, color);
       x_long += dx_long;
@@ -1428,7 +1434,7 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
   } else {
     // When y2 == y1 the above code draws nothing,
     // So here we add in a final h_line for the flat bottom triangles.
-    int xa = (int)x_long, xb = x1;
+    int xa = (int)(x_long >> 16), xb = x1;
     int lo = MIN(xa, xb), hi = MAX(xa, xb);
     h_line(img, lo, y1, hi - lo + 1, color);
   }
