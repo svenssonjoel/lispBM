@@ -1390,7 +1390,7 @@ static inline void swap_points(int *x0, int *y0, int *x1, int *y1) {
 // and invents a "cut-vertex" along the long edge. Here the long edge state
 // is shared across the "implicitly" split up subtriangles saving some work.
 static inline int32_t tri_slope_fp(int32_t xa, int32_t xb, int32_t ya, int32_t yb) {
-  return (int32_t)(((int64_t)(xb - xa) * 65536) / (int64_t)(yb - ya));
+  return (xb - xa) * 256 / (yb - ya);
 }
 
 void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
@@ -1402,15 +1402,15 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
   if (y0 == y2) return;
 
   int32_t dx_long = tri_slope_fp(x0, x2, y0, y2);
-  int32_t x_long = (int32_t)((int64_t)x0 * 65536);
+  int32_t x_long = x0 * 256;
 
   // Top part of general triangle case
   // If the triangle has a flat top, then y1 == y0 and this loop is skipped
   if (y1 > y0) {
     int32_t dx_short = tri_slope_fp(x0, x1, y0, y1);
-    int32_t x_short = (int32_t)((int64_t)x0 * 65536);
+    int32_t x_short = x0 * 256;
     for (int y = y0; y < y1; y++) {
-      int xa = (int)(x_long >> 16), xb = (int)(x_short >> 16);
+      int xa = (int)(x_long >> 8), xb = (int)(x_short >> 8);
       int lo = MIN(xa, xb), hi = MAX(xa, xb);
       h_line(img, lo, y, hi - lo + 1, color);
       x_long += dx_long;
@@ -1423,9 +1423,9 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
   // This ensures no line is drawn more than once.
   if (y2 > y1) {
     int32_t dx_short = tri_slope_fp(x1, x2, y1, y2);
-    int32_t x_short = (int32_t)((int64_t)x1 * 65536);
+    int32_t x_short = x1 * 256;
     for (int y = y1; y <= y2; y++) {
-      int xa = (int)(x_long >> 16), xb = (int)(x_short >> 16);
+      int xa = (int)(x_long >> 8), xb = (int)(x_short >> 8);
       int lo = MIN(xa, xb), hi = MAX(xa, xb);
       h_line(img, lo, y, hi - lo + 1, color);
       x_long += dx_long;
@@ -1434,7 +1434,7 @@ void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
   } else {
     // When y2 == y1 the above code draws nothing,
     // So here we add in a final h_line for the flat bottom triangles.
-    int xa = (int)(x_long >> 16), xb = x1;
+    int xa = (int)(x_long >> 8), xb = x1;
     int lo = MIN(xa, xb), hi = MAX(xa, xb);
     h_line(img, lo, y1, hi - lo + 1, color);
   }
