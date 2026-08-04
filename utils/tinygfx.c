@@ -1666,11 +1666,81 @@ static inline void tile_wrap(int *src_x, int *src_y, int src_w, int src_h) {
   if (*src_y < 0) *src_y += src_h;
 }
 
-// Simple Blit!
-// This can most likely be optimised more aggressively
-// compared to the blit_transform. That is why they have split up.
-// if source and target are same format then it may be possible
-// to do memcpy (if the formats are RGB it is definitely possible)
+
+
+// Copy an image onto another using a number of memcpys.
+// This function is applicable only in some specific cases:
+//   dest and source images must have same format.
+//   dest and source images must both have a number of pixels in width
+//        resulting in a whole number of bytes per row. 
+//   src_x, dest_x must be byte aligned! (not guaranteed for indexed formats).
+//   length of a row copied in pixels must be a whole number of bytes (not guaranteed for indexed)
+//
+// The above properties are all TRUE if the src and dest are both rgb images.
+// An intermediate buffer can be used to resolve 1 of src/dest being misaligned.
+//  (Future work).
+static bool bulk_copy_same_format(image_buffer_t *img_dest, image_buffer_t *img_src,
+                                   int dest_offset_x, int dest_offset_y,
+                                   int dest_x_start, int dest_y_start,
+                                   int dest_x_end, int dest_y_end) {
+  if (img_src->fmt != img_dest->fmt) return false;
+
+  int copy_w = dest_x_end - dest_x_start;
+  int copy_h = dest_y_end - dest_y_start;
+  if (copy_w <= 0 || copy_h <= 0) return true;
+
+  int src_x0 = dest_x_start - dest_offset_x;
+  int src_y0 = dest_y_start - dest_offset_y;
+
+  int bpp = 0, ppb = 0;
+  switch (img_src->fmt) {
+  case rgb332:    bpp = 1; break;
+  case rgb565:    bpp = 2; break;
+  case rgb888:    bpp = 3; break;
+  case indexed2:  ppb = 8; break;
+  case indexed4:  ppb = 4; break;
+  case indexed16: ppb = 2; break;
+  default: return false;
+  }
+
+  if (bpp) {
+    size_t src_stride = (size_t)img_src->width * (size_t)bpp;
+    size_t dst_stride = (size_t)img_dest->width * (size_t)bpp;
+    const uint8_t *src_p = img_src->data + (size_t)src_y0 * src_stride + (size_t)src_x0 * (size_t)bpp;
+    uint8_t *dst_p = img_dest->data + (size_t)dest_y_start * dst_stride + (size_t)dest_x_start * (size_t)bpp;
+    size_t row_bytes = (size_t)copy_w * (size_t)bpp;
+    for (int y = 0; y < copy_h; y++) {
+      memcpy(dst_p, src_p, row_bytes);
+      dst_p += dst_stride;
+      src_p += src_stride;
+    }
+    return true;
+  }
+
+  if (dest_offset_x % ppb != 0 || img_src->width % ppb != 0 ||
+      img_dest->width % ppb != 0 || copy_w % ppb != 0) {
+    return false;
+  }
+  size_t src_stride = (size_t)img_src->width / (size_t)ppb;
+  size_t dst_stride = (size_t)img_dest->width / (size_t)ppb;
+  const uint8_t *src_p = img_src->data + (size_t)src_y0 * src_stride + (size_t)(src_x0 / ppb);
+  uint8_t *dst_p = img_dest->data + (size_t)dest_y_start * dst_stride + (size_t)(dest_x_start / ppb);
+  size_t row_bytes = (size_t)copy_w / (size_t)ppb;
+  for (int y = 0; y < copy_h; y++) {
+    memcpy(dst_p, src_p, row_bytes);
+    dst_p += dst_stride;
+    src_p += src_stride;
+  }
+  return true;
+}
+
+// Blit.. I imagined it would be a simple and efficient function.
+// It is not simple and in many cases it is not efficient either!
+// Here we have tried breaking it down into very specific cases
+// that are all handled in their own way. In most of these
+// cases the bottom-out fallback is a loop of getpixel/putpixel
+// that is just awful!
+// Good, wierd or surprising ideas are most welcome.
 void tinygfx_blit(
     image_buffer_t *img_dest,
     image_buffer_t *img_src,
@@ -1687,6 +1757,14 @@ void tinygfx_blit(
   int dest_y_end = dest_offset_y + src_h;
   if (dest_x_end > img_dest->width) dest_x_end = img_dest->width;
   if (dest_y_end > img_dest->height) dest_y_end = img_dest->height;
+
+  bool no_compose = !compose || (!compose->palette && compose->alpha == 255 && !compose->alpha_buf);
+  if (transparent_color < 0 && no_compose &&
+      bulk_copy_same_format(img_dest, img_src, dest_offset_x, dest_offset_y,
+                            dest_x_start, dest_y_start, dest_x_end, dest_y_end)) {
+    // bulk_copy_same_format is superfast when it can be applied :)
+    return;
+  }
 
   if (compose) {
     if (transparent_color >= 0) {
@@ -1744,6 +1822,7 @@ void tinygfx_blit_transform(
   int clip_w = transform.clip_w, clip_h = transform.clip_h;
 
   if (scale == 0.0f) return;
+
   int src_w = img_src->width;
   int src_h = img_src->height;
 
@@ -1753,9 +1832,9 @@ void tinygfx_blit_transform(
   int dest_y_end = clip_y + clip_h;
 
   if (rot_angle == 0.0f && scale == 1.0f) {
-    if (dest_offset_x > dest_x_start) dest_x_start = dest_offset_x;
-    if (dest_offset_y > dest_y_start) dest_y_start = dest_offset_y;
     if (!tile) {
+        if (dest_offset_x > dest_x_start) dest_x_start = dest_offset_x;
+        if (dest_offset_y > dest_y_start) dest_y_start = dest_offset_y;
         if (dest_offset_x + src_w < dest_x_end) dest_x_end = dest_offset_x + src_w;
         if (dest_offset_y + src_h < dest_y_end) dest_y_end = dest_offset_y + src_h;
     }
