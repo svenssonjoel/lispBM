@@ -1909,21 +1909,19 @@ void tinygfx_blit_transform(
     rot_x *= scale;
     rot_y *= scale;
 
-    const int fp_scale = 1000;
-
     int rot_x_x = (int)rot_x;
     int rot_y_i = (int)rot_y;
-    int scale_i = (int)(scale * (float) fp_scale);
+    int scale_i = (int)(scale * (float)(1 << 12));
     if (scale_i == 0) return;
 
     if (compose) {
       for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
         for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-          int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
-          int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
+          int src_x = (dest_x - dest_offset_x - rot_x_x) * (1 << 12);
+          int src_y = (dest_y - dest_offset_y - rot_y_i) * (1 << 12);
 
-          src_x += rot_x_x * fp_scale;
-          src_y += rot_y_i * fp_scale;
+          src_x += rot_x_x * (1 << 12);
+          src_y += rot_y_i * (1 << 12);
 
           src_x /= scale_i;
           src_y /= scale_i;
@@ -1934,11 +1932,11 @@ void tinygfx_blit_transform(
     } else {
       for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
         for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-          int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
-          int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
+          int src_x = (dest_x - dest_offset_x - rot_x_x) * (1 << 12);
+          int src_y = (dest_y - dest_offset_y - rot_y_i) * (1 << 12);
 
-          src_x += rot_x_x * fp_scale;
-          src_y += rot_y_i * fp_scale;
+          src_x += rot_x_x * (1 << 12);
+          src_y += rot_y_i * (1 << 12);
 
           src_x /= scale_i;
           src_y /= scale_i;
@@ -1954,13 +1952,11 @@ void tinygfx_blit_transform(
     rot_x *= scale;
     rot_y *= scale;
 
-    const int fp_scale = 1000;
-
-    int sin_rot_angle_i = (int)(sin_rot_angle * (float)fp_scale);
-    int cos_rot_angle_i = (int)(cos_rot_angle * (float)fp_scale);
+    int sin_rot_angle_i = (int)(sin_rot_angle * (float)(1 << 12));
+    int cos_rot_angle_i = (int)(cos_rot_angle * (float)(1 << 12));
     int rot_x_i = (int)rot_x;
     int rot_y_i = (int)rot_y;
-    int scale_i = (int)(scale * (float) fp_scale);
+    int scale_i = (int)(scale * (float)(1 << 12));
     if (scale_i == 0) return;
 
     if (compose) {
@@ -1969,8 +1965,8 @@ void tinygfx_blit_transform(
           int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
           int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
 
-          src_x += rot_x_i * fp_scale;
-          src_y += rot_y_i * fp_scale;
+          src_x += rot_x_i * (1 << 12);
+          src_y += rot_y_i * (1 << 12);
 
           src_x /= scale_i;
           src_y /= scale_i;
@@ -1984,8 +1980,8 @@ void tinygfx_blit_transform(
           int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
           int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
 
-          src_x += rot_x_i * fp_scale;
-          src_y += rot_y_i * fp_scale;
+          src_x += rot_x_i * (1 << 12);
+          src_y += rot_y_i * (1 << 12);
 
           src_x /= scale_i;
           src_y /= scale_i;
