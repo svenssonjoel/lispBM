@@ -1057,6 +1057,7 @@ static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   lbm_mutex_unlock(&qmutex);
 }
 
+
 static eval_context_t *lookup_ctx_nm(eval_context_queue_t *q, lbm_cid cid) {
   eval_context_t *curr;
   curr = q->first;
@@ -1068,6 +1069,19 @@ static eval_context_t *lookup_ctx_nm(eval_context_queue_t *q, lbm_cid cid) {
   }
   return NULL;
 }
+
+static eval_context_t *lookup_ctx_name_nm(eval_context_queue_t *q, char *name, lbm_uint name_len) {
+  eval_context_t *curr;
+  curr = q->first;
+  while (curr != NULL) {
+    if (curr->name && strncmp(curr->name, name, name_len) == 0) {
+      return curr;
+    }
+    curr = curr->next;
+  }
+  return NULL;
+}
+
 
 // Unlinks a context from a queue (doubly linked list).
 // Unlinking must be preceded by a lookup, both within the same
@@ -1614,16 +1628,25 @@ static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid) {
   return res;
 }
 
-/** find_receiver_and_send is used for message passing where
- * the semantics is that the oldest message is dropped if the
- * receiver mailbox is full.
- */
-bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
-  lbm_mutex_lock(&qmutex);
+typedef struct {
+  bool by_name;
+  lbm_uint name_len;
+  union {
+    char *name;
+    lbm_cid cid;
+  };
+} find_receiver_t;
+
+bool find_receiver_and_send(find_receiver_t c, lbm_value msg) {
+ lbm_mutex_lock(&qmutex);
   eval_context_t *found = NULL;
   int res = true;
 
-  found = lookup_ctx_nm(&blocked, cid);
+  if (c.by_name) {
+    found = lookup_ctx_name_nm(&blocked, c.name, c.name_len);
+  } else {
+    found = lookup_ctx_nm(&blocked, c.cid);
+  }
   if (found) {
     if (LBM_IS_STATE_RECV(found->state)) { // only if unblock receivers here.
       unlink_ctx_nm(&blocked,found);
@@ -1634,23 +1657,43 @@ bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
     goto find_receiver_end;
   }
 
-  found = lookup_ctx_nm(&queue, cid);
+  if (c.by_name) {
+    found = lookup_ctx_name_nm(&queue, c.name, c.name_len);
+  } else {
+    found = lookup_ctx_nm(&queue, c.cid);
+  }
   if (found) {
     mailbox_add_mail(found, msg);
     goto find_receiver_end;
   }
 
   /* check the current context */
-  if (ctx_running && ctx_running->id == cid) {
-    mailbox_add_mail(ctx_running, msg);
-    goto find_receiver_end;
+  if (c.by_name) {
+    if (ctx_running && ctx_running->name && strncmp(ctx_running->name, c.name, c.name_len) == 0) {
+      mailbox_add_mail(ctx_running, msg);
+      goto find_receiver_end;
+    }
+  } else {
+    if (ctx_running && ctx_running->id == c.cid) {
+      mailbox_add_mail(ctx_running, msg);
+      goto find_receiver_end;
+    }
   }
   res = false;
  find_receiver_end:
   lbm_mutex_unlock(&qmutex);
   return res;
 }
-
+/** find_receiver_and_send is used for message passing where
+ * the semantics is that the oldest message is dropped if the
+ * receiver mailbox is full.
+ */
+bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
+  find_receiver_t c;
+  c.cid = cid;
+  c.by_name = false;
+  return find_receiver_and_send(c, msg);
+}
 // a match binder looks like (? x) or (? _) for example.
 // It is a list of two elements where the first is a ? and the second is a symbol.
 static inline lbm_value get_match_binder_variable(lbm_value exp) {
@@ -2981,14 +3024,29 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
 
 static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2) {
+    lbm_value msg = args[1];
     if (lbm_type_of(args[0]) == LBM_TYPE_I) {
       lbm_cid cid = (lbm_cid)lbm_dec_i(args[0]);
-      lbm_value msg = args[1];
       bool r = lbm_find_receiver_and_send(cid, msg);
       /* return the status */
       stack_drop(ctx, (unsigned int)nargs+1);
       ctx->r = r ? ENC_SYM_TRUE : ENC_SYM_NIL;
       ctx->app_cont = true;
+    } else if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
+      char *name;
+      size_t name_len;
+      if (lbm_dec_str_size(args[0], &name, &name_len)) {
+        find_receiver_t c;
+        c.name = name;
+        c.name_len = (lbm_uint)name_len;
+        c.by_name = true;
+        bool r = find_receiver_and_send(c, msg);
+        stack_drop(ctx, (unsigned int)nargs + 1);
+        ctx->r = r ? ENC_SYM_TRUE : ENC_SYM_NIL;
+        ctx->app_cont = true;
+      } else {
+        ERROR_AT_CTX(ENC_SYM_TERROR, ENC_SYM_SEND);
+      }
     } else {
       ERROR_AT_CTX(ENC_SYM_TERROR, ENC_SYM_SEND);
     }
