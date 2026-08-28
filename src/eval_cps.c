@@ -3035,7 +3035,8 @@ static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     } else if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
       char *name;
       size_t name_len;
-      if (lbm_dec_str_size(args[0], &name, &name_len)) {
+      if (lbm_value_is_printable_string(args[0], &name) &&
+          lbm_dec_str_size(args[0], &name, &name_len)) {
         find_receiver_t c;
         c.name = name;
         c.name_len = (lbm_uint)name_len;
