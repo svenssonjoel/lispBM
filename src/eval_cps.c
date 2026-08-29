@@ -1057,6 +1057,25 @@ static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   lbm_mutex_unlock(&qmutex);
 }
 
+// //////////////////////////////////////////////////
+// If CID was a type that is impossible to create
+// other than by "spawning a thread", we could
+// make direct use of the fact that it is an index into
+// lbm_memory that identifies a context.
+// We would still need to ensure by inspection
+// that the value stored is a context.
+//
+// Currently any access to a context via its CID is
+// done by searching all queues for the context and then modifying it.
+// This is a SAFE way of accessing the context as it enables
+// detection of state CID.
+//
+// Alternative: A CID should be a heap cell (context_address . symbol)
+// where no program can generate symbol and the type of (context_address . symbol)
+// is LBM_TYPE_CID.
+// This would cost one heap cell per context but, it would
+// give O(1) lookup of context structure which
+// is useful in for example message delivery.
 
 static eval_context_t *lookup_ctx_nm(eval_context_queue_t *q, lbm_cid cid) {
   eval_context_t *curr;
