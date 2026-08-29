@@ -147,6 +147,18 @@
 #define LBM_LOW_RESERVED_BITS           (lbm_uint)0xFF // 11 11 11  1   1
 
 #endif
+
+// NOTE:
+//
+// The LBM_TYPE_BYTE/CHAR uses only 8 bits of the 28bits left in the
+// word.
+// This means that LBM_TYPE_BYTE could be split up into more types
+// that all are smaller in size than 28bits.
+// For example:
+// #define LBM_TYPE_SMALL    (lbm_uint)0x4
+// #define LBM_TYPE_BYTE     (lbm_uint)(LBM_TYPE_SMALL | 0x104) //
+// #define LBM_TYPE_CID      (lbm_uint)(LBM_TYPE_SMALL | 0x204) // a 24bit CID
+
 /* ------------------------------------------------------------
    Built in symbols
    ------------------------------------------------------------ */
