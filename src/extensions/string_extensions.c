@@ -46,6 +46,45 @@ static char print_val_buffer[256];
 static lbm_uint sym_left;
 static lbm_uint sym_case_insensitive;
 
+static bool str_from_n_format_is_safe(const char *format, bool is_float) {
+  const char *p = format;
+  int num_specs = 0;
+  while (*p) {
+    if (*p != '%') {
+      p++;
+      continue;
+    }
+    p++;
+    if (*p == '%') {
+      p++;
+      continue;
+    }
+    num_specs++;
+    if (num_specs > 1) return false;
+
+    while (*p == '-' || *p == '+' || *p == ' ' || *p == '0' || *p == '#') p++;
+    while (isdigit((unsigned char)*p)) p++;
+    if (*p == '.') {
+      p++;
+      while (isdigit((unsigned char)*p)) p++;
+    }
+
+    char c = *p;
+    if (is_float) {
+      if (!(c == 'f' || c == 'F' || c == 'e' || c == 'E' ||
+            c == 'g' || c == 'G' || c == 'a' || c == 'A')) {
+        return false;
+      }
+    } else {
+      if (!(c == 'd' || c == 'i' || c == 'o' ||
+            c == 'u' || c == 'x' || c == 'X' || c == 'c')) {
+        return false;
+      }
+    }
+    p++;
+  }
+  return num_specs == 1;
+}
 
 static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
   if (argn != 1 && argn != 2) {
@@ -63,6 +102,18 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
   char *format = 0;
   if (argn == 2) {
     format = lbm_dec_str(args[1]);
+    if (!format) {
+      return ENC_SYM_TERROR;
+    }
+  }
+
+  bool is_float = (lbm_type_of_functional(args[0]) == LBM_TYPE_DOUBLE ||
+                    lbm_type_of_functional(args[0]) == LBM_TYPE_FLOAT);
+
+  if (format && !str_from_n_format_is_safe(format, is_float)) {
+    lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+    lbm_set_error_suspect(args[1]);
+    return ENC_SYM_TERROR;
   }
 
   char buffer[100];
