@@ -1430,7 +1430,8 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
     // If curr is marked here there is a cycle in the graph.
     // In case of a cycle or leaf, this first loop is exited.
     while (((lbm_is_cons_rw(curr)) ||
-            (lbm_is_lisp_array_rw(curr))) && !gc_marked(curr)) {
+            (lbm_is_lisp_array_rw(curr)) ||
+            (lbm_is_channel(curr))) && !gc_marked(curr)) {
       lbm_cons_t *cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
         // In-order traversal
@@ -1443,6 +1444,19 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
         lbm_value next = 0;
         value_assign(&next, cell->car);
         value_assign(&cell->car, prev);
+        value_assign(&prev, curr);
+        value_assign(&curr, next);
+      } else if (lbm_is_channel (curr)) {
+        if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
+          lbm_gc_mark_phase(curr);
+          goto trav_backtrack;
+        }
+        gc_mark(curr);
+
+        lbm_char_channel_t *chan = (lbm_char_channel_t*)cell->car;
+        lbm_value next = 0;
+        value_assign(&next, chan->dependency);
+        value_assign(&chan->dependency, prev);
         value_assign(&prev, curr);
         value_assign(&curr, next);
       } else { // it is an array
@@ -1496,7 +1510,8 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
     while ((lbm_is_cons(prev) &&
             (lbm_dec_ptr(prev) != LBM_PTR_NULL) && // is LBM_NULL a cons type?
             lbm_get_gc_flag(lbm_car(prev))) ||
-           lbm_is_lisp_array_rw(prev)) {
+           lbm_is_lisp_array_rw(prev) ||
+           lbm_is_channel(prev)) {
       lbm_cons_t *cell = lbm_ref_cell(prev);
       if (lbm_is_cons(prev)) {
 
@@ -1521,6 +1536,13 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
         lbm_value next = 0;
         value_assign(&next, cell->cdr);
         value_assign(&cell->cdr, curr);
+        value_assign(&curr, prev);
+        value_assign(&prev, next);
+      } else if (lbm_is_channel(prev)) {
+        lbm_char_channel_t *chan = (lbm_char_channel_t*)cell->car;
+        lbm_value next = 0;
+        value_assign(&next, chan->dependency);
+        value_assign(&chan->dependency, curr);
         value_assign(&curr, prev);
         value_assign(&prev, next);
       } else { // is an array
