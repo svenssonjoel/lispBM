@@ -788,7 +788,10 @@ void lbm_gc_mark_phase(lbm_value root) {
       }
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
-      lbm_push(s, curr); // put array back as bookkeeping.
+      if (!lbm_push(s, curr)) { // put array back as bookkeeping.
+        lbm_critical_error();
+        break;
+      }
       // Example A: Array with 10 elements
       // A: assume arr->index == 9
       // Example B: Array with 0 elements
