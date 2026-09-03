@@ -1653,7 +1653,7 @@ typedef struct {
   union {
     char *name;
     lbm_cid cid;
-  };
+  } u;
 } find_receiver_t;
 
 bool find_receiver_and_send(find_receiver_t c, lbm_value msg) {
@@ -1662,9 +1662,9 @@ bool find_receiver_and_send(find_receiver_t c, lbm_value msg) {
   int res = true;
 
   if (c.by_name) {
-    found = lookup_ctx_name_nm(&blocked, c.name, c.name_len);
+    found = lookup_ctx_name_nm(&blocked, c.u.name, c.name_len);
   } else {
-    found = lookup_ctx_nm(&blocked, c.cid);
+    found = lookup_ctx_nm(&blocked, c.u.cid);
   }
   if (found) {
     if (LBM_IS_STATE_RECV(found->state)) { // only if unblock receivers here.
@@ -1677,9 +1677,9 @@ bool find_receiver_and_send(find_receiver_t c, lbm_value msg) {
   }
 
   if (c.by_name) {
-    found = lookup_ctx_name_nm(&queue, c.name, c.name_len);
+    found = lookup_ctx_name_nm(&queue, c.u.name, c.name_len);
   } else {
-    found = lookup_ctx_nm(&queue, c.cid);
+    found = lookup_ctx_nm(&queue, c.u.cid);
   }
   if (found) {
     mailbox_add_mail(found, msg);
@@ -1688,12 +1688,12 @@ bool find_receiver_and_send(find_receiver_t c, lbm_value msg) {
 
   /* check the current context */
   if (c.by_name) {
-    if (ctx_running && ctx_running->name && strncmp(ctx_running->name, c.name, c.name_len) == 0) {
+    if (ctx_running && ctx_running->name && strncmp(ctx_running->name, c.u.name, c.name_len) == 0) {
       mailbox_add_mail(ctx_running, msg);
       goto find_receiver_end;
     }
   } else {
-    if (ctx_running && ctx_running->id == c.cid) {
+    if (ctx_running && ctx_running->id == c.u.cid) {
       mailbox_add_mail(ctx_running, msg);
       goto find_receiver_end;
     }
@@ -1709,7 +1709,7 @@ bool find_receiver_and_send(find_receiver_t c, lbm_value msg) {
  */
 bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   find_receiver_t c;
-  c.cid = cid;
+  c.u.cid = cid;
   c.by_name = false;
   return find_receiver_and_send(c, msg);
 }
@@ -3057,7 +3057,7 @@ static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       if (lbm_value_is_printable_string(args[0], &name) &&
           lbm_dec_str_size(args[0], &name, &name_len)) {
         find_receiver_t c;
-        c.name = name;
+        c.u.name = name;
         c.name_len = (lbm_uint)name_len;
         c.by_name = true;
         bool r = find_receiver_and_send(c, msg);

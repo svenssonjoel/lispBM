@@ -87,19 +87,17 @@ static bool    lbm_const_heap_mutex_initialized = false;
 static lbm_mutex_t lbm_mark_mutex;
 static bool    lbm_mark_mutex_initialized = false;
 
-#ifdef USE_GC_PTR_REV
+// These mutexes are not currently used. There was a thought
+// related to these and pointer-revesal.
+// It is actually more important to lock out accesses to the heap
+// when in the middle of ptr-rev gc as it temporarlity
+// distorts the heap pointer structure.
 void lbm_gc_lock(void) {
   lbm_mutex_lock(&lbm_mark_mutex);
 }
 void lbm_gc_unlock(void) {
   lbm_mutex_unlock(&lbm_mark_mutex);
 }
-#else
-void lbm_gc_lock(void) {
-}
-void lbm_gc_unlock(void) {
-}
-#endif
 
 // ////////////////////////////////////////////////////////////
 // ENCODERS DECODERS
@@ -688,7 +686,6 @@ static inline void value_assign(lbm_value *a, lbm_value b) {
   *a = a_old | (b & ~LBM_GC_MASK);
 }
 
-#ifdef LBM_USE_GC_PTR_REV
 // ////////////////////////////////////////////////////////////
 // Deutch-Schorr-Waite (DSW) pointer reversal GC
 //
@@ -716,13 +713,12 @@ static int do_nothing(lbm_value v, bool shared, void *arg) {
   return TRAV_FUN_SUBTREE_CONTINUE;
 }
 
-void lbm_gc_mark_phase(lbm_value root) {
+void lbm_gc_mark_phase_ptr_rev(lbm_value root) {
     lbm_mutex_lock(&lbm_const_heap_mutex);
     lbm_ptr_rev_trav(do_nothing, root, NULL);
     lbm_mutex_unlock(&lbm_const_heap_mutex);
 }
 
-#else
 // ////////////////////////////////////////////////////////////
 // Check if a value is currently on the stack
 
@@ -845,8 +841,9 @@ void lbm_gc_mark_phase(lbm_value root) {
     if (t_ptr == LBM_TYPE_CONS) {
       if (lbm_is_ptr(cell->cdr)) {
         if (!lbm_push(s, cell->cdr)) {
-          lbm_critical_error();
-          break;
+          // This is the only place where we grab a new stack position.
+          // If the stack is full switch to ptr-rev GC.
+          lbm_gc_mark_phase_ptr_rev(cell->cdr);
         }
       }
       curr = cell->car;
@@ -854,7 +851,6 @@ void lbm_gc_mark_phase(lbm_value root) {
     }
   }
 }
-#endif
 
 //Environments are proper lists with a 2 element list stored in each car.
 void lbm_gc_mark_env(lbm_value env) {

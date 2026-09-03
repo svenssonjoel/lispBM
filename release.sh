@@ -158,19 +158,21 @@ tail -n 4 ../$reportdir/$gc_unit_tests_log_file >> ../$reportdir/$release_readme
 print_elapsed ../$reportdir/$release_readme
 
 ############################################################
-#Pointer reversal gc tests
-revgc_unit_tests_log_file="revgc_unit_tests_log_${release}.txt"
-failing_revgc_unit_tests_log_file="failing_revgc_unit_tests_log_${release}.txt"
-
-echo "Running ptr-rev gc tests"
-
-#./run_tests_gc_rev.sh ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file 2> /dev/null
-./run_tests_generic_parallel.sh revgc ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file 2> /dev/null
-echo "" >> ../$reportdir/$release_readme
-echo "## POINTER REVERSAL GC UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$revgc_unit_tests_log_file >> ../$reportdir/$release_readme
-
-print_elapsed ../$reportdir/$release_readme
+# Pointer reversal gc tests - DISABLED.
+# Pointer reversal is now part of the normal RTS build
+# and utilised as a fall-back when stack is depleted.
+#
+# revgc_unit_tests_log_file="revgc_unit_tests_log_${release}.txt"
+# failing_revgc_unit_tests_log_file="failing_revgc_unit_tests_log_${release}.txt"
+#
+# echo "Running ptr-rev gc tests"
+#
+# ./run_tests_generic_parallel.sh revgc ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file 2> /dev/null
+# echo "" >> ../$reportdir/$release_readme
+# echo "## POINTER REVERSAL GC UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
+# tail -n 4 ../$reportdir/$revgc_unit_tests_log_file >> ../$reportdir/$release_readme
+#
+# print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 #
