@@ -93,7 +93,7 @@ echo "Running 32bit tests"
 ./run_tests_generic_parallel.sh 32bit ../$reportdir/$failing_unit_tests_log_file >> ../$reportdir/$unit_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## 32BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$unit_tests_log_file >> ../$reportdir/$release_readme
+tail -n 8 ../$reportdir/$unit_tests_log_file >> ../$reportdir/$release_readme
 
 print_elapsed ../$reportdir/$release_readme
 
@@ -123,7 +123,7 @@ echo "Running 64bit tests"
 ./run_tests_generic_parallel.sh 64bit ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## 64BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$unit_tests_64_log_file >> ../$reportdir/$release_readme
+tail -n 8 ../$reportdir/$unit_tests_64_log_file >> ../$reportdir/$release_readme
 
 print_elapsed ../$reportdir/$release_readme
 
@@ -226,7 +226,7 @@ sdl_tests_log_file="sdl_tests_log_${release}.txt"
 ./run_sdl_tests.sh ../$reportdir/$failing_sdl_tests_log_file >> ../$reportdir/$sdl_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## SDL TESTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$sdl_tests_log_file >> ../$reportdir/$release_readme
+tail -n 8 ../$reportdir/$sdl_tests_log_file >> ../$reportdir/$release_readme
 
 print_elapsed ../$reportdir/$release_readme
 
