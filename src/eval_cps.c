@@ -1731,6 +1731,7 @@ static inline lbm_value get_match_binder_variable(lbm_value exp) {
    function and make use of stack relative to the size of
    expressions that are being matched. */
 static bool match(lbm_value p, lbm_value e, lbm_value *env) {
+ match_quickpath:
   bool r = false;
   lbm_value var = get_match_binder_variable(p);
   if (var) {
@@ -1763,8 +1764,12 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env) {
     lbm_value tailp = p_cell->cdr;
     lbm_value heade = e_cell->car;
     lbm_value taile = e_cell->cdr;
-    r = match(headp, heade, env);
-    r = r && match (tailp, taile, env);
+    if (match(headp, heade, env)) {
+        p = tailp;
+        e = taile;
+        goto match_quickpath;
+    }
+    r = false;
   } else {
     r = struct_eq(p, e);
   }
