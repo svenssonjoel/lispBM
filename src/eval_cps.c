@@ -1773,6 +1773,8 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, int rlevel) {
     }
     r = false;
   } else {
+    // TODO: Think about this.
+    // may be better to pass rlevel here.
     r = struct_eq(p, e, 0);
   }
   return r;
