@@ -259,8 +259,9 @@ static bool array_struct_equality(lbm_value a, lbm_value b, int rlevel) {
 // the stack depth is unknown to me (it is a result of the integrator's choices).
 bool struct_eq(lbm_value a, lbm_value b, int rlevel) {
   if (rlevel >= LBM_MAX_C_RECURSION) return false;
+  bool res;
  struct_eq_quickpath:
-  bool res = false;
+  res = false;
   lbm_type ta = lbm_type_of_functional(a);
   lbm_type tb = lbm_type_of_functional(b);
 

@@ -226,7 +226,7 @@ sdl_tests_log_file="sdl_tests_log_${release}.txt"
 ./run_sdl_tests.sh ../$reportdir/$failing_sdl_tests_log_file >> ../$reportdir/$sdl_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## SDL TESTS" >> ../$reportdir/$release_readme
-tail -n 8 ../$reportdir/$sdl_tests_log_file >> ../$reportdir/$release_readme
+tail -n 18 ../$reportdir/$sdl_tests_log_file >> ../$reportdir/$release_readme
 
 print_elapsed ../$reportdir/$release_readme
 

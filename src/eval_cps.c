@@ -1732,8 +1732,9 @@ static inline lbm_value get_match_binder_variable(lbm_value exp) {
    expressions that are being matched. */
 static bool match(lbm_value p, lbm_value e, lbm_value *env, int rlevel) {
   if (rlevel >= LBM_MAX_C_RECURSION) return false;
+  bool r;
  match_quickpath:
-  bool r = false;
+  r = false;
   lbm_value var = get_match_binder_variable(p);
   if (var) {
 #ifdef LBM_ALWAYS_GC

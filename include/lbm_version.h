@@ -30,13 +30,21 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 39u
+#define LBM_MINOR_VERSION 40u
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0u
 
 #define LBM_VERSION_STRING STR(LBM_MAJOR_VERSION) "." STR(LBM_MINOR_VERSION) "." STR(LBM_PATCH_VERSION)
 
 /*! \page changelog Changelog
+
+Sep 6 2026: Version 0.40.0
+  - Fix bug in handover to ptr-rev gc from stack gc. Large nested
+    arrays could still exhaust gc stack and crash.
+  - Add a recursion counter to struct_eq.
+  - Add a quickpath to struct_eq that does not grow call-stack.
+  - Add a recursion counter to match.
+  - Add a quickpath to match that does not grow call-stack.
 
 Sep 5 2026: Version 0.39.0
   - Garbage collector fix: switches to ptr-rev garbage collection
