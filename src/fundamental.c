@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021 - 2025      Joel Svensson   svenssonjoel@yahoo.se
+    Copyright 2019, 2021 - 2026      Joel Svensson   svenssonjoel@yahoo.se
                            2022      Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -258,6 +258,7 @@ static bool array_struct_equality(lbm_value a, lbm_value b) {
 // the stack depth is unknown to me (it is a result of the integrator's choices).
 bool struct_eq(lbm_value a, lbm_value b) {
 
+ struct_eq_quickpath:
   bool res = false;
   lbm_type ta = lbm_type_of_functional(a);
   lbm_type tb = lbm_type_of_functional(b);
@@ -277,8 +278,13 @@ bool struct_eq(lbm_value a, lbm_value b) {
         res = true;
         break;
       }
-      res = ( struct_eq(lbm_car(a),lbm_car(b)) &&
-              struct_eq(lbm_cdr(a),lbm_cdr(b)) ); break;
+      if (struct_eq(lbm_car(a),lbm_car(b))) {
+        a = lbm_cdr(a);
+        b = lbm_cdr(b);
+        // Do not use any stack in the proper lisp case.
+        goto struct_eq_quickpath;
+      }
+      return false;
     case LBM_TYPE_I32:
       res = (lbm_dec_i32(a) == lbm_dec_i32(b)); break;
     case LBM_TYPE_U32:
@@ -550,10 +556,10 @@ static lbm_value fundamental_leq(lbm_value *args, lbm_uint nargs) {
     for (lbm_uint i = 1; i < nargs; i ++) {
       lbm_uint b = args[i];
       if (IS_NUMBER(b)) {
-	r = r && (compare_num(a, b) <= 0);
+        r = r && (compare_num(a, b) <= 0);
       } else {
-	lbm_set_error_suspect(b);
-	goto leq_type_error;
+        lbm_set_error_suspect(b);
+        goto leq_type_error;
       }
     }
   } else {
