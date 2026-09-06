@@ -1730,7 +1730,8 @@ static inline lbm_value get_match_binder_variable(lbm_value exp) {
 /* Pattern matching is currently implemented as a recursive
    function and make use of stack relative to the size of
    expressions that are being matched. */
-static bool match(lbm_value p, lbm_value e, lbm_value *env) {
+static bool match(lbm_value p, lbm_value e, lbm_value *env, int rlevel) {
+  if (rlevel >= LBM_MAX_C_RECURSION) return false;
  match_quickpath:
   bool r = false;
   lbm_value var = get_match_binder_variable(p);
@@ -1764,14 +1765,14 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env) {
     lbm_value tailp = p_cell->cdr;
     lbm_value heade = e_cell->car;
     lbm_value taile = e_cell->cdr;
-    if (match(headp, heade, env)) {
+    if (match(headp, heade, env, rlevel+1)) {
         p = tailp;
         e = taile;
         goto match_quickpath;
     }
     r = false;
   } else {
-    r = struct_eq(p, e);
+    r = struct_eq(p, e, 0);
   }
   return r;
 }
@@ -1797,7 +1798,7 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
         lbm_set_error_reason("Incorrect pattern format for recv");
         ERROR_AT_CTX(ENC_SYM_EERROR,curr);
       }
-      if (match(p0, curr_e, env)) {
+      if (match(p0, curr_e, env, 0)) {
         *e = p1;
         return n;
       }
@@ -3922,7 +3923,7 @@ static void cont_match(eval_context_t *ctx) {
       body = get_car(n2);
       check_guard = true;
     }
-    bool is_match = match(pattern, e, &new_env);
+    bool is_match = match(pattern, e, &new_env, 0);
     if (is_match) {
       if (check_guard) {
         lbm_value *rptr = stack_reserve(ctx,5);

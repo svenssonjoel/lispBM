@@ -614,7 +614,7 @@ lbm_value lbm_heap_allocate_list(lbm_uint n) {
 
   lbm_value curr = lbm_heap_state.freelist;
   lbm_value res  = curr;
-  
+
   lbm_cons_t *c_cell = NULL;
   lbm_uint count = 0;
   do {
@@ -785,8 +785,10 @@ void lbm_gc_mark_phase(lbm_value root) {
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
       if (!lbm_push(s, curr)) { // put array back as bookkeeping.
-        lbm_critical_error();
-        break;
+        // Switch to pointer reversal here.
+        // This is a new array that we have not yet started descending into.
+        lbm_gc_mark_phase_ptr_rev(curr);
+        continue;
       }
       // Example A: Array with 10 elements
       // A: assume arr->index == 9
@@ -829,6 +831,8 @@ void lbm_gc_mark_phase(lbm_value root) {
       // TODO: Can channels be explicitly freed ?
       if (cell->car != ENC_SYM_NIL) {
         lbm_char_channel_t *chan = (lbm_char_channel_t *)cell->car;
+        // A channel dependency is currently assumed to be a byte array (a string)
+        // or NIL.
         curr = chan->dependency;
         goto mark_shortcut;
       }
@@ -1456,25 +1460,26 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
         value_assign(&prev, curr);
         value_assign(&curr, next);
       } else { // it is an array
-
         lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
         lbm_value *arr_data = (lbm_value *)arr->data;
-        uint32_t index = arr->index;
         if (arr->size == 0) break;
-        if (index == 0) { // index should only be 0 or there is a potential cycle
-          if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
-            lbm_gc_mark_phase(curr);
-            break;
-          }
-          arr->index = 1;
-          gc_mark(curr);
 
-          lbm_value next = 0;
-          value_assign(&next, arr_data[0]);
-          value_assign(&arr_data[0], prev);
-          value_assign(&prev, curr);
-          value_assign(&curr, next);
+        if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
+          lbm_gc_mark_phase(curr);
+          break;
         }
+        // Cycles in arrays are not detected using the index
+        // in this algorithm. If we enter into an array, we take
+        // full ownership of it here, even if the  stack based marker
+        // has partially walked it already.
+        arr->index = 1; // Explicitly sets array index to one.
+        gc_mark(curr);
+
+        lbm_value next = 0;
+        value_assign(&next, arr_data[0]);
+        value_assign(&arr_data[0], prev);
+        value_assign(&prev, curr);
+        value_assign(&curr, next);
       }
     }
     // Currently there are a few different users of this traversal.

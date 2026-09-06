@@ -20,6 +20,13 @@
 #define LBM_DEFINES_H_
 
 
+// Limit recursive C function to this many recursive calls.
+#if defined(LBM_MAX_C_RECURSION) && (LBM_MAX_C_RECURSION + 0 > 0)
+#else
+#define LBM_MAX_C_RECURSION 200
+#endif
+
+
 /* ------------------------------------------------------------
    Types
    ------------------------------------------------------------ */
