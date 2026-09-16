@@ -44,10 +44,6 @@ void *eval_thd_wrapper(void *v) {
   return NULL;
 }
 
-void critical(void) {
-  printf("CRITICAL ERROR\n");
-}
-
 typedef struct done_cid_s {
   lbm_cid id;
   lbm_value r;
@@ -169,7 +165,6 @@ int start_lispbm_for_tests(void) {
     return 0;
   }
 
-  lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_printf_callback(error_print);
