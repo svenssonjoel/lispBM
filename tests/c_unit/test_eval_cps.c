@@ -564,9 +564,6 @@ int test_all_functions_sequence() {
 
 // Test callback setters with NULL - only testing that they don't crash
 int test_callback_setters_null() {
-  // Test lbm_set_critical_error_callback with NULL
-  lbm_set_critical_error_callback(NULL);
-  
   // Test lbm_set_usleep_callback with NULL
   lbm_set_usleep_callback(NULL);
     

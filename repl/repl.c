@@ -462,11 +462,6 @@ static void eval_thd_wrapper(void *arg) {
   lbm_run_eval();
 }
 
-void critical(void) {
-  printf("CRITICAL ERROR\n");
-  terminate_repl(REPL_EXIT_CRITICAL_ERROR);
-}
-
 static int done_status = 0; // exit success
 
 void done_callback(eval_context_t *ctx) {
@@ -1003,7 +998,6 @@ int init_repl(void) {
     return 0;
   }
 
-  lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
@@ -1609,7 +1603,6 @@ static bool restart_core(void (*done_cb)(eval_context_t *),
   lbm_image_create("bepa_1");
   lbm_image_boot();
 
-  lbm_set_critical_error_callback(critical);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
 

@@ -37,7 +37,7 @@
      for running all evaluation.
   2. longjmp is called as part of the ERROR_CTX/ERROR_AT_CTX macros which
      are executed by the evaluator in error cases.
-  3. the jump buffers are static (error_jmp_buf, critical_error_jmp_buf).
+  3. the jump buffers are static (error_jmp_buf).
   4. The error_ctx/error_at_ctx functions are static.
   5. The ERROR_CTX/ERROR_AT_CTX/READ_ERROR_CTX macros are only called in
      static functions.
@@ -103,7 +103,6 @@
 #endif
 
 static jmp_buf error_jmp_buf;
-static jmp_buf critical_error_jmp_buf;
 
 #define S_TO_US(X) (lbm_uint)((X) * 1000000)
 
@@ -394,20 +393,10 @@ sizeopt static void ctx_done_nonsense(eval_context_t *ctx) {
   (void) ctx;
 }
 
-sizeopt static void critical_nonsense(void) {
-  return;
-}
-
-static void (*critical_error_callback)(void) = critical_nonsense;
 static void (*usleep_callback)(uint32_t) = usleep_nonsense;
 static void (*ctx_done_callback)(eval_context_t *) = ctx_done_nonsense;
 int (*lbm_printf_callback)(const char *, ...) = printf_nonsense;
 static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
-
-sizeopt void lbm_set_critical_error_callback(void (*fptr)(void)) {
-  if (fptr == NULL) critical_error_callback = critical_nonsense;
-  else critical_error_callback = fptr;
-}
 
 sizeopt void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
   if (fptr == NULL) usleep_callback = usleep_nonsense;
@@ -1247,10 +1236,6 @@ sizeopt static noreturn void read_error_ctx(unsigned int row, unsigned int colum
   error_ctx_base(ENC_SYM_RERROR, false, 0, row, column);
 }
 #endif
-
-void lbm_critical_error(void) {
-  longjmp(critical_error_jmp_buf, 1);
-}
 
 // successfully finish a context
 static void ok_ctx(void) {
@@ -6015,12 +6000,6 @@ void lbm_add_eval_symbols(void) {
 
 #ifdef LBM_SINGLE_THREADED
 bool lbm_eval_step(int n) {
-  if (setjmp(critical_error_jmp_buf) > 0) {
-    lbm_printf_callback("GC stack overflow!\n");
-    critical_error_callback();
-    eval_running = false;
-    return false; // uninteresting on a critical error.
-  }
   if (setjmp(error_jmp_buf) > 0) { return false; }
 
   bool busy = false;
@@ -6065,13 +6044,6 @@ bool lbm_eval_init(void) {
    communication between other threads and the run_eval
    but for now a set of variables will be used. */
 void lbm_run_eval(void){
-  if (setjmp(critical_error_jmp_buf) > 0) {
-    lbm_printf_callback("GC stack overflow!\n");
-    critical_error_callback();
-    // terminate evaluation thread.
-    return;
-  }
-
   setjmp(error_jmp_buf);
 
   while (eval_running) {
