@@ -3015,7 +3015,7 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     lbm_value prg_copy;
 
     int len = -1;
-    WITH_GC(prg_copy, lbm_list_copy(&len, prg));
+    WITH_GC(prg_copy, lbm_list_copy(&len, prg, ENC_SYM_NIL));
     stack_drop(ctx, (unsigned int)nargs+1);
     // There is always a continuation (DONE).
     // If ctx->program is nil, the stack should contain DONE.
@@ -3309,8 +3309,8 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value b;
     int len_a = -1;
     int len_b = -1;
-    WITH_GC(a, lbm_list_copy(&len_a, args[1]));
-    WITH_GC_RMBR_1(b, lbm_list_copy(&len_b, args[2]), a);
+    WITH_GC(a, lbm_list_copy(&len_a, args[1], ENC_SYM_NIL));
+    WITH_GC_RMBR_1(b, lbm_list_copy(&len_b, args[2], ENC_SYM_NIL), a);
 
     if (len_a == 0) {
       ctx->r = b;
@@ -3382,7 +3382,7 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
     int len = -1;
     lbm_value list_copy;
-    WITH_GC(list_copy, lbm_list_copy(&len, args[1]));
+    WITH_GC(list_copy, lbm_list_copy(&len, args[1], ENC_SYM_NIL));
     if (len <= 1) {
       stack_drop(ctx, 3);
       ctx->r = list_copy;
@@ -3472,7 +3472,7 @@ static void apply_rotate(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2 && lbm_is_list(args[0]) && lbm_is_number(args[1])) {
     int len = -1;
     lbm_value ls;
-    WITH_GC(ls, lbm_list_copy(&len, args[0]));
+    WITH_GC(ls, lbm_list_copy(&len, args[0], ENC_SYM_NIL));
     int dist = lbm_dec_as_i32(args[1]);
     if (len > 0 && dist != 0) {
       int d = dist;

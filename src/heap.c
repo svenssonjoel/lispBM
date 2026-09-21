@@ -1053,7 +1053,7 @@ lbm_value lbm_list_destructive_reverse(lbm_value list) {
 }
 
 
-lbm_value lbm_list_copy(int *m, lbm_value list) {
+lbm_value lbm_list_copy(int *m, lbm_value list, lbm_value tail) {
   lbm_value curr = list;
   lbm_uint n = lbm_list_length(list);
   lbm_uint copy_n = n;
@@ -1062,19 +1062,21 @@ lbm_value lbm_list_copy(int *m, lbm_value list) {
   } else { // *m == -1 or *m >= n
     *m = (int)n;
   }
-  if (copy_n == 0) return ENC_SYM_NIL;
+  if (copy_n == 0) return tail;
   lbm_uint new_list = lbm_heap_allocate_list(copy_n);
   if (lbm_is_symbol(new_list)) return new_list;
   lbm_value curr_targ = new_list;
+  lbm_cons_t *targ_cell = NULL;
 
   while (lbm_is_cons(curr) && copy_n > 0) {
     lbm_cons_t *curr_cell = lbm_ref_cell(curr);
-    lbm_cons_t *targ_cell = lbm_ref_cell(curr_targ);
+    targ_cell = lbm_ref_cell(curr_targ);
     targ_cell->car = curr_cell->car;
     curr_targ = targ_cell->cdr;
     curr = curr_cell->cdr;
     copy_n --;
   }
+  targ_cell->cdr = tail; // targ_cell is the last cell allocated into new_list
   return new_list;
 }
 
