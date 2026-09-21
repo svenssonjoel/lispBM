@@ -1456,7 +1456,11 @@ static lbm_value fundamental_member(lbm_value *args, lbm_uint argn) {
     while (lbm_is_cons(curr)) {
       lbm_cons_t *cell = lbm_ref_cell(curr);
       if (struct_eq(cell->car, args[0],0)) {
+#ifdef LBM_USE_MEMBER_TAIL
+        res = curr;
+#else
         res = args[1];
+#endif
         break;
       }
       curr = cell->cdr;
