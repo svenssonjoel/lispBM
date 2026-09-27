@@ -53,6 +53,9 @@
 #include "extensions/crypto_extensions.h"
 #include "extensions/ecc_extensions.h"
 #include "extensions/pattern_extensions.h"
+#include "extensions/tinyml_extensions.h"
+
+void moons_model_register(void); // tinyml/moons/moons_adapter.c
 
 #ifdef WITH_VESC
 #include "vesc_extension_stubs.h"
@@ -1900,6 +1903,8 @@ int init_exts(void) {
   lbm_crypto_extensions_init();
   lbm_ecc_extensions_init();
   lbm_pattern_extensions_init();
+  lbm_tinyml_extensions_init();
+  moons_model_register();
 
 #ifndef LBM_WIN
   init_proc_management();

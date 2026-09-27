@@ -95,7 +95,7 @@ t
 <td>
 
 ```clj
-((heap-state newline (section 3 "lbm-heap-state" ((para ("`lbm-heap-state` can be used to query information about heap usage.")) (code ((lbm-heap-state (quote get-heap-size)) (lbm-heap-state (quote get-heap-bytes)) (lbm-heap-state (quote get-num-alloc-cell
+((symbol-table-size newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (code-entry-ref closure (code) (str-merge "[`" code "`](#" (or (rest-args 0) code) ")"
 ```
 
 
@@ -113,7 +113,7 @@ t
 <td>
 
 ```clj
-((chapter-memory section 2 "Memory" ((newline (section 3 "mem-num-free" ((para ("`mem-num-free` returns the number of free words in the LBM memory." "This is the memory where arrays and strings are stored.")) (code ((mem-num-free))) nil)) newline hline) (n
+((symbol-table-size-flash newline (section 3 "symtab-size-flash" ((para ("`symtab-size-flash` returns the size in bytes of the portion of the symbol table" "that is stored in flash.")) (code ((symtab-size-flash))) nil)) newline hline) (program closure (c) 
 ```
 
 
@@ -131,7 +131,7 @@ t
 <td>
 
 ```clj
-((gc-stack newline (section 3 "set-gc-stack-size" ((para ("With `set-gc-stack-size` you can change the size of the stack used for heap traversal" "by the garbage collector.")) (code ((set-gc-stack-size 100))) nil)) newline hline) (glob-yeet))
+((symbol-table-size-names newline (section 3 "symtab-size-names" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table.")) (code ((symtab-size-names))) nil)) newline hline) (code-raw closure (c) (list (quot
 ```
 
 
@@ -149,7 +149,7 @@ t
 <td>
 
 ```clj
-((gc-is-always-gc newline (section 3 "is-always-gc" ((para ("The `is-always-gc` predicate is true if LBM is built with the LBM_ALWAYS_GC debug flag.")) (code ((is-always-gc))) nil)) newline hline) (eval-animation closure (gif c frames) (progn (setq frame-i
+((symbol-table-size-names-flash newline (section 3 "symtab-size-names-flash" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table in flash.")) (code ((symtab-size-names-flash))) nil)) newline hline) (table
 ```
 
 
@@ -167,7 +167,7 @@ t
 <td>
 
 ```clj
-((chapter-gc section 2 "GC" ((newline (section 3 "set-gc-stack-size" ((para ("With `set-gc-stack-size` you can change the size of the stack used for heap traversal" "by the garbage collector.")) (code ((set-gc-stack-size 100))) nil)) newline hline) (newlin
+((chapter-symboltable section 2 "Symbol table" ((newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (newline (section 3 "symtab-size-flash" ((para ("`symtab-
 ```
 
 
@@ -185,7 +185,7 @@ t
 <td>
 
 ```clj
-((environment-get newline (section 3 "env-get" ((para ("`env-get` can be used to reify, turn into value, parts of the global environment." "The global environment is stored as a hashtable and an index into this hashtable" "is used to extract the bindings s
+((version newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline))
 ```
 
 
@@ -203,7 +203,7 @@ t
 <td>
 
 ```clj
-((environment-set newline (section 3 "env-set" ((para ("`env-set` destructively sets an entry in the global environment hashtable.")) (program (((if (eq (env-get 1) nil) (env-set 1 (list (quote (a . 75))))) (env-get 1)))) (para ("Note that in the example c
+((endian newline (section 3 "lbm-endian" ((para ("`lbm-endian` returns the endianness of the system lbm is running on.")) (code ((lbm-endian))) nil)) newline hline) (pretty-toplevel-list closure (c) (match c (nil [0]) (((? x)) (str-merge (pretty nil 0 x)))
 ```
 
 
@@ -221,7 +221,7 @@ t
 <td>
 
 ```clj
-((is-read-eval-txt closure (x) (match x ((read-eval . _) t) (_ nil)) nil))
+((arch newline (section 3 "is-64bit" ((para ("`is-64bit` returns true if a 64bit version of lbm is running.")) (code ((is-64bit))) nil)) newline hline) (render-code-png-table closure (rend img colors c) (progn (rend "<table>\n") (rend "<tr>\n") (rend "<td>
 ```
 
 
@@ -239,7 +239,7 @@ t
 <td>
 
 ```clj
-((environment-drop newline (section 3 "env-drop" ((para ("drop a binding from an environment.")) (code ((env-drop (quote a) (quote ((a . 10) (b . 20) (c . 30)))))) nil)) newline hline) (pretty closure (toplevel ind c) (if (and toplevel (list? c)) (pretty-t
+((word newline (section 3 "word-size" ((para ("`word-size` returns 4 on 32bit LBM  and 8 on 64bits.")) (code ((word-size))) nil)) newline hline) (code-disp closure (c) (list (quote code-disp) c) nil) (dot-it closure (i x) (match x (((? x) ? xs) (let ((node
 ```
 
 
@@ -257,7 +257,7 @@ t
 <td>
 
 ```clj
-((semantic-step closure (c1 c2 prop) (list (quote semantic-step) c1 c2 prop) nil) (code-disp closure (c) (list (quote code-disp) c) nil))
+((chapter-versioning section 2 "Version" ((newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline) (newline (section 3 "is-64bit" ((para ("`is-64bit` returns true
 ```
 
 
@@ -275,7 +275,7 @@ t
 <td>
 
 ```clj
-((local-environment-get newline (section 3 "local-env-get" ((para ("`local-env-get` can be used to reify, turn into value, the local environment.")) (code ((local-env-get))) (program (((let ((a 50)) (local-env-get))))) nil)) newline hline) (png-file closur
+((hide-em newline (section 3 "hide-trapped-error" ((para ("The default behavior is to print error messages even if the error is trapped." "Trapped errors can be hidden by calling this function at the beginning of a program.")) (code ((hide-trapped-error)))
 ```
 
 
@@ -293,7 +293,7 @@ t
 <td>
 
 ```clj
-((global-environment-size newline (section 3 "global-env-size" ((para ("Get the size (in number of bindings) of the global env.")) (code ((global-env-size))) nil)) newline hline) (str-merge-list closure (strings) (match strings (nil [0]) (((? s) ? ss) (str
+((show-em newline (section 3 "show-trapped-errors" ((para ("If you have hidden trapped errors they can be toggled back to being showed again" "using this function.")) (code ((show-trapped-error))) nil)) newline hline) (chapter-scheduling section 2 "Schedul
 ```
 
 
@@ -311,7 +311,7 @@ t
 <td>
 
 ```clj
-((chapter-environments section 2 "Environments" ((newline (section 3 "env-get" ((para ("`env-get` can be used to reify, turn into value, parts of the global environment." "The global environment is stored as a hashtable and an index into this hashtable" "i
+((chapter-errors section 2 "Errors" ((newline (section 3 "hide-trapped-error" ((para ("The default behavior is to print error messages even if the error is trapped." "Trapped errors can be hidden by calling this function at the beginning of a program.")) (
 ```
 
 
@@ -329,7 +329,7 @@ t
 <td>
 
 ```clj
-((symbol-table-size newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (render-it closure (rend ss) (match ss (nil (rend "\n")) ((section (? i) (? x) (? xs))
+((manual (section 1 "LispBM Runtime Extensions Reference Manual" ((para ("The runtime extensions, if present, can be either compiled" "in a minimal or a full mode." "In the minimal mode only `set-eval-quota` is present." "Minimal mode is the default when c
 ```
 
 
@@ -347,7 +347,7 @@ t
 <td>
 
 ```clj
-((symbol-table-size-flash newline (section 3 "symtab-size-flash" ((para ("`symtab-size-flash` returns the size in bytes of the portion of the symbol table" "that is stored in flash.")) (code ((symtab-size-flash))) nil)) newline hline) (render closure (rend
+((render-manual closure nil (let ((h (f-open "runtimeref.md" "w")) (r (lambda (s) (f-write-str h s)))) (progn (gc) (var t0 (systime)) (render r manual) (print "Runtime reference manual was generated in " (secs-since t0) " seconds"))) nil) (render-dot closu
 ```
 
 
@@ -365,7 +365,7 @@ t
 <td>
 
 ```clj
-((symbol-table-size-names newline (section 3 "symtab-size-names" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table.")) (code ((symtab-size-names))) nil)) newline hline) (render-code-raw-table closure (r
+((chapter-threads section 2 "Threads" ((newline (section 3 "mailbox-get" ((para ("`mailbox-get` returns the mailbox contents of a thread as a list." "The form of a `mailbox-get` expression is `(mailbox-get pid)`." "Note that `mailbox-get` does **NOT** empt
 ```
 
 
@@ -383,7 +383,7 @@ t
 <td>
 
 ```clj
-((symbol-table-size-names-flash newline (section 3 "symtab-size-names-flash" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table in flash.")) (code ((symtab-size-names-flash))) nil)) newline hline) (rende
+((num-free newline (section 3 "mem-num-free" ((para ("`mem-num-free` returns the number of free words in the LBM memory." "This is the memory where arrays and strings are stored.")) (code ((mem-num-free))) nil)) newline hline) (render-program-disp-table cl
 ```
 
 
@@ -401,7 +401,7 @@ t
 <td>
 
 ```clj
-((chapter-symboltable section 2 "Symbol table" ((newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (newline (section 3 "symtab-size-flash" ((para ("`symtab-
+((longest-free newline (section 3 "mem-longest-free" ((para ("`mem-longest-free` returns the length in words of the longest" "consecutive sequence of free words in the LBM memory.")) (code ((mem-num-free))) nil)) newline hline) (table closure (header data)
 ```
 
 
@@ -419,7 +419,7 @@ t
 <td>
 
 ```clj
-((version newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline) (table closure (header data) (list (quote table) header data) nil) (render-program-res-pairs clo
+((memory-size newline (section 3 "mem-size" ((para ("`mem-size` returns the size of the LBM memory.")) (code ((mem-size))) nil)) newline hline))
 ```
 
 
@@ -437,7 +437,7 @@ t
 <td>
 
 ```clj
-((endian newline (section 3 "lbm-endian" ((para ("`lbm-endian` returns the endianness of the system lbm is running on.")) (code ((lbm-endian))) nil)) newline hline) (render-code-res-raw-pairs closure (rend cs) (match cs (nil t) (((? x) ? xs) (let ((x-str (
+((heap-state newline (section 3 "lbm-heap-state" ((para ("`lbm-heap-state` can be used to query information about heap usage.")) (code ((lbm-heap-state (quote get-heap-size)) (lbm-heap-state (quote get-heap-bytes)) (lbm-heap-state (quote get-num-alloc-cell
 ```
 
 
@@ -455,7 +455,7 @@ t
 <td>
 
 ```clj
-((arch newline (section 3 "is-64bit" ((para ("`is-64bit` returns true if a 64bit version of lbm is running.")) (code ((is-64bit))) nil)) newline hline) (render-program-table closure (rend c) (progn (rend "<table>\n") (rend "<tr>\n") (rend "<td> Example </t
+((chapter-memory section 2 "Memory" ((newline (section 3 "mem-num-free" ((para ("`mem-num-free` returns the number of free words in the LBM memory." "This is the memory where arrays and strings are stored.")) (code ((mem-num-free))) nil)) newline hline) (n
 ```
 
 
@@ -473,7 +473,7 @@ t
 <td>
 
 ```clj
-((word newline (section 3 "word-size" ((para ("`word-size` returns 4 on 32bit LBM  and 8 on 64bits.")) (code ((word-size))) nil)) newline hline) (tagged-section closure (i str tags strings) (list (quote tagged-section) i str tags strings) nil) (render-prog
+((gc-stack newline (section 3 "set-gc-stack-size" ((para ("With `set-gc-stack-size` you can change the size of the stack used for heap traversal" "by the garbage collector.")) (code ((set-gc-stack-size 100))) nil)) newline hline) (png-count . 0) (render-co
 ```
 
 
@@ -491,7 +491,7 @@ t
 <td>
 
 ```clj
-((chapter-versioning section 2 "Version" ((newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline) (newline (section 3 "is-64bit" ((para ("`is-64bit` returns true
+((gc-is-always-gc newline (section 3 "is-always-gc" ((para ("The `is-always-gc` predicate is true if LBM is built with the LBM_ALWAYS_GC debug flag.")) (code ((is-always-gc))) nil)) newline hline) (pic-prefix . [0]))
 ```
 
 
@@ -509,7 +509,7 @@ t
 <td>
 
 ```clj
-((hide-em newline (section 3 "hide-trapped-error" ((para ("The default behavior is to print error messages even if the error is trapped." "Trapped errors can be hidden by calling this function at the beginning of a program.")) (code ((hide-trapped-error)))
+((chapter-gc section 2 "GC" ((newline (section 3 "set-gc-stack-size" ((para ("With `set-gc-stack-size` you can change the size of the stack used for heap traversal" "by the garbage collector.")) (code ((set-gc-stack-size 100))) nil)) newline hline) (newlin
 ```
 
 
@@ -527,7 +527,7 @@ t
 <td>
 
 ```clj
-((show-em newline (section 3 "show-trapped-errors" ((para ("If you have hidden trapped errors they can be toggled back to being showed again" "using this function.")) (code ((show-trapped-error))) nil)) newline hline) (chapter-scheduling section 2 "Schedul
+((environment-get newline (section 3 "env-get" ((para ("`env-get` can be used to reify, turn into value, parts of the global environment." "The global environment is stored as a hashtable and an index into this hashtable" "is used to extract the bindings s
 ```
 
 
@@ -545,7 +545,7 @@ t
 <td>
 
 ```clj
-((chapter-errors section 2 "Errors" ((newline (section 3 "hide-trapped-error" ((para ("The default behavior is to print error messages even if the error is trapped." "Trapped errors can be hidden by calling this function at the beginning of a program.")) (
+((environment-set newline (section 3 "env-set" ((para ("`env-set` destructively sets an entry in the global environment hashtable.")) (program (((if (eq (env-get 1) nil) (env-set 1 (list (quote (a . 75))))) (env-get 1)))) (para ("Note that in the example c
 ```
 
 
@@ -563,7 +563,7 @@ t
 <td>
 
 ```clj
-((manual (section 1 "LispBM Runtime Extensions Reference Manual" ((para ("The runtime extensions, if present, can be either compiled" "in a minimal or a full mode." "In the minimal mode only `set-eval-quota` is present." "Minimal mode is the default when c
+((render-program-res-pairs closure (rend cs) (match cs (nil t) (((? x) ? xs) (let ((x-str (if (is-read-eval-txt x) (ix x 1) (pretty (quote t) 0 x))) (x-code (if (is-read-eval-txt x) (read-program (ix x 1)) x)) (res (eval-program x-code)) (res-str (to-str r
 ```
 
 
@@ -581,7 +581,7 @@ t
 <td>
 
 ```clj
-((render-manual closure nil (let ((h (f-open "runtimeref.md" "w")) (r (lambda (s) (f-write-str h s)))) (progn (gc) (var t0 (systime)) (render r manual) (print "Runtime reference manual was generated in " (secs-since t0) " seconds"))) nil))
+((environment-drop newline (section 3 "env-drop" ((para ("drop a binding from an environment.")) (code ((env-drop (quote a) (quote ((a . 10) (b . 20) (c . 30)))))) nil)) newline hline) (gif-count . 0) (s+ closure (s ss) (cons s ss) nil) (tagged-section clo
 ```
 
 
@@ -599,7 +599,7 @@ t
 <td>
 
 ```clj
-((chapter-threads section 2 "Threads" ((newline (section 3 "mailbox-get" ((para ("`mailbox-get` returns the mailbox contents of a thread as a list." "The form of a `mailbox-get` expression is `(mailbox-get pid)`." "Note that `mailbox-get` does **NOT** empt
+((ref-entry closure (str strings-or-tags) (let ((tags (and (rest-args 0) strings-or-tags)) (strings (or (rest-args 0) strings-or-tags))) (list (quote newline) (if tags (tagged-section 3 str tags strings) (section 3 str strings)) (quote newline) (quote hlin
 ```
 
 
@@ -617,7 +617,7 @@ t
 <td>
 
 ```clj
-((num-free newline (section 3 "mem-num-free" ((para ("`mem-num-free` returns the number of free words in the LBM memory." "This is the memory where arrays and strings are stored.")) (code ((mem-num-free))) nil)) newline hline) (render-code-png-pairs closur
+((local-environment-get newline (section 3 "local-env-get" ((para ("`local-env-get` can be used to reify, turn into value, the local environment.")) (code ((local-env-get))) (program (((let ((a 50)) (local-env-get))))) nil)) newline hline) (verb closure (s
 ```
 
 
@@ -635,7 +635,7 @@ t
 <td>
 
 ```clj
-((longest-free newline (section 3 "mem-longest-free" ((para ("`mem-longest-free` returns the length in words of the longest" "consecutive sequence of free words in the LBM memory.")) (code ((mem-num-free))) nil)) newline hline) (render-program-disp-table c
+((global-environment-size newline (section 3 "global-env-size" ((para ("Get the size (in number of bindings) of the global env.")) (code ((global-env-size))) nil)) newline hline) (render-code-disp-pairs closure (rend cs) (match cs (nil t) (((? x) ? xs) (le
 ```
 
 
@@ -653,7 +653,7 @@ t
 <td>
 
 ```clj
-((memory-size newline (section 3 "mem-size" ((para ("`mem-size` returns the size of the LBM memory.")) (code ((mem-size))) nil)) newline hline) (pretty-list closure (n c) (match c (nil [0]) (((? x)) (str-merge (pretty nil n x))) (((? x) ? y) (let ((first-s
+((chapter-environments section 2 "Environments" ((newline (section 3 "env-get" ((para ("`env-get` can be used to reify, turn into value, parts of the global environment." "The global environment is stored as a hashtable and an index into this hashtable" "i
 ```
 
 
@@ -690,7 +690,7 @@ t
 
 
 ```clj
-((chapter-memory section 2 "Memory" ((newline (section 3 "mem-num-free" ((para ("`mem-num-free` returns the number of free words in the LBM memory." "This is the memory where arrays and strings are stored.")) (code ((mem-num-free))) nil)) newline hline) (n
+((symbol-table-size-flash newline (section 3 "symtab-size-flash" ((para ("`symtab-size-flash` returns the size in bytes of the portion of the symbol table" "that is stored in flash.")) (code ((symtab-size-flash))) nil)) newline hline) (program closure (c) 
 ```
 
 
@@ -927,7 +927,7 @@ nil
 <td>
 
 ```clj
-120841
+120816
 ```
 
 
@@ -961,7 +961,7 @@ nil
 <td>
 
 ```clj
-120777
+120752
 ```
 
 
@@ -1297,7 +1297,7 @@ t
 <td>
 
 ```clj
-6992u
+7232u
 ```
 
 
@@ -1365,7 +1365,7 @@ t
 <td>
 
 ```clj
-6992u
+7232u
 ```
 
 
@@ -1426,7 +1426,7 @@ t
 <td>
 
 ```clj
-14296
+14335
 ```
 
 
@@ -1534,7 +1534,7 @@ t
 <td>
 
 ```clj
-(0 38 0)
+(0 40 0)
 ```
 
 
@@ -1615,5 +1615,5 @@ nil
 
 ---
 
-This document was generated by LispBM version 0.38.0 
+This document was generated by LispBM version 0.40.0 
 
