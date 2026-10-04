@@ -398,7 +398,7 @@ bool image_write(uint32_t w, int32_t ix, bool is_const_heap) { // ix >= 0 and ix
   //printf("write %x to ix %d\n",w, ix);
   if (image_storage[ix] == 0xffffffff) {
     image_storage[ix] = w;
-    if (persist_image && image_input_file) {
+    if (persist_image && image_input_file) { // Writes-through to the image file if specified.
       FILE *f = fopen(image_input_file, "r+b");
       if (f) {
         fseek(f, ix * (long)sizeof(uint32_t), SEEK_SET);
