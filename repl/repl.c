@@ -219,7 +219,7 @@ static char *history_file_path = NULL;
 
 void exit_on_alloc_failure(const void *mem) {
   if (mem == NULL) {
-    fprintf(stderr, "ERROR: Malloc failed.\n");
+    fprintf(stderr, "Error: Malloc failed.\n");
     exit(1);
   }
 }
@@ -246,7 +246,7 @@ static lbm_char_channel_t buffered_string_tok;
 // ////////////////////////////////////////////////////////////
 // Image
 
-#define IMAGE_STORAGE_SIZE              (128 * 1024) // bytes:
+#define IMAGE_STORAGE_DEFAULT_SIZE          (512 * 1024) // bytes:
 #ifdef LBM64
   #ifdef LBM_WIN
     #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0x30000000  // Windows-safe address
@@ -264,7 +264,7 @@ static lbm_char_channel_t buffered_string_tok;
 
 static char *image_input_file = NULL;
 static bool persist_image = false;
-static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
+static size_t   image_storage_size = IMAGE_STORAGE_DEFAULT_SIZE;
 static uint32_t *image_storage = NULL;
 
 // ////////////////////////////////////////////////////////////
@@ -650,7 +650,6 @@ void sym_it(const char *str) {
 #define TERMINATE            0x0404
 #define SILENT_MODE          0x0405
 #define LOAD_IMAGE           0x0406
-#define PERSIST_IMAGE        0x0412
 #define VESCTCP              0x0407
 #define VESCTCP_PORT         0x0408
 #define VESCTCP_PROGRAM_FLASH_SIZE   0x0409
@@ -661,6 +660,8 @@ void sym_it(const char *str) {
 #define MCP_MODE             0x040F
 #define MCP_DOC_PATH         0x0410
 #define CAN_PORT             0x0411
+#define PERSIST_IMAGE        0x0412
+#define IMAGE_SIZE           0x0413
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -675,6 +676,7 @@ struct option options[] = {
   {"terminate", no_argument, NULL, TERMINATE},
   {"load_image", required_argument, NULL, LOAD_IMAGE},
   {"persist_image", no_argument, NULL, PERSIST_IMAGE},
+  {"image_size", required_argument, NULL, IMAGE_SIZE},
   {"silent", no_argument, NULL, SILENT_MODE},
   {"vesctcp",no_argument, NULL, VESCTCP},
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
@@ -792,6 +794,7 @@ void parse_opts(int argc, char **argv) {
              "                                      image is created and saved to that path.\n");
       printf("    --persist_image                   Write-through all image writes to the\n"\
              "                                      file specified by --load_image.\n");
+      printf("    --image_size=SIZE                 Specify the image size in bytes.\n");
       printf("\n");
       printf("    --mcp                             Start an MCP (Model Context Protocol) server\n"\
              "                                      on stdio for AI tool integration.\n");
@@ -854,6 +857,9 @@ void parse_opts(int argc, char **argv) {
       break;
     case PERSIST_IMAGE:
       persist_image = true;
+      break;
+    case IMAGE_SIZE:
+      image_storage_size = (size_t)atoi(optarg);
       break;
     case VESCTCP:
       vesctcp = true;
@@ -1004,7 +1010,61 @@ int init_repl(void) {
   lbm_set_printf_callback(printf_direct_callback);
   // print directly to stdout until the REPL is running
 
+  // If an image file is to be loaded, use its size to determine
+  // the image_storage_size.
+  if (image_input_file) {
+    FILE *f = fopen(image_input_file, "rb");
 
+    if (!f) {
+      printf("Unable to open file %s\n",image_input_file);
+      printf("Creating new image\n");
+    } else {
+
+      fseek(f, 0, SEEK_END);
+      size_t fsize = (size_t)ftell(f);
+      if (image_storage) {
+        if (image_storage_size != fsize) {
+          printf("Error: Incompatible image size\n");
+          return 0;
+        }
+      } else {
+        image_storage_size = fsize;
+      }
+      fclose(f);
+    }
+  }
+
+  // MMAP Image storage
+  if (!image_storage) {
+#ifdef LBM_WIN
+    LPVOID image_address = VirtualAlloc((LPVOID)IMAGE_FIXED_VIRTUAL_ADDRESS,
+                                        image_storage_size,
+                                        MEM_COMMIT | MEM_RESERVE,
+                                        PAGE_READWRITE);
+
+    if (image_address) {
+      printf("Image storage successfully allocated at %p\n", image_address);
+    } else {
+      DWORD error = GetLastError();
+      printf("VirtualAlloc failed for address %p: Windows error %lu\n",
+             IMAGE_FIXED_VIRTUAL_ADDRESS, error);
+      printf("Try running with Administrator privileges or disable Windows ASLR\n");
+      terminate_repl(REPL_EXIT_CRITICAL_ERROR);
+    }
+    image_storage = (uint32_t *)image_address;
+#else
+    image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
+                         image_storage_size,
+                         PROT_READ | PROT_WRITE,
+                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (((int)image_storage) == -1) {
+      printf("error mapping fixed location for flash emulation\n");
+      terminate_repl(REPL_EXIT_CRITICAL_ERROR);
+    } else if (image_storage != IMAGE_FIXED_VIRTUAL_ADDRESS) {
+      printf("Warning: Image is located at nonstandard address %p\n", (void*)image_storage);
+    }
+#endif
+  }
 
   //Load an image
   lbm_image_init(image_storage,
@@ -1028,7 +1088,7 @@ int init_repl(void) {
       fseek(f, 0, SEEK_END);
       size_t fsize = (size_t)ftell(f);
       rewind(f);
-      // assume image files <= 128k
+
       if (fsize > 0) {
         // Load file into mapped region. Could map file instead.
         size_t n = fread(image_storage, fsize, 1, f);
@@ -2886,7 +2946,7 @@ int main(int argc, char **argv) {
 
 
 #if defined(TEST_FT4232H_NAND_DRIVER) || defined(TEST_FT232H_NAND_DRIVER)
-  
+
 
 #ifdef TEST_FT4232H_NAND_DRIVER
   printf("NAND: opening FT4232H port A...\n");
@@ -2895,12 +2955,11 @@ int main(int argc, char **argv) {
 #ifdef TEST_FT232H_NAND_DRIVER
     printf("NAND: opening FT232H...\n");
   if (!nand_open()) {
-#endif    
+#endif
     printf("NAND: open failed\n");
   } else {
     printf("NAND: open OK\n");
-    
-    
+
     nand_reset();
 
     uint8_t id[3] = {0};
@@ -2979,45 +3038,15 @@ int main(int argc, char **argv) {
       }
     }
 
-    
+
     nand_close();
   }
 #endif
 
 
-  
   // ////////////////////////////////////////////////////////////
   // start timestamp cacher
   lbm_thread_create(&timestamp_thread, "timestamp", lbm_timestamp_cacher, NULL, LBM_THREAD_PRIO_NORMAL, 0);
-
-#ifdef LBM_WIN
-  LPVOID image_address = VirtualAlloc((LPVOID)IMAGE_FIXED_VIRTUAL_ADDRESS,
-                                      IMAGE_STORAGE_SIZE,
-                                      MEM_COMMIT | MEM_RESERVE,
-                                      PAGE_READWRITE);
-
-  if (image_address) {
-    printf("Image storage successfully allocated at %p\n", image_address);
-  } else {
-    DWORD error = GetLastError();
-    printf("VirtualAlloc failed for address %p: Windows error %lu\n",
-           IMAGE_FIXED_VIRTUAL_ADDRESS, error);
-    printf("Try running with Administrator privileges or disable Windows ASLR\n");
-    terminate_repl(REPL_EXIT_CRITICAL_ERROR);
-  }
-  image_storage = (uint32_t *)image_address;
-#else
-  image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
-                       IMAGE_STORAGE_SIZE,
-                       PROT_READ | PROT_WRITE,
-                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  if (((int)image_storage) == -1) {
-    printf("error mapping fixed location for flash emulation\n");
-    terminate_repl(REPL_EXIT_CRITICAL_ERROR);
-  } else if (image_storage != IMAGE_FIXED_VIRTUAL_ADDRESS) {
-    printf("Warning: Image is located at nonstandard address %p\n", (void*)image_storage);
-  }
-#endif
 
   parse_opts(argc, argv);
 
