@@ -247,9 +247,16 @@
                      (list
                       (list "`'(filled)`" "Solid triangles instead of the default wireframe outlines.")
                       (list "`'(no-backface-cull)`" "Keep back-facing triangles, which are culled by default.")
+                      (list "`'(light-source x y z)`"
+                            (str-merge "Enables flat directional lighting. `x y z` need not be pre-normalized - the direction is normalized internally. "
+                                       "Implies backface culling regardless of `'(no-backface-cull)` appearing anywhere in the attribute list. "
+                                       "See `tiny3d-set-light-vec` to change the direction after creation."))
+                      (list "`'(ambient a)`"
+                            (str-merge "Base brightness floor in `[0, 1]`, blended with the directional term - `0`: fully off, unlit faces are black; `1`: fully lit regardless of angle. "
+                                       "Requires `'(light-source ...)` also be given. See `tiny3d-set-ambiance` to change it after creation."))
                       (list "`'(dither-2)` `'(dither-4)` `'(dither-8)`"
                             (str-merge "Ordered (Bayer) dithering between shade bands instead of rounding to the nearest one, using a 2x2, 4x4, or 8x8 threshold matrix. "
-                                       "Only has an effect on indexed (`indexed2`/`indexed4`/`indexed16`) image buffers with `'(light-source ...)` also given; silently does nothing otherwise. At most one may be given."))))
+                                       "Only has an effect on indexed (`indexed4`/`indexed16`) image buffers with `'(light-source ...)` also given; silently does nothing otherwise (`indexed2` is always unlit, same as unindexed formats without a light source). At most one may be given."))))
               (para (list "Each option is its own separate `'(name)` argument, the same"
                           "convention used by the `img-*` drawing functions - for example"
                           "`'(filled) '(no-backface-cull)`, not `'(filled no-backface-cull)`."
@@ -263,6 +270,30 @@
               (para (list "Top to bottom: default (wireframe, backface-culled), `'(filled)`,"
                           "`'(filled) '(no-backface-cull)`."
                           ))
+              end)))
+
+(define entry-tiny3d-set-light-vec
+  (ref-entry "tiny3d-set-light-vec"
+             (list
+              (para (list "Changes a state's light direction in place. `dir` need not be"
+                          "pre-normalized - same as the `'(light-source ...)` option it updates."
+                          "Returns `nil` without error if `state` was not created with"
+                          "`'(light-source ...)` in the first place, since there is then no"
+                          "direction to update."
+                          "The form of a `tiny3d-set-light-vec` expression is `(tiny3d-set-light-vec state dir)`."
+                          ))
+              (code-str (list "(tiny3d-set-light-vec my-state (list 1.0 1.0 0.0))"))
+              end)))
+
+(define entry-tiny3d-set-ambiance
+  (ref-entry "tiny3d-set-ambiance"
+             (list
+              (para (list "Changes a state's ambient brightness floor in place, same `[0, 1]`"
+                          "range as the `'(ambient a)` option. Returns `nil` without error if"
+                          "`state` was not created with `'(light-source ...)`."
+                          "The form of a `tiny3d-set-ambiance` expression is `(tiny3d-set-ambiance state a)`."
+                          ))
+              (code-str (list "(tiny3d-set-ambiance my-state 0.2)"))
               end)))
 
 (define entry-tiny3d-render
@@ -407,6 +438,8 @@
                   entry-tiny3d-instance-orient
                   entry-tiny3d-instance-scale
                   entry-tiny3d-state-create
+                  entry-tiny3d-set-light-vec
+                  entry-tiny3d-set-ambiance
                   entry-tiny3d-render
                   entry-tiny3d-cull
                   ))

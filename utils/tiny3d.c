@@ -553,7 +553,7 @@ static inline void swap_val3(int32_t a[3], int32_t b[3]) {
 // Essentially h_line for Gouraud
 static void gouraud_row(image_buffer_t *img, int y, int xa, int xb,
                          const int32_t va[3], const int32_t vb[3], int n,
-                         tiny3d_dither_t dither) {
+                         tiny3d_dither_t dither, int32_t index_max) {
   int lo = MIN(xa, xb), hi = MAX(xa, xb);
   const int32_t *v_lo = (xa <= xb) ? va : vb;
   const int32_t *v_hi = (xa <= xb) ? vb : va;
@@ -580,7 +580,8 @@ static void gouraud_row(image_buffer_t *img, int y, int xa, int xb,
       int32_t resolved = (v[0] + 128) >> 8;
       int32_t idx_lo = resolved >> 16;
       int32_t ratio_q16 = resolved & 0xFFFF;
-      uint32_t idx = dither_pick(x, y, ratio_q16, dither) ? (uint32_t)(idx_lo + 1) : (uint32_t)idx_lo;
+      bool pick_hi = idx_lo < index_max && dither_pick(x, y, ratio_q16, dither);
+      uint32_t idx = pick_hi ? (uint32_t)(idx_lo + 1) : (uint32_t)idx_lo;
       putpixel(img, x, y, idx);
     }
     for (int k = 0; k < n; k++) {
@@ -594,7 +595,7 @@ static void fill_triangle_gouraud(image_buffer_t *img,
                                    int x0, int y0, int32_t val0[3],
                                    int x1, int y1, int32_t val1[3],
                                    int x2, int y2, int32_t val2[3],
-                                   int n, tiny3d_dither_t dither) {
+                                   int n, tiny3d_dither_t dither, int32_t index_max) {
   if (y0 > y1) {
     swap_points(&x0, &y0, &x1, &y1);
     swap_val3(val0, val1);
@@ -635,7 +636,7 @@ static void fill_triangle_gouraud(image_buffer_t *img,
         rv_long[k] = v_long[k] >> 8;
         rv_short[k] = v_short[k] >> 8;
       }
-      gouraud_row(img, y, (int)(x_long >> 8), (int)(x_short >> 8), rv_long, rv_short, n, dither);
+      gouraud_row(img, y, (int)(x_long >> 8), (int)(x_short >> 8), rv_long, rv_short, n, dither, index_max);
       x_long += dx_long;
       x_short += dx_short;
       for (int k = 0; k < n; k++) {
@@ -661,7 +662,7 @@ static void fill_triangle_gouraud(image_buffer_t *img,
         rv_long[k] = v_long[k] >> 8;
         rv_short[k] = v_short[k] >> 8;
       }
-      gouraud_row(img, y, (int)(x_long >> 8), (int)(x_short >> 8), rv_long, rv_short, n, dither);
+      gouraud_row(img, y, (int)(x_long >> 8), (int)(x_short >> 8), rv_long, rv_short, n, dither, index_max);
       x_long += dx_long;
       x_short += dx_short;
       for (int k = 0; k < n; k++) {
@@ -676,7 +677,7 @@ static void fill_triangle_gouraud(image_buffer_t *img,
       rv_long[k] = v_long[k] >> 8;
       rv_end[k] = val1[k];
     }
-    gouraud_row(img, y1, (int)(x_long >> 8), x1, rv_long, rv_end, n, dither);
+    gouraud_row(img, y1, (int)(x_long >> 8), x1, rv_long, rv_end, n, dither, index_max);
   }
 }
 
@@ -687,7 +688,7 @@ static void fill_triangle_gouraud_rgb(image_buffer_t *img,
   int32_t val0[3] = { (int32_t)((color0 >> 16) & 0xFF), (int32_t)((color0 >> 8) & 0xFF), (int32_t)(color0 & 0xFF) };
   int32_t val1[3] = { (int32_t)((color1 >> 16) & 0xFF), (int32_t)((color1 >> 8) & 0xFF), (int32_t)(color1 & 0xFF) };
   int32_t val2[3] = { (int32_t)((color2 >> 16) & 0xFF), (int32_t)((color2 >> 8) & 0xFF), (int32_t)(color2 & 0xFF) };
-  fill_triangle_gouraud(img, x0, y0, val0, x1, y1, val1, x2, y2, val2, 3, TINY3D_DITHER_NONE);
+  fill_triangle_gouraud(img, x0, y0, val0, x1, y1, val1, x2, y2, val2, 3, TINY3D_DITHER_NONE, 0);
 }
 
 static void fill_triangle_gouraud_index(image_buffer_t *img,
@@ -697,18 +698,18 @@ static void fill_triangle_gouraud_index(image_buffer_t *img,
   int32_t val0[3] = { value0, 0, 0 };
   int32_t val1[3] = { value1, 0, 0 };
   int32_t val2[3] = { value2, 0, 0 };
-  fill_triangle_gouraud(img, x0, y0, val0, x1, y1, val1, x2, y2, val2, 1, TINY3D_DITHER_NONE);
+  fill_triangle_gouraud(img, x0, y0, val0, x1, y1, val1, x2, y2, val2, 1, TINY3D_DITHER_NONE, 0);
 }
 
 static void fill_triangle_gouraud_index_dither(image_buffer_t *img,
                                                 int x0, int y0, int32_t value0,
                                                 int x1, int y1, int32_t value1,
                                                 int x2, int y2, int32_t value2,
-                                                tiny3d_dither_t size) {
+                                                tiny3d_dither_t size, int32_t index_max) {
   int32_t val0[3] = { value0, 0, 0 };
   int32_t val1[3] = { value1, 0, 0 };
   int32_t val2[3] = { value2, 0, 0 };
-  fill_triangle_gouraud(img, x0, y0, val0, x1, y1, val1, x2, y2, val2, 1, size);
+  fill_triangle_gouraud(img, x0, y0, val0, x1, y1, val1, x2, y2, val2, 1, size, index_max);
 }
 
 // Back faces are culled by a triangle winding order convention.
@@ -905,7 +906,7 @@ static void render_instance(tiny3d_state_t *state, const tiny3d_instance_t *inst
           int32_t idx2 = clipped[c].vi2 * state->index_max;
           if (state->dither != TINY3D_DITHER_NONE) {
             fill_triangle_gouraud_index_dither(state->img, p0.x, p0.y, idx0, p1.x, p1.y, idx1,
-                                                        p2.x, p2.y, idx2, state->dither);
+                                                        p2.x, p2.y, idx2, state->dither, state->index_max);
           } else {
             fill_triangle_gouraud_index(state->img, p0.x, p0.y, idx0, p1.x, p1.y, idx1, p2.x, p2.y, idx2);
           }
