@@ -63,6 +63,7 @@ CCFLAGS    += -DWITH_MCP
 REPL_SRC = $(LISPBM_SRC)\
            repl.c \
            repl_exts.c \
+           image_file.c \
            ../utils/crc.c \
            ../utils/packet.c \
            lbm_gnuplot.c \
