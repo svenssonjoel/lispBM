@@ -1114,6 +1114,9 @@ static void unlink_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
 /* End execution of the running context. */
 static void finish_ctx(void) {
 
+  // Reset atomic status if this finish_ctx is part of an
+  // untrapper error or a self-kill within an atomic block.
+  is_atomic = false;
   if (!ctx_running) {
     return;
   }
