@@ -185,6 +185,13 @@
                         "i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures"
                         "out the largest type according to the ordering above and converts all"
                         "the values to this largest type."
+                        "On a 64bit platform the ordering is: `byte < i32 < u32 < i < u <"
+                        "i64 < u64 < float < double`."
+                        "For operations with more than two arguments, such as `(+ a b c)`, the largest type"
+                        "among all of the arguments is found first and the entire computation is"
+                        "performed in that type. The result is therefore independent of the order"
+                        "of the arguments, for example `(+ 200b 100b 1000)` and `(+ 1000 200b 100b)`"
+                        "both evaluate to 1300."
                         ))
             (para (list "Example:"
                         ))

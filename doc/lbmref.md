@@ -60,7 +60,7 @@ So for example:
 
 **Note** that it is an absolute requirement to include a decimal when writing a floating point literal in LBM. 
 
-We are trying to make type conversions feel familiar to people who know a bit of  C programming. On a 32bit platform LBM numerical types are ordered according to: `byte < i < u < i32 < u32 < i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures out the largest type according to the ordering above and converts all the values to this largest type. 
+We are trying to make type conversions feel familiar to people who know a bit of  C programming. On a 32bit platform LBM numerical types are ordered according to: `byte < i < u < i32 < u32 < i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures out the largest type according to the ordering above and converts all the values to this largest type. On a 64bit platform the ordering is: `byte < i32 < u32 < i < u < i64 < u64 < float < double`. For operations with more than two arguments, such as `(+ a b c)`, the largest type among all of the arguments is found first and the entire computation is performed in that type. The result is therefore independent of the order of the arguments, for example `(+ 200b 100b 1000)` and `(+ 1000 200b 100b)` both evaluate to 1300. 
 
 Example: 
 
@@ -9307,7 +9307,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 112157 kurt-russel)
+(exit-ok 112403 kurt-russel)
 ```
 
 
