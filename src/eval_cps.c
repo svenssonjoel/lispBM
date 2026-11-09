@@ -5908,6 +5908,10 @@ uint32_t lbm_get_eval_state(void) {
   return eval_cps_run_state;
 }
 
+uint32_t lbm_get_eval_state_requested(void) {
+  return eval_cps_next_state;
+}
+
 // Only unblocks threads that are unblockable.
 // A sleeping thread is not unblockable.
 static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
@@ -6193,6 +6197,7 @@ bool lbm_eval_init(void) {
   ctx_running = NULL;
 
   eval_cps_run_state = EVAL_CPS_STATE_RUNNING;
+  eval_cps_next_state = EVAL_CPS_STATE_RUNNING;
 
   lbm_mutex_unlock(&lbm_events_mutex);
   lbm_mutex_unlock(&qmutex);

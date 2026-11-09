@@ -260,6 +260,19 @@ void lbm_kill_eval(void);
  * \return Current state of the evaluator.
  */
 uint32_t lbm_get_eval_state(void);
+/** Get the most recently requested state of the evaluator.
+ * The request (from lbm_pause_eval, lbm_continue_eval, lbm_reset_eval or
+ * lbm_kill_eval) may not yet have taken effect, so this can differ from
+ * lbm_get_eval_state. After lbm_eval_init it is EVAL_CPS_STATE_RUNNING.
+ *
+ * Use this to preserve pause/resume intent across a temporary pause, e.g.
+ * only call lbm_continue_eval afterwards if the requested state was not
+ * EVAL_CPS_STATE_PAUSED. Reading the state and then pausing is not atomic,
+ * so this assumes a single thread controls the evaluator state.
+ *
+ * \return Most recently requested state of the evaluator.
+ */
+uint32_t lbm_get_eval_state_requested(void);
 /** Provide a description of an error as a string.
  *  Use when implementing for example extensions to
  *  report an error message to the programmer in case
